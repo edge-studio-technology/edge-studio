@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Frontend typography follows ESDS foundations: Hanken Grotesk + Azeret Mono, with complete named type utilities (`type-meta`, `type-body`, `type-body-em`, `type-link`, `type-callout`, `type-title`, `type-heading`, `type-display`, `type-mono`). Shared `Text` / `Section` helpers use those styles.
 - Frontend corner-radius tokens follow ESDS foundations (`rounded-sharp`, `rounded-tight`, `rounded-loose`, `rounded-interior`, `rounded-exterior`, `rounded-full`). Components and pages are not migrated yet.
 - Frontend spacing tokens follow ESDS foundations (detail / separator / margin scales). Components and pages are not migrated yet.
+- Shared `Button` / `IconButton` follow the ESDS button matrices (text button + circular icon button, tokens, focus ring). Call-site migration and aria notes are in `docs/frontend-design-system.md`.
 
 ## [0.23.0] - 2026-07-27
 

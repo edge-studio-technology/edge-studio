@@ -195,7 +195,7 @@ body {
   margin: 0;
 }
 
-button,
+/* button,
 input,
 textarea {
   font: inherit;
@@ -208,7 +208,7 @@ button {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
-}
+} */
 
 code {
   display: block;
@@ -222,7 +222,7 @@ code {
   word-break: break-all;
 }
 
-input,
+/* input,
 textarea,
 select {
   width: 100%;
@@ -236,4 +236,4 @@ select {
 textarea {
   resize: vertical;
   font-family: var(--font-mono);
-}
+} */

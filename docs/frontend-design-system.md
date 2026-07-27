@@ -40,7 +40,7 @@ Use these before writing bespoke markup:
 - `Page`: route-level header, title, eyebrow, and optional action.
 - `Card`: primary white card surface.
 - `Section`: grouped content block inside a page.
-- `Button` / `IconButton`: button variants and icon-only actions.
+- `Button` / `IconButton`: ESDS button variants and icon-only actions (see below).
 - `ButtonRow`: wrapping button groups.
 - `Pill`: compact status/category label.
 - `Text`: shared muted, error, and eyebrow text helpers.
@@ -54,6 +54,70 @@ Use these before writing bespoke markup:
 - `JsonPreview`: formatted JSON/code preview surface.
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
+
+### Button / IconButton
+
+#### Text `Button`
+
+ESDS matrix: Primary, Secondary, Tertiary (`ghost`), Accent × Default (`md` 44px) / Compact (`sm` 32px). App-only variants: `danger`, `onDark`.
+
+| Prop                    | Values                                                                  | Notes                                                                                 |
+| ----------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `variant`               | `primary` \| `secondary` \| `ghost` \| `accent` \| `danger` \| `onDark` | Prefer ESDS four for new UI                                                           |
+| `size`                  | `md` (44px) \| `sm` / `xs` (32px)                                       | `xs` matches `sm` today; prefer `sm` for compact                                      |
+| `iconStart` / `iconEnd` | optional `ReactNode`                                                    | Leading/trailing icon slots (16px). Prefer these over stuffing icons into `children`. |
+
+Icons in `iconStart` / `iconEnd` are layout-only; keep the visible label in `children` so the accessible name stays clear. Mark decorative SVGs with `aria-hidden` when they add no meaning beyond the label.
+
+```tsx
+<Button variant="primary" iconEnd={<ArrowRightIcon aria-hidden />}>
+  Continue
+</Button>
+```
+
+#### Circular `IconButton`
+
+ESDS [Icon Button]: Primary / Secondary / Tertiary (`ghost`) × Default / Compact. Fully circular (`rounded-full`). No accent / danger / onDark.
+
+| Prop      | Values                                                                     | Notes                                          |
+| --------- | -------------------------------------------------------------------------- | ---------------------------------------------- |
+| `variant` | `primary` \| `secondary` \| `ghost`                                        | ESDS three only                                |
+| `size`    | `default` (40px circle, 20px glyph) \| `compact` (32px circle, 16px glyph) | Component sizes the glyph — omit lucide `size` |
+
+```tsx
+<IconButton variant="primary" size="default" aria-label="Open Integritas config" onClick={...}>
+  <SettingsIcon aria-hidden />
+</IconButton>
+```
+
+#### Accessibility (aria)
+
+- **`Button` with visible text:** the label in `children` is the accessible name. Do not add a redundant `aria-label` unless the visible text is incomplete (e.g. icon + ambiguous text).
+- **`IconButton` (icon-only):** always pass `aria-label` (or `aria-labelledby`) describing the action. `title` alone is not enough for screen readers.
+- Prefer `aria-label="Configure Minima"` over generic labels like `"Settings"` when the control is page-specific.
+- Keep `type="button"` unless the control submits a form (`type="submit"`).
+- Disabled actions use the native `disabled` attribute (component styles handle the look).
+
+```tsx
+<IconButton variant="primary" aria-label="Open Integritas config" onClick={...}>
+  <SettingsIcon aria-hidden />
+</IconButton>
+```
+
+#### When migrating call sites (TODO)
+
+When restyling a page or feature to ESDS buttons:
+
+1. Replace local button class constants (`primaryButtonClass`, etc.) with `<Button>` / `<IconButton>`.
+2. Remove `className` overrides that fight the component (`rounded-full`, custom `bg-*` / `px-*` / `py-*`). Use `variant` + `size` instead.
+3. Map old sizes: default actions → `md`; dense table/toolbars → `sm`. Replace `size="xs"` with `sm` when touching those files.
+4. Map old variants: tertiary/ghost stay `ghost`; brand purple CTAs → `accent` when appropriate.
+5. Prefer `iconStart` / `iconEnd` for leading/trailing icons instead of mixing icons into `children`.
+6. For `IconButton`, drop lucide `size={…}` (component owns 20/16px glyphs) and always set `aria-label` (known gap: Integritas page config).
+7. Prefer `md` for primary CTAs on touch / Pi UI; reserve `sm` for dense desktop rows.
+8. Do not restyle focus rings per page — shared `focus-visible` ring is intentional.
+9. After call sites stop needing `xs`, remove the `xs` size alias from `Button.tsx`.
+10. Consider dropping global `button:disabled { opacity }` in `styles.css` once all buttons use this component (disabled look is colour-based).
 
 ## Page-Specific Layout
 
