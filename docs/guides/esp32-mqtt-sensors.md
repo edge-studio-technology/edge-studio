@@ -178,7 +178,15 @@ In this example:
 - Port is `/dev/ttyACM0`.
 - FQBN is `esp32:esp32:esp32_family`.
 
-If Arduino CLI does not identify the board, use the USB serial port such as `/dev/ttyUSB0`, `/dev/ttyACM0`, or `COM3`, and try the fallback FQBN `esp32:esp32:esp32`.
+If Arduino CLI does not identify the board, use the USB serial port such as `/dev/ttyUSB0`, `/dev/ttyACM0`, or `COM3`, and set the setup modal's Board FQBN field yourself. For the ESP32 family board detected in testing, use `esp32:esp32:esp32_family`.
+
+To see the installed ESP32 board targets:
+
+```bash
+~/bin/arduino-cli board listall esp32
+```
+
+This does not always identify the exact connected board. It lists the FQBN values available after installing the ESP32 core, so you can choose a generic or board-specific target.
 
 ### 5. Create The Sketch Folder
 
@@ -204,10 +212,10 @@ Use the FQBN from `board list` if one was printed:
 ~/bin/arduino-cli compile --fqbn esp32:esp32:esp32_family ~/esp32-integritas-sensor
 ```
 
-If no FQBN was printed, try the fallback:
+If no FQBN was printed, use the Board FQBN field from the setup modal. For the ESP32 family board detected in testing:
 
 ```bash
-~/bin/arduino-cli compile --fqbn esp32:esp32:esp32 ~/esp32-integritas-sensor
+~/bin/arduino-cli compile --fqbn esp32:esp32:esp32_family ~/esp32-integritas-sensor
 ```
 
 ### 7. Upload

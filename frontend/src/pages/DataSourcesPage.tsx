@@ -354,10 +354,12 @@ type FirmwareStepProps = {
 
 function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, onWifiPasswordChange }: FirmwareStepProps) {
   const [boardListOutput, setBoardListOutput] = useState("");
+  const [manualFqbn, setManualFqbn] = useState("esp32:esp32:esp32_family");
   const detectedBoard = detectEsp32Board(boardListOutput);
   const detectedPort = detectedBoard?.port ?? null;
   const detectedFqbn = detectedBoard?.fqbn ?? null;
-  const commands = esp32CliCommands(detectedPort ?? "/dev/ttyUSB0", detectedFqbn ?? "esp32:esp32:esp32");
+  const selectedFqbn = detectedFqbn ?? (manualFqbn.trim() || "esp32:esp32:esp32_family");
+  const commands = esp32CliCommands(detectedPort ?? "/dev/ttyUSB0", selectedFqbn);
 
   return (
     <div className="grid gap-3">
@@ -375,9 +377,13 @@ function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, o
       </SetupStep>
       <SetupStep index={4} title="Find The ESP32 Port">
           <CommandBlock value={commands.boardList} />
-          <div className="mt-2">Run the command, paste its output here, and the compile/upload/monitor commands below will use the detected port and board FQBN.</div>
+          <div className="mt-2">Run the command and paste its output here. If Arduino CLI prints an ESP32 FQBN, the compile/upload commands will use it. If not, set the Board FQBN field below.</div>
           <textarea className="mt-2 min-h-[110px] font-mono text-xs" value={boardListOutput} onChange={(event) => setBoardListOutput(event.target.value)} placeholder={'Port         Protocol Type              Board Name          FQBN                      Core\n/dev/ttyACM0 serial   Serial Port (USB) ESP32 Family Device esp32:esp32:esp32_family  esp32:esp32\n/dev/ttyAMA0 serial   Serial Port       Unknown'} />
-          {detectedBoard ? <div className="mt-2">Detected ESP32 port: <InlineCode>{detectedBoard.port}</InlineCode> and FQBN: <InlineCode>{detectedBoard.fqbn}</InlineCode></div> : <div className="mt-2">Look for a USB serial port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>. If the output includes an ESP32 FQBN, use that value for compile and upload.</div>}
+          {detectedBoard ? <div className="mt-2">Detected ESP32 port: <InlineCode>{detectedBoard.port}</InlineCode>{detectedBoard.fqbn ? <> and FQBN: <InlineCode>{detectedBoard.fqbn}</InlineCode></> : <>. No FQBN was printed, so the commands will use the Board FQBN field below.</>}</div> : <div className="mt-2">Look for a USB serial port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.</div>}
+          <div className="mt-3">If the board is shown as <InlineCode>Unknown</InlineCode>, list available ESP32 board targets and use the closest generic target:</div>
+          <CommandBlock value={commands.boardListAll} />
+          <label className="mt-3 grid gap-2 font-bold text-slate-700">Board FQBN<input value={detectedFqbn ?? manualFqbn} onChange={(event) => setManualFqbn(event.target.value)} disabled={Boolean(detectedFqbn)} placeholder="esp32:esp32:esp32_family" /></label>
+          <div className="mt-2">For your board-list output, use <InlineCode>esp32:esp32:esp32_family</InlineCode> if it is printed. If the board is unknown, this field is the value compile/upload will use.</div>
       </SetupStep>
       <SetupStep index={5} title="Create Sketch File">
           <div>Create the sketch folder and file, then paste the generated firmware below.</div>
@@ -385,7 +391,7 @@ function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, o
           <FirmwareStepContent firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={onWifiSsidChange} onWifiPasswordChange={onWifiPasswordChange} />
       </SetupStep>
       <SetupStep index={6} title="Compile Sketch">
-          <div>{detectedFqbn ? <>Using detected FQBN <InlineCode>{detectedFqbn}</InlineCode>.</> : <>Using fallback FQBN <InlineCode>esp32:esp32:esp32</InlineCode>. Paste the board list output in step 4 to update this command if Arduino CLI identifies your board.</>}</div>
+          <div>{detectedFqbn ? <>Using detected FQBN <InlineCode>{detectedFqbn}</InlineCode>.</> : <>Using Board FQBN <InlineCode>{selectedFqbn}</InlineCode> from step 4.</>}</div>
           <CommandBlock value={commands.compile} />
       </SetupStep>
       <SetupStep index={7} title="Upload Firmware">
@@ -455,6 +461,7 @@ function esp32CliCommands(port: string, fqbn: string) {
     ].join("\n"),
     installLibrary: `${cli} lib install PubSubClient`,
     boardList: `${cli} board list`,
+    boardListAll: `${cli} board listall esp32`,
     createSketch: [`mkdir -p ${sketchPath}`, `nano ${sketchPath}/esp32-integritas-sensor.ino`].join("\n"),
     compile: `${cli} compile --fqbn ${fqbn} ${sketchPath}`,
     upload: `${cli} upload -p ${port} --fqbn ${fqbn} ${sketchPath}`,
@@ -471,7 +478,7 @@ function detectEsp32Board(output: string) {
   if (!portMatch) return null;
 
   const fqbnMatch = line?.match(/\besp32:esp32:[a-z0-9_\-]+\b/i);
-  return { port: portMatch[1], fqbn: fqbnMatch?.[0] ?? "esp32:esp32:esp32" };
+  return { port: portMatch[1], fqbn: fqbnMatch?.[0] ?? null };
 }
 
 function esp32BrokerParts(capabilities: DataSourceCapabilities | null, fallbackBrokerUrl: string) {
