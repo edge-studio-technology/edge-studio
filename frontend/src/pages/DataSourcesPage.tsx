@@ -331,17 +331,15 @@ function ArduinoIdeSteps() {
   return (
     <div className="grid gap-3">
       <strong>Arduino IDE steps</strong>
-      <ol className="m-0 grid gap-3 pl-5">
-        <li>Install and open Arduino IDE on the flashing computer from <InlineCode>arduino.cc/en/software</InlineCode>.</li>
-        <li>Open <InlineCode>File -&gt; Preferences</InlineCode> and add this Boards Manager URL: <InlineCode>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</InlineCode>.</li>
-        <li>Open <InlineCode>Tools -&gt; Board -&gt; Boards Manager</InlineCode>, search for <InlineCode>esp32</InlineCode>, and install <InlineCode>esp32 by Espressif Systems</InlineCode>.</li>
-        <li>Open <InlineCode>Sketch -&gt; Include Library -&gt; Manage Libraries</InlineCode>, search for <InlineCode>PubSubClient</InlineCode>, and install it.</li>
-        <li>Create a new sketch, delete the default contents, paste the generated firmware below, and replace <InlineCode>YOUR_WIFI_NAME</InlineCode> and <InlineCode>YOUR_WIFI_PASSWORD</InlineCode>.</li>
-        <li>Select <InlineCode>Tools -&gt; Board -&gt; ESP32 Dev Module</InlineCode> if unsure, then select the ESP32 serial port under <InlineCode>Tools -&gt; Port</InlineCode>.</li>
-        <li>Click Upload. If it gets stuck at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts.</li>
-        <li>Open <InlineCode>Tools -&gt; Serial Monitor</InlineCode> at <InlineCode>115200</InlineCode> baud and look for Wi-Fi, MQTT, and Publishing messages.</li>
-        <li>Then create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</li>
-      </ol>
+      <SetupStep index={1} title="Install Arduino IDE">Install and open Arduino IDE on the flashing computer from <InlineCode>arduino.cc/en/software</InlineCode>.</SetupStep>
+      <SetupStep index={2} title="Add ESP32 Board Manager URL">Open <InlineCode>File -&gt; Preferences</InlineCode> and add this Boards Manager URL: <InlineCode>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</InlineCode>.</SetupStep>
+      <SetupStep index={3} title="Install ESP32 Board Support">Open <InlineCode>Tools -&gt; Board -&gt; Boards Manager</InlineCode>, search for <InlineCode>esp32</InlineCode>, and install <InlineCode>esp32 by Espressif Systems</InlineCode>.</SetupStep>
+      <SetupStep index={4} title="Install PubSubClient">Open <InlineCode>Sketch -&gt; Include Library -&gt; Manage Libraries</InlineCode>, search for <InlineCode>PubSubClient</InlineCode>, and install it.</SetupStep>
+      <SetupStep index={5} title="Paste Firmware And Wi-Fi">Create a new sketch, delete the default contents, paste the generated firmware below, and replace <InlineCode>YOUR_WIFI_NAME</InlineCode> and <InlineCode>YOUR_WIFI_PASSWORD</InlineCode>.</SetupStep>
+      <SetupStep index={6} title="Select Board And Port">Select <InlineCode>Tools -&gt; Board -&gt; ESP32 Dev Module</InlineCode> if unsure, then select the ESP32 serial port under <InlineCode>Tools -&gt; Port</InlineCode>.</SetupStep>
+      <SetupStep index={7} title="Upload Firmware">Click Upload. If it gets stuck at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts.</SetupStep>
+      <SetupStep index={8} title="Monitor Serial Output">Open <InlineCode>Tools -&gt; Serial Monitor</InlineCode> at <InlineCode>115200</InlineCode> baud and look for Wi-Fi, MQTT, and Publishing messages.</SetupStep>
+      <SetupStep index={9} title="Create Or Enable Workflow">Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</SetupStep>
     </div>
   );
 }
@@ -350,47 +348,49 @@ function ArduinoCliSteps({ commands }: { commands: ReturnType<typeof esp32CliCom
   return (
     <div className="grid gap-3">
       <strong>Arduino CLI steps</strong>
-      <ol className="m-0 grid gap-4 pl-5">
-        <li>
-          <div>Install Arduino CLI on the computer connected to the ESP32.</div>
+      <SetupStep index={1} title="Install Arduino CLI">
+          <div>Run this on the computer connected to the ESP32.</div>
           <CommandBlock value={commands.installCli} />
           <div className="mt-2">If the installer says <InlineCode>arduino-cli not found</InlineCode>, that is usually OK. Use <InlineCode>/home/pi/bin/arduino-cli</InlineCode> or <InlineCode>~/bin/arduino-cli</InlineCode> in commands.</div>
-        </li>
-        <li>
-          <div>Add ESP32 board support.</div>
+      </SetupStep>
+      <SetupStep index={2} title="Install ESP32 Core">
           <CommandBlock value={commands.installEsp32Core} />
-        </li>
-        <li>
-          <div>Install the MQTT library.</div>
+      </SetupStep>
+      <SetupStep index={3} title="Install PubSubClient">
           <CommandBlock value={commands.installLibrary} />
-        </li>
-        <li>
-          <div>Find the ESP32 serial port.</div>
+      </SetupStep>
+      <SetupStep index={4} title="Find The ESP32 Port">
           <CommandBlock value={commands.boardList} />
           <div className="mt-2">Look for a port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.</div>
-        </li>
-        <li>
+      </SetupStep>
+      <SetupStep index={5} title="Create Sketch File">
           <div>Create the sketch folder and file, then paste the generated firmware below.</div>
           <CommandBlock value={commands.createSketch} />
           <div className="mt-2">Replace <InlineCode>YOUR_WIFI_NAME</InlineCode> and <InlineCode>YOUR_WIFI_PASSWORD</InlineCode> before saving.</div>
-        </li>
-        <li>
-          <div>Compile the sketch.</div>
+      </SetupStep>
+      <SetupStep index={6} title="Compile Sketch">
           <CommandBlock value={commands.compile} />
-        </li>
-        <li>
-          <div>Upload to the ESP32. Replace <InlineCode>/dev/ttyUSB0</InlineCode> with your actual port.</div>
+      </SetupStep>
+      <SetupStep index={7} title="Upload Firmware">
+          <div>Replace <InlineCode>/dev/ttyUSB0</InlineCode> with your actual port.</div>
           <CommandBlock value={commands.upload} />
           <div className="mt-2">If it waits at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts.</div>
-        </li>
-        <li>
-          <div>Monitor serial output.</div>
+      </SetupStep>
+      <SetupStep index={8} title="Monitor Serial Output">
           <CommandBlock value={commands.monitor} />
           <div className="mt-2">Look for Wi-Fi connected, MQTT connected, and Publishing messages.</div>
-        </li>
-        <li>Then create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</li>
-      </ol>
+      </SetupStep>
+      <SetupStep index={9} title="Create Or Enable Workflow">Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</SetupStep>
     </div>
+  );
+}
+
+function SetupStep({ index, title, children }: { index: number; title: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-slate-200 pt-3 first:border-t-0 first:pt-0">
+      <h4 className="m-0 text-sm font-extrabold text-slate-800">{index}. {title}</h4>
+      <div className="mt-2 text-sm leading-6 text-slate-700">{children}</div>
+    </section>
   );
 }
 
