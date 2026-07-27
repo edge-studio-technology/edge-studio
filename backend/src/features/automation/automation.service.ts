@@ -25,6 +25,7 @@ import {
   type AutomationWorkflowRecord
 } from "./automation.repository.js";
 import { createAutomationBlockRun, createAutomationRun, finishAutomationBlockRun, finishAutomationRun, getAutomationRun, listAutomationBlockRuns, listAutomationRuns, listAutomationRunsForWorkflow, type AutomationBlockRunRecord, type AutomationRunListQuery, type AutomationRunRecord } from "./automationRuns.repository.js";
+import { createAutomationInboxItem } from "./automationInbox.repository.js";
 
 type WorkflowTriggerType = "manual" | "schedule" | "webhook" | "mqtt" | "gpio";
 
@@ -73,6 +74,9 @@ type WorkflowCondition = {
 
 type OutputBodyMode = "custom" | "workflow_context" | "trigger_payload" | "latest_data" | "latest_data_with_media" | "multipart_media" | "none";
 type VariableSource = "custom_json" | "trigger_field" | "latest_data_field" | "context_field";
+type PreviewFormat = "text" | "json" | "link" | "image";
+type PreviewContentMode = "custom" | "workflow_context" | "trigger_payload" | "latest_data";
+type PreviewImageSource = "url" | "local_path";
 
 const runningWorkflowIds = new Set<string>();
 const eventWorkflowLastAcceptedAt = new Map<string, number>();
@@ -264,7 +268,7 @@ function markEventWorkflowAccepted(workflowId: string, block: AutomationBlockRec
 }
 
 async function executeBlock(workflow: AutomationWorkflowRecord, block: AutomationBlockRecord, context: WorkflowContext, runId: string) {
-  const config = JSON.parse(block.config_json) as { sourceId?: string; targetId?: string; action?: string; durationMs?: number; bodyMode?: OutputBodyMode; bodyTemplate?: unknown; bodyTemplateText?: string; multipartFileField?: string; multipartJsonField?: string; multipartJsonText?: string; variableName?: string; variableSource?: VariableSource; valueJsonText?: string; source?: "trigger" | "variable"; fieldPath?: string; operator?: FieldCondition["operator"]; value?: unknown; condition?: FieldCondition | null; recipientAddressBookId?: string; tokenId?: string; amount?: string };
+  const config = JSON.parse(block.config_json) as { sourceId?: string; targetId?: string; action?: string; durationMs?: number; bodyMode?: OutputBodyMode; bodyTemplate?: unknown; bodyTemplateText?: string; multipartFileField?: string; multipartJsonField?: string; multipartJsonText?: string; variableName?: string; variableSource?: VariableSource; valueJsonText?: string; source?: "trigger" | "variable"; fieldPath?: string; operator?: FieldCondition["operator"]; value?: unknown; condition?: FieldCondition | null; recipientAddressBookId?: string; tokenId?: string; amount?: string; title?: string; previewFormat?: PreviewFormat; contentMode?: PreviewContentMode; contentTemplateText?: string; imageSource?: PreviewImageSource };
   const blockRun = createAutomationBlockRun({ runId, workflowId: workflow.id, blockId: block.id, orderIndex: block.order_index, blockType: block.type, blockLabel: blockLabel(block.type), input: contextSummary(context) });
 
   try {
@@ -280,6 +284,7 @@ async function executeBlock(workflow: AutomationWorkflowRecord, block: Automatio
     else if (block.type === "set_variable") setVariable(config, context);
     else if (block.type === "if_payload_field_equals") checkPayloadFieldEquals(config, context);
     else if (block.type === "wait") await wait(Number(config.durationMs ?? 0));
+    else if (block.type === "show_preview") showPreview(workflow, block, runId, config, context);
     else if (block.type === "stamp_integritas") status = await stampLatestHash(workflow, context, config.condition ?? null);
     else if (block.type === "control_output") await controlOutput(config, context);
     else if (block.type === "send_transaction") await sendTransaction(config, context, workflow);
@@ -300,7 +305,7 @@ function blockErrorType(blockType: string, error: unknown) {
   if (code === "ENOENT") return "command_unavailable";
   if (blockType === "stamp_integritas") return "stamp_failed";
   if (blockType === "if_payload_field_equals") return "condition_failed";
-  if (blockType === "capture_camera" || blockType === "control_output" || blockType === "send_transaction") return "action_failed";
+  if (blockType === "capture_camera" || blockType === "show_preview" || blockType === "control_output" || blockType === "send_transaction") return "action_failed";
   return "block_failed";
 }
 
@@ -392,6 +397,76 @@ function wait(durationMs: number) {
   return new Promise((resolve) => setTimeout(resolve, durationMs));
 }
 
+function showPreview(workflow: AutomationWorkflowRecord, block: AutomationBlockRecord, runId: string, config: { title?: string; previewFormat?: PreviewFormat; contentMode?: PreviewContentMode; contentTemplateText?: string; imageSource?: PreviewImageSource }, context: WorkflowContext) {
+  const format = config.previewFormat ?? "text";
+  const title = truncateText(interpolatePreviewText(config.title || "Workflow preview", context.variables), 120);
+  const content = resolvePreviewContent(config, context, format);
+  const renderedText = previewRenderedText(format, content);
+  const item = createAutomationInboxItem({ workflowId: workflow.id, workflowName: workflow.name, runId, blockId: block.id, title, format, content, renderedText });
+  context.output = { action: "show_preview", inboxItemId: item.id, title, format };
+}
+
+function resolvePreviewContent(config: { previewFormat?: PreviewFormat; contentMode?: PreviewContentMode; contentTemplateText?: string; imageSource?: PreviewImageSource }, context: WorkflowContext, format: PreviewFormat) {
+  const mode = config.contentMode ?? "custom";
+  if (mode === "workflow_context") return contextSummary(context);
+  if (mode === "trigger_payload") return context.trigger.payload ?? null;
+  if (mode === "latest_data") {
+    if (!context.data) throw new Error("Show preview latest data mode requires a prior record/fetch block");
+    return context.data.result.preview;
+  }
+
+  const text = interpolatePreviewText(config.contentTemplateText ?? defaultPreviewContent(format), context.variables);
+  if (format === "json") return JSON.parse(text) as unknown;
+  if (format === "link") return validateHttpUrl(text, "Link preview");
+  if (format === "image") return validateImageContent(text, config.imageSource ?? "url");
+  return text;
+}
+
+function validateImageContent(value: string, source: PreviewImageSource) {
+  const trimmed = value.trim();
+  if (!trimmed) throw new Error("Image preview requires a URL or local file path");
+  if (source === "url") return { source, value: validateHttpUrl(trimmed, "Image preview") };
+  return { source, value: trimmed };
+}
+
+function interpolatePreviewText(value: string, variables: Record<string, unknown>) {
+  const resolved = interpolateString(value, variables);
+  return typeof resolved === "string" ? resolved : stringifyTemplateValue(resolved);
+}
+
+function validateHttpUrl(value: string, label: string) {
+  const trimmed = value.trim();
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new Error(`${label} requires an http:// or https:// URL`);
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error(`${label} requires an http:// or https:// URL`);
+  return trimmed;
+}
+
+function defaultPreviewContent(format: PreviewFormat) {
+  if (format === "json") return "{}";
+  if (format === "link") return "https://integritas.technology";
+  if (format === "image") return "https://integritas.technology/favicon.ico";
+  return "Workflow preview";
+}
+
+function previewRenderedText(format: PreviewFormat, content: unknown) {
+  if (format === "text" || format === "link") return truncateText(String(content ?? ""), 240);
+  if (format === "image" && isImagePreviewContent(content)) return truncateText(`${content.source}: ${content.value}`, 240);
+  return truncateText(JSON.stringify(content), 240);
+}
+
+function isImagePreviewContent(value: unknown): value is { source: PreviewImageSource; value: string } {
+  return Boolean(value && typeof value === "object" && "source" in value && "value" in value);
+}
+
+function truncateText(value: string, maxLength: number) {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
+}
+
 function nextScheduleRunAt(block: AutomationBlockRecord) {
   const config = JSON.parse(block.config_json) as { intervalSeconds?: number };
   const intervalSeconds = Number(config.intervalSeconds ?? 0);
@@ -415,6 +490,7 @@ function blockLabel(type: string) {
   if (type === "if_payload_field_equals") return "If field matches";
   if (type === "fetch_data_source") return "Fetch data source";
   if (type === "capture_camera") return "Capture camera";
+  if (type === "show_preview") return "Show preview";
   if (type === "record_trigger_event") return "Record trigger event";
   if (type === "wait") return "Wait";
   return "Start workflow";

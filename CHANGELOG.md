@@ -124,6 +124,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Planned per-run workflow variables and output templating for reusable values in later workflow blocks.
 - Automation workflows now support per-run Set variable blocks and `{{variableName}}` interpolation in custom HTTP/MQTT output JSON.
 - Main workflow `If field matches` blocks can now read previously set workflow variables.
+- Automation workflows now support a `Show preview` action block that writes text, JSON, link, and image previews into a durable local Automation inbox.
+- Automation inbox image previews can reference either HTTP(S) image URLs or local file paths streamed through an authenticated backend route under the configured host files root.
 
 ### Changed
 
