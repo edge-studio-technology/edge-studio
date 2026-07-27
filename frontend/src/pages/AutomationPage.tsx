@@ -476,11 +476,24 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
   const nativeTokens = nativeMinimaTokens(walletStatus);
 
   if (block.type.endsWith("_start")) {
+    const selectedStartSource = startSources.find((source) => source.id === block.config.sourceId);
+    const isEventStart = block.type === "gpio_event_start" || block.type === "webhook_event_start" || block.type === "mqtt_event_start";
     return (
       <Panel className={formGridClass}>
         <strong>Selected start block</strong>
         <p className={mutedText}>{draftBlockTitle(block)}. To choose a different start block, reset the canvas.</p>
-        {block.type === "schedule_start" ? <label>Interval<select value={block.config.intervalSeconds ?? 60} onChange={(event) => onChange({ intervalSeconds: Number(event.target.value) })}>{intervals.map((interval) => <option key={interval} value={interval}>{formatInterval(interval)}</option>)}</select></label> : block.type === "manual_start" ? <p className={mutedText}>Manual workflows run only when you click Run now.</p> : <label>Start source<select value={block.config.sourceId ?? ""} onChange={(event) => onChange({ sourceId: event.target.value })}><option value="">Select source...</option>{startSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>}
+        {block.type === "schedule_start" ? <label>Interval<select value={block.config.intervalSeconds ?? 60} onChange={(event) => onChange({ intervalSeconds: Number(event.target.value) })}>{intervals.map((interval) => <option key={interval} value={interval}>{formatInterval(interval)}</option>)}</select></label> : block.type === "manual_start" ? <p className={mutedText}>Manual workflows run only when you click Run now.</p> : <label>Start source<select value={block.config.sourceId ?? ""} onChange={(event) => {
+          const source = startSources.find((item) => item.id === event.target.value);
+          onChange({ ...block.config, sourceId: event.target.value, activeOnly: source?.config.profile === "pir-motion" ? true : block.config.activeOnly, cooldownSeconds: source?.config.profile === "pir-motion" && !block.config.cooldownSeconds ? 60 : block.config.cooldownSeconds ?? 0 });
+        }}><option value="">Select source...</option>{startSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>}
+        {isEventStart && <>
+          <label>Cooldown between runs, seconds<input value={String(block.config.cooldownSeconds ?? 0)} inputMode="numeric" onChange={(event) => onChange({ ...block.config, cooldownSeconds: Number(event.target.value) })} /></label>
+          <p className={mutedText}>Cooldown ignores extra events for this workflow without creating run-log rows. Use 30-60 seconds for noisy motion sensors or notification outputs.</p>
+        </>}
+        {block.type === "gpio_event_start" && <>
+          <label className="grid grid-cols-[auto_minmax(0,1fr)] items-center justify-start gap-2.5"><input className="w-auto" type="checkbox" checked={Boolean(block.config.activeOnly)} onChange={(event) => onChange({ ...block.config, activeOnly: event.target.checked })} /> Only run when the GPIO event is active</label>
+          <p className={mutedText}>{selectedStartSource?.config.profile === "pir-motion" ? "Useful when this PIR watches both rising and falling edges: ignore motion_cleared and run only on motion_detected." : "Use this when inactive GPIO edges should not trigger the workflow."}</p>
+        </>}
       </Panel>
     );
   }
@@ -490,7 +503,7 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
       <Panel className={formGridClass}>
         <strong>Selected block</strong>
         <p className={mutedText}>Fetch JSON from an HTTP device/source.</p>
-        <label>HTTP source<select value={block.config.sourceId ?? ""} onChange={(event) => onChange({ sourceId: event.target.value })}><option value="">Select HTTP source...</option>{httpSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
+        <label>HTTP source<select value={block.config.sourceId ?? ""} onChange={(event) => onChange({ ...block.config, sourceId: event.target.value })}><option value="">Select HTTP source...</option>{httpSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
         <AttachedStampSettings block={block} onAttachedChange={onAttachedChange} onAttachedRemove={onAttachedRemove} />
       </Panel>
     );
@@ -555,7 +568,7 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
         <strong>Selected block</strong>
         <label>Output target<select value={block.config.targetId ?? ""} onChange={(event) => {
           const target = outputTargets.find((source) => source.id === event.target.value);
-          onChange(defaultOutputBlockConfig(target, block.config.durationMs ?? 500));
+          onChange(retargetOutputBlockConfig(block.config, target));
         }}><option value="">Select output target...</option>{outputTargets.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
         {selectedOutput?.type === "gpio-output" && <label>Pulse duration ms<input value={String(block.config.durationMs ?? 500)} inputMode="numeric" onChange={(event) => onChange({ ...block.config, action: "pulse", durationMs: Number(event.target.value) })} /></label>}
         {selectedOutput?.type === "gpio-output" && <p className={mutedText}>Selected device active state: <strong>{selectedOutput.config.activeState ?? "high"}</strong>. Use High for common GPIO to resistor to LED to GND wiring. Change this from Devices by editing the GPIO Output target.</p>}
@@ -638,7 +651,10 @@ function defaultDraftConfig(type: AutomationBlockType, sources: DataSource[], po
   if (type === "manual_start") return {};
   if (type === "fetch_data_source") return { sourceId: firstHttpSource(sources)?.id ?? "" };
   if (type === "capture_camera") return { sourceId: firstCameraSource(sources)?.id ?? "" };
-  if (type === "gpio_event_start" || type === "webhook_event_start" || type === "mqtt_event_start") return { sourceId: defaultSourceForStart(type, sources)?.id ?? "" };
+  if (type === "gpio_event_start" || type === "webhook_event_start" || type === "mqtt_event_start") {
+    const source = defaultSourceForStart(type, sources);
+    return { sourceId: source?.id ?? "", activeOnly: source?.config.profile === "pir-motion" ? true : undefined, cooldownSeconds: source?.config.profile === "pir-motion" ? 60 : 0 };
+  }
   if (type === "if_payload_field_equals") return { source: "trigger", fieldPath: "active", operator: "equals", value: true };
   if (type === "wait") return { durationMs: 1000 };
   if (type === "set_variable") return { variableName: "message", variableSource: "custom_json", valueJsonText: '"Button pressed"' };
@@ -1177,8 +1193,10 @@ function examplePayload(workflow: AutomationWorkflow) {
       workflowName: workflow.name,
       triggeredAt: now,
       chip: "gpiochip0",
-      pin: 17,
-      edge: "falling",
+      pin: 23,
+      profile: "pir-motion",
+      edge: "rising",
+      event: "motion_detected",
       active: true
     };
   }
@@ -1219,7 +1237,7 @@ function examplePayload(workflow: AutomationWorkflow) {
 function sourceLabel(source: DataSource) {
   if (source.type === "webhook") return "Webhook receive URL";
   if (source.type === "mqtt") return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
-  if (source.type === "gpio-input") return `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
+  if (source.type === "gpio-input") return `${source.config.profile === "pir-motion" ? "PIR motion " : ""}${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
   if (source.type === "gpio-output") return `${source.config.profile ?? "led"} ${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"} active:${source.config.activeState ?? "high"}`;
   if (source.type === "http-output") return `${source.config.method ?? "POST"} ${source.config.url ?? "HTTP output"}`;
   if (source.type === "mqtt-output") return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
@@ -1242,6 +1260,22 @@ function defaultOutputBlockConfig(source: DataSource | undefined, durationMs: nu
   if (source?.type === "http-output") return { targetId: source.id, action: "send_request", bodyMode: "custom", bodyTemplateText: defaultCustomBodyText() };
   if (source?.type === "mqtt-output") return { targetId: source.id, action: "publish", bodyMode: "workflow_context" };
   return { targetId: "", action: "pulse", durationMs };
+}
+
+function retargetOutputBlockConfig(config: AutomationBlock["config"], target: DataSource | undefined): AutomationBlock["config"] {
+  if (!target) return { ...config, targetId: "" };
+  if (target.type === "gpio-output") return { targetId: target.id, action: "pulse", durationMs: config.durationMs ?? 500 };
+  if (target.type !== "http-output" && target.type !== "mqtt-output") return { ...config, targetId: target.id };
+
+  const action = outputActionForTarget(target);
+  const bodyMode = compatibleBodyMode(config.bodyMode, target.type);
+  return outputBodyModeConfig({ ...config, targetId: target.id, action }, bodyMode, target.type);
+}
+
+function compatibleBodyMode(bodyMode: AutomationBlock["config"]["bodyMode"], targetType: "http-output" | "mqtt-output") {
+  if (!bodyMode) return targetType === "http-output" ? "custom" : "workflow_context";
+  if (targetType === "mqtt-output" && (bodyMode === "none" || bodyMode === "multipart_media")) return "workflow_context";
+  return bodyMode;
 }
 
 function outputBodyModeConfig(config: AutomationBlock["config"], bodyMode: NonNullable<AutomationBlock["config"]["bodyMode"]>, targetType: "http-output" | "mqtt-output"): AutomationBlock["config"] {
