@@ -289,8 +289,10 @@ export function DataSourcesPage() {
 }
 
 function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capabilities: DataSourceCapabilities | null }) {
+  const [flashMethod, setFlashMethod] = useState<"ide" | "cli">("ide");
   const broker = esp32BrokerParts(capabilities, source.config.brokerUrl ?? "mqtt://localhost:1883");
   const firmware = esp32Firmware({ deviceName: source.name, mqttHost: broker.host, mqttPort: broker.port, topic: source.config.topic ?? "sensors/esp32/data" });
+  const cliCommands = esp32CliCommands();
 
   return (
     <Card className="grid max-w-4xl gap-4">
@@ -307,13 +309,13 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
         <strong>Walkthrough</strong>
         <ol className="m-0 grid gap-2 pl-5">
           <li>Connect the ESP32 to the computer you will use for flashing, using a USB data cable. This can be a laptop, desktop, or Raspberry Pi.</li>
-          <li>Choose one flashing method: Arduino IDE for a graphical app, or Arduino CLI for terminal/Raspberry Pi/headless use.</li>
-          <li>Arduino IDE: install from <InlineCode>arduino.cc/en/software</InlineCode>, add ESP32 board support, install <InlineCode>PubSubClient</InlineCode>, paste the firmware, select board/port, and upload.</li>
-          <li>Arduino CLI: install <InlineCode>arduino-cli</InlineCode>, install <InlineCode>esp32:esp32</InlineCode> and <InlineCode>PubSubClient</InlineCode>, save the firmware as a sketch, compile, and upload to the ESP32 port.</li>
-          <li>Replace <InlineCode>YOUR_WIFI_NAME</InlineCode> and <InlineCode>YOUR_WIFI_PASSWORD</InlineCode> before flashing.</li>
-          <li>After upload, open Serial Monitor at <InlineCode>115200</InlineCode> baud and look for Wi-Fi, MQTT, and Publishing messages.</li>
-          <li>Then create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</li>
+          <li>Choose one flashing method below. Use Arduino IDE for a graphical app, or Arduino CLI for terminal/Raspberry Pi/headless use.</li>
         </ol>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant={flashMethod === "ide" ? "primary" : "secondary"} onClick={() => setFlashMethod("ide")}>Arduino IDE</Button>
+          <Button type="button" size="sm" variant={flashMethod === "cli" ? "primary" : "secondary"} onClick={() => setFlashMethod("cli")}>Arduino CLI</Button>
+        </div>
+        {flashMethod === "ide" ? <ArduinoIdeSteps /> : <ArduinoCliSteps commands={cliCommands} />}
       </div>
       <MutedText className="m-0">Full guide: <InlineCode>docs/guides/esp32-mqtt-sensors.md</InlineCode>. The starter sketch publishes placeholder temperature/humidity values; replace the sensor functions after the MQTT path works.</MutedText>
       <textarea className="min-h-[420px] font-mono text-xs" readOnly value={firmware} />
@@ -325,8 +327,106 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
   );
 }
 
+function ArduinoIdeSteps() {
+  return (
+    <div className="grid gap-3">
+      <strong>Arduino IDE steps</strong>
+      <ol className="m-0 grid gap-3 pl-5">
+        <li>Install and open Arduino IDE on the flashing computer from <InlineCode>arduino.cc/en/software</InlineCode>.</li>
+        <li>Open <InlineCode>File -&gt; Preferences</InlineCode> and add this Boards Manager URL: <InlineCode>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</InlineCode>.</li>
+        <li>Open <InlineCode>Tools -&gt; Board -&gt; Boards Manager</InlineCode>, search for <InlineCode>esp32</InlineCode>, and install <InlineCode>esp32 by Espressif Systems</InlineCode>.</li>
+        <li>Open <InlineCode>Sketch -&gt; Include Library -&gt; Manage Libraries</InlineCode>, search for <InlineCode>PubSubClient</InlineCode>, and install it.</li>
+        <li>Create a new sketch, delete the default contents, paste the generated firmware below, and replace <InlineCode>YOUR_WIFI_NAME</InlineCode> and <InlineCode>YOUR_WIFI_PASSWORD</InlineCode>.</li>
+        <li>Select <InlineCode>Tools -&gt; Board -&gt; ESP32 Dev Module</InlineCode> if unsure, then select the ESP32 serial port under <InlineCode>Tools -&gt; Port</InlineCode>.</li>
+        <li>Click Upload. If it gets stuck at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts.</li>
+        <li>Open <InlineCode>Tools -&gt; Serial Monitor</InlineCode> at <InlineCode>115200</InlineCode> baud and look for Wi-Fi, MQTT, and Publishing messages.</li>
+        <li>Then create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</li>
+      </ol>
+    </div>
+  );
+}
+
+function ArduinoCliSteps({ commands }: { commands: ReturnType<typeof esp32CliCommands> }) {
+  return (
+    <div className="grid gap-3">
+      <strong>Arduino CLI steps</strong>
+      <ol className="m-0 grid gap-4 pl-5">
+        <li>
+          <div>Install Arduino CLI on the computer connected to the ESP32.</div>
+          <CommandBlock value={commands.installCli} />
+          <div className="mt-2">If the installer says <InlineCode>arduino-cli not found</InlineCode>, that is usually OK. Use <InlineCode>/home/pi/bin/arduino-cli</InlineCode> or <InlineCode>~/bin/arduino-cli</InlineCode> in commands.</div>
+        </li>
+        <li>
+          <div>Add ESP32 board support.</div>
+          <CommandBlock value={commands.installEsp32Core} />
+        </li>
+        <li>
+          <div>Install the MQTT library.</div>
+          <CommandBlock value={commands.installLibrary} />
+        </li>
+        <li>
+          <div>Find the ESP32 serial port.</div>
+          <CommandBlock value={commands.boardList} />
+          <div className="mt-2">Look for a port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.</div>
+        </li>
+        <li>
+          <div>Create the sketch folder and file, then paste the generated firmware below.</div>
+          <CommandBlock value={commands.createSketch} />
+          <div className="mt-2">Replace <InlineCode>YOUR_WIFI_NAME</InlineCode> and <InlineCode>YOUR_WIFI_PASSWORD</InlineCode> before saving.</div>
+        </li>
+        <li>
+          <div>Compile the sketch.</div>
+          <CommandBlock value={commands.compile} />
+        </li>
+        <li>
+          <div>Upload to the ESP32. Replace <InlineCode>/dev/ttyUSB0</InlineCode> with your actual port.</div>
+          <CommandBlock value={commands.upload} />
+          <div className="mt-2">If it waits at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts.</div>
+        </li>
+        <li>
+          <div>Monitor serial output.</div>
+          <CommandBlock value={commands.monitor} />
+          <div className="mt-2">Look for Wi-Fi connected, MQTT connected, and Publishing messages.</div>
+        </li>
+        <li>Then create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</li>
+      </ol>
+    </div>
+  );
+}
+
+function CommandBlock({ value }: { value: string }) {
+  return (
+    <div className="mt-2 grid gap-2">
+      <textarea className="min-h-[92px] font-mono text-xs" readOnly value={value} />
+      <Button type="button" size="xs" variant="secondary" onClick={() => navigator.clipboard?.writeText(value)}>Copy commands</Button>
+    </div>
+  );
+}
+
 function InlineCode({ children }: { children: React.ReactNode }) {
   return <span className="break-all rounded bg-white px-1.5 py-0.5 font-mono text-[0.9em] text-slate-600">{children}</span>;
+}
+
+function esp32CliCommands() {
+  const cli = "~/bin/arduino-cli";
+  const sketchPath = "~/esp32-integritas-sensor";
+  const fqbn = "esp32:esp32:esp32";
+  const port = "/dev/ttyUSB0";
+  return {
+    installCli: "curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh",
+    installEsp32Core: [
+      `${cli} config init`,
+      `${cli} config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`,
+      `${cli} core update-index`,
+      `${cli} core install esp32:esp32`,
+    ].join("\n"),
+    installLibrary: `${cli} lib install PubSubClient`,
+    boardList: `${cli} board list`,
+    createSketch: [`mkdir -p ${sketchPath}`, `nano ${sketchPath}/esp32-integritas-sensor.ino`].join("\n"),
+    compile: `${cli} compile --fqbn ${fqbn} ${sketchPath}`,
+    upload: `${cli} upload -p ${port} --fqbn ${fqbn} ${sketchPath}`,
+    monitor: `${cli} monitor -p ${port} --config baudrate=115200`,
+  };
 }
 
 function esp32BrokerParts(capabilities: DataSourceCapabilities | null, fallbackBrokerUrl: string) {
