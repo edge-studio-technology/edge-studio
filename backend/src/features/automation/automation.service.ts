@@ -594,7 +594,6 @@ async function controlOutput(config: { targetId?: string; action?: string; durat
   }
 
   if (!result) throw new Error("Control output block requires an output target");
-  context.data = undefined;
   context.output = result;
   return result;
 }
@@ -740,7 +739,6 @@ async function sendTransaction(config: { recipientAddressBookId?: string; tokenI
 
   if (!result.ok || result.status === "failed") throw new Error(result.message ?? "Send transaction failed");
   context.output = { action: "sent_transaction", recipientId: recipient.id, recipientLabel: recipient.label, address: recipient.address, tokenId: "0x00", tokenName: "Minima", amount, txpowId: result.txpowId, status: result.status };
-  context.data = undefined;
   return result;
 }
 
