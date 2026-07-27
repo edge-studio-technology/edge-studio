@@ -62,6 +62,30 @@
 
   --color-overlay-light: #0000004d;
   --color-overlay-heavy: #000000b2;
+
+  /* ESDS corner radius (esds.radius.*) — use rounded-sharp|tight|loose|interior|exterior|full */
+  --radius-sharp: 0;
+  --radius-tight: 4px;
+  --radius-loose: 8px;
+  --radius-interior: 15px;
+  --radius-exterior: 24px;
+  --radius-full: 999px;
+
+  /* ESDS spacing (esds.spacing.*) — use with p-*, m-*, gap-*, etc. */
+  --spacing-detail-fine: 2px;
+  --spacing-detail-tight: 4px;
+  --spacing-detail-next: 8px;
+  --spacing-detail-close: 16px;
+  --spacing-detail-near: 24px;
+  --spacing-separator-related: 40px;
+  --spacing-separator-relaxed: 64px;
+  --spacing-separator-distant: 80px;
+  --spacing-separator-removed: 120px;
+  --spacing-margin-close: 8px;
+  --spacing-margin-tight: 16px;
+  --spacing-margin-relaxed: 40px;
+  --spacing-margin-distant: 80px;
+  --spacing-margin-removed: 120px;
 }
 
 /* ESDS named type styles (esds.type.*) — complete recipes: family + size + leading + tracking + weight */

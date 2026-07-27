@@ -84,9 +84,9 @@ Avoid exporting these constants or moving them into shared files unless more tha
 
 ## Tokens
 
-Colour and typography tokens follow Edge Studio Design System (ESDS) foundations. They are defined in `frontend/src/styles.css` (`@theme` for colour/font primitives; `@utility type-*` for named text styles).
+Colour, typography, corner-radius, and spacing tokens follow Edge Studio Design System (ESDS) foundations. They are defined in `frontend/src/styles.css` (`@theme` for colour/font/radius/spacing primitives; `@utility type-*` for named text styles).
 
-Prefer **semantic** colour tokens and **named type styles** in UI. Change hex / type metrics only in `styles.css`, not in component classes.
+Prefer **semantic** colour tokens, **named type styles**, and **ESDS radius/spacing utilities** in UI. Change hex / type metrics / radius / spacing values only in `styles.css`, not in component classes.
 
 ### Colour primitives (hex source of truth)
 
@@ -134,7 +134,57 @@ Named styles are **complete recipes** (family + size + line-height + letter-spac
 
 Pair type utilities with colour utilities (e.g. `type-body text-text-secondary`). Heading/Display use tight Figma leading — prefer short single-line titles; loosen only with design approval.
 
-Use Tailwind defaults for spacing and radius until a repeated need appears.
+### Corner radius
+
+| Figma (`esds.radius.*`) | Utility            | Value |
+| ----------------------- | ------------------ | ----- |
+| sharp                   | `rounded-sharp`    | 0     |
+| tight                   | `rounded-tight`    | 4px   |
+| loose                   | `rounded-loose`    | 8px   |
+| interior                | `rounded-interior` | 15px  |
+| exterior                | `rounded-exterior` | 24px  |
+| full                    | `rounded-full`     | 999px |
+
+Prefer these over ad-hoc `rounded-xl` / `rounded-[14px]` when restyling UI. Tokens live in `@theme` in `styles.css`.
+
+### Spacing
+
+Named spacing tokens map to Tailwind spacing utilities (`p-*`, `m-*`, `gap-*`, `space-*`, sizing where spacing is used). Prefer Figma names over ad-hoc `p-4` / `gap-6` when restyling UI. Some values repeat across groups on purpose (semantic roles from Figma).
+
+#### Detail (`esds.spacing.detail.*`)
+
+| Figma | Utility suffix | Value |
+| ----- | -------------- | ----- |
+| fine  | `detail-fine`  | 2px   |
+| tight | `detail-tight` | 4px   |
+| next  | `detail-next`  | 8px   |
+| close | `detail-close` | 16px  |
+| near  | `detail-near`  | 24px  |
+
+Example: `gap-detail-next`, `p-detail-close`.
+
+#### Separator (`esds.spacing.separator.*`)
+
+| Figma   | Utility suffix      | Value |
+| ------- | ------------------- | ----- |
+| related | `separator-related` | 40px  |
+| relaxed | `separator-relaxed` | 64px  |
+| distant | `separator-distant` | 80px  |
+| removed | `separator-removed` | 120px |
+
+Example: `gap-separator-related`, `mt-separator-removed`.
+
+#### Margin (`esds.spacing.margin.*`)
+
+| Figma   | Utility suffix   | Value |
+| ------- | ---------------- | ----- |
+| close   | `margin-close`   | 8px   |
+| tight   | `margin-tight`   | 16px  |
+| relaxed | `margin-relaxed` | 40px  |
+| distant | `margin-distant` | 80px  |
+| removed | `margin-removed` | 120px |
+
+Example: `p-margin-tight`, `px-margin-distant`.
 
 ## Do Not Add Yet
 
