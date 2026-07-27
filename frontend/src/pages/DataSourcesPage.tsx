@@ -306,8 +306,8 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
         <strong>Walkthrough</strong>
         <ol className="m-0 grid gap-2 pl-5">
-          <li>Install Arduino IDE from <code>arduino.cc/en/software</code>.</li>
-          <li>Connect the ESP32 with a USB data cable. If no serial port appears, try another cable.</li>
+          <li>Connect the ESP32 to the computer you will use for flashing, using a USB data cable. This can be a laptop, desktop, or Raspberry Pi.</li>
+          <li>Install and open Arduino IDE on that same computer from <code>arduino.cc/en/software</code>. If no serial port appears, try another USB cable.</li>
           <li>In Arduino IDE, open <code>File -&gt; Preferences</code> and add this Boards Manager URL: <code>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</code>.</li>
           <li>Open <code>Tools -&gt; Board -&gt; Boards Manager</code>, search for <code>esp32</code>, and install <code>esp32 by Espressif Systems</code>.</li>
           <li>Open <code>Sketch -&gt; Include Library -&gt; Manage Libraries</code>, search for <code>PubSubClient</code>, and install it.</li>

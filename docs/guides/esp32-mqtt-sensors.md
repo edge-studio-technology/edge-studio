@@ -8,7 +8,7 @@ The app side is already handled by the `ESP32 MQTT Sensor` input source. The rem
 
 - ESP32 development board.
 - USB data cable. Some USB cables charge only and cannot flash boards.
-- Computer with Arduino IDE installed.
+- Computer used for flashing the ESP32. This can be a laptop, desktop, or Raspberry Pi.
 - Wi-Fi network name and password.
 - Integritas Pi running with the local MQTT broker enabled.
 - The generated firmware from the Integritas Pi setup modal.
@@ -33,15 +33,20 @@ Publish topic: sensors/esp32/data
 
 The ESP32 must use the LAN host, not the Docker-internal `mqtt://mqtt:1883` address.
 
-## 2. Install Arduino IDE
+## 2. Connect The ESP32 To The Flashing Computer
+
+1. Connect the ESP32 to the computer you will use for flashing, using a USB data cable.
+2. This can be a laptop, desktop, or Raspberry Pi.
+3. Install and run Arduino IDE on that same computer.
+
+Some USB cables charge only and cannot flash boards. If the ESP32 does not appear as a serial port, try another USB cable first.
+
+## 3. Install Arduino IDE
 
 1. Download Arduino IDE from `https://www.arduino.cc/en/software`.
 2. Install and open it.
-3. Connect the ESP32 to your computer with USB.
 
-If the board does not appear as a serial port, try another USB cable first.
-
-## 3. Add ESP32 Board Support
+## 4. Add ESP32 Board Support
 
 In Arduino IDE:
 
@@ -57,7 +62,7 @@ https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32
 5. Search for `esp32`.
 6. Install `esp32 by Espressif Systems`.
 
-## 4. Install The MQTT Library
+## 5. Install The MQTT Library
 
 In Arduino IDE:
 
@@ -65,14 +70,14 @@ In Arduino IDE:
 2. Search for `PubSubClient`.
 3. Install `PubSubClient` by Nick O'Leary.
 
-## 5. Create The Sketch
+## 6. Create The Sketch
 
 1. In Arduino IDE, create a new sketch.
 2. Delete the default contents.
 3. Copy the generated firmware from Integritas Pi.
 4. Paste it into Arduino IDE.
 
-## 6. Set Wi-Fi Credentials
+## 7. Set Wi-Fi Credentials
 
 Find these lines near the top of the sketch:
 
@@ -90,7 +95,7 @@ const char* WIFI_PASSWORD = "my-wifi-password";
 
 Do not commit or share sketches containing real Wi-Fi passwords.
 
-## 7. Select Board And Port
+## 8. Select Board And Port
 
 In Arduino IDE:
 
@@ -99,7 +104,7 @@ In Arduino IDE:
 3. Open `Tools -> Port`.
 4. Select the port that appeared when you plugged in the ESP32.
 
-## 8. Upload The Firmware
+## 9. Upload The Firmware
 
 1. Click the `Upload` button in Arduino IDE.
 2. If upload waits at `Connecting...`, hold the ESP32 `BOOT` button until upload starts.
@@ -116,7 +121,7 @@ Connecting to MQTT...connected
 Publishing: {"device":"esp32-mqtt-sensor",...}
 ```
 
-## 9. Create Or Enable The Workflow
+## 10. Create Or Enable The Workflow
 
 The MQTT source only subscribes while an enabled workflow watches it.
 
