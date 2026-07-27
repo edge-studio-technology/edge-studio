@@ -1,7 +1,8 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
+import { dataSourceError, errorFromUnknown } from "../../shared/structured-error.js";
 import { listEnabledEventWorkflows, type AutomationWorkflowRecord } from "../automation/automation.repository.js";
-import { recordPushAutomationError, recordPushAutomationPayload } from "../automation/automation.service.js";
+import { recordPushAutomationPayload } from "../automation/automation.service.js";
 import { listDataSources, updateDataSourceReadResult, type DataSourceRecord } from "./dataSources.repository.js";
 import { parseGpioInputConfig, processGpioPayload, type GpioInputConfig } from "./dataSources.service.js";
 
@@ -50,14 +51,14 @@ export function syncGpioDataSources() {
     const source = gpioSources.get(sourceId)!;
     try {
       const config = parseGpioInputConfig(JSON.parse(source.config) as unknown);
-      const key = `${workflow.id}|${workflow.updated_at}|${config.chip}|${config.pin}|${config.pull}|${config.edge}|${config.debounceMs}|${config.activeState}`;
+      const key = `${workflow.id}|${workflow.updated_at}|${config.chip}|${config.pin}|${config.profile}|${config.pull}|${config.edge}|${config.debounceMs}|${config.activeState}`;
       const existing = watchers.get(source.id);
       if (existing?.key === key) continue;
 
       existing?.process.kill("SIGTERM");
       watchers.set(source.id, { key, process: watchGpioSource(source, workflow, config), lastEventAt: 0 });
     } catch (error) {
-      updateDataSourceReadResult(source.id, { error: error instanceof Error ? error.message : "Invalid GPIO input source configuration" });
+      updateDataSourceReadResult(source.id, { error: dataSourceError({ type: "configuration_invalid", ...errorFromUnknown(error, "Invalid GPIO input source configuration", { sourceId: source.id }), message: error instanceof Error ? error.message : "Invalid GPIO input source configuration" }) });
     }
   }
 }
@@ -70,23 +71,23 @@ function watchGpioSource(source: DataSourceRecord, workflow: AutomationWorkflowR
   child.stdout.on("data", (chunk: string) => {
     for (const line of chunk.split(/\r?\n/).filter(Boolean)) {
       handleGpioLine(source, workflow, config, line).catch((error: Error) => {
-        if ("code" in error && error.code === "WORKFLOW_ALREADY_RUNNING") return;
-        recordPushAutomationError({ workflow, dataSource: source, sourceUrl: sourceUrl(config), triggerType: "gpio", error: error.message });
+        if ("code" in error && (error.code === "WORKFLOW_ALREADY_RUNNING" || error.code === "WORKFLOW_COOLDOWN_ACTIVE" || error.code === "WORKFLOW_EVENT_INACTIVE")) return;
+        console.error(`GPIO workflow ${workflow.id} failed for source ${source.id}: ${error.message}`);
       });
     }
   });
 
   child.stderr.on("data", (chunk: string) => {
     const message = chunk.trim();
-    if (message) updateDataSourceReadResult(source.id, { error: `GPIO watcher error: ${message}` });
+    if (message) updateDataSourceReadResult(source.id, { error: dataSourceError({ type: "hardware_unavailable", message: "GPIO watcher reported an error", nativeMessage: message, context: { sourceId: source.id, chip: config.chip, pin: config.pin } }) });
   });
 
   child.on("error", (error) => {
-    updateDataSourceReadResult(source.id, { error: `GPIO watcher could not start: ${error.message}` });
+    updateDataSourceReadResult(source.id, { error: dataSourceError({ type: "hardware_unavailable", ...errorFromUnknown(error, "GPIO watcher could not start", { sourceId: source.id, chip: config.chip, pin: config.pin }), message: "GPIO watcher could not start" }) });
   });
 
   child.on("exit", (code, signal) => {
-    if (watchers.has(source.id)) updateDataSourceReadResult(source.id, { error: `GPIO watcher stopped (${signal ?? code ?? "unknown"})` });
+    if (watchers.has(source.id)) updateDataSourceReadResult(source.id, { error: dataSourceError({ type: "source_unavailable", message: "GPIO watcher stopped", nativeMessage: `GPIO watcher stopped (${signal ?? code ?? "unknown"})`, context: { sourceId: source.id, chip: config.chip, pin: config.pin } }) });
   });
 
   return child;
@@ -106,10 +107,12 @@ async function handleGpioLine(source: DataSourceRecord, workflow: AutomationWork
     source: "gpio",
     chip: config.chip,
     pin: config.pin,
+    profile: config.profile,
     numbering: "BCM",
     state,
     active: config.activeState === state,
     edge,
+    event: config.profile === "pir-motion" ? edge === "falling" ? "motion_cleared" : "motion_detected" : "gpio_edge",
     pull: config.pull,
     debounceMs: config.debounceMs,
     timestamp: new Date().toISOString(),
@@ -132,5 +135,5 @@ function parseEdge(line: string) {
 }
 
 function sourceUrl(config: GpioInputConfig) {
-  return `${config.chip} GPIO${config.pin}`;
+  return config.profile === "pir-motion" ? `PIR motion ${config.chip} GPIO${config.pin}` : `${config.chip} GPIO${config.pin}`;
 }

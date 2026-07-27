@@ -20,15 +20,15 @@ GPIO17 physical pin 11 -> button -> GND physical pin 9
 
 Device settings:
 
-| Field | Value |
-|---|---|
-| Device type | GPIO Input |
-| Chip | `gpiochip0` |
-| BCM pin | `17` |
-| Pull resistor | `up` |
-| Edge | `falling` |
-| Debounce | `100 ms` |
-| Active state | `low` |
+| Field         | Value       |
+| ------------- | ----------- |
+| Device type   | GPIO Input  |
+| Chip          | `gpiochip0` |
+| BCM pin       | `17`        |
+| Pull resistor | `up`        |
+| Edge          | `falling`   |
+| Debounce      | `100 ms`    |
+| Active state  | `low`       |
 
 Expected behavior:
 
@@ -60,22 +60,22 @@ LED cathode -> GND
 
 Device settings:
 
-| Field | Value |
-|---|---|
-| Device type | GPIO Output |
-| Chip | `gpiochip0` |
-| BCM pin | `18` |
-| Profile | `LED` |
-| Active state | `high` |
-| Initial state | `inactive` |
+| Field         | Value       |
+| ------------- | ----------- |
+| Device type   | GPIO Output |
+| Chip          | `gpiochip0` |
+| BCM pin       | `18`        |
+| Profile       | `LED`       |
+| Active state  | `high`      |
+| Initial state | `inactive`  |
 
 Workflow block settings:
 
-| Field | Value |
-|---|---|
-| Block type | Control output |
-| Action | `pulse` |
-| Duration | `500 ms` to start |
+| Field      | Value             |
+| ---------- | ----------------- |
+| Block type | Control output    |
+| Action     | `pulse`           |
+| Duration   | `500 ms` to start |
 
 Expected behavior:
 
@@ -88,6 +88,82 @@ Use the Devices page `Test pulse` action before adding the LED to an automation 
 
 If the LED turns on after a pulse and stays on, check the output target's active-state setting. The wiring above must use `Active state: high`. `Active state: low` is only for wiring where the LED/resistor is tied to 3.3V and the GPIO pin turns the LED on by sinking current.
 
+### HC-SR501 PIR Motion Sensor On GPIO23
+
+Use this for the tested HC-SR501-style PIR motion sensor module. The tested module's 3-pin header was unlabeled, so the pinout was confirmed from a matching pinout diagram and by running a GPIO test.
+
+With the module components facing up and the 3-pin header in front/top as in the matching pinout diagram:
+
+```txt
+left   = OUT
+middle = GND
+right  = VCC
+```
+
+Wiring:
+
+```txt
+PIR OUT -> GPIO23 physical pin 16
+PIR GND -> GND physical pin 6
+PIR VCC -> 5V physical pin 2 or 4
+```
+
+Device settings:
+
+| Field         | Value               |
+| ------------- | ------------------- |
+| Device type   | PIR Motion Sensor   |
+| Chip          | `gpiochip0`         |
+| BCM pin       | `23`                |
+| Pull resistor | `off`               |
+| Edge          | `rising`            |
+| Debounce      | `500 ms`            |
+| Active state  | `high`              |
+
+Recommended workflow start settings:
+
+| Field                  | Value     |
+| ---------------------- | --------- |
+| Only active GPIO event | Enabled   |
+| Cooldown between runs  | `60 sec`  |
+
+Expected behavior:
+
+```txt
+No motion: GPIO23 is low.
+Motion detected: GPIO23 goes high and triggers the workflow.
+Motion cleared: GPIO23 returns low after the sensor delay expires.
+```
+
+Use `Edge: rising` for notification workflows so `motion_cleared` does not trigger a second run. If you intentionally need both start and clear events, use `Edge: both` and keep `Only active GPIO event` disabled or add condition blocks that separate `motion_detected` from `motion_cleared`. Workflow cooldown is runtime-only; it starts after the first accepted event in the current backend process and does not block the first event after app startup.
+
+Standalone Python test used before app integration:
+
+```python
+from gpiozero import MotionSensor
+from signal import pause
+
+pir = MotionSensor(23)
+
+print("PIR test started on GPIO23.")
+print("Waiting for motion...")
+
+pir.when_motion = lambda: print("Motion detected")
+pir.when_no_motion = lambda: print("No motion")
+
+pause()
+```
+
+Troubleshooting:
+
+- Power off the Pi before changing wires.
+- GPIO23 means BCM `23`, physical pin `16`; it is not physical pin `23`.
+- Let the PIR warm up for `60-90` seconds after power-on.
+- If readings are always `HIGH`, check whether `OUT` and `VCC` are swapped or whether the sensor delay knob is holding the output high.
+- If readings are always `LOW`, check power, ground, breadboard rows, and the sensor pin order.
+- If workflow runs are too frequent, use the workflow start block's cooldown setting before increasing the device debounce value.
+- Pi GPIO inputs are `3.3V` only. Verify an unknown PIR clone's `OUT` voltage before connecting it to GPIO.
+
 ## Untested
 
 These settings are suggested starting points only. Verify the module's voltage, output type, and wiring before connecting it to the Pi.
@@ -96,13 +172,13 @@ These settings are suggested starting points only. Verify the module's voltage, 
 
 Use this only when the button connects GPIO to 3.3V when pressed.
 
-| Field | Suggested value |
-|---|---|
-| Device type | GPIO Input |
-| Pull resistor | `down` |
-| Edge | `rising` |
-| Debounce | `100 ms` |
-| Active state | `high` |
+| Field         | Suggested value |
+| ------------- | --------------- |
+| Device type   | GPIO Input      |
+| Pull resistor | `down`          |
+| Edge          | `rising`        |
+| Debounce      | `100 ms`        |
+| Active state  | `high`          |
 
 Expected behavior:
 
@@ -115,41 +191,27 @@ Button pressed: GPIO connects to 3.3V and becomes high.
 
 Use this for a magnetic reed switch or other dry contact that closes to GND.
 
-| Field | Suggested value |
-|---|---|
-| Device type | GPIO Input |
-| Pull resistor | `up` |
-| Edge | `falling` or `both` |
-| Debounce | `100-250 ms` |
-| Active state | `low` |
+| Field         | Suggested value     |
+| ------------- | ------------------- |
+| Device type   | GPIO Input          |
+| Pull resistor | `up`                |
+| Edge          | `falling` or `both` |
+| Debounce      | `100-250 ms`        |
+| Active state  | `low`               |
 
 Use `falling` if you only care about the contact closing. Use `both` if you need open and close events.
-
-### PIR Motion Sensor
-
-Many PIR modules provide a digital output that goes high when motion is detected, but modules vary. Confirm the output voltage is 3.3V-safe before connecting to the Pi.
-
-| Field | Suggested value |
-|---|---|
-| Device type | GPIO Input |
-| Pull resistor | `off` |
-| Edge | `rising` or `both` |
-| Debounce | `100-500 ms` |
-| Active state | `high` |
-
-Use `rising` if you only care when motion starts. Use `both` if you need motion start and end events.
 
 ### Open-Collector Or Open-Drain Sensor
 
 Some industrial-style or sensor outputs pull the signal low but do not drive it high. Confirm the output is isolated and 3.3V-safe.
 
-| Field | Suggested value |
-|---|---|
-| Device type | GPIO Input |
-| Pull resistor | `up` |
-| Edge | `falling` or `both` |
-| Debounce | Device-specific |
-| Active state | Usually `low` |
+| Field         | Suggested value     |
+| ------------- | ------------------- |
+| Device type   | GPIO Input          |
+| Pull resistor | `up`                |
+| Edge          | `falling` or `both` |
+| Debounce      | Device-specific     |
+| Active state  | Usually `low`       |
 
 ### Relay, Motor, Solenoid, Or High-Current Buzzer
 
@@ -161,12 +223,12 @@ Current V1 GPIO Output support is only intended for a low-current LED profile wi
 
 Some LED modules turn on when the GPIO is driven low. Confirm the module is 3.3V-safe.
 
-| Field | Suggested value |
-|---|---|
-| Device type | GPIO Output |
-| Profile | `LED` |
-| Active state | `low` |
-| Initial state | `inactive` |
-| Action | `pulse` |
+| Field         | Suggested value |
+| ------------- | --------------- |
+| Device type   | GPIO Output     |
+| Profile       | `LED`           |
+| Active state  | `low`           |
+| Initial state | `inactive`      |
+| Action        | `pulse`         |
 
 Prefer the tested direct LED wiring first. Use active-low only when the module documentation clearly says the input is active-low and safe for Raspberry Pi GPIO.

@@ -4,12 +4,113 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased]
+
 ## [Unreleased] test/unit-tests-and-ci
 
 ### Added
 
 - Backend unit test coverage for `auth`, now complete: password/PIN validation and hashing, session create/validate/expiry/idle-timeout, login/change-password flows, setup-pending lifecycle, audit event logging, auth middleware (`requireAuth`/`requireRole`), and the first-run setup service (admin creation, setup-complete state, guarded re-run errors) — plus a reusable temp-SQLite test database harness (`backend/tests/helpers/testDatabase.ts`).
 - Backend unit test coverage for `minima`, now complete: RPC error normalization, status-URL/command RPC calls, node health monitoring (stall detection, auto-resync cooldown), Docker container stats/storage info, the full node-status orchestration (state derivation, block/peer fallback and failure handling, config, peers/wallet/resync/restart), and the health poller (concurrency guard, stall handling, auto-resync gating).
+
+## [0.25.0] 2026-07-27
+
+### Added
+
+- Minima node status now reports a `restarting` state (tracked server-side across restart/resync) instead of only `stopped`/`error` while a restart or resync is in progress; Minima Core, Wallet, and Dashboard show a page-level banner, loading indicators, and a restart-complete toast instead of stale or misleading values.
+- Wallet page actions (Receive, Send, Create token) and the Minima settings panel are now disabled with an inline notice until the Minima node is confirmed `running`, avoiding RPC calls that would just fail mid-restart/resync.
+- Wallet balance, assets, and history now auto-refresh once Minima comes back online after a resync/restart, instead of staying stuck on stale data until the operator navigates away and back.
+- Address book is now its own tab on the Wallet page instead of a modal opened from the page header.
+- Added a Minima RPC console to the Minima Core page: an admin-curated, closed-world checkbox whitelist of ~90 Minima RPC commands (sorted alphabetically within their read/write groups) with a terminal-like input/scrollback — light theme, custom scrollbar, collapsible section, fullscreen mode, and a clear-scrollback button. `vault`, `sendfrom`, `signfrom`, `createfrom`, `postfrom`, `createtokenfrom`, `decryptbackup`, `keys`, and `quit` are permanently excluded (can never be whitelisted) because they can expose/accept a raw wallet private key or seed phrase, or halt the node with no recovery path. Every other command defaults to enabled if read-only and disabled if it mutates funds/chain/config/network/wallet. Editing the whitelist requires re-entering the admin PIN/password. `megammrsync` and `peers action:addpeers` run through the existing narrow `resyncMegammr()`/`addMinimaPeers()` actions instead of a generic RPC passthrough, so operation-tracking and audit logging stay consistent with the existing Resync/Add peers UI (`docs/plans/minima-rpc-console.md`, `docs/security/host-and-infrastructure.md`).
+- `npm run docker:rebuild` operational script to rebuild and restart just the `backend`/`frontend` Docker Compose services and tail their logs, for quickly checking a local change in the Docker environment.
+
+### Changed
+
+- The header status pills on every page (previously "Node online"/"Wallet ready"/"Integritas connected", fetched once on page load and never refreshed) are now two clickable Node/Integritas status dots, bordered to match the secondary button style, that poll `/api/status/overview` every 30s, keep showing the last known status (flagged as stale) if a refresh fails instead of silently going blank, and open a popover with status detail, error text, and last-checked time on click. The old "Wallet" pill silently reused the Minima node's status and was dropped as redundant with the Dashboard's own wallet balance display.
+- Wallet settings (import wallet) and Minima node settings (megammr host, peer list/add) moved from page-level modals into Account Settings panels.
+- Minima's post-restart status retry window is extended from ~12s to up to 90s, matching the backend's own restart/resync operation-tracking window.
+- Peer connections list in Minima settings is now scrollable instead of growing the panel indefinitely.
+- Loading placeholders ("Checking…" text) across Minima, Wallet, and Dashboard are replaced with a shared bouncing-dots loading indicator.
+- Minima RPC error messages are now normalized for peers/add-peers/restart/balance responses (previously only resync), giving consistent operator-facing wording instead of raw RPC error text.
+- Wallet hero now shows an auto-refreshing receive address QR code (regenerated server-side every 3 minutes) instead of only the raw address; Send payment and Create token moved out of the hero card into page-level buttons.
+- Wallet Assets, wallet History, and Address book are now paginated, filterable tables (matching the Diagnostics tables) instead of plain lists; Address book's "Add contact" form now opens in a modal instead of inline, and wallet/address-book forms share consistent input and button styling.
+- App rebranded from "Edge Workbench"/"Minima Edge Stack" to "Edge Studio" with a new brand mark; the sidebar's user dropdown is replaced with direct "Account settings" and "Sign out" links.
+
+### Fixed
+
+- Account Settings no longer shows a false-positive "Failed to load peers" toast while the Minima node is restarting/resyncing; the peers RPC is only called once node status is confirmed `running`, and automatically retried once it comes back.
+- Minima sync status badge no longer shows false/stale status text; sync status is now derived only from block age instead of also weighing the Minima RPC response's unreliable/inconsistent `synced` and `connecting` fields.
+
+## [0.24.0] - 2026-07-27
+
+- Automation workflows now support a `Show preview` action block that writes text, JSON, link, and image previews into a durable local Automation inbox.
+- Automation inbox image previews can reference either HTTP(S) image URLs or local file paths streamed through an authenticated backend route under the configured host files root.
+- Automation inbox image previews now open from a `View preview` modal link, matching the existing `View JSON` preview behavior.
+
+### Changed
+
+- Main workflow `If field matches` blocks now choose between Trigger event and Variable sources; Latest data is no longer a direct condition source, so workflows should use Set variable before condition checks on recorded or fetched data.
+
+## [0.23.0] - 2026-07-27
+
+### Added
+
+- Devices now include a PIR Motion Sensor input option for HC-SR501-style GPIO motion sensors, with GPIO23-tested defaults and motion-specific trigger payload labels.
+- Event-driven Automation start blocks can now enforce a cooldown between workflow runs, and GPIO starts can ignore inactive events such as PIR `motion_cleared` edges.
+- GPIO device guidance now documents the tested HC-SR501 PIR wiring, standalone GPIO test script, and troubleshooting notes.
+
+### Changed
+
+- Automation control-output blocks now preserve compatible payload settings when switching between output targets instead of resetting the block to target defaults.
+
+## [0.22.0] - 2026-07-23
+
+### Added
+
+- Pi Camera capture devices can now be enabled with `ENABLE_CAMERA=true`, configured from Devices, and used in Automation through a `Capture camera` data block that hashes captured media bytes and can attach Integritas stamping.
+- Camera capture now uses an opt-in host-side Python helper service so Raspberry Pi camera commands run against the host camera stack instead of inside the backend container.
+- Structured error details are now available for device/source errors, read-history failures, workflow runs, and failed workflow blocks.
+- Structured app/API error details are now returned by active route-level API error responses while preserving existing top-level compatibility fields.
+- Agent rules now document the structured backend/frontend error-handling conventions for future route, domain-error, and UI work.
+
+### Changed
+
+- Docs now describe the implemented block-based automation/device model more accurately, including GPIO output targets, Pi Camera privacy risks, and the moved GPIO device settings guide.
+- Failed device/read/workflow rows now show a dedicated error details view instead of making raw JSON the primary error display.
+
+### Fixed
+
+- Downstream workflow block failures, such as a missing camera command after a GPIO trigger, no longer overwrite the triggering data source's last error.
+
+## [0.21.6] - 2026-07-23
+
+### Added
+
+- Shared `ErrorAlert` UI component for in-page errors with optional title and recovery action.
+- Shared `Input` and `CredentialInput` form fields (`CredentialInput` supports PIN or password mode, including PIN-friendly autocomplete/input attributes).
+- Edge Studio brand colour tokens as Tailwind theme utilities (`brand-white`, `brand-graphite`, `brand-accent`, plus supporting shades and semantic `error` / `warning` / `success` / `info` colours). Manrope as the app UI font.
+- Dashboard **Getting started** next-action card: prompts **Connect devices** when no data sources exist, then **Create your first workflow** once at least one device is connected.
+
+### Changed
+
+- First-run setup wizard is a single-column flow (no step sidebar): welcome → secure device → Integritas Connect, with progress tracked only on the work steps.
+- Integritas Connect is the final setup step; once connected, the same screen shows the ready state and **Enter Edge Workbench** (the separate "Ready to use" step is gone).
+- Setup welcome leads with the Edge Studio name, a short product intro, and a clearer list of upcoming steps; header shows progress and status, welcome CTA is **Get started**, and the shell uses a subtle line-grid background.
+- Setup shell header/footer use a taller brand bar titled **Edge Studio**; secure-device and Connect steps use a stable-height onboarding card with shared brand form controls (sign-in method toggle, `CredentialInput`, password requirements styling).
+- Integritas Connect step shows numbered open/sign-in/approve steps, switches to a listening state after **Open Integritas Connect**, delays the preparing spinner briefly, and on success lists device security (and 2FA when enabled) plus the connected account.
+- Shared `Card` and buttons use brand tokens (including status/danger and on-dark variants) with squarer corners.
+- Dashboard title uses the shared app name; the static multi-step "Build flow" guide is replaced by the guided next-action card (device status and live activity remain).
+- App shell and sidebar use tighter padding and squarer corners (nav, brand header, mobile tabs, user box).
+
+### Removed
+
+- Separate first-run "Ready to use" / complete step after Connect.
+
+## [0.21.5] - 2026-07-22
+
+### Fixed
+
+- Modal no longer closes on a backdrop click or Escape key press. It previously closed from either even when a modal's `closeDisabled` should have blocked it; the only way to close a modal is now its explicit Close button.
 
 ## [0.21.4] - 2026-07-22
 
@@ -68,6 +169,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Planned per-run workflow variables and output templating for reusable values in later workflow blocks.
 - Automation workflows now support per-run Set variable blocks and `{{variableName}}` interpolation in custom HTTP/MQTT output JSON.
 - Main workflow `If field matches` blocks can now read previously set workflow variables.
+- Automation workflows now support a `Show preview` action block that writes text, JSON, link, and image previews into a durable local Automation inbox.
+- Automation inbox image previews can reference either HTTP(S) image URLs or local file paths streamed through an authenticated backend route under the configured host files root.
 
 ### Changed
 

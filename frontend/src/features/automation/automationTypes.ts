@@ -10,6 +10,7 @@ export type AutomationWorkflow = {
   lastHash: string | null;
   lastProofId: string | null;
   lastError: string | null;
+  lastErrorDetails?: unknown;
   blocks: AutomationBlock[];
 };
 
@@ -21,9 +22,11 @@ export type AutomationBlockType =
   | "mqtt_event_start"
   | "record_trigger_event"
   | "fetch_data_source"
+  | "capture_camera"
   | "set_variable"
   | "if_payload_field_equals"
   | "wait"
+  | "show_preview"
   | "stamp_integritas"
   | "control_output"
   | "send_transaction";
@@ -48,13 +51,22 @@ export type AutomationBlock = {
     amount?: string;
     intervalSeconds?: number;
     durationMs?: number;
-    bodyMode?: "custom" | "workflow_context" | "trigger_payload" | "latest_data" | "none";
+    bodyMode?: "custom" | "workflow_context" | "trigger_payload" | "latest_data" | "latest_data_with_media" | "multipart_media" | "none";
     bodyTemplateText?: string;
     bodyTemplate?: unknown;
+    multipartFileField?: string;
+    multipartJsonField?: string;
+    multipartJsonText?: string;
     variableName?: string;
     variableSource?: "custom_json" | "trigger_field" | "latest_data_field" | "context_field";
     valueJsonText?: string;
     activeOnly?: boolean;
+    cooldownSeconds?: number;
+    title?: string;
+    previewFormat?: "text" | "json" | "link" | "image";
+    contentMode?: "custom" | "workflow_context" | "trigger_payload" | "latest_data";
+    contentTemplateText?: string;
+    imageSource?: "url" | "local_path";
     source?: "trigger" | "variable";
     fieldPath?: string;
     operator?: ConditionOperator;
@@ -68,6 +80,7 @@ export type AutomationBlock = {
   };
   lastRunAt: string | null;
   lastError: string | null;
+  lastErrorDetails?: unknown;
 };
 
 export type AutomationRun = {
@@ -83,6 +96,7 @@ export type AutomationRun = {
   durationMs: number | null;
   blockCount: number;
   error: string | null;
+  errorDetails?: unknown;
   blocks: AutomationBlockRun[];
 };
 
@@ -101,6 +115,7 @@ export type AutomationBlockRun = {
   input: unknown;
   output: unknown;
   error: string | null;
+  errorDetails?: unknown;
 };
 
 export type AutomationValidationIssue = {
@@ -115,5 +130,19 @@ export type AutomationValidationResult = {
   ok: boolean;
   errors: AutomationValidationIssue[];
   warnings: AutomationValidationIssue[];
+};
+
+export type AutomationInboxItem = {
+  id: string;
+  workflowId: string | null;
+  workflowName: string;
+  runId: string | null;
+  blockId: string | null;
+  title: string;
+  format: "text" | "json" | "link" | "image";
+  content: unknown;
+  renderedText: string | null;
+  createdAt: string;
+  readAt: string | null;
 };
 

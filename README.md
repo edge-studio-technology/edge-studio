@@ -37,6 +37,16 @@ curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi
 
 `ENABLE_GPIO=true` writes `/opt/integritas-pi/docker-compose.override.yml` with `/dev/gpiochip0` mounted into the backend container and detects the host GPIO group id. Leave it disabled unless this deployment needs GPIO hardware ingestion.
 
+To enable Raspberry Pi camera capture devices during install, pass `ENABLE_CAMERA=true`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo env ENABLE_CAMERA=true bash
+```
+
+`ENABLE_CAMERA=true` installs and starts a host-side `integritas-pi-camera-helper` systemd service, generates a `CAMERA_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Integritas Pi Compose gateway. Leave it disabled unless this deployment needs camera capture workflows.
+
+`ENABLE_CAMERA=true` does not install host camera drivers or enable the Raspberry Pi camera stack. Before using camera workflows, verify the Pi host can see the camera with `libcamera-still --list-cameras` or `rpicam-still --list-cameras`. Camera Module 3 (`imx708`) requires a host OS/kernel/libcamera stack that supports it. The helper uses the host camera tools, not camera binaries inside the backend container.
+
 To enable the optional local MQTT broker during install, pass `ENABLE_MQTT_BROKER=true`:
 
 ```bash
@@ -84,6 +94,17 @@ APP_SECRET=dev-change-me
 DOCKER_GID=0
 ENABLE_GPIO=false
 GPIO_GID=0
+ENABLE_CAMERA=false
+CAMERA_CAPTURE_DIR=/data/captures
+CAMERA_HELPER_URL=http://172.30.0.1:38180
+CAMERA_HELPER_TOKEN=
+CAMERA_HELPER_PORT=38180
+CAMERA_MAX_DURATION_SECONDS=30
+CAMERA_RETENTION_DAYS=7
+CAMERA_PHOTO_COMMAND=rpicam-still
+CAMERA_VIDEO_COMMAND=rpicam-vid
+INTEGRITAS_DOCKER_SUBNET=172.30.0.0/24
+INTEGRITAS_DOCKER_GATEWAY=172.30.0.1
 ENABLE_MQTT_BROKER=false
 COMPOSE_PROFILES=
 MQTT_PUBLIC_HOST=
@@ -135,9 +156,13 @@ The backend runs a Minima health poller on `MINIMA_HEALTH_POLL_INTERVAL_SECONDS`
 
 `ENABLE_GPIO=true` lets the installer create a Docker Compose override that mounts `/dev/gpiochip0` for GPIO input sources. `GPIO_GID` is detected from `/dev/gpiochip0` or the host `gpio` group when possible. GPIO stays disabled by default because it grants the backend container host hardware access.
 
-When GPIO is not enabled or `/dev/gpiochip0` is unavailable in the backend container, the GPIO Input card is disabled in the Data Sources page.
+When GPIO is not enabled or `/dev/gpiochip0` is unavailable in the backend container, the GPIO Input and PIR Motion Sensor cards are disabled in the Data Sources page.
 
-GPIO input/output settings for tested button and LED wiring, plus suggested untested device profiles, are documented in [`docs/gpio-device-settings.md`](./docs/gpio-device-settings.md).
+GPIO input/output settings for tested button, LED, and HC-SR501 PIR motion sensor wiring, plus suggested untested device profiles, are documented in [`docs/guides/gpio-device-settings.md`](./docs/guides/gpio-device-settings.md).
+
+`ENABLE_CAMERA=true` lets the installer create a host-side Python camera helper service. The Devices page enables the Pi Camera capture device type only when the helper reports usable host camera commands and at least one detected camera. Camera support stays disabled by default because it grants the app a way to trigger host camera capture and captured images/video may contain private data.
+
+Pi Camera devices are capture/input devices, not generic output targets. Automation workflows use a `Capture camera` data block to capture a photo or short video clip, hash the captured media bytes, store capture metadata in read history, and optionally attach `Stamp data` to create an Integritas proof for the media hash. Captured media is stored locally under `CAMERA_CAPTURE_DIR` (`/data/captures` in Docker, mapped to the host data directory for the helper). `CAMERA_MAX_DURATION_SECONDS` limits per-capture video duration. `CAMERA_PHOTO_COMMAND` and `CAMERA_VIDEO_COMMAND` default to `rpicam-still` and `rpicam-vid`; the Python helper also falls back to `libcamera-still` and `libcamera-vid`. `INTEGRITAS_DOCKER_SUBNET` and `INTEGRITAS_DOCKER_GATEWAY` pin the Compose network so the backend has a stable route to the host helper after reboot/redeploy. The helper uses only Python's standard library and is intended as the extension point for future USB/RTSP/HTTP camera backends.
 
 `INTEGRITAS_CONNECT_BASE_URL` is the Integritas Connect host used for device activation and account linking (default `https://integritas.technology`).
 
@@ -479,7 +504,8 @@ backend container
 - Integritas hash, stamp, status, verify endpoints
 - Device APIs and historic read log at `/api/data-sources` and `/api/data-reads`
   - Input sources can include an optional health status URL. The browser polls saved health URLs once per minute through the backend and shows the latest status in the configured devices table.
-  - Device protocols currently include HTTP JSON API fetches, webhook JSON receives, MQTT JSON subscriptions, Raspberry Pi GPIO input events, and Raspberry Pi GPIO LED output targets. Devices define connection details; Automation workflows decide whether reads are recorded, outputs are controlled, and hashes are stamped. GPIO LED output targets can also be test-pulsed from the Devices page before adding them to a workflow.
+  - Device protocols currently include HTTP JSON API fetches, webhook JSON receives, MQTT JSON subscriptions, Raspberry Pi GPIO input events, HC-SR501-style PIR motion events, and Raspberry Pi GPIO LED output targets. Devices define connection details; Automation workflows decide whether reads are recorded, outputs are controlled, and hashes are stamped. GPIO LED output targets can also be test-pulsed from the Devices page before adding them to a workflow.
+  - Event-driven workflow start blocks support a cooldown between runs. GPIO starts can also ignore inactive edges, which is recommended for PIR motion workflows so `motion_cleared` does not trigger notifications or output actions.
   - Automation workflows are block-based. Start blocks trigger ordered action blocks; logic blocks can stop the remaining flow when selected trigger or data fields do not match; Integritas stamping is attached as a side block to record/fetch data blocks so it stamps that block's hash without becoming the final step in the main flow. Attached stamp blocks can also have their own field condition against the trigger event or recorded/fetched data. New workflow creation uses a Scratch-inspired draft workspace with a clean Start/Data/Logic/Action block library, a visual block-chain canvas, setup inspector, and backend-powered inline validation. The draft starts empty, requires one start block first, hides start blocks after selection, and uses Reset canvas when the operator wants a different trigger. Create/edit/watch workspaces are URL-driven (`/automation?flow=build`, `/automation?flow=edit&id=...`, `/automation?flow=watch&id=...`) and render in the page rather than opening workflow editing in a modal. Build, Edit, and Watch share one workspace shell and normalized canvas renderer. Canvas blocks show validation error/warning badges in Build/Edit and selected run status/duration in Watch. Edit mode shares the builder shell, categorized block library, selected-block inspector pattern, workflow name editing, and right-side validation placement; Watch mode owns run controls, test payload execution, selected-block runtime output/error/timing, read/proof Diagnostics links, and a historic run picker that visualizes selected runs on the canvas. Draft action blocks include Pulse output and Send transaction; Integritas stamps attach as side blocks on Record/Fetch data blocks. Templates are intentionally deferred until the basic block building experience is complete. Block edits are saved per block with visible unsaved/saved feedback; add/remove/move/pause/enable actions apply immediately. Workflow validation flags broken block chains, missing devices, output/transaction risks, and missing Integritas key setup before manual runs; validation errors block `Run now` / `Run with payload`, while warnings stay visible for operator review. Workflow logs show the run trigger plus block outputs, and fetch/record blocks link their stored read preview so operators can see the JSON that conditions evaluated. Workflow lists support search, status filters, duplicate, archive, restore, and delete; archived workflows do not run automatically or manually until restored. Automation can also send native MINIMA (`0x00`) transactions to saved address book recipients through an allowlisted Send transaction block. Prototype workflows created with older equals-only condition configs should be recreated.
   - HTTP Collect data rules poll on a schedule. Webhook Collect data rules record pushed JSON at generated `/api/data-source-webhooks/:token` URLs while enabled. MQTT Collect data rules subscribe to the configured broker/topic only while enabled. GPIO Collect data rules watch configured BCM pins only while enabled.
   - Reads /host-files only
@@ -586,6 +612,16 @@ POST /api/minima/peers/add
 ```
 
 `POST /api/minima/restart` restarts the Minima Docker container via the backend Docker socket (see `SECURITY.md`). `POST /api/minima/peers/add` accepts `{ "peerslist": "host:port" }` or comma-separated addresses and calls Minima `peers action:addpeers`.
+
+Minima RPC console (admin session required for all three):
+
+```http
+GET /api/minima/console/whitelist
+POST /api/minima/console/whitelist
+POST /api/minima/console/run
+```
+
+The RPC console on the Minima Core page runs a typed Minima RPC command string only if it is both in the backend's static command catalog and enabled in the admin whitelist — it is not a generic RPC proxy (see `.agents/rules/minima.md` and `docs/security/host-and-infrastructure.md`). `GET /api/minima/console/whitelist` returns the catalog and currently enabled command keys. `POST /api/minima/console/whitelist` accepts `{ "enabledKeys": string[], "currentPassword": string }` and requires re-entering the admin PIN/password, same as changing the admin credential. `POST /api/minima/console/run` accepts `{ "command": string }` (the exact RPC command text, e.g. `status` or `peers action:addpeers peerslist:host:port`) and returns the RPC/action result.
 
 Wallet and account APIs:
 

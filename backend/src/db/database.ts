@@ -138,6 +138,26 @@ export function runMigrations() {
     )
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS automation_inbox_items (
+      id TEXT PRIMARY KEY,
+      workflow_id TEXT,
+      workflow_name TEXT NOT NULL,
+      run_id TEXT,
+      block_id TEXT,
+      title TEXT NOT NULL,
+      format TEXT NOT NULL,
+      content_json TEXT NOT NULL,
+      rendered_text TEXT,
+      created_at TEXT NOT NULL,
+      read_at TEXT,
+      deleted_at TEXT,
+      FOREIGN KEY (workflow_id) REFERENCES automation_workflows(id) ON DELETE SET NULL,
+      FOREIGN KEY (run_id) REFERENCES automation_runs(id) ON DELETE SET NULL,
+      FOREIGN KEY (block_id) REFERENCES automation_blocks(id) ON DELETE SET NULL
+    )
+  `);
+
   migrateAutomationRunsToPreserveDeletedWorkflows();
 
   db.exec(`
@@ -147,6 +167,10 @@ export function runMigrations() {
       ON automation_runs(started_at);
     CREATE INDEX IF NOT EXISTS idx_automation_block_runs_run_id
       ON automation_block_runs(run_id);
+    CREATE INDEX IF NOT EXISTS idx_automation_inbox_items_created
+      ON automation_inbox_items(created_at);
+    CREATE INDEX IF NOT EXISTS idx_automation_inbox_items_read_created
+      ON automation_inbox_items(read_at, created_at);
   `);
 
   db.exec(`
@@ -328,6 +352,7 @@ export function runMigrations() {
     )
   `);
 
+  // Keep this only for backwards compatibility.
   db.exec(`
     INSERT OR IGNORE INTO settings (key, value, updated_at)
     SELECT 'setup.completed_at', auth.updated_at, CURRENT_TIMESTAMP
