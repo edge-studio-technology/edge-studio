@@ -296,14 +296,29 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
     <Card className="grid max-w-4xl gap-4">
       <div>
         <strong>Next steps</strong>
-        <MutedText className="m-0 mt-1">The device was saved as a normal MQTT input source. Flash this starter sketch to an ESP32, then create or enable an MQTT workflow that watches this source.</MutedText>
+        <MutedText className="m-0 mt-1">The device was saved as a normal MQTT input source. Follow these steps to flash an ESP32 and verify that Integritas Pi receives its JSON messages.</MutedText>
       </div>
       <div className="grid gap-2 text-sm">
         <div>ESP32 broker host: <code>{broker.host}</code></div>
         <div>ESP32 broker port: <code>{broker.port}</code></div>
         <div>Publish topic: <code>{source.config.topic}</code></div>
       </div>
-      <MutedText className="m-0">Install the Arduino ESP32 board package and the <code>PubSubClient</code> library. Replace the Wi-Fi placeholders before flashing.</MutedText>
+      <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+        <strong>Walkthrough</strong>
+        <ol className="m-0 grid gap-2 pl-5">
+          <li>Install Arduino IDE from <code>arduino.cc/en/software</code>.</li>
+          <li>Connect the ESP32 with a USB data cable. If no serial port appears, try another cable.</li>
+          <li>In Arduino IDE, open <code>File -&gt; Preferences</code> and add this Boards Manager URL: <code>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</code>.</li>
+          <li>Open <code>Tools -&gt; Board -&gt; Boards Manager</code>, search for <code>esp32</code>, and install <code>esp32 by Espressif Systems</code>.</li>
+          <li>Open <code>Sketch -&gt; Include Library -&gt; Manage Libraries</code>, search for <code>PubSubClient</code>, and install it.</li>
+          <li>Create a new sketch, paste the firmware below, and replace <code>YOUR_WIFI_NAME</code> and <code>YOUR_WIFI_PASSWORD</code>.</li>
+          <li>Select <code>Tools -&gt; Board -&gt; ESP32 Dev Module</code> if unsure, then select the ESP32 serial port under <code>Tools -&gt; Port</code>.</li>
+          <li>Click Upload. If it gets stuck at Connecting, hold the ESP32 <code>BOOT</code> button until upload starts.</li>
+          <li>Open <code>Tools -&gt; Serial Monitor</code> at <code>115200</code> baud and look for Wi-Fi, MQTT, and Publishing messages.</li>
+          <li>Create or enable an Automation workflow with <code>MQTT message received</code> as the start block and this source selected.</li>
+        </ol>
+      </div>
+      <MutedText className="m-0">Full guide: <code>docs/guides/esp32-mqtt-sensors.md</code>. The starter sketch publishes placeholder temperature/humidity values; replace the sensor functions after the MQTT path works.</MutedText>
       <textarea className="min-h-[420px] font-mono text-xs" readOnly value={firmware} />
       <div className="flex flex-wrap gap-2">
         <Button type="button" onClick={() => navigator.clipboard?.writeText(firmware)}>Copy firmware</Button>

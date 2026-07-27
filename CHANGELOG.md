@@ -56,6 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Automation control-output blocks now preserve compatible payload settings when switching between output targets instead of resetting the block to target defaults.
+- ESP32 MQTT Sensor onboarding now links to a step-by-step flashing and workflow setup guide.
 
 ## [0.22.0] - 2026-07-23
 
