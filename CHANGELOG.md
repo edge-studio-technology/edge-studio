@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-07-27
+
+- Automation workflows now support a `Show preview` action block that writes text, JSON, link, and image previews into a durable local Automation inbox.
+- Automation inbox image previews can reference either HTTP(S) image URLs or local file paths streamed through an authenticated backend route under the configured host files root.
+- Automation inbox image previews now open from a `View preview` modal link, matching the existing `View JSON` preview behavior.
+
+### Changed
+
+- Main workflow `If field matches` blocks now choose between Trigger event and Variable sources; Latest data is no longer a direct condition source, so workflows should use Set variable before condition checks on recorded or fetched data.
+
 ## [0.23.0] - 2026-07-27
 
 ### Added
