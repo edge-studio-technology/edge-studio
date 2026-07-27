@@ -290,8 +290,10 @@ export function DataSourcesPage() {
 
 function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capabilities: DataSourceCapabilities | null }) {
   const [flashMethod, setFlashMethod] = useState<"ide" | "cli">("ide");
+  const [wifiSsid, setWifiSsid] = useState("");
+  const [wifiPassword, setWifiPassword] = useState("");
   const broker = esp32BrokerParts(capabilities, source.config.brokerUrl ?? "mqtt://localhost:1883");
-  const firmware = esp32Firmware({ deviceName: source.name, mqttHost: broker.host, mqttPort: broker.port, topic: source.config.topic ?? "sensors/esp32/data" });
+  const firmware = esp32Firmware({ deviceName: source.name, mqttHost: broker.host, mqttPort: broker.port, topic: source.config.topic ?? "sensors/esp32/data", wifiSsid, wifiPassword });
 
   return (
     <Card className="grid max-w-4xl gap-4">
@@ -314,19 +316,17 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
           <Button type="button" size="sm" variant={flashMethod === "ide" ? "primary" : "secondary"} onClick={() => setFlashMethod("ide")}>Arduino IDE</Button>
           <Button type="button" size="sm" variant={flashMethod === "cli" ? "primary" : "secondary"} onClick={() => setFlashMethod("cli")}>Arduino CLI</Button>
         </div>
-        {flashMethod === "ide" ? <ArduinoIdeSteps /> : <ArduinoCliSteps />}
+        {flashMethod === "ide" ? <ArduinoIdeSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} /> : <ArduinoCliSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} />}
       </div>
       <MutedText className="m-0">Full guide: <InlineCode>docs/guides/esp32-mqtt-sensors.md</InlineCode>. The starter sketch publishes placeholder temperature/humidity values; replace the sensor functions after the MQTT path works.</MutedText>
-      <textarea className="min-h-[420px] font-mono text-xs" readOnly value={firmware} />
       <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={() => navigator.clipboard?.writeText(firmware)}>Copy firmware</Button>
         <Button type="button" variant="secondary" onClick={() => navigator.clipboard?.writeText(JSON.stringify(exampleEsp32Payload(source.name), null, 2))}>Copy example JSON</Button>
       </div>
     </Card>
   );
 }
 
-function ArduinoIdeSteps() {
+function ArduinoIdeSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, onWifiPasswordChange }: FirmwareStepProps) {
   return (
     <div className="grid gap-3">
       <strong>Arduino IDE steps</strong>
@@ -334,7 +334,7 @@ function ArduinoIdeSteps() {
       <SetupStep index={2} title="Add ESP32 Board Manager URL">Open <InlineCode>File -&gt; Preferences</InlineCode> and add this Boards Manager URL: <InlineCode>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</InlineCode>.</SetupStep>
       <SetupStep index={3} title="Install ESP32 Board Support">Open <InlineCode>Tools -&gt; Board -&gt; Boards Manager</InlineCode>, search for <InlineCode>esp32</InlineCode>, and install <InlineCode>esp32 by Espressif Systems</InlineCode>.</SetupStep>
       <SetupStep index={4} title="Install PubSubClient">Open <InlineCode>Sketch -&gt; Include Library -&gt; Manage Libraries</InlineCode>, search for <InlineCode>PubSubClient</InlineCode>, and install it.</SetupStep>
-      <SetupStep index={5} title="Paste Firmware And Wi-Fi">Create a new sketch, delete the default contents, paste the generated firmware below, and replace <InlineCode>YOUR_WIFI_NAME</InlineCode> and <InlineCode>YOUR_WIFI_PASSWORD</InlineCode>.</SetupStep>
+      <SetupStep index={5} title="Paste Firmware And Wi-Fi"><FirmwareStepContent firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={onWifiSsidChange} onWifiPasswordChange={onWifiPasswordChange} /></SetupStep>
       <SetupStep index={6} title="Select Board And Port">Select <InlineCode>Tools -&gt; Board -&gt; ESP32 Dev Module</InlineCode> if unsure, then select the ESP32 serial port under <InlineCode>Tools -&gt; Port</InlineCode>.</SetupStep>
       <SetupStep index={7} title="Upload Firmware">Click Upload. If it gets stuck at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts.</SetupStep>
       <SetupStep index={8} title="Monitor Serial Output">Open <InlineCode>Tools -&gt; Serial Monitor</InlineCode> at <InlineCode>115200</InlineCode> baud and look for Wi-Fi, MQTT, and Publishing messages.</SetupStep>
@@ -343,7 +343,15 @@ function ArduinoIdeSteps() {
   );
 }
 
-function ArduinoCliSteps() {
+type FirmwareStepProps = {
+  firmware: string;
+  wifiSsid: string;
+  wifiPassword: string;
+  onWifiSsidChange: (value: string) => void;
+  onWifiPasswordChange: (value: string) => void;
+};
+
+function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, onWifiPasswordChange }: FirmwareStepProps) {
   const [boardListOutput, setBoardListOutput] = useState("");
   const detectedPort = detectEsp32Port(boardListOutput);
   const commands = esp32CliCommands(detectedPort ?? "/dev/ttyUSB0");
@@ -371,7 +379,7 @@ function ArduinoCliSteps() {
       <SetupStep index={5} title="Create Sketch File">
           <div>Create the sketch folder and file, then paste the generated firmware below.</div>
           <CommandBlock value={commands.createSketch} />
-          <div className="mt-2">Replace <InlineCode>YOUR_WIFI_NAME</InlineCode> and <InlineCode>YOUR_WIFI_PASSWORD</InlineCode> before saving.</div>
+          <FirmwareStepContent firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={onWifiSsidChange} onWifiPasswordChange={onWifiPasswordChange} />
       </SetupStep>
       <SetupStep index={6} title="Compile Sketch">
           <CommandBlock value={commands.compile} />
@@ -386,6 +394,24 @@ function ArduinoCliSteps() {
           <div className="mt-2">Look for Wi-Fi connected, MQTT connected, and Publishing messages.</div>
       </SetupStep>
       <SetupStep index={9} title="Create Or Enable Workflow">Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</SetupStep>
+    </div>
+  );
+}
+
+function FirmwareStepContent({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, onWifiPasswordChange }: FirmwareStepProps) {
+  const [showFirmware, setShowFirmware] = useState(false);
+  return (
+    <div className="mt-3 grid gap-3">
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="grid gap-2 font-bold text-slate-700">Wi-Fi name<input value={wifiSsid} onChange={(event) => onWifiSsidChange(event.target.value)} placeholder="MyWifi" /></label>
+        <label className="grid gap-2 font-bold text-slate-700">Wi-Fi password<input type="password" value={wifiPassword} onChange={(event) => onWifiPasswordChange(event.target.value)} placeholder="Wi-Fi password" /></label>
+      </div>
+      <div className="text-sm text-slate-600">These values are inserted into the firmware text only. They are not saved to Integritas Pi.</div>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="xs" onClick={() => navigator.clipboard?.writeText(firmware)}>Copy firmware</Button>
+        <Button type="button" size="xs" variant="secondary" onClick={() => setShowFirmware((value) => !value)}>{showFirmware ? "Hide firmware" : "Show firmware"}</Button>
+      </div>
+      {showFirmware && <textarea className="min-h-[420px] font-mono text-xs" readOnly value={firmware} />}
     </div>
   );
 }
@@ -462,13 +488,15 @@ function exampleEsp32Payload(deviceName: string) {
   };
 }
 
-function esp32Firmware(input: { deviceName: string; mqttHost: string; mqttPort: number; topic: string }) {
+function esp32Firmware(input: { deviceName: string; mqttHost: string; mqttPort: number; topic: string; wifiSsid: string; wifiPassword: string }) {
   const deviceSlug = slugifyDeviceName(input.deviceName);
+  const wifiSsid = input.wifiSsid || "YOUR_WIFI_NAME";
+  const wifiPassword = input.wifiPassword || "YOUR_WIFI_PASSWORD";
   return `#include <WiFi.h>
 #include <PubSubClient.h>
 
-const char* WIFI_SSID = "YOUR_WIFI_NAME";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* WIFI_SSID = "${escapeCppString(wifiSsid)}";
+const char* WIFI_PASSWORD = "${escapeCppString(wifiPassword)}";
 
 const char* MQTT_HOST = "${escapeCppString(input.mqttHost)}";
 const int MQTT_PORT = ${input.mqttPort};
