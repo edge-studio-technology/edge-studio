@@ -7,14 +7,14 @@ type IconButtonSize = "md" | "sm" | "xs";
 
 const variantClass: Record<ButtonVariant, string> = {
   primary:
-    "border-transparent bg-brand-graphite text-brand-white enabled:hover:bg-brand-graphite-hover",
+    "border-transparent bg-surface-inverse text-text-inverse enabled:hover:bg-grey-06",
   secondary:
-    "border-brand-border bg-brand-white text-brand-graphite enabled:hover:bg-brand-bg",
+    "border-stroke-primary bg-surface-always-white text-text-primary enabled:hover:bg-surface-primary",
   ghost:
-    "border-transparent bg-brand-bg text-brand-graphite enabled:hover:bg-brand-graphite-soft",
-  danger: "border-transparent bg-error text-brand-white enabled:hover:bg-error-hover",
+    "border-transparent bg-surface-primary text-text-primary enabled:hover:bg-surface-secondary",
+  danger: "border-transparent bg-feedback-error text-text-inverse",
   onDark:
-    "border-brand-on-dark-border bg-brand-on-dark text-brand-white enabled:hover:bg-brand-on-dark-hover",
+    "border-stroke-always-white bg-overlay-light text-text-inverse enabled:hover:bg-overlay-heavy",
 };
 
 const sizeClass: Record<ButtonSize, string> = {

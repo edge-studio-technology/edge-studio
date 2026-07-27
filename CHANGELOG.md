@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Frontend colour tokens now follow ESDS foundations only (primitives + surface/text/icon/stroke/overlay semantics). Shared components use those utilities; legacy `brand-*`, `on-dark*`, and non-Figma status/hover/info aliases were removed.
+
 ## [0.23.0] - 2026-07-27
 
 ### Added

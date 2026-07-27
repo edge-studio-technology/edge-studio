@@ -46,8 +46,8 @@ function ListeningPulse() {
 
 function SetupDoneRow({ title, detail }: { title: string; detail: string }) {
   return (
-    <li className="bg-brand-white grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-3 rounded-xl border border-slate-200/80 px-3.5 py-3">
-      <span className="text-brand-accent grid h-8 w-8 place-items-center" aria-hidden="true">
+    <li className="bg-surface-always-white grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-3 rounded-xl border border-slate-200/80 px-3.5 py-3">
+      <span className="text-text-accent grid h-8 w-8 place-items-center" aria-hidden="true">
         <CheckCircle2 size={20} strokeWidth={2.25} />
       </span>
       <div className="min-w-0">
@@ -172,10 +172,10 @@ export function ConnectIntegritasStep({
               {connectSteps.map((label, index) => (
                 <li
                   key={label}
-                  className="bg-brand-white grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 rounded-xl border border-slate-200/80 px-3.5 py-3"
+                  className="bg-surface-always-white grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 rounded-xl border border-slate-200/80 px-3.5 py-3"
                 >
                   <span
-                    className="text-brand-accent grid h-8 w-8 place-items-center text-sm font-bold"
+                    className="text-text-accent grid h-8 w-8 place-items-center text-sm font-bold"
                     aria-hidden="true"
                   >
                     {index + 1}

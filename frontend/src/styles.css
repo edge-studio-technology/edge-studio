@@ -6,37 +6,63 @@
 @import "@fontsource/manrope/latin-800.css";
 
 @theme {
-  /* Primary palette: White, Graphite, Accent — placeholders until design delivers */
-  --color-brand-white: #fafaf8;
-  --color-brand-graphite: #1a1a18;
-  --color-brand-accent: #4a4bc7; /* use sparingly */
+  /* ESDS primitives (hex source of truth) */
+  --color-core-white: #ffffff;
+  --color-core-black: #000000;
+  --color-grey-01: #f9fafa;
+  --color-grey-02: #e6e8ea;
+  --color-grey-03: #c7ccd1;
+  --color-grey-04: #9da6af;
+  --color-grey-05: #6a7581;
+  --color-grey-06: #2e3338;
+  --color-brand-01: #6d48dc;
+  --color-feedback-error: #dc0428;
+  --color-feedback-warning: #f5a70a;
+  --color-feedback-positive: #009966;
 
-  /* Supporting shades of the primaries */
-  --color-brand-bg: #f3f2ef;
-  --color-brand-graphite-muted: #6a6a64;
-  --color-brand-graphite-hover: #2e2e2c;
-  --color-brand-graphite-soft: #e5e5e2;
-  --color-brand-border: #d4d4d0;
+  /* ESDS semantics — prefer these in new UI */
+  --color-surface-primary: var(--color-grey-01);
+  --color-surface-secondary: var(--color-grey-02);
+  --color-surface-tertiary: var(--color-grey-03);
+  --color-surface-inverse: var(--color-core-black);
+  --color-surface-always-white: var(--color-core-white);
+  --color-surface-always-black: var(--color-core-black);
+  --color-surface-accent: var(--color-brand-01);
 
-  /* Translucent whites for dark surfaces */
-  --color-brand-on-dark: rgb(250 250 248 / 0.15);
-  --color-brand-on-dark-hover: rgb(250 250 248 / 0.25);
-  --color-brand-on-dark-border: rgb(250 250 248 / 0.1);
+  --color-text-primary: var(--color-core-black);
+  --color-text-secondary: var(--color-grey-05);
+  --color-text-tertiary: var(--color-grey-04);
+  --color-text-disabled: var(--color-grey-03);
+  --color-text-inverse: var(--color-core-white);
+  --color-text-accent: var(--color-brand-01);
+  --color-text-error: var(--color-feedback-error);
+  --color-text-warning: var(--color-feedback-warning);
+  --color-text-success: var(--color-feedback-positive);
 
-  /* Semantic status */
-  --color-error: #dc2626;
-  --color-error-hover: #b91c1c;
-  --color-warning: #d97706;
-  --color-warning-hover: #b45309;
-  --color-success: #059669;
-  --color-success-hover: #047857;
-  --color-info: #2563eb;
-  --color-info-hover: #1d4ed8;
+  --color-icon-primary: var(--color-core-black);
+  --color-icon-secondary: var(--color-grey-05);
+  --color-icon-tertiary: var(--color-grey-04);
+  --color-icon-disabled: var(--color-grey-03);
+  --color-icon-inverse: var(--color-core-white);
+  --color-icon-error: var(--color-feedback-error);
+  --color-icon-warning: var(--color-feedback-warning);
+  --color-icon-success: var(--color-feedback-positive);
+
+  --color-stroke-primary: var(--color-grey-03);
+  --color-stroke-secondary: var(--color-grey-02);
+  --color-stroke-active: var(--color-core-black);
+  --color-stroke-error: var(--color-feedback-error);
+  --color-stroke-warning: var(--color-feedback-warning);
+  --color-stroke-success: var(--color-feedback-positive);
+  --color-stroke-always-white: var(--color-core-white);
+
+  --color-overlay-light: #0000004d;
+  --color-overlay-heavy: #000000b2;
 }
 
 :root {
-  color: var(--color-brand-graphite);
-  background: var(--color-brand-bg);
+  color: var(--color-text-primary);
+  background: var(--color-surface-primary);
   font-family:
     Manrope,
     ui-sans-serif,

@@ -46,7 +46,7 @@ Use these before writing bespoke markup:
 - `Text`: shared muted, error, and eyebrow text helpers.
 - `ErrorAlert`: in-page error alert with optional title and recovery action.
 - `Modal`: portal-backed dialog shell.
-- `Input`: ordinary text field (brand surface, soft shadow, focus ring).
+- `Input`: ordinary text field (ESDS surface, soft shadow, focus ring).
 - `CredentialInput`: PIN or password field (`mode="pin" | "password"`); wraps `Input`.
 - `DataTable`: workflow-style table shell, wrapper, rows, and action cells.
 - `StatusRow`: compact label/value/status presentation.
@@ -84,19 +84,30 @@ Avoid exporting these constants or moving them into shared files unless more tha
 
 ## Tokens
 
-Edge Studio primary palette is **White**, **Graphite**, and **Accent** (one complementary colour used sparingly). Tokens are defined in `@theme` in `frontend/src/styles.css` and used as Tailwind utilities (e.g. `bg-brand-white`, `text-brand-accent`):
+Colour tokens follow Edge Studio Design System (ESDS) foundations. They are defined in `@theme` in `frontend/src/styles.css` and used as Tailwind utilities (e.g. `bg-surface-primary`, `text-text-secondary`).
 
-| Brief name | Utility / token  | Role                                             |
-| ---------- | ---------------- | ------------------------------------------------ |
-| White      | `brand-white`    | Near-white surfaces / panels (not raw `#ffffff`) |
-| Graphite   | `brand-graphite` | Text and strong UI                               |
-| Accent     | `brand-accent`   | Sparse highlights (CTA accents, progress)        |
+Prefer **semantic** tokens in UI. Change hex only on **primitives** in `@theme`; semantics alias primitives.
 
-Supporting shades of those primaries: `brand-bg` (off-white page ground), `brand-graphite-muted`, `brand-graphite-hover`, `brand-graphite-soft`, `brand-border`. For dark surfaces: `brand-on-dark`, `brand-on-dark-hover`, `brand-on-dark-border`.
+### Primitives (hex source of truth)
 
-Semantic status: `error` / `error-hover`, `warning` / `warning-hover`, `success` / `success-hover`, `info` / `info-hover`. Use these instead of raw Tailwind red/amber/emerald/blue for status UI.
+| Token | Role |
+| --- | --- |
+| `core-white` / `core-black` | Absolute white and black |
+| `grey-01` … `grey-06` | Neutral scale (light → dark) |
+| `brand-01` | Brand accent purple |
+| `feedback-error` / `feedback-warning` / `feedback-positive` | Status base colours |
 
-Do not use Tailwind opacity modifiers (e.g. `brand-white/25`) — add a named token instead. Values are placeholders until design delivers — change hex in `@theme`, not component classes. Use Tailwind defaults for everything else until a repeated need appears.
+### Semantics (prefer these)
+
+| Group | Examples | Role |
+| --- | --- | --- |
+| Surface | `surface-primary`, `surface-secondary`, `surface-tertiary`, `surface-inverse`, `surface-always-white`, `surface-always-black`, `surface-accent` | Backgrounds and fills |
+| Text | `text-primary`, `text-secondary`, `text-tertiary`, `text-disabled`, `text-inverse`, `text-accent`, `text-error`, `text-warning`, `text-success` | Foreground text |
+| Icon | `icon-primary`, `icon-secondary`, `icon-tertiary`, `icon-disabled`, `icon-inverse`, `icon-error`, `icon-warning`, `icon-success` | Icon colour |
+| Stroke | `stroke-primary`, `stroke-secondary`, `stroke-active`, `stroke-error`, `stroke-warning`, `stroke-success`, `stroke-always-white` | Borders and dividers |
+| Overlay | `overlay-light`, `overlay-heavy` | Scrims / dimmers |
+
+Do not use Tailwind opacity modifiers on tokens (e.g. `surface-always-white/25`) — add a named token instead. Use Tailwind defaults for spacing, radius, and non-brand colour until a repeated need appears.
 
 ## Do Not Add Yet
 
