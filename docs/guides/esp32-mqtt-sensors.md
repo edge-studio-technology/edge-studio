@@ -37,16 +37,25 @@ The ESP32 must use the LAN host, not the Docker-internal `mqtt://mqtt:1883` addr
 
 1. Connect the ESP32 to the computer you will use for flashing, using a USB data cable.
 2. This can be a laptop, desktop, or Raspberry Pi.
-3. Install and run Arduino IDE on that same computer.
+3. Install and run either Arduino IDE or Arduino CLI on that same computer.
 
 Some USB cables charge only and cannot flash boards. If the ESP32 does not appear as a serial port, try another USB cable first.
 
-## 3. Install Arduino IDE
+## 3. Choose One Flashing Method
+
+You only need one of these methods.
+
+- Use Arduino IDE if you want a graphical app.
+- Use Arduino CLI if you are flashing from a terminal, Raspberry Pi, SSH session, or headless setup.
+
+## Method A: Arduino IDE
+
+### 1. Install Arduino IDE
 
 1. Download Arduino IDE from `https://www.arduino.cc/en/software`.
 2. Install and open it.
 
-## 4. Add ESP32 Board Support
+### 2. Add ESP32 Board Support
 
 In Arduino IDE:
 
@@ -62,7 +71,7 @@ https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32
 5. Search for `esp32`.
 6. Install `esp32 by Espressif Systems`.
 
-## 5. Install The MQTT Library
+### 3. Install The MQTT Library
 
 In Arduino IDE:
 
@@ -70,14 +79,14 @@ In Arduino IDE:
 2. Search for `PubSubClient`.
 3. Install `PubSubClient` by Nick O'Leary.
 
-## 6. Create The Sketch
+### 4. Create The Sketch
 
 1. In Arduino IDE, create a new sketch.
 2. Delete the default contents.
 3. Copy the generated firmware from Integritas Pi.
 4. Paste it into Arduino IDE.
 
-## 7. Set Wi-Fi Credentials
+### 5. Set Wi-Fi Credentials
 
 Find these lines near the top of the sketch:
 
@@ -95,7 +104,7 @@ const char* WIFI_PASSWORD = "my-wifi-password";
 
 Do not commit or share sketches containing real Wi-Fi passwords.
 
-## 8. Select Board And Port
+### 6. Select Board And Port
 
 In Arduino IDE:
 
@@ -104,7 +113,7 @@ In Arduino IDE:
 3. Open `Tools -> Port`.
 4. Select the port that appeared when you plugged in the ESP32.
 
-## 9. Upload The Firmware
+### 7. Upload The Firmware
 
 1. Click the `Upload` button in Arduino IDE.
 2. If upload waits at `Connecting...`, hold the ESP32 `BOOT` button until upload starts.
@@ -121,7 +130,97 @@ Connecting to MQTT...connected
 Publishing: {"device":"esp32-mqtt-sensor",...}
 ```
 
-## 10. Create Or Enable The Workflow
+## Method B: Arduino CLI
+
+Use this if you prefer the terminal or are flashing from a Raspberry Pi over SSH.
+
+### 1. Install Arduino CLI
+
+Run this on the computer connected to the ESP32:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+```
+
+The installer usually places `arduino-cli` under `~/bin/arduino-cli`.
+
+### 2. Add ESP32 Board Support
+
+```bash
+~/bin/arduino-cli config init
+~/bin/arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+~/bin/arduino-cli core update-index
+~/bin/arduino-cli core install esp32:esp32
+```
+
+### 3. Install The MQTT Library
+
+```bash
+~/bin/arduino-cli lib install PubSubClient
+```
+
+### 4. Find The ESP32 Port
+
+```bash
+~/bin/arduino-cli board list
+```
+
+Look for a port like:
+
+```txt
+/dev/ttyUSB0
+/dev/ttyACM0
+COM3
+```
+
+### 5. Create The Sketch Folder
+
+Arduino CLI expects the folder and `.ino` file to have the same name.
+
+```bash
+mkdir -p ~/esp32-integritas-sensor
+nano ~/esp32-integritas-sensor/esp32-integritas-sensor.ino
+```
+
+Paste the generated firmware into the file, then replace:
+
+```cpp
+const char* WIFI_SSID = "YOUR_WIFI_NAME";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+```
+
+### 6. Compile
+
+```bash
+~/bin/arduino-cli compile --fqbn esp32:esp32:esp32 ~/esp32-integritas-sensor
+```
+
+### 7. Upload
+
+Replace `/dev/ttyUSB0` with the port from `board list`:
+
+```bash
+~/bin/arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:esp32 ~/esp32-integritas-sensor
+```
+
+If upload waits at `Connecting...`, hold the ESP32 `BOOT` button until upload starts.
+
+### 8. Monitor Serial Output
+
+```bash
+~/bin/arduino-cli monitor -p /dev/ttyUSB0 --config baudrate=115200
+```
+
+Expected output:
+
+```txt
+Connecting to Wi-Fi...
+Wi-Fi connected: 192.168.1.x
+Connecting to MQTT...connected
+Publishing: {"device":"esp32-mqtt-sensor",...}
+```
+
+## 4. Create Or Enable The Workflow
 
 The MQTT source only subscribes while an enabled workflow watches it.
 

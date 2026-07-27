@@ -307,18 +307,15 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
         <strong>Walkthrough</strong>
         <ol className="m-0 grid gap-2 pl-5">
           <li>Connect the ESP32 to the computer you will use for flashing, using a USB data cable. This can be a laptop, desktop, or Raspberry Pi.</li>
-          <li>Install and open Arduino IDE on that same computer from <code>arduino.cc/en/software</code>. If no serial port appears, try another USB cable.</li>
-          <li>In Arduino IDE, open <code>File -&gt; Preferences</code> and add this Boards Manager URL: <code>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</code>.</li>
-          <li>Open <code>Tools -&gt; Board -&gt; Boards Manager</code>, search for <code>esp32</code>, and install <code>esp32 by Espressif Systems</code>.</li>
-          <li>Open <code>Sketch -&gt; Include Library -&gt; Manage Libraries</code>, search for <code>PubSubClient</code>, and install it.</li>
-          <li>Create a new sketch, paste the firmware below, and replace <code>YOUR_WIFI_NAME</code> and <code>YOUR_WIFI_PASSWORD</code>.</li>
-          <li>Select <code>Tools -&gt; Board -&gt; ESP32 Dev Module</code> if unsure, then select the ESP32 serial port under <code>Tools -&gt; Port</code>.</li>
-          <li>Click Upload. If it gets stuck at Connecting, hold the ESP32 <code>BOOT</code> button until upload starts.</li>
-          <li>Open <code>Tools -&gt; Serial Monitor</code> at <code>115200</code> baud and look for Wi-Fi, MQTT, and Publishing messages.</li>
-          <li>Create or enable an Automation workflow with <code>MQTT message received</code> as the start block and this source selected.</li>
+          <li>Choose one flashing method: Arduino IDE for a graphical app, or Arduino CLI for terminal/Raspberry Pi/headless use.</li>
+          <li>Arduino IDE: install from <InlineCode>arduino.cc/en/software</InlineCode>, add ESP32 board support, install <InlineCode>PubSubClient</InlineCode>, paste the firmware, select board/port, and upload.</li>
+          <li>Arduino CLI: install <InlineCode>arduino-cli</InlineCode>, install <InlineCode>esp32:esp32</InlineCode> and <InlineCode>PubSubClient</InlineCode>, save the firmware as a sketch, compile, and upload to the ESP32 port.</li>
+          <li>Replace <InlineCode>YOUR_WIFI_NAME</InlineCode> and <InlineCode>YOUR_WIFI_PASSWORD</InlineCode> before flashing.</li>
+          <li>After upload, open Serial Monitor at <InlineCode>115200</InlineCode> baud and look for Wi-Fi, MQTT, and Publishing messages.</li>
+          <li>Then create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</li>
         </ol>
       </div>
-      <MutedText className="m-0">Full guide: <code>docs/guides/esp32-mqtt-sensors.md</code>. The starter sketch publishes placeholder temperature/humidity values; replace the sensor functions after the MQTT path works.</MutedText>
+      <MutedText className="m-0">Full guide: <InlineCode>docs/guides/esp32-mqtt-sensors.md</InlineCode>. The starter sketch publishes placeholder temperature/humidity values; replace the sensor functions after the MQTT path works.</MutedText>
       <textarea className="min-h-[420px] font-mono text-xs" readOnly value={firmware} />
       <div className="flex flex-wrap gap-2">
         <Button type="button" onClick={() => navigator.clipboard?.writeText(firmware)}>Copy firmware</Button>
@@ -326,6 +323,10 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
       </div>
     </Card>
   );
+}
+
+function InlineCode({ children }: { children: React.ReactNode }) {
+  return <span className="break-all rounded bg-white px-1.5 py-0.5 font-mono text-[0.9em] text-slate-600">{children}</span>;
 }
 
 function esp32BrokerParts(capabilities: DataSourceCapabilities | null, fallbackBrokerUrl: string) {
