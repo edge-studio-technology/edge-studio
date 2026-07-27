@@ -63,10 +63,18 @@ function StatusDots({
   return (
     <>
       <StatusDot label="Node" tone={serviceTone(minimaService)}>
-        <ServiceDetail service={minimaService} generatedAt={generatedAt} refreshError={refreshError} />
+        <ServiceDetail
+          service={minimaService}
+          generatedAt={generatedAt}
+          refreshError={refreshError}
+        />
       </StatusDot>
       <StatusDot label="Integritas" tone={serviceTone(integritasService)}>
-        <ServiceDetail service={integritasService} generatedAt={generatedAt} refreshError={refreshError} />
+        <ServiceDetail
+          service={integritasService}
+          generatedAt={generatedAt}
+          refreshError={refreshError}
+        />
       </StatusDot>
     </>
   );
@@ -136,6 +144,7 @@ export function AppShell({
           />
           */}
 
+          {/*
           <div className="mt-4 rounded border border-slate-200 bg-slate-50 p-3">
             <Clock />
           </div>
@@ -148,6 +157,7 @@ export function AppShell({
               refreshError={statusRefreshError}
             />
           </div>
+          */}
 
           <nav className="mt-3 grid gap-1">
             <div className="grid gap-1 border-t border-slate-200 pt-2">
@@ -264,8 +274,7 @@ export function AppShell({
         </aside>
 
         <main className="min-w-0 flex-1 p-2 lg:p-2">
-          {/*
-          <header className="flex flex-col gap-4 rounded border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+          <header className="mb-4 flex flex-col gap-4 rounded border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
               <div className="flex items-center gap-3">
                 <div>
@@ -293,12 +302,11 @@ export function AppShell({
               >
                 <MessageSquare size={16} /> Feedback
               </Button>
-              <div className="min-w-[210px] rounded-[20px] border border-slate-200 bg-white p-3 shadow-[0_12px_26px_rgba(15,23,42,0.05)]">
+              <div className="min-w-52.5 rounded-[20px] border border-slate-200 bg-white p-3 shadow-[0_12px_26px_rgba(15,23,42,0.05)]">
                 <Clock />
               </div>
             </div>
           </header>
-          */}
 
           <div className="my-4 flex gap-2 overflow-x-auto pb-2 lg:hidden">
             {nav.map(({ id, label }) => (
