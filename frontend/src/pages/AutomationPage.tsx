@@ -4,11 +4,12 @@ import { Link } from "react-router-dom";
 import { Button } from "../components/Button";
 import { DataTable, RowActions, TableIconButton, TableWrap, tableCellClass, tableHeaderCellClass, tableHeadRowClass, tableRowClass } from "../components/DataTable";
 import { JsonPreview } from "../components/JsonPreview";
+import { Modal } from "../components/Modal";
 import { Page } from "../components/Page";
 import { ProgressModal } from "../components/ProgressModal";
-import { addAutomationBlock, createAutomationWorkflow, deleteAutomationBlock, deleteAutomationWorkflow, duplicateAutomationWorkflow, getAutomationWorkflowValidation, listAutomationWorkflowRuns, listAutomationWorkflows, reorderAutomationBlocks, runAutomationWorkflow, updateAutomationBlock, updateAutomationWorkflow, validateAutomationDraft } from "../features/automation/automationApi";
+import { addAutomationBlock, createAutomationWorkflow, deleteAutomationBlock, deleteAutomationInboxItem, deleteAutomationWorkflow, duplicateAutomationWorkflow, getAutomationWorkflowValidation, listAutomationInbox, listAutomationWorkflowRuns, listAutomationWorkflows, reorderAutomationBlocks, runAutomationWorkflow, updateAutomationBlock, updateAutomationInboxItem, updateAutomationWorkflow, validateAutomationDraft } from "../features/automation/automationApi";
 import { automationBlockToCanvasBlock, draftBlockDescription, draftBlockTitle, isDataBlock, WorkflowBlockLibrary, WorkflowCanvas, WorkflowWorkspaceShell, type DraftWorkflowBlock, type WorkflowCanvasRuntimeState, type WorkflowCanvasValidationIssue } from "../features/automation/WorkflowCanvas";
-import type { AutomationBlock, AutomationBlockType, AutomationRun, AutomationValidationResult, AutomationWorkflow, ConditionOperator } from "../features/automation/automationTypes";
+import type { AutomationBlock, AutomationBlockType, AutomationInboxItem, AutomationRun, AutomationValidationResult, AutomationWorkflow, ConditionOperator } from "../features/automation/automationTypes";
 import { listAddressBookEntries } from "../features/address-book/addressBookApi";
 import type { AddressBookEntry } from "../features/address-book/addressBookTypes";
 import { listDataSources } from "../features/data-sources/dataSourcesApi";
@@ -47,6 +48,7 @@ export function AutomationPage() {
   const [addressBook, setAddressBook] = useState<AddressBookEntry[]>([]);
   const [walletStatus, setWalletStatus] = useState<WalletStatus | null>(null);
   const [workflows, setWorkflows] = useState<AutomationWorkflow[]>([]);
+  const [inboxItems, setInboxItems] = useState<AutomationInboxItem[]>([]);
   const [name, setName] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [workflowSearch, setWorkflowSearch] = useState("");
@@ -91,14 +93,16 @@ export function AutomationPage() {
   }, [flow, workspaceRuns]);
 
   async function refresh() {
-    const [sourceResponse, workflowResponse, addressBookResponse, walletResponse] = await Promise.all([
+    const [sourceResponse, workflowResponse, inboxResponse, addressBookResponse, walletResponse] = await Promise.all([
       listDataSources(),
       listAutomationWorkflows(),
+      listAutomationInbox({ status: "all", limit: 10 }).catch(() => ({ items: [] as AutomationInboxItem[], total: 0, limit: 10, offset: 0 })),
       listAddressBookEntries().catch(() => [] as AddressBookEntry[]),
       getWalletStatus().catch(() => null as WalletStatus | null)
     ]);
     setSources(sourceResponse.items);
     setWorkflows(workflowResponse.items);
+    setInboxItems(inboxResponse.items);
     setAddressBook(addressBookResponse);
     setWalletStatus(walletResponse);
     const workflowId = "workflowId" in flow ? flow.workflowId : null;
@@ -313,8 +317,59 @@ export function AutomationPage() {
         {workflows.length === 0 && <p className={mutedText}>No automation workflows yet.</p>}
         {workflows.length > 0 && filteredWorkflows.length === 0 && <p className={mutedText}>No workflows match this filter.</p>}
       </section>}
+
+      {flow.mode === "list" && <AutomationInboxPanel items={inboxItems} busy={busy} onMarkRead={(item, read) => run(() => updateAutomationInboxItem(item.id, { read }))} onDelete={(item) => run(() => deleteAutomationInboxItem(item.id))} />}
     </Page>
   );
+}
+
+function AutomationInboxPanel({ items, busy, onMarkRead, onDelete }: { items: AutomationInboxItem[]; busy: boolean; onMarkRead: (item: AutomationInboxItem, read: boolean) => void; onDelete: (item: AutomationInboxItem) => void }) {
+  return <section className={cx(cardClass, "grid gap-4")}>
+    <div className={statusRowClass}>
+      <div><strong>Automation inbox</strong><p className={mutedText}>Local workflow previews stay here even if no browser was open when the workflow ran.</p></div>
+      <StatusPill status={items.some((item) => !item.readAt) ? "warn" : "neutral"}>{items.filter((item) => !item.readAt).length} unread</StatusPill>
+    </div>
+    {items.length === 0 && <p className={mutedText}>No preview items yet. Add a Show preview block to a workflow.</p>}
+    <div className="grid gap-3">
+      {items.map((item) => <article key={item.id} className={cx(softCardClass, "grid gap-3")}> 
+        <div className={statusRowClass}>
+          <div><strong>{item.title}</strong><p className={mutedText}>{item.workflowName} · {item.format} · {formatLocalTime(item.createdAt)}</p></div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => onMarkRead(item, !item.readAt)}>{item.readAt ? "Mark unread" : "Mark read"}</Button>
+            <Button type="button" variant="danger" size="sm" disabled={busy} onClick={() => onDelete(item)}>Delete</Button>
+          </div>
+        </div>
+        <InboxPreview item={item} />
+      </article>)}
+    </div>
+  </section>;
+}
+
+function InboxPreview({ item }: { item: AutomationInboxItem }) {
+  if (item.format === "json") return <JsonPreview value={item.content} />;
+  if (item.format === "link" && typeof item.content === "string") return <a className="font-bold text-blue-700 underline" href={item.content} target="_blank" rel="noreferrer">{item.content}</a>;
+  if (item.format === "image" && isImagePreviewContent(item.content)) {
+    const src = item.content.source === "local_path" ? `/api/automation/inbox/${item.id}/image` : item.content.value;
+    return <ImagePreviewModal title={item.title} src={src} source={item.content.source} value={item.content.value} />;
+  }
+  return <p className="whitespace-pre-wrap text-sm text-slate-700">{typeof item.content === "string" ? item.content : item.renderedText ?? JSON.stringify(item.content)}</p>;
+}
+
+function ImagePreviewModal({ title, src, source, value }: { title: string; src: string; source: "url" | "local_path"; value: string }) {
+  const [open, setOpen] = useState(false);
+  return <>
+    <button type="button" className="border-0 bg-transparent p-0 text-left font-extrabold text-blue-600 underline" onClick={() => setOpen(true)}>View preview</button>
+    {open && <Modal title={title} onClose={() => setOpen(false)}>
+      <div className="grid gap-3">
+        <img className="max-h-[72vh] max-w-full rounded-2xl border border-slate-200 object-contain" src={src} alt={title} />
+        <small className={mutedText}>{source}: {value}</small>
+      </div>
+    </Modal>}
+  </>;
+}
+
+function isImagePreviewContent(value: unknown): value is { source: "url" | "local_path"; value: string } {
+  return Boolean(value && typeof value === "object" && "source" in value && "value" in value && typeof (value as { value?: unknown }).value === "string");
 }
 
 function StatusPill({ status, children }: { status: "good" | "warn" | "neutral"; children: ReactNode }) {
@@ -476,11 +531,24 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
   const nativeTokens = nativeMinimaTokens(walletStatus);
 
   if (block.type.endsWith("_start")) {
+    const selectedStartSource = startSources.find((source) => source.id === block.config.sourceId);
+    const isEventStart = block.type === "gpio_event_start" || block.type === "webhook_event_start" || block.type === "mqtt_event_start";
     return (
       <Panel className={formGridClass}>
         <strong>Selected start block</strong>
         <p className={mutedText}>{draftBlockTitle(block)}. To choose a different start block, reset the canvas.</p>
-        {block.type === "schedule_start" ? <label>Interval<select value={block.config.intervalSeconds ?? 60} onChange={(event) => onChange({ intervalSeconds: Number(event.target.value) })}>{intervals.map((interval) => <option key={interval} value={interval}>{formatInterval(interval)}</option>)}</select></label> : block.type === "manual_start" ? <p className={mutedText}>Manual workflows run only when you click Run now.</p> : <label>Start source<select value={block.config.sourceId ?? ""} onChange={(event) => onChange({ sourceId: event.target.value })}><option value="">Select source...</option>{startSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>}
+        {block.type === "schedule_start" ? <label>Interval<select value={block.config.intervalSeconds ?? 60} onChange={(event) => onChange({ intervalSeconds: Number(event.target.value) })}>{intervals.map((interval) => <option key={interval} value={interval}>{formatInterval(interval)}</option>)}</select></label> : block.type === "manual_start" ? <p className={mutedText}>Manual workflows run only when you click Run now.</p> : <label>Start source<select value={block.config.sourceId ?? ""} onChange={(event) => {
+          const source = startSources.find((item) => item.id === event.target.value);
+          onChange({ ...block.config, sourceId: event.target.value, activeOnly: source?.config.profile === "pir-motion" ? true : block.config.activeOnly, cooldownSeconds: source?.config.profile === "pir-motion" && !block.config.cooldownSeconds ? 60 : block.config.cooldownSeconds ?? 0 });
+        }}><option value="">Select source...</option>{startSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>}
+        {isEventStart && <>
+          <label>Cooldown between runs, seconds<input value={String(block.config.cooldownSeconds ?? 0)} inputMode="numeric" onChange={(event) => onChange({ ...block.config, cooldownSeconds: Number(event.target.value) })} /></label>
+          <p className={mutedText}>Cooldown ignores extra events for this workflow without creating run-log rows. Use 30-60 seconds for noisy motion sensors or notification outputs.</p>
+        </>}
+        {block.type === "gpio_event_start" && <>
+          <label className="grid grid-cols-[auto_minmax(0,1fr)] items-center justify-start gap-2.5"><input className="w-auto" type="checkbox" checked={Boolean(block.config.activeOnly)} onChange={(event) => onChange({ ...block.config, activeOnly: event.target.checked })} /> Only run when the GPIO event is active</label>
+          <p className={mutedText}>{selectedStartSource?.config.profile === "pir-motion" ? "Useful when this PIR watches both rising and falling edges: ignore motion_cleared and run only on motion_detected." : "Use this when inactive GPIO edges should not trigger the workflow."}</p>
+        </>}
       </Panel>
     );
   }
@@ -490,7 +558,7 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
       <Panel className={formGridClass}>
         <strong>Selected block</strong>
         <p className={mutedText}>Fetch JSON from an HTTP device/source.</p>
-        <label>HTTP source<select value={block.config.sourceId ?? ""} onChange={(event) => onChange({ sourceId: event.target.value })}><option value="">Select HTTP source...</option>{httpSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
+        <label>HTTP source<select value={block.config.sourceId ?? ""} onChange={(event) => onChange({ ...block.config, sourceId: event.target.value })}><option value="">Select HTTP source...</option>{httpSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
         <AttachedStampSettings block={block} onAttachedChange={onAttachedChange} onAttachedRemove={onAttachedRemove} />
       </Panel>
     );
@@ -545,6 +613,22 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
     );
   }
 
+  if (block.type === "show_preview") {
+    const format = block.config.previewFormat ?? "text";
+    const contentMode = block.config.contentMode ?? "custom";
+    return (
+      <Panel className={formGridClass}>
+        <strong>Selected block</strong>
+        <p className={mutedText}>Write a durable preview item into the Automation inbox.</p>
+        <label>Title<input value={block.config.title ?? "Workflow preview"} onChange={(event) => onChange({ ...block.config, title: event.target.value })} /></label>
+        <label>Preview format<select value={format} onChange={(event) => onChange(defaultPreviewFormatConfig(block.config, event.target.value as NonNullable<AutomationBlock["config"]["previewFormat"]>))}><option value="text">Text</option><option value="json">JSON</option><option value="link">Link</option><option value="image">Image</option></select></label>
+        {format === "image" && <label>Image source<select value={block.config.imageSource ?? "url"} onChange={(event) => onChange({ ...block.config, previewFormat: "image", imageSource: event.target.value as "url" | "local_path" })}><option value="url">URL</option><option value="local_path">Local file path</option></select></label>}
+        <label>Content source<select value={contentMode} onChange={(event) => onChange(previewContentModeConfig(block.config, event.target.value as NonNullable<AutomationBlock["config"]["contentMode"]>))}><option value="custom">Custom</option><option value="workflow_context">Workflow context</option><option value="trigger_payload">Trigger payload</option><option value="latest_data">Latest data</option></select></label>
+        {contentMode === "custom" && <label>{format === "json" ? "Custom JSON" : format === "image" && block.config.imageSource === "local_path" ? "Local file path" : "Content"}<textarea rows={format === "text" ? 4 : 6} value={block.config.contentTemplateText ?? defaultPreviewContentText(format, block.config.imageSource)} onChange={(event) => onChange({ ...block.config, contentMode: "custom", contentTemplateText: event.target.value })} /></label>}
+      </Panel>
+    );
+  }
+
   if (block.type === "control_output") {
     const selectedOutput = outputTargets.find((source) => source.id === block.config.targetId);
     const selectedAction = selectedOutput?.type === "gpio-output" ? "pulse" : selectedOutput?.type === "http-output" ? "send_request" : selectedOutput?.type === "mqtt-output" ? "publish" : "pulse";
@@ -555,7 +639,7 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
         <strong>Selected block</strong>
         <label>Output target<select value={block.config.targetId ?? ""} onChange={(event) => {
           const target = outputTargets.find((source) => source.id === event.target.value);
-          onChange(defaultOutputBlockConfig(target, block.config.durationMs ?? 500));
+          onChange(retargetOutputBlockConfig(block.config, target));
         }}><option value="">Select output target...</option>{outputTargets.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
         {selectedOutput?.type === "gpio-output" && <label>Pulse duration ms<input value={String(block.config.durationMs ?? 500)} inputMode="numeric" onChange={(event) => onChange({ ...block.config, action: "pulse", durationMs: Number(event.target.value) })} /></label>}
         {selectedOutput?.type === "gpio-output" && <p className={mutedText}>Selected device active state: <strong>{selectedOutput.config.activeState ?? "high"}</strong>. Use High for common GPIO to resistor to LED to GND wiring. Change this from Devices by editing the GPIO Output target.</p>}
@@ -638,9 +722,13 @@ function defaultDraftConfig(type: AutomationBlockType, sources: DataSource[], po
   if (type === "manual_start") return {};
   if (type === "fetch_data_source") return { sourceId: firstHttpSource(sources)?.id ?? "" };
   if (type === "capture_camera") return { sourceId: firstCameraSource(sources)?.id ?? "" };
-  if (type === "gpio_event_start" || type === "webhook_event_start" || type === "mqtt_event_start") return { sourceId: defaultSourceForStart(type, sources)?.id ?? "" };
+  if (type === "gpio_event_start" || type === "webhook_event_start" || type === "mqtt_event_start") {
+    const source = defaultSourceForStart(type, sources);
+    return { sourceId: source?.id ?? "", activeOnly: source?.config.profile === "pir-motion" ? true : undefined, cooldownSeconds: source?.config.profile === "pir-motion" ? 60 : 0 };
+  }
   if (type === "if_payload_field_equals") return { source: "trigger", fieldPath: "active", operator: "equals", value: true };
   if (type === "wait") return { durationMs: 1000 };
+  if (type === "show_preview") return { title: "Workflow preview", previewFormat: "text", contentMode: "custom", contentTemplateText: "Workflow preview" };
   if (type === "set_variable") return { variableName: "message", variableSource: "custom_json", valueJsonText: '"Button pressed"' };
   if (type === "control_output") {
     const target = sources.find((source) => isOutputTarget(source));
@@ -1078,6 +1166,7 @@ function blockLabel(block: AutomationBlock) {
   if (block.type === "set_variable") return "Set variable";
   if (block.type === "if_payload_field_equals") return `If ${conditionSourceLabel(block.config.source ?? "trigger")} field matches`;
   if (block.type === "wait") return "Wait";
+  if (block.type === "show_preview") return "Show preview";
   if (block.type === "stamp_integritas") return "Stamp data";
   if (block.type === "control_output") return "Control device";
   if (block.type === "send_transaction") return "Send payment";
@@ -1091,6 +1180,7 @@ function blockShortLabel(block: AutomationBlock) {
   if (block.type === "capture_camera") return "Capture camera";
   if (block.type === "set_variable") return "Set variable";
   if (block.type === "if_payload_field_equals") return "If field matches";
+  if (block.type === "show_preview") return "Show preview";
   if (block.type === "stamp_integritas") return "Stamp";
   if (block.type === "control_output") return "Control device";
   if (block.type === "send_transaction") return "Send payment";
@@ -1177,8 +1267,10 @@ function examplePayload(workflow: AutomationWorkflow) {
       workflowName: workflow.name,
       triggeredAt: now,
       chip: "gpiochip0",
-      pin: 17,
-      edge: "falling",
+      pin: 23,
+      profile: "pir-motion",
+      edge: "rising",
+      event: "motion_detected",
       active: true
     };
   }
@@ -1219,7 +1311,7 @@ function examplePayload(workflow: AutomationWorkflow) {
 function sourceLabel(source: DataSource) {
   if (source.type === "webhook") return "Webhook receive URL";
   if (source.type === "mqtt") return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
-  if (source.type === "gpio-input") return `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
+  if (source.type === "gpio-input") return `${source.config.profile === "pir-motion" ? "PIR motion " : ""}${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
   if (source.type === "gpio-output") return `${source.config.profile ?? "led"} ${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"} active:${source.config.activeState ?? "high"}`;
   if (source.type === "http-output") return `${source.config.method ?? "POST"} ${source.config.url ?? "HTTP output"}`;
   if (source.type === "mqtt-output") return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
@@ -1242,6 +1334,22 @@ function defaultOutputBlockConfig(source: DataSource | undefined, durationMs: nu
   if (source?.type === "http-output") return { targetId: source.id, action: "send_request", bodyMode: "custom", bodyTemplateText: defaultCustomBodyText() };
   if (source?.type === "mqtt-output") return { targetId: source.id, action: "publish", bodyMode: "workflow_context" };
   return { targetId: "", action: "pulse", durationMs };
+}
+
+function retargetOutputBlockConfig(config: AutomationBlock["config"], target: DataSource | undefined): AutomationBlock["config"] {
+  if (!target) return { ...config, targetId: "" };
+  if (target.type === "gpio-output") return { targetId: target.id, action: "pulse", durationMs: config.durationMs ?? 500 };
+  if (target.type !== "http-output" && target.type !== "mqtt-output") return { ...config, targetId: target.id };
+
+  const action = outputActionForTarget(target);
+  const bodyMode = compatibleBodyMode(config.bodyMode, target.type);
+  return outputBodyModeConfig({ ...config, targetId: target.id, action }, bodyMode, target.type);
+}
+
+function compatibleBodyMode(bodyMode: AutomationBlock["config"]["bodyMode"], targetType: "http-output" | "mqtt-output") {
+  if (!bodyMode) return targetType === "http-output" ? "custom" : "workflow_context";
+  if (targetType === "mqtt-output" && (bodyMode === "none" || bodyMode === "multipart_media")) return "workflow_context";
+  return bodyMode;
 }
 
 function outputBodyModeConfig(config: AutomationBlock["config"], bodyMode: NonNullable<AutomationBlock["config"]["bodyMode"]>, targetType: "http-output" | "mqtt-output"): AutomationBlock["config"] {
@@ -1270,6 +1378,22 @@ function defaultVariableSourceConfig(config: AutomationBlock["config"], variable
 function defaultConditionSourceConfig(config: AutomationBlock["config"], source: "trigger" | "variable"): AutomationBlock["config"] {
   if (source === "variable") return { ...config, source, variableName: config.variableName ?? "temp", fieldPath: undefined };
   return { ...config, source, fieldPath: config.fieldPath ?? "active", variableName: undefined };
+}
+
+function defaultPreviewFormatConfig(config: AutomationBlock["config"], previewFormat: NonNullable<AutomationBlock["config"]["previewFormat"]>): AutomationBlock["config"] {
+  return { ...config, previewFormat, contentTemplateText: defaultPreviewContentText(previewFormat, config.imageSource), imageSource: previewFormat === "image" ? config.imageSource ?? "url" : undefined };
+}
+
+function previewContentModeConfig(config: AutomationBlock["config"], contentMode: NonNullable<AutomationBlock["config"]["contentMode"]>): AutomationBlock["config"] {
+  if (contentMode === "custom") return { ...config, contentMode, contentTemplateText: config.contentTemplateText ?? defaultPreviewContentText(config.previewFormat ?? "text", config.imageSource) };
+  return { ...config, contentMode, contentTemplateText: undefined };
+}
+
+function defaultPreviewContentText(format: AutomationBlock["config"]["previewFormat"], imageSource?: AutomationBlock["config"]["imageSource"]) {
+  if (format === "json") return "{}";
+  if (format === "link") return "https://integritas.technology";
+  if (format === "image") return imageSource === "local_path" ? "camera/snapshot.jpg" : "https://integritas.technology/favicon.ico";
+  return "Workflow preview";
 }
 
 function outputBodyModes(targetType: "http-output" | "mqtt-output") {

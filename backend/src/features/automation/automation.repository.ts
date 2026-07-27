@@ -14,6 +14,7 @@ export type AutomationBlockType =
   | "set_variable"
   | "if_payload_field_equals"
   | "wait"
+  | "show_preview"
   | "stamp_integritas"
   | "control_output"
   | "send_transaction";

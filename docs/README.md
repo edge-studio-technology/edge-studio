@@ -60,6 +60,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 
 | Plan                                                                                                     | Status                     |
 | -------------------------------------------------------------------------------------------------------- | -------------------------- |
+| [plans/automation-inbox-and-preview-block.md](./plans/automation-inbox-and-preview-block.md)             | V1 implemented             |
 | [plans/block-automation-workflows.md](./plans/block-automation-workflows.md)                             | In progress                |
 | [plans/device-configuration-and-mqtt-broker.md](./plans/device-configuration-and-mqtt-broker.md)         | V1 implemented             |
 | [plans/feedback.md](./plans/feedback.md)                                                                 | V1 implemented; V2 planned |
@@ -67,6 +68,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | [plans/workflow-variables-and-output-templating.md](./plans/workflow-variables-and-output-templating.md) | V1 implemented             |
 | [plans/manifest-deploy-pull-model.md](./plans/manifest-deploy-pull-model.md)                             | In progress                |
 | [plans/workflow-runs-pagination.md](./plans/workflow-runs-pagination.md)                                 | Implemented                |
+| [plans/pir-motion-sensor-workflows.md](./plans/pir-motion-sensor-workflows.md)                           | Planned                    |
 
 ---
 

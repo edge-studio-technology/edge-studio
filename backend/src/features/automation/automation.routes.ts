@@ -1,4 +1,7 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import { Router } from "express";
+import { env } from "../../config/env.js";
 import { requireRole } from "../auth/auth.middleware.js";
 import { getAddressBookEntryById } from "../address-book/address-book.repository.js";
 import { getDataSource } from "../data-sources/dataSources.repository.js";
@@ -8,11 +11,57 @@ import { syncMqttDataSources } from "../data-sources/mqttIngestion.service.js";
 import { createAutomationBlock, createAutomationWorkflow, deleteAutomationBlock, deleteAutomationWorkflow, duplicateAutomationWorkflow, getAutomationWorkflow, listAutomationBlocks, listAutomationWorkflows, reorderAutomationBlocks, updateAutomationBlock, updateAutomationWorkflow, type AutomationBlockType } from "./automation.repository.js";
 import { getSerializedAutomationRun, listSerializedAutomationRuns, listSerializedAutomationRunsForWorkflow, runAutomationWorkflow, serializeAutomationBlock, serializeAutomationWorkflow } from "./automation.service.js";
 import { AUTOMATION_RUN_LIST_STATUSES, countAutomationRuns } from "./automationRuns.repository.js";
+import { countAutomationInboxItems, deleteAutomationInboxItem, getAutomationInboxItem, listAutomationInboxItems, setAutomationInboxItemRead, type AutomationInboxFormat } from "./automationInbox.repository.js";
 import { validateAutomationDraft, validateAutomationWorkflow, type AutomationDraftValidationBlock } from "./automation.validation.js";
 import { badRequest, dependencyUnavailable, notFound, validationFailed } from "../../shared/api-error.js";
 import { parseListQuery, toPaginatedResult } from "../../shared/list-query.js";
 
 export const automationRouter = Router();
+
+automationRouter.get("/inbox", (req, res) => {
+  const status: "read" | "unread" | "all" = req.query.status === "read" || req.query.status === "unread" || req.query.status === "all" ? req.query.status : "all";
+  const format = isInboxFormat(req.query.format) ? req.query.format : undefined;
+  const workflowId = typeof req.query.workflowId === "string" ? req.query.workflowId : undefined;
+  const limit = limitFromQuery(req.query.limit, 25);
+  const offset = Math.max(0, Number(req.query.offset ?? 0) || 0);
+  const query = { status, workflowId, format, limit, offset };
+  const total = countAutomationInboxItems(query);
+  const items = listAutomationInboxItems(query).map(serializeAutomationInboxItem);
+  res.json({ items, total, limit, offset });
+});
+
+automationRouter.get("/inbox/:id", (req, res) => {
+  const item = getAutomationInboxItem(req.params.id);
+  if (!item) return notFound(res, "Automation inbox item not found");
+  return res.json({ item: serializeAutomationInboxItem(item) });
+});
+
+automationRouter.get("/inbox/:id/image", async (req, res) => {
+  const item = getAutomationInboxItem(req.params.id);
+  if (!item) return notFound(res, "Automation inbox item not found");
+  const serialized = serializeAutomationInboxItem(item);
+  if (serialized.format !== "image" || !isImageContent(serialized.content) || serialized.content.source !== "local_path") return badRequest(res, "Inbox item is not a local image preview");
+  try {
+    const filePath = await resolveHostImagePath(serialized.content.value);
+    res.type(imageContentType(filePath));
+    return res.sendFile(filePath);
+  } catch (error) {
+    return badRequest(res, error instanceof Error ? error.message : "Image preview could not be loaded");
+  }
+});
+
+automationRouter.patch("/inbox/:id", requireRole("admin"), (req, res) => {
+  if (typeof req.body?.read !== "boolean") return badRequest(res, "read must be a boolean");
+  const item = setAutomationInboxItemRead(req.params.id, req.body.read);
+  if (!item) return notFound(res, "Automation inbox item not found");
+  return res.json({ item: serializeAutomationInboxItem(item) });
+});
+
+automationRouter.delete("/inbox/:id", requireRole("admin"), (req, res) => {
+  const deleted = deleteAutomationInboxItem(req.params.id);
+  if (!deleted) return notFound(res, "Automation inbox item not found");
+  return res.json({ deleted: true });
+});
 
 automationRouter.get("/workflows", (_req, res) => {
   res.json({ items: listAutomationWorkflows().map(serializeAutomationWorkflow) });
@@ -297,6 +346,11 @@ function validateBlockConfig(type: AutomationBlockType, config: Record<string, u
     return;
   }
 
+  if (type === "show_preview") {
+    validateShowPreviewConfig(config);
+    return;
+  }
+
   if (type === "stamp_integritas") {
     if (config.condition === undefined || config.condition === null) return;
     if (typeof config.condition !== "object" || Array.isArray(config.condition)) throw new Error("Stamp condition must be an object");
@@ -367,9 +421,60 @@ function isAutomationBlockType(type: string): type is AutomationBlockType {
     || type === "set_variable"
     || type === "if_payload_field_equals"
     || type === "wait"
+    || type === "show_preview"
     || type === "stamp_integritas"
     || type === "control_output"
     || type === "send_transaction";
+}
+
+function serializeAutomationInboxItem(item: { id: string; workflow_id: string | null; workflow_name: string; run_id: string | null; block_id: string | null; title: string; format: string; content_json: string; rendered_text: string | null; created_at: string; read_at: string | null }) {
+  return {
+    id: item.id,
+    workflowId: item.workflow_id,
+    workflowName: item.workflow_name,
+    runId: item.run_id,
+    blockId: item.block_id,
+    title: item.title,
+    format: item.format,
+    content: JSON.parse(item.content_json) as unknown,
+    renderedText: item.rendered_text,
+    createdAt: item.created_at,
+    readAt: item.read_at
+  };
+}
+
+function isInboxFormat(value: unknown): value is AutomationInboxFormat {
+  return value === "text" || value === "json" || value === "link" || value === "image";
+}
+
+function isImageContent(value: unknown): value is { source: "url" | "local_path"; value: string } {
+  return Boolean(value && typeof value === "object" && "source" in value && "value" in value && typeof (value as { value?: unknown }).value === "string");
+}
+
+async function resolveHostImagePath(value: string) {
+  const roots = [path.resolve(env.hostFilesRoot), path.resolve(env.cameraCaptureDir)];
+  const requested = path.isAbsolute(value) ? path.resolve(value) : path.resolve(roots[0], value);
+  const realPath = await fs.realpath(requested);
+  let insideAllowedRoot = false;
+  for (const root of roots) {
+    const realRoot = await fs.realpath(root).catch(() => null);
+    if (realRoot && (realPath === realRoot || realPath.startsWith(`${realRoot}${path.sep}`))) insideAllowedRoot = true;
+  }
+  if (!insideAllowedRoot) throw new Error("Image path is outside the allowed host files or camera capture directories");
+  const stat = await fs.stat(realPath);
+  if (!stat.isFile()) throw new Error("Image path does not point to a file");
+  const contentType = imageContentType(realPath);
+  if (contentType === "application/octet-stream") throw new Error("Image file type is not supported");
+  return realPath;
+}
+
+function imageContentType(filePath: string) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  if (ext === ".png") return "image/png";
+  if (ext === ".gif") return "image/gif";
+  if (ext === ".webp") return "image/webp";
+  return "application/octet-stream";
 }
 
 function validateSetVariableConfig(config: Record<string, unknown>) {
@@ -458,6 +563,45 @@ function validateWorkflowCondition(config: Record<string, unknown>) {
   }
   if (!isConditionOperator(config.operator)) throw new Error("Condition block requires a valid operator");
   if (config.operator !== "exists" && config.operator !== "does_not_exist" && !Object.prototype.hasOwnProperty.call(config, "value")) throw new Error("Condition block requires a compare value");
+}
+
+function validateShowPreviewConfig(config: Record<string, unknown>) {
+  const title = typeof config.title === "string" ? config.title.trim() : "Workflow preview";
+  if (!title || title.length > 120) throw new Error("Show preview title is required and must be 120 characters or less");
+  const format = typeof config.previewFormat === "string" ? config.previewFormat : "text";
+  if (format !== "text" && format !== "json" && format !== "link" && format !== "image") throw new Error("Show preview format is invalid");
+  const contentMode = typeof config.contentMode === "string" ? config.contentMode : "custom";
+  if (contentMode !== "custom" && contentMode !== "workflow_context" && contentMode !== "trigger_payload" && contentMode !== "latest_data") throw new Error("Show preview content source is invalid");
+  config.title = title;
+  config.previewFormat = format;
+  config.contentMode = contentMode;
+  if (format === "image") {
+    const imageSource = typeof config.imageSource === "string" ? config.imageSource : "url";
+    if (imageSource !== "url" && imageSource !== "local_path") throw new Error("Show preview image source is invalid");
+    config.imageSource = imageSource;
+  } else {
+    delete config.imageSource;
+  }
+  if (contentMode === "custom") {
+    const text = typeof config.contentTemplateText === "string" ? config.contentTemplateText : defaultPreviewContent(format as "text" | "json" | "link" | "image");
+    if (format === "json") {
+      try {
+        JSON.parse(text) as unknown;
+      } catch {
+        throw new Error("Show preview JSON content must be valid JSON");
+      }
+    }
+    config.contentTemplateText = text;
+  } else {
+    delete config.contentTemplateText;
+  }
+}
+
+function defaultPreviewContent(format: "text" | "json" | "link" | "image") {
+  if (format === "json") return "{}";
+  if (format === "link") return "https://integritas.technology";
+  if (format === "image") return "https://integritas.technology/favicon.ico";
+  return "Workflow preview";
 }
 
 function isPositiveDecimal(value: string) {

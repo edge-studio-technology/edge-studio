@@ -34,6 +34,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Account Settings no longer shows a false-positive "Failed to load peers" toast while the Minima node is restarting/resyncing; the peers RPC is only called once node status is confirmed `running`, and automatically retried once it comes back.
 - Minima sync status badge no longer shows false/stale status text; sync status is now derived only from block age instead of also weighing the Minima RPC response's unreliable/inconsistent `synced` and `connecting` fields.
 
+## [0.24.0] - 2026-07-27
+
+- Automation workflows now support a `Show preview` action block that writes text, JSON, link, and image previews into a durable local Automation inbox.
+- Automation inbox image previews can reference either HTTP(S) image URLs or local file paths streamed through an authenticated backend route under the configured host files root.
+- Automation inbox image previews now open from a `View preview` modal link, matching the existing `View JSON` preview behavior.
+
+### Changed
+
+- Main workflow `If field matches` blocks now choose between Trigger event and Variable sources; Latest data is no longer a direct condition source, so workflows should use Set variable before condition checks on recorded or fetched data.
+
+## [0.23.0] - 2026-07-27
+
+### Added
+
+- Devices now include a PIR Motion Sensor input option for HC-SR501-style GPIO motion sensors, with GPIO23-tested defaults and motion-specific trigger payload labels.
+- Event-driven Automation start blocks can now enforce a cooldown between workflow runs, and GPIO starts can ignore inactive events such as PIR `motion_cleared` edges.
+- GPIO device guidance now documents the tested HC-SR501 PIR wiring, standalone GPIO test script, and troubleshooting notes.
+
+### Changed
+
+- Automation control-output blocks now preserve compatible payload settings when switching between output targets instead of resetting the block to target defaults.
+
 ## [0.22.0] - 2026-07-23
 
 ### Added
@@ -140,6 +162,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Planned per-run workflow variables and output templating for reusable values in later workflow blocks.
 - Automation workflows now support per-run Set variable blocks and `{{variableName}}` interpolation in custom HTTP/MQTT output JSON.
 - Main workflow `If field matches` blocks can now read previously set workflow variables.
+- Automation workflows now support a `Show preview` action block that writes text, JSON, link, and image previews into a durable local Automation inbox.
+- Automation inbox image previews can reference either HTTP(S) image URLs or local file paths streamed through an authenticated backend route under the configured host files root.
 
 ### Changed
 

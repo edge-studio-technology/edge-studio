@@ -58,6 +58,13 @@ export type BlockConfig = {
   recipientAddressBookId?: string;
   tokenId?: string;
   amount?: string;
+  activeOnly?: boolean;
+  cooldownSeconds?: number;
+  title?: string;
+  previewFormat?: string;
+  contentMode?: string;
+  contentTemplateText?: string;
+  imageSource?: string;
 };
 
 export async function validateAutomationWorkflow(workflowId: string): Promise<AutomationValidationResult> {
@@ -115,6 +122,7 @@ async function validateAutomationBlockGraph(blocks: ValidationBlock[]): Promise<
     const config = block.config;
 
     validateBlockReference(block, config, issues);
+    if (block.type === "gpio_event_start" || block.type === "webhook_event_start" || block.type === "mqtt_event_start") validateEventStartConfig(block, config, issues);
 
     if (block.type === "record_trigger_event") {
       if (startType !== "gpio_event_start" && startType !== "webhook_event_start" && startType !== "mqtt_event_start") {
@@ -142,6 +150,10 @@ async function validateAutomationBlockGraph(blocks: ValidationBlock[]): Promise<
 
     if (block.type === "if_payload_field_equals") {
       validateWorkflowConditionBlock(block, config, variables, issues);
+    }
+
+    if (block.type === "show_preview") {
+      validateShowPreviewBlock(block, config, hasData, issues);
     }
 
     for (const attachedBlock of blocks.filter((item) => item.enabled && item.parentId === block.id)) {
@@ -209,6 +221,13 @@ function validateBlockReference(block: ValidationBlock, config: BlockConfig, iss
     if (String(config.tokenId ?? "0x00").toLowerCase() !== "0x00") addIssue(issues, "error", "send_transaction.unsupported_token", "Send transaction currently supports only native MINIMA tokenid 0x00.", block);
     if (!isPositiveDecimal(String(config.amount ?? ""))) addIssue(issues, "error", "send_transaction.invalid_amount", "Send transaction requires a positive amount.", block);
     addIssue(issues, "warning", "send_transaction.moves_funds", "This block sends wallet funds automatically when the workflow runs.", block);
+  }
+}
+
+function validateEventStartConfig(block: ValidationBlock, config: BlockConfig, issues: AutomationValidationIssue[]) {
+  const cooldownSeconds = Number(config.cooldownSeconds ?? 0);
+  if (!Number.isFinite(cooldownSeconds) || cooldownSeconds < 0 || cooldownSeconds > 86400) {
+    addIssue(issues, "error", `${block.type}.invalid_cooldown`, "Event start cooldown must be between 0 and 86400 seconds.", block);
   }
 }
 
@@ -281,6 +300,27 @@ function validateWorkflowConditionBlock(block: ValidationBlock, config: BlockCon
   }
   if (!isConditionOperator(String(config.operator ?? ""))) addIssue(issues, "error", "condition.invalid_operator", "Condition requires a valid operator.", block);
   if (config.operator !== "exists" && config.operator !== "does_not_exist" && !Object.prototype.hasOwnProperty.call(config, "value")) addIssue(issues, "error", "condition.missing_value", "Condition requires a compare value.", block);
+}
+
+function validateShowPreviewBlock(block: ValidationBlock, config: BlockConfig, hasData: boolean, issues: AutomationValidationIssue[]) {
+  const title = String(config.title ?? "Workflow preview").trim();
+  if (!title || title.length > 120) addIssue(issues, "error", "show_preview.invalid_title", "Show preview title is required and must be 120 characters or less.", block);
+  const format = String(config.previewFormat ?? "text");
+  if (format !== "text" && format !== "json" && format !== "link" && format !== "image") addIssue(issues, "error", "show_preview.invalid_format", "Show preview format is invalid.", block);
+  const contentMode = String(config.contentMode ?? "custom");
+  if (contentMode !== "custom" && contentMode !== "workflow_context" && contentMode !== "trigger_payload" && contentMode !== "latest_data") addIssue(issues, "error", "show_preview.invalid_content_mode", "Show preview content source is invalid.", block);
+  if (contentMode === "latest_data" && !hasData) addIssue(issues, "error", "show_preview.data_before_data_block", "Latest data previews require a Record trigger event, Fetch data, or Capture camera block before this block.", block);
+  if (format === "image") {
+    const imageSource = String(config.imageSource ?? "url");
+    if (imageSource !== "url" && imageSource !== "local_path") addIssue(issues, "error", "show_preview.invalid_image_source", "Show preview image source is invalid.", block);
+  }
+  if (contentMode === "custom" && format === "json") {
+    try {
+      JSON.parse(config.contentTemplateText ?? "{}") as unknown;
+    } catch {
+      addIssue(issues, "error", "show_preview.invalid_json", "Show preview JSON content must be valid JSON.", block);
+    }
+  }
 }
 
 async function validateTransactionBalances(blocks: ValidationBlock[], issues: AutomationValidationIssue[]) {

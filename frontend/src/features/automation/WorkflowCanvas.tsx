@@ -89,6 +89,7 @@ export function WorkflowBlockLibrary({ mode = "build", hasStartBlock, selectedBl
       <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("if_payload_field_equals")} title="If field matches" description="Stop unless a trigger field or variable matches." />
       <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("wait")} title="Wait" description="Pause before the next block." />
       <strong>Action blocks</strong>
+      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("show_preview")} title="Show preview" description="Display a message, JSON, link, or image in the Pi UI." />
       <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("control_output")} title="Control device" description="Send a command to a configured output target." />
       <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("send_transaction")} title="Send payment" description="Send funds to a saved recipient." />
       <strong>Attached actions</strong>
@@ -214,6 +215,7 @@ export function draftBlockTitle(block: { type: AutomationBlockType }) {
   if (block.type === "fetch_data_source") return "Fetch HTTP JSON";
   if (block.type === "capture_camera") return "Capture camera";
   if (block.type === "set_variable") return "Set variable";
+  if (block.type === "show_preview") return "Show preview";
   if (block.type === "stamp_integritas") return "Stamp data";
   if (block.type === "control_output") return "Control device";
   if (block.type === "send_transaction") return "Send payment";
@@ -230,6 +232,7 @@ export function draftBlockDescription(block: { type: AutomationBlockType; config
   if (block.type === "fetch_data_source") return "Fetches JSON and creates a hash.";
   if (block.type === "capture_camera") return "Captures media, hashes the file bytes, and stores capture metadata.";
   if (block.type === "set_variable") return `Save ${block.config.variableName || "a variable"} for later blocks.`;
+  if (block.type === "show_preview") return `Display ${block.config.previewFormat ?? "text"} in the Automation inbox.`;
   if (block.type === "stamp_integritas") return "Stamp this data block's hash.";
   if (block.type === "control_output") return "Send a command to a configured output target.";
   if (block.type === "send_transaction") return `Send ${block.config.amount || "?"} to a saved recipient.`;
@@ -254,7 +257,7 @@ function runtimeClass(runtime?: WorkflowCanvasRuntimeState) {
 function sourceLabel(source: DataSource) {
   if (source.type === "webhook") return "Webhook receive URL";
   if (source.type === "mqtt") return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
-  if (source.type === "gpio-input") return `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
+  if (source.type === "gpio-input") return `${source.config.profile === "pir-motion" ? "PIR motion " : ""}${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
   if (source.type === "gpio-output") return `${source.config.profile ?? "led"} ${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
   if (source.type === "pi-camera") return `${source.config.mode ?? "photo"} ${source.config.width ?? 1280}x${source.config.height ?? 720}`;
   return source.config.url ?? "HTTP JSON API";
