@@ -412,6 +412,7 @@ function resolvePreviewContent(config: { previewFormat?: PreviewFormat; contentM
   if (mode === "trigger_payload") return context.trigger.payload ?? null;
   if (mode === "latest_data") {
     if (!context.data) throw new Error("Show preview latest data mode requires a prior record/fetch block");
+    if (format === "image") return imageContentFromLatestData(context.data.result.preview);
     return context.data.result.preview;
   }
 
@@ -427,6 +428,14 @@ function validateImageContent(value: string, source: PreviewImageSource) {
   if (!trimmed) throw new Error("Image preview requires a URL or local file path");
   if (source === "url") return { source, value: validateHttpUrl(trimmed, "Image preview") };
   return { source, value: trimmed };
+}
+
+function imageContentFromLatestData(value: unknown) {
+  if (!value || typeof value !== "object") throw new Error("Latest data does not include image preview metadata");
+  const record = value as { source?: unknown; path?: unknown; mediaType?: unknown };
+  if (record.source !== "pi-camera-helper" || typeof record.path !== "string") throw new Error("Latest data is not a Pi Camera image capture");
+  if (typeof record.mediaType === "string" && !record.mediaType.startsWith("image/")) throw new Error("Latest camera capture is not an image");
+  return { source: "local_path" as const, value: record.path };
 }
 
 function interpolatePreviewText(value: string, variables: Record<string, unknown>) {

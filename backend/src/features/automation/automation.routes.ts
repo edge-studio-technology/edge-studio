@@ -452,12 +452,15 @@ function isImageContent(value: unknown): value is { source: "url" | "local_path"
 }
 
 async function resolveHostImagePath(value: string) {
-  const root = path.resolve(env.hostFilesRoot);
-  const requested = path.isAbsolute(value) ? path.resolve(value) : path.resolve(root, value);
-  if (requested !== root && !requested.startsWith(`${root}${path.sep}`)) throw new Error("Image path is outside the allowed host files directory");
-  const realRoot = await fs.realpath(root);
+  const roots = [path.resolve(env.hostFilesRoot), path.resolve(env.cameraCaptureDir)];
+  const requested = path.isAbsolute(value) ? path.resolve(value) : path.resolve(roots[0], value);
   const realPath = await fs.realpath(requested);
-  if (realPath !== realRoot && !realPath.startsWith(`${realRoot}${path.sep}`)) throw new Error("Image path is outside the allowed host files directory");
+  let insideAllowedRoot = false;
+  for (const root of roots) {
+    const realRoot = await fs.realpath(root).catch(() => null);
+    if (realRoot && (realPath === realRoot || realPath.startsWith(`${realRoot}${path.sep}`))) insideAllowedRoot = true;
+  }
+  if (!insideAllowedRoot) throw new Error("Image path is outside the allowed host files or camera capture directories");
   const stat = await fs.stat(realPath);
   if (!stat.isFile()) throw new Error("Image path does not point to a file");
   const contentType = imageContentType(realPath);
