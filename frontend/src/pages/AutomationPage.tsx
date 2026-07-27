@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "../components/Button";
 import { DataTable, RowActions, TableIconButton, TableWrap, tableCellClass, tableHeaderCellClass, tableHeadRowClass, tableRowClass } from "../components/DataTable";
 import { JsonPreview } from "../components/JsonPreview";
+import { Modal } from "../components/Modal";
 import { Page } from "../components/Page";
 import { ProgressModal } from "../components/ProgressModal";
 import { addAutomationBlock, createAutomationWorkflow, deleteAutomationBlock, deleteAutomationInboxItem, deleteAutomationWorkflow, duplicateAutomationWorkflow, getAutomationWorkflowValidation, listAutomationInbox, listAutomationWorkflowRuns, listAutomationWorkflows, reorderAutomationBlocks, runAutomationWorkflow, updateAutomationBlock, updateAutomationInboxItem, updateAutomationWorkflow, validateAutomationDraft } from "../features/automation/automationApi";
@@ -349,9 +350,22 @@ function InboxPreview({ item }: { item: AutomationInboxItem }) {
   if (item.format === "link" && typeof item.content === "string") return <a className="font-bold text-blue-700 underline" href={item.content} target="_blank" rel="noreferrer">{item.content}</a>;
   if (item.format === "image" && isImagePreviewContent(item.content)) {
     const src = item.content.source === "local_path" ? `/api/automation/inbox/${item.id}/image` : item.content.value;
-    return <div className="grid gap-2"><img className="max-h-[360px] max-w-full rounded-2xl border border-slate-200 object-contain" src={src} alt={item.title} /><small className={mutedText}>{item.content.source}: {item.content.value}</small></div>;
+    return <ImagePreviewModal title={item.title} src={src} source={item.content.source} value={item.content.value} />;
   }
   return <p className="whitespace-pre-wrap text-sm text-slate-700">{typeof item.content === "string" ? item.content : item.renderedText ?? JSON.stringify(item.content)}</p>;
+}
+
+function ImagePreviewModal({ title, src, source, value }: { title: string; src: string; source: "url" | "local_path"; value: string }) {
+  const [open, setOpen] = useState(false);
+  return <>
+    <button type="button" className="border-0 bg-transparent p-0 text-left font-extrabold text-blue-600 underline" onClick={() => setOpen(true)}>View preview</button>
+    {open && <Modal title={title} onClose={() => setOpen(false)}>
+      <div className="grid gap-3">
+        <img className="max-h-[72vh] max-w-full rounded-2xl border border-slate-200 object-contain" src={src} alt={title} />
+        <small className={mutedText}>{source}: {value}</small>
+      </div>
+    </Modal>}
+  </>;
 }
 
 function isImagePreviewContent(value: unknown): value is { source: "url" | "local_path"; value: string } {
