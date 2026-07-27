@@ -159,19 +159,26 @@ The installer usually places `arduino-cli` under `~/bin/arduino-cli`.
 ~/bin/arduino-cli lib install PubSubClient
 ```
 
-### 4. Find The ESP32 Port
+### 4. Find The ESP32 Port And FQBN
 
 ```bash
 ~/bin/arduino-cli board list
 ```
 
-Look for a port like:
+Look for the ESP32 row. Arduino CLI may also print a board FQBN, which identifies the exact board package target to use for compile and upload:
 
 ```txt
-/dev/ttyUSB0
-/dev/ttyACM0
-COM3
+Port         Protocol Type              Board Name          FQBN                      Core
+/dev/ttyACM0 serial   Serial Port (USB) ESP32 Family Device esp32:esp32:esp32_family  esp32:esp32
+/dev/ttyAMA0 serial   Serial Port       Unknown
 ```
+
+In this example:
+
+- Port is `/dev/ttyACM0`.
+- FQBN is `esp32:esp32:esp32_family`.
+
+If Arduino CLI does not identify the board, use the USB serial port such as `/dev/ttyUSB0`, `/dev/ttyACM0`, or `COM3`, and try the fallback FQBN `esp32:esp32:esp32`.
 
 ### 5. Create The Sketch Folder
 
@@ -191,16 +198,24 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
 ### 6. Compile
 
+Use the FQBN from `board list` if one was printed:
+
+```bash
+~/bin/arduino-cli compile --fqbn esp32:esp32:esp32_family ~/esp32-integritas-sensor
+```
+
+If no FQBN was printed, try the fallback:
+
 ```bash
 ~/bin/arduino-cli compile --fqbn esp32:esp32:esp32 ~/esp32-integritas-sensor
 ```
 
 ### 7. Upload
 
-Replace `/dev/ttyUSB0` with the port from `board list`:
+Replace `/dev/ttyACM0` with the port from `board list`, and use the detected FQBN if Arduino CLI printed one:
 
 ```bash
-~/bin/arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:esp32 ~/esp32-integritas-sensor
+~/bin/arduino-cli upload -p /dev/ttyACM0 --fqbn esp32:esp32:esp32_family ~/esp32-integritas-sensor
 ```
 
 If upload waits at `Connecting...`, hold the ESP32 `BOOT` button until upload starts.
@@ -208,7 +223,7 @@ If upload waits at `Connecting...`, hold the ESP32 `BOOT` button until upload st
 ### 8. Monitor Serial Output
 
 ```bash
-~/bin/arduino-cli monitor -p /dev/ttyUSB0 --config baudrate=115200
+~/bin/arduino-cli monitor -p /dev/ttyACM0 --config baudrate=115200
 ```
 
 Expected output:

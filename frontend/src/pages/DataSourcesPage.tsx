@@ -354,8 +354,10 @@ type FirmwareStepProps = {
 
 function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, onWifiPasswordChange }: FirmwareStepProps) {
   const [boardListOutput, setBoardListOutput] = useState("");
-  const detectedPort = detectEsp32Port(boardListOutput);
-  const commands = esp32CliCommands(detectedPort ?? "/dev/ttyUSB0");
+  const detectedBoard = detectEsp32Board(boardListOutput);
+  const detectedPort = detectedBoard?.port ?? null;
+  const detectedFqbn = detectedBoard?.fqbn ?? null;
+  const commands = esp32CliCommands(detectedPort ?? "/dev/ttyUSB0", detectedFqbn ?? "esp32:esp32:esp32");
 
   return (
     <div className="grid gap-3">
@@ -373,9 +375,9 @@ function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, o
       </SetupStep>
       <SetupStep index={4} title="Find The ESP32 Port">
           <CommandBlock value={commands.boardList} />
-          <div className="mt-2">Run the command, paste its output here, and the upload/monitor commands below will use the detected port.</div>
-          <textarea className="mt-2 min-h-[110px] font-mono text-xs" value={boardListOutput} onChange={(event) => setBoardListOutput(event.target.value)} placeholder={'Port         Protocol Type              Board Name FQBN Core\n/dev/ttyACM0 serial   Serial Port (USB) Unknown\n/dev/ttyAMA0 serial   Serial Port       Unknown'} />
-          {detectedPort ? <div className="mt-2">Detected ESP32 port: <InlineCode>{detectedPort}</InlineCode></div> : <div className="mt-2">Look for a USB serial port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.</div>}
+          <div className="mt-2">Run the command, paste its output here, and the compile/upload/monitor commands below will use the detected port and board FQBN.</div>
+          <textarea className="mt-2 min-h-[110px] font-mono text-xs" value={boardListOutput} onChange={(event) => setBoardListOutput(event.target.value)} placeholder={'Port         Protocol Type              Board Name          FQBN                      Core\n/dev/ttyACM0 serial   Serial Port (USB) ESP32 Family Device esp32:esp32:esp32_family  esp32:esp32\n/dev/ttyAMA0 serial   Serial Port       Unknown'} />
+          {detectedBoard ? <div className="mt-2">Detected ESP32 port: <InlineCode>{detectedBoard.port}</InlineCode> and FQBN: <InlineCode>{detectedBoard.fqbn}</InlineCode></div> : <div className="mt-2">Look for a USB serial port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>. If the output includes an ESP32 FQBN, use that value for compile and upload.</div>}
       </SetupStep>
       <SetupStep index={5} title="Create Sketch File">
           <div>Create the sketch folder and file, then paste the generated firmware below.</div>
@@ -383,6 +385,7 @@ function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, o
           <FirmwareStepContent firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={onWifiSsidChange} onWifiPasswordChange={onWifiPasswordChange} />
       </SetupStep>
       <SetupStep index={6} title="Compile Sketch">
+          <div>{detectedFqbn ? <>Using detected FQBN <InlineCode>{detectedFqbn}</InlineCode>.</> : <>Using fallback FQBN <InlineCode>esp32:esp32:esp32</InlineCode>. Paste the board list output in step 4 to update this command if Arduino CLI identifies your board.</>}</div>
           <CommandBlock value={commands.compile} />
       </SetupStep>
       <SetupStep index={7} title="Upload Firmware">
@@ -439,10 +442,9 @@ function InlineCode({ children }: { children: React.ReactNode }) {
   return <span className="break-all rounded bg-white px-1.5 py-0.5 font-mono text-[0.9em] text-slate-600">{children}</span>;
 }
 
-function esp32CliCommands(port: string) {
+function esp32CliCommands(port: string, fqbn: string) {
   const cli = "~/bin/arduino-cli";
   const sketchPath = "~/esp32-integritas-sensor";
-  const fqbn = "esp32:esp32:esp32";
   return {
     installCli: "curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh",
     installEsp32Core: [
@@ -460,12 +462,16 @@ function esp32CliCommands(port: string) {
   };
 }
 
-function detectEsp32Port(output: string) {
+function detectEsp32Board(output: string) {
   const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const usbLine = lines.find((line) => /\bserial\b/i.test(line) && /\b(USB|Serial Port \(USB\))\b/i.test(line) && /^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i.test(line));
   const fallbackLine = lines.find((line) => /^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i.test(line));
-  const match = (usbLine ?? fallbackLine)?.match(/^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i);
-  return match?.[1] ?? null;
+  const line = usbLine ?? fallbackLine;
+  const portMatch = line?.match(/^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i);
+  if (!portMatch) return null;
+
+  const fqbnMatch = line?.match(/\besp32:esp32:[a-z0-9_\-]+\b/i);
+  return { port: portMatch[1], fqbn: fqbnMatch?.[0] ?? "esp32:esp32:esp32" };
 }
 
 function esp32BrokerParts(capabilities: DataSourceCapabilities | null, fallbackBrokerUrl: string) {
