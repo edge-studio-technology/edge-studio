@@ -1,6 +1,6 @@
 # ESP32 MQTT Sensor Onboarding Plan
 
-**Status:** Planned  
+**Status:** In progress
 **Created:** 2026-07-23  
 **Goal:** Help operators connect ESP32 sensor devices to Integritas Pi workflows by generating MQTT configuration and starter firmware, without making the Pi app responsible for flashing firmware in V1.
 
@@ -238,10 +238,10 @@ Likely files:
 
 ### Milestone 2: App Onboarding Preset
 
-- [ ] Add `ESP32 MQTT Sensor` input-source card.
-- [ ] Prefill broker/topic from local MQTT broker capability data.
-- [ ] Save as a normal MQTT input source.
-- [ ] Show generated firmware text after creation.
+- [x] Add `ESP32 MQTT Sensor` input-source card.
+- [x] Prefill broker/topic from local MQTT broker capability data.
+- [x] Save as a normal MQTT input source.
+- [x] Show generated firmware text after creation.
 
 ### Milestone 3: Sensor Templates
 

@@ -149,6 +149,7 @@ function gpioEndpoint(source: DataSource) {
 
 function sourceTypeLabel(source: DataSource) {
   if (source.type === "gpio-input" && source.config.profile === "pir-motion") return "PIR Motion Sensor";
+  if (source.type === "mqtt" && source.config.profile === "esp32-sensor") return "ESP32 MQTT Sensor";
   return source.type;
 }
 
