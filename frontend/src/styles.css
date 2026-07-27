@@ -1,12 +1,16 @@
 @import "tailwindcss";
-@import "@fontsource/manrope/latin-400.css";
-@import "@fontsource/manrope/latin-500.css";
-@import "@fontsource/manrope/latin-600.css";
-@import "@fontsource/manrope/latin-700.css";
-@import "@fontsource/manrope/latin-800.css";
+@import "@fontsource/hanken-grotesk/latin-400.css";
+@import "@fontsource/hanken-grotesk/latin-600.css";
+@import "@fontsource/azeret-mono/latin-400.css";
 
 @theme {
-  /* ESDS primitives (hex source of truth) */
+  /* ESDS typography primitives */
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Azeret Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-weight-base: 400;
+  --font-weight-emphasis: 600;
+
+  /* ESDS color primitives (hex source of truth) */
   --color-core-white: #ffffff;
   --color-core-black: #000000;
   --color-grey-01: #f9fafa;
@@ -60,17 +64,85 @@
   --color-overlay-heavy: #000000b2;
 }
 
+/* ESDS named type styles (esds.type.*) — complete recipes: family + size + leading + tracking + weight */
+@utility type-meta {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+@utility type-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+
+@utility type-body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 400;
+}
+
+@utility type-body-em {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+@utility type-link {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 400;
+  text-decoration-line: underline;
+}
+
+@utility type-callout {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+
+@utility type-title {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+@utility type-heading {
+  font-family: var(--font-sans);
+  font-size: 32px;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+@utility type-display {
+  font-family: var(--font-sans);
+  font-size: 48px;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
 :root {
   color: var(--color-text-primary);
   background: var(--color-surface-primary);
-  font-family:
-    Manrope,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-base);
 }
 
 @keyframes onboarding-fade-up {
@@ -117,7 +189,12 @@ button:disabled {
 code {
   display: block;
   margin-top: 6px;
-  color: #475569;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+  color: var(--color-text-secondary);
   word-break: break-all;
 }
 
@@ -134,5 +211,5 @@ select {
 
 textarea {
   resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-mono);
 }

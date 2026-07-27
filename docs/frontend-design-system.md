@@ -84,30 +84,57 @@ Avoid exporting these constants or moving them into shared files unless more tha
 
 ## Tokens
 
-Colour tokens follow Edge Studio Design System (ESDS) foundations. They are defined in `@theme` in `frontend/src/styles.css` and used as Tailwind utilities (e.g. `bg-surface-primary`, `text-text-secondary`).
+Colour and typography tokens follow Edge Studio Design System (ESDS) foundations. They are defined in `frontend/src/styles.css` (`@theme` for colour/font primitives; `@utility type-*` for named text styles).
 
-Prefer **semantic** tokens in UI. Change hex only on **primitives** in `@theme`; semantics alias primitives.
+Prefer **semantic** colour tokens and **named type styles** in UI. Change hex / type metrics only in `styles.css`, not in component classes.
 
-### Primitives (hex source of truth)
+### Colour primitives (hex source of truth)
 
-| Token | Role |
-| --- | --- |
-| `core-white` / `core-black` | Absolute white and black |
-| `grey-01` … `grey-06` | Neutral scale (light → dark) |
-| `brand-01` | Brand accent purple |
-| `feedback-error` / `feedback-warning` / `feedback-positive` | Status base colours |
+| Token                                                       | Role                         |
+| ----------------------------------------------------------- | ---------------------------- |
+| `core-white` / `core-black`                                 | Absolute white and black     |
+| `grey-01` … `grey-06`                                       | Neutral scale (light → dark) |
+| `brand-01`                                                  | Brand accent purple          |
+| `feedback-error` / `feedback-warning` / `feedback-positive` | Status base colours          |
 
-### Semantics (prefer these)
+### Colour semantics (prefer these)
 
-| Group | Examples | Role |
-| --- | --- | --- |
-| Surface | `surface-primary`, `surface-secondary`, `surface-tertiary`, `surface-inverse`, `surface-always-white`, `surface-always-black`, `surface-accent` | Backgrounds and fills |
-| Text | `text-primary`, `text-secondary`, `text-tertiary`, `text-disabled`, `text-inverse`, `text-accent`, `text-error`, `text-warning`, `text-success` | Foreground text |
-| Icon | `icon-primary`, `icon-secondary`, `icon-tertiary`, `icon-disabled`, `icon-inverse`, `icon-error`, `icon-warning`, `icon-success` | Icon colour |
-| Stroke | `stroke-primary`, `stroke-secondary`, `stroke-active`, `stroke-error`, `stroke-warning`, `stroke-success`, `stroke-always-white` | Borders and dividers |
-| Overlay | `overlay-light`, `overlay-heavy` | Scrims / dimmers |
+| Group   | Examples                                                                                                                                        | Role                              |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Surface | `surface-primary`, `surface-secondary`, `surface-tertiary`, `surface-inverse`, `surface-always-white`, `surface-always-black`, `surface-accent` | Backgrounds and fills             |
+| Text    | `text-primary`, `text-secondary`, `text-tertiary`, `text-disabled`, `text-inverse`, `text-accent`, `text-error`, `text-warning`, `text-success` | Foreground colour (not type size) |
+| Icon    | `icon-primary`, `icon-secondary`, `icon-tertiary`, `icon-disabled`, `icon-inverse`, `icon-error`, `icon-warning`, `icon-success`                | Icon colour                       |
+| Stroke  | `stroke-primary`, `stroke-secondary`, `stroke-active`, `stroke-error`, `stroke-warning`, `stroke-success`, `stroke-always-white`                | Borders and dividers              |
+| Overlay | `overlay-light`, `overlay-heavy`                                                                                                                | Scrims / dimmers                  |
 
-Do not use Tailwind opacity modifiers on tokens (e.g. `surface-always-white/25`) — add a named token instead. Use Tailwind defaults for spacing, radius, and non-brand colour until a repeated need appears.
+Do not use Tailwind opacity modifiers on colour tokens (e.g. `surface-always-white/25`) — add a named token instead.
+
+### Typography
+
+| Primitive        | Value          | Utility                               |
+| ---------------- | -------------- | ------------------------------------- |
+| Font family/Core | Hanken Grotesk | `font-sans` (also default on `:root`) |
+| Font family/Mono | Azeret Mono    | `font-mono`                           |
+| Weight/Base      | 400            | `font-base`                           |
+| Weight/Emphasis  | 600            | `font-emphasis`                       |
+
+Named styles are **complete recipes** (family + size + line-height + letter-spacing + weight). Prefer these over ad-hoc `text-sm` / `font-bold` / `tracking-*`:
+
+| Figma (`esds.type.*`) | Utility        | Notes                                         |
+| --------------------- | -------------- | --------------------------------------------- |
+| Meta                  | `type-meta`    | 12 / 400 / lh 1.2 / tracking 0                |
+| Mono                  | `type-mono`    | Azeret Mono, 12 / 400 / lh 1.2 / tracking −2% |
+| Body                  | `type-body`    | 14 / 400 / lh 1.2 / tracking −1%              |
+| Body Emphasis         | `type-body-em` | 14 / 600 / lh 1.2 / tracking −1%              |
+| Link                  | `type-link`    | Same as Body + underline                      |
+| Callout               | `type-callout` | 18 / 400 / lh 1.2 / tracking −2%              |
+| Title                 | `type-title`   | 24 / 600 / lh 1.2 / tracking −2%              |
+| Heading               | `type-heading` | 32 / 600 / lh 0.95 / tracking −2%             |
+| Display               | `type-display` | 48 / 600 / lh 0.95 / tracking −2%             |
+
+Pair type utilities with colour utilities (e.g. `type-body text-text-secondary`). Heading/Display use tight Figma leading — prefer short single-line titles; loosen only with design approval.
+
+Use Tailwind defaults for spacing and radius until a repeated need appears.
 
 ## Do Not Add Yet
 
