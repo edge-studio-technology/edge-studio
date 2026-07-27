@@ -46,7 +46,9 @@ Use these before writing bespoke markup:
 - `Text`: shared muted, error, and eyebrow text helpers.
 - `ErrorAlert`: in-page error alert with optional title and recovery action.
 - `Modal`: portal-backed dialog shell.
-- `Input`: ordinary text field (ESDS surface, soft shadow, focus ring).
+- `Input`: ESDS text control (box only). Prefer `InputField` for labeled forms.
+- `InputField`: ESDS Input Field (label / description / control / error); wraps `Input`.
+- `MenuItem`: ESDS menu row (optional icon + label); default / hover / disabled.
 - `CredentialInput`: PIN or password field (`mode="pin" | "password"`); wraps `Input`.
 - `DataTable`: workflow-style table shell, wrapper, rows, and action cells.
 - `StatusRow`: compact label/value/status presentation.
@@ -135,10 +137,60 @@ Avoid exporting these constants or moving them into shared files unless more tha
 
 ## Forms
 
-- Use `Input` for ordinary text fields; use `CredentialInput` for PIN/password.
-- Add Tailwind classes locally when a form needs a special layout or visual treatment.
-- Keep inline validation near the field or form when the user needs to compare the error with entered values.
+- Prefer `InputField` for labeled text fields (login, settings, device forms).
+- Use bare `Input` only when there is no label stack (rare toolbars / search).
+- Use `CredentialInput` for PIN/password chrome until those call sites move onto `InputField`.
+- Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
 - Use toast errors for transient action failures that should not occupy page layout.
+
+### InputField
+
+ESDS [Input Field]: label → optional description → control → optional error.
+
+| Prop          | Notes                                                     |
+| ------------- | --------------------------------------------------------- |
+| `label`       | Optional; `type-meta` (tertiary when `disabled`)          |
+| `description` | Optional helper under the label                           |
+| `error`       | Optional; red alert text + `aria-invalid` on the control  |
+| `disabled`    | Dims label/description; disables the control              |
+| `className`   | Outer stack                                               |
+| …input props  | Standard `value`, `onChange`, `type`, `placeholder`, etc. |
+
+Control states live on `Input` (used by `InputField`): inset 1px outline `stroke-primary`, disabled fill `surface-primary`, error outline `stroke-error`, focus outline `stroke-active`.
+
+```tsx
+<InputField
+  label="Password"
+  type="password"
+  value={credential}
+  onChange={(event) => setCredential(event.target.value)}
+  placeholder="Enter your credential"
+  autoComplete="current-password"
+  error={error ?? undefined}
+/>
+```
+
+Do not use placeholder as the only label.
+
+### MenuItem
+
+ESDS Menu Item: optional leading icon + label in a bordered row.
+
+| Prop        | Notes                                                               |
+| ----------- | ------------------------------------------------------------------- |
+| `children`  | Visible label (accessible name)                                     |
+| `icon`      | Optional 16px leading icon; mark decorative SVGs with `aria-hidden` |
+| `disabled`  | Native disabled; muted text, no hover fill                          |
+| `className` | Merged onto the control                                             |
+| …button     | Standard `onClick`, `type`, etc.                                    |
+
+States: default (`surface-always-white`) → hover (`surface-secondary`) → disabled (`text-disabled`). Stroke stays `stroke-secondary`. Focus ring matches `Button` / `Input`.
+
+```tsx
+<MenuItem icon={<SettingsIcon aria-hidden />} onClick={...}>
+  Settings
+</MenuItem>
+```
 
 ## Tables And Lists
 
