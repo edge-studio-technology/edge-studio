@@ -1,43 +1,41 @@
-import { Settings } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import type { MinimaConfig, MinimaNodeStatus, MinimaPeersResponse } from "../app/types";
-import { Modal } from "../components/Modal";
-import { Page } from "../components/Page";
+import { useCallback, useState } from "react";
+import { ChevronDown, ChevronRight, Settings } from "lucide-react";
+import type { MinimaNodeStatus } from "../app/types";
+import { Card } from "../components/Card";
 import { IconButton } from "../components/Button";
-import { ErrorText } from "../components/Text";
+import { Page } from "../components/Page";
 import { useToast } from "../components/ToastProvider";
 import {
-  addMinimaPeers,
-  getMinimaConfig,
   getMinimaNodeStatus,
-  getMinimaPeers,
   resyncMegammr,
-  restartMinimaContainer,
-  saveMinimaConfig
+  restartMinimaContainer
 } from "../features/minima/minimaApi";
+import { MinimaConsolePanel } from "../features/minima/MinimaConsolePanel";
+import { MinimaConsoleWhitelistModal } from "../features/minima/MinimaConsoleWhitelistModal";
 import { MinimaContainerCard } from "../features/minima/MinimaContainerCard";
 import { MinimaHealthCard } from "../features/minima/MinimaHealthCard";
 import { mergeMinimaStatus } from "../features/minima/mergeMinimaStatus";
 import { parseMegammrResyncResult, resyncToastForResult } from "../features/minima/minimaResync";
-import { MinimaRuntimeConfig } from "../features/minima/MinimaRuntimeConfig";
 import { MinimaSummaryGrid } from "../features/minima/MinimaSummaryGrid";
 import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
 
+// A real container restart (JVM stop/start, chain reload) can easily take longer than a
+// few seconds — this needs to stay in the same ballpark as the backend's own operation
+// window (minima-monitoring.ts, ~120s) so the toast doesn't give up on a restart the
+// backend still considers normal and in-progress.
+const REFRESH_AFTER_OPERATION_INTERVAL_MS = 3000;
+const REFRESH_AFTER_OPERATION_MAX_MS = 90000;
+
 export function MinimaPage() {
   const { showToast } = useToast();
-  const [config, setConfig] = useState<MinimaConfig | null>(null);
-  const [megammrHostInput, setMegammrHostInput] = useState("megammr.minima.global:9001");
-  const [peerslistInput, setPeerslistInput] = useState("megammr.minima.global:9001");
-  const [configOpen, setConfigOpen] = useState(false);
   const [nodeStatus, setNodeStatus] = useState<MinimaNodeStatus | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [configError, setConfigError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [restarting, setRestarting] = useState(false);
-  const [peers, setPeers] = useState<MinimaPeersResponse | null>(null);
-  const [peersLoading, setPeersLoading] = useState(false);
+  const [consoleWhitelistOpen, setConsoleWhitelistOpen] = useState(false);
+  const [consoleOpen, setConsoleOpen] = useState(false);
 
   const handleStatus = useCallback((status: MinimaNodeStatus) => {
     setNodeStatus((previous) => mergeMinimaStatus(previous, status));
@@ -50,78 +48,36 @@ export function MinimaPage() {
     setStatusLoading(false);
   }, []);
 
-  const { refresh } = useMinimaStatusRefresh(handleStatus, handleStatusError, {
+  useMinimaStatusRefresh(handleStatus, handleStatusError, {
     enabled: !resyncing && !restarting && !busy
   });
 
-  async function refreshAfterOperation() {
+  async function refreshAfterOperation(): Promise<boolean> {
     setStatusError(null);
-    const delays = [0, 2000, 4000, 6000];
+    const deadline = Date.now() + REFRESH_AFTER_OPERATION_MAX_MS;
 
-    for (const delayMs of delays) {
-      if (delayMs > 0) await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+    while (true) {
       try {
         const status = await getMinimaNodeStatus();
         handleStatus(status);
-        if (status.rpc.ok) return;
+        if (status.rpc.ok) return true;
       } catch {
         // Keep last known stats; polling will retry when enabled.
       }
+      if (Date.now() >= deadline) return false;
+      await new Promise((resolve) => window.setTimeout(resolve, REFRESH_AFTER_OPERATION_INTERVAL_MS));
     }
   }
 
-  useEffect(() => {
-    refreshConfig().catch((err: Error) => setConfigError(err.message));
-  }, []);
-
-  async function refreshConfig() {
-    const parsed = await getMinimaConfig();
-    setConfig(parsed);
-    setMegammrHostInput(parsed.megammrHost);
-  }
-
-  async function refreshPeers() {
-    setPeersLoading(true);
-    try {
-      setPeers(await getMinimaPeers());
-    } catch (error) {
-      showToast({
-        tone: "error",
-        title: "Failed to load peers",
-        message: error instanceof Error ? error.message : "Unknown error",
-        timeoutMs: 8000
-      });
-    } finally {
-      setPeersLoading(false);
-    }
-  }
-
-  function openConfig() {
-    setConfigOpen(true);
-    refreshPeers().catch(() => undefined);
-  }
-
-  async function saveConfig() {
-    setBusy(true);
-    setConfigError(null);
-    try {
-      const parsed = await saveMinimaConfig(megammrHostInput);
-      setConfig(parsed);
-      setMegammrHostInput(parsed.megammrHost);
-      setConfigOpen(false);
-    } catch (error) {
-      setConfigError(error instanceof Error ? error.message : "Unknown error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function restartContainer() {
+  async function restartContainer(options?: { silent?: boolean }) {
     setRestarting(true);
     setStatusError("Minima container restart in progress. RPC may be briefly unavailable.");
 
+    let commandSucceeded = false;
+
     try {
       const result = await restartMinimaContainer();
+      commandSucceeded = true;
       showToast({
         tone: "info",
         title: "Minima container restarting",
@@ -133,9 +89,21 @@ export function MinimaPage() {
       showToast({ tone: "error", title: "Minima restart failed", message, timeoutMs: 9000 });
       throw error;
     } finally {
+      const recovered = await refreshAfterOperation();
       setRestarting(false);
-      setStatusError(null);
-      await refreshAfterOperation();
+
+      if (commandSucceeded && !options?.silent) {
+        showToast(
+          recovered
+            ? { tone: "success", title: "Restart complete", message: "Minima container is back online.", timeoutMs: 8000 }
+            : {
+                tone: "error",
+                title: "Restart taking longer than expected",
+                message: "Minima RPC hasn't responded yet — check Node health.",
+                timeoutMs: 9000
+              }
+        );
+      }
     }
   }
 
@@ -145,29 +113,6 @@ export function MinimaPage() {
     setBusy(true);
     try {
       await restartContainer();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function runAddPeers() {
-    if (!peerslistInput.trim()) return;
-
-    setBusy(true);
-    setConfigError(null);
-    try {
-      await addMinimaPeers(peerslistInput);
-      showToast({
-        tone: "success",
-        title: "Peers added",
-        message: "Minima accepted the add-peers request.",
-        timeoutMs: 8000
-      });
-      await Promise.all([refresh(), refreshPeers()]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Add peers failed";
-      setConfigError(message);
-      showToast({ tone: "error", title: "Add peers failed", message, timeoutMs: 9000 });
     } finally {
       setBusy(false);
     }
@@ -192,7 +137,7 @@ export function MinimaPage() {
       if (meta.needsRestart) {
         setStatusError("Resync complete. Restarting Minima container…");
         setResyncing(false);
-        await restartContainer();
+        await restartContainer({ silent: true });
         restartedContainer = true;
       }
 
@@ -202,64 +147,89 @@ export function MinimaPage() {
       const message = error instanceof Error ? error.message : "Resync failed";
       showToast({ tone: "error", title: "Megammr resync failed", message, timeoutMs: 9000 });
     } finally {
+      if (!restartedContainer) {
+        await refreshAfterOperation();
+      }
       setBusy(false);
       setResyncing(false);
       setRestarting(false);
-      setStatusError(null);
-      await refreshAfterOperation();
     }
   }
+
+  // Only let Resync/Restart be pressed once we have a confirmed status and it isn't
+  // already mid-operation — before the first successful load, we don't know enough
+  // to say either action would do anything useful.
+  const actionsBlocked = busy || !nodeStatus || nodeStatus.state === "restarting";
+
+  // Prefer the specific local message for whoever triggered the operation; fall back to
+  // a generic one driven by backend truth so the banner survives navigating away and back
+  // mid-operation (a fresh mount has no local statusError, but the node status still does).
+  const operationBanner = statusError ?? (nodeStatus?.state === "restarting" ? "Minima is restarting. RPC may be briefly unavailable." : null);
 
   return (
     <Page
       eyebrow="Minima node"
       title="Run the Minima node"
       desc="Start, monitor, and manage the Minima Core node running on the Raspberry Pi Edition."
-      action={
-        <IconButton
-          variant="primary"
-          onClick={openConfig}
-          aria-label="Configure Minima"
-        >
-          <Settings size={20} />
-        </IconButton>
-      }
     >
-      {configOpen && (
-        <Modal title="Configure Minima" onClose={() => setConfigOpen(false)}>
-          <MinimaRuntimeConfig
-            config={config}
-            megammrHostInput={megammrHostInput}
-            setMegammrHostInput={setMegammrHostInput}
-            peers={peers}
-            peersLoading={peersLoading}
-            peerslistInput={peerslistInput}
-            setPeerslistInput={setPeerslistInput}
-            busy={busy}
-            onSave={saveConfig}
-            onAddPeers={runAddPeers}
-          />
-          {configError && <ErrorText>{configError}</ErrorText>}
-        </Modal>
+      {operationBanner && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {operationBanner}
+        </div>
       )}
-
-      {!configOpen && configError && <ErrorText>{configError}</ErrorText>}
 
       <MinimaSummaryGrid
         status={nodeStatus}
         loading={statusLoading && !nodeStatus}
-        busy={busy}
+        busy={actionsBlocked}
+        refreshing={resyncing || restarting || nodeStatus?.state === "restarting"}
         onResync={runResync}
       />
       <section className="grid items-stretch gap-4 lg:grid-cols-2">
-        <MinimaHealthCard status={nodeStatus} error={statusError} loading={statusLoading && !nodeStatus} />
+        <MinimaHealthCard
+          status={nodeStatus}
+          loading={statusLoading && !nodeStatus}
+          refreshing={resyncing || restarting || nodeStatus?.state === "restarting"}
+        />
         <MinimaContainerCard
           status={nodeStatus}
           loading={statusLoading && !nodeStatus}
-          busy={busy}
+          busy={actionsBlocked}
+          refreshing={restarting || nodeStatus?.state === "restarting"}
           onRestart={runRestart}
         />
       </section>
+
+      <Card>
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setConsoleOpen((open) => !open)}
+            aria-expanded={consoleOpen}
+            className="flex flex-1 items-center gap-2 border-0 bg-transparent p-0 text-left"
+          >
+            {consoleOpen ? <ChevronDown size={18} className="shrink-0 text-slate-500" /> : <ChevronRight size={18} className="shrink-0 text-slate-500" />}
+            <div>
+              <h3 className="m-0">RPC console</h3>
+              <p className="mt-1 text-sm text-slate-500">Run whitelisted Minima RPC commands and see the raw response.</p>
+            </div>
+          </button>
+          <IconButton
+            aria-label="Edit console command whitelist"
+            variant="secondary"
+            onClick={() => setConsoleWhitelistOpen(true)}
+          >
+            <Settings size={16} />
+          </IconButton>
+        </div>
+        {consoleOpen && (
+          <div className="mt-3">
+            <MinimaConsolePanel disabled={actionsBlocked} />
+          </div>
+        )}
+      </Card>
+
+      {consoleWhitelistOpen && <MinimaConsoleWhitelistModal onClose={() => setConsoleWhitelistOpen(false)} />}
     </Page>
   );
 }

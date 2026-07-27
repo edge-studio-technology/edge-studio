@@ -27,12 +27,16 @@ import { useIntegritasHistoryAutoRefresh } from "../features/integritas/useInteg
 import { getDeviceStatus } from "../features/status/statusApi";
 import type { DeviceNodeState, DeviceStatus } from "../features/status/statusTypes";
 import { getWalletStatus } from "../features/wallet/walletApi";
+import { LoadingDots } from "../components/LoadingDots";
 import { MinimaIcon } from "../components/MinimaIcon";
 import { cx } from "../lib/cx";
 import { formatAmountThreshold } from "../lib/format";
 import { formatLocalTime } from "../lib/time";
 import { APP_NAME } from "../app/names";
 import { DashboardNextAction } from "./DashboardNextAction";
+
+const DASHBOARD_POLL_INTERVAL_MS = 30_000;
+const STATUS_RESTARTING_INTERVAL_MS = 3_000;
 
 type ActivityItem = {
   id: string;
@@ -74,24 +78,54 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
   const [walletBalance, setWalletBalance] = useState<string | null>(null);
+  const [walletLoading, setWalletLoading] = useState(true);
   const [proofs, setProofs] = useState<IntegritasProofRecord[]>([]);
   const [reads, setReads] = useState<DataSourceRead[]>([]);
   const [activityError, setActivityError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStatus = () =>
-      getDeviceStatus()
-        .then(setDeviceStatus)
-        .catch(() => {});
-    fetchStatus();
-    const statusInterval = setInterval(fetchStatus, 30_000);
+    let cancelled = false;
+    let timer: number | undefined;
 
-    getWalletStatus()
-      .then((ws) => {
-        const native = ws.tokens.find((t) => t.isNative);
-        setWalletBalance(native?.confirmed ?? "0");
-      })
-      .catch(() => setWalletBalance(null));
+    // Wallet balance is only meaningful when the node can actually answer RPC calls,
+    // so fetch it in lockstep with node status instead of on its own independent timer —
+    // otherwise the two drift out of sync (e.g. wallet still shows a pre-restart balance
+    // after the node status has already flipped to "restarting").
+    const tick = () => {
+      getDeviceStatus()
+        .then((status) => {
+          if (cancelled) return;
+          setDeviceStatus(status);
+
+          if (status.node.state === "restarting") {
+            setWalletLoading(true);
+            setWalletBalance(null);
+            timer = window.setTimeout(tick, STATUS_RESTARTING_INTERVAL_MS);
+            return;
+          }
+
+          getWalletStatus()
+            .then((ws) => {
+              if (cancelled) return;
+              const native = ws.tokens.find((t) => t.isNative);
+              setWalletBalance(native?.confirmed ?? "0");
+            })
+            .catch(() => {
+              if (cancelled) return;
+              setWalletBalance(null);
+            })
+            .finally(() => {
+              if (cancelled) return;
+              setWalletLoading(false);
+              timer = window.setTimeout(tick, DASHBOARD_POLL_INTERVAL_MS);
+            });
+        })
+        .catch(() => {
+          if (cancelled) return;
+          timer = window.setTimeout(tick, DASHBOARD_POLL_INTERVAL_MS);
+        });
+    };
+    tick();
 
     Promise.all([getHistory({ page: 1, pageSize: 100 }), listDataReads({ page: 1, pageSize: 100 })])
       .then(([proofHistory, readHistory]) => {
@@ -100,7 +134,10 @@ export function DashboardPage() {
       })
       .catch((err: Error) => setActivityError(err.message));
 
-    return () => clearInterval(statusInterval);
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
   }, []);
 
   useIntegritasHistoryAutoRefresh(proofs, setProofs, { query: { page: 1, pageSize: 100 } });
@@ -154,7 +191,7 @@ export function DashboardPage() {
 
       <DashboardNextAction />
 
-      {deviceStatus && <DeviceStatusCard status={deviceStatus} walletBalance={walletBalance} />}
+      <DeviceStatusCard status={deviceStatus} walletBalance={walletBalance} walletLoading={walletLoading} />
 
       <Card className="grid gap-5">
         <div>
@@ -211,6 +248,7 @@ function pct(used: number, total: number) {
 
 function nodeStateValueClass(state: DeviceNodeState) {
   if (state === "running") return "text-emerald-600";
+  if (state === "restarting") return "text-blue-600";
   if (state === "unknown") return "text-slate-400";
   return "text-amber-600";
 }
@@ -254,23 +292,32 @@ function MetricCard({
 function DeviceStatusCard({
   status,
   walletBalance,
+  walletLoading,
 }: {
-  status: DeviceStatus;
+  status: DeviceStatus | null;
   walletBalance: string | null;
+  walletLoading: boolean;
 }) {
-  const { device, app, node } = status;
-  const cpuPct = `${Math.round((device.loadAvg[0] / device.cpuCount) * 100)}%`;
-  const diskValue = device.disk ? formatBytes(device.disk.usedBytes) : "N/A";
-  const diskHelper = device.disk
-    ? `of ${formatBytes(device.disk.totalBytes)} · ${pct(device.disk.usedBytes, device.disk.totalBytes)} used`
-    : "/data unavailable";
+  const device = status?.device ?? null;
+  const app = status?.app ?? null;
+  const node = status?.node ?? null;
+  const nodeRestarting = node?.state === "restarting";
+  const cpuPct = device ? `${Math.round((device.loadAvg[0] / device.cpuCount) * 100)}%` : null;
+  const diskValue = device ? (device.disk ? formatBytes(device.disk.usedBytes) : "N/A") : null;
+  const diskHelper = device
+    ? device.disk
+      ? `of ${formatBytes(device.disk.totalBytes)} · ${pct(device.disk.usedBytes, device.disk.totalBytes)} used`
+      : "/data unavailable"
+    : "";
   return (
     <>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <MetricCard
           label="Wallet balance"
           value={
-            walletBalance === null ? (
+            walletLoading && !nodeRestarting ? (
+              <LoadingDots />
+            ) : nodeRestarting || walletBalance === null ? (
               "Unavailable"
             ) : (
               <span className="flex min-w-0 items-center gap-2">
@@ -283,28 +330,34 @@ function DeviceStatusCard({
           }
           helper="Primary Pi wallet"
           icon={Wallet}
-          valueClass={walletBalance === null ? "text-slate-400" : "text-slate-950"}
+          valueClass={
+            walletLoading || walletBalance === null ? "text-slate-400" : "text-slate-950"
+          }
         />
         <MetricCard
           label="Node status"
-          value={node.state.charAt(0).toUpperCase() + node.state.slice(1)}
+          value={node ? node.state.charAt(0).toUpperCase() + node.state.slice(1) : <LoadingDots />}
           helper="Minima node"
           icon={RadioTower}
-          valueClass={nodeStateValueClass(node.state)}
+          valueClass={node ? nodeStateValueClass(node.state) : "text-slate-400"}
         />
         <MetricCard
           label="Integritas API"
           value={
-            app.integritasConnected === null
-              ? "Not configured"
-              : app.integritasConnected
-                ? "Connected"
-                : "Unreachable"
+            !app ? (
+              <LoadingDots />
+            ) : app.integritasConnected === null ? (
+              "Not configured"
+            ) : app.integritasConnected ? (
+              "Connected"
+            ) : (
+              "Unreachable"
+            )
           }
           helper="API connection"
           icon={ShieldCheck}
           valueClass={
-            app.integritasConnected === null
+            !app || app.integritasConnected === null
               ? "text-slate-400"
               : app.integritasConnected
                 ? "text-emerald-600"
@@ -316,23 +369,32 @@ function DeviceStatusCard({
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <MetricCard
           label="Device"
-          value={device.hostname}
-          helper={`${device.platform} · ${device.arch}`}
+          value={device ? device.hostname : <LoadingDots />}
+          helper={device ? `${device.platform} · ${device.arch}` : ""}
           icon={Server}
         />
         <MetricCard
           label="Device CPU"
-          value={cpuPct}
-          helper={`${device.cpuCount}-core · ${device.loadAvg[0].toFixed(2)} 1m avg`}
+          value={cpuPct ?? <LoadingDots />}
+          helper={device ? `${device.cpuCount}-core · ${device.loadAvg[0].toFixed(2)} 1m avg` : ""}
           icon={Cpu}
         />
         <MetricCard
           label="Device Memory"
-          value={formatBytes(device.memory.usedBytes)}
-          helper={`of ${formatBytes(device.memory.totalBytes)} · ${pct(device.memory.usedBytes, device.memory.totalBytes)} used`}
+          value={device ? formatBytes(device.memory.usedBytes) : <LoadingDots />}
+          helper={
+            device
+              ? `of ${formatBytes(device.memory.totalBytes)} · ${pct(device.memory.usedBytes, device.memory.totalBytes)} used`
+              : ""
+          }
           icon={MemoryStick}
         />
-        <MetricCard label="Device Disk" value={diskValue} helper={diskHelper} icon={HardDrive} />
+        <MetricCard
+          label="Device Disk"
+          value={diskValue ?? <LoadingDots />}
+          helper={diskHelper}
+          icon={HardDrive}
+        />
       </div>
     </>
   );

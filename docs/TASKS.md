@@ -12,7 +12,9 @@
 
 ## Current Focus
 
-- [ ] Merge `chore/workflow-pagination` into `main` — a manual browser pass through Diagnostics pagination (proofs/reads/workflow-runs) is recommended first; full E2E wasn't run this session (TOTP-gated setup flow, out of scope for automated verification).
+- [ ] Commit the Minima RPC console changes on `fix/minima-sync-missmatch` (new `minima-console.catalog.ts`/`minima-console.service.ts`/`MinimaConsolePanel.tsx`/`MinimaConsoleWhitelistModal.tsx`/`minimaConsoleApi.ts` + modified routes/page/types/docs) — typecheck/build/container-health verified, not yet `git commit`ed.
+- [ ] Commit the header status dot changes on `fix/minima-sync-missmatch` (new `StatusDot.tsx`/`useStatusOverviewRefresh.ts` + modified `AppShell.tsx`/`statusApi.ts`/`status.routes.ts`/`CHANGELOG.md`) — typecheck/build verified, not yet `git commit`ed.
+- [ ] Manual browser click-through of the full `fix/minima-sync-missmatch` branch before merging: restart/resync from Minima Core, Dashboard tile during restart, Wallet page gating/spinners/auto-repoll, the Wallet-settings/Minima-node-settings panels, the new RPC console (whitelist toggle with correct/incorrect PIN, whitelisted read command, rejected non-whitelisted command, `megammrsync`/`peers action:addpeers` parity with their existing buttons), and the new header status dots (Node/Wallet/Integritas popovers open/close correctly, show sane detail, and surface a "could not refresh" note on a dropped poll) — no authenticated browser session has been available in any session on this branch.
 
 ## In Progress
 
@@ -23,6 +25,8 @@
 
 - [ ] Add HC-SR501 PIR motion sensor as a first-class GPIO input workflow source - see `docs/plans/pir-motion-sensor-workflows.md`.
 - [ ] Document the `DEV_MODE` install flag in `README.md`'s runtime-config section and note its manifest-signature-verification bypass in `SECURITY.md`/`docs/security/host-and-infrastructure.md` — flagged during code review, deliberately deferred as a separate concern from the pagination work.
+- [ ] Consider a shared Minima-node-state hook/context: `WalletPage`, `WalletSettingsPanel`, and `MinimaSettingsPanel` each run their own independent `useMinimaStatusRefresh` subscription today (accepted duplication, no shared store exists yet).
+- [ ] Sanity-check two catalog exclusions added beyond `docs/plans/minima-rpc-console.md`'s named list during `help`-output reconciliation: `createtokenfrom` (same raw-`privatekey:` risk as the named `*from` commands) and `decryptbackup` (can turn an encrypted backup into plaintext key material) — see `docs/SESSION.md` Notes for reasoning.
 
 ## Done
 
@@ -43,6 +47,14 @@
 - [x] Added structured app/API error helpers, frontend parser support, and high-impact route conversion for Data Sources/Webhook, Automation/read-history, auth/setup, and Integritas actions — see `docs/plans/app-api-error-handling.md`.
 - [x] Completed active route-level structured app/API error response migration for address book, feedback, files, wallet, tokens, Minima, Integritas Connect auth, and data-source health failures — see `docs/plans/app-api-error-handling.md`.
 - [x] Documented structured backend/frontend error-handling rules in `.agents/rules/` and synced the `.claude/` and `.cursor/` counterparts.
+- [x] Fixed the Minima Core "Syncing" false-status root cause and added a durable backend-owned `"restarting"` node state, friendlier RPC errors, and adaptive status polling — see `docs/plans/minima-restart-resync-status.md` (branch `fix/minima-sync-missmatch`).
+- [x] Synced Dashboard wallet display and polling to node state; disabled Minima Core and Wallet page actions until the node is confirmed running/idle; added loading indicators (dots/spinner) in place of stale or misleading values across Minima Core, Dashboard, and Wallet.
+- [x] Fixed Wallet page going stale after a resync/restart performed from another page by auto-refreshing balance/assets/history on the node's return to `"running"`.
+- [x] Moved Wallet settings and Minima node settings out of page-level modals into new `WalletSettingsPanel`/`MinimaSettingsPanel` cards on the Account settings page; removed the now-unused settings buttons/modals from `WalletPage.tsx`/`MinimaPage.tsx`. (Still needs a commit — see Current Focus.)
+- [x] Fixed a false-positive "Failed to load peers" toast on Account Settings: `MinimaSettingsPanel` now only fetches peers once the node is confirmed `"running"` (reusing the existing `actionsBlocked` gate) instead of fetching unconditionally on mount, so a user-triggered resync/restart no longer surfaces the toast as a false error.
+- [x] Moved Address book from a Wallet page modal into its own tab; made the peer connections list in Minima settings scrollable; `CHANGELOG.md` `[Unreleased] fix/minima-sync-missmatch` section now covers all of this branch's user-facing changes to date.
+- [x] Implemented the Minima RPC console on the Minima Core page: admin-curated, closed-world checkbox whitelist (96 catalog entries reconciled against Minima's live `help` output) with re-auth-gated whitelist edits and a terminal-style scrollback; `megammrsync`/`peers action:addpeers` dispatch through the existing narrow actions — see `docs/plans/minima-rpc-console.md` and `docs/security/host-and-infrastructure.md`. Typecheck/build/container-health verified; not yet committed or click-tested (see Current Focus).
+- [x] Fixed the header status section (`AppShell.tsx`, shown on every page) never refreshing after the initial page load and silently going stuck-stale on a failed fetch: added 30s polling (`useStatusOverviewRefresh`) that keeps last known-good status and flags failed refreshes instead of nulling out; replaced the three text pills with clickable Node/Wallet/Integritas status dots (`StatusDot.tsx`) with a click-to-open detail popover; added a real wallet-balance-backed `wallet` service to `GET /api/status/overview` instead of the header's "wallet" pill silently reusing the `minima` node-status check. Typecheck/build verified; not yet committed or click-tested (see Current Focus).
 
 ## Ideas
 
