@@ -86,4 +86,4 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | Doc                                                  | Purpose                                                        |
 | ---------------------------------------------------- | -------------------------------------------------------------- |
 | [guides/gpio-device-settings.md](./guides/gpio-device-settings.md) | Tested and suggested GPIO input/output settings by device type |
-| [guides/esp32-mqtt-sensors.md](./guides/esp32-mqtt-sensors.md) | Flashing and testing ESP32 MQTT sensor firmware |
+| [guides/esp32-mqtt-sensors.md](./guides/esp32-mqtt-sensors.md) | Flashing and testing ESP32 MQTT board firmware |

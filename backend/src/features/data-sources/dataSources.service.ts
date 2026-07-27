@@ -19,7 +19,7 @@ export type WebhookConfig = {
 export type MqttConfig = {
   brokerUrl: string;
   topic: string;
-  profile?: "esp32-sensor";
+  profile?: "esp32-mqtt-board";
 };
 
 export type HttpOutputConfig = {
@@ -116,7 +116,7 @@ export function parseMqttConfig(value: unknown): MqttConfig {
   const config = value as Partial<MqttConfig> | undefined;
   const brokerUrl = typeof config?.brokerUrl === "string" ? config.brokerUrl.trim() : "";
   const topic = typeof config?.topic === "string" ? config.topic.trim() : "";
-  const profile = config?.profile === "esp32-sensor" ? config.profile : undefined;
+  const profile = config?.profile === "esp32-mqtt-board" ? config.profile : undefined;
   if (!brokerUrl) throw new Error("config.brokerUrl is required");
   if (!topic) throw new Error("config.topic is required");
   return { brokerUrl, topic, profile };

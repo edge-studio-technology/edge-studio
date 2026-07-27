@@ -23,7 +23,7 @@ export function DataSourceForm({ template, name, setName, description, setDescri
           <label>Broker URL<input value={brokerUrl} onChange={(event) => setBrokerUrl(event.target.value)} placeholder="mqtt://192.168.1.50:1883" /></label>
           <label>Topic<input value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="sensors/+/data" /></label>
           <MutedText>Messages must contain JSON payloads. The backend subscribes and updates this source when messages arrive.</MutedText>
-          {template?.config.profile === "esp32-sensor" && <MutedText>The saved device is a normal MQTT input source. After saving, the app will show starter ESP32 firmware that publishes JSON to this topic.</MutedText>}
+          {template?.config.profile === "esp32-mqtt-board" && <MutedText>The saved device is a normal MQTT input source. After saving, the app will show starter ESP32 firmware that publishes JSON to this topic.</MutedText>}
         </>
       ) : type === "mqtt-output" ? (
         <>

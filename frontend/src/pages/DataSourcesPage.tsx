@@ -248,11 +248,11 @@ export function DataSourcesPage() {
             busy={busy}
             submitLabel={editingSource ? "Save device" : "Add device"}
             onSubmit={() => run(async () => {
-              const input = { name, description, type, config: type === "webhook" ? { webhookToken: editingSource?.config.webhookToken } : type === "mqtt" ? { brokerUrl, topic, profile: template?.config.profile === "esp32-sensor" ? "esp32-sensor" as const : undefined } : type === "mqtt-output" ? { brokerUrl, topic, qos: 0 as const, retain: false } : type === "http-output" ? { url, method: method === "GET" ? "POST" as const : method, headers: {}, timeoutMs: 5000 } : type === "gpio-input" ? { chip: gpioChip, pin: Number(gpioPin), profile: gpioProfile, pull: gpioPull, edge: gpioEdge, debounceMs: Number(gpioDebounceMs), activeState: gpioActiveState } : type === "gpio-output" ? { chip: gpioChip, pin: Number(gpioPin), profile: "led" as const, activeState: gpioActiveState, initialState: "inactive" as const } : type === "pi-camera" ? { mode: cameraMode, width: Number(cameraWidth), height: Number(cameraHeight), durationMs: Number(cameraDurationMs), fps: Number(cameraFps), outputFormat: cameraMode === "video" ? "h264" as const : "jpg" as const } : { url, method: method === "PUT" || method === "PATCH" ? "POST" as const : method, healthStatusUrl: healthStatusUrl.trim() || undefined, headers: {} } };
+              const input = { name, description, type, config: type === "webhook" ? { webhookToken: editingSource?.config.webhookToken } : type === "mqtt" ? { brokerUrl, topic, profile: template?.config.profile === "esp32-mqtt-board" ? "esp32-mqtt-board" as const : undefined } : type === "mqtt-output" ? { brokerUrl, topic, qos: 0 as const, retain: false } : type === "http-output" ? { url, method: method === "GET" ? "POST" as const : method, headers: {}, timeoutMs: 5000 } : type === "gpio-input" ? { chip: gpioChip, pin: Number(gpioPin), profile: gpioProfile, pull: gpioPull, edge: gpioEdge, debounceMs: Number(gpioDebounceMs), activeState: gpioActiveState } : type === "gpio-output" ? { chip: gpioChip, pin: Number(gpioPin), profile: "led" as const, activeState: gpioActiveState, initialState: "inactive" as const } : type === "pi-camera" ? { mode: cameraMode, width: Number(cameraWidth), height: Number(cameraHeight), durationMs: Number(cameraDurationMs), fps: Number(cameraFps), outputFormat: cameraMode === "video" ? "h264" as const : "jpg" as const } : { url, method: method === "PUT" || method === "PATCH" ? "POST" as const : method, healthStatusUrl: healthStatusUrl.trim() || undefined, headers: {} } };
               if (editingSource) await updateDataSource(editingSource.id, input);
               else {
                 const response = await createDataSource(input);
-                if (template?.config.profile === "esp32-sensor") setEsp32SetupSource(response.item);
+                if (template?.config.profile === "esp32-mqtt-board") setEsp32SetupSource(response.item);
               }
               setFormOpen(false);
               resetForm();
@@ -281,6 +281,7 @@ export function DataSourcesPage() {
         busy={busy}
         onRead={(source) => run(() => readDataSource(source.id), "Manual read completed")}
         onTestOutput={(source) => run(() => testDataSourceOutput(source.id), "Test pulse sent")}
+        onOpenSetupGuide={setEsp32SetupSource}
         onEdit={editSource}
         onDelete={deleteSource}
       />
@@ -318,7 +319,7 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
         </div>
         {flashMethod === "ide" ? <ArduinoIdeSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} /> : <ArduinoCliSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} />}
       </div>
-      <MutedText className="m-0">Full guide: <InlineCode>docs/guides/esp32-mqtt-sensors.md</InlineCode>. The starter sketch publishes placeholder temperature/humidity values; replace the sensor functions after the MQTT path works.</MutedText>
+      <MutedText className="m-0">Full guide: <InlineCode>docs/guides/esp32-mqtt-sensors.md</InlineCode>. The starter sketch publishes a simple Ping JSON message first; replace it with real sensor fields after the MQTT path works.</MutedText>
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="secondary" onClick={() => navigator.clipboard?.writeText(JSON.stringify(exampleEsp32Payload(source.name), null, 2))}>Copy example JSON</Button>
       </div>
@@ -482,8 +483,7 @@ function esp32BrokerParts(capabilities: DataSourceCapabilities | null, fallbackB
 function exampleEsp32Payload(deviceName: string) {
   return {
     device: slugifyDeviceName(deviceName),
-    temperatureC: 21.8,
-    humidityPercent: 48.2,
+    message: "Ping!",
     uptimeMs: 123456,
   };
 }
@@ -537,23 +537,11 @@ void connectMqtt() {
   }
 }
 
-float readTemperatureC() {
-  // TODO: replace with your sensor read.
-  return 21.8;
-}
-
-float readHumidityPercent() {
-  // TODO: replace with your sensor read, or remove this field.
-  return 48.2;
-}
-
 void publishReading() {
   char payload[256];
   snprintf(payload, sizeof(payload),
-    "{\"device\":\"%s\",\"temperatureC\":%.1f,\"humidityPercent\":%.1f,\"uptimeMs\":%lu}",
+    R"json({"device":"%s","message":"Ping!","uptimeMs":%lu})json",
     DEVICE_NAME,
-    readTemperatureC(),
-    readHumidityPercent(),
     millis()
   );
 
@@ -582,7 +570,7 @@ void loop() {
 }
 
 function slugifyDeviceName(value: string) {
-  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "esp32-sensor";
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "esp32-mqtt-board";
 }
 
 function escapeCppString(value: string) {

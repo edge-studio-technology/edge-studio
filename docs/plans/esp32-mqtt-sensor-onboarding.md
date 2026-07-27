@@ -1,15 +1,15 @@
-# ESP32 MQTT Sensor Onboarding Plan
+# ESP32 MQTT Board Onboarding Plan
 
 **Status:** In progress
 **Created:** 2026-07-23  
-**Goal:** Help operators connect ESP32 sensor devices to Integritas Pi workflows by generating MQTT configuration and starter firmware, without making the Pi app responsible for flashing firmware in V1.
+**Goal:** Help operators connect ESP32 boards to Integritas Pi workflows by generating MQTT configuration and starter firmware, without making the Pi app responsible for flashing firmware in V1.
 
 ## Summary
 
-Integritas Pi already supports the runtime path needed for ESP32 sensor devices:
+Integritas Pi already supports the runtime path needed for ESP32 boards:
 
 ```txt
-ESP32 sensor
+ESP32 board
   -> publishes JSON over MQTT
   -> Raspberry Pi local MQTT broker
   -> Integritas Pi MQTT input source
@@ -43,7 +43,7 @@ Those can be revisited after the MQTT workflow path is proven with real ESP32 ha
 Add an onboarding path from Devices:
 
 ```txt
-Devices -> Add input source -> ESP32 MQTT Sensor
+Devices -> Add input source -> ESP32 MQTT Board
 ```
 
 The operator fills in:
@@ -79,21 +79,21 @@ Already available:
 
 Needed for ESP32 onboarding:
 
-- A friendlier `ESP32 MQTT Sensor` input-source preset.
+- A friendlier `ESP32 MQTT Board` input-source preset.
 - Firmware template generation.
 - Docs explaining how to flash with Arduino IDE or PlatformIO.
 - Example JSON payloads and topic naming guidance.
 
 ## Device Model
 
-Prefer keeping ESP32 sensors as normal MQTT input sources at runtime:
+Prefer keeping ESP32 boards as normal MQTT input sources at runtime:
 
 ```ts
 type: "mqtt"
 config: {
   brokerUrl: string;
   topic: string;
-  profile?: "esp32-sensor";
+  profile?: "esp32-mqtt-board";
   expectedPayload?: Record<string, unknown>;
 }
 ```
@@ -193,7 +193,7 @@ If broker authentication is added later, update the generator to include usernam
 
 ## Frontend Plan
 
-1. Add `ESP32 MQTT Sensor` as an input-source onboarding card.
+1. Add `ESP32 MQTT Board` as an input-source onboarding card.
 2. Let the operator choose local broker vs custom broker.
 3. Generate a topic with a safe default such as `sensors/<slug>/data`.
 4. Create the underlying MQTT input source.
@@ -226,7 +226,7 @@ Likely files:
 - Should Wi-Fi credentials be edited in source code, or should we provide a simple serial/captive-portal config later?
 - Should broker auth wait until MQTT broker username/password support exists?
 - Should firmware generation happen entirely in the frontend, or through a backend endpoint for consistency/testing?
-- Which ESP32 sensor template should be tested first on real hardware?
+- Which ESP32 board template should be tested first on real hardware?
 
 ## Implementation Milestones
 
@@ -238,7 +238,7 @@ Likely files:
 
 ### Milestone 2: App Onboarding Preset
 
-- [x] Add `ESP32 MQTT Sensor` input-source card.
+- [x] Add `ESP32 MQTT Board` input-source card.
 - [x] Prefill broker/topic from local MQTT broker capability data.
 - [x] Save as a normal MQTT input source.
 - [x] Show generated firmware text after creation.

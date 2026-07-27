@@ -173,7 +173,7 @@ Proof stamping uses the Integritas Connect account API key stored encrypted in `
 `INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS` is how often the Pi polls Connect while device activation is pending (default `5`).
 `ENABLE_MQTT_BROKER=true` enables the optional local Mosquitto broker when `COMPOSE_PROFILES=mqtt` is also set. The installer sets both values when launched with `ENABLE_MQTT_BROKER=true`. The Devices page shows the LAN broker URL for external devices and the internal Docker URL for Integritas Pi MQTT input/output configs.
 
-The ESP32 MQTT Sensor onboarding option creates a normal MQTT input source and then shows copyable Arduino ESP32 starter firmware. The generated firmware uses the LAN broker host/port for the ESP32 while the saved MQTT source can keep using the backend's internal broker URL.
+The ESP32 MQTT Board onboarding option creates a normal MQTT input source and then shows copyable Arduino ESP32 starter firmware. The generated firmware uses the LAN broker host/port for the ESP32 while the saved MQTT source can keep using the backend's internal broker URL.
 
 Step-by-step ESP32 flashing and workflow setup instructions are in [`docs/guides/esp32-mqtt-sensors.md`](./docs/guides/esp32-mqtt-sensors.md).
 

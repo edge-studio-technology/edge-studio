@@ -1,8 +1,8 @@
-# ESP32 MQTT Sensors
+# ESP32 MQTT Boards
 
-This guide walks through connecting an ESP32 sensor device to Integritas Pi with MQTT.
+This guide walks through connecting an ESP32 board to Integritas Pi with MQTT.
 
-The app side is already handled by the `ESP32 MQTT Sensor` input source. The remaining work is flashing firmware onto the ESP32 so it can connect to Wi-Fi and publish JSON to the Pi's MQTT broker.
+The app side is already handled by the `ESP32 MQTT Board` input source. The remaining work is flashing firmware onto the ESP32 so it can connect to Wi-Fi and publish JSON to the Pi's MQTT broker.
 
 ## What You Need
 
@@ -18,7 +18,7 @@ The app side is already handled by the `ESP32 MQTT Sensor` input source. The rem
 1. Open Integritas Pi in the browser.
 2. Go to `Devices`.
 3. Click `Add input source`.
-4. Select `ESP32 MQTT Sensor`.
+4. Select `ESP32 MQTT Board`.
 5. Keep the generated topic for the first test, for example `sensors/esp32/data`.
 6. Save the device.
 7. Leave the `ESP32 MQTT starter firmware` modal open.
@@ -127,7 +127,7 @@ Expected serial output:
 Connecting to Wi-Fi...
 Wi-Fi connected: 192.168.1.x
 Connecting to MQTT...connected
-Publishing: {"device":"esp32-mqtt-sensor",...}
+Publishing: {"device":"esp32-mqtt-board",...}
 ```
 
 ## Method B: Arduino CLI
@@ -217,7 +217,7 @@ Expected output:
 Connecting to Wi-Fi...
 Wi-Fi connected: 192.168.1.x
 Connecting to MQTT...connected
-Publishing: {"device":"esp32-mqtt-sensor",...}
+Publishing: {"device":"esp32-mqtt-board",...}
 ```
 
 ## 4. Create Or Enable The Workflow
@@ -269,12 +269,14 @@ After the ESP32 publishes, check:
 
 ### Payload Is Valid But Not Useful Yet
 
-The starter firmware uses placeholder sensor values:
+The starter firmware publishes a simple connectivity message:
 
-```cpp
-float readTemperatureC() {
-  return 21.8;
+```json
+{
+  "device": "esp32-integritas-sensor",
+  "message": "Ping!",
+  "uptimeMs": 123456
 }
 ```
 
-Replace these functions with real sensor reads after the MQTT path works end-to-end.
+Replace this payload with real sensor fields after the MQTT path works end-to-end.
