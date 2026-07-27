@@ -292,7 +292,6 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
   const [flashMethod, setFlashMethod] = useState<"ide" | "cli">("ide");
   const broker = esp32BrokerParts(capabilities, source.config.brokerUrl ?? "mqtt://localhost:1883");
   const firmware = esp32Firmware({ deviceName: source.name, mqttHost: broker.host, mqttPort: broker.port, topic: source.config.topic ?? "sensors/esp32/data" });
-  const cliCommands = esp32CliCommands();
 
   return (
     <Card className="grid max-w-4xl gap-4">
@@ -315,7 +314,7 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
           <Button type="button" size="sm" variant={flashMethod === "ide" ? "primary" : "secondary"} onClick={() => setFlashMethod("ide")}>Arduino IDE</Button>
           <Button type="button" size="sm" variant={flashMethod === "cli" ? "primary" : "secondary"} onClick={() => setFlashMethod("cli")}>Arduino CLI</Button>
         </div>
-        {flashMethod === "ide" ? <ArduinoIdeSteps /> : <ArduinoCliSteps commands={cliCommands} />}
+        {flashMethod === "ide" ? <ArduinoIdeSteps /> : <ArduinoCliSteps />}
       </div>
       <MutedText className="m-0">Full guide: <InlineCode>docs/guides/esp32-mqtt-sensors.md</InlineCode>. The starter sketch publishes placeholder temperature/humidity values; replace the sensor functions after the MQTT path works.</MutedText>
       <textarea className="min-h-[420px] font-mono text-xs" readOnly value={firmware} />
@@ -344,7 +343,11 @@ function ArduinoIdeSteps() {
   );
 }
 
-function ArduinoCliSteps({ commands }: { commands: ReturnType<typeof esp32CliCommands> }) {
+function ArduinoCliSteps() {
+  const [boardListOutput, setBoardListOutput] = useState("");
+  const detectedPort = detectEsp32Port(boardListOutput);
+  const commands = esp32CliCommands(detectedPort ?? "/dev/ttyUSB0");
+
   return (
     <div className="grid gap-3">
       <strong>Arduino CLI steps</strong>
@@ -361,7 +364,9 @@ function ArduinoCliSteps({ commands }: { commands: ReturnType<typeof esp32CliCom
       </SetupStep>
       <SetupStep index={4} title="Find The ESP32 Port">
           <CommandBlock value={commands.boardList} />
-          <div className="mt-2">Look for a port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.</div>
+          <div className="mt-2">Run the command, paste its output here, and the upload/monitor commands below will use the detected port.</div>
+          <textarea className="mt-2 min-h-[110px] font-mono text-xs" value={boardListOutput} onChange={(event) => setBoardListOutput(event.target.value)} placeholder={'Port         Protocol Type              Board Name FQBN Core\n/dev/ttyACM0 serial   Serial Port (USB) Unknown\n/dev/ttyAMA0 serial   Serial Port       Unknown'} />
+          {detectedPort ? <div className="mt-2">Detected ESP32 port: <InlineCode>{detectedPort}</InlineCode></div> : <div className="mt-2">Look for a USB serial port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.</div>}
       </SetupStep>
       <SetupStep index={5} title="Create Sketch File">
           <div>Create the sketch folder and file, then paste the generated firmware below.</div>
@@ -372,7 +377,7 @@ function ArduinoCliSteps({ commands }: { commands: ReturnType<typeof esp32CliCom
           <CommandBlock value={commands.compile} />
       </SetupStep>
       <SetupStep index={7} title="Upload Firmware">
-          <div>Replace <InlineCode>/dev/ttyUSB0</InlineCode> with your actual port.</div>
+          <div>{detectedPort ? <>Using detected port <InlineCode>{detectedPort}</InlineCode>.</> : <>Using placeholder port <InlineCode>/dev/ttyUSB0</InlineCode>. Paste the board list output in step 4 to update this command.</>}</div>
           <CommandBlock value={commands.upload} />
           <div className="mt-2">If it waits at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts.</div>
       </SetupStep>
@@ -407,11 +412,10 @@ function InlineCode({ children }: { children: React.ReactNode }) {
   return <span className="break-all rounded bg-white px-1.5 py-0.5 font-mono text-[0.9em] text-slate-600">{children}</span>;
 }
 
-function esp32CliCommands() {
+function esp32CliCommands(port: string) {
   const cli = "~/bin/arduino-cli";
   const sketchPath = "~/esp32-integritas-sensor";
   const fqbn = "esp32:esp32:esp32";
-  const port = "/dev/ttyUSB0";
   return {
     installCli: "curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh",
     installEsp32Core: [
@@ -427,6 +431,14 @@ function esp32CliCommands() {
     upload: `${cli} upload -p ${port} --fqbn ${fqbn} ${sketchPath}`,
     monitor: `${cli} monitor -p ${port} --config baudrate=115200`,
   };
+}
+
+function detectEsp32Port(output: string) {
+  const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const usbLine = lines.find((line) => /\bserial\b/i.test(line) && /\b(USB|Serial Port \(USB\))\b/i.test(line) && /^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i.test(line));
+  const fallbackLine = lines.find((line) => /^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i.test(line));
+  const match = (usbLine ?? fallbackLine)?.match(/^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i);
+  return match?.[1] ?? null;
 }
 
 function esp32BrokerParts(capabilities: DataSourceCapabilities | null, fallbackBrokerUrl: string) {
