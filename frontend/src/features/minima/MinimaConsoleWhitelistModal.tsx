@@ -15,12 +15,40 @@ function CommandRow({ entry, checked, onToggle }: { entry: MinimaConsoleCatalogE
   return (
     <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
       <span className="flex min-w-0 items-center gap-2">
-        <input type="checkbox" checked={checked} onChange={onToggle} />
+        <input className="size-4 shrink-0 rounded border-slate-300" type="checkbox" checked={checked} onChange={onToggle} />
         <span className="truncate font-mono text-sm text-slate-800">{entry.verb}</span>
         <span className="truncate text-sm text-slate-500">{entry.label}</span>
       </span>
       <Pill tone={entry.kind === "read" ? "good" : "warn"}>{entry.kind}</Pill>
     </label>
+  );
+}
+
+function CommandSection({
+  title,
+  entries,
+  enabledKeys,
+  onToggle,
+}: {
+  title: string;
+  entries: MinimaConsoleCatalogEntry[];
+  enabledKeys: Set<string>;
+  onToggle: (key: string) => void;
+}) {
+  return (
+    <details className="group rounded-xl border border-slate-200 bg-slate-50" open>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 font-bold text-slate-700 [&::-webkit-details-marker]:hidden">
+        <span>
+          {title} ({entries.length})
+        </span>
+        <span className="text-slate-400 transition-transform group-open:rotate-90">›</span>
+      </summary>
+      <div className="grid gap-1.5 border-t border-slate-200 p-2">
+        {entries.map((entry) => (
+          <CommandRow key={entry.key} entry={entry} checked={enabledKeys.has(entry.key)} onToggle={() => onToggle(entry.key)} />
+        ))}
+      </div>
+    </details>
   );
 }
 
@@ -84,22 +112,8 @@ export function MinimaConsoleWhitelistModal({ onClose }: { onClose: () => void }
       {!catalog && !loadError && <LoadingDots />}
       {catalog && (
         <form onSubmit={(e) => void handleSave(e)} className={formClass}>
-          <div className="grid gap-2">
-            <h4 className="m-0">Read (default on)</h4>
-            <div className="grid gap-1.5">
-              {readEntries.map((entry) => (
-                <CommandRow key={entry.key} entry={entry} checked={enabledKeys.has(entry.key)} onToggle={() => toggleKey(entry.key)} />
-              ))}
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <h4 className="m-0">Write (default off)</h4>
-            <div className="grid gap-1.5">
-              {writeEntries.map((entry) => (
-                <CommandRow key={entry.key} entry={entry} checked={enabledKeys.has(entry.key)} onToggle={() => toggleKey(entry.key)} />
-              ))}
-            </div>
-          </div>
+          <CommandSection title="Read (default on)" entries={readEntries} enabledKeys={enabledKeys} onToggle={toggleKey} />
+          <CommandSection title="Write (default off)" entries={writeEntries} enabledKeys={enabledKeys} onToggle={toggleKey} />
           <label className={labelClass}>
             Current PIN or password
             <input

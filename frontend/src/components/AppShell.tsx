@@ -222,23 +222,22 @@ export function AppShell({
             </div>
           </nav>
 
-          {/* Temporary hide the update button condition */}
-          {/* {updateAvailable && (
+          {updateAvailable && (
             <a
               href="/update"
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded border border-transparent bg-violet-700 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-800"
             >
               <Sparkles size={16} /> Update available
             </a>
-          )} */}
+          )}
 
           {/* Temporary show the update button to see how it looks when an update is ready */}
-          <a
+          {/* <a
             href="/update"
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded border border-transparent bg-violet-700 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-800"
           >
             <Sparkles size={16} /> Update available
-          </a>
+          </a> */}
 
           <Button
             className="mt-4 w-full"
@@ -332,23 +331,22 @@ export function AppShell({
                 {label}
               </NavLink>
             ))}
-            {/* Temporary hide the update button condition */}
-            {/* {updateAvailable && (
+            {updateAvailable && (
               <a
                 href="/update"
                 className="rounded bg-violet-700 px-3 py-2 text-sm font-bold whitespace-nowrap text-white"
               >
                 Update
               </a>
-            )} */}
+            )}
 
             {/* Temporary show the update button to see how it looks when an update is ready */}
-            <a
+            {/* <a
               href="/update"
               className="rounded bg-violet-700 px-3 py-2 text-sm font-bold whitespace-nowrap text-white"
             >
               Update
-            </a>
+            </a> */}
           </div>
 
           {children}
