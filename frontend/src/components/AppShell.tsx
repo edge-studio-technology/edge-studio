@@ -107,7 +107,13 @@ export function AppShell({
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
   useUpdateStatusRefresh((status) => {
-    setUpdateAvailable(Boolean(status?.services.some((service) => !service.upToDate)));
+    // update-agent's own self-update runs automatically in the background after
+    // a frontend/backend update and isn't something the user needs to act on —
+    // counting it here would leave the badge lingering after a successful
+    // update while the self-swap is still catching up.
+    setUpdateAvailable(
+      Boolean(status?.services.some((service) => service.service !== "update-agent" && !service.upToDate))
+    );
   });
 
   const [debugPinging, setDebugPinging] = useState(false);

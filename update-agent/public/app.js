@@ -125,7 +125,14 @@ async function applyUpdate() {
   pollApplyStatus();
 }
 
+function goBack() {
+  window.location.assign("/");
+}
+
 document.getElementById("update-now-button").addEventListener("click", applyUpdate);
 document.getElementById("retry-button").addEventListener("click", loadStatus);
+document.getElementById("back-button-up-to-date").addEventListener("click", goBack);
+document.getElementById("back-button-available").addEventListener("click", goBack);
+document.getElementById("back-button-error").addEventListener("click", goBack);
 
 loadStatus();
