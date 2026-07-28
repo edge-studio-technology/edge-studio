@@ -20,15 +20,15 @@ export const outputTemplates: DataSourceTemplate[] = [
   { title: "MQTT Output", description: "Publish JSON commands to a broker topic from automation workflows", type: "mqtt-output", config: { brokerUrl: "mqtt://localhost:1883", topic: "devices/example/set", qos: 0, retain: false } }
 ];
 
-export function DataSourceTemplates({ mode, capabilities, onSelect }: { mode: "input" | "output"; capabilities: DataSourceCapabilities | null; onSelect: (template: DataSourceTemplate) => void }) {
-  const templates = mode === "input" ? inputTemplates : outputTemplates;
+export function DataSourceTemplates({ mode, category, capabilities, onSelect }: { mode: "input" | "output"; category?: "template" | "manual"; capabilities: DataSourceCapabilities | null; onSelect: (template: DataSourceTemplate) => void }) {
+  const templates = (mode === "input" ? inputTemplates : outputTemplates).filter((template) => !category || templateCategory(template) === category);
   const brokerUrl = capabilities?.mqttBroker?.enabled ? capabilities.mqttBroker.internalUrl : "mqtt://localhost:1883";
 
   return (
     <Card className="grid gap-6">
       <div>
-        <strong>{mode === "input" ? "Input sources" : "Output targets"}</strong>
-        <MutedText className="m-0 mt-1">{mode === "input" ? "Inputs produce JSON, messages, or hardware events that workflows can record or use as triggers." : "Outputs are devices or endpoints the app can control from automation action blocks."}</MutedText>
+        <strong>{category === "template" ? "Templates and examples" : category === "manual" ? "Manual setup" : mode === "input" ? "Input sources" : "Output targets"}</strong>
+        <MutedText className="m-0 mt-1">{category === "template" ? "Start from guided presets for common devices, examples, and hardware setups." : category === "manual" ? "Configure the protocol, endpoint, topic, or GPIO settings yourself." : mode === "input" ? "Inputs produce JSON, messages, or hardware events that workflows can record or use as triggers." : "Outputs are devices or endpoints the app can control from automation action blocks."}</MutedText>
       </div>
       <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
         {templates.map((template) => {
@@ -54,6 +54,11 @@ export function DataSourceTemplates({ mode, capabilities, onSelect }: { mode: "i
       </div>
     </Card>
   );
+}
+
+function templateCategory(template: DataSourceTemplate) {
+  if (template.config.profile === "esp32-mqtt-board" || template.config.profile === "pir-motion" || template.type === "pi-camera" || template.type === "gpio-output") return "template";
+  return "manual";
 }
 
 export function LocalServicesCard({ capabilities }: { capabilities: DataSourceCapabilities | null }) {
