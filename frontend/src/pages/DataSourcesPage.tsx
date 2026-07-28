@@ -17,7 +17,7 @@ export function DataSourcesPage() {
   const [items, setItems] = useState<DataSource[]>([]);
   const [capabilities, setCapabilities] = useState<DataSourceCapabilities | null>(null);
   const [template, setTemplate] = useState<DataSourceTemplate | null>(null);
-  const [templateMode, setTemplateMode] = useState<"input" | "output" | null>(null);
+  const [templateMode, setTemplateMode] = useState<"choose" | "input" | "output" | null>(null);
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
@@ -188,16 +188,15 @@ export function DataSourcesPage() {
           <MutedText className="m-0 mt-1">Create a configured input source or output target. Local services show connection details for app-provided services.</MutedText>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button type="button" onClick={() => setTemplateMode("input")}>Add input source</Button>
-          <Button type="button" variant="secondary" onClick={() => setTemplateMode("output")}>Add output target</Button>
+          <Button type="button" onClick={() => setTemplateMode("choose")}>Add device or source</Button>
         </div>
       </Card>
 
       <LocalServicesCard capabilities={capabilities} />
 
       {templateMode && (
-        <Modal title={templateMode === "input" ? "Add input source" : "Add output target"} onClose={() => setTemplateMode(null)}>
-          <DataSourceTemplates mode={templateMode} capabilities={capabilities} onSelect={applyTemplate} />
+        <Modal title={templateMode === "choose" ? "Add device or source" : templateMode === "input" ? "Add input source" : "Add output target"} onClose={() => setTemplateMode(null)}>
+          {templateMode === "choose" ? <AddDeviceKindChoice onSelect={setTemplateMode} /> : <DataSourceTemplates mode={templateMode} capabilities={capabilities} onSelect={applyTemplate} />}
         </Modal>
       )}
 
@@ -286,6 +285,29 @@ export function DataSourcesPage() {
         onDelete={deleteSource}
       />
     </Page>
+  );
+}
+
+function AddDeviceKindChoice({ onSelect }: { onSelect: (mode: "input" | "output") => void }) {
+  return (
+    <div className="grid min-h-[min(520px,calc(90vh-160px))] gap-4 md:grid-cols-2">
+      <button type="button" className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]" onClick={() => onSelect("input")}>
+        <div>
+          <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Input</span>
+          <h3 className="mt-3 text-2xl">Add input source</h3>
+          <MutedText className="m-0 mt-2">Receive JSON, MQTT messages, webhooks, GPIO events, camera captures, or board data that workflows can record and react to.</MutedText>
+        </div>
+        <span className="font-extrabold text-blue-700">Choose input source</span>
+      </button>
+      <button type="button" className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]" onClick={() => onSelect("output")}>
+        <div>
+          <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Output</span>
+          <h3 className="mt-3 text-2xl">Add output target</h3>
+          <MutedText className="m-0 mt-2">Connect LEDs, HTTP endpoints, MQTT topics, or other devices that automation workflows can control.</MutedText>
+        </div>
+        <span className="font-extrabold text-blue-700">Choose output target</span>
+      </button>
+    </div>
   );
 }
 
