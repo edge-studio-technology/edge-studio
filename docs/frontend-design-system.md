@@ -11,16 +11,17 @@ This project uses Tailwind utilities plus small internal React components. Plain
 
 ## Structure
 
-| Layer                 | Location                   | Use                                                               |
-| --------------------- | -------------------------- | ----------------------------------------------------------------- |
-| Base globals          | `frontend/src/styles.css`  | Tailwind import, root/body defaults, base form/code element rules |
-| Shared primitives     | `frontend/src/components/` | Buttons, cards, pills, modal, text helpers, copied code           |
-| Shared patterns       | `frontend/src/components/` | Page shells, sections, tables, status rows, filter/pager bars     |
-| Feature UI            | `frontend/src/features/**` | Feature-specific forms, panels, modals, and page sections         |
-| Route pages           | `frontend/src/pages/`      | Page composition and route-owned layout                           |
-| Local class constants | Same component file        | One-off repeated class strings or conditional class maps          |
+| Layer                 | Location                      | Use                                                               |
+| --------------------- | ----------------------------- | ----------------------------------------------------------------- |
+| Base globals          | `frontend/src/styles.css`     | Tailwind import, root/body defaults, base form/code element rules |
+| ESDS primitives       | `frontend/src/components/ui/` | New Edge Studio Design System controls (e.g. ProgressBar)         |
+| Shared primitives     | `frontend/src/components/`    | Buttons, cards, pills, modal, text helpers, copied code           |
+| Shared patterns       | `frontend/src/components/`    | Page shells, sections, tables, status rows, filter/pager bars     |
+| Feature UI            | `frontend/src/features/**`    | Feature-specific forms, panels, modals, and page sections         |
+| Route pages           | `frontend/src/pages/`         | Page composition and route-owned layout                           |
+| Local class constants | Same component file           | One-off repeated class strings or conditional class maps          |
 
-The project currently keeps shared primitives and patterns in a flat `frontend/src/components/` folder. Do not introduce `components/ui/` or `components/patterns/` unless the component list becomes hard to navigate.
+Prefer `frontend/src/components/ui/` for new ESDS primitives. Existing shared components may remain in the flat `frontend/src/components/` folder until migrated.
 
 ## Styling Rules
 
@@ -43,6 +44,7 @@ Use these before writing bespoke markup:
 - `Button` / `IconButton`: ESDS button variants and icon-only actions (see below).
 - `ButtonRow`: wrapping button groups.
 - `Pill`: ESDS Tag / pill (Default / Success / Warning / Error via `tone`; optional indicator dot).
+- `ProgressBar` (`components/ui/`): step progress
 - `Text`: shared muted, error, and eyebrow text helpers.
 - `ErrorAlert`: in-page error alert with optional title and recovery action.
 - `Modal`: portal-backed dialog shell.
@@ -149,6 +151,27 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Use `CredentialInput` for PIN/password chrome until those call sites move onto `InputField`.
 - Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
 - Use toast errors for transient action failures that should not occupy page layout.
+
+### ProgressBar
+
+ESDS Progress Bar (`frontend/src/components/ui/ProgressBar.tsx`): optional back control, accent fill track, step count Tag. Prefer this for multi-step / wizard progress.
+
+| Prop        | Values / notes                                          |
+| ----------- | ------------------------------------------------------- |
+| `current`   | Current step (clamped 0…`total`)                        |
+| `total`     | Total steps (minimum 1)                                 |
+| `showBack`  | boolean (default `true`) — ESDS `hasButton`             |
+| `onBack`    | optional click handler; button disabled if omitted      |
+| `backLabel` | `aria-label` for the IconButton (default `"Back"`)      |
+| `label`     | `aria-label` for the progressbar (default `"Progress"`) |
+| `className` | merged onto the row                                     |
+
+Back control is `IconButton` ghost compact with ChevronLeft. Count uses `Pill`. Track fill is `surface-accent` at `(current / total) * 100%`.
+
+```tsx
+<ProgressBar current={1} total={2} onBack={() => goBack()} />
+<ProgressBar current={2} total={2} showBack={false} />
+```
 
 ### Pill
 
