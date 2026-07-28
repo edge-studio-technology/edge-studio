@@ -49,7 +49,7 @@ Use these before writing bespoke markup:
 - `Input`: ESDS text control (box only). Prefer `InputField` for labeled forms.
 - `InputField`: ESDS Input Field (label / description / control / error); wraps `Input`.
 - `TextareaField`: ESDS textarea field (label / description / control / error).
-- `MenuItem`: ESDS menu row (optional icon + label); default / hover / disabled.
+- `Menu`: ESDS menu list (built-in Plus icon per row); default / hover / disabled. Rows via `items` only — `MenuItem` is internal.
 - `PinField`: segmented 6-digit PIN / verification-code field with label / description / error.
 - `CredentialInput`: PIN or password field (`mode="pin" | "password"`); wraps `Input`.
 - `DataTable`: workflow-style table shell, wrapper, rows, and action cells.
@@ -177,24 +177,25 @@ Control states live on `Input` (used by `InputField`): inset 1px outline `stroke
 
 Do not use placeholder as the only label.
 
-### MenuItem
+### Menu
 
-ESDS Menu Item: optional leading icon + label in a bordered row.
+ESDS Menu: vertical list of rows with a built-in Plus icon and label. No outer border; `stroke-secondary` dividers only between rows. `MenuItem` is not exported — pass rows through `items`.
 
-| Prop        | Notes                                                               |
-| ----------- | ------------------------------------------------------------------- |
-| `children`  | Visible label (accessible name)                                     |
-| `icon`      | Optional 16px leading icon; mark decorative SVGs with `aria-hidden` |
-| `disabled`  | Native disabled; muted text, no hover fill                          |
-| `className` | Merged onto the control                                             |
-| …button     | Standard `onClick`, `type`, etc.                                    |
+| Prop        | Notes                                                              |
+| ----------- | ------------------------------------------------------------------ |
+| `items`     | `{ label, disabled?, className?, onClick? }[]` — one row per entry |
+| `className` | Merged onto the menu container (`min-w-40`, stretch column)        |
 
-States: default (`surface-always-white`) → hover (`surface-secondary`) → disabled (`text-disabled`). Stroke stays `stroke-secondary`. Focus ring matches `Button` / `Input`.
+States per row: default (`surface-always-white`) → hover / focus (`surface-secondary`) → disabled (`text-disabled`, icon inherits). Padding `p-margin-tight`, gap `gap-detail-next`. Focus uses an inset ring (no offset) so it stays clear of row dividers.
 
 ```tsx
-<MenuItem icon={<SettingsIcon aria-hidden />} onClick={...}>
-  Settings
-</MenuItem>
+<Menu
+  className="w-40"
+  items={[
+    { label: "Menu item", onClick: ... },
+    { label: "Unavailable", disabled: true },
+  ]}
+/>
 ```
 
 ## Tables And Lists

@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Shared `MenuItem` for ESDS menu rows (optional icon + label; default / hover / disabled). See `docs/frontend-design-system.md`.
+- Shared `Menu` for ESDS menu lists (rows via `items`; built-in Plus icon; default / hover / disabled). `MenuItem` is internal to the component. See `docs/frontend-design-system.md`.
 - Shared `InputField` for ESDS labeled text fields (label / description / control / error). Prefer this over bare `Input` for login and other forms. See `docs/frontend-design-system.md`.
 - Shared `Input` matches the ESDS Input Field control look; `InputField` composes it.
 - Shared `PinField` for ESDS multiline text entry and segmented 6-digit code entry. See `docs/frontend-design-system.md`.
@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Desktop app navigation now uses an Edge Studio-style collapsible dark sidebar with icon-only collapsed state, inline Account access, and sidebar-hosted feedback.
+- Desktop app navigation now uses an Edge Studio-style collapsible dark sidebar with icon-only collapsed state (always on screen; collapses below `lg`), shared `nav` including Account and Marketplace (Coming soon), and sidebar-hosted feedback / sign out when expanded.
 - Shared `Input` uses a 1px border (`stroke-primary` / focus `stroke-active` / error `stroke-error`) on the control box.
 - Frontend colour tokens now follow ESDS foundations only (primitives + surface/text/icon/stroke/overlay semantics). Shared components use those utilities; legacy `brand-*`, `on-dark*`, and non-Figma status/hover/info aliases were removed.
 - Frontend typography follows ESDS foundations: Hanken Grotesk + Azeret Mono, with complete named type utilities (`type-meta`, `type-body`, `type-body-em`, `type-link`, `type-callout`, `type-title`, `type-heading`, `type-display`, `type-mono`). Shared `Text` / `Section` helpers use those styles.
