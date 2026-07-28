@@ -389,6 +389,7 @@ function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, o
           <CommandBlock value={commands.boardListAll} />
           <label className="grid gap-2 font-bold text-slate-700">Board FQBN<input value={usableDetectedFqbn ?? manualFqbn} onChange={(event) => setManualFqbn(event.target.value)} disabled={Boolean(usableDetectedFqbn)} placeholder="esp32:esp32:esp32" /></label>
           <div className="mt-2">This board target is used by both compile and upload. Use <InlineCode>esp32:esp32:esp32</InlineCode> for a generic ESP32 Dev Module. If upload reports a different chip family, choose the matching FQBN from the available ESP32 board targets, then rerun compile/upload.</div>
+          <div className="mt-2">Board options can be appended to the FQBN. For native-USB boards with blank serial monitor output, try enabling USB CDC on boot, for example <InlineCode>esp32:esp32:esp32s3:CDCOnBoot=cdc</InlineCode>.</div>
           <div className="mt-2">{usableDetectedFqbn ? <>Using detected FQBN <InlineCode>{usableDetectedFqbn}</InlineCode>.</> : <>Using Board FQBN <InlineCode>{selectedFqbn}</InlineCode>.</>}</div>
           {detectedFqbn === "esp32:esp32:esp32_family" && <div className="mt-2">Arduino reported <InlineCode>esp32:esp32:esp32_family</InlineCode> in step 4. That identifies the ESP32 family but is not a build target, so choose a real Board FQBN here.</div>}
       </SetupStep>
@@ -402,7 +403,7 @@ function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, o
       </SetupStep>
       <SetupStep index={9} title="Monitor Serial Output">
           <CommandBlock value={commands.monitor} />
-          <div className="mt-2">Look for Wi-Fi connected, MQTT connected, and Publishing messages.</div>
+          <div className="mt-2">Look for Wi-Fi connected, MQTT connected, and Publishing messages. If the monitor stays blank, press <InlineCode>RESET</InlineCode>/<InlineCode>EN</InlineCode> once. For native-USB boards, enable USB CDC on boot in the Board FQBN and compile/upload again.</div>
       </SetupStep>
       <SetupStep index={10} title="Create Or Enable Workflow">Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</SetupStep>
     </div>
@@ -558,6 +559,9 @@ void publishReading() {
 
 void setup() {
   Serial.begin(115200);
+  delay(1500);
+  Serial.println();
+  Serial.println("Integritas ESP32 MQTT board starting");
   connectWifi();
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
 }

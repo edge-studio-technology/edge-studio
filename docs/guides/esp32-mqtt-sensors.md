@@ -235,12 +235,24 @@ Example for ESP32-S3:
 ~/bin/arduino-cli compile --fqbn esp32:esp32:esp32s3 ~/esp32-integritas-sensor
 ```
 
+Board options can be appended to the FQBN. For native-USB boards with blank serial monitor output, enable USB CDC on boot and compile/upload again. Example for ESP32-S3:
+
+```bash
+~/bin/arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc ~/esp32-integritas-sensor
+```
+
 ### 8. Upload
 
 Replace `/dev/ttyACM0` with the port from `board list`, and use the same Board FQBN from the board target step:
 
 ```bash
 ~/bin/arduino-cli upload -p /dev/ttyACM0 --fqbn esp32:esp32:esp32 ~/esp32-integritas-sensor
+```
+
+If you added board options in the board target step, use the same FQBN here. Example:
+
+```bash
+~/bin/arduino-cli upload -p /dev/ttyACM0 --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc ~/esp32-integritas-sensor
 ```
 
 If upload waits at `Connecting...`, hold the ESP32 `BOOT` button until upload starts.
@@ -256,11 +268,14 @@ If upload says the chip is not the selected target, change the FQBN to the match
 Expected output:
 
 ```txt
+Integritas ESP32 MQTT board starting
 Connecting to Wi-Fi...
 Wi-Fi connected: 192.168.1.x
 Connecting to MQTT...connected
 Publishing: {"device":"esp32-mqtt-board",...}
 ```
+
+If the monitor stays blank, press `RESET` / `EN` once while the monitor is open. For native-USB boards, also check whether USB CDC on boot is enabled in the Board FQBN, for example `esp32:esp32:esp32s3:CDCOnBoot=cdc`.
 
 ## 4. Create Or Enable The Workflow
 
