@@ -11,17 +11,52 @@ This project uses Tailwind utilities plus small internal React components. Plain
 
 ## Structure
 
-| Layer                 | Location                      | Use                                                               |
-| --------------------- | ----------------------------- | ----------------------------------------------------------------- |
-| Base globals          | `frontend/src/styles.css`     | Tailwind import, root/body defaults, base form/code element rules |
-| ESDS primitives       | `frontend/src/components/ui/` | New Edge Studio Design System controls (e.g. ProgressBar)         |
-| Shared primitives     | `frontend/src/components/`    | Buttons, cards, pills, modal, text helpers, copied code           |
-| Shared patterns       | `frontend/src/components/`    | Page shells, sections, tables, status rows, filter/pager bars     |
-| Feature UI            | `frontend/src/features/**`    | Feature-specific forms, panels, modals, and page sections         |
-| Route pages           | `frontend/src/pages/`         | Page composition and route-owned layout                           |
-| Local class constants | Same component file           | One-off repeated class strings or conditional class maps          |
+| Layer                 | Location                            | Use                                                                   |
+| --------------------- | ----------------------------------- | --------------------------------------------------------------------- |
+| Base globals          | `frontend/src/styles.css`           | Tailwind import, root/body defaults, base form/code element rules     |
+| ESDS primitives       | `frontend/src/components/ui/`       | Leaf controls with a clear ESDS / Figma counterpart                   |
+| Shared patterns       | `frontend/src/components/patterns/` | Composed layouts built from ui (page chrome, tables, filter bars)     |
+| Legacy shared (flat)  | `frontend/src/components/*.tsx`     | Existing files — import as-is until migrated into `ui/` / `patterns/` |
+| App / infra           | `frontend/src/components/` (select) | Shell wiring, providers, route guards — not design-system leaves      |
+| Feature UI            | `frontend/src/features/**`          | Feature-specific forms, panels, modals, and page sections             |
+| Route pages           | `frontend/src/pages/`               | Page composition and route-owned layout                               |
+| Local class constants | Same component file                 | One-off repeated class strings or conditional class maps              |
 
-Prefer `frontend/src/components/ui/` for new ESDS primitives. Existing shared components may remain in the flat `frontend/src/components/` folder until migrated.
+### Placement (`ui/` vs `patterns/`)
+
+**Boundary test**
+
+- Removing border / fill / radius still leaves a useful **control** → `ui/`
+- Mostly **layout + several controls together** → `patterns/`
+- Route, auth, or app wiring → keep out of `ui/` / `patterns/` (e.g. `ProtectedRoute`, `ToastProvider`, `AppShell`)
+
+**New shared components**
+
+- New ESDS primitives → `frontend/src/components/ui/`
+- New composed shared UI → `frontend/src/components/patterns/`
+- Do **not** add new design-system components to the flat `frontend/src/components/` root
+
+**Import paths**
+
+- Prefer `../components/ui/ProgressBar` (or `@/` equivalent if introduced) for new code
+- Existing flat imports (`../components/Pill`) stay valid until those files move
+
+### Migration policy
+
+Migration is **incremental**, not a big-bang move:
+
+1. Leave existing flat files where they are until a deliberate move.
+2. When touching a cluster (e.g. form controls), move that cluster into `ui/` or `patterns/`, update call-site imports, and document the new path here.
+3. Optional thin re-exports from the old path are allowed only if an external import would otherwise break; prefer updating call sites in the same change.
+4. Do not invent parallel copies (no `ui/Button` while `Button.tsx` still exists with different behavior).
+
+**Target homes (when migrated)**
+
+| Target         | Components (indicative)                                                                                                                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `ProgressBar`, `CredentialInput` (or retire into `InputField`)    |
+| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid` |
+| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                 |
 
 ## Styling Rules
 
@@ -36,30 +71,30 @@ Prefer `frontend/src/components/ui/` for new ESDS primitives. Existing shared co
 
 ## Shared Components
 
-Use these before writing bespoke markup:
+Use these before writing bespoke markup. Paths: most still live flat under `frontend/src/components/` until migrated; new ESDS work goes in `ui/` / `patterns/` (see Placement above).
 
-- `Page`: route-level header, title, eyebrow, and optional action.
-- `Card`: primary white card surface.
-- `Section`: grouped content block inside a page.
-- `Button` / `IconButton`: ESDS button variants and icon-only actions (see below).
-- `ButtonRow`: wrapping button groups.
-- `Pill`: ESDS Tag / pill (Default / Success / Warning / Error via `tone`; optional indicator dot).
-- `ProgressBar` (`components/ui/`): step progress
-- `Text`: shared muted, error, and eyebrow text helpers.
-- `ErrorAlert`: in-page error alert with optional title and recovery action.
-- `Modal`: portal-backed dialog shell.
-- `Input`: ESDS text control (box only). Prefer `InputField` for labeled forms.
-- `InputField`: ESDS Input Field (label / description / control / error); wraps `Input`.
-- `TextareaField`: ESDS textarea field (label / description / control / error).
-- `Menu`: ESDS menu list (built-in Plus icon per row); default / hover / disabled. Rows via `items` only — `MenuItem` is internal.
-- `TabList`: ESDS underline tabs (`TabItem` internal; active / hover / inactive). Prefer this over `SubTabs` for page-level tab strips.
-- `ToggleTabs`: ESDS segmented toggle (selected inverse / idle ghost on `surface-secondary` track).
-- `PinField`: segmented 6-digit PIN / verification-code field with label / description / error.
-- `CredentialInput`: PIN or password field (`mode="pin" | "password"`); wraps `Input`.
-- `DataTable`: workflow-style table shell, wrapper, rows, and action cells.
-- `StatusRow`: compact label/value/status presentation.
-- `ListPagerFilterBar`: list filtering and pagination controls.
-- `JsonPreview`: formatted JSON/code preview surface.
+- `Page`: route-level header, title, eyebrow, and optional action. _(→ `patterns/`)_
+- `Card`: primary white card surface. _(→ `ui/`)_
+- `Section`: grouped content block inside a page. _(→ `patterns/`)_
+- `Button` / `IconButton`: ESDS button variants and icon-only actions (see below). _(→ `ui/`)_
+- `ButtonRow`: wrapping button groups. _(→ `patterns/`)_
+- `Pill`: ESDS Tag / pill (Default / Success / Warning / Error via `tone`; optional indicator dot). _(→ `ui/`)_
+- `ProgressBar` (`components/ui/`): ESDS step progress (optional back IconButton, accent track, step count Tag).
+- `Text`: shared muted, error, and eyebrow text helpers. _(→ `ui/`)_
+- `ErrorAlert`: in-page error alert with optional title and recovery action. _(→ `patterns/`)_
+- `Modal`: portal-backed dialog shell. _(→ `ui/`)_
+- `Input`: ESDS text control (box only). Prefer `InputField` for labeled forms. _(→ `ui/`)_
+- `InputField`: ESDS Input Field (label / description / control / error); wraps `Input`. _(→ `ui/`)_
+- `TextareaField`: ESDS textarea field (label / description / control / error). _(→ `ui/`)_
+- `Menu`: ESDS menu list (built-in Plus icon per row); default / hover / disabled. Rows via `items` only — `MenuItem` is internal. _(→ `ui/`)_
+- `TabList`: ESDS underline tabs (`TabItem` internal; active / hover / inactive). Prefer this over `SubTabs` for page-level tab strips. _(→ `ui/`)_
+- `ToggleTabs`: ESDS segmented toggle (selected inverse / idle ghost on `surface-secondary` track). _(→ `ui/`)_
+- `PinField`: segmented 6-digit PIN / verification-code field with label / description / error. _(→ `ui/`)_
+- `CredentialInput`: PIN or password field (`mode="pin" | "password"`); wraps `Input`. _(→ `ui/` or retire)_
+- `DataTable`: workflow-style table shell, wrapper, rows, and action cells. _(→ `patterns/`)_
+- `StatusRow`: compact label/value/status presentation. _(→ `patterns/`)_
+- `ListPagerFilterBar`: list filtering and pagination controls. _(→ `patterns/`)_
+- `JsonPreview`: formatted JSON/code preview surface. _(→ `patterns/`)_
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
 
