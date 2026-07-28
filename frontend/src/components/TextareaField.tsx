@@ -1,26 +1,38 @@
-import { useId, type InputHTMLAttributes, type ReactNode } from "react";
+import { useId, type ReactNode, type TextareaHTMLAttributes } from "react";
 import { cx } from "../lib/cx";
-import { Input } from "./Input";
 import { Label } from "./Label";
 
+const textareaClass =
+  "min-h-[132px] w-full rounded-loose border border-stroke-primary bg-surface-always-white px-detail-close py-3 type-body text-text-primary placeholder:text-text-disabled outline-none transition-[border-color] duration-200 focus-visible:border-stroke-active disabled:cursor-not-allowed disabled:bg-surface-primary disabled:text-text-disabled disabled:placeholder:text-text-disabled aria-invalid:border-stroke-error motion-reduce:transition-none";
+
+/** ESDS multiline text control.
+ * Mirrors `Input` styling with textarea sizing.
+ * Move to Textarea.tsx when needed.
+ * */
+export function Textarea({
+  className,
+  rows = 5,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...props} rows={rows} className={cx(textareaClass, "resize-y", className)} />;
+}
+
 /**
- * ESDS Input Field: label → description → control → error.
- * Default form control for login and other labeled text fields.
+ * ESDS Textarea Field: label → optional description → control → optional error.
+ * Prefer this when multiline input needs the same field wrapper as `InputField`.
  */
-export function InputField({
+export function TextareaField({
   label,
   description,
   error,
   className,
   id,
   disabled,
-  type = "text",
   ...props
-}: Omit<InputHTMLAttributes<HTMLInputElement>, "className"> & {
+}: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className"> & {
   label?: ReactNode;
   description?: ReactNode;
   error?: ReactNode;
-  /** Outer stack class. */
   className?: string;
 }) {
   const autoId = useId();
@@ -47,10 +59,9 @@ export function InputField({
           {description}
         </p>
       ) : null}
-      <Input
+      <Textarea
         {...props}
         id={controlId}
-        type={type}
         disabled={disabled}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}

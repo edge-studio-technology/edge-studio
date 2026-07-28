@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Shared `MenuItem` for ESDS menu rows (optional icon + label; default / hover / disabled). See `docs/frontend-design-system.md`.
 - Shared `InputField` for ESDS labeled text fields (label / description / control / error). Prefer this over bare `Input` for login and other forms. See `docs/frontend-design-system.md`.
 - Shared `Input` matches the ESDS Input Field control look; `InputField` composes it.
+- Shared `PinField` for ESDS multiline text entry and segmented 6-digit code entry. See `docs/frontend-design-system.md`.
+- Shared `TextareaField` for ESDS labeled multiline text fields (label / description / control / error).
 
 ### Changed
 

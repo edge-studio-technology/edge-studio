@@ -48,7 +48,9 @@ Use these before writing bespoke markup:
 - `Modal`: portal-backed dialog shell.
 - `Input`: ESDS text control (box only). Prefer `InputField` for labeled forms.
 - `InputField`: ESDS Input Field (label / description / control / error); wraps `Input`.
+- `TextareaField`: ESDS textarea field (label / description / control / error).
 - `MenuItem`: ESDS menu row (optional icon + label); default / hover / disabled.
+- `PinField`: segmented 6-digit PIN / verification-code field with label / description / error.
 - `CredentialInput`: PIN or password field (`mode="pin" | "password"`); wraps `Input`.
 - `DataTable`: workflow-style table shell, wrapper, rows, and action cells.
 - `StatusRow`: compact label/value/status presentation.
@@ -138,6 +140,9 @@ Avoid exporting these constants or moving them into shared files unless more tha
 ## Forms
 
 - Prefer `InputField` for labeled text fields (login, settings, device forms).
+- Prefer `TextareaField` when multiline text needs a label, description, or inline error.
+- Extract `Textarea` when needing no field wrapper around it.
+- Use `PinField` for segmented numeric verification / approval codes.
 - Use bare `Input` only when there is no label stack (rare toolbars / search).
 - Use `CredentialInput` for PIN/password chrome until those call sites move onto `InputField`.
 - Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
