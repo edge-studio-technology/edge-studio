@@ -1,6 +1,6 @@
 # Minima Restart/Resync Status Plan
 
-**Status:** Not started
+**Status:** Implemented (merged via `fix/minima-sync-missmatch`, released 0.25.0)
 **Created:** 2026-07-22
 **Goal:** Stop the Minima container restart/resync flow from surfacing raw technical errors or a misleading "Error" state elsewhere in the app, by tracking "an operation is in progress" as durable backend state instead of page-local React state.
 

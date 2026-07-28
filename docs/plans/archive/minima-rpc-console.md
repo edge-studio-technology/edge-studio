@@ -1,6 +1,6 @@
 # Minima RPC Console Plan
 
-**Status:** Not started
+**Status:** Implemented (merged via `fix/minima-sync-missmatch`, released 0.25.0)
 **Created:** 2026-07-24
 **Goal:** Add a Minima Core page feature that replicates the *feel* of Minima's official Terminal MiniDapp (type a command, see scrollback) without becoming the generic RPC proxy this project's rules explicitly forbid — via an admin-curated, closed-world checkbox whitelist.
 

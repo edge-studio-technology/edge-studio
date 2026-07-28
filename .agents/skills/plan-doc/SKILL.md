@@ -9,7 +9,7 @@ description: This skill should be used right after a plan-mode plan is approved 
 
 ## Process
 
-1. Read an existing plan doc (e.g. `docs/plans/minima-restart-resync-status.md`) to match this repo's exact format.
+1. Read an existing plan doc (e.g. `docs/plans/pir-motion-sensor-workflows.md`) to match this repo's exact format.
 2. Write `docs/plans/<kebab-case-slug>.md` with:
    - `# <Title> Plan`
    - `**Status:** Not started` (or the real status if resuming/updating an in-progress plan)

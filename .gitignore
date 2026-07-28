@@ -10,3 +10,5 @@ npm-debug.log*
 .claude/settings.local.json
 __pycache__/
 *.pyc
+.vscode/*
+!.vscode/extensions.json
