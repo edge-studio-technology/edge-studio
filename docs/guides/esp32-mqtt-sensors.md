@@ -279,6 +279,11 @@ Expected output:
 Integritas ESP32 MQTT board starting
 Connecting to Wi-Fi...
 Wi-Fi connected: 192.168.1.x
+Gateway: 192.168.1.1
+Subnet: 255.255.255.0
+DNS: 192.168.1.1
+RSSI: -55
+Testing TCP to MQTT broker 192.168.1.76:1883...connected
 Connecting to MQTT...connected
 Publishing: {"device":"esp32-mqtt-board",...}
 ```
@@ -292,6 +297,8 @@ If serial output is still unavailable, use the optional status LED in the starte
 - Two short blinks means MQTT connected.
 - One longer blink means a Ping payload was published.
 - Five short blinks means MQTT connection failed and will retry.
+
+If serial output shows `Testing TCP to MQTT broker ... failed`, the ESP32 cannot reach the broker host/port from its Wi-Fi network. Check that the ESP32 IP, gateway, and subnet match the LAN that can reach the Pi, then test for router/client isolation or firewall rules between the ESP32 and the Pi.
 
 ## 4. Create Or Enable The Workflow
 

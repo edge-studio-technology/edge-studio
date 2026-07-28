@@ -516,6 +516,8 @@ PubSubClient mqtt(wifiClient);
 
 unsigned long lastPublishAt = 0;
 const unsigned long PUBLISH_INTERVAL_MS = 30000;
+IPAddress mqttIp;
+bool mqttHostIsIp = false;
 
 void setStatusLed(bool on) {
   if (STATUS_LED_PIN < 0) return;
@@ -546,6 +548,40 @@ void connectWifi() {
   Serial.println();
   Serial.print("Wi-Fi connected: ");
   Serial.println(WiFi.localIP());
+  Serial.print("Gateway: ");
+  Serial.println(WiFi.gatewayIP());
+  Serial.print("Subnet: ");
+  Serial.println(WiFi.subnetMask());
+  Serial.print("DNS: ");
+  Serial.println(WiFi.dnsIP());
+  Serial.print("RSSI: ");
+  Serial.println(WiFi.RSSI());
+}
+
+void configureMqttServer() {
+  mqttHostIsIp = mqttIp.fromString(MQTT_HOST);
+  if (mqttHostIsIp) {
+    mqtt.setServer(mqttIp, MQTT_PORT);
+  } else {
+    mqtt.setServer(MQTT_HOST, MQTT_PORT);
+  }
+}
+
+void testBrokerTcp() {
+  WiFiClient testClient;
+  Serial.print("Testing TCP to MQTT broker ");
+  Serial.print(MQTT_HOST);
+  Serial.print(":");
+  Serial.print(MQTT_PORT);
+  Serial.print("...");
+
+  const bool connected = mqttHostIsIp ? testClient.connect(mqttIp, MQTT_PORT) : testClient.connect(MQTT_HOST, MQTT_PORT);
+  if (connected) {
+    Serial.println("connected");
+    testClient.stop();
+  } else {
+    Serial.println("failed");
+  }
 }
 
 void connectMqtt() {
@@ -590,7 +626,8 @@ void setup() {
   Serial.println("Integritas ESP32 MQTT board starting");
   blinkStatusLed(3, 150, 150);
   connectWifi();
-  mqtt.setServer(MQTT_HOST, MQTT_PORT);
+  configureMqttServer();
+  testBrokerTcp();
 }
 
 void loop() {
