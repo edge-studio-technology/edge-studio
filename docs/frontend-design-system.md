@@ -252,14 +252,13 @@ Pair type utilities with colour utilities (e.g. `type-body text-text-secondary`)
 
 ### Corner radius
 
-| Figma (`esds.radius.*`) | Utility            | Value |
-| ----------------------- | ------------------ | ----- |
-| sharp                   | `rounded-sharp`    | 0     |
-| tight                   | `rounded-tight`    | 4px   |
-| loose                   | `rounded-loose`    | 8px   |
-| interior                | `rounded-interior` | 15px  |
-| exterior                | `rounded-exterior` | 24px  |
-| full                    | `rounded-full`     | 999px |
+| Figma (`esds.radius.*`) | Utility         | Value |
+| ----------------------- | --------------- | ----- |
+| sharp                   | `rounded-sharp` | 0     |
+| tight                   | `rounded-tight` | 2px   |
+| loose                   | `rounded-loose` | 4px   |
+| soft                    | `rounded-soft`  | 8px   |
+| full                    | `rounded-full`  | 999px |
 
 Prefer these over ad-hoc `rounded-xl` / `rounded-[14px]` when restyling UI. Tokens live in `@theme` in `styles.css`.
 

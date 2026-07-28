@@ -17,25 +17,23 @@ type IconButtonVariant = "primary" | "secondary" | "ghost";
 type IconButtonSize = "default" | "compact";
 
 const variantClass: Record<ButtonVariant, string> = {
-  // Waiting for hover state (Figma default/hover identical for primary/accent).
   primary:
-    "border-transparent bg-surface-inverse text-text-inverse disabled:bg-surface-secondary disabled:text-text-disabled",
+    "border-transparent bg-surface-inverse text-text-inverse enabled:hover:bg-grey-06 disabled:bg-surface-secondary disabled:text-text-disabled",
   secondary:
     "border-transparent bg-surface-secondary text-text-primary enabled:hover:border-stroke-primary disabled:bg-surface-secondary disabled:text-text-disabled",
   ghost:
     "border-stroke-secondary bg-transparent text-text-primary enabled:hover:border-stroke-primary disabled:border-transparent disabled:bg-surface-secondary disabled:text-text-disabled",
   accent:
-    "border-transparent bg-surface-accent text-text-inverse disabled:bg-surface-secondary disabled:text-text-disabled",
+    "border-transparent bg-surface-accent text-text-inverse enabled:hover:bg-surface-accent-hover disabled:bg-surface-secondary disabled:text-text-disabled",
   danger:
     "border-transparent bg-feedback-error text-text-inverse disabled:bg-surface-secondary disabled:text-text-disabled",
   onDark:
     "border-stroke-always-white bg-overlay-light text-text-inverse enabled:hover:bg-overlay-heavy disabled:bg-overlay-light disabled:text-text-disabled",
 };
 
-/** ESDS Icon Button — primary hover TBD (Figma default/hover identical for now). */
 const iconButtonVariantClass: Record<IconButtonVariant, string> = {
   primary:
-    "border-transparent bg-surface-inverse text-text-inverse disabled:bg-surface-secondary disabled:text-text-disabled",
+    "border-transparent bg-surface-inverse text-text-inverse enabled:hover:bg-grey-06 disabled:bg-surface-secondary disabled:text-text-disabled",
   secondary:
     "border-transparent bg-surface-secondary text-text-primary hover:border-stroke-primary disabled:bg-surface-secondary disabled:text-text-disabled disabled:hover:border-transparent",
   ghost:

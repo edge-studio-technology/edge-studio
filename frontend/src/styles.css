@@ -20,6 +20,7 @@
   --color-grey-05: #6a7581;
   --color-grey-06: #2e3338;
   --color-brand-01: #6d48dc;
+  --color-brand-02: #8161e2;
   --color-feedback-error: #dc0428;
   --color-feedback-warning: #f5a70a;
   --color-feedback-positive: #009966;
@@ -32,6 +33,7 @@
   --color-surface-always-white: var(--color-core-white);
   --color-surface-always-black: var(--color-core-black);
   --color-surface-accent: var(--color-brand-01);
+  --color-surface-accent-hover: var(--color-brand-02);
 
   --color-text-primary: var(--color-core-black);
   --color-text-secondary: var(--color-grey-05);
@@ -63,12 +65,11 @@
   --color-overlay-light: #0000004d;
   --color-overlay-heavy: #000000b2;
 
-  /* ESDS corner radius (esds.radius.*) — use rounded-sharp|tight|loose|interior|exterior|full */
+  /* ESDS corner radius (esds.radius.*) — use rounded-sharp|tight|loose|full */
   --radius-sharp: 0;
-  --radius-tight: 4px;
-  --radius-loose: 8px;
-  --radius-interior: 15px;
-  --radius-exterior: 24px;
+  --radius-tight: 2px;
+  --radius-loose: 4px;
+  --radius-soft: 8px;
   --radius-full: 999px;
 
   /* ESDS spacing (esds.spacing.*) — use with p-*, m-*, gap-*, etc. */
