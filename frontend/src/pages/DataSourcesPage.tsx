@@ -319,10 +319,7 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
         </div>
         {flashMethod === "ide" ? <ArduinoIdeSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} /> : <ArduinoCliSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} />}
       </div>
-      <MutedText className="m-0">Full guide: <InlineCode>docs/guides/esp32-mqtt-sensors.md</InlineCode>. The starter sketch publishes a simple Ping JSON message first; replace it with real sensor fields after the MQTT path works.</MutedText>
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="secondary" onClick={() => navigator.clipboard?.writeText(JSON.stringify(exampleEsp32Payload(source.name), null, 2))}>Copy example JSON</Button>
-      </div>
+      <MutedText className="m-0">The starter sketch publishes a simple Ping JSON message first; replace it with real sensor fields after the MQTT path works.</MutedText>
     </Card>
   );
 }
@@ -392,14 +389,14 @@ function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, o
       </SetupStep>
       <SetupStep index={6} title="Compile Sketch">
           <label className="grid gap-2 font-bold text-slate-700">Board FQBN<input value={usableDetectedFqbn ?? manualFqbn} onChange={(event) => setManualFqbn(event.target.value)} disabled={Boolean(usableDetectedFqbn)} placeholder="esp32:esp32:esp32" /></label>
-          <div className="mt-2">This board target is used by both compile and upload. Use <InlineCode>esp32:esp32:esp32</InlineCode> for a generic ESP32 Dev Module. If upload says <InlineCode>This chip is ESP32-S3, not ESP32</InlineCode>, change it to <InlineCode>esp32:esp32:esp32s3</InlineCode> and rerun compile/upload.</div>
+          <div className="mt-2">This board target is used by both compile and upload. Use <InlineCode>esp32:esp32:esp32</InlineCode> for a generic ESP32 Dev Module. If upload reports a different chip family, choose the matching FQBN from <InlineCode>board listall esp32</InlineCode>, then rerun compile/upload.</div>
           <div className="mt-2">{usableDetectedFqbn ? <>Using detected FQBN <InlineCode>{usableDetectedFqbn}</InlineCode>.</> : <>Using Board FQBN <InlineCode>{selectedFqbn}</InlineCode>.</>}</div>
           <CommandBlock value={commands.compile} />
       </SetupStep>
       <SetupStep index={7} title="Upload Firmware">
           <div>{detectedPort ? <>Using detected port <InlineCode>{detectedPort}</InlineCode>.</> : <>Using placeholder port <InlineCode>/dev/ttyUSB0</InlineCode>. Paste the board list output in step 4 to update this command.</>}</div>
           <CommandBlock value={commands.upload} />
-          <div className="mt-2">If it waits at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts. If the error says <InlineCode>This chip is ESP32-S3, not ESP32</InlineCode>, set Board FQBN in step 4 to <InlineCode>esp32:esp32:esp32s3</InlineCode>.</div>
+          <div className="mt-2">If it waits at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts. If the error says the chip is not the selected target, set Board FQBN in step 6 to the matching target, such as <InlineCode>esp32:esp32:esp32s3</InlineCode>, <InlineCode>esp32:esp32:esp32c3</InlineCode>, or <InlineCode>esp32:esp32:esp32s2</InlineCode>.</div>
       </SetupStep>
       <SetupStep index={8} title="Monitor Serial Output">
           <CommandBlock value={commands.monitor} />
@@ -493,14 +490,6 @@ function esp32BrokerParts(capabilities: DataSourceCapabilities | null, fallbackB
   } catch {
     return { host: browserHost || "192.168.1.50", port: 1883 };
   }
-}
-
-function exampleEsp32Payload(deviceName: string) {
-  return {
-    device: slugifyDeviceName(deviceName),
-    message: "Ping!",
-    uptimeMs: 123456,
-  };
 }
 
 function esp32Firmware(input: { deviceName: string; mqttHost: string; mqttPort: number; topic: string; wifiSsid: string; wifiPassword: string }) {

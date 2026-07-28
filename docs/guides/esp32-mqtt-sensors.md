@@ -165,7 +165,7 @@ The installer usually places `arduino-cli` under `~/bin/arduino-cli`.
 ~/bin/arduino-cli board list
 ```
 
-For native-USB ESP32 boards, especially ESP32-S3 boards, `board list` may show only `Unknown` while the existing firmware is running. Put the board in bootloader mode and run the command again:
+For native-USB ESP32 boards, `board list` may show only `Unknown` while the existing firmware is running. Put the board in bootloader mode and run the command again:
 
 1. Hold `BOOT`.
 2. Tap `RESET` / `EN` once.
@@ -220,7 +220,13 @@ The Board FQBN is the board target used by both compile and upload. Start with t
 ~/bin/arduino-cli compile --fqbn esp32:esp32:esp32 ~/esp32-integritas-sensor
 ```
 
-If upload later says `This chip is ESP32-S3, not ESP32`, change the Board FQBN to `esp32:esp32:esp32s3`, then compile again:
+If upload later reports a different chip family than the selected target, choose the matching FQBN from `board listall esp32`, then compile again. Common examples include:
+
+- `esp32:esp32:esp32s3` for ESP32-S3 boards.
+- `esp32:esp32:esp32c3` for ESP32-C3 boards.
+- `esp32:esp32:esp32s2` for ESP32-S2 boards.
+
+Example for ESP32-S3:
 
 ```bash
 ~/bin/arduino-cli compile --fqbn esp32:esp32:esp32s3 ~/esp32-integritas-sensor
@@ -236,7 +242,7 @@ Replace `/dev/ttyACM0` with the port from `board list`, and use the same Board F
 
 If upload waits at `Connecting...`, hold the ESP32 `BOOT` button until upload starts.
 
-If upload says `This chip is ESP32-S3, not ESP32`, change the FQBN to `esp32:esp32:esp32s3` and compile/upload again.
+If upload says the chip is not the selected target, change the FQBN to the matching target from `board listall esp32`, then compile/upload again.
 
 ### 8. Monitor Serial Output
 
