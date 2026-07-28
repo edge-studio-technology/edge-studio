@@ -50,6 +50,8 @@ Use these before writing bespoke markup:
 - `InputField`: ESDS Input Field (label / description / control / error); wraps `Input`.
 - `TextareaField`: ESDS textarea field (label / description / control / error).
 - `Menu`: ESDS menu list (built-in Plus icon per row); default / hover / disabled. Rows via `items` only — `MenuItem` is internal.
+- `TabList`: ESDS underline tabs (`TabItem` internal; active / hover / inactive). Prefer this over `SubTabs` for page-level tab strips.
+- `ToggleTabs`: ESDS segmented toggle (selected inverse / idle ghost on `surface-secondary` track).
 - `PinField`: segmented 6-digit PIN / verification-code field with label / description / error.
 - `CredentialInput`: PIN or password field (`mode="pin" | "password"`); wraps `Input`.
 - `DataTable`: workflow-style table shell, wrapper, rows, and action cells.
@@ -195,6 +197,60 @@ States per row: default (`surface-always-white`) → hover / focus (`surface-sec
     { label: "Menu item", onClick: ... },
     { label: "Unavailable", disabled: true },
   ]}
+/>
+```
+
+### TabList
+
+ESDS Tab: underline tabs in a horizontal row. `TabItem` is not exported — pass rows through `options`.
+
+| Prop        | Notes                                                 |
+| ----------- | ----------------------------------------------------- |
+| `label`     | Accessible name for the `tablist`                     |
+| `value`     | Currently selected option value                       |
+| `options`   | `{ value, label, disabled?, iconStart?, iconEnd? }[]` |
+| `onChange`  | Called with the selected value                        |
+| `className` | Merged onto the list container                        |
+
+States per tab: active (`stroke-active` / `text-primary`) → hover (`stroke-primary`) → inactive (`stroke-secondary` / `text-tertiary`) → disabled (`text-disabled`, no underline). Padding `p-detail-next`, optional 16px icon slots, `type-body`.
+
+```tsx
+<TabList
+  label="Section"
+  value={tab}
+  options={[
+    { value: "one", label: "Overview" },
+    { value: "two", label: "Details" },
+    { value: "three", label: "Unavailable", disabled: true },
+  ]}
+  onChange={setTab}
+/>
+```
+
+### ToggleTabs
+
+ESDS Toggle Tabs: equal-width segments on a `surface-secondary` track (`p-detail-tight`, `gap-detail-next`, `rounded-loose`). Prefer this for compact binary/segmented controls. `ToggleTabItem` is not exported — pass segments through `options`.
+
+| Prop        | Notes                                                                 |
+| ----------- | --------------------------------------------------------------------- |
+| `label`     | Accessible name for the `tablist`                                     |
+| `value`     | Currently selected option value                                       |
+| `options`   | `{ value, label, disabled? }[]` — typically two segments              |
+| `onChange`  | Called with the selected value                                        |
+| `className` | Merged onto the track (set width when equal flex segments need a box) |
+
+Selected: `surface-inverse` / `text-inverse`, 44px tall, `type-body`. Idle: transparent with `stroke-secondary` border / `text-primary` (border blends into the track).
+
+```tsx
+<ToggleTabs
+  className="w-[170px]"
+  label="View"
+  value={view}
+  options={[
+    { value: "left", label: "List" },
+    { value: "right", label: "Grid" },
+  ]}
+  onChange={setView}
 />
 ```
 
