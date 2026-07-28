@@ -509,6 +509,7 @@ const char* MQTT_HOST = "${escapeCppString(input.mqttHost)}";
 const int MQTT_PORT = ${input.mqttPort};
 const char* MQTT_TOPIC = "${escapeCppString(input.topic)}";
 const char* DEVICE_NAME = "${escapeCppString(deviceSlug)}";
+const int STATUS_LED_PIN = 2; // Change to the board's LED pin, or -1 to disable.
 
 WiFiClient wifiClient;
 PubSubClient mqtt(wifiClient);
@@ -516,13 +517,30 @@ PubSubClient mqtt(wifiClient);
 unsigned long lastPublishAt = 0;
 const unsigned long PUBLISH_INTERVAL_MS = 30000;
 
+void setStatusLed(bool on) {
+  if (STATUS_LED_PIN < 0) return;
+  digitalWrite(STATUS_LED_PIN, on ? HIGH : LOW);
+}
+
+void blinkStatusLed(int count, int onMs, int offMs) {
+  if (STATUS_LED_PIN < 0) return;
+  for (int i = 0; i < count; i++) {
+    setStatusLed(true);
+    delay(onMs);
+    setStatusLed(false);
+    delay(offMs);
+  }
+}
+
 void connectWifi() {
   if (WiFi.status() == WL_CONNECTED) return;
 
   Serial.print("Connecting to Wi-Fi");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
+    setStatusLed(true);
     delay(500);
+    setStatusLed(false);
     Serial.print(".");
   }
   Serial.println();
@@ -535,10 +553,12 @@ void connectMqtt() {
     Serial.print("Connecting to MQTT...");
     if (mqtt.connect(DEVICE_NAME)) {
       Serial.println("connected");
+      blinkStatusLed(2, 100, 100);
     } else {
       Serial.print("failed, rc=");
       Serial.print(mqtt.state());
       Serial.println(" retrying in 5 seconds");
+      blinkStatusLed(5, 100, 100);
       delay(5000);
     }
   }
@@ -555,13 +575,20 @@ void publishReading() {
   Serial.print("Publishing: ");
   Serial.println(payload);
   mqtt.publish(MQTT_TOPIC, payload);
+  blinkStatusLed(1, 300, 100);
 }
 
 void setup() {
+  if (STATUS_LED_PIN >= 0) {
+    pinMode(STATUS_LED_PIN, OUTPUT);
+    setStatusLed(false);
+  }
+
   Serial.begin(115200);
   delay(1500);
   Serial.println();
   Serial.println("Integritas ESP32 MQTT board starting");
+  blinkStatusLed(3, 150, 150);
   connectWifi();
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
 }

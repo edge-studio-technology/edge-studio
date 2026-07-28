@@ -201,6 +201,14 @@ const char* WIFI_SSID = "YOUR_WIFI_NAME";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 ```
 
+The starter firmware also includes an optional status LED:
+
+```cpp
+const int STATUS_LED_PIN = 2;
+```
+
+Change this to the board's LED pin, connect an external LED to that GPIO, or set it to `-1` to disable LED diagnostics.
+
 ### 6. Choose Board Target
 
 List the available ESP32 board targets:
@@ -276,6 +284,14 @@ Publishing: {"device":"esp32-mqtt-board",...}
 ```
 
 If the monitor stays blank, press `RESET` / `EN` once while the monitor is open. For native-USB boards, also check whether USB CDC on boot is enabled in the Board FQBN, for example `esp32:esp32:esp32s3:CDCOnBoot=cdc`.
+
+If serial output is still unavailable, use the optional status LED in the starter firmware:
+
+- Three short blinks at boot means the sketch started.
+- Slow blinking while connecting means Wi-Fi is not connected yet.
+- Two short blinks means MQTT connected.
+- One longer blink means a Ping payload was published.
+- Five short blinks means MQTT connection failed and will retry.
 
 ## 4. Create Or Enable The Workflow
 
