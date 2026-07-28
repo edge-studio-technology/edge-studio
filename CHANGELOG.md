@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Devices now include an ESP32 MQTT Board onboarding option that saves a normal MQTT input source and generates copyable Arduino ESP32 starter firmware.
+
+### Changed
+
+- ESP32 MQTT Board onboarding now links to a step-by-step flashing and workflow setup guide.
+- ESP32 starter firmware now publishes a simple `Ping!` JSON payload instead of fake sensor readings, making first MQTT verification clearer.
+
 ## [0.25.0] 2026-07-27
 
 ### Added
@@ -49,15 +58,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Devices now include a PIR Motion Sensor input option for HC-SR501-style GPIO motion sensors, with GPIO23-tested defaults and motion-specific trigger payload labels.
-- Devices now include an ESP32 MQTT Board onboarding option that saves a normal MQTT input source and generates copyable Arduino ESP32 starter firmware.
 - Event-driven Automation start blocks can now enforce a cooldown between workflow runs, and GPIO starts can ignore inactive events such as PIR `motion_cleared` edges.
 - GPIO device guidance now documents the tested HC-SR501 PIR wiring, standalone GPIO test script, and troubleshooting notes.
 
 ### Changed
 
 - Automation control-output blocks now preserve compatible payload settings when switching between output targets instead of resetting the block to target defaults.
-- ESP32 MQTT Board onboarding now links to a step-by-step flashing and workflow setup guide.
-- ESP32 starter firmware now publishes a simple `Ping!` JSON payload instead of fake sensor readings, making first MQTT verification clearer.
 
 ## [0.22.0] - 2026-07-23
 
