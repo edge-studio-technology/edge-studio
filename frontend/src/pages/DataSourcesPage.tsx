@@ -9,10 +9,10 @@ import { useToast } from "../components/ToastProvider";
 import { checkDataSourceHealth, createDataSource, deleteDataSource, getDataSourceCapabilities, listDataSources, readDataSource, testDataSourceOutput, updateDataSource } from "../features/data-sources/dataSourcesApi";
 import { DataSourceForm } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
-import { DataSourceTemplates, LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
+import { DataSourceTemplates, inputTemplateCategories, LocalServicesCard, outputTemplateCategories, type DataSourceTemplateCategory } from "../features/data-sources/DataSourceTemplates";
 import type { DataSource, DataSourceCapabilities, DataSourceHealthStatus, DataSourceTemplate } from "../features/data-sources/dataSourceTypes";
 
-type AddDeviceStep = "choose" | "input" | "output" | "input-template" | "input-manual" | "output-template" | "output-manual";
+type AddDeviceStep = "choose" | "input" | "output" | "input-template" | "input-manual" | "output-template" | "output-manual" | `input-template-${DataSourceTemplateCategory}` | `output-template-${DataSourceTemplateCategory}`;
 
 export function DataSourcesPage() {
   const { showToast } = useToast();
@@ -198,7 +198,7 @@ export function DataSourcesPage() {
 
       {templateMode && (
         <Modal title={addDeviceBreadcrumb(templateMode)} actions={templateMode !== "choose" ? <button className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-2.5 font-bold text-slate-700" type="button" onClick={() => setTemplateMode(previousAddDeviceStep(templateMode))}>Back</button> : null} onClose={() => setTemplateMode(null)}>
-          {templateMode === "choose" ? <AddDeviceKindChoice onSelect={setTemplateMode} /> : templateMode === "input" || templateMode === "output" ? <AddDeviceMethodChoice mode={templateMode} onSelect={(category) => setTemplateMode(`${templateMode}-${category}` as "input-template" | "input-manual" | "output-template" | "output-manual")} /> : <DataSourceTemplates mode={templateMode.startsWith("input") ? "input" : "output"} category={templateMode.endsWith("template") ? "template" : "manual"} capabilities={capabilities} onSelect={applyTemplate} />}
+          {templateMode === "choose" ? <AddDeviceKindChoice onSelect={setTemplateMode} /> : templateMode === "input" || templateMode === "output" ? <AddDeviceMethodChoice mode={templateMode} onSelect={(category) => setTemplateMode(`${templateMode}-${category}` as "input-template" | "input-manual" | "output-template" | "output-manual")} /> : templateMode === "input-template" || templateMode === "output-template" ? <AddTemplateCategoryChoice mode={templateMode.startsWith("input") ? "input" : "output"} onSelect={(category) => setTemplateMode(`${templateMode}-${category}` as AddDeviceStep)} /> : <DataSourceTemplates mode={templateMode.startsWith("input") ? "input" : "output"} category={templateMode.includes("manual") ? "manual" : "template"} templateCategoryId={selectedTemplateCategory(templateMode)} capabilities={capabilities} onSelect={applyTemplate} />}
         </Modal>
       )}
 
@@ -336,19 +336,49 @@ function AddDeviceMethodChoice({ mode, onSelect }: { mode: "input" | "output"; o
   );
 }
 
+function AddTemplateCategoryChoice({ mode, onSelect }: { mode: "input" | "output"; onSelect: (category: DataSourceTemplateCategory) => void }) {
+  const categories = mode === "input" ? inputTemplateCategories : outputTemplateCategories;
+  return (
+    <div className="grid min-h-[min(520px,calc(90vh-160px))] gap-4 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
+      {categories.map((category) => (
+        <button key={category.id} type="button" className="grid min-h-[220px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]" onClick={() => onSelect(category.id)}>
+          <div>
+            <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Template category</span>
+            <h3 className="mt-3 text-2xl">{category.title}</h3>
+            <MutedText className="m-0 mt-2">{category.description}</MutedText>
+          </div>
+          <span className="font-extrabold text-blue-700">View templates</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function addDeviceBreadcrumb(mode: AddDeviceStep) {
   const parts = ["Add device or source"];
   if (mode.startsWith("input")) parts.push("Add input source");
   if (mode.startsWith("output")) parts.push("Add output target");
-  if (mode.endsWith("template")) parts.push("Template");
+  if (mode.includes("template")) parts.push("Template");
   if (mode.endsWith("manual")) parts.push("Manual");
+  const category = selectedTemplateCategory(mode);
+  if (category) parts.push(templateCategoryLabel(category));
   return parts.join(" > ");
 }
 
 function previousAddDeviceStep(mode: AddDeviceStep) {
   if (mode === "input" || mode === "output") return "choose";
+  if (selectedTemplateCategory(mode)) return mode.startsWith("input") ? "input-template" : "output-template";
   if (mode.startsWith("input")) return "input";
   return "output";
+}
+
+function selectedTemplateCategory(mode: AddDeviceStep) {
+  if (!mode.includes("template-")) return undefined;
+  return mode.replace(/^input-template-|^output-template-/, "") as DataSourceTemplateCategory;
+}
+
+function templateCategoryLabel(category: DataSourceTemplateCategory) {
+  return [...inputTemplateCategories, ...outputTemplateCategories].find((item) => item.id === category)?.title ?? category;
 }
 
 function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capabilities: DataSourceCapabilities | null }) {

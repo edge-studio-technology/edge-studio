@@ -4,8 +4,22 @@ import { Card } from "../../components/Card";
 import { MutedText } from "../../components/Text";
 import type { DataSourceCapabilities, DataSourceTemplate } from "./dataSourceTypes";
 
+export type DataSourceTemplateCategory = "http" | "webhook" | "mqtt" | "gpio-input" | "pi-camera" | "gpio-output" | "http-output" | "mqtt-output";
+
+export const inputTemplateCategories: { id: DataSourceTemplateCategory; title: string; description: string }[] = [
+  { id: "http", title: "HTTP JSON API", description: "Ready-to-use public JSON APIs for fetch workflows." },
+  { id: "mqtt", title: "MQTT", description: "Board and broker examples that publish JSON over MQTT." },
+  { id: "gpio-input", title: "GPIO Input", description: "Sensor examples that use Raspberry Pi GPIO input pins." },
+  { id: "pi-camera", title: "Pi Camera", description: "Camera capture presets for local Pi camera workflows." },
+];
+
+export const outputTemplateCategories: { id: DataSourceTemplateCategory; title: string; description: string }[] = [
+  { id: "gpio-output", title: "GPIO Output", description: "Hardware output examples controlled by workflows." },
+];
+
 export const inputTemplates: DataSourceTemplate[] = [
   { title: "HTTP JSON API", description: "Fetch JSON from an external API, Pi service, or Docker-network endpoint", type: "json-api", config: { url: "https://example.com/data.json", method: "GET", headers: {} } },
+  { title: "UTC Time API", description: "Fetch the current UTC time from a public JSON API", type: "json-api", config: { url: "https://worldtimeapi.org/api/timezone/Etc/UTC", method: "GET", headers: {}, templateCategory: "http" } },
   { title: "Webhook", description: "Receive pushed JSON from another app, device, or workflow", type: "webhook", config: {} },
   { title: "MQTT", description: "Subscribe to a broker topic and ingest JSON messages", type: "mqtt", config: { brokerUrl: "mqtt://localhost:1883", topic: "sensors/+/data" } },
   { title: "ESP32 MQTT Board", description: "Generate starter firmware for an ESP32 board that publishes JSON over MQTT", type: "mqtt", config: { brokerUrl: "mqtt://localhost:1883", topic: "boards/esp32/data", profile: "esp32-mqtt-board" } },
@@ -20,8 +34,8 @@ export const outputTemplates: DataSourceTemplate[] = [
   { title: "MQTT Output", description: "Publish JSON commands to a broker topic from automation workflows", type: "mqtt-output", config: { brokerUrl: "mqtt://localhost:1883", topic: "devices/example/set", qos: 0, retain: false } }
 ];
 
-export function DataSourceTemplates({ mode, category, capabilities, onSelect }: { mode: "input" | "output"; category?: "template" | "manual"; capabilities: DataSourceCapabilities | null; onSelect: (template: DataSourceTemplate) => void }) {
-  const templates = (mode === "input" ? inputTemplates : outputTemplates).filter((template) => !category || templateCategory(template) === category);
+export function DataSourceTemplates({ mode, category, templateCategoryId, capabilities, onSelect }: { mode: "input" | "output"; category?: "template" | "manual"; templateCategoryId?: DataSourceTemplateCategory; capabilities: DataSourceCapabilities | null; onSelect: (template: DataSourceTemplate) => void }) {
+  const templates = (mode === "input" ? inputTemplates : outputTemplates).filter((template) => (!category || templateKind(template) === category) && (!templateCategoryId || templateCategory(template) === templateCategoryId));
   const brokerUrl = capabilities?.mqttBroker?.enabled ? capabilities.mqttBroker.internalUrl : "mqtt://localhost:1883";
 
   return (
@@ -56,9 +70,21 @@ export function DataSourceTemplates({ mode, category, capabilities, onSelect }: 
   );
 }
 
-function templateCategory(template: DataSourceTemplate) {
-  if (template.config.profile === "esp32-mqtt-board" || template.config.profile === "pir-motion" || template.type === "pi-camera" || template.type === "gpio-output") return "template";
+function templateKind(template: DataSourceTemplate) {
+  if (template.config.templateCategory || template.config.profile === "esp32-mqtt-board" || template.config.profile === "pir-motion" || template.type === "pi-camera" || template.type === "gpio-output") return "template";
   return "manual";
+}
+
+export function templateCategory(template: DataSourceTemplate): DataSourceTemplateCategory {
+  if (template.config.templateCategory === "http") return "http";
+  if (template.config.profile === "esp32-mqtt-board" || template.type === "mqtt") return "mqtt";
+  if (template.config.profile === "pir-motion" || template.type === "gpio-input") return "gpio-input";
+  if (template.type === "pi-camera") return "pi-camera";
+  if (template.type === "gpio-output") return "gpio-output";
+  if (template.type === "http-output") return "http-output";
+  if (template.type === "mqtt-output") return "mqtt-output";
+  if (template.type === "webhook") return "webhook";
+  return "http";
 }
 
 export function LocalServicesCard({ capabilities }: { capabilities: DataSourceCapabilities | null }) {
