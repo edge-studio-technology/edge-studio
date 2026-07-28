@@ -4,7 +4,7 @@ import { Layers3, LogOut, MessageCircle, Minimize2, PanelLeftOpen } from "lucide
 import { nav } from "../app/nav";
 import { cx } from "../lib/cx";
 
-/** Matches Tailwind `lg` — below this the sidebar stays collapsed. */
+/** Below this width the sidebar stays collapsed. */
 const EXPAND_MQ = "(min-width: 1024px)";
 
 function BrandMark() {
@@ -85,7 +85,7 @@ export function AppShellSidebar({
           </div>
           <button
             type="button"
-            className="rounded-loose bg-grey-06 text-icon-inverse hover:bg-grey-05 flex h-[44px] w-12 shrink-0 cursor-pointer items-center justify-center transition-colors"
+            className="rounded-loose bg-grey-06 text-icon-inverse hover:border-stroke-primary flex h-[44px] w-12 shrink-0 cursor-pointer items-center justify-center border border-transparent transition-colors"
             onClick={() => setCollapsed((value) => !value)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -95,25 +95,39 @@ export function AppShellSidebar({
         </div>
 
         <nav className="gap-detail-tight flex min-h-0 w-full flex-1 flex-col overflow-x-hidden overflow-y-auto">
-          {nav.map(({ id, label, icon: Icon }) => {
+          {nav.map(({ id, label, icon: Icon, badge }) => {
             const isActive = activeId === id;
             return (
               <NavLink
                 key={id}
-                to={`/${id}`}
+                to={id === "marketplace" ? "/dashboard" : `/${id}`}
                 title={collapsed ? label : undefined}
                 className={cx(
-                  "rounded-loose px-detail-close flex h-[44px] w-full items-center overflow-hidden transition-[colors,gap] duration-200",
+                  "rounded-loose px-detail-close flex h-[44px] w-full items-center overflow-hidden border transition-[colors,border-color,gap] duration-200",
                   collapsed ? "gap-0" : "gap-detail-next",
                   isActive
-                    ? "bg-surface-accent text-text-inverse"
-                    : "text-text-inverse hover:bg-grey-06",
+                    ? "bg-surface-accent text-text-inverse border-transparent"
+                    : "text-text-inverse hover:border-stroke-primary border-transparent",
                 )}
               >
-                <Icon size={16} aria-hidden className="shrink-0" />
-                <CollapsibleLabel collapsed={collapsed} className="type-body">
-                  {label}
-                </CollapsibleLabel>
+                <span
+                  className={cx(
+                    "flex min-w-0 items-center",
+                    collapsed ? "gap-0" : "gap-detail-next",
+                  )}
+                >
+                  <Icon size={16} aria-hidden className="shrink-0" />
+                  <CollapsibleLabel collapsed={collapsed} className="type-body">
+                    {label}
+                  </CollapsibleLabel>
+                </span>
+                {badge ? (
+                  <CollapsibleLabel collapsed={collapsed}>
+                    <span className="bg-surface-secondary text-text-primary type-meta px-detail-next flex h-6 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                      {badge}
+                    </span>
+                  </CollapsibleLabel>
+                ) : null}
               </NavLink>
             );
           })}
@@ -133,7 +147,7 @@ export function AppShellSidebar({
           <button
             type="button"
             className={cx(
-              "rounded-loose bg-grey-06 px-detail-close text-text-inverse hover:bg-grey-05 flex h-[44px] w-full cursor-pointer items-center justify-center overflow-hidden transition-colors",
+              "rounded-loose bg-grey-06 px-detail-close text-text-inverse hover:border-stroke-primary flex h-[44px] w-full cursor-pointer items-center justify-center overflow-hidden border border-transparent transition-colors",
               collapsed ? "gap-0" : "gap-detail-next",
             )}
             onClick={onFeedback}
