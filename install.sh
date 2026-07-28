@@ -383,33 +383,18 @@ fetch_and_verify_manifest() {
 
   local manifest_file="$APP_DIR/.manifest.json"
   local signature_file="$APP_DIR/.manifest.json.sig"
-  local signature_bin="$APP_DIR/.manifest.json.sig.bin"
 
   curl -fsSL "$MANIFEST_URL" -o "$manifest_file"
   curl -fsSL "${MANIFEST_URL}.sig" -o "$signature_file"
 
-  base64 -d "$signature_file" > "$signature_bin"
-
-  local openssl_major
-  openssl_major="$(openssl version | sed -E 's/^OpenSSL ([0-9]+).*/\1/')"
-
-  if [ "$openssl_major" -lt 3 ] 2>/dev/null; then
-    echo
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    echo "! WARNING: SIGNATURE VERIFICATION IS DISABLED                              !"
-    echo "!                                                                          !"
-    echo "! Detected OpenSSL $(openssl version) which cannot verify Ed25519          !"
-    echo "! signatures via pkeyutl (needs OpenSSL 3.x). Manifest signature checking  !"
-    echo "! is being SKIPPED so testing can continue on this host. Images will be    !"
-    echo "! installed WITHOUT verifying they were signed by a trusted publisher.     !"
-    echo "!                                                                          !"
-    echo "! THIS IS TEMPORARY. Remove this bypass once a real fix ships             !"
-    echo "! (see install.sh fetch_and_verify_manifest).                             !"
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    echo
-  elif ! openssl pkeyutl -verify -pubin -inkey "$public_key_file" -in "$manifest_file" -sigfile "$signature_bin"; then
+  if ! docker run --rm --network none \
+    -v "$APP_DIR/scripts/verify-manifest.mjs:/verify-manifest.mjs:ro" \
+    -v "$manifest_file:/manifest.json:ro" \
+    -v "$signature_file:/manifest.json.sig:ro" \
+    -v "$public_key_file:/manifest-public-key.pem:ro" \
+    node:20-bookworm-slim node /verify-manifest.mjs /manifest.json /manifest.json.sig /manifest-public-key.pem; then
     echo "Manifest signature verification failed. Refusing to install untrusted images."
-    rm -f "$manifest_file" "$signature_file" "$signature_bin"
+    rm -f "$manifest_file" "$signature_file"
     exit 1
   fi
 
@@ -419,7 +404,7 @@ fetch_and_verify_manifest() {
   MANIFEST_VERSION="$(fetch_manifest_field "$manifest_file" version)"
   MANIFEST_CREATED_AT="$(fetch_manifest_field "$manifest_file" createdAt)"
 
-  rm -f "$manifest_file" "$signature_file" "$signature_bin"
+  rm -f "$manifest_file" "$signature_file"
 
   if [ -z "$FRONTEND_IMAGE" ] || [ -z "$BACKEND_IMAGE" ] || [ -z "$UPDATE_AGENT_IMAGE" ]; then
     echo "Manifest is missing frontend, backend, or update-agent image digest."

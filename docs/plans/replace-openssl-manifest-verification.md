@@ -1,6 +1,6 @@
 # Replace OpenSSL Manifest Verification Plan
 
-**Status:** Not started
+**Status:** Implemented
 **Created:** 2026-07-28
 **Goal:** Replace `install.sh`'s host-`openssl`-dependent Ed25519 manifest signature check with a verification run inside a disposable, pinned Node container, so it works regardless of the host's OpenSSL version.
 

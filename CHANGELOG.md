@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- `install.sh` no longer verifies update manifest signatures with the host's `openssl` CLI, which required OpenSSL 3.x for Ed25519 and silently skipped verification (installing images unverified) on older OpenSSL versions. Verification now always runs, inside a disposable `node:20-bookworm-slim` Docker container, regardless of the host's OpenSSL version.
+
 ## [0.25.0] 2026-07-27
 
 ### Added
