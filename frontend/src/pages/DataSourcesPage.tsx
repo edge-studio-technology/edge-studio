@@ -376,32 +376,35 @@ function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, o
       <SetupStep index={4} title="Find The ESP32 Port">
           <CommandBlock value={commands.boardList} />
           <div className="mt-2">Run the command and paste its output here. For native-USB ESP32 boards, hold <InlineCode>BOOT</InlineCode>, tap <InlineCode>RESET</InlineCode>/<InlineCode>EN</InlineCode>, then run the command again if the board appears as <InlineCode>Unknown</InlineCode>.</div>
-          <div className="mt-2">If Arduino CLI prints a usable ESP32 FQBN, the compile/upload commands will use it. If not, set the Board FQBN field below.</div>
           <textarea className="mt-2 min-h-[110px] font-mono text-xs" value={boardListOutput} onChange={(event) => setBoardListOutput(event.target.value)} placeholder={'Port         Protocol Type              Board Name          FQBN                      Core\n/dev/ttyACM0 serial   Serial Port (USB) ESP32 Family Device esp32:esp32:esp32_family  esp32:esp32\n/dev/ttyAMA0 serial   Serial Port       Unknown'} />
-          {detectedBoard ? <div className="mt-2">Detected ESP32 port: <InlineCode>{detectedBoard.port}</InlineCode>{usableDetectedFqbn ? <> and FQBN: <InlineCode>{usableDetectedFqbn}</InlineCode></> : detectedBoard.fqbn === "esp32:esp32:esp32_family" ? <>. Arduino reported <InlineCode>esp32:esp32:esp32_family</InlineCode>, but that is a detection family, so choose the real Board FQBN in step 6.</> : <>. No FQBN was printed, so choose the Board FQBN in step 6.</>}</div> : <div className="mt-2">Look for a USB serial port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.</div>}
+          {detectedBoard ? <div className="mt-2">Detected ESP32 port: <InlineCode>{detectedBoard.port}</InlineCode>.</div> : <div className="mt-2">Look for a USB serial port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.</div>}
       </SetupStep>
       <SetupStep index={5} title="Create Sketch File">
           <div>Create the sketch folder and file, then paste the generated firmware below.</div>
           <CommandBlock value={commands.createSketch} />
           <FirmwareStepContent firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={onWifiSsidChange} onWifiPasswordChange={onWifiPasswordChange} />
       </SetupStep>
-      <SetupStep index={6} title="Compile Sketch">
+      <SetupStep index={6} title="Choose Board Target">
+          <div>List available ESP32 board targets, then choose the target that matches the board or chip family.</div>
+          <CommandBlock value={commands.boardListAll} />
           <label className="grid gap-2 font-bold text-slate-700">Board FQBN<input value={usableDetectedFqbn ?? manualFqbn} onChange={(event) => setManualFqbn(event.target.value)} disabled={Boolean(usableDetectedFqbn)} placeholder="esp32:esp32:esp32" /></label>
           <div className="mt-2">This board target is used by both compile and upload. Use <InlineCode>esp32:esp32:esp32</InlineCode> for a generic ESP32 Dev Module. If upload reports a different chip family, choose the matching FQBN from the available ESP32 board targets, then rerun compile/upload.</div>
-          <CommandBlock value={commands.boardListAll} />
           <div className="mt-2">{usableDetectedFqbn ? <>Using detected FQBN <InlineCode>{usableDetectedFqbn}</InlineCode>.</> : <>Using Board FQBN <InlineCode>{selectedFqbn}</InlineCode>.</>}</div>
+          {detectedFqbn === "esp32:esp32:esp32_family" && <div className="mt-2">Arduino reported <InlineCode>esp32:esp32:esp32_family</InlineCode> in step 4. That identifies the ESP32 family but is not a build target, so choose a real Board FQBN here.</div>}
+      </SetupStep>
+      <SetupStep index={7} title="Compile Sketch">
           <CommandBlock value={commands.compile} />
       </SetupStep>
-      <SetupStep index={7} title="Upload Firmware">
+      <SetupStep index={8} title="Upload Firmware">
           <div>{detectedPort ? <>Using detected port <InlineCode>{detectedPort}</InlineCode>.</> : <>Using placeholder port <InlineCode>/dev/ttyUSB0</InlineCode>. Paste the board list output in step 4 to update this command.</>}</div>
           <CommandBlock value={commands.upload} />
           <div className="mt-2">If it waits at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts. If the error says the chip is not the selected target, set Board FQBN in step 6 to the matching target, such as <InlineCode>esp32:esp32:esp32s3</InlineCode>, <InlineCode>esp32:esp32:esp32c3</InlineCode>, or <InlineCode>esp32:esp32:esp32s2</InlineCode>.</div>
       </SetupStep>
-      <SetupStep index={8} title="Monitor Serial Output">
+      <SetupStep index={9} title="Monitor Serial Output">
           <CommandBlock value={commands.monitor} />
           <div className="mt-2">Look for Wi-Fi connected, MQTT connected, and Publishing messages.</div>
       </SetupStep>
-      <SetupStep index={9} title="Create Or Enable Workflow">Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</SetupStep>
+      <SetupStep index={10} title="Create Or Enable Workflow">Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</SetupStep>
     </div>
   );
 }

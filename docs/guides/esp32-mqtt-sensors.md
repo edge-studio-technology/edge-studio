@@ -173,7 +173,7 @@ For native-USB ESP32 boards, `board list` may show only `Unknown` while the exis
 4. Keep holding `BOOT` for about two seconds, then release it.
 5. Run `~/bin/arduino-cli board list` again.
 
-Look for the ESP32 row. This step is mainly for finding the serial port. Arduino CLI may also print a board FQBN, but it can report a detection family such as `esp32:esp32:esp32_family` that is not usable for compile/upload:
+Look for the ESP32 row. This step is for finding the serial port:
 
 ```txt
 Port         Protocol Type              Board Name          FQBN                      Core
@@ -181,12 +181,9 @@ Port         Protocol Type              Board Name          FQBN                
 /dev/ttyAMA0 serial   Serial Port       Unknown
 ```
 
-In this example:
+In this example, the port is `/dev/ttyACM0`.
 
-- Port is `/dev/ttyACM0`.
-- Reported FQBN is `esp32:esp32:esp32_family`, which is a detection family, not a compile target.
-
-If Arduino CLI does not identify the board, use the USB serial port such as `/dev/ttyUSB0`, `/dev/ttyACM0`, or `COM3`. Choose the Board FQBN in the compile step.
+If Arduino CLI does not identify the board, use the USB serial port such as `/dev/ttyUSB0`, `/dev/ttyACM0`, or `COM3`. Choose the Board FQBN in the board target step.
 
 ### 5. Create The Sketch Folder
 
@@ -204,9 +201,9 @@ const char* WIFI_SSID = "YOUR_WIFI_NAME";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 ```
 
-### 6. Choose Board FQBN And Compile
+### 6. Choose Board Target
 
-The Board FQBN is the board target used by both compile and upload. Start with the generic ESP32 Dev Module target unless you know the exact chip/board:
+List the available ESP32 board targets:
 
 ```bash
 ~/bin/arduino-cli board listall esp32
@@ -214,15 +211,23 @@ The Board FQBN is the board target used by both compile and upload. Start with t
 
 This command lists the FQBN values available after installing the ESP32 core. It does not identify the exact connected board, but it helps you choose a generic or board-specific target.
 
-```bash
-~/bin/arduino-cli compile --fqbn esp32:esp32:esp32 ~/esp32-integritas-sensor
+The Board FQBN is the board target used by both compile and upload. Start with the generic ESP32 Dev Module target unless you know the exact chip/board:
+
+```txt
+esp32:esp32:esp32
 ```
 
-If upload later reports a different chip family than the selected target, choose the matching FQBN from `board listall esp32`, then compile again. Common examples include:
+Family identifiers such as `esp32:esp32:esp32_family` are not build targets. If upload later reports a different chip family than the selected target, choose the matching FQBN from `board listall esp32`, then compile again. Common examples include:
 
 - `esp32:esp32:esp32s3` for ESP32-S3 boards.
 - `esp32:esp32:esp32c3` for ESP32-C3 boards.
 - `esp32:esp32:esp32s2` for ESP32-S2 boards.
+
+### 7. Compile
+
+```bash
+~/bin/arduino-cli compile --fqbn esp32:esp32:esp32 ~/esp32-integritas-sensor
+```
 
 Example for ESP32-S3:
 
@@ -230,9 +235,9 @@ Example for ESP32-S3:
 ~/bin/arduino-cli compile --fqbn esp32:esp32:esp32s3 ~/esp32-integritas-sensor
 ```
 
-### 7. Upload
+### 8. Upload
 
-Replace `/dev/ttyACM0` with the port from `board list`, and use the same Board FQBN from the compile step:
+Replace `/dev/ttyACM0` with the port from `board list`, and use the same Board FQBN from the board target step:
 
 ```bash
 ~/bin/arduino-cli upload -p /dev/ttyACM0 --fqbn esp32:esp32:esp32 ~/esp32-integritas-sensor
@@ -242,7 +247,7 @@ If upload waits at `Connecting...`, hold the ESP32 `BOOT` button until upload st
 
 If upload says the chip is not the selected target, change the FQBN to the matching target from `board listall esp32`, then compile/upload again.
 
-### 8. Monitor Serial Output
+### 9. Monitor Serial Output
 
 ```bash
 ~/bin/arduino-cli monitor -p /dev/ttyACM0 --config baudrate=115200
