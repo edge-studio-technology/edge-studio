@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-export type Tone = "neutral" | "good" | "warn" | "future";
+export type Tone = "neutral" | "good" | "warn" | "error";
 export type NavId =
   | "dashboard"
   | "setup"

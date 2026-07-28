@@ -42,7 +42,7 @@ Use these before writing bespoke markup:
 - `Section`: grouped content block inside a page.
 - `Button` / `IconButton`: ESDS button variants and icon-only actions (see below).
 - `ButtonRow`: wrapping button groups.
-- `Pill`: compact status/category label.
+- `Pill`: ESDS Tag / pill (Default / Success / Warning / Error via `tone`; optional indicator dot).
 - `Text`: shared muted, error, and eyebrow text helpers.
 - `ErrorAlert`: in-page error alert with optional title and recovery action.
 - `Modal`: portal-backed dialog shell.
@@ -149,6 +149,26 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Use `CredentialInput` for PIN/password chrome until those call sites move onto `InputField`.
 - Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
 - Use toast errors for transient action failures that should not occupy page layout.
+
+### Pill
+
+ESDS Tag: 24px-tall rounded pill (`type-meta`, `px-detail-next`). Prefer this for compact status/category labels.
+
+| Prop        | Values                                   | Notes                                       |
+| ----------- | ---------------------------------------- | ------------------------------------------- |
+| `tone`      | `neutral` \| `good` \| `warn` \| `error` | Maps to Default / Success / Warning / Error |
+| `indicator` | boolean (default `false`)                | Optional 4px status dot                     |
+| `className` | optional                                 | Merged onto the pill                        |
+
+Default (`neutral`): `surface-secondary` fill. Success / Warning / Error: white fill, matching stroke, 20% feedback wash. Label is always `text-primary`.
+
+```tsx
+<Pill>Default</Pill>
+<Pill tone="good" indicator>
+  Success
+</Pill>
+<Pill tone="error">Failed</Pill>
+```
 
 ### InputField
 

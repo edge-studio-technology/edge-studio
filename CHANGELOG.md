@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Shared `Pill` matches the ESDS Tag design (Default secondary fill; Success / Warning / Error white + tinted stroke/wash; optional indicator dot). `tone` is `neutral` / `good` / `warn` / `error` (removed unused `future`). See `docs/frontend-design-system.md`.
 - Desktop app navigation now uses an Edge Studio-style collapsible dark sidebar with icon-only collapsed state (always on screen; collapses below `lg`), shared `nav` including Account and Marketplace (Coming soon), and sidebar-hosted feedback / sign out when expanded.
 - Shared `Input` uses a 1px border (`stroke-primary` / focus `stroke-active` / error `stroke-error`) on the control box.
 - Frontend colour tokens now follow ESDS foundations only (primitives + surface/text/icon/stroke/overlay semantics). Shared components use those utilities; legacy `brand-*`, `on-dark*`, and non-Figma status/hover/info aliases were removed.

@@ -23,13 +23,12 @@ import type { CheckState, OnboardingFormState } from "../types";
 
 const TOTP_ACCOUNT_LABEL = "Edge Workbench";
 
-type PillTone = "neutral" | "good" | "warn" | "future";
+type PillTone = "neutral" | "good" | "warn";
 
 const pillToneClass: Record<PillTone, string> = {
   neutral: "bg-slate-100 text-slate-700",
   good: "bg-emerald-100 text-emerald-700",
   warn: "bg-amber-100 text-amber-700",
-  future: "bg-violet-100 text-violet-700",
 };
 
 function Pill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: PillTone }) {
