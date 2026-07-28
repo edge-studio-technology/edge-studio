@@ -378,9 +378,7 @@ function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, o
           <div className="mt-2">Run the command and paste its output here. For native-USB ESP32 boards, hold <InlineCode>BOOT</InlineCode>, tap <InlineCode>RESET</InlineCode>/<InlineCode>EN</InlineCode>, then run the command again if the board appears as <InlineCode>Unknown</InlineCode>.</div>
           <div className="mt-2">If Arduino CLI prints a usable ESP32 FQBN, the compile/upload commands will use it. If not, set the Board FQBN field below.</div>
           <textarea className="mt-2 min-h-[110px] font-mono text-xs" value={boardListOutput} onChange={(event) => setBoardListOutput(event.target.value)} placeholder={'Port         Protocol Type              Board Name          FQBN                      Core\n/dev/ttyACM0 serial   Serial Port (USB) ESP32 Family Device esp32:esp32:esp32_family  esp32:esp32\n/dev/ttyAMA0 serial   Serial Port       Unknown'} />
-          {detectedBoard ? <div className="mt-2">Detected ESP32 port: <InlineCode>{detectedBoard.port}</InlineCode>{usableDetectedFqbn ? <> and FQBN: <InlineCode>{usableDetectedFqbn}</InlineCode></> : detectedBoard.fqbn === "esp32:esp32:esp32_family" ? <>. Arduino reported <InlineCode>esp32:esp32:esp32_family</InlineCode>, but that is a detection family, so the commands will use the Board FQBN field below.</> : <>. No FQBN was printed, so the commands will use the Board FQBN field below.</>}</div> : <div className="mt-2">Look for a USB serial port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.</div>}
-          <div className="mt-3">If the board is shown as <InlineCode>Unknown</InlineCode>, list available ESP32 board targets and use the closest generic target:</div>
-          <CommandBlock value={commands.boardListAll} />
+          {detectedBoard ? <div className="mt-2">Detected ESP32 port: <InlineCode>{detectedBoard.port}</InlineCode>{usableDetectedFqbn ? <> and FQBN: <InlineCode>{usableDetectedFqbn}</InlineCode></> : detectedBoard.fqbn === "esp32:esp32:esp32_family" ? <>. Arduino reported <InlineCode>esp32:esp32:esp32_family</InlineCode>, but that is a detection family, so choose the real Board FQBN in step 6.</> : <>. No FQBN was printed, so choose the Board FQBN in step 6.</>}</div> : <div className="mt-2">Look for a USB serial port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.</div>}
       </SetupStep>
       <SetupStep index={5} title="Create Sketch File">
           <div>Create the sketch folder and file, then paste the generated firmware below.</div>
@@ -389,7 +387,8 @@ function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, o
       </SetupStep>
       <SetupStep index={6} title="Compile Sketch">
           <label className="grid gap-2 font-bold text-slate-700">Board FQBN<input value={usableDetectedFqbn ?? manualFqbn} onChange={(event) => setManualFqbn(event.target.value)} disabled={Boolean(usableDetectedFqbn)} placeholder="esp32:esp32:esp32" /></label>
-          <div className="mt-2">This board target is used by both compile and upload. Use <InlineCode>esp32:esp32:esp32</InlineCode> for a generic ESP32 Dev Module. If upload reports a different chip family, choose the matching FQBN from <InlineCode>board listall esp32</InlineCode>, then rerun compile/upload.</div>
+          <div className="mt-2">This board target is used by both compile and upload. Use <InlineCode>esp32:esp32:esp32</InlineCode> for a generic ESP32 Dev Module. If upload reports a different chip family, choose the matching FQBN from the available ESP32 board targets, then rerun compile/upload.</div>
+          <CommandBlock value={commands.boardListAll} />
           <div className="mt-2">{usableDetectedFqbn ? <>Using detected FQBN <InlineCode>{usableDetectedFqbn}</InlineCode>.</> : <>Using Board FQBN <InlineCode>{selectedFqbn}</InlineCode>.</>}</div>
           <CommandBlock value={commands.compile} />
       </SetupStep>

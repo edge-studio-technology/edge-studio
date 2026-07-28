@@ -188,14 +188,6 @@ In this example:
 
 If Arduino CLI does not identify the board, use the USB serial port such as `/dev/ttyUSB0`, `/dev/ttyACM0`, or `COM3`. Choose the Board FQBN in the compile step.
 
-To see the installed ESP32 board targets:
-
-```bash
-~/bin/arduino-cli board listall esp32
-```
-
-This does not always identify the exact connected board. It lists the FQBN values available after installing the ESP32 core, so you can choose a generic or board-specific target.
-
 ### 5. Create The Sketch Folder
 
 Arduino CLI expects the folder and `.ino` file to have the same name.
@@ -215,6 +207,12 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 ### 6. Choose Board FQBN And Compile
 
 The Board FQBN is the board target used by both compile and upload. Start with the generic ESP32 Dev Module target unless you know the exact chip/board:
+
+```bash
+~/bin/arduino-cli board listall esp32
+```
+
+This command lists the FQBN values available after installing the ESP32 core. It does not identify the exact connected board, but it helps you choose a generic or board-specific target.
 
 ```bash
 ~/bin/arduino-cli compile --fqbn esp32:esp32:esp32 ~/esp32-integritas-sensor
