@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.26.0] 2026-07-28
+
 ### Added
 
 - Devices now include an ESP32 MQTT Board onboarding option that saves a normal MQTT input source and generates copyable Arduino ESP32 starter firmware.
