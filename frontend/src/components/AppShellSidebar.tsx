@@ -122,8 +122,11 @@ export function AppShellSidebar({
                   </CollapsibleLabel>
                 </span>
                 {badge ? (
-                  <CollapsibleLabel collapsed={collapsed}>
-                    <span className="bg-surface-secondary text-text-primary type-meta px-detail-next flex h-6 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                  <CollapsibleLabel
+                    collapsed={collapsed}
+                    className="ml-auto inline-flex items-center"
+                  >
+                    <span className="bg-surface-secondary text-text-primary type-meta px-detail-next inline-flex h-6 shrink-0 items-center justify-center overflow-hidden rounded-full leading-none">
                       {badge}
                     </span>
                   </CollapsibleLabel>
