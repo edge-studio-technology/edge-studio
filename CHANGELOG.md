@@ -6,12 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Devices now include an ESP32 MQTT Board onboarding option that saves a normal MQTT input source and generates copyable Arduino ESP32 starter firmware.
+
+### Changed
+
+- ESP32 MQTT Board onboarding now links to a step-by-step flashing and workflow setup guide.
+- ESP32 starter firmware now publishes a simple `Ping!` JSON payload instead of fake sensor readings, making first MQTT verification clearer.
+
 ## [0.25.5] 2026-07-28
 
 ### Fixed
 
 - Every checkbox in the app (Minima RPC console whitelist, Automation block config, Integritas history table row selection) inherited the global text-input styling — a plain, unlayered `input, textarea, select {...}` CSS rule in `styles.css` was overriding any Tailwind utility class applied to an `<input>` regardless of specificity, because Tailwind v4's utilities live inside `@layer utilities` and unlayered rules always win. Scoped that rule off `type="checkbox"`/`type="radio"` so checkboxes render and size correctly everywhere.
 - The Minima RPC console's whitelist modal additionally gets explicit checkbox sizing and collapsible Read/Write command-list sections instead of static lists.
+
 
 ## [0.25.0] 2026-07-27
 
