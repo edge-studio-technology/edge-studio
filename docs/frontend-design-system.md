@@ -52,11 +52,11 @@ Migration is **incremental**, not a big-bang move:
 
 **Target homes (when migrated)**
 
-| Target         | Components (indicative)                                                                                                                                                                                                                                                                            |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal` , `ProgressBar`, `Pagination`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                                                          |
-| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                          |
+| Target         | Components (indicative)                                                                                                                                                                                                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `CredentialInput` (or retire into `InputField`) |
+| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                                                                    |
+| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                    |
 
 ## Styling Rules
 
@@ -99,6 +99,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `StatusRow`: compact label/value/status presentation. _(→ `patterns/`)_
 - `ListPagerFilterBar`: list filtering and pagination controls. _(→ `patterns/`)_
 - `Pagination` (`components/ui/`): prev/next controls plus condensed page-number strip with ellipsis gaps. Stable full-width layout so prev/next don’t shift.
+- `Tooltip` (`components/ui/`): ESDS tooltip / toggletip (trigger + positioned bubble; hover/focus or click; optional body / actions).
 - `JsonPreview`: formatted JSON/code preview surface. _(→ `patterns/`)_
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
@@ -307,6 +308,52 @@ ESDS Dialog Type=Modal (`frontend/src/components/ui/Modal.tsx`): centered portal
 />
 ```
 
+### Tooltip
+
+ESDS Tooltip (`frontend/src/components/ui/Tooltip.tsx`): white bubble with placement beak (top / bottom / left / right), title, optional body, optional action row. Figma keywords: toggletip, popover.
+
+Pass `children` as the trigger. Without `actions`, opens on hover/focus (tooltip). With `actions`, opens on click and closes on Escape / outside click (toggletip). Positions via portal with basic flip when the preferred side would clip.
+
+| Prop            | Values / notes                                                                                      |
+| --------------- | --------------------------------------------------------------------------------------------------- |
+| `children`      | Required trigger                                                                                    |
+| `title`         | Required; `type-body-em` primary                                                                    |
+| `body`          | Optional secondary copy under the title (`type-body`)                                               |
+| `actions`       | Optional right-aligned action row (use compact `Button`s, `size="sm"`) — enables toggletip mode     |
+| `placement`     | `top` (default) \| `bottom` \| `left` \| `right` — preferred side; may flip to stay on-screen       |
+| `className`     | Merged onto the bubble                                                                              |
+| `open`          | Optional controlled open state                                                                      |
+| `defaultOpen`   | Uncontrolled initial open (default `false`)                                                         |
+| `onOpenChange`  | Open state callback                                                                                 |
+
+```tsx
+<Tooltip title="Title" body="Body text" placement="top">
+  <Button variant="secondary" size="sm">
+    Hover me
+  </Button>
+</Tooltip>
+
+<Tooltip
+  title="Title"
+  body="Body text"
+  placement="bottom"
+  actions={
+    <>
+      <Button variant="primary" size="sm">
+        Confirm
+      </Button>
+      <Button variant="secondary" size="sm">
+        Cancel
+      </Button>
+    </>
+  }
+>
+  <Button variant="primary" size="sm">
+    Open
+  </Button>
+</Tooltip>
+```
+
 ### ProgressBar
 
 ESDS Progress Bar (`frontend/src/components/ui/ProgressBar.tsx`): optional back control, accent fill track, step count Tag. Prefer this for multi-step / wizard progress.
@@ -332,12 +379,12 @@ Back control is `IconButton` ghost compact with ChevronLeft. Count uses `Pill`. 
 
 In-page error alert (`frontend/src/components/patterns/ErrorAlert.tsx`): same ESDS feedback chrome as toast error (white surface, `stroke-error` border, 20% `feedback-error` wash). Prefer field `error` for per-control validation; prefer toast for transient action failures.
 
-| Prop        | Notes                                              |
-| ----------- | -------------------------------------------------- |
-| `title`     | Optional; `type-body-em` primary                   |
-| `children`  | Body; primary when alone, secondary under a title  |
-| `action`    | Optional recovery control (e.g. Retry)             |
-| `className` | Merged onto the outer alert shell                  |
+| Prop        | Notes                                             |
+| ----------- | ------------------------------------------------- |
+| `title`     | Optional; `type-body-em` primary                  |
+| `children`  | Body; primary when alone, secondary under a title |
+| `action`    | Optional recovery control (e.g. Retry)            |
+| `className` | Merged onto the outer alert shell                 |
 
 Uses `role="alert"`, Lucide `AlertCircle` (`icon-error`), `rounded-soft`, `p-margin-tight`. Flat `components/ErrorAlert.tsx` re-exports.
 

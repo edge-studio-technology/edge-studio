@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Shared `Tooltip` (`components/ui/`) for ESDS tooltip / toggletip (trigger + portal positioning, hover/focus or click, Escape / outside dismiss, basic flip). See `docs/frontend-design-system.md`.
 - Toast system now supports `tone: "warning"`.
 - Shared `SelectField` (`components/ui/`) for ESDS select fields (label / description / control / error; optional placeholder; default / disabled / error). See `docs/frontend-design-system.md`.
 - Shared `SwitchField` (`components/ui/`) for ESDS switch fields (on / off × default / disabled; optional label / description). See `docs/frontend-design-system.md`.

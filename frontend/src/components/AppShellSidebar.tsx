@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { Layers3, LogOut, MessageCircle, Minimize2, PanelLeftOpen } from "lucide-react";
 import { nav } from "../app/nav";
 import { cx } from "../lib/cx";
+import { APP_NAME } from "../app/brand";
 
 /** Below this width the sidebar stays collapsed. */
 const EXPAND_MQ = "(min-width: 1024px)";
@@ -81,7 +82,7 @@ export function AppShellSidebar({
             aria-hidden={collapsed}
           >
             <BrandMark />
-            <p className="type-title text-text-inverse m-0 whitespace-nowrap">Edge Studio</p>
+            <p className="type-title text-text-inverse m-0 whitespace-nowrap">{APP_NAME}</p>
           </div>
           <button
             type="button"
