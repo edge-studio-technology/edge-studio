@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Shared `Input` matches the ESDS Input Field control look; `InputField` composes it.
 - Shared `PinField` (`components/ui/`) for ESDS segmented 6-digit code entry. See `docs/frontend-design-system.md`.
 - Shared `TextareaField` (`components/ui/`) for ESDS labeled multiline text fields (label / description / control / error). See `docs/frontend-design-system.md`.
+- Shared `Pagination` (`frontend/src/components/ui/Pagination.tsx`) with prev/next controls and a condensed page-number list (ellipsis gaps). Includes a stable full-width layout so prev/next don’t shift when the visible page window changes.
 
 ### Changed
 

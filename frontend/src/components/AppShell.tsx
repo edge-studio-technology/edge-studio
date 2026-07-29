@@ -38,7 +38,7 @@ export function AppShell({
     Boolean(overview?.services.find((service) => service.name === name)?.ok);
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen">
       <div className="flex min-h-screen">
         <AppShellSidebar
           pathname={pathname}

@@ -54,7 +54,7 @@ Migration is **incremental**, not a big-bang move:
 
 | Target         | Components (indicative)                                                                                                                                                                                                                                                              |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal` , `ProgressBar`, `CredentialInput` (or retire into `InputField`) |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal` , `ProgressBar`, `Pagination`, `CredentialInput` (or retire into `InputField`) |
 | `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                                            |
 | Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                            |
 
@@ -98,6 +98,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `DataTable`: workflow-style table shell, wrapper, rows, and action cells. _(→ `patterns/`)_
 - `StatusRow`: compact label/value/status presentation. _(→ `patterns/`)_
 - `ListPagerFilterBar`: list filtering and pagination controls. _(→ `patterns/`)_
+- `Pagination` (`components/ui/`): prev/next controls plus condensed page-number strip with ellipsis gaps. Stable full-width layout so prev/next don’t shift.
 - `JsonPreview`: formatted JSON/code preview surface. _(→ `patterns/`)_
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.

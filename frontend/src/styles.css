@@ -165,7 +165,7 @@
 
 :root {
   color: var(--color-text-primary);
-  background: var(--color-surface-primary);
+  background: var(--color-surface-secondary);
   font-family: var(--font-sans);
   font-weight: var(--font-weight-base);
 }
