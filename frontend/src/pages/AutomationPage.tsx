@@ -346,26 +346,33 @@ function AutomationInboxPanel({ items, busy, onMarkRead, onDelete }: { items: Au
 }
 
 function InboxPreview({ item }: { item: AutomationInboxItem }) {
-  if (item.format === "json") return <JsonPreview value={item.content} />;
-  if (item.format === "link" && typeof item.content === "string") return <a className="font-bold text-blue-700 underline" href={item.content} target="_blank" rel="noreferrer">{item.content}</a>;
-  if (item.format === "image" && isImagePreviewContent(item.content)) {
-    const src = item.content.source === "local_path" ? `/api/automation/inbox/${item.id}/image` : item.content.value;
-    return <ImagePreviewModal title={item.title} src={src} source={item.content.source} value={item.content.value} />;
-  }
-  return <p className="whitespace-pre-wrap text-sm text-slate-700">{typeof item.content === "string" ? item.content : item.renderedText ?? JSON.stringify(item.content)}</p>;
+  return <InboxPreviewModal item={item} />;
 }
 
-function ImagePreviewModal({ title, src, source, value }: { title: string; src: string; source: "url" | "local_path"; value: string }) {
+function textPreviewContent(item: AutomationInboxItem) {
+  if (typeof item.content === "string") return item.content;
+  if (item.content == null) return item.renderedText ?? "";
+  return JSON.stringify(item.content, null, 2);
+}
+
+function InboxPreviewModal({ item }: { item: AutomationInboxItem }) {
   const [open, setOpen] = useState(false);
   return <>
     <button type="button" className="border-0 bg-transparent p-0 text-left font-extrabold text-blue-600 underline" onClick={() => setOpen(true)}>View preview</button>
-    {open && <Modal title={title} onClose={() => setOpen(false)}>
-      <div className="grid gap-3">
-        <img className="max-h-[72vh] max-w-full rounded-2xl border border-slate-200 object-contain" src={src} alt={title} />
-        <small className={mutedText}>{source}: {value}</small>
-      </div>
+    {open && <Modal title={item.title} onClose={() => setOpen(false)}>
+      <InboxPreviewContent item={item} />
     </Modal>}
   </>;
+}
+
+function InboxPreviewContent({ item }: { item: AutomationInboxItem }) {
+  if (item.format === "json") return <pre className="m-0 overflow-visible whitespace-pre-wrap rounded-2xl bg-slate-900 p-3.5 text-[0.84rem] text-blue-100 [overflow-wrap:anywhere]">{JSON.stringify(item.content, null, 2)}</pre>;
+  if (item.format === "link" && typeof item.content === "string") return <a className="font-bold text-blue-700 underline" href={item.content} target="_blank" rel="noreferrer">{item.content}</a>;
+  if (item.format === "image" && isImagePreviewContent(item.content)) {
+    const src = item.content.source === "local_path" ? `/api/automation/inbox/${item.id}/image` : item.content.value;
+    return <div className="grid gap-3"><img className="max-h-[72vh] max-w-full rounded-2xl border border-slate-200 object-contain" src={src} alt={item.title} /><small className={mutedText}>{item.content.source}: {item.content.value}</small></div>;
+  }
+  return <p className="whitespace-pre-wrap text-sm text-slate-700">{textPreviewContent(item)}</p>;
 }
 
 function isImagePreviewContent(value: unknown): value is { source: "url" | "local_path"; value: string } {

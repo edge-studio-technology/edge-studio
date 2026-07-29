@@ -1,4 +1,4 @@
-import { Pencil, Play, Trash2, Zap } from "lucide-react";
+import { BookOpen, Pencil, Play, Trash2, Zap } from "lucide-react";
 import {
   DataTable,
   EmptyTableState,
@@ -22,6 +22,7 @@ export function DataSourcesList({
   busy,
   onRead,
   onTestOutput,
+  onOpenSetupGuide,
   onEdit,
   onDelete,
 }: {
@@ -30,6 +31,7 @@ export function DataSourcesList({
   busy: boolean;
   onRead: (source: DataSource) => void;
   onTestOutput: (source: DataSource) => void;
+  onOpenSetupGuide: (source: DataSource) => void;
   onEdit: (source: DataSource) => void;
   onDelete: (source: DataSource) => void;
 }) {
@@ -102,6 +104,17 @@ export function DataSourcesList({
                         <Zap size={16} />
                       </TableIconButton>
                     )}
+                    {source.type === "mqtt" && source.config.profile === "esp32-mqtt-board" && (
+                      <TableIconButton
+                        type="button"
+                        disabled={busy}
+                        title="Open setup guide"
+                        aria-label={`Open setup guide for ${source.name}`}
+                        onClick={() => onOpenSetupGuide(source)}
+                      >
+                        <BookOpen size={16} />
+                      </TableIconButton>
+                    )}
                     <TableIconButton
                       type="button"
                       disabled={busy}
@@ -149,6 +162,7 @@ function gpioEndpoint(source: DataSource) {
 
 function sourceTypeLabel(source: DataSource) {
   if (source.type === "gpio-input" && source.config.profile === "pir-motion") return "PIR Motion Sensor";
+  if (source.type === "mqtt" && source.config.profile === "esp32-mqtt-board") return "ESP32 MQTT Board";
   return source.type;
 }
 

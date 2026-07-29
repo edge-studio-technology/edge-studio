@@ -12,12 +12,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Settings page Version field no longer stays stuck on "Unknown" on devices with no recorded `last-applied-manifest.json`; `update-agent` now self-heals by recording the manifest as applied once frontend/backend match it.
 - Added a "Back" button to the update-agent UI so it can be dismissed to the dashboard without a redirect or URL edit.
 
+## [0.26.0] 2026-07-28
+
+### Added
+
+- Devices now include an ESP32 MQTT Board onboarding option that saves a normal MQTT input source and generates copyable Arduino ESP32 starter firmware.
+
+### Changed
+
+- ESP32 MQTT Board onboarding now links to a step-by-step flashing and workflow setup guide.
+- ESP32 starter firmware now publishes a simple `Ping!` JSON payload instead of fake sensor readings, making first MQTT verification clearer.
+
 ## [0.25.5] 2026-07-28
 
 ### Fixed
 
 - Every checkbox in the app (Minima RPC console whitelist, Automation block config, Integritas history table row selection) inherited the global text-input styling — a plain, unlayered `input, textarea, select {...}` CSS rule in `styles.css` was overriding any Tailwind utility class applied to an `<input>` regardless of specificity, because Tailwind v4's utilities live inside `@layer utilities` and unlayered rules always win. Scoped that rule off `type="checkbox"`/`type="radio"` so checkboxes render and size correctly everywhere.
 - The Minima RPC console's whitelist modal additionally gets explicit checkbox sizing and collapsible Read/Write command-list sections instead of static lists.
+
 
 ## [0.25.0] 2026-07-27
 

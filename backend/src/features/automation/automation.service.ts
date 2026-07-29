@@ -463,9 +463,16 @@ function defaultPreviewContent(format: PreviewFormat) {
 }
 
 function previewRenderedText(format: PreviewFormat, content: unknown) {
-  if (format === "text" || format === "link") return truncateText(String(content ?? ""), 240);
+  if (format === "text") return truncateText(previewTextContent(content), 240);
+  if (format === "link") return truncateText(String(content ?? ""), 240);
   if (format === "image" && isImagePreviewContent(content)) return truncateText(`${content.source}: ${content.value}`, 240);
   return truncateText(JSON.stringify(content), 240);
+}
+
+function previewTextContent(content: unknown) {
+  if (typeof content === "string") return content;
+  if (content == null) return "";
+  return JSON.stringify(content, null, 2);
 }
 
 function isImagePreviewContent(value: unknown): value is { source: PreviewImageSource; value: string } {
