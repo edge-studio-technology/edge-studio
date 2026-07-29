@@ -1,6 +1,6 @@
 import { useId, type InputHTMLAttributes, type ReactNode } from "react";
-import { cx } from "../lib/cx";
-import { Label } from "./Label";
+import { cx } from "../../lib/cx";
+import { Label } from "../Label";
 
 type PinFieldProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,

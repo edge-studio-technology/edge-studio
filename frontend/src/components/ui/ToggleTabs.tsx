@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { cx } from "../lib/cx";
+import { cx } from "../../lib/cx";
 
 export type ToggleTabOption<T extends string> = {
   value: T;

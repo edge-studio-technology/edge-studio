@@ -52,11 +52,11 @@ Migration is **incremental**, not a big-bang move:
 
 **Target homes (when migrated)**
 
-| Target         | Components (indicative)                                                                                                                                                                                                                               |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Target         | Components (indicative)                                                                                                                                                                                                                                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `ProgressBar`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                             |
-| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                             |
+| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                            |
+| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                            |
 
 ## Styling Rules
 
@@ -88,11 +88,11 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `Modal`: portal-backed dialog shell. _(→ `ui/`)_
 - `Input`: ESDS text control (box only). Prefer `InputField` for labeled forms. _(→ `ui/`)_
 - `InputField`: ESDS Input Field (label / description / control / error); wraps `Input`. _(→ `ui/`)_
-- `TextareaField`: ESDS textarea field (label / description / control / error). _(→ `ui/`)_
-- `Menu`: ESDS menu list (built-in Plus icon per row); default / hover / disabled. Rows via `items` only — `MenuItem` is internal. _(→ `ui/`)_
-- `TabList`: ESDS underline tabs (`TabItem` internal; active / hover / inactive). Prefer this over `SubTabs` for page-level tab strips. _(→ `ui/`)_
-- `ToggleTabs`: ESDS segmented toggle (selected inverse / idle ghost on `surface-secondary` track). _(→ `ui/`)_
-- `PinField`: segmented 6-digit PIN / verification-code field with label / description / error. _(→ `ui/`)_
+- `TextareaField` (`components/ui/`): ESDS textarea field (label / description / control / error).
+- `Menu` (`components/ui/`): ESDS menu list (built-in Plus icon per row); default / hover / disabled. Rows via `items` only — `MenuItem` is internal.
+- `TabList` (`components/ui/`): ESDS underline tabs (`TabItem` internal; active / hover / inactive). Prefer this over `SubTabs` for page-level tab strips.
+- `ToggleTabs` (`components/ui/`): ESDS segmented toggle (selected inverse / idle ghost on `surface-secondary` track).
+- `PinField` (`components/ui/`): segmented 6-digit PIN / verification-code field with label / description / error.
 - `CredentialInput`: PIN or password field (`mode="pin" | "password"`); wraps `Input`. _(→ `ui/` or retire)_
 - `DataTable`: workflow-style table shell, wrapper, rows, and action cells. _(→ `patterns/`)_
 - `StatusRow`: compact label/value/status presentation. _(→ `patterns/`)_
@@ -251,13 +251,13 @@ Default selected: `icon-primary` ring + inverse fill + primary center dot. Unsel
 
 ESDS Switch Field (`frontend/src/components/ui/SwitchField.tsx`): optional body label with a 40×24 switch on the right, optional full-width description under the row.
 
-| Prop          | Values / notes                                                              |
-| ------------- | --------------------------------------------------------------------------- |
-| `label`       | Optional; `type-body` on the left (`text-primary` / disabled `text-disabled`) |
-| `description` | Optional helper under the row (`text-secondary` / disabled `text-disabled`) |
-| `checked`     | Controlled on/off state                                                     |
-| `disabled`    | Secondary track + disabled text                                             |
-| `className`   | Outer stack                                                                 |
+| Prop          | Values / notes                                                                 |
+| ------------- | ------------------------------------------------------------------------------ |
+| `label`       | Optional; `type-body` on the left (`text-primary` / disabled `text-disabled`)  |
+| `description` | Optional helper under the row (`text-secondary` / disabled `text-disabled`)    |
+| `checked`     | Controlled on/off state                                                        |
+| `disabled`    | Secondary track + disabled text                                                |
+| `className`   | Outer stack                                                                    |
 | …input props  | Standard checkbox `onChange`, `name`, `defaultChecked`, etc. (`role="switch"`) |
 
 Default on: `icon-primary` track + inverse knob. Off: inverse track + `stroke-primary` border + `icon-tertiary` knob. Disabled: `surface-secondary` track + `stroke-primary` border + `icon-disabled` knob.

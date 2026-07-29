@@ -12,16 +12,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Shared `RadioField` (`components/ui/`) for ESDS radio fields (selected / unselected × default / disabled; optional description; group via shared `name`). See `docs/frontend-design-system.md`.
 - Shared `CheckboxField` (`components/ui/`) for ESDS checkbox fields (checked / unchecked / indeterminate × default / disabled; optional description). See `docs/frontend-design-system.md`.
 - Shared `ProgressBar` (`components/ui/`) for ESDS step progress (optional back IconButton, accent track, step count Tag). See `docs/frontend-design-system.md`.
-- Shared `TabList` for ESDS underline tabs (active / hover / inactive; optional icons). `TabItem` is internal. Prefer this over `SubTabs` for page-level tab strips. See `docs/frontend-design-system.md`.
-- Shared `ToggleTabs` for ESDS segmented toggles (selected inverse / idle ghost on a secondary track). Prefer this for compact binary/segmented controls. See `docs/frontend-design-system.md`.
-- Shared `Menu` for ESDS menu lists (rows via `items`; built-in Plus icon; default / hover / disabled). `MenuItem` is internal to the component. See `docs/frontend-design-system.md`.
+- Shared `TabList` (`components/ui/`) for ESDS underline tabs (active / hover / inactive; optional icons). `TabItem` is internal. Prefer this over `SubTabs` for page-level tab strips. See `docs/frontend-design-system.md`.
+- Shared `ToggleTabs` (`components/ui/`) for ESDS segmented toggles (selected inverse / idle ghost on a secondary track). Prefer this for compact binary/segmented controls. See `docs/frontend-design-system.md`.
+- Shared `Menu` (`components/ui/`) for ESDS menu lists (rows via `items`; built-in Plus icon; default / hover / disabled). `MenuItem` is internal to the component. See `docs/frontend-design-system.md`.
 - Shared `InputField` for ESDS labeled text fields (label / description / control / error). Prefer this over bare `Input` for login and other forms. See `docs/frontend-design-system.md`.
 - Shared `Input` matches the ESDS Input Field control look; `InputField` composes it.
-- Shared `PinField` for ESDS multiline text entry and segmented 6-digit code entry. See `docs/frontend-design-system.md`.
-- Shared `TextareaField` for ESDS labeled multiline text fields (label / description / control / error). See `docs/frontend-design-system.md`.
+- Shared `PinField` (`components/ui/`) for ESDS segmented 6-digit code entry. See `docs/frontend-design-system.md`.
+- Shared `TextareaField` (`components/ui/`) for ESDS labeled multiline text fields (label / description / control / error). See `docs/frontend-design-system.md`.
 
 ### Changed
 
+- Moved `Menu`, `PinField`, `TabList`, `TextareaField`, and `ToggleTabs` into `components/ui/`. See `docs/frontend-design-system.md`.
 - Frontend shared components: new ESDS primitives go in `components/ui/`, new composed layouts in `components/patterns/`; existing flat files migrate later. See `docs/frontend-design-system.md` and the `frontend-design-system` skill.
 - Shared `Pill` matches the ESDS Tag design (Default secondary fill; Success / Warning / Error white + tinted stroke/wash; optional indicator dot). `tone` is `neutral` / `good` / `warn` / `error` (removed unused `future`). See `docs/frontend-design-system.md`.
 - Desktop app navigation now uses an Edge Studio-style collapsible dark sidebar with icon-only collapsed state (always on screen; collapses below `lg`), shared `nav` including Account and Marketplace (Coming soon), and sidebar-hosted feedback / sign out when expanded.
