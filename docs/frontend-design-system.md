@@ -52,11 +52,11 @@ Migration is **incremental**, not a big-bang move:
 
 **Target homes (when migrated)**
 
-| Target         | Components (indicative)                                                                                                                                                                                                                                                             |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `ProgressBar`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                                           |
-| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                           |
+| Target         | Components (indicative)                                                                                                                                                                                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal` , `ProgressBar`, `CredentialInput` (or retire into `InputField`) |
+| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                                            |
+| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                            |
 
 ## Styling Rules
 
@@ -85,7 +85,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `SwitchField` (`components/ui/`): ESDS switch + optional label / description (on / off × default / disabled).
 - `Text`: shared muted, error, and eyebrow text helpers. _(→ `ui/`)_
 - `ErrorAlert`: in-page error alert with optional title and recovery action. _(→ `patterns/`)_
-- `Modal`: portal-backed dialog shell. _(→ `ui/`)_
+- `Modal` (`components/ui/`): ESDS Dialog Type=Modal (portal overlay, max-width 600). Flat `components/Modal.tsx` re-exports.
 - `Input`: ESDS text control (box only). Prefer `InputField` for labeled forms. _(→ `ui/`)_
 - `InputField`: ESDS Input Field (label / description / control / error); wraps `Input`. _(→ `ui/`)_
 - `SelectField` (`components/ui/`): ESDS select field (label / description / control / error); wraps `Select`.
@@ -270,6 +270,38 @@ Default on: `icon-primary` track + inverse knob. Off: inverse track + `stroke-pr
   description="Get alerts when a proof completes or fails."
   checked={enabled}
   onChange={(event) => setEnabled(event.target.checked)}
+/>
+```
+
+### Modal
+
+ESDS Dialog Type=Modal (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, white panel (`max-w-[600px]`, `rounded-soft`, `p-margin-relaxed`), title, optional description / body / footer, close `IconButton`. Prefer this for confirmations and focused forms. Sheet variant is not implemented yet.
+
+| Prop            | Notes                                                    |
+| --------------- | -------------------------------------------------------- |
+| `title`         | Required; `type-title` heading                           |
+| `description`   | Optional body copy under the title (`type-body`)         |
+| `children`      | Optional body slot (forms, lists, custom content)        |
+| `footer`        | Optional right-aligned action row (use shared `Button`s) |
+| `onClose`       | Close handler (X button + Escape unless `closeDisabled`) |
+| `closeDisabled` | Disables close control and Escape (e.g. `ProgressModal`) |
+| `className`     | Merged onto the dialog panel                             |
+
+```tsx
+<Modal
+  title="Text Heading"
+  description="Body text"
+  onClose={() => setOpen(false)}
+  footer={
+    <>
+      <Button variant="primary" size="sm" onClick={onConfirm}>
+        Confirm
+      </Button>
+      <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>
+        Cancel
+      </Button>
+    </>
+  }
 />
 ```
 
