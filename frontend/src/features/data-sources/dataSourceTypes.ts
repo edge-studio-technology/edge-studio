@@ -44,7 +44,7 @@ export type DataSourceTemplate = {
   title: string;
   description: string;
   type: DataSource["type"];
-  config: Partial<DataSource["config"]> & { templateCategory?: "http" | "webhook" | "mqtt" | "gpio-input" | "pi-camera" | "gpio-output" | "http-output" | "mqtt-output" };
+  config: Partial<DataSource["config"]>;
 };
 
 export type DataSourceHealthStatus = {
