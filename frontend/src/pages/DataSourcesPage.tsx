@@ -272,7 +272,7 @@ export function DataSourcesPage() {
 
       {esp32SetupSource && (
         <Modal title="ESP32 MQTT starter firmware" onClose={() => setEsp32SetupSource(null)}>
-          <Esp32FirmwareSetup source={esp32SetupSource} capabilities={capabilities} />
+          <Esp32FirmwareSetup source={esp32SetupSource} />
         </Modal>
       )}
 
@@ -351,11 +351,14 @@ function previousAddDeviceStep(mode: AddDeviceStep) {
   return "output";
 }
 
-function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capabilities: DataSourceCapabilities | null }) {
+function Esp32FirmwareSetup({ source }: { source: DataSource }) {
   const [flashMethod, setFlashMethod] = useState<"ide" | "cli">("ide");
   const [wifiSsid, setWifiSsid] = useState("");
   const [wifiPassword, setWifiPassword] = useState("");
-  const broker = esp32BrokerParts(capabilities, source.config.brokerUrl ?? "mqtt://localhost:1883");
+  const savedBroker = esp32BrokerParts(source.config.brokerUrl ?? "mqtt://localhost:1883");
+  const [esp32BrokerHost, setEsp32BrokerHost] = useState(savedBroker.host);
+  const [esp32BrokerPort, setEsp32BrokerPort] = useState(String(savedBroker.port));
+  const broker = { host: esp32BrokerHost.trim() || savedBroker.host, port: Number(esp32BrokerPort) || savedBroker.port };
   const firmware = esp32Firmware({ deviceName: source.name, mqttHost: broker.host, mqttPort: broker.port, topic: source.config.topic ?? "sensors/esp32/data", wifiSsid, wifiPassword });
 
   return (
@@ -365,10 +368,19 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
         <MutedText className="m-0 mt-1">The device was saved as a normal MQTT input source. Follow these steps to flash an ESP32 and verify that Integritas Pi receives its JSON messages.</MutedText>
       </div>
       <div className="grid gap-2 text-sm">
+        <div>Saved MQTT broker URL: <code>{source.config.brokerUrl}</code></div>
         <div>ESP32 broker host: <code>{broker.host}</code></div>
         <div>ESP32 broker port: <code>{broker.port}</code></div>
         <div>Publish topic: <code>{source.config.topic}</code></div>
       </div>
+      {savedBroker.needsEsp32Override && <div className="grid gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <strong>ESP32 broker address needed</strong>
+        <div>{savedBroker.reason} Enter the broker host and port that the ESP32 can reach from Wi-Fi/LAN.</div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="grid gap-2 font-bold">ESP32 broker host<input value={esp32BrokerHost} onChange={(event) => setEsp32BrokerHost(event.target.value)} placeholder="192.168.1.75" /></label>
+          <label className="grid gap-2 font-bold">ESP32 broker port<input value={esp32BrokerPort} onChange={(event) => setEsp32BrokerPort(event.target.value)} placeholder="1883" inputMode="numeric" /></label>
+        </div>
+      </div>}
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
         <strong>Walkthrough</strong>
         <ol className="m-0 grid gap-2 pl-5">
@@ -545,15 +557,21 @@ function detectEsp32Board(output: string) {
   return { port: portMatch[1], fqbn: fqbnMatch?.[0] ?? null };
 }
 
-function esp32BrokerParts(capabilities: DataSourceCapabilities | null, fallbackBrokerUrl: string) {
+function esp32BrokerParts(brokerUrl: string) {
   const browserHost = typeof window === "undefined" ? "192.168.1.50" : window.location.hostname;
-  if (capabilities?.mqttBroker?.enabled) return { host: capabilities.mqttBroker.publicHost || browserHost, port: capabilities.mqttBroker.publicPort ?? 1883 };
-
   try {
-    const url = new URL(fallbackBrokerUrl);
-    return { host: url.hostname || browserHost, port: Number(url.port || 1883) };
+    const url = new URL(brokerUrl);
+    const host = url.hostname;
+    const port = Number(url.port || 1883);
+    const internalHost = host === "mqtt" || host === "localhost" || host === "127.0.0.1" || host === "::1";
+    return {
+      host: internalHost ? browserHost : host,
+      port,
+      needsEsp32Override: internalHost,
+      reason: internalHost ? `The saved broker host ${host} is only reachable from the backend host/container, not from the ESP32.` : null,
+    };
   } catch {
-    return { host: browserHost || "192.168.1.50", port: 1883 };
+    return { host: "", port: 1883, needsEsp32Override: true, reason: "The saved broker URL could not be parsed." };
   }
 }
 

@@ -17,21 +17,22 @@ The app side is already handled by the `ESP32 MQTT Board` input source. The rema
 
 1. Open Integritas Pi in the browser.
 2. Go to `Devices`.
-3. Click `Add input source`.
+3. Click `Add device or source`.
 4. Select `ESP32 MQTT Board`.
-5. Keep the generated topic for the first test, for example `sensors/esp32/data`.
+5. Set the MQTT broker URL the board should publish to, for example `mqtt://192.168.1.75:1883`, and keep the generated topic for the first test, for example `boards/esp32/data`.
 6. Save the device.
 7. Leave the `ESP32 MQTT starter firmware` modal open.
 
-The modal shows two broker details for the ESP32:
+The modal builds the firmware broker settings from the saved MQTT broker URL and topic:
 
 ```txt
-ESP32 broker host: <Pi LAN IP>
+Saved MQTT broker URL: mqtt://192.168.1.75:1883
+ESP32 broker host: 192.168.1.75
 ESP32 broker port: 1883
-Publish topic: sensors/esp32/data
+Publish topic: boards/esp32/data
 ```
 
-The ESP32 must use the LAN host, not the Docker-internal `mqtt://mqtt:1883` address.
+If the saved broker URL uses `mqtt://mqtt:1883`, `localhost`, or `127.0.0.1`, the ESP32 cannot use that address directly. The modal will ask for an ESP32-reachable broker host and port, such as the Pi LAN IP or another LAN MQTT broker.
 
 ## 2. Connect The ESP32 To The Flashing Computer
 
