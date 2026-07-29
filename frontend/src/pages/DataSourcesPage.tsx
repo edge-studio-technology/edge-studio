@@ -12,12 +12,14 @@ import { DataSourcesList } from "../features/data-sources/DataSourcesList";
 import { DataSourceTemplates, LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
 import type { DataSource, DataSourceCapabilities, DataSourceHealthStatus, DataSourceTemplate } from "../features/data-sources/dataSourceTypes";
 
+type AddDeviceStep = "choose" | "input" | "output" | "input-template" | "input-manual" | "output-template" | "output-manual";
+
 export function DataSourcesPage() {
   const { showToast } = useToast();
   const [items, setItems] = useState<DataSource[]>([]);
   const [capabilities, setCapabilities] = useState<DataSourceCapabilities | null>(null);
   const [template, setTemplate] = useState<DataSourceTemplate | null>(null);
-  const [templateMode, setTemplateMode] = useState<"input" | "output" | null>(null);
+  const [templateMode, setTemplateMode] = useState<AddDeviceStep | null>(null);
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
@@ -188,16 +190,15 @@ export function DataSourcesPage() {
           <MutedText className="m-0 mt-1">Create a configured input source or output target. Local services show connection details for app-provided services.</MutedText>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button type="button" onClick={() => setTemplateMode("input")}>Add input source</Button>
-          <Button type="button" variant="secondary" onClick={() => setTemplateMode("output")}>Add output target</Button>
+          <Button type="button" onClick={() => setTemplateMode("choose")}>Add device or source</Button>
         </div>
       </Card>
 
       <LocalServicesCard capabilities={capabilities} />
 
       {templateMode && (
-        <Modal title={templateMode === "input" ? "Add input source" : "Add output target"} onClose={() => setTemplateMode(null)}>
-          <DataSourceTemplates mode={templateMode} capabilities={capabilities} onSelect={applyTemplate} />
+        <Modal title={addDeviceBreadcrumb(templateMode)} actions={templateMode !== "choose" ? <button className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-2.5 font-bold text-slate-700" type="button" onClick={() => setTemplateMode(previousAddDeviceStep(templateMode))}>Back</button> : null} onClose={() => setTemplateMode(null)}>
+          {templateMode === "choose" ? <AddDeviceKindChoice onSelect={setTemplateMode} /> : templateMode === "input" || templateMode === "output" ? <AddDeviceMethodChoice mode={templateMode} onSelect={(category) => setTemplateMode(`${templateMode}-${category}` as "input-template" | "input-manual" | "output-template" | "output-manual")} /> : <DataSourceTemplates mode={templateMode.startsWith("input") ? "input" : "output"} category={templateMode.endsWith("template") ? "template" : "manual"} capabilities={capabilities} onSelect={applyTemplate} />}
         </Modal>
       )}
 
@@ -271,7 +272,7 @@ export function DataSourcesPage() {
 
       {esp32SetupSource && (
         <Modal title="ESP32 MQTT starter firmware" onClose={() => setEsp32SetupSource(null)}>
-          <Esp32FirmwareSetup source={esp32SetupSource} capabilities={capabilities} />
+          <Esp32FirmwareSetup source={esp32SetupSource} />
         </Modal>
       )}
 
@@ -289,11 +290,75 @@ export function DataSourcesPage() {
   );
 }
 
-function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capabilities: DataSourceCapabilities | null }) {
+function AddDeviceKindChoice({ onSelect }: { onSelect: (mode: "input" | "output") => void }) {
+  return (
+    <div className="grid min-h-[min(520px,calc(90vh-160px))] gap-4 md:grid-cols-2">
+      <button type="button" className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]" onClick={() => onSelect("input")}>
+        <div>
+          <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Input</span>
+          <h3 className="mt-3 text-2xl">Add input source</h3>
+          <MutedText className="m-0 mt-2">Receive JSON, MQTT messages, webhooks, GPIO events, camera captures, or board data that workflows can record and react to.</MutedText>
+        </div>
+        <span className="font-extrabold text-blue-700">Choose input source</span>
+      </button>
+      <button type="button" className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]" onClick={() => onSelect("output")}>
+        <div>
+          <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Output</span>
+          <h3 className="mt-3 text-2xl">Add output target</h3>
+          <MutedText className="m-0 mt-2">Connect LEDs, HTTP endpoints, MQTT topics, or other devices that automation workflows can control.</MutedText>
+        </div>
+        <span className="font-extrabold text-blue-700">Choose output target</span>
+      </button>
+    </div>
+  );
+}
+
+function AddDeviceMethodChoice({ mode, onSelect }: { mode: "input" | "output"; onSelect: (category: "template" | "manual") => void }) {
+  return (
+    <div className="grid min-h-[min(520px,calc(90vh-160px))] gap-4 md:grid-cols-2">
+      <button type="button" className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]" onClick={() => onSelect("template")}>
+        <div>
+          <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Guided</span>
+          <h3 className="mt-3 text-2xl">Start from a template</h3>
+          <MutedText className="m-0 mt-2">Use guided presets for common {mode === "input" ? "devices, sensors, cameras, and board examples" : "output devices and hardware setups"}.</MutedText>
+        </div>
+        <span className="font-extrabold text-blue-700">Choose template</span>
+      </button>
+      <button type="button" className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]" onClick={() => onSelect("manual")}>
+        <div>
+          <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Manual</span>
+          <h3 className="mt-3 text-2xl">Define manually</h3>
+          <MutedText className="m-0 mt-2">Configure the {mode === "input" ? "protocol, endpoint, topic, or GPIO input settings" : "endpoint, MQTT topic, or output target settings"} yourself.</MutedText>
+        </div>
+        <span className="font-extrabold text-blue-700">Choose manual setup</span>
+      </button>
+    </div>
+  );
+}
+
+function addDeviceBreadcrumb(mode: AddDeviceStep) {
+  const parts = ["Add device or source"];
+  if (mode.startsWith("input")) parts.push("Add input source");
+  if (mode.startsWith("output")) parts.push("Add output target");
+  if (mode.includes("template")) parts.push("Template");
+  if (mode.endsWith("manual")) parts.push("Manual");
+  return parts.join(" > ");
+}
+
+function previousAddDeviceStep(mode: AddDeviceStep) {
+  if (mode === "input" || mode === "output") return "choose";
+  if (mode.startsWith("input")) return "input";
+  return "output";
+}
+
+function Esp32FirmwareSetup({ source }: { source: DataSource }) {
   const [flashMethod, setFlashMethod] = useState<"ide" | "cli">("ide");
   const [wifiSsid, setWifiSsid] = useState("");
   const [wifiPassword, setWifiPassword] = useState("");
-  const broker = esp32BrokerParts(capabilities, source.config.brokerUrl ?? "mqtt://localhost:1883");
+  const savedBroker = esp32BrokerParts(source.config.brokerUrl ?? "mqtt://localhost:1883");
+  const [esp32BrokerHost, setEsp32BrokerHost] = useState(savedBroker.host);
+  const [esp32BrokerPort, setEsp32BrokerPort] = useState(String(savedBroker.port));
+  const broker = { host: esp32BrokerHost.trim() || savedBroker.host, port: Number(esp32BrokerPort) || savedBroker.port };
   const firmware = esp32Firmware({ deviceName: source.name, mqttHost: broker.host, mqttPort: broker.port, topic: source.config.topic ?? "sensors/esp32/data", wifiSsid, wifiPassword });
 
   return (
@@ -303,10 +368,19 @@ function Esp32FirmwareSetup({ source, capabilities }: { source: DataSource; capa
         <MutedText className="m-0 mt-1">The device was saved as a normal MQTT input source. Follow these steps to flash an ESP32 and verify that Integritas Pi receives its JSON messages.</MutedText>
       </div>
       <div className="grid gap-2 text-sm">
+        <div>Saved MQTT broker URL: <code>{source.config.brokerUrl}</code></div>
         <div>ESP32 broker host: <code>{broker.host}</code></div>
         <div>ESP32 broker port: <code>{broker.port}</code></div>
         <div>Publish topic: <code>{source.config.topic}</code></div>
       </div>
+      {savedBroker.needsEsp32Override && <div className="grid gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <strong>ESP32 broker address needed</strong>
+        <div>{savedBroker.reason} Enter the broker host and port that the ESP32 can reach from Wi-Fi/LAN.</div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="grid gap-2 font-bold">ESP32 broker host<input value={esp32BrokerHost} onChange={(event) => setEsp32BrokerHost(event.target.value)} placeholder="192.168.1.75" /></label>
+          <label className="grid gap-2 font-bold">ESP32 broker port<input value={esp32BrokerPort} onChange={(event) => setEsp32BrokerPort(event.target.value)} placeholder="1883" inputMode="numeric" /></label>
+        </div>
+      </div>}
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
         <strong>Walkthrough</strong>
         <ol className="m-0 grid gap-2 pl-5">
@@ -483,15 +557,21 @@ function detectEsp32Board(output: string) {
   return { port: portMatch[1], fqbn: fqbnMatch?.[0] ?? null };
 }
 
-function esp32BrokerParts(capabilities: DataSourceCapabilities | null, fallbackBrokerUrl: string) {
+function esp32BrokerParts(brokerUrl: string) {
   const browserHost = typeof window === "undefined" ? "192.168.1.50" : window.location.hostname;
-  if (capabilities?.mqttBroker?.enabled) return { host: capabilities.mqttBroker.publicHost || browserHost, port: capabilities.mqttBroker.publicPort ?? 1883 };
-
   try {
-    const url = new URL(fallbackBrokerUrl);
-    return { host: url.hostname || browserHost, port: Number(url.port || 1883) };
+    const url = new URL(brokerUrl);
+    const host = url.hostname;
+    const port = Number(url.port || 1883);
+    const internalHost = host === "mqtt" || host === "localhost" || host === "127.0.0.1" || host === "::1";
+    return {
+      host: internalHost ? browserHost : host,
+      port,
+      needsEsp32Override: internalHost,
+      reason: internalHost ? `The saved broker host ${host} is only reachable from the backend host/container, not from the ESP32.` : null,
+    };
   } catch {
-    return { host: browserHost || "192.168.1.50", port: 1883 };
+    return { host: "", port: 1883, needsEsp32Override: true, reason: "The saved broker URL could not be parsed." };
   }
 }
 

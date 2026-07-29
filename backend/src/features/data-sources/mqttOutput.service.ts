@@ -16,7 +16,7 @@ export async function publishMqttOutput(input: { targetId: string; payload: unkn
     const finish = (error?: Error) => {
       if (settled) return;
       settled = true;
-      client.end(true, () => error ? reject(error) : resolve());
+      client.end(false, () => error ? reject(error) : resolve());
     };
 
     client.on("connect", () => {
@@ -25,5 +25,5 @@ export async function publishMqttOutput(input: { targetId: string; payload: unkn
     client.on("error", (error) => finish(new Error(`MQTT output publish failed: ${error.message}`)));
   });
 
-  return { targetId: source.id, targetName: source.name, brokerUrl: config.brokerUrl, topic: config.topic, qos: config.qos, retain: config.retain, publishedAt: new Date().toISOString() };
+  return { targetId: source.id, targetName: source.name, brokerUrl: config.brokerUrl, topic: config.topic, qos: config.qos, retain: config.retain, payload: input.payload, publishedAt: new Date().toISOString() };
 }

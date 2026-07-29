@@ -3,7 +3,7 @@ import { env } from "../../config/env.js";
 import { badRequest, conflict, dependencyUnavailable, notFound } from "../../shared/api-error.js";
 import { requireRole } from "../auth/auth.middleware.js";
 import { createDataSourceRead } from "../data-reads/dataReads.repository.js";
-import { getEnabledAutomationWorkflowForDataSource } from "../automation/automation.repository.js";
+import { getEnabledAutomationWorkflowForDataSource, listAutomationWorkflowsUsingDataSource } from "../automation/automation.repository.js";
 import { recordPushAutomationPayload } from "../automation/automation.service.js";
 import { createDataSource, deleteDataSource, findWebhookDataSource, getDataSource, listDataSources, updateDataSource, updateDataSourceReadResult } from "./dataSources.repository.js";
 import { syncMqttDataSources } from "./mqttIngestion.service.js";
@@ -36,7 +36,7 @@ dataSourcesWebhookRouter.post("/:token", async (req, res) => {
 });
 
 dataSourcesRouter.get("/", (_req, res) => {
-  res.json({ items: listDataSources().map(serializeDataSource) });
+  res.json({ items: listDataSources().map((source) => ({ ...serializeDataSource(source), usedByWorkflows: listAutomationWorkflowsUsingDataSource(source.id).map((workflow) => ({ id: workflow.id, name: workflow.name })) })) });
 });
 
 dataSourcesRouter.get("/capabilities", async (_req, res) => {
@@ -76,6 +76,10 @@ dataSourcesRouter.post("/", requireRole("admin"), async (req, res) => {
 });
 
 dataSourcesRouter.delete("/:id", requireRole("admin"), (req, res) => {
+  const source = getDataSource(req.params.id);
+  if (!source) return notFound(res, "Data source not found");
+  const workflows = listAutomationWorkflowsUsingDataSource(req.params.id);
+  if (workflows.length > 0) return conflict(res, "Device is used by a workflow. Remove it from the workflow before deleting it.", { sourceId: req.params.id, workflows: workflows.map((workflow) => ({ id: workflow.id, name: workflow.name })) });
   deleteDataSource(req.params.id);
   syncMqttDataSources();
   syncGpioDataSources();

@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Devices now use a step-based add flow that first asks for input source vs output target, then template/example vs manual setup before showing the relevant options.
+
+### Changed
+
+- Device/source naming conventions are now documented for physical devices, generic integrations, and low-level hardware interfaces.
+- Device picker labels now follow the naming convention, including `HTTP JSON Source`, `HTTP JSON Target`, `MQTT Subscriber`, `MQTT Publisher`, `Webhook Receiver`, `GPIO Input Pin`, `GPIO LED`, and `Raspberry Pi Camera`.
+- Devices referenced by non-archived workflows can no longer be deleted until they are removed from those workflows.
+- ESP32 starter firmware now uses the MQTT broker URL saved on the ESP32 MQTT Board source, only asking for an ESP32-reachable override when that URL is Docker-internal or localhost-only.
+- GPIO input/output forms no longer expose profile selectors; profiles are fixed by the selected manual option or template, with GPIO LED kept as the only supported GPIO output template.
+- Scheduled automation workflows now keep their next run anchored to the prior due time instead of drifting from the actual execution time.
+- Devices now include a `GPIO Button` input template for a push button wired between GPIO17 and GND.
+- Automation action failures now appear as toast notifications, while load/refresh failures use a dedicated in-page alert with a retry action.
+
 ## [0.26.1] 2026-07-29
 
 ### Fixed
@@ -69,6 +84,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Main workflow `If field matches` blocks now choose between Trigger event and Variable sources; Latest data is no longer a direct condition source, so workflows should use Set variable before condition checks on recorded or fetched data.
+- Automation action failures now appear as toast notifications, while load/refresh failures use a dedicated in-page alert with a retry action.
 
 ## [0.23.0] - 2026-07-27
 

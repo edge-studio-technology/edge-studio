@@ -99,6 +99,19 @@ export function getEnabledAutomationWorkflowForDataSource(dataSourceId: string) 
     ?? listEnabledEventWorkflows("gpio_event_start", dataSourceId)[0];
 }
 
+export function listAutomationWorkflowsUsingDataSource(dataSourceId: string) {
+  return db.prepare(`
+    SELECT DISTINCT workflow.* FROM automation_workflows workflow
+    JOIN automation_blocks block ON block.workflow_id = workflow.id
+    WHERE workflow.archived = 0
+      AND (
+        json_extract(block.config_json, '$.sourceId') = ?
+        OR json_extract(block.config_json, '$.targetId') = ?
+      )
+    ORDER BY workflow.created_at ASC
+  `).all(dataSourceId, dataSourceId) as AutomationWorkflowRecord[];
+}
+
 export function createAutomationWorkflow(input: { name: string; enabled: boolean; blocks?: { type: AutomationBlockType; config: unknown; enabled?: boolean; parentBlockId?: string | null; clientId?: string | null }[]; nextRunAt?: string | null }) {
   const id = crypto.randomUUID();
   const nowIso = new Date().toISOString();

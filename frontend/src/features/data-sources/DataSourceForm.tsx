@@ -33,23 +33,21 @@ export function DataSourceForm({ template, name, setName, description, setDescri
         </>
       ) : type === "gpio-input" ? (
         <>
-          <label>Input profile<select value={gpioProfile} onChange={(event) => setGpioProfile(event.target.value as "generic" | "pir-motion")}><option value="generic">Generic GPIO input</option><option value="pir-motion">PIR motion sensor</option></select></label>
           <label>GPIO chip<input value={gpioChip} onChange={(event) => setGpioChip(event.target.value)} placeholder="gpiochip0" /></label>
           <label>BCM pin number<input value={gpioPin} onChange={(event) => setGpioPin(event.target.value)} placeholder="17" inputMode="numeric" /></label>
           <label>Pull resistor<select value={gpioPull} onChange={(event) => setGpioPull(event.target.value as "off" | "up" | "down")}><option value="off">Off</option><option value="up">Pull-up</option><option value="down">Pull-down</option></select></label>
           <label>Edge<select value={gpioEdge} onChange={(event) => setGpioEdge(event.target.value as "rising" | "falling" | "both")}><option value="rising">Rising</option><option value="falling">Falling</option><option value="both">Both</option></select></label>
           <label>Debounce ms<input value={gpioDebounceMs} onChange={(event) => setGpioDebounceMs(event.target.value)} placeholder="100" inputMode="numeric" /></label>
           <label>Active state<select value={gpioActiveState} onChange={(event) => setGpioActiveState(event.target.value as "high" | "low")}><option value="high">High</option><option value="low">Low</option></select></label>
-          <MutedText>GPIO input sources use BCM numbering and record edge events only while an Automation workflow is enabled.</MutedText>
+          <MutedText>{gpioProfile === "pir-motion" ? "PIR Motion Sensor profile is fixed by the selected template." : "GPIO Input Pin uses the generic input profile."} GPIO input sources use BCM numbering and record edge events only while an Automation workflow is enabled.</MutedText>
           {gpioProfile === "pir-motion" && <MutedText>HC-SR501 default: OUT to GPIO23 / physical pin 16, VCC to 5V, GND to GND. Use active High, pull Off, and wait 60-90 seconds after power-on for warmup.</MutedText>}
         </>
       ) : type === "gpio-output" ? (
         <>
-          <label>Output profile<select value="led" disabled><option value="led">LED</option></select></label>
           <label>GPIO chip<input value={gpioChip} onChange={(event) => setGpioChip(event.target.value)} placeholder="gpiochip0" /></label>
           <label>BCM pin number<input value={gpioPin} onChange={(event) => setGpioPin(event.target.value)} placeholder="18" inputMode="numeric" /></label>
           <label>LED turns on when GPIO is<select value={gpioActiveState} onChange={(event) => setGpioActiveState(event.target.value as "high" | "low")}><option value="high">High (common GPIO to resistor to LED to GND wiring)</option><option value="low">Low (LED/resistor tied to 3.3V, GPIO sinks current)</option></select></label>
-          <MutedText>LED output targets can be pulsed from Automation. For the documented GPIO18 LED wiring, choose High. Wire the LED with a 220-330 ohm resistor and never connect GPIO directly to 5V, motors, or relays.</MutedText>
+          <MutedText>GPIO LED profile is fixed by the selected template. LED output targets can be pulsed from Automation. For the documented GPIO18 LED wiring, choose High. Wire the LED with a 220-330 ohm resistor and never connect GPIO directly to 5V, motors, or relays.</MutedText>
         </>
       ) : type === "pi-camera" ? (
         <>

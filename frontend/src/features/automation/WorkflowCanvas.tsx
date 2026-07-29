@@ -83,7 +83,7 @@ export function WorkflowBlockLibrary({ mode = "build", hasStartBlock, selectedBl
       <strong>Data blocks</strong>
       <LibraryCard disabled={!canAddMainBlock || !canAddRecordTriggerEvent} onClick={() => onAddBlock("record_trigger_event")} title="Record trigger event" description="Store the trigger payload as data." />
       <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("fetch_data_source")} title="Fetch HTTP JSON" description="Fetch a configured HTTP source." />
-      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("capture_camera")} title="Capture camera" description="Capture media from a configured Pi Camera." />
+      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("capture_camera")} title="Capture camera" description="Capture media from a configured Raspberry Pi Camera." />
       <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("set_variable")} title="Add variable" description="Save a value for later blocks." />
       <strong>Logic blocks</strong>
       <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("if_payload_field_equals")} title="If field matches" description="Stop unless a trigger field or variable matches." />
@@ -260,7 +260,7 @@ function sourceLabel(source: DataSource) {
   if (source.type === "gpio-input") return `${source.config.profile === "pir-motion" ? "PIR motion " : ""}${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
   if (source.type === "gpio-output") return `${source.config.profile ?? "led"} ${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
   if (source.type === "pi-camera") return `${source.config.mode ?? "photo"} ${source.config.width ?? 1280}x${source.config.height ?? 720}`;
-  return source.config.url ?? "HTTP JSON API";
+  return source.config.url ?? "HTTP JSON Source";
 }
 
 function formatInterval(seconds: number) {

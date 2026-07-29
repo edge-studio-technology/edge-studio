@@ -38,6 +38,7 @@ export type DataSource = {
   lastErrorDetails?: unknown;
   lastPreview: unknown;
   lastHash: string | null;
+  usedByWorkflows?: { id: string; name: string }[];
 };
 
 export type DataSourceTemplate = {

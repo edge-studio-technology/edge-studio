@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-export function Modal({ title, children, onClose, closeDisabled = false }: { title: string; children: ReactNode; onClose: () => void; closeDisabled?: boolean }) {
+export function Modal({ title, children, onClose, closeDisabled = false, actions }: { title: string; children: ReactNode; onClose: () => void; closeDisabled?: boolean; actions?: ReactNode }) {
   const titleId = useId();
   const [mounted, setMounted] = useState(false);
 
@@ -30,7 +30,10 @@ export function Modal({ title, children, onClose, closeDisabled = false }: { tit
         <div className="grid max-h-[calc(min(760px,90vh)-16px)] min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden rounded-[22px] border border-slate-200 bg-white p-4">
           <div className="flex min-w-0 items-center justify-between gap-3">
             <h3 className="m-0" id={titleId}>{title}</h3>
-            <button className="rounded-[14px] border-0 bg-slate-950 px-3.5 py-2.5 text-white disabled:opacity-55" type="button" disabled={closeDisabled} onClick={onClose}>Close</button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {actions}
+              <button className="rounded-[14px] border-0 bg-slate-950 px-3.5 py-2.5 text-white disabled:opacity-55" type="button" disabled={closeDisabled} onClick={onClose}>Close</button>
+            </div>
           </div>
           <div className="min-h-0 min-w-0 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4">
             {children}
