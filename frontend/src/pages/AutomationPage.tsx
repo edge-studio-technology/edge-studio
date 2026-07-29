@@ -1342,7 +1342,7 @@ function outputActionForTarget(source: DataSource | undefined) {
 function defaultOutputBlockConfig(source: DataSource | undefined, durationMs: number): AutomationBlock["config"] {
   if (source?.type === "gpio-output") return { targetId: source.id, action: "pulse", durationMs };
   if (source?.type === "http-output") return { targetId: source.id, action: "send_request", bodyMode: "custom", bodyTemplateText: defaultCustomBodyText() };
-  if (source?.type === "mqtt-output") return { targetId: source.id, action: "publish", bodyMode: "workflow_context" };
+  if (source?.type === "mqtt-output") return { targetId: source.id, action: "publish", bodyMode: "custom", bodyTemplateText: defaultCustomBodyText() };
   return { targetId: "", action: "pulse", durationMs };
 }
 
@@ -1357,7 +1357,7 @@ function retargetOutputBlockConfig(config: AutomationBlock["config"], target: Da
 }
 
 function compatibleBodyMode(bodyMode: AutomationBlock["config"]["bodyMode"], targetType: "http-output" | "mqtt-output") {
-  if (!bodyMode) return targetType === "http-output" ? "custom" : "workflow_context";
+  if (!bodyMode) return "custom";
   if (targetType === "mqtt-output" && (bodyMode === "none" || bodyMode === "multipart_media")) return "workflow_context";
   return bodyMode;
 }
