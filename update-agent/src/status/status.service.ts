@@ -1,5 +1,5 @@
 import { fetchVerifiedManifest, MANIFEST_SERVICE_KEYS, type Manifest } from "../manifest/manifest.service.js";
-import { getLastAppliedVersion } from "../manifest/manifest-state.js";
+import { getLastAppliedVersion, recordAppliedManifest } from "../manifest/manifest-state.js";
 import { getComposeServiceContainer } from "../docker/docker.service.js";
 
 export type ServiceStatus = {
@@ -49,7 +49,17 @@ export async function getUpdateStatus(): Promise<{
     upToDate: updateAgentContainer?.Image === manifest.updateAgent
   });
 
-  const currentVersion = await getLastAppliedVersion();
+  let currentVersion = await getLastAppliedVersion();
+
+  // Devices installed before install.sh started recording last-applied-manifest.json
+  // (or that had their update-agent state dir reset) never get it written, even
+  // though frontend/backend already match the manifest — nothing ever calls
+  // applyUpdates() for them since there's nothing to update. Self-heal here so
+  // Settings doesn't show "Unknown" forever on an otherwise up-to-date device.
+  if (currentVersion === null && services.filter((service) => service.service !== "update-agent").every((service) => service.upToDate)) {
+    await recordAppliedManifest(manifest.createdAt, manifest.version);
+    currentVersion = manifest.version;
+  }
 
   return { manifest, services, currentVersion };
 }

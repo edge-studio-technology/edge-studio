@@ -21,6 +21,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Devices now include a `GPIO Button` input template for a push button wired between GPIO17 and GND.
 - Automation action failures now appear as toast notifications, while load/refresh failures use a dedicated in-page alert with a retry action.
 
+## [0.26.1] 2026-07-29
+
+### Fixed
+
+- Dashboard "Update available" badge no longer lingers after a successful update due to lagging on `update-agent`'s own background self-update status; it now only reacts to frontend/backend being out of date.
+- Settings page Version field no longer stays stuck on "Unknown" on devices with no recorded `last-applied-manifest.json`; `update-agent` now self-heals by recording the manifest as applied once frontend/backend match it.
+- Added a "Back" button to the update-agent UI so it can be dismissed to the dashboard without a redirect or URL edit.
+
 ## [0.26.0] 2026-07-28
 
 ### Added
@@ -38,7 +46,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Every checkbox in the app (Minima RPC console whitelist, Automation block config, Integritas history table row selection) inherited the global text-input styling — a plain, unlayered `input, textarea, select {...}` CSS rule in `styles.css` was overriding any Tailwind utility class applied to an `<input>` regardless of specificity, because Tailwind v4's utilities live inside `@layer utilities` and unlayered rules always win. Scoped that rule off `type="checkbox"`/`type="radio"` so checkboxes render and size correctly everywhere.
 - The Minima RPC console's whitelist modal additionally gets explicit checkbox sizing and collapsible Read/Write command-list sections instead of static lists.
-
 
 ## [0.25.0] 2026-07-27
 
