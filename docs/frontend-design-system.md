@@ -52,11 +52,11 @@ Migration is **incremental**, not a big-bang move:
 
 **Target homes (when migrated)**
 
-| Target         | Components (indicative)                                                                                                                                                                                                                                              |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `ProgressBar`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                            |
-| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                            |
+| Target         | Components (indicative)                                                                                                                                                                                                                                                             |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `ProgressBar`, `CredentialInput` (or retire into `InputField`) |
+| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                                           |
+| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                           |
 
 ## Styling Rules
 
@@ -88,6 +88,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `Modal`: portal-backed dialog shell. _(→ `ui/`)_
 - `Input`: ESDS text control (box only). Prefer `InputField` for labeled forms. _(→ `ui/`)_
 - `InputField`: ESDS Input Field (label / description / control / error); wraps `Input`. _(→ `ui/`)_
+- `SelectField` (`components/ui/`): ESDS select field (label / description / control / error); wraps `Select`.
 - `TextareaField` (`components/ui/`): ESDS textarea field (label / description / control / error).
 - `Menu` (`components/ui/`): ESDS menu list (built-in Plus icon per row); default / hover / disabled. Rows via `items` only — `MenuItem` is internal.
 - `TabList` (`components/ui/`): ESDS underline tabs (`TabItem` internal; active / hover / inactive). Prefer this over `SubTabs` for page-level tab strips.
@@ -182,6 +183,7 @@ Avoid exporting these constants or moving them into shared files unless more tha
 ## Forms
 
 - Prefer `InputField` for labeled text fields (login, settings, device forms).
+- Prefer `SelectField` for labeled single-choice dropdowns with optional description / error.
 - Prefer `TextareaField` when multiline text needs a label, description, or inline error.
 - Prefer `CheckboxField` for labeled boolean / tri-state choices with optional helper text.
 - Prefer `RadioField` for mutually exclusive options in a named group with optional helper text.
@@ -340,6 +342,37 @@ Control states live on `Input` (used by `InputField`): inset 1px outline `stroke
 ```
 
 Do not use placeholder as the only label.
+
+### SelectField
+
+ESDS Select Field (`frontend/src/components/ui/SelectField.tsx`): label → optional description → control → optional error. Prefer this for single-choice dropdowns.
+
+| Prop          | Notes                                                              |
+| ------------- | ------------------------------------------------------------------ |
+| `label`       | Optional; `type-meta` (tertiary when `disabled`)                   |
+| `description` | Optional helper under the label                                    |
+| `error`       | Optional; red alert text + `aria-invalid` on the control           |
+| `options`     | `{ value, label, disabled? }[]` — rendered as native `<option>`s   |
+| `placeholder` | Optional empty-value option (`value=""`); shown in `text-disabled` |
+| `disabled`    | Dims label/description; disables the control                       |
+| `className`   | Outer stack                                                        |
+| …select props | Standard `value`, `onChange`, `name`, `defaultValue`, etc.         |
+
+Control matches `Input` chrome: 44px tall, `rounded-loose`, `border-stroke-primary`, white fill, focus `stroke-active`, error `stroke-error`, disabled `surface-primary` + `text-disabled`. ChevronDown sits at the trailing edge (`icon-primary` / disabled `icon-disabled`).
+
+```tsx
+<SelectField
+  label="Profile"
+  description="Choose how this GPIO input is labeled."
+  options={[
+    { value: "generic", label: "Generic GPIO input" },
+    { value: "pir-motion", label: "PIR motion sensor" },
+  ]}
+  value={profile}
+  onChange={(event) => setProfile(event.target.value)}
+  error={error ?? undefined}
+/>
+```
 
 ### Menu
 

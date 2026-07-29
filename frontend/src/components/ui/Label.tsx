@@ -1,5 +1,5 @@
 import type { LabelHTMLAttributes, ReactNode } from "react";
-import { cx } from "../lib/cx";
+import { cx } from "../../lib/cx";
 
 /** Shared ESDS form-field label. */
 export function Label({

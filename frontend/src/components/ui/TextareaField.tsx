@@ -1,6 +1,6 @@
 import { useId, type ReactNode, type TextareaHTMLAttributes } from "react";
 import { cx } from "../../lib/cx";
-import { Label } from "../Label";
+import { Label } from "./Label";
 
 const textareaClass =
   "min-h-[132px] w-full rounded-loose border border-stroke-primary bg-surface-always-white px-detail-close py-3 type-body text-text-primary placeholder:text-text-disabled outline-none transition-[border-color] duration-200 focus-visible:border-stroke-active disabled:cursor-not-allowed disabled:bg-surface-primary disabled:text-text-disabled disabled:placeholder:text-text-disabled aria-invalid:border-stroke-error motion-reduce:transition-none";
