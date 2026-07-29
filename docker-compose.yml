@@ -70,13 +70,14 @@ services:
       - integritas
 
   minima:
-    image: minimaglobal/minima:dev
+    image: minimaglobal/minima
     stop_grace_period: 60s
     environment:
       minima_mdsenable: "false"
       minima_rpcenable: "true"
       minima_rpccrlf: "true"
       minima_p2pnodes: "https://spartacusrex.com/minimapeers.txt"
+      minima_rescuenode: "megammr.minima.global:9001"
     ports:
       - "${MINIMA_P2P_PORT:-9003}:9003"
       - "${MINIMA_RPC_BIND:-127.0.0.1}:${MINIMA_RPC_PORT:-9005}:9005"
