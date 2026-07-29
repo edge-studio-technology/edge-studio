@@ -8,9 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- The dashboard sidebar/mobile "Update available" button no longer lingers after a successful update: it used to also factor in `update-agent`'s own background self-update (which swaps its container automatically after a frontend/backend update and can lag the cached status by up to a polling interval), so the badge could stay lit for a while even though the update had already finished. The badge now only reacts to frontend/backend being out of date; the `/update` page's own service list still shows `update-agent`'s status for anyone checking it directly.
-- The Settings page's Version field showed "Unknown" on devices that were installed before `install.sh` started recording `last-applied-manifest.json`, or that never had an actual update applied (nothing ever wrote the file, even though frontend/backend already matched the manifest). `update-agent` now self-heals this: if the recorded version is missing but the running frontend/backend already match the manifest, it records the manifest as applied on the next status check instead of showing "Unknown" indefinitely.
-- Added a "Back" button to the update-agent UI's up-to-date, update-available, and error views so it can be dismissed back to the dashboard without waiting for a redirect or editing the URL.
+- Dashboard "Update available" badge no longer lingers after a successful update due to lagging on `update-agent`'s own background self-update status; it now only reacts to frontend/backend being out of date.
+- Settings page Version field no longer stays stuck on "Unknown" on devices with no recorded `last-applied-manifest.json`; `update-agent` now self-heals by recording the manifest as applied once frontend/backend match it.
+- Added a "Back" button to the update-agent UI so it can be dismissed to the dashboard without a redirect or URL edit.
 
 ## [0.25.5] 2026-07-28
 
