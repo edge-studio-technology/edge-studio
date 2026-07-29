@@ -22,7 +22,7 @@ Device settings:
 
 | Field         | Value       |
 | ------------- | ----------- |
-| Device type   | GPIO Input  |
+| Device type   | GPIO Input Pin |
 | Chip          | `gpiochip0` |
 | BCM pin       | `17`        |
 | Pull resistor | `up`        |
@@ -62,7 +62,7 @@ Device settings:
 
 | Field         | Value       |
 | ------------- | ----------- |
-| Device type   | GPIO Output |
+| Device type   | GPIO Output Pin |
 | Chip          | `gpiochip0` |
 | BCM pin       | `18`        |
 | Profile       | `LED`       |
@@ -174,7 +174,7 @@ Use this only when the button connects GPIO to 3.3V when pressed.
 
 | Field         | Suggested value |
 | ------------- | --------------- |
-| Device type   | GPIO Input      |
+| Device type   | GPIO Input Pin  |
 | Pull resistor | `down`          |
 | Edge          | `rising`        |
 | Debounce      | `100 ms`        |
@@ -193,7 +193,7 @@ Use this for a magnetic reed switch or other dry contact that closes to GND.
 
 | Field         | Suggested value     |
 | ------------- | ------------------- |
-| Device type   | GPIO Input          |
+| Device type   | GPIO Input Pin      |
 | Pull resistor | `up`                |
 | Edge          | `falling` or `both` |
 | Debounce      | `100-250 ms`        |
@@ -207,7 +207,7 @@ Some industrial-style or sensor outputs pull the signal low but do not drive it 
 
 | Field         | Suggested value     |
 | ------------- | ------------------- |
-| Device type   | GPIO Input          |
+| Device type   | GPIO Input Pin      |
 | Pull resistor | `up`                |
 | Edge          | `falling` or `both` |
 | Debounce      | Device-specific     |
@@ -217,7 +217,7 @@ Some industrial-style or sensor outputs pull the signal low but do not drive it 
 
 Do not connect these directly to a GPIO pin.
 
-Current V1 GPIO Output support is only intended for a low-current LED profile with a pulse action. Use a proper transistor/MOSFET/driver board, flyback protection where needed, and external power before considering these devices. They are not supported as direct GPIO Output targets in this prototype.
+Current V1 GPIO Output Pin support is only intended for a low-current LED profile with a pulse action. Use a proper transistor/MOSFET/driver board, flyback protection where needed, and external power before considering these devices. They are not supported as direct GPIO Output Pin targets in this prototype.
 
 ### Active-Low LED Module
 
@@ -225,7 +225,7 @@ Some LED modules turn on when the GPIO is driven low. Confirm the module is 3.3V
 
 | Field         | Suggested value |
 | ------------- | --------------- |
-| Device type   | GPIO Output     |
+| Device type   | GPIO Output Pin |
 | Profile       | `LED`           |
 | Active state  | `low`           |
 | Initial state | `inactive`      |

@@ -5,19 +5,19 @@ import { MutedText } from "../../components/Text";
 import type { DataSourceCapabilities, DataSourceTemplate } from "./dataSourceTypes";
 
 export const inputTemplates: DataSourceTemplate[] = [
-  { title: "HTTP JSON API", description: "Fetch JSON from an external API, Pi service, or Docker-network endpoint", type: "json-api", config: { url: "https://example.com/data.json", method: "GET", headers: {} } },
-  { title: "Webhook", description: "Receive pushed JSON from another app, device, or workflow", type: "webhook", config: {} },
-  { title: "MQTT", description: "Subscribe to a broker topic and ingest JSON messages", type: "mqtt", config: { brokerUrl: "mqtt://localhost:1883", topic: "sensors/+/data" } },
+  { title: "HTTP JSON Source", description: "Fetch JSON from an external API, Pi service, or Docker-network endpoint", type: "json-api", config: { url: "https://example.com/data.json", method: "GET", headers: {} } },
+  { title: "Webhook Receiver", description: "Receive pushed JSON from another app, device, or workflow", type: "webhook", config: {} },
+  { title: "MQTT Subscriber", description: "Subscribe to a broker topic and ingest JSON messages", type: "mqtt", config: { brokerUrl: "mqtt://localhost:1883", topic: "sensors/+/data" } },
   { title: "ESP32 MQTT Board", description: "Generate starter firmware for an ESP32 board that publishes JSON over MQTT", type: "mqtt", config: { brokerUrl: "mqtt://localhost:1883", topic: "boards/esp32/data", profile: "esp32-mqtt-board" } },
-  { title: "GPIO Input", description: "Record Raspberry Pi GPIO pin edge events as JSON", type: "gpio-input", config: { chip: "gpiochip0", pin: 17, pull: "off", edge: "both", debounceMs: 100, activeState: "high" } },
+  { title: "GPIO Input Pin", description: "Record Raspberry Pi GPIO pin edge events as JSON", type: "gpio-input", config: { chip: "gpiochip0", pin: 17, pull: "off", edge: "both", debounceMs: 100, activeState: "high" } },
   { title: "PIR Motion Sensor", description: "Detect HC-SR501-style motion events from a GPIO input pin", type: "gpio-input", config: { chip: "gpiochip0", pin: 23, profile: "pir-motion", pull: "off", edge: "rising", debounceMs: 500, activeState: "high" } },
-  { title: "Pi Camera", description: "Capture photos or short video clips from automation workflows", type: "pi-camera", config: { mode: "photo", width: 1280, height: 720, durationMs: 1000, fps: 30, outputFormat: "jpg" } }
+  { title: "Raspberry Pi Camera", description: "Capture photos or short video clips from automation workflows", type: "pi-camera", config: { mode: "photo", width: 1280, height: 720, durationMs: 1000, fps: 30, outputFormat: "jpg" } }
 ];
 
 export const outputTemplates: DataSourceTemplate[] = [
-  { title: "GPIO Output", description: "LED output target controlled by automation workflows", type: "gpio-output", config: { chip: "gpiochip0", pin: 18, profile: "led", activeState: "high", initialState: "inactive" } },
-  { title: "HTTP/API Output", description: "Send commands to an HTTP endpoint from automation workflows", type: "http-output", config: { url: "https://example.com/device/command", method: "POST", headers: {}, timeoutMs: 5000 } },
-  { title: "MQTT Output", description: "Publish JSON commands to a broker topic from automation workflows", type: "mqtt-output", config: { brokerUrl: "mqtt://localhost:1883", topic: "devices/example/set", qos: 0, retain: false } }
+  { title: "GPIO Output Pin", description: "LED output target controlled by automation workflows", type: "gpio-output", config: { chip: "gpiochip0", pin: 18, profile: "led", activeState: "high", initialState: "inactive" } },
+  { title: "HTTP JSON Target", description: "Send JSON commands to an HTTP endpoint from automation workflows", type: "http-output", config: { url: "https://example.com/device/command", method: "POST", headers: {}, timeoutMs: 5000 } },
+  { title: "MQTT Publisher", description: "Publish JSON commands to a broker topic from automation workflows", type: "mqtt-output", config: { brokerUrl: "mqtt://localhost:1883", topic: "devices/example/set", qos: 0, retain: false } }
 ];
 
 export function DataSourceTemplates({ mode, category, capabilities, onSelect }: { mode: "input" | "output"; category?: "template" | "manual"; capabilities: DataSourceCapabilities | null; onSelect: (template: DataSourceTemplate) => void }) {

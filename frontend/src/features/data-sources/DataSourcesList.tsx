@@ -52,7 +52,10 @@ export function DataSourcesList({
             </tr>
           </thead>
           <tbody>
-            {items.map((source) => (
+            {items.map((source) => {
+              const usedByWorkflows = source.usedByWorkflows ?? [];
+              const deleteDisabledReason = usedByWorkflows.length > 0 ? `Used by workflow: ${usedByWorkflows.map((workflow) => workflow.name).join(", ")}` : "Delete device";
+              return (
               <tr key={source.id} className={tableRowClass}>
                 <td className={tableCellClass}>
                   <strong>{source.name}</strong>
@@ -86,7 +89,7 @@ export function DataSourcesList({
                   <RowActions>
                     <TableIconButton
                       type="button"
-                       disabled={busy || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "gpio-output" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output"}
+                      disabled={busy || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "gpio-output" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output"}
                       title="Trigger manually"
                       aria-label={`Trigger ${source.name} manually`}
                       onClick={() => onRead(source)}
@@ -127,8 +130,8 @@ export function DataSourcesList({
                     <TableIconButton
                       danger
                       type="button"
-                      disabled={busy}
-                      title="Delete source"
+                      disabled={busy || usedByWorkflows.length > 0}
+                      title={deleteDisabledReason}
                       aria-label={`Delete ${source.name}`}
                       onClick={() => onDelete(source)}
                     >
@@ -137,7 +140,8 @@ export function DataSourcesList({
                   </RowActions>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </DataTable>
       </TableWrap>
@@ -163,6 +167,14 @@ function gpioEndpoint(source: DataSource) {
 function sourceTypeLabel(source: DataSource) {
   if (source.type === "gpio-input" && source.config.profile === "pir-motion") return "PIR Motion Sensor";
   if (source.type === "mqtt" && source.config.profile === "esp32-mqtt-board") return "ESP32 MQTT Board";
+  if (source.type === "json-api" || source.type === "internal-json-api") return "HTTP JSON Source";
+  if (source.type === "webhook") return "Webhook Receiver";
+  if (source.type === "mqtt") return "MQTT Subscriber";
+  if (source.type === "gpio-input") return "GPIO Input Pin";
+  if (source.type === "gpio-output") return "GPIO Output Pin";
+  if (source.type === "pi-camera") return "Raspberry Pi Camera";
+  if (source.type === "http-output") return "HTTP JSON Target";
+  if (source.type === "mqtt-output") return "MQTT Publisher";
   return source.type;
 }
 
@@ -175,7 +187,7 @@ function cameraEndpoint(source: DataSource) {
 }
 
 function isInputSource(source: DataSource) {
-  return source.type === "json-api" || source.type === "internal-json-api" || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input";
+  return source.type === "json-api" || source.type === "internal-json-api" || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "pi-camera";
 }
 
 function HealthCell({ source, status }: { source: DataSource; status?: DataSourceHealthStatus }) {

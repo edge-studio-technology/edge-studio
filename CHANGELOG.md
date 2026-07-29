@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Devices now use a step-based add flow that first asks for input source vs output target, then template/example vs manual setup before showing the relevant options.
+
+### Changed
+
+- Device/source naming conventions are now documented for physical devices, generic integrations, and low-level hardware interfaces.
+- Device picker labels now follow the naming convention, including `HTTP JSON Source`, `HTTP JSON Target`, `MQTT Subscriber`, `MQTT Publisher`, `Webhook Receiver`, `GPIO Input Pin`, `GPIO Output Pin`, and `Raspberry Pi Camera`.
+- Devices referenced by non-archived workflows can no longer be deleted until they are removed from those workflows.
+
 ## [0.26.0] 2026-07-28
 
 ### Added

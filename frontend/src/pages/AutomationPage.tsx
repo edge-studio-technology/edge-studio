@@ -576,7 +576,7 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
     return (
       <Panel className={formGridClass}>
         <strong>Selected block</strong>
-        <p className={mutedText}>Capture a photo or video clip from a configured Pi Camera. The media bytes are hashed; read history stores capture metadata.</p>
+        <p className={mutedText}>Capture a photo or video clip from a configured Raspberry Pi Camera. The media bytes are hashed; read history stores capture metadata.</p>
         <label>Camera device<select value={block.config.sourceId ?? ""} onChange={(event) => onChange({ ...block.config, sourceId: event.target.value })}><option value="">Select camera...</option>{cameraSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
         {selectedCamera?.config.mode === "video" && <label>Capture duration ms<input value={String(block.config.durationMs ?? selectedCamera.config.durationMs ?? 5000)} inputMode="numeric" onChange={(event) => onChange({ ...block.config, durationMs: Number(event.target.value) })} /></label>}
         {selectedCamera?.config.mode === "photo" && <p className={mutedText}>Photo captures use the camera device warmup timeout configured on Devices.</p>}
@@ -649,7 +649,7 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
           onChange(retargetOutputBlockConfig(block.config, target));
         }}><option value="">Select output target...</option>{outputTargets.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
         {selectedOutput?.type === "gpio-output" && <label>Pulse duration ms<input value={String(block.config.durationMs ?? 500)} inputMode="numeric" onChange={(event) => onChange({ ...block.config, action: "pulse", durationMs: Number(event.target.value) })} /></label>}
-        {selectedOutput?.type === "gpio-output" && <p className={mutedText}>Selected device active state: <strong>{selectedOutput.config.activeState ?? "high"}</strong>. Use High for common GPIO to resistor to LED to GND wiring. Change this from Devices by editing the GPIO Output target.</p>}
+        {selectedOutput?.type === "gpio-output" && <p className={mutedText}>Selected device active state: <strong>{selectedOutput.config.activeState ?? "high"}</strong>. Use High for common GPIO to resistor to LED to GND wiring. Change this from Devices by editing the GPIO Output Pin target.</p>}
         {selectedBodyTargetType && <>
           <label>{selectedBodyTargetType === "http-output" ? "Request body" : "Message payload"}<select value={bodyMode} onChange={(event) => onChange(outputBodyModeConfig(block.config, event.target.value as NonNullable<AutomationBlock["config"]["bodyMode"]>, selectedBodyTargetType))}>{outputBodyModes(selectedBodyTargetType).map((mode) => <option key={mode.value} value={mode.value}>{mode.label}</option>)}</select></label>
           {bodyMode === "custom" && <label>Custom JSON<textarea rows={6} value={block.config.bodyTemplateText ?? defaultCustomBodyText()} onChange={(event) => onChange({ ...block.config, bodyMode: "custom", bodyTemplateText: event.target.value })} /></label>}
@@ -1323,7 +1323,7 @@ function sourceLabel(source: DataSource) {
   if (source.type === "http-output") return `${source.config.method ?? "POST"} ${source.config.url ?? "HTTP output"}`;
   if (source.type === "mqtt-output") return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
   if (source.type === "pi-camera") return `${source.config.mode ?? "photo"} ${source.config.width ?? 1280}x${source.config.height ?? 720}`;
-  return source.config.url ?? "HTTP JSON API";
+  return source.config.url ?? "HTTP JSON Source";
 }
 
 function isOutputTarget(source: DataSource) {
