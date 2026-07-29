@@ -52,11 +52,11 @@ Migration is **incremental**, not a big-bang move:
 
 **Target homes (when migrated)**
 
-| Target         | Components (indicative)                                                                                                                                                                                                   |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `CheckboxField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `ProgressBar`, `CredentialInput` (or retire into `InputField`)    |
-| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid` |
-| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                 |
+| Target         | Components (indicative)                                                                                                                                                                                                                               |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `CheckboxField`, `RadioField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `ProgressBar`, `CredentialInput` (or retire into `InputField`) |
+| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                             |
+| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                             |
 
 ## Styling Rules
 
@@ -81,6 +81,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `Pill`: ESDS Tag / pill (Default / Success / Warning / Error via `tone`; optional indicator dot). _(→ `ui/`)_
 - `ProgressBar` (`components/ui/`): ESDS step progress (optional back IconButton, accent track, step count Tag).
 - `CheckboxField` (`components/ui/`): ESDS checkbox + label + optional description (checked / unchecked / indeterminate).
+- `RadioField` (`components/ui/`): ESDS radio + label + optional description (selected / unselected × default / disabled).
 - `Text`: shared muted, error, and eyebrow text helpers. _(→ `ui/`)_
 - `ErrorAlert`: in-page error alert with optional title and recovery action. _(→ `patterns/`)_
 - `Modal`: portal-backed dialog shell. _(→ `ui/`)_
@@ -182,6 +183,7 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Prefer `InputField` for labeled text fields (login, settings, device forms).
 - Prefer `TextareaField` when multiline text needs a label, description, or inline error.
 - Prefer `CheckboxField` for labeled boolean / tri-state choices with optional helper text.
+- Prefer `RadioField` for mutually exclusive options in a named group with optional helper text.
 - Extract `Textarea` when needing no field wrapper around it.
 - Use `PinField` for segmented numeric verification / approval codes.
 - Use bare `Input` only when there is no label stack (rare toolbars / search).
@@ -193,15 +195,15 @@ Avoid exporting these constants or moving them into shared files unless more tha
 
 ESDS Checkbox Field (`frontend/src/components/ui/CheckboxField.tsx`): 16px control beside a body label, optional description indented under the label (16px spacer aligns with the control).
 
-| Prop            | Values / notes                                                          |
-| --------------- | ----------------------------------------------------------------------- |
-| `label`         | Required; `type-body` beside the control                                |
+| Prop            | Values / notes                                                              |
+| --------------- | --------------------------------------------------------------------------- |
+| `label`         | Required; `type-body` beside the control                                    |
 | `description`   | Optional helper under the row (`text-secondary` / disabled `text-disabled`) |
-| `checked`       | Controlled checked state                                                |
-| `indeterminate` | Shows minus mark; sets native `indeterminate` + `aria-checked="mixed"`  |
-| `disabled`      | Secondary surface box + tertiary/disabled text                          |
-| `className`     | Outer stack                                                             |
-| …input props    | Standard checkbox `onChange`, `name`, `defaultChecked`, etc.            |
+| `checked`       | Controlled checked state                                                    |
+| `indeterminate` | Shows minus mark; sets native `indeterminate` + `aria-checked="mixed"`      |
+| `disabled`      | Secondary surface box + tertiary/disabled text                              |
+| `className`     | Outer stack                                                                 |
+| …input props    | Standard checkbox `onChange`, `name`, `defaultChecked`, etc.                |
 
 Default checked / indeterminate: `icon-primary` fill with inverse glyph. Unchecked: white fill + `stroke-primary` border. Disabled: `surface-secondary` fill + `stroke-primary` border (glyph `icon-disabled` when present).
 
@@ -213,6 +215,34 @@ Default checked / indeterminate: `icon-primary` fill with inverse glyph. Uncheck
   onChange={(event) => setEnabled(event.target.checked)}
 />
 <CheckboxField label="Partial" indeterminate checked={false} readOnly />
+```
+
+### RadioField
+
+ESDS Radio Field (`frontend/src/components/ui/RadioField.tsx`): 16px circular control beside a body label, optional description indented under the label (16px spacer aligns with the control). Group options with a shared `name`; the selected value is the field state.
+
+| Prop          | Values / notes                                                              |
+| ------------- | --------------------------------------------------------------------------- |
+| `label`       | Required; `type-body` beside the control                                    |
+| `description` | Optional helper under the row (`text-secondary` / disabled `text-disabled`) |
+| `checked`     | Controlled selected state                                                   |
+| `name`        | Shared group name for mutually exclusive options                            |
+| `value`       | Option value within the group                                               |
+| `disabled`    | Secondary surface ring + tertiary/disabled text                             |
+| `className`   | Outer stack                                                                 |
+| …input props  | Standard radio `onChange`, `defaultChecked`, etc.                           |
+
+Default selected: `icon-primary` ring + inverse fill + primary center dot. Unselected: white fill + `stroke-primary` border. Disabled: `surface-secondary` fill + `stroke-primary` border (center `icon-disabled` when selected).
+
+```tsx
+<RadioField
+  name="plan"
+  value="pro"
+  label="Pro"
+  description="Multiple devices and automation."
+  checked={plan === "pro"}
+  onChange={() => setPlan("pro")}
+/>
 ```
 
 ### ProgressBar

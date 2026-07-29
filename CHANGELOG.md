@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Shared `RadioField` (`components/ui/`) for ESDS radio fields (selected / unselected × default / disabled; optional description; group via shared `name`). See `docs/frontend-design-system.md`.
 - Shared `CheckboxField` (`components/ui/`) for ESDS checkbox fields (checked / unchecked / indeterminate × default / disabled; optional description). See `docs/frontend-design-system.md`.
 - Shared `ProgressBar` (`components/ui/`) for ESDS step progress (optional back IconButton, accent track, step count Tag). See `docs/frontend-design-system.md`.
 - Shared `TabList` for ESDS underline tabs (active / hover / inactive; optional icons). `TabItem` is internal. Prefer this over `SubTabs` for page-level tab strips. See `docs/frontend-design-system.md`.
