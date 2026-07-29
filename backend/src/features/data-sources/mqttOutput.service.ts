@@ -16,7 +16,7 @@ export async function publishMqttOutput(input: { targetId: string; payload: unkn
     const finish = (error?: Error) => {
       if (settled) return;
       settled = true;
-      client.end(true, () => error ? reject(error) : resolve());
+      client.end(false, () => error ? reject(error) : resolve());
     };
 
     client.on("connect", () => {
