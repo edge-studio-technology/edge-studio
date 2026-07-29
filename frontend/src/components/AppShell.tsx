@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Bug, LogOut, MessageSquare, Settings, ShieldCheck, Sparkles } from "lucide-react";
 import { APP_NAME, APP_TAGLINE } from "../app/brand";
+import { getDebugPing } from "../features/debug/debugApi";
 import { nav } from "../app/nav";
 import type { StatusOverview } from "../app/types";
 import { FeedbackModal } from "../features/feedback/FeedbackModal";
@@ -106,7 +106,9 @@ export function AppShell({
     // counting it here would leave the badge lingering after a successful
     // update while the self-swap is still catching up.
     setUpdateAvailable(
-      Boolean(status?.services.some((service) => service.service !== "update-agent" && !service.upToDate))
+      Boolean(
+        status?.services.some((service) => service.service !== "update-agent" && !service.upToDate),
+      ),
     );
   });
 
