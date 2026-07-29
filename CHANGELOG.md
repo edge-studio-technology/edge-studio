@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Account Settings now includes a Minima node backup & restore panel: create, download, upload, and restore full node backups (`.bak` files — seed phrase, private keys, coin proofs, and transaction history, not just wallet keys), plus an optional built-in daily auto-backup toggle. Restore always re-syncs from the configured Megammr host. Backups live in a new, narrow read-write volume shared between `backend` and `minima` (`${MINIMA_DATA_DIR}/backups`); downloading or restoring a backup requires re-entering the admin PIN/password. See `docs/plans/minima-node-backup-restore.md`.
+
 ## [0.26.1] 2026-07-29
 
 ### Fixed

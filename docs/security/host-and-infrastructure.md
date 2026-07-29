@@ -45,6 +45,30 @@ Plan:
 
 Status: Mitigated via closed-world catalog + re-auth-gated whitelist + hard exclusions. See `.agents/rules/minima.md`.
 
+## Minima Node Backup & Restore
+
+Risk: The Account Settings "Node backup & restore" panel (`backend/src/features/minima/minima-backup.service.ts`, `minima.routes.ts` `/api/minima/backups*`) lets an admin create, download, upload, and restore full Minima node backup (`.bak`) files. Unlike the existing seed-phrase-only wallet import, a node backup is a superset containing the seed phrase, private keys, coin proofs, and transaction history. If created without a password, the file is unencrypted key material at rest.
+
+Impact: An attacker with filesystem access to the host (or a compromised backend container) could read an unencrypted backup file and recover full wallet keys and history. A malicious or malformed uploaded restore file could also be used to attempt a path traversal or overwrite of unrelated files if the backup directory logic were not scoped correctly.
+
+Current Controls:
+
+- The backend only gains filesystem access to one new, narrow, purpose-built subdirectory: `${MINIMA_DATA_DIR:-./minima}/backups` mounted read-write at the fixed container path `/minima-backups` (`docker-compose.yml`). The same host directory is also mounted into `minima` at `/home/minima/backups` — required because Minima resolves the `backup`/`restoresync` `file:` argument against its home dir, not `/home/minima/data` (verified against the pinned image). This is the only host directory shared between the two containers; the backend has no access to the rest of Minima's data directory (seed/private key files, chain DB) and Minima has no access to anything outside its own data dir plus this one backups subfolder.
+- All backup filenames are validated as a bare basename and containment-checked with the same resolve-then-realpath pattern used by the host file browser (`files.service.ts`) before any read/write/delete, preventing path traversal via a crafted filename or upload.
+- `GET/POST/DELETE /api/minima/backups*` all require an admin session (`requireRole("admin")`).
+- Downloading an existing backup and restoring from a backup (existing file or new upload) both require re-entering the current admin PIN/password (`POST .../download`, `POST .../restore`), the same re-auth pattern used by `updateConsoleWhitelist` and `changePassword`, since either action reads or activates potentially unencrypted key material.
+- Deleting a backup does not require re-auth — it only removes a copy of data recoverable elsewhere (the running node itself, or other retained backup files), not a unique secret.
+- The optional built-in Minima daily auto-backup (`backup auto:true`) is opt-in and off by default; the UI and README both label it as writing unencrypted files.
+- Audit events (`minima.backup.created`, `.downloaded`, `.restored`, `.deleted`, `.auto_toggled`) record the filename and acting user but never the backup password.
+- Restoring always uses Minima's `restoresync` (restore + Megammr archive re-sync in one step) against the already-configured, admin-set Megammr host — never a host supplied by the request body.
+
+Plan:
+
+- Consider encrypting backups at rest by default (e.g. requiring a password) rather than allowing an unencrypted backup as the default path, once real-node behavior for `backup password:`/`auto:` is confirmed.
+- Revisit whether auto-backup should be off-by-default at the RPC level too (currently only gated by this feature's own toggle), if Minima's own default changes.
+
+Status: Mitigated via a narrow scoped volume, path containment, admin-only + re-auth-gated routes, and audit logging. New in this release — see `docs/plans/minima-node-backup-restore.md`.
+
 ## Update Agent Docker Socket Mount
 
 Risk: The `update-agent` service mounts `/var/run/docker.sock` to pull images by digest and recreate `frontend`/`backend`/`minima` containers during an update. Docker socket access is host-root-equivalent: any process holding the mount can start a privileged or host-mounted container regardless of whether the socket is reachable over the network.

@@ -185,6 +185,8 @@ The Minima page also stores its Megammr host URL in SQLite through the Configure
 
 The Minima page exposes an allowlisted Megammr resync action. The browser calls the backend, and the backend calls Minima RPC internally with `megammrsync action:resync host:<configured-megammr-host>`.
 
+Account Settings also exposes node backup & restore, a fuller recovery mechanism than the Wallet page's seed-phrase import below: a Minima `backup` includes the seed phrase, private keys, coin proofs, key-use counters, and transaction history, not just spendable wallet keys. Backups are written by Minima into `${MINIMA_DATA_DIR}/backups` on the host — mounted into `minima` at `/home/minima/backups` (Minima resolves the `backup`/`restoresync` `file:` argument against its home dir, not `/home/minima/data`) and into `backend` read-write at `/minima-backups`, the only host directory shared between the two containers — so the UI can list, download, upload, and delete backup files. Restoring always uses Minima's `restoresync`, which restores the backup and re-syncs from the configured Megammr host in one step; an optional built-in daily auto-backup can also be toggled on, but it writes **unencrypted** files if no password is set. Downloading or restoring a backup requires re-entering the current admin PIN/password, since a backup file may contain unencrypted key material.
+
 The Wallet page exposes allowlisted wallet/account actions through the backend:
 
 - global balance via Minima `balance` (`GET /api/wallet`)
@@ -626,6 +628,20 @@ POST /api/minima/console/run
 ```
 
 The RPC console on the Minima Core page runs a typed Minima RPC command string only if it is both in the backend's static command catalog and enabled in the admin whitelist — it is not a generic RPC proxy (see `.agents/rules/minima.md` and `docs/security/host-and-infrastructure.md`). `GET /api/minima/console/whitelist` returns the catalog and currently enabled command keys. `POST /api/minima/console/whitelist` accepts `{ "enabledKeys": string[], "currentPassword": string }` and requires re-entering the admin PIN/password, same as changing the admin credential. `POST /api/minima/console/run` accepts `{ "command": string }` (the exact RPC command text, e.g. `status` or `peers action:addpeers peerslist:host:port`) and returns the RPC/action result.
+
+Minima node backup & restore (admin session required for all routes):
+
+```http
+GET /api/minima/backups
+POST /api/minima/backups
+POST /api/minima/backups/:fileName/download
+POST /api/minima/backups/restore
+DELETE /api/minima/backups/:fileName
+GET /api/minima/backups/auto
+POST /api/minima/backups/auto
+```
+
+`GET /api/minima/backups` lists backup files present under the shared `/minima-backups` volume. `POST /api/minima/backups` accepts `{ "password"?: string }` and calls Minima `backup file:backups/<generated-name>.bak`. `POST /api/minima/backups/:fileName/download` and `POST /api/minima/backups/restore` both require `{ "currentPassword": string }` (re-entering the admin PIN/password) because a backup file may contain unencrypted private keys; download streams the file, restore accepts either `{ "fileName": string, "password"?: string }` for an existing backup or a multipart upload (`file` field) for a new `.bak` file, and calls Minima `restoresync file:backups/<name>.bak host:<configured-megammr-host>`. `DELETE /api/minima/backups/:fileName` removes a backup file (no re-auth — it only deletes a copy of already-recoverable data). `GET`/`POST /api/minima/backups/auto` read/toggle Minima's built-in unencrypted daily auto-backup (`backup auto:true|false`).
 
 Wallet and account APIs:
 

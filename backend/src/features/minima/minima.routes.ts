@@ -1,9 +1,24 @@
+import fs from "node:fs/promises";
 import { Router } from "express";
-import { apiErrorFromStatus, badRequest, dependencyUnavailable, unauthorized, unexpected } from "../../shared/api-error.js";
+import type { Response } from "express";
+import { apiErrorFromStatus, badRequest, dependencyUnavailable, notFound, unauthorized, unexpected } from "../../shared/api-error.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
 import { authRateLimiter } from "../auth/rate-limit.middleware.js";
+import {
+  createBackup,
+  deleteBackup,
+  getAutoBackupEnabled,
+  getBackupFilePath,
+  listBackups,
+  MinimaBackupError,
+  restoreBackup,
+  saveUploadedBackup,
+  setAutoBackupEnabled,
+  verifyCurrentPassword
+} from "./minima-backup.service.js";
 import { getConsoleWhitelist, MinimaConsoleError, runConsoleCommand, updateConsoleWhitelist } from "./minima-console.service.js";
+import { backupUpload } from "./minima-upload.middleware.js";
 import { normalizeMinimaRpcError } from "./minima.errors.js";
 import {
   addMinimaPeers,
@@ -139,6 +154,107 @@ minimaRouter.post("/console/run", requireRole("admin"), async (req, res) => {
     if (error instanceof MinimaConsoleError) {
       return apiErrorFromStatus(res, error.status, error.message);
     }
+    const nativeMessage = error instanceof Error ? error.message : "Unknown error";
+    const message = normalizeMinimaRpcError(nativeMessage);
+    dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });
+  }
+});
+
+function handleMinimaBackupError(res: Response, error: unknown) {
+  if (error instanceof MinimaBackupError) {
+    // errorCode marks this as a re-auth failure, not an expired session — see the same
+    // note on POST /console/whitelist above.
+    const extra = error.status === 401 ? { errorCode: "invalid_credential" } : {};
+    return apiErrorFromStatus(res, error.status, error.message, extra);
+  }
+  const nativeMessage = error instanceof Error ? error.message : "Unknown error";
+  const message = normalizeMinimaRpcError(nativeMessage);
+  return dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });
+}
+
+minimaRouter.get("/backups", requireRole("admin"), async (_req, res) => {
+  try {
+    res.json({ backups: await listBackups() });
+  } catch (error) {
+    unexpected(res, "Failed to list Minima backups", error);
+  }
+});
+
+minimaRouter.post("/backups", requireRole("admin"), async (req, res) => {
+  try {
+    const password = typeof req.body?.password === "string" ? req.body.password : undefined;
+    const result = await createBackup({ password });
+    recordAuditEvent("minima.backup.created", { userId: req.user?.id, detail: result.fileName });
+    if (!result.ok) return dependencyUnavailable(res, "Backup failed", undefined, undefined, result);
+    res.json(result);
+  } catch (error) {
+    handleMinimaBackupError(res, error);
+  }
+});
+
+minimaRouter.post("/backups/:fileName/download", requireRole("admin"), async (req, res) => {
+  try {
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    await verifyCurrentPassword(req.user?.id, currentPassword);
+    const filePath = await getBackupFilePath(req.params.fileName);
+    recordAuditEvent("minima.backup.downloaded", { userId: req.user?.id, detail: req.params.fileName });
+    res.download(filePath, req.params.fileName);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT" || (error as NodeJS.ErrnoException)?.code === "OUTSIDE_ROOT") {
+      return notFound(res, "Backup file not found");
+    }
+    handleMinimaBackupError(res, error);
+  }
+});
+
+minimaRouter.post("/backups/restore", requireRole("admin"), backupUpload.single("file"), async (req, res) => {
+  try {
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    await verifyCurrentPassword(req.user?.id, currentPassword);
+
+    const password = typeof req.body?.password === "string" ? req.body.password : undefined;
+    const fileName = req.file
+      ? await saveUploadedBackup(req.file.path, req.file.originalname)
+      : typeof req.body?.fileName === "string"
+        ? req.body.fileName
+        : "";
+    if (!fileName) return badRequest(res, "fileName or an uploaded backup file is required");
+
+    const result = await restoreBackup({ fileName, password });
+    recordAuditEvent("minima.backup.restored", { userId: req.user?.id, detail: fileName });
+    if (!result.ok) return dependencyUnavailable(res, "Restore failed", undefined, undefined, result);
+    res.json(result);
+  } catch (error) {
+    if (req.file) await fs.rm(req.file.path, { force: true });
+    handleMinimaBackupError(res, error);
+  }
+});
+
+minimaRouter.delete("/backups/:fileName", requireRole("admin"), async (req, res) => {
+  try {
+    await deleteBackup(req.params.fileName);
+    recordAuditEvent("minima.backup.deleted", { userId: req.user?.id, detail: req.params.fileName });
+    res.json({ ok: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT" || (error as NodeJS.ErrnoException)?.code === "OUTSIDE_ROOT") {
+      return notFound(res, "Backup file not found");
+    }
+    unexpected(res, "Failed to delete Minima backup", error);
+  }
+});
+
+minimaRouter.get("/backups/auto", requireRole("admin"), (_req, res) => {
+  res.json({ autoBackupEnabled: getAutoBackupEnabled() });
+});
+
+minimaRouter.post("/backups/auto", requireRole("admin"), async (req, res) => {
+  try {
+    const enabled = req.body?.enabled === true;
+    const result = await setAutoBackupEnabled(enabled);
+    recordAuditEvent("minima.backup.auto_toggled", { userId: req.user?.id, detail: String(enabled) });
+    if (!result.ok) return dependencyUnavailable(res, "Failed to update auto-backup", undefined, undefined, result);
+    res.json({ autoBackupEnabled: result.autoBackupEnabled });
+  } catch (error) {
     const nativeMessage = error instanceof Error ? error.message : "Unknown error";
     const message = normalizeMinimaRpcError(nativeMessage);
     dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });

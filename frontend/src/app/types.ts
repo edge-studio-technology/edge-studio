@@ -98,6 +98,10 @@ export type MinimaConsoleWhitelist = {
   enabledKeys: string[];
 };
 export type MinimaConsoleRunResult = MinimaCommandResult;
+export type MinimaBackupEntry = { fileName: string; sizeBytes: number; createdAt: string };
+export type MinimaBackupListResponse = { backups: MinimaBackupEntry[] };
+export type MinimaBackupCreateResult = MinimaCommandResult & { fileName: string };
+export type MinimaAutoBackupResponse = { autoBackupEnabled: boolean };
 export type IntegritasConfig = { baseUrl: string; requestId: string; hasApiKey: boolean; apiKeySource: "connect" | "database" | "environment" | "none"; portalUrl: string };
 export type StatusOverview = {
   generatedAt: string;

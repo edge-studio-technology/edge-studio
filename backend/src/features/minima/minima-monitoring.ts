@@ -61,7 +61,7 @@ export function canAutoResync() {
   return Date.now() - new Date(snapshot.lastAutoResyncAt).getTime() >= cooldownMs;
 }
 
-export type MinimaOperationType = "restart" | "resync";
+export type MinimaOperationType = "restart" | "resync" | "backup" | "restore";
 
 const MINIMA_OPERATION_MAX_WINDOW_MS = 120_000;
 

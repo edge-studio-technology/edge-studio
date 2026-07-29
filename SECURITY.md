@@ -9,7 +9,7 @@ Integritas Pi is a prototype intended to run on a trusted local network. It is n
 Follow these when deploying, operating, or contributing to this project:
 
 - Never expose the backend, Minima RPC, or the Docker socket directly to an untrusted network. Access the UI only through the frontend's HTTPS proxy.
-- Never enter admin credentials or import a wallet seed phrase over a network connection you cannot verify, even though it is TLS-encrypted. A self-signed certificate proves encryption, not server identity.
+- Never enter admin credentials, import a wallet seed phrase, or download/upload a Minima node backup file over a network connection you cannot verify, even though it is TLS-encrypted. A self-signed certificate proves encryption, not server identity. An unencrypted node backup file contains the same key material as a seed phrase, plus coin proofs and transaction history.
 - Never disable HTTPS or set `COOKIE_SECURE=false` outside local development.
 - Never commit `.env`, `APP_SECRET`, Integritas API keys, or any other credential to version control.
 - Never add a generic Minima command proxy or arbitrary shell execution path. Expose only narrow, allowlisted, validated actions. The admin RPC console is a scoped exception: it only runs commands from a static, closed-world catalog that are also enabled in an admin-curated, re-auth-gated whitelist — see `docs/security/host-and-infrastructure.md`.

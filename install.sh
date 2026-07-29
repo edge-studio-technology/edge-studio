@@ -158,11 +158,19 @@ prepare_runtime_directories() {
     chmod 700 "$(resolved_camera_capture_dir)"
   fi
 
+  local resolved_minima_data_dir
   case "$MINIMA_DATA_DIR" in
-    /*) mkdir -p "$MINIMA_DATA_DIR" ;;
-    ./*) mkdir -p "$APP_DIR/${MINIMA_DATA_DIR#./}" ;;
-    *) mkdir -p "$APP_DIR/$MINIMA_DATA_DIR" ;;
+    /*) resolved_minima_data_dir="$MINIMA_DATA_DIR" ;;
+    ./*) resolved_minima_data_dir="$APP_DIR/${MINIMA_DATA_DIR#./}" ;;
+    *) resolved_minima_data_dir="$APP_DIR/$MINIMA_DATA_DIR" ;;
   esac
+  mkdir -p "$resolved_minima_data_dir"
+
+  # Backend (non-root, uid 1000) mounts only this subdirectory read-write for node
+  # backup/restore; Minima itself keeps running as root, so it can still write .bak
+  # files here regardless of this chown.
+  mkdir -p "$resolved_minima_data_dir/backups"
+  chown -R 1000:1000 "$resolved_minima_data_dir/backups"
 
   local resolved_update_agent_state_dir
   case "$UPDATE_AGENT_STATE_DIR" in
