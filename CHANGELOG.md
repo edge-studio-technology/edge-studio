@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.26.1] 2026-07-29
+
 ### Fixed
 
 - Dashboard "Update available" badge no longer lingers after a successful update due to lagging on `update-agent`'s own background self-update status; it now only reacts to frontend/backend being out of date.
@@ -29,7 +31,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Every checkbox in the app (Minima RPC console whitelist, Automation block config, Integritas history table row selection) inherited the global text-input styling — a plain, unlayered `input, textarea, select {...}` CSS rule in `styles.css` was overriding any Tailwind utility class applied to an `<input>` regardless of specificity, because Tailwind v4's utilities live inside `@layer utilities` and unlayered rules always win. Scoped that rule off `type="checkbox"`/`type="radio"` so checkboxes render and size correctly everywhere.
 - The Minima RPC console's whitelist modal additionally gets explicit checkbox sizing and collapsible Read/Write command-list sections instead of static lists.
-
 
 ## [0.25.0] 2026-07-27
 
