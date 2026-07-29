@@ -1,11 +1,83 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Bug, LogOut, MessageSquare, Settings, ShieldCheck, Sparkles } from "lucide-react";
+import { APP_NAME, APP_TAGLINE } from "../app/brand";
 import { nav } from "../app/nav";
 import type { StatusOverview } from "../app/types";
 import { FeedbackModal } from "../features/feedback/FeedbackModal";
 import { AppShellSidebar } from "./AppShellSidebar";
+import { useStatusOverviewRefresh } from "../features/status/useStatusOverviewRefresh";
+import { useUpdateStatusRefresh } from "../features/update/useUpdateStatusRefresh";
+import { cx } from "../lib/cx";
+import { BrandMark } from "./BrandMark";
+import { Button } from "./Button";
+import { Card } from "./Card";
 import { Clock } from "./Clock";
-import { StatusBadge } from "./StatusBadge";
+import { StatusDot, type StatusDotTone } from "./StatusDot";
+
+function findService(overview: StatusOverview | null, name: string) {
+  return overview?.services.find((service) => service.name === name);
+}
+
+function serviceTone(service: ReturnType<typeof findService>): StatusDotTone {
+  if (!service) return "unknown";
+  return service.ok ? "good" : "warn";
+}
+
+function ServiceDetail({
+  service,
+  generatedAt,
+  refreshError,
+}: {
+  service: ReturnType<typeof findService>;
+  generatedAt: string | undefined;
+  refreshError: string | null;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="m-0 font-bold text-slate-900">{service ? service.status : "Not checked yet"}</p>
+      {service?.error && <p className="m-0 text-red-600">{service.error}</p>}
+      {generatedAt && (
+        <p className="m-0 text-slate-400">Checked {new Date(generatedAt).toLocaleTimeString()}</p>
+      )}
+      {refreshError && (
+        <p className="m-0 text-amber-600">Could not refresh — showing last known status.</p>
+      )}
+    </div>
+  );
+}
+
+function StatusDots({
+  minimaService,
+  integritasService,
+  generatedAt,
+  refreshError,
+}: {
+  minimaService: ReturnType<typeof findService>;
+  integritasService: ReturnType<typeof findService>;
+  generatedAt: string | undefined;
+  refreshError: string | null;
+}) {
+  return (
+    <>
+      <StatusDot label="Node" tone={serviceTone(minimaService)}>
+        <ServiceDetail
+          service={minimaService}
+          generatedAt={generatedAt}
+          refreshError={refreshError}
+        />
+      </StatusDot>
+      <StatusDot label="Integritas" tone={serviceTone(integritasService)}>
+        <ServiceDetail
+          service={integritasService}
+          generatedAt={generatedAt}
+          refreshError={refreshError}
+        />
+      </StatusDot>
+    </>
+  );
+}
 
 export function AppShell({
   onSignOut,
@@ -21,21 +93,34 @@ export function AppShell({
     [pathname],
   );
 
-  const [overview, setOverview] = useState<StatusOverview | null>(null);
+  const { overview, error: statusRefreshError } = useStatusOverviewRefresh();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/status/overview")
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json() as Promise<StatusOverview>;
-      })
-      .then(setOverview)
-      .catch(() => setOverview(null));
-  }, []);
+  const minimaService = findService(overview, "minima");
+  const integritasService = findService(overview, "integritas");
 
-  const serviceIsOk = (name: string) =>
-    Boolean(overview?.services.find((service) => service.name === name)?.ok);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  useUpdateStatusRefresh((status) => {
+    // update-agent's own self-update runs automatically in the background after
+    // a frontend/backend update and isn't something the user needs to act on —
+    // counting it here would leave the badge lingering after a successful
+    // update while the self-swap is still catching up.
+    setUpdateAvailable(
+      Boolean(status?.services.some((service) => service.service !== "update-agent" && !service.upToDate))
+    );
+  });
+
+  const [debugPinging, setDebugPinging] = useState(false);
+  const [debugMessage, setDebugMessage] = useState<string | null>(null);
+
+  function pingDebugEndpoint() {
+    setDebugPinging(true);
+    setDebugMessage(null);
+    getDebugPing()
+      .then((data) => setDebugMessage(data.message))
+      .catch((error) => setDebugMessage(`Error: ${error.message}`))
+      .finally(() => setDebugPinging(false));
+  }
 
   return (
     <div className="min-h-screen">
@@ -58,9 +143,12 @@ export function AppShell({
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <StatusBadge ok={serviceIsOk("backend")}>Node online</StatusBadge>
-                <StatusBadge ok={serviceIsOk("minima")}>Wallet ready</StatusBadge>
-                <StatusBadge ok={serviceIsOk("integritas")}>Integritas connected</StatusBadge>
+                <StatusDots
+                  minimaService={minimaService}
+                  integritasService={integritasService}
+                  generatedAt={overview?.generatedAt}
+                  refreshError={statusRefreshError}
+                />
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">

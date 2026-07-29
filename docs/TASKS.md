@@ -12,7 +12,7 @@
 
 ## Current Focus
 
-- [ ] Merge `chore/workflow-pagination` into `main` — a manual browser pass through Diagnostics pagination (proofs/reads/workflow-runs) is recommended first; full E2E wasn't run this session (TOTP-gated setup flow, out of scope for automated verification).
+- [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
 
@@ -21,8 +21,13 @@
 
 ## Next
 
+- [ ] Manual check of the update-agent UI Back buttons and the dashboard "Update available" badge across a real update cycle (Pi or local Docker Compose) — this session's fixes were only build/typecheck-verified.
+- [ ] Reconcile `.claude/rules/update-agent.md`/`.agents/rules/update-agent.md`/`.cursor/rules/update-agent.mdc`, which still say `update-agent` has "no self-update path" — `update-agent/src/self-update/` already implements one (commit `4e26bfe`), and `docs/notes/update-agent-self-update.md` is stale too.
 - [ ] Add HC-SR501 PIR motion sensor as a first-class GPIO input workflow source - see `docs/plans/pir-motion-sensor-workflows.md`.
+- [ ] Add ESP32 MQTT board onboarding with generated starter firmware - see `docs/plans/esp32-mqtt-sensor-onboarding.md`.
 - [ ] Document the `DEV_MODE` install flag in `README.md`'s runtime-config section and note its manifest-signature-verification bypass in `SECURITY.md`/`docs/security/host-and-infrastructure.md` — flagged during code review, deliberately deferred as a separate concern from the pagination work.
+- [ ] Consider a shared Minima-node-state hook/context: `WalletPage`, `WalletSettingsPanel`, and `MinimaSettingsPanel` each run their own independent `useMinimaStatusRefresh` subscription today (accepted duplication, no shared store exists yet).
+- [ ] Sanity-check two catalog exclusions added beyond `docs/plans/minima-rpc-console.md`'s named list during `help`-output reconciliation: `createtokenfrom` (same raw-`privatekey:` risk as the named `*from` commands) and `decryptbackup` (can turn an encrypted backup into plaintext key material) — see `docs/SESSION.md` Notes for reasoning.
 
 ## Done
 
@@ -43,6 +48,16 @@
 - [x] Added structured app/API error helpers, frontend parser support, and high-impact route conversion for Data Sources/Webhook, Automation/read-history, auth/setup, and Integritas actions — see `docs/plans/app-api-error-handling.md`.
 - [x] Completed active route-level structured app/API error response migration for address book, feedback, files, wallet, tokens, Minima, Integritas Connect auth, and data-source health failures — see `docs/plans/app-api-error-handling.md`.
 - [x] Documented structured backend/frontend error-handling rules in `.agents/rules/` and synced the `.claude/` and `.cursor/` counterparts.
+- [x] Fixed the Minima Core "Syncing" false-status root cause and added a durable backend-owned `"restarting"` node state, friendlier RPC errors, and adaptive status polling — see `docs/plans/minima-restart-resync-status.md` (branch `fix/minima-sync-missmatch`).
+- [x] Synced Dashboard wallet display and polling to node state; disabled Minima Core and Wallet page actions until the node is confirmed running/idle; added loading indicators (dots/spinner) in place of stale or misleading values across Minima Core, Dashboard, and Wallet.
+- [x] Fixed Wallet page going stale after a resync/restart performed from another page by auto-refreshing balance/assets/history on the node's return to `"running"`.
+- [x] Moved Wallet settings and Minima node settings out of page-level modals into new `WalletSettingsPanel`/`MinimaSettingsPanel` cards on the Account settings page; removed the now-unused settings buttons/modals from `WalletPage.tsx`/`MinimaPage.tsx`.
+- [x] Fixed a false-positive "Failed to load peers" toast on Account Settings: `MinimaSettingsPanel` now only fetches peers once the node is confirmed `"running"` (reusing the existing `actionsBlocked` gate) instead of fetching unconditionally on mount, so a user-triggered resync/restart no longer surfaces the toast as a false error.
+- [x] Moved Address book from a Wallet page modal into its own tab; made the peer connections list in Minima settings scrollable; `CHANGELOG.md` `[Unreleased] fix/minima-sync-missmatch` section now covers all of this branch's user-facing changes to date.
+- [x] Implemented the Minima RPC console on the Minima Core page: admin-curated, closed-world checkbox whitelist (96 catalog entries reconciled against Minima's live `help` output) with re-auth-gated whitelist edits and a terminal-style scrollback; `megammrsync`/`peers action:addpeers` dispatch through the existing narrow actions — see `docs/plans/minima-rpc-console.md` and `docs/security/host-and-infrastructure.md`. Merged to `main` via PR #39.
+- [x] Fixed the header status section (`AppShell.tsx`, shown on every page) never refreshing after the initial page load and silently going stuck-stale on a failed fetch: added 30s polling (`useStatusOverviewRefresh`) that keeps last known-good status and flags failed refreshes instead of nulling out; replaced the three text pills with clickable Node/Wallet/Integritas status dots (`StatusDot.tsx`) with a click-to-open detail popover; added a real wallet-balance-backed `wallet` service to `GET /api/status/overview` instead of the header's "wallet" pill silently reusing the `minima` node-status check. Merged to `main` via PR #39 (released as part of `0.25.0`+).
+- [x] Fixed a root-cause CSS cascade-layers bug in `frontend/src/styles.css` where an unlayered `input, textarea, select {...}` rule silently overrode any Tailwind utility class on any `<input>` app-wide (Tailwind v4 utilities live in `@layer utilities`, and unlayered rules always beat layered rules regardless of specificity) — this broke checkbox sizing/styling in the Minima RPC console whitelist modal, `AutomationPage.tsx`, and `IntegritasHistoryTable.tsx`. Scoped the rule off `type="checkbox"`/`type="radio"`. Also gave the whitelist modal explicit checkbox styling and made its Read/Write command lists collapsible (`<details>`/`<summary>`) — typecheck/build verified, no manual browser check yet (see Current Focus).
+- [x] Added a "Back" button to the update-agent UI's up-to-date/available/error views; fixed the dashboard "Update available" badge lingering after a successful update by excluding `update-agent`'s own (background, non-user-actionable) self-update status from the badge trigger in `AppShell.tsx`; fixed Settings showing "Unknown" for Version on already-up-to-date devices that never got `last-applied-manifest.json` written, by having `update-agent`'s `getUpdateStatus()` self-heal that state — branch `fix/update-agent-ui-fixes`, typecheck/build verified, no manual browser/hardware check yet (see Next).
 
 ## Ideas
 

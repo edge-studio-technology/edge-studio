@@ -41,6 +41,69 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Shared `Card` wrapper now matches ESDS/Figma layout defaults (including the default 16px `gap-detail-close`) and adds `size="Default" | "Compact"` for relaxed vs tight padding.
 - Shared workflow/history table helpers now use ESDS table visuals (grey header row, `stroke-primary` borders, and `type-body-em` headers / `type-meta` cells). See `frontend/src/components/DataTable.tsx`.
 - Added a migration-ready ESDS `components/patterns/Table` shell (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`) for future replacement of legacy native `<table>` markup.
+## [0.26.1] 2026-07-29
+
+### Fixed
+
+- Dashboard "Update available" badge no longer lingers after a successful update due to lagging on `update-agent`'s own background self-update status; it now only reacts to frontend/backend being out of date.
+- Settings page Version field no longer stays stuck on "Unknown" on devices with no recorded `last-applied-manifest.json`; `update-agent` now self-heals by recording the manifest as applied once frontend/backend match it.
+- Added a "Back" button to the update-agent UI so it can be dismissed to the dashboard without a redirect or URL edit.
+
+## [0.26.0] 2026-07-28
+
+### Added
+
+- Devices now include an ESP32 MQTT Board onboarding option that saves a normal MQTT input source and generates copyable Arduino ESP32 starter firmware.
+
+### Changed
+
+- ESP32 MQTT Board onboarding now links to a step-by-step flashing and workflow setup guide.
+- ESP32 starter firmware now publishes a simple `Ping!` JSON payload instead of fake sensor readings, making first MQTT verification clearer.
+
+## [0.25.5] 2026-07-28
+
+### Fixed
+
+- Every checkbox in the app (Minima RPC console whitelist, Automation block config, Integritas history table row selection) inherited the global text-input styling — a plain, unlayered `input, textarea, select {...}` CSS rule in `styles.css` was overriding any Tailwind utility class applied to an `<input>` regardless of specificity, because Tailwind v4's utilities live inside `@layer utilities` and unlayered rules always win. Scoped that rule off `type="checkbox"`/`type="radio"` so checkboxes render and size correctly everywhere.
+- The Minima RPC console's whitelist modal additionally gets explicit checkbox sizing and collapsible Read/Write command-list sections instead of static lists.
+
+## [0.25.0] 2026-07-27
+
+### Added
+
+- Minima node status now reports a `restarting` state (tracked server-side across restart/resync) instead of only `stopped`/`error` while a restart or resync is in progress; Minima Core, Wallet, and Dashboard show a page-level banner, loading indicators, and a restart-complete toast instead of stale or misleading values.
+- Wallet page actions (Receive, Send, Create token) and the Minima settings panel are now disabled with an inline notice until the Minima node is confirmed `running`, avoiding RPC calls that would just fail mid-restart/resync.
+- Wallet balance, assets, and history now auto-refresh once Minima comes back online after a resync/restart, instead of staying stuck on stale data until the operator navigates away and back.
+- Address book is now its own tab on the Wallet page instead of a modal opened from the page header.
+- Added a Minima RPC console to the Minima Core page: an admin-curated, closed-world checkbox whitelist of ~90 Minima RPC commands (sorted alphabetically within their read/write groups) with a terminal-like input/scrollback — light theme, custom scrollbar, collapsible section, fullscreen mode, and a clear-scrollback button. `vault`, `sendfrom`, `signfrom`, `createfrom`, `postfrom`, `createtokenfrom`, `decryptbackup`, `keys`, and `quit` are permanently excluded (can never be whitelisted) because they can expose/accept a raw wallet private key or seed phrase, or halt the node with no recovery path. Every other command defaults to enabled if read-only and disabled if it mutates funds/chain/config/network/wallet. Editing the whitelist requires re-entering the admin PIN/password. `megammrsync` and `peers action:addpeers` run through the existing narrow `resyncMegammr()`/`addMinimaPeers()` actions instead of a generic RPC passthrough, so operation-tracking and audit logging stay consistent with the existing Resync/Add peers UI (`docs/plans/minima-rpc-console.md`, `docs/security/host-and-infrastructure.md`).
+- `npm run docker:rebuild` operational script to rebuild and restart just the `backend`/`frontend` Docker Compose services and tail their logs, for quickly checking a local change in the Docker environment.
+
+### Changed
+
+- The header status pills on every page (previously "Node online"/"Wallet ready"/"Integritas connected", fetched once on page load and never refreshed) are now two clickable Node/Integritas status dots, bordered to match the secondary button style, that poll `/api/status/overview` every 30s, keep showing the last known status (flagged as stale) if a refresh fails instead of silently going blank, and open a popover with status detail, error text, and last-checked time on click. The old "Wallet" pill silently reused the Minima node's status and was dropped as redundant with the Dashboard's own wallet balance display.
+- Wallet settings (import wallet) and Minima node settings (megammr host, peer list/add) moved from page-level modals into Account Settings panels.
+- Minima's post-restart status retry window is extended from ~12s to up to 90s, matching the backend's own restart/resync operation-tracking window.
+- Peer connections list in Minima settings is now scrollable instead of growing the panel indefinitely.
+- Loading placeholders ("Checking…" text) across Minima, Wallet, and Dashboard are replaced with a shared bouncing-dots loading indicator.
+- Minima RPC error messages are now normalized for peers/add-peers/restart/balance responses (previously only resync), giving consistent operator-facing wording instead of raw RPC error text.
+- Wallet hero now shows an auto-refreshing receive address QR code (regenerated server-side every 3 minutes) instead of only the raw address; Send payment and Create token moved out of the hero card into page-level buttons.
+- Wallet Assets, wallet History, and Address book are now paginated, filterable tables (matching the Diagnostics tables) instead of plain lists; Address book's "Add contact" form now opens in a modal instead of inline, and wallet/address-book forms share consistent input and button styling.
+- App rebranded from "Edge Workbench"/"Minima Edge Stack" to "Edge Studio" with a new brand mark; the sidebar's user dropdown is replaced with direct "Account settings" and "Sign out" links.
+
+### Fixed
+
+- Account Settings no longer shows a false-positive "Failed to load peers" toast while the Minima node is restarting/resyncing; the peers RPC is only called once node status is confirmed `running`, and automatically retried once it comes back.
+- Minima sync status badge no longer shows false/stale status text; sync status is now derived only from block age instead of also weighing the Minima RPC response's unreliable/inconsistent `synced` and `connecting` fields.
+
+## [0.24.0] - 2026-07-27
+
+- Automation workflows now support a `Show preview` action block that writes text, JSON, link, and image previews into a durable local Automation inbox.
+- Automation inbox image previews can reference either HTTP(S) image URLs or local file paths streamed through an authenticated backend route under the configured host files root.
+- Automation inbox image previews now open from a `View preview` modal link, matching the existing `View JSON` preview behavior.
+
+### Changed
+
+- Main workflow `If field matches` blocks now choose between Trigger event and Variable sources; Latest data is no longer a direct condition source, so workflows should use Set variable before condition checks on recorded or fetched data.
 
 ## [0.23.0] - 2026-07-27
 
@@ -160,6 +223,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Planned per-run workflow variables and output templating for reusable values in later workflow blocks.
 - Automation workflows now support per-run Set variable blocks and `{{variableName}}` interpolation in custom HTTP/MQTT output JSON.
 - Main workflow `If field matches` blocks can now read previously set workflow variables.
+- Automation workflows now support a `Show preview` action block that writes text, JSON, link, and image previews into a durable local Automation inbox.
+- Automation inbox image previews can reference either HTTP(S) image URLs or local file paths streamed through an authenticated backend route under the configured host files root.
 
 ### Changed
 

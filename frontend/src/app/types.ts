@@ -30,7 +30,7 @@ export type UpdateStatusSummary = {
 export type Health = { status: string; service: string };
 export type FileItem = { name: string; type: "file" | "directory" | "other"; size?: number };
 export type FilesResponse = { path: string; items: FileItem[] };
-export type MinimaNodeState = "running" | "stopped" | "error";
+export type MinimaNodeState = "running" | "stopped" | "error" | "restarting";
 export type MinimaSyncStatus = "active" | "stale" | "syncing" | "unavailable";
 export type MinimaNodeStatus = {
   checkedAt: string;
@@ -103,13 +103,19 @@ export type MinimaRestartResult = {
   service: string;
   containerId: string;
 };
-export type IntegritasConfig = {
-  baseUrl: string;
-  requestId: string;
-  hasApiKey: boolean;
-  apiKeySource: "connect" | "database" | "environment" | "none";
-  portalUrl: string;
+export type MinimaConsoleCatalogEntry = {
+  key: string;
+  verb: string;
+  label: string;
+  kind: "read" | "write";
+  defaultEnabled: boolean;
 };
+export type MinimaConsoleWhitelist = {
+  catalog: MinimaConsoleCatalogEntry[];
+  enabledKeys: string[];
+};
+export type MinimaConsoleRunResult = MinimaCommandResult;
+export type IntegritasConfig = { baseUrl: string; requestId: string; hasApiKey: boolean; apiKeySource: "connect" | "database" | "environment" | "none"; portalUrl: string };
 export type StatusOverview = {
   generatedAt: string;
   services: Array<{ name: string; ok: boolean; status: string; details?: unknown; error?: string }>;

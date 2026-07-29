@@ -11,7 +11,9 @@ import { isValidAdminCredential, sanitizePinInput, type AdminCredentialType } fr
 import { PasswordRequirements } from "../features/auth/PasswordRequirements";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
 import { IntegritasConnectPanel } from "../features/integritas-auth/IntegritasConnectPanel";
+import { MinimaSettingsPanel } from "../features/minima/MinimaSettingsPanel";
 import { useUpdateStatusRefresh } from "../features/update/useUpdateStatusRefresh";
+import { WalletSettingsPanel } from "../features/wallet/WalletSettingsPanel";
 
 type TotpResetPhase = "idle" | "scan" | "done";
 
@@ -145,6 +147,10 @@ export function AuthSettingsPage() {
       }
     >
       <IntegritasConnectPanel />
+
+      <MinimaSettingsPanel />
+
+      <WalletSettingsPanel />
 
       <Card>
         <div className="grid gap-1" style={{ marginBottom: 16 }}>

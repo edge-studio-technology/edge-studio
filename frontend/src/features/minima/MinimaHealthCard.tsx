@@ -1,48 +1,57 @@
+import { Terminal } from "lucide-react";
 import type { MinimaNodeStatus } from "../../app/types";
 import { JsonPreview } from "../../components/JsonPreview";
+import { LoadingDots } from "../../components/LoadingDots";
 import { ErrorText } from "../../components/Text";
 import { formatBlockAge } from "./minimaFormat";
 import { shouldShowMinimaRpcError } from "./minimaStatusDisplay";
 import { MinimaStatCell, MinimaStatGrid } from "./MinimaStatCell";
-import { formatLocalTime, formatUtcTime } from "../../lib/time";
+import { formatLocalTime } from "../../lib/time";
 
 export function MinimaHealthCard({
   status,
-  error,
-  loading
+  loading,
+  refreshing
 }: {
   status: MinimaNodeStatus | null;
-  error: string | null;
   loading: boolean;
+  refreshing: boolean;
 }) {
-  const memoryLabel = status?.node.memoryRam ?? (loading ? "Checking…" : "—");
+  const effectiveStatus = refreshing ? null : status;
+  const effectiveLoading = loading || refreshing;
+
+  const memoryLabel = effectiveStatus?.node.memoryRam ?? (effectiveLoading ? <LoadingDots /> : "—");
   const peerLabel =
-    status?.health.peerCount != null ? String(status.health.peerCount) : loading ? "Checking…" : "—";
+    effectiveStatus?.health.peerCount != null
+      ? String(effectiveStatus.health.peerCount)
+      : effectiveLoading
+        ? <LoadingDots />
+        : "—";
   const blockAgeLabel =
-    status?.sync.blockAgeSeconds != null
-      ? formatBlockAge(status.sync.blockAgeSeconds)
-      : status?.sync.blockTime
-        ? formatLocalTime(status.sync.blockTime)
-        : loading
-          ? "Checking…"
+    effectiveStatus?.sync.blockAgeSeconds != null
+      ? formatBlockAge(effectiveStatus.sync.blockAgeSeconds)
+      : effectiveStatus?.sync.blockTime
+        ? formatLocalTime(effectiveStatus.sync.blockTime)
+        : effectiveLoading
+          ? <LoadingDots />
           : "—";
-  const currentBlockLabel = status?.sync.block != null ? String(status.sync.block) : loading ? "Checking…" : "—";
+  const currentBlockLabel =
+    effectiveStatus?.sync.block != null ? String(effectiveStatus.sync.block) : effectiveLoading ? <LoadingDots /> : "—";
 
-  const checkedLine = status?.checkedAt
-    ? `Checked ${formatLocalTime(status.checkedAt)} local · ${formatUtcTime(status.checkedAt)} UTC`
-    : "Chain and process metrics from Minima RPC.";
-
-  const monitoring = status?.monitoring;
+  const monitoring = effectiveStatus?.monitoring;
 
   const footer = (
     <>
-      {error && <p className="mb-2 text-sm text-amber-800">{error}</p>}
-      {shouldShowMinimaRpcError(status) && (
-        <ErrorText className="mb-2">{status?.rpc.error}</ErrorText>
+      {shouldShowMinimaRpcError(effectiveStatus) && (
+        <ErrorText className="mb-2">{effectiveStatus?.rpc.error}</ErrorText>
       )}
-      {status?.rpc.raw !== undefined ? (
-        <JsonPreview value={status.rpc.raw} label="View RPC debug" />
-      ) : null}
+      <JsonPreview
+        value={effectiveStatus?.rpc.raw}
+        label="View RPC debug"
+        variant="button"
+        icon={<Terminal size={16} />}
+        disabled={effectiveStatus?.rpc.raw === undefined}
+      />
     </>
   );
 
@@ -60,7 +69,7 @@ export function MinimaHealthCard({
       )}
 
       <div className="min-h-0 flex-1">
-        <MinimaStatGrid title="Node health" description={checkedLine} footer={footer}>
+        <MinimaStatGrid title="Node health" footer={footer}>
           <MinimaStatCell label="Node memory" value={memoryLabel} />
           <MinimaStatCell label="Active peers" value={peerLabel} />
           <MinimaStatCell label="Last block" value={blockAgeLabel} />

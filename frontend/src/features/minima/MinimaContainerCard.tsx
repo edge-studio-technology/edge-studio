@@ -1,8 +1,11 @@
+import { RotateCcw } from "lucide-react";
 import type { MinimaNodeStatus } from "../../app/types";
+import { Button } from "../../components/Button";
+import { LoadingDots } from "../../components/LoadingDots";
 import { MinimaStatCell, MinimaStatGrid } from "./MinimaStatCell";
 
-function formatContainerMemory(status: MinimaNodeStatus | null) {
-  const memory = status?.container?.memory;
+function formatContainerMemory(container: MinimaNodeStatus["container"] | undefined) {
+  const memory = container?.memory;
   if (!memory?.usage) return null;
   return memory.limit ? `${memory.usage} / ${memory.limit}` : memory.usage;
 }
@@ -16,35 +19,33 @@ export function MinimaContainerCard({
   status,
   loading,
   busy,
+  refreshing,
   onRestart
 }: {
   status: MinimaNodeStatus | null;
   loading: boolean;
   busy?: boolean;
+  refreshing?: boolean;
   onRestart?: () => void;
 }) {
-  const container = status?.container;
-  const unavailable = loading && !container ? "Checking…" : "—";
+  const container = refreshing ? undefined : status?.container;
+  const unavailable = (loading || refreshing) && !container ? <LoadingDots /> : "—";
 
   const cpuLabel = container?.cpuPercent != null ? `${container.cpuPercent}%` : unavailable;
-  const memoryLabel = formatContainerMemory(status) ?? unavailable;
+  const memoryLabel = formatContainerMemory(container) ?? unavailable;
   const stateLabel = formatContainerState(container?.state) ?? unavailable;
   const runtimeLabel = container?.status ?? unavailable;
 
   const restartButton = onRestart ? (
-    <button
-      type="button"
-      className="shrink-0 rounded-[14px] border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-950 disabled:opacity-60"
-      disabled={busy}
-      onClick={onRestart}
-    >
+    <Button type="button" size="sm" variant="secondary" className="w-full" disabled={busy} onClick={onRestart}>
+      <RotateCcw size={16} />
       Restart
-    </button>
+    </Button>
   ) : null;
 
   return (
     <div className="h-full">
-    <MinimaStatGrid title="Container" headerAction={restartButton}>
+    <MinimaStatGrid title="Container health" footer={restartButton}>
       <MinimaStatCell label="CPU load" value={cpuLabel} />
       <MinimaStatCell label="Container memory" value={memoryLabel} />
       <MinimaStatCell label="State" value={stateLabel} />

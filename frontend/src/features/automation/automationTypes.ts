@@ -26,6 +26,7 @@ export type AutomationBlockType =
   | "set_variable"
   | "if_payload_field_equals"
   | "wait"
+  | "show_preview"
   | "stamp_integritas"
   | "control_output"
   | "send_transaction";
@@ -61,6 +62,11 @@ export type AutomationBlock = {
     valueJsonText?: string;
     activeOnly?: boolean;
     cooldownSeconds?: number;
+    title?: string;
+    previewFormat?: "text" | "json" | "link" | "image";
+    contentMode?: "custom" | "workflow_context" | "trigger_payload" | "latest_data";
+    contentTemplateText?: string;
+    imageSource?: "url" | "local_path";
     source?: "trigger" | "variable";
     fieldPath?: string;
     operator?: ConditionOperator;
@@ -124,5 +130,19 @@ export type AutomationValidationResult = {
   ok: boolean;
   errors: AutomationValidationIssue[];
   warnings: AutomationValidationIssue[];
+};
+
+export type AutomationInboxItem = {
+  id: string;
+  workflowId: string | null;
+  workflowName: string;
+  runId: string | null;
+  blockId: string | null;
+  title: string;
+  format: "text" | "json" | "link" | "image";
+  content: unknown;
+  renderedText: string | null;
+  createdAt: string;
+  readAt: string | null;
 };
 

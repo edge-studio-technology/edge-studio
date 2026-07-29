@@ -173,6 +173,10 @@ Proof stamping uses the Integritas Connect account API key stored encrypted in `
 `INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS` is how often the Pi polls Connect while device activation is pending (default `5`).
 `ENABLE_MQTT_BROKER=true` enables the optional local Mosquitto broker when `COMPOSE_PROFILES=mqtt` is also set. The installer sets both values when launched with `ENABLE_MQTT_BROKER=true`. The Devices page shows the LAN broker URL for external devices and the internal Docker URL for Integritas Pi MQTT input/output configs.
 
+The ESP32 MQTT Board onboarding option creates a normal MQTT input source and then shows copyable Arduino ESP32 starter firmware. The generated firmware uses the LAN broker host/port for the ESP32 while the saved MQTT source can keep using the backend's internal broker URL.
+
+Step-by-step ESP32 flashing and workflow setup instructions are in [`docs/guides/esp32-mqtt-sensors.md`](./docs/guides/esp32-mqtt-sensors.md).
+
 The backend polls Integritas for pending proof UIDs in the background (`INTEGRITAS_POLL_INTERVAL_SECONDS`, default 30). Pending proofs that never reach on-chain status are marked failed after `INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES` (default 5). Automation workflows retry Integritas stamps on the next run after transient upstream errors. Manual poll in Diagnostics still works and uses the same refresh logic.
 
 On the Integritas page, stamping a file opens a result modal with proof UID, hash, and on-chain status (with optional live status refresh). The Configure Integritas modal links to the cloud portal API logs tab (`INTEGRITAS_PORTAL_URL`, default `https://integritas.technology/profile?tab=apilogs`).
@@ -612,6 +616,16 @@ POST /api/minima/peers/add
 ```
 
 `POST /api/minima/restart` restarts the Minima Docker container via the backend Docker socket (see `SECURITY.md`). `POST /api/minima/peers/add` accepts `{ "peerslist": "host:port" }` or comma-separated addresses and calls Minima `peers action:addpeers`.
+
+Minima RPC console (admin session required for all three):
+
+```http
+GET /api/minima/console/whitelist
+POST /api/minima/console/whitelist
+POST /api/minima/console/run
+```
+
+The RPC console on the Minima Core page runs a typed Minima RPC command string only if it is both in the backend's static command catalog and enabled in the admin whitelist — it is not a generic RPC proxy (see `.agents/rules/minima.md` and `docs/security/host-and-infrastructure.md`). `GET /api/minima/console/whitelist` returns the catalog and currently enabled command keys. `POST /api/minima/console/whitelist` accepts `{ "enabledKeys": string[], "currentPassword": string }` and requires re-entering the admin PIN/password, same as changing the admin credential. `POST /api/minima/console/run` accepts `{ "command": string }` (the exact RPC command text, e.g. `status` or `peers action:addpeers peerslist:host:port`) and returns the RPC/action result.
 
 Wallet and account APIs:
 

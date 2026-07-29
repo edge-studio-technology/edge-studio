@@ -75,6 +75,12 @@
     opacity: 0.55;
   }
 
+  .button-secondary {
+    background: #ffffff;
+    color: #020617;
+    border: 1px solid #e2e8f0;
+  }
+
   .service-list {
     text-align: left;
     font-size: 13px;
@@ -103,6 +109,12 @@
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
+
+  .button-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
 </style>
 </head>
 <body>
@@ -116,13 +128,19 @@
       <h1>Up to date</h1>
       <p id="up-to-date-version"></p>
       <ul id="up-to-date-list" class="service-list"></ul>
+      <div class="button-row">
+        <button id="back-button-up-to-date" type="button" class="button-secondary">Back</button>
+      </div>
     </div>
 
     <div id="view-available" class="hidden">
       <h1>Update available</h1>
       <p id="available-version" class="version-line"></p>
       <ul id="available-list" class="service-list"></ul>
-      <button id="update-now-button" type="button">Update Now</button>
+      <div class="button-row">
+        <button id="back-button-available" type="button" class="button-secondary">Back</button>
+        <button id="update-now-button" type="button">Update Now</button>
+      </div>
     </div>
 
     <div id="view-updating" class="hidden">
@@ -145,7 +163,10 @@
     <div id="view-error" class="hidden">
       <h1 class="error-text">Unable to check for updates</h1>
       <p id="error-message"></p>
-      <button id="retry-button" type="button">Retry</button>
+      <div class="button-row">
+        <button id="back-button-error" type="button" class="button-secondary">Back</button>
+        <button id="retry-button" type="button">Retry</button>
+      </div>
     </div>
   </div>
 

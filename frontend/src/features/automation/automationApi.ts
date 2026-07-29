@@ -1,6 +1,6 @@
 import { deleteJson, getJson, patchJson, postJson } from "../../lib/api";
 import { buildListQueryString, DEFAULT_PAGE_SIZE, type ListQueryParams, type PaginatedResponse } from "../../lib/paginated";
-import type { AutomationBlock, AutomationBlockType, AutomationRun, AutomationValidationResult, AutomationWorkflow } from "./automationTypes";
+import type { AutomationBlock, AutomationBlockType, AutomationInboxItem, AutomationRun, AutomationValidationResult, AutomationWorkflow } from "./automationTypes";
 
 export async function listAutomationWorkflows() {
   return getJson<{ items: AutomationWorkflow[] }>("/api/automation/workflows");
@@ -56,4 +56,21 @@ export async function listAutomationWorkflowRuns(workflowId: string, limit = 20)
 
 export async function getAutomationWorkflowValidation(workflowId: string) {
   return getJson<{ item: AutomationValidationResult }>(`/api/automation/workflows/${workflowId}/validation`);
+}
+
+export async function listAutomationInbox(params: { status?: "read" | "unread" | "all"; limit?: number; offset?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.offset) query.set("offset", String(params.offset));
+  const suffix = query.toString();
+  return getJson<{ items: AutomationInboxItem[]; total: number; limit: number; offset: number }>(`/api/automation/inbox${suffix ? `?${suffix}` : ""}`);
+}
+
+export async function updateAutomationInboxItem(id: string, input: { read: boolean }) {
+  return patchJson<{ item: AutomationInboxItem }>(`/api/automation/inbox/${id}`, input);
+}
+
+export async function deleteAutomationInboxItem(id: string) {
+  return deleteJson<{ deleted: boolean }>(`/api/automation/inbox/${id}`);
 }
