@@ -3,7 +3,7 @@
 ```
 docs/
 ├── PROJECT.md   goal, audience, constraints, success criteria
-├── frontend-design-system.md   frontend styling/component conventions
+├── frontend-design-system.md   frontend styling; ui/ vs patterns/ placement
 ├── TASKS.md     current work items (read every session)
 ├── SESSION.md   scratch log for the session in progress
 ├── security/    detailed security risk register (see SECURITY.md for the policy)
@@ -21,7 +21,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | Doc                                                      | Purpose                                                       |
 | -------------------------------------------------------- | ------------------------------------------------------------- |
 | [PROJECT.md](./PROJECT.md)                               | Goals, audience, non-goals, constraints, success criteria     |
-| [frontend-design-system.md](./frontend-design-system.md) | Frontend styling/component conventions                        |
+| [frontend-design-system.md](./frontend-design-system.md) | Frontend styling; `components/ui/` vs `patterns/` placement   |
 | [TASKS.md](./TASKS.md)                                   | Current focus / in progress / next / done                     |
 | [SESSION.md](./SESSION.md)                               | Scratch notes for the session in progress — reset per session |
 
@@ -32,6 +32,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | [../.agents/rules/project-shape.md](../.agents/rules/project-shape.md)       | Architecture, core principles, what to read before editing    |
 | [../.agents/rules/backend.md](../.agents/rules/backend.md)                   | Backend feature folders, route/schema conventions, auth rules |
 | [../.agents/rules/frontend.md](../.agents/rules/frontend.md)                 | Frontend feature folders, API usage, styling conventions      |
+| [../.agents/skills/frontend-design-system/SKILL.md](../.agents/skills/frontend-design-system/SKILL.md) | Place new shared UI in `ui/` vs `patterns/` (migrate later) |
 | [../.agents/rules/cli.md](../.agents/rules/cli.md)                           | CLI conventions and constraints                               |
 | [../.agents/rules/minima.md](../.agents/rules/minima.md)                     | Minima RPC command rules                                      |
 | [../.agents/rules/integritas.md](../.agents/rules/integritas.md)             | Integritas stamping/proof rules                               |

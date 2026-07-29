@@ -3,14 +3,17 @@ import { cx } from "../lib/cx";
 export function Card({
   children,
   className = "",
+  size = "Default",
 }: {
   children: React.ReactNode;
   className?: string;
+  size?: "Default" | "Compact";
 }) {
   return (
     <section
       className={cx(
-        "border-brand-border bg-brand-white rounded-md border p-6 shadow-[0_18px_40px_rgb(26_26_24_/_0.06)]",
+        "bg-surface-always-white rounded-soft relative flex flex-col items-start overflow-clip gap-detail-close",
+        size === "Compact" ? "p-margin-tight" : "p-margin-relaxed",
         className,
       )}
     >

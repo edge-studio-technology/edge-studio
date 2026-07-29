@@ -1,7 +1,17 @@
 import type { LucideIcon } from "lucide-react";
 
-export type Tone = "neutral" | "good" | "warn" | "future";
-export type NavId = "dashboard" | "setup" | "node" | "wallet" | "integritas" | "data" | "automation" | "diagnostics" | "settings";
+export type Tone = "neutral" | "good" | "warn" | "error";
+export type NavId =
+  | "dashboard"
+  | "setup"
+  | "node"
+  | "wallet"
+  | "integritas"
+  | "data"
+  | "automation"
+  | "diagnostics"
+  | "marketplace"
+  | "settings";
 export type NavItem = { id: NavId; label: string; icon: LucideIcon; badge?: string };
 
 export type UpdateServiceStatus = {
@@ -71,7 +81,14 @@ export type MinimaNodeStatus = {
   };
 };
 export type MinimaConfig = { megammrHost: string; megammrHostSource: "database" | "default" };
-export type MinimaCommandResult = { ok: boolean; status?: number; source: string; command?: string; body?: unknown; error?: string };
+export type MinimaCommandResult = {
+  ok: boolean;
+  status?: number;
+  source: string;
+  command?: string;
+  body?: unknown;
+  error?: string;
+};
 export type MinimaPeersResponse = {
   ok: boolean;
   count: number | null;

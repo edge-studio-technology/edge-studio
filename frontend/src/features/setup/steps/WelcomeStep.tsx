@@ -52,10 +52,10 @@ export function WelcomeStep() {
             return (
               <li
                 key={step.id}
-                className="bg-brand-white grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200/80 px-4 py-3.5 motion-safe:animate-[onboarding-fade-up_0.45s_ease-out_both]"
+                className="bg-surface-always-white grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200/80 px-4 py-3.5 motion-safe:animate-[onboarding-fade-up_0.45s_ease-out_both]"
                 style={{ animationDelay: `${140 + index * 80}ms` }}
               >
-                <span className="text-brand-accent grid h-10 w-10 place-items-center">
+                <span className="text-text-accent grid h-10 w-10 place-items-center">
                   <Icon size={20} strokeWidth={2.25} aria-hidden="true" />
                 </span>
                 <div className="min-w-0">

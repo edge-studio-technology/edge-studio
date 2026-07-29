@@ -7,7 +7,7 @@ export function PasswordRequirements({ password }: { password: string }) {
 
   return (
     <div
-      className="border-brand-border bg-brand-white grid gap-2 rounded border p-3 shadow-[0_1px_2px_rgb(26_26_24_/_0.08)]"
+      className="border-stroke-primary bg-surface-always-white grid gap-2 rounded border p-3 shadow-[0_1px_2px_rgb(26_26_24_/_0.08)]"
       aria-label="Password requirements"
     >
       <span className="text-xs font-bold tracking-wide text-slate-500 uppercase">

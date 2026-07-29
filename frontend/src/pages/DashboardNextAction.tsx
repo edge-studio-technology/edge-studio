@@ -24,7 +24,7 @@ export function DashboardNextAction() {
   return (
     <Card className="grid gap-6">
       <header className="grid max-w-2xl gap-2">
-        <Eyebrow className="text-brand-accent">Getting started</Eyebrow>
+        <Eyebrow className="text-text-accent">Getting started</Eyebrow>
         <h3 className="m-0 text-2xl tracking-tight text-slate-950">
           {step === 1 ? "Connect a device to get started" : "Create your first workflow"}
         </h3>
@@ -88,9 +88,9 @@ function Step({
         <span
           className={cx(
             "relative z-10 grid size-8 place-items-center rounded-full text-sm font-bold",
-            state === "done" && "bg-success text-brand-white",
-            state === "current" && "bg-brand-graphite text-brand-white",
-            state === "upcoming" && "bg-brand-graphite-soft text-brand-graphite-muted",
+            state === "done" && "bg-feedback-positive text-text-inverse",
+            state === "current" && "bg-surface-inverse text-text-inverse",
+            state === "upcoming" && "bg-surface-secondary text-text-secondary",
           )}
           aria-hidden="true"
         >
@@ -100,7 +100,7 @@ function Step({
           <span
             className={cx(
               "absolute top-8 bottom-[-0.75rem] w-px",
-              state === "done" ? "bg-success" : "bg-brand-border",
+              state === "done" ? "bg-feedback-positive" : "bg-stroke-primary",
             )}
             aria-hidden="true"
           />
@@ -110,7 +110,7 @@ function Step({
         <p
           className={cx(
             "m-0 font-bold",
-            state === "upcoming" ? "text-brand-graphite-muted" : "text-slate-950",
+            state === "upcoming" ? "text-text-secondary" : "text-slate-950",
           )}
         >
           {title}
@@ -120,7 +120,7 @@ function Step({
         <MutedText
           className={cx(
             "m-0 mt-1 text-sm leading-relaxed",
-            state === "upcoming" && "text-brand-graphite-muted",
+            state === "upcoming" && "text-text-secondary",
           )}
         >
           {detail}

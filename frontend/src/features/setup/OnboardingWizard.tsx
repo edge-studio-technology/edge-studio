@@ -207,7 +207,7 @@ export function OnboardingWizard({
         role="main"
         aria-label="Setup Wizard"
       >
-        <header className="bg-brand-white shrink-0 border-b border-slate-200/80">
+        <header className="bg-surface-always-white shrink-0 border-b border-slate-200/80">
           <div className="flex min-h-20 items-center justify-between gap-4 px-6 lg:px-10">
             <div className="flex min-w-0 items-center gap-2.5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-slate-950 text-white">
@@ -241,7 +241,7 @@ export function OnboardingWizard({
             }
           >
             <span
-              className="bg-brand-accent block h-full transition-[width] duration-200 ease-out motion-reduce:transition-none"
+              className="bg-surface-accent block h-full transition-[width] duration-200 ease-out motion-reduce:transition-none"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -291,7 +291,7 @@ export function OnboardingWizard({
             </ErrorText>
           ) : null}
 
-          <footer className="bg-brand-white shrink-0 border-t border-slate-200/80">
+          <footer className="bg-surface-always-white shrink-0 border-t border-slate-200/80">
             <div className="flex min-h-20 items-center justify-between gap-4 px-6 lg:px-10">
               <div className="flex min-w-0 flex-1 items-center">
                 {canGoBack ? (
