@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Toast system now supports `tone: "warning"`.
 - Shared `SelectField` (`components/ui/`) for ESDS select fields (label / description / control / error; optional placeholder; default / disabled / error). See `docs/frontend-design-system.md`.
 - Shared `SwitchField` (`components/ui/`) for ESDS switch fields (on / off × default / disabled; optional label / description). See `docs/frontend-design-system.md`.
 - Shared `RadioField` (`components/ui/`) for ESDS radio fields (selected / unselected × default / disabled; optional description; group via shared `name`). See `docs/frontend-design-system.md`.
@@ -24,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Shared toasts restyled to ESDS Notification visuals (Light / Dark / Error / Warning) inside `ToastProvider`; `useToast` API unchanged.
 - Shared `Modal` now matches ESDS Dialog Type=Modal (`components/ui/`; max-width 600, close IconButton, optional description/footer). Flat `components/Modal.tsx` re-exports. Sheet variant not yet implemented. See `docs/frontend-design-system.md`.
 - Moved `Menu`, `PinField`, `TabList`, `TextareaField`, and `ToggleTabs` into `components/ui/`. See `docs/frontend-design-system.md`.
 - Frontend shared components: new ESDS primitives go in `components/ui/`, new composed layouts in `components/patterns/`; existing flat files migrate later. See `docs/frontend-design-system.md` and the `frontend-design-system` skill.
@@ -36,6 +38,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Frontend spacing tokens follow ESDS foundations (detail / separator / margin scales). Components and pages are not migrated yet.
 - Shared `Button` / `IconButton` follow the ESDS button matrices (text button + circular icon button, tokens, focus ring). Call-site migration and aria notes are in `docs/frontend-design-system.md`.
 - Shared `Card` wrapper now matches ESDS/Figma layout defaults (including the default 16px `gap-detail-close`) and adds `size="Default" | "Compact"` for relaxed vs tight padding.
+- Shared workflow/history table helpers now use ESDS table visuals (grey header row, `stroke-primary` borders, and `type-body-em` headers / `type-meta` cells). See `frontend/src/components/DataTable.tsx`.
+- Added a migration-ready ESDS `components/patterns/Table` shell (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`) for future replacement of legacy native `<table>` markup.
 
 ## [0.23.0] - 2026-07-27
 

@@ -52,11 +52,11 @@ Migration is **incremental**, not a big-bang move:
 
 **Target homes (when migrated)**
 
-| Target         | Components (indicative)                                                                                                                                                                                                                                                              |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Target         | Components (indicative)                                                                                                                                                                                                                                                                            |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal` , `ProgressBar`, `Pagination`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                                            |
-| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                            |
+| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                                                          |
+| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                          |
 
 ## Styling Rules
 
@@ -484,9 +484,9 @@ Selected: `surface-inverse` / `text-inverse`, 44px tall, `type-body`. Idle: tran
 
 ## Tables And Lists
 
-- Use `DataTable` for tabular workflow/history/list surfaces.
+- Use `DataTable` for tabular workflow/history/list surfaces (native `<table>` + `frontend/src/components/DataTable.tsx`, styled with ESDS table visuals).
 - Use compact cards/lists instead of tables when the content is entity-detail oriented, narrow, or action-heavy.
-- Preserve the shared table visual style: rounded bordered wrapper, uppercase slate header row, `border-t` body rows, and `px-4 py-3` cells.
+- When migrating off native `<table>` markup, prefer the ESDS table shell pattern in `frontend/src/components/patterns/Table.tsx` (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`).
 
 ## Tokens
 
