@@ -32,6 +32,14 @@ const beakPositionClass: Record<TooltipPlacement, string> = {
   right: "left-[-4px] top-1/2 -translate-y-1/2",
 };
 
+/** Two sides of the rotated square so the outline continues into the beak tip. */
+const beakBorderClass: Record<TooltipPlacement, string> = {
+  top: "border-b border-r",
+  bottom: "border-t border-l",
+  left: "border-t border-r",
+  right: "border-b border-l",
+};
+
 type Coords = { top: number; left: number };
 
 function coordsFor(
@@ -122,7 +130,7 @@ function TooltipBubble({
       {...props}
       role={role ?? (actions ? "dialog" : "tooltip")}
       className={cx(
-        "bg-surface-always-white gap-detail-close rounded-soft p-margin-tight relative flex max-w-[400px] flex-col",
+        "border-stroke-secondary bg-surface-always-white gap-detail-close rounded-soft p-margin-tight relative flex max-w-[400px] flex-col border",
         placement === "left" || placement === "right" ? "items-start" : "items-center",
         className,
       )}
@@ -130,8 +138,9 @@ function TooltipBubble({
       <span
         aria-hidden
         className={cx(
-          "bg-surface-always-white pointer-events-none absolute size-2 rotate-45",
+          "border-stroke-secondary bg-surface-always-white pointer-events-none absolute size-2 rotate-45",
           beakPositionClass[placement],
+          beakBorderClass[placement],
         )}
       />
       <div className="relative flex w-full flex-col items-start break-words">

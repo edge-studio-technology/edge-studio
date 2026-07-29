@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Shared `StatusBar` (`components/`) for the ESDS app status bar (status Tags + Local/UTC clocks). Shell chrome used by `AppShell` in place of the previous header status/clock chrome. See `docs/frontend-design-system.md`.
 - Shared `Tooltip` (`components/ui/`) for ESDS tooltip / toggletip (trigger + portal positioning, hover/focus or click, Escape / outside dismiss, basic flip). See `docs/frontend-design-system.md`.
 - Toast system now supports `tone: "warning"`.
 - Shared `SelectField` (`components/ui/`) for ESDS select fields (label / description / control / error; optional placeholder; default / disabled / error). See `docs/frontend-design-system.md`.
@@ -26,6 +27,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Shared `Tooltip` bubble uses a `stroke-secondary` border (including beak edges) so it remains visible on white / light surfaces.
+- `Clock` now renders as ESDS Tag pills (`Local …` / `UTC …`) to match the Status Bar design.
 - Shared `ErrorAlert` moved to `components/patterns/` and restyled to ESDS feedback chrome (white surface, `stroke-error` border, `feedback-error` wash; optional title / recovery action). Flat `components/ErrorAlert.tsx` re-exports. See `docs/frontend-design-system.md`.
 - Shared toasts restyled to ESDS Notification visuals (Light / Dark / Error / Warning) inside `ToastProvider`; `useToast` API unchanged.
 - Shared `Modal` now matches ESDS Dialog Type=Modal (`components/ui/`; max-width 600, close IconButton, optional description/footer). Flat `components/Modal.tsx` re-exports. Sheet variant not yet implemented. See `docs/frontend-design-system.md`.

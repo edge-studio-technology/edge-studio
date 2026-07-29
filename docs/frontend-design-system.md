@@ -56,7 +56,7 @@ Migration is **incremental**, not a big-bang move:
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `CredentialInput` (or retire into `InputField`) |
 | `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                                                                    |
-| Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                    |
+| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                       |
 
 ## Styling Rules
 
@@ -97,6 +97,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `CredentialInput`: PIN or password field (`mode="pin" | "password"`); wraps `Input`. _(→ `ui/` or retire)_
 - `DataTable`: workflow-style table shell, wrapper, rows, and action cells. _(→ `patterns/`)_
 - `StatusRow`: compact label/value/status presentation. _(→ `patterns/`)_
+- `StatusBar` (`components/`): ESDS app status bar (status Tags left, Local/UTC clock Tags right). Shell chrome used by `AppShell`.
 - `ListPagerFilterBar`: list filtering and pagination controls. _(→ `patterns/`)_
 - `Pagination` (`components/ui/`): prev/next controls plus condensed page-number strip with ellipsis gaps. Stable full-width layout so prev/next don’t shift.
 - `Tooltip` (`components/ui/`): ESDS tooltip / toggletip (trigger + positioned bubble; hover/focus or click; optional body / actions).
@@ -310,28 +311,28 @@ ESDS Dialog Type=Modal (`frontend/src/components/ui/Modal.tsx`): centered portal
 
 ### Tooltip
 
-ESDS Tooltip (`frontend/src/components/ui/Tooltip.tsx`): white bubble with placement beak (top / bottom / left / right), title, optional body, optional action row. Figma keywords: toggletip, popover.
+ESDS Tooltip (`frontend/src/components/ui/Tooltip.tsx`): white bubble with `stroke-secondary` border (and matching beak edges) so it stays visible on light surfaces; placement beak (top / bottom / left / right); title, optional body, optional action row.
 
 Pass `children` as the trigger. Without `actions`, opens on hover/focus (tooltip). With `actions`, opens on click and closes on Escape / outside click (toggletip). Positions via portal with basic flip when the preferred side would clip.
 
-| Prop            | Values / notes                                                                                      |
-| --------------- | --------------------------------------------------------------------------------------------------- |
-| `children`      | Required trigger                                                                                    |
-| `title`         | Required; `type-body-em` primary                                                                    |
-| `body`          | Optional secondary copy under the title (`type-body`)                                               |
-| `actions`       | Optional right-aligned action row (use compact `Button`s, `size="sm"`) — enables toggletip mode     |
-| `placement`     | `top` (default) \| `bottom` \| `left` \| `right` — preferred side; may flip to stay on-screen       |
-| `className`     | Merged onto the bubble                                                                              |
-| `open`          | Optional controlled open state                                                                      |
-| `defaultOpen`   | Uncontrolled initial open (default `false`)                                                         |
-| `onOpenChange`  | Open state callback                                                                                 |
+| Prop           | Values / notes                                                                                  |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| `children`     | Required trigger                                                                                |
+| `title`        | Required; `type-body-em` primary                                                                |
+| `body`         | Optional secondary copy under the title (`type-body`)                                           |
+| `actions`      | Optional right-aligned action row (use compact `Button`s, `size="sm"`) — enables toggletip mode |
+| `placement`    | `top` (default) \| `bottom` \| `left` \| `right` — preferred side; may flip to stay on-screen   |
+| `className`    | Merged onto the bubble                                                                          |
+| `open`         | Optional controlled open state                                                                  |
+| `defaultOpen`  | Uncontrolled initial open (default `false`)                                                     |
+| `onOpenChange` | Open state callback                                                                             |
 
 ```tsx
 <Tooltip title="Title" body="Body text" placement="top">
   <Button variant="secondary" size="sm">
     Hover me
   </Button>
-</Tooltip>
+</Tooltip>;
 
 <Tooltip
   title="Title"
@@ -351,7 +352,7 @@ Pass `children` as the trigger. Without `actions`, opens on hover/focus (tooltip
   <Button variant="primary" size="sm">
     Open
   </Button>
-</Tooltip>
+</Tooltip>;
 ```
 
 ### ProgressBar
@@ -393,6 +394,31 @@ Uses `role="alert"`, Lucide `AlertCircle` (`icon-error`), `rounded-soft`, `p-mar
   {error}
 </ErrorAlert>
 <ErrorAlert>{error}</ErrorAlert>
+```
+
+### StatusBar
+
+ESDS Status Bar (`frontend/src/components/StatusBar.tsx`): shell chrome with status Tags on the left and Local/UTC clock Tags on the right (`surface-primary`, `p-margin-tight`). Composes `Pill`, `Clock`, and optional `Tooltip` detail on each status item.
+
+| Prop        | Notes                                                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `items`     | `{ id, label, tone, detailTitle?, detailBody?, actions?, trigger? }[]` — use `trigger: "hover"` with `actions` for hover CTAs |
+| `className` | Optional; merged onto the bar shell                                                                                           |
+
+`tone` / indicator follow `Pill`. Prefer this over ad-hoc status rows in `AppShell`.
+
+```tsx
+<StatusBar
+  items={[
+    { id: "node", label: "Node online", tone: "good", detailTitle: "Node online" },
+    {
+      id: "integritas",
+      label: "Integritas disconnected",
+      tone: "warn",
+      detailTitle: "Integritas disconnected",
+    },
+  ]}
+/>
 ```
 
 ### Pill

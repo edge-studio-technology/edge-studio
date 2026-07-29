@@ -1,82 +1,70 @@
-import { useEffect, useMemo, useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Bug, LogOut, MessageSquare, Settings, ShieldCheck, Sparkles } from "lucide-react";
-import { APP_NAME, APP_TAGLINE } from "../app/brand";
-import { getDebugPing } from "../features/debug/debugApi";
+import { useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { nav } from "../app/nav";
-import type { StatusOverview } from "../app/types";
+import type { StatusOverview, Tone } from "../app/types";
+import { getDebugPing } from "../features/debug/debugApi";
 import { FeedbackModal } from "../features/feedback/FeedbackModal";
 import { AppShellSidebar } from "./AppShellSidebar";
 import { useStatusOverviewRefresh } from "../features/status/useStatusOverviewRefresh";
 import { useUpdateStatusRefresh } from "../features/update/useUpdateStatusRefresh";
-import { cx } from "../lib/cx";
-import { BrandMark } from "./BrandMark";
-import { Button } from "./Button";
-import { Card } from "./Card";
-import { Clock } from "./Clock";
-import { StatusDot, type StatusDotTone } from "./StatusDot";
+import { StatusBar, type StatusBarItem } from "./StatusBar";
 
 function findService(overview: StatusOverview | null, name: string) {
   return overview?.services.find((service) => service.name === name);
 }
 
-function serviceTone(service: ReturnType<typeof findService>): StatusDotTone {
-  if (!service) return "unknown";
-  return service.ok ? "good" : "warn";
+type OverviewService = NonNullable<ReturnType<typeof findService>>;
+
+function serviceDetailMessage(service: OverviewService | undefined, id: string): string {
+  if (!service) return "Status has not been checked yet.";
+  if (service.ok) return "Last check succeeded.";
+  if (id === "integritas") {
+    return "Reconnect Integritas in Account to restore the connection.";
+  }
+  if (service.error) return service.error;
+  if (service.status === "error") return "Something went wrong during the last check.";
+  return `Current state: ${service.status.replace(/_/g, " ")}.`;
 }
 
-function ServiceDetail({
+function statusBarItem({
+  id,
+  okLabel,
+  badLabel,
+  pendingLabel,
   service,
   generatedAt,
   refreshError,
 }: {
-  service: ReturnType<typeof findService>;
+  id: string;
+  okLabel: string;
+  badLabel: string;
+  pendingLabel: string;
+  service: OverviewService | undefined;
   generatedAt: string | undefined;
   refreshError: string | null;
-}) {
-  return (
+}): StatusBarItem {
+  const tone: Tone = !service ? "neutral" : service.ok ? "good" : "warn";
+  const label = !service ? pendingLabel : service.ok ? okLabel : badLabel;
+
+  const detailBody = (
     <div className="flex flex-col gap-1">
-      <p className="m-0 font-bold text-slate-900">{service ? service.status : "Not checked yet"}</p>
-      {service?.error && <p className="m-0 text-red-600">{service.error}</p>}
-      {generatedAt && (
-        <p className="m-0 text-slate-400">Checked {new Date(generatedAt).toLocaleTimeString()}</p>
-      )}
-      {refreshError && (
-        <p className="m-0 text-amber-600">Could not refresh — showing last known status.</p>
-      )}
+      <p className="m-0">{serviceDetailMessage(service, id)}</p>
+      {generatedAt ? (
+        <p className="m-0">Checked {new Date(generatedAt).toLocaleTimeString()}</p>
+      ) : null}
+      {refreshError ? (
+        <p className="text-text-warning m-0">Could not refresh — showing last known status.</p>
+      ) : null}
     </div>
   );
-}
 
-function StatusDots({
-  minimaService,
-  integritasService,
-  generatedAt,
-  refreshError,
-}: {
-  minimaService: ReturnType<typeof findService>;
-  integritasService: ReturnType<typeof findService>;
-  generatedAt: string | undefined;
-  refreshError: string | null;
-}) {
-  return (
-    <>
-      <StatusDot label="Node" tone={serviceTone(minimaService)}>
-        <ServiceDetail
-          service={minimaService}
-          generatedAt={generatedAt}
-          refreshError={refreshError}
-        />
-      </StatusDot>
-      <StatusDot label="Integritas" tone={serviceTone(integritasService)}>
-        <ServiceDetail
-          service={integritasService}
-          generatedAt={generatedAt}
-          refreshError={refreshError}
-        />
-      </StatusDot>
-    </>
-  );
+  return {
+    id,
+    label,
+    tone,
+    detailTitle: label,
+    detailBody,
+  };
 }
 
 export function AppShell({
@@ -124,6 +112,27 @@ export function AppShell({
       .finally(() => setDebugPinging(false));
   }
 
+  const statusItems: StatusBarItem[] = [
+    statusBarItem({
+      id: "node",
+      okLabel: "Node online",
+      badLabel: "Node offline",
+      pendingLabel: "Node",
+      service: minimaService,
+      generatedAt: overview?.generatedAt,
+      refreshError: statusRefreshError,
+    }),
+    statusBarItem({
+      id: "integritas",
+      okLabel: "Integritas connected",
+      badLabel: "Integritas disconnected",
+      pendingLabel: "Integritas",
+      service: integritasService,
+      generatedAt: overview?.generatedAt,
+      refreshError: statusRefreshError,
+    }),
+  ];
+
   return (
     <div className="min-h-screen">
       <div className="flex min-h-screen">
@@ -133,32 +142,9 @@ export function AppShell({
           onSignOut={onSignOut}
         />
 
-        <main className="min-w-0 flex-1 p-2">
-          <header className="flex flex-col gap-4 rounded border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="m-0 text-[0.86rem] text-slate-400">Current section</p>
-                  <h2 className="m-0 mt-0.5 text-xl font-extrabold tracking-[-0.03em] text-slate-950">
-                    {activeItem.label}
-                  </h2>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <StatusDots
-                  minimaService={minimaService}
-                  integritasService={integritasService}
-                  generatedAt={overview?.generatedAt}
-                  refreshError={statusRefreshError}
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
-              <Clock />
-            </div>
-          </header>
-
-          {children}
+        <main className="min-w-0 flex-1">
+          <StatusBar items={statusItems} />
+          <div className="p-margin-distant">{children}</div>
         </main>
       </div>
       {feedbackOpen && (
