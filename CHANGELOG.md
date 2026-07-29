@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Device picker labels now follow the naming convention, including `HTTP JSON Source`, `HTTP JSON Target`, `MQTT Subscriber`, `MQTT Publisher`, `Webhook Receiver`, `GPIO Input Pin`, `GPIO Output Pin`, and `Raspberry Pi Camera`.
 - Devices referenced by non-archived workflows can no longer be deleted until they are removed from those workflows.
 - ESP32 starter firmware now uses the MQTT broker URL saved on the ESP32 MQTT Board source, only asking for an ESP32-reachable override when that URL is Docker-internal or localhost-only.
+- Automation action failures now appear as toast notifications, while load/refresh failures use a dedicated in-page alert with a retry action.
 
 ## [0.26.0] 2026-07-28
 
@@ -73,6 +74,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Main workflow `If field matches` blocks now choose between Trigger event and Variable sources; Latest data is no longer a direct condition source, so workflows should use Set variable before condition checks on recorded or fetched data.
+- Automation action failures now appear as toast notifications, while load/refresh failures use a dedicated in-page alert with a retry action.
 
 ## [0.23.0] - 2026-07-27
 
