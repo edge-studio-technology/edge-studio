@@ -84,7 +84,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `RadioField` (`components/ui/`): ESDS radio + label + optional description (selected / unselected × default / disabled).
 - `SwitchField` (`components/ui/`): ESDS switch + optional label / description (on / off × default / disabled).
 - `Text`: shared muted, error, and eyebrow text helpers. _(→ `ui/`)_
-- `ErrorAlert`: in-page error alert with optional title and recovery action. _(→ `patterns/`)_
+- `ErrorAlert` (`components/patterns/`): in-page error alert (ESDS feedback chrome; optional title and recovery action). Flat `components/ErrorAlert.tsx` re-exports.
 - `Modal` (`components/ui/`): ESDS Dialog Type=Modal (portal overlay, max-width 600). Flat `components/Modal.tsx` re-exports.
 - `Input`: ESDS text control (box only). Prefer `InputField` for labeled forms. _(→ `ui/`)_
 - `InputField`: ESDS Input Field (label / description / control / error); wraps `Input`. _(→ `ui/`)_
@@ -194,6 +194,7 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Use bare `Input` only when there is no label stack (rare toolbars / search).
 - Use `CredentialInput` for PIN/password chrome until those call sites move onto `InputField`.
 - Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
+- Use `ErrorAlert` for persistent in-page / form-level failures that stay in layout (optional Retry action).
 - Use toast errors for transient action failures that should not occupy page layout.
 
 ### CheckboxField
@@ -325,6 +326,26 @@ Back control is `IconButton` ghost compact with ChevronLeft. Count uses `Pill`. 
 ```tsx
 <ProgressBar current={1} total={2} onBack={() => goBack()} />
 <ProgressBar current={2} total={2} showBack={false} />
+```
+
+### ErrorAlert
+
+In-page error alert (`frontend/src/components/patterns/ErrorAlert.tsx`): same ESDS feedback chrome as toast error (white surface, `stroke-error` border, 20% `feedback-error` wash). Prefer field `error` for per-control validation; prefer toast for transient action failures.
+
+| Prop        | Notes                                              |
+| ----------- | -------------------------------------------------- |
+| `title`     | Optional; `type-body-em` primary                   |
+| `children`  | Body; primary when alone, secondary under a title  |
+| `action`    | Optional recovery control (e.g. Retry)             |
+| `className` | Merged onto the outer alert shell                  |
+
+Uses `role="alert"`, Lucide `AlertCircle` (`icon-error`), `rounded-soft`, `p-margin-tight`. Flat `components/ErrorAlert.tsx` re-exports.
+
+```tsx
+<ErrorAlert title="Couldn't start Connect" action={<RetryButton />}>
+  {error}
+</ErrorAlert>
+<ErrorAlert>{error}</ErrorAlert>
 ```
 
 ### Pill

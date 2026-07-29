@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Shared `ErrorAlert` moved to `components/patterns/` and restyled to ESDS feedback chrome (white surface, `stroke-error` border, `feedback-error` wash; optional title / recovery action). Flat `components/ErrorAlert.tsx` re-exports. See `docs/frontend-design-system.md`.
 - Shared toasts restyled to ESDS Notification visuals (Light / Dark / Error / Warning) inside `ToastProvider`; `useToast` API unchanged.
 - Shared `Modal` now matches ESDS Dialog Type=Modal (`components/ui/`; max-width 600, close IconButton, optional description/footer). Flat `components/Modal.tsx` re-exports. Sheet variant not yet implemented. See `docs/frontend-design-system.md`.
 - Moved `Menu`, `PinField`, `TabList`, `TextareaField`, and `ToggleTabs` into `components/ui/`. See `docs/frontend-design-system.md`.
