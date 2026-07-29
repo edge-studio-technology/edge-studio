@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.27.0] 2026-07-29
+
 ### Added
 
 - Devices now use a step-based add flow that first asks for input source vs output target, then template/example vs manual setup before showing the relevant options.
