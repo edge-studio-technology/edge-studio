@@ -1,6 +1,6 @@
 # BME Environmental Sensor Support Plan
 
-**Status:** Not started
+**Status:** Implemented
 **Created:** 2026-07-29
 **Goal:** Add first-class Raspberry Pi BME280 support, with an implementation path that can reuse the same sensor-helper architecture for BME680 and future I2C environmental sensors.
 

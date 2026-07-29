@@ -63,6 +63,12 @@ export type PiCameraConfig = {
   outputFormat: "jpg" | "h264";
 };
 
+export type BmeSensorConfig = {
+  sensor: "bme280";
+  bus: number;
+  address: "0x76" | "0x77";
+};
+
 export function serializeDataSource(record: DataSourceRecord) {
   const lastErrorDetails = parseStoredError(record.last_error);
   return {
@@ -102,6 +108,7 @@ export function parseDataSourceConfig(type: string, value: unknown, existingConf
   if (type === "gpio-input") return parseGpioInputConfig(value);
   if (type === "gpio-output") return parseGpioOutputConfig(value);
   if (type === "pi-camera") return parsePiCameraConfig(value);
+  if (type === "bme-sensor") return parseBmeSensorConfig(value);
   return parseJsonApiConfig(value);
 }
 
@@ -194,6 +201,17 @@ export function parsePiCameraConfig(value: unknown): PiCameraConfig {
   if (!Number.isInteger(fps) || fps < 1 || fps > 120) throw new Error("config.fps must be between 1 and 120");
 
   return { mode, width, height, durationMs, fps, outputFormat };
+}
+
+export function parseBmeSensorConfig(value: unknown): BmeSensorConfig {
+  const config = value as Partial<BmeSensorConfig> | undefined;
+  const sensor = "bme280";
+  const bus = Number(config?.bus ?? 1);
+  const address = config?.address === "0x77" ? "0x77" : "0x76";
+
+  if (!Number.isInteger(bus) || bus < 0 || bus > 10) throw new Error("config.bus must be an I2C bus number from 0 to 10");
+
+  return { sensor, bus, address };
 }
 
 export async function checkDataSourceHealth(config: JsonApiConfig) {

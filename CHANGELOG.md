@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Devices now include a `BME280 Environmental Sensor` input template backed by an opt-in host-side I2C sensor helper (`ENABLE_SENSORS=true`). Manual reads and Automation `Fetch data source` blocks can hash temperature, humidity, and pressure JSON for Integritas stamping.
+
 ## [0.27.0] 2026-07-29
 
 ### Added

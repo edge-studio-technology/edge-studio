@@ -41,6 +41,8 @@ export function DataSourcesPage() {
   const [cameraHeight, setCameraHeight] = useState("720");
   const [cameraDurationMs, setCameraDurationMs] = useState("1000");
   const [cameraFps, setCameraFps] = useState("30");
+  const [bmeBus, setBmeBus] = useState("1");
+  const [bmeAddress, setBmeAddress] = useState<"0x76" | "0x77">("0x76");
   const [method, setMethod] = useState<"GET" | "POST" | "PUT" | "PATCH">("GET");
   const [healthStatuses, setHealthStatuses] = useState<Record<string, DataSourceHealthStatus>>({});
   const [busy, setBusy] = useState(false);
@@ -96,6 +98,8 @@ export function DataSourcesPage() {
     setCameraHeight(String(nextTemplate.config.height ?? 720));
     setCameraDurationMs(String(nextTemplate.config.durationMs ?? 1000));
     setCameraFps(String(nextTemplate.config.fps ?? 30));
+    setBmeBus(String(nextTemplate.config.bus ?? 1));
+    setBmeAddress(nextTemplate.config.address ?? "0x76");
     setMethod(nextTemplate.config.method ?? "GET");
     setFormOpen(true);
     setTemplateMode(null);
@@ -123,6 +127,8 @@ export function DataSourcesPage() {
     setCameraHeight(String(source.config.height ?? 720));
     setCameraDurationMs(String(source.config.durationMs ?? 1000));
     setCameraFps(String(source.config.fps ?? 30));
+    setBmeBus(String(source.config.bus ?? 1));
+    setBmeAddress(source.config.address ?? "0x76");
     setMethod(source.config.method ?? "GET");
     setFormOpen(true);
     setTemplateMode(null);
@@ -150,6 +156,8 @@ export function DataSourcesPage() {
     setCameraHeight("720");
     setCameraDurationMs("1000");
     setCameraFps("30");
+    setBmeBus("1");
+    setBmeAddress("0x76");
     setMethod("GET");
   }
 
@@ -244,12 +252,16 @@ export function DataSourcesPage() {
             setCameraDurationMs={setCameraDurationMs}
             cameraFps={cameraFps}
             setCameraFps={setCameraFps}
+            bmeBus={bmeBus}
+            setBmeBus={setBmeBus}
+            bmeAddress={bmeAddress}
+            setBmeAddress={setBmeAddress}
             method={method}
             setMethod={setMethod}
             busy={busy}
             submitLabel={editingSource ? "Save device" : "Add device"}
             onSubmit={() => run(async () => {
-              const input = { name, description, type, config: type === "webhook" ? { webhookToken: editingSource?.config.webhookToken } : type === "mqtt" ? { brokerUrl, topic, profile: template?.config.profile === "esp32-mqtt-board" ? "esp32-mqtt-board" as const : undefined } : type === "mqtt-output" ? { brokerUrl, topic, qos: 0 as const, retain: false } : type === "http-output" ? { url, method: method === "GET" ? "POST" as const : method, headers: {}, timeoutMs: 5000 } : type === "gpio-input" ? { chip: gpioChip, pin: Number(gpioPin), profile: gpioProfile, pull: gpioPull, edge: gpioEdge, debounceMs: Number(gpioDebounceMs), activeState: gpioActiveState } : type === "gpio-output" ? { chip: gpioChip, pin: Number(gpioPin), profile: "led" as const, activeState: gpioActiveState, initialState: "inactive" as const } : type === "pi-camera" ? { mode: cameraMode, width: Number(cameraWidth), height: Number(cameraHeight), durationMs: Number(cameraDurationMs), fps: Number(cameraFps), outputFormat: cameraMode === "video" ? "h264" as const : "jpg" as const } : { url, method: method === "PUT" || method === "PATCH" ? "POST" as const : method, healthStatusUrl: healthStatusUrl.trim() || undefined, headers: {} } };
+              const input = { name, description, type, config: type === "webhook" ? { webhookToken: editingSource?.config.webhookToken } : type === "mqtt" ? { brokerUrl, topic, profile: template?.config.profile === "esp32-mqtt-board" ? "esp32-mqtt-board" as const : undefined } : type === "mqtt-output" ? { brokerUrl, topic, qos: 0 as const, retain: false } : type === "http-output" ? { url, method: method === "GET" ? "POST" as const : method, headers: {}, timeoutMs: 5000 } : type === "gpio-input" ? { chip: gpioChip, pin: Number(gpioPin), profile: gpioProfile, pull: gpioPull, edge: gpioEdge, debounceMs: Number(gpioDebounceMs), activeState: gpioActiveState } : type === "gpio-output" ? { chip: gpioChip, pin: Number(gpioPin), profile: "led" as const, activeState: gpioActiveState, initialState: "inactive" as const } : type === "pi-camera" ? { mode: cameraMode, width: Number(cameraWidth), height: Number(cameraHeight), durationMs: Number(cameraDurationMs), fps: Number(cameraFps), outputFormat: cameraMode === "video" ? "h264" as const : "jpg" as const } : type === "bme-sensor" ? { sensor: "bme280" as const, bus: Number(bmeBus), address: bmeAddress } : { url, method: method === "PUT" || method === "PATCH" ? "POST" as const : method, healthStatusUrl: healthStatusUrl.trim() || undefined, headers: {} } };
               if (editingSource) await updateDataSource(editingSource.id, input);
               else {
                 const response = await createDataSource(input);
