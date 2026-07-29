@@ -223,7 +223,7 @@ code {
   word-break: break-all;
 }
 
-/* input,
+input,
 textarea,
 select {
   width: 100%;
@@ -237,4 +237,4 @@ select {
 textarea {
   resize: vertical;
   font-family: var(--font-mono);
-} */
+}
