@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Dashboard "Update available" badge no longer lingers after a successful update due to lagging on `update-agent`'s own background self-update status; it now only reacts to frontend/backend being out of date.
+- Settings page Version field no longer stays stuck on "Unknown" on devices with no recorded `last-applied-manifest.json`; `update-agent` now self-heals by recording the manifest as applied once frontend/backend match it.
+- Added a "Back" button to the update-agent UI so it can be dismissed to the dashboard without a redirect or URL edit.
+
 ## [0.26.0] 2026-07-28
 
 ### Added
