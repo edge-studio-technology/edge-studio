@@ -74,7 +74,7 @@ Migration is **incremental**, not a big-bang move:
 Use these before writing bespoke markup. Paths: most still live flat under `frontend/src/components/` until migrated; new ESDS work goes in `ui/` / `patterns/` (see Placement above).
 
 - `Page`: route-level header, title, eyebrow, and optional action. _(→ `patterns/`)_
-- `Card`: primary white card surface. _(→ `ui/`)_
+- `Card`: primary white card surface (stacks children with the default `gap-detail-close`). Supports `size="Default" | "Compact"` to switch relaxed vs tight padding. _(→ `ui/`)_
 - `Section`: grouped content block inside a page. _(→ `patterns/`)_
 - `Button` / `IconButton`: ESDS button variants and icon-only actions (see below). _(→ `ui/`)_
 - `ButtonRow`: wrapping button groups. _(→ `patterns/`)_
