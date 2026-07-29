@@ -171,7 +171,7 @@ function sourceTypeLabel(source: DataSource) {
   if (source.type === "webhook") return "Webhook Receiver";
   if (source.type === "mqtt") return "MQTT Subscriber";
   if (source.type === "gpio-input") return "GPIO Input Pin";
-  if (source.type === "gpio-output") return "GPIO Output Pin";
+  if (source.type === "gpio-output") return "GPIO LED";
   if (source.type === "pi-camera") return "Raspberry Pi Camera";
   if (source.type === "http-output") return "HTTP JSON Target";
   if (source.type === "mqtt-output") return "MQTT Publisher";

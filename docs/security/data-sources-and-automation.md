@@ -220,7 +220,7 @@ Plan:
 
 Status: Accepted prototype risk. Pi GPIO pins are 3.3V only; use proper level shifting, resistors, and isolation for external or industrial signals.
 
-## GPIO Output Pin Targets
+## GPIO LED Targets
 
 Risk: GPIO output targets let automation workflows drive Raspberry Pi GPIO pins through `gpioset` when `/dev/gpiochip0` is mounted into the backend container.
 

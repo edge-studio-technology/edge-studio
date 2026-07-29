@@ -1,7 +1,7 @@
 # Data Source Rules
 
 - Supported V1 input/capture source types are HTTP JSON Source fetches, Webhook Receiver JSON receives, MQTT Subscriber JSON subscriptions, Raspberry Pi GPIO Input Pin events, and Raspberry Pi Camera captures.
-- Supported V1 output target types are GPIO Output Pin LED pulses, HTTP JSON Target requests, and MQTT Publisher JSON publishes.
+- Supported V1 output target types are GPIO LED pulses, HTTP JSON Target requests, and MQTT Publisher JSON publishes.
 - Skip file-source and manual-upload source types unless explicitly requested.
 - Store the latest JSON preview and latest hash on the data source.
 - Raspberry Pi Camera devices are capture sources, not output targets. Workflow `Capture camera` blocks hash captured media bytes and store JSON metadata as the read preview.

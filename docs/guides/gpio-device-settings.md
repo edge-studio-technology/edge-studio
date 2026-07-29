@@ -62,7 +62,7 @@ Device settings:
 
 | Field         | Value       |
 | ------------- | ----------- |
-| Device type   | GPIO Output Pin |
+| Device type   | GPIO LED    |
 | Chip          | `gpiochip0` |
 | BCM pin       | `18`        |
 | Profile       | `LED`       |
@@ -217,7 +217,7 @@ Some industrial-style or sensor outputs pull the signal low but do not drive it 
 
 Do not connect these directly to a GPIO pin.
 
-Current V1 GPIO Output Pin support is only intended for a low-current LED profile with a pulse action. Use a proper transistor/MOSFET/driver board, flyback protection where needed, and external power before considering these devices. They are not supported as direct GPIO Output Pin targets in this prototype.
+Current V1 GPIO LED support is only intended for a low-current LED profile with a pulse action. Use a proper transistor/MOSFET/driver board, flyback protection where needed, and external power before considering these devices. They are not supported as direct GPIO LED targets in this prototype.
 
 ### Active-Low LED Module
 
@@ -225,7 +225,7 @@ Some LED modules turn on when the GPIO is driven low. Confirm the module is 3.3V
 
 | Field         | Suggested value |
 | ------------- | --------------- |
-| Device type   | GPIO Output Pin |
+| Device type   | GPIO LED        |
 | Profile       | `LED`           |
 | Active state  | `low`           |
 | Initial state | `inactive`      |
