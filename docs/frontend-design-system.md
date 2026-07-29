@@ -54,7 +54,7 @@ Migration is **incremental**, not a big-bang move:
 
 | Target         | Components (indicative)                                                                                                                                                                                                                               |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `CheckboxField`, `RadioField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `ProgressBar`, `CredentialInput` (or retire into `InputField`) |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `ProgressBar`, `CredentialInput` (or retire into `InputField`) |
 | `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                             |
 | Stay / special | `AppShell`, `AppShellSidebar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                             |
 
@@ -82,6 +82,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `ProgressBar` (`components/ui/`): ESDS step progress (optional back IconButton, accent track, step count Tag).
 - `CheckboxField` (`components/ui/`): ESDS checkbox + label + optional description (checked / unchecked / indeterminate).
 - `RadioField` (`components/ui/`): ESDS radio + label + optional description (selected / unselected × default / disabled).
+- `SwitchField` (`components/ui/`): ESDS switch + optional label / description (on / off × default / disabled).
 - `Text`: shared muted, error, and eyebrow text helpers. _(→ `ui/`)_
 - `ErrorAlert`: in-page error alert with optional title and recovery action. _(→ `patterns/`)_
 - `Modal`: portal-backed dialog shell. _(→ `ui/`)_
@@ -184,6 +185,7 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Prefer `TextareaField` when multiline text needs a label, description, or inline error.
 - Prefer `CheckboxField` for labeled boolean / tri-state choices with optional helper text.
 - Prefer `RadioField` for mutually exclusive options in a named group with optional helper text.
+- Prefer `SwitchField` for labeled on/off settings with optional helper text.
 - Extract `Textarea` when needing no field wrapper around it.
 - Use `PinField` for segmented numeric verification / approval codes.
 - Use bare `Input` only when there is no label stack (rare toolbars / search).
@@ -242,6 +244,30 @@ Default selected: `icon-primary` ring + inverse fill + primary center dot. Unsel
   description="Multiple devices and automation."
   checked={plan === "pro"}
   onChange={() => setPlan("pro")}
+/>
+```
+
+### SwitchField
+
+ESDS Switch Field (`frontend/src/components/ui/SwitchField.tsx`): optional body label with a 40×24 switch on the right, optional full-width description under the row.
+
+| Prop          | Values / notes                                                              |
+| ------------- | --------------------------------------------------------------------------- |
+| `label`       | Optional; `type-body` on the left (`text-primary` / disabled `text-disabled`) |
+| `description` | Optional helper under the row (`text-secondary` / disabled `text-disabled`) |
+| `checked`     | Controlled on/off state                                                     |
+| `disabled`    | Secondary track + disabled text                                             |
+| `className`   | Outer stack                                                                 |
+| …input props  | Standard checkbox `onChange`, `name`, `defaultChecked`, etc. (`role="switch"`) |
+
+Default on: `icon-primary` track + inverse knob. Off: inverse track + `stroke-primary` border + `icon-tertiary` knob. Disabled: `surface-secondary` track + `stroke-primary` border + `icon-disabled` knob.
+
+```tsx
+<SwitchField
+  label="Email notifications"
+  description="Get alerts when a proof completes or fails."
+  checked={enabled}
+  onChange={(event) => setEnabled(event.target.checked)}
 />
 ```
 
