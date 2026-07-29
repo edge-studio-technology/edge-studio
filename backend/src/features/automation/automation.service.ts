@@ -206,7 +206,7 @@ export async function executeWorkflow(workflow: AutomationWorkflowRecord, trigge
       for (const attachedBlock of blocks.filter((item) => item.parent_block_id === block.id)) {
         await executeBlock(latestWorkflow, attachedBlock, context, run.id);
       }
-      if (block.type === "schedule_start") nextRunAt = nextScheduleRunAt(block);
+      if (block.type === "schedule_start") nextRunAt = nextScheduleRunAt(block, latestWorkflow.next_run_at);
       if (context.stopped) break;
     }
 
@@ -483,10 +483,17 @@ function truncateText(value: string, maxLength: number) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
 }
 
-function nextScheduleRunAt(block: AutomationBlockRecord) {
+function nextScheduleRunAt(block: AutomationBlockRecord, previousNextRunAt: string | null) {
   const config = JSON.parse(block.config_json) as { intervalSeconds?: number };
   const intervalSeconds = Number(config.intervalSeconds ?? 0);
-  return intervalSeconds > 0 ? new Date(Date.now() + intervalSeconds * 1000).toISOString() : null;
+  if (intervalSeconds <= 0) return null;
+
+  const intervalMs = intervalSeconds * 1000;
+  const now = Date.now();
+  let next = previousNextRunAt ? new Date(previousNextRunAt).getTime() + intervalMs : now + intervalMs;
+  if (!Number.isFinite(next)) next = now + intervalMs;
+  while (next <= now) next += intervalMs;
+  return new Date(next).toISOString();
 }
 
 function sourceUrlForRecord(source: { type: string; config: string }) {
@@ -806,7 +813,7 @@ export function startAutomationScheduler() {
     for (const workflow of due) {
       executeWorkflow(workflow, { type: "schedule" }).catch((error: Error) => console.error(`Automation workflow ${workflow.id} failed: ${error.message}`));
     }
-  }, 5000);
+  }, 1000);
 }
 
 export function stopAutomationScheduler() {

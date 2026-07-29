@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Devices referenced by non-archived workflows can no longer be deleted until they are removed from those workflows.
 - ESP32 starter firmware now uses the MQTT broker URL saved on the ESP32 MQTT Board source, only asking for an ESP32-reachable override when that URL is Docker-internal or localhost-only.
 - GPIO input/output forms no longer expose profile selectors; profiles are fixed by the selected manual option or template, with GPIO LED kept as the only supported GPIO output template.
+- Scheduled automation workflows now keep their next run anchored to the prior due time instead of drifting from the actual execution time.
+- Devices now include a `GPIO Button` input template for a push button wired between GPIO17 and GND.
 - Automation action failures now appear as toast notifications, while load/refresh failures use a dedicated in-page alert with a retry action.
 
 ## [0.26.0] 2026-07-28

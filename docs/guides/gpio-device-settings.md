@@ -12,6 +12,8 @@ These setups have been tested on the Raspberry Pi prototype.
 
 Use this for a simple push button wired between GPIO17 and GND.
 
+In Devices, choose `GPIO Button` from the input templates to start with these settings.
+
 Wiring:
 
 ```txt
