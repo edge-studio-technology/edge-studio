@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Modal } from "../components/Modal";
@@ -18,6 +19,7 @@ type AddDeviceStep = "choose" | "input" | "output" | "input-template" | "input-m
 
 export function DataSourcesPage() {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [items, setItems] = useState<DataSource[]>([]);
   const [capabilities, setCapabilities] = useState<DataSourceCapabilities | null>(null);
   const [template, setTemplate] = useState<DataSourceTemplate | null>(null);
@@ -51,6 +53,7 @@ export function DataSourcesPage() {
   const [deletingSource, setDeletingSource] = useState<DataSource | null>(null);
   const [setupGuideSource, setSetupGuideSource] = useState<DataSource | null>(null);
   const [runningGuideActionKey, setRunningGuideActionKey] = useState<string | null>(null);
+  const [createdGuideWorkflowIds, setCreatedGuideWorkflowIds] = useState<Record<string, string>>({});
 
   useEffect(() => {
     refresh().catch((err: Error) => showToast({ tone: "error", title: "Could not load devices", message: err.message }));
@@ -197,6 +200,7 @@ export function DataSourcesPage() {
     setRunningGuideActionKey(action.key);
     try {
       const response = await createAutomationWorkflow(action.workflow(source));
+      setCreatedGuideWorkflowIds((current) => ({ ...current, [guideActionStateKey(source, action)]: response.item.id }));
       await refresh();
       showToast({ tone: "success", title: "Workflow created", message: response.item.name });
     } catch (err) {
@@ -300,7 +304,7 @@ export function DataSourcesPage() {
 
       {setupGuideSource && (
         <Modal title={getDeviceSetupGuide(setupGuideSource)?.title ?? "Device setup guide"} onClose={() => setSetupGuideSource(null)}>
-          {setupGuideSource.type === "mqtt" && setupGuideSource.config.profile === "esp32-mqtt-board" ? <Esp32FirmwareSetup source={setupGuideSource} /> : <StandardDeviceSetupGuide source={setupGuideSource} runningActionKey={runningGuideActionKey} onAction={(action) => runGuideAction(setupGuideSource, action)} />}
+          {setupGuideSource.type === "mqtt" && setupGuideSource.config.profile === "esp32-mqtt-board" ? <Esp32FirmwareSetup source={setupGuideSource} /> : <StandardDeviceSetupGuide source={setupGuideSource} createdWorkflowIds={guideWorkflowIdsForSource(setupGuideSource, createdGuideWorkflowIds)} runningActionKey={runningGuideActionKey} onAction={(action) => runGuideAction(setupGuideSource, action)} onGoToWorkflow={(workflowId) => navigate(`/automation?flow=edit&id=${encodeURIComponent(workflowId)}`)} />}
         </Modal>
       )}
 
@@ -316,6 +320,15 @@ export function DataSourcesPage() {
       />
     </Page>
   );
+}
+
+function guideActionStateKey(source: DataSource, action: DeviceGuideAction) {
+  return `${source.id}:${action.key}`;
+}
+
+function guideWorkflowIdsForSource(source: DataSource, workflowIds: Record<string, string>) {
+  const prefix = `${source.id}:`;
+  return Object.fromEntries(Object.entries(workflowIds).filter(([key]) => key.startsWith(prefix)).map(([key, workflowId]) => [key.slice(prefix.length), workflowId]));
 }
 
 function AddDeviceKindChoice({ onSelect }: { onSelect: (mode: "input" | "output") => void }) {

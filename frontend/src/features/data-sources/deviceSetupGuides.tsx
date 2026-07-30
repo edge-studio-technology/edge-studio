@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { MutedText } from "../../components/Text";
+import piGpioPinoutUrl from "../../assets/pi-gpio-pinout.svg";
 import type { AutomationBlock, AutomationBlockType } from "../automation/automationTypes";
 import type { DataSource } from "./dataSourceTypes";
 
@@ -40,17 +41,17 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
   return null;
 }
 
-export function StandardDeviceSetupGuide({ source, runningActionKey, onAction }: { source: DataSource; runningActionKey?: string | null; onAction?: (action: DeviceGuideAction) => void }) {
+export function StandardDeviceSetupGuide({ source, createdWorkflowIds, runningActionKey, onAction, onGoToWorkflow }: { source: DataSource; createdWorkflowIds?: Record<string, string>; runningActionKey?: string | null; onAction?: (action: DeviceGuideAction) => void; onGoToWorkflow?: (workflowId: string) => void }) {
   const setupGuide = getDeviceSetupGuide(source);
   if (!setupGuide) return null;
   return (
-    <DeviceSetupGuideShell guide={setupGuide} runningActionKey={runningActionKey} onAction={onAction}>
+    <DeviceSetupGuideShell guide={setupGuide} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow}>
       <div className="grid gap-3">{setupGuide.sections.map((section) => <GuideSectionCard key={section.title} section={section} />)}</div>
     </DeviceSetupGuideShell>
   );
 }
 
-export function DeviceSetupGuideShell({ guide, children, runningActionKey, onAction }: { guide: DeviceSetupGuide; children: ReactNode; runningActionKey?: string | null; onAction?: (action: DeviceGuideAction) => void }) {
+export function DeviceSetupGuideShell({ guide, children, createdWorkflowIds, runningActionKey, onAction, onGoToWorkflow }: { guide: DeviceSetupGuide; children: ReactNode; createdWorkflowIds?: Record<string, string>; runningActionKey?: string | null; onAction?: (action: DeviceGuideAction) => void; onGoToWorkflow?: (workflowId: string) => void }) {
   return (
     <Card className="grid max-w-4xl gap-4">
       <div>
@@ -59,24 +60,27 @@ export function DeviceSetupGuideShell({ guide, children, runningActionKey, onAct
         <MutedText className="m-0 mt-2">{guide.intro}</MutedText>
       </div>
       {children}
-      {guide.actions && guide.actions.length > 0 && <GuideActions actions={guide.actions} runningActionKey={runningActionKey} onAction={onAction} />}
+      {guide.actions && guide.actions.length > 0 && <GuideActions actions={guide.actions} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} />}
       {guide.docPath && <MutedText className="m-0">More detail: <button type="button" className="font-mono text-blue-700 underline decoration-blue-300 underline-offset-2" onClick={() => openExternalDoc(guide.docPath!)}>{guide.docPath}</button></MutedText>}
     </Card>
   );
 }
 
-function GuideActions({ actions, runningActionKey, onAction }: { actions: DeviceGuideAction[]; runningActionKey?: string | null; onAction?: (action: DeviceGuideAction) => void }) {
+function GuideActions({ actions, createdWorkflowIds, runningActionKey, onAction, onGoToWorkflow }: { actions: DeviceGuideAction[]; createdWorkflowIds?: Record<string, string>; runningActionKey?: string | null; onAction?: (action: DeviceGuideAction) => void; onGoToWorkflow?: (workflowId: string) => void }) {
   return (
     <section className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-700">
       <strong>Guide actions</strong>
       <div className="grid gap-2">
-        {actions.map((action) => <div key={action.key} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-white p-3">
-          <div>
-            <div className="font-extrabold text-slate-800">{action.label}</div>
-            {action.description && <MutedText className="m-0 mt-1">{action.description}</MutedText>}
-          </div>
-          <Button type="button" size="sm" disabled={!onAction || Boolean(runningActionKey)} onClick={() => onAction?.(action)}>{runningActionKey === action.key ? "Creating..." : action.label}</Button>
-        </div>)}
+        {actions.map((action) => {
+          const workflowId = createdWorkflowIds?.[action.key] ?? null;
+          return <div key={action.key} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-white p-3">
+            <div>
+              <div className="font-extrabold text-slate-800">{action.label}</div>
+              {action.description && <MutedText className="m-0 mt-1">{action.description}</MutedText>}
+            </div>
+            <Button type="button" size="sm" disabled={workflowId ? !onGoToWorkflow : !onAction || Boolean(runningActionKey)} onClick={() => workflowId ? onGoToWorkflow?.(workflowId) : onAction?.(action)}>{workflowId ? "Go to workflow" : runningActionKey === action.key ? "Creating..." : action.label}</Button>
+          </div>;
+        })}
       </div>
     </section>
   );
@@ -92,7 +96,7 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
       {section.table && <div className="overflow-auto rounded-xl border border-slate-200 bg-white"><table className="w-full border-collapse text-left text-sm"><tbody>{section.table.map(([label, value]) => <tr key={label} className="border-t border-slate-200 first:border-t-0"><th className="w-44 p-3 font-extrabold text-slate-700">{label}</th><td className="p-3 text-slate-600"><code>{value}</code></td></tr>)}</tbody></table></div>}
       {section.commands && <CommandBlock value={section.commands} />}
       {section.schematic === "pi-gpio" && <button type="button" className="justify-self-start rounded-xl border border-slate-200 bg-white px-3 py-2 font-extrabold text-blue-700 shadow-sm hover:border-blue-200" onClick={() => setSchematicVisible((value) => !value)}>{schematicVisible ? "Hide wiring schematic" : "Show wiring schematic"}</button>}
-      {section.schematic === "pi-gpio" && schematicVisible && <div className="overflow-auto rounded-2xl border border-slate-200 bg-white p-3"><img className="h-auto w-full min-w-[760px]" src="/pi-gpio-pinout.svg" alt="Raspberry Pi 40-pin GPIO header pinout showing 3V3, 5V, ground, SDA, SCL, and GPIO pins" /></div>}
+      {section.schematic === "pi-gpio" && schematicVisible && <div className="overflow-auto rounded-2xl border border-slate-200 bg-white p-3"><img className="h-auto w-full min-w-[760px]" src={piGpioPinoutUrl} alt="Raspberry Pi 40-pin GPIO header pinout showing 3V3, 5V, ground, SDA, SCL, and GPIO pins" /></div>}
     </section>
   );
 }
