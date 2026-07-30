@@ -1,10 +1,7 @@
 import { Card } from "../../../components/Card";
 import { cx } from "../../../lib/cx";
 
-/**
- * Setup-wizard panel with a stable min-height so step transitions
- * (and PIN ↔ password) do not resize the card.
- */
+/** Setup-wizard panel — matches the centered Figma card (soft shadow, no forced min-height). */
 export function OnboardingCard({
   children,
   className = "",
@@ -13,12 +10,7 @@ export function OnboardingCard({
   className?: string;
 }) {
   return (
-    <Card
-      className={cx(
-        "grid min-h-[600px] content-start gap-4 max-[700px]:min-h-[36rem] max-[700px]:gap-3",
-        className,
-      )}
-    >
+    <Card className={cx("w-full max-w-[480px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]", className)}>
       {children}
     </Card>
   );

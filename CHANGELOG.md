@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- First-run setup wizard restyled to the ESDS onboarding layout: centered card, shared `ProgressBar` / accent Continue, brand mark in the footer, and a dark-to-accent gradient on the final Integritas Connect step (replacing the old header/footer chrome and line-grid background).
+- Setup account step uses shared `ToggleTabs`, `PinField`, and `InputField`; password requirements checklist and labels are shortened to match the design system.
+- Shared `PinField` shows filled digits as dots (placeholder dashes when empty) and highlights only the active slot while focused.
 - Shared `Tooltip` bubble uses a `stroke-secondary` border (including beak edges) so it remains visible on white / light surfaces.
 - `Clock` now renders as ESDS Tag pills (`Local …` / `UTC …`) to match the Status Bar design.
 - Shared `ErrorAlert` moved to `components/patterns/` and restyled to ESDS feedback chrome (white surface, `stroke-error` border, `feedback-error` wash; optional title / recovery action). Flat `components/ErrorAlert.tsx` re-exports. See `docs/frontend-design-system.md`.

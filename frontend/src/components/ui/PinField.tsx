@@ -1,4 +1,4 @@
-import { useId, type InputHTMLAttributes, type ReactNode } from "react";
+import { useId, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { cx } from "../../lib/cx";
 import { Label } from "./Label";
 
@@ -20,7 +20,6 @@ function digitsOnly(value: string, length: number) {
 }
 
 /**
- * ESDS PIN field with segmented slots and a single hidden numeric input.
  * Keeps the same label / description / error stack as `InputField`.
  */
 export function PinField({
@@ -47,6 +46,8 @@ export function PinField({
   const describedBy = [descriptionId, errorId].filter(Boolean).join(" ") || undefined;
   const normalizedValue = digitsOnly(value, length);
   const slots = Array.from({ length }, (_, index) => normalizedValue[index] ?? "");
+  const [focused, setFocused] = useState(false);
+  const activeIndex = normalizedValue.length >= length ? length - 1 : normalizedValue.length;
 
   return (
     <div className={cx("gap-detail-next flex flex-col", className)}>
@@ -83,42 +84,45 @@ export function PinField({
           value={normalizedValue}
           disabled={disabled}
           autoFocus={autoFocus}
-          onBlur={onBlur}
-          onFocus={onFocus}
+          onBlur={(event) => {
+            setFocused(false);
+            onBlur?.(event);
+          }}
+          onFocus={(event) => {
+            setFocused(true);
+            onFocus?.(event);
+          }}
           onChange={(event) => onChange(digitsOnly(event.target.value, length))}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className="peer absolute inset-0 h-full w-full cursor-text opacity-0 outline-none disabled:cursor-not-allowed"
+          className="absolute inset-0 h-full w-full cursor-text opacity-0 outline-none disabled:cursor-not-allowed"
         />
         <div aria-hidden="true" className="gap-detail-next flex">
           {slots.map((digit, index) => {
             const isFilled = digit !== "";
-            const isActive =
-              !disabled && index === normalizedValue.length && normalizedValue.length < length;
-            const isComplete = normalizedValue.length === length && index === length - 1;
+            const isActive = !disabled && focused && index === activeIndex;
 
             return (
               <div
                 key={`${controlId}-${index}`}
                 className={cx(
-                  "rounded-loose bg-surface-always-white px-detail-next flex h-[44px] min-w-0 flex-1 items-center justify-center border text-center font-mono text-[18px] leading-none tracking-[-0.02em] tabular-nums transition-colors duration-200 motion-reduce:transition-none",
+                  "rounded-loose bg-surface-always-white px-detail-next type-body flex h-[44px] min-w-0 flex-1 items-center justify-center border text-center leading-none transition-colors duration-200 motion-reduce:transition-none",
                   disabled
                     ? "border-stroke-primary bg-surface-primary text-text-disabled"
                     : error
                       ? "border-stroke-error text-text-primary"
-                      : "border-stroke-primary text-text-primary",
-                  "peer-focus-visible:border-stroke-active",
-                  isActive || isComplete ? "peer-focus-visible:border-stroke-active" : null,
-                  isFilled ? "type-callout" : "type-body",
+                      : isActive
+                        ? "border-stroke-active text-text-primary"
+                        : "border-stroke-primary text-text-primary",
                 )}
               >
                 <span
                   className={cx(
-                    "inline-flex min-h-[1em] items-center justify-center",
-                    isFilled ? "" : "text-text-disabled",
+                    "inline-flex items-center justify-center",
+                    isFilled ? "text-text-primary" : "text-text-disabled",
                   )}
                 >
-                  {digit || ""}
+                  {isFilled ? <span className="size-2 rounded-full bg-current" /> : "−"}
                 </span>
               </div>
             );
