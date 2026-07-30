@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { MutedText } from "../../components/Text";
@@ -52,6 +52,7 @@ export function DeviceSetupGuideShell({ guide, children }: { guide: DeviceSetupG
 }
 
 function GuideSectionCard({ section }: { section: GuideSection }) {
+  const [schematicVisible, setSchematicVisible] = useState(false);
   return (
     <section className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
       <strong>{section.title}</strong>
@@ -59,23 +60,15 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
       {section.items && <ol className="m-0 grid gap-2 pl-5">{section.items.map((item) => <li key={item}>{item}</li>)}</ol>}
       {section.table && <div className="overflow-auto rounded-xl border border-slate-200 bg-white"><table className="w-full border-collapse text-left text-sm"><tbody>{section.table.map(([label, value]) => <tr key={label} className="border-t border-slate-200 first:border-t-0"><th className="w-44 p-3 font-extrabold text-slate-700">{label}</th><td className="p-3 text-slate-600"><code>{value}</code></td></tr>)}</tbody></table></div>}
       {section.commands && <CommandBlock value={section.commands} />}
-      {section.schematic === "pi-gpio" && <button type="button" className="justify-self-start rounded-xl border border-slate-200 bg-white px-3 py-2 font-extrabold text-blue-700 shadow-sm hover:border-blue-200" onClick={openPiGpioSchematic}>Wiring schematic</button>}
+      {section.schematic === "pi-gpio" && <button type="button" className="justify-self-start rounded-xl border border-slate-200 bg-white px-3 py-2 font-extrabold text-blue-700 shadow-sm hover:border-blue-200" onClick={() => setSchematicVisible((value) => !value)}>{schematicVisible ? "Hide wiring schematic" : "Show wiring schematic"}</button>}
+      {section.schematic === "pi-gpio" && schematicVisible && <div className="overflow-auto rounded-2xl border border-slate-200 bg-white p-3"><img className="h-auto w-full min-w-[760px]" src="/pi-gpio-pinout.svg" alt="Raspberry Pi 40-pin GPIO header pinout showing 3V3, 5V, ground, SDA, SCL, and GPIO pins" /></div>}
     </section>
   );
 }
 
-function openPiGpioSchematic() {
-  openBrowserPopup(new URL("/pi-gpio-pinout.svg", window.location.origin).href, "integritas-pi-gpio-pinout");
-}
-
 function openExternalDoc(path: string) {
   const url = `https://github.com/integritas-technology/integritas-pi/blob/main/${path}`;
-  openBrowserPopup(url, "integritas-pi-guide-doc");
-}
-
-function openBrowserPopup(url: string, name: string) {
-  const popup = window.open(url, `${name}-${Date.now()}`, "popup=yes,width=1280,height=820");
-  popup?.focus();
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 function CommandBlock({ value }: { value: string }) {
