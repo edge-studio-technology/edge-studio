@@ -15,6 +15,7 @@ import { JsonPreview } from "../../components/JsonPreview";
 import { ErrorDetails } from "../../components/ErrorDetails";
 import { MutedText } from "../../components/Text";
 import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
+import { hasDeviceSetupGuide } from "./deviceSetupGuides";
 
 export function DataSourcesList({
   items,
@@ -107,7 +108,7 @@ export function DataSourcesList({
                         <Zap size={16} />
                       </TableIconButton>
                     )}
-                    {source.type === "mqtt" && source.config.profile === "esp32-mqtt-board" && (
+                    {hasDeviceSetupGuide(source) && (
                       <TableIconButton
                         type="button"
                         disabled={busy}

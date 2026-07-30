@@ -11,6 +11,7 @@ import { DataSourceForm } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
 import { DataSourceTemplates, LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
 import type { DataSource, DataSourceCapabilities, DataSourceHealthStatus, DataSourceTemplate } from "../features/data-sources/dataSourceTypes";
+import { getDeviceSetupGuide, StandardDeviceSetupGuide } from "../features/data-sources/deviceSetupGuides";
 
 type AddDeviceStep = "choose" | "input" | "output" | "input-template" | "input-manual" | "output-template" | "output-manual";
 
@@ -47,7 +48,7 @@ export function DataSourcesPage() {
   const [healthStatuses, setHealthStatuses] = useState<Record<string, DataSourceHealthStatus>>({});
   const [busy, setBusy] = useState(false);
   const [deletingSource, setDeletingSource] = useState<DataSource | null>(null);
-  const [esp32SetupSource, setEsp32SetupSource] = useState<DataSource | null>(null);
+  const [setupGuideSource, setSetupGuideSource] = useState<DataSource | null>(null);
 
   useEffect(() => {
     refresh().catch((err: Error) => showToast({ tone: "error", title: "Could not load devices", message: err.message }));
@@ -265,7 +266,7 @@ export function DataSourcesPage() {
               if (editingSource) await updateDataSource(editingSource.id, input);
               else {
                 const response = await createDataSource(input);
-                if (template?.config.profile === "esp32-mqtt-board") setEsp32SetupSource(response.item);
+                if (getDeviceSetupGuide(response.item)) setSetupGuideSource(response.item);
               }
               setFormOpen(false);
               resetForm();
@@ -282,9 +283,9 @@ export function DataSourcesPage() {
         />
       )}
 
-      {esp32SetupSource && (
-        <Modal title="ESP32 MQTT starter firmware" onClose={() => setEsp32SetupSource(null)}>
-          <Esp32FirmwareSetup source={esp32SetupSource} />
+      {setupGuideSource && (
+        <Modal title={getDeviceSetupGuide(setupGuideSource)?.title ?? "Device setup guide"} onClose={() => setSetupGuideSource(null)}>
+          {setupGuideSource.type === "mqtt" && setupGuideSource.config.profile === "esp32-mqtt-board" ? <Esp32FirmwareSetup source={setupGuideSource} /> : <StandardDeviceSetupGuide source={setupGuideSource} />}
         </Modal>
       )}
 
@@ -294,7 +295,7 @@ export function DataSourcesPage() {
         busy={busy}
         onRead={(source) => run(() => readDataSource(source.id), "Manual read completed")}
         onTestOutput={(source) => run(() => testDataSourceOutput(source.id), "Test pulse sent")}
-        onOpenSetupGuide={setEsp32SetupSource}
+        onOpenSetupGuide={setSetupGuideSource}
         onEdit={editSource}
         onDelete={deleteSource}
       />
