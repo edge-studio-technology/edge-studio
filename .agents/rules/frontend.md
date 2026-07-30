@@ -27,7 +27,7 @@ Frontend rules:
 - All API fetches use `credentials: "include"` via `frontend/src/lib/api.ts`.
 - `AuthProvider` owns bootstrap: no local admin → full wizard; local admin + incomplete first-run setup → local session/PIN login then resume the Connect step; completed first-run setup → app shell or normal login. Later Connect revocation does not reopen onboarding.
 - Keep UI state simple unless there is a clear need for a new state layer.
-- Use existing shared components (`Page`, `Card`, `Section`, `Pill`, `Modal`, tables/forms helpers) before inventing new ones.
+- Use existing shared components (`Page`, `Card`, `Pill`, `Modal`, tables/forms helpers) before inventing new ones.
 - **New shared UI placement:** ESDS leaf controls → `components/ui/`; composed shared layouts → `components/patterns/`. Do not add new design-system components to the flat `components/` root. Existing flat files stay until migrated (see `docs/frontend-design-system.md` → Placement / Migration).
 - Styling direction: component and page styling should be implemented with Tailwind utilities. Plain CSS should be limited to root/body/base global rules only. Follow `docs/frontend-design-system.md` when deciding between shared components, local class constants, and page-specific markup.
 - Use the shared toast system (`ToastProvider` / `useToast`) for transient API/action errors that should not occupy page layout, especially when the same action can be triggered from a modal and a page. Keep inline errors for persistent form validation, row-level status, or details the user needs to compare in context.

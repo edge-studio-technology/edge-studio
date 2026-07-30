@@ -1,37 +1,50 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Check } from "lucide-react";
-import { APP_NAME } from "../app/names";
-import { Button } from "../components/Button";
-import { Card } from "../components/Card";
-import { Eyebrow, MutedText } from "../components/Text";
-import { listDataSources } from "../features/data-sources/dataSourcesApi";
-import { cx } from "../lib/cx";
+import { APP_NAME } from "../../app/names";
+import { Button } from "../../components/ui/Button";
+import { Card } from "../../components/ui/Card";
+import { listAutomationWorkflows } from "../automation/automationApi";
+import { listDataSources } from "../data-sources/dataSourcesApi";
+import { cx } from "../../lib/cx";
 
 export function DashboardNextAction() {
   const navigate = useNavigate();
   const [deviceCount, setDeviceCount] = useState<number | null>(null);
+  const [workflowCount, setWorkflowCount] = useState<number | null>(null);
 
   useEffect(() => {
-    listDataSources()
-      .then((res) => setDeviceCount(res.items.length))
-      .catch(() => setDeviceCount(null));
+    Promise.all([
+      listDataSources()
+        .then((res) => res.items.length)
+        .catch(() => 0),
+      listAutomationWorkflows()
+        .then((res) => res.items.filter((workflow) => !workflow.archived).length)
+        .catch(() => 0),
+    ]).then(([devices, workflows]) => {
+      setDeviceCount(devices);
+      setWorkflowCount(workflows);
+    });
   }, []);
 
-  const hasDevices = (deviceCount ?? 0) > 0;
+  if (deviceCount === null || workflowCount === null) return null;
+
+  const hasDevices = deviceCount > 0;
+  const hasWorkflows = workflowCount > 0;
+  if (hasDevices && hasWorkflows) return null;
+
   const step = hasDevices ? 2 : 1;
 
   return (
-    <Card className="grid gap-6">
-      <header className="grid max-w-2xl gap-2">
-        <Eyebrow className="text-text-accent">Getting started</Eyebrow>
-        <h3 className="m-0 text-2xl tracking-tight text-slate-950">
+    <Card className="gap-detail-near flex w-full flex-col">
+      <header className="gap-detail-next flex max-w-2xl flex-col">
+        <h2 className="type-title text-text-primary m-0">
           {step === 1 ? "Connect a device to get started" : "Create your first workflow"}
-        </h3>
-        <MutedText className="m-0 leading-relaxed">
+        </h2>
+        <p className="type-body text-text-secondary m-0">
           {APP_NAME} connects device data, proves it with Integritas, runs automations, and settles
           value on Minima. Do this in order:
-        </MutedText>
+        </p>
       </header>
 
       <ol className="m-0 grid max-w-xl list-none gap-0 p-0">
@@ -40,6 +53,7 @@ export function DashboardNextAction() {
           title="Connect devices"
           detail="Add a sensor, API, webhook, MQTT, or GPIO source."
           state={hasDevices ? "done" : "current"}
+          showConnector
         />
         <Step
           number={2}
@@ -49,17 +63,25 @@ export function DashboardNextAction() {
         />
       </ol>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="gap-detail-next flex flex-wrap items-center">
         {step === 1 ? (
-          <Button type="button" onClick={() => navigate("/data")}>
+          <Button
+            type="button"
+            variant="accent"
+            iconEnd={<ArrowRight aria-hidden="true" />}
+            onClick={() => navigate("/data")}
+          >
             Connect devices
-            <ArrowRight size={16} aria-hidden="true" />
           </Button>
         ) : (
           <>
-            <Button type="button" onClick={() => navigate("/automation")}>
+            <Button
+              type="button"
+              variant="accent"
+              iconEnd={<ArrowRight aria-hidden="true" />}
+              onClick={() => navigate("/automation")}
+            >
               Create workflow
-              <ArrowRight size={16} aria-hidden="true" />
             </Button>
             <Button type="button" variant="ghost" onClick={() => navigate("/data")}>
               Manage devices
@@ -76,18 +98,20 @@ function Step({
   title,
   detail,
   state,
+  showConnector = false,
 }: {
   number: number;
   title: string;
   detail: string;
   state: "done" | "current" | "upcoming";
+  showConnector?: boolean;
 }) {
   return (
-    <li className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 py-3 first:pt-0 last:pb-0">
-      <div className="relative flex flex-col items-center">
+    <li className="gap-detail-close grid grid-cols-[2rem_minmax(0,1fr)]">
+      <div className="flex flex-col items-center">
         <span
           className={cx(
-            "relative z-10 grid size-8 place-items-center rounded-full text-sm font-bold",
+            "type-meta grid size-8 shrink-0 place-items-center rounded-full font-semibold",
             state === "done" && "bg-feedback-positive text-text-inverse",
             state === "current" && "bg-surface-inverse text-text-inverse",
             state === "upcoming" && "bg-surface-secondary text-text-secondary",
@@ -96,35 +120,35 @@ function Step({
         >
           {state === "done" ? <Check size={15} strokeWidth={2.75} /> : number}
         </span>
-        {number === 1 ? (
+        {showConnector ? (
           <span
             className={cx(
-              "absolute top-8 bottom-[-0.75rem] w-px",
+              "w-px flex-1",
               state === "done" ? "bg-feedback-positive" : "bg-stroke-primary",
             )}
             aria-hidden="true"
           />
         ) : null}
       </div>
-      <div className="min-w-0 pt-0.5">
+      <div className={cx("min-w-0 pt-0.5", showConnector && "pb-detail-close")}>
         <p
           className={cx(
-            "m-0 font-bold",
-            state === "upcoming" ? "text-text-secondary" : "text-slate-950",
+            "type-body-em m-0",
+            state === "upcoming" ? "text-text-secondary" : "text-text-primary",
           )}
         >
           {title}
           {state === "done" ? <span className="sr-only"> (done)</span> : null}
           {state === "current" ? <span className="sr-only"> (current)</span> : null}
         </p>
-        <MutedText
+        <p
           className={cx(
-            "m-0 mt-1 text-sm leading-relaxed",
-            state === "upcoming" && "text-text-secondary",
+            "type-meta m-0 mt-detail-tight",
+            state === "upcoming" ? "text-text-tertiary" : "text-text-secondary",
           )}
         >
           {detail}
-        </MutedText>
+        </p>
       </div>
     </li>
   );

@@ -82,6 +82,13 @@
   --spacing-separator-relaxed: 64px;
   --spacing-separator-distant: 80px;
   --spacing-separator-removed: 120px;
+  /* Prefer pad-* for new / migrated UI (container edge padding). margin-* kept until call sites migrate. */
+  --spacing-pad-close: 8px;
+  --spacing-pad-tight: 16px;
+  --spacing-pad-relaxed: 40px;
+  --spacing-pad-distant: 80px;
+  --spacing-pad-removed: 120px;
+
   --spacing-margin-close: 8px;
   --spacing-margin-tight: 16px;
   --spacing-margin-relaxed: 40px;
@@ -196,22 +203,24 @@ body {
   margin: 0;
 }
 
+button {
+  cursor: pointer;
+}
+
 /* button,
 input,
 textarea {
   font: inherit;
 }
 
-button {
-  cursor: pointer;
-}
+
 
 button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 } */
 
-code {
+/* code {
   display: block;
   margin-top: 6px;
   font-family: var(--font-mono);
@@ -237,4 +246,4 @@ select {
 textarea {
   resize: vertical;
   font-family: var(--font-mono);
-}
+} */

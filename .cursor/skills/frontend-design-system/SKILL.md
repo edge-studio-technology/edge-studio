@@ -13,39 +13,57 @@ Source of truth: `docs/frontend-design-system.md`. Read that file before adding 
 ## When this skill applies
 
 - New shared React component under `frontend/src/components/`
-- Implementing an Edge Studio / Figma control into the app
+- Implementing a design-system control into the app
 - Migrating an existing flat component into `ui/` or `patterns/`
 - Updating design-system docs or frontend agent rules for component taxonomy
 
 ## Placement (new work)
 
-| Kind | Put it in | Examples |
-| ---- | --------- | -------- |
-| ESDS leaf control | `frontend/src/components/ui/` | Button, Pill, Input, ProgressBar, TabList |
-| Composed shared layout | `frontend/src/components/patterns/` | Page, Section, DataTable, ListPagerFilterBar |
-| App / infra | keep out of `ui/` / `patterns/` | AppShell, ProtectedRoute, ToastProvider |
+| Kind            | Put it in              | Examples                                |
+| --------------- | ---------------------- | --------------------------------------- |
+| Leaf control    | `components/ui/`       | Button, Pill, Input, TabList            |
+| Composed layout | `components/patterns/` | Page, DataTable                         |
+| App / infra     | neither                | AppShell, ProtectedRoute, ToastProvider |
 
-**Boundary test**
+- Still useful without border/fill/radius → `ui/`
+- Layout + several controls → `patterns/`
+- **Never** add new design-system components to the flat `components/*.tsx` root
 
-- Removing border / fill / radius still leaves a useful **control** → `ui/`
-- Mostly **layout + several controls together** → `patterns/`
+## Scope (ask first)
 
-**Do not** add new design-system components to the flat `frontend/src/components/*.tsx` root.
+Default: change the **shared component** + the **one page/surface the user named** (today: Dashboard).
 
-## Migration (later, incremental)
+- Do **not** fan out to other route pages, call sites, or “while we’re here” cleanups unless the user asked.
+- After finishing that scope, **ask** whether they want the same change applied to more files (e.g. other pages dropping deprecated `Page` props, deleting flat re-exports).
+- Prefer thin re-exports from the old flat path while imports still point there; remind the user those re-exports are temporary and can be deleted once call sites import from `ui/` or `patterns/`.
 
-- Existing flat files stay until deliberately moved — do not big-bang migrate.
-- When touching a cluster, move that cluster, update imports, update the inventory in `docs/frontend-design-system.md`.
-- No parallel copies with different behavior (`ui/Button` + flat `Button.tsx`).
+## Migration
 
-## Authoring checklist
+Incremental only. Move a cluster when touching it; update imports + inventory. No parallel copies (`ui/Button` + flat `Button.tsx`). Keep a flat re-export during migration if call sites still use the old path.
 
-1. Prefer an existing shared component over a new one.
-2. Tailwind utilities + `cx` from `frontend/src/lib/cx.ts`; no component CSS files.
-3. Match ESDS tokens in `frontend/src/styles.css` and patterns in sibling `ui/` components.
-4. Document new shared components in `docs/frontend-design-system.md` and `CHANGELOG.md` (Added).
-5. Sync frontend rules if taxonomy changes: `.cursor/rules/frontend.mdc`, `.agents/rules/frontend.md`, `.claude/rules/frontend.md`.
+## Authoring
 
-## Sync notice
+1. Prefer an existing shared component.
+2. Tailwind + `cx` (`frontend/src/lib/cx.ts`); no component CSS files.
+3. Match tokens in `styles.css` and sibling `ui/` patterns.
+4. Document in `docs/frontend-design-system.md` + `CHANGELOG.md` (Added).
+5. Taxonomy change → sync `.cursor/rules/frontend.mdc`, `.agents/rules/frontend.md`, `.claude/rules/frontend.md`.
 
-Keep this skill identical under `.cursor/skills/`, `.agents/skills/`, and `.claude/skills/` when you change it.
+## Documenting
+
+**Do not mention Figma** in design-system docs or in component/code comments.
+
+**ESDS** may appear once in foundations / intro / placement (what the token system is). Do **not** prefix every component detail, inventory line, prop note, or JSDoc with “ESDS …”. Describe the control in product terms.
+
+**Inventory** (`## Shared Components`): name + short description of **what it is**, not what it has (no props, slots, or feature lists). Link to detail when it exists. No paths, migration arrows, or usage. Use plain `[Name](#name)` (no backticks inside the link — they break preview).
+
+```md
+- [Page](#page): route content frame
+- [Card](#card): white card surface
+```
+
+**Detail** (`### Name`): short explain → props table if needed → minimal `tsx` usage. Skip if nothing to document. Keep heading text simple so `#name` matches preview (prefer `### Button` over `### Button / IconButton`).
+
+## Sync
+
+Keep identical under `.cursor/skills/`, `.agents/skills/`, `.claude/skills/`.

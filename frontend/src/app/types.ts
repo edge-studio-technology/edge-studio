@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 
 export type Tone = "neutral" | "good" | "warn" | "error";
+export type Status = "neutral" | "success" | "warning" | "error";
 export type NavId =
   | "dashboard"
   | "setup"
@@ -115,7 +116,13 @@ export type MinimaConsoleWhitelist = {
   enabledKeys: string[];
 };
 export type MinimaConsoleRunResult = MinimaCommandResult;
-export type IntegritasConfig = { baseUrl: string; requestId: string; hasApiKey: boolean; apiKeySource: "connect" | "database" | "environment" | "none"; portalUrl: string };
+export type IntegritasConfig = {
+  baseUrl: string;
+  requestId: string;
+  hasApiKey: boolean;
+  apiKeySource: "connect" | "database" | "environment" | "none";
+  portalUrl: string;
+};
 export type StatusOverview = {
   generatedAt: string;
   services: Array<{ name: string; ok: boolean; status: string; details?: unknown; error?: string }>;
