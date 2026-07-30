@@ -227,7 +227,7 @@ export function DataSourcesPage() {
       <LocalServicesCard capabilities={capabilities} />
 
       {templateMode && (
-        <Modal title={addDeviceBreadcrumb(templateMode)} actions={templateMode !== "choose" ? <button className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-2.5 font-bold text-slate-700" type="button" onClick={() => setTemplateMode(previousAddDeviceStep(templateMode))}>Back</button> : null} onClose={() => setTemplateMode(null)}>
+        <Modal title={addDeviceBreadcrumb(templateMode)} footer={templateMode !== "choose" ? <button className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-2.5 font-bold text-slate-700" type="button" onClick={() => setTemplateMode(previousAddDeviceStep(templateMode))}>Back</button> : null} onClose={() => setTemplateMode(null)}>
           {templateMode === "choose" ? <AddDeviceKindChoice onSelect={setTemplateMode} /> : templateMode === "input" || templateMode === "output" ? <AddDeviceMethodChoice mode={templateMode} onSelect={(category) => setTemplateMode(`${templateMode}-${category}` as "input-template" | "input-manual" | "output-template" | "output-manual")} /> : <DataSourceTemplates mode={templateMode.startsWith("input") ? "input" : "output"} category={templateMode.endsWith("template") ? "template" : "manual"} capabilities={capabilities} onSelect={applyTemplate} />}
         </Modal>
       )}
