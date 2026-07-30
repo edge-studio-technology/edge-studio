@@ -139,7 +139,7 @@ function readableSourcePreviewWorkflow(source: DataSource): DeviceGuideWorkflowI
 function bmeSensorGuide(source: DataSource) {
   const sensorName = source.config.sensor === "bme680" ? "BME680" : "BME280";
   return guide(source, `${sensorName} Environmental Sensor Setup`, `Read temperature, humidity, and air pressure from a ${sensorName} module over the Pi I2C bus.`, [
-    { title: "Requirements", items: ["Install with ENABLE_SENSORS=true so the host-side sensor helper is running.", "Enable I2C on the Raspberry Pi host and reboot if needed.", ...(source.config.sensor === "bme680" ? ["Install python3-bme680 on the Raspberry Pi host if the installer could not add it automatically."] : []), "Use address 0x76 first, then try 0x77 if reads fail."] },
+    { title: "Requirements", items: ["Install with ENABLE_SENSORS=true so the host-side sensor helper is running.", "Enable I2C on the Raspberry Pi host and reboot if needed.", ...(source.config.sensor === "bme680" ? ["The installer installs the PyPI bme680 module in /opt/integritas-pi/.venv-sensor-helper for BME680 reads."] : []), "Use address 0x76 first, then try 0x77 if reads fail."] },
     { title: "Wiring", schematic: "pi-gpio", table: [["VIN", "3.3V pin 1 or 5V pin 2/4"], ["GND", "GND pin 6/9/etc."], ["SCL", "GPIO3 / physical pin 5"], ["SDA", "GPIO2 / physical pin 3"]] },
     { title: "Saved settings", table: [["Sensor", source.config.sensor ?? "bme280"], ["I2C bus", String(source.config.bus ?? 1)], ["I2C address", source.config.address ?? "0x76"]] },
     { title: "Verify", items: ["Click manual read in Devices and confirm a JSON preview appears.", "Use the source in an Automation Fetch data source block, then attach Stamp data if you want Integritas proofs."] }

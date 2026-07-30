@@ -741,7 +741,8 @@ EOF
 
   chmod 600 "$service_file"
   systemctl daemon-reload
-  systemctl enable --now integritas-pi-sensor-helper.service
+  systemctl enable integritas-pi-sensor-helper.service
+  systemctl restart integritas-pi-sensor-helper.service
 }
 
 generate_tls_cert() {

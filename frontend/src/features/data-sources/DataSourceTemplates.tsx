@@ -78,7 +78,7 @@ function bme680SupportWarning(capabilities: DataSourceCapabilities | null) {
   if (!capabilities?.sensors?.enabled || capabilities.sensors.available === false) return null;
   const supportedSensors = capabilities.sensors.supportedSensors;
   if (!supportedSensors || supportedSensors.includes("bme680")) return null;
-  return "BME680 support is not installed on the sensor helper host. Install python3-bme680, then restart the sensor helper.";
+  return "The sensor helper is not reporting BME680 support yet. Re-run the installer with ENABLE_SENSORS=true or install the PyPI bme680 module in /opt/integritas-pi/.venv-sensor-helper, then restart the sensor helper.";
 }
 
 export function LocalServicesCard({ capabilities }: { capabilities: DataSourceCapabilities | null }) {
