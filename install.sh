@@ -691,8 +691,16 @@ PY
     DEBIAN_FRONTEND=noninteractive apt-get install -y python3-smbus i2c-tools
   fi
 
+  if ! python3 - <<'PY' >/dev/null 2>&1
+import bme680
+PY
+  then
+    log "Installing optional Python BME680 support for I2C sensors"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y python3-bme680 || log "Warning: python3-bme680 could not be installed automatically. BME680 reads require the Python bme680 module on the host."
+  fi
+
   if [ ! -e /dev/i2c-1 ]; then
-    log "Warning: /dev/i2c-1 was not found. Enable I2C on the Raspberry Pi before using BME sensor devices."
+    log "Warning: /dev/i2c-1 was not found. Enable I2C on the Raspberry Pi before using BME280/BME680 sensor devices."
   fi
 
   log "Installing sensor helper service"

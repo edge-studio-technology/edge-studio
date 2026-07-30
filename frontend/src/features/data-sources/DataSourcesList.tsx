@@ -174,7 +174,7 @@ function sourceTypeLabel(source: DataSource) {
   if (source.type === "gpio-input") return "GPIO Input Pin";
   if (source.type === "gpio-output") return "GPIO LED";
   if (source.type === "pi-camera") return "Raspberry Pi Camera";
-  if (source.type === "bme-sensor") return "BME280 Environmental Sensor";
+  if (source.type === "bme-sensor") return source.config.sensor === "bme680" ? "BME680 Environmental Sensor" : "BME280 Environmental Sensor";
   if (source.type === "http-output") return "HTTP JSON Target";
   if (source.type === "mqtt-output") return "MQTT Publisher";
   return source.type;

@@ -62,7 +62,7 @@ export function DataSourceForm({ template, name, setName, description, setDescri
         <>
           <label>I2C bus<input value={bmeBus} onChange={(event) => setBmeBus(event.target.value)} placeholder="1" inputMode="numeric" /></label>
           <label>I2C address<select value={bmeAddress} onChange={(event) => setBmeAddress(event.target.value as "0x76" | "0x77")}><option value="0x76">0x76</option><option value="0x77">0x77</option></select></label>
-          <MutedText>BME280 reads temperature, humidity, and air pressure over I2C. Wire VIN to 3.3V or 5V, GND to ground, SCL to physical pin 5 / GPIO3, and SDA to physical pin 3 / GPIO2.</MutedText>
+          <MutedText>BME280/BME680 sensors read temperature, humidity, and air pressure over I2C. Wire VIN to 3.3V or 5V, GND to ground, SCL to physical pin 5 / GPIO3, and SDA to physical pin 3 / GPIO2.</MutedText>
         </>
       ) : type === "http-output" ? (
         <>

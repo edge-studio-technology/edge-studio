@@ -1,6 +1,6 @@
-# BME280 Sensor Setup
+# BME280/BME680 Sensor Setup
 
-Use this guide for a 4-pin BME280 I2C environmental sensor module with `VIN`, `GND`, `SCL`, and `SDA` pins. The module reports temperature, humidity, and air pressure.
+Use this guide for a 4-pin BME280 or BME680 I2C environmental sensor module with `VIN`, `GND`, `SCL`, and `SDA` pins. The module reports temperature, humidity, and air pressure.
 
 ## Enable Support
 
@@ -22,7 +22,7 @@ Choose `Interface Options` -> `I2C` -> enable.
 
 Use Raspberry Pi physical pin numbering for this table:
 
-| BME280 pin | Raspberry Pi pin |
+| BME sensor pin | Raspberry Pi pin |
 |---|---|
 | `VIN` | 3.3V physical pin 1 or 5V physical pin 2/4 |
 | `GND` | GND physical pin 6/9/etc. |
@@ -31,13 +31,15 @@ Use Raspberry Pi physical pin numbering for this table:
 
 Prefer 3.3V when uncertain. The documented module accepts 3.3V-5V, but unknown clones should be verified before wiring.
 
+For BME680 modules, the host also needs the Python `bme680` module. The installer tries to install `python3-bme680` automatically when `ENABLE_SENSORS=true`.
+
 ## Device Settings
 
-In Devices, choose `BME280 Environmental Sensor`.
+In Devices, choose `BME280 Environmental Sensor` or `BME680 Environmental Sensor`.
 
 | Setting | Value |
 |---|---|
-| Device type | BME280 Environmental Sensor |
+| Device type | BME280 Environmental Sensor or BME680 Environmental Sensor |
 | I2C bus | `1` |
 | I2C address | `0x76` first, then try `0x77` if reads fail |
 
@@ -63,4 +65,4 @@ Then trigger a manual read from the Devices table. A successful read stores JSON
 }
 ```
 
-Automation workflows can use `Fetch data source` with the BME280 device, then attach `Stamp data` to stamp the reading hash.
+For BME680, the `sensor` field is `bme680` and the same JSON shape is used. Automation workflows can use `Fetch data source` with the BME device, then attach `Stamp data` to stamp the reading hash.

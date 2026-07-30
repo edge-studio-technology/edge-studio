@@ -82,7 +82,7 @@ export function WorkflowBlockLibrary({ mode = "build", hasStartBlock, selectedBl
       {mode === "build" && hasStartBlock && <p className={mutedText}>Start block selected. Data and logic blocks can now be added.</p>}
       <strong>Data blocks</strong>
       <LibraryCard disabled={!canAddMainBlock || !canAddRecordTriggerEvent} onClick={() => onAddBlock("record_trigger_event")} title="Record trigger event" description="Store the trigger payload as data." />
-      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("fetch_data_source")} title="Fetch data source" description="Read a configured source such as HTTP JSON or BME280." />
+      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("fetch_data_source")} title="Fetch data source" description="Read a configured source such as HTTP JSON or BME sensor." />
       <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("capture_camera")} title="Capture camera" description="Capture media from a configured Raspberry Pi Camera." />
       <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("set_variable")} title="Add variable" description="Save a value for later blocks." />
       <strong>Logic blocks</strong>

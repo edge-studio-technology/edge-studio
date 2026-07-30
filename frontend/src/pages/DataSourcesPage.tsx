@@ -210,6 +210,8 @@ export function DataSourcesPage() {
     }
   }
 
+  const setupGuideBme680SupportWarning = setupGuideSource ? bme680SupportWarning(setupGuideSource, capabilities) : null;
+
   return (
       <Page eyebrow="Devices" title="Connect inputs and outputs" desc="Add input sources for data and events, then prepare output targets for automation workflows.">
       <Card className="grid gap-4">
@@ -281,7 +283,7 @@ export function DataSourcesPage() {
             busy={busy}
             submitLabel={editingSource ? "Save device" : "Add device"}
             onSubmit={() => run(async () => {
-              const input = { name, description, type, config: type === "webhook" ? { webhookToken: editingSource?.config.webhookToken } : type === "mqtt" ? { brokerUrl, topic, profile: template?.config.profile === "esp32-mqtt-board" ? "esp32-mqtt-board" as const : undefined } : type === "mqtt-output" ? { brokerUrl, topic, qos: 0 as const, retain: false } : type === "http-output" ? { url, method: method === "GET" ? "POST" as const : method, headers: {}, timeoutMs: 5000 } : type === "gpio-input" ? { chip: gpioChip, pin: Number(gpioPin), profile: gpioProfile, pull: gpioPull, edge: gpioEdge, debounceMs: Number(gpioDebounceMs), activeState: gpioActiveState } : type === "gpio-output" ? { chip: gpioChip, pin: Number(gpioPin), profile: "led" as const, activeState: gpioActiveState, initialState: "inactive" as const } : type === "pi-camera" ? { mode: cameraMode, width: Number(cameraWidth), height: Number(cameraHeight), durationMs: Number(cameraDurationMs), fps: Number(cameraFps), outputFormat: cameraMode === "video" ? "h264" as const : "jpg" as const } : type === "bme-sensor" ? { sensor: "bme280" as const, bus: Number(bmeBus), address: bmeAddress } : { url, method: method === "PUT" || method === "PATCH" ? "POST" as const : method, healthStatusUrl: healthStatusUrl.trim() || undefined, headers: {} } };
+              const input = { name, description, type, config: type === "webhook" ? { webhookToken: editingSource?.config.webhookToken } : type === "mqtt" ? { brokerUrl, topic, profile: template?.config.profile === "esp32-mqtt-board" ? "esp32-mqtt-board" as const : undefined } : type === "mqtt-output" ? { brokerUrl, topic, qos: 0 as const, retain: false } : type === "http-output" ? { url, method: method === "GET" ? "POST" as const : method, headers: {}, timeoutMs: 5000 } : type === "gpio-input" ? { chip: gpioChip, pin: Number(gpioPin), profile: gpioProfile, pull: gpioPull, edge: gpioEdge, debounceMs: Number(gpioDebounceMs), activeState: gpioActiveState } : type === "gpio-output" ? { chip: gpioChip, pin: Number(gpioPin), profile: "led" as const, activeState: gpioActiveState, initialState: "inactive" as const } : type === "pi-camera" ? { mode: cameraMode, width: Number(cameraWidth), height: Number(cameraHeight), durationMs: Number(cameraDurationMs), fps: Number(cameraFps), outputFormat: cameraMode === "video" ? "h264" as const : "jpg" as const } : type === "bme-sensor" ? { sensor: (template?.config.sensor ?? editingSource?.config.sensor ?? "bme280") as "bme280" | "bme680", bus: Number(bmeBus), address: bmeAddress } : { url, method: method === "PUT" || method === "PATCH" ? "POST" as const : method, healthStatusUrl: healthStatusUrl.trim() || undefined, headers: {} } };
               if (editingSource) await updateDataSource(editingSource.id, input);
               else {
                 const response = await createDataSource(input);
@@ -304,6 +306,7 @@ export function DataSourcesPage() {
 
       {setupGuideSource && (
         <Modal title={getDeviceSetupGuide(setupGuideSource)?.title ?? "Device setup guide"} onClose={() => setSetupGuideSource(null)}>
+          {setupGuideBme680SupportWarning && <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{setupGuideBme680SupportWarning}</div>}
           {setupGuideSource.type === "mqtt" && setupGuideSource.config.profile === "esp32-mqtt-board" ? <Esp32FirmwareSetup source={setupGuideSource} /> : <StandardDeviceSetupGuide source={setupGuideSource} createdWorkflowIds={guideWorkflowIdsForSource(setupGuideSource, createdGuideWorkflowIds)} runningActionKey={runningGuideActionKey} onAction={(action) => runGuideAction(setupGuideSource, action)} onGoToWorkflow={(workflowId) => navigate(`/automation?flow=watch&id=${encodeURIComponent(workflowId)}`)} />}
         </Modal>
       )}
@@ -329,6 +332,14 @@ function guideActionStateKey(source: DataSource, action: DeviceGuideAction) {
 function guideWorkflowIdsForSource(source: DataSource, workflowIds: Record<string, string>) {
   const prefix = `${source.id}:`;
   return Object.fromEntries(Object.entries(workflowIds).filter(([key]) => key.startsWith(prefix)).map(([key, workflowId]) => [key.slice(prefix.length), workflowId]));
+}
+
+function bme680SupportWarning(source: DataSource, capabilities: DataSourceCapabilities | null) {
+  if (source.type !== "bme-sensor" || source.config.sensor !== "bme680") return null;
+  if (!capabilities?.sensors?.enabled || capabilities.sensors.available === false) return null;
+  const supportedSensors = capabilities.sensors.supportedSensors;
+  if (!supportedSensors || supportedSensors.includes("bme680")) return null;
+  return "BME680 support is not installed on the sensor helper host. Install python3-bme680, then restart the sensor helper.";
 }
 
 function AddDeviceKindChoice({ onSelect }: { onSelect: (mode: "input" | "output") => void }) {
