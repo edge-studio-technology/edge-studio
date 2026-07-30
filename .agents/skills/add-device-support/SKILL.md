@@ -47,7 +47,7 @@ Backend data-source support commonly touches:
 Backend implementation steps:
 
 1. Add or extend the data-source type only if an existing type cannot represent the device correctly.
-2. Define config parsing and validation. Reject invalid pins, URLs, topics, addresses, and modes early.
+2. Define config parsing and validation. Reject invalid enum values, pins, URLs, topics, addresses, and modes early instead of silently defaulting, unless backward compatibility for persisted data requires a default.
 3. Add manual read/test behavior when the role supports it.
 4. Add automation behavior according to the device role:
    - Readable source -> `fetch_data_source`.
@@ -56,6 +56,8 @@ Backend implementation steps:
    - Output target -> `control_output`.
 5. Preserve source previews, hashes, and structured errors consistently with existing source types.
 6. If host hardware is involved, prefer a narrow opt-in host-side helper over broad backend container device mounts unless the existing pattern already proves otherwise.
+7. If a helper or capability endpoint reports supported models/features, expose enough detail for the frontend to warn before a user hits a runtime failure.
+8. If the installer creates helper state outside Docker, make it idempotent. Preserve helper virtualenvs, caches, generated tokens, and data directories across `download_app()` refreshes unless they must be regenerated.
 
 ## Frontend Checklist
 
@@ -78,6 +80,7 @@ Frontend implementation steps:
 4. Shape create/update input in `DataSourcesPage.tsx` without leaking unrelated config fields.
 5. Add list actions only when they are valid for the role: manual read, test output, setup guide, edit, delete.
 6. Add a setup guide for every configured device/source/target type. Do not add a supported device without a guide.
+7. Use backend/helper capabilities in templates and guides where available. If a specific device model needs an optional dependency, show that missing support before manual read/workflow execution fails.
 
 ## Setup Guide Requirements
 
@@ -122,6 +125,12 @@ Update only docs that are directly affected:
 
 Keep `.agents/`, `.claude/`, and `.cursor/` counterparts synchronized when the top-level sync notice requires it.
 
+Before finishing, verify mirrored files did not drift:
+
+- For `.agents/` and `.claude/` markdown counterparts, compare hashes or inspect the full diff until the body is identical.
+- For `.cursor/rules/*.mdc`, verify the rule body matches the `.agents/rules/*.md` counterpart, allowing only Cursor frontmatter differences.
+- If a mirrored file was already stale before the change, either fix the drift as part of the touched rule set or call it out explicitly.
+
 ## Verification
 
 Run the smallest relevant set, but device support usually requires:
@@ -136,6 +145,12 @@ If install/runtime config changed, inspect:
 - `.env.example`
 - `install.sh`
 
+For installer changes, check idempotency explicitly:
+
+- Re-running `install.sh` should not reinstall helper dependencies unnecessarily.
+- Any helper virtualenv/cache/state directory under `APP_DIR` must be protected from the installer refresh/delete step.
+- Existing generated tokens and persisted runtime data must survive reinstall/update runs.
+
 If hardware/helper behavior changed, include a manual verification note for Raspberry Pi hardware or the relevant external service. If `npm run check` is blocked by known audit advisories, say so explicitly and list the successful verification commands.
 
 ## Avoid
@@ -148,6 +163,8 @@ If hardware/helper behavior changed, include a manual verification note for Rasp
 - Do not run event listeners forever when only enabled workflows need them.
 - Do not expose secrets in URLs, guide text, logs, previews, errors, or example commands.
 - Do not make speculative compatibility layers unless persisted data, external consumers, or explicit user requirements need them.
+- Do not silently coerce unknown device/model enum values to a default. Reject them so bad configs are visible.
+- Do not create installer-managed helper environments under `APP_DIR` without also preserving them during app refresh.
 
 ## Final Response
 
@@ -157,3 +174,4 @@ When done, summarize:
 - Key backend/frontend/docs files changed.
 - Verification commands run and their results.
 - Any manual hardware/service verification still needed.
+- Any mirrored rule/skill files checked for sync, especially if `.agents/`, `.claude/`, or `.cursor/` files changed.

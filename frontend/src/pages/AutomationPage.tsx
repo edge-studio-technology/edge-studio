@@ -567,7 +567,7 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
     return (
       <Panel className={formGridClass}>
         <strong>Selected block</strong>
-        <p className={mutedText}>Fetch JSON from a readable device/source such as HTTP JSON or BME280.</p>
+        <p className={mutedText}>Fetch JSON from a readable device/source such as HTTP JSON or a BME sensor.</p>
         <label>Readable source<select value={block.config.sourceId ?? ""} onChange={(event) => onChange({ ...block.config, sourceId: event.target.value })}><option value="">Select source...</option>{readableSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
         <AttachedStampSettings block={block} onAttachedChange={onAttachedChange} onAttachedRemove={onAttachedRemove} />
       </Panel>

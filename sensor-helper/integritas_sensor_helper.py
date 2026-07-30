@@ -29,24 +29,37 @@ def load_smbus():
             return None
 
 
+def load_bme680():
+    try:
+        import bme680
+        return bme680
+    except Exception:
+        return None
+
+
 class SensorHelper:
     def __init__(self, token):
         self.token = token
 
     def capabilities(self):
         SMBus = load_smbus()
+        supported_sensors = ["bme280"]
+        if load_bme680() is not None:
+            supported_sensors.append("bme680")
         if SMBus is None:
-            return {"available": False, "reason": "Python smbus2 or smbus module was not found. Install python3-smbus or python3-smbus2 on the host.", "supportedSensors": ["bme280"]}
+            return {"available": False, "reason": "Python smbus2 or smbus module was not found. Install python3-smbus or python3-smbus2 on the host.", "supportedSensors": supported_sensors}
         if not Path("/dev/i2c-1").exists():
-            return {"available": False, "reason": "/dev/i2c-1 was not found. Enable I2C on the Raspberry Pi and reboot if needed.", "supportedSensors": ["bme280"]}
-        return {"available": True, "reason": None, "supportedSensors": ["bme280"]}
+            return {"available": False, "reason": "/dev/i2c-1 was not found. Enable I2C on the Raspberry Pi and reboot if needed.", "supportedSensors": supported_sensors}
+        return {"available": True, "reason": None, "supportedSensors": supported_sensors}
 
     def read(self, payload):
         sensor = str(payload.get("sensor", "bme280")).lower()
-        if sensor != "bme280":
+        if sensor not in ("bme280", "bme680"):
             raise ValueError("Unsupported sensor type")
         bus = parse_int(payload.get("bus", 1), "bus", 0, 10)
         address = parse_address(payload.get("address", "0x76"))
+        if sensor == "bme680":
+            return read_bme680(bus, address)
         return read_bme280(bus, address)
 
 
@@ -106,6 +119,41 @@ def read_bme280(bus_number, address):
         "pressureHpa": round(pressure_hpa, 2),
         "readAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
+
+
+def read_bme680(bus_number, address):
+    bme680 = load_bme680()
+    if bme680 is None:
+        raise RuntimeError("Python bme680 module was not found. Install python3-bme680 on the host.")
+
+    SMBus = load_smbus()
+    if SMBus is None:
+        raise RuntimeError("Python smbus2 or smbus module was not found")
+
+    bus = SMBus(bus_number)
+    try:
+        sensor = bme680.BME680(i2c_addr=address, i2c_device=bus)
+        sensor.set_humidity_oversample(bme680.OS_2X)
+        sensor.set_pressure_oversample(bme680.OS_4X)
+        sensor.set_temperature_oversample(bme680.OS_8X)
+        sensor.set_filter(bme680.FILTER_SIZE_3)
+        sensor.set_gas_status(bme680.DISABLE_GAS_MEAS)
+        if not sensor.get_sensor_data():
+            raise RuntimeError(f"Device at 0x{address:02x} did not return BME680 data")
+
+        return {
+            "sensor": "bme680",
+            "bus": bus_number,
+            "address": f"0x{address:02x}",
+            "temperatureC": round(sensor.data.temperature, 2),
+            "humidityPercent": round(sensor.data.humidity, 2),
+            "pressureHpa": round(sensor.data.pressure, 2),
+            "readAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+    finally:
+        close = getattr(bus, "close", None)
+        if callable(close):
+            close()
 
 
 def read_calibration(bus, address):

@@ -31,7 +31,7 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
   if (source.type === "gpio-input" && source.config.profile === "pir-motion") return pirGuide(source);
   if (source.type === "gpio-input") return gpioInputGuide(source);
   if (source.type === "gpio-output") return gpioLedGuide(source);
-  if (source.type === "bme-sensor") return bme280Guide(source);
+  if (source.type === "bme-sensor") return bmeSensorGuide(source);
   if (source.type === "pi-camera") return piCameraGuide(source);
   if (source.type === "json-api" || source.type === "internal-json-api") return httpJsonSourceGuide(source);
   if (source.type === "webhook") return webhookGuide(source);
@@ -136,11 +136,12 @@ function readableSourcePreviewWorkflow(source: DataSource): DeviceGuideWorkflowI
   };
 }
 
-function bme280Guide(source: DataSource) {
-  return guide(source, "BME280 Environmental Sensor Setup", "Read temperature, humidity, and air pressure from a BME280 module over the Pi I2C bus.", [
-    { title: "Requirements", items: ["Install with ENABLE_SENSORS=true so the host-side sensor helper is running.", "Enable I2C on the Raspberry Pi host and reboot if needed.", "Use address 0x76 first, then try 0x77 if reads fail."] },
+function bmeSensorGuide(source: DataSource) {
+  const sensorName = source.config.sensor === "bme680" ? "BME680" : "BME280";
+  return guide(source, `${sensorName} Environmental Sensor Setup`, `Read temperature, humidity, and air pressure from a ${sensorName} module over the Pi I2C bus.`, [
+    { title: "Requirements", items: ["Install with ENABLE_SENSORS=true so the host-side sensor helper is running.", "Enable I2C on the Raspberry Pi host and reboot if needed.", ...(source.config.sensor === "bme680" ? ["The installer installs the PyPI bme680 module in /opt/integritas-pi/.venv-sensor-helper for BME680 reads."] : []), "Use address 0x76 first, then try 0x77 if reads fail."] },
     { title: "Wiring", schematic: "pi-gpio", table: [["VIN", "3.3V pin 1 or 5V pin 2/4"], ["GND", "GND pin 6/9/etc."], ["SCL", "GPIO3 / physical pin 5"], ["SDA", "GPIO2 / physical pin 3"]] },
-    { title: "Saved settings", table: [["I2C bus", String(source.config.bus ?? 1)], ["I2C address", source.config.address ?? "0x76"]] },
+    { title: "Saved settings", table: [["Sensor", source.config.sensor ?? "bme280"], ["I2C bus", String(source.config.bus ?? 1)], ["I2C address", source.config.address ?? "0x76"]] },
     { title: "Verify", items: ["Click manual read in Devices and confirm a JSON preview appears.", "Use the source in an Automation Fetch data source block, then attach Stamp data if you want Integritas proofs."] }
   ], "docs/guides/bme280-sensor.md", [readableSourcePreviewAction()]);
 }

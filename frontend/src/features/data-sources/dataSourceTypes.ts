@@ -32,7 +32,7 @@ export type DataSource = {
     durationMs?: number;
     fps?: number;
     outputFormat?: "jpg" | "h264";
-    sensor?: "bme280";
+    sensor?: "bme280" | "bme680";
     bus?: number;
     address?: "0x76" | "0x77";
   };

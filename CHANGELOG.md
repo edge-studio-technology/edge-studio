@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Devices now include a `BME680 Environmental Sensor` input template that reuses the opt-in I2C sensor helper and readable BME sensor automation path.
+- The sensor helper installer now creates and preserves a dedicated Python virtualenv for the PyPI `bme680` module, avoiding repeated installs and unavailable distro packages such as `python3-bme680`.
+
 ## [0.28.0] 2026-07-30
 
 ### Added

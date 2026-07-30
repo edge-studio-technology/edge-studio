@@ -64,7 +64,7 @@ export type PiCameraConfig = {
 };
 
 export type BmeSensorConfig = {
-  sensor: "bme280";
+  sensor: "bme280" | "bme680";
   bus: number;
   address: "0x76" | "0x77";
 };
@@ -205,10 +205,11 @@ export function parsePiCameraConfig(value: unknown): PiCameraConfig {
 
 export function parseBmeSensorConfig(value: unknown): BmeSensorConfig {
   const config = value as Partial<BmeSensorConfig> | undefined;
-  const sensor = "bme280";
+  const sensor = config?.sensor ?? "bme280";
   const bus = Number(config?.bus ?? 1);
   const address = config?.address === "0x77" ? "0x77" : "0x76";
 
+  if (sensor !== "bme280" && sensor !== "bme680") throw new Error("config.sensor must be bme280 or bme680");
   if (!Number.isInteger(bus) || bus < 0 || bus > 10) throw new Error("config.bus must be an I2C bus number from 0 to 10");
 
   return { sensor, bus, address };
