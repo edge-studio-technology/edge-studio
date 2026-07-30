@@ -65,14 +65,23 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
 }
 
 function openPiGpioSchematic() {
-  const popup = window.open("/pi-gpio-pinout.svg", "integritas-pi-gpio-pinout", "popup=yes,width=1280,height=820,noopener,noreferrer");
-  if (!popup) window.location.assign("/pi-gpio-pinout.svg");
+  openBrowserPopup(new URL("/pi-gpio-pinout.svg", window.location.origin).href, "integritas-pi-gpio-pinout");
 }
 
 function openExternalDoc(path: string) {
   const url = `https://github.com/integritas-technology/integritas-pi/blob/main/${path}`;
-  const popup = window.open(url, "integritas-pi-guide-doc", "popup=yes,width=1280,height=820,noopener,noreferrer");
-  if (!popup) window.location.assign(url);
+  openBrowserPopup(url, "integritas-pi-guide-doc");
+}
+
+function openBrowserPopup(url: string, name: string) {
+  const popup = window.open("about:blank", name, "popup=yes,width=1280,height=820");
+  if (!popup) {
+    window.open(url, "_blank");
+    return;
+  }
+  popup.opener = null;
+  popup.location.href = url;
+  popup.focus();
 }
 
 function CommandBlock({ value }: { value: string }) {
