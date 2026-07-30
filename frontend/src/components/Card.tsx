@@ -12,8 +12,8 @@ export function Card({
   return (
     <section
       className={cx(
-        "bg-surface-always-white rounded-soft relative flex flex-col items-start overflow-clip gap-detail-close",
-        size === "Compact" ? "p-margin-tight" : "p-margin-relaxed",
+        "bg-surface-always-white rounded-soft relative overflow-clip",
+        size === "Compact" ? "p-inset-tight" : "p-inset-relaxed",
         className,
       )}
     >

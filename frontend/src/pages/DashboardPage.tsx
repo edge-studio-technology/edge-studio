@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
 import {
   Cpu,
   Database,
@@ -16,8 +14,11 @@ import {
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DarkHeroCard } from "../components/DarkHeroCard";
+import { LoadingDots } from "../components/LoadingDots";
+import { MinimaIcon } from "../components/MinimaIcon";
 import { Page } from "../components/Page";
 import { Pill } from "../components/Pill";
+import { MetricCard } from "../components/patterns/MetricCard";
 import { ErrorText, Eyebrow, MutedText } from "../components/Text";
 import { listDataReads } from "../features/data-reads/dataReadsApi";
 import type { DataSourceRead } from "../features/data-reads/dataReadTypes";
@@ -27,9 +28,6 @@ import { useIntegritasHistoryAutoRefresh } from "../features/integritas/useInteg
 import { getDeviceStatus } from "../features/status/statusApi";
 import type { DeviceNodeState, DeviceStatus } from "../features/status/statusTypes";
 import { getWalletStatus } from "../features/wallet/walletApi";
-import { LoadingDots } from "../components/LoadingDots";
-import { MinimaIcon } from "../components/MinimaIcon";
-import { cx } from "../lib/cx";
 import { formatAmountThreshold } from "../lib/format";
 import { formatLocalTime } from "../lib/time";
 import { APP_NAME } from "../app/names";
@@ -146,52 +144,16 @@ export function DashboardPage() {
 
   return (
     <Page
-      eyebrow="Dashboard"
-      title={APP_NAME}
-      desc="A browser-first workspace for trusted data, proofs, automation, and value flows at the edge."
+      title={`${APP_NAME} dashboard`}
+      desc="Your workspace for trusted data, proofs, automation and value flows at the edge."
     >
-      {/* <DarkHeroCard className='items-start lg:grid-cols-[1.35fr_0.65fr]'>
-        <div className='relative z-10 grid content-start gap-[18px]'>
-          <div className='flex flex-wrap gap-2'>
-            <Pill>Pi Edition</Pill>
-            <Pill>Edge Workbench</Pill>
-            <Pill>Minima Core only</Pill>
-          </div>
-          <h1 className='m-0 mt-1.5 max-w-[760px] text-[clamp(2.25rem,6vw,3.6rem)] leading-none tracking-[-0.04em]'>Minima Edge Workbench</h1>
-          <p className='max-w-[760px] leading-7 text-slate-300'>
-            Turn a Raspberry Pi into a Minima-powered edge gateway. Run a node,
-            manage wallet and token workflows, verify local data with
-            Integritas, and automate trusted edge events from a simple browser
-            UI.
-          </p>
-          <div className='flex flex-wrap gap-2.5'>
-            <Button type='button' variant='secondary' className='border-transparent bg-white text-slate-950 hover:bg-slate-100' onClick={() => navigate("/setup")}>
-              Start setup
-            </Button>
-          </div>
-        </div>
-        <div className='relative z-10 grid gap-3 rounded-[24px] border border-white/15 bg-gradient-to-br from-cyan-950/70 to-violet-950/70 p-[18px] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'>
-          <Eyebrow className='text-slate-300'>Use case builder</Eyebrow>
-          <h2 className='m-0 text-xl text-white'>Data to value</h2>
-          <p className='m-0 mb-2 text-slate-300'>Connect. Prove. Trigger. Settle.</p>
-          {useCaseSteps.map((step) => (
-            <article className='grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-2.5 rounded-2xl border border-white/10 bg-white/10 p-4' key={step.number}>
-              <div className='grid size-[34px] place-items-center rounded-xl bg-white/15 text-white'>
-                <step.icon size={18} />
-              </div>
-              <span className='text-xs font-black tracking-wide text-slate-300'>{step.number}</span>
-              <div>
-                <strong className='text-white'>{step.title}</strong>
-                <p className='m-0 text-slate-300'>{step.text}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </DarkHeroCard> */}
-
       <DashboardNextAction />
 
-      <DeviceStatusCard status={deviceStatus} walletBalance={walletBalance} walletLoading={walletLoading} />
+      <DeviceStatusCard
+        status={deviceStatus}
+        walletBalance={walletBalance}
+        walletLoading={walletLoading}
+      />
 
       <Card className="grid gap-5">
         <div>
@@ -247,46 +209,10 @@ function pct(used: number, total: number) {
 }
 
 function nodeStateValueClass(state: DeviceNodeState) {
-  if (state === "running") return "text-emerald-600";
-  if (state === "restarting") return "text-blue-600";
-  if (state === "unknown") return "text-slate-400";
-  return "text-amber-600";
-}
-
-function MetricCard({
-  label,
-  value,
-  helper,
-  icon: Icon,
-  valueClass = "text-slate-950",
-}: {
-  label: string;
-  value: ReactNode;
-  helper: string;
-  icon: LucideIcon;
-  valueClass?: string;
-}) {
-  return (
-    <Card className="p-5!">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm text-slate-500">{label}</p>
-          <p
-            className={cx(
-              "mt-2 min-w-0 truncate text-2xl font-semibold tracking-tight",
-              valueClass,
-            )}
-          >
-            {value}
-          </p>
-          <p className="mt-1 text-sm text-slate-500">{helper}</p>
-        </div>
-        <div className="shrink-0 rounded-2xl bg-slate-100 p-3 text-slate-700">
-          <Icon size={22} />
-        </div>
-      </div>
-    </Card>
-  );
+  if (state === "running") return "text-text-success";
+  if (state === "restarting") return "text-text-accent";
+  if (state === "unknown") return "text-text-tertiary";
+  return "text-text-warning";
 }
 
 function DeviceStatusCard({
@@ -308,41 +234,39 @@ function DeviceStatusCard({
     ? device.disk
       ? `of ${formatBytes(device.disk.totalBytes)} · ${pct(device.disk.usedBytes, device.disk.totalBytes)} used`
       : "/data unavailable"
-    : "";
+    : undefined;
+  const walletUnavailable = walletLoading || walletBalance === null;
+
   return (
     <>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <MetricCard
           label="Wallet balance"
+          icon={<MinimaIcon size={20} />}
           value={
             walletLoading && !nodeRestarting ? (
               <LoadingDots />
             ) : nodeRestarting || walletBalance === null ? (
               "Unavailable"
             ) : (
-              <span className="flex min-w-0 items-center gap-2">
-                <MinimaIcon size={20} className="shrink-0 text-slate-600" />
-                <span className="min-w-0 truncate" title={walletBalance}>
-                  {formatAmountThreshold(walletBalance)}
-                </span>
+              <span className="block min-w-0 truncate" title={walletBalance}>
+                {formatAmountThreshold(walletBalance)}
               </span>
             )
           }
-          helper="Primary Pi wallet"
-          icon={Wallet}
-          valueClass={
-            walletLoading || walletBalance === null ? "text-slate-400" : "text-slate-950"
-          }
+          helper="Primary Pi Wallet"
+          valueClassName={walletUnavailable ? "text-text-tertiary" : undefined}
         />
         <MetricCard
           label="Node status"
+          icon={<RadioTower size={20} />}
           value={node ? node.state.charAt(0).toUpperCase() + node.state.slice(1) : <LoadingDots />}
           helper="Minima node"
-          icon={RadioTower}
-          valueClass={node ? nodeStateValueClass(node.state) : "text-slate-400"}
+          valueClassName={node ? nodeStateValueClass(node.state) : "text-text-tertiary"}
         />
         <MetricCard
           label="Integritas API"
+          icon={<ShieldCheck size={20} />}
           value={
             !app ? (
               <LoadingDots />
@@ -355,13 +279,12 @@ function DeviceStatusCard({
             )
           }
           helper="API connection"
-          icon={ShieldCheck}
-          valueClass={
+          valueClassName={
             !app || app.integritasConnected === null
-              ? "text-slate-400"
+              ? "text-text-tertiary"
               : app.integritasConnected
-                ? "text-emerald-600"
-                : "text-amber-600"
+                ? "text-text-success"
+                : "text-text-warning"
           }
         />
       </div>
@@ -369,31 +292,33 @@ function DeviceStatusCard({
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <MetricCard
           label="Device"
+          icon={<Server size={20} />}
           value={device ? device.hostname : <LoadingDots />}
-          helper={device ? `${device.platform} · ${device.arch}` : ""}
-          icon={Server}
+          helper={device ? `${device.platform} · ${device.arch}` : undefined}
         />
         <MetricCard
           label="Device CPU"
+          icon={<Cpu size={20} />}
           value={cpuPct ?? <LoadingDots />}
-          helper={device ? `${device.cpuCount}-core · ${device.loadAvg[0].toFixed(2)} 1m avg` : ""}
-          icon={Cpu}
+          helper={
+            device ? `${device.cpuCount}-core · ${device.loadAvg[0].toFixed(2)} 1m avg` : undefined
+          }
         />
         <MetricCard
           label="Device Memory"
+          icon={<MemoryStick size={20} />}
           value={device ? formatBytes(device.memory.usedBytes) : <LoadingDots />}
           helper={
             device
               ? `of ${formatBytes(device.memory.totalBytes)} · ${pct(device.memory.usedBytes, device.memory.totalBytes)} used`
-              : ""
+              : undefined
           }
-          icon={MemoryStick}
         />
         <MetricCard
           label="Device Disk"
+          icon={<HardDrive size={20} />}
           value={diskValue ?? <LoadingDots />}
           helper={diskHelper}
-          icon={HardDrive}
         />
       </div>
     </>
