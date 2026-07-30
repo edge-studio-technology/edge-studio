@@ -15,6 +15,7 @@ import { JsonPreview } from "../../components/JsonPreview";
 import { ErrorDetails } from "../../components/ErrorDetails";
 import { MutedText } from "../../components/Text";
 import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
+import { hasDeviceSetupGuide } from "./deviceSetupGuides";
 
 export function DataSourcesList({
   items,
@@ -64,7 +65,7 @@ export function DataSourcesList({
                 <td className={tableCellClass}>{source.type === "pi-camera" ? "Capture" : isInputSource(source) ? "Input" : "Output"}</td>
                 <td className={tableCellClass}>{sourceTypeLabel(source)}</td>
                 <td className={tableCellClass}>
-                  <code>{source.type === "webhook" ? webhookUrl(source) : source.type === "mqtt" || source.type === "mqtt-output" ? mqttEndpoint(source) : source.type === "gpio-input" ? gpioEndpoint(source) : source.type === "gpio-output" ? gpioOutputEndpoint(source) : source.type === "pi-camera" ? cameraEndpoint(source) : source.config.url}</code>
+                  <code>{source.type === "webhook" ? webhookUrl(source) : source.type === "mqtt" || source.type === "mqtt-output" ? mqttEndpoint(source) : source.type === "gpio-input" ? gpioEndpoint(source) : source.type === "gpio-output" ? gpioOutputEndpoint(source) : source.type === "pi-camera" ? cameraEndpoint(source) : source.type === "bme-sensor" ? bmeEndpoint(source) : source.config.url}</code>
                 </td>
                 <td className={tableCellClass}>
                   <HealthCell source={source} status={healthStatuses[source.id]} />
@@ -107,7 +108,7 @@ export function DataSourcesList({
                         <Zap size={16} />
                       </TableIconButton>
                     )}
-                    {source.type === "mqtt" && source.config.profile === "esp32-mqtt-board" && (
+                    {hasDeviceSetupGuide(source) && (
                       <TableIconButton
                         type="button"
                         disabled={busy}
@@ -173,6 +174,7 @@ function sourceTypeLabel(source: DataSource) {
   if (source.type === "gpio-input") return "GPIO Input Pin";
   if (source.type === "gpio-output") return "GPIO LED";
   if (source.type === "pi-camera") return "Raspberry Pi Camera";
+  if (source.type === "bme-sensor") return "BME280 Environmental Sensor";
   if (source.type === "http-output") return "HTTP JSON Target";
   if (source.type === "mqtt-output") return "MQTT Publisher";
   return source.type;
@@ -186,11 +188,16 @@ function cameraEndpoint(source: DataSource) {
   return `${source.config.mode ?? "photo"} ${source.config.width ?? 1280}x${source.config.height ?? 720}${source.config.mode === "video" ? ` ${source.config.durationMs ?? 5000}ms @ ${source.config.fps ?? 30}fps` : ""}`;
 }
 
+function bmeEndpoint(source: DataSource) {
+  return `${source.config.sensor ?? "bme280"} i2c-${source.config.bus ?? 1} ${source.config.address ?? "0x76"}`;
+}
+
 function isInputSource(source: DataSource) {
-  return source.type === "json-api" || source.type === "internal-json-api" || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "pi-camera";
+  return source.type === "json-api" || source.type === "internal-json-api" || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "pi-camera" || source.type === "bme-sensor";
 }
 
 function HealthCell({ source, status }: { source: DataSource; status?: DataSourceHealthStatus }) {
+  if (source.type === "bme-sensor") return <span className="text-slate-500">Read on demand</span>;
   if (source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "gpio-output" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output") return <span className="text-slate-500">Automation controlled</span>;
   if (!source.config.healthStatusUrl) return <span className="text-slate-500">Not configured</span>;
   if (!status) return <HealthStatus pending>Checking</HealthStatus>;
