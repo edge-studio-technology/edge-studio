@@ -494,7 +494,7 @@ export function WalletPage() {
                           </span>
                         </td>
                         <td className={`${tableCellClass} w-px whitespace-nowrap`}>
-                          <RowActions>
+                          <RowActions wrap={false}>
                             <TableIconButton
                               type='button'
                               title='View details'
@@ -634,7 +634,7 @@ export function WalletPage() {
                           </span>
                         </td>
                         <td className={`${tableCellClass} w-px whitespace-nowrap`}>
-                          <RowActions>
+                          <RowActions wrap={false}>
                             <TableIconButton
                               type='button'
                               title='View details'
