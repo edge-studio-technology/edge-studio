@@ -6,12 +6,13 @@ import { Page } from "../components/Page";
 import { ProgressModal } from "../components/ProgressModal";
 import { MutedText } from "../components/Text";
 import { useToast } from "../components/ToastProvider";
+import { createAutomationWorkflow } from "../features/automation/automationApi";
 import { checkDataSourceHealth, createDataSource, deleteDataSource, getDataSourceCapabilities, listDataSources, readDataSource, testDataSourceOutput, updateDataSource } from "../features/data-sources/dataSourcesApi";
 import { DataSourceForm } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
 import { DataSourceTemplates, LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
 import type { DataSource, DataSourceCapabilities, DataSourceHealthStatus, DataSourceTemplate } from "../features/data-sources/dataSourceTypes";
-import { getDeviceSetupGuide, StandardDeviceSetupGuide } from "../features/data-sources/deviceSetupGuides";
+import { getDeviceSetupGuide, StandardDeviceSetupGuide, type DeviceGuideAction } from "../features/data-sources/deviceSetupGuides";
 
 type AddDeviceStep = "choose" | "input" | "output" | "input-template" | "input-manual" | "output-template" | "output-manual";
 
@@ -49,6 +50,7 @@ export function DataSourcesPage() {
   const [busy, setBusy] = useState(false);
   const [deletingSource, setDeletingSource] = useState<DataSource | null>(null);
   const [setupGuideSource, setSetupGuideSource] = useState<DataSource | null>(null);
+  const [runningGuideActionKey, setRunningGuideActionKey] = useState<string | null>(null);
 
   useEffect(() => {
     refresh().catch((err: Error) => showToast({ tone: "error", title: "Could not load devices", message: err.message }));
@@ -191,6 +193,19 @@ export function DataSourcesPage() {
     }
   }
 
+  async function runGuideAction(source: DataSource, action: DeviceGuideAction) {
+    setRunningGuideActionKey(action.key);
+    try {
+      const response = await createAutomationWorkflow(action.workflow(source));
+      await refresh();
+      showToast({ tone: "success", title: "Workflow created", message: response.item.name });
+    } catch (err) {
+      showToast({ tone: "error", title: "Guide action failed", message: err instanceof Error ? err.message : "Unknown error" });
+    } finally {
+      setRunningGuideActionKey(null);
+    }
+  }
+
   return (
       <Page eyebrow="Devices" title="Connect inputs and outputs" desc="Add input sources for data and events, then prepare output targets for automation workflows.">
       <Card className="grid gap-4">
@@ -285,7 +300,7 @@ export function DataSourcesPage() {
 
       {setupGuideSource && (
         <Modal title={getDeviceSetupGuide(setupGuideSource)?.title ?? "Device setup guide"} onClose={() => setSetupGuideSource(null)}>
-          {setupGuideSource.type === "mqtt" && setupGuideSource.config.profile === "esp32-mqtt-board" ? <Esp32FirmwareSetup source={setupGuideSource} /> : <StandardDeviceSetupGuide source={setupGuideSource} />}
+          {setupGuideSource.type === "mqtt" && setupGuideSource.config.profile === "esp32-mqtt-board" ? <Esp32FirmwareSetup source={setupGuideSource} /> : <StandardDeviceSetupGuide source={setupGuideSource} runningActionKey={runningGuideActionKey} onAction={(action) => runGuideAction(setupGuideSource, action)} />}
         </Modal>
       )}
 

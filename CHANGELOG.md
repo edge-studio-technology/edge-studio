@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Devices now include a `BME280 Environmental Sensor` input template backed by an opt-in host-side I2C sensor helper (`ENABLE_SENSORS=true`). Manual reads and Automation `Fetch data source` blocks can hash temperature, humidity, and pressure JSON for Integritas stamping.
 - Devices now expose reusable setup guides from the configured-device list for every supported source/target type, and newly added devices automatically open their guide after saving.
+- BME280 and HTTP JSON setup guides now include a `Create basic workflow for this device` action that creates a disabled manual workflow with `Fetch data source` and `Show preview` blocks.
 - Hardware-backed device templates such as GPIO, Pi Camera, and BME280 are now selectable even before their required `ENABLE_*` install flag is enabled, so users can save the device and read its setup guide first.
 - Hardware wiring guide sections now include a `Wiring schematic` popup with a Raspberry Pi 40-pin GPIO header pinout.
 

@@ -2,11 +2,24 @@ import { useState, type ReactNode } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { MutedText } from "../../components/Text";
+import type { AutomationBlock, AutomationBlockType } from "../automation/automationTypes";
 import type { DataSource } from "./dataSourceTypes";
 
 type GuideSection = { title: string; body?: string; items?: string[]; table?: Array<[string, string]>; commands?: string; schematic?: "pi-gpio" };
 
-export type DeviceSetupGuide = { title: string; eyebrow: string; intro: string; sections: GuideSection[]; docPath?: string };
+type GuideWorkflowBlock = { type: AutomationBlockType; config?: AutomationBlock["config"]; enabled?: boolean; parentBlockId?: string | null; clientId?: string | null };
+
+export type DeviceGuideWorkflowInput = { name: string; enabled: boolean; blocks: GuideWorkflowBlock[] };
+
+export type DeviceGuideAction = {
+  key: string;
+  label: string;
+  description?: string;
+  kind: "create_workflow";
+  workflow: (source: DataSource) => DeviceGuideWorkflowInput;
+};
+
+export type DeviceSetupGuide = { title: string; eyebrow: string; intro: string; sections: GuideSection[]; docPath?: string; actions?: DeviceGuideAction[] };
 
 export function hasDeviceSetupGuide(source: DataSource) {
   return Boolean(getDeviceSetupGuide(source));
@@ -27,17 +40,17 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
   return null;
 }
 
-export function StandardDeviceSetupGuide({ source }: { source: DataSource }) {
+export function StandardDeviceSetupGuide({ source, runningActionKey, onAction }: { source: DataSource; runningActionKey?: string | null; onAction?: (action: DeviceGuideAction) => void }) {
   const setupGuide = getDeviceSetupGuide(source);
   if (!setupGuide) return null;
   return (
-    <DeviceSetupGuideShell guide={setupGuide}>
+    <DeviceSetupGuideShell guide={setupGuide} runningActionKey={runningActionKey} onAction={onAction}>
       <div className="grid gap-3">{setupGuide.sections.map((section) => <GuideSectionCard key={section.title} section={section} />)}</div>
     </DeviceSetupGuideShell>
   );
 }
 
-export function DeviceSetupGuideShell({ guide, children }: { guide: DeviceSetupGuide; children: ReactNode }) {
+export function DeviceSetupGuideShell({ guide, children, runningActionKey, onAction }: { guide: DeviceSetupGuide; children: ReactNode; runningActionKey?: string | null; onAction?: (action: DeviceGuideAction) => void }) {
   return (
     <Card className="grid max-w-4xl gap-4">
       <div>
@@ -46,8 +59,26 @@ export function DeviceSetupGuideShell({ guide, children }: { guide: DeviceSetupG
         <MutedText className="m-0 mt-2">{guide.intro}</MutedText>
       </div>
       {children}
+      {guide.actions && guide.actions.length > 0 && <GuideActions actions={guide.actions} runningActionKey={runningActionKey} onAction={onAction} />}
       {guide.docPath && <MutedText className="m-0">More detail: <button type="button" className="font-mono text-blue-700 underline decoration-blue-300 underline-offset-2" onClick={() => openExternalDoc(guide.docPath!)}>{guide.docPath}</button></MutedText>}
     </Card>
+  );
+}
+
+function GuideActions({ actions, runningActionKey, onAction }: { actions: DeviceGuideAction[]; runningActionKey?: string | null; onAction?: (action: DeviceGuideAction) => void }) {
+  return (
+    <section className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-700">
+      <strong>Guide actions</strong>
+      <div className="grid gap-2">
+        {actions.map((action) => <div key={action.key} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-white p-3">
+          <div>
+            <div className="font-extrabold text-slate-800">{action.label}</div>
+            {action.description && <MutedText className="m-0 mt-1">{action.description}</MutedText>}
+          </div>
+          <Button type="button" size="sm" disabled={!onAction || Boolean(runningActionKey)} onClick={() => onAction?.(action)}>{runningActionKey === action.key ? "Creating..." : action.label}</Button>
+        </div>)}
+      </div>
+    </section>
   );
 }
 
@@ -75,8 +106,30 @@ function CommandBlock({ value }: { value: string }) {
   return <div className="grid gap-2"><textarea className="min-h-[92px] font-mono text-xs" readOnly value={value} /><Button type="button" size="xs" variant="secondary" onClick={() => navigator.clipboard?.writeText(value)}>Copy commands</Button></div>;
 }
 
-function guide(source: DataSource, title: string, intro: string, sections: GuideSection[], docPath?: string): DeviceSetupGuide {
-  return { title, eyebrow: source.name, intro, sections, docPath };
+function guide(source: DataSource, title: string, intro: string, sections: GuideSection[], docPath?: string, actions?: DeviceGuideAction[]): DeviceSetupGuide {
+  return { title, eyebrow: source.name, intro, sections, docPath, actions };
+}
+
+function readableSourcePreviewAction(): DeviceGuideAction {
+  return {
+    key: "create-readable-preview-workflow",
+    label: "Create basic workflow for this device",
+    description: "Adds a disabled manual workflow that reads this device and writes the latest JSON to the Automation inbox.",
+    kind: "create_workflow",
+    workflow: readableSourcePreviewWorkflow,
+  };
+}
+
+function readableSourcePreviewWorkflow(source: DataSource): DeviceGuideWorkflowInput {
+  return {
+    name: `${source.name} preview`,
+    enabled: false,
+    blocks: [
+      { type: "manual_start", config: {}, clientId: "start" },
+      { type: "fetch_data_source", config: { sourceId: source.id }, clientId: "fetch" },
+      { type: "show_preview", config: { title: `${source.name} latest data`, previewFormat: "json", contentMode: "latest_data" }, clientId: "preview" },
+    ],
+  };
 }
 
 function bme280Guide(source: DataSource) {
@@ -85,7 +138,7 @@ function bme280Guide(source: DataSource) {
     { title: "Wiring", schematic: "pi-gpio", table: [["VIN", "3.3V pin 1 or 5V pin 2/4"], ["GND", "GND pin 6/9/etc."], ["SCL", "GPIO3 / physical pin 5"], ["SDA", "GPIO2 / physical pin 3"]] },
     { title: "Saved settings", table: [["I2C bus", String(source.config.bus ?? 1)], ["I2C address", source.config.address ?? "0x76"]] },
     { title: "Verify", items: ["Click manual read in Devices and confirm a JSON preview appears.", "Use the source in an Automation Fetch data source block, then attach Stamp data if you want Integritas proofs."] }
-  ], "docs/guides/bme280-sensor.md");
+  ], "docs/guides/bme280-sensor.md", [readableSourcePreviewAction()]);
 }
 
 function gpioInputGuide(source: DataSource) {
@@ -134,7 +187,7 @@ function httpJsonSourceGuide(source: DataSource) {
     { title: "Endpoint", table: [["Method", source.config.method ?? "GET"], ["URL", source.config.url ?? ""], ["Health URL", source.config.healthStatusUrl ?? "Not configured"]] },
     { title: "Requirements", items: ["The endpoint must return valid JSON.", "Use GET for normal reads, or POST when the source requires a request body configured by backend/API paths.", "Avoid placing secrets in URLs because they can appear in logs/history."] },
     { title: "Verify", items: ["Click manual read in Devices and confirm a preview/hash appears.", "Use Fetch data source in Automation for scheduled or manual workflow reads."] }
-  ]);
+  ], undefined, [readableSourcePreviewAction()]);
 }
 
 function webhookGuide(source: DataSource) {
