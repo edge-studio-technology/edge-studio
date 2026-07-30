@@ -87,7 +87,11 @@ function watchGpioSource(source: DataSourceRecord, workflow: AutomationWorkflowR
   });
 
   child.on("exit", (code, signal) => {
-    if (watchers.has(source.id)) updateDataSourceReadResult(source.id, { error: dataSourceError({ type: "source_unavailable", message: "GPIO watcher stopped", nativeMessage: `GPIO watcher stopped (${signal ?? code ?? "unknown"})`, context: { sourceId: source.id, chip: config.chip, pin: config.pin } }) });
+    const current = watchers.get(source.id);
+    if (current?.process !== child) return;
+
+    watchers.delete(source.id);
+    updateDataSourceReadResult(source.id, { error: dataSourceError({ type: "source_unavailable", message: "GPIO watcher stopped", nativeMessage: `GPIO watcher stopped (${signal ?? code ?? "unknown"})`, context: { sourceId: source.id, chip: config.chip, pin: config.pin } }) });
   });
 
   return child;

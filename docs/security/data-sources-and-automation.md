@@ -131,7 +131,7 @@ Plan:
 
 Status: Accepted prototype risk.
 
-## MQTT Output Targets
+## MQTT Publisher Targets
 
 Risk: MQTT output targets let automation workflows publish JSON messages to configured broker URLs and topics.
 
@@ -174,7 +174,7 @@ Plan:
 
 Status: Accepted prototype risk for local learning deployments only.
 
-## HTTP/API Output Targets
+## HTTP JSON Targets
 
 Risk: HTTP/API output targets let automation workflows send JSON requests to configured URLs.
 
@@ -197,7 +197,7 @@ Plan:
 
 Status: Accepted prototype risk.
 
-## GPIO Input Data Sources
+## GPIO Input Pin Data Sources
 
 Risk: Enabled GPIO input automation workflows allow the backend container to watch Raspberry Pi GPIO line events through `gpiomon` when `/dev/gpiochip0` is mounted into the container.
 
@@ -220,7 +220,7 @@ Plan:
 
 Status: Accepted prototype risk. Pi GPIO pins are 3.3V only; use proper level shifting, resistors, and isolation for external or industrial signals.
 
-## GPIO Output Targets
+## GPIO LED Targets
 
 Risk: GPIO output targets let automation workflows drive Raspberry Pi GPIO pins through `gpioset` when `/dev/gpiochip0` is mounted into the backend container.
 
@@ -239,18 +239,18 @@ Required wiring baseline: use an LED with a 220-330 ohm resistor in series. Do n
 
 Status: Accepted prototype risk for local learning hardware only.
 
-## Pi Camera Capture Devices
+## Raspberry Pi Camera Capture Devices
 
-Risk: Enabled Pi Camera workflows allow the backend to ask a localhost host-side camera helper to capture photos or short video clips through configured camera commands.
+Risk: Enabled Raspberry Pi Camera workflows allow the backend to ask a localhost host-side camera helper to capture photos or short video clips through configured camera commands.
 
 Impact: Captures can contain private images/video. The helper expands app control over host camera hardware, and stored captures can consume disk space if workflows run frequently.
 
 Current Controls:
 
-- Pi Camera device creation/editing requires admin role.
+- Raspberry Pi Camera device creation/editing requires admin role.
 - Camera access is opt-in through `ENABLE_CAMERA=true`; the installer creates a localhost-only `integritas-pi-camera-helper` systemd service.
 - The helper requires a generated bearer token shared with the backend through `.env`.
-- Camera capability reporting checks that host camera commands exist and that the helper can list at least one detected camera before enabling Pi Camera device creation.
+- Camera capability reporting checks that host camera commands exist and that the helper can list at least one detected camera before enabling Raspberry Pi Camera device creation.
 - Camera capture is a narrow workflow data block, not arbitrary shell execution or a generic output target.
 - Captured media stays local under the configured capture directory; read history stores JSON metadata and the media hash.
 - Integritas stamping uses the captured media file hash, not the raw image/video content.

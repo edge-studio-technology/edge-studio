@@ -3,10 +3,12 @@ import { Archive, Copy, Eye, Pencil, Play, RotateCcw, Trash2 } from "lucide-reac
 import { Link } from "react-router-dom";
 import { Button } from "../components/Button";
 import { DataTable, RowActions, TableIconButton, TableWrap, tableCellClass, tableHeaderCellClass, tableHeadRowClass, tableRowClass } from "../components/DataTable";
+import { ErrorAlert } from "../components/ErrorAlert";
 import { JsonPreview } from "../components/JsonPreview";
 import { Modal } from "../components/Modal";
 import { Page } from "../components/Page";
 import { ProgressModal } from "../components/ProgressModal";
+import { useToast } from "../components/ToastProvider";
 import { addAutomationBlock, createAutomationWorkflow, deleteAutomationBlock, deleteAutomationInboxItem, deleteAutomationWorkflow, duplicateAutomationWorkflow, getAutomationWorkflowValidation, listAutomationInbox, listAutomationWorkflowRuns, listAutomationWorkflows, reorderAutomationBlocks, runAutomationWorkflow, updateAutomationBlock, updateAutomationInboxItem, updateAutomationWorkflow, validateAutomationDraft } from "../features/automation/automationApi";
 import { automationBlockToCanvasBlock, draftBlockDescription, draftBlockTitle, isDataBlock, WorkflowBlockLibrary, WorkflowCanvas, WorkflowWorkspaceShell, type DraftWorkflowBlock, type WorkflowCanvasRuntimeState, type WorkflowCanvasValidationIssue } from "../features/automation/WorkflowCanvas";
 import type { AutomationBlock, AutomationBlockType, AutomationInboxItem, AutomationRun, AutomationValidationResult, AutomationWorkflow, ConditionOperator } from "../features/automation/automationTypes";
@@ -44,6 +46,7 @@ function automationFlowFromUrl(): AutomationPageFlow {
 }
 
 export function AutomationPage() {
+  const { showToast } = useToast();
   const [sources, setSources] = useState<DataSource[]>([]);
   const [addressBook, setAddressBook] = useState<AddressBookEntry[]>([]);
   const [walletStatus, setWalletStatus] = useState<WalletStatus | null>(null);
@@ -57,11 +60,11 @@ export function AutomationPage() {
   const [workspaceRuns, setWorkspaceRuns] = useState<AutomationRun[]>([]);
   const [workspaceValidation, setWorkspaceValidation] = useState<AutomationValidationResult | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingWorkflow, setDeletingWorkflow] = useState<AutomationWorkflow | null>(null);
 
   useEffect(() => {
-    refresh().catch((err: Error) => setError(err.message));
+    refresh().catch((err: Error) => setLoadError(err.message));
   }, []);
 
   useEffect(() => {
@@ -77,7 +80,7 @@ export function AutomationPage() {
       setWorkspaceValidation(null);
       return;
     }
-    refreshWorkspace(workflowId).catch((err: Error) => setError(err.message));
+    refreshWorkspace(workflowId).catch((err: Error) => setLoadError(err.message));
   }, [flow]);
 
   useEffect(() => {
@@ -87,7 +90,7 @@ export function AutomationPage() {
     if (!shouldPoll) return;
 
     const interval = window.setInterval(() => {
-      refreshWorkspace(flow.workflowId).catch((err: Error) => setError(err.message));
+      refreshWorkspace(flow.workflowId).catch((err: Error) => setLoadError(err.message));
     }, 2000);
     return () => window.clearInterval(interval);
   }, [flow, workspaceRuns]);
@@ -105,6 +108,7 @@ export function AutomationPage() {
     setInboxItems(inboxResponse.items);
     setAddressBook(addressBookResponse);
     setWalletStatus(walletResponse);
+    setLoadError(null);
     const workflowId = "workflowId" in flow ? flow.workflowId : null;
     if (workflowId) {
       await refreshWorkspace(workflowId);
@@ -115,6 +119,7 @@ export function AutomationPage() {
     const [runs, validation] = await Promise.all([listAutomationWorkflowRuns(workflowId, 10), getAutomationWorkflowValidation(workflowId)]);
     setWorkspaceRuns(runs.items);
     setWorkspaceValidation(validation.item);
+    setLoadError(null);
     return runs.items;
   }
 
@@ -141,14 +146,13 @@ export function AutomationPage() {
     setFlow(nextFlow);
   }
 
-  async function run(action: () => Promise<unknown>) {
+  async function run(action: () => Promise<unknown>, errorTitle = "Action failed") {
     setBusy(true);
-    setError(null);
     try {
       await action();
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      showToast({ tone: "error", title: errorTitle, message: err instanceof Error ? err.message : "Unknown error", timeoutMs: 9000 });
     } finally {
       setBusy(false);
     }
@@ -157,7 +161,7 @@ export function AutomationPage() {
   async function deleteWorkflow(workflow: AutomationWorkflow) {
     setDeletingWorkflow(workflow);
     try {
-      await run(() => deleteAutomationWorkflow(workflow.id));
+      await run(() => deleteAutomationWorkflow(workflow.id), "Could not delete workflow");
     } finally {
       setDeletingWorkflow(null);
     }
@@ -165,14 +169,13 @@ export function AutomationPage() {
 
   async function submitWorkflow(blocks: { type: AutomationBlockType; config: AutomationBlock["config"]; enabled?: boolean; parentBlockId?: string | null }[]) {
     setBusy(true);
-    setError(null);
     try {
       const response = await createAutomationWorkflow({ name, enabled, blocks });
       setName("");
       await refresh();
       navigateFlow({ mode: "edit", workflowId: response.item.id });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      showToast({ tone: "error", title: "Could not create workflow", message: err instanceof Error ? err.message : "Unknown error", timeoutMs: 9000 });
     } finally {
       setBusy(false);
     }
@@ -238,19 +241,19 @@ export function AutomationPage() {
           initialRunId={flow.mode === "watch" ? flow.runId : undefined}
           onNavigateMode={(nextMode) => navigateFlow({ mode: nextMode, workflowId: workspaceWorkflow.id })}
           onSelectWatchRun={(runId) => navigateFlow({ mode: "watch", workflowId: workspaceWorkflow.id, runId })}
-          onAddBlock={(input) => run(() => addAutomationBlock(workspaceWorkflow.id, input))}
-          onDeleteBlock={(blockId) => run(() => deleteAutomationBlock(workspaceWorkflow.id, blockId))}
-          onUpdateBlock={(blockId, input) => run(() => updateAutomationBlock(workspaceWorkflow.id, blockId, input))}
-          onUpdateWorkflow={(input) => run(() => updateAutomationWorkflow(workspaceWorkflow.id, input))}
-          onReorderBlocks={(blockIds) => run(() => reorderAutomationBlocks(workspaceWorkflow.id, blockIds))}
-          onRunNow={() => run(() => runWorkflowAndSelectLatest(workspaceWorkflow.id))}
-          onRunWithPayload={(payload) => run(() => runWorkflowAndSelectLatest(workspaceWorkflow.id, payload))}
+          onAddBlock={(input) => run(() => addAutomationBlock(workspaceWorkflow.id, input), "Could not add block")}
+          onDeleteBlock={(blockId) => run(() => deleteAutomationBlock(workspaceWorkflow.id, blockId), "Could not delete block")}
+          onUpdateBlock={(blockId, input) => run(() => updateAutomationBlock(workspaceWorkflow.id, blockId, input), "Could not save block")}
+          onUpdateWorkflow={(input) => run(() => updateAutomationWorkflow(workspaceWorkflow.id, input), "Could not save workflow")}
+          onReorderBlocks={(blockIds) => run(() => reorderAutomationBlocks(workspaceWorkflow.id, blockIds), "Could not move block")}
+          onRunNow={() => run(() => runWorkflowAndSelectLatest(workspaceWorkflow.id), "Could not run workflow")}
+          onRunWithPayload={(payload) => run(() => runWorkflowAndSelectLatest(workspaceWorkflow.id, payload), "Could not run workflow")}
         />
       )}
 
       {workspaceMode && activeWorkflowId && !workspaceWorkflow && <section className={cardClass}><p className={mutedText}>Loading workflow...</p></section>}
 
-      {error && <p className={errorText}>{error}</p>}
+      {loadError && <ErrorAlert title="Automation data could not be loaded" className="max-w-none" action={<Button type="button" variant="secondary" size="sm" onClick={() => refresh().catch((err: Error) => setLoadError(err.message))}>Retry</Button>}>{loadError}</ErrorAlert>}
 
       {deletingWorkflow && (
         <ProgressModal
@@ -302,10 +305,10 @@ export function AutomationPage() {
                     <RowActions>
                       <IconAction disabled={busy} title="Open and edit" label={`Open and edit ${workflow.name}`} onClick={() => navigateFlow({ mode: "edit", workflowId: workflow.id })}><Pencil size={16} /></IconAction>
                       <IconAction disabled={busy} title="Watch workflow" label={`Watch ${workflow.name}`} onClick={() => navigateFlow({ mode: "watch", workflowId: workflow.id })}><Eye size={16} /></IconAction>
-                      <IconAction disabled={busy || workflow.archived} title="Run now" label={`Run ${workflow.name} now`} onClick={() => run(() => runAutomationWorkflow(workflow.id))}><Play size={16} /></IconAction>
-                      <IconAction disabled={busy || workflow.archived} title={workflow.enabled ? "Pause workflow" : "Enable workflow"} label={`${workflow.enabled ? "Pause" : "Enable"} ${workflow.name}`} onClick={() => run(() => updateAutomationWorkflow(workflow.id, { enabled: !workflow.enabled }))}><RotateCcw size={16} /></IconAction>
-                      <IconAction disabled={busy} title="Duplicate workflow" label={`Duplicate ${workflow.name}`} onClick={() => run(() => duplicateAutomationWorkflow(workflow.id))}><Copy size={16} /></IconAction>
-                      <IconAction disabled={busy} title={workflow.archived ? "Restore workflow" : "Archive workflow"} label={`${workflow.archived ? "Restore" : "Archive"} ${workflow.name}`} onClick={() => run(() => updateAutomationWorkflow(workflow.id, { archived: !workflow.archived }))}><Archive size={16} /></IconAction>
+                      <IconAction disabled={busy || workflow.archived} title="Run now" label={`Run ${workflow.name} now`} onClick={() => run(() => runAutomationWorkflow(workflow.id), "Could not run workflow")}><Play size={16} /></IconAction>
+                      <IconAction disabled={busy || workflow.archived} title={workflow.enabled ? "Pause workflow" : "Enable workflow"} label={`${workflow.enabled ? "Pause" : "Enable"} ${workflow.name}`} onClick={() => run(() => updateAutomationWorkflow(workflow.id, { enabled: !workflow.enabled }), workflow.enabled ? "Could not pause workflow" : "Could not enable workflow")}><RotateCcw size={16} /></IconAction>
+                      <IconAction disabled={busy} title="Duplicate workflow" label={`Duplicate ${workflow.name}`} onClick={() => run(() => duplicateAutomationWorkflow(workflow.id), "Could not duplicate workflow")}><Copy size={16} /></IconAction>
+                      <IconAction disabled={busy} title={workflow.archived ? "Restore workflow" : "Archive workflow"} label={`${workflow.archived ? "Restore" : "Archive"} ${workflow.name}`} onClick={() => run(() => updateAutomationWorkflow(workflow.id, { archived: !workflow.archived }), workflow.archived ? "Could not restore workflow" : "Could not archive workflow")}><Archive size={16} /></IconAction>
                       <IconAction danger disabled={busy} title="Delete workflow" label={`Delete workflow ${workflow.name}`} onClick={() => deleteWorkflow(workflow)}><Trash2 size={16} /></IconAction>
                     </RowActions>
                   </td>
@@ -318,7 +321,7 @@ export function AutomationPage() {
         {workflows.length > 0 && filteredWorkflows.length === 0 && <p className={mutedText}>No workflows match this filter.</p>}
       </section>}
 
-      {flow.mode === "list" && <AutomationInboxPanel items={inboxItems} busy={busy} onMarkRead={(item, read) => run(() => updateAutomationInboxItem(item.id, { read }))} onDelete={(item) => run(() => deleteAutomationInboxItem(item.id))} />}
+      {flow.mode === "list" && <AutomationInboxPanel items={inboxItems} busy={busy} onMarkRead={(item, read) => run(() => updateAutomationInboxItem(item.id, { read }), read ? "Could not mark preview read" : "Could not mark preview unread")} onDelete={(item) => run(() => deleteAutomationInboxItem(item.id), "Could not delete preview")} />}
     </Page>
   );
 }
@@ -576,7 +579,7 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
     return (
       <Panel className={formGridClass}>
         <strong>Selected block</strong>
-        <p className={mutedText}>Capture a photo or video clip from a configured Pi Camera. The media bytes are hashed; read history stores capture metadata.</p>
+        <p className={mutedText}>Capture a photo or video clip from a configured Raspberry Pi Camera. The media bytes are hashed; read history stores capture metadata.</p>
         <label>Camera device<select value={block.config.sourceId ?? ""} onChange={(event) => onChange({ ...block.config, sourceId: event.target.value })}><option value="">Select camera...</option>{cameraSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
         {selectedCamera?.config.mode === "video" && <label>Capture duration ms<input value={String(block.config.durationMs ?? selectedCamera.config.durationMs ?? 5000)} inputMode="numeric" onChange={(event) => onChange({ ...block.config, durationMs: Number(event.target.value) })} /></label>}
         {selectedCamera?.config.mode === "photo" && <p className={mutedText}>Photo captures use the camera device warmup timeout configured on Devices.</p>}
@@ -649,7 +652,7 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
           onChange(retargetOutputBlockConfig(block.config, target));
         }}><option value="">Select output target...</option>{outputTargets.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
         {selectedOutput?.type === "gpio-output" && <label>Pulse duration ms<input value={String(block.config.durationMs ?? 500)} inputMode="numeric" onChange={(event) => onChange({ ...block.config, action: "pulse", durationMs: Number(event.target.value) })} /></label>}
-        {selectedOutput?.type === "gpio-output" && <p className={mutedText}>Selected device active state: <strong>{selectedOutput.config.activeState ?? "high"}</strong>. Use High for common GPIO to resistor to LED to GND wiring. Change this from Devices by editing the GPIO Output target.</p>}
+        {selectedOutput?.type === "gpio-output" && <p className={mutedText}>Selected device active state: <strong>{selectedOutput.config.activeState ?? "high"}</strong>. Use High for common GPIO to resistor to LED to GND wiring. Change this from Devices by editing the GPIO LED target.</p>}
         {selectedBodyTargetType && <>
           <label>{selectedBodyTargetType === "http-output" ? "Request body" : "Message payload"}<select value={bodyMode} onChange={(event) => onChange(outputBodyModeConfig(block.config, event.target.value as NonNullable<AutomationBlock["config"]["bodyMode"]>, selectedBodyTargetType))}>{outputBodyModes(selectedBodyTargetType).map((mode) => <option key={mode.value} value={mode.value}>{mode.label}</option>)}</select></label>
           {bodyMode === "custom" && <label>Custom JSON<textarea rows={6} value={block.config.bodyTemplateText ?? defaultCustomBodyText()} onChange={(event) => onChange({ ...block.config, bodyMode: "custom", bodyTemplateText: event.target.value })} /></label>}
@@ -1323,7 +1326,7 @@ function sourceLabel(source: DataSource) {
   if (source.type === "http-output") return `${source.config.method ?? "POST"} ${source.config.url ?? "HTTP output"}`;
   if (source.type === "mqtt-output") return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
   if (source.type === "pi-camera") return `${source.config.mode ?? "photo"} ${source.config.width ?? 1280}x${source.config.height ?? 720}`;
-  return source.config.url ?? "HTTP JSON API";
+  return source.config.url ?? "HTTP JSON Source";
 }
 
 function isOutputTarget(source: DataSource) {
@@ -1339,7 +1342,7 @@ function outputActionForTarget(source: DataSource | undefined) {
 function defaultOutputBlockConfig(source: DataSource | undefined, durationMs: number): AutomationBlock["config"] {
   if (source?.type === "gpio-output") return { targetId: source.id, action: "pulse", durationMs };
   if (source?.type === "http-output") return { targetId: source.id, action: "send_request", bodyMode: "custom", bodyTemplateText: defaultCustomBodyText() };
-  if (source?.type === "mqtt-output") return { targetId: source.id, action: "publish", bodyMode: "workflow_context" };
+  if (source?.type === "mqtt-output") return { targetId: source.id, action: "publish", bodyMode: "custom", bodyTemplateText: defaultCustomBodyText() };
   return { targetId: "", action: "pulse", durationMs };
 }
 
@@ -1354,7 +1357,7 @@ function retargetOutputBlockConfig(config: AutomationBlock["config"], target: Da
 }
 
 function compatibleBodyMode(bodyMode: AutomationBlock["config"]["bodyMode"], targetType: "http-output" | "mqtt-output") {
-  if (!bodyMode) return targetType === "http-output" ? "custom" : "workflow_context";
+  if (!bodyMode) return "custom";
   if (targetType === "mqtt-output" && (bodyMode === "none" || bodyMode === "multipart_media")) return "workflow_context";
   return bodyMode;
 }

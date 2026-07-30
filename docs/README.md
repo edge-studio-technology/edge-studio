@@ -52,7 +52,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | [security/auth-and-transport.md](./security/auth-and-transport.md)                   | LAN access, TLS trust, API keys, `APP_SECRET`                                             |
 | [security/host-and-infrastructure.md](./security/host-and-infrastructure.md)         | Docker socket, file browser, path traversal, SQLite permissions, supply chain, installer  |
 | [security/wallet-and-tokens.md](./security/wallet-and-tokens.md)                     | Seed phrase import, automated transactions, debug clears, token creation                  |
-| [security/data-sources-and-automation.md](./security/data-sources-and-automation.md) | Minima RPC/resync/restart/peers, data source URLs, webhooks, MQTT, GPIO, Pi Camera, Integritas proxy |
+| [security/data-sources-and-automation.md](./security/data-sources-and-automation.md) | Minima RPC/resync/restart/peers, data source URLs, webhooks, MQTT, GPIO, Raspberry Pi Camera, Integritas proxy |
 | [security/low-priority-and-future.md](./security/low-priority-and-future.md)         | Rate limiting, error detail, logging hygiene, missing security tests                      |
 
 ---
