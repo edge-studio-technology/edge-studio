@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Card } from "../components/Card";
-import { Page } from "../components/Page";
-import { Pill } from "../components/Pill";
-import { ErrorText } from "../components/Text";
+import { Page } from "../components/patterns/Page";
+import { Card } from "../components/ui/Card";
+import { Pill } from "../components/ui/Pill";
 import { DashboardDevices } from "../features/dashboard/DashboardDevices";
 import { DashboardNextAction } from "../features/dashboard/DashboardNextAction";
 import { listDataReads } from "../features/data-reads/dataReadsApi";
@@ -55,7 +54,7 @@ export function DashboardPage() {
             Events, attestations, and actions from proofs and data reads.
           </p>
         </div>
-        {activityError ? <ErrorText>{activityError}</ErrorText> : null}
+        {activityError ? <p className="type-meta text-text-error">{activityError}</p> : null}
         <div className="gap-detail-next flex flex-col">
           {activity.map((item) => (
             <article

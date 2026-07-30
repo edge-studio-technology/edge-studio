@@ -2,11 +2,10 @@ import { X } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "../../lib/cx";
-import { IconButton } from "../Button";
+import { IconButton } from "./Button";
 
 /**
- * ESDS Dialog (Type=Modal): portal overlay, max-width 600, title + optional
- * description / body / footer, close IconButton. Sheet variant deferred.
+ *  Dialog max-width 600, title + optional description / body / footer, close IconButton.
  */
 export function Modal({
   title,

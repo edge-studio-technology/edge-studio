@@ -76,7 +76,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 **Inventory style:** name + short description only. Link to a `###` detail section when one exists. No paths or migration arrows. Props, explain, and usage live under that heading.
 
 - [Page](#page): route content frame
-- `Card`: white card surface
+- [Card](#card): white card surface
 - [MetricCard](#metriccard): compact metric / status card
 - [Button / IconButton](#button): text and icon-only buttons
 - `ButtonRow`: wrapping button group
@@ -108,6 +108,8 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
 
 ### Button
+
+Text and icon buttons (`frontend/src/components/ui/Button.tsx`). Flat `components/Button.tsx` re-exports for now.
 
 #### Text `Button`
 
@@ -418,6 +420,21 @@ Route content frame: distant inset padding (`p-inset-distant`), title + optional
 
 Cleanup later: drop `eyebrow` from remaining page call sites, then remove the prop and the flat `components/Page.tsx` re-export (import from `patterns/Page` instead).
 
+### Card
+
+White card surface (`frontend/src/components/ui/Card.tsx`): fill, radius, padding, overflow clip only. Layout (`flex` / `grid` / `gap`) belongs on the caller. Flat `components/Card.tsx` re-exports for now.
+
+| Prop        | Notes                                              |
+| ----------- | -------------------------------------------------- |
+| `size`      | `Default` (`p-inset-relaxed`) \| `Compact` (`p-inset-tight`) |
+| `className` | Merged onto the surface                            |
+| `children`  | Card body                                          |
+
+```tsx
+<Card className="gap-detail-close flex flex-col">…</Card>
+<Card size="Compact">…</Card>
+```
+
 ### MetricCard
 
 Metric card (`frontend/src/components/patterns/MetricCard.tsx`): Compact `Card` with label (`type-meta` primary), optional leading icon + value (`type-title`), and optional helper (`type-meta` tertiary). Prefer this for dashboard / status metric tiles.
@@ -468,7 +485,7 @@ Status bar (`frontend/src/components/StatusBar.tsx`): shell chrome with status T
 
 ### Pill
 
-Tag / pill: 24px-tall rounded pill (`type-meta`, `px-detail-next`). Prefer this for compact status/category labels.
+Tag / pill (`frontend/src/components/ui/Pill.tsx`): 24px-tall rounded pill (`type-meta`, `px-detail-next`). Prefer this for compact status/category labels. Flat `components/Pill.tsx` re-exports for now.
 
 | Prop        | Values                                   | Notes                                       |
 | ----------- | ---------------------------------------- | ------------------------------------------- |

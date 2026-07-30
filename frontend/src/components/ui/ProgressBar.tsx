@@ -1,11 +1,8 @@
 import { ChevronLeft } from "lucide-react";
 import { cx } from "../../lib/cx";
-import { IconButton } from "../Button";
-import { Pill } from "../Pill";
+import { IconButton } from "./Button";
+import { Pill } from "./Pill";
 
-/**
- * ESDS Progress Bar: optional back IconButton, accent fill track, step count Tag.
- */
 export function ProgressBar({
   backLabel = "Back",
   className,

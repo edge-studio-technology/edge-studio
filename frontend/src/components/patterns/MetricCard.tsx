@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { Card } from "../Card";
 import { cx } from "../../lib/cx";
+import { Card } from "../ui/Card";
 
 export function MetricCard({
   label,
