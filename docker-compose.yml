@@ -84,11 +84,6 @@ services:
       - "${MINIMA_RPC_BIND:-127.0.0.1}:${MINIMA_RPC_PORT:-9005}:9005"
     volumes:
       - ${MINIMA_DATA_DIR:-./minima}:/home/minima/data
-      # Minima resolves `backup`/`restoresync`'s relative `file:` argument against its
-      # home dir (/home/minima), not against /home/minima/data — verified live: a
-      # `file:backups/<name>.bak` backup landed in the container's ephemeral /home/minima
-      # layer, not the persisted data mount. Mounting the same shared host dir here too
-      # makes that relative path land somewhere backend's /minima-backups mount can see.
       - ${MINIMA_DATA_DIR:-./minima}/backups:/home/minima/backups
     restart: unless-stopped
     networks:
