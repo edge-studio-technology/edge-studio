@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Shared `MetricCard` (`components/patterns/`) for standalone compact metric tiles (label, optional icon + value, description; `loading` / `status`). Shared `Status` is `neutral` \| `success` \| `warning` \| `error` (separate from Pill `Tone`). Dashboard live-status grid uses it. See `docs/frontend-design-system.md`.
-- Frontend spacing: `inset-*` tokens (same values as Figma `esds.spacing.margin.*`) for container edge padding. Prefer `inset` for new / migrated UI; legacy `margin-*` kept until remaining call sites migrate.
+- Frontend spacing: `pad-*` tokens (same values as Figma `esds.spacing.margin.*`) for container edge padding. Prefer `pad` for new / migrated UI; legacy `margin-*` kept until remaining call sites migrate.
 
 ### Fixed
 
@@ -20,8 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Migrated Dashboard shared UI into design-system homes: `Button` / `IconButton`, `Card`, `Pill`, and `Text` → `components/ui/`; Dashboard (and next-action) import from `ui/` / `patterns/Page`. Flat paths re-export for other call sites. See `docs/frontend-design-system.md`.
 - Dashboard matches ESDS layout:, next-action card (accent CTA, numbered 1→2 steps with connector), single metric grid, and restyled live activity. Sidebar/status bar already come from the shell.
 - Refactor Dashboard
-- Shared `Page` is the content frame (`p-inset-distant`, title + optional description / action) in `components/patterns/`; `components/Page.tsx` re-exports. Content inset moved from `AppShell` onto `Page`. Removed `Section` (folded into `Page`). `eyebrow` still accepted but unused — Dashboard migrated; other pages later.
-- Shared `Card` is a surface only (white fill, `rounded-soft`, padding via `size="Default" | "Compact"` using `p-inset-*`, overflow clip). Layout (`flex` / `grid` / `gap`) belongs on the caller.
+- Shared `Page` is the content frame (`p-pad-distant`, title + optional description / action) in `components/patterns/`; `components/Page.tsx` re-exports. Content padding moved from `AppShell` onto `Page`. Removed `Section` (folded into `Page`). `eyebrow` still accepted but unused — Dashboard migrated; other pages later.
+- Shared `Card` is a surface only (white fill, `rounded-soft`, padding via `size="Default" | "Compact"` using `p-pad-*`, overflow clip). Layout (`flex` / `grid` / `gap`) belongs on the caller.
+- Renamed container-edge spacing utilities from `inset-*` to `pad-*` (`p-pad-tight`, etc.); removed `--spacing-inset-*`.
 
 ## [0.27.1] 2026-07-30
 

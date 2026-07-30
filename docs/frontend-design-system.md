@@ -402,7 +402,7 @@ Uses `role="alert"`, Lucide `AlertCircle` (`icon-error`), `rounded-soft`, `p-mar
 
 ### Page
 
-Route content frame: distant inset padding (`p-inset-distant`), title + optional description, optional action, then children. Owns content inset so `AppShell` stays full-bleed (status bar chrome). Header is a two-column grid on `sm+` (title/desc | action). Implementation: `components/patterns/Page.tsx`; flat `components/Page.tsx` re-exports for now.
+Route content frame: distant pad padding (`p-pad-distant`), title + optional description, optional action, then children. Owns content padding so `AppShell` stays full-bleed (status bar chrome). Header is a two-column grid on `sm+` (title/desc | action). Implementation: `components/patterns/Page.tsx`; flat `components/Page.tsx` re-exports for now.
 
 | Prop       | Notes                                                                 |
 | ---------- | --------------------------------------------------------------------- |
@@ -426,7 +426,7 @@ White card surface (`frontend/src/components/ui/Card.tsx`): fill, radius, paddin
 
 | Prop        | Notes                                                        |
 | ----------- | ------------------------------------------------------------ |
-| `size`      | `Default` (`p-inset-relaxed`) \| `Compact` (`p-inset-tight`) |
+| `size`      | `Default` (`p-pad-relaxed`) \| `Compact` (`p-pad-tight`) |
 | `className` | Merged onto the surface                                      |
 | `children`  | Card body                                                    |
 
@@ -714,7 +714,7 @@ Prefer these over ad-hoc `rounded-xl` / `rounded-[14px]` when restyling UI. Toke
 
 Named spacing tokens map to Tailwind spacing utilities (`p-*`, `m-*`, `gap-*`, `space-*`, sizing where spacing is used). Prefer named spacing tokens over ad-hoc `p-4` / `gap-6` when restyling UI. Some values repeat across groups on purpose (semantic roles).
 
-**Roles:** `detail` = gaps inside a component; `separator` = space between major sections; `inset` = padding from a container edge (page / card / modal). Prefer `inset-*` for new work. Figma still labels this scale `esds.spacing.margin.*` — same values as code `inset` / legacy `margin`.
+**Roles:** `detail` = gaps inside a component; `separator` = space between major sections; `pad` = padding from a container edge (page / card / modal). Prefer `pad-*` for new work. Figma still labels this scale `esds.spacing.margin.*` — same values as code `pad` / legacy `margin`.
 
 #### Detail (`esds.spacing.detail.*`)
 
@@ -739,23 +739,23 @@ Example: `gap-detail-next`, `p-detail-close`.
 
 Example: `gap-separator-related`, `mt-separator-removed`.
 
-#### Inset (code; Figma `esds.spacing.margin.*`)
+#### Pad (code; Figma `esds.spacing.margin.*`)
 
 Container edge padding. Prefer these for new / migrated UI.
 
-| Token   | Utility suffix  | Value |
-| ------- | --------------- | ----- |
-| close   | `inset-close`   | 8px   |
-| tight   | `inset-tight`   | 16px  |
-| relaxed | `inset-relaxed` | 40px  |
-| distant | `inset-distant` | 80px  |
-| removed | `inset-removed` | 120px |
+| Token   | Utility suffix | Value |
+| ------- | -------------- | ----- |
+| close   | `pad-close`    | 8px   |
+| tight   | `pad-tight`    | 16px  |
+| relaxed | `pad-relaxed`  | 40px  |
+| distant | `pad-distant`  | 80px  |
+| removed | `pad-removed`  | 120px |
 
-Example: `p-inset-tight`, `p-inset-distant` (`Page`, `Card`).
+Example: `p-pad-tight`, `p-pad-distant` (`Page`, `Card`).
 
-#### Margin (legacy alias of inset)
+#### Margin (legacy alias of pad)
 
-Same values as `inset-*`. Still used by unmigrated call sites (`p-margin-*`, etc.). Prefer `inset-*` when touching a file; remove `margin-*` once migration is complete.
+Same values as `pad-*`. Still used by unmigrated call sites (`p-margin-*`, etc.). Prefer `pad-*` when touching a file; remove `margin-*` once migration is complete.
 
 | Token   | Utility suffix   | Value |
 | ------- | ---------------- | ----- |
