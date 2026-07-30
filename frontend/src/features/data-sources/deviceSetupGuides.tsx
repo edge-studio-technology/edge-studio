@@ -74,14 +74,8 @@ function openExternalDoc(path: string) {
 }
 
 function openBrowserPopup(url: string, name: string) {
-  const popup = window.open("about:blank", name, "popup=yes,width=1280,height=820");
-  if (!popup) {
-    window.open(url, "_blank");
-    return;
-  }
-  popup.opener = null;
-  popup.location.href = url;
-  popup.focus();
+  const popup = window.open(url, `${name}-${Date.now()}`, "popup=yes,width=1280,height=820");
+  popup?.focus();
 }
 
 function CommandBlock({ value }: { value: string }) {
