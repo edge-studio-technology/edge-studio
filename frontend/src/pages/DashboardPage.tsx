@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "../components/Card";
 import { Page } from "../components/Page";
 import { Pill } from "../components/Pill";
-import { ErrorText, Eyebrow, MutedText } from "../components/Text";
+import { ErrorText } from "../components/Text";
 import { DashboardDevices } from "../features/dashboard/DashboardDevices";
 import { DashboardNextAction } from "../features/dashboard/DashboardNextAction";
 import { listDataReads } from "../features/data-reads/dataReadsApi";
@@ -48,35 +48,36 @@ export function DashboardPage() {
       <DashboardNextAction />
       <DashboardDevices />
 
-      <Card className="grid gap-5">
-        <div>
-          <Eyebrow>Live activity</Eyebrow>
-          <h3 className="my-2 text-2xl text-slate-950">Events, attestations, and actions</h3>
-          <MutedText className="m-0">
-            A clear activity layer helps users understand what the Pi is doing in the background.
-          </MutedText>
+      <Card className="gap-detail-close flex w-full flex-col">
+        <div className="gap-detail-next flex flex-col">
+          <h2 className="type-title text-text-primary m-0">Live activity</h2>
+          <p className="type-body text-text-secondary m-0">
+            Events, attestations, and actions from proofs and data reads.
+          </p>
         </div>
-        {activityError && <ErrorText>{activityError}</ErrorText>}
-        <div className="grid gap-2.5">
+        {activityError ? <ErrorText>{activityError}</ErrorText> : null}
+        <div className="gap-detail-next flex flex-col">
           {activity.map((item) => (
             <article
-              className="grid items-center gap-3.5 rounded-[18px] border border-slate-200 bg-slate-50 p-3.5 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+              className="border-stroke-secondary bg-surface-primary gap-detail-close rounded-soft p-detail-close grid items-center border sm:grid-cols-[minmax(0,1fr)_auto_auto]"
               key={item.id}
             >
-              <div>
-                <strong>{item.category}</strong>
-                <MutedText className="m-0 mt-1.5 leading-relaxed">{item.message}</MutedText>
+              <div className="min-w-0">
+                <p className="type-body-em text-text-primary m-0">{item.category}</p>
+                <p className="type-meta text-text-secondary mt-detail-tight m-0">{item.message}</p>
               </div>
-              <time className="font-mono text-sm font-extrabold text-slate-600">
+              <time className="type-mono text-text-secondary">
                 {formatLocalTime(item.createdAt)}
               </time>
               <Pill tone={item.good ? "good" : "warn"}>{item.status}</Pill>
             </article>
           ))}
         </div>
-        {activity.length === 0 && !activityError && (
-          <MutedText>No Diagnostics history entries yet.</MutedText>
-        )}
+        {activity.length === 0 && !activityError ? (
+          <div className="border-stroke-secondary bg-surface-primary gap-detail-close rounded-soft p-detail-close grid items-center border sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+            <p className="type-body text-text-secondary m-0">No live activity yet.</p>
+          </div>
+        ) : null}
       </Card>
     </Page>
   );

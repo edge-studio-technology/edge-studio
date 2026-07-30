@@ -11,8 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Shared `MetricCard` (`components/patterns/`) for ESDS compact metric tiles (label, optional icon + value, helper). Dashboard live-status grid uses it. See `docs/frontend-design-system.md`.
 - Frontend spacing: `inset-*` tokens (same values as Figma `esds.spacing.margin.*`) for container edge padding. Prefer `inset` for new / migrated UI; legacy `margin-*` kept until remaining call sites migrate.
 
+### Fixed
+
+- Dashboard getting-started card now also checks for workflows and hides once at least one non-archived workflow exists (it previously only looked at devices, so “Create your first workflow” stayed visible after setup).
+
 ### Changed
 
+- Dashboard matches ESDS layout: title “Your dashboard”, next-action card (accent CTA, numbered 1→2 steps with connector), single metric grid, and restyled live activity. Sidebar/status bar already come from the shell.
 - Refactor Dashboard
 - Shared `Page` is the content frame (`p-inset-distant`, title + optional description / action) in `components/patterns/`; `components/Page.tsx` re-exports. Content inset moved from `AppShell` onto `Page`. Removed `Section` (folded into `Page`). `eyebrow` still accepted but unused — Dashboard migrated; other pages later.
 - Shared `Card` is a surface only (white fill, `rounded-soft`, padding via `size="Default" | "Compact"` using `p-inset-*`, overflow clip). Layout (`flex` / `grid` / `gap`) belongs on the caller.
