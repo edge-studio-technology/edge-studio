@@ -1,9 +1,9 @@
 import { useCallback, useState } from "react";
 import { ChevronDown, ChevronRight, Settings } from "lucide-react";
 import type { MinimaNodeStatus } from "../app/types";
-import { Card } from "../components/Card";
-import { IconButton } from "../components/Button";
-import { Page } from "../components/Page";
+import { IconButton } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { Page } from "../components/patterns/Page";
 import { useToast } from "../components/ToastProvider";
 import {
   getMinimaNodeStatus,
@@ -196,7 +196,8 @@ export function MinimaPage() {
         refreshing={resyncing || restarting || nodeStatus?.state === "restarting"}
         onResync={runResync}
       />
-      <section className="grid items-stretch gap-4 lg:grid-cols-2">
+
+      <section className="gap-detail-close grid w-full items-stretch lg:grid-cols-2">
         <MinimaHealthCard
           status={nodeStatus}
           loading={statusLoading && !nodeStatus}
@@ -211,22 +212,22 @@ export function MinimaPage() {
         />
       </section>
 
-      <Card>
-        <div className="flex items-center justify-between gap-3">
+      <Card className="gap-detail-close flex w-full flex-col">
+        <div className="gap-detail-next flex items-start justify-between">
           <button
             type="button"
             onClick={() => setConsoleOpen((open) => !open)}
             aria-expanded={consoleOpen}
-            className="flex flex-1 items-center gap-2 border-0 bg-transparent p-0 text-left"
+            className="gap-detail-next flex min-w-0 flex-1 items-start border-0 bg-transparent p-0 text-left"
           >
             {consoleOpen ? (
-              <ChevronDown size={18} className="shrink-0 text-slate-500" />
+              <ChevronDown size={18} className="text-icon-secondary mt-detail-tight shrink-0" />
             ) : (
-              <ChevronRight size={18} className="shrink-0 text-slate-500" />
+              <ChevronRight size={18} className="text-icon-secondary mt-detail-tight shrink-0" />
             )}
-            <div>
-              <h3 className="m-0">RPC console</h3>
-              <p className="mt-1 text-sm text-slate-500">
+            <div className="gap-detail-next flex min-w-0 flex-col">
+              <h2 className="type-title text-text-primary m-0">RPC console</h2>
+              <p className="type-body text-text-secondary m-0">
                 Run whitelisted Minima RPC commands and see the raw response.
               </p>
             </div>
@@ -239,16 +240,12 @@ export function MinimaPage() {
             <Settings size={16} />
           </IconButton>
         </div>
-        {consoleOpen && (
-          <div className="mt-3">
-            <MinimaConsolePanel disabled={actionsBlocked} />
-          </div>
-        )}
+        {consoleOpen ? <MinimaConsolePanel disabled={actionsBlocked} /> : null}
       </Card>
 
-      {consoleWhitelistOpen && (
+      {consoleWhitelistOpen ? (
         <MinimaConsoleWhitelistModal onClose={() => setConsoleWhitelistOpen(false)} />
-      )}
+      ) : null}
     </Page>
   );
 }

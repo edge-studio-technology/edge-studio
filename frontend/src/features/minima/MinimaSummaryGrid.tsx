@@ -96,7 +96,7 @@ export function MinimaSummaryGrid({
     : null;
 
   return (
-    <div className="gap-detail-close grid md:grid-cols-2 lg:grid-cols-3">
+    <div className="gap-detail-close grid w-full md:grid-cols-2 lg:grid-cols-3">
       <SummaryCard
         icon={Layers3}
         title="Minima"
