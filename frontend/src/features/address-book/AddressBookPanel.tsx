@@ -159,7 +159,7 @@ export function AddressBookPanel({
                     <span className='text-sm text-slate-600'>{entry.notes || '—'}</span>
                   </td>
                   <td className={`${tableCellClass} w-px whitespace-nowrap`}>
-                    <RowActions wrap={false}>
+                    <RowActions>
                       <TableIconButton
                         type='button'
                         title='View contact'

@@ -31,7 +31,7 @@ Use Raspberry Pi physical pin numbering for this table:
 
 Prefer 3.3V when uncertain. The documented module accepts 3.3V-5V, but unknown clones should be verified before wiring.
 
-For BME680 modules, the host also needs the Python `bme680` module. The installer tries to install `python3-bme680` automatically when `ENABLE_SENSORS=true`.
+For BME680 modules, the helper also needs the Python `bme680` module. The installer creates a dedicated sensor-helper virtualenv at `/opt/integritas-pi/.venv-sensor-helper` and installs `bme680` there when `ENABLE_SENSORS=true`.
 
 ## Device Settings
 

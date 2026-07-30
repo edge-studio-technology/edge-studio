@@ -654,6 +654,8 @@ EOF
 
 install_sensor_helper() {
   local service_file="/etc/systemd/system/integritas-pi-sensor-helper.service"
+  local sensor_venv="$APP_DIR/.venv-sensor-helper"
+  local sensor_python="$sensor_venv/bin/python"
   local helper_user
   local supplementary_groups=""
 
@@ -691,12 +693,18 @@ PY
     DEBIAN_FRONTEND=noninteractive apt-get install -y python3-smbus i2c-tools
   fi
 
-  if ! python3 - <<'PY' >/dev/null 2>&1
+  if [ ! -x "$sensor_python" ]; then
+    log "Creating sensor helper Python environment"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv
+    python3 -m venv --system-site-packages "$sensor_venv"
+  fi
+
+  if ! "$sensor_python" - <<'PY' >/dev/null 2>&1
 import bme680
 PY
   then
     log "Installing optional Python BME680 support for I2C sensors"
-    DEBIAN_FRONTEND=noninteractive apt-get install -y python3-bme680 || log "Warning: python3-bme680 could not be installed automatically. BME680 reads require the Python bme680 module on the host."
+    "$sensor_python" -m pip install bme680 || log "Warning: Python bme680 could not be installed automatically. BME680 reads require the Python bme680 module in $sensor_venv."
   fi
 
   if [ ! -e /dev/i2c-1 ]; then
@@ -720,7 +728,7 @@ Environment=SENSOR_HELPER_TOKEN=$SENSOR_HELPER_TOKEN
 Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
 Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
 ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT; fi'
-ExecStart=/usr/bin/python3 $APP_DIR/sensor-helper/integritas_sensor_helper.py
+ExecStart=$sensor_python $APP_DIR/sensor-helper/integritas_sensor_helper.py
 Restart=on-failure
 RestartSec=2
 
