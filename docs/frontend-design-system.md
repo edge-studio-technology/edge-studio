@@ -402,7 +402,7 @@ Uses `role="alert"`, Lucide `AlertCircle` (`icon-error`), `rounded-soft`, `p-mar
 
 ### Page
 
-Route content frame: distant inset padding (`p-inset-distant`), title + optional description, optional action, then children. Owns content inset so `AppShell` stays full-bleed (status bar chrome). Header is a two-column grid on `sm+` (title/desc | action). Implementation: `components/patterns/Page.tsx`; flat `components/Page.tsx` re-exports for now.
+Route content frame: distant pad padding (`p-pad-distant`), title + optional description, optional action, then children. Owns content padding so `AppShell` stays full-bleed (status bar chrome). Header is a two-column grid on `sm+` (title/desc | action). Implementation: `components/patterns/Page.tsx`; flat `components/Page.tsx` re-exports for now.
 
 | Prop       | Notes                                                                 |
 | ---------- | --------------------------------------------------------------------- |
@@ -424,11 +424,11 @@ Cleanup later: drop `eyebrow` from remaining page call sites, then remove the pr
 
 White card surface (`frontend/src/components/ui/Card.tsx`): fill, radius, padding, overflow clip only. Layout (`flex` / `grid` / `gap`) belongs on the caller. Flat `components/Card.tsx` re-exports for now.
 
-| Prop        | Notes                                              |
-| ----------- | -------------------------------------------------- |
-| `size`      | `Default` (`p-inset-relaxed`) \| `Compact` (`p-inset-tight`) |
-| `className` | Merged onto the surface                            |
-| `children`  | Card body                                          |
+| Prop        | Notes                                                        |
+| ----------- | ------------------------------------------------------------ |
+| `size`      | `Default` (`p-pad-relaxed`) \| `Compact` (`p-pad-tight`) |
+| `className` | Merged onto the surface                                      |
+| `children`  | Card body                                                    |
 
 ```tsx
 <Card className="gap-detail-close flex flex-col">…</Card>
@@ -437,25 +437,27 @@ White card surface (`frontend/src/components/ui/Card.tsx`): fill, radius, paddin
 
 ### MetricCard
 
-Metric card (`frontend/src/components/patterns/MetricCard.tsx`): Compact `Card` with label (`type-meta` primary), optional leading icon + value (`type-title`), and optional helper (`type-meta` tertiary). Prefer this for dashboard / status metric tiles.
+Standalone compact metric tile (`frontend/src/components/patterns/MetricCard.tsx`): white Compact `Card` with label (`type-meta` primary), optional leading icon + value (`type-title`), optional description (`type-meta` tertiary). Prefer this for dashboard / summary grids.
 
-| Prop             | Notes                                              |
-| ---------------- | -------------------------------------------------- |
-| `label`          | Metric title                                       |
-| `value`          | Primary value (`ReactNode`; truncates)             |
-| `helper`         | Optional supporting line                           |
-| `icon`           | Optional 20px leading glyph in the value row       |
-| `valueClassName` | Optional value colour override (e.g. status tones) |
-| `children`       | Optional footer slot (e.g. an action button)       |
-| `className`      | Merged onto the Compact `Card` shell               |
+| Prop          | Notes                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------- |
+| `label`       | Metric title                                                                            |
+| `value`       | Primary value (`ReactNode`; truncates). Ignored while `loading`                         |
+| `description` | Optional caption under the value (e.g. "Primary Pi Wallet")                             |
+| `icon`        | Optional 20px leading glyph in the value row                                            |
+| `loading`     | Shows `LoadingDots` and tertiary value colour                                           |
+| `status`      | Shared `Status`: `neutral` \| `success` \| `warning` \| `error`. Ignored while loading. |
+| `children`    | Optional footer slot (e.g. an action button)                                            |
+| `className`   | Merged onto the Compact `Card` shell                                                    |
 
 ```tsx
 <MetricCard
   label="Wallet balance"
   icon={<MinimaIcon size={20} />}
   value="0.0001"
-  helper="Primary Pi Wallet"
+  description="Primary Pi Wallet"
 />
+<MetricCard label="Node status" loading={loading} value="Running" status="success" />
 ```
 
 ### StatusBar
@@ -712,7 +714,7 @@ Prefer these over ad-hoc `rounded-xl` / `rounded-[14px]` when restyling UI. Toke
 
 Named spacing tokens map to Tailwind spacing utilities (`p-*`, `m-*`, `gap-*`, `space-*`, sizing where spacing is used). Prefer named spacing tokens over ad-hoc `p-4` / `gap-6` when restyling UI. Some values repeat across groups on purpose (semantic roles).
 
-**Roles:** `detail` = gaps inside a component; `separator` = space between major sections; `inset` = padding from a container edge (page / card / modal). Prefer `inset-*` for new work. Figma still labels this scale `esds.spacing.margin.*` — same values as code `inset` / legacy `margin`.
+**Roles:** `detail` = gaps inside a component; `separator` = space between major sections; `pad` = padding from a container edge (page / card / modal). Prefer `pad-*` for new work. Figma still labels this scale `esds.spacing.margin.*` — same values as code `pad` / legacy `margin`.
 
 #### Detail (`esds.spacing.detail.*`)
 
@@ -737,23 +739,23 @@ Example: `gap-detail-next`, `p-detail-close`.
 
 Example: `gap-separator-related`, `mt-separator-removed`.
 
-#### Inset (code; Figma `esds.spacing.margin.*`)
+#### Pad (code; Figma `esds.spacing.margin.*`)
 
 Container edge padding. Prefer these for new / migrated UI.
 
-| Token   | Utility suffix  | Value |
-| ------- | --------------- | ----- |
-| close   | `inset-close`   | 8px   |
-| tight   | `inset-tight`   | 16px  |
-| relaxed | `inset-relaxed` | 40px  |
-| distant | `inset-distant` | 80px  |
-| removed | `inset-removed` | 120px |
+| Token   | Utility suffix | Value |
+| ------- | -------------- | ----- |
+| close   | `pad-close`    | 8px   |
+| tight   | `pad-tight`    | 16px  |
+| relaxed | `pad-relaxed`  | 40px  |
+| distant | `pad-distant`  | 80px  |
+| removed | `pad-removed`  | 120px |
 
-Example: `p-inset-tight`, `p-inset-distant` (`Page`, `Card`).
+Example: `p-pad-tight`, `p-pad-distant` (`Page`, `Card`).
 
-#### Margin (legacy alias of inset)
+#### Margin (legacy alias of pad)
 
-Same values as `inset-*`. Still used by unmigrated call sites (`p-margin-*`, etc.). Prefer `inset-*` when touching a file; remove `margin-*` once migration is complete.
+Same values as `pad-*`. Still used by unmigrated call sites (`p-margin-*`, etc.). Prefer `pad-*` when touching a file; remove `margin-*` once migration is complete.
 
 | Token   | Utility suffix   | Value |
 | ------- | ---------------- | ----- |

@@ -13,7 +13,7 @@ export function Card({
     <section
       className={cx(
         "bg-surface-always-white rounded-soft relative overflow-clip",
-        size === "Compact" ? "p-inset-tight" : "p-inset-relaxed",
+        size === "Compact" ? "p-pad-tight" : "p-pad-relaxed",
         className,
       )}
     >

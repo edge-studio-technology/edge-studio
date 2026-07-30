@@ -1,24 +1,37 @@
 import type { ReactNode } from "react";
+import type { Status } from "../../app/types";
 import { cx } from "../../lib/cx";
+import { LoadingDots } from "../LoadingDots";
 import { Card } from "../ui/Card";
+
+const statusValueClass: Record<Status, string> = {
+  neutral: "text-text-primary",
+  success: "text-text-success",
+  warning: "text-text-warning",
+  error: "text-text-error",
+};
 
 export function MetricCard({
   label,
   value,
-  helper,
+  description,
   icon,
-  valueClassName,
+  loading = false,
+  status = "neutral",
   className,
   children,
 }: {
   label: string;
-  value: ReactNode;
-  helper?: ReactNode;
+  value?: ReactNode;
+  description?: ReactNode;
   icon?: ReactNode;
-  valueClassName?: string;
+  loading?: boolean;
+  status?: Status;
   className?: string;
   children?: ReactNode;
 }) {
+  const displayValue = loading ? <LoadingDots /> : value;
+
   return (
     <Card size="Compact" className={cx("gap-detail-close flex w-full flex-col", className)}>
       <div className="gap-detail-next flex w-full flex-col items-start">
@@ -34,14 +47,16 @@ export function MetricCard({
           ) : null}
           <div
             className={cx(
-              "type-title text-text-primary min-w-0 truncate tracking-[-0.02em]",
-              valueClassName,
+              "type-title min-w-0 truncate tracking-[-0.02em]",
+              loading ? "text-text-tertiary" : statusValueClass[status],
             )}
           >
-            {value}
+            {displayValue}
           </div>
         </div>
-        {helper ? <p className="type-meta text-text-tertiary m-0 w-full">{helper}</p> : null}
+        {description ? (
+          <p className="type-meta text-text-tertiary m-0 w-full">{description}</p>
+        ) : null}
       </div>
       {children}
     </Card>

@@ -82,12 +82,13 @@
   --spacing-separator-relaxed: 64px;
   --spacing-separator-distant: 80px;
   --spacing-separator-removed: 120px;
-  /* Prefer inset-* for new / migrated UI (container edge padding). margin-* kept until call sites migrate. */
-  --spacing-inset-close: 8px;
-  --spacing-inset-tight: 16px;
-  --spacing-inset-relaxed: 40px;
-  --spacing-inset-distant: 80px;
-  --spacing-inset-removed: 120px;
+  /* Prefer pad-* for new / migrated UI (container edge padding). margin-* kept until call sites migrate. */
+  --spacing-pad-close: 8px;
+  --spacing-pad-tight: 16px;
+  --spacing-pad-relaxed: 40px;
+  --spacing-pad-distant: 80px;
+  --spacing-pad-removed: 120px;
+
   --spacing-margin-close: 8px;
   --spacing-margin-tight: 16px;
   --spacing-margin-relaxed: 40px;
