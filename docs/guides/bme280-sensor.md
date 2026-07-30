@@ -31,6 +31,15 @@ Use Raspberry Pi physical pin numbering for this table:
 
 Prefer 3.3V when uncertain. The documented module accepts 3.3V-5V, but unknown clones should be verified before wiring.
 
+Some BME680 breakouts expose six pins because the chip also supports SPI. For I2C mode, the extra pins usually mean:
+
+| BME680 pin | I2C use |
+|---|---|
+| `SDO` | I2C address select: connect to GND for `0x76`, or 3.3V for `0x77`. Some boards already pull this one way. |
+| `CS` / `CSB` | SPI chip-select / mode select. Tie to 3.3V for I2C mode if your breakout does not already pull it high. |
+
+If a BME680 module is configured as `0x76` but not found, check whether `SDO` is floating or tied high. If the module is not detected at either address, check whether `CS`/`CSB` must be tied high for I2C mode on that breakout.
+
 For BME680 modules, the helper also needs the Python `bme680` module. The installer creates a dedicated sensor-helper virtualenv at `/opt/integritas-pi/.venv-sensor-helper` and installs `bme680` there when `ENABLE_SENSORS=true`.
 
 ## Device Settings
