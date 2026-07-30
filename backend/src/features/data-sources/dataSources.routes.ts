@@ -61,11 +61,6 @@ dataSourcesRouter.post("/", requireRole("admin"), async (req, res) => {
 
   if (!name) return badRequest(res, "name is required", { field: "name" });
   if (!isSupportedDeviceType(type)) return badRequest(res, "Only HTTP JSON API, webhook, MQTT, GPIO input/output, Pi Camera, BME sensor, HTTP output, and MQTT output devices are supported", { type });
-  if ((type === "gpio-input" || type === "gpio-output") && !getGpioInputCapability().available) return badRequest(res, getGpioInputCapability().reason ?? "GPIO is unavailable", { type });
-  const cameraCapability = type === "pi-camera" ? await getCameraCapability() : null;
-  if (cameraCapability && !cameraCapability.enabled) return badRequest(res, cameraCapability.reason ?? "Pi Camera is disabled", { type });
-  const sensorCapability = type === "bme-sensor" ? await getSensorHelperCapability() : null;
-  if (sensorCapability && !sensorCapability.enabled) return badRequest(res, sensorCapability.reason ?? "Sensor support is disabled", { type });
 
   try {
     const config = parseDataSourceConfig(type, req.body?.config);
@@ -100,11 +95,6 @@ dataSourcesRouter.patch("/:id", requireRole("admin"), async (req, res) => {
 
   if (!name) return badRequest(res, "name is required", { field: "name" });
   if (!isSupportedDeviceType(type)) return badRequest(res, "Only HTTP JSON API, webhook, MQTT, GPIO input/output, Pi Camera, BME sensor, HTTP output, and MQTT output devices are supported", { type });
-  if ((type === "gpio-input" || type === "gpio-output") && !getGpioInputCapability().available) return badRequest(res, getGpioInputCapability().reason ?? "GPIO is unavailable", { type });
-  const cameraCapability = type === "pi-camera" ? await getCameraCapability() : null;
-  if (cameraCapability && !cameraCapability.enabled) return badRequest(res, cameraCapability.reason ?? "Pi Camera is disabled", { type });
-  const sensorCapability = type === "bme-sensor" ? await getSensorHelperCapability() : null;
-  if (sensorCapability && !sensorCapability.enabled) return badRequest(res, sensorCapability.reason ?? "Sensor support is disabled", { type });
 
   try {
     const config = parseDataSourceConfig(type, req.body?.config, JSON.parse(existing.config) as unknown);

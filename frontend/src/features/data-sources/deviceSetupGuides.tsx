@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { MutedText } from "../../components/Text";
 import type { DataSource } from "./dataSourceTypes";
 
-type GuideSection = { title: string; body?: string; items?: string[]; table?: Array<[string, string]>; commands?: string };
+type GuideSection = { title: string; body?: string; items?: string[]; table?: Array<[string, string]>; commands?: string; schematic?: "pi-gpio" };
 
 export type DeviceSetupGuide = { title: string; eyebrow: string; intro: string; sections: GuideSection[]; docPath?: string };
 
@@ -29,8 +29,14 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
 
 export function StandardDeviceSetupGuide({ source }: { source: DataSource }) {
   const setupGuide = getDeviceSetupGuide(source);
+  const [schematicOpen, setSchematicOpen] = useState(false);
   if (!setupGuide) return null;
-  return <DeviceSetupGuideShell guide={setupGuide}><div className="grid gap-3">{setupGuide.sections.map((section) => <GuideSectionCard key={section.title} section={section} />)}</div></DeviceSetupGuideShell>;
+  return (
+    <DeviceSetupGuideShell guide={setupGuide}>
+      <div className="grid gap-3">{setupGuide.sections.map((section) => <GuideSectionCard key={section.title} section={section} onOpenSchematic={() => setSchematicOpen(true)} />)}</div>
+      {schematicOpen && <WiringSchematicModal onClose={() => setSchematicOpen(false)} />}
+    </DeviceSetupGuideShell>
+  );
 }
 
 export function DeviceSetupGuideShell({ guide, children }: { guide: DeviceSetupGuide; children: ReactNode }) {
@@ -47,7 +53,7 @@ export function DeviceSetupGuideShell({ guide, children }: { guide: DeviceSetupG
   );
 }
 
-function GuideSectionCard({ section }: { section: GuideSection }) {
+function GuideSectionCard({ section, onOpenSchematic }: { section: GuideSection; onOpenSchematic: () => void }) {
   return (
     <section className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
       <strong>{section.title}</strong>
@@ -55,7 +61,24 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
       {section.items && <ol className="m-0 grid gap-2 pl-5">{section.items.map((item) => <li key={item}>{item}</li>)}</ol>}
       {section.table && <div className="overflow-auto rounded-xl border border-slate-200 bg-white"><table className="w-full border-collapse text-left text-sm"><tbody>{section.table.map(([label, value]) => <tr key={label} className="border-t border-slate-200 first:border-t-0"><th className="w-44 p-3 font-extrabold text-slate-700">{label}</th><td className="p-3 text-slate-600"><code>{value}</code></td></tr>)}</tbody></table></div>}
       {section.commands && <CommandBlock value={section.commands} />}
+      {section.schematic === "pi-gpio" && <button type="button" className="justify-self-start rounded-xl border border-slate-200 bg-white px-3 py-2 font-extrabold text-blue-700 shadow-sm hover:border-blue-200" onClick={onOpenSchematic}>Wiring schematic</button>}
     </section>
+  );
+}
+
+function WiringSchematicModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/70 p-5" role="presentation" onClick={onClose}>
+      <div className="grid max-h-[92vh] w-[min(1200px,100%)] gap-3 rounded-[24px] border border-slate-300 bg-white p-4 shadow-[0_28px_80px_rgba(15,23,42,0.35)]" role="dialog" aria-modal="true" aria-label="Raspberry Pi GPIO wiring schematic" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3">
+          <strong>Raspberry Pi GPIO wiring schematic</strong>
+          <Button type="button" size="sm" onClick={onClose}>Close</Button>
+        </div>
+        <div className="min-h-0 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <img className="h-auto w-full min-w-[760px]" src="/pi-gpio-pinout.svg" alt="Raspberry Pi 40-pin GPIO header pinout showing 3V3, 5V, ground, SDA, SCL, and GPIO pins" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -70,7 +93,7 @@ function guide(source: DataSource, title: string, intro: string, sections: Guide
 function bme280Guide(source: DataSource) {
   return guide(source, "BME280 Environmental Sensor Setup", "Read temperature, humidity, and air pressure from a BME280 module over the Pi I2C bus.", [
     { title: "Requirements", items: ["Install with ENABLE_SENSORS=true so the host-side sensor helper is running.", "Enable I2C on the Raspberry Pi host and reboot if needed.", "Use address 0x76 first, then try 0x77 if reads fail."] },
-    { title: "Wiring", table: [["VIN", "3.3V pin 1 or 5V pin 2/4"], ["GND", "GND pin 6/9/etc."], ["SCL", "GPIO3 / physical pin 5"], ["SDA", "GPIO2 / physical pin 3"]] },
+    { title: "Wiring", schematic: "pi-gpio", table: [["VIN", "3.3V pin 1 or 5V pin 2/4"], ["GND", "GND pin 6/9/etc."], ["SCL", "GPIO3 / physical pin 5"], ["SDA", "GPIO2 / physical pin 3"]] },
     { title: "Saved settings", table: [["I2C bus", String(source.config.bus ?? 1)], ["I2C address", source.config.address ?? "0x76"]] },
     { title: "Verify", items: ["Click manual read in Devices and confirm a JSON preview appears.", "Use the source in an Automation Fetch data source block, then attach Stamp data if you want Integritas proofs."] }
   ], "docs/guides/bme280-sensor.md");
@@ -80,7 +103,7 @@ function gpioInputGuide(source: DataSource) {
   if (source.name.toLowerCase().includes("button")) return gpioButtonGuide(source);
   return guide(source, "GPIO Input Setup", "Record Raspberry Pi BCM pin edge events as JSON while an enabled workflow watches this source.", [
     { title: "Requirements", items: ["Install with ENABLE_GPIO=true so /dev/gpiochip0 is available to the backend.", "Use BCM pin numbering, not physical header numbering.", "Never connect a GPIO input directly to 5V."] },
-    { title: "Saved settings", table: [["GPIO chip", source.config.chip ?? "gpiochip0"], ["BCM pin", String(source.config.pin ?? "?")], ["Pull", source.config.pull ?? "off"], ["Edge", source.config.edge ?? "both"], ["Active state", source.config.activeState ?? "high"]] },
+    { title: "Saved settings", schematic: "pi-gpio", table: [["GPIO chip", source.config.chip ?? "gpiochip0"], ["BCM pin", String(source.config.pin ?? "?")], ["Pull", source.config.pull ?? "off"], ["Edge", source.config.edge ?? "both"], ["Active state", source.config.activeState ?? "high"]] },
     { title: "Verify", items: ["Create or enable a workflow with Start on GPIO event and this source selected.", "Trigger the input and confirm a read-history row appears with the GPIO event payload."] }
   ], "docs/guides/gpio-device-settings.md");
 }
@@ -88,7 +111,7 @@ function gpioInputGuide(source: DataSource) {
 function gpioButtonGuide(source: DataSource) {
   return guide(source, "GPIO Button Setup", "Detect a simple push button connected to a Raspberry Pi GPIO input pin.", [
     { title: "Requirements", items: ["Install with ENABLE_GPIO=true so /dev/gpiochip0 is available to the backend.", "Use BCM pin numbering, not physical header numbering.", "Never connect a GPIO input directly to 5V."] },
-    { title: "Typical wiring", table: [["GPIO", `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? 17}`], ["Button path", "GPIO -> button -> GND"], ["Pull", source.config.pull ?? "up"], ["Edge", source.config.edge ?? "falling"], ["Active state", source.config.activeState ?? "low"]] },
+    { title: "Typical wiring", schematic: "pi-gpio", table: [["GPIO", `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? 17}`], ["Button path", "GPIO -> button -> GND"], ["Pull", source.config.pull ?? "up"], ["Edge", source.config.edge ?? "falling"], ["Active state", source.config.activeState ?? "low"]] },
     { title: "Verify", items: ["Create or enable a workflow with Start on GPIO event and this source selected.", "Press the button and confirm a read-history row appears with an active GPIO event."] }
   ], "docs/guides/gpio-device-settings.md");
 }
@@ -96,7 +119,7 @@ function gpioButtonGuide(source: DataSource) {
 function pirGuide(source: DataSource) {
   return guide(source, "PIR Motion Sensor Setup", "Detect HC-SR501-style motion events from a GPIO input pin.", [
     { title: "Requirements", items: ["Install with ENABLE_GPIO=true.", "Let the PIR sensor warm up for 60-90 seconds after power-on.", "Verify the module output voltage before connecting unknown clones to a Pi GPIO pin."] },
-    { title: "Tested wiring", table: [["PIR VCC", "5V"], ["PIR GND", "GND"], ["PIR OUT", `GPIO${source.config.pin ?? 23} / physical pin 16 for GPIO23`]] },
+    { title: "Tested wiring", schematic: "pi-gpio", table: [["PIR VCC", "5V"], ["PIR GND", "GND"], ["PIR OUT", `GPIO${source.config.pin ?? 23} / physical pin 16 for GPIO23`]] },
     { title: "Recommended workflow", items: ["Use Start on GPIO event with this source.", "Enable Only run when the GPIO event is active to ignore motion_cleared events.", "Use a 30-60 second cooldown for noisy motion sensors or notifications."] }
   ], "docs/guides/gpio-device-settings.md");
 }
@@ -104,7 +127,7 @@ function pirGuide(source: DataSource) {
 function gpioLedGuide(source: DataSource) {
   return guide(source, "GPIO LED Output Setup", "Pulse a low-current LED from Automation control-output blocks.", [
     { title: "Requirements", items: ["Install with ENABLE_GPIO=true.", "Use a 220-330 ohm resistor in series with the LED.", "Never connect GPIO directly to 5V, motors, relays, or mains voltage."] },
-    { title: "Typical wiring", table: [["GPIO", `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? 18}`], ["Active state", source.config.activeState ?? "high"], ["Path", "GPIO -> resistor -> LED anode -> LED cathode -> GND"]] },
+    { title: "Typical wiring", schematic: "pi-gpio", table: [["GPIO", `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? 18}`], ["Active state", source.config.activeState ?? "high"], ["Path", "GPIO -> resistor -> LED anode -> LED cathode -> GND"]] },
     { title: "Verify", items: ["Use the Test pulse action in Devices before adding it to a workflow.", "Use Automation Control device with Pulse once the LED behaves correctly."] }
   ], "docs/guides/gpio-device-settings.md");
 }

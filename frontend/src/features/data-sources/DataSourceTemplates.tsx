@@ -35,7 +35,6 @@ export function DataSourceTemplates({ mode, category, capabilities, onSelect }: 
       <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
         {templates.map((template) => {
           const Icon = template.config.profile === "pir-motion" ? ShieldAlert : template.config.profile === "esp32-mqtt-board" ? Cpu : template.type === "json-api" || template.type === "http-output" ? Globe2 : template.type === "webhook" ? Webhook : template.type === "mqtt" || template.type === "mqtt-output" ? Radio : template.type === "gpio-output" ? Lightbulb : template.type === "pi-camera" ? Camera : template.type === "bme-sensor" ? ThermometerSun : Cpu;
-          const disabled = ((template.type === "gpio-input" || template.type === "gpio-output") && capabilities?.gpioInput.available === false) || (template.type === "pi-camera" && capabilities?.camera?.enabled === false) || (template.type === "bme-sensor" && capabilities?.sensors?.enabled === false);
           const config = template.type === "mqtt" || template.type === "mqtt-output" ? { ...template.config, brokerUrl } : template.config;
           return (
             <Card className="grid gap-3 transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]" key={template.title}>
@@ -50,8 +49,8 @@ export function DataSourceTemplates({ mode, category, capabilities, onSelect }: 
               {template.type === "pi-camera" && <MutedText className="m-0">Captures are stored locally under <code>{capabilities?.camera?.captureDir ?? "/data/captures"}</code> and hashed for stamping.</MutedText>}
               {template.type === "pi-camera" && capabilities?.camera?.enabled && capabilities.camera.available === false && <MutedText className="m-0">Camera capture is not ready yet: {capabilities.camera.reason}</MutedText>}
               {(template.type === "mqtt" || template.type === "mqtt-output") && capabilities?.mqttBroker?.enabled && <MutedText className="m-0">Local broker available: <code>{capabilities.mqttBroker.internalUrl}</code></MutedText>}
-              {disabled && <MutedText className="m-0">{template.type === "pi-camera" ? capabilities?.camera?.reason : template.type === "bme-sensor" ? capabilities?.sensors?.reason : capabilities?.gpioInput.reason}</MutedText>}
-              <Button type="button" disabled={disabled} onClick={() => onSelect({ ...template, config })}>{mode === "input" ? "Add input" : "Add output"}</Button>
+              {hardwareSetupWarning(template, capabilities) && <MutedText className="m-0">{hardwareSetupWarning(template, capabilities)}</MutedText>}
+              <Button type="button" onClick={() => onSelect({ ...template, config })}>{mode === "input" ? "Add input" : "Add output"}</Button>
             </Card>
           );
         })}
@@ -63,6 +62,13 @@ export function DataSourceTemplates({ mode, category, capabilities, onSelect }: 
 function templateKind(template: DataSourceTemplate) {
   if (template.title === "GPIO Button" || template.config.profile === "esp32-mqtt-board" || template.config.profile === "pir-motion" || template.type === "pi-camera" || template.type === "bme-sensor" || template.type === "gpio-output") return "template";
   return "manual";
+}
+
+function hardwareSetupWarning(template: DataSourceTemplate, capabilities: DataSourceCapabilities | null) {
+  if ((template.type === "gpio-input" || template.type === "gpio-output") && capabilities?.gpioInput.available === false) return capabilities.gpioInput.reason ?? "GPIO support is not enabled yet. You can save this device now, then follow its setup guide before using it.";
+  if (template.type === "pi-camera" && capabilities?.camera?.enabled === false) return capabilities.camera.reason ?? "Camera support is not enabled yet. You can save this device now, then follow its setup guide before using it.";
+  if (template.type === "bme-sensor" && capabilities?.sensors?.enabled === false) return capabilities.sensors.reason ?? "Sensor support is not enabled yet. You can save this device now, then follow its setup guide before reading it.";
+  return null;
 }
 
 export function LocalServicesCard({ capabilities }: { capabilities: DataSourceCapabilities | null }) {
