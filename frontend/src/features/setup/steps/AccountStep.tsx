@@ -1,46 +1,46 @@
-import { APP_NAME } from "../../../app/names";
-import { CredentialInput } from "../../../components/CredentialInput";
-import { cx } from "../../../lib/cx";
+import { APP_NAME } from "../../../app/brand";
+import { Button } from "../../../components/Button";
+import { InputField } from "../../../components/ui/InputField";
+import { PinField } from "../../../components/ui/PinField";
+import { ProgressBar } from "../../../components/ui/ProgressBar";
+import { ToggleTabs } from "../../../components/ui/ToggleTabs";
 import {
   ADMIN_PIN_LENGTH,
-  isValidAdminPin,
-  sanitizePinInput,
   type AdminCredentialType,
 } from "../../auth/adminCredentials";
 import { PasswordRequirements } from "../../auth/PasswordRequirements";
-import { CredentialTypeToggle } from "../components/CredentialTypeToggle";
 import { OnboardingCard } from "../components/OnboardingCard";
-import {
-  eyebrowClass,
-  formGridClass,
-  goodHintClass,
-  labelClass,
-  leadClass,
-  mutedClass,
-  warnHintClass,
-} from "../onboardingStyles";
 import type { OnboardingFormState } from "../types";
 
-function pinHint(pin: string): { label: string; tone: "good" | "neutral" } {
-  if (!pin) return { label: `Enter ${ADMIN_PIN_LENGTH} digits`, tone: "neutral" };
-  if (!isValidAdminPin(pin)) {
-    return { label: `${pin.length} of ${ADMIN_PIN_LENGTH} digits`, tone: "neutral" };
-  }
-  return { label: "PIN looks good", tone: "good" };
-}
+const credentialOptions = [
+  { value: "pin" as const, label: "6-digit PIN" },
+  { value: "password" as const, label: "Password" },
+];
 
 export function AccountStep({
   form,
   setForm,
   onSubmit,
+  progressCurrent,
+  progressTotal,
+  canGoBack,
+  onBack,
+  canContinue,
+  continueLabel,
+  submitting,
 }: {
   form: OnboardingFormState;
   setForm: (patch: Partial<OnboardingFormState>) => void;
   onSubmit: () => void;
+  progressCurrent: number;
+  progressTotal: number;
+  canGoBack: boolean;
+  onBack: () => void;
+  canContinue: boolean;
+  continueLabel: string;
+  submitting: boolean;
 }) {
   const isPin = form.credentialType === "pin";
-  const credentialLabel = isPin ? "PIN" : "Password";
-  const hint = isPin ? pinHint(form.password) : null;
   const confirmComplete = isPin
     ? form.confirmPassword.length === ADMIN_PIN_LENGTH
     : form.password.length > 0 && form.confirmPassword.length >= form.password.length;
@@ -53,80 +53,88 @@ export function AccountStep({
 
   return (
     <OnboardingCard>
-      <p className={eyebrowClass}>Secure this device</p>
-      <h2 className="text-2xl font-semibold">Choose a PIN or password</h2>
-      <p className={leadClass}>
-        Your local credential stays on this device and unlocks {APP_NAME}.
-      </p>
-
-      <form
-        className={cx(formGridClass, "relative")}
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSubmit();
-        }}
-      >
-        <CredentialTypeToggle
-          label="Sign in method"
-          value={form.credentialType}
-          onChange={selectCredentialType}
+      <div className="gap-separator-related flex w-full flex-col">
+        <ProgressBar
+          current={progressCurrent}
+          total={progressTotal}
+          showBack={canGoBack}
+          onBack={canGoBack ? onBack : undefined}
         />
 
-        <label className={labelClass}>
-          {credentialLabel}
-          <CredentialInput
-            mode={form.credentialType}
-            value={form.password}
-            onChange={(event) =>
-              setForm({
-                password: isPin ? sanitizePinInput(event.target.value) : event.target.value,
-              })
-            }
-            maxLength={isPin ? ADMIN_PIN_LENGTH : undefined}
-            placeholder={isPin ? "••••••" : "Create a strong password"}
-            autoComplete={isPin ? undefined : "new-password"}
-          />
-          {hint && (
-            <span className={cx(hint.tone === "good" ? goodHintClass : mutedClass)}>
-              {hint.label}
-            </span>
-          )}
-        </label>
-        {!isPin && <PasswordRequirements password={form.password} />}
+        <header className="gap-detail-next grid w-full">
+          <h2 className="type-title text-text-primary m-0">Choose PIN or password</h2>
+          <p className="type-body text-text-secondary m-0">
+            Your local credential stays on this device and unlocks {APP_NAME}.
+          </p>
+        </header>
 
-        <label className={labelClass}>
-          Confirm {credentialLabel.toLowerCase()}
-          <CredentialInput
-            mode={form.credentialType}
-            value={form.confirmPassword}
-            onChange={(event) =>
-              setForm({
-                confirmPassword: isPin ? sanitizePinInput(event.target.value) : event.target.value,
-              })
-            }
-            maxLength={isPin ? ADMIN_PIN_LENGTH : undefined}
-            placeholder={isPin ? "••••••" : "Repeat password"}
-            autoComplete={isPin ? undefined : "new-password"}
-          />
-          <span
-            className={cx(
-              "min-h-[1.25rem] text-sm font-medium",
-              showMismatch ? warnHintClass : "invisible",
-            )}
-            role={showMismatch ? "status" : undefined}
-          >
-            {showMismatch ? `${credentialLabel}s do not match` : "\u00a0"}
-          </span>
-        </label>
-
-        {/* Hidden submit so Enter activates the form without a visible duplicate Continue. */}
-        <button
-          type="submit"
-          className="absolute h-px w-px overflow-hidden border-0 p-0 [clip:rect(0,0,0,0)]"
+        <form
+          className="gap-separator-related relative flex w-full flex-col"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (canContinue && !submitting) onSubmit();
+          }}
         >
-          Continue
-        </button>
-      </form>
+          <ToggleTabs
+            className="w-full"
+            label="Sign in method"
+            value={form.credentialType}
+            options={credentialOptions}
+            onChange={selectCredentialType}
+          />
+
+          {isPin ? (
+            <div className="gap-detail-close flex w-full flex-col">
+              <PinField
+                label="PIN"
+                value={form.password}
+                length={ADMIN_PIN_LENGTH}
+                onChange={(password) => setForm({ password })}
+                autoComplete="one-time-code"
+              />
+              <PinField
+                label="Confirm PIN"
+                value={form.confirmPassword}
+                length={ADMIN_PIN_LENGTH}
+                onChange={(confirmPassword) => setForm({ confirmPassword })}
+                error={showMismatch ? "PINs do not match" : undefined}
+                autoComplete="one-time-code"
+              />
+            </div>
+          ) : (
+            <div className="gap-detail-close flex w-full flex-col">
+              <InputField
+                label="Password"
+                type="password"
+                value={form.password}
+                onChange={(event) => setForm({ password: event.target.value })}
+                placeholder="Password"
+                autoComplete="new-password"
+              />
+              <InputField
+                label="Confirm password"
+                type="password"
+                value={form.confirmPassword}
+                onChange={(event) => setForm({ confirmPassword: event.target.value })}
+                placeholder="Password"
+                autoComplete="new-password"
+                error={showMismatch ? "Passwords do not match" : undefined}
+              />
+              <PasswordRequirements password={form.password} />
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            variant="accent"
+            size="md"
+            className="w-full"
+            disabled={!canContinue || submitting}
+          >
+            {continueLabel}
+          </Button>
+        </form>
+      </div>
     </OnboardingCard>
   );
 }

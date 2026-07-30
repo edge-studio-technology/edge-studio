@@ -1,13 +1,64 @@
 import type { Tone } from "../app/types";
 import { cx } from "../lib/cx";
 
-const toneClass: Record<Tone, string> = {
-  neutral: "bg-slate-100 text-slate-700",
-  good: "bg-emerald-100 text-emerald-700",
-  warn: "bg-amber-100 text-amber-700",
-  future: "bg-violet-100 text-violet-700",
+/**
+ * ESDS Tag / Pill variants.
+ * App tones map: neutral→Default, good→Success, warn→Warning, error→Error.
+ */
+const toneShellClass: Record<Tone, string> = {
+  neutral: "border-transparent bg-surface-secondary",
+  good: "border-stroke-success bg-surface-always-white",
+  warn: "border-stroke-warning bg-surface-always-white",
+  error: "border-stroke-error bg-surface-always-white",
 };
 
-export function Pill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: Tone }) {
-  return <span className={cx("inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-bold", toneClass[tone])}>{children}</span>;
+const toneTintClass: Partial<Record<Tone, string>> = {
+  good: "bg-feedback-positive/20",
+  warn: "bg-feedback-warning/20",
+  error: "bg-feedback-error/20",
+};
+
+const toneIndicatorClass: Record<Tone, string> = {
+  neutral: "bg-text-primary",
+  good: "bg-feedback-positive",
+  warn: "bg-feedback-warning",
+  error: "bg-feedback-error",
+};
+
+/**
+ * ESDS Pill (Tag): compact status/category label.
+ * Default is secondary fill; Success / Warning / Error use white + tinted stroke/wash.
+ */
+export function Pill({
+  children,
+  className,
+  indicator = false,
+  tone = "neutral",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  /** Optional 4px status dot (ESDS Tag `hasIndicator`). */
+  indicator?: boolean;
+  tone?: Tone;
+}) {
+  const tintClass = toneTintClass[tone];
+
+  return (
+    <span
+      className={cx(
+        "gap-detail-tight px-detail-next type-meta text-text-primary relative inline-flex h-6 w-fit items-center justify-center overflow-clip rounded-full border leading-none",
+        toneShellClass[tone],
+        className,
+      )}
+    >
+      {tintClass ? <span aria-hidden className={cx("absolute inset-[-1px]", tintClass)} /> : null}
+      {indicator ? (
+        <span
+          aria-hidden
+          className={cx("relative size-1 shrink-0 rounded-full", toneIndicatorClass[tone])}
+        />
+      ) : null}
+      <span className="relative">{children}</span>
+    </span>
+  );
 }
