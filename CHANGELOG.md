@@ -4,6 +4,25 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased]
+
+### Added
+
+- Shared `MetricCard` (`components/patterns/`) for ESDS compact metric tiles (label, optional icon + value, helper). Dashboard live-status grid uses it. See `docs/frontend-design-system.md`.
+- Frontend spacing: `inset-*` tokens (same values as Figma `esds.spacing.margin.*`) for container edge padding. Prefer `inset` for new / migrated UI; legacy `margin-*` kept until remaining call sites migrate.
+
+### Fixed
+
+- Dashboard getting-started card now also checks for workflows and hides once at least one non-archived workflow exists (it previously only looked at devices, so “Create your first workflow” stayed visible after setup).
+
+### Changed
+
+- Migrated Dashboard shared UI into design-system homes: `Button` / `IconButton`, `Card`, `Pill`, and `Text` → `components/ui/`; Dashboard (and next-action) import from `ui/` / `patterns/Page`. Flat paths re-export for other call sites. See `docs/frontend-design-system.md`.
+- Dashboard matches ESDS layout:, next-action card (accent CTA, numbered 1→2 steps with connector), single metric grid, and restyled live activity. Sidebar/status bar already come from the shell.
+- Refactor Dashboard
+- Shared `Page` is the content frame (`p-inset-distant`, title + optional description / action) in `components/patterns/`; `components/Page.tsx` re-exports. Content inset moved from `AppShell` onto `Page`. Removed `Section` (folded into `Page`). `eyebrow` still accepted but unused — Dashboard migrated; other pages later.
+- Shared `Card` is a surface only (white fill, `rounded-soft`, padding via `size="Default" | "Compact"` using `p-inset-*`, overflow clip). Layout (`flex` / `grid` / `gap`) belongs on the caller.
+
 ## [0.27.1] 2026-07-30
 
 ### Added
@@ -41,11 +60,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Desktop app navigation now uses an Edge Studio-style collapsible dark sidebar with icon-only collapsed state (always on screen; collapses below `lg`), shared `nav` including Account and Marketplace (Coming soon), and sidebar-hosted feedback / sign out when expanded.
 - Shared `Input` uses a 1px border (`stroke-primary` / focus `stroke-active` / error `stroke-error`) on the control box.
 - Frontend colour tokens now follow ESDS foundations only (primitives + surface/text/icon/stroke/overlay semantics). Shared components use those utilities; legacy `brand-*`, `on-dark*`, and non-Figma status/hover/info aliases were removed.
-- Frontend typography follows ESDS foundations: Hanken Grotesk + Azeret Mono, with complete named type utilities (`type-meta`, `type-body`, `type-body-em`, `type-link`, `type-callout`, `type-title`, `type-heading`, `type-display`, `type-mono`). Shared `Text` / `Section` helpers use those styles.
+- Frontend typography follows ESDS foundations: Hanken Grotesk + Azeret Mono, with complete named type utilities (`type-meta`, `type-body`, `type-body-em`, `type-link`, `type-callout`, `type-title`, `type-heading`, `type-display`, `type-mono`). Shared `Text` helpers use those styles.
 - Frontend corner-radius tokens follow ESDS foundations (`rounded-sharp`, `rounded-tight`, `rounded-loose`, `rounded-interior`, `rounded-exterior`, `rounded-full`). Components and pages are not migrated yet.
 - Frontend spacing tokens follow ESDS foundations (detail / separator / margin scales). Components and pages are not migrated yet.
 - Shared `Button` / `IconButton` follow the ESDS button matrices (text button + circular icon button, tokens, focus ring). Call-site migration and aria notes are in `docs/frontend-design-system.md`.
-- Shared `Card` wrapper now matches ESDS/Figma layout defaults (including the default 16px `gap-detail-close`) and adds `size="Default" | "Compact"` for relaxed vs tight padding.
 - Shared workflow/history table helpers now use ESDS table visuals (grey header row, `stroke-primary` borders, and `type-body-em` headers / `type-meta` cells). See `frontend/src/components/DataTable.tsx`.
 - Added a migration-ready ESDS `components/patterns/Table` shell (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`) for future replacement of legacy native `<table>` markup.
 

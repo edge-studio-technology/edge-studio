@@ -144,7 +144,7 @@ export function AppShell({
 
         <main className="min-w-0 flex-1">
           <StatusBar items={statusItems} />
-          <div className="p-margin-distant">{children}</div>
+          {children}
         </main>
       </div>
       {feedbackOpen && (

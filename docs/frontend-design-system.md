@@ -14,7 +14,7 @@ This project uses Tailwind utilities plus small internal React components. Plain
 | Layer                 | Location                            | Use                                                                   |
 | --------------------- | ----------------------------------- | --------------------------------------------------------------------- |
 | Base globals          | `frontend/src/styles.css`           | Tailwind import, root/body defaults, base form/code element rules     |
-| ESDS primitives       | `frontend/src/components/ui/`       | Leaf controls with a clear ESDS / Figma counterpart                   |
+| Leaf controls         | `frontend/src/components/ui/`       | Leaf controls (buttons, fields, tags, dialogs)                        |
 | Shared patterns       | `frontend/src/components/patterns/` | Composed layouts built from ui (page chrome, tables, filter bars)     |
 | Legacy shared (flat)  | `frontend/src/components/*.tsx`     | Existing files — import as-is until migrated into `ui/` / `patterns/` |
 | App / infra           | `frontend/src/components/` (select) | Shell wiring, providers, route guards — not design-system leaves      |
@@ -32,7 +32,7 @@ This project uses Tailwind utilities plus small internal React components. Plain
 
 **New shared components**
 
-- New ESDS primitives → `frontend/src/components/ui/`
+- New leaf controls → `frontend/src/components/ui/`
 - New composed shared UI → `frontend/src/components/patterns/`
 - Do **not** add new design-system components to the flat `frontend/src/components/` root
 
@@ -55,7 +55,7 @@ Migration is **incremental**, not a big-bang move:
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `Section`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`                                                                                    |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`, `MetricCard`                                                                                 |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                       |
 
 ## Styling Rules
@@ -71,49 +71,53 @@ Migration is **incremental**, not a big-bang move:
 
 ## Shared Components
 
-Use these before writing bespoke markup. Paths: most still live flat under `frontend/src/components/` until migrated; new ESDS work goes in `ui/` / `patterns/` (see Placement above).
+Use these before writing bespoke markup. Paths: most still live flat under `frontend/src/components/` until migrated; new design-system work goes in `ui/` / `patterns/` (see Placement above).
 
-- `Page`: route-level header, title, eyebrow, and optional action. _(→ `patterns/`)_
-- `Card`: primary white card surface (stacks children with the default `gap-detail-close`). Supports `size="Default" | "Compact"` to switch relaxed vs tight padding. _(→ `ui/`)_
-- `Section`: grouped content block inside a page. _(→ `patterns/`)_
-- `Button` / `IconButton`: ESDS button variants and icon-only actions (see below). _(→ `ui/`)_
-- `ButtonRow`: wrapping button groups. _(→ `patterns/`)_
-- `Pill`: ESDS Tag / pill (Default / Success / Warning / Error via `tone`; optional indicator dot). _(→ `ui/`)_
-- `ProgressBar` (`components/ui/`): ESDS step progress (optional back IconButton, accent track, step count Tag).
-- `CheckboxField` (`components/ui/`): ESDS checkbox + label + optional description (checked / unchecked / indeterminate).
-- `RadioField` (`components/ui/`): ESDS radio + label + optional description (selected / unselected × default / disabled).
-- `SwitchField` (`components/ui/`): ESDS switch + optional label / description (on / off × default / disabled).
-- `Text`: shared muted, error, and eyebrow text helpers. _(→ `ui/`)_
-- `ErrorAlert` (`components/patterns/`): in-page error alert (ESDS feedback chrome; optional title and recovery action). Flat `components/ErrorAlert.tsx` re-exports.
-- `Modal` (`components/ui/`): ESDS Dialog Type=Modal (portal overlay, max-width 600). Flat `components/Modal.tsx` re-exports.
-- `Input`: ESDS text control (box only). Prefer `InputField` for labeled forms. _(→ `ui/`)_
-- `InputField`: ESDS Input Field (label / description / control / error); wraps `Input`. _(→ `ui/`)_
-- `SelectField` (`components/ui/`): ESDS select field (label / description / control / error); wraps `Select`.
-- `TextareaField` (`components/ui/`): ESDS textarea field (label / description / control / error).
-- `Menu` (`components/ui/`): ESDS menu list (built-in Plus icon per row); default / hover / disabled. Rows via `items` only — `MenuItem` is internal.
-- `TabList` (`components/ui/`): ESDS underline tabs (`TabItem` internal; active / hover / inactive). Prefer this over `SubTabs` for page-level tab strips.
-- `ToggleTabs` (`components/ui/`): ESDS segmented toggle (selected inverse / idle ghost on `surface-secondary` track).
-- `PinField` (`components/ui/`): segmented 6-digit PIN / verification-code field with label / description / error.
-- `CredentialInput`: PIN or password field (`mode="pin" | "password"`); wraps `Input`. _(→ `ui/` or retire)_
-- `DataTable`: workflow-style table shell, wrapper, rows, and action cells. _(→ `patterns/`)_
-- `StatusRow`: compact label/value/status presentation. _(→ `patterns/`)_
-- `StatusBar` (`components/`): ESDS app status bar (status Tags left, Local/UTC clock Tags right). Shell chrome used by `AppShell`.
-- `ListPagerFilterBar`: list filtering and pagination controls. _(→ `patterns/`)_
-- `Pagination` (`components/ui/`): prev/next controls plus condensed page-number strip with ellipsis gaps. Stable full-width layout so prev/next don’t shift.
-- `Tooltip` (`components/ui/`): ESDS tooltip / toggletip (trigger + positioned bubble; hover/focus or click; optional body / actions).
-- `JsonPreview`: formatted JSON/code preview surface. _(→ `patterns/`)_
+**Inventory style:** name + short description only. Link to a `###` detail section when one exists. No paths or migration arrows. Props, explain, and usage live under that heading.
+
+- [Page](#page): route content frame
+- [Card](#card): white card surface
+- [MetricCard](#metriccard): compact metric / status card
+- [Button / IconButton](#button): text and icon-only buttons
+- `ButtonRow`: wrapping button group
+- [Pill](#pill): status / tag pill
+- [ProgressBar](#progressbar): step progress bar
+- [CheckboxField](#checkboxfield): labeled checkbox
+- [RadioField](#radiofield): labeled radio option
+- [SwitchField](#switchfield): labeled on/off switch
+- `Text`: muted, error, and eyebrow text
+- [ErrorAlert](#erroralert): in-page error alert
+- [Modal](#modal): dialog overlay
+- `Input`: bare text control
+- [InputField](#inputfield): labeled text field
+- [SelectField](#selectfield): labeled select
+- `TextareaField`: labeled multiline field
+- [Menu](#menu): action menu list
+- [TabList](#tablist): underline page tabs
+- [ToggleTabs](#toggletabs): segmented toggle
+- `PinField`: segmented PIN / code field
+- `CredentialInput`: PIN or password field
+- `DataTable`: table shell and rows
+- `StatusRow`: label / value / status row
+- [StatusBar](#statusbar): app shell status chrome
+- `ListPagerFilterBar`: list filter and pager
+- `Pagination`: prev/next page strip
+- [Tooltip](#tooltip): hover / click tip
+- `JsonPreview`: JSON / code preview
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
 
-### Button / IconButton
+### Button
+
+Text and icon buttons (`frontend/src/components/ui/Button.tsx`). Flat `components/Button.tsx` re-exports for now.
 
 #### Text `Button`
 
-ESDS matrix: Primary, Secondary, Tertiary (`ghost`), Accent × Default (`md` 44px) / Compact (`sm` 32px). App-only variants: `danger`, `onDark`.
+Variant matrix: Primary, Secondary, Tertiary (`ghost`), Accent × Default (`md` 44px) / Compact (`sm` 32px). App-only variants: `danger`, `onDark`.
 
 | Prop                    | Values                                                                  | Notes                                                                                 |
 | ----------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `variant`               | `primary` \| `secondary` \| `ghost` \| `accent` \| `danger` \| `onDark` | Prefer ESDS four for new UI                                                           |
+| `variant`               | `primary` \| `secondary` \| `ghost` \| `accent` \| `danger` \| `onDark` | Prefer primary / secondary / ghost / accent for new UI                                |
 | `size`                  | `md` (44px) \| `sm` / `xs` (32px)                                       | `xs` matches `sm` today; prefer `sm` for compact                                      |
 | `iconStart` / `iconEnd` | optional `ReactNode`                                                    | Leading/trailing icon slots (16px). Prefer these over stuffing icons into `children`. |
 
@@ -127,11 +131,11 @@ Icons in `iconStart` / `iconEnd` are layout-only; keep the visible label in `chi
 
 #### Circular `IconButton`
 
-ESDS [Icon Button]: Primary / Secondary / Tertiary (`ghost`) × Default / Compact. Fully circular (`rounded-full`). No accent / danger / onDark.
+Circular icon-only button: Primary / Secondary / Tertiary (`ghost`) × Default / Compact. Fully circular (`rounded-full`). No accent / danger / onDark.
 
 | Prop      | Values                                                                     | Notes                                          |
 | --------- | -------------------------------------------------------------------------- | ---------------------------------------------- |
-| `variant` | `primary` \| `secondary` \| `ghost`                                        | ESDS three only                                |
+| `variant` | `primary` \| `secondary` \| `ghost`                                        | primary / secondary / ghost only               |
 | `size`    | `default` (40px circle, 20px glyph) \| `compact` (32px circle, 16px glyph) | Component sizes the glyph — omit lucide `size` |
 
 ```tsx
@@ -156,7 +160,7 @@ ESDS [Icon Button]: Primary / Secondary / Tertiary (`ghost`) × Default / Compac
 
 #### When migrating call sites (TODO)
 
-When restyling a page or feature to ESDS buttons:
+When restyling a page or feature to shared buttons:
 
 1. Replace local button class constants (`primaryButtonClass`, etc.) with `<Button>` / `<IconButton>`.
 2. Remove `className` overrides that fight the component (`rounded-full`, custom `bg-*` / `px-*` / `py-*`). Use `variant` + `size` instead.
@@ -201,7 +205,7 @@ Avoid exporting these constants or moving them into shared files unless more tha
 
 ### CheckboxField
 
-ESDS Checkbox Field (`frontend/src/components/ui/CheckboxField.tsx`): 16px control beside a body label, optional description indented under the label (16px spacer aligns with the control).
+Labeled checkbox (`frontend/src/components/ui/CheckboxField.tsx`): 16px control beside a body label, optional description indented under the label (16px spacer aligns with the control).
 
 | Prop            | Values / notes                                                              |
 | --------------- | --------------------------------------------------------------------------- |
@@ -227,7 +231,7 @@ Default checked / indeterminate: `icon-primary` fill with inverse glyph. Uncheck
 
 ### RadioField
 
-ESDS Radio Field (`frontend/src/components/ui/RadioField.tsx`): 16px circular control beside a body label, optional description indented under the label (16px spacer aligns with the control). Group options with a shared `name`; the selected value is the field state.
+Labeled radio (`frontend/src/components/ui/RadioField.tsx`): 16px circular control beside a body label, optional description indented under the label (16px spacer aligns with the control). Group options with a shared `name`; the selected value is the field state.
 
 | Prop          | Values / notes                                                              |
 | ------------- | --------------------------------------------------------------------------- |
@@ -255,7 +259,7 @@ Default selected: `icon-primary` ring + inverse fill + primary center dot. Unsel
 
 ### SwitchField
 
-ESDS Switch Field (`frontend/src/components/ui/SwitchField.tsx`): optional body label with a 40×24 switch on the right, optional full-width description under the row.
+Labeled switch (`frontend/src/components/ui/SwitchField.tsx`): optional body label with a 40×24 switch on the right, optional full-width description under the row.
 
 | Prop          | Values / notes                                                                 |
 | ------------- | ------------------------------------------------------------------------------ |
@@ -279,7 +283,7 @@ Default on: `icon-primary` track + inverse knob. Off: inverse track + `stroke-pr
 
 ### Modal
 
-ESDS Dialog Type=Modal (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, white panel (`max-w-[600px]`, `rounded-soft`, `p-margin-relaxed`), title, optional description / body / footer, close `IconButton`. Prefer this for confirmations and focused forms. Sheet variant is not implemented yet.
+Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, white panel (`max-w-[600px]`, `rounded-soft`, `p-margin-relaxed`), title, optional description / body / footer, close `IconButton`. Prefer this for confirmations and focused forms. Sheet variant is not implemented yet.
 
 | Prop            | Notes                                                    |
 | --------------- | -------------------------------------------------------- |
@@ -311,7 +315,7 @@ ESDS Dialog Type=Modal (`frontend/src/components/ui/Modal.tsx`): centered portal
 
 ### Tooltip
 
-ESDS Tooltip (`frontend/src/components/ui/Tooltip.tsx`): white bubble with `stroke-secondary` border (and matching beak edges) so it stays visible on light surfaces; placement beak (top / bottom / left / right); title, optional body, optional action row.
+Tooltip (`frontend/src/components/ui/Tooltip.tsx`): white bubble with `stroke-secondary` border (and matching beak edges) so it stays visible on light surfaces; placement beak (top / bottom / left / right); title, optional body, optional action row.
 
 Pass `children` as the trigger. Without `actions`, opens on hover/focus (tooltip). With `actions`, opens on click and closes on Escape / outside click (toggletip). Positions via portal with basic flip when the preferred side would clip.
 
@@ -357,13 +361,13 @@ Pass `children` as the trigger. Without `actions`, opens on hover/focus (tooltip
 
 ### ProgressBar
 
-ESDS Progress Bar (`frontend/src/components/ui/ProgressBar.tsx`): optional back control, accent fill track, step count Tag. Prefer this for multi-step / wizard progress.
+Progress bar (`frontend/src/components/ui/ProgressBar.tsx`): optional back control, accent fill track, step count Tag. Prefer this for multi-step / wizard progress.
 
 | Prop        | Values / notes                                          |
 | ----------- | ------------------------------------------------------- |
 | `current`   | Current step (clamped 0…`total`)                        |
 | `total`     | Total steps (minimum 1)                                 |
-| `showBack`  | boolean (default `true`) — ESDS `hasButton`             |
+| `showBack`  | boolean (default `true`) — show the back control        |
 | `onBack`    | optional click handler; button disabled if omitted      |
 | `backLabel` | `aria-label` for the IconButton (default `"Back"`)      |
 | `label`     | `aria-label` for the progressbar (default `"Progress"`) |
@@ -378,7 +382,7 @@ Back control is `IconButton` ghost compact with ChevronLeft. Count uses `Pill`. 
 
 ### ErrorAlert
 
-In-page error alert (`frontend/src/components/patterns/ErrorAlert.tsx`): same ESDS feedback chrome as toast error (white surface, `stroke-error` border, 20% `feedback-error` wash). Prefer field `error` for per-control validation; prefer toast for transient action failures.
+In-page error alert (`frontend/src/components/patterns/ErrorAlert.tsx`): same feedback chrome as toast error (white surface, `stroke-error` border, 20% `feedback-error` wash). Prefer field `error` for per-control validation; prefer toast for transient action failures.
 
 | Prop        | Notes                                             |
 | ----------- | ------------------------------------------------- |
@@ -396,9 +400,67 @@ Uses `role="alert"`, Lucide `AlertCircle` (`icon-error`), `rounded-soft`, `p-mar
 <ErrorAlert>{error}</ErrorAlert>
 ```
 
+### Page
+
+Route content frame: distant inset padding (`p-inset-distant`), title + optional description, optional action, then children. Owns content inset so `AppShell` stays full-bleed (status bar chrome). Header is a two-column grid on `sm+` (title/desc | action). Implementation: `components/patterns/Page.tsx`; flat `components/Page.tsx` re-exports for now.
+
+| Prop       | Notes                                                                 |
+| ---------- | --------------------------------------------------------------------- |
+| `title`    | Page heading (`type-title`)                                           |
+| `desc`     | Optional supporting copy (`type-body`)                                |
+| `action`   | Optional header action (e.g. settings)                                |
+| `eyebrow`  | Deprecated / unused — still accepted so unmigrated call sites compile |
+| `children` | Page body                                                             |
+
+```tsx
+<Page title="Your dashboard" desc="Your workspace for trusted data at the edge.">
+  {/* page body */}
+</Page>
+```
+
+Cleanup later: drop `eyebrow` from remaining page call sites, then remove the prop and the flat `components/Page.tsx` re-export (import from `patterns/Page` instead).
+
+### Card
+
+White card surface (`frontend/src/components/ui/Card.tsx`): fill, radius, padding, overflow clip only. Layout (`flex` / `grid` / `gap`) belongs on the caller. Flat `components/Card.tsx` re-exports for now.
+
+| Prop        | Notes                                              |
+| ----------- | -------------------------------------------------- |
+| `size`      | `Default` (`p-inset-relaxed`) \| `Compact` (`p-inset-tight`) |
+| `className` | Merged onto the surface                            |
+| `children`  | Card body                                          |
+
+```tsx
+<Card className="gap-detail-close flex flex-col">…</Card>
+<Card size="Compact">…</Card>
+```
+
+### MetricCard
+
+Metric card (`frontend/src/components/patterns/MetricCard.tsx`): Compact `Card` with label (`type-meta` primary), optional leading icon + value (`type-title`), and optional helper (`type-meta` tertiary). Prefer this for dashboard / status metric tiles.
+
+| Prop             | Notes                                              |
+| ---------------- | -------------------------------------------------- |
+| `label`          | Metric title                                       |
+| `value`          | Primary value (`ReactNode`; truncates)             |
+| `helper`         | Optional supporting line                           |
+| `icon`           | Optional 20px leading glyph in the value row       |
+| `valueClassName` | Optional value colour override (e.g. status tones) |
+| `children`       | Optional footer slot (e.g. an action button)       |
+| `className`      | Merged onto the Compact `Card` shell               |
+
+```tsx
+<MetricCard
+  label="Wallet balance"
+  icon={<MinimaIcon size={20} />}
+  value="0.0001"
+  helper="Primary Pi Wallet"
+/>
+```
+
 ### StatusBar
 
-ESDS Status Bar (`frontend/src/components/StatusBar.tsx`): shell chrome with status Tags on the left and Local/UTC clock Tags on the right (`surface-primary`, `p-margin-tight`). Composes `Pill`, `Clock`, and optional `Tooltip` detail on each status item.
+Status bar (`frontend/src/components/StatusBar.tsx`): shell chrome with status Tags on the left and Local/UTC clock Tags on the right (`surface-primary`, `p-margin-tight`). Composes `Pill`, `Clock`, and optional `Tooltip` detail on each status item.
 
 | Prop        | Notes                                                                                                                         |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -423,7 +485,7 @@ ESDS Status Bar (`frontend/src/components/StatusBar.tsx`): shell chrome with sta
 
 ### Pill
 
-ESDS Tag: 24px-tall rounded pill (`type-meta`, `px-detail-next`). Prefer this for compact status/category labels.
+Tag / pill (`frontend/src/components/ui/Pill.tsx`): 24px-tall rounded pill (`type-meta`, `px-detail-next`). Prefer this for compact status/category labels. Flat `components/Pill.tsx` re-exports for now.
 
 | Prop        | Values                                   | Notes                                       |
 | ----------- | ---------------------------------------- | ------------------------------------------- |
@@ -443,7 +505,7 @@ Default (`neutral`): `surface-secondary` fill. Success / Warning / Error: white 
 
 ### InputField
 
-ESDS [Input Field]: label → optional description → control → optional error.
+Labeled text field: label → optional description → control → optional error.
 
 | Prop          | Notes                                                     |
 | ------------- | --------------------------------------------------------- |
@@ -472,7 +534,7 @@ Do not use placeholder as the only label.
 
 ### SelectField
 
-ESDS Select Field (`frontend/src/components/ui/SelectField.tsx`): label → optional description → control → optional error. Prefer this for single-choice dropdowns.
+Labeled select (`frontend/src/components/ui/SelectField.tsx`): label → optional description → control → optional error. Prefer this for single-choice dropdowns.
 
 | Prop          | Notes                                                              |
 | ------------- | ------------------------------------------------------------------ |
@@ -503,7 +565,7 @@ Control matches `Input` chrome: 44px tall, `rounded-loose`, `border-stroke-prima
 
 ### Menu
 
-ESDS Menu: vertical list of rows with a built-in Plus icon and label. No outer border; `stroke-secondary` dividers only between rows. `MenuItem` is not exported — pass rows through `items`.
+Menu: vertical list of rows with a built-in Plus icon and label. No outer border; `stroke-secondary` dividers only between rows. `MenuItem` is not exported — pass rows through `items`.
 
 | Prop        | Notes                                                              |
 | ----------- | ------------------------------------------------------------------ |
@@ -524,7 +586,7 @@ States per row: default (`surface-always-white`) → hover / focus (`surface-sec
 
 ### TabList
 
-ESDS Tab: underline tabs in a horizontal row. `TabItem` is not exported — pass rows through `options`.
+Underline tabs in a horizontal row. `TabItem` is not exported — pass rows through `options`.
 
 | Prop        | Notes                                                 |
 | ----------- | ----------------------------------------------------- |
@@ -551,7 +613,7 @@ States per tab: active (`stroke-active` / `text-primary`) → hover (`stroke-pri
 
 ### ToggleTabs
 
-ESDS Toggle Tabs: equal-width segments on a `surface-secondary` track (`p-detail-tight`, `gap-detail-next`, `rounded-loose`). Prefer this for compact binary/segmented controls. `ToggleTabItem` is not exported — pass segments through `options`.
+Equal-width segments on a `surface-secondary` track (`p-detail-tight`, `gap-detail-next`, `rounded-loose`). Prefer this for compact binary/segmented controls. `ToggleTabItem` is not exported — pass segments through `options`.
 
 | Prop        | Notes                                                                 |
 | ----------- | --------------------------------------------------------------------- |
@@ -578,9 +640,9 @@ Selected: `surface-inverse` / `text-inverse`, 44px tall, `type-body`. Idle: tran
 
 ## Tables And Lists
 
-- Use `DataTable` for tabular workflow/history/list surfaces (native `<table>` + `frontend/src/components/DataTable.tsx`, styled with ESDS table visuals).
+- Use `DataTable` for tabular workflow/history/list surfaces (native `<table>` + `frontend/src/components/DataTable.tsx`, styled with shared table visuals).
 - Use compact cards/lists instead of tables when the content is entity-detail oriented, narrow, or action-heavy.
-- When migrating off native `<table>` markup, prefer the ESDS table shell pattern in `frontend/src/components/patterns/Table.tsx` (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`).
+- When migrating off native `<table>` markup, prefer the shared table shell pattern in `frontend/src/components/patterns/Table.tsx` (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`).
 
 ## Tokens
 
@@ -620,7 +682,7 @@ Do not use Tailwind opacity modifiers on colour tokens (e.g. `surface-always-whi
 
 Named styles are **complete recipes** (family + size + line-height + letter-spacing + weight). Prefer these over ad-hoc `text-sm` / `font-bold` / `tracking-*`:
 
-| Figma (`esds.type.*`) | Utility        | Notes                                         |
+| Token (`esds.type.*`) | Utility        | Notes                                         |
 | --------------------- | -------------- | --------------------------------------------- |
 | Meta                  | `type-meta`    | 12 / 400 / lh 1.2 / tracking 0                |
 | Mono                  | `type-mono`    | Azeret Mono, 12 / 400 / lh 1.2 / tracking −2% |
@@ -632,11 +694,11 @@ Named styles are **complete recipes** (family + size + line-height + letter-spac
 | Heading               | `type-heading` | 32 / 600 / lh 0.95 / tracking −2%             |
 | Display               | `type-display` | 48 / 600 / lh 0.95 / tracking −2%             |
 
-Pair type utilities with colour utilities (e.g. `type-body text-text-secondary`). Heading/Display use tight Figma leading — prefer short single-line titles; loosen only with design approval.
+Pair type utilities with colour utilities (e.g. `type-body text-text-secondary`). Heading/Display use tight leading — prefer short single-line titles; loosen only with design approval.
 
 ### Corner radius
 
-| Figma (`esds.radius.*`) | Utility         | Value |
+| Token (`esds.radius.*`) | Utility         | Value |
 | ----------------------- | --------------- | ----- |
 | sharp                   | `rounded-sharp` | 0     |
 | tight                   | `rounded-tight` | 2px   |
@@ -648,11 +710,13 @@ Prefer these over ad-hoc `rounded-xl` / `rounded-[14px]` when restyling UI. Toke
 
 ### Spacing
 
-Named spacing tokens map to Tailwind spacing utilities (`p-*`, `m-*`, `gap-*`, `space-*`, sizing where spacing is used). Prefer Figma names over ad-hoc `p-4` / `gap-6` when restyling UI. Some values repeat across groups on purpose (semantic roles from Figma).
+Named spacing tokens map to Tailwind spacing utilities (`p-*`, `m-*`, `gap-*`, `space-*`, sizing where spacing is used). Prefer named spacing tokens over ad-hoc `p-4` / `gap-6` when restyling UI. Some values repeat across groups on purpose (semantic roles).
+
+**Roles:** `detail` = gaps inside a component; `separator` = space between major sections; `inset` = padding from a container edge (page / card / modal). Prefer `inset-*` for new work. Figma still labels this scale `esds.spacing.margin.*` — same values as code `inset` / legacy `margin`.
 
 #### Detail (`esds.spacing.detail.*`)
 
-| Figma | Utility suffix | Value |
+| Token | Utility suffix | Value |
 | ----- | -------------- | ----- |
 | fine  | `detail-fine`  | 2px   |
 | tight | `detail-tight` | 4px   |
@@ -664,7 +728,7 @@ Example: `gap-detail-next`, `p-detail-close`.
 
 #### Separator (`esds.spacing.separator.*`)
 
-| Figma   | Utility suffix      | Value |
+| Token   | Utility suffix      | Value |
 | ------- | ------------------- | ----- |
 | related | `separator-related` | 40px  |
 | relaxed | `separator-relaxed` | 64px  |
@@ -673,9 +737,25 @@ Example: `gap-detail-next`, `p-detail-close`.
 
 Example: `gap-separator-related`, `mt-separator-removed`.
 
-#### Margin (`esds.spacing.margin.*`)
+#### Inset (code; Figma `esds.spacing.margin.*`)
 
-| Figma   | Utility suffix   | Value |
+Container edge padding. Prefer these for new / migrated UI.
+
+| Token   | Utility suffix  | Value |
+| ------- | --------------- | ----- |
+| close   | `inset-close`   | 8px   |
+| tight   | `inset-tight`   | 16px  |
+| relaxed | `inset-relaxed` | 40px  |
+| distant | `inset-distant` | 80px  |
+| removed | `inset-removed` | 120px |
+
+Example: `p-inset-tight`, `p-inset-distant` (`Page`, `Card`).
+
+#### Margin (legacy alias of inset)
+
+Same values as `inset-*`. Still used by unmigrated call sites (`p-margin-*`, etc.). Prefer `inset-*` when touching a file; remove `margin-*` once migration is complete.
+
+| Token   | Utility suffix   | Value |
 | ------- | ---------------- | ----- |
 | close   | `margin-close`   | 8px   |
 | tight   | `margin-tight`   | 16px  |
@@ -683,7 +763,7 @@ Example: `gap-separator-related`, `mt-separator-removed`.
 | distant | `margin-distant` | 80px  |
 | removed | `margin-removed` | 120px |
 
-Example: `p-margin-tight`, `px-margin-distant`.
+Example: `p-margin-tight` (legacy).
 
 ## Do Not Add Yet
 
