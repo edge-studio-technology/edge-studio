@@ -66,6 +66,26 @@ Plan:
 
 Status: Accepted risk, documented. See `.agents/rules/update-agent.md`.
 
+## I2C Sensor Helper
+
+Risk: `ENABLE_SENSORS=true` installs a host-side `integritas-pi-sensor-helper` service that can read supported I2C sensors such as BME280 and BME680 through the Pi's I2C bus.
+
+Impact: If abused, helper access could disclose local environmental sensor readings or interact with attached I2C devices. A generic I2C proxy would be much higher risk because arbitrary reads/writes could affect unrelated hardware on the bus.
+
+Current Controls:
+
+- Sensor support is off by default and requires `ENABLE_SENSORS=true`.
+- The backend calls the helper with a generated bearer token; the token is not exposed to the browser.
+- The helper API is narrow: `/read` only accepts allowlisted sensor types and validated bus/address values, and does not expose arbitrary I2C operations.
+- The helper is intended for trusted local Raspberry Pi deployments and is only reachable from the configured Compose subnet firewall rule when installed by `install.sh`.
+
+Plan:
+
+- Keep future sensors allowlisted and avoid generic I2C read/write endpoints.
+- Revisit helper isolation if sensor support expands beyond read-only environmental sensors.
+
+Status: Accepted risk for opt-in prototype hardware support.
+
 ## Update Manifest Signing Key
 
 Risk: The `update-agent` update flow trusts any manifest whose signature verifies against the embedded Ed25519 public key. Compromise of the corresponding private key would let an attacker publish a manifest pointing at attacker-controlled image digests.

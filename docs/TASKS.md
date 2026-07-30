@@ -31,6 +31,8 @@
 
 ## Done
 
+- [x] Added reusable setup-guide starter workflow actions, starting with readable source preview workflows — see `docs/plans/device-guide-starter-workflows.md`.
+- [x] Added BME280 environmental sensor support through a reusable host-side Python sensor helper, with BME680 extension path — see `docs/plans/bme-environmental-sensor-support.md`.
 - [x] Implemented V1 workflow variables and output templating — see `docs/plans/workflow-variables-and-output-templating.md`.
 - [x] Implemented V1 device configuration flow, HTTP/MQTT output targets, and optional local MQTT broker support — see `docs/plans/device-configuration-and-mqtt-broker.md`.
 - [x] `AGENTS.md` rewritten as Karpathy-style behavioral guidelines; project-specific rules split into `.agents/rules/*.md`, indexed from `AGENTS.md` and `docs/README.md`.

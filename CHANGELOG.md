@@ -23,6 +23,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Shared `Page` is the content frame (`p-pad-distant`, title + optional description / action) in `components/patterns/`; `components/Page.tsx` re-exports. Content padding moved from `AppShell` onto `Page`. Removed `Section` (folded into `Page`). `eyebrow` still accepted but unused — Dashboard migrated; other pages later.
 - Shared `Card` is a surface only (white fill, `rounded-soft`, padding via `size="Default" | "Compact"` using `p-pad-*`, overflow clip). Layout (`flex` / `grid` / `gap`) belongs on the caller.
 - Renamed container-edge spacing utilities from `inset-*` to `pad-*` (`p-pad-tight`, etc.); removed `--spacing-inset-*`.
+## [0.28.1] 2026-07-30
+
+### Added
+
+- Devices now include a `BME680 Environmental Sensor` input template that reuses the opt-in I2C sensor helper and readable BME sensor automation path.
+- The sensor helper installer now creates and preserves a dedicated Python virtualenv for the PyPI `bme680` module, avoiding repeated installs and unavailable distro packages such as `python3-bme680`.
+
+## [0.28.0] 2026-07-30
+
+### Added
+
+- Devices now include a `BME280 Environmental Sensor` input template backed by an opt-in host-side I2C sensor helper (`ENABLE_SENSORS=true`). Manual reads and Automation `Fetch data source` blocks can hash temperature, humidity, and pressure JSON for Integritas stamping.
+- Devices now expose reusable setup guides from the configured-device list for every supported source/target type, and newly added devices automatically open their guide after saving.
+- BME280 and HTTP JSON setup guides now include a `Create basic workflow for this device` action that creates a disabled manual workflow with `Fetch data source` and `Show preview` blocks.
+- Hardware-backed device templates such as GPIO, Pi Camera, and BME280 are now selectable even before their required `ENABLE_*` install flag is enabled, so users can save the device and read its setup guide first.
+- Hardware wiring guide sections now include a `Wiring schematic` popup with a Raspberry Pi 40-pin GPIO header pinout.
 
 ## [0.27.1] 2026-07-30
 

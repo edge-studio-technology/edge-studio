@@ -1,4 +1,4 @@
-import { Camera, Cpu, Globe2, Lightbulb, Radio, Send, ShieldAlert, Webhook } from "lucide-react";
+import { Camera, Cpu, Globe2, Lightbulb, Radio, Send, ShieldAlert, ThermometerSun, Webhook } from "lucide-react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { MutedText } from "../../components/Text";
@@ -12,6 +12,8 @@ export const inputTemplates: DataSourceTemplate[] = [
   { title: "GPIO Input Pin", description: "Record Raspberry Pi GPIO pin edge events as JSON", type: "gpio-input", config: { chip: "gpiochip0", pin: 17, pull: "off", edge: "both", debounceMs: 100, activeState: "high" } },
   { title: "GPIO Button", description: "Detect a simple push button wired between GPIO17 and GND", type: "gpio-input", config: { chip: "gpiochip0", pin: 17, profile: "generic", pull: "up", edge: "falling", debounceMs: 100, activeState: "low" } },
   { title: "PIR Motion Sensor", description: "Detect HC-SR501-style motion events from a GPIO input pin", type: "gpio-input", config: { chip: "gpiochip0", pin: 23, profile: "pir-motion", pull: "off", edge: "rising", debounceMs: 500, activeState: "high" } },
+  { title: "BME280 Environmental Sensor", description: "Read temperature, humidity, and air pressure from a BME280 I2C module", type: "bme-sensor", config: { sensor: "bme280", bus: 1, address: "0x76" } },
+  { title: "BME680 Environmental Sensor", description: "Read temperature, humidity, and air pressure from a BME680 I2C module", type: "bme-sensor", config: { sensor: "bme680", bus: 1, address: "0x76" } },
   { title: "Raspberry Pi Camera", description: "Capture photos or short video clips from automation workflows", type: "pi-camera", config: { mode: "photo", width: 1280, height: 720, durationMs: 1000, fps: 30, outputFormat: "jpg" } }
 ];
 
@@ -33,9 +35,9 @@ export function DataSourceTemplates({ mode, category, capabilities, onSelect }: 
       </div>
       <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
         {templates.map((template) => {
-          const Icon = template.config.profile === "pir-motion" ? ShieldAlert : template.config.profile === "esp32-mqtt-board" ? Cpu : template.type === "json-api" || template.type === "http-output" ? Globe2 : template.type === "webhook" ? Webhook : template.type === "mqtt" || template.type === "mqtt-output" ? Radio : template.type === "gpio-output" ? Lightbulb : template.type === "pi-camera" ? Camera : Cpu;
-          const disabled = ((template.type === "gpio-input" || template.type === "gpio-output") && capabilities?.gpioInput.available === false) || (template.type === "pi-camera" && capabilities?.camera?.enabled === false);
+          const Icon = template.config.profile === "pir-motion" ? ShieldAlert : template.config.profile === "esp32-mqtt-board" ? Cpu : template.type === "json-api" || template.type === "http-output" ? Globe2 : template.type === "webhook" ? Webhook : template.type === "mqtt" || template.type === "mqtt-output" ? Radio : template.type === "gpio-output" ? Lightbulb : template.type === "pi-camera" ? Camera : template.type === "bme-sensor" ? ThermometerSun : Cpu;
           const config = template.type === "mqtt" || template.type === "mqtt-output" ? { ...template.config, brokerUrl } : template.config;
+          const missingBme680Support = template.type === "bme-sensor" && template.config.sensor === "bme680" ? bme680SupportWarning(capabilities) : null;
           return (
             <Card className="grid gap-3 transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]" key={template.title}>
               <Icon size={24} />
@@ -44,11 +46,14 @@ export function DataSourceTemplates({ mode, category, capabilities, onSelect }: 
               {template.type === "gpio-output" && <MutedText className="m-0">LED profile only. Use a 220-330 ohm resistor in series with the LED.</MutedText>}
               {template.config.profile === "pir-motion" && <MutedText className="m-0">Tested default: OUT to GPIO23 / physical pin 16, active high, no pull resistor. Let the sensor warm up for 60-90 seconds.</MutedText>}
               {template.config.profile === "esp32-mqtt-board" && <MutedText className="m-0">Creates a normal MQTT input source and shows copyable Arduino ESP32 starter firmware after saving.</MutedText>}
+              {template.type === "bme-sensor" && <MutedText className="m-0">Wire VIN, GND, SCL, SDA to the Pi I2C pins and enable I2C/sensor support before reading.</MutedText>}
+              {missingBme680Support && <MutedText className="m-0">{missingBme680Support}</MutedText>}
+              {template.type === "bme-sensor" && capabilities?.sensors?.enabled && capabilities.sensors.available === false && <MutedText className="m-0">Sensor helper is not ready yet: {capabilities.sensors.reason}</MutedText>}
               {template.type === "pi-camera" && <MutedText className="m-0">Captures are stored locally under <code>{capabilities?.camera?.captureDir ?? "/data/captures"}</code> and hashed for stamping.</MutedText>}
               {template.type === "pi-camera" && capabilities?.camera?.enabled && capabilities.camera.available === false && <MutedText className="m-0">Camera capture is not ready yet: {capabilities.camera.reason}</MutedText>}
               {(template.type === "mqtt" || template.type === "mqtt-output") && capabilities?.mqttBroker?.enabled && <MutedText className="m-0">Local broker available: <code>{capabilities.mqttBroker.internalUrl}</code></MutedText>}
-              {disabled && <MutedText className="m-0">{template.type === "pi-camera" ? capabilities?.camera?.reason : capabilities?.gpioInput.reason}</MutedText>}
-              <Button type="button" disabled={disabled} onClick={() => onSelect({ ...template, config })}>{mode === "input" ? "Add input" : "Add output"}</Button>
+              {hardwareSetupWarning(template, capabilities) && <MutedText className="m-0">{hardwareSetupWarning(template, capabilities)}</MutedText>}
+              <Button type="button" onClick={() => onSelect({ ...template, config })}>{mode === "input" ? "Add input" : "Add output"}</Button>
             </Card>
           );
         })}
@@ -58,8 +63,22 @@ export function DataSourceTemplates({ mode, category, capabilities, onSelect }: 
 }
 
 function templateKind(template: DataSourceTemplate) {
-  if (template.title === "GPIO Button" || template.config.profile === "esp32-mqtt-board" || template.config.profile === "pir-motion" || template.type === "pi-camera" || template.type === "gpio-output") return "template";
+  if (template.title === "GPIO Button" || template.config.profile === "esp32-mqtt-board" || template.config.profile === "pir-motion" || template.type === "pi-camera" || template.type === "bme-sensor" || template.type === "gpio-output") return "template";
   return "manual";
+}
+
+function hardwareSetupWarning(template: DataSourceTemplate, capabilities: DataSourceCapabilities | null) {
+  if ((template.type === "gpio-input" || template.type === "gpio-output") && capabilities?.gpioInput.available === false) return capabilities.gpioInput.reason ?? "GPIO support is not enabled yet. You can save this device now, then follow its setup guide before using it.";
+  if (template.type === "pi-camera" && capabilities?.camera?.enabled === false) return capabilities.camera.reason ?? "Camera support is not enabled yet. You can save this device now, then follow its setup guide before using it.";
+  if (template.type === "bme-sensor" && capabilities?.sensors?.enabled === false) return capabilities.sensors.reason ?? "Sensor support is not enabled yet. You can save this device now, then follow its setup guide before reading it.";
+  return null;
+}
+
+function bme680SupportWarning(capabilities: DataSourceCapabilities | null) {
+  if (!capabilities?.sensors?.enabled || capabilities.sensors.available === false) return null;
+  const supportedSensors = capabilities.sensors.supportedSensors;
+  if (!supportedSensors || supportedSensors.includes("bme680")) return null;
+  return "The sensor helper is not reporting BME680 support yet. Re-run the installer with ENABLE_SENSORS=true or install the PyPI bme680 module in /opt/integritas-pi/.venv-sensor-helper, then restart the sensor helper.";
 }
 
 export function LocalServicesCard({ capabilities }: { capabilities: DataSourceCapabilities | null }) {

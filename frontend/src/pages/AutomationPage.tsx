@@ -535,7 +535,7 @@ function CreateWorkflowWorkspace({ name, enabled, sources, addressBook, walletSt
 
 function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChange, onAttachedChange, onAttachedRemove }: { block: DraftWorkflowBlock; sources: DataSource[]; addressBook: AddressBookEntry[]; walletStatus: WalletStatus | null; onChange: (config: AutomationBlock["config"]) => void; onAttachedChange: (attachedId: string, config: AutomationBlock["config"]) => void; onAttachedRemove: (attachedId: string) => void }) {
   const startSources = sourcesForStart(block.type, sources);
-  const httpSources = sources.filter((source) => source.type === "json-api" || source.type === "internal-json-api");
+  const readableSources = sources.filter(isReadableSource);
   const cameraSources = sources.filter((source) => source.type === "pi-camera");
   const outputTargets = sources.filter((source) => isOutputTarget(source));
   const nativeTokens = nativeMinimaTokens(walletStatus);
@@ -567,8 +567,8 @@ function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChan
     return (
       <Panel className={formGridClass}>
         <strong>Selected block</strong>
-        <p className={mutedText}>Fetch JSON from an HTTP device/source.</p>
-        <label>HTTP source<select value={block.config.sourceId ?? ""} onChange={(event) => onChange({ ...block.config, sourceId: event.target.value })}><option value="">Select HTTP source...</option>{httpSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
+        <p className={mutedText}>Fetch JSON from a readable device/source such as HTTP JSON or a BME sensor.</p>
+        <label>Readable source<select value={block.config.sourceId ?? ""} onChange={(event) => onChange({ ...block.config, sourceId: event.target.value })}><option value="">Select source...</option>{readableSources.map((source) => <option key={source.id} value={source.id}>{source.name} - {sourceLabel(source)}</option>)}</select></label>
         <AttachedStampSettings block={block} onAttachedChange={onAttachedChange} onAttachedRemove={onAttachedRemove} />
       </Panel>
     );
@@ -730,7 +730,7 @@ function createDraftBlock(type: AutomationBlockType, sources: DataSource[], poll
 function defaultDraftConfig(type: AutomationBlockType, sources: DataSource[], pollingIntervalSeconds = 60): AutomationBlock["config"] {
   if (type === "schedule_start") return { intervalSeconds: pollingIntervalSeconds };
   if (type === "manual_start") return {};
-  if (type === "fetch_data_source") return { sourceId: firstHttpSource(sources)?.id ?? "" };
+  if (type === "fetch_data_source") return { sourceId: firstReadableSource(sources)?.id ?? "" };
   if (type === "capture_camera") return { sourceId: firstCameraSource(sources)?.id ?? "" };
   if (type === "gpio_event_start" || type === "webhook_event_start" || type === "mqtt_event_start") {
     const source = defaultSourceForStart(type, sources);
@@ -1254,8 +1254,8 @@ function workflowIntervalSeconds(workflow: AutomationWorkflow) {
   return Number.isFinite(intervalSeconds) ? intervalSeconds : 0;
 }
 
-function firstHttpSource(sources: DataSource[]) {
-  return sources.find((source) => source.type === "json-api" || source.type === "internal-json-api") ?? null;
+function firstReadableSource(sources: DataSource[]) {
+  return sources.find(isReadableSource) ?? null;
 }
 
 function firstCameraSource(sources: DataSource[]) {
@@ -1326,7 +1326,12 @@ function sourceLabel(source: DataSource) {
   if (source.type === "http-output") return `${source.config.method ?? "POST"} ${source.config.url ?? "HTTP output"}`;
   if (source.type === "mqtt-output") return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
   if (source.type === "pi-camera") return `${source.config.mode ?? "photo"} ${source.config.width ?? 1280}x${source.config.height ?? 720}`;
+  if (source.type === "bme-sensor") return `${source.config.sensor ?? "bme280"} i2c-${source.config.bus ?? 1} ${source.config.address ?? "0x76"}`;
   return source.config.url ?? "HTTP JSON Source";
+}
+
+function isReadableSource(source: DataSource) {
+  return source.type === "json-api" || source.type === "internal-json-api" || source.type === "bme-sensor";
 }
 
 function isOutputTarget(source: DataSource) {

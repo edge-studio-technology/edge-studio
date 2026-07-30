@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Modal } from "../components/Modal";
@@ -6,16 +7,19 @@ import { Page } from "../components/Page";
 import { ProgressModal } from "../components/ProgressModal";
 import { MutedText } from "../components/Text";
 import { useToast } from "../components/ToastProvider";
+import { createAutomationWorkflow } from "../features/automation/automationApi";
 import { checkDataSourceHealth, createDataSource, deleteDataSource, getDataSourceCapabilities, listDataSources, readDataSource, testDataSourceOutput, updateDataSource } from "../features/data-sources/dataSourcesApi";
 import { DataSourceForm } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
 import { DataSourceTemplates, LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
 import type { DataSource, DataSourceCapabilities, DataSourceHealthStatus, DataSourceTemplate } from "../features/data-sources/dataSourceTypes";
+import { getDeviceSetupGuide, StandardDeviceSetupGuide, type DeviceGuideAction } from "../features/data-sources/deviceSetupGuides";
 
 type AddDeviceStep = "choose" | "input" | "output" | "input-template" | "input-manual" | "output-template" | "output-manual";
 
 export function DataSourcesPage() {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [items, setItems] = useState<DataSource[]>([]);
   const [capabilities, setCapabilities] = useState<DataSourceCapabilities | null>(null);
   const [template, setTemplate] = useState<DataSourceTemplate | null>(null);
@@ -41,11 +45,15 @@ export function DataSourcesPage() {
   const [cameraHeight, setCameraHeight] = useState("720");
   const [cameraDurationMs, setCameraDurationMs] = useState("1000");
   const [cameraFps, setCameraFps] = useState("30");
+  const [bmeBus, setBmeBus] = useState("1");
+  const [bmeAddress, setBmeAddress] = useState<"0x76" | "0x77">("0x76");
   const [method, setMethod] = useState<"GET" | "POST" | "PUT" | "PATCH">("GET");
   const [healthStatuses, setHealthStatuses] = useState<Record<string, DataSourceHealthStatus>>({});
   const [busy, setBusy] = useState(false);
   const [deletingSource, setDeletingSource] = useState<DataSource | null>(null);
-  const [esp32SetupSource, setEsp32SetupSource] = useState<DataSource | null>(null);
+  const [setupGuideSource, setSetupGuideSource] = useState<DataSource | null>(null);
+  const [runningGuideActionKey, setRunningGuideActionKey] = useState<string | null>(null);
+  const [createdGuideWorkflowIds, setCreatedGuideWorkflowIds] = useState<Record<string, string>>({});
 
   useEffect(() => {
     refresh().catch((err: Error) => showToast({ tone: "error", title: "Could not load devices", message: err.message }));
@@ -96,6 +104,8 @@ export function DataSourcesPage() {
     setCameraHeight(String(nextTemplate.config.height ?? 720));
     setCameraDurationMs(String(nextTemplate.config.durationMs ?? 1000));
     setCameraFps(String(nextTemplate.config.fps ?? 30));
+    setBmeBus(String(nextTemplate.config.bus ?? 1));
+    setBmeAddress(nextTemplate.config.address ?? "0x76");
     setMethod(nextTemplate.config.method ?? "GET");
     setFormOpen(true);
     setTemplateMode(null);
@@ -123,6 +133,8 @@ export function DataSourcesPage() {
     setCameraHeight(String(source.config.height ?? 720));
     setCameraDurationMs(String(source.config.durationMs ?? 1000));
     setCameraFps(String(source.config.fps ?? 30));
+    setBmeBus(String(source.config.bus ?? 1));
+    setBmeAddress(source.config.address ?? "0x76");
     setMethod(source.config.method ?? "GET");
     setFormOpen(true);
     setTemplateMode(null);
@@ -150,6 +162,8 @@ export function DataSourcesPage() {
     setCameraHeight("720");
     setCameraDurationMs("1000");
     setCameraFps("30");
+    setBmeBus("1");
+    setBmeAddress("0x76");
     setMethod("GET");
   }
 
@@ -181,6 +195,22 @@ export function DataSourcesPage() {
       setDeletingSource(null);
     }
   }
+
+  async function runGuideAction(source: DataSource, action: DeviceGuideAction) {
+    setRunningGuideActionKey(action.key);
+    try {
+      const response = await createAutomationWorkflow(action.workflow(source));
+      setCreatedGuideWorkflowIds((current) => ({ ...current, [guideActionStateKey(source, action)]: response.item.id }));
+      await refresh();
+      showToast({ tone: "success", title: "Workflow created", message: response.item.name });
+    } catch (err) {
+      showToast({ tone: "error", title: "Guide action failed", message: err instanceof Error ? err.message : "Unknown error" });
+    } finally {
+      setRunningGuideActionKey(null);
+    }
+  }
+
+  const setupGuideBme680SupportWarning = setupGuideSource ? bme680SupportWarning(setupGuideSource, capabilities) : null;
 
   return (
       <Page eyebrow="Devices" title="Connect inputs and outputs" desc="Add input sources for data and events, then prepare output targets for automation workflows.">
@@ -244,16 +274,20 @@ export function DataSourcesPage() {
             setCameraDurationMs={setCameraDurationMs}
             cameraFps={cameraFps}
             setCameraFps={setCameraFps}
+            bmeBus={bmeBus}
+            setBmeBus={setBmeBus}
+            bmeAddress={bmeAddress}
+            setBmeAddress={setBmeAddress}
             method={method}
             setMethod={setMethod}
             busy={busy}
             submitLabel={editingSource ? "Save device" : "Add device"}
             onSubmit={() => run(async () => {
-              const input = { name, description, type, config: type === "webhook" ? { webhookToken: editingSource?.config.webhookToken } : type === "mqtt" ? { brokerUrl, topic, profile: template?.config.profile === "esp32-mqtt-board" ? "esp32-mqtt-board" as const : undefined } : type === "mqtt-output" ? { brokerUrl, topic, qos: 0 as const, retain: false } : type === "http-output" ? { url, method: method === "GET" ? "POST" as const : method, headers: {}, timeoutMs: 5000 } : type === "gpio-input" ? { chip: gpioChip, pin: Number(gpioPin), profile: gpioProfile, pull: gpioPull, edge: gpioEdge, debounceMs: Number(gpioDebounceMs), activeState: gpioActiveState } : type === "gpio-output" ? { chip: gpioChip, pin: Number(gpioPin), profile: "led" as const, activeState: gpioActiveState, initialState: "inactive" as const } : type === "pi-camera" ? { mode: cameraMode, width: Number(cameraWidth), height: Number(cameraHeight), durationMs: Number(cameraDurationMs), fps: Number(cameraFps), outputFormat: cameraMode === "video" ? "h264" as const : "jpg" as const } : { url, method: method === "PUT" || method === "PATCH" ? "POST" as const : method, healthStatusUrl: healthStatusUrl.trim() || undefined, headers: {} } };
+              const input = { name, description, type, config: type === "webhook" ? { webhookToken: editingSource?.config.webhookToken } : type === "mqtt" ? { brokerUrl, topic, profile: template?.config.profile === "esp32-mqtt-board" ? "esp32-mqtt-board" as const : undefined } : type === "mqtt-output" ? { brokerUrl, topic, qos: 0 as const, retain: false } : type === "http-output" ? { url, method: method === "GET" ? "POST" as const : method, headers: {}, timeoutMs: 5000 } : type === "gpio-input" ? { chip: gpioChip, pin: Number(gpioPin), profile: gpioProfile, pull: gpioPull, edge: gpioEdge, debounceMs: Number(gpioDebounceMs), activeState: gpioActiveState } : type === "gpio-output" ? { chip: gpioChip, pin: Number(gpioPin), profile: "led" as const, activeState: gpioActiveState, initialState: "inactive" as const } : type === "pi-camera" ? { mode: cameraMode, width: Number(cameraWidth), height: Number(cameraHeight), durationMs: Number(cameraDurationMs), fps: Number(cameraFps), outputFormat: cameraMode === "video" ? "h264" as const : "jpg" as const } : type === "bme-sensor" ? { sensor: (template?.config.sensor ?? editingSource?.config.sensor ?? "bme280") as "bme280" | "bme680", bus: Number(bmeBus), address: bmeAddress } : { url, method: method === "PUT" || method === "PATCH" ? "POST" as const : method, healthStatusUrl: healthStatusUrl.trim() || undefined, headers: {} } };
               if (editingSource) await updateDataSource(editingSource.id, input);
               else {
                 const response = await createDataSource(input);
-                if (template?.config.profile === "esp32-mqtt-board") setEsp32SetupSource(response.item);
+                if (getDeviceSetupGuide(response.item)) setSetupGuideSource(response.item);
               }
               setFormOpen(false);
               resetForm();
@@ -270,9 +304,10 @@ export function DataSourcesPage() {
         />
       )}
 
-      {esp32SetupSource && (
-        <Modal title="ESP32 MQTT starter firmware" onClose={() => setEsp32SetupSource(null)}>
-          <Esp32FirmwareSetup source={esp32SetupSource} />
+      {setupGuideSource && (
+        <Modal title={getDeviceSetupGuide(setupGuideSource)?.title ?? "Device setup guide"} onClose={() => setSetupGuideSource(null)}>
+          {setupGuideBme680SupportWarning && <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{setupGuideBme680SupportWarning}</div>}
+          {setupGuideSource.type === "mqtt" && setupGuideSource.config.profile === "esp32-mqtt-board" ? <Esp32FirmwareSetup source={setupGuideSource} /> : <StandardDeviceSetupGuide source={setupGuideSource} createdWorkflowIds={guideWorkflowIdsForSource(setupGuideSource, createdGuideWorkflowIds)} runningActionKey={runningGuideActionKey} onAction={(action) => runGuideAction(setupGuideSource, action)} onGoToWorkflow={(workflowId) => navigate(`/automation?flow=watch&id=${encodeURIComponent(workflowId)}`)} />}
         </Modal>
       )}
 
@@ -282,12 +317,29 @@ export function DataSourcesPage() {
         busy={busy}
         onRead={(source) => run(() => readDataSource(source.id), "Manual read completed")}
         onTestOutput={(source) => run(() => testDataSourceOutput(source.id), "Test pulse sent")}
-        onOpenSetupGuide={setEsp32SetupSource}
+        onOpenSetupGuide={setSetupGuideSource}
         onEdit={editSource}
         onDelete={deleteSource}
       />
     </Page>
   );
+}
+
+function guideActionStateKey(source: DataSource, action: DeviceGuideAction) {
+  return `${source.id}:${action.key}`;
+}
+
+function guideWorkflowIdsForSource(source: DataSource, workflowIds: Record<string, string>) {
+  const prefix = `${source.id}:`;
+  return Object.fromEntries(Object.entries(workflowIds).filter(([key]) => key.startsWith(prefix)).map(([key, workflowId]) => [key.slice(prefix.length), workflowId]));
+}
+
+function bme680SupportWarning(source: DataSource, capabilities: DataSourceCapabilities | null) {
+  if (source.type !== "bme-sensor" || source.config.sensor !== "bme680") return null;
+  if (!capabilities?.sensors?.enabled || capabilities.sensors.available === false) return null;
+  const supportedSensors = capabilities.sensors.supportedSensors;
+  if (!supportedSensors || supportedSensors.includes("bme680")) return null;
+  return "The sensor helper is not reporting BME680 support yet. Re-run the installer with ENABLE_SENSORS=true or install the PyPI bme680 module in /opt/integritas-pi/.venv-sensor-helper, then restart the sensor helper.";
 }
 
 function AddDeviceKindChoice({ onSelect }: { onSelect: (mode: "input" | "output") => void }) {
