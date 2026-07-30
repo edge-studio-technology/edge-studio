@@ -350,11 +350,13 @@ download_app() {
   local tmp_dir
   local protected_minima_dir
   local protected_sqlite_dir
+  local protected_sensor_helper_venv
   local protected_update_agent_state_dir
   local find_args=("$APP_DIR" -mindepth 1 -maxdepth 1 ! -name ".env")
   tmp_dir="$(mktemp -d)"
   protected_minima_dir="$(relative_top_level_dir "$MINIMA_DATA_DIR")"
   protected_sqlite_dir="$(relative_top_level_dir "$DATA_DIR")"
+  protected_sensor_helper_venv=".venv-sensor-helper"
   protected_update_agent_state_dir="$(relative_top_level_dir "$UPDATE_AGENT_STATE_DIR")"
 
   log "Downloading $APP_REPO_URL ($APP_BRANCH)"
@@ -363,6 +365,7 @@ download_app() {
   rm -rf "$APP_DIR/.git" "$APP_DIR/backend" "$APP_DIR/frontend"
   [ -n "$protected_minima_dir" ] && find_args+=(! -name "$protected_minima_dir")
   [ -n "$protected_sqlite_dir" ] && find_args+=(! -name "$protected_sqlite_dir")
+  find_args+=(! -name "$protected_sensor_helper_venv")
   [ -n "$protected_update_agent_state_dir" ] && find_args+=(! -name "$protected_update_agent_state_dir")
   find_args+=(-exec rm -rf {} +)
   find "${find_args[@]}"

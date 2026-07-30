@@ -57,6 +57,7 @@ Backend implementation steps:
 5. Preserve source previews, hashes, and structured errors consistently with existing source types.
 6. If host hardware is involved, prefer a narrow opt-in host-side helper over broad backend container device mounts unless the existing pattern already proves otherwise.
 7. If a helper or capability endpoint reports supported models/features, expose enough detail for the frontend to warn before a user hits a runtime failure.
+8. If the installer creates helper state outside Docker, make it idempotent. Preserve helper virtualenvs, caches, generated tokens, and data directories across `download_app()` refreshes unless they must be regenerated.
 
 ## Frontend Checklist
 
@@ -144,6 +145,12 @@ If install/runtime config changed, inspect:
 - `.env.example`
 - `install.sh`
 
+For installer changes, check idempotency explicitly:
+
+- Re-running `install.sh` should not reinstall helper dependencies unnecessarily.
+- Any helper virtualenv/cache/state directory under `APP_DIR` must be protected from the installer refresh/delete step.
+- Existing generated tokens and persisted runtime data must survive reinstall/update runs.
+
 If hardware/helper behavior changed, include a manual verification note for Raspberry Pi hardware or the relevant external service. If `npm run check` is blocked by known audit advisories, say so explicitly and list the successful verification commands.
 
 ## Avoid
@@ -157,6 +164,7 @@ If hardware/helper behavior changed, include a manual verification note for Rasp
 - Do not expose secrets in URLs, guide text, logs, previews, errors, or example commands.
 - Do not make speculative compatibility layers unless persisted data, external consumers, or explicit user requirements need them.
 - Do not silently coerce unknown device/model enum values to a default. Reject them so bad configs are visible.
+- Do not create installer-managed helper environments under `APP_DIR` without also preserving them during app refresh.
 
 ## Final Response
 
