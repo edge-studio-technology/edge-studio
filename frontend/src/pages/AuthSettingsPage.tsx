@@ -153,7 +153,12 @@ export function AuthSettingsPage() {
 
       <MinimaBackupPanel />
 
-      <WalletSettingsPanel />
+      {/* Deprecated in favor of Node backup & restore above (superset: full node backup
+          vs. wallet-keys-only). Seed-phrase-only restore is still a distinct recovery path
+          (no backup file needed) and is planned as a "coming soon" option in
+          MinimaBackupPanel for v1.5 — see docs/TASKS.md. Left commented, not deleted, for
+          an easy revert. */}
+      {/* <WalletSettingsPanel /> */}
 
       <Card>
         <div className="grid gap-1" style={{ marginBottom: 16 }}>

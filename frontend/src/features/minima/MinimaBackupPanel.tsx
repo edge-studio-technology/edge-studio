@@ -225,6 +225,9 @@ export function MinimaBackupPanel() {
               <Button variant="secondary" onClick={() => setView("restore")} disabled={actionsBlocked}>
                 Restore from backup
               </Button>
+              <Button variant="secondary" disabled title="Restore wallet keys only from a 24-word seed phrase, without needing a backup file — coming in v1.5">
+                Import from seed phrase
+              </Button>
             </ButtonRow>
           </div>
 
