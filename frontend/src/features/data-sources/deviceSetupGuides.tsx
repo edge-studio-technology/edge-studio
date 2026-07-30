@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { MutedText } from "../../components/Text";
@@ -29,12 +29,10 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
 
 export function StandardDeviceSetupGuide({ source }: { source: DataSource }) {
   const setupGuide = getDeviceSetupGuide(source);
-  const [schematicOpen, setSchematicOpen] = useState(false);
   if (!setupGuide) return null;
   return (
     <DeviceSetupGuideShell guide={setupGuide}>
-      <div className="grid gap-3">{setupGuide.sections.map((section) => <GuideSectionCard key={section.title} section={section} onOpenSchematic={() => setSchematicOpen(true)} />)}</div>
-      {schematicOpen && <WiringSchematicModal onClose={() => setSchematicOpen(false)} />}
+      <div className="grid gap-3">{setupGuide.sections.map((section) => <GuideSectionCard key={section.title} section={section} />)}</div>
     </DeviceSetupGuideShell>
   );
 }
@@ -48,12 +46,12 @@ export function DeviceSetupGuideShell({ guide, children }: { guide: DeviceSetupG
         <MutedText className="m-0 mt-2">{guide.intro}</MutedText>
       </div>
       {children}
-      {guide.docPath && <MutedText className="m-0">More detail: <code>{guide.docPath}</code></MutedText>}
+      {guide.docPath && <MutedText className="m-0">More detail: <button type="button" className="font-mono text-blue-700 underline decoration-blue-300 underline-offset-2" onClick={() => openExternalDoc(guide.docPath!)}>{guide.docPath}</button></MutedText>}
     </Card>
   );
 }
 
-function GuideSectionCard({ section, onOpenSchematic }: { section: GuideSection; onOpenSchematic: () => void }) {
+function GuideSectionCard({ section }: { section: GuideSection }) {
   return (
     <section className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
       <strong>{section.title}</strong>
@@ -61,25 +59,20 @@ function GuideSectionCard({ section, onOpenSchematic }: { section: GuideSection;
       {section.items && <ol className="m-0 grid gap-2 pl-5">{section.items.map((item) => <li key={item}>{item}</li>)}</ol>}
       {section.table && <div className="overflow-auto rounded-xl border border-slate-200 bg-white"><table className="w-full border-collapse text-left text-sm"><tbody>{section.table.map(([label, value]) => <tr key={label} className="border-t border-slate-200 first:border-t-0"><th className="w-44 p-3 font-extrabold text-slate-700">{label}</th><td className="p-3 text-slate-600"><code>{value}</code></td></tr>)}</tbody></table></div>}
       {section.commands && <CommandBlock value={section.commands} />}
-      {section.schematic === "pi-gpio" && <button type="button" className="justify-self-start rounded-xl border border-slate-200 bg-white px-3 py-2 font-extrabold text-blue-700 shadow-sm hover:border-blue-200" onClick={onOpenSchematic}>Wiring schematic</button>}
+      {section.schematic === "pi-gpio" && <button type="button" className="justify-self-start rounded-xl border border-slate-200 bg-white px-3 py-2 font-extrabold text-blue-700 shadow-sm hover:border-blue-200" onClick={openPiGpioSchematic}>Wiring schematic</button>}
     </section>
   );
 }
 
-function WiringSchematicModal({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/70 p-5" role="presentation" onClick={onClose}>
-      <div className="grid max-h-[92vh] w-[min(1200px,100%)] gap-3 rounded-[24px] border border-slate-300 bg-white p-4 shadow-[0_28px_80px_rgba(15,23,42,0.35)]" role="dialog" aria-modal="true" aria-label="Raspberry Pi GPIO wiring schematic" onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3">
-          <strong>Raspberry Pi GPIO wiring schematic</strong>
-          <Button type="button" size="sm" onClick={onClose}>Close</Button>
-        </div>
-        <div className="min-h-0 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <img className="h-auto w-full min-w-[760px]" src="/pi-gpio-pinout.svg" alt="Raspberry Pi 40-pin GPIO header pinout showing 3V3, 5V, ground, SDA, SCL, and GPIO pins" />
-        </div>
-      </div>
-    </div>
-  );
+function openPiGpioSchematic() {
+  const popup = window.open("/pi-gpio-pinout.svg", "integritas-pi-gpio-pinout", "popup=yes,width=1280,height=820,noopener,noreferrer");
+  if (!popup) window.location.assign("/pi-gpio-pinout.svg");
+}
+
+function openExternalDoc(path: string) {
+  const url = `https://github.com/integritas-technology/integritas-pi/blob/main/${path}`;
+  const popup = window.open(url, "integritas-pi-guide-doc", "popup=yes,width=1280,height=820,noopener,noreferrer");
+  if (!popup) window.location.assign(url);
 }
 
 function CommandBlock({ value }: { value: string }) {
