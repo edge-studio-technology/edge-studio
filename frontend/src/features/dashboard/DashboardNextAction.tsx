@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Check } from "lucide-react";
-import { APP_NAME } from "../app/names";
-import { Button } from "../components/Button";
-import { Card } from "../components/Card";
-import { Eyebrow, MutedText } from "../components/Text";
-import { listDataSources } from "../features/data-sources/dataSourcesApi";
-import { cx } from "../lib/cx";
+import { APP_NAME } from "../../app/names";
+import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
+import { Eyebrow, MutedText } from "../../components/Text";
+import { listDataSources } from "../data-sources/dataSourcesApi";
+import { cx } from "../../lib/cx";
 
 export function DashboardNextAction() {
   const navigate = useNavigate();
@@ -22,9 +22,8 @@ export function DashboardNextAction() {
   const step = hasDevices ? 2 : 1;
 
   return (
-    <Card className="grid gap-6">
+    <Card className="w-full gap-6 border">
       <header className="grid max-w-2xl gap-2">
-        <Eyebrow className="text-text-accent">Getting started</Eyebrow>
         <h3 className="m-0 text-2xl tracking-tight text-slate-950">
           {step === 1 ? "Connect a device to get started" : "Create your first workflow"}
         </h3>
