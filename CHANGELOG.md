@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Dashboard shows next-action onboarding guidance and live device metrics (wallet, Minima node, Integritas API, host CPU/memory/disk) as dedicated panels above the activity feed.
 - Shared `Page` is the content frame (`p-inset-distant`, title + optional description / action) in `components/patterns/`; `components/Page.tsx` re-exports. Content inset moved from `AppShell` onto `Page`. Removed `Section` (folded into `Page`). `eyebrow` still accepted but unused — Dashboard migrated; other pages later.
 - Shared `Card` is a surface only (white fill, `rounded-soft`, padding via `size="Default" | "Compact"` using `p-inset-*`, overflow clip). Layout (`flex` / `grid` / `gap`) belongs on the caller.
 
