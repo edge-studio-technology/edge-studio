@@ -424,11 +424,11 @@ Cleanup later: drop `eyebrow` from remaining page call sites, then remove the pr
 
 White card surface (`frontend/src/components/ui/Card.tsx`): fill, radius, padding, overflow clip only. Layout (`flex` / `grid` / `gap`) belongs on the caller. Flat `components/Card.tsx` re-exports for now.
 
-| Prop        | Notes                                              |
-| ----------- | -------------------------------------------------- |
+| Prop        | Notes                                                        |
+| ----------- | ------------------------------------------------------------ |
 | `size`      | `Default` (`p-inset-relaxed`) \| `Compact` (`p-inset-tight`) |
-| `className` | Merged onto the surface                            |
-| `children`  | Card body                                          |
+| `className` | Merged onto the surface                                      |
+| `children`  | Card body                                                    |
 
 ```tsx
 <Card className="gap-detail-close flex flex-col">…</Card>
@@ -437,25 +437,27 @@ White card surface (`frontend/src/components/ui/Card.tsx`): fill, radius, paddin
 
 ### MetricCard
 
-Metric card (`frontend/src/components/patterns/MetricCard.tsx`): Compact `Card` with label (`type-meta` primary), optional leading icon + value (`type-title`), and optional helper (`type-meta` tertiary). Prefer this for dashboard / status metric tiles.
+Standalone compact metric tile (`frontend/src/components/patterns/MetricCard.tsx`): white Compact `Card` with label (`type-meta` primary), optional leading icon + value (`type-title`), optional description (`type-meta` tertiary). Prefer this for dashboard / summary grids.
 
-| Prop             | Notes                                              |
-| ---------------- | -------------------------------------------------- |
-| `label`          | Metric title                                       |
-| `value`          | Primary value (`ReactNode`; truncates)             |
-| `helper`         | Optional supporting line                           |
-| `icon`           | Optional 20px leading glyph in the value row       |
-| `valueClassName` | Optional value colour override (e.g. status tones) |
-| `children`       | Optional footer slot (e.g. an action button)       |
-| `className`      | Merged onto the Compact `Card` shell               |
+| Prop          | Notes                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------- |
+| `label`       | Metric title                                                                            |
+| `value`       | Primary value (`ReactNode`; truncates). Ignored while `loading`                         |
+| `description` | Optional caption under the value (e.g. "Primary Pi Wallet")                             |
+| `icon`        | Optional 20px leading glyph in the value row                                            |
+| `loading`     | Shows `LoadingDots` and tertiary value colour                                           |
+| `status`      | Shared `Status`: `neutral` \| `success` \| `warning` \| `error`. Ignored while loading. |
+| `children`    | Optional footer slot (e.g. an action button)                                            |
+| `className`   | Merged onto the Compact `Card` shell                                                    |
 
 ```tsx
 <MetricCard
   label="Wallet balance"
   icon={<MinimaIcon size={20} />}
   value="0.0001"
-  helper="Primary Pi Wallet"
+  description="Primary Pi Wallet"
 />
+<MetricCard label="Node status" loading={loading} value="Running" status="success" />
 ```
 
 ### StatusBar

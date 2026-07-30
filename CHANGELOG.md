@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Shared `MetricCard` (`components/patterns/`) for ESDS compact metric tiles (label, optional icon + value, helper). Dashboard live-status grid uses it. See `docs/frontend-design-system.md`.
+- Shared `MetricCard` (`components/patterns/`) for standalone compact metric tiles (label, optional icon + value, description; `loading` / `status`). Shared `Status` is `neutral` \| `success` \| `warning` \| `error` (separate from Pill `Tone`). Dashboard live-status grid uses it. See `docs/frontend-design-system.md`.
 - Frontend spacing: `inset-*` tokens (same values as Figma `esds.spacing.margin.*`) for container edge padding. Prefer `inset` for new / migrated UI; legacy `margin-*` kept until remaining call sites migrate.
 
 ### Fixed

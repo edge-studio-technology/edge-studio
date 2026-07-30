@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LoadingDots } from "../../components/LoadingDots";
+import type { Status } from "../../app/types";
 import { MinimaIcon } from "../../components/MinimaIcon";
 import { MetricCard } from "../../components/patterns/MetricCard";
 import { formatAmountThreshold } from "../../lib/format";
@@ -20,11 +20,17 @@ function pct(used: number, total: number) {
   return `${Math.round((used / total) * 100)}%`;
 }
 
-function nodeStateValueClass(state: DeviceNodeState) {
-  if (state === "running") return "text-text-success";
-  if (state === "restarting") return "text-text-accent";
-  if (state === "unknown") return "text-text-tertiary";
-  return "text-text-warning";
+// Local for now — extract to statusDisplay.ts (or similar) if Minima / another surface needs the same maps.
+function deviceNodeStatus(state: DeviceNodeState): Status {
+  if (state === "running") return "success";
+  if (state === "error") return "error";
+  if (state === "stopped") return "warning";
+  return "neutral"; // restarting | unknown
+}
+
+function integritasConnectionStatus(connected: boolean | null): Status {
+  if (connected === null) return "neutral";
+  return connected ? "success" : "warning";
 }
 
 export function DashboardDevices() {
@@ -88,76 +94,69 @@ export function DashboardDevices() {
   const nodeRestarting = node?.state === "restarting";
   const cpuPct = device ? `${Math.round((device.loadAvg[0] / device.cpuCount) * 100)}%` : null;
   const diskValue = device ? (device.disk ? formatBytes(device.disk.usedBytes) : "N/A") : null;
-  const diskHelper = device
+  const diskDescription = device
     ? device.disk
       ? `of ${formatBytes(device.disk.totalBytes)} · ${pct(device.disk.usedBytes, device.disk.totalBytes)} used`
       : "/data unavailable"
     : undefined;
-  const walletUnavailable = walletLoading || walletBalance === null;
+  const walletUnavailable = nodeRestarting || walletBalance === null;
 
   return (
     <div className="gap-detail-close grid w-full grid-cols-2 xl:grid-cols-3">
       <MetricCard
         label="Wallet balance"
         icon={<MinimaIcon size={20} />}
+        loading={walletLoading && !nodeRestarting}
         value={
-          walletLoading && !nodeRestarting ? (
-            <LoadingDots />
-          ) : nodeRestarting || walletBalance === null ? (
+          walletUnavailable ? (
             "Unavailable"
           ) : (
-            <span className="block min-w-0 truncate" title={walletBalance}>
-              {formatAmountThreshold(walletBalance)}
+            <span className="block min-w-0 truncate" title={walletBalance ?? undefined}>
+              {formatAmountThreshold(walletBalance!)}
             </span>
           )
         }
-        helper="Primary Pi Wallet"
-        valueClassName={walletUnavailable ? "text-text-tertiary" : undefined}
+        description="Primary Pi Wallet"
       />
       <MetricCard
         label="Node status"
-        value={node ? node.state.charAt(0).toUpperCase() + node.state.slice(1) : <LoadingDots />}
-        helper="Minima node"
-        valueClassName={node ? nodeStateValueClass(node.state) : "text-text-tertiary"}
+        loading={!node}
+        value={node ? node.state.charAt(0).toUpperCase() + node.state.slice(1) : undefined}
+        description="Minima node"
+        status={node ? deviceNodeStatus(node.state) : "neutral"}
       />
       <MetricCard
         label="Integritas API"
+        loading={!app}
         value={
-          !app ? (
-            <LoadingDots />
-          ) : app.integritasConnected === null ? (
-            "Not configured"
-          ) : app.integritasConnected ? (
-            "Connected"
-          ) : (
-            "Unreachable"
-          )
+          app?.integritasConnected === null
+            ? "Not configured"
+            : app?.integritasConnected
+              ? "Connected"
+              : "Unreachable"
         }
-        helper="API connection"
-        valueClassName={
-          !app || app.integritasConnected === null
-            ? "text-text-tertiary"
-            : app.integritasConnected
-              ? "text-text-success"
-              : "text-text-warning"
-        }
+        description="API connection"
+        status={app ? integritasConnectionStatus(app.integritasConnected) : "neutral"}
       />
       <MetricCard
         label="Device"
-        value={device ? device.hostname : <LoadingDots />}
-        helper={device ? `${device.platform} · ${device.arch}` : undefined}
+        loading={!device}
+        value={device?.hostname}
+        description={device ? `${device.platform} · ${device.arch}` : undefined}
       />
       <MetricCard
         label="Device CPU"
-        value={cpuPct ?? <LoadingDots />}
-        helper={
+        loading={!device}
+        value={cpuPct}
+        description={
           device ? `${device.cpuCount}-core · ${device.loadAvg[0].toFixed(2)} 1m avg` : undefined
         }
       />
       <MetricCard
         label="Device Memory"
-        value={device ? formatBytes(device.memory.usedBytes) : <LoadingDots />}
-        helper={
+        loading={!device}
+        value={device ? formatBytes(device.memory.usedBytes) : undefined}
+        description={
           device
             ? `of ${formatBytes(device.memory.totalBytes)} · ${pct(device.memory.usedBytes, device.memory.totalBytes)} used`
             : undefined
@@ -165,8 +164,9 @@ export function DashboardDevices() {
       />
       <MetricCard
         label="Device Disk"
-        value={diskValue ?? <LoadingDots />}
-        helper={diskHelper}
+        loading={!device}
+        value={diskValue}
+        description={diskDescription}
       />
     </div>
   );
