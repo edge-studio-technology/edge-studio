@@ -8,7 +8,7 @@ import { useToast } from "../components/ToastProvider";
 import {
   getMinimaNodeStatus,
   resyncMegammr,
-  restartMinimaContainer
+  restartMinimaContainer,
 } from "../features/minima/minimaApi";
 import { MinimaConsolePanel } from "../features/minima/MinimaConsolePanel";
 import { MinimaConsoleWhitelistModal } from "../features/minima/MinimaConsoleWhitelistModal";
@@ -49,7 +49,7 @@ export function MinimaPage() {
   }, []);
 
   useMinimaStatusRefresh(handleStatus, handleStatusError, {
-    enabled: !resyncing && !restarting && !busy
+    enabled: !resyncing && !restarting && !busy,
   });
 
   async function refreshAfterOperation(): Promise<boolean> {
@@ -65,7 +65,9 @@ export function MinimaPage() {
         // Keep last known stats; polling will retry when enabled.
       }
       if (Date.now() >= deadline) return false;
-      await new Promise((resolve) => window.setTimeout(resolve, REFRESH_AFTER_OPERATION_INTERVAL_MS));
+      await new Promise((resolve) =>
+        window.setTimeout(resolve, REFRESH_AFTER_OPERATION_INTERVAL_MS),
+      );
     }
   }
 
@@ -82,7 +84,7 @@ export function MinimaPage() {
         tone: "info",
         title: "Minima container restarting",
         message: `Docker service ${result.service} (${result.containerId}) is restarting.`,
-        timeoutMs: 10000
+        timeoutMs: 10000,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Restart failed";
@@ -95,20 +97,26 @@ export function MinimaPage() {
       if (commandSucceeded && !options?.silent) {
         showToast(
           recovered
-            ? { tone: "success", title: "Restart complete", message: "Minima container is back online.", timeoutMs: 8000 }
+            ? {
+                tone: "success",
+                title: "Restart complete",
+                message: "Minima container is back online.",
+                timeoutMs: 8000,
+              }
             : {
                 tone: "error",
                 title: "Restart taking longer than expected",
                 message: "Minima RPC hasn't responded yet — check Node health.",
-                timeoutMs: 9000
-              }
+                timeoutMs: 9000,
+              },
         );
       }
     }
   }
 
   async function runRestart() {
-    if (!window.confirm("Restart the Minima Docker container? RPC will be briefly unavailable.")) return;
+    if (!window.confirm("Restart the Minima Docker container? RPC will be briefly unavailable."))
+      return;
 
     setBusy(true);
     try {
@@ -164,11 +172,14 @@ export function MinimaPage() {
   // Prefer the specific local message for whoever triggered the operation; fall back to
   // a generic one driven by backend truth so the banner survives navigating away and back
   // mid-operation (a fresh mount has no local statusError, but the node status still does).
-  const operationBanner = statusError ?? (nodeStatus?.state === "restarting" ? "Minima is restarting. RPC may be briefly unavailable." : null);
+  const operationBanner =
+    statusError ??
+    (nodeStatus?.state === "restarting"
+      ? "Minima is restarting. RPC may be briefly unavailable."
+      : null);
 
   return (
     <Page
-      eyebrow="Minima node"
       title="Run the Minima node"
       desc="Start, monitor, and manage the Minima Core node running on the Raspberry Pi Edition."
     >
@@ -208,10 +219,16 @@ export function MinimaPage() {
             aria-expanded={consoleOpen}
             className="flex flex-1 items-center gap-2 border-0 bg-transparent p-0 text-left"
           >
-            {consoleOpen ? <ChevronDown size={18} className="shrink-0 text-slate-500" /> : <ChevronRight size={18} className="shrink-0 text-slate-500" />}
+            {consoleOpen ? (
+              <ChevronDown size={18} className="shrink-0 text-slate-500" />
+            ) : (
+              <ChevronRight size={18} className="shrink-0 text-slate-500" />
+            )}
             <div>
               <h3 className="m-0">RPC console</h3>
-              <p className="mt-1 text-sm text-slate-500">Run whitelisted Minima RPC commands and see the raw response.</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Run whitelisted Minima RPC commands and see the raw response.
+              </p>
             </div>
           </button>
           <IconButton
@@ -229,7 +246,9 @@ export function MinimaPage() {
         )}
       </Card>
 
-      {consoleWhitelistOpen && <MinimaConsoleWhitelistModal onClose={() => setConsoleWhitelistOpen(false)} />}
+      {consoleWhitelistOpen && (
+        <MinimaConsoleWhitelistModal onClose={() => setConsoleWhitelistOpen(false)} />
+      )}
     </Page>
   );
 }
