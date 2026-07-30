@@ -69,9 +69,20 @@ export function EmptyTableState({
   return <MutedText className={className}>{children}</MutedText>;
 }
 
-export function RowActions({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cx("flex flex-wrap items-center gap-2", className)}>{children}</div>;
-}
+export function RowActions({
+  children,
+  className,
+  wrap = true,
+}: {
+  children: ReactNode;
+  className?: string;
+  wrap?: boolean;
+}) {
+  return (
+    <div className={cx("flex items-center gap-2", wrap ? "flex-wrap" : "flex-nowrap", className)}>
+      {children}
+    </div>
+  );}
 
 export function TableIconButton({
   children,
