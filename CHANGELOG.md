@@ -4,7 +4,103 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased]
+## [0.28.2] 2026-07-30
+
+### Added
+
+- Shared `MetricCard` (`components/patterns/`) for standalone compact metric tiles (label, optional icon + value, description; `loading` / `status`). Shared `Status` is `neutral` \| `success` \| `warning` \| `error` (separate from Pill `Tone`). Dashboard live-status grid uses it. See `docs/frontend-design-system.md`.
+- Frontend spacing: `pad-*` tokens (same values as Figma `esds.spacing.margin.*`) for container edge padding. Prefer `pad` for new / migrated UI; legacy `margin-*` kept until remaining call sites migrate.
+
+### Fixed
+
+- Dashboard getting-started card now also checks for workflows and hides once at least one non-archived workflow exists (it previously only looked at devices, so “Create your first workflow” stayed visible after setup).
+
+### Changed
+
+- Migrated Dashboard shared UI into design-system homes: `Button` / `IconButton`, `Card`, `Pill`, and `Text` → `components/ui/`; Dashboard (and next-action) import from `ui/` / `patterns/Page`. Flat paths re-export for other call sites. See `docs/frontend-design-system.md`.
+- Dashboard matches ESDS layout:, next-action card (accent CTA, numbered 1→2 steps with connector), single metric grid, and restyled live activity. Sidebar/status bar already come from the shell.
+- Refactor Dashboard
+- Shared `Page` is the content frame (`p-pad-distant`, title + optional description / action) in `components/patterns/`; `components/Page.tsx` re-exports. Content padding moved from `AppShell` onto `Page`. Removed `Section` (folded into `Page`). `eyebrow` still accepted but unused — Dashboard migrated; other pages later.
+- Shared `Card` is a surface only (white fill, `rounded-soft`, padding via `size="Default" | "Compact"` using `p-pad-*`, overflow clip). Layout (`flex` / `grid` / `gap`) belongs on the caller.
+- Renamed container-edge spacing utilities from `inset-*` to `pad-*` (`p-pad-tight`, etc.); removed `--spacing-inset-*`.
+
+## [0.28.1] 2026-07-30
+
+### Added
+
+- Devices now include a `BME680 Environmental Sensor` input template that reuses the opt-in I2C sensor helper and readable BME sensor automation path.
+- The sensor helper installer now creates and preserves a dedicated Python virtualenv for the PyPI `bme680` module, avoiding repeated installs and unavailable distro packages such as `python3-bme680`.
+
+## [0.28.0] 2026-07-30
+
+### Added
+
+- Devices now include a `BME280 Environmental Sensor` input template backed by an opt-in host-side I2C sensor helper (`ENABLE_SENSORS=true`). Manual reads and Automation `Fetch data source` blocks can hash temperature, humidity, and pressure JSON for Integritas stamping.
+- Devices now expose reusable setup guides from the configured-device list for every supported source/target type, and newly added devices automatically open their guide after saving.
+- BME280 and HTTP JSON setup guides now include a `Create basic workflow for this device` action that creates a disabled manual workflow with `Fetch data source` and `Show preview` blocks.
+- Hardware-backed device templates such as GPIO, Pi Camera, and BME280 are now selectable even before their required `ENABLE_*` install flag is enabled, so users can save the device and read its setup guide first.
+- Hardware wiring guide sections now include a `Wiring schematic` popup with a Raspberry Pi 40-pin GPIO header pinout.
+
+## [0.27.1] 2026-07-30
+
+### Added
+
+- Shared `StatusBar` (`components/`) for the ESDS app status bar (status Tags + Local/UTC clocks). Shell chrome used by `AppShell` in place of the previous header status/clock chrome. See `docs/frontend-design-system.md`.
+- Shared `Tooltip` (`components/ui/`) for ESDS tooltip / toggletip (trigger + portal positioning, hover/focus or click, Escape / outside dismiss, basic flip). See `docs/frontend-design-system.md`.
+- Toast system now supports `tone: "warning"`.
+- Shared `SelectField` (`components/ui/`) for ESDS select fields (label / description / control / error; optional placeholder; default / disabled / error). See `docs/frontend-design-system.md`.
+- Shared `SwitchField` (`components/ui/`) for ESDS switch fields (on / off × default / disabled; optional label / description). See `docs/frontend-design-system.md`.
+- Shared `RadioField` (`components/ui/`) for ESDS radio fields (selected / unselected × default / disabled; optional description; group via shared `name`). See `docs/frontend-design-system.md`.
+- Shared `CheckboxField` (`components/ui/`) for ESDS checkbox fields (checked / unchecked / indeterminate × default / disabled; optional description). See `docs/frontend-design-system.md`.
+- Shared `ProgressBar` (`components/ui/`) for ESDS step progress (optional back IconButton, accent track, step count Tag). See `docs/frontend-design-system.md`.
+- Shared `TabList` (`components/ui/`) for ESDS underline tabs (active / hover / inactive; optional icons). `TabItem` is internal. Prefer this over `SubTabs` for page-level tab strips. See `docs/frontend-design-system.md`.
+- Shared `ToggleTabs` (`components/ui/`) for ESDS segmented toggles (selected inverse / idle ghost on a secondary track). Prefer this for compact binary/segmented controls. See `docs/frontend-design-system.md`.
+- Shared `Menu` (`components/ui/`) for ESDS menu lists (rows via `items`; built-in Plus icon; default / hover / disabled). `MenuItem` is internal to the component. See `docs/frontend-design-system.md`.
+- Shared `InputField` for ESDS labeled text fields (label / description / control / error). Prefer this over bare `Input` for login and other forms. See `docs/frontend-design-system.md`.
+- Shared `Input` matches the ESDS Input Field control look; `InputField` composes it.
+- Shared `PinField` (`components/ui/`) for ESDS segmented 6-digit code entry. See `docs/frontend-design-system.md`.
+- Shared `TextareaField` (`components/ui/`) for ESDS labeled multiline text fields (label / description / control / error). See `docs/frontend-design-system.md`.
+- Shared `Pagination` (`frontend/src/components/ui/Pagination.tsx`) with prev/next controls and a condensed page-number list (ellipsis gaps). Includes a stable full-width layout so prev/next don’t shift when the visible page window changes.
+
+### Changed
+
+- First-run setup wizard restyled to the ESDS onboarding layout: centered card, shared `ProgressBar` / accent Continue, brand mark in the footer, and a dark-to-accent gradient on the final Integritas Connect step (replacing the old header/footer chrome and line-grid background).
+- Setup account step uses shared `ToggleTabs`, `PinField`, and `InputField`; password requirements checklist and labels are shortened to match the design system.
+- Shared `PinField` shows filled digits as dots (placeholder dashes when empty) and highlights only the active slot while focused.
+- Shared `Tooltip` bubble uses a `stroke-secondary` border (including beak edges) so it remains visible on white / light surfaces.
+- `Clock` now renders as ESDS Tag pills (`Local …` / `UTC …`) to match the Status Bar design.
+- Shared `ErrorAlert` moved to `components/patterns/` and restyled to ESDS feedback chrome (white surface, `stroke-error` border, `feedback-error` wash; optional title / recovery action). Flat `components/ErrorAlert.tsx` re-exports. See `docs/frontend-design-system.md`.
+- Shared toasts restyled to ESDS Notification visuals (Light / Dark / Error / Warning) inside `ToastProvider`; `useToast` API unchanged.
+- Shared `Modal` now matches ESDS Dialog Type=Modal (`components/ui/`; max-width 600, close IconButton, optional description/footer). Flat `components/Modal.tsx` re-exports. Sheet variant not yet implemented. See `docs/frontend-design-system.md`.
+- Moved `Menu`, `PinField`, `TabList`, `TextareaField`, and `ToggleTabs` into `components/ui/`. See `docs/frontend-design-system.md`.
+- Frontend shared components: new ESDS primitives go in `components/ui/`, new composed layouts in `components/patterns/`; existing flat files migrate later. See `docs/frontend-design-system.md` and the `frontend-design-system` skill.
+- Shared `Pill` matches the ESDS Tag design (Default secondary fill; Success / Warning / Error white + tinted stroke/wash; optional indicator dot). `tone` is `neutral` / `good` / `warn` / `error` (removed unused `future`). See `docs/frontend-design-system.md`.
+- Desktop app navigation now uses an Edge Studio-style collapsible dark sidebar with icon-only collapsed state (always on screen; collapses below `lg`), shared `nav` including Account and Marketplace (Coming soon), and sidebar-hosted feedback / sign out when expanded.
+- Shared `Input` uses a 1px border (`stroke-primary` / focus `stroke-active` / error `stroke-error`) on the control box.
+- Frontend colour tokens now follow ESDS foundations only (primitives + surface/text/icon/stroke/overlay semantics). Shared components use those utilities; legacy `brand-*`, `on-dark*`, and non-Figma status/hover/info aliases were removed.
+- Frontend typography follows ESDS foundations: Hanken Grotesk + Azeret Mono, with complete named type utilities (`type-meta`, `type-body`, `type-body-em`, `type-link`, `type-callout`, `type-title`, `type-heading`, `type-display`, `type-mono`). Shared `Text` helpers use those styles.
+- Frontend corner-radius tokens follow ESDS foundations (`rounded-sharp`, `rounded-tight`, `rounded-loose`, `rounded-interior`, `rounded-exterior`, `rounded-full`). Components and pages are not migrated yet.
+- Frontend spacing tokens follow ESDS foundations (detail / separator / margin scales). Components and pages are not migrated yet.
+- Shared `Button` / `IconButton` follow the ESDS button matrices (text button + circular icon button, tokens, focus ring). Call-site migration and aria notes are in `docs/frontend-design-system.md`.
+- Shared workflow/history table helpers now use ESDS table visuals (grey header row, `stroke-primary` borders, and `type-body-em` headers / `type-meta` cells). See `frontend/src/components/DataTable.tsx`.
+- Added a migration-ready ESDS `components/patterns/Table` shell (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`) for future replacement of legacy native `<table>` markup.
+
+## [0.27.0] 2026-07-29
+
+### Added
+
+- Devices now use a step-based add flow that first asks for input source vs output target, then template/example vs manual setup before showing the relevant options.
+
+### Changed
+
+- Device/source naming conventions are now documented for physical devices, generic integrations, and low-level hardware interfaces.
+- Device picker labels now follow the naming convention, including `HTTP JSON Source`, `HTTP JSON Target`, `MQTT Subscriber`, `MQTT Publisher`, `Webhook Receiver`, `GPIO Input Pin`, `GPIO LED`, and `Raspberry Pi Camera`.
+- Devices referenced by non-archived workflows can no longer be deleted until they are removed from those workflows.
+- ESP32 starter firmware now uses the MQTT broker URL saved on the ESP32 MQTT Board source, only asking for an ESP32-reachable override when that URL is Docker-internal or localhost-only.
+- GPIO input/output forms no longer expose profile selectors; profiles are fixed by the selected manual option or template, with GPIO LED kept as the only supported GPIO output template.
+- Scheduled automation workflows now keep their next run anchored to the prior due time instead of drifting from the actual execution time.
+- Devices now include a `GPIO Button` input template for a push button wired between GPIO17 and GND.
+- Automation action failures now appear as toast notifications, while load/refresh failures use a dedicated in-page alert with a retry action.
 
 ### Added
 
@@ -77,6 +173,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Main workflow `If field matches` blocks now choose between Trigger event and Variable sources; Latest data is no longer a direct condition source, so workflows should use Set variable before condition checks on recorded or fetched data.
+- Automation action failures now appear as toast notifications, while load/refresh failures use a dedicated in-page alert with a retry action.
 
 ## [0.23.0] - 2026-07-27
 

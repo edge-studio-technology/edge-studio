@@ -21,10 +21,10 @@ function LoginRoute() {
 }
 
 function AppContent() {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
 
   return (
-    <AppShell user={user!} onSignOut={() => void signOut()}>
+    <AppShell onSignOut={() => void signOut()}>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />

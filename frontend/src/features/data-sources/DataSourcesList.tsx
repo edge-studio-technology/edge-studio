@@ -15,6 +15,7 @@ import { JsonPreview } from "../../components/JsonPreview";
 import { ErrorDetails } from "../../components/ErrorDetails";
 import { MutedText } from "../../components/Text";
 import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
+import { hasDeviceSetupGuide } from "./deviceSetupGuides";
 
 export function DataSourcesList({
   items,
@@ -52,7 +53,10 @@ export function DataSourcesList({
             </tr>
           </thead>
           <tbody>
-            {items.map((source) => (
+            {items.map((source) => {
+              const usedByWorkflows = source.usedByWorkflows ?? [];
+              const deleteDisabledReason = usedByWorkflows.length > 0 ? `Used by workflow: ${usedByWorkflows.map((workflow) => workflow.name).join(", ")}` : "Delete device";
+              return (
               <tr key={source.id} className={tableRowClass}>
                 <td className={tableCellClass}>
                   <strong>{source.name}</strong>
@@ -61,7 +65,7 @@ export function DataSourcesList({
                 <td className={tableCellClass}>{source.type === "pi-camera" ? "Capture" : isInputSource(source) ? "Input" : "Output"}</td>
                 <td className={tableCellClass}>{sourceTypeLabel(source)}</td>
                 <td className={tableCellClass}>
-                  <code>{source.type === "webhook" ? webhookUrl(source) : source.type === "mqtt" || source.type === "mqtt-output" ? mqttEndpoint(source) : source.type === "gpio-input" ? gpioEndpoint(source) : source.type === "gpio-output" ? gpioOutputEndpoint(source) : source.type === "pi-camera" ? cameraEndpoint(source) : source.config.url}</code>
+                  <code>{source.type === "webhook" ? webhookUrl(source) : source.type === "mqtt" || source.type === "mqtt-output" ? mqttEndpoint(source) : source.type === "gpio-input" ? gpioEndpoint(source) : source.type === "gpio-output" ? gpioOutputEndpoint(source) : source.type === "pi-camera" ? cameraEndpoint(source) : source.type === "bme-sensor" ? bmeEndpoint(source) : source.config.url}</code>
                 </td>
                 <td className={tableCellClass}>
                   <HealthCell source={source} status={healthStatuses[source.id]} />
@@ -86,7 +90,7 @@ export function DataSourcesList({
                   <RowActions>
                     <TableIconButton
                       type="button"
-                       disabled={busy || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "gpio-output" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output"}
+                      disabled={busy || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "gpio-output" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output"}
                       title="Trigger manually"
                       aria-label={`Trigger ${source.name} manually`}
                       onClick={() => onRead(source)}
@@ -104,7 +108,7 @@ export function DataSourcesList({
                         <Zap size={16} />
                       </TableIconButton>
                     )}
-                    {source.type === "mqtt" && source.config.profile === "esp32-mqtt-board" && (
+                    {hasDeviceSetupGuide(source) && (
                       <TableIconButton
                         type="button"
                         disabled={busy}
@@ -127,8 +131,8 @@ export function DataSourcesList({
                     <TableIconButton
                       danger
                       type="button"
-                      disabled={busy}
-                      title="Delete source"
+                      disabled={busy || usedByWorkflows.length > 0}
+                      title={deleteDisabledReason}
                       aria-label={`Delete ${source.name}`}
                       onClick={() => onDelete(source)}
                     >
@@ -137,7 +141,8 @@ export function DataSourcesList({
                   </RowActions>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </DataTable>
       </TableWrap>
@@ -163,6 +168,15 @@ function gpioEndpoint(source: DataSource) {
 function sourceTypeLabel(source: DataSource) {
   if (source.type === "gpio-input" && source.config.profile === "pir-motion") return "PIR Motion Sensor";
   if (source.type === "mqtt" && source.config.profile === "esp32-mqtt-board") return "ESP32 MQTT Board";
+  if (source.type === "json-api" || source.type === "internal-json-api") return "HTTP JSON Source";
+  if (source.type === "webhook") return "Webhook Receiver";
+  if (source.type === "mqtt") return "MQTT Subscriber";
+  if (source.type === "gpio-input") return "GPIO Input Pin";
+  if (source.type === "gpio-output") return "GPIO LED";
+  if (source.type === "pi-camera") return "Raspberry Pi Camera";
+  if (source.type === "bme-sensor") return source.config.sensor === "bme680" ? "BME680 Environmental Sensor" : "BME280 Environmental Sensor";
+  if (source.type === "http-output") return "HTTP JSON Target";
+  if (source.type === "mqtt-output") return "MQTT Publisher";
   return source.type;
 }
 
@@ -174,11 +188,16 @@ function cameraEndpoint(source: DataSource) {
   return `${source.config.mode ?? "photo"} ${source.config.width ?? 1280}x${source.config.height ?? 720}${source.config.mode === "video" ? ` ${source.config.durationMs ?? 5000}ms @ ${source.config.fps ?? 30}fps` : ""}`;
 }
 
+function bmeEndpoint(source: DataSource) {
+  return `${source.config.sensor ?? "bme280"} i2c-${source.config.bus ?? 1} ${source.config.address ?? "0x76"}`;
+}
+
 function isInputSource(source: DataSource) {
-  return source.type === "json-api" || source.type === "internal-json-api" || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input";
+  return source.type === "json-api" || source.type === "internal-json-api" || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "pi-camera" || source.type === "bme-sensor";
 }
 
 function HealthCell({ source, status }: { source: DataSource; status?: DataSourceHealthStatus }) {
+  if (source.type === "bme-sensor") return <span className="text-slate-500">Read on demand</span>;
   if (source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "gpio-output" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output") return <span className="text-slate-500">Automation controlled</span>;
   if (!source.config.healthStatusUrl) return <span className="text-slate-500">Not configured</span>;
   if (!status) return <HealthStatus pending>Checking</HealthStatus>;

@@ -23,6 +23,10 @@ CAMERA_MAX_DURATION_SECONDS_INPUT="${CAMERA_MAX_DURATION_SECONDS-}"
 CAMERA_RETENTION_DAYS_INPUT="${CAMERA_RETENTION_DAYS-}"
 CAMERA_PHOTO_COMMAND_INPUT="${CAMERA_PHOTO_COMMAND-}"
 CAMERA_VIDEO_COMMAND_INPUT="${CAMERA_VIDEO_COMMAND-}"
+ENABLE_SENSORS_INPUT="${ENABLE_SENSORS-}"
+SENSOR_HELPER_TOKEN_INPUT="${SENSOR_HELPER_TOKEN-}"
+SENSOR_HELPER_PORT_INPUT="${SENSOR_HELPER_PORT-}"
+SENSOR_READ_TIMEOUT_MS_INPUT="${SENSOR_READ_TIMEOUT_MS-}"
 INTEGRITAS_DOCKER_SUBNET_INPUT="${INTEGRITAS_DOCKER_SUBNET-}"
 INTEGRITAS_DOCKER_GATEWAY_INPUT="${INTEGRITAS_DOCKER_GATEWAY-}"
 MINIMA_DATA_DIR_INPUT="${MINIMA_DATA_DIR-}"
@@ -53,6 +57,10 @@ CAMERA_MAX_DURATION_SECONDS="${CAMERA_MAX_DURATION_SECONDS:-30}"
 CAMERA_RETENTION_DAYS="${CAMERA_RETENTION_DAYS:-7}"
 CAMERA_PHOTO_COMMAND="${CAMERA_PHOTO_COMMAND:-rpicam-still}"
 CAMERA_VIDEO_COMMAND="${CAMERA_VIDEO_COMMAND:-rpicam-vid}"
+ENABLE_SENSORS="${ENABLE_SENSORS:-false}"
+SENSOR_HELPER_TOKEN="${SENSOR_HELPER_TOKEN:-}"
+SENSOR_HELPER_PORT="${SENSOR_HELPER_PORT:-38181}"
+SENSOR_READ_TIMEOUT_MS="${SENSOR_READ_TIMEOUT_MS:-5000}"
 INTEGRITAS_DOCKER_SUBNET="${INTEGRITAS_DOCKER_SUBNET:-172.30.0.0/24}"
 INTEGRITAS_DOCKER_GATEWAY="${INTEGRITAS_DOCKER_GATEWAY:-172.30.0.1}"
 MINIMA_DATA_DIR="${MINIMA_DATA_DIR:-./minima}"
@@ -211,6 +219,10 @@ load_existing_config() {
   CAMERA_RETENTION_DAYS="${CAMERA_RETENTION_DAYS_INPUT:-${CAMERA_RETENTION_DAYS:-7}}"
   CAMERA_PHOTO_COMMAND="${CAMERA_PHOTO_COMMAND_INPUT:-${CAMERA_PHOTO_COMMAND:-rpicam-still}}"
   CAMERA_VIDEO_COMMAND="${CAMERA_VIDEO_COMMAND_INPUT:-${CAMERA_VIDEO_COMMAND:-rpicam-vid}}"
+  ENABLE_SENSORS="${ENABLE_SENSORS_INPUT:-${ENABLE_SENSORS:-false}}"
+  SENSOR_HELPER_TOKEN="${SENSOR_HELPER_TOKEN_INPUT:-${SENSOR_HELPER_TOKEN:-}}"
+  SENSOR_HELPER_PORT="${SENSOR_HELPER_PORT_INPUT:-${SENSOR_HELPER_PORT:-38181}}"
+  SENSOR_READ_TIMEOUT_MS="${SENSOR_READ_TIMEOUT_MS_INPUT:-${SENSOR_READ_TIMEOUT_MS:-5000}}"
   INTEGRITAS_DOCKER_SUBNET="${INTEGRITAS_DOCKER_SUBNET_INPUT:-${INTEGRITAS_DOCKER_SUBNET:-172.30.0.0/24}}"
   INTEGRITAS_DOCKER_GATEWAY="${INTEGRITAS_DOCKER_GATEWAY_INPUT:-${INTEGRITAS_DOCKER_GATEWAY:-172.30.0.1}}"
   MINIMA_DATA_DIR="${MINIMA_DATA_DIR_INPUT:-${MINIMA_DATA_DIR:-./minima}}"
@@ -241,6 +253,15 @@ ensure_camera_helper_token() {
 
   log "Generating CAMERA_HELPER_TOKEN for local camera helper"
   CAMERA_HELPER_TOKEN="$(openssl rand -hex 32)"
+}
+
+ensure_sensor_helper_token() {
+  if ! is_truthy "$ENABLE_SENSORS" || [ -n "$SENSOR_HELPER_TOKEN" ]; then
+    return
+  fi
+
+  log "Generating SENSOR_HELPER_TOKEN for local sensor helper"
+  SENSOR_HELPER_TOKEN="$(openssl rand -hex 32)"
 }
 
 resolved_data_dir() {
@@ -308,6 +329,14 @@ normalize_mqtt_broker_config() {
   fi
 }
 
+normalize_sensor_config() {
+  if is_truthy "$ENABLE_SENSORS"; then
+    ENABLE_SENSORS="true"
+  else
+    ENABLE_SENSORS="false"
+  fi
+}
+
 normalize_dev_mode() {
   if is_truthy "$DEV_MODE"; then
     DEV_MODE="true"
@@ -329,11 +358,13 @@ download_app() {
   local tmp_dir
   local protected_minima_dir
   local protected_sqlite_dir
+  local protected_sensor_helper_venv
   local protected_update_agent_state_dir
   local find_args=("$APP_DIR" -mindepth 1 -maxdepth 1 ! -name ".env")
   tmp_dir="$(mktemp -d)"
   protected_minima_dir="$(relative_top_level_dir "$MINIMA_DATA_DIR")"
   protected_sqlite_dir="$(relative_top_level_dir "$DATA_DIR")"
+  protected_sensor_helper_venv=".venv-sensor-helper"
   protected_update_agent_state_dir="$(relative_top_level_dir "$UPDATE_AGENT_STATE_DIR")"
 
   log "Downloading $APP_REPO_URL ($APP_BRANCH)"
@@ -342,6 +373,7 @@ download_app() {
   rm -rf "$APP_DIR/.git" "$APP_DIR/backend" "$APP_DIR/frontend"
   [ -n "$protected_minima_dir" ] && find_args+=(! -name "$protected_minima_dir")
   [ -n "$protected_sqlite_dir" ] && find_args+=(! -name "$protected_sqlite_dir")
+  find_args+=(! -name "$protected_sensor_helper_venv")
   [ -n "$protected_update_agent_state_dir" ] && find_args+=(! -name "$protected_update_agent_state_dir")
   find_args+=(-exec rm -rf {} +)
   find "${find_args[@]}"
@@ -487,6 +519,11 @@ CAMERA_MAX_DURATION_SECONDS=$CAMERA_MAX_DURATION_SECONDS
 CAMERA_RETENTION_DAYS=$CAMERA_RETENTION_DAYS
 CAMERA_PHOTO_COMMAND=$CAMERA_PHOTO_COMMAND
 CAMERA_VIDEO_COMMAND=$CAMERA_VIDEO_COMMAND
+ENABLE_SENSORS=$ENABLE_SENSORS
+SENSOR_HELPER_URL=http://$INTEGRITAS_DOCKER_GATEWAY:$SENSOR_HELPER_PORT
+SENSOR_HELPER_TOKEN=$SENSOR_HELPER_TOKEN
+SENSOR_HELPER_PORT=$SENSOR_HELPER_PORT
+SENSOR_READ_TIMEOUT_MS=$SENSOR_READ_TIMEOUT_MS
 INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
 INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
 ENABLE_MQTT_BROKER=$ENABLE_MQTT_BROKER
@@ -626,6 +663,96 @@ EOF
   systemctl enable --now integritas-pi-camera-helper.service
 }
 
+install_sensor_helper() {
+  local service_file="/etc/systemd/system/integritas-pi-sensor-helper.service"
+  local sensor_venv="$APP_DIR/.venv-sensor-helper"
+  local sensor_python="$sensor_venv/bin/python"
+  local helper_user
+  local supplementary_groups=""
+
+  if ! is_truthy "$ENABLE_SENSORS"; then
+    if [ -f "$service_file" ]; then
+      log "Disabling sensor helper service"
+      systemctl disable --now integritas-pi-sensor-helper.service >/dev/null 2>&1 || true
+      rm -f "$service_file"
+      systemctl daemon-reload
+    fi
+    return
+  fi
+
+  helper_user="${SUDO_USER:-pi}"
+  if ! id "$helper_user" >/dev/null 2>&1; then
+    helper_user="root"
+  fi
+  if getent group i2c >/dev/null 2>&1; then
+    supplementary_groups="SupplementaryGroups=i2c"
+  fi
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required for the sensor helper but was not found."
+    exit 1
+  fi
+
+  if ! python3 - <<'PY' >/dev/null 2>&1
+try:
+    import smbus2
+except Exception:
+    import smbus
+PY
+  then
+    log "Installing Python SMBus support for I2C sensors"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y python3-smbus i2c-tools
+  fi
+
+  if [ ! -x "$sensor_python" ]; then
+    log "Creating sensor helper Python environment"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv
+    python3 -m venv --system-site-packages "$sensor_venv"
+  fi
+
+  if ! "$sensor_python" - <<'PY' >/dev/null 2>&1
+import bme680
+PY
+  then
+    log "Installing optional Python BME680 support for I2C sensors"
+    "$sensor_python" -m pip install bme680 || log "Warning: Python bme680 could not be installed automatically. BME680 reads require the Python bme680 module in $sensor_venv."
+  fi
+
+  if [ ! -e /dev/i2c-1 ]; then
+    log "Warning: /dev/i2c-1 was not found. Enable I2C on the Raspberry Pi before using BME280/BME680 sensor devices."
+  fi
+
+  log "Installing sensor helper service"
+  cat > "$service_file" <<EOF
+[Unit]
+Description=Integritas Pi Sensor Helper
+After=network.target
+
+[Service]
+Type=simple
+User=$helper_user
+$supplementary_groups
+WorkingDirectory=$APP_DIR
+Environment=SENSOR_HELPER_HOST=0.0.0.0
+Environment=SENSOR_HELPER_PORT=$SENSOR_HELPER_PORT
+Environment=SENSOR_HELPER_TOKEN=$SENSOR_HELPER_TOKEN
+Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
+Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
+ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT; fi'
+ExecStart=$sensor_python $APP_DIR/sensor-helper/integritas_sensor_helper.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  chmod 600 "$service_file"
+  systemctl daemon-reload
+  systemctl enable integritas-pi-sensor-helper.service
+  systemctl restart integritas-pi-sensor-helper.service
+}
+
 generate_tls_cert() {
   log "Generating self-signed TLS certificate"
   (
@@ -706,9 +833,11 @@ main() {
   load_existing_config
   ensure_app_secret
   ensure_camera_helper_token
+  ensure_sensor_helper_token
   detect_docker_gid
   detect_gpio_gid
   normalize_mqtt_broker_config
+  normalize_sensor_config
   normalize_dev_mode
   download_app
   resolve_images
@@ -717,6 +846,7 @@ main() {
   write_env_file
   write_compose_override
   install_camera_helper
+  install_sensor_helper
   generate_tls_cert
   install_cli
   start_app

@@ -1,7 +1,18 @@
 import type { LucideIcon } from "lucide-react";
 
-export type Tone = "neutral" | "good" | "warn" | "future";
-export type NavId = "dashboard" | "setup" | "node" | "wallet" | "integritas" | "data" | "automation" | "diagnostics" | "settings";
+export type Tone = "neutral" | "good" | "warn" | "error";
+export type Status = "neutral" | "success" | "warning" | "error";
+export type NavId =
+  | "dashboard"
+  | "setup"
+  | "node"
+  | "wallet"
+  | "integritas"
+  | "data"
+  | "automation"
+  | "diagnostics"
+  | "marketplace"
+  | "settings";
 export type NavItem = { id: NavId; label: string; icon: LucideIcon; badge?: string };
 
 export type UpdateServiceStatus = {
@@ -71,7 +82,14 @@ export type MinimaNodeStatus = {
   };
 };
 export type MinimaConfig = { megammrHost: string; megammrHostSource: "database" | "default" };
-export type MinimaCommandResult = { ok: boolean; status?: number; source: string; command?: string; body?: unknown; error?: string };
+export type MinimaCommandResult = {
+  ok: boolean;
+  status?: number;
+  source: string;
+  command?: string;
+  body?: unknown;
+  error?: string;
+};
 export type MinimaPeersResponse = {
   ok: boolean;
   count: number | null;
@@ -103,7 +121,13 @@ export type MinimaBackupListResponse = MinimaBackupEntry[];
 export type MinimaBackupCreateResult = MinimaCommandResult & { fileName: string; auto: boolean };
 export type MinimaAutoBackupResponse = { autoBackupEnabled: boolean };
 export type MinimaBackupPasswordResponse = { hasPassword: boolean };
-export type IntegritasConfig = { baseUrl: string; requestId: string; hasApiKey: boolean; apiKeySource: "connect" | "database" | "environment" | "none"; portalUrl: string };
+export type IntegritasConfig = {
+  baseUrl: string;
+  requestId: string;
+  hasApiKey: boolean;
+  apiKeySource: "connect" | "database" | "environment" | "none";
+  portalUrl: string;
+};
 export type StatusOverview = {
   generatedAt: string;
   services: Array<{ name: string; ok: boolean; status: string; details?: unknown; error?: string }>;

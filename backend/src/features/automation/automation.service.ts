@@ -5,7 +5,8 @@ import { recordAuditEvent } from "../auth/audit.service.js";
 import { pulseGpioOutput } from "../data-sources/gpioOutput.service.js";
 import { publishMqttOutput } from "../data-sources/mqttOutput.service.js";
 import { capturePiCamera } from "../data-sources/cameraCapture.service.js";
-import { parseHttpOutputConfig, parseJsonApiConfig, readJsonApiSource, sendHttpOutput, sendMultipartMediaOutput, serializeDataSource } from "../data-sources/dataSources.service.js";
+import { parseBmeSensorConfig, parseHttpOutputConfig, parseJsonApiConfig, readJsonApiSource, sendHttpOutput, sendMultipartMediaOutput, serializeDataSource } from "../data-sources/dataSources.service.js";
+import { readBmeSensorSource } from "../data-sources/sensorHelper.service.js";
 import { createDataSourceRead, linkDataSourceReadProof } from "../data-reads/dataReads.repository.js";
 import { createProofRecord } from "../integritas/integritas.repository.js";
 import { isIntegritasUnauthorizedErrorCode, isTransientIntegritasErrorCode, requestProofUid } from "../integritas/integritas.service.js";
@@ -206,7 +207,7 @@ export async function executeWorkflow(workflow: AutomationWorkflowRecord, trigge
       for (const attachedBlock of blocks.filter((item) => item.parent_block_id === block.id)) {
         await executeBlock(latestWorkflow, attachedBlock, context, run.id);
       }
-      if (block.type === "schedule_start") nextRunAt = nextScheduleRunAt(block);
+      if (block.type === "schedule_start") nextRunAt = nextScheduleRunAt(block, latestWorkflow.next_run_at);
       if (context.stopped) break;
     }
 
@@ -330,18 +331,18 @@ function recordTriggerEvent(workflow: AutomationWorkflowRecord, block: Automatio
 async function fetchDataSource(workflow: AutomationWorkflowRecord, block: AutomationBlockRecord, context: WorkflowContext, sourceId: string) {
   const source = getDataSource(sourceId);
   if (!source) throw new Error("Data source not found");
-  if (source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "gpio-output" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output") throw new Error("Fetch data source block requires an HTTP JSON data source");
-  const config = parseJsonApiConfig(JSON.parse(source.config) as unknown);
+  if (!isReadableDataSource(source.type)) throw new Error("Fetch data source block requires a readable data source");
+  const sourceUrl = sourceUrlForRecord(source);
   try {
-    const result = await readJsonApiSource(config);
-    const read = createDataSourceRead({ dataSourceId: source.id, workflowId: workflow.id, sourceName: source.name, sourceUrl: config.url, triggerType: context.trigger.type === "manual" ? "manual" : context.trigger.type === "schedule" ? "schedule" : context.trigger.type, status: "success", hash: result.bytesHash, preview: result.preview, triggerSourceId: context.trigger.sourceId ?? null, triggerPayload: context.trigger.payload, blockId: block.id });
+    const result = source.type === "bme-sensor" ? await readBmeSensorSource(parseBmeSensorConfig(JSON.parse(source.config) as unknown)) : await readJsonApiSource(parseJsonApiConfig(JSON.parse(source.config) as unknown));
+    const read = createDataSourceRead({ dataSourceId: source.id, workflowId: workflow.id, sourceName: source.name, sourceUrl, triggerType: context.trigger.type === "manual" ? "manual" : context.trigger.type === "schedule" ? "schedule" : context.trigger.type, status: "success", hash: result.bytesHash, preview: result.preview, triggerSourceId: context.trigger.sourceId ?? null, triggerPayload: context.trigger.payload, blockId: block.id });
     updateDataSourceReadResult(source.id, { hash: result.bytesHash, preview: result.preview });
-    context.data = { sourceId: source.id, sourceName: source.name, sourceUrl: config.url, result, readId: read.id };
+    context.data = { sourceId: source.id, sourceName: source.name, sourceUrl, result, readId: read.id };
     context.hash = result.bytesHash;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch data source";
     updateDataSourceReadResult(source.id, { error: message });
-    createDataSourceRead({ dataSourceId: source.id, workflowId: workflow.id, sourceName: source.name, sourceUrl: config.url, triggerType: context.trigger.type === "manual" ? "manual" : context.trigger.type === "schedule" ? "schedule" : context.trigger.type, status: "failed", error: message, triggerSourceId: context.trigger.sourceId ?? null, triggerPayload: context.trigger.payload, blockId: block.id });
+    createDataSourceRead({ dataSourceId: source.id, workflowId: workflow.id, sourceName: source.name, sourceUrl, triggerType: context.trigger.type === "manual" ? "manual" : context.trigger.type === "schedule" ? "schedule" : context.trigger.type, status: "failed", error: message, triggerSourceId: context.trigger.sourceId ?? null, triggerPayload: context.trigger.payload, blockId: block.id });
     throw error;
   }
 }
@@ -483,10 +484,17 @@ function truncateText(value: string, maxLength: number) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
 }
 
-function nextScheduleRunAt(block: AutomationBlockRecord) {
+function nextScheduleRunAt(block: AutomationBlockRecord, previousNextRunAt: string | null) {
   const config = JSON.parse(block.config_json) as { intervalSeconds?: number };
   const intervalSeconds = Number(config.intervalSeconds ?? 0);
-  return intervalSeconds > 0 ? new Date(Date.now() + intervalSeconds * 1000).toISOString() : null;
+  if (intervalSeconds <= 0) return null;
+
+  const intervalMs = intervalSeconds * 1000;
+  const now = Date.now();
+  let next = previousNextRunAt ? new Date(previousNextRunAt).getTime() + intervalMs : now + intervalMs;
+  if (!Number.isFinite(next)) next = now + intervalMs;
+  while (next <= now) next += intervalMs;
+  return new Date(next).toISOString();
 }
 
 function sourceUrlForRecord(source: { type: string; config: string }) {
@@ -495,7 +503,12 @@ function sourceUrlForRecord(source: { type: string; config: string }) {
   if (source.type === "mqtt") return `${config.brokerUrl ?? "MQTT"} ${config.topic ?? ""}`;
   if (source.type === "webhook") return `/api/data-source-webhooks/${config.webhookToken ?? ""}`;
   if (source.type === "pi-camera") return `pi-camera:${config.mode ?? "photo"}`;
+  if (source.type === "bme-sensor") return `${config.sensor ?? "bme280"}:i2c-${config.bus ?? 1}:${config.address ?? "0x76"}`;
   return String(config.url ?? "data source");
+}
+
+function isReadableDataSource(type: string) {
+  return type === "json-api" || type === "internal-json-api" || type === "bme-sensor";
 }
 
 function blockLabel(type: string) {
@@ -806,7 +819,7 @@ export function startAutomationScheduler() {
     for (const workflow of due) {
       executeWorkflow(workflow, { type: "schedule" }).catch((error: Error) => console.error(`Automation workflow ${workflow.id} failed: ${error.message}`));
     }
-  }, 5000);
+  }, 1000);
 }
 
 export function stopAutomationScheduler() {

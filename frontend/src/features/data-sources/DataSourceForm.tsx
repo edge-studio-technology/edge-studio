@@ -4,7 +4,7 @@ import { StatusRow } from "../../components/StatusRow";
 import { MutedText } from "../../components/Text";
 import type { DataSource, DataSourceTemplate } from "./dataSourceTypes";
 
-export function DataSourceForm({ template, name, setName, description, setDescription, type, setType, url, setUrl, healthStatusUrl, setHealthStatusUrl, brokerUrl, setBrokerUrl, topic, setTopic, gpioChip, setGpioChip, gpioPin, setGpioPin, gpioProfile, setGpioProfile, gpioPull, setGpioPull, gpioEdge, setGpioEdge, gpioDebounceMs, setGpioDebounceMs, gpioActiveState, setGpioActiveState, cameraMode, setCameraMode, cameraWidth, setCameraWidth, cameraHeight, setCameraHeight, cameraDurationMs, setCameraDurationMs, cameraFps, setCameraFps, method, setMethod, onSubmit, busy, submitLabel = "Add source" }: { template: DataSourceTemplate | null; name: string; setName: (value: string) => void; description: string; setDescription: (value: string) => void; type: DataSource["type"]; setType: (value: DataSource["type"]) => void; url: string; setUrl: (value: string) => void; healthStatusUrl: string; setHealthStatusUrl: (value: string) => void; brokerUrl: string; setBrokerUrl: (value: string) => void; topic: string; setTopic: (value: string) => void; gpioChip: string; setGpioChip: (value: string) => void; gpioPin: string; setGpioPin: (value: string) => void; gpioProfile: "generic" | "pir-motion"; setGpioProfile: (value: "generic" | "pir-motion") => void; gpioPull: "off" | "up" | "down"; setGpioPull: (value: "off" | "up" | "down") => void; gpioEdge: "rising" | "falling" | "both"; setGpioEdge: (value: "rising" | "falling" | "both") => void; gpioDebounceMs: string; setGpioDebounceMs: (value: string) => void; gpioActiveState: "high" | "low"; setGpioActiveState: (value: "high" | "low") => void; cameraMode: "photo" | "video"; setCameraMode: (value: "photo" | "video") => void; cameraWidth: string; setCameraWidth: (value: string) => void; cameraHeight: string; setCameraHeight: (value: string) => void; cameraDurationMs: string; setCameraDurationMs: (value: string) => void; cameraFps: string; setCameraFps: (value: string) => void; method: "GET" | "POST" | "PUT" | "PATCH"; setMethod: (value: "GET" | "POST" | "PUT" | "PATCH") => void; onSubmit: () => void; busy: boolean; submitLabel?: string }) {
+export function DataSourceForm({ template, name, setName, description, setDescription, type, setType, url, setUrl, healthStatusUrl, setHealthStatusUrl, brokerUrl, setBrokerUrl, topic, setTopic, gpioChip, setGpioChip, gpioPin, setGpioPin, gpioProfile, setGpioProfile, gpioPull, setGpioPull, gpioEdge, setGpioEdge, gpioDebounceMs, setGpioDebounceMs, gpioActiveState, setGpioActiveState, cameraMode, setCameraMode, cameraWidth, setCameraWidth, cameraHeight, setCameraHeight, cameraDurationMs, setCameraDurationMs, cameraFps, setCameraFps, bmeBus, setBmeBus, bmeAddress, setBmeAddress, method, setMethod, onSubmit, busy, submitLabel = "Add source" }: { template: DataSourceTemplate | null; name: string; setName: (value: string) => void; description: string; setDescription: (value: string) => void; type: DataSource["type"]; setType: (value: DataSource["type"]) => void; url: string; setUrl: (value: string) => void; healthStatusUrl: string; setHealthStatusUrl: (value: string) => void; brokerUrl: string; setBrokerUrl: (value: string) => void; topic: string; setTopic: (value: string) => void; gpioChip: string; setGpioChip: (value: string) => void; gpioPin: string; setGpioPin: (value: string) => void; gpioProfile: "generic" | "pir-motion"; setGpioProfile: (value: "generic" | "pir-motion") => void; gpioPull: "off" | "up" | "down"; setGpioPull: (value: "off" | "up" | "down") => void; gpioEdge: "rising" | "falling" | "both"; setGpioEdge: (value: "rising" | "falling" | "both") => void; gpioDebounceMs: string; setGpioDebounceMs: (value: string) => void; gpioActiveState: "high" | "low"; setGpioActiveState: (value: "high" | "low") => void; cameraMode: "photo" | "video"; setCameraMode: (value: "photo" | "video") => void; cameraWidth: string; setCameraWidth: (value: string) => void; cameraHeight: string; setCameraHeight: (value: string) => void; cameraDurationMs: string; setCameraDurationMs: (value: string) => void; cameraFps: string; setCameraFps: (value: string) => void; bmeBus: string; setBmeBus: (value: string) => void; bmeAddress: "0x76" | "0x77"; setBmeAddress: (value: "0x76" | "0x77") => void; method: "GET" | "POST" | "PUT" | "PATCH"; setMethod: (value: "GET" | "POST" | "PUT" | "PATCH") => void; onSubmit: () => void; busy: boolean; submitLabel?: string }) {
   return (
     <section className="grid min-w-0 gap-3 [&_label]:grid [&_label]:gap-3 [&_label]:font-bold [&_label]:text-slate-700">
       <StatusRow>
@@ -33,23 +33,21 @@ export function DataSourceForm({ template, name, setName, description, setDescri
         </>
       ) : type === "gpio-input" ? (
         <>
-          <label>Input profile<select value={gpioProfile} onChange={(event) => setGpioProfile(event.target.value as "generic" | "pir-motion")}><option value="generic">Generic GPIO input</option><option value="pir-motion">PIR motion sensor</option></select></label>
           <label>GPIO chip<input value={gpioChip} onChange={(event) => setGpioChip(event.target.value)} placeholder="gpiochip0" /></label>
           <label>BCM pin number<input value={gpioPin} onChange={(event) => setGpioPin(event.target.value)} placeholder="17" inputMode="numeric" /></label>
           <label>Pull resistor<select value={gpioPull} onChange={(event) => setGpioPull(event.target.value as "off" | "up" | "down")}><option value="off">Off</option><option value="up">Pull-up</option><option value="down">Pull-down</option></select></label>
           <label>Edge<select value={gpioEdge} onChange={(event) => setGpioEdge(event.target.value as "rising" | "falling" | "both")}><option value="rising">Rising</option><option value="falling">Falling</option><option value="both">Both</option></select></label>
           <label>Debounce ms<input value={gpioDebounceMs} onChange={(event) => setGpioDebounceMs(event.target.value)} placeholder="100" inputMode="numeric" /></label>
           <label>Active state<select value={gpioActiveState} onChange={(event) => setGpioActiveState(event.target.value as "high" | "low")}><option value="high">High</option><option value="low">Low</option></select></label>
-          <MutedText>GPIO input sources use BCM numbering and record edge events only while an Automation workflow is enabled.</MutedText>
+          <MutedText>{gpioProfile === "pir-motion" ? "PIR Motion Sensor profile is fixed by the selected template." : "GPIO Input Pin uses the generic input profile."} GPIO input sources use BCM numbering and record edge events only while an Automation workflow is enabled.</MutedText>
           {gpioProfile === "pir-motion" && <MutedText>HC-SR501 default: OUT to GPIO23 / physical pin 16, VCC to 5V, GND to GND. Use active High, pull Off, and wait 60-90 seconds after power-on for warmup.</MutedText>}
         </>
       ) : type === "gpio-output" ? (
         <>
-          <label>Output profile<select value="led" disabled><option value="led">LED</option></select></label>
           <label>GPIO chip<input value={gpioChip} onChange={(event) => setGpioChip(event.target.value)} placeholder="gpiochip0" /></label>
           <label>BCM pin number<input value={gpioPin} onChange={(event) => setGpioPin(event.target.value)} placeholder="18" inputMode="numeric" /></label>
           <label>LED turns on when GPIO is<select value={gpioActiveState} onChange={(event) => setGpioActiveState(event.target.value as "high" | "low")}><option value="high">High (common GPIO to resistor to LED to GND wiring)</option><option value="low">Low (LED/resistor tied to 3.3V, GPIO sinks current)</option></select></label>
-          <MutedText>LED output targets can be pulsed from Automation. For the documented GPIO18 LED wiring, choose High. Wire the LED with a 220-330 ohm resistor and never connect GPIO directly to 5V, motors, or relays.</MutedText>
+          <MutedText>GPIO LED profile is fixed by the selected template. LED output targets can be pulsed from Automation. For the documented GPIO18 LED wiring, choose High. Wire the LED with a 220-330 ohm resistor and never connect GPIO directly to 5V, motors, or relays.</MutedText>
         </>
       ) : type === "pi-camera" ? (
         <>
@@ -59,6 +57,12 @@ export function DataSourceForm({ template, name, setName, description, setDescri
           <label>{cameraMode === "photo" ? "Warmup timeout ms" : "Video duration ms"}<input value={cameraDurationMs} onChange={(event) => setCameraDurationMs(event.target.value)} placeholder={cameraMode === "photo" ? "1000" : "5000"} inputMode="numeric" /></label>
           {cameraMode === "video" && <label>FPS<input value={cameraFps} onChange={(event) => setCameraFps(event.target.value)} placeholder="30" inputMode="numeric" /></label>}
           <MutedText>Camera capture is triggered by Automation's Capture camera block. Captured media stays on the Pi; Integritas stamps the media file hash.</MutedText>
+        </>
+      ) : type === "bme-sensor" ? (
+        <>
+          <label>I2C bus<input value={bmeBus} onChange={(event) => setBmeBus(event.target.value)} placeholder="1" inputMode="numeric" /></label>
+          <label>I2C address<select value={bmeAddress} onChange={(event) => setBmeAddress(event.target.value as "0x76" | "0x77")}><option value="0x76">0x76</option><option value="0x77">0x77</option></select></label>
+          <MutedText>BME280/BME680 sensors read temperature, humidity, and air pressure over I2C. Wire VIN to 3.3V or 5V, GND to ground, SCL to physical pin 5 / GPIO3, and SDA to physical pin 3 / GPIO2.</MutedText>
         </>
       ) : type === "http-output" ? (
         <>
@@ -73,7 +77,7 @@ export function DataSourceForm({ template, name, setName, description, setDescri
           <label>Method<select value={method === "PUT" || method === "PATCH" ? "POST" : method} onChange={(event) => setMethod(event.target.value as "GET" | "POST")}><option value="GET">GET</option><option value="POST">POST</option></select></label>
         </>
       )}
-      <Button type="button" disabled={busy || !name || (type !== "webhook" && type !== "mqtt" && type !== "mqtt-output" && type !== "gpio-input" && type !== "gpio-output" && type !== "pi-camera" && !url) || ((type === "mqtt" || type === "mqtt-output") && (!brokerUrl || !topic)) || ((type === "gpio-input" || type === "gpio-output") && (!gpioChip || !gpioPin)) || (type === "pi-camera" && (!cameraWidth || !cameraHeight || !cameraDurationMs))} onClick={onSubmit}>{submitLabel}</Button>
+      <Button type="button" disabled={busy || !name || (type !== "webhook" && type !== "mqtt" && type !== "mqtt-output" && type !== "gpio-input" && type !== "gpio-output" && type !== "pi-camera" && type !== "bme-sensor" && !url) || ((type === "mqtt" || type === "mqtt-output") && (!brokerUrl || !topic)) || ((type === "gpio-input" || type === "gpio-output") && (!gpioChip || !gpioPin)) || (type === "pi-camera" && (!cameraWidth || !cameraHeight || !cameraDurationMs)) || (type === "bme-sensor" && !bmeBus)} onClick={onSubmit}>{submitLabel}</Button>
     </section>
   );
 }
