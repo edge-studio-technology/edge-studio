@@ -30,17 +30,17 @@ export type WorkflowCanvasRuntimeState = {
 };
 
 const mutedText = "type-meta text-text-secondary";
-const shellClass = "border-stroke-primary bg-surface-always-white flex min-h-[min(760px,calc(100vh-220px))] flex-col overflow-hidden rounded-soft border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";
-const topbarClass = "border-stroke-secondary bg-surface-always-white px-margin-tight py-detail-close flex flex-col gap-detail-close border-b lg:flex-row lg:items-center lg:justify-between";
-const gridClass = "bg-surface-secondary grid min-h-0 flex-1 gap-margin-tight p-margin-tight xl:grid-cols-[minmax(420px,1fr)_300px_360px]";
+const shellClass = "border-stroke-primary bg-surface-always-white flex min-h-[min(640px,calc(100vh-160px))] flex-col overflow-hidden rounded-soft border shadow-[0_24px_60px_rgba(0,0,0,0.12)] xl:min-h-[min(760px,calc(100vh-220px))]";
+const topbarClass = "border-stroke-secondary bg-surface-always-white px-margin-tight py-detail-close flex flex-col gap-detail-close border-b lg:flex-row lg:items-start lg:justify-between xl:items-center";
+const gridClass = "bg-surface-secondary grid min-h-0 flex-1 gap-detail-close p-detail-close md:gap-margin-tight md:p-margin-tight xl:grid-cols-[minmax(420px,1fr)_300px_360px]";
 const rowActionsClass = "gap-detail-next flex flex-wrap items-center";
 const statusPillClass = (good: boolean) => good ? "good" : "neutral";
-const libraryClass = "bg-surface-always-white border-stroke-secondary grid max-h-[calc(100vh-260px)] content-start gap-detail-close overflow-auto rounded-soft border p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)] xl:sticky xl:top-margin-tight";
+const libraryClass = "bg-surface-always-white border-stroke-secondary grid content-start gap-detail-close overflow-visible rounded-soft border p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)] xl:sticky xl:top-margin-tight xl:max-h-[calc(100vh-260px)] xl:overflow-auto";
 const libraryGroupClass = "grid gap-detail-next";
 const libraryGroupTitleClass = "type-body-em text-text-primary flex items-center justify-between";
 const libraryCardClass = "border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-loose border p-detail-close text-left transition-colors hover:border-stroke-primary hover:bg-surface-always-white focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-text-disabled disabled:opacity-60";
 const canvasClass = "min-h-0 overflow-hidden";
-const canvasLaneClass = "relative flex min-h-[520px] flex-col items-center overflow-auto p-margin-relaxed";
+const canvasLaneClass = "relative flex min-h-[360px] flex-col items-center overflow-auto px-detail-close py-margin-relaxed md:min-h-[520px] md:p-margin-relaxed";
 const emptyCanvasClass = "border-stroke-primary bg-surface-secondary text-text-primary grid min-h-[180px] w-full max-w-[520px] place-items-center rounded-soft border border-dashed p-margin-relaxed text-center";
 const blockBaseClass = "relative w-full max-w-[520px] cursor-pointer rounded-loose border px-detail-close py-detail-close text-text-primary transition-[border-color,box-shadow] before:absolute before:left-1/2 before:top-[-25px] before:hidden before:h-[24px] before:w-px before:-translate-x-1/2 before:bg-stroke-active focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none [&+&]:mt-detail-near [&+&]:before:block";
 const selectedBlockClass = "border-stroke-active shadow-[0_0_0_1px_var(--color-stroke-active)]";
@@ -123,7 +123,7 @@ export function WorkflowCanvas({ mode, blocks, sources, selectedBlockId, statusL
         <h3>{isBuild ? "Draft canvas" : "Workflow canvas"}</h3>
         <p>{isBuild ? "This is the starter chain that will be created." : "Select a block to edit or inspect it. Move and remove actions apply immediately."}</p>
       </div>
-      <div className={cx(canvasLaneClass, dimmed && "after:bg-overlay-light after:pointer-events-none after:absolute after:inset-0 after:z-20")}>
+      <div className={cx(canvasLaneClass, dimmed && "xl:after:bg-overlay-light after:pointer-events-none after:absolute after:inset-0 after:z-20")}>
         <div className="absolute right-margin-tight top-margin-tight z-10">
           <Pill tone={statusPillClass(statusGood)}>{statusLabel}</Pill>
         </div>

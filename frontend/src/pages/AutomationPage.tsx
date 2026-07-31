@@ -28,7 +28,7 @@ const cardClass = "rounded-soft border border-stroke-secondary bg-surface-always
 const softCardClass = "rounded-soft border border-stroke-secondary bg-surface-always-white p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)]";
 const statusRowClass = "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between";
 const formGridClass = "grid gap-detail-close [&_label]:grid [&_label]:gap-detail-next [&_label]:type-meta [&_label]:text-text-primary";
-const inspectorClass = "grid max-h-[calc(100vh-260px)] content-start gap-detail-close overflow-auto xl:sticky xl:top-margin-tight";
+const inspectorClass = "grid content-start gap-detail-close overflow-visible xl:sticky xl:top-margin-tight xl:max-h-[calc(100vh-260px)] xl:overflow-auto";
 
 type AutomationPageFlow =
   | { mode: "list" }
