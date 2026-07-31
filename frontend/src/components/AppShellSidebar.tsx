@@ -61,14 +61,14 @@ export function AppShellSidebar({
   }, []);
 
   const activeId = useMemo(() => {
-    const match = nav.find((item) => pathname === `/${item.id}`);
+    const match = nav.find((item) => pathname === `/${item.id}` || pathname.startsWith(`/${item.id}/`));
     return match?.id ?? "dashboard";
   }, [pathname]);
 
   return (
     <aside
       className={cx(
-        "bg-surface-inverse text-text-inverse px-margin-tight py-margin-relaxed sticky top-0 flex h-screen shrink-0 flex-col justify-between overflow-hidden transition-[width] duration-300 ease-in-out",
+        "bg-surface-inverse text-text-inverse px-margin-tight py-margin-relaxed sticky top-0 z-30 flex h-screen shrink-0 flex-col justify-between overflow-hidden transition-[width] duration-300 ease-in-out",
         collapsed ? "w-20" : "w-80",
       )}
     >
