@@ -4,6 +4,12 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased]
+
+### Changed
+
+- Automation workflow create/edit/watch canvases now use the new ESDS/Figma-inspired workflow frame, right-side toolkit, flat category block cards, selected-block treatment, and create-workflow leave confirmation.
+
 ## [0.28.2] 2026-07-30
 
 ### Added

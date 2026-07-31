@@ -22,13 +22,13 @@ import { cx } from "../lib/cx";
 import { formatLocalTime } from "../lib/time";
 
 const intervals = [10, 30, 60, 300, 900, 3600];
-const mutedText = "text-sm text-slate-500";
-const errorText = "text-sm font-semibold text-red-700";
-const cardClass = "rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm";
-const softCardClass = "rounded-[22px] border border-slate-200 bg-slate-50/80 p-4 shadow-sm";
+const mutedText = "type-body text-text-secondary";
+const errorText = "type-body-em text-text-error";
+const cardClass = "rounded-soft border border-stroke-secondary bg-surface-always-white p-margin-tight shadow-sm";
+const softCardClass = "rounded-soft border border-stroke-secondary bg-surface-always-white p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)]";
 const statusRowClass = "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between";
-const formGridClass = "grid gap-3 [&_label]:grid [&_label]:gap-2.5 [&_label]:font-bold [&_label]:text-slate-700";
-const inspectorClass = "grid content-start gap-3";
+const formGridClass = "grid gap-detail-close [&_label]:grid [&_label]:gap-detail-next [&_label]:type-meta [&_label]:text-text-primary";
+const inspectorClass = "grid max-h-[calc(100vh-260px)] content-start gap-detail-close overflow-auto xl:sticky xl:top-margin-tight";
 
 type AutomationPageFlow =
   | { mode: "list" }
@@ -413,6 +413,7 @@ function CreateWorkflowWorkspace({ name, enabled, sources, addressBook, walletSt
   const [selectedBlockId, setSelectedBlockId] = useState("");
   const [backendValidation, setBackendValidation] = useState<AutomationValidationResult | null>(null);
   const [backendValidationError, setBackendValidationError] = useState<string | null>(null);
+  const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
   const selectedBlock = draftBlocks.find((block) => block.id === selectedBlockId) ?? draftBlocks[0];
   const localErrors = name.trim() ? [] : ["Workflow name is required."];
   const backendErrors = backendValidation?.errors.map((issue) => issue.message) ?? [];
@@ -496,40 +497,59 @@ function CreateWorkflowWorkspace({ name, enabled, sources, addressBook, walletSt
     setSelectedBlockId("");
   }
 
+  function requestCancel() {
+    if (draftBlocks.length > 0 || name.trim()) {
+      setConfirmLeaveOpen(true);
+      return;
+    }
+    onCancel();
+  }
+
   return (
-    <WorkflowWorkspaceShell
-      eyebrow="Draft workflow"
-      title="Create a new block workflow"
-      description="Choose one start block, then add data and logic blocks to build the first draft chain."
-      actions={<>
-        <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={onCancel}>Cancel</Button>
-        <Button type="button" variant="secondary" size="sm" disabled={busy || draftBlocks.length === 0} onClick={resetCanvas}>Reset canvas</Button>
-        <Button type="button" size="sm" disabled={busy || !canCreate} onClick={() => onCreate(flattenDraftBlocks(draftBlocks))}>Create workflow</Button>
-      </>}
-      left={<WorkflowBlockLibrary hasStartBlock={hasStartBlock} selectedBlock={selectedBlock} onSelectStartBlock={selectStartBlock} onAddBlock={addDraftBlock} onAttachStamp={attachStampBlock} />}
-      center={<WorkflowCanvas mode="build" blocks={draftBlocks} sources={sources} statusLabel={enabled ? "Enabled on create" : "Paused on create"} statusGood={enabled} selectedBlockId={selectedBlock?.id ?? ""} validationByBlockId={draftValidationByBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={moveDraftBlock} onRemoveBlock={removeDraftBlock} />}
-      right={
-        <aside className={cx(inspectorClass, formGridClass)}>
-          <Panel>
-            <strong>Workflow setup</strong>
-            <label>Workflow name<input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Button fetches weather API" /></label>
-            <label className="grid grid-cols-[auto_minmax(0,1fr)] items-center justify-start gap-2.5"><input className="w-auto" type="checkbox" checked={enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled after create</label>
-            <strong>Validation</strong>
-            {localErrors.map((issue) => <p key={issue} className={errorText}>{issue}</p>)}
-            {backendErrors.map((issue) => <p key={issue} className={errorText}>{issue}</p>)}
-            {backendWarnings.map((issue) => <p key={issue} className={mutedText}>{issue}</p>)}
-            {backendValidationError && <p className={errorText}>{backendValidationError}</p>}
-            {!backendValidation && !backendValidationError && <p className={mutedText}>Checking draft workflow...</p>}
-            {canCreate && <p className={mutedText}>No blocking draft errors. Review any warnings before creating.</p>}
-          </Panel>
-          <Panel>
-            <strong>Selected block</strong>
-            {selectedBlock ? <DraftBlockInspector block={selectedBlock} sources={sources} addressBook={addressBook} walletStatus={walletStatus} onChange={(config) => updateBlock(selectedBlock.id, { config })} onAttachedChange={(attachedId, config) => updateAttachedBlock(selectedBlock.id, attachedId, config)} onAttachedRemove={(attachedId) => removeAttachedBlock(selectedBlock.id, attachedId)} /> : <p className={mutedText}>Choose a start block on the left or select a block on the canvas to configure it.</p>}
-          </Panel>
+    <>
+      <WorkflowWorkspaceShell
+        eyebrow="Create workflow"
+        title="Create workflow"
+        description={<div className="grid max-w-3xl gap-detail-next sm:grid-cols-[minmax(220px,360px)_auto] sm:items-end">
+          <label className="grid gap-detail-next type-meta text-text-primary">Workflow name<input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Button fetches weather API" /></label>
+          <label className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-detail-next type-meta text-text-primary sm:pb-detail-next"><input className="w-auto" type="checkbox" checked={enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled after create</label>
+        </div>}
+        actions={<>
+          <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={requestCancel}>Back to workflows</Button>
+          <Button type="button" variant="secondary" size="sm" disabled={busy || draftBlocks.length === 0} onClick={resetCanvas}>Reset canvas</Button>
           <Button type="button" size="sm" disabled={busy || !canCreate} onClick={() => onCreate(flattenDraftBlocks(draftBlocks))}>Create workflow</Button>
-        </aside>
-      }
-    />
+        </>}
+        left={<WorkflowBlockLibrary hasStartBlock={hasStartBlock} selectedBlock={selectedBlock} onSelectStartBlock={selectStartBlock} onAddBlock={addDraftBlock} onAttachStamp={attachStampBlock} />}
+        center={<WorkflowCanvas mode="build" blocks={draftBlocks} sources={sources} statusLabel={enabled ? "Enabled on create" : "Paused on create"} statusGood={enabled} selectedBlockId={selectedBlock?.id ?? ""} validationByBlockId={draftValidationByBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={moveDraftBlock} onRemoveBlock={removeDraftBlock} />}
+        right={
+          <aside className={cx(inspectorClass, formGridClass)}>
+            <Panel>
+              <strong>Validation</strong>
+              {localErrors.map((issue) => <p key={issue} className={errorText}>{issue}</p>)}
+              {backendErrors.map((issue) => <p key={issue} className={errorText}>{issue}</p>)}
+              {backendWarnings.map((issue) => <p key={issue} className={mutedText}>{issue}</p>)}
+              {backendValidationError && <p className={errorText}>{backendValidationError}</p>}
+              {!backendValidation && !backendValidationError && <p className={mutedText}>Checking draft workflow...</p>}
+              {canCreate && <p className={mutedText}>No blocking draft errors. Review any warnings before creating.</p>}
+            </Panel>
+            <Panel>
+              <strong>Selected block</strong>
+              {selectedBlock ? <DraftBlockInspector block={selectedBlock} sources={sources} addressBook={addressBook} walletStatus={walletStatus} onChange={(config) => updateBlock(selectedBlock.id, { config })} onAttachedChange={(attachedId, config) => updateAttachedBlock(selectedBlock.id, attachedId, config)} onAttachedRemove={(attachedId) => removeAttachedBlock(selectedBlock.id, attachedId)} /> : <p className={mutedText}>Choose a start block on the left or select a block on the canvas to configure it.</p>}
+            </Panel>
+            <Button type="button" size="sm" disabled={busy || !canCreate} onClick={() => onCreate(flattenDraftBlocks(draftBlocks))}>Create workflow</Button>
+          </aside>
+        }
+      />
+      {confirmLeaveOpen && <Modal
+        title="Are you sure?"
+        description="If you leave without publishing, your progress won't be saved."
+        onClose={() => setConfirmLeaveOpen(false)}
+        footer={<>
+          <Button type="button" variant="secondary" size="sm" onClick={() => setConfirmLeaveOpen(false)}>Cancel</Button>
+          <Button type="button" size="sm" onClick={onCancel}>Go to my library</Button>
+        </>}
+      />}
+    </>
   );
 }
 
