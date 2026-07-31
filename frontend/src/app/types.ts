@@ -99,7 +99,7 @@ export type MinimaConsoleWhitelist = {
 };
 export type MinimaConsoleRunResult = MinimaCommandResult;
 export type MinimaBackupEntry = { fileName: string; sizeBytes: number; createdAt: string };
-export type MinimaBackupListResponse = { manual: MinimaBackupEntry[]; auto: MinimaBackupEntry[] };
+export type MinimaBackupListResponse = MinimaBackupEntry[];
 export type MinimaBackupCreateResult = MinimaCommandResult & { fileName: string; auto: boolean };
 export type MinimaAutoBackupResponse = { autoBackupEnabled: boolean };
 export type MinimaBackupPasswordResponse = { hasPassword: boolean };

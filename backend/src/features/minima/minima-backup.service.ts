@@ -65,26 +65,15 @@ function getBackupPassword(): string {
   }
 }
 
-// Split by trigger source, not encryption status — every backup now uses the same
-// admin-chosen password, so both lists are equally downloadable/restorable. Manual
-// backups are treated as more deliberate (smaller cap, blocked+prompted at the cap);
-// auto backups are treated as disposable/rolling (larger cap, oldest auto-pruned).
-const MAX_MANUAL_BACKUPS = 5;
-const MAX_AUTO_BACKUPS = 10;
-
-function isAutoFileName(fileName: string) {
-  return fileName.includes("-auto-");
-}
+// One rolling list regardless of trigger source — every backup uses the same admin-chosen
+// password, so all of them are equally downloadable/restorable. Oldest is pruned once the
+// cap is exceeded, same as the old auto-only list did.
+const MAX_BACKUPS = 20;
 
 export type MinimaBackupEntry = {
   fileName: string;
   sizeBytes: number;
   createdAt: string;
-};
-
-export type MinimaBackupLists = {
-  manual: MinimaBackupEntry[];
-  auto: MinimaBackupEntry[];
 };
 
 async function ensureBackupsRoot() {
@@ -124,7 +113,7 @@ function backupFileName(auto: boolean) {
   return auto ? `minima-auto-${stamp}.bak` : `minima-manual-${stamp}.bak`;
 }
 
-export async function listBackups(): Promise<MinimaBackupLists> {
+export async function listBackups(): Promise<MinimaBackupEntry[]> {
   await ensureBackupsRoot();
   const entries = await fs.readdir(backupsRoot, { withFileTypes: true });
   const all = await Promise.all(
@@ -135,11 +124,7 @@ export async function listBackups(): Promise<MinimaBackupLists> {
         return { fileName: entry.name, sizeBytes: stat.size, createdAt: stat.mtime.toISOString() };
       })
   );
-  const sorted = all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return {
-    auto: sorted.filter((entry) => isAutoFileName(entry.fileName)),
-    manual: sorted.filter((entry) => !isAutoFileName(entry.fileName))
-  };
+  return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function getBackupFilePath(fileName: string) {
@@ -154,23 +139,15 @@ export async function createBackup({ auto = false }: { auto?: boolean } = {}) {
     throw new MinimaBackupError("Set a backup password before creating a backup.", 400);
   }
 
-  const { manual: manualList, auto: autoList } = await listBackups();
-
-  if (!auto && manualList.length >= MAX_MANUAL_BACKUPS) {
-    throw new MinimaBackupError(
-      `You already have ${MAX_MANUAL_BACKUPS} manual backups, the maximum. Delete one before creating another.`,
-      409
-    );
-  }
-
   const fileName = backupFileName(auto);
   const command = `backup file:backups/${fileName} password:"${password}"`;
   beginMinimaOperation("backup");
   try {
     const result = await runMinimaPathCommand(command, 60000);
 
-    if (auto && autoList.length + 1 > MAX_AUTO_BACKUPS) {
-      const oldest = autoList[autoList.length - 1];
+    const existing = await listBackups();
+    if (existing.length > MAX_BACKUPS) {
+      const oldest = existing[existing.length - 1];
       if (oldest) await deleteBackup(oldest.fileName).catch(() => undefined);
     }
 

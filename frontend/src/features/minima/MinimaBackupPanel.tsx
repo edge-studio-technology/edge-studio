@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Download, RotateCcw, Trash2, Upload } from "lucide-react";
+import { Download, KeyRound, RotateCcw, Trash2, Upload } from "lucide-react";
 import type { MinimaBackupEntry, MinimaBackupListResponse, MinimaNodeState } from "../../app/types";
 import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
@@ -23,8 +23,7 @@ import {
 } from "./minimaBackupApi";
 import { useMinimaStatusRefresh } from "./useMinimaStatusRefresh";
 
-const MAX_MANUAL_BACKUPS = 5;
-const MAX_AUTO_BACKUPS = 10;
+const MAX_BACKUPS = 20;
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -127,6 +126,7 @@ export function MinimaBackupPanel() {
   const actionsBlocked = minimaState !== "running";
 
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [newBackupPassword, setNewBackupPassword] = useState("");
   const [setupCurrentPassword, setSetupCurrentPassword] = useState("");
   const [setupBusy, setSetupBusy] = useState(false);
@@ -137,7 +137,7 @@ export function MinimaBackupPanel() {
   const [clearPasswordBusy, setClearPasswordBusy] = useState(false);
   const [clearPasswordError, setClearPasswordError] = useState<string | null>(null);
 
-  const [lists, setLists] = useState<MinimaBackupListResponse | null>(null);
+  const [backups, setBackups] = useState<MinimaBackupListResponse | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [autoBackupEnabled, setAutoBackupEnabledState] = useState<boolean | null>(null);
   const [creating, setCreating] = useState(false);
@@ -165,7 +165,7 @@ export function MinimaBackupPanel() {
   async function refreshBackups() {
     try {
       const res = await listMinimaBackups();
-      setLists(res);
+      setBackups(res);
       setListError(null);
     } catch (error) {
       setListError(error instanceof Error ? error.message : "Failed to load backups");
@@ -182,6 +182,13 @@ export function MinimaBackupPanel() {
       .catch(() => undefined);
   }, []);
 
+  function openPasswordModal() {
+    setPasswordModalOpen(true);
+    setNewBackupPassword("");
+    setSetupCurrentPassword("");
+    setSetupError(null);
+  }
+
   async function handleSetBackupPassword(e: React.FormEvent) {
     e.preventDefault();
     setSetupBusy(true);
@@ -189,8 +196,7 @@ export function MinimaBackupPanel() {
     try {
       const res = await setBackupPassword({ backupPassword: newBackupPassword, currentPassword: setupCurrentPassword });
       setHasPassword(res.hasPassword);
-      setNewBackupPassword("");
-      setSetupCurrentPassword("");
+      setPasswordModalOpen(false);
       showToast({ tone: "success", title: "Backup password saved", message: "Used for every manual and automatic backup from now on." });
     } catch (error) {
       setSetupError(error instanceof Error ? error.message : "Failed to set backup password");
@@ -200,6 +206,7 @@ export function MinimaBackupPanel() {
   }
 
   function openClearPassword() {
+    setPasswordModalOpen(false);
     setClearPasswordOpen(true);
     setClearPasswordCurrentPassword("");
     setClearPasswordError(null);
@@ -369,23 +376,125 @@ export function MinimaBackupPanel() {
         </div>
       )}
 
-      <details
-        className="group rounded-xl border border-slate-200 bg-white"
-        open={hasPassword === false}
-        style={{ marginBottom: 16 }}
-      >
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 font-bold text-slate-700 [&::-webkit-details-marker]:hidden">
-          <span>Backup password {hasPassword ? "(set)" : "(not set)"}</span>
-          <span className="text-slate-400 transition-transform group-open:rotate-90">›</span>
-        </summary>
-        <div className="grid gap-3 border-t border-slate-200 p-3">
-          {hasPassword === false && (
-            <p className="text-sm text-amber-700 m-0">
-              One password protects every manual and automatic backup. Set it before creating a backup. It's stored
-              encrypted; nothing about it is ever shown again, so keep a copy somewhere safe.
-            </p>
-          )}
+      {hasPassword === false && (
+        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3" style={{ marginBottom: 16 }}>
+          <p className="text-sm text-amber-800 m-0">
+            No backup password set. Use the key icon below to set one — required for manual and automatic backups.
+          </p>
+        </div>
+      )}
+
+      <div className="grid gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={() => void handleCreateBackup()} disabled={creating || actionsBlocked || !hasPassword}>
+            {creating ? "Backing up…" : "Backup now"}
+          </Button>
+          <button
+            type="button"
+            title={hasPassword ? "Manage backup password" : "Set backup password"}
+            onClick={openPasswordModal}
+            className={`rounded-lg border p-2 hover:bg-slate-50 ${
+              hasPassword === false ? "border-amber-300 text-amber-700 bg-amber-50" : "border-slate-200 bg-white text-slate-600"
+            }`}
+          >
+            <KeyRound size={16} />
+          </button>
+          <button
+            type="button"
+            title="Restore from backup"
+            onClick={openUploadRestore}
+            disabled={actionsBlocked}
+            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+          >
+            <Upload size={16} />
+          </button>
+        </div>
+
+        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
+            checked={autoBackupEnabled ?? false}
+            disabled={autoBackupEnabled === null || togglingAuto || actionsBlocked || !hasPassword}
+            onChange={() => void handleToggleAutoBackup()}
+          />
+          <span className="grid gap-0.5">
+            <span className="text-sm font-semibold text-slate-700">Auto backups (24h)</span>
+            <span className="text-xs text-slate-500">
+              Creates a backup every 24 hours using your backup password and keeps the last {MAX_BACKUPS}, deleting
+              the oldest.
+            </span>
+          </span>
+        </label>
+
+        {listError && <ErrorText className="m-0">{listError}</ErrorText>}
+        {!backups && !listError && <LoadingDots />}
+
+        {backups && (
+          <BackupSection title="Backups" count={backups.length} max={MAX_BACKUPS}>
+            {backups.length === 0 && <p className="text-sm text-slate-500 m-0">None yet.</p>}
+            {backups.map((backup) => (
+              <BackupRow
+                key={backup.fileName}
+                backup={backup}
+                actionsBlocked={actionsBlocked}
+                deleting={deletingFile === backup.fileName}
+                onDownload={() => startDownload(backup.fileName)}
+                onRestore={() => startRowRestore(backup)}
+                onDelete={() => startDelete(backup)}
+              />
+            ))}
+          </BackupSection>
+        )}
+      </div>
+
+      {downloadTarget && (
+        <Modal
+          title="Confirm download"
+          onClose={() => {
+            if (!downloadBusy) setDownloadTarget(null);
+          }}
+          closeDisabled={downloadBusy}
+        >
+          <div className="grid gap-3">
+            <p className="text-sm text-slate-600 m-0">Re-enter your current PIN or password to download this backup.</p>
+            <label className="grid gap-1.5 font-bold text-slate-700">
+              Current PIN or password
+              <input
+                type="password"
+                value={downloadPassword}
+                onChange={(e) => {
+                  setDownloadPassword(e.target.value);
+                  setDownloadError(null);
+                }}
+                autoComplete="current-password"
+              />
+            </label>
+            {downloadError && <ErrorText className="m-0">{downloadError}</ErrorText>}
+            <ButtonRow>
+              <Button onClick={() => void confirmDownload()} disabled={downloadBusy || downloadPassword.length === 0}>
+                {downloadBusy ? "Confirming…" : "Confirm"}
+              </Button>
+            </ButtonRow>
+          </div>
+        </Modal>
+      )}
+
+      {passwordModalOpen && (
+        <Modal
+          title={hasPassword ? "Manage backup password" : "Set backup password"}
+          onClose={() => {
+            if (!setupBusy) setPasswordModalOpen(false);
+          }}
+          closeDisabled={setupBusy}
+        >
           <form onSubmit={(e) => void handleSetBackupPassword(e)} className="grid gap-3">
+            {hasPassword === false && (
+              <p className="text-sm text-slate-600 m-0">
+                One password protects every manual and automatic backup. It's stored encrypted; nothing about it is
+                ever shown again, so keep a copy somewhere safe.
+              </p>
+            )}
             <label className="grid gap-1.5">
               <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
                 {hasPassword ? "New backup password" : "Backup password"}
@@ -420,98 +529,6 @@ export function MinimaBackupPanel() {
               )}
             </ButtonRow>
           </form>
-        </div>
-      </details>
-
-      <div className="grid gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={() => void handleCreateBackup()} disabled={creating || actionsBlocked || !hasPassword}>
-              {creating ? "Backing up…" : "Backup now"}
-            </Button>
-            <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
-              <input
-                type="checkbox"
-                className="size-4 shrink-0 rounded border-slate-300"
-                checked={autoBackupEnabled ?? false}
-                disabled={autoBackupEnabled === null || togglingAuto || actionsBlocked || !hasPassword}
-                onChange={() => void handleToggleAutoBackup()}
-              />
-              <span className="text-sm font-semibold text-slate-700">Auto backups (24h)</span>
-            </label>
-          </div>
-          <Button variant="secondary" onClick={openUploadRestore} disabled={actionsBlocked}>
-            Restore from backup
-          </Button>
-        </div>
-
-        {listError && <ErrorText className="m-0">{listError}</ErrorText>}
-        {!lists && !listError && <LoadingDots />}
-
-        {lists && (
-          <div className="grid gap-3">
-            <BackupSection title="Manual" count={lists.manual.length} max={MAX_MANUAL_BACKUPS}>
-              {lists.manual.length === 0 && <p className="text-sm text-slate-500 m-0">None yet.</p>}
-              {lists.manual.map((backup) => (
-                <BackupRow
-                  key={backup.fileName}
-                  backup={backup}
-                  actionsBlocked={actionsBlocked}
-                  deleting={deletingFile === backup.fileName}
-                  onDownload={() => startDownload(backup.fileName)}
-                  onRestore={() => startRowRestore(backup)}
-                  onDelete={() => startDelete(backup)}
-                />
-              ))}
-            </BackupSection>
-
-            <BackupSection title="Auto" count={lists.auto.length} max={MAX_AUTO_BACKUPS}>
-              {lists.auto.length === 0 && <p className="text-sm text-slate-500 m-0">None yet.</p>}
-              {lists.auto.map((backup) => (
-                <BackupRow
-                  key={backup.fileName}
-                  backup={backup}
-                  actionsBlocked={actionsBlocked}
-                  deleting={deletingFile === backup.fileName}
-                  onDownload={() => startDownload(backup.fileName)}
-                  onRestore={() => startRowRestore(backup)}
-                  onDelete={() => startDelete(backup)}
-                />
-              ))}
-            </BackupSection>
-          </div>
-        )}
-      </div>
-
-      {downloadTarget && (
-        <Modal
-          title="Confirm download"
-          onClose={() => {
-            if (!downloadBusy) setDownloadTarget(null);
-          }}
-          closeDisabled={downloadBusy}
-        >
-          <div className="grid gap-3">
-            <p className="text-sm text-slate-600 m-0">Re-enter your current PIN or password to download this backup.</p>
-            <label className="grid gap-1.5 font-bold text-slate-700">
-              Current PIN or password
-              <input
-                type="password"
-                value={downloadPassword}
-                onChange={(e) => {
-                  setDownloadPassword(e.target.value);
-                  setDownloadError(null);
-                }}
-                autoComplete="current-password"
-              />
-            </label>
-            {downloadError && <ErrorText className="m-0">{downloadError}</ErrorText>}
-            <ButtonRow>
-              <Button onClick={() => void confirmDownload()} disabled={downloadBusy || downloadPassword.length === 0}>
-                {downloadBusy ? "Confirming…" : "Confirm"}
-              </Button>
-            </ButtonRow>
-          </div>
         </Modal>
       )}
 
