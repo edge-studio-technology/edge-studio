@@ -23,6 +23,8 @@ Implemented in the current working tree:
 
 - `frontend/src/features/automation/WorkflowCanvas.tsx` now uses a redesigned workflow frame with a white top bar, grey canvas surface, right-side toolkit, dashed empty state, flat category-colored block cards, connector lines, `Pill` badges, inset attached-block cards, selected-block border, runtime/validation highlighting, and responsive canvas/panel sizing.
 - `frontend/src/pages/AutomationPage.tsx` now places create-workflow name/enabled controls in the workflow top bar, restyles create/edit/watch inspector panels, adds close controls for selected-block panels in create/edit/watch, dims the desktop canvas while a selected-block panel is active, and adds a create-workflow leave confirmation modal.
+- Workflow modes now use explicit routes (`/automation/new`, `/automation/:workflowId/edit`, `/automation/:workflowId/watch`, `/automation/:workflowId/watch/:runId`) instead of query parameters, and `AppShell` uses that route metadata to hide the global status bar for workflow routes.
+- Workflow routes now bypass the normal Automation `<Page>` header/card chrome so the workflow topbar, canvas, toolkit, selected block panel, and watch history occupy the full content area beside the sidebar.
 - `CHANGELOG.md` has an `[Unreleased]` entry for the workflow redesign.
 - Verification run: `npm --prefix frontend run build` passes. Vite still reports the existing large-chunk warning.
 

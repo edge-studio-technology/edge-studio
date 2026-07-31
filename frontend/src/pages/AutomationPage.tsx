@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Archive, Copy, Eye, Pencil, Play, RotateCcw, Trash2, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button, IconButton } from "../components/Button";
 import { DataTable, RowActions, TableIconButton, TableWrap, tableCellClass, tableHeaderCellClass, tableHeadRowClass, tableRowClass } from "../components/DataTable";
 import { ErrorAlert } from "../components/ErrorAlert";
@@ -35,18 +35,17 @@ type AutomationPageFlow =
   | { mode: "build" }
   | { mode: "edit" | "watch"; workflowId: string; runId?: string };
 
-function automationFlowFromUrl(): AutomationPageFlow {
-  const params = new URLSearchParams(window.location.search);
-  const flow = params.get("flow");
-  const workflowId = params.get("id") ?? "";
-  const runId = params.get("run") ?? undefined;
-  if (flow === "build") return { mode: "build" };
-  if ((flow === "edit" || flow === "watch") && workflowId) return { mode: flow, workflowId, runId };
+function automationFlowFromRoute(params: Readonly<Record<string, string | undefined>>): AutomationPageFlow {
+  if (!params.workflowId && window.location.pathname.endsWith("/automation/new")) return { mode: "build" };
+  if (params.workflowId && window.location.pathname.includes("/edit")) return { mode: "edit", workflowId: params.workflowId };
+  if (params.workflowId && window.location.pathname.includes("/watch")) return { mode: "watch", workflowId: params.workflowId, runId: params.runId };
   return { mode: "list" };
 }
 
 export function AutomationPage() {
   const { showToast } = useToast();
+  const navigate = useNavigate();
+  const params = useParams();
   const [sources, setSources] = useState<DataSource[]>([]);
   const [addressBook, setAddressBook] = useState<AddressBookEntry[]>([]);
   const [walletStatus, setWalletStatus] = useState<WalletStatus | null>(null);
@@ -56,7 +55,7 @@ export function AutomationPage() {
   const [enabled, setEnabled] = useState(true);
   const [workflowSearch, setWorkflowSearch] = useState("");
   const [workflowFilter, setWorkflowFilter] = useState<"active" | "all" | "enabled" | "paused" | "error" | "archived">("active");
-  const [flow, setFlow] = useState(() => automationFlowFromUrl());
+  const flow = automationFlowFromRoute(params);
   const [workspaceRuns, setWorkspaceRuns] = useState<AutomationRun[]>([]);
   const [workspaceValidation, setWorkspaceValidation] = useState<AutomationValidationResult | null>(null);
   const [busy, setBusy] = useState(false);
@@ -65,12 +64,6 @@ export function AutomationPage() {
 
   useEffect(() => {
     refresh().catch((err: Error) => setLoadError(err.message));
-  }, []);
-
-  useEffect(() => {
-    const onPopState = () => setFlow(automationFlowFromUrl());
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   useEffect(() => {
@@ -130,20 +123,13 @@ export function AutomationPage() {
   }
 
   function navigateFlow(nextFlow: AutomationPageFlow) {
-    const params = new URLSearchParams(window.location.search);
     if (nextFlow.mode === "list") {
-      params.delete("flow");
-      params.delete("id");
-    } else {
-      params.set("flow", nextFlow.mode);
-      if ("workflowId" in nextFlow) params.set("id", nextFlow.workflowId);
-      else params.delete("id");
-      if ("runId" in nextFlow && nextFlow.runId) params.set("run", nextFlow.runId);
-      else params.delete("run");
+      navigate("/automation");
+      return;
     }
-    const query = params.toString();
-    window.history.pushState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
-    setFlow(nextFlow);
+    if (nextFlow.mode === "build") navigate("/automation/new");
+    else if (nextFlow.mode === "edit") navigate(`/automation/${encodeURIComponent(nextFlow.workflowId)}/edit`);
+    else navigate(`/automation/${encodeURIComponent(nextFlow.workflowId)}/watch${nextFlow.runId ? `/${encodeURIComponent(nextFlow.runId)}` : ""}`);
   }
 
   async function run(action: () => Promise<unknown>, errorTitle = "Action failed") {
@@ -188,71 +174,64 @@ export function AutomationPage() {
   const filteredWorkflows = workflows.filter((workflow) => workflowMatchesFilter(workflow, workflowSearch, workflowFilter, sourceName(workflowPrimarySourceId(workflow))));
   const workspaceMode = flow.mode === "edit" || flow.mode === "watch" ? flow.mode : null;
 
+  if (flow.mode === "build") {
+    return <>
+      <CreateWorkflowWorkspace
+        name={name}
+        enabled={enabled}
+        sources={sources}
+        addressBook={addressBook}
+        walletStatus={walletStatus}
+        busy={busy}
+        onNameChange={setName}
+        onEnabledChange={setEnabled}
+        onCancel={() => navigateFlow({ mode: "list" })}
+        onCreate={submitWorkflow}
+      />
+      {loadError && <ErrorAlert title="Automation data could not be loaded" className="max-w-none" action={<Button type="button" variant="secondary" size="sm" onClick={() => refresh().catch((err: Error) => setLoadError(err.message))}>Retry</Button>}>{loadError}</ErrorAlert>}
+    </>;
+  }
+
+  if (workspaceMode) {
+    return <>
+      {workspaceWorkflow ? <WorkflowWorkspace
+        workflow={workspaceWorkflow}
+        runs={workspaceRuns}
+        validation={workspaceValidation}
+        source={sourceById(workflowPrimarySourceId(workspaceWorkflow))}
+        sources={sources}
+        addressBook={addressBook}
+        walletStatus={walletStatus}
+        busy={busy}
+        mode={workspaceMode}
+        initialRunId={flow.mode === "watch" ? flow.runId : undefined}
+        onBack={() => navigateFlow({ mode: "list" })}
+        onNavigateMode={(nextMode) => navigateFlow({ mode: nextMode, workflowId: workspaceWorkflow.id })}
+        onSelectWatchRun={(runId) => navigateFlow({ mode: "watch", workflowId: workspaceWorkflow.id, runId })}
+        onAddBlock={(input) => run(() => addAutomationBlock(workspaceWorkflow.id, input), "Could not add block")}
+        onDeleteBlock={(blockId) => run(() => deleteAutomationBlock(workspaceWorkflow.id, blockId), "Could not delete block")}
+        onUpdateBlock={(blockId, input) => run(() => updateAutomationBlock(workspaceWorkflow.id, blockId, input), "Could not save block")}
+        onUpdateWorkflow={(input) => run(() => updateAutomationWorkflow(workspaceWorkflow.id, input), "Could not save workflow")}
+        onReorderBlocks={(blockIds) => run(() => reorderAutomationBlocks(workspaceWorkflow.id, blockIds), "Could not move block")}
+        onRunNow={() => run(() => runWorkflowAndSelectLatest(workspaceWorkflow.id), "Could not run workflow")}
+        onRunWithPayload={(payload) => run(() => runWorkflowAndSelectLatest(workspaceWorkflow.id, payload), "Could not run workflow")}
+      /> : <section className={cardClass}><p className={mutedText}>Loading workflow...</p></section>}
+      {loadError && <ErrorAlert title="Automation data could not be loaded" className="max-w-none" action={<Button type="button" variant="secondary" size="sm" onClick={() => refresh().catch((err: Error) => setLoadError(err.message))}>Retry</Button>}>{loadError}</ErrorAlert>}
+    </>;
+  }
+
   return (
     <Page
       eyebrow="Automation"
-      title={flow.mode === "build" ? "Create workflow" : workspaceMode === "edit" ? "Edit workflow" : workspaceMode === "watch" ? "Watch workflow" : "Block automation workspace"}
-      desc={flow.mode === "build" ? "Assemble a starter workflow from blocks, then create it when the draft validates." : workspaceMode ? "Use the shared workflow canvas without opening a modal." : "Build workflows from small start, data, logic, and Integritas blocks."}
+      title="Block automation workspace"
+      desc="Build workflows from small start, data, logic, and Integritas blocks."
     >
-      {flow.mode !== "list" && (
-        <section className={cardClass}>
-          <div className={statusRowClass}>
-            <div><strong>{flow.mode === "build" ? "Builder" : workspaceMode === "watch" ? "Watch canvas" : "Editor canvas"}</strong><p className={mutedText}>This workspace is loaded directly from the Automation page URL.</p></div>
-            <Button type="button" variant="secondary" size="sm" onClick={() => navigateFlow({ mode: "list" })}>Back to workflows</Button>
-          </div>
-        </section>
-      )}
-
-      {flow.mode === "list" && (
-        <section className={cardClass}>
-          <div className={statusRowClass}>
-            <div><strong>Workflow builder</strong><p className={mutedText}>Create a workflow from a start block, then connect action blocks in the workspace.</p></div>
-            <Button type="button" size="sm" onClick={() => navigateFlow({ mode: "build" })}>Create new workflow</Button>
-          </div>
-        </section>
-      )}
-
-      {flow.mode === "build" && (
-        <CreateWorkflowWorkspace
-          name={name}
-          enabled={enabled}
-          sources={sources}
-          addressBook={addressBook}
-          walletStatus={walletStatus}
-          busy={busy}
-          onNameChange={setName}
-          onEnabledChange={setEnabled}
-          onCancel={() => navigateFlow({ mode: "list" })}
-          onCreate={submitWorkflow}
-        />
-      )}
-
-      {workspaceMode && workspaceWorkflow && (
-        <WorkflowWorkspace
-          workflow={workspaceWorkflow}
-          runs={workspaceRuns}
-          validation={workspaceValidation}
-          source={sourceById(workflowPrimarySourceId(workspaceWorkflow))}
-          sources={sources}
-          addressBook={addressBook}
-          walletStatus={walletStatus}
-          busy={busy}
-          mode={workspaceMode}
-          initialRunId={flow.mode === "watch" ? flow.runId : undefined}
-          onBack={() => navigateFlow({ mode: "list" })}
-          onNavigateMode={(nextMode) => navigateFlow({ mode: nextMode, workflowId: workspaceWorkflow.id })}
-          onSelectWatchRun={(runId) => navigateFlow({ mode: "watch", workflowId: workspaceWorkflow.id, runId })}
-          onAddBlock={(input) => run(() => addAutomationBlock(workspaceWorkflow.id, input), "Could not add block")}
-          onDeleteBlock={(blockId) => run(() => deleteAutomationBlock(workspaceWorkflow.id, blockId), "Could not delete block")}
-          onUpdateBlock={(blockId, input) => run(() => updateAutomationBlock(workspaceWorkflow.id, blockId, input), "Could not save block")}
-          onUpdateWorkflow={(input) => run(() => updateAutomationWorkflow(workspaceWorkflow.id, input), "Could not save workflow")}
-          onReorderBlocks={(blockIds) => run(() => reorderAutomationBlocks(workspaceWorkflow.id, blockIds), "Could not move block")}
-          onRunNow={() => run(() => runWorkflowAndSelectLatest(workspaceWorkflow.id), "Could not run workflow")}
-          onRunWithPayload={(payload) => run(() => runWorkflowAndSelectLatest(workspaceWorkflow.id, payload), "Could not run workflow")}
-        />
-      )}
-
-      {workspaceMode && activeWorkflowId && !workspaceWorkflow && <section className={cardClass}><p className={mutedText}>Loading workflow...</p></section>}
+      <section className={cardClass}>
+        <div className={statusRowClass}>
+          <div><strong>Workflow builder</strong><p className={mutedText}>Create a workflow from a start block, then connect action blocks in the workspace.</p></div>
+          <Button type="button" size="sm" onClick={() => navigateFlow({ mode: "build" })}>Create new workflow</Button>
+        </div>
+      </section>
 
       {loadError && <ErrorAlert title="Automation data could not be loaded" className="max-w-none" action={<Button type="button" variant="secondary" size="sm" onClick={() => refresh().catch((err: Error) => setLoadError(err.message))}>Retry</Button>}>{loadError}</ErrorAlert>}
 
@@ -264,7 +243,7 @@ export function AutomationPage() {
         />
       )}
 
-      {flow.mode === "list" && <section className={cx(cardClass, "grid gap-4")}>
+      <section className={cx(cardClass, "grid gap-4")}>
         <div className={statusRowClass}>
           <div><strong>Workflows</strong><p className={mutedText}>Search, filter, duplicate, and archive workflows as your test list grows.</p></div>
           <StatusPill status="neutral">{filteredWorkflows.length}/{workflows.length} shown</StatusPill>
@@ -320,9 +299,9 @@ export function AutomationPage() {
         </TableWrap>
         {workflows.length === 0 && <p className={mutedText}>No automation workflows yet.</p>}
         {workflows.length > 0 && filteredWorkflows.length === 0 && <p className={mutedText}>No workflows match this filter.</p>}
-      </section>}
+      </section>
 
-      {flow.mode === "list" && <AutomationInboxPanel items={inboxItems} busy={busy} onMarkRead={(item, read) => run(() => updateAutomationInboxItem(item.id, { read }), read ? "Could not mark preview read" : "Could not mark preview unread")} onDelete={(item) => run(() => deleteAutomationInboxItem(item.id), "Could not delete preview")} />}
+      <AutomationInboxPanel items={inboxItems} busy={busy} onMarkRead={(item, read) => run(() => updateAutomationInboxItem(item.id, { read }), read ? "Could not mark preview read" : "Could not mark preview unread")} onDelete={(item) => run(() => deleteAutomationInboxItem(item.id), "Could not delete preview")} />
     </Page>
   );
 }

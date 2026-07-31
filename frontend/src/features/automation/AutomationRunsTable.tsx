@@ -41,7 +41,7 @@ export function AutomationRunsTable({ runs, compact = false }: { runs: Automatio
                 <td className={tableCellClass}><div className="grid gap-2"><StatusPill status={run.status} />{run.error && <ErrorDetails error={run.errorDetails ?? run.error} label="View error" />}</div></td>
                 <td className={tableCellClass}>{formatDuration(run.durationMs)}</td>
                 <td className={tableCellClass}>{run.blocks.filter((block) => block.status === "success").length}/{run.blockCount}</td>
-                <td className={tableCellClass}><RowActions>{run.workflowId ? <Link className="font-bold text-blue-700 hover:text-blue-900" to={`/automation?flow=watch&id=${encodeURIComponent(run.workflowId)}&run=${encodeURIComponent(run.id)}`}>Show on canvas</Link> : <span className={mutedText}>Workflow deleted</span>}<Button type="button" variant="secondary" className="rounded-full px-3 py-1.5" onClick={() => setRawRunId(rawRunId === run.id ? null : run.id)}>{rawRunId === run.id ? "Hide raw" : "Raw details"}</Button></RowActions></td>
+                <td className={tableCellClass}><RowActions>{run.workflowId ? <Link className="font-bold text-blue-700 hover:text-blue-900" to={`/automation/${encodeURIComponent(run.workflowId)}/watch/${encodeURIComponent(run.id)}`}>Show on canvas</Link> : <span className={mutedText}>Workflow deleted</span>}<Button type="button" variant="secondary" className="rounded-full px-3 py-1.5" onClick={() => setRawRunId(rawRunId === run.id ? null : run.id)}>{rawRunId === run.id ? "Hide raw" : "Raw details"}</Button></RowActions></td>
               </tr>
               {rawRunId === run.id && (
                 <tr className={tableRowClass}>

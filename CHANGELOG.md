@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Automation workflow create/edit/watch canvases now use the new ESDS/Figma-inspired workflow frame, right-side toolkit, flat category block cards, selected-block treatment, and create-workflow leave confirmation.
+- Automation workflow create/edit/watch canvases now use the new ESDS/Figma-inspired workflow frame, explicit workflow routes, full-bleed shell layout, right-side toolkit, flat category block cards, selected-block treatment, and create-workflow leave confirmation.
 
 ## [0.28.2] 2026-07-30
 
