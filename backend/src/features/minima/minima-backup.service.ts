@@ -2,7 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { findUserById } from "../auth/auth.repository.js";
 import { verifyPassword } from "../auth/password.service.js";
-import { getSetting, saveSetting } from "../settings/settings.repository.js";
+import { decryptSecret, encryptSecret, type EncryptedSecret } from "../../shared/crypto.js";
+import { deleteSetting, getSetting, saveSetting } from "../settings/settings.repository.js";
 import { beginMinimaOperation, endMinimaOperation } from "./minima-monitoring.js";
 import { runMinimaPathCommand } from "./minima.rpc.js";
 import { getMinimaConfig } from "./minima.service.js";
@@ -16,8 +17,8 @@ export class MinimaBackupError extends Error {
 }
 
 // Same re-auth pattern as updateConsoleWhitelist (minima-console.service.ts) — backup
-// files can contain unencrypted private keys, so download/restore require re-entering
-// the current admin credential, not just an active session.
+// files can contain key material, so download/restore/password changes require
+// re-entering the current admin credential, not just an active session.
 export async function verifyCurrentPassword(userId: string | undefined, currentPassword: string) {
   if (!userId) throw new MinimaBackupError("Unauthorized", 401);
   const user = findUserById(userId);
@@ -32,11 +33,58 @@ export async function verifyCurrentPassword(userId: string | undefined, currentP
 // data dir this is `backups/`, which is the path used in RPC commands below.
 const backupsRoot = "/minima-backups";
 const autoBackupSetting = "minima_auto_backup_enabled";
+const backupPasswordSetting = "minima_backup_password_enc";
+
+// Minima's own built-in `backup auto:true` scheduler is not used (see docs/plans —
+// its recurring runs always use Minima's hardcoded default password and always land
+// outside any folder we can see, with no configurable path or password). Instead we run
+// our own scheduler (minima-backup-scheduler.service.ts) against one admin-chosen
+// password, set once and reused for every backup — manual or auto.
+export function hasBackupPassword() {
+  return Boolean(getSetting(backupPasswordSetting));
+}
+
+export function setBackupPassword(password: string) {
+  const trimmed = password.trim();
+  if (!trimmed) throw new MinimaBackupError("Backup password is required", 400);
+  saveSetting(backupPasswordSetting, JSON.stringify(encryptSecret(trimmed)));
+}
+
+export function clearBackupPassword() {
+  deleteSetting(backupPasswordSetting);
+  saveSetting(autoBackupSetting, "false");
+}
+
+function getBackupPassword(): string {
+  const stored = getSetting(backupPasswordSetting);
+  if (!stored) return "";
+  try {
+    return decryptSecret(JSON.parse(stored) as EncryptedSecret);
+  } catch {
+    return "";
+  }
+}
+
+// Split by trigger source, not encryption status — every backup now uses the same
+// admin-chosen password, so both lists are equally downloadable/restorable. Manual
+// backups are treated as more deliberate (smaller cap, blocked+prompted at the cap);
+// auto backups are treated as disposable/rolling (larger cap, oldest auto-pruned).
+const MAX_MANUAL_BACKUPS = 5;
+const MAX_AUTO_BACKUPS = 10;
+
+function isAutoFileName(fileName: string) {
+  return fileName.includes("-auto-");
+}
 
 export type MinimaBackupEntry = {
   fileName: string;
   sizeBytes: number;
   createdAt: string;
+};
+
+export type MinimaBackupLists = {
+  manual: MinimaBackupEntry[];
+  auto: MinimaBackupEntry[];
 };
 
 async function ensureBackupsRoot() {
@@ -71,19 +119,15 @@ async function resolveBackupPath(fileName: string) {
   return absolutePath;
 }
 
-function backupFileName() {
-  return `minima-${new Date().toISOString().replace(/[:.]/g, "-")}.bak`;
+function backupFileName(auto: boolean) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  return auto ? `minima-auto-${stamp}.bak` : `minima-manual-${stamp}.bak`;
 }
 
-function quotedPasswordArg(password: string | undefined) {
-  const trimmed = password?.trim();
-  return trimmed ? ` password:"${trimmed}"` : "";
-}
-
-export async function listBackups(): Promise<MinimaBackupEntry[]> {
+export async function listBackups(): Promise<MinimaBackupLists> {
   await ensureBackupsRoot();
   const entries = await fs.readdir(backupsRoot, { withFileTypes: true });
-  const backups = await Promise.all(
+  const all = await Promise.all(
     entries
       .filter((entry) => entry.isFile() && entry.name.endsWith(".bak"))
       .map(async (entry) => {
@@ -91,7 +135,11 @@ export async function listBackups(): Promise<MinimaBackupEntry[]> {
         return { fileName: entry.name, sizeBytes: stat.size, createdAt: stat.mtime.toISOString() };
       })
   );
-  return backups.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const sorted = all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return {
+    auto: sorted.filter((entry) => isAutoFileName(entry.fileName)),
+    manual: sorted.filter((entry) => !isAutoFileName(entry.fileName))
+  };
 }
 
 export async function getBackupFilePath(fileName: string) {
@@ -100,14 +148,33 @@ export async function getBackupFilePath(fileName: string) {
   return absolutePath;
 }
 
-export async function createBackup({ password }: { password?: string } = {}) {
-  await ensureBackupsRoot();
-  const fileName = backupFileName();
-  const command = `backup file:backups/${fileName}${quotedPasswordArg(password)}`;
+export async function createBackup({ auto = false }: { auto?: boolean } = {}) {
+  const password = getBackupPassword();
+  if (!password) {
+    throw new MinimaBackupError("Set a backup password before creating a backup.", 400);
+  }
+
+  const { manual: manualList, auto: autoList } = await listBackups();
+
+  if (!auto && manualList.length >= MAX_MANUAL_BACKUPS) {
+    throw new MinimaBackupError(
+      `You already have ${MAX_MANUAL_BACKUPS} manual backups, the maximum. Delete one before creating another.`,
+      409
+    );
+  }
+
+  const fileName = backupFileName(auto);
+  const command = `backup file:backups/${fileName} password:"${password}"`;
   beginMinimaOperation("backup");
   try {
     const result = await runMinimaPathCommand(command, 60000);
-    return { ...result, fileName };
+
+    if (auto && autoList.length + 1 > MAX_AUTO_BACKUPS) {
+      const oldest = autoList[autoList.length - 1];
+      if (oldest) await deleteBackup(oldest.fileName).catch(() => undefined);
+    }
+
+    return { ...result, fileName, auto };
   } catch (error) {
     endMinimaOperation();
     throw error;
@@ -118,7 +185,12 @@ export async function restoreBackup({ fileName, password }: { fileName: string; 
   const absolutePath = await resolveBackupPath(fileName);
   await fs.access(absolutePath);
   const { megammrHost } = getMinimaConfig();
-  const command = `restoresync file:backups/${fileName} host:${megammrHost}${quotedPasswordArg(password)}`;
+  // Explicit password wins (needed for an uploaded/foreign .bak with an unknown history);
+  // otherwise fall back to our own stored password, since that's what protects every
+  // backup this service itself created.
+  const trimmed = password?.trim() || getBackupPassword();
+  const passwordArg = trimmed ? ` password:"${trimmed}"` : "";
+  const command = `restoresync file:backups/${fileName} host:${megammrHost}${passwordArg}`;
   beginMinimaOperation("restore");
   try {
     return await runMinimaPathCommand(command, 60000);
@@ -151,15 +223,10 @@ export function getAutoBackupEnabled() {
   return getSetting(autoBackupSetting) === "true";
 }
 
-// Verified live: `backup auto:true` alone writes its rolling backup to
-// /home/minima/data/minima-backup-<ts>.bak — outside the shared backups/ folder and
-// invisible to listBackups(). Passing file: alongside auto:true redirects it into the
-// shared folder instead, onto one fixed, overwritten-in-place file.
-const autoBackupFileName = "auto-backup.bak";
-
-export async function setAutoBackupEnabled(enabled: boolean) {
-  const command = enabled ? `backup auto:true file:backups/${autoBackupFileName}` : "backup auto:false";
-  const result = await runMinimaPathCommand(command, 30000);
+export function setAutoBackupEnabled(enabled: boolean) {
+  if (enabled && !hasBackupPassword()) {
+    throw new MinimaBackupError("Set a backup password before enabling automatic backups.", 400);
+  }
   saveSetting(autoBackupSetting, enabled ? "true" : "false");
-  return { ...result, autoBackupEnabled: enabled };
+  return { autoBackupEnabled: enabled };
 }

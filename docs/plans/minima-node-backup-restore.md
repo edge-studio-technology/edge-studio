@@ -1,68 +1,54 @@
-# Minima Node Backup & Restore Plan
+# Minima Node Backup & Restore Plan (v3 — own scheduler, single stored password)
 
-**Status:** Code implemented — needs manual verification against a real/test Minima node (see Verification)
+**Status:** Implemented, needs manual verification against a real/test node
 **Created:** 2026-07-29
-**Goal:** Add a first-class, UI-driven Minima node backup/restore feature (`backup`/`restoresync`) so an operator can recover a node's wallet keys, coin proofs, and transaction history after disk loss or migration — not just its wallet keys, which is all the existing seed-phrase import already covers.
+**Goal:** A first-class Minima node backup/restore feature using our own admin-chosen backup password and our own scheduler — not Minima's built-in `backup auto:true`, which turned out to have hard, unfixable limitations.
 
 ## Context
 
-Integritas-pi had no way to recover a Minima node's wallet/chain state. `wallet.service.ts` only supports importing a 24-word seed phrase (`restore phrase:"..."`), which per Minima's docs only recovers spendable wallet keys — not proof/transaction history or node state. Minima also has a dedicated `backup`/`restore`/`restoresync` command family that captures a much fuller snapshot (seed phrase + private keys + coin proofs + key-use counters + transaction history) to a `.bak` file and can restore it with an automatic archive re-sync. This is the real "move this Pi's node, or recover it after disk loss" mechanism.
+Two earlier designs for this feature were tried and superseded this session:
 
-`backup`/`restore`/`restoresync` were already present in the Minima RPC console catalog (`minima-console.catalog.ts`) as generic disabled "write" passthrough entries, but that only let an admin type a raw command — there was no way to actually retrieve the resulting `.bak` file (it's written inside the `minima` container's own filesystem, which `backend` had no volume access to) or upload one back in for a restore. This plan adds a dedicated, narrow feature following the same pattern as `resyncMegammr()` / `addMinimaPeers()`: a backend service + routes + a shared, purpose-scoped volume, plus a frontend panel.
+1. **v1** (single list, optional per-backup password): shipped, then live-testing against Minima's actual source (`minima-global/Minima`) found real gaps — `backup` always AES-encrypts but falls back to Minima's hardcoded default password (`"minima"`, public) when none is given, and Minima's own 24h auto-backup timer always calls a bare, hardcoded `backup` command with no configurable password or file path.
+2. **v2** (encrypted/unencrypted split by filename suffix, kept relying on Minima's built-in auto-backup as an untracked background feature): also shipped, but left the auto-backup toggle unable to deliver what its label promised — recurring runs stayed invisible to our lists no matter what.
 
-**Decisions made with the user before implementing:**
+**This version drops Minima's built-in auto-backup entirely.** Instead:
 
-- File-based only — no "view seed phrase" UI. `vault` stays fully hard-excluded exactly as `.claude/rules/minima.md` documents; no new exception carved into it.
-- Include a toggle for Minima's built-in unencrypted daily auto-backup (`backup auto:true`), clearly labeled as unencrypted.
-- Restore always uses `restoresync` (restore + automatic archive/MegaMMR re-sync in one step), reusing the existing `megammrHost` setting (`getMinimaConfig()`) as the sync host — same host already used by `resyncMegammr()`. Plain `restore` (no resync) stays available only via the raw RPC console for advanced/offline use; not exposed in the new UI.
-- No new DB table. The shared backups directory itself is the source of truth for the backup list (name, size, mtime), mirroring how `files.service.ts` treats `hostFilesRoot` as its source of truth. Only the auto-backup on/off intent is persisted, via `settings.repository` (same pattern as `minima_megammr_host`).
-- No new env var. Reuses `MINIMA_DATA_DIR` — mounts `${MINIMA_DATA_DIR:-./minima}/backups` into `backend` at a fixed, hardcoded container path (`/minima-backups`, same style as the existing hardcoded `/home/minima/data` in `minima.docker.ts`), so `minima` and `backend` share exactly that one subdirectory — never the full Minima data dir. (Verified live during implementation: this same host directory also had to be mounted a second time, directly into `minima` at `/home/minima/backups` — see the correction below.)
-
-**Rejected alternative:** exposing a "view seed phrase" UI alongside backup/restore was explicitly deferred — stays file-based only.
-
-**Needs verification against a real/test node** (the Minima docs used for this plan were fetched via automated page summarization and may not exactly match the pinned `minimaglobal/minima` image version):
-
-- ~~Exact accepted params for `backup` (`password`, `file`, `auto`, `maxhistory`) and whether `file:` really accepts a relative subdirectory path like `file:backups/name.bak`.~~ **Verified live:** `file:backups/name.bak` is accepted, but resolves relative to `/home/minima` (the container's home dir), not `/home/minima/data` as originally assumed — see the `docker-compose.yml` correction above. `password`/`auto`/`maxhistory` still unverified.
-- ~~Whether `backup auto:false` actually turns the built-in auto-backup back off, since the fetched docs only described how to turn it on.~~ **Verified live:** `backup auto:false` cleanly disables it (`{"autobackup":false}`). Also found live: `backup auto:true` alone writes its rolling backup to `/home/minima/data/minima-backup-<ts>.bak`, outside the shared `backups/` folder and invisible to `listBackups()` — fixed by always passing `file:backups/auto-backup.bak` alongside `auto:true` (`setAutoBackupEnabled()`), which Minima honors, redirecting the rolling auto-backup into the shared, UI-visible folder as one fixed, overwritten-in-place file. Not yet observed: whether Minima's own internal daily timer re-applies that same `file:` target on each subsequent automatic run, or only honors it for the confirmation backup made at toggle-on time (would require waiting a full day to confirm).
-- Whether `restoresync` requires the node to already be freshly initialized, or can run against an already-running node in place — **still outstanding, not yet tested** (destructive to current wallet/chain state; needs a deliberate test run, not casual verification).
+- The admin sets **one backup password**, once, stored encrypted in SQLite (`shared/crypto.ts`'s existing `encryptSecret`/`decryptSecret`, AES-256-GCM keyed by `APP_SECRET` — the same primitive already used for Integritas tokens; never returned by any API response).
+- Every backup — manual (`POST /api/minima/backups`) or automatic (our own scheduler) — uses that same stored password. There is no more "encrypted vs unencrypted" distinction; every backup this feature creates is equally protected.
+- Our own backend scheduler (`minima-backup-scheduler.service.ts`, started from `index.ts` like the other pollers) replaces Minima's internal timer: checks an `auto-backup enabled` setting on an interval and calls `createBackup({ auto: true })` directly into our shared `backups/` folder, so it's always visible, always capped, always cleaned up — none of which was achievable while relying on Minima's own scheduler.
+- Two lists by **trigger source** (not encryption status, since that axis no longer exists): **Manual** (max 5, blocked with a clear error at the cap — prompts the operator to delete one first) and **Auto** (max 10, oldest auto-deleted). Classified by filename (`minima-manual-<ts>.bak` / `minima-auto-<ts>.bak`), no new DB table.
+- Both lists are downloadable now (no more download-gating logic) — every backup is protected by the same real, admin-chosen password, so there's no weaker class to hide.
+- Storing the backup password in our own encrypted settings (rather than requiring re-entry every time) was an open question this session. Resolution: it's fine, and meaningfully different from the earlier-rejected idea of encrypting backup *file contents* with `APP_SECRET` directly — that would have doubled as a standing, unrotatable key for the file data itself. Here, `APP_SECRET` only protects a small setting value at rest, exactly like existing Integritas token storage; the actual backup files remain protected by the admin's own chosen password, which is what makes them safe once they leave the device (a laptop Downloads folder, etc.) — the local DB storage doesn't weaken that, since an attacker who already has DB access has host/container access anyway (already out of scope for this project's threat model).
 
 ## Backend changes
 
-- **`docker-compose.yml`** — `backend` service gains `${MINIMA_DATA_DIR:-./minima}/backups:/minima-backups` in `volumes:`. **Correction found during live testing:** `minima` also needs its own mount of the same host directory at `/home/minima/backups`. Minima does not resolve the `backup`/`restoresync` `file:` argument relative to `/home/minima/data` as originally assumed — a direct RPC test (`backup file:backups/sanity-test.bak`) confirmed it resolves relative to `/home/minima` (the container's home dir) instead, so without this second mount the file lands in the container's ephemeral layer and is invisible to `backend`/lost on restart.
-- **`backend/src/features/minima/minima-backup.service.ts`** (new) — `listBackups()`, `createBackup({ password? })`, `restoreBackup({ fileName, password? })`, `deleteBackup(fileName)`, `saveUploadedBackup(tmpPath, originalName)`, `getBackupFilePath(fileName)`, `getAutoBackupEnabled()`/`setAutoBackupEnabled(enabled)`, plus `verifyCurrentPassword()`/`MinimaBackupError` for the re-auth gate. Reuses the resolve-then-realpath containment check pattern from `files.service.ts`. `createBackup`/`restoreBackup` wrap `beginMinimaOperation("backup"|"restore")` with the same "clear only on throw" try/catch shape as `resyncMegammr()` in `minima.service.ts`, so the node shows as busy until the next successful status poll.
-- **`backend/src/features/minima/minima-upload.middleware.ts`** (new) — small multer tmpdir middleware mirroring `backend/src/features/integritas/upload.middleware.ts`, used for restore-by-upload.
-- **`backend/src/features/minima/minima-monitoring.ts`** — `MinimaOperationType` extended from `"restart" | "resync"` to also include `"backup" | "restore"`.
-- **`backend/src/features/minima/minima-console.catalog.ts`** / **`minima-console.service.ts`** — `backup` and `restoresync` are now dedicated special-dispatch catalog entries (same shape as `megammrsync.resync`/`peers.add`) that route through `createBackup()`/`restoreBackup()` instead of the generic RPC passthrough, extracting `password:`/`file:` from the typed command. Plain `restore` and `reset` remain generic passthrough, unchanged.
-- **`backend/src/features/minima/minima.routes.ts`** — new routes, all `requireRole("admin")`:
-  - `GET /api/minima/backups` — list.
-  - `POST /api/minima/backups` — create, body `{ password? }`.
-  - `POST /api/minima/backups/:fileName/download` — re-auth (`{ currentPassword }`) then stream the file; POST (not GET) because re-auth needs a body.
-  - `POST /api/minima/backups/restore` — re-auth + either `{ fileName, password? }` for an existing backup or a multipart upload (`file` field).
-  - `DELETE /api/minima/backups/:fileName` — no re-auth (only removes a copy of already-recoverable data).
-  - `GET`/`POST /api/minima/backups/auto` — read/toggle the auto-backup setting.
-  - All mutating routes call `recordAuditEvent` (`minima.backup.created`, `.downloaded`, `.restored`, `.deleted`, `.auto_toggled`) — never the password.
+- **`backend/src/features/minima/minima-backup.service.ts`**:
+  - `setBackupPassword(password)` / `getBackupPassword()` (internal) / `hasBackupPassword()` / `clearBackupPassword()` — encrypted via `shared/crypto.ts`.
+  - `createBackup({ auto })`: throws if no password is set; builds `backup file:backups/<name> password:"<stored>"`; enforces the manual cap (409 error) or prunes the oldest auto backup after a successful create.
+  - `restoreBackup({ fileName, password })`: explicit `password` wins (for uploaded/foreign `.bak` files with unknown history); otherwise falls back to the stored password automatically, so restoring one of our own listed backups needs no password re-entry.
+  - `getBackupFilePath()` no longer restricts by filename suffix — download is allowed for any tracked backup.
+  - `setAutoBackupEnabled(enabled)` is now a plain, synchronous setting toggle (no RPC call at all) — throws if enabling without a stored password first.
+- **`backend/src/features/minima/minima-backup-scheduler.service.ts`** (new): `startMinimaAutoBackupScheduler()`/`stop...()`, mirroring `minima-poll.service.ts`'s shape — a short initial delay (5 min) then every 24h, checks the enabled flag + stored password, calls `createBackup({ auto: true })`.
+- **`backend/src/index.ts`**: starts/stops the new scheduler alongside the other pollers, after migrations.
+- **`backend/src/features/minima/minima.routes.ts`**: new `GET/POST /api/minima/backups/password` (re-auth required to set/change); `POST /api/minima/backups` no longer takes a body; `POST /api/minima/backups/auto` handling simplified for the now-synchronous toggle.
+- **`backend/src/features/minima/minima-console.service.ts`**: `backup`/`restoresync` console dispatch no longer extracts a `password:` from the typed command — always uses the stored password via the same narrow functions.
 
 ## Frontend changes
 
-- **`frontend/src/features/minima/minimaBackupApi.ts`** (new) — thin fetch wrappers via `frontend/src/lib/api.ts` (`getJson`/`postJson`/`postForm`/`deleteJson`), plus a `downloadMinimaBackup()` blob-download helper matching the existing pattern in `integritasApi.ts`'s `downloadSelected()`.
-- **`frontend/src/features/minima/MinimaBackupPanel.tsx`** (new) — added to Account Settings below `MinimaSettingsPanel`. Gates actions on `actionsBlocked` (node must be `"running"`, same pattern as `MinimaSettingsPanel`/`WalletSettingsPanel`). Backup list (name, size, local+UTC created time) with Download/Restore/Delete per row; "Backup now" with optional password; "Automatic daily backups" toggle with an unencrypted-files warning; a restore view (pick an existing backup or upload a `.bak` file, optional password) gated behind a re-auth confirmation modal (reusing `Modal`) for both download and restore.
-- **`frontend/src/app/types.ts`** — added `MinimaBackupEntry`, `MinimaBackupListResponse`, `MinimaBackupCreateResult`, `MinimaAutoBackupResponse`.
-- **`frontend/src/pages/AuthSettingsPage.tsx`** — renders `<MinimaBackupPanel />` between `MinimaSettingsPanel` and `WalletSettingsPanel`.
+- **`MinimaBackupPanel.tsx`**: a "set backup password" step (re-auth required) gates everything else. "Backup now" is a single click, no password field. Auto-backup toggle disabled until a password is set, captioned to explain it's tracked in the Auto list like everything else. Two lists (Manual/Auto), both with Download/Restore/Delete. Restore view keeps an optional "password override" field only for the upload case.
+- **`minimaBackupApi.ts`** / **`app/types.ts`**: updated for the new response shapes (`{ manual, auto }`, `{ hasPassword }`), `createMinimaBackup()` takes no arguments.
 
 ## Docs
 
-- `README.md` — new paragraph under Configuration documenting the feature and volume, plus a new Backend API block for `/api/minima/backups*`.
-- `docs/security/host-and-infrastructure.md` — new "Minima Node Backup & Restore" risk entry (narrow scoped volume, path containment, admin + re-auth gating, audit logging, unencrypted-by-default risk).
-- `SECURITY.md` — guideline bullet extended to cover backup file download/upload alongside seed phrase import.
-- `CHANGELOG.md` — `Added` entry under `[Unreleased]`.
-- `.claude/rules/minima.md` / `.agents/rules/minima.md` / `.cursor/rules/minima.mdc` (kept in sync) — new bullet describing the backup/restoresync dispatch and the shared volume.
+- `README.md`, `SECURITY.md`, `docs/security/host-and-infrastructure.md`, `CHANGELOG.md`, and `.claude`/`.agents`/`.cursor` `minima` rules all updated to describe the new stored-password/own-scheduler design in place of the two previous iterations.
 
 ## Verification
 
-1. `npm run check`, `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config`, `docker compose build` (compose volumes changed).
-2. Manual, against a real/test Minima node (not production wallet funds) — still outstanding:
-   - Confirm `backup file:backups/test.bak password:...` writes a file visible from the `backend` container at `/minima-backups/test.bak`.
-   - Confirm `restoresync file:backups/test.bak password:... host:<megammr host>` succeeds end-to-end and the node's balance/history reappear.
-   - Confirm the auto-backup toggle's on *and* off commands behave as expected (the biggest documentation-accuracy risk called out above).
-3. Exercise the panel in the browser: create a password-protected backup, download it, delete it from the list, re-upload it, restore it, and confirm the re-auth prompt is enforced on both download and restore.
-4. `git status --short --untracked-files=all` before commit.
+1. `npm run check`, `npm --prefix backend run build`, `npm --prefix frontend run build`.
+2. Manual, against the live dev node:
+   - Set a backup password (requires re-auth); confirm "Backup now" and the auto-backup toggle are disabled until then.
+   - Create 6 manual backups — 6th must be rejected with a clear error, none created.
+   - Enable auto-backup, wait past the initial 5-minute delay (or verify via logs) — confirm a new auto backup appears in the Auto list.
+   - Restore one of the listed backups without typing a password — must succeed using the stored password automatically.
+   - Upload a foreign `.bak` with a different password via the override field — must succeed, and the uploaded file must not linger in either list afterward.
+3. `git status --short --untracked-files=all` before commit.

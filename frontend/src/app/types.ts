@@ -99,9 +99,10 @@ export type MinimaConsoleWhitelist = {
 };
 export type MinimaConsoleRunResult = MinimaCommandResult;
 export type MinimaBackupEntry = { fileName: string; sizeBytes: number; createdAt: string };
-export type MinimaBackupListResponse = { backups: MinimaBackupEntry[] };
-export type MinimaBackupCreateResult = MinimaCommandResult & { fileName: string };
+export type MinimaBackupListResponse = { manual: MinimaBackupEntry[]; auto: MinimaBackupEntry[] };
+export type MinimaBackupCreateResult = MinimaCommandResult & { fileName: string; auto: boolean };
 export type MinimaAutoBackupResponse = { autoBackupEnabled: boolean };
+export type MinimaBackupPasswordResponse = { hasPassword: boolean };
 export type IntegritasConfig = { baseUrl: string; requestId: string; hasApiKey: boolean; apiKeySource: "connect" | "database" | "environment" | "none"; portalUrl: string };
 export type StatusOverview = {
   generatedAt: string;

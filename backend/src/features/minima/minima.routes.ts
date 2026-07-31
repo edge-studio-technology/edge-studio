@@ -6,15 +6,18 @@ import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
 import { authRateLimiter } from "../auth/rate-limit.middleware.js";
 import {
+  clearBackupPassword,
   createBackup,
   deleteBackup,
   getAutoBackupEnabled,
   getBackupFilePath,
+  hasBackupPassword,
   listBackups,
   MinimaBackupError,
   restoreBackup,
   saveUploadedBackup,
   setAutoBackupEnabled,
+  setBackupPassword,
   verifyCurrentPassword
 } from "./minima-backup.service.js";
 import { getConsoleWhitelist, MinimaConsoleError, runConsoleCommand, updateConsoleWhitelist } from "./minima-console.service.js";
@@ -174,16 +177,44 @@ function handleMinimaBackupError(res: Response, error: unknown) {
 
 minimaRouter.get("/backups", requireRole("admin"), async (_req, res) => {
   try {
-    res.json({ backups: await listBackups() });
+    res.json(await listBackups());
   } catch (error) {
     unexpected(res, "Failed to list Minima backups", error);
   }
 });
 
+minimaRouter.get("/backups/password", requireRole("admin"), (_req, res) => {
+  res.json({ hasPassword: hasBackupPassword() });
+});
+
+minimaRouter.post("/backups/password", requireRole("admin"), authRateLimiter, async (req, res) => {
+  try {
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    await verifyCurrentPassword(req.user?.id, currentPassword);
+    const backupPassword = typeof req.body?.backupPassword === "string" ? req.body.backupPassword : "";
+    setBackupPassword(backupPassword);
+    recordAuditEvent("minima.backup.password_set", { userId: req.user?.id });
+    res.json({ hasPassword: true });
+  } catch (error) {
+    handleMinimaBackupError(res, error);
+  }
+});
+
+minimaRouter.delete("/backups/password", requireRole("admin"), authRateLimiter, async (req, res) => {
+  try {
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    await verifyCurrentPassword(req.user?.id, currentPassword);
+    clearBackupPassword();
+    recordAuditEvent("minima.backup.password_cleared", { userId: req.user?.id });
+    res.json({ hasPassword: false });
+  } catch (error) {
+    handleMinimaBackupError(res, error);
+  }
+});
+
 minimaRouter.post("/backups", requireRole("admin"), async (req, res) => {
   try {
-    const password = typeof req.body?.password === "string" ? req.body.password : undefined;
-    const result = await createBackup({ password });
+    const result = await createBackup({ auto: false });
     recordAuditEvent("minima.backup.created", { userId: req.user?.id, detail: result.fileName });
     if (!result.ok) return dependencyUnavailable(res, "Backup failed", undefined, undefined, result);
     res.json(result);
@@ -208,13 +239,17 @@ minimaRouter.post("/backups/:fileName/download", requireRole("admin"), async (re
 });
 
 minimaRouter.post("/backups/restore", requireRole("admin"), backupUpload.single("file"), async (req, res) => {
+  // An uploaded file is a one-time restore source, not a permanently tracked/classified
+  // entry (we don't know if it's encrypted), so it's removed from the shared folder after
+  // the restore attempt either way instead of lingering and confusing the two lists above.
+  let uploadedFileName: string | null = null;
   try {
     const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
     await verifyCurrentPassword(req.user?.id, currentPassword);
 
     const password = typeof req.body?.password === "string" ? req.body.password : undefined;
     const fileName = req.file
-      ? await saveUploadedBackup(req.file.path, req.file.originalname)
+      ? (uploadedFileName = await saveUploadedBackup(req.file.path, req.file.originalname))
       : typeof req.body?.fileName === "string"
         ? req.body.fileName
         : "";
@@ -225,8 +260,10 @@ minimaRouter.post("/backups/restore", requireRole("admin"), backupUpload.single(
     if (!result.ok) return dependencyUnavailable(res, "Restore failed", undefined, undefined, result);
     res.json(result);
   } catch (error) {
-    if (req.file) await fs.rm(req.file.path, { force: true });
+    if (req.file && !uploadedFileName) await fs.rm(req.file.path, { force: true });
     handleMinimaBackupError(res, error);
+  } finally {
+    if (uploadedFileName) await deleteBackup(uploadedFileName).catch(() => undefined);
   }
 });
 
@@ -247,16 +284,13 @@ minimaRouter.get("/backups/auto", requireRole("admin"), (_req, res) => {
   res.json({ autoBackupEnabled: getAutoBackupEnabled() });
 });
 
-minimaRouter.post("/backups/auto", requireRole("admin"), async (req, res) => {
+minimaRouter.post("/backups/auto", requireRole("admin"), (req, res) => {
   try {
     const enabled = req.body?.enabled === true;
-    const result = await setAutoBackupEnabled(enabled);
+    const result = setAutoBackupEnabled(enabled);
     recordAuditEvent("minima.backup.auto_toggled", { userId: req.user?.id, detail: String(enabled) });
-    if (!result.ok) return dependencyUnavailable(res, "Failed to update auto-backup", undefined, undefined, result);
-    res.json({ autoBackupEnabled: result.autoBackupEnabled });
+    res.json(result);
   } catch (error) {
-    const nativeMessage = error instanceof Error ? error.message : "Unknown error";
-    const message = normalizeMinimaRpcError(nativeMessage);
-    dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });
+    handleMinimaBackupError(res, error);
   }
 });

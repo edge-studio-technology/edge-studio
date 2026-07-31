@@ -104,8 +104,7 @@ export async function runConsoleCommand(userId: string | undefined, rawInput: st
     const match = /peerslist:(\S+)/i.exec(command);
     result = await addMinimaPeers(match?.[1] ?? "");
   } else if (entry.dispatch === "backup") {
-    const passwordMatch = /password:"?([^"\s]+)"?/i.exec(command);
-    result = await createBackup({ password: passwordMatch?.[1] });
+    result = await createBackup({ auto: false });
   } else if (entry.dispatch === "restoresync") {
     const fileMatch = /file:(\S+)/i.exec(command);
     const passwordMatch = /password:"?([^"\s]+)"?/i.exec(command);

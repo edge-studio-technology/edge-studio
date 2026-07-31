@@ -8,11 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Account Settings now includes a Minima node backup & restore panel: create, download, upload, and restore full node backups (`.bak` files — seed phrase, private keys, coin proofs, and transaction history, not just wallet keys), plus an optional built-in daily auto-backup toggle. Restore always re-syncs from the configured Megammr host. Backups live in a new, narrow read-write volume shared between `backend` and `minima` (`${MINIMA_DATA_DIR}/backups`); downloading or restoring a backup requires re-entering the admin PIN/password. See `docs/plans/minima-node-backup-restore.md`.
+- Account Settings now includes a Minima node backup & restore panel: create, download, upload, and restore full node backups (`.bak` files — seed phrase, private keys, coin proofs, and transaction history, not just wallet keys). One admin-chosen backup password (re-auth required, stored encrypted) is used for every backup — manual (`Backup now`) or automatic — and can be changed or removed at any time (removing it also turns off automatic backups). A new backend-owned scheduler creates automatic backups every 24 hours, replacing Minima's own built-in auto-backup (which could never be given a custom password or a visible/manageable location). Backups are tracked in two collapsible lists — Manual (max 5, blocked with a clear error at the cap) and Auto (max 10, oldest auto-deleted) — both downloadable and restorable, since every backup now shares the same real password. Deleting a backup or restoring from the list or an uploaded file always asks for confirmation first. Restore always re-syncs from the configured Megammr host. Backups live in a new, narrow read-write volume shared between `backend` and `minima` (`${MINIMA_DATA_DIR}/backups`); downloading, restoring, or changing/removing the backup password all require re-entering the admin PIN/password. See `docs/plans/minima-node-backup-restore.md`.
 
 ### Deprecated
 
-- The Wallet settings panel (seed-phrase-only wallet import) is hidden from Account Settings, superseded by the new Node backup & restore panel for the common case. Seed-phrase-only restore (useful when only the words, not a backup file, are available) is planned as a "coming soon" option inside the new panel for v1.5; the underlying import API/UI code is untouched and not deleted.
+- The Wallet settings panel (seed-phrase-only wallet import) is hidden from Account Settings, superseded by the new Node backup & restore panel for the common case. Seed-phrase-only restore (useful when only the words, not a backup file, are available) is deferred to post-v1; the underlying import API/UI code is untouched and not deleted.
 
 ## [0.26.1] 2026-07-29
 
