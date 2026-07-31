@@ -4,6 +4,20 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased]
+
+### Added
+
+- Shared `Disclosure` (`components/ui/`) for native collapse/expand sections with lucide chevron styling; the workflow toolkit now uses it for block categories.
+- Shared `ScrollArea` (`components/ui/`) for panels and rails that need thin ESDS-token scrollbar styling; the workflow toolkit now uses it.
+
+### Changed
+
+- Automation workflow create/edit/watch canvases now use the new ESDS/Figma-inspired workflow frame, explicit workflow routes, full-bleed shell layout, right-side toolkit, flat category block cards, selected-block treatment, and create-workflow leave confirmation.
+- Automation selected-block inspector now opens as a full-height viewport side sheet above the workspace chrome, with cleaner section cards and shared form controls.
+- Automation watch-mode runtime inspector now uses the same section-card hierarchy for run summary, block status, output JSON, and Diagnostics links.
+- Automation watch-mode Run controls now share the same rail panel shell and header typography as the workflow toolkit.
+
 ## [0.28.2] 2026-07-30
 
 ### Added

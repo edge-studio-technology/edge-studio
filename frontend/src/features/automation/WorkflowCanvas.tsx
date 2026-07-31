@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import type { DataSource } from "../data-sources/dataSourceTypes";
-import { DarkHeroCard } from "../../components/DarkHeroCard";
+import { Disclosure } from "../../components/ui/Disclosure";
+import { Pill } from "../../components/Pill";
+import { ScrollArea } from "../../components/ui/ScrollArea";
 import { cx } from "../../lib/cx";
 import type { AutomationBlock, AutomationBlockType } from "./automationTypes";
 
@@ -29,97 +31,127 @@ export type WorkflowCanvasRuntimeState = {
   error?: string | null;
 };
 
-const mutedText = "text-sm text-slate-500";
-const shellClass = "grid gap-5 rounded-[28px] border border-slate-200 bg-white/92 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.12)] sm:p-5";
-const topbarClass = "flex flex-col gap-4 p-5 lg:flex-row lg:items-start lg:justify-between";
-const gridClass = "grid gap-4 xl:grid-cols-[280px_minmax(360px,1fr)_360px]";
-const rowActionsClass = "flex flex-wrap items-center gap-2";
-const neutralPillClass = "inline-flex w-fit items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-slate-600";
-const statusPillClass = (good: boolean) => cx("inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide", good ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600");
-const libraryClass = "grid content-start gap-3 rounded-[22px] border border-slate-200 bg-slate-50/80 p-4";
-const libraryCardClass = "grid gap-1 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0";
-const canvasClass = "rounded-[22px] border border-blue-200 bg-blue-50/55 p-4";
-const canvasLaneClass = "mt-4 rounded-[22px] border-2 border-dashed border-blue-300 bg-white/80 p-4";
-const emptyCanvasClass = "rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-center";
-const blockBaseClass = "relative max-w-[430px] cursor-pointer rounded-[18px] px-[18px] py-3.5 text-white shadow-[0_12px_20px_rgba(15,23,42,0.15)] before:absolute before:left-[34px] before:top-[-18px] before:hidden before:h-[18px] before:w-1 before:bg-slate-400 [&+&]:mt-[18px] [&+&]:before:block";
-const selectedBlockClass = "outline outline-4 outline-offset-4 outline-sky-500/30";
-const blockActionClass = "rounded-full border-0 bg-white/90 px-2 py-1 text-xs font-extrabold text-slate-950 disabled:opacity-45";
+const mutedText = "type-meta text-text-secondary";
+const shellClass = "border-stroke-primary bg-surface-always-white flex h-screen min-h-0 flex-col overflow-hidden border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";
+const topbarClass = "border-stroke-secondary bg-surface-always-white px-margin-tight py-detail-close flex flex-col gap-detail-close border-b lg:flex-row lg:items-start lg:justify-between xl:items-center";
+const workspaceClass = "bg-surface-secondary relative min-h-0 flex-1 overflow-hidden";
+const canvasFrameClass = "h-full min-h-0";
+const railClass = "z-10 xl:absolute xl:top-margin-tight xl:right-detail-near xl:w-[360px]";
+const rowActionsClass = "gap-detail-next flex flex-wrap items-center";
+const statusPillClass = (good: boolean) => good ? "good" : "neutral";
+const railPanelClass = "bg-surface-always-white border-stroke-secondary grid content-start gap-detail-close rounded-soft border p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)] xl:sticky xl:top-margin-tight xl:max-h-[calc(100vh-260px)]";
+const libraryCardClass = "border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-loose border p-detail-close text-left transition-colors hover:border-stroke-primary hover:bg-surface-always-white focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-text-disabled disabled:opacity-60";
+const canvasClass = "h-full min-h-0 overflow-hidden";
+const canvasLaneClass = "relative flex h-full min-h-[360px] flex-col items-center px-detail-close py-margin-relaxed md:min-h-0 md:px-margin-relaxed md:py-margin-relaxed";
+const canvasContentClass = "flex min-h-full w-full flex-col items-center [justify-content:safe_center]";
+const canvasEndSpacerClass = "h-[40px] w-px shrink-0";
+const emptyCanvasClass = "border-stroke-primary bg-surface-secondary text-text-primary grid min-h-[180px] w-full max-w-[520px] place-items-center rounded-soft border border-dashed p-margin-relaxed text-center";
+const blockBaseClass = "relative w-full max-w-[520px] cursor-pointer rounded-loose border px-detail-close py-detail-close text-text-primary transition-[border-color,box-shadow] before:absolute before:left-1/2 before:top-[-25px] before:hidden before:h-[24px] before:w-px before:-translate-x-1/2 before:bg-stroke-active focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none [&+&]:mt-detail-near [&+&]:before:block";
+const selectedBlockClass = "border-stroke-active shadow-[0_0_0_1px_var(--color-stroke-active)]";
+const blockActionClass = "type-meta border-stroke-secondary bg-surface-always-white text-text-primary h-6 rounded-loose border px-detail-next disabled:cursor-not-allowed disabled:text-text-disabled";
 
-export function WorkflowWorkspaceShell({ eyebrow, title, description, actions, left, center, right, bottom, notices }: { eyebrow: string; title: string; description: ReactNode; actions?: ReactNode; left: ReactNode; center: ReactNode; right: ReactNode; bottom?: ReactNode; notices?: ReactNode }) {
+export function WorkflowWorkspaceShell({ breadcrumbLabel, nameControl, actions, canvas, rail, selectedSheet, bottom, notices }: { breadcrumbLabel: string; nameControl: ReactNode; actions?: ReactNode; canvas: ReactNode; rail: ReactNode; selectedSheet?: ReactNode; bottom?: ReactNode; notices?: ReactNode }) {
   return (
     <section className={shellClass}>
-      <DarkHeroCard layout="none" className={topbarClass}>
-        <div className="relative z-10">
-          <span className="inline-flex w-fit items-center rounded-full bg-white/10 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-slate-200">{eyebrow}</span>
-          <h2>{title}</h2>
-          {typeof description === "string" ? <p className="text-sm text-slate-300">{description}</p> : description}
+      <div className={topbarClass}>
+        <div className="gap-detail-next grid min-w-0 flex-1">
+          <p className="type-meta text-text-secondary m-0">Automation <span aria-hidden>&gt;</span> <strong className="text-text-primary">{breadcrumbLabel}</strong></p>
+          <div className="max-w-[360px]">{nameControl}</div>
         </div>
         {actions && <div className={cx("relative z-10", rowActionsClass)}>{actions}</div>}
-      </DarkHeroCard>
-      {notices}
-      <div className={gridClass}>
-        {left}
-        {center}
-        {right}
       </div>
-      {bottom}
+      {notices && <div className="border-stroke-secondary bg-surface-primary px-margin-tight py-detail-next grid gap-detail-next border-b">{notices}</div>}
+      <div className={workspaceClass}>
+        <div className={canvasFrameClass}>
+          {canvas}
+        </div>
+        <div className={railClass}>
+          {rail}
+        </div>
+        {selectedSheet}
+        {bottom && <div className="absolute inset-x-margin-tight bottom-margin-tight z-10 md:inset-x-detail-near md:bottom-detail-near">{bottom}</div>}
+      </div>
     </section>
+  );
+}
+
+export function WorkflowRailPanel({ children, className }: { children: ReactNode; className?: string }) {
+  return <ScrollArea className={cx(railPanelClass, className)}>{children}</ScrollArea>;
+}
+
+export function WorkflowRailHeader({ title, description }: { title: string; description: ReactNode }) {
+  return (
+    <div className="grid gap-detail-next">
+      <strong className="type-body-em text-text-primary">{title}</strong>
+      <p className={cx(mutedText, "m-0")}>{description}</p>
+    </div>
   );
 }
 
 export function WorkflowBlockLibrary({ mode = "build", hasStartBlock, selectedBlock, canAddRecordTriggerEvent = true, onSelectStartBlock, onAddBlock, onAttachStamp }: { mode?: "build" | "edit"; hasStartBlock: boolean; selectedBlock: DraftWorkflowBlock | undefined; canAddRecordTriggerEvent?: boolean; onSelectStartBlock: (type: AutomationBlockType) => void; onAddBlock: (type: AutomationBlockType) => void; onAttachStamp: (parentId: string) => void }) {
   const canAddMainBlock = hasStartBlock;
   return (
-    <aside className={libraryClass}>
-      <strong>Block library</strong>
-      <p className={mutedText}>{mode === "build" ? "Choose one start block first. Reset the canvas if you need to choose a different start." : "Add blocks to this workflow. Select a block on the canvas to configure it."}</p>
-      {mode === "build" && !hasStartBlock && <strong>Start blocks</strong>}
-      {mode === "build" && !hasStartBlock && <LibraryCard onClick={() => onSelectStartBlock("manual_start")} title="Manual run" description="Run only when an operator starts it." />}
-      {mode === "build" && !hasStartBlock && <LibraryCard onClick={() => onSelectStartBlock("schedule_start")} title="Schedule" description="Run repeatedly on an interval." />}
-      {mode === "build" && !hasStartBlock && <LibraryCard onClick={() => onSelectStartBlock("gpio_event_start")} title="GPIO input event" description="Start from a configured GPIO input device." />}
-      {mode === "build" && !hasStartBlock && <LibraryCard onClick={() => onSelectStartBlock("webhook_event_start")} title="Webhook received" description="Start when JSON arrives at a webhook URL." />}
-      {mode === "build" && !hasStartBlock && <LibraryCard onClick={() => onSelectStartBlock("mqtt_event_start")} title="MQTT message received" description="Start when JSON arrives on an MQTT topic." />}
-      {mode === "build" && hasStartBlock && <p className={mutedText}>Start block selected. Data and logic blocks can now be added.</p>}
-      <strong>Data blocks</strong>
-      <LibraryCard disabled={!canAddMainBlock || !canAddRecordTriggerEvent} onClick={() => onAddBlock("record_trigger_event")} title="Record trigger event" description="Store the trigger payload as data." />
-      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("fetch_data_source")} title="Fetch data source" description="Read a configured source such as HTTP JSON or BME sensor." />
-      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("capture_camera")} title="Capture camera" description="Capture media from a configured Raspberry Pi Camera." />
-      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("set_variable")} title="Add variable" description="Save a value for later blocks." />
-      <strong>Logic blocks</strong>
-      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("if_payload_field_equals")} title="If field matches" description="Stop unless a trigger field or variable matches." />
-      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("wait")} title="Wait" description="Pause before the next block." />
-      <strong>Action blocks</strong>
-      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("show_preview")} title="Show preview" description="Display a message, JSON, link, or image in the Pi UI." />
-      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("control_output")} title="Control device" description="Send a command to a configured output target." />
-      <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("send_transaction")} title="Send payment" description="Send funds to a saved recipient." />
-      <strong>Attached actions</strong>
-      <LibraryCard disabled={!selectedBlock || !isDataBlock(selectedBlock.type) || Boolean(selectedBlock.attachedBlocks?.some((block) => block.type === "stamp_integritas"))} onClick={() => selectedBlock && onAttachStamp(selectedBlock.id)} title="Stamp data" description="Create an Integritas proof for recorded or fetched data." />
-    </aside>
+    <WorkflowRailPanel>
+      <WorkflowRailHeader title="Toolkit" description={mode === "build" ? "Choose a sequence of blocks from the toolkit, then add logic to build your workflow." : "Add blocks to this workflow. Select a block on the canvas to configure it."} />
+      {mode === "build" && !hasStartBlock && <ToolkitGroup title="Start blocks">
+        <LibraryCard onClick={() => onSelectStartBlock("manual_start")} title="Manual run" description="Run only when an operator starts it." />
+        <LibraryCard onClick={() => onSelectStartBlock("schedule_start")} title="Schedule" description="Run repeatedly on an interval." />
+        <LibraryCard onClick={() => onSelectStartBlock("gpio_event_start")} title="GPIO input event" description="Start from a configured GPIO input device." />
+        <LibraryCard onClick={() => onSelectStartBlock("webhook_event_start")} title="Webhook received" description="Start when JSON arrives at a webhook URL." />
+        <LibraryCard onClick={() => onSelectStartBlock("mqtt_event_start")} title="MQTT message received" description="Start when JSON arrives on an MQTT topic." />
+      </ToolkitGroup>}
+      {mode === "build" && hasStartBlock && <p className={cx(mutedText, "m-0")}>Start block selected. Data and logic blocks can now be added.</p>}
+      <ToolkitGroup title="Data blocks">
+        <LibraryCard disabled={!canAddMainBlock || !canAddRecordTriggerEvent} onClick={() => onAddBlock("record_trigger_event")} title="Record trigger event" description="Store the trigger payload as data." />
+        <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("fetch_data_source")} title="Fetch data source" description="Read a configured source such as HTTP JSON or BME sensor." />
+        <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("capture_camera")} title="Capture camera" description="Capture media from a configured Raspberry Pi Camera." />
+        <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("set_variable")} title="Add variable" description="Save a value for later blocks." />
+      </ToolkitGroup>
+      <ToolkitGroup title="Logic blocks">
+        <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("if_payload_field_equals")} title="If field matches" description="Stop unless a trigger field or variable matches." />
+        <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("wait")} title="Wait" description="Pause before the next block." />
+      </ToolkitGroup>
+      <ToolkitGroup title="Action blocks">
+        <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("show_preview")} title="Show preview" description="Display a message, JSON, link, or image in the Pi UI." />
+        <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("control_output")} title="Control device" description="Send a command to a configured output target." />
+        <LibraryCard disabled={!canAddMainBlock} onClick={() => onAddBlock("send_transaction")} title="Send payment" description="Send funds to a saved recipient." />
+      </ToolkitGroup>
+      <ToolkitGroup title="Attached actions">
+        <LibraryCard disabled={!selectedBlock || !isDataBlock(selectedBlock.type) || Boolean(selectedBlock.attachedBlocks?.some((block) => block.type === "stamp_integritas"))} onClick={() => selectedBlock && onAttachStamp(selectedBlock.id)} title="Stamp data" description="Create an Integritas proof for recorded or fetched data." />
+      </ToolkitGroup>
+    </WorkflowRailPanel>
   );
 }
 
-function LibraryCard({ title, description, disabled, onClick }: { title: string; description: string; disabled?: boolean; onClick: () => void }) {
-  return <button type="button" className={libraryCardClass} disabled={disabled} onClick={onClick}><span className="font-extrabold text-slate-950">{title}</span><small className="text-sm text-slate-500">{description}</small></button>;
+function ToolkitGroup({ title, children }: { title: string; children: ReactNode }) {
+  return <Disclosure title={title}>{children}</Disclosure>;
 }
 
-export function WorkflowCanvas({ mode, blocks, sources, selectedBlockId, statusLabel, statusGood, validationByBlockId = {}, runtimeByBlockId = {}, onSelectBlock, onMoveBlock, onRemoveBlock }: { mode: WorkflowCanvasMode; blocks: WorkflowCanvasBlock[]; sources: DataSource[]; selectedBlockId: string; statusLabel: string; statusGood: boolean; validationByBlockId?: Record<string, WorkflowCanvasValidationIssue[]>; runtimeByBlockId?: Record<string, WorkflowCanvasRuntimeState>; onSelectBlock: (id: string) => void; onMoveBlock: (id: string, direction: -1 | 1) => void; onRemoveBlock: (id: string) => void }) {
+function LibraryCard({ title, description, disabled, onClick }: { title: string; description: string; disabled?: boolean; onClick: () => void }) {
+  return <button type="button" className={libraryCardClass} disabled={disabled} onClick={onClick}><span className="type-body-em">{title}</span><small className="type-meta text-text-secondary">{description}</small></button>;
+}
+
+export function WorkflowCanvas({ mode, blocks, sources, selectedBlockId, statusLabel, statusGood, dimmed = false, bottomOverlay = false, validationByBlockId = {}, runtimeByBlockId = {}, onSelectBlock, onMoveBlock, onRemoveBlock }: { mode: WorkflowCanvasMode; blocks: WorkflowCanvasBlock[]; sources: DataSource[]; selectedBlockId: string; statusLabel: string; statusGood: boolean; dimmed?: boolean; bottomOverlay?: boolean; validationByBlockId?: Record<string, WorkflowCanvasValidationIssue[]>; runtimeByBlockId?: Record<string, WorkflowCanvasRuntimeState>; onSelectBlock: (id: string) => void; onMoveBlock: (id: string, direction: -1 | 1) => void; onRemoveBlock: (id: string) => void }) {
   const isBuild = mode === "build";
   const actionLabels = isBuild ? { up: "Up", down: "Down", remove: "Remove" } : { up: "Move up", down: "Move down", remove: "Remove" };
   return (
     <section className={canvasClass}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <strong>{isBuild ? "Draft canvas" : "Workflow canvas"}</strong>
-          <p className={mutedText}>{isBuild ? "This is the starter chain that will be created." : "Select a block to edit or inspect it. Move and remove actions apply immediately."}</p>
+      <div className="sr-only">
+        <h3>{isBuild ? "Draft canvas" : "Workflow canvas"}</h3>
+        <p>{isBuild ? "This is the starter chain that will be created." : "Select a block to edit or inspect it. Move and remove actions apply immediately."}</p>
+      </div>
+      <ScrollArea className={cx(canvasLaneClass, dimmed && "xl:after:bg-overlay-light after:pointer-events-none after:absolute after:inset-0 after:z-20")}>
+        <div className="absolute right-margin-tight top-margin-tight z-10">
+          <Pill tone={statusPillClass(statusGood)}>{statusLabel}</Pill>
         </div>
-        <span className={statusPillClass(statusGood)}>{statusLabel}</span>
-      </div>
-      <div className={canvasLaneClass}>
-        {blocks.length === 0 && <div className={emptyCanvasClass}><strong>{isBuild ? "Choose a start block" : "No blocks"}</strong><p className={mutedText}>{isBuild ? "Start with Manual, Schedule, GPIO, Webhook, or MQTT. Then add data and logic blocks." : "Add a start block by creating a new workflow."}</p></div>}
-        {blocks.map((block, index) => (
-          <WorkflowBlockCard key={block.id} block={block} index={index} sources={sources} selected={block.id === selectedBlockId} canMoveUp={index > 1} canMoveDown={index > 0 && index < blocks.length - 1} actionLabels={actionLabels} validationIssues={validationByBlockId[block.id] ?? []} runtime={runtimeByBlockId[block.id]} onSelect={() => onSelectBlock(block.id)} onMoveUp={() => onMoveBlock(block.id, -1)} onMoveDown={() => onMoveBlock(block.id, 1)} onRemove={() => onRemoveBlock(block.id)} />
-        ))}
-      </div>
+        <div className={cx(canvasContentClass, bottomOverlay && "pb-[240px]")}>
+          {blocks.length === 0 && <div className={emptyCanvasClass}><div className="grid gap-detail-next"><span className="type-title text-text-tertiary">+</span><strong className="type-body-em">{isBuild ? "Click from the toolkit to add a start block" : "No blocks"}</strong><p className={cx(mutedText, "m-0")}>{isBuild ? "Start with Manual, Schedule, GPIO, Webhook, or MQTT. Then add data and logic blocks." : "Add a start block by creating a new workflow."}</p></div></div>}
+          {blocks.map((block, index) => (
+            <WorkflowBlockCard key={block.id} block={block} index={index} sources={sources} selected={block.id === selectedBlockId} canMoveUp={index > 1} canMoveDown={index > 0 && index < blocks.length - 1} actionLabels={actionLabels} validationIssues={validationByBlockId[block.id] ?? []} runtime={runtimeByBlockId[block.id]} onSelect={() => onSelectBlock(block.id)} onMoveUp={() => onMoveBlock(block.id, -1)} onMoveDown={() => onMoveBlock(block.id, 1)} onRemove={() => onRemoveBlock(block.id)} />
+          ))}
+          <div aria-hidden className={cx(canvasEndSpacerClass, bottomOverlay && "h-[240px]")} />
+        </div>
+      </ScrollArea>
     </section>
   );
 }
@@ -128,10 +160,15 @@ function WorkflowBlockCard({ block, index, sources, selected, canMoveUp, canMove
   const presentation = blockPresentation(block, sources, validationIssues, runtime);
   return (
     <div className={cx(blockBaseClass, presentation.className, selected && selectedBlockClass)} onClick={onSelect} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onSelect(); }}>
-      <span className="mb-1 block text-xs font-black uppercase tracking-widest opacity-80">{index === 0 ? "When" : "Then"}</span>
-      <strong>{presentation.title}</strong>
-      <p className="mt-1.5 text-sm text-white/85">{presentation.description}</p>
-      <WorkflowBadges badges={presentation.badges} />
+      <span className="type-meta text-text-secondary mb-detail-tight block uppercase">{index === 0 ? "Start" : "Then"}</span>
+      <div className="flex items-start justify-between gap-detail-close">
+        <div className="min-w-0">
+          <strong className="type-body-em block text-text-primary">{presentation.title}</strong>
+          <p className="type-meta text-text-primary mt-detail-tight mb-0">{presentation.description}</p>
+        </div>
+        <WorkflowBadges badges={presentation.badges.slice(0, 3)} />
+      </div>
+      {presentation.badges.length > 3 && <WorkflowBadges badges={presentation.badges.slice(3)} />}
       {block.attachedBlocks?.map((attached) => <AttachedBlockCard key={attached.id} block={attached} sources={sources} />)}
       {!block.type.endsWith("_start") && <div className="mt-3 flex flex-wrap gap-1.5">
         <button type="button" className={blockActionClass} disabled={!canMoveUp} onClick={(event) => { event.stopPropagation(); onMoveUp(); }}>{actionLabels.up}</button>
@@ -144,12 +181,12 @@ function WorkflowBlockCard({ block, index, sources, selected, canMoveUp, canMove
 
 function AttachedBlockCard({ block, sources }: { block: DraftWorkflowBlock; sources: DataSource[] }) {
   const presentation = blockPresentation(block, sources, [], undefined);
-  return <div className="mt-3 grid gap-1 rounded-[14px] border border-indigo-200 bg-indigo-50/95 p-3 text-indigo-900"><strong>+ {presentation.title}</strong><p className="m-0 text-sm text-slate-600">{presentation.description}</p><WorkflowBadges badges={presentation.badges} /></div>;
+  return <div className="border-stroke-secondary bg-surface-always-white mt-detail-close grid gap-detail-tight rounded-loose border p-detail-close"><strong className="type-body-em text-text-primary">{presentation.title}</strong><p className="type-meta text-text-primary m-0">{presentation.description}</p><WorkflowBadges badges={presentation.badges} /></div>;
 }
 
 function WorkflowBadges({ badges }: { badges: string[] }) {
   if (badges.length === 0) return null;
-  return <div className="mt-2.5 flex flex-wrap gap-1.5">{badges.map((badge) => <span key={badge} className="rounded-full bg-white/90 px-2 py-1 text-xs font-black text-slate-950">{badge}</span>)}</div>;
+  return <div className="gap-detail-tight flex shrink-0 flex-wrap justify-end">{badges.map((badge) => <Pill key={badge}>{badge}</Pill>)}</div>;
 }
 
 function blockPresentation(block: DraftWorkflowBlock, sources: DataSource[], validationIssues: WorkflowCanvasValidationIssue[], runtime?: WorkflowCanvasRuntimeState) {
@@ -240,16 +277,18 @@ export function draftBlockDescription(block: { type: AutomationBlockType; config
 }
 
 function blockCategoryClass(type: AutomationBlockType) {
-  if (type.endsWith("_start")) return "bg-gradient-to-br from-amber-500 to-orange-500";
-  if (type === "record_trigger_event" || type === "fetch_data_source" || type === "capture_camera" || type === "set_variable") return "bg-gradient-to-br from-blue-600 to-sky-500";
-  return "bg-gradient-to-br from-violet-600 to-purple-500";
+  if (type.endsWith("_start")) return "border-feedback-warning bg-[#fff0c7]";
+  if (type === "record_trigger_event" || type === "fetch_data_source" || type === "capture_camera") return "border-[#4f9cff] bg-[#cfe8ff]";
+  if (type === "set_variable" || type === "if_payload_field_equals" || type === "wait") return "border-[#d35cff] bg-[#ead1ff]";
+  if (type === "stamp_integritas") return "border-[#63c893] bg-[#bee9d4]";
+  return "border-[#ff7f9b] bg-[#ffc4d3]";
 }
 
 function runtimeClass(runtime?: WorkflowCanvasRuntimeState) {
   if (!runtime) return "";
-  if (runtime.status === "running") return "shadow-[0_0_0_4px_rgba(14,165,233,0.35),0_12px_20px_rgba(15,23,42,0.15)]";
-  if (runtime.status === "success") return "shadow-[0_0_0_4px_rgba(34,197,94,0.35),0_12px_20px_rgba(15,23,42,0.15)]";
-  if (runtime.status === "failed") return "shadow-[0_0_0_4px_rgba(239,68,68,0.45),0_12px_20px_rgba(15,23,42,0.15)]";
+  if (runtime.status === "running") return "shadow-[0_0_0_2px_#4f9cff]";
+  if (runtime.status === "success") return "shadow-[0_0_0_2px_var(--color-stroke-success)]";
+  if (runtime.status === "failed") return "shadow-[0_0_0_2px_var(--color-stroke-error)]";
   if (runtime.status === "skipped") return "opacity-80";
   return "";
 }
