@@ -114,7 +114,7 @@ function LibraryCard({ title, description, disabled, onClick }: { title: string;
   return <button type="button" className={libraryCardClass} disabled={disabled} onClick={onClick}><span className="type-body-em">{title}</span><small className="type-meta text-text-secondary">{description}</small></button>;
 }
 
-export function WorkflowCanvas({ mode, blocks, sources, selectedBlockId, statusLabel, statusGood, validationByBlockId = {}, runtimeByBlockId = {}, onSelectBlock, onMoveBlock, onRemoveBlock }: { mode: WorkflowCanvasMode; blocks: WorkflowCanvasBlock[]; sources: DataSource[]; selectedBlockId: string; statusLabel: string; statusGood: boolean; validationByBlockId?: Record<string, WorkflowCanvasValidationIssue[]>; runtimeByBlockId?: Record<string, WorkflowCanvasRuntimeState>; onSelectBlock: (id: string) => void; onMoveBlock: (id: string, direction: -1 | 1) => void; onRemoveBlock: (id: string) => void }) {
+export function WorkflowCanvas({ mode, blocks, sources, selectedBlockId, statusLabel, statusGood, dimmed = false, validationByBlockId = {}, runtimeByBlockId = {}, onSelectBlock, onMoveBlock, onRemoveBlock }: { mode: WorkflowCanvasMode; blocks: WorkflowCanvasBlock[]; sources: DataSource[]; selectedBlockId: string; statusLabel: string; statusGood: boolean; dimmed?: boolean; validationByBlockId?: Record<string, WorkflowCanvasValidationIssue[]>; runtimeByBlockId?: Record<string, WorkflowCanvasRuntimeState>; onSelectBlock: (id: string) => void; onMoveBlock: (id: string, direction: -1 | 1) => void; onRemoveBlock: (id: string) => void }) {
   const isBuild = mode === "build";
   const actionLabels = isBuild ? { up: "Up", down: "Down", remove: "Remove" } : { up: "Move up", down: "Move down", remove: "Remove" };
   return (
@@ -123,7 +123,7 @@ export function WorkflowCanvas({ mode, blocks, sources, selectedBlockId, statusL
         <h3>{isBuild ? "Draft canvas" : "Workflow canvas"}</h3>
         <p>{isBuild ? "This is the starter chain that will be created." : "Select a block to edit or inspect it. Move and remove actions apply immediately."}</p>
       </div>
-      <div className={canvasLaneClass}>
+      <div className={cx(canvasLaneClass, dimmed && "after:bg-overlay-light after:pointer-events-none after:absolute after:inset-0 after:z-20")}>
         <div className="absolute right-margin-tight top-margin-tight z-10">
           <Pill tone={statusPillClass(statusGood)}>{statusLabel}</Pill>
         </div>

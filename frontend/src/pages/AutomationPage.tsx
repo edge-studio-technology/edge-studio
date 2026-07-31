@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Archive, Copy, Eye, Pencil, Play, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, Copy, Eye, Pencil, Play, RotateCcw, Trash2, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button } from "../components/Button";
+import { Button, IconButton } from "../components/Button";
 import { DataTable, RowActions, TableIconButton, TableWrap, tableCellClass, tableHeaderCellClass, tableHeadRowClass, tableRowClass } from "../components/DataTable";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { JsonPreview } from "../components/JsonPreview";
@@ -414,7 +414,8 @@ function CreateWorkflowWorkspace({ name, enabled, sources, addressBook, walletSt
   const [backendValidation, setBackendValidation] = useState<AutomationValidationResult | null>(null);
   const [backendValidationError, setBackendValidationError] = useState<string | null>(null);
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
-  const selectedBlock = draftBlocks.find((block) => block.id === selectedBlockId) ?? draftBlocks[0];
+  const selectedBlock = selectedBlockId ? draftBlocks.find((block) => block.id === selectedBlockId) : undefined;
+  const toolkitSelectedBlock = selectedBlock ?? draftBlocks[0];
   const localErrors = name.trim() ? [] : ["Workflow name is required."];
   const backendErrors = backendValidation?.errors.map((issue) => issue.message) ?? [];
   const backendWarnings = backendValidation?.warnings.map((issue) => issue.message) ?? [];
@@ -519,8 +520,8 @@ function CreateWorkflowWorkspace({ name, enabled, sources, addressBook, walletSt
           <Button type="button" variant="secondary" size="sm" disabled={busy || draftBlocks.length === 0} onClick={resetCanvas}>Reset canvas</Button>
           <Button type="button" size="sm" disabled={busy || !canCreate} onClick={() => onCreate(flattenDraftBlocks(draftBlocks))}>Create workflow</Button>
         </>}
-        left={<WorkflowBlockLibrary hasStartBlock={hasStartBlock} selectedBlock={selectedBlock} onSelectStartBlock={selectStartBlock} onAddBlock={addDraftBlock} onAttachStamp={attachStampBlock} />}
-        center={<WorkflowCanvas mode="build" blocks={draftBlocks} sources={sources} statusLabel={enabled ? "Enabled on create" : "Paused on create"} statusGood={enabled} selectedBlockId={selectedBlock?.id ?? ""} validationByBlockId={draftValidationByBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={moveDraftBlock} onRemoveBlock={removeDraftBlock} />}
+        left={<WorkflowBlockLibrary hasStartBlock={hasStartBlock} selectedBlock={toolkitSelectedBlock} onSelectStartBlock={selectStartBlock} onAddBlock={addDraftBlock} onAttachStamp={attachStampBlock} />}
+        center={<WorkflowCanvas mode="build" blocks={draftBlocks} sources={sources} statusLabel={enabled ? "Enabled on create" : "Paused on create"} statusGood={enabled} dimmed={Boolean(selectedBlock)} selectedBlockId={selectedBlock?.id ?? ""} validationByBlockId={draftValidationByBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={moveDraftBlock} onRemoveBlock={removeDraftBlock} />}
         right={
           <aside className={cx(inspectorClass, formGridClass)}>
             <Panel>
@@ -533,7 +534,10 @@ function CreateWorkflowWorkspace({ name, enabled, sources, addressBook, walletSt
               {canCreate && <p className={mutedText}>No blocking draft errors. Review any warnings before creating.</p>}
             </Panel>
             <Panel>
-              <strong>Selected block</strong>
+              <div className="flex items-start justify-between gap-detail-close">
+                <strong>Selected block</strong>
+                {selectedBlock && <IconButton type="button" variant="ghost" size="compact" aria-label="Close selected block" onClick={() => setSelectedBlockId("")}><X aria-hidden /></IconButton>}
+              </div>
               {selectedBlock ? <DraftBlockInspector block={selectedBlock} sources={sources} addressBook={addressBook} walletStatus={walletStatus} onChange={(config) => updateBlock(selectedBlock.id, { config })} onAttachedChange={(attachedId, config) => updateAttachedBlock(selectedBlock.id, attachedId, config)} onAttachedRemove={(attachedId) => removeAttachedBlock(selectedBlock.id, attachedId)} /> : <p className={mutedText}>Choose a start block on the left or select a block on the canvas to configure it.</p>}
             </Panel>
             <Button type="button" size="sm" disabled={busy || !canCreate} onClick={() => onCreate(flattenDraftBlocks(draftBlocks))}>Create workflow</Button>
@@ -783,7 +787,7 @@ function WorkflowWorkspace({ workflow, runs, validation, source, sources, addres
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
   const startBlock = mainBlocks[0];
   const [selectedBlockId, setSelectedBlockId] = useState(startBlock?.id ?? "");
-  const selectedBlock = mainBlocks.find((block) => block.id === selectedBlockId) ?? startBlock;
+  const selectedBlock = selectedBlockId ? mainBlocks.find((block) => block.id === selectedBlockId) : undefined;
   const selectedDraftBlock = selectedBlock ? { id: selectedBlock.id, type: selectedBlock.type, config: selectedBlock.config, attachedBlocks: workflow.blocks.filter((item) => item.parentBlockId === selectedBlock.id).map((item) => ({ id: item.id, type: item.type, config: item.config })) } : undefined;
   const canvasBlocks = mainBlocks.map((block) => automationBlockToCanvasBlock(block, workflow.blocks));
   const canAddRecordTriggerEvent = Boolean(startBlock && (startBlock.type === "gpio_event_start" || startBlock.type === "webhook_event_start" || startBlock.type === "mqtt_event_start") && !mainBlocks.some((block) => block.type === "record_trigger_event"));
@@ -794,7 +798,7 @@ function WorkflowWorkspace({ workflow, runs, validation, source, sources, addres
   const watchRunStatusLabel = selectedRun?.status === "running" ? "Live updating" : selectedRun ? "Viewing historic run" : "No run selected";
 
   useEffect(() => {
-    if (startBlock && !mainBlocks.some((block) => block.id === selectedBlockId)) setSelectedBlockId(startBlock.id);
+    if (selectedBlockId && startBlock && !mainBlocks.some((block) => block.id === selectedBlockId)) setSelectedBlockId(startBlock.id);
   }, [mainBlocks, selectedBlockId, startBlock]);
 
   useEffect(() => {
@@ -846,7 +850,7 @@ function WorkflowWorkspace({ workflow, runs, validation, source, sources, addres
           setPayloadText(JSON.stringify(examplePayload(workflow), null, 2));
           setPayloadError(null);
         }} onRunNow={onRunNow} onRunWithPayload={onRunWithPayload} />}
-      center={<WorkflowCanvas mode={mode} blocks={canvasBlocks} sources={sources} statusLabel={workflow.archived ? "Archived" : workflow.enabled ? "Enabled" : "Paused"} statusGood={!workflow.archived && workflow.enabled} selectedBlockId={selectedBlock?.id ?? ""} validationByBlockId={validationByBlockId} runtimeByBlockId={runtimeByBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={(blockId, direction) => {
+      center={<WorkflowCanvas mode={mode} blocks={canvasBlocks} sources={sources} statusLabel={workflow.archived ? "Archived" : workflow.enabled ? "Enabled" : "Paused"} statusGood={!workflow.archived && workflow.enabled} dimmed={Boolean(selectedBlock)} selectedBlockId={selectedBlock?.id ?? ""} validationByBlockId={validationByBlockId} runtimeByBlockId={runtimeByBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={(blockId, direction) => {
           const index = mainBlocks.findIndex((block) => block.id === blockId);
           if (index > 0) onReorderBlocks(moveBlock(mainBlocks, index, index + direction));
         }} onRemoveBlock={(blockId) => {
@@ -863,7 +867,10 @@ function WorkflowWorkspace({ workflow, runs, validation, source, sources, addres
             </div>
             <WorkflowValidationPanel validation={validation} />
             <div className={softCardClass}>
-              <strong>Selected block</strong>
+              <div className="flex items-start justify-between gap-detail-close">
+                <strong>Selected block</strong>
+                {selectedBlock && <IconButton type="button" variant="ghost" size="compact" aria-label="Close selected block" onClick={() => setSelectedBlockId("")}><X aria-hidden /></IconButton>}
+              </div>
               {selectedBlock ? <PersistedBlockInspector
                 key={selectedBlock.id}
                 block={selectedBlock}
@@ -889,7 +896,7 @@ function WorkflowWorkspace({ workflow, runs, validation, source, sources, addres
                 onDeleteAttached={onDeleteBlock}
               /> : <p className={mutedText}>Select a block on the canvas to edit it.</p>}
             </div>
-          </> : <WatchRuntimeInspector selectedBlock={selectedBlock} latestBlockRun={blockRunForBlock(selectedRun, selectedBlock?.id ?? null)} selectedRun={selectedRun} validation={validation} />}
+          </> : <WatchRuntimeInspector selectedBlock={selectedBlock} latestBlockRun={blockRunForBlock(selectedRun, selectedBlock?.id ?? null)} selectedRun={selectedRun} validation={validation} onCloseSelectedBlock={selectedBlock ? () => setSelectedBlockId("") : undefined} />}
         </aside>}
       bottom={mode === "watch" ? <WatchRunHistory runs={runs} selectedRunId={selectedRun?.id ?? null} onSelectRun={(runId) => {
         setSelectedRunId(runId);
@@ -1013,7 +1020,7 @@ function WatchRunControls({ workflow, busy, hasValidationErrors, payloadText, pa
   );
 }
 
-function WatchRuntimeInspector({ selectedBlock, latestBlockRun, selectedRun, validation }: { selectedBlock: AutomationBlock | undefined; latestBlockRun: AutomationRun["blocks"][number] | null; selectedRun: AutomationRun | undefined; validation: AutomationValidationResult | null }) {
+function WatchRuntimeInspector({ selectedBlock, latestBlockRun, selectedRun, validation, onCloseSelectedBlock }: { selectedBlock: AutomationBlock | undefined; latestBlockRun: AutomationRun["blocks"][number] | null; selectedRun: AutomationRun | undefined; validation: AutomationValidationResult | null; onCloseSelectedBlock?: () => void }) {
   const readId = readIdFromOutput(latestBlockRun?.output);
   const proofId = proofIdFromOutput(latestBlockRun?.output);
 
@@ -1030,7 +1037,10 @@ function WatchRuntimeInspector({ selectedBlock, latestBlockRun, selectedRun, val
         {selectedRun?.error && <p className={errorText}>{selectedRun.error}</p>}
       </Panel>
       <Panel>
-        <strong>Selected block runtime</strong>
+        <div className="flex items-start justify-between gap-detail-close">
+          <strong>Selected block runtime</strong>
+          {onCloseSelectedBlock && <IconButton type="button" variant="ghost" size="compact" aria-label="Close selected block runtime" onClick={onCloseSelectedBlock}><X aria-hidden /></IconButton>}
+        </div>
         {!selectedBlock && <p className={mutedText}>Select a block on the canvas to inspect its latest run output.</p>}
         {selectedBlock && <>
           <div className="grid gap-3 sm:grid-cols-3">
