@@ -39,7 +39,7 @@ const canvasFrameClass = "h-full min-h-0";
 const railClass = "z-10 xl:absolute xl:top-margin-tight xl:right-detail-near xl:w-[360px]";
 const rowActionsClass = "gap-detail-next flex flex-wrap items-center";
 const statusPillClass = (good: boolean) => good ? "good" : "neutral";
-const libraryClass = "bg-surface-always-white border-stroke-secondary grid content-start gap-detail-close rounded-soft border p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)] xl:sticky xl:top-margin-tight xl:max-h-[calc(100vh-260px)]";
+const railPanelClass = "bg-surface-always-white border-stroke-secondary grid content-start gap-detail-close rounded-soft border p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)] xl:sticky xl:top-margin-tight xl:max-h-[calc(100vh-260px)]";
 const libraryCardClass = "border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-loose border p-detail-close text-left transition-colors hover:border-stroke-primary hover:bg-surface-always-white focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-text-disabled disabled:opacity-60";
 const canvasClass = "h-full min-h-0 overflow-hidden";
 const canvasLaneClass = "relative flex h-full min-h-[360px] flex-col items-center px-detail-close py-margin-relaxed md:min-h-0 md:px-margin-relaxed md:py-margin-relaxed";
@@ -75,14 +75,24 @@ export function WorkflowWorkspaceShell({ breadcrumbLabel, nameControl, actions, 
   );
 }
 
+export function WorkflowRailPanel({ children, className }: { children: ReactNode; className?: string }) {
+  return <ScrollArea className={cx(railPanelClass, className)}>{children}</ScrollArea>;
+}
+
+export function WorkflowRailHeader({ title, description }: { title: string; description: ReactNode }) {
+  return (
+    <div className="grid gap-detail-next">
+      <strong className="type-body-em text-text-primary">{title}</strong>
+      <p className={cx(mutedText, "m-0")}>{description}</p>
+    </div>
+  );
+}
+
 export function WorkflowBlockLibrary({ mode = "build", hasStartBlock, selectedBlock, canAddRecordTriggerEvent = true, onSelectStartBlock, onAddBlock, onAttachStamp }: { mode?: "build" | "edit"; hasStartBlock: boolean; selectedBlock: DraftWorkflowBlock | undefined; canAddRecordTriggerEvent?: boolean; onSelectStartBlock: (type: AutomationBlockType) => void; onAddBlock: (type: AutomationBlockType) => void; onAttachStamp: (parentId: string) => void }) {
   const canAddMainBlock = hasStartBlock;
   return (
-    <ScrollArea className={libraryClass}>
-      <div className="grid gap-detail-next">
-        <strong className="type-body-em text-text-primary">Toolkit</strong>
-        <p className={cx(mutedText, "m-0")}>{mode === "build" ? "Choose a sequence of blocks from the toolkit, then add logic to build your workflow." : "Add blocks to this workflow. Select a block on the canvas to configure it."}</p>
-      </div>
+    <WorkflowRailPanel>
+      <WorkflowRailHeader title="Toolkit" description={mode === "build" ? "Choose a sequence of blocks from the toolkit, then add logic to build your workflow." : "Add blocks to this workflow. Select a block on the canvas to configure it."} />
       {mode === "build" && !hasStartBlock && <ToolkitGroup title="Start blocks">
         <LibraryCard onClick={() => onSelectStartBlock("manual_start")} title="Manual run" description="Run only when an operator starts it." />
         <LibraryCard onClick={() => onSelectStartBlock("schedule_start")} title="Schedule" description="Run repeatedly on an interval." />
@@ -109,7 +119,7 @@ export function WorkflowBlockLibrary({ mode = "build", hasStartBlock, selectedBl
       <ToolkitGroup title="Attached actions">
         <LibraryCard disabled={!selectedBlock || !isDataBlock(selectedBlock.type) || Boolean(selectedBlock.attachedBlocks?.some((block) => block.type === "stamp_integritas"))} onClick={() => selectedBlock && onAttachStamp(selectedBlock.id)} title="Stamp data" description="Create an Integritas proof for recorded or fetched data." />
       </ToolkitGroup>
-    </ScrollArea>
+    </WorkflowRailPanel>
   );
 }
 
