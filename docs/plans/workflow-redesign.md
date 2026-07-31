@@ -1,7 +1,8 @@
 # Workflow Redesign Plan
 
-**Status:** Not started
+**Status:** In progress
 **Created:** 2026-07-31
+**Last updated:** 2026-07-31
 **Goal:** Redesign the workflow canvas create, edit, and watch experiences to match the approved Figma direction while preserving current automation behavior and ESDS frontend rules.
 
 ## Context
@@ -15,6 +16,22 @@ Rejected/deferred alternatives:
 - Do not introduce a third-party canvas or drag/drop library for the first pass. The existing click-to-add, move, remove, and select behavior is enough to match the core design states.
 - Do not create broad shared design-system abstractions unless a component is clearly reusable outside the workflow page. The workflow canvas shell, block cards, and toolkit are feature-specific for now.
 - Do not duplicate the app sidebar inside the workflow canvas. Use the existing `AppShell` navigation unless product later asks for route-specific shell changes.
+
+## Current status
+
+Implemented in the current working tree:
+
+- `frontend/src/features/automation/WorkflowCanvas.tsx` now uses a redesigned workflow frame with a white top bar, grey canvas surface, right-side toolkit, dashed empty state, flat category-colored block cards, connector lines, `Pill` badges, inset attached-block cards, selected-block border, runtime/validation highlighting, and responsive canvas/panel sizing.
+- `frontend/src/pages/AutomationPage.tsx` now places create-workflow name/enabled controls in the workflow top bar, restyles create/edit/watch inspector panels, adds close controls for selected-block panels in create/edit/watch, dims the desktop canvas while a selected-block panel is active, and adds a create-workflow leave confirmation modal.
+- `CHANGELOG.md` has an `[Unreleased]` entry for the workflow redesign.
+- Verification run: `npm --prefix frontend run build` passes. Vite still reports the existing large-chunk warning.
+
+Remaining / not yet strict-plan-complete:
+
+- Browser visual QA against the Figma screenshots is still needed for empty, populated, scrolled, selected-block, leave-dialog, watch, and responsive states.
+- Selected-block behavior is currently a closeable right-side panel with desktop canvas dimming, not a true portal/animated side sheet or mobile full-screen sheet.
+- Edit-mode unsaved-leave confirmation is not implemented. Create mode has leave confirmation; watch mode remains unguarded as planned unless a protected unsaved field is introduced.
+- Drag/drop is not implemented; the workflow keeps existing click-to-add and move controls.
 
 ## Frontend changes
 

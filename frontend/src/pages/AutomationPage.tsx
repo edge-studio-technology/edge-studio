@@ -239,6 +239,7 @@ export function AutomationPage() {
           busy={busy}
           mode={workspaceMode}
           initialRunId={flow.mode === "watch" ? flow.runId : undefined}
+          onBack={() => navigateFlow({ mode: "list" })}
           onNavigateMode={(nextMode) => navigateFlow({ mode: nextMode, workflowId: workspaceWorkflow.id })}
           onSelectWatchRun={(runId) => navigateFlow({ mode: "watch", workflowId: workspaceWorkflow.id, runId })}
           onAddBlock={(input) => run(() => addAutomationBlock(workspaceWorkflow.id, input), "Could not add block")}
@@ -509,12 +510,8 @@ function CreateWorkflowWorkspace({ name, enabled, sources, addressBook, walletSt
   return (
     <>
       <WorkflowWorkspaceShell
-        eyebrow="Create workflow"
-        title="Create workflow"
-        description={<div className="grid max-w-3xl gap-detail-next sm:grid-cols-[minmax(220px,360px)_auto] sm:items-end">
-          <label className="grid gap-detail-next type-meta text-text-primary">Workflow name<input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Button fetches weather API" /></label>
-          <label className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-detail-next type-meta text-text-primary sm:pb-detail-next"><input className="w-auto" type="checkbox" checked={enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled after create</label>
-        </div>}
+        breadcrumbLabel="Create workflow"
+        nameControl={<input aria-label="Workflow name" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Workflow name" />}
         actions={<>
           <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={requestCancel}>Back to workflows</Button>
           <Button type="button" variant="secondary" size="sm" disabled={busy || draftBlocks.length === 0} onClick={resetCanvas}>Reset canvas</Button>
@@ -525,6 +522,7 @@ function CreateWorkflowWorkspace({ name, enabled, sources, addressBook, walletSt
         right={
           <aside className={cx(inspectorClass, formGridClass)}>
             <Panel>
+              <label className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-detail-next type-meta text-text-primary"><input className="w-auto" type="checkbox" checked={enabled} onChange={(event) => onEnabledChange(event.target.checked)} /> Enabled after create</label>
               <strong>Validation</strong>
               {localErrors.map((issue) => <p key={issue} className={errorText}>{issue}</p>)}
               {backendErrors.map((issue) => <p key={issue} className={errorText}>{issue}</p>)}
@@ -779,7 +777,7 @@ function defaultEditBlockConfig(type: AutomationBlockType, sources: DataSource[]
   return config;
 }
 
-function WorkflowWorkspace({ workflow, runs, validation, source, sources, addressBook, walletStatus, busy, mode, initialRunId, onNavigateMode, onSelectWatchRun, onAddBlock, onDeleteBlock, onUpdateBlock, onUpdateWorkflow, onReorderBlocks, onRunNow, onRunWithPayload }: { workflow: AutomationWorkflow; runs: AutomationRun[]; validation: AutomationValidationResult | null; source: DataSource | undefined; sources: DataSource[]; addressBook: AddressBookEntry[]; walletStatus: WalletStatus | null; busy: boolean; mode: "edit" | "watch"; initialRunId?: string; onNavigateMode: (mode: "edit" | "watch") => void; onSelectWatchRun: (runId: string) => void; onAddBlock: (input: Parameters<typeof addAutomationBlock>[1]) => void; onDeleteBlock: (blockId: string) => void; onUpdateBlock: (blockId: string, input: Parameters<typeof updateAutomationBlock>[2]) => void; onUpdateWorkflow: (input: Parameters<typeof updateAutomationWorkflow>[1]) => void; onReorderBlocks: (blockIds: string[]) => void; onRunNow: () => void; onRunWithPayload: (payload: unknown) => void }) {
+function WorkflowWorkspace({ workflow, runs, validation, source, sources, addressBook, walletStatus, busy, mode, initialRunId, onBack, onNavigateMode, onSelectWatchRun, onAddBlock, onDeleteBlock, onUpdateBlock, onUpdateWorkflow, onReorderBlocks, onRunNow, onRunWithPayload }: { workflow: AutomationWorkflow; runs: AutomationRun[]; validation: AutomationValidationResult | null; source: DataSource | undefined; sources: DataSource[]; addressBook: AddressBookEntry[]; walletStatus: WalletStatus | null; busy: boolean; mode: "edit" | "watch"; initialRunId?: string; onBack: () => void; onNavigateMode: (mode: "edit" | "watch") => void; onSelectWatchRun: (runId: string) => void; onAddBlock: (input: Parameters<typeof addAutomationBlock>[1]) => void; onDeleteBlock: (blockId: string) => void; onUpdateBlock: (blockId: string, input: Parameters<typeof updateAutomationBlock>[2]) => void; onUpdateWorkflow: (input: Parameters<typeof updateAutomationWorkflow>[1]) => void; onReorderBlocks: (blockIds: string[]) => void; onRunNow: () => void; onRunWithPayload: (payload: unknown) => void }) {
   const [payloadText, setPayloadText] = useState(() => JSON.stringify(examplePayload(workflow), null, 2));
   const [payloadError, setPayloadError] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState(workflow.name);
@@ -822,17 +820,17 @@ function WorkflowWorkspace({ workflow, runs, validation, source, sources, addres
     onAddBlock({ type, config: defaultEditBlockConfig(type, sources, addressBook) });
   }
 
+  const workflowNameDirty = workflowName.trim() !== workflow.name;
+
   return (
     <WorkflowWorkspaceShell
-      eyebrow={mode === "watch" ? "Watch workflow" : "Edit workflow"}
-      title={workflow.name}
-      description={<>
-        <p className={mutedText}>{source?.name ?? "Unknown source"} · {workflowIntervalSeconds(workflow) > 0 ? formatInterval(workflowIntervalSeconds(workflow)) : "Event driven"}</p>
-        <p className={mutedText}>{mode === "watch" ? "Run and inspect this workflow from the shared canvas shell." : "Changes are saved per block. Edit fields, then click that block's save button; add/remove/move/pause/enable actions apply immediately."}</p>
-        {mode === "watch" && selectedRun && <p className={mutedText}>Canvas showing run from {formatLocalTime(selectedRun.startedAt)} · {selectedRun.status} · {formatDuration(selectedRun.durationMs)}</p>}
-      </>}
+      breadcrumbLabel={mode === "watch" ? "Watch workflow" : "Edit workflow"}
+      nameControl={mode === "edit" ? <input aria-label="Workflow name" value={workflowName} onChange={(event) => setWorkflowName(event.target.value)} placeholder="Workflow name" /> : <input aria-label="Workflow name" value={workflow.name} readOnly />}
       actions={<>
+        <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={onBack}>Back to workflows</Button>
         <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => onNavigateMode(mode === "watch" ? "edit" : "watch")}>{mode === "watch" ? "Open in edit" : "Open in watch"}</Button>
+        {mode === "edit" && <Button type="button" size="sm" disabled={busy || !workflowName.trim() || !workflowNameDirty} onClick={() => onUpdateWorkflow({ name: workflowName.trim() })}>Save workflow name</Button>}
+        <Button type="button" variant="secondary" size="sm" disabled={busy || hasValidationErrors || workflow.archived} onClick={onRunNow}>Run now</Button>
         <WorkflowStatusPill workflow={workflow} />
         {mode === "watch" && <StatusPill status={selectedRun?.status === "running" ? "good" : "neutral"}>{watchRunStatusLabel}</StatusPill>}
         <StatusPill status="neutral">Blocks {workflow.blocks.length}</StatusPill>
@@ -859,12 +857,6 @@ function WorkflowWorkspace({ workflow, runs, validation, source, sources, addres
         }} />}
       right={<aside className={inspectorClass}>
           {mode === "edit" ? <>
-            <div className={cx(softCardClass, formGridClass)}>
-              <strong>Workflow setup</strong>
-              <label>Workflow name<input value={workflowName} onChange={(event) => setWorkflowName(event.target.value)} placeholder="Button fetches weather API" /></label>
-              <SaveState dirty={workflowName.trim() !== workflow.name} saved={false} />
-              <Button type="button" size="sm" disabled={busy || !workflowName.trim() || workflowName.trim() === workflow.name} onClick={() => onUpdateWorkflow({ name: workflowName.trim() })}>Save workflow name</Button>
-            </div>
             <WorkflowValidationPanel validation={validation} />
             <div className={softCardClass}>
               <div className="flex items-start justify-between gap-detail-close">

@@ -46,14 +46,13 @@ const blockBaseClass = "relative w-full max-w-[520px] cursor-pointer rounded-loo
 const selectedBlockClass = "border-stroke-active shadow-[0_0_0_1px_var(--color-stroke-active)]";
 const blockActionClass = "type-meta border-stroke-secondary bg-surface-always-white text-text-primary h-6 rounded-loose border px-detail-next disabled:cursor-not-allowed disabled:text-text-disabled";
 
-export function WorkflowWorkspaceShell({ eyebrow, title, description, actions, left, center, right, bottom, notices }: { eyebrow: string; title: string; description: ReactNode; actions?: ReactNode; left: ReactNode; center: ReactNode; right: ReactNode; bottom?: ReactNode; notices?: ReactNode }) {
+export function WorkflowWorkspaceShell({ breadcrumbLabel, nameControl, actions, left, center, right, bottom, notices }: { breadcrumbLabel: string; nameControl: ReactNode; actions?: ReactNode; left: ReactNode; center: ReactNode; right: ReactNode; bottom?: ReactNode; notices?: ReactNode }) {
   return (
     <section className={shellClass}>
       <div className={topbarClass}>
-        <div className="gap-detail-next grid min-w-0">
-          <p className="type-meta text-text-secondary m-0">Automation <span aria-hidden>&gt;</span> <strong className="text-text-primary">{eyebrow}</strong></p>
-          <h2 className="type-title text-text-primary m-0 truncate">{title}</h2>
-          {typeof description === "string" ? <p className="type-body text-text-secondary m-0 max-w-3xl">{description}</p> : description}
+        <div className="gap-detail-next grid min-w-0 flex-1">
+          <p className="type-meta text-text-secondary m-0">Automation <span aria-hidden>&gt;</span> <strong className="text-text-primary">{breadcrumbLabel}</strong></p>
+          <div className="max-w-[360px]">{nameControl}</div>
         </div>
         {actions && <div className={cx("relative z-10", rowActionsClass)}>{actions}</div>}
       </div>

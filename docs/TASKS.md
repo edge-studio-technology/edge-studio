@@ -16,12 +16,12 @@
 
 ## In Progress
 
+- [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.
 
 ## Next
 
-- [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Manual check of the update-agent UI Back buttons and the dashboard "Update available" badge across a real update cycle (Pi or local Docker Compose) — this session's fixes were only build/typecheck-verified.
 - [ ] Reconcile `.claude/rules/update-agent.md`/`.agents/rules/update-agent.md`/`.cursor/rules/update-agent.mdc`, which still say `update-agent` has "no self-update path" — `update-agent/src/self-update/` already implements one (commit `4e26bfe`), and `docs/notes/update-agent-self-update.md` is stale too.
 - [ ] Add HC-SR501 PIR motion sensor as a first-class GPIO input workflow source - see `docs/plans/pir-motion-sensor-workflows.md`.
