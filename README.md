@@ -205,6 +205,8 @@ The Minima page exposes an allowlisted Megammr resync action. The browser calls 
 
 Restarting the Minima node from the UI shuts it down gracefully first: the backend sends `quit compact:true` over RPC and waits (up to 5 minutes — the node can take a while to actually stop even after reporting shutdown complete) for the container to actually exit before starting it back up, instead of immediately force-stopping it. If the node still hasn't stopped after that, it falls back to a forceful container restart so the action still always completes.
 
+An optional "Auto restart" toggle (off by default) has the backend perform this same graceful restart automatically every 48 hours, as a preventive node health measure. It reuses the nightly auto-backup scheduler rather than a separate timer, so the check runs at 00:30 on the backend container's clock, after that night's backup — it only actually restarts every other night, tracked by a persisted last-run time so a backend redeploy doesn't reset the cadence.
+
 Account Settings also exposes node backup & restore, a fuller recovery mechanism than the Wallet page's seed-phrase import below: a Minima `backup` includes the seed phrase, private keys, coin proofs, key-use counters, and transaction history, not just spendable wallet keys. Backups are written by Minima into `${MINIMA_DATA_DIR}/backups` on the host — mounted into `minima` at `/home/minima/backups` (Minima resolves the `backup`/`restoresync` `file:` argument against its home dir, not `/home/minima/data`) and into `backend` read-write at `/minima-backups`, the only host directory shared between the two containers — so the UI can list, download, upload, and delete backup files. An admin sets one backup password once (re-auth required, stored encrypted); every backup from then on, manual or automatic, uses that same password, so there's no unencrypted/weakly-protected class of backup at all. Backups are tracked in a single list capped at 20, oldest auto-deleted — all downloadable and restorable. Restoring always uses Minima's `restoresync`, which restores the backup and re-syncs from the configured Megammr host in one step; restoring one of these tracked backups needs no password re-entry, since the backend already knows the stored password. Automatic backups are created by the backend's own scheduler at a fixed nightly time, 00:30 on the backend container's clock (not Minima's built-in `backup auto:true`, which can never be given a custom password or write anywhere the backend can see) — set the `TZ` environment variable to the Pi's real local timezone (default `UTC`) so this lands at actual local night. Downloading, restoring, or changing the backup password all require re-entering the current admin PIN/password.
 
 The Wallet page exposes allowlisted wallet/account actions through the backend:
@@ -633,11 +635,13 @@ Minima restart and peers (admin mutations require an admin session):
 
 ```http
 POST /api/minima/restart
+GET /api/minima/restart/auto
+POST /api/minima/restart/auto
 GET /api/minima/peers
 POST /api/minima/peers/add
 ```
 
-`POST /api/minima/restart` restarts the Minima Docker container via the backend Docker socket (see `SECURITY.md`). `POST /api/minima/peers/add` accepts `{ "peerslist": "host:port" }` or comma-separated addresses and calls Minima `peers action:addpeers`.
+`POST /api/minima/restart` restarts the Minima Docker container via the backend Docker socket (see `SECURITY.md`). `GET`/`POST /api/minima/restart/auto` read/toggle the opt-in automatic restart (every 48 hours, checked on the same nightly scheduler tick as auto-backup — see above); `POST` accepts `{ "enabled": boolean }`. `POST /api/minima/peers/add` accepts `{ "peerslist": "host:port" }` or comma-separated addresses and calls Minima `peers action:addpeers`.
 
 Minima RPC console (admin session required for all three):
 

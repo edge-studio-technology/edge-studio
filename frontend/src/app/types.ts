@@ -104,6 +104,7 @@ export type MinimaRestartResult = {
   service: string;
   containerId: string;
 };
+export type MinimaAutoRestartResponse = { autoRestartEnabled: boolean };
 export type MinimaConsoleCatalogEntry = {
   key: string;
   verb: string;

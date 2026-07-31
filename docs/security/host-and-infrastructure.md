@@ -12,6 +12,7 @@ Current Controls:
 
 - Docker write use is narrow: only `restartComposeService("minima")` and `startComposeService("minima")` are implemented (no generic container control API).
 - `POST /api/minima/restart` requires an admin session and records an audit event. It now performs a graceful shutdown first — RPC `quit compact:true`, then poll for the container to actually cycle (via Docker-reported `RestartCount`/`StartedAt`, not RPC response or a transient "not running" check — verified the RPC can report shutdown complete well before the process actually exits) before starting it back up — falling back to the previous forceful `restartComposeService` restart only after 5 minutes with no confirmed cycle. That window is intentionally long: forcing a SIGTERM/SIGKILL while the node is still legitimately mid-shutdown/compacting is the same DB corruption risk this graceful path exists to avoid.
+- An opt-in "auto restart" toggle (`GET`/`POST /api/minima/restart/auto`, off by default) can trigger that same restart unattended every 48 hours, on the nightly backup scheduler's tick, with no per-run admin action or approval. Toggling it on/off still requires an admin session and is audited; the restart itself uses the same graceful path above.
 
 Plan:
 

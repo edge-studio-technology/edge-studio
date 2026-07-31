@@ -216,6 +216,19 @@ export async function addMinimaPeers(peerslist: string) {
   return runMinimaPathCommand(command);
 }
 
+const autoRestartSetting = "minima_auto_restart_enabled";
+
+// Checked by minima-backup-scheduler.service.ts's nightly tick, not a standalone timer —
+// see the "reuse the scheduler" note there.
+export function getAutoRestartEnabled() {
+  return getSetting(autoRestartSetting) === "true";
+}
+
+export function setAutoRestartEnabled(enabled: boolean) {
+  saveSetting(autoRestartSetting, enabled ? "true" : "false");
+  return { autoRestartEnabled: enabled };
+}
+
 // See docs/adr/0001-minima-graceful-node-restart.md for why this is 5 minutes, not seconds.
 const MINIMA_GRACEFUL_SHUTDOWN_TIMEOUT_MS = 5 * 60 * 1000;
 const MINIMA_GRACEFUL_SHUTDOWN_POLL_MS = 1000;

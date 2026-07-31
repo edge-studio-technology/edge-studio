@@ -25,13 +25,15 @@ import { backupUpload } from "./minima-upload.middleware.js";
 import { normalizeMinimaRpcError } from "./minima.errors.js";
 import {
   addMinimaPeers,
+  getAutoRestartEnabled,
   getMinimaConfig,
   getMinimaNodeStatus,
   getMinimaPeers,
   getWalletBalance,
   resyncMegammr,
   restartMinimaContainer,
-  saveMinimaConfig
+  saveMinimaConfig,
+  setAutoRestartEnabled
 } from "./minima.service.js";
 
 export const minimaRouter = Router();
@@ -84,6 +86,17 @@ minimaRouter.post("/peers/add", requireRole("admin"), async (req, res) => {
     const message = normalizeMinimaRpcError(error instanceof Error ? error.message : "Unknown error");
     badRequest(res, message, undefined, { ok: false });
   }
+});
+
+minimaRouter.get("/restart/auto", requireRole("admin"), (_req, res) => {
+  res.json({ autoRestartEnabled: getAutoRestartEnabled() });
+});
+
+minimaRouter.post("/restart/auto", requireRole("admin"), (req, res) => {
+  const enabled = req.body?.enabled === true;
+  const result = setAutoRestartEnabled(enabled);
+  recordAuditEvent("minima.restart.auto_toggled", { userId: req.user?.id, detail: String(enabled) });
+  res.json(result);
 });
 
 minimaRouter.post("/restart", requireRole("admin"), async (req, res) => {
