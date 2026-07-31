@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Shared `Disclosure` (`components/ui/`) for native collapse/expand sections with lucide chevron styling; the workflow toolkit now uses it for block categories.
+- Shared `ScrollArea` (`components/ui/`) for panels and rails that need thin ESDS-token scrollbar styling; the workflow toolkit now uses it.
+
 ### Changed
 
 - Automation workflow create/edit/watch canvases now use the new ESDS/Figma-inspired workflow frame, explicit workflow routes, full-bleed shell layout, right-side toolkit, flat category block cards, selected-block treatment, and create-workflow leave confirmation.

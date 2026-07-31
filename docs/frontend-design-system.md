@@ -103,6 +103,8 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `ListPagerFilterBar`: list filter and pager
 - `Pagination`: prev/next page strip
 - [Tooltip](#tooltip): hover / click tip
+- [Disclosure](#disclosure): native collapse / expand section
+- [ScrollArea](#scrollarea): thin ESDS-token scrollbar container
 - `JsonPreview`: JSON / code preview
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
@@ -357,6 +359,47 @@ Pass `children` as the trigger. Without `actions`, opens on hover/focus (tooltip
     Open
   </Button>
 </Tooltip>;
+```
+
+### Disclosure
+
+Disclosure (`frontend/src/components/ui/Disclosure.tsx`): native `<details>` / `<summary>` collapse-expand section with ESDS text, focus ring, and a lucide chevron that rotates when open.
+
+Use it for reusable collapsible sections such as toolkit groups, settings groups, diagnostics details, and setup-guide sections. It intentionally does not coordinate with sibling disclosures; add that later only if a true accordion behavior is needed.
+
+| Prop               | Notes                                                |
+| ------------------ | ---------------------------------------------------- |
+| `title`            | Required summary label/content                       |
+| `children`         | Required collapsed/expanded body                     |
+| `defaultOpen`      | Initial native open state, default `true`            |
+| `open`             | Optional controlled native `details` state           |
+| `className`        | Merged onto `<details>`                              |
+| `summaryClassName` | Merged onto `<summary>`                              |
+| `contentClassName` | Merged onto the content wrapper                      |
+| ...props           | Standard `HTMLDetailsElement` attributes             |
+
+```tsx
+<Disclosure title="Group title" defaultOpen>
+  <Menu items={items} />
+</Disclosure>
+```
+
+### ScrollArea
+
+Scroll container (`frontend/src/components/ui/ScrollArea.tsx`): reusable overflow container with a stable scrollbar gutter, thin Firefox scrollbar styling, and WebKit scrollbar thumb styling using ESDS stroke tokens.
+
+Use it when a panel, modal body, console, or rail needs visible internal scrolling. Keep sizing (`max-h-*`, sticky positioning, padding, grid/flex layout) at the call site.
+
+| Prop        | Notes                                |
+| ----------- | ------------------------------------ |
+| `children`  | Required scrollable content          |
+| `className` | Merged onto the scroll container     |
+| ...props    | Standard `HTMLDivElement` attributes |
+
+```tsx
+<ScrollArea className="max-h-80 rounded-soft border border-stroke-secondary p-margin-tight">
+  {items.map((item) => <Item key={item.id} item={item} />)}
+</ScrollArea>
 ```
 
 ### ProgressBar

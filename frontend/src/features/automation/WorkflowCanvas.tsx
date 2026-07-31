@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import type { DataSource } from "../data-sources/dataSourceTypes";
+import { Disclosure } from "../../components/ui/Disclosure";
 import { Pill } from "../../components/Pill";
+import { ScrollArea } from "../../components/ui/ScrollArea";
 import { cx } from "../../lib/cx";
 import type { AutomationBlock, AutomationBlockType } from "./automationTypes";
 
@@ -30,23 +32,25 @@ export type WorkflowCanvasRuntimeState = {
 };
 
 const mutedText = "type-meta text-text-secondary";
-const shellClass = "border-stroke-primary bg-surface-always-white flex min-h-[min(640px,calc(100vh-160px))] flex-col overflow-hidden rounded-soft border shadow-[0_24px_60px_rgba(0,0,0,0.12)] xl:min-h-[min(760px,calc(100vh-220px))]";
+const shellClass = "border-stroke-primary bg-surface-always-white flex h-screen min-h-0 flex-col overflow-hidden border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";
 const topbarClass = "border-stroke-secondary bg-surface-always-white px-margin-tight py-detail-close flex flex-col gap-detail-close border-b lg:flex-row lg:items-start lg:justify-between xl:items-center";
-const gridClass = "bg-surface-secondary grid min-h-0 flex-1 gap-detail-close p-detail-close md:gap-margin-tight md:p-margin-tight xl:grid-cols-[minmax(420px,1fr)_300px_360px]";
+const workspaceClass = "bg-surface-secondary relative min-h-0 flex-1 overflow-hidden";
+const canvasFrameClass = "h-full min-h-0";
+const railClass = "z-10 xl:absolute xl:top-margin-tight xl:right-detail-near xl:w-[360px]";
 const rowActionsClass = "gap-detail-next flex flex-wrap items-center";
 const statusPillClass = (good: boolean) => good ? "good" : "neutral";
-const libraryClass = "bg-surface-always-white border-stroke-secondary grid content-start gap-detail-close overflow-visible rounded-soft border p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)] xl:sticky xl:top-margin-tight xl:max-h-[calc(100vh-260px)] xl:overflow-auto";
-const libraryGroupClass = "grid gap-detail-next";
-const libraryGroupTitleClass = "type-body-em text-text-primary flex items-center justify-between";
+const libraryClass = "bg-surface-always-white border-stroke-secondary grid content-start gap-detail-close rounded-soft border p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)] xl:sticky xl:top-margin-tight xl:max-h-[calc(100vh-260px)]";
 const libraryCardClass = "border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-loose border p-detail-close text-left transition-colors hover:border-stroke-primary hover:bg-surface-always-white focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-text-disabled disabled:opacity-60";
-const canvasClass = "min-h-0 overflow-hidden";
-const canvasLaneClass = "relative flex min-h-[360px] flex-col items-center overflow-auto px-detail-close py-margin-relaxed md:min-h-[520px] md:p-margin-relaxed";
+const canvasClass = "h-full min-h-0 overflow-hidden";
+const canvasLaneClass = "relative flex h-full min-h-[360px] flex-col items-center px-detail-close py-margin-relaxed md:min-h-0 md:px-margin-relaxed md:py-margin-relaxed";
+const canvasContentClass = "flex min-h-full w-full flex-col items-center [justify-content:safe_center]";
+const canvasEndSpacerClass = "h-[40px] w-px shrink-0";
 const emptyCanvasClass = "border-stroke-primary bg-surface-secondary text-text-primary grid min-h-[180px] w-full max-w-[520px] place-items-center rounded-soft border border-dashed p-margin-relaxed text-center";
 const blockBaseClass = "relative w-full max-w-[520px] cursor-pointer rounded-loose border px-detail-close py-detail-close text-text-primary transition-[border-color,box-shadow] before:absolute before:left-1/2 before:top-[-25px] before:hidden before:h-[24px] before:w-px before:-translate-x-1/2 before:bg-stroke-active focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none [&+&]:mt-detail-near [&+&]:before:block";
 const selectedBlockClass = "border-stroke-active shadow-[0_0_0_1px_var(--color-stroke-active)]";
 const blockActionClass = "type-meta border-stroke-secondary bg-surface-always-white text-text-primary h-6 rounded-loose border px-detail-next disabled:cursor-not-allowed disabled:text-text-disabled";
 
-export function WorkflowWorkspaceShell({ breadcrumbLabel, nameControl, actions, left, center, right, bottom, notices }: { breadcrumbLabel: string; nameControl: ReactNode; actions?: ReactNode; left: ReactNode; center: ReactNode; right: ReactNode; bottom?: ReactNode; notices?: ReactNode }) {
+export function WorkflowWorkspaceShell({ breadcrumbLabel, nameControl, actions, canvas, rail, selectedSheet, bottom, notices }: { breadcrumbLabel: string; nameControl: ReactNode; actions?: ReactNode; canvas: ReactNode; rail: ReactNode; selectedSheet?: ReactNode; bottom?: ReactNode; notices?: ReactNode }) {
   return (
     <section className={shellClass}>
       <div className={topbarClass}>
@@ -57,12 +61,16 @@ export function WorkflowWorkspaceShell({ breadcrumbLabel, nameControl, actions, 
         {actions && <div className={cx("relative z-10", rowActionsClass)}>{actions}</div>}
       </div>
       {notices && <div className="border-stroke-secondary bg-surface-primary px-margin-tight py-detail-next grid gap-detail-next border-b">{notices}</div>}
-      <div className={gridClass}>
-        {center}
-        {left}
-        {right}
+      <div className={workspaceClass}>
+        <div className={canvasFrameClass}>
+          {canvas}
+        </div>
+        <div className={railClass}>
+          {rail}
+        </div>
+        {selectedSheet}
+        {bottom && <div className="absolute inset-x-margin-tight bottom-margin-tight z-10 md:inset-x-detail-near md:bottom-detail-near">{bottom}</div>}
       </div>
-      {bottom && <div className="bg-surface-secondary p-margin-tight pt-0">{bottom}</div>}
     </section>
   );
 }
@@ -70,7 +78,7 @@ export function WorkflowWorkspaceShell({ breadcrumbLabel, nameControl, actions, 
 export function WorkflowBlockLibrary({ mode = "build", hasStartBlock, selectedBlock, canAddRecordTriggerEvent = true, onSelectStartBlock, onAddBlock, onAttachStamp }: { mode?: "build" | "edit"; hasStartBlock: boolean; selectedBlock: DraftWorkflowBlock | undefined; canAddRecordTriggerEvent?: boolean; onSelectStartBlock: (type: AutomationBlockType) => void; onAddBlock: (type: AutomationBlockType) => void; onAttachStamp: (parentId: string) => void }) {
   const canAddMainBlock = hasStartBlock;
   return (
-    <aside className={libraryClass}>
+    <ScrollArea className={libraryClass}>
       <div className="grid gap-detail-next">
         <strong className="type-body-em text-text-primary">Toolkit</strong>
         <p className={cx(mutedText, "m-0")}>{mode === "build" ? "Choose a sequence of blocks from the toolkit, then add logic to build your workflow." : "Add blocks to this workflow. Select a block on the canvas to configure it."}</p>
@@ -101,19 +109,19 @@ export function WorkflowBlockLibrary({ mode = "build", hasStartBlock, selectedBl
       <ToolkitGroup title="Attached actions">
         <LibraryCard disabled={!selectedBlock || !isDataBlock(selectedBlock.type) || Boolean(selectedBlock.attachedBlocks?.some((block) => block.type === "stamp_integritas"))} onClick={() => selectedBlock && onAttachStamp(selectedBlock.id)} title="Stamp data" description="Create an Integritas proof for recorded or fetched data." />
       </ToolkitGroup>
-    </aside>
+    </ScrollArea>
   );
 }
 
 function ToolkitGroup({ title, children }: { title: string; children: ReactNode }) {
-  return <div className={libraryGroupClass}><strong className={libraryGroupTitleClass}>{title}<span aria-hidden>⌄</span></strong>{children}</div>;
+  return <Disclosure title={title}>{children}</Disclosure>;
 }
 
 function LibraryCard({ title, description, disabled, onClick }: { title: string; description: string; disabled?: boolean; onClick: () => void }) {
   return <button type="button" className={libraryCardClass} disabled={disabled} onClick={onClick}><span className="type-body-em">{title}</span><small className="type-meta text-text-secondary">{description}</small></button>;
 }
 
-export function WorkflowCanvas({ mode, blocks, sources, selectedBlockId, statusLabel, statusGood, dimmed = false, validationByBlockId = {}, runtimeByBlockId = {}, onSelectBlock, onMoveBlock, onRemoveBlock }: { mode: WorkflowCanvasMode; blocks: WorkflowCanvasBlock[]; sources: DataSource[]; selectedBlockId: string; statusLabel: string; statusGood: boolean; dimmed?: boolean; validationByBlockId?: Record<string, WorkflowCanvasValidationIssue[]>; runtimeByBlockId?: Record<string, WorkflowCanvasRuntimeState>; onSelectBlock: (id: string) => void; onMoveBlock: (id: string, direction: -1 | 1) => void; onRemoveBlock: (id: string) => void }) {
+export function WorkflowCanvas({ mode, blocks, sources, selectedBlockId, statusLabel, statusGood, dimmed = false, bottomOverlay = false, validationByBlockId = {}, runtimeByBlockId = {}, onSelectBlock, onMoveBlock, onRemoveBlock }: { mode: WorkflowCanvasMode; blocks: WorkflowCanvasBlock[]; sources: DataSource[]; selectedBlockId: string; statusLabel: string; statusGood: boolean; dimmed?: boolean; bottomOverlay?: boolean; validationByBlockId?: Record<string, WorkflowCanvasValidationIssue[]>; runtimeByBlockId?: Record<string, WorkflowCanvasRuntimeState>; onSelectBlock: (id: string) => void; onMoveBlock: (id: string, direction: -1 | 1) => void; onRemoveBlock: (id: string) => void }) {
   const isBuild = mode === "build";
   const actionLabels = isBuild ? { up: "Up", down: "Down", remove: "Remove" } : { up: "Move up", down: "Move down", remove: "Remove" };
   return (
@@ -122,15 +130,18 @@ export function WorkflowCanvas({ mode, blocks, sources, selectedBlockId, statusL
         <h3>{isBuild ? "Draft canvas" : "Workflow canvas"}</h3>
         <p>{isBuild ? "This is the starter chain that will be created." : "Select a block to edit or inspect it. Move and remove actions apply immediately."}</p>
       </div>
-      <div className={cx(canvasLaneClass, dimmed && "xl:after:bg-overlay-light after:pointer-events-none after:absolute after:inset-0 after:z-20")}>
+      <ScrollArea className={cx(canvasLaneClass, dimmed && "xl:after:bg-overlay-light after:pointer-events-none after:absolute after:inset-0 after:z-20")}>
         <div className="absolute right-margin-tight top-margin-tight z-10">
           <Pill tone={statusPillClass(statusGood)}>{statusLabel}</Pill>
         </div>
-        {blocks.length === 0 && <div className={emptyCanvasClass}><div className="grid gap-detail-next"><span className="type-title text-text-tertiary">+</span><strong className="type-body-em">{isBuild ? "Click from the toolkit to add a start block" : "No blocks"}</strong><p className={cx(mutedText, "m-0")}>{isBuild ? "Start with Manual, Schedule, GPIO, Webhook, or MQTT. Then add data and logic blocks." : "Add a start block by creating a new workflow."}</p></div></div>}
-        {blocks.map((block, index) => (
-          <WorkflowBlockCard key={block.id} block={block} index={index} sources={sources} selected={block.id === selectedBlockId} canMoveUp={index > 1} canMoveDown={index > 0 && index < blocks.length - 1} actionLabels={actionLabels} validationIssues={validationByBlockId[block.id] ?? []} runtime={runtimeByBlockId[block.id]} onSelect={() => onSelectBlock(block.id)} onMoveUp={() => onMoveBlock(block.id, -1)} onMoveDown={() => onMoveBlock(block.id, 1)} onRemove={() => onRemoveBlock(block.id)} />
-        ))}
-      </div>
+        <div className={cx(canvasContentClass, bottomOverlay && "pb-[240px]")}>
+          {blocks.length === 0 && <div className={emptyCanvasClass}><div className="grid gap-detail-next"><span className="type-title text-text-tertiary">+</span><strong className="type-body-em">{isBuild ? "Click from the toolkit to add a start block" : "No blocks"}</strong><p className={cx(mutedText, "m-0")}>{isBuild ? "Start with Manual, Schedule, GPIO, Webhook, or MQTT. Then add data and logic blocks." : "Add a start block by creating a new workflow."}</p></div></div>}
+          {blocks.map((block, index) => (
+            <WorkflowBlockCard key={block.id} block={block} index={index} sources={sources} selected={block.id === selectedBlockId} canMoveUp={index > 1} canMoveDown={index > 0 && index < blocks.length - 1} actionLabels={actionLabels} validationIssues={validationByBlockId[block.id] ?? []} runtime={runtimeByBlockId[block.id]} onSelect={() => onSelectBlock(block.id)} onMoveUp={() => onMoveBlock(block.id, -1)} onMoveDown={() => onMoveBlock(block.id, 1)} onRemove={() => onRemoveBlock(block.id)} />
+          ))}
+          <div aria-hidden className={cx(canvasEndSpacerClass, bottomOverlay && "h-[240px]")} />
+        </div>
+      </ScrollArea>
     </section>
   );
 }

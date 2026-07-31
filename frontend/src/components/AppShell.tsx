@@ -144,7 +144,7 @@ export function AppShell({
           onSignOut={onSignOut}
         />
 
-        <main className="relative z-0 min-w-0 flex-1 overflow-hidden">
+        <main className="relative z-0 min-w-0 flex-1">
           {!fullBleed && <StatusBar items={statusItems} />}
           {children}
         </main>

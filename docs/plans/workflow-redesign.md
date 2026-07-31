@@ -22,7 +22,8 @@ Rejected/deferred alternatives:
 Implemented in the current working tree:
 
 - `frontend/src/features/automation/WorkflowCanvas.tsx` now uses a redesigned workflow frame with a white top bar, grey canvas surface, right-side toolkit, dashed empty state, flat category-colored block cards, connector lines, `Pill` badges, inset attached-block cards, selected-block border, runtime/validation highlighting, and responsive canvas/panel sizing.
-- `frontend/src/pages/AutomationPage.tsx` now places create-workflow name/enabled controls in the workflow top bar, restyles create/edit/watch inspector panels, adds close controls for selected-block panels in create/edit/watch, dims the desktop canvas while a selected-block panel is active, and adds a create-workflow leave confirmation modal.
+- `frontend/src/pages/AutomationPage.tsx` now places create-workflow name/enabled controls in the workflow top bar, restyles create/edit/watch inspector panels, renders selected block configuration/runtime in a full-height right-side overlay sheet, dims the workspace while a selected-block sheet is active, and adds a create-workflow leave confirmation modal.
+- Workflow validation/setup controls now live above the toolkit or watch run controls in the same right rail. Redundant empty selected-block placeholder panels and duplicate create action buttons were removed because selected block details now live in the overlay sheet and workflow actions live in the topbar.
 - Workflow modes now use explicit routes (`/automation/new`, `/automation/:workflowId/edit`, `/automation/:workflowId/watch`, `/automation/:workflowId/watch/:runId`) instead of query parameters, and `AppShell` uses that route metadata to hide the global status bar for workflow routes.
 - Workflow routes now bypass the normal Automation `<Page>` header/card chrome so the workflow topbar, canvas, toolkit, selected block panel, and watch history occupy the full content area beside the sidebar.
 - `CHANGELOG.md` has an `[Unreleased]` entry for the workflow redesign.
@@ -31,7 +32,7 @@ Implemented in the current working tree:
 Remaining / not yet strict-plan-complete:
 
 - Browser visual QA against the Figma screenshots is still needed for empty, populated, scrolled, selected-block, leave-dialog, watch, and responsive states.
-- Selected-block behavior is currently a closeable right-side panel with desktop canvas dimming, not a true portal/animated side sheet or mobile full-screen sheet.
+- Selected-block behavior now covers the right side of the workflow workspace with a full-height sheet over the toolkit/right rail. It is not yet animated/portal-based, and mobile full-screen sheet behavior still needs browser QA.
 - Edit-mode unsaved-leave confirmation is not implemented. Create mode has leave confirmation; watch mode remains unguarded as planned unless a protected unsaved field is introduced.
 - Drag/drop is not implemented; the workflow keeps existing click-to-add and move controls.
 
