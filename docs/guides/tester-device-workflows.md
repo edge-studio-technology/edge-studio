@@ -2,6 +2,22 @@
 
 Use this guide to choose a quick end-to-end test. A passing test means the device/source is added, a workflow runs, `Show preview` displays the payload, and `Stamp data` creates an Integritas proof when the block supports recorded, fetched, or captured data.
 
+## Basic Test Process
+
+1. Open Integritas Pi in the browser.
+2. Go to `Devices`.
+3. Click `Add device or source`.
+4. Choose the device, source, or target you want to test from the wizard.
+5. Configure the required fields, such as URL, topic, GPIO pin, I2C address, or camera settings.
+6. Save the device/source/target.
+7. Open the setup guide shown for that device and follow the wiring, broker, flashing, or endpoint instructions.
+8. Use any available device test action first, such as manual read, test pulse, or webhook/MQTT publish.
+9. Go to `Automation`.
+10. Create a workflow using the matching blocks from the table below.
+11. Configure each block to use the device/source/target you just added.
+12. Enable the workflow if it uses an event start block such as webhook, MQTT, or GPIO.
+13. Trigger the workflow and check run history, Automation inbox previews, and Integritas proofs.
+
 ## Test With A Raspberry Pi
 
 | Device or source to add | Extra hardware | Simple workflow blocks |
