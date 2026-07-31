@@ -63,7 +63,9 @@ export function canAutoResync() {
 
 export type MinimaOperationType = "restart" | "resync" | "backup" | "restore";
 
-const MINIMA_OPERATION_MAX_WINDOW_MS = 120_000;
+// Must exceed the longest operation's real duration (restart's graceful wait, see
+// docs/adr/0001-minima-graceful-node-restart.md) or the UI drops back to "error" mid-operation.
+const MINIMA_OPERATION_MAX_WINDOW_MS = 6 * 60 * 1000;
 
 let currentOperation: { type: MinimaOperationType; startedAt: number } | null = null;
 

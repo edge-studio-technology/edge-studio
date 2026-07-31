@@ -4,6 +4,7 @@ services:
       context: ./backend
     image: ${BACKEND_IMAGE}
     environment:
+      TZ: ${TZ:-UTC}
       PORT: 3000
       HOST_FILES_ROOT: /host-files
       MINIMA_STATUS_URL: http://minima:9005/status

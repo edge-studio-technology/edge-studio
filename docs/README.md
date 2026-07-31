@@ -8,6 +8,7 @@ docs/
 ├── SESSION.md   scratch log for the session in progress
 ├── security/    detailed security risk register (see SECURITY.md for the policy)
 ├── plans/       active or upcoming work
+├── adr/         architecture decision records — why, not what; code comments point here
 ├── qa/          open gaps and hardening backlog
 └── reports/     point-in-time audits (not maintained after creation)
 ```
@@ -71,6 +72,18 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | [plans/workflow-runs-pagination.md](./plans/workflow-runs-pagination.md)                                 | Implemented                |
 | [plans/pir-motion-sensor-workflows.md](./plans/pir-motion-sensor-workflows.md)                           | Planned                    |
 | [plans/esp32-mqtt-sensor-onboarding.md](./plans/esp32-mqtt-sensor-onboarding.md)                         | Planned                    |
+
+---
+
+## Architecture decisions
+
+Non-obvious "why" behind a specific implementation — timing constants, rejected alternatives,
+things verified empirically rather than documented upstream. Source comments point here instead
+of carrying the full rationale inline.
+
+| ADR                                                                                     | Decision                          |
+| ---------------------------------------------------------------------------------------- | ---------------------------------- |
+| [adr/0001-minima-graceful-node-restart.md](./adr/0001-minima-graceful-node-restart.md)   | Minima restart: `quit` + Docker `RestartCount` baseline detection + 5-min forceful fallback |
 
 ---
 

@@ -419,10 +419,10 @@ export function MinimaBackupPanel() {
             onChange={() => void handleToggleAutoBackup()}
           />
           <span className="grid gap-0.5">
-            <span className="text-sm font-semibold text-slate-700">Auto backups (24h)</span>
+            <span className="text-sm font-semibold text-slate-700">Auto backups (nightly)</span>
             <span className="text-xs text-slate-500">
-              Creates a backup every 24 hours using your backup password and keeps the last {MAX_BACKUPS}, deleting
-              the oldest.
+              Creates a backup around 00:30 on the server's clock using your backup password and keeps the last{" "}
+              {MAX_BACKUPS}, deleting the oldest.
             </span>
           </span>
         </label>

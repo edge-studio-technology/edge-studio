@@ -1,46 +1,57 @@
 import { createBackup, getAutoBackupEnabled, hasBackupPassword } from "./minima-backup.service.js";
 
 // Our own scheduler, not Minima's built-in `backup auto:true` (see minima-backup.service.ts
-// header comment for why). Mirrors the shape of minima-poll.service.ts's health poller, but
-// with a short initial delay instead of an immediate first run, so enabling this doesn't
-// force a backup on every container restart during normal operation/deploys.
-const AUTO_BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
-const AUTO_BACKUP_INITIAL_DELAY_MS = 5 * 60 * 1000;
+// header comment for why). Runs at a fixed nightly clock time rather than a rolling 24h
+// interval from whenever the container happened to start, so backups land overnight instead
+// of at a random hour. Uses the container's own system clock (`TZ` in docker-compose.yml,
+// default UTC) — set TZ to the Pi's real local timezone for this to land at actual local
+// night, otherwise 00:30 is UTC midnight-thirty.
+const AUTO_BACKUP_HOUR = 0;
+const AUTO_BACKUP_MINUTE = 30;
 
-let initialTimer: NodeJS.Timeout | null = null;
-let interval: NodeJS.Timeout | null = null;
+let timer: NodeJS.Timeout | null = null;
 let running = false;
+let stopped = true;
+
+function msUntilNextRun(): number {
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(AUTO_BACKUP_HOUR, AUTO_BACKUP_MINUTE, 0, 0);
+  if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+  return next.getTime() - now.getTime();
+}
+
+function scheduleNext() {
+  if (stopped) return;
+  timer = setTimeout(() => void runAutoBackupIfEnabled(), msUntilNextRun());
+}
 
 async function runAutoBackupIfEnabled() {
   if (running) return;
   running = true;
   try {
-    if (!getAutoBackupEnabled() || !hasBackupPassword()) return;
-    const result = await createBackup({ auto: true });
-    console.log(`Minima auto-backup: ${result.ok ? "completed" : "failed"} (${result.fileName})`);
+    if (getAutoBackupEnabled() && hasBackupPassword()) {
+      const result = await createBackup({ auto: true });
+      console.log(`Minima auto-backup: ${result.ok ? "completed" : "failed"} (${result.fileName})`);
+    }
   } catch (error) {
     console.error("Minima auto-backup failed:", error instanceof Error ? error.message : error);
   } finally {
     running = false;
+    scheduleNext();
   }
 }
 
 export function startMinimaAutoBackupScheduler() {
-  if (initialTimer || interval) return;
-  initialTimer = setTimeout(() => {
-    initialTimer = null;
-    void runAutoBackupIfEnabled();
-    interval = setInterval(() => void runAutoBackupIfEnabled(), AUTO_BACKUP_INTERVAL_MS);
-  }, AUTO_BACKUP_INITIAL_DELAY_MS);
+  if (timer) return;
+  stopped = false;
+  scheduleNext();
 }
 
 export function stopMinimaAutoBackupScheduler() {
-  if (initialTimer) {
-    clearTimeout(initialTimer);
-    initialTimer = null;
-  }
-  if (interval) {
-    clearInterval(interval);
-    interval = null;
+  stopped = true;
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
   }
 }

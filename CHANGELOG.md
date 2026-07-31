@@ -4,6 +4,13 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased]
+
+### Changed
+
+- Automatic Minima node backups now run at a fixed nightly time (00:30 on the backend container's clock) instead of a rolling 24-hour interval from container start, so they land overnight instead of at whatever hour the container happened to boot. A new `TZ` environment variable (default `UTC`) sets the backend container's timezone so "nightly" can mean the Pi's actual local night.
+- Restarting the Minima node now shuts it down gracefully first: it sends the node a `quit`-with-compaction command and waits (up to 5 minutes, since the node can take a while to actually stop even after reporting shutdown complete) for it to actually stop before starting it back up, instead of immediately force-stopping the container. If the node still hasn't stopped after that, it falls back to the previous forceful restart so the action still always completes.
+
 ## [0.28.2] 2026-07-30
 
 ### Added

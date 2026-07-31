@@ -15,7 +15,14 @@ import {
   parseStatusResponse
 } from "./minima.parse.js";
 import { fetchMinimaStatus, runMinimaPathCommand } from "./minima.rpc.js";
-import { restartComposeService } from "../status/docker.control.js";
+import {
+  getContainerRestartBaseline,
+  restartComposeService,
+  startComposeService,
+  waitForContainerRestart,
+  type ContainerRestartBaseline
+} from "../status/docker.control.js";
+import { getComposeServiceContainer } from "../status/docker.service.js";
 import { normalizeMinimaRpcError } from "./minima.errors.js";
 import type { MinimaNodeState, MinimaNodeStatus } from "./minima.types.js";
 
@@ -209,12 +216,52 @@ export async function addMinimaPeers(peerslist: string) {
   return runMinimaPathCommand(command);
 }
 
+// See docs/adr/0001-minima-graceful-node-restart.md for why this is 5 minutes, not seconds.
+const MINIMA_GRACEFUL_SHUTDOWN_TIMEOUT_MS = 5 * 60 * 1000;
+const MINIMA_GRACEFUL_SHUTDOWN_POLL_MS = 1000;
+
+async function performGracefulRestart(containerId: string, baseline: ContainerRestartBaseline) {
+  try {
+    // `quit` has no dedicated console catalog entry (see .claude/rules/minima.md) — narrow,
+    // wrapped internal use only, never a raw whitelist-able console command.
+    await runMinimaPathCommand("quit compact:true", 5000);
+  } catch {
+    // Expected: the node closes the RPC connection as part of shutting down.
+  }
+
+  const cycled = await waitForContainerRestart(
+    containerId,
+    baseline,
+    MINIMA_GRACEFUL_SHUTDOWN_TIMEOUT_MS,
+    MINIMA_GRACEFUL_SHUTDOWN_POLL_MS
+  );
+
+  if (cycled) {
+    // Idempotent confirmation — `unless-stopped` has typically already relaunched it.
+    await startComposeService("minima").catch(() => undefined);
+  } else {
+    await restartComposeService("minima");
+  }
+}
+
 export async function restartMinimaContainer() {
   beginMinimaOperation("restart");
-  try {
-    return await restartComposeService("minima");
-  } catch (error) {
+  const container = await getComposeServiceContainer("minima");
+  if (!container) {
     endMinimaOperation();
-    throw error;
+    throw new Error('Docker container not found for service "minima"');
   }
+
+  const baseline = await getContainerRestartBaseline(container.Id);
+  void performGracefulRestart(container.Id, baseline).catch((error) => {
+    endMinimaOperation();
+    console.error("Minima graceful restart failed:", error instanceof Error ? error.message : error);
+  });
+
+  return {
+    ok: true as const,
+    state: "restarting" as const,
+    service: "minima",
+    containerId: container.Id.slice(0, 12)
+  };
 }
