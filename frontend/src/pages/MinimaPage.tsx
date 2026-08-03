@@ -189,14 +189,6 @@ export function MinimaPage() {
         </div>
       )}
 
-      <MinimaSummaryGrid
-        status={nodeStatus}
-        loading={statusLoading && !nodeStatus}
-        busy={actionsBlocked}
-        refreshing={resyncing || restarting || nodeStatus?.state === "restarting"}
-        onResync={runResync}
-      />
-
       <section className="gap-detail-close grid w-full items-stretch lg:grid-cols-2">
         <MinimaHealthCard
           status={nodeStatus}
@@ -211,6 +203,14 @@ export function MinimaPage() {
           onRestart={runRestart}
         />
       </section>
+
+      <MinimaSummaryGrid
+        status={nodeStatus}
+        loading={statusLoading && !nodeStatus}
+        busy={actionsBlocked}
+        refreshing={resyncing || restarting || nodeStatus?.state === "restarting"}
+        onResync={runResync}
+      />
 
       <Card className="gap-detail-close flex w-full flex-col">
         <div className="gap-detail-next flex items-start justify-between">

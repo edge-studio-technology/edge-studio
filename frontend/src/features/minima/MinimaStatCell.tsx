@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import { Card } from "../../components/Card";
+import { Card } from "../../components/ui/Card";
 import { cx } from "../../lib/cx";
 
 export function MinimaStatCell({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="h-full rounded-2xl bg-slate-50 p-4">
-      <p className="m-0 text-sm text-slate-500">{label}</p>
-      <p className="mt-1 mb-0 text-xl font-semibold text-slate-950">{value}</p>
+    <div className="border-stroke-secondary rounded-soft p-pad-tight h-full border">
+      <p className="type-meta text-text-primary m-0">{label}</p>
+      <p className="type-callout text-text-primary mt-detail-tight mb-0">{value}</p>
     </div>
   );
 }
@@ -14,8 +14,8 @@ export function MinimaStatCell({ label, value }: { label: string; value: ReactNo
 export function MinimaStatGrid({
   title,
   footer,
-  cols = "md:grid-cols-2",
-  children
+  cols = "md:grid-cols-1",
+  children,
 }: {
   title: string;
   footer?: React.ReactNode;
@@ -23,10 +23,10 @@ export function MinimaStatGrid({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="flex h-full min-h-0 flex-col">
-      <h3 className="m-0 text-lg font-semibold text-slate-950">{title}</h3>
-      <div className={cx("mt-5 grid flex-1 auto-rows-fr gap-4", cols)}>{children}</div>
-      <div className="mt-4 min-h-11">{footer}</div>
+    <Card className="gap-detail-close flex h-full min-h-0 flex-col">
+      <h3 className="type-title text-text-primary m-0">{title}</h3>
+      <div className={cx("gap-detail-close grid flex-1 auto-rows-fr", cols)}>{children}</div>
+      <div className="min-h-11">{footer}</div>
     </Card>
   );
 }
