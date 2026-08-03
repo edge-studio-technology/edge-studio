@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Moved `LoadingDots` into `components/ui/` (flat re-export kept).
+- Moved `ErrorText` into `components/ui/` (flat `Text` re-export kept).
+- Moved `JsonPreview` into `components/patterns/` (flat re-export kept).
+- Removed legacy `Eyebrow` text helper; section labels use `type-meta` + text colour tokens.
 - Shared `Modal` Dialog layout: scrollable body, footer actions, nesting-safe scroll lock when stacked.
 - Minima RPC console UI aligned with the design system (actions, scrollback, loading state).
 - Minima console whitelist: clearer command list, select-all per group, PIN/password confirm on save.

@@ -85,7 +85,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [CheckboxField](#checkboxfield): labeled checkbox
 - [RadioField](#radiofield): labeled radio option
 - [SwitchField](#switchfield): labeled on/off switch
-- `Text`: muted and eyebrow text (legacy flat helpers)
+- `Text`: muted text (legacy flat helper; `ErrorText` lives in `ui/`)
 - `ErrorText`: inline error copy
 - [ErrorAlert](#erroralert): in-page error alert
 - [Modal](#modal): dialog overlay
