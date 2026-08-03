@@ -46,6 +46,18 @@ Plan:
 
 Status: Mitigated via closed-world catalog + re-auth-gated whitelist + hard exclusions. See `.agents/rules/minima.md`.
 
+## Minima MDS (MiniDApp System)
+
+Risk: `docker-compose.yml` sets `minima_mdsenable: "false"` to keep Minima's built-in MiniDApp web system off, since it isn't part of this project's UI and would otherwise be another RPC-adjacent surface reachable from any container on the shared network. The node image was switched from `minimaglobal/minima` to `minimaglobal/minimacore`, which has no published documentation yet, so whether this env var still disables MDS on the new image is carried over from the old image's behavior, not independently verified.
+
+Impact: If `minimacore` does not honor this flag the same way (or defaults MDS on regardless), MDS would run unacknowledged and be reachable from other containers on the `integritas` network, including a compromised `backend`.
+
+Plan:
+
+- Verify MDS is actually off on `minimaglobal/minimacore` once real documentation or source is available (e.g. by checking for an open MDS port/response from inside the `minima` container).
+
+Status: Open — carried over from the prior image's documented behavior, unverified against `minimacore`.
+
 ## Minima Node Backup & Restore
 
 Risk: The Account Settings "Node backup & restore" panel (`backend/src/features/minima/minima-backup.service.ts`, `minima.routes.ts` `/api/minima/backups*`) lets an admin create, download, upload, and restore full Minima node backup (`.bak`) files, plus set one admin-chosen backup password used for every backup. Unlike the existing seed-phrase-only wallet import, a node backup is a superset containing the seed phrase, private keys, coin proofs, and transaction history. The backup password itself is stored encrypted in SQLite (keyed by `APP_SECRET`, same primitive as Integritas token storage) so the backend's own scheduler can create automatic backups unattended.

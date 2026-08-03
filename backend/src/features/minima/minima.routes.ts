@@ -1,10 +1,11 @@
 import fs from "node:fs/promises";
 import { Router } from "express";
 import type { Response } from "express";
-import { apiErrorFromStatus, badRequest, dependencyUnavailable, notFound, unauthorized, unexpected } from "../../shared/api-error.js";
+import { apiErrorFromStatus, badRequest, conflict, dependencyUnavailable, notFound, unauthorized, unexpected } from "../../shared/api-error.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
 import { authRateLimiter } from "../auth/rate-limit.middleware.js";
+import { MinimaOperationConflictError } from "./minima-monitoring.js";
 import {
   clearBackupPassword,
   createBackup,
@@ -108,6 +109,7 @@ minimaRouter.post("/restart", requireRole("admin"), async (req, res) => {
     });
     res.json(result);
   } catch (error) {
+    if (error instanceof MinimaOperationConflictError) return conflict(res, error.message);
     const nativeMessage = error instanceof Error ? error.message : "Unknown error";
     const message = normalizeMinimaRpcError(nativeMessage);
     dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false });
@@ -132,6 +134,7 @@ minimaRouter.post("/megammrsync/resync", async (_req, res) => {
     if (!result.ok) return dependencyUnavailable(res, "Megammr resync failed", undefined, undefined, result);
     res.json(result);
   } catch (error) {
+    if (error instanceof MinimaOperationConflictError) return conflict(res, error.message);
     const nativeMessage = error instanceof Error ? error.message : "Unknown error";
     const message = normalizeMinimaRpcError(nativeMessage);
     dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });
@@ -170,6 +173,7 @@ minimaRouter.post("/console/run", requireRole("admin"), async (req, res) => {
     if (error instanceof MinimaConsoleError) {
       return apiErrorFromStatus(res, error.status, error.message);
     }
+    if (error instanceof MinimaOperationConflictError) return conflict(res, error.message);
     const nativeMessage = error instanceof Error ? error.message : "Unknown error";
     const message = normalizeMinimaRpcError(nativeMessage);
     dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });
@@ -177,6 +181,7 @@ minimaRouter.post("/console/run", requireRole("admin"), async (req, res) => {
 });
 
 function handleMinimaBackupError(res: Response, error: unknown) {
+  if (error instanceof MinimaOperationConflictError) return conflict(res, error.message);
   if (error instanceof MinimaBackupError) {
     // errorCode marks this as a re-auth failure, not an expired session — see the same
     // note on POST /console/whitelist above.

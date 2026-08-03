@@ -8,6 +8,7 @@ import { LoadingDots } from "../../components/LoadingDots";
 import { Modal } from "../../components/Modal";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
+import { formatSize } from "../../lib/format";
 import {
   clearBackupPassword,
   createMinimaBackup,
@@ -24,12 +25,6 @@ import {
 import { useMinimaStatusRefresh } from "./useMinimaStatusRefresh";
 
 const MAX_BACKUPS = 20;
-
-function formatSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function formatCreatedAt(iso: string) {
   const date = new Date(iso);

@@ -1,4 +1,4 @@
-import { getSetting, saveSetting } from "../settings/settings.repository.js";
+import { getBoolSetting, getSetting, saveSetting, setBoolSetting } from "../settings/settings.repository.js";
 import { getMinimaContainerStats, getMinimaStorageInfo } from "./minima.docker.js";
 import {
   beginMinimaOperation,
@@ -221,11 +221,11 @@ const autoRestartSetting = "minima_auto_restart_enabled";
 // Checked by minima-backup-scheduler.service.ts's nightly tick, not a standalone timer —
 // see the "reuse the scheduler" note there.
 export function getAutoRestartEnabled() {
-  return getSetting(autoRestartSetting) === "true";
+  return getBoolSetting(autoRestartSetting);
 }
 
 export function setAutoRestartEnabled(enabled: boolean) {
-  saveSetting(autoRestartSetting, enabled ? "true" : "false");
+  setBoolSetting(autoRestartSetting, enabled);
   return { autoRestartEnabled: enabled };
 }
 
@@ -257,7 +257,7 @@ async function performGracefulRestart(containerId: string, baseline: ContainerRe
   }
 }
 
-export async function restartMinimaContainer() {
+export async function restartMinimaContainer(options: { awaitCompletion?: boolean } = {}) {
   beginMinimaOperation("restart");
   const container = await getComposeServiceContainer("minima");
   if (!container) {
@@ -265,11 +265,25 @@ export async function restartMinimaContainer() {
     throw new Error('Docker container not found for service "minima"');
   }
 
-  const baseline = await getContainerRestartBaseline(container.Id);
-  void performGracefulRestart(container.Id, baseline).catch((error) => {
+  let baseline: ContainerRestartBaseline;
+  try {
+    baseline = await getContainerRestartBaseline(container.Id);
+  } catch (error) {
+    endMinimaOperation();
+    throw error;
+  }
+
+  const restartCompleted = performGracefulRestart(container.Id, baseline).catch((error) => {
     endMinimaOperation();
     console.error("Minima graceful restart failed:", error instanceof Error ? error.message : error);
+    throw error;
   });
+
+  if (options.awaitCompletion) {
+    await restartCompleted;
+  } else {
+    void restartCompleted.catch(() => undefined);
+  }
 
   return {
     ok: true as const,

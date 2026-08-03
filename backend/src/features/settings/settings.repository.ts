@@ -16,3 +16,11 @@ export function getSetting(key: string) {
 export function deleteSetting(key: string) {
   db.prepare("DELETE FROM settings WHERE key = ?").run(key);
 }
+
+export function getBoolSetting(key: string) {
+  return getSetting(key) === "true";
+}
+
+export function setBoolSetting(key: string, value: boolean) {
+  saveSetting(key, value ? "true" : "false");
+}
