@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Minima RPC console UI aligned with the design system (actions, scrollback, loading state).
 - Minima console whitelist: clearer command list, select-all per group, PIN/password confirm on save.
 - Minima container restart uses a confirm Modal instead of the browser confirm dialog.
+- Minima in-progress feedback uses short warn Pills on the Sync/Container cards; detailed RPC/Megammr copy moved to toasts (page banner removed).
 - Automation workflow create/edit/watch canvases now use the new ESDS/Figma-inspired workflow frame, explicit workflow routes, full-bleed shell layout, right-side toolkit, flat category block cards, selected-block treatment, and create-workflow leave confirmation.
 - Automation selected-block inspector now opens as a full-height viewport side sheet above the workspace chrome, with cleaner section cards and shared form controls.
 - Automation watch-mode runtime inspector now uses the same section-card hierarchy for run summary, block status, output JSON, and Diagnostics links.

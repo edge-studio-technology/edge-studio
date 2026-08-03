@@ -30,7 +30,6 @@ const REFRESH_AFTER_OPERATION_MAX_MS = 90000;
 export function MinimaPage() {
   const { showToast } = useToast();
   const [nodeStatus, setNodeStatus] = useState<MinimaNodeStatus | null>(null);
-  const [statusError, setStatusError] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [resyncing, setResyncing] = useState(false);
@@ -41,12 +40,10 @@ export function MinimaPage() {
 
   const handleStatus = useCallback((status: MinimaNodeStatus) => {
     setNodeStatus((previous) => mergeMinimaStatus(previous, status));
-    setStatusError(null);
     setStatusLoading(false);
   }, []);
 
-  const handleStatusError = useCallback((message: string) => {
-    setStatusError(message);
+  const handleStatusError = useCallback((_message: string) => {
     setStatusLoading(false);
   }, []);
 
@@ -55,7 +52,6 @@ export function MinimaPage() {
   });
 
   async function refreshAfterOperation(): Promise<boolean> {
-    setStatusError(null);
     const deadline = Date.now() + REFRESH_AFTER_OPERATION_MAX_MS;
 
     while (true) {
@@ -75,19 +71,18 @@ export function MinimaPage() {
 
   async function restartContainer(options?: { silent?: boolean }) {
     setRestarting(true);
-    setStatusError("Minima container restart in progress. RPC may be briefly unavailable.");
+    showToast({
+      tone: "info",
+      title: "Minima container restarting",
+      message: "RPC may be briefly unavailable while the Docker container restarts.",
+      timeoutMs: 10000,
+    });
 
     let commandSucceeded = false;
 
     try {
-      const result = await restartMinimaContainer();
+      await restartMinimaContainer();
       commandSucceeded = true;
-      showToast({
-        tone: "info",
-        title: "Minima container restarting",
-        message: `Docker service ${result.service} (${result.containerId}) is restarting.`,
-        timeoutMs: 10000,
-      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Restart failed";
       showToast({ tone: "error", title: "Minima restart failed", message, timeoutMs: 9000 });
@@ -138,7 +133,12 @@ export function MinimaPage() {
   async function runResync() {
     setBusy(true);
     setResyncing(true);
-    setStatusError("Megammr resync in progress. Minima RPC may be briefly unavailable.");
+    showToast({
+      tone: "info",
+      title: "Megammr resync in progress",
+      message: "Minima RPC may be briefly unavailable.",
+      timeoutMs: 10000,
+    });
 
     let restartedContainer = false;
 
@@ -152,8 +152,13 @@ export function MinimaPage() {
       }
 
       if (meta.needsRestart) {
-        setStatusError("Resync complete. Restarting Minima container…");
         setResyncing(false);
+        showToast({
+          tone: "info",
+          title: "Resync complete",
+          message: "Restarting Minima container…",
+          timeoutMs: 10000,
+        });
         await restartContainer({ silent: true });
         restartedContainer = true;
       }
@@ -177,38 +182,24 @@ export function MinimaPage() {
   // already mid-operation — before the first successful load, we don't know enough
   // to say either action would do anything useful.
   const actionsBlocked = busy || !nodeStatus || nodeStatus.state === "restarting";
-
-  // Prefer the specific local message for whoever triggered the operation; fall back to
-  // a generic one driven by backend truth so the banner survives navigating away and back
-  // mid-operation (a fresh mount has no local statusError, but the node status still does).
-  const operationBanner =
-    statusError ??
-    (nodeStatus?.state === "restarting"
-      ? "Minima is restarting. RPC may be briefly unavailable."
-      : null);
+  const nodeRestarting = restarting || nodeStatus?.state === "restarting";
 
   return (
     <Page
       title="Run the Minima node"
       desc="Start, monitor, and manage the Minima Core node running on the Raspberry Pi Edition."
     >
-      {operationBanner && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {operationBanner}
-        </div>
-      )}
-
       <section className="gap-detail-close grid w-full items-stretch lg:grid-cols-2">
         <MinimaHealthCard
           status={nodeStatus}
           loading={statusLoading && !nodeStatus}
-          refreshing={resyncing || restarting || nodeStatus?.state === "restarting"}
+          refreshing={resyncing || nodeRestarting}
         />
         <MinimaContainerCard
           status={nodeStatus}
           loading={statusLoading && !nodeStatus}
           busy={actionsBlocked}
-          refreshing={restarting || nodeStatus?.state === "restarting"}
+          refreshing={nodeRestarting}
           onRestart={openRestartConfirm}
         />
       </section>
@@ -217,7 +208,8 @@ export function MinimaPage() {
         status={nodeStatus}
         loading={statusLoading && !nodeStatus}
         busy={actionsBlocked}
-        refreshing={resyncing || restarting || nodeStatus?.state === "restarting"}
+        resyncing={resyncing}
+        refreshing={resyncing || nodeRestarting}
         onResync={runResync}
       />
 
@@ -273,7 +265,11 @@ export function MinimaPage() {
               >
                 Cancel
               </Button>
-              <Button type="button" disabled={busy || restarting} onClick={() => void confirmRestart()}>
+              <Button
+                type="button"
+                disabled={busy || restarting}
+                onClick={() => void confirmRestart()}
+              >
                 Restart
               </Button>
             </>

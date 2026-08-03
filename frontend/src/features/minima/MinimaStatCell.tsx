@@ -13,18 +13,23 @@ export function MinimaStatCell({ label, value }: { label: string; value: ReactNo
 
 export function MinimaStatGrid({
   title,
+  badge,
   footer,
   cols = "md:grid-cols-1",
   children,
 }: {
   title: string;
+  badge?: React.ReactNode;
   footer?: React.ReactNode;
   cols?: string;
   children: React.ReactNode;
 }) {
   return (
     <Card className="gap-detail-close flex h-full min-h-0 flex-col">
-      <h3 className="type-title text-text-primary m-0">{title}</h3>
+      <div className="gap-detail-next flex min-h-6 items-center justify-between">
+        <h3 className="type-title text-text-primary m-0">{title}</h3>
+        <div className="flex min-h-6 shrink-0 items-center">{badge}</div>
+      </div>
       <div className={cx("gap-detail-close grid flex-1 auto-rows-fr", cols)}>{children}</div>
       <div className="min-h-11">{footer}</div>
     </Card>
