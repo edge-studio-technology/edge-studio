@@ -1,8 +1,8 @@
 import { Terminal } from "lucide-react";
 import type { MinimaNodeStatus } from "../../app/types";
-import { JsonPreview } from "../../components/JsonPreview";
-import { LoadingDots } from "../../components/LoadingDots";
-import { ErrorText } from "../../components/Text";
+import { JsonPreview } from "../../components/patterns/JsonPreview";
+import { LoadingDots } from "../../components/ui/LoadingDots";
+import { ErrorText } from "../../components/ui/ErrorText";
 import { formatBlockAge } from "./minimaFormat";
 import { shouldShowMinimaRpcError } from "./minimaStatusDisplay";
 import { MinimaStatCell, MinimaStatGrid } from "./MinimaStatCell";
@@ -11,7 +11,7 @@ import { formatLocalTime } from "../../lib/time";
 export function MinimaHealthCard({
   status,
   loading,
-  refreshing
+  refreshing,
 }: {
   status: MinimaNodeStatus | null;
   loading: boolean;
@@ -22,21 +22,31 @@ export function MinimaHealthCard({
 
   const memoryLabel = effectiveStatus?.node.memoryRam ?? (effectiveLoading ? <LoadingDots /> : "—");
   const peerLabel =
-    effectiveStatus?.health.peerCount != null
-      ? String(effectiveStatus.health.peerCount)
-      : effectiveLoading
-        ? <LoadingDots />
-        : "—";
+    effectiveStatus?.health.peerCount != null ? (
+      String(effectiveStatus.health.peerCount)
+    ) : effectiveLoading ? (
+      <LoadingDots />
+    ) : (
+      "—"
+    );
   const blockAgeLabel =
-    effectiveStatus?.sync.blockAgeSeconds != null
-      ? formatBlockAge(effectiveStatus.sync.blockAgeSeconds)
-      : effectiveStatus?.sync.blockTime
-        ? formatLocalTime(effectiveStatus.sync.blockTime)
-        : effectiveLoading
-          ? <LoadingDots />
-          : "—";
+    effectiveStatus?.sync.blockAgeSeconds != null ? (
+      formatBlockAge(effectiveStatus.sync.blockAgeSeconds)
+    ) : effectiveStatus?.sync.blockTime ? (
+      formatLocalTime(effectiveStatus.sync.blockTime)
+    ) : effectiveLoading ? (
+      <LoadingDots />
+    ) : (
+      "—"
+    );
   const currentBlockLabel =
-    effectiveStatus?.sync.block != null ? String(effectiveStatus.sync.block) : effectiveLoading ? <LoadingDots /> : "—";
+    effectiveStatus?.sync.block != null ? (
+      String(effectiveStatus.sync.block)
+    ) : effectiveLoading ? (
+      <LoadingDots />
+    ) : (
+      "—"
+    );
 
   const monitoring = effectiveStatus?.monitoring;
 

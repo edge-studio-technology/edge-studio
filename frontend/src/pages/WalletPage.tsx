@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Copy, Eye, Loader2 } from 'lucide-react';
-import type { MinimaNodeState } from '../app/types';
-import { Button } from '../components/Button';
-import { Card } from '../components/Card';
-import { CopyableCode } from '../components/CopyableCode';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, Copy, Eye, Loader2 } from "lucide-react";
+import type { MinimaNodeState } from "../app/types";
+import { Button } from "../components/Button";
+import { Card } from "../components/Card";
+import { CopyableCode } from "../components/CopyableCode";
 import {
   DataTable,
   RowActions,
@@ -13,61 +13,61 @@ import {
   tableHeaderCellClass,
   tableHeadRowClass,
   tableRowClass,
-} from '../components/DataTable';
-import { DarkHeroCard } from '../components/DarkHeroCard';
-import { ListPagerFilterBar } from '../components/ListPagerFilterBar';
-import { LoadingDots } from '../components/LoadingDots';
-import { MinimaIcon } from '../components/MinimaIcon';
-import { Modal } from '../components/Modal';
-import { Page } from '../components/Page';
-import { SubTabs } from '../components/SubTabs';
-import { TablePager } from '../components/TablePager';
-import { ErrorText, Eyebrow, MutedText } from '../components/Text';
-import { useToast } from '../components/ToastProvider';
-import { DEFAULT_PAGE_SIZE_OPTIONS } from '../lib/paginated';
+} from "../components/DataTable";
+import { DarkHeroCard } from "../components/DarkHeroCard";
+import { ListPagerFilterBar } from "../components/ListPagerFilterBar";
+import { LoadingDots } from "../components/LoadingDots";
+import { MinimaIcon } from "../components/MinimaIcon";
+import { Modal } from "../components/Modal";
+import { Page } from "../components/Page";
+import { SubTabs } from "../components/SubTabs";
+import { TablePager } from "../components/TablePager";
+import { ErrorText, MutedText } from "../components/Text";
+import { useToast } from "../components/ToastProvider";
+import { DEFAULT_PAGE_SIZE_OPTIONS } from "../lib/paginated";
 import {
   createToken as createTokenApi,
   getTokenCreateRequirements,
-} from '../features/tokens/tokensApi';
-import type { TokenCreateRequirements } from '../features/tokens/tokensTypes';
-import { formatAmountAdaptive, formatAmountThreshold } from '../lib/format';
+} from "../features/tokens/tokensApi";
+import type { TokenCreateRequirements } from "../features/tokens/tokensTypes";
+import { formatAmountAdaptive, formatAmountThreshold } from "../lib/format";
 import {
   clearWalletHistoryForDebug,
   getReceiveAddress,
   getWalletStatus,
   listWalletSendHistory,
   sendPayment as sendPaymentApi,
-} from '../features/wallet/walletApi';
+} from "../features/wallet/walletApi";
 import type {
   ReceiveAddress,
   TokenBalance,
   WalletSendHistoryItem,
   WalletStatus,
-} from '../features/wallet/walletTypes';
-import { AddressBookPanel } from '../features/address-book/AddressBookPanel';
-import { listAddressBookEntries } from '../features/address-book/addressBookApi';
-import type { AddressBookEntry } from '../features/address-book/addressBookTypes';
-import { useMinimaStatusRefresh } from '../features/minima/useMinimaStatusRefresh';
+} from "../features/wallet/walletTypes";
+import { AddressBookPanel } from "../features/address-book/AddressBookPanel";
+import { listAddressBookEntries } from "../features/address-book/addressBookApi";
+import type { AddressBookEntry } from "../features/address-book/addressBookTypes";
+import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
 
 function isNativeTokenId(tokenId: string): boolean {
-  return tokenId.trim().toLowerCase() === '0x00';
+  return tokenId.trim().toLowerCase() === "0x00";
 }
 
 function compareDecimalStrings(a: string, b: string): number {
   const normalize = (value: string) => {
     const trimmed = value.trim();
-    if (!trimmed || trimmed === '.') return { int: '0', frac: '' };
-    const [intPart = '0', fracPart = ''] = trimmed.split('.');
+    if (!trimmed || trimmed === ".") return { int: "0", frac: "" };
+    const [intPart = "0", fracPart = ""] = trimmed.split(".");
     return {
-      int: intPart.replace(/^0+(?=\d)/, '') || '0',
+      int: intPart.replace(/^0+(?=\d)/, "") || "0",
       frac: fracPart,
     };
   };
   const aNorm = normalize(a);
   const bNorm = normalize(b);
   const fracLen = Math.max(aNorm.frac.length, bNorm.frac.length);
-  const aCombined = `${aNorm.int}${aNorm.frac.padEnd(fracLen, '0')}`;
-  const bCombined = `${bNorm.int}${bNorm.frac.padEnd(fracLen, '0')}`;
+  const aCombined = `${aNorm.int}${aNorm.frac.padEnd(fracLen, "0")}`;
+  const bCombined = `${bNorm.int}${bNorm.frac.padEnd(fracLen, "0")}`;
   if (aCombined === bCombined) return 0;
   return BigInt(aCombined) > BigInt(bCombined) ? 1 : -1;
 }
@@ -75,59 +75,53 @@ function compareDecimalStrings(a: string, b: string): number {
 function isPositiveDecimal(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed || !/^\d+(\.\d+)?$/.test(trimmed)) return false;
-  return compareDecimalStrings(trimmed, '0') > 0;
+  return compareDecimalStrings(trimmed, "0") > 0;
 }
 
 function shortAddress(value: string): string {
   if (value.length <= 18) return value;
-  if (value.startsWith('Mx')) return `${value.slice(0, 8)}…${value.slice(-6)}`;
-  if (value.startsWith('0x')) return `${value.slice(0, 10)}…${value.slice(-6)}`;
+  if (value.startsWith("Mx")) return `${value.slice(0, 8)}…${value.slice(-6)}`;
+  if (value.startsWith("0x")) return `${value.slice(0, 10)}…${value.slice(-6)}`;
   return `${value.slice(0, 8)}…${value.slice(-6)}`;
 }
 
-function FilledHexTokenIcon({
-  size = 13,
-  className = '',
-}: {
-  size?: number;
-  className?: string;
-}) {
+function FilledHexTokenIcon({ size = 13, className = "" }: { size?: number; className?: string }) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox='0 0 24 24'
-      aria-hidden='true'
+      viewBox="0 0 24 24"
+      aria-hidden="true"
       className={className}
-      fill='currentColor'
+      fill="currentColor"
     >
-      <path d='M12 2.2 20.4 7v10L12 21.8 3.6 17V7L12 2.2Z' />
+      <path d="M12 2.2 20.4 7v10L12 21.8 3.6 17V7L12 2.2Z" />
     </svg>
   );
 }
 
 function TokenGlyph({ isNative }: { isNative: boolean }) {
   if (isNative) {
-    return <MinimaIcon size={13} className='text-slate-400 shrink-0' />;
+    return <MinimaIcon size={13} className="shrink-0 text-slate-400" />;
   }
-  return <FilledHexTokenIcon size={13} className='text-slate-400 shrink-0' />;
+  return <FilledHexTokenIcon size={13} className="shrink-0 text-slate-400" />;
 }
 
 const ASSET_KIND_OPTIONS = [
-  { value: '', label: 'All' },
-  { value: 'minima', label: 'Minima' },
-  { value: 'tokens', label: 'Tokens' },
+  { value: "", label: "All" },
+  { value: "minima", label: "Minima" },
+  { value: "tokens", label: "Tokens" },
 ] as const;
 
 const HISTORY_STATUS_OPTIONS = [
-  { value: '', label: 'All' },
-  { value: 'submitted', label: 'Submitted' },
-  { value: 'failed', label: 'Failed' },
+  { value: "", label: "All" },
+  { value: "submitted", label: "Submitted" },
+  { value: "failed", label: "Failed" },
 ] as const;
 
-const fieldLabelClass = 'text-xs font-bold uppercase tracking-widest text-slate-500';
+const fieldLabelClass = "text-xs font-bold uppercase tracking-widest text-slate-500";
 const inputClass =
-  'w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-55';
+  "w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-55";
 
 const RECEIVE_QR_REFRESH_MS = 3 * 60 * 1000;
 
@@ -142,9 +136,7 @@ function ReceiveQrPanel({ disabled }: { disabled: boolean }) {
         setAddress(result);
         setError(null);
       })
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : 'Could not fetch address.'),
-      );
+      .catch((err) => setError(err instanceof Error ? err.message : "Could not fetch address."));
   }, []);
 
   useEffect(() => {
@@ -159,7 +151,7 @@ function ReceiveQrPanel({ disabled }: { disabled: boolean }) {
       interval = undefined;
     }
     function handleVisibilityChange() {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         refresh();
         startInterval();
       } else {
@@ -167,10 +159,10 @@ function ReceiveQrPanel({ disabled }: { disabled: boolean }) {
       }
     }
     startInterval();
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       stopInterval();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [disabled, refresh]);
 
@@ -186,31 +178,35 @@ function ReceiveQrPanel({ disabled }: { disabled: boolean }) {
   }
 
   return (
-    <div className='flex h-full flex-col items-center gap-2'>
+    <div className="flex h-full flex-col items-center gap-2">
       <button
-        type='button'
+        type="button"
         onClick={handleCopy}
         disabled={!address || disabled}
-        aria-label={copied ? 'Copied' : 'Copy Mx address'}
-        className='flex h-full w-40 flex-col overflow-hidden rounded-md bg-white text-slate-950 shadow-sm transition-colors enabled:hover:bg-slate-50 disabled:opacity-55'
+        aria-label={copied ? "Copied" : "Copy Mx address"}
+        className="flex h-full w-40 flex-col overflow-hidden rounded-md bg-white text-slate-950 shadow-sm transition-colors enabled:hover:bg-slate-50 disabled:opacity-55"
       >
-        <div className='flex flex-1 items-center justify-center p-2'>
-          <div className='grid size-32 shrink-0 place-items-center'>
+        <div className="flex flex-1 items-center justify-center p-2">
+          <div className="grid size-32 shrink-0 place-items-center">
             {address ? (
-              <img src={address.qrDataUrl} alt='Wallet receive address QR code' className='size-full' />
+              <img
+                src={address.qrDataUrl}
+                alt="Wallet receive address QR code"
+                className="size-full"
+              />
             ) : (
               <LoadingDots />
             )}
           </div>
         </div>
-        <div className='flex w-full items-center justify-center gap-2 border-t border-slate-200 px-3 py-2.5 text-sm font-bold whitespace-nowrap'>
-          <span className='grid shrink-0 place-items-center'>
+        <div className="flex w-full items-center justify-center gap-2 border-t border-slate-200 px-3 py-2.5 text-sm font-bold whitespace-nowrap">
+          <span className="grid shrink-0 place-items-center">
             {copied ? <Check size={16} /> : <Copy size={16} />}
           </span>
-          {copied ? 'Copied' : 'Copy address'}
+          {copied ? "Copied" : "Copy address"}
         </div>
       </button>
-      {error && <p className='m-0 max-w-35 text-center text-xs text-red-400'>{error}</p>}
+      {error && <p className="m-0 max-w-35 text-center text-xs text-red-400">{error}</p>}
     </div>
   );
 }
@@ -225,24 +221,30 @@ function WalletHero({
   disabled: boolean;
 }) {
   return (
-    <DarkHeroCard rounded='rounded-md' padding='p-5'>
-      <div className='relative z-10 flex flex-col gap-6 sm:flex-row sm:items-stretch sm:justify-between'>
-        <div className='flex min-w-0 flex-col justify-end gap-4'>
-          <div className='flex items-center gap-3'>
-            <div className='grid size-[38px] place-items-center rounded-[14px] bg-white/10'>
+    <DarkHeroCard rounded="rounded-md" padding="p-5">
+      <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-stretch sm:justify-between">
+        <div className="flex min-w-0 flex-col justify-end gap-4">
+          <div className="flex items-center gap-3">
+            <div className="grid size-[38px] place-items-center rounded-[14px] bg-white/10">
               <MinimaIcon size={18} />
             </div>
-            <Eyebrow className='text-slate-400'>Primary wallet</Eyebrow>
+            <p className="type-callout text-text-inverse m-0">Primary wallet</p>
           </div>
           <div>
-            <p className='m-0 text-xs font-extrabold uppercase tracking-[0.12em] text-slate-400'>Total sendable MINIMA</p>
-            <div className='mt-2 flex min-w-0 items-start gap-4 text-[clamp(2.5rem,6vw,3.5rem)]'>
-              <MinimaIcon size={36} className='mt-[calc((1.1em-36px)/2)] shrink-0 opacity-55' />
+            <p className="m-0 text-xs font-extrabold tracking-[0.12em] text-slate-400 uppercase">
+              Total sendable MINIMA
+            </p>
+            <div className="mt-2 flex min-w-0 items-start gap-4 text-[clamp(2.5rem,6vw,3.5rem)]">
+              <MinimaIcon size={36} className="mt-[calc((1.1em-36px)/2)] shrink-0 opacity-55" />
               <span
-                className='min-w-0 break-all text-[clamp(2.5rem,6vw,3.5rem)] font-bold leading-[1.1] tracking-[-0.04em]'
+                className="min-w-0 text-[clamp(2.5rem,6vw,3.5rem)] leading-[1.1] font-bold tracking-[-0.04em] break-all"
                 title={loading || disabled ? undefined : totalMinima}
               >
-                {loading || disabled ? <LoadingDots className='scale-125' /> : formatAmountThreshold(totalMinima)}
+                {loading || disabled ? (
+                  <LoadingDots className="scale-125" />
+                ) : (
+                  formatAmountThreshold(totalMinima)
+                )}
               </span>
             </div>
           </div>
@@ -262,20 +264,21 @@ export function WalletPage() {
 
   const [createTokenOpen, setCreateTokenOpen] = useState(false);
   const [sendHistory, setSendHistory] = useState<WalletSendHistoryItem[]>([]);
-  const [selectedHistoryItem, setSelectedHistoryItem] =
-    useState<WalletSendHistoryItem | null>(null);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<WalletSendHistoryItem | null>(
+    null,
+  );
   const [debugClearingHistory, setDebugClearingHistory] = useState(false);
-  const [assetKind, setAssetKind] = useState('');
-  const [assetQuery, setAssetQuery] = useState('');
+  const [assetKind, setAssetKind] = useState("");
+  const [assetQuery, setAssetQuery] = useState("");
   const [assetPage, setAssetPage] = useState(1);
   const [assetPageSize, setAssetPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
   const [selectedAsset, setSelectedAsset] = useState<TokenBalance | null>(null);
-  const [historyQuery, setHistoryQuery] = useState('');
-  const [historyStatus, setHistoryStatus] = useState('');
+  const [historyQuery, setHistoryQuery] = useState("");
+  const [historyStatus, setHistoryStatus] = useState("");
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
   const [addContactOpen, setAddContactOpen] = useState(false);
-  const [mainTab, setMainTab] = useState<'assets' | 'address-book' | 'history'>('assets');
+  const [mainTab, setMainTab] = useState<"assets" | "address-book" | "history">("assets");
   const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
   const previousMinimaStateRef = useRef<MinimaNodeState | null>(null);
 
@@ -288,32 +291,29 @@ export function WalletPage() {
       // node drops out from under it (restart/resync) — reload it once the node
       // is confirmed running again instead of leaving the page stuck on whatever
       // it last managed to load until the user navigates away and back.
-      if (previous !== null && previous !== 'running' && status.state === 'running') {
+      if (previous !== null && previous !== "running" && status.state === "running") {
         refresh();
       }
     },
-    () => {}
+    () => {},
   );
   // Only allow wallet actions once Minima is confirmed running — any other state
   // (loading, stopped, error, restarting) means an RPC call would just fail. Buttons
   // stay disabled during the initial "haven't checked yet" window too, but the warning
   // banner itself only appears once we've actually confirmed the node isn't running —
   // otherwise it flashes "unavailable" for a node that's actually fine.
-  const actionsBlocked = minimaState !== 'running';
-  const minimaConfirmedUnavailable = minimaState !== null && minimaState !== 'running';
+  const actionsBlocked = minimaState !== "running";
+  const minimaConfirmedUnavailable = minimaState !== null && minimaState !== "running";
 
   async function refresh() {
     setLoading(true);
     setError(null);
     try {
-      const [status, history] = await Promise.all([
-        getWalletStatus(),
-        listWalletSendHistory(20),
-      ]);
+      const [status, history] = await Promise.all([getWalletStatus(), listWalletSendHistory(20)]);
       setWalletStatus(status);
       setSendHistory(history.sends);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load wallet.');
+      setError(err instanceof Error ? err.message : "Failed to load wallet.");
     } finally {
       setLoading(false);
     }
@@ -324,14 +324,14 @@ export function WalletPage() {
   }, []);
 
   const nativeToken = walletStatus?.tokens.find((t) => t.isNative);
-  const totalMinima = nativeToken?.sendable ?? '0';
+  const totalMinima = nativeToken?.sendable ?? "0";
   const isDev = import.meta.env.DEV;
 
   const allTokens = walletStatus?.tokens ?? [];
   const trimmedAssetQuery = assetQuery.trim().toLowerCase();
   const visibleAssets = allTokens.filter((t) => {
-    if (assetKind === 'minima' && !t.isNative) return false;
-    if (assetKind === 'tokens' && t.isNative) return false;
+    if (assetKind === "minima" && !t.isNative) return false;
+    if (assetKind === "tokens" && t.isNative) return false;
     if (!trimmedAssetQuery) return true;
     return (
       t.name.toLowerCase().includes(trimmedAssetQuery) ||
@@ -352,7 +352,7 @@ export function WalletPage() {
     return (
       entry.toAddress.toLowerCase().includes(trimmedHistoryQuery) ||
       entry.tokenName.toLowerCase().includes(trimmedHistoryQuery) ||
-      (entry.txpowId ?? '').toLowerCase().includes(trimmedHistoryQuery)
+      (entry.txpowId ?? "").toLowerCase().includes(trimmedHistoryQuery)
     );
   });
   const historyTotalPages = Math.max(1, Math.ceil(filteredHistory.length / historyPageSize));
@@ -364,7 +364,7 @@ export function WalletPage() {
 
   async function handleDebugClearWalletHistory() {
     const confirmed = window.confirm(
-      'Clear wallet send history from SQLite? This is a dev-only debug action and cannot be undone.',
+      "Clear wallet send history from SQLite? This is a dev-only debug action and cannot be undone.",
     );
     if (!confirmed) return;
     setDebugClearingHistory(true);
@@ -372,18 +372,15 @@ export function WalletPage() {
       const result = await clearWalletHistoryForDebug();
       await refresh();
       showToast({
-        tone: 'success',
-        title: 'Wallet history cleared',
+        tone: "success",
+        title: "Wallet history cleared",
         message: `Deleted ${result.deleted} history item(s).`,
       });
     } catch (err) {
       showToast({
-        tone: 'error',
-        title: 'Clear failed',
-        message:
-          err instanceof Error
-            ? err.message
-            : 'Could not clear wallet history.',
+        tone: "error",
+        title: "Clear failed",
+        message: err instanceof Error ? err.message : "Could not clear wallet history.",
       });
     } finally {
       setDebugClearingHistory(false);
@@ -391,48 +388,50 @@ export function WalletPage() {
   }
 
   return (
-    <Page
-      eyebrow='Wallet'
-      title='Wallet'
-      desc='Node wallet balance and transaction history.'
-    >
+    <Page eyebrow="Wallet" title="Wallet" desc="Node wallet balance and transaction history.">
       {minimaConfirmedUnavailable && (
-        <div className='rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900'>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Wallet actions are unavailable until Minima is running.
         </div>
       )}
 
-      <WalletHero
-        loading={loading}
-        totalMinima={totalMinima}
-        disabled={actionsBlocked}
-      />
+      <WalletHero loading={loading} totalMinima={totalMinima} disabled={actionsBlocked} />
 
-      <div className='flex flex-wrap items-center justify-between gap-2'>
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <SubTabs
-          label='Wallet sections'
+          label="Wallet sections"
           value={mainTab}
           options={[
-            { value: 'assets', label: 'Assets' },
-            { value: 'address-book', label: 'Address book' },
-            { value: 'history', label: 'History' },
+            { value: "assets", label: "Assets" },
+            { value: "address-book", label: "Address book" },
+            { value: "history", label: "History" },
           ]}
           onChange={setMainTab}
         />
-        <div className='flex flex-wrap gap-2'>
-          <Button type='button' variant='secondary' onClick={() => setSendOpen(true)} disabled={actionsBlocked}>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setSendOpen(true)}
+            disabled={actionsBlocked}
+          >
             Send payment
           </Button>
-          <Button type='button' variant='secondary' onClick={() => setCreateTokenOpen(true)} disabled={actionsBlocked}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setCreateTokenOpen(true)}
+            disabled={actionsBlocked}
+          >
             Create token
           </Button>
         </div>
       </div>
 
       <Card>
-        {mainTab === 'assets' ? (
+        {mainTab === "assets" ? (
           <>
-            <Eyebrow className='mb-4'>Assets</Eyebrow>
+            <p className="type-title mb-4">Assets</p>
             <ListPagerFilterBar
               page={assetCurrentPage}
               pageSize={assetPageSize}
@@ -441,8 +440,8 @@ export function WalletPage() {
               status={assetKind}
               q={assetQuery}
               statusOptions={ASSET_KIND_OPTIONS}
-              statusLabel='Kind'
-              searchPlaceholder='Name or coin ID'
+              statusLabel="Kind"
+              searchPlaceholder="Name or coin ID"
               disabled={loading || actionsBlocked}
               onPageChange={setAssetPage}
               onPageSizeChange={(size) => {
@@ -459,14 +458,12 @@ export function WalletPage() {
               }}
             />
             {loading || actionsBlocked ? (
-              <div className='flex justify-center py-10'>
-                <Loader2 className='size-10 animate-spin text-slate-400' aria-hidden='true' />
+              <div className="flex justify-center py-10">
+                <Loader2 className="size-10 animate-spin text-slate-400" aria-hidden="true" />
               </div>
             ) : visibleAssets.length === 0 ? (
               <MutedText>
-                {assetKind || trimmedAssetQuery
-                  ? 'No matching assets.'
-                  : 'No assets found.'}
+                {assetKind || trimmedAssetQuery ? "No matching assets." : "No assets found."}
               </MutedText>
             ) : (
               <TableWrap>
@@ -482,13 +479,13 @@ export function WalletPage() {
                     {pagedAssets.map((token) => (
                       <tr key={token.tokenId} className={tableRowClass}>
                         <td className={`${tableCellClass} min-w-48`}>
-                          <span className='inline-flex items-center gap-1.5 font-semibold text-slate-900'>
+                          <span className="inline-flex items-center gap-1.5 font-semibold text-slate-900">
                             <TokenGlyph isNative={token.isNative} />
                             {token.name}
                           </span>
                         </td>
                         <td className={tableCellClass}>
-                          <span className='inline-flex items-center gap-1.5 font-mono text-sm tabular-nums text-slate-700'>
+                          <span className="inline-flex items-center gap-1.5 font-mono text-sm text-slate-700 tabular-nums">
                             <TokenGlyph isNative={token.isNative} />
                             {formatAmountAdaptive(token.sendable)}
                           </span>
@@ -496,8 +493,8 @@ export function WalletPage() {
                         <td className={`${tableCellClass} w-px whitespace-nowrap`}>
                           <RowActions wrap={false}>
                             <TableIconButton
-                              type='button'
-                              title='View details'
+                              type="button"
+                              title="View details"
                               aria-label={`View ${token.name}`}
                               onClick={() => setSelectedAsset(token)}
                             >
@@ -511,7 +508,7 @@ export function WalletPage() {
                 </DataTable>
               </TableWrap>
             )}
-            <div className='mt-3'>
+            <div className="mt-3">
               <TablePager
                 page={assetCurrentPage}
                 pageSize={assetPageSize}
@@ -526,13 +523,13 @@ export function WalletPage() {
               />
             </div>
           </>
-        ) : mainTab === 'address-book' ? (
+        ) : mainTab === "address-book" ? (
           <>
-            <div className='flex items-center justify-between gap-3 mb-4'>
-              <Eyebrow>Address book</Eyebrow>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="type-title">Address book</p>
               <Button
-                type='button'
-                variant='secondary'
+                type="button"
+                variant="secondary"
                 onClick={() => setAddContactOpen(true)}
                 disabled={actionsBlocked}
               >
@@ -547,14 +544,14 @@ export function WalletPage() {
           </>
         ) : (
           <>
-            <div className='flex items-center justify-between gap-3 mb-4'>
-              <Eyebrow>History</Eyebrow>
-              <div className='flex items-center gap-3'>
-                <p className='text-xs text-slate-500'>Sent</p>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="type-title">History</p>
+              <div className="flex items-center gap-3">
+                <p className="text-xs text-slate-500">Sent</p>
                 <Button
-                  type='button'
-                  variant='secondary'
-                  className='rounded-xl px-3 py-2 text-xs'
+                  type="button"
+                  variant="secondary"
+                  className="rounded-xl px-3 py-2 text-xs"
                   onClick={refresh}
                   disabled={loading || actionsBlocked}
                 >
@@ -570,8 +567,8 @@ export function WalletPage() {
               status={historyStatus}
               q={historyQuery}
               statusOptions={HISTORY_STATUS_OPTIONS}
-              statusLabel='Status'
-              searchPlaceholder='Address, token, or txpow ID'
+              statusLabel="Status"
+              searchPlaceholder="Address, token, or txpow ID"
               disabled={loading || actionsBlocked}
               onPageChange={setHistoryPage}
               onPageSizeChange={(size) => {
@@ -588,16 +585,16 @@ export function WalletPage() {
               }}
             />
             {loading || actionsBlocked ? (
-              <div className='flex justify-center py-10'>
-                <Loader2 className='size-10 animate-spin text-slate-400' aria-hidden='true' />
+              <div className="flex justify-center py-10">
+                <Loader2 className="size-10 animate-spin text-slate-400" aria-hidden="true" />
               </div>
             ) : error ? (
               <ErrorText>{error}</ErrorText>
             ) : filteredHistory.length === 0 ? (
               <MutedText>
                 {historyStatus || trimmedHistoryQuery
-                  ? 'No matching history.'
-                  : 'No send activity yet.'}
+                  ? "No matching history."
+                  : "No send activity yet."}
               </MutedText>
             ) : (
               <TableWrap>
@@ -615,30 +612,32 @@ export function WalletPage() {
                     {pagedHistory.map((entry) => (
                       <tr key={entry.id} className={tableRowClass}>
                         <td className={tableCellClass}>
-                          <span className='inline-flex items-center gap-1.5 font-semibold text-slate-900'>
+                          <span className="inline-flex items-center gap-1.5 font-semibold text-slate-900">
                             <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
                             {entry.amount} {entry.tokenName}
                           </span>
                         </td>
                         <td className={tableCellClass}>
-                          <code className='font-mono text-xs text-slate-500'>{shortAddress(entry.toAddress)}</code>
+                          <code className="font-mono text-xs text-slate-500">
+                            {shortAddress(entry.toAddress)}
+                          </code>
                         </td>
                         <td className={tableCellClass}>
-                          <span className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
+                          <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
                             {entry.status}
                           </span>
                         </td>
                         <td className={tableCellClass}>
-                          <span className='text-xs text-slate-500'>
+                          <span className="text-xs text-slate-500">
                             {new Date(entry.createdAt).toLocaleString()}
                           </span>
                         </td>
                         <td className={`${tableCellClass} w-px whitespace-nowrap`}>
                           <RowActions wrap={false}>
                             <TableIconButton
-                              type='button'
-                              title='View details'
-                              aria-label='View history item'
+                              type="button"
+                              title="View details"
+                              aria-label="View history item"
                               onClick={() => setSelectedHistoryItem(entry)}
                             >
                               <Eye size={16} />
@@ -651,7 +650,7 @@ export function WalletPage() {
                 </DataTable>
               </TableWrap>
             )}
-            <div className='mt-3'>
+            <div className="mt-3">
               <TablePager
                 page={historyCurrentPage}
                 pageSize={historyPageSize}
@@ -666,15 +665,15 @@ export function WalletPage() {
               />
             </div>
             {isDev && (
-              <div className='mt-4 flex justify-start'>
+              <div className="mt-4 flex justify-start">
                 <Button
-                  type='button'
-                  variant='secondary'
+                  type="button"
+                  variant="secondary"
                   onClick={handleDebugClearWalletHistory}
                   disabled={debugClearingHistory}
-                  title='Dev-only: clears wallet_send_history table'
+                  title="Dev-only: clears wallet_send_history table"
                 >
-                  {debugClearingHistory ? 'Clearing…' : 'Debug: clear history'}
+                  {debugClearingHistory ? "Clearing…" : "Debug: clear history"}
                 </Button>
               </div>
             )}
@@ -683,10 +682,7 @@ export function WalletPage() {
       </Card>
 
       {selectedAsset && (
-        <AssetDetailModal
-          token={selectedAsset}
-          onClose={() => setSelectedAsset(null)}
-        />
+        <AssetDetailModal token={selectedAsset} onClose={() => setSelectedAsset(null)} />
       )}
       {selectedHistoryItem && (
         <HistoryDetailModal
@@ -716,44 +712,30 @@ export function WalletPage() {
   );
 }
 
-function AssetDetailModal({
-  token,
-  onClose,
-}: {
-  token: TokenBalance;
-  onClose: () => void;
-}) {
+function AssetDetailModal({ token, onClose }: { token: TokenBalance; onClose: () => void }) {
   return (
     <Modal title={token.name} onClose={onClose}>
-      <div className='grid gap-4'>
-        <div className='grid gap-1'>
-          <p className={fieldLabelClass}>
-            Token ID
-          </p>
+      <div className="grid gap-4">
+        <div className="grid gap-1">
+          <p className={fieldLabelClass}>Token ID</p>
           <CopyableCode value={token.tokenId} />
         </div>
-        <div className='grid gap-1'>
-          <p className={fieldLabelClass}>
-            Sendable
-          </p>
-          <p className='text-lg font-semibold text-slate-900 tabular-nums inline-flex items-center gap-2'>
+        <div className="grid gap-1">
+          <p className={fieldLabelClass}>Sendable</p>
+          <p className="inline-flex items-center gap-2 text-lg font-semibold text-slate-900 tabular-nums">
             <TokenGlyph isNative={token.isNative} />
             {formatAmountAdaptive(token.sendable)}
           </p>
         </div>
-        <div className='grid gap-1'>
-          <p className={fieldLabelClass}>
-            Confirmed
-          </p>
-          <p className='text-sm font-medium text-slate-900 tabular-nums'>
+        <div className="grid gap-1">
+          <p className={fieldLabelClass}>Confirmed</p>
+          <p className="text-sm font-medium text-slate-900 tabular-nums">
             {formatAmountAdaptive(token.confirmed)}
           </p>
         </div>
-        <div className='grid gap-1'>
-          <p className={fieldLabelClass}>
-            Unconfirmed
-          </p>
-          <p className='text-sm font-medium text-slate-500 tabular-nums'>
+        <div className="grid gap-1">
+          <p className={fieldLabelClass}>Unconfirmed</p>
+          <p className="text-sm font-medium text-slate-500 tabular-nums">
             {formatAmountAdaptive(token.unconfirmed)}
           </p>
         </div>
@@ -774,28 +756,30 @@ function SendPaymentModal({
   onClose: () => void;
 }) {
   const { showToast } = useToast();
-  const [address, setAddress] = useState('');
-  const [amount, setAmount] = useState('');
-  const [tokenId, setTokenId] = useState('0x00');
+  const [address, setAddress] = useState("");
+  const [amount, setAmount] = useState("");
+  const [tokenId, setTokenId] = useState("0x00");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [addressMode, setAddressMode] = useState<'external' | 'address-book'>('external');
+  const [addressMode, setAddressMode] = useState<"external" | "address-book">("external");
   const [contacts, setContacts] = useState<AddressBookEntry[]>([]);
 
   useEffect(() => {
-    listAddressBookEntries().then(setContacts).catch(() => {});
+    listAddressBookEntries()
+      .then(setContacts)
+      .catch(() => {});
   }, []);
 
   const tokens = walletStatus?.tokens ?? [];
   const tokenOptions = tokens.map((token) => ({
     value: token.tokenId,
-    label: token.isNative ? 'Minima (native)' : token.name,
+    label: token.isNative ? "Minima (native)" : token.name,
   }));
   const selectedToken = tokens.find((t) => t.tokenId === tokenId);
-  const availableSendable = selectedToken?.sendable ?? '0';
+  const availableSendable = selectedToken?.sendable ?? "0";
   const availableLabel = selectedToken
     ? selectedToken.isNative
-      ? 'Minima'
+      ? "Minima"
       : selectedToken.name
     : null;
 
@@ -810,18 +794,16 @@ function SendPaymentModal({
     e.preventDefault();
     setFormError(null);
     if (!address.trim()) {
-      setFormError('Address is required.');
+      setFormError("Address is required.");
       return;
     }
     const num = Number(amount);
     if (!amount || !Number.isFinite(num) || num <= 0) {
-      setFormError('Amount must be a positive number.');
+      setFormError("Amount must be a positive number.");
       return;
     }
     if (exceedsBalance) {
-      setFormError(
-        `Amount exceeds available balance (${availableSendable} ${availableLabel}).`,
-      );
+      setFormError(`Amount exceeds available balance (${availableSendable} ${availableLabel}).`);
       return;
     }
     setSubmitting(true);
@@ -831,79 +813,76 @@ function SendPaymentModal({
         amount: amount.trim(),
         tokenId,
         tokenName:
-          tokenId === '0x00'
-            ? 'Minima'
-            : (tokenOptions.find((opt) => opt.value === tokenId)?.label ??
-              tokenId),
+          tokenId === "0x00"
+            ? "Minima"
+            : (tokenOptions.find((opt) => opt.value === tokenId)?.label ?? tokenId),
       });
-      if (!result.ok || result.status === 'failed') {
-        setFormError(result.message ?? 'Send failed.');
+      if (!result.ok || result.status === "failed") {
+        setFormError(result.message ?? "Send failed.");
         return;
       }
       showToast({
-        tone: 'success',
-        title: 'Payment sent',
+        tone: "success",
+        title: "Payment sent",
         message: result.txpowId
           ? `Transaction submitted: ${result.txpowId.slice(0, 16)}…`
           : undefined,
       });
       onClose();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Send failed.');
+      setFormError(err instanceof Error ? err.message : "Send failed.");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Modal title='Send payment' onClose={onClose}>
-      <form onSubmit={handleSubmit} className='grid gap-4'>
-        <div className='grid gap-1.5'>
-          <div className='flex items-center justify-between gap-3'>
-            <span className={fieldLabelClass}>
-              Recipient address
-            </span>
-            <div className='flex gap-1 rounded-lg bg-slate-100 p-0.5'>
-              {(['external', 'address-book'] as const).map((mode) => (
+    <Modal title="Send payment" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="grid gap-4">
+        <div className="grid gap-1.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className={fieldLabelClass}>Recipient address</span>
+            <div className="flex gap-1 rounded-lg bg-slate-100 p-0.5">
+              {(["external", "address-book"] as const).map((mode) => (
                 <button
                   key={mode}
-                  type='button'
+                  type="button"
                   onClick={() => {
                     setAddressMode(mode);
-                    setAddress('');
+                    setAddress("");
                     setFormError(null);
                   }}
-                  className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
                     addressMode === mode
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
-                  {mode === 'external' ? 'External' : 'Address book'}
+                  {mode === "external" ? "External" : "Address book"}
                 </button>
               ))}
             </div>
           </div>
-          {addressMode === 'external' ? (
+          {addressMode === "external" ? (
             <input
-              id='send-address'
-              type='text'
+              id="send-address"
+              type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder='Mx… or 0x…'
-              autoComplete='off'
+              placeholder="Mx… or 0x…"
+              autoComplete="off"
               spellCheck={false}
               className={inputClass}
             />
           ) : contacts.length === 0 ? (
-            <p className='text-sm text-slate-500'>No contacts saved in address book.</p>
+            <p className="text-sm text-slate-500">No contacts saved in address book.</p>
           ) : (
             <select
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               className={inputClass}
             >
-              <option value=''>Select a contact…</option>
+              <option value="">Select a contact…</option>
               {contacts.map((contact) => (
                 <option key={contact.id} value={contact.address}>
                   {contact.label}
@@ -913,13 +892,11 @@ function SendPaymentModal({
           )}
         </div>
 
-        <label className='grid gap-1.5'>
-          <span className='flex items-center justify-between gap-3'>
-            <span className={fieldLabelClass}>
-              Token
-            </span>
+        <label className="grid gap-1.5">
+          <span className="flex items-center justify-between gap-3">
+            <span className={fieldLabelClass}>Token</span>
             {selectedToken && (
-              <span className='text-xs font-medium text-slate-600'>
+              <span className="text-xs font-medium text-slate-600">
                 {availableSendable} {availableLabel} sendable
               </span>
             )}
@@ -939,51 +916,50 @@ function SendPaymentModal({
                 </option>
               ))
             ) : (
-              <option value='0x00'>Minima (native)</option>
+              <option value="0x00">Minima (native)</option>
             )}
           </select>
         </label>
 
-        <label className='grid gap-1.5'>
-          <span className={fieldLabelClass}>
-            Amount
-          </span>
+        <label className="grid gap-1.5">
+          <span className={fieldLabelClass}>Amount</span>
           <input
-            type='text'
-            inputMode='decimal'
+            type="text"
+            inputMode="decimal"
             value={amount}
             onChange={(e) => {
               setAmount(e.target.value);
               setFormError(null);
             }}
-            placeholder='0.00'
+            placeholder="0.00"
             className={inputClass}
           />
         </label>
 
         {exceedsBalance && selectedToken && (
-          <div className='rounded-xl bg-amber-50 border border-amber-200 p-3'>
-            <p className='text-sm text-amber-800'>
-              Amount exceeds available balance ({availableSendable}{' '}
-              {availableLabel}).
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <p className="text-sm text-amber-800">
+              Amount exceeds available balance ({availableSendable} {availableLabel}).
             </p>
           </div>
         )}
 
         {formError && (
-          <div className='rounded-xl bg-red-50 border border-red-200 p-3'>
-            <p className='text-sm text-red-700'>{formError}</p>
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+            <p className="text-sm text-red-700">{formError}</p>
           </div>
         )}
 
         {minimaConfirmedUnavailable && (
-          <div className='rounded-xl bg-amber-50 border border-amber-200 p-3'>
-            <p className='text-sm text-amber-800'>Minima isn't running — sending is unavailable right now.</p>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <p className="text-sm text-amber-800">
+              Minima isn't running — sending is unavailable right now.
+            </p>
           </div>
         )}
 
-        <Button type='submit' disabled={!canSubmit} className='w-full justify-center'>
-          {submitting ? 'Sending…' : 'Send payment'}
+        <Button type="submit" disabled={!canSubmit} className="w-full justify-center">
+          {submitting ? "Sending…" : "Send payment"}
         </Button>
       </form>
     </Modal>
@@ -1004,11 +980,10 @@ function CreateTokenModal({
   onCreated: () => Promise<void>;
 }) {
   const { showToast } = useToast();
-  const [requirements, setRequirements] =
-    useState<TokenCreateRequirements | null>(null);
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [decimal, setDecimal] = useState('0');
+  const [requirements, setRequirements] = useState<TokenCreateRequirements | null>(null);
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [decimal, setDecimal] = useState("0");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -1017,18 +992,17 @@ function CreateTokenModal({
       .then(setRequirements)
       .catch(() => {
         setRequirements({
-          estimatedMinimaCost: '0.001',
-          minimumAccountMinima: '0.001',
-          note: '',
+          estimatedMinimaCost: "0.001",
+          minimumAccountMinima: "0.001",
+          note: "",
         });
       });
   }, []);
 
-  const minimumBalance = requirements?.minimumAccountMinima ?? '0.001';
+  const minimumBalance = requirements?.minimumAccountMinima ?? "0.001";
   const nativeToken = walletStatus?.tokens.find((t) => t.isNative);
-  const availableMinima = nativeToken?.sendable ?? '0';
-  const hasSufficientMinima =
-    compareDecimalStrings(availableMinima, minimumBalance) >= 0;
+  const availableMinima = nativeToken?.sendable ?? "0";
+  const hasSufficientMinima = compareDecimalStrings(availableMinima, minimumBalance) >= 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1039,21 +1013,19 @@ function CreateTokenModal({
     const parsedDecimal = Number(decimal);
 
     if (!hasSufficientMinima) {
-      setError(
-        `Wallet needs at least ${minimumBalance} sendable MINIMA to create a token.`,
-      );
+      setError(`Wallet needs at least ${minimumBalance} sendable MINIMA to create a token.`);
       return;
     }
     if (!trimmedName) {
-      setError('Name is required.');
+      setError("Name is required.");
       return;
     }
     if (!isPositiveDecimal(trimmedAmount)) {
-      setError('Amount must be a positive number.');
+      setError("Amount must be a positive number.");
       return;
     }
     if (!Number.isInteger(parsedDecimal) || parsedDecimal < 0) {
-      setError('Decimal must be a non-negative whole number.');
+      setError("Decimal must be a non-negative whole number.");
       return;
     }
 
@@ -1067,18 +1039,18 @@ function CreateTokenModal({
       if (res.ok) {
         await onCreated();
         showToast({
-          tone: 'success',
-          title: 'Token created',
+          tone: "success",
+          title: "Token created",
           message: res.tokenId
             ? `${res.name} (${res.tokenId})`
-            : (res.message ?? 'Custom token created.'),
+            : (res.message ?? "Custom token created."),
         });
         onClose();
       } else {
-        setError(res.message ?? 'Token creation failed.');
+        setError(res.message ?? "Token creation failed.");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Token creation failed.');
+      setError(err instanceof Error ? err.message : "Token creation failed.");
     } finally {
       setSubmitting(false);
     }
@@ -1090,49 +1062,41 @@ function CreateTokenModal({
   }
 
   return (
-    <Modal title='Create custom token' onClose={handleCloseRequest}>
-      <form onSubmit={handleSubmit} className='grid gap-4'>
-        <p className='text-sm text-slate-500'>
-          Wallet MINIMA:{' '}
-          <span
-            className={hasSufficientMinima ? 'text-slate-900' : 'text-red-700'}
-          >
+    <Modal title="Create custom token" onClose={handleCloseRequest}>
+      <form onSubmit={handleSubmit} className="grid gap-4">
+        <p className="text-sm text-slate-500">
+          Wallet MINIMA:{" "}
+          <span className={hasSufficientMinima ? "text-slate-900" : "text-red-700"}>
             {formatAmountAdaptive(availableMinima)} sendable
-          </span>{' '}
+          </span>{" "}
           (minimum: {minimumBalance})
         </p>
-        <label className='grid gap-1.5'>
-          <span className={fieldLabelClass}>
-            Name
-          </span>
+        <label className="grid gap-1.5">
+          <span className={fieldLabelClass}>Name</span>
           <input
-            type='text'
+            type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder='e.g. Device access'
+            placeholder="e.g. Device access"
             maxLength={80}
             className={inputClass}
           />
         </label>
-        <label className='grid gap-1.5'>
-          <span className={fieldLabelClass}>
-            Amount (supply)
-          </span>
+        <label className="grid gap-1.5">
+          <span className={fieldLabelClass}>Amount (supply)</span>
           <input
-            type='text'
-            inputMode='decimal'
+            type="text"
+            inputMode="decimal"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder='e.g. 1000'
+            placeholder="e.g. 1000"
             className={inputClass}
           />
         </label>
-        <label className='grid gap-1.5'>
-          <span className={fieldLabelClass}>
-            Decimal places
-          </span>
+        <label className="grid gap-1.5">
+          <span className={fieldLabelClass}>Decimal places</span>
           <input
-            type='number'
+            type="number"
             min={0}
             step={1}
             value={decimal}
@@ -1141,32 +1105,33 @@ function CreateTokenModal({
           />
         </label>
         {error && (
-          <div className='rounded-xl bg-red-50 border border-red-200 p-3'>
-            <p className='text-sm text-red-700'>{error}</p>
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+            <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
         {submitting && (
-          <p className='text-sm text-slate-500'>
+          <p className="text-sm text-slate-500">
             Creating token on the node… this may take up to a minute.
           </p>
         )}
         {minimaConfirmedUnavailable && (
-          <div className='rounded-xl bg-amber-50 border border-amber-200 p-3'>
-            <p className='text-sm text-amber-800'>Minima isn't running — token creation is unavailable right now.</p>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <p className="text-sm text-amber-800">
+              Minima isn't running — token creation is unavailable right now.
+            </p>
           </div>
         )}
         <Button
-          type='submit'
+          type="submit"
           disabled={submitting || !hasSufficientMinima || actionsBlocked}
-          className='w-full justify-center'
+          className="w-full justify-center"
         >
-          {submitting ? 'Creating…' : 'Create token'}
+          {submitting ? "Creating…" : "Create token"}
         </Button>
       </form>
     </Modal>
   );
 }
-
 
 function HistoryDetailModal({
   item,
@@ -1176,52 +1141,36 @@ function HistoryDetailModal({
   onClose: () => void;
 }) {
   return (
-    <Modal title='History item details' onClose={onClose}>
-      <div className='grid gap-4'>
-        <div className='grid gap-1'>
-          <p className={fieldLabelClass}>
-            Amount
-          </p>
-          <p className='text-lg font-semibold text-slate-900 inline-flex items-center gap-2'>
+    <Modal title="History item details" onClose={onClose}>
+      <div className="grid gap-4">
+        <div className="grid gap-1">
+          <p className={fieldLabelClass}>Amount</p>
+          <p className="inline-flex items-center gap-2 text-lg font-semibold text-slate-900">
             <TokenGlyph isNative={isNativeTokenId(item.tokenId)} />
             {item.amount} {item.tokenName}
           </p>
         </div>
-        <div className='grid gap-1'>
-          <p className={fieldLabelClass}>
-            Status
-          </p>
-          <p className='text-sm font-medium text-slate-900 capitalize'>
-            {item.status}
-          </p>
+        <div className="grid gap-1">
+          <p className={fieldLabelClass}>Status</p>
+          <p className="text-sm font-medium text-slate-900 capitalize">{item.status}</p>
         </div>
-        <div className='grid gap-1'>
-          <p className={fieldLabelClass}>
-            To
-          </p>
+        <div className="grid gap-1">
+          <p className={fieldLabelClass}>To</p>
           <CopyableCode value={item.toAddress} />
         </div>
-        <div className='grid gap-1'>
-          <p className={fieldLabelClass}>
-            Token ID
-          </p>
+        <div className="grid gap-1">
+          <p className={fieldLabelClass}>Token ID</p>
           <CopyableCode value={item.tokenId} />
         </div>
         {item.txpowId && (
-          <div className='grid gap-1'>
-            <p className={fieldLabelClass}>
-              TxPow ID
-            </p>
+          <div className="grid gap-1">
+            <p className={fieldLabelClass}>TxPow ID</p>
             <CopyableCode value={item.txpowId} />
           </div>
         )}
-        <div className='grid gap-1'>
-          <p className={fieldLabelClass}>
-            Created
-          </p>
-          <p className='text-sm text-slate-900'>
-            {new Date(item.createdAt).toLocaleString()}
-          </p>
+        <div className="grid gap-1">
+          <p className={fieldLabelClass}>Created</p>
+          <p className="text-sm text-slate-900">{new Date(item.createdAt).toLocaleString()}</p>
         </div>
       </div>
     </Modal>

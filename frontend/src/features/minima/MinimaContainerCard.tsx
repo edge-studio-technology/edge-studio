@@ -1,7 +1,8 @@
 import { RotateCcw } from "lucide-react";
 import type { MinimaNodeStatus } from "../../app/types";
-import { Button } from "../../components/Button";
-import { LoadingDots } from "../../components/LoadingDots";
+import { Button } from "../../components/ui/Button";
+import { LoadingDots } from "../../components/ui/LoadingDots";
+import { Pill } from "../../components/ui/Pill";
 import { MinimaStatCell, MinimaStatGrid } from "./MinimaStatCell";
 
 function formatContainerMemory(container: MinimaNodeStatus["container"] | undefined) {
@@ -20,7 +21,7 @@ export function MinimaContainerCard({
   loading,
   busy,
   refreshing,
-  onRestart
+  onRestart,
 }: {
   status: MinimaNodeStatus | null;
   loading: boolean;
@@ -37,7 +38,14 @@ export function MinimaContainerCard({
   const runtimeLabel = container?.status ?? unavailable;
 
   const restartButton = onRestart ? (
-    <Button type="button" size="sm" variant="secondary" className="w-full" disabled={busy} onClick={onRestart}>
+    <Button
+      type="button"
+      size="sm"
+      variant="secondary"
+      className="w-full"
+      disabled={busy}
+      onClick={onRestart}
+    >
       <RotateCcw size={16} />
       Restart
     </Button>
@@ -45,12 +53,22 @@ export function MinimaContainerCard({
 
   return (
     <div className="h-full">
-    <MinimaStatGrid title="Container health" footer={restartButton}>
-      <MinimaStatCell label="CPU load" value={cpuLabel} />
-      <MinimaStatCell label="Container memory" value={memoryLabel} />
-      <MinimaStatCell label="State" value={stateLabel} />
-      <MinimaStatCell label="Runtime" value={runtimeLabel} />
-    </MinimaStatGrid>
+      <MinimaStatGrid
+        title="Container health"
+        badge={
+          refreshing ? (
+            <Pill tone="warn" indicator>
+              Restarting
+            </Pill>
+          ) : null
+        }
+        footer={restartButton}
+      >
+        <MinimaStatCell label="CPU load" value={cpuLabel} />
+        <MinimaStatCell label="Container memory" value={memoryLabel} />
+        <MinimaStatCell label="State" value={stateLabel} />
+        <MinimaStatCell label="Runtime" value={runtimeLabel} />
+      </MinimaStatGrid>
     </div>
   );
 }
