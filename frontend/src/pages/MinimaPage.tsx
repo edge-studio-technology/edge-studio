@@ -1,8 +1,9 @@
 import { useCallback, useState } from "react";
 import { ChevronDown, ChevronRight, Settings } from "lucide-react";
 import type { MinimaNodeStatus } from "../app/types";
-import { IconButton } from "../components/ui/Button";
+import { Button, IconButton } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
+import { Modal } from "../components/ui/Modal";
 import { Page } from "../components/patterns/Page";
 import { useToast } from "../components/ToastProvider";
 import {
@@ -36,6 +37,7 @@ export function MinimaPage() {
   const [restarting, setRestarting] = useState(false);
   const [consoleWhitelistOpen, setConsoleWhitelistOpen] = useState(false);
   const [consoleOpen, setConsoleOpen] = useState(false);
+  const [restartConfirmOpen, setRestartConfirmOpen] = useState(false);
 
   const handleStatus = useCallback((status: MinimaNodeStatus) => {
     setNodeStatus((previous) => mergeMinimaStatus(previous, status));
@@ -114,10 +116,17 @@ export function MinimaPage() {
     }
   }
 
-  async function runRestart() {
-    if (!window.confirm("Restart the Minima Docker container? RPC will be briefly unavailable."))
-      return;
+  function openRestartConfirm() {
+    setRestartConfirmOpen(true);
+  }
 
+  function closeRestartConfirm() {
+    if (busy || restarting) return;
+    setRestartConfirmOpen(false);
+  }
+
+  async function confirmRestart() {
+    setRestartConfirmOpen(false);
     setBusy(true);
     try {
       await restartContainer();
@@ -200,7 +209,7 @@ export function MinimaPage() {
           loading={statusLoading && !nodeStatus}
           busy={actionsBlocked}
           refreshing={restarting || nodeStatus?.state === "restarting"}
-          onRestart={runRestart}
+          onRestart={openRestartConfirm}
         />
       </section>
 
@@ -245,6 +254,31 @@ export function MinimaPage() {
 
       {consoleWhitelistOpen ? (
         <MinimaConsoleWhitelistModal onClose={() => setConsoleWhitelistOpen(false)} />
+      ) : null}
+
+      {restartConfirmOpen ? (
+        <Modal
+          title="Restart Minima container?"
+          description="RPC will be briefly unavailable while the Docker container restarts."
+          onClose={closeRestartConfirm}
+          closeDisabled={busy || restarting}
+          className="!max-w-[420px]"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy || restarting}
+                onClick={closeRestartConfirm}
+              >
+                Cancel
+              </Button>
+              <Button type="button" disabled={busy || restarting} onClick={() => void confirmRestart()}>
+                Restart
+              </Button>
+            </>
+          }
+        />
       ) : null}
     </Page>
   );
