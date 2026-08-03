@@ -54,7 +54,7 @@ Migration is **incremental**, not a big-bang move:
 
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `CredentialInput` (or retire into `InputField`) |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
 | `patterns/`    | `Page`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`, `MetricCard`                                                                                 |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                       |
 
@@ -85,9 +85,11 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [CheckboxField](#checkboxfield): labeled checkbox
 - [RadioField](#radiofield): labeled radio option
 - [SwitchField](#switchfield): labeled on/off switch
-- `Text`: muted, error, and eyebrow text
+- `Text`: muted and eyebrow text (legacy flat helpers)
+- `ErrorText`: inline error copy
 - [ErrorAlert](#erroralert): in-page error alert
 - [Modal](#modal): dialog overlay
+- `LoadingDots`: bouncing loading indicator
 - `Input`: bare text control
 - [InputField](#inputfield): labeled text field
 - [SelectField](#selectfield): labeled select
@@ -105,7 +107,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Tooltip](#tooltip): hover / click tip
 - [Disclosure](#disclosure): native collapse / expand section
 - [ScrollArea](#scrollarea): thin ESDS-token scrollbar container
-- `JsonPreview`: JSON / code preview
+- `JsonPreview`: trigger that opens a modal with pretty-printed JSON
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
 
@@ -285,7 +287,7 @@ Default on: `icon-primary` track + inverse knob. Off: inverse track + `stroke-pr
 
 ### Modal
 
-Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, white panel (`max-w-[600px]`, `rounded-soft`, `p-margin-relaxed`), title, optional description / body / footer, close `IconButton`. Prefer this for confirmations and focused forms. Sheet variant is not implemented yet.
+Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, white panel (`max-w-[600px]`, `rounded-soft`, `p-pad-relaxed`), title, optional description, children in a bordered `surface-primary` scroll body, optional footer action row, close `IconButton`. Prefer this for confirmations and focused forms. Sheet variant is not implemented yet.
 
 | Prop            | Notes                                                    |
 | --------------- | -------------------------------------------------------- |

@@ -13,10 +13,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Moved `LoadingDots` into `components/ui/` (flat re-export kept).
+- Shared `Modal` Dialog layout: scrollable body, footer actions, nesting-safe scroll lock when stacked.
+- Minima RPC console UI aligned with the design system (actions, scrollback, loading state).
+- Minima console whitelist: clearer command list, select-all per group, PIN/password confirm on save.
 - Automation workflow create/edit/watch canvases now use the new ESDS/Figma-inspired workflow frame, explicit workflow routes, full-bleed shell layout, right-side toolkit, flat category block cards, selected-block treatment, and create-workflow leave confirmation.
 - Automation selected-block inspector now opens as a full-height viewport side sheet above the workspace chrome, with cleaner section cards and shared form controls.
 - Automation watch-mode runtime inspector now uses the same section-card hierarchy for run summary, block status, output JSON, and Diagnostics links.
 - Automation watch-mode Run controls now share the same rail panel shell and header typography as the workflow toolkit.
+
+### Fixed
+
+- Closing stacked modals no longer leaves page scrolling stuck (e.g. after saving the Minima whitelist).
 
 ## [0.28.2] 2026-07-30
 
