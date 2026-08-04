@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, CheckCircle2, Copy, Eye, EyeOff, RotateCcw, ShieldAlert, Tag } from "lucide-react";
+import { Check, CheckCircle2, Copy, Eye, EyeOff, LogOut, RotateCcw, ShieldAlert, Tag } from "lucide-react";
 import { Button } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
@@ -10,7 +9,9 @@ import { changePassword, initTotpReset, verifyTotpReset } from "../features/auth
 import { isValidAdminCredential, sanitizePinInput, type AdminCredentialType } from "../features/auth/adminCredentials";
 import { PasswordRequirements } from "../features/auth/PasswordRequirements";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
+import { useAuth } from "../features/auth/hooks";
 import { IntegritasConnectPanel } from "../features/integritas-auth/IntegritasConnectPanel";
+import { MinimaBackupPanel } from "../features/minima/MinimaBackupPanel";
 import { MinimaSettingsPanel } from "../features/minima/MinimaSettingsPanel";
 import { useUpdateStatusRefresh } from "../features/update/useUpdateStatusRefresh";
 import { WalletSettingsPanel } from "../features/wallet/WalletSettingsPanel";
@@ -21,7 +22,6 @@ const formClass = "grid gap-3";
 const labelClass = "grid gap-3 font-bold text-slate-700";
 
 export function AuthSettingsPage() {
-  const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newCredentialType, setNewCredentialType] = useState<AdminCredentialType>("pin");
   const [newPassword, setNewPassword] = useState("");
@@ -132,25 +132,32 @@ export function AuthSettingsPage() {
     newPassword === confirmNewPassword &&
     (!TOTP_ENABLED || pwTotpToken.length === 6);
 
+  const { signOut } = useAuth();
+
   return (
     <Page
       eyebrow="Admin account"
       title="Account settings"
       action={
-        <button
-          type="button"
-          onClick={() => navigate("/dashboard")}
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 flex items-center gap-1.5"
-        >
-          <ArrowLeft size={14} /> Back
-        </button>
+        <ButtonRow>
+          <Button type="button" variant="ghost" onClick={() => void signOut()}>
+            <LogOut size={16} /> Sign out
+          </Button>
+        </ButtonRow>
       }
     >
       <IntegritasConnectPanel />
 
       <MinimaSettingsPanel />
 
-      <WalletSettingsPanel />
+      <MinimaBackupPanel />
+
+      {/* Deprecated in favor of Node backup & restore above (superset: full node backup
+          vs. wallet-keys-only). Seed-phrase-only restore is still a distinct recovery path
+          (no backup file needed) and is planned as a "coming soon" option in
+          MinimaBackupPanel for v1.5 — see docs/TASKS.md. Left commented, not deleted, for
+          an easy revert. */}
+      {/* <WalletSettingsPanel /> */}
 
       <Card>
         <div className="grid gap-1" style={{ marginBottom: 16 }}>

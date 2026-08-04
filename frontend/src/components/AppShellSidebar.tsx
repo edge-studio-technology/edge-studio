@@ -162,7 +162,9 @@ export function AppShellSidebar({
               Feedback
             </CollapsibleLabel>
           </button>
-          <button
+          {/* Sign out moved to Account settings page. Left commented, not deleted,
+              for an easy revert. */}
+          {/* <button
             type="button"
             className={cx(
               "text-text-inverse hover:text-text-disabled inline-flex cursor-pointer items-center self-start overflow-hidden transition-colors",
@@ -175,7 +177,7 @@ export function AppShellSidebar({
             <CollapsibleLabel collapsed={collapsed} className="type-body">
               Sign out
             </CollapsibleLabel>
-          </button>
+          </button> */}
         </div>
 
         <div

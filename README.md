@@ -97,6 +97,7 @@ Runtime configuration is stored in `.env`:
 ```env
 HOST_FILES_DIR=/home/pi
 FRONTEND_PORT=8080
+TZ=UTC
 DATA_DIR=./data
 APP_SECRET=dev-change-me
 DOCKER_GID=0
@@ -155,6 +156,8 @@ The installer sets `COOKIE_SECURE=true` for the default HTTPS Docker deploy. Use
 
 `HOST_FILES_DIR` is mounted into the backend container as `/host-files:ro`. The `:ro` flag is intentional for this prototype.
 
+`TZ` sets the backend container's timezone (default `UTC`). Set it to the Pi's real local timezone (e.g. `Europe/Amsterdam`) so the nightly Minima auto-backup (00:30) lands at actual local night.
+
 `MINIMA_DATA_DIR` is mounted into the Minima container as `/home/minima/data` so node data survives container restarts and updates. `MINIMA_BACKUP_DIR` is a separate host path `update-agent` copies that data into before a Minima update, and restores from if the update fails its health check. `UPDATE_AGENT_STATE_DIR` persists `update-agent`'s own bookkeeping (currently just the last successfully applied manifest's timestamp, used to reject replayed or downgraded manifests) across container restarts.
 
 `MINIMA_RPC_BIND` defaults to `127.0.0.1`, which means Minima RPC is only exposed on the Pi itself. Set it to `0.0.0.0` only on a trusted network.
@@ -199,6 +202,12 @@ On the Integritas page, stamping a file opens a result modal with proof UID, has
 The Minima page also stores its Megammr host URL in SQLite through the Configure Minima modal. If no value has been saved, it defaults to `megammr.minima.global:9001`.
 
 The Minima page exposes an allowlisted Megammr resync action. The browser calls the backend, and the backend calls Minima RPC internally with `megammrsync action:resync host:<configured-megammr-host>`.
+
+Restarting the Minima node from the UI shuts it down gracefully first: the backend sends `quit compact:true` over RPC and waits (up to 5 minutes — the node can take a while to actually stop even after reporting shutdown complete) for the container to actually exit before starting it back up, instead of immediately force-stopping it. If the node still hasn't stopped after that, it falls back to a forceful container restart so the action still always completes.
+
+An optional "Auto restart" toggle (off by default) has the backend perform this same graceful restart automatically every 48 hours, as a preventive node health measure. It reuses the nightly auto-backup scheduler rather than a separate timer, so the check runs at 00:30 on the backend container's clock, after that night's backup — it only actually restarts every other night, tracked by a persisted last-run time so a backend redeploy doesn't reset the cadence.
+
+Account Settings also exposes node backup & restore, a fuller recovery mechanism than the Wallet page's seed-phrase import below: a Minima `backup` includes the seed phrase, private keys, coin proofs, key-use counters, and transaction history, not just spendable wallet keys. Backups are written by Minima into `${MINIMA_DATA_DIR}/backups` on the host — mounted into `minima` at `/home/minima/backups` (Minima resolves the `backup`/`restoresync` `file:` argument against its home dir, not `/home/minima/data`) and into `backend` read-write at `/minima-backups`, the only host directory shared between the two containers — so the UI can list, download, upload, and delete backup files. An admin sets one backup password once (re-auth required, stored encrypted); every backup from then on, manual or automatic, uses that same password, so there's no unencrypted/weakly-protected class of backup at all. Backups are tracked in a single list capped at 20, oldest auto-deleted — all downloadable and restorable. Restoring always uses Minima's `restoresync`, which restores the backup and re-syncs from the configured Megammr host in one step; restoring one of these tracked backups needs no password re-entry, since the backend already knows the stored password. Automatic backups are created by the backend's own scheduler at a fixed nightly time, 00:30 on the backend container's clock (not Minima's built-in `backup auto:true`, which can never be given a custom password or write anywhere the backend can see) — set the `TZ` environment variable to the Pi's real local timezone (default `UTC`) so this lands at actual local night. Downloading, restoring, or changing the backup password all require re-entering the current admin PIN/password.
 
 The Wallet page exposes allowlisted wallet/account actions through the backend:
 
@@ -626,11 +635,13 @@ Minima restart and peers (admin mutations require an admin session):
 
 ```http
 POST /api/minima/restart
+GET /api/minima/restart/auto
+POST /api/minima/restart/auto
 GET /api/minima/peers
 POST /api/minima/peers/add
 ```
 
-`POST /api/minima/restart` restarts the Minima Docker container via the backend Docker socket (see `SECURITY.md`). `POST /api/minima/peers/add` accepts `{ "peerslist": "host:port" }` or comma-separated addresses and calls Minima `peers action:addpeers`.
+`POST /api/minima/restart` restarts the Minima Docker container via the backend Docker socket (see `SECURITY.md`). `GET`/`POST /api/minima/restart/auto` read/toggle the opt-in automatic restart (every 48 hours, checked on the same nightly scheduler tick as auto-backup — see above); `POST` accepts `{ "enabled": boolean }`. `POST /api/minima/peers/add` accepts `{ "peerslist": "host:port" }` or comma-separated addresses and calls Minima `peers action:addpeers`.
 
 Minima RPC console (admin session required for all three):
 
@@ -641,6 +652,22 @@ POST /api/minima/console/run
 ```
 
 The RPC console on the Minima Core page runs a typed Minima RPC command string only if it is both in the backend's static command catalog and enabled in the admin whitelist — it is not a generic RPC proxy (see `.agents/rules/minima.md` and `docs/security/host-and-infrastructure.md`). `GET /api/minima/console/whitelist` returns the catalog and currently enabled command keys. `POST /api/minima/console/whitelist` accepts `{ "enabledKeys": string[], "currentPassword": string }` and requires re-entering the admin PIN/password, same as changing the admin credential. `POST /api/minima/console/run` accepts `{ "command": string }` (the exact RPC command text, e.g. `status` or `peers action:addpeers peerslist:host:port`) and returns the RPC/action result.
+
+Minima node backup & restore (admin session required for all routes):
+
+```http
+GET /api/minima/backups
+POST /api/minima/backups
+GET /api/minima/backups/password
+POST /api/minima/backups/password
+POST /api/minima/backups/:fileName/download
+POST /api/minima/backups/restore
+DELETE /api/minima/backups/:fileName
+GET /api/minima/backups/auto
+POST /api/minima/backups/auto
+```
+
+`GET /api/minima/backups/password` returns `{ "hasPassword": boolean }` (never the password itself). `POST /api/minima/backups/password` accepts `{ "backupPassword": string, "currentPassword": string }`, requires re-entering the admin PIN/password, and must be called before any backup can be created. `GET /api/minima/backups` returns a single array of backups (filenames still distinguish trigger source, `minima-manual-<ts>.bak` / `minima-auto-<ts>.bak`) under the shared `/minima-backups` volume. `POST /api/minima/backups` takes no body — it always creates a manual backup using the stored password and calls Minima `backup file:backups/<generated-name>.bak password:"<stored>"`; once the combined list exceeds 20, the oldest backup is deleted automatically. `POST /api/minima/backups/:fileName/download` requires `{ "currentPassword": string }`; every tracked backup is downloadable, since all of them share the same real, admin-chosen password. `POST /api/minima/backups/restore` also requires `{ "currentPassword": string }` and accepts either `{ "fileName": string }` for an existing tracked backup (uses the stored password automatically) or a multipart upload (`file` field, optional `password` override for a foreign `.bak` with different protection) — an uploaded file is deleted from the shared folder after the restore attempt either way, since it isn't a tracked entry. Restore calls Minima `restoresync file:backups/<name>.bak host:<configured-megammr-host>`. `DELETE /api/minima/backups/:fileName` removes a backup file (no re-auth — it only deletes a copy of already-recoverable data). `GET`/`POST /api/minima/backups/auto` read/toggle the backend's own nightly auto-backup scheduler (00:30 on the backend container's clock, not Minima's built-in one); enabling it requires a backup password to already be set, and every auto backup lands in the same shared, 20-backup-capped list as manual ones.
 
 Wallet and account APIs:
 

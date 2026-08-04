@@ -3,7 +3,7 @@ import {
   Database,
   House,
   RadioTower,
-  Settings,
+  // Settings, // unused while the Setup nav item is commented out above
   ShieldCheck,
   ShoppingCart,
   UserRound,
@@ -14,7 +14,9 @@ import type { NavItem } from "./types";
 
 export const nav: NavItem[] = [
   { id: "dashboard", label: "Dashboard", icon: House },
-  { id: "setup", label: "Setup", icon: Settings },
+  // Setup nav item hidden pending relocation of its actions. Left commented, not
+  // deleted, for an easy revert.
+  // { id: "setup", label: "Setup", icon: Settings },
   { id: "node", label: "Minima Core", icon: RadioTower },
   { id: "wallet", label: "Wallet", icon: Wallet },
   { id: "integritas", label: "Integritas", icon: ShieldCheck },

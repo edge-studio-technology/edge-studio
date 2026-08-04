@@ -1,19 +1,39 @@
+import fs from "node:fs/promises";
 import { Router } from "express";
-import { apiErrorFromStatus, badRequest, dependencyUnavailable, unauthorized, unexpected } from "../../shared/api-error.js";
+import type { Response } from "express";
+import { apiErrorFromStatus, badRequest, dependencyUnavailable, notFound, unauthorized, unexpected } from "../../shared/api-error.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
 import { authRateLimiter } from "../auth/rate-limit.middleware.js";
+import {
+  clearBackupPassword,
+  createBackup,
+  deleteBackup,
+  getAutoBackupEnabled,
+  getBackupFilePath,
+  hasBackupPassword,
+  listBackups,
+  MinimaBackupError,
+  restoreBackup,
+  saveUploadedBackup,
+  setAutoBackupEnabled,
+  setBackupPassword,
+  verifyCurrentPassword
+} from "./minima-backup.service.js";
 import { getConsoleWhitelist, MinimaConsoleError, runConsoleCommand, updateConsoleWhitelist } from "./minima-console.service.js";
+import { backupUpload } from "./minima-upload.middleware.js";
 import { normalizeMinimaRpcError } from "./minima.errors.js";
 import {
   addMinimaPeers,
+  getAutoRestartEnabled,
   getMinimaConfig,
   getMinimaNodeStatus,
   getMinimaPeers,
   getWalletBalance,
   resyncMegammr,
   restartMinimaContainer,
-  saveMinimaConfig
+  saveMinimaConfig,
+  setAutoRestartEnabled
 } from "./minima.service.js";
 
 export const minimaRouter = Router();
@@ -66,6 +86,17 @@ minimaRouter.post("/peers/add", requireRole("admin"), async (req, res) => {
     const message = normalizeMinimaRpcError(error instanceof Error ? error.message : "Unknown error");
     badRequest(res, message, undefined, { ok: false });
   }
+});
+
+minimaRouter.get("/restart/auto", requireRole("admin"), (_req, res) => {
+  res.json({ autoRestartEnabled: getAutoRestartEnabled() });
+});
+
+minimaRouter.post("/restart/auto", requireRole("admin"), (req, res) => {
+  const enabled = req.body?.enabled === true;
+  const result = setAutoRestartEnabled(enabled);
+  recordAuditEvent("minima.restart.auto_toggled", { userId: req.user?.id, detail: String(enabled) });
+  res.json(result);
 });
 
 minimaRouter.post("/restart", requireRole("admin"), async (req, res) => {
@@ -142,5 +173,137 @@ minimaRouter.post("/console/run", requireRole("admin"), async (req, res) => {
     const nativeMessage = error instanceof Error ? error.message : "Unknown error";
     const message = normalizeMinimaRpcError(nativeMessage);
     dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });
+  }
+});
+
+function handleMinimaBackupError(res: Response, error: unknown) {
+  if (error instanceof MinimaBackupError) {
+    // errorCode marks this as a re-auth failure, not an expired session — see the same
+    // note on POST /console/whitelist above.
+    const extra = error.status === 401 ? { errorCode: "invalid_credential" } : {};
+    return apiErrorFromStatus(res, error.status, error.message, extra);
+  }
+  const nativeMessage = error instanceof Error ? error.message : "Unknown error";
+  const message = normalizeMinimaRpcError(nativeMessage);
+  return dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });
+}
+
+minimaRouter.get("/backups", requireRole("admin"), async (_req, res) => {
+  try {
+    res.json(await listBackups());
+  } catch (error) {
+    unexpected(res, "Failed to list Minima backups", error);
+  }
+});
+
+minimaRouter.get("/backups/password", requireRole("admin"), (_req, res) => {
+  res.json({ hasPassword: hasBackupPassword() });
+});
+
+minimaRouter.post("/backups/password", requireRole("admin"), authRateLimiter, async (req, res) => {
+  try {
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    await verifyCurrentPassword(req.user?.id, currentPassword);
+    const backupPassword = typeof req.body?.backupPassword === "string" ? req.body.backupPassword : "";
+    setBackupPassword(backupPassword);
+    recordAuditEvent("minima.backup.password_set", { userId: req.user?.id });
+    res.json({ hasPassword: true });
+  } catch (error) {
+    handleMinimaBackupError(res, error);
+  }
+});
+
+minimaRouter.delete("/backups/password", requireRole("admin"), authRateLimiter, async (req, res) => {
+  try {
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    await verifyCurrentPassword(req.user?.id, currentPassword);
+    clearBackupPassword();
+    recordAuditEvent("minima.backup.password_cleared", { userId: req.user?.id });
+    res.json({ hasPassword: false });
+  } catch (error) {
+    handleMinimaBackupError(res, error);
+  }
+});
+
+minimaRouter.post("/backups", requireRole("admin"), async (req, res) => {
+  try {
+    const result = await createBackup({ auto: false });
+    recordAuditEvent("minima.backup.created", { userId: req.user?.id, detail: result.fileName });
+    if (!result.ok) return dependencyUnavailable(res, "Backup failed", undefined, undefined, result);
+    res.json(result);
+  } catch (error) {
+    handleMinimaBackupError(res, error);
+  }
+});
+
+minimaRouter.post("/backups/:fileName/download", requireRole("admin"), async (req, res) => {
+  try {
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    await verifyCurrentPassword(req.user?.id, currentPassword);
+    const filePath = await getBackupFilePath(req.params.fileName);
+    recordAuditEvent("minima.backup.downloaded", { userId: req.user?.id, detail: req.params.fileName });
+    res.download(filePath, req.params.fileName);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT" || (error as NodeJS.ErrnoException)?.code === "OUTSIDE_ROOT") {
+      return notFound(res, "Backup file not found");
+    }
+    handleMinimaBackupError(res, error);
+  }
+});
+
+minimaRouter.post("/backups/restore", requireRole("admin"), backupUpload.single("file"), async (req, res) => {
+  // An uploaded file is a one-time restore source, not a permanently tracked/classified
+  // entry (we don't know if it's encrypted), so it's removed from the shared folder after
+  // the restore attempt either way instead of lingering and confusing the two lists above.
+  let uploadedFileName: string | null = null;
+  try {
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    await verifyCurrentPassword(req.user?.id, currentPassword);
+
+    const password = typeof req.body?.password === "string" ? req.body.password : undefined;
+    const fileName = req.file
+      ? (uploadedFileName = await saveUploadedBackup(req.file.path, req.file.originalname))
+      : typeof req.body?.fileName === "string"
+        ? req.body.fileName
+        : "";
+    if (!fileName) return badRequest(res, "fileName or an uploaded backup file is required");
+
+    const result = await restoreBackup({ fileName, password });
+    recordAuditEvent("minima.backup.restored", { userId: req.user?.id, detail: fileName });
+    if (!result.ok) return dependencyUnavailable(res, "Restore failed", undefined, undefined, result);
+    res.json(result);
+  } catch (error) {
+    if (req.file && !uploadedFileName) await fs.rm(req.file.path, { force: true });
+    handleMinimaBackupError(res, error);
+  } finally {
+    if (uploadedFileName) await deleteBackup(uploadedFileName).catch(() => undefined);
+  }
+});
+
+minimaRouter.delete("/backups/:fileName", requireRole("admin"), async (req, res) => {
+  try {
+    await deleteBackup(req.params.fileName);
+    recordAuditEvent("minima.backup.deleted", { userId: req.user?.id, detail: req.params.fileName });
+    res.json({ ok: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT" || (error as NodeJS.ErrnoException)?.code === "OUTSIDE_ROOT") {
+      return notFound(res, "Backup file not found");
+    }
+    unexpected(res, "Failed to delete Minima backup", error);
+  }
+});
+
+minimaRouter.get("/backups/auto", requireRole("admin"), (_req, res) => {
+  res.json({ autoBackupEnabled: getAutoBackupEnabled() });
+});
+
+minimaRouter.post("/backups/auto", requireRole("admin"), (req, res) => {
+  try {
+    const enabled = req.body?.enabled === true;
+    const result = setAutoBackupEnabled(enabled);
+    recordAuditEvent("minima.backup.auto_toggled", { userId: req.user?.id, detail: String(enabled) });
+    res.json(result);
+  } catch (error) {
+    handleMinimaBackupError(res, error);
   }
 });

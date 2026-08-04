@@ -1,11 +1,11 @@
-import { CheckCircle2, Circle, LockKeyhole, LogOut, RadioTower, ShieldCheck } from "lucide-react";
-import { Button } from "../components/Button";
-import { ButtonRow } from "../components/ButtonRow";
+import { CheckCircle2, Circle, LockKeyhole, RadioTower, ShieldCheck } from "lucide-react";
+// import { Button } from "../components/Button";
+// import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
 import { Page } from "../components/Page";
 import { Pill } from "../components/Pill";
 import { MutedText } from "../components/Text";
-import { useAuth } from "../features/auth";
+// import { useAuth } from "../features/auth";
 
 const setupSteps = [
   {
@@ -26,7 +26,7 @@ const setupSteps = [
 ];
 
 export function SetupPage() {
-  const { signOut } = useAuth();
+  // const { signOut } = useAuth();
   const completed = setupSteps.filter((step) => step.complete).length;
 
   return (
@@ -34,13 +34,15 @@ export function SetupPage() {
       eyebrow="Setup"
       title="Get your edge data workflow running"
       desc="Follow these steps to connect devices, collect data, and create verifiable Integritas records from the Pi."
-      action={
-        <ButtonRow>
-          <Button type="button" variant="ghost" onClick={() => void signOut()}>
-            <LogOut size={16} /> Sign out
-          </Button>
-        </ButtonRow>
-      }
+      // Sign out moved to Account settings page. Left commented, not deleted, for
+      // an easy revert.
+      // action={
+      //   <ButtonRow>
+      //     <Button type="button" variant="ghost" onClick={() => void signOut()}>
+      //       <LogOut size={16} /> Sign out
+      //     </Button>
+      //   </ButtonRow>
+      // }
     >
       <Card className="grid gap-4">
         <div>

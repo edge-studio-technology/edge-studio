@@ -23,6 +23,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Removed
 
 - Runtime configuration modal on the Integritas Prove page (Connect link status, `baseUrl`, `requestId`, and related debug fields).
+## [0.29.0] 2026-08-04
+
+### Changed
+
+- Automatic Minima node backups now run at a fixed nightly time (00:30 on the backend container's clock) instead of a rolling 24-hour interval from container start, so they land overnight instead of at whatever hour the container happened to boot. A new `TZ` environment variable (default `UTC`) sets the backend container's timezone so "nightly" can mean the Pi's actual local night.
+- Restarting the Minima node now shuts it down gracefully first: it sends the node a `quit`-with-compaction command and waits (up to 5 minutes, since the node can take a while to actually stop even after reporting shutdown complete) for it to actually stop before starting it back up, instead of immediately force-stopping the container. If the node still hasn't stopped after that, it falls back to the previous forceful restart so the action still always completes.
 
 ## [0.28.3] 2026-08-03
 
@@ -148,6 +154,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Scheduled automation workflows now keep their next run anchored to the prior due time instead of drifting from the actual execution time.
 - Devices now include a `GPIO Button` input template for a push button wired between GPIO17 and GND.
 - Automation action failures now appear as toast notifications, while load/refresh failures use a dedicated in-page alert with a retry action.
+
+### Added
+
+- Account Settings now includes a Minima node backup & restore panel: create, download, upload, and restore full node backups (`.bak` files — seed phrase, private keys, coin proofs, and transaction history, not just wallet keys). One admin-chosen backup password (re-auth required, stored encrypted) is used for every backup — manual (`Backup now`) or automatic — and can be changed or removed at any time (removing it also turns off automatic backups). A new backend-owned scheduler creates automatic backups every 24 hours, replacing Minima's own built-in auto-backup (which could never be given a custom password or a visible/manageable location). Backups are tracked in a single collapsible list capped at 20, oldest auto-deleted, since every backup now shares the same real password. Setting up the backup password and restoring from an uploaded file are icon buttons that open modals. Deleting a backup or restoring from the list or an uploaded file always asks for confirmation first. Restore always re-syncs from the configured Megammr host. Backups live in a new, narrow read-write volume shared between `backend` and `minima` (`${MINIMA_DATA_DIR}/backups`); downloading, restoring, or changing/removing the backup password all require re-entering the admin PIN/password. See `docs/plans/minima-node-backup-restore.md`.
+
+### Deprecated
+
+- The Wallet settings panel (seed-phrase-only wallet import) is hidden from Account Settings, superseded by the new Node backup & restore panel for the common case. Seed-phrase-only restore (useful when only the words, not a backup file, are available) is deferred to post-v1; the underlying import API/UI code is untouched and not deleted.
 
 ## [0.26.1] 2026-07-29
 

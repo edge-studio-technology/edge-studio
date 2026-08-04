@@ -68,6 +68,18 @@ export async function getComposeServiceContainer(serviceName: string) {
   );
 }
 
+type DockerContainerInspect = {
+  Id: string;
+  RestartCount: number;
+  State: { StartedAt: string; Running: boolean; Status: string };
+};
+
+// Full inspect, not the /containers/json listing above — only this endpoint exposes
+// RestartCount/StartedAt. See docs/adr/0001-minima-graceful-node-restart.md.
+export async function inspectContainer(containerId: string): Promise<DockerContainerInspect> {
+  return dockerRequest<DockerContainerInspect>(`/containers/${containerId}/json`);
+}
+
 export async function dockerServiceResources() {
   const containers = await dockerRequest<DockerContainer[]>("/containers/json?all=1&size=1");
   const appContainers = containers.filter(isComposeContainer);
