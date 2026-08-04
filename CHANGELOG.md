@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Integritas stamp and verify failures that return HTTP 402 (plan/API limit) are now classified as `payment_required` and show an upgrade toast (and a clear automation stamp error) instead of a generic stamp/verify failure.
+- Integritas “Prove local data” now switches stamp and verify with tabs in one card instead of side-by-side panels
+- File drop zones on Integritas stamp/verify use the shared upload pattern (clear selected file, design-system styling). Verify accepts JSON only and shows an error toast when another type is dropped.
+
+### Removed
+
+- Runtime configuration modal on the Integritas Prove page (Connect link status, `baseUrl`, `requestId`, and related debug fields).
 
 ## [0.28.3] 2026-08-03
 

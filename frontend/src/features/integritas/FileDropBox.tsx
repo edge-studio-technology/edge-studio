@@ -1,37 +1,164 @@
-import { FileClock } from "lucide-react";
+import { SquareX, Upload } from "lucide-react";
 import { useState } from "react";
-import { JsonPreview } from "../../components/JsonPreview";
+import { JsonPreview } from "../../components/patterns/JsonPreview";
+import { useToast } from "../../components/ToastProvider";
+import { IconButton } from "../../components/ui/Button";
+import { ErrorText } from "../../components/ui/ErrorText";
 import { cx } from "../../lib/cx";
 
-export function FileDropBox({ title, text, file, onFile, result, resultText }: { title: string; text: string; file: File | null; onFile: (file: File) => void; result?: unknown; resultText?: string }) {
+export function FileDropBox({
+  title,
+  file,
+  onFile,
+  result,
+  resultText,
+  accept,
+}: {
+  title: string;
+  file: File | null;
+  onFile: (file: File | null) => void;
+  result?: unknown;
+  resultText?: string;
+  accept?: string;
+}) {
+  const { showToast } = useToast();
   const [dragging, setDragging] = useState(false);
+  const [rejectError, setRejectError] = useState<string | null>(null);
+  const disabled = file !== null;
   const hasResult = result !== undefined && result !== null && !file;
 
+  function isAccepted(selected: File) {
+    if (!accept) return true;
+    const patterns = accept.split(",").map((part) => part.trim().toLowerCase());
+    const name = selected.name.toLowerCase();
+    const type = selected.type.toLowerCase();
+    return patterns.some((pattern) => {
+      if (pattern.startsWith(".")) return name.endsWith(pattern);
+      if (pattern.endsWith("/*")) return type.startsWith(pattern.slice(0, -1));
+      return type === pattern;
+    });
+  }
+
+  function rejectMessage() {
+    if (accept?.toLowerCase().includes("json")) {
+      return "Only JSON files are accepted.";
+    }
+    return "This file type is not accepted.";
+  }
+
+  function takeOneFile(list: FileList | null) {
+    const selected = list?.item(0) ?? null;
+    if (!selected) return;
+    if (!isAccepted(selected)) {
+      const message = rejectMessage();
+      setRejectError(message);
+      showToast({ tone: "error", title: "File not accepted", message });
+      return;
+    }
+    setRejectError(null);
+    onFile(selected);
+  }
+
+  const DropSurface = disabled ? "div" : "label";
+
   return (
-    <div
-      className={cx(
-        "grid min-h-[220px] place-items-center gap-2.5 rounded-[24px] border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center text-slate-600",
-        dragging && "border-slate-950 bg-slate-100"
+    <div className="gap-detail-close flex w-full flex-col">
+      <DropSurface
+        className={cx(
+          "bg-surface-primary border-stroke-secondary rounded-soft gap-detail-close p-margin-close relative flex w-full items-start border transition-[border-color,box-shadow,background-color] duration-150",
+          "has-[:focus-visible]:ring-stroke-active has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-offset-2",
+          !disabled && "hover:border-stroke-primary hover:bg-surface-always-white cursor-pointer",
+          dragging &&
+            !disabled &&
+            "border-stroke-active bg-surface-always-white shadow-[0_0_0_1px_var(--color-stroke-active)]",
+          disabled && "pointer-events-none",
+        )}
+        data-dragging={dragging && !disabled ? "true" : undefined}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          if (disabled) return;
+          setDragging(true);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          if (disabled) return;
+          event.dataTransfer.dropEffect = "copy";
+          setDragging(true);
+        }}
+        onDragLeave={(event) => {
+          if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            return;
+          }
+          setDragging(false);
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragging(false);
+          if (disabled) return;
+          takeOneFile(event.dataTransfer.files);
+        }}
+      >
+        <div className="gap-detail-near px-detail-next py-margin-close flex min-w-px flex-1 flex-col items-center">
+          <Upload
+            className={cx("size-6 shrink-0", disabled ? "text-icon-tertiary" : "text-icon-primary")}
+            aria-hidden
+          />
+          <div
+            className={cx(
+              "gap-detail-tight type-body flex w-full flex-col text-center",
+              disabled ? "text-text-tertiary" : "text-text-primary",
+            )}
+          >
+            <span className="type-body-em m-0 w-full">{title}</span>
+            <span className="type-body m-0 w-full">
+              {disabled ? (
+                "Drag and drop files, or click to upload."
+              ) : (
+                <>
+                  Drag and drop files, or <span className="underline">click to upload</span>.
+                </>
+              )}
+            </span>
+          </div>
+          {!disabled && (
+            <input
+              className="sr-only"
+              type="file"
+              accept={accept}
+              onChange={(event) => {
+                takeOneFile(event.target.files);
+                event.target.value = "";
+              }}
+            />
+          )}
+        </div>
+      </DropSurface>
+
+      {rejectError && !file ? <ErrorText>{rejectError}</ErrorText> : null}
+
+      {file && (
+        <div className="gap-detail-close flex w-full items-center justify-between">
+          <p className="type-body text-text-primary m-0 min-w-0 truncate">{file.name}</p>
+          <IconButton
+            variant="ghost"
+            size="compact"
+            aria-label={`Remove ${file.name}`}
+            onClick={() => {
+              setRejectError(null);
+              onFile(null);
+            }}
+            className="border-transparent"
+          >
+            <SquareX className="text-icon-error" aria-hidden />
+          </IconButton>
+        </div>
       )}
-      onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(event) => { event.preventDefault(); setDragging(false); const dropped = event.dataTransfer.files.item(0); if (dropped) onFile(dropped); }}
-    >
-      <FileClock size={30} />
-      {hasResult ? (
-        <>
+
+      {hasResult && (
+        <div className="gap-detail-tight flex w-full flex-col">
           <JsonPreview value={result} label="View results" />
-          <label className="grid gap-2.5 cursor-pointer">
-            {resultText}
-            <input className="hidden" type="file" onChange={(event) => { const selected = event.target.files?.item(0); if (selected) onFile(selected); }} />
-          </label>
-        </>
-      ) : (
-        <label className="grid gap-2.5 cursor-pointer">
-          <strong>{file ? file.name : title}</strong>
-          <span>{file ? `${file.size} bytes` : text}</span>
-          <input className="hidden" type="file" onChange={(event) => { const selected = event.target.files?.item(0); if (selected) onFile(selected); }} />
-        </label>
+          {resultText ? <p className="type-body text-text-secondary m-0">{resultText}</p> : null}
+        </div>
       )}
     </div>
   );
