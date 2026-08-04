@@ -15,15 +15,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automatic Minima node backups now run at a fixed nightly time (00:30 on the backend container's clock) instead of a rolling 24-hour interval from container start, so they land overnight instead of at whatever hour the container happened to boot. A new `TZ` environment variable (default `UTC`) sets the backend container's timezone so "nightly" can mean the Pi's actual local night.
 - Restarting the Minima node now shuts it down gracefully first: it sends the node a `quit`-with-compaction command and waits (up to 5 minutes, since the node can take a while to actually stop even after reporting shutdown complete) for it to actually stop before starting it back up, instead of immediately force-stopping the container. If the node still hasn't stopped after that, it falls back to the previous forceful restart so the action still always completes.
 
-### Fixed
-
-- A restart, backup, restore, or Megammr resync now returns a `409` instead of silently racing a second one already in progress (e.g. the nightly auto-restart firing mid-manual-backup); the in-progress indicator was previously display-only.
-- A transient Docker error while starting a graceful restart could leave the node stuck showing "restarting" for up to 6 minutes even though no restart began.
-- The Minima backup password can no longer contain a `"` character — it was previously interpolated unescaped into the backup/restore RPC command, so a quote in the password silently corrupted every subsequent backup and restore.
-- The nightly auto-restart now audit-logs the restart and only advances its 48-hour cooldown once the restart has actually completed, instead of immediately after kicking it off in the background; a restart that failed in the background previously still skipped a full 48-hour cycle silently.
-- The Minima node image swap to `minimaglobal/minimacore` had silently commented out `minima_mdsenable: "false"`; restored it (see `docs/security/host-and-infrastructure.md` "Minima MDS" for the caveat that this is carried over from the old image, unverified against the new one).
-- The dashboard's post-restart status refresh gave up after 90 seconds and showed "taking longer than expected" even during a normal graceful restart, which can take up to 5 minutes.
-
 ## [0.28.2] 2026-07-30
 
 ### Added

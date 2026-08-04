@@ -1,5 +1,4 @@
 import { getSetting, saveSetting } from "../settings/settings.repository.js";
-import { recordAuditEvent } from "../auth/audit.service.js";
 import { createBackup, getAutoBackupEnabled, hasBackupPassword } from "./minima-backup.service.js";
 import { getAutoRestartEnabled, restartMinimaContainer } from "./minima.service.js";
 
@@ -48,14 +47,9 @@ async function runAutoRestartIfDue() {
   const lastRunAt = getSetting(lastAutoRestartSetting);
   if (lastRunAt && Date.now() - new Date(lastRunAt).getTime() < AUTO_RESTART_INTERVAL_MS) return;
 
-  // Awaits the full graceful-restart-or-fallback sequence (unlike the manual restart route,
-  // which must respond immediately) so the cooldown timestamp is only saved once the restart
-  // actually completed — otherwise a failed unattended restart would silently skip a whole
-  // 48h cycle with the operator none the wiser.
-  await restartMinimaContainer({ awaitCompletion: true });
+  await restartMinimaContainer();
   saveSetting(lastAutoRestartSetting, new Date().toISOString());
-  recordAuditEvent("minima.container.restart", { detail: "auto" });
-  console.log("Minima auto-restart: completed");
+  console.log("Minima auto-restart: triggered");
 }
 
 async function runNightlyTick() {

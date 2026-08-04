@@ -19,14 +19,12 @@ import { parseMegammrResyncResult, resyncToastForResult } from "../features/mini
 import { MinimaSummaryGrid } from "../features/minima/MinimaSummaryGrid";
 import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
 
-// A graceful restart (RPC `quit compact:true`, then wait for the container to actually
-// cycle) can take up to MINIMA_GRACEFUL_SHUTDOWN_TIMEOUT_MS (5 min, minima.service.ts)
-// before falling back to a forceful restart — this needs to stay at least that long, and
-// in the same ballpark as the backend's own operation window (MINIMA_OPERATION_MAX_WINDOW_MS,
-// 6 min, minima-monitoring.ts) so the toast doesn't give up on a restart the backend still
-// considers normal and in-progress.
+// A real container restart (JVM stop/start, chain reload) can easily take longer than a
+// few seconds — this needs to stay in the same ballpark as the backend's own operation
+// window (minima-monitoring.ts, ~120s) so the toast doesn't give up on a restart the
+// backend still considers normal and in-progress.
 const REFRESH_AFTER_OPERATION_INTERVAL_MS = 3000;
-const REFRESH_AFTER_OPERATION_MAX_MS = 360000;
+const REFRESH_AFTER_OPERATION_MAX_MS = 90000;
 
 export function MinimaPage() {
   const { showToast } = useToast();

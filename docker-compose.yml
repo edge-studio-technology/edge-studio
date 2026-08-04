@@ -79,10 +79,7 @@ services:
     image: minimaglobal/minimacore
     stop_grace_period: 60s
     environment:
-      # Same env var as the previous minimaglobal/minima image; minimacore has no
-      # published docs yet, so this is carried over on the assumption it still applies.
-      # See docs/security/host-and-infrastructure.md "Minima MDS" for the caveat.
-      minima_mdsenable: "false"
+      # minima_mdsenable: "false"
       minima_rpcenable: "true"
       minima_rpccrlf: "true"
       minima_p2pnodes: "https://spartacusrex.com/minimapeers.txt"

@@ -29,32 +29,34 @@ function dockerPost(pathName: string, timeoutMs = 15000, additionalOkStatuses: n
   });
 }
 
-async function runComposeServiceAction<State extends string>(
-  serviceName: string,
-  path: (containerId: string) => string,
-  state: State,
-  additionalOkStatuses: number[] = []
-) {
+export async function restartComposeService(serviceName: string) {
   const container = await getComposeServiceContainer(serviceName);
   if (!container) {
     throw new Error(`Docker container not found for service "${serviceName}"`);
   }
 
-  await dockerPost(path(container.Id), 15000, additionalOkStatuses);
+  await dockerPost(`/containers/${container.Id}/restart?t=10`);
   return {
     ok: true as const,
-    state,
+    state: "restarting" as const,
     service: serviceName,
     containerId: container.Id.slice(0, 12)
   };
 }
 
-export async function restartComposeService(serviceName: string) {
-  return runComposeServiceAction(serviceName, (id) => `/containers/${id}/restart?t=10`, "restarting" as const);
-}
-
 export async function startComposeService(serviceName: string) {
-  return runComposeServiceAction(serviceName, (id) => `/containers/${id}/start`, "running" as const, [304]);
+  const container = await getComposeServiceContainer(serviceName);
+  if (!container) {
+    throw new Error(`Docker container not found for service "${serviceName}"`);
+  }
+
+  await dockerPost(`/containers/${container.Id}/start`, 15000, [304]);
+  return {
+    ok: true as const,
+    state: "running" as const,
+    service: serviceName,
+    containerId: container.Id.slice(0, 12)
+  };
 }
 
 export type ContainerRestartBaseline = { restartCount: number; startedAt: string };

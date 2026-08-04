@@ -3,7 +3,7 @@ import path from "node:path";
 import { findUserById } from "../auth/auth.repository.js";
 import { verifyPassword } from "../auth/password.service.js";
 import { decryptSecret, encryptSecret, type EncryptedSecret } from "../../shared/crypto.js";
-import { deleteSetting, getBoolSetting, getSetting, saveSetting, setBoolSetting } from "../settings/settings.repository.js";
+import { deleteSetting, getSetting, saveSetting } from "../settings/settings.repository.js";
 import { beginMinimaOperation, endMinimaOperation } from "./minima-monitoring.js";
 import { runMinimaPathCommand } from "./minima.rpc.js";
 import { getMinimaConfig } from "./minima.service.js";
@@ -44,21 +44,15 @@ export function hasBackupPassword() {
   return Boolean(getSetting(backupPasswordSetting));
 }
 
-// Rejected outright rather than escaped: the password is embedded in a quoted
-// Minima RPC command argument (see createBackup/restoreBackup below), and Minima's
-// own command parser has no documented escape sequence for an embedded `"`.
 export function setBackupPassword(password: string) {
   const trimmed = password.trim();
   if (!trimmed) throw new MinimaBackupError("Backup password is required", 400);
-  if (trimmed.includes('"')) {
-    throw new MinimaBackupError('Backup password cannot contain a " character', 400);
-  }
   saveSetting(backupPasswordSetting, JSON.stringify(encryptSecret(trimmed)));
 }
 
 export function clearBackupPassword() {
   deleteSetting(backupPasswordSetting);
-  setBoolSetting(autoBackupSetting, false);
+  saveSetting(autoBackupSetting, "false");
 }
 
 function getBackupPassword(): string {
@@ -172,9 +166,6 @@ export async function restoreBackup({ fileName, password }: { fileName: string; 
   // otherwise fall back to our own stored password, since that's what protects every
   // backup this service itself created.
   const trimmed = password?.trim() || getBackupPassword();
-  if (trimmed.includes('"')) {
-    throw new MinimaBackupError('Restore password cannot contain a " character', 400);
-  }
   const passwordArg = trimmed ? ` password:"${trimmed}"` : "";
   const command = `restoresync file:backups/${fileName} host:${megammrHost}${passwordArg}`;
   beginMinimaOperation("restore");
@@ -206,13 +197,13 @@ export async function saveUploadedBackup(tmpFilePath: string, originalName: stri
 }
 
 export function getAutoBackupEnabled() {
-  return getBoolSetting(autoBackupSetting);
+  return getSetting(autoBackupSetting) === "true";
 }
 
 export function setAutoBackupEnabled(enabled: boolean) {
   if (enabled && !hasBackupPassword()) {
     throw new MinimaBackupError("Set a backup password before enabling automatic backups.", 400);
   }
-  setBoolSetting(autoBackupSetting, enabled);
+  saveSetting(autoBackupSetting, enabled ? "true" : "false");
   return { autoBackupEnabled: enabled };
 }

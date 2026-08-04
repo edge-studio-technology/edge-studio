@@ -69,16 +69,7 @@ const MINIMA_OPERATION_MAX_WINDOW_MS = 6 * 60 * 1000;
 
 let currentOperation: { type: MinimaOperationType; startedAt: number } | null = null;
 
-export class MinimaOperationConflictError extends Error {
-  constructor(inProgressType: MinimaOperationType) {
-    super(`A Minima ${inProgressType} is already in progress`);
-  }
-}
-
 export function beginMinimaOperation(type: MinimaOperationType) {
-  if (isMinimaOperationInProgress()) {
-    throw new MinimaOperationConflictError(currentOperation!.type);
-  }
   currentOperation = { type, startedAt: Date.now() };
 }
 
