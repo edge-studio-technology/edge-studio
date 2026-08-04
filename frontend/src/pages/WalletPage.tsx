@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { MinimaNodeState } from "../app/types";
+import { ErrorAlert } from "../components/patterns/ErrorAlert";
+import { Page } from "../components/patterns/Page";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
-import { Page } from "../components/patterns/Page";
 import { TabList } from "../components/ui/TabList";
 import { getWalletStatus, listWalletSendHistory } from "../features/wallet/walletApi";
 import type { WalletSendHistoryItem, WalletStatus } from "../features/wallet/walletTypes";
@@ -21,7 +22,7 @@ export function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
-  const [createTokenOpen, setCreateTokenOpen] = useState(false);
+  // const [createTokenOpen, setCreateTokenOpen] = useState(false);
   const [sendHistory, setSendHistory] = useState<WalletSendHistoryItem[]>([]);
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [mainTab, setMainTab] = useState<WalletTab>("assets");
@@ -73,33 +74,20 @@ export function WalletPage() {
   const totalMinima = nativeToken?.sendable ?? "0";
 
   return (
-    <Page title="Wallet" desc="Node wallet balance and transaction history.">
-      {minimaConfirmedUnavailable && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Wallet actions are unavailable until Minima is running.
-        </div>
-      )}
+    <Page title="Wallet" desc="Manage your Minima wallet and transactions.">
+      {minimaConfirmedUnavailable ? (
+        <ErrorAlert status="warning" title="Minima isn't running" className="w-full max-w-none">
+          Wallet actions are unavailable. Try restarting the Minima container.
+        </ErrorAlert>
+      ) : null}
 
-      <WalletHero loading={loading} totalMinima={totalMinima} disabled={actionsBlocked} />
-
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => setSendOpen(true)}
-          disabled={actionsBlocked}
-        >
-          Send payment
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => setCreateTokenOpen(true)}
-          disabled={actionsBlocked}
-        >
-          Create token
-        </Button>
-      </div>
+      <WalletHero
+        loading={loading}
+        totalMinima={totalMinima}
+        disabled={actionsBlocked}
+        onSend={() => setSendOpen(true)}
+        // onCreateToken={() => setCreateTokenOpen(true)}
+      />
 
       <Card className="gap-detail-close flex w-full flex-col">
         <TabList
@@ -121,8 +109,8 @@ export function WalletPage() {
           />
         ) : mainTab === "address-book" ? (
           <>
-            <div className="flex items-center justify-between gap-3">
-              <p className="type-title">Address book</p>
+            <div className="gap-detail-close flex items-center justify-between">
+              <p className="type-title text-text-primary m-0">Address book</p>
               <Button
                 type="button"
                 variant="secondary"
@@ -158,7 +146,7 @@ export function WalletPage() {
         />
       )}
 
-      {createTokenOpen && (
+      {/* {createTokenOpen && (
         <CreateTokenModal
           walletStatus={walletStatus}
           actionsBlocked={actionsBlocked}
@@ -166,7 +154,7 @@ export function WalletPage() {
           onClose={() => setCreateTokenOpen(false)}
           onCreated={refresh}
         />
-      )}
+      )} */}
     </Page>
   );
 }

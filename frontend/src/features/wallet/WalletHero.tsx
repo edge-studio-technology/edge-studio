@@ -1,4 +1,6 @@
-import { DarkHeroCard } from "../../components/DarkHeroCard";
+import { Send } from "lucide-react";
+import { ButtonRow } from "../../components/patterns/ButtonRow";
+import { Button } from "../../components/ui/Button";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { MinimaIcon } from "../../components/MinimaIcon";
 import { formatAmountThreshold } from "../../lib/format";
@@ -8,32 +10,38 @@ export function WalletHero({
   loading,
   totalMinima,
   disabled,
+  onSend,
+  // onCreateToken,
 }: {
   loading: boolean;
   totalMinima: string;
   disabled: boolean;
+  onSend: () => void;
+  // onCreateToken: () => void;
 }) {
+  const balanceBusy = loading || disabled;
+
   return (
-    <DarkHeroCard rounded="rounded-md" padding="p-5">
-      <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-stretch sm:justify-between">
-        <div className="flex min-w-0 flex-col justify-end gap-4">
-          <div className="flex items-center gap-3">
-            <div className="grid size-[38px] place-items-center rounded-[14px] bg-white/10">
-              <MinimaIcon size={18} />
-            </div>
-            <p className="type-callout text-text-inverse m-0">Primary wallet</p>
-          </div>
-          <div>
-            <p className="m-0 text-xs font-extrabold tracking-[0.12em] text-slate-400 uppercase">
+    <section className="rounded-soft p-pad-tight relative w-full overflow-hidden border border-slate-800 bg-slate-950 text-white before:absolute before:-top-20 before:-right-10 before:size-[260px] before:rounded-full before:bg-cyan-400 before:opacity-30 before:blur-[64px] after:absolute after:right-40 after:-bottom-28 after:size-[260px] after:rounded-full after:bg-violet-400 after:opacity-30 after:blur-[64px]">
+      <div className="gap-detail-near relative z-10 flex flex-col sm:flex-row sm:items-stretch sm:justify-between">
+        <div className="gap-detail-near flex min-w-0 flex-1 flex-col justify-between">
+          <h2 className="type-title text-text-inverse m-0">Your wallet</h2>
+
+          <div className="gap-detail-next flex flex-col">
+            <p className="type-body text-grey-03 m-0" id="wallet-balance-label">
               Total sendable MINIMA
             </p>
-            <div className="mt-2 flex min-w-0 items-start gap-4 text-[clamp(2.5rem,6vw,3.5rem)]">
-              <MinimaIcon size={36} className="mt-[calc((1.1em-36px)/2)] shrink-0 opacity-55" />
+            <div
+              className="gap-detail-close flex min-w-0 items-center"
+              aria-labelledby="wallet-balance-label"
+              aria-busy={balanceBusy}
+            >
+              <MinimaIcon size={32} className="text-icon-inverse shrink-0" />
               <span
-                className="min-w-0 text-[clamp(2.5rem,6vw,3.5rem)] leading-[1.1] font-bold tracking-[-0.04em] break-all"
-                title={loading || disabled ? undefined : totalMinima}
+                className="type-heading text-text-inverse min-w-0 break-all"
+                title={balanceBusy ? undefined : totalMinima}
               >
-                {loading || disabled ? (
+                {balanceBusy ? (
                   <LoadingDots className="scale-125" />
                 ) : (
                   formatAmountThreshold(totalMinima)
@@ -41,9 +49,31 @@ export function WalletHero({
               </span>
             </div>
           </div>
+
+          <ButtonRow className="w-full sm:w-auto [&_button]:w-full sm:[&_button]:w-auto">
+            <Button
+              type="button"
+              variant="accent"
+              onClick={onSend}
+              disabled={disabled}
+              iconStart={<Send aria-hidden="true" />}
+            >
+              Send payment
+            </Button>
+            {/* <Button
+                type="button"
+                variant="accent"
+                onClick={onCreateToken}
+                disabled={disabled}
+                iconStart={<Coins aria-hidden="true" />}
+              >
+                Create token
+              </Button> */}
+          </ButtonRow>
         </div>
+
         <ReceiveQrPanel disabled={disabled} />
       </div>
-    </DarkHeroCard>
+    </section>
   );
 }

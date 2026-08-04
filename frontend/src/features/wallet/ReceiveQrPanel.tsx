@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { Button } from "../../components/ui/Button";
 import { LoadingDots } from "../../components/ui/LoadingDots";
+import { cx } from "../../lib/cx";
 import { getReceiveAddress } from "./walletApi";
 import type { ReceiveAddress } from "./walletTypes";
 
@@ -54,40 +56,51 @@ export function ReceiveQrPanel({ disabled }: { disabled: boolean }) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      // ignore clipboard failures in non-secure contexts
+      setError("Could not copy address.");
     }
   }
 
   return (
-    <div className="flex h-full flex-col items-center gap-2">
-      <button
-        type="button"
-        onClick={handleCopy}
-        disabled={!address || disabled}
-        aria-label={copied ? "Copied" : "Copy Mx address"}
-        className="flex h-full w-40 flex-col overflow-hidden rounded-md bg-white text-slate-950 shadow-sm transition-colors enabled:hover:bg-slate-50 disabled:opacity-55"
+    <div className="gap-detail-close flex h-full flex-col items-center">
+      <div
+        className="bg-surface-always-white rounded-soft gap-detail-close p-pad-close flex w-40 flex-col items-center overflow-hidden shadow-sm"
+        role="group"
+        aria-labelledby="wallet-receive-label"
       >
-        <div className="flex flex-1 items-center justify-center p-2">
-          <div className="grid size-32 shrink-0 place-items-center">
-            {address ? (
-              <img
-                src={address.qrDataUrl}
-                alt="Wallet receive address QR code"
-                className="size-full"
-              />
-            ) : (
-              <LoadingDots />
-            )}
-          </div>
+        <p className="type-meta text-text-primary m-0" id="wallet-receive-label">
+          Receive
+        </p>
+        <div className={cx("grid size-32 shrink-0 place-items-center", disabled && "opacity-55")}>
+          {address && !disabled ? (
+            <img
+              src={address.qrDataUrl}
+              alt="QR code for this wallet receive address"
+              className="size-full"
+            />
+          ) : (
+            <LoadingDots />
+          )}
         </div>
-        <div className="flex w-full items-center justify-center gap-2 border-t border-slate-200 px-3 py-2.5 text-sm font-bold whitespace-nowrap">
-          <span className="grid shrink-0 place-items-center">
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-          </span>
+
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="w-full"
+          onClick={() => {
+            void handleCopy();
+          }}
+          disabled={!address || disabled}
+          iconStart={copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+        >
           {copied ? "Copied" : "Copy address"}
-        </div>
-      </button>
-      {error && <p className="m-0 max-w-35 text-center text-xs text-red-400">{error}</p>}
+        </Button>
+      </div>
+
+      <p className="sr-only" aria-live="polite">
+        {copied ? "Address copied to clipboard" : ""}
+      </p>
+      {error ? <p className="type-meta text-text-error m-0 max-w-35 text-center">{error}</p> : null}
     </div>
   );
 }

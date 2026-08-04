@@ -1,33 +1,55 @@
 import type { ReactNode } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, TriangleAlert } from "lucide-react";
 import { cx } from "../../lib/cx";
+
+export type ErrorAlertStatus = "error" | "warning";
+
+const statusShellClass: Record<ErrorAlertStatus, string> = {
+  error: "border-stroke-error",
+  warning: "border-stroke-warning",
+};
+
+const statusTintClass: Record<ErrorAlertStatus, string> = {
+  error: "bg-feedback-error",
+  warning: "bg-feedback-warning",
+};
+
+const statusIconClass: Record<ErrorAlertStatus, string> = {
+  error: "text-icon-error",
+  warning: "text-icon-warning",
+};
 
 export function ErrorAlert({
   title,
   children,
   action,
   className,
+  status = "error",
 }: {
   title?: string;
   children: ReactNode;
   action?: ReactNode;
   className?: string;
+  status?: ErrorAlertStatus;
 }) {
+  const Icon = status === "warning" ? TriangleAlert : AlertCircle;
+
   return (
     <div
       className={cx(
-        "rounded-soft border-stroke-error bg-surface-always-white relative flex max-w-xl items-start overflow-clip border",
+        "rounded-soft bg-surface-always-white relative flex max-w-xl items-start overflow-clip border",
+        statusShellClass[status],
         className,
       )}
-      role="alert"
+      role={status === "warning" ? "status" : "alert"}
     >
       <div
-        className="bg-feedback-error pointer-events-none absolute inset-0 opacity-20"
+        className={cx("pointer-events-none absolute inset-0 opacity-20", statusTintClass[status])}
         aria-hidden
       />
       <div className="gap-detail-close p-margin-tight relative flex min-w-0 flex-1 items-start">
         <div className="grid size-5 shrink-0 place-items-center">
-          <AlertCircle className="text-icon-error" size={20} aria-hidden="true" />
+          <Icon className={statusIconClass[status]} size={20} aria-hidden="true" />
         </div>
         <div className="gap-detail-tight grid min-w-0 flex-1">
           {title ? <strong className="type-body-em text-text-primary">{title}</strong> : null}

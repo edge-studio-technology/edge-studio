@@ -4,13 +4,22 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## Unreleased
+
+### Changed
+
+- `ErrorAlert` supports `status="warning"` (stroke/wash/icon + `role="status"`); Wallet page uses it when Minima is unavailable.
+- Wallet hero inlines its dark surface styles; shared `DarkHeroCard` removed (wallet was the only call site).
+
+### Removed
+
+- Shared `DarkHeroCard` component (styles live on `WalletHero`).
+
 ## [0.29.1] 2026-08-04
 
 ### Added
 
 - Integritas verify shows an in-panel loading result shell (with bouncing dots) while a proof file upload is in progress; the selected-file remove control is disabled while stamp/verify is busy.
-
-### Changed
 
 - Moved `ButtonRow` into `components/patterns/` with design-system spacing (`gap-detail-next`); flat re-export kept.
 - Integritas stamp and verify failures that return HTTP 402 (plan/API limit) are now classified as `payment_required` and show an upgrade toast (and a clear automation stamp error) instead of a generic stamp/verify failure.

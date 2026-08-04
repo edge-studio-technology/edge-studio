@@ -52,11 +52,11 @@ Migration is **incremental**, not a big-bang move:
 
 **Target homes (when migrated)**
 
-| Target         | Components (indicative)                                                                                                                                                                                                                                                                                      |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`, `MetricCard`                                                                                 |
-| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                       |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `MetricCard`                                                                                                                             |
+| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
 ## Styling Rules
 
@@ -87,7 +87,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [SwitchField](#switchfield): labeled on/off switch
 - `Text`: muted text (legacy flat helper; `ErrorText` lives in `ui/`)
 - `ErrorText`: inline error copy
-- [ErrorAlert](#erroralert): in-page error alert
+- [ErrorAlert](#erroralert): in-page error / warning alert
 - [Modal](#modal): dialog overlay
 - `LoadingDots`: bouncing loading indicator
 - `Input`: bare text control
@@ -387,16 +387,16 @@ Disclosure (`frontend/src/components/ui/Disclosure.tsx`): native `<details>` / `
 
 Use it for reusable collapsible sections such as toolkit groups, settings groups, diagnostics details, and setup-guide sections. It intentionally does not coordinate with sibling disclosures; add that later only if a true accordion behavior is needed.
 
-| Prop               | Notes                                                |
-| ------------------ | ---------------------------------------------------- |
-| `title`            | Required summary label/content                       |
-| `children`         | Required collapsed/expanded body                     |
-| `defaultOpen`      | Initial native open state, default `true`            |
-| `open`             | Optional controlled native `details` state           |
-| `className`        | Merged onto `<details>`                              |
-| `summaryClassName` | Merged onto `<summary>`                              |
-| `contentClassName` | Merged onto the content wrapper                      |
-| ...props           | Standard `HTMLDetailsElement` attributes             |
+| Prop               | Notes                                      |
+| ------------------ | ------------------------------------------ |
+| `title`            | Required summary label/content             |
+| `children`         | Required collapsed/expanded body           |
+| `defaultOpen`      | Initial native open state, default `true`  |
+| `open`             | Optional controlled native `details` state |
+| `className`        | Merged onto `<details>`                    |
+| `summaryClassName` | Merged onto `<summary>`                    |
+| `contentClassName` | Merged onto the content wrapper            |
+| ...props           | Standard `HTMLDetailsElement` attributes   |
 
 ```tsx
 <Disclosure title="Group title" defaultOpen>
@@ -417,8 +417,10 @@ Use it when a panel, modal body, console, or rail needs visible internal scrolli
 | ...props    | Standard `HTMLDivElement` attributes |
 
 ```tsx
-<ScrollArea className="max-h-80 rounded-soft border border-stroke-secondary p-margin-tight">
-  {items.map((item) => <Item key={item.id} item={item} />)}
+<ScrollArea className="rounded-soft border-stroke-secondary p-margin-tight max-h-80 border">
+  {items.map((item) => (
+    <Item key={item.id} item={item} />
+  ))}
 </ScrollArea>
 ```
 
@@ -445,22 +447,25 @@ Back control is `IconButton` ghost compact with ChevronLeft. Count uses `Pill`. 
 
 ### ErrorAlert
 
-In-page error alert (`frontend/src/components/patterns/ErrorAlert.tsx`): same feedback chrome as toast error (white surface, `stroke-error` border, 20% `feedback-error` wash). Prefer field `error` for per-control validation; prefer toast for transient action failures.
+In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): white surface, status stroke, 20% feedback wash (same chrome as matching toast tones). Prefer field `error` for per-control validation; prefer toast for transient action failures.
 
-| Prop        | Notes                                             |
-| ----------- | ------------------------------------------------- |
-| `title`     | Optional; `type-body-em` primary                  |
-| `children`  | Body; primary when alone, secondary under a title |
-| `action`    | Optional recovery control (e.g. Retry)            |
-| `className` | Merged onto the outer alert shell                 |
+| Prop        | Notes                                                                  |
+| ----------- | ---------------------------------------------------------------------- |
+| `status`    | `error` (default) or `warning`                                         |
+| `title`     | Optional; `type-body-em` primary                                       |
+| `children`  | Body; primary when alone, secondary under a title                      |
+| `action`    | Optional recovery control (e.g. Retry)                                 |
+| `className` | Merged onto the outer alert shell (e.g. `max-w-none w-full` for pages) |
 
-Uses `role="alert"`, Lucide `AlertCircle` (`icon-error`), `rounded-soft`, `p-margin-tight`. Flat `components/ErrorAlert.tsx` re-exports.
+`error` uses `role="alert"` + `AlertCircle` (`icon-error`). `warning` uses `role="status"` + `TriangleAlert` (`icon-warning`). Flat `components/ErrorAlert.tsx` re-exports.
 
 ```tsx
 <ErrorAlert title="Couldn't start Connect" action={<RetryButton />}>
   {error}
 </ErrorAlert>
-<ErrorAlert>{error}</ErrorAlert>
+<ErrorAlert status="warning" title="Minima isn't running" className="w-full max-w-none">
+  Wallet actions are unavailable until the node is running again.
+</ErrorAlert>
 ```
 
 ### Page
@@ -487,11 +492,11 @@ Cleanup later: drop `eyebrow` from remaining page call sites, then remove the pr
 
 White card surface (`frontend/src/components/ui/Card.tsx`): fill, radius, padding, overflow clip only. Layout (`flex` / `grid` / `gap`) belongs on the caller. Flat `components/Card.tsx` re-exports for now.
 
-| Prop        | Notes                                                        |
-| ----------- | ------------------------------------------------------------ |
+| Prop        | Notes                                                    |
+| ----------- | -------------------------------------------------------- |
 | `size`      | `Default` (`p-pad-relaxed`) \| `Compact` (`p-pad-tight`) |
-| `className` | Merged onto the surface                                      |
-| `children`  | Card body                                                    |
+| `className` | Merged onto the surface                                  |
+| `children`  | Card body                                                |
 
 ```tsx
 <Card className="gap-detail-close flex flex-col">…</Card>
