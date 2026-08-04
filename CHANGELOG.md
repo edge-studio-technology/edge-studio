@@ -4,7 +4,7 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased]
+## [0.29.1] 2026-08-04
 
 ### Added
 
@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Removed
 
 - Runtime configuration modal on the Integritas Prove page (Connect link status, `baseUrl`, `requestId`, and related debug fields).
+
 ## [0.29.0] 2026-08-04
 
 ### Changed
