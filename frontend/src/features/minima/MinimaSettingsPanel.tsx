@@ -14,7 +14,7 @@ import {
 import { MinimaRuntimeConfig } from "./MinimaRuntimeConfig";
 import { useMinimaStatusRefresh } from "./useMinimaStatusRefresh";
 
-export function MinimaSettingsPanel() {
+export function MinimaSettingsPanel({ bare = false }: { bare?: boolean } = {}) {
   const { showToast } = useToast();
   const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
   useMinimaStatusRefresh(
@@ -129,10 +129,10 @@ export function MinimaSettingsPanel() {
     }
   }
 
-  return (
-    <Card>
+  const content = (
+    <>
       <div className="grid gap-1" style={{ marginBottom: 16 }}>
-        <h3 style={{ margin: 0 }}>Minima node settings</h3>
+        {!bare && <h3 style={{ margin: 0 }}>Minima node settings</h3>}
         <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
           Configure the megammr sync host and manage peer connections.
         </p>
@@ -178,6 +178,8 @@ export function MinimaSettingsPanel() {
           </span>
         </span>
       </label> */}
-    </Card>
+    </>
   );
+
+  return bare ? content : <Card>{content}</Card>;
 }

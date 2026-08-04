@@ -115,7 +115,7 @@ function BackupSection({ title, count, max, children }: { title: string; count: 
   );
 }
 
-export function MinimaBackupPanel() {
+export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
   const { showToast } = useToast();
   const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
   useMinimaStatusRefresh(
@@ -358,10 +358,10 @@ export function MinimaBackupPanel() {
     }
   }
 
-  return (
-    <Card>
+  const content = (
+    <>
       <div className="grid gap-1" style={{ marginBottom: 16 }}>
-        <h3 style={{ margin: 0 }}>Node backup & restore</h3>
+        {!bare && <h3 style={{ margin: 0 }}>Node backup & restore</h3>}
         <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
           Full node backups include the seed phrase, private keys, coin proofs, and transaction
           history — a superset of a plain seed-phrase wallet import.
@@ -699,6 +699,8 @@ export function MinimaBackupPanel() {
           </div>
         </Modal>
       )}
-    </Card>
+    </>
   );
+
+  return bare ? content : <Card>{content}</Card>;
 }

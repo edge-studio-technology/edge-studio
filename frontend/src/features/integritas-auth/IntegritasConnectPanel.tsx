@@ -30,18 +30,18 @@ function formatUsageRemaining(remaining: number): string {
   return remaining.toLocaleString();
 }
 
-export function IntegritasConnectPanel() {
+export function IntegritasConnectPanel({ bare = false }: { bare?: boolean } = {}) {
   const { status, loading, starting, error, notice, start, openVerification } = useIntegritasAuth({
     refreshProfileOnConnected: true,
   });
 
   const kind = status?.status;
 
-  return (
-    <Card>
+  const content = (
+    <>
       <div className="grid gap-1" style={{ marginBottom: 16 }}>
         <div className="flex flex-wrap items-center gap-2">
-          <h3 style={{ margin: 0 }}>Integritas Connect</h3>
+          {!bare && <h3 style={{ margin: 0 }}>Integritas Connect</h3>}
           {kind && <Pill tone={statusTone[kind]}>{statusLabel[kind]}</Pill>}
         </div>
         <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
@@ -147,6 +147,8 @@ export function IntegritasConnectPanel() {
           </ButtonRow>
         </div>
       )}
-    </Card>
+    </>
   );
+
+  return bare ? content : <Card>{content}</Card>;
 }
