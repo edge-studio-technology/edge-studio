@@ -6,10 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added
-
-- Optional "Auto restart" toggle for the Minima node (off by default): restarts the node every 48 hours as a preventive health measure, using the same nightly scheduler as auto-backup and the same graceful restart as the manual restart button.
-
 ### Changed
 
 - Automatic Minima node backups now run at a fixed nightly time (00:30 on the backend container's clock) instead of a rolling 24-hour interval from container start, so they land overnight instead of at whatever hour the container happened to boot. A new `TZ` environment variable (default `UTC`) sets the backend container's timezone so "nightly" can mean the Pi's actual local night.

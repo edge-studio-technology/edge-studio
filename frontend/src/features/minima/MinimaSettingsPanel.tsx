@@ -160,7 +160,9 @@ export function MinimaSettingsPanel() {
       />
       {configError && <ErrorText>{configError}</ErrorText>}
 
-      <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2" style={{ marginTop: 16 }}>
+      {/* Auto restart is disabled for now — deferred until automations get graceful
+          handling around node restarts. See docs/TASKS.md. */}
+      {/* <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2" style={{ marginTop: 16 }}>
         <input
           type="checkbox"
           className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
@@ -175,7 +177,7 @@ export function MinimaSettingsPanel() {
             night, as a preventive node health measure.
           </span>
         </span>
-      </label>
+      </label> */}
     </Card>
   );
 }

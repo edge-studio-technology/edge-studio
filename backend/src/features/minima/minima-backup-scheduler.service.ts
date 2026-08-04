@@ -60,14 +60,18 @@ async function runNightlyTick() {
   } catch (error) {
     console.error("Minima auto-backup failed:", error instanceof Error ? error.message : error);
   }
+  // Auto-restart is disabled for now — a restart mid-run could interrupt an in-progress
+  // automation (HTTP poll, MQTT publish, wallet tx) with no coordination today. Deferred
+  // until automations get graceful handling around node restarts. See docs/TASKS.md.
+  /*
   try {
     await runAutoRestartIfDue();
   } catch (error) {
     console.error("Minima auto-restart failed:", error instanceof Error ? error.message : error);
-  } finally {
-    running = false;
-    scheduleNext();
   }
+  */
+  running = false;
+  scheduleNext();
 }
 
 export function startMinimaAutoBackupScheduler() {
