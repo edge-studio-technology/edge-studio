@@ -1038,7 +1038,7 @@ function WatchRuntimeInspector({ selectedBlock, latestBlockRun, selectedRun, val
         </>}
       </InspectorSection>
       <InspectorSection title="Output" description="Payload saved by this block during the selected run.">
-        {latestBlockRun?.output !== null && latestBlockRun?.output !== undefined ? <JsonPreview value={latestBlockRun.output} label="View output JSON" variant="button" /> : <p className={mutedText}>No output recorded for the latest selected-block run.</p>}
+        {latestBlockRun?.output !== null && latestBlockRun?.output !== undefined ? <JsonPreview value={latestBlockRun.output} label="View output JSON" variant="button" className="w-full" /> : <p className={mutedText}>No output recorded for the latest selected-block run.</p>}
       </InspectorSection>
       {(readId || proofId || onCloseSelectedBlock) && <InspectorSection title="Diagnostics">
         <RowActions>

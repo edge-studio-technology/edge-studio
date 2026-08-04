@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { JsonPreview } from "../components/patterns/JsonPreview";
 import { Page } from "../components/patterns/Page";
 import { useToast } from "../components/ToastProvider";
 import { Card } from "../components/ui/Card";
@@ -7,11 +6,14 @@ import { TabList } from "../components/ui/TabList";
 import { stampFile, verifyProofFile } from "../features/integritas/integritasApi";
 import { integritasErrorToast } from "../features/integritas/integritasErrors";
 import { StampFilePanel } from "../features/integritas/StampFilePanel";
-import { StampResultCard } from "../features/integritas/StampResultCard";
 import type { IntegritasProofRecord } from "../features/integritas/integritasTypes";
 import { VerifyProofPanel } from "../features/integritas/VerifyProofPanel";
 
 type IntegritasTab = "stamp" | "verify";
+
+type VerifySuccess = {
+  response: unknown;
+};
 
 export function IntegritasPage() {
   const { showToast } = useToast();
@@ -20,8 +22,7 @@ export function IntegritasPage() {
   const [verifyUpload, setVerifyUpload] = useState<File | null>(null);
   const [stampResultRecord, setStampResultRecord] = useState<IntegritasProofRecord | null>(null);
   const [stampResultDetails, setStampResultDetails] = useState<unknown>(null);
-  const [verifyResult, setVerifyResult] = useState<unknown>(null);
-  const [result, setResult] = useState<unknown>(null);
+  const [verifyResult, setVerifyResult] = useState<VerifySuccess | null>(null);
   const [busy, setBusy] = useState(false);
 
   function showIntegritasError(error: unknown) {
@@ -29,12 +30,10 @@ export function IntegritasPage() {
     showToast({ tone: "error", title, message, timeoutMs: 9000 });
   }
 
-  async function run(action: () => Promise<unknown>, showResult = true) {
+  async function run(action: () => Promise<unknown>) {
     setBusy(true);
     try {
-      const response = await action();
-      if (showResult) setResult(response);
-      return response;
+      return await action();
     } catch (err) {
       showIntegritasError(err);
       return null;
@@ -62,8 +61,20 @@ export function IntegritasPage() {
         {tab === "stamp" ? (
           <StampFilePanel
             file={stampUpload}
-            setFile={setStampUpload}
+            setFile={(file) => {
+              setStampUpload(file);
+              if (file) {
+                setStampResultRecord(null);
+                setStampResultDetails(null);
+              }
+            }}
             busy={busy}
+            resultRecord={stampResultRecord}
+            resultDetails={stampResultDetails}
+            onClearResult={() => {
+              setStampResultRecord(null);
+              setStampResultDetails(null);
+            }}
             onStamp={() =>
               run(async () => {
                 if (!stampUpload) throw new Error("Select a file first");
@@ -72,7 +83,7 @@ export function IntegritasPage() {
                 setStampResultRecord(response.record);
                 setStampResultDetails(response);
                 return response;
-              }, false)
+              })
             }
           />
         ) : (
@@ -80,36 +91,23 @@ export function IntegritasPage() {
             file={verifyUpload}
             setFile={(file) => {
               setVerifyUpload(file);
-              setVerifyResult(null);
+              if (file) setVerifyResult(null);
             }}
             busy={busy}
             result={verifyResult}
+            onClearResult={() => setVerifyResult(null)}
             onVerifyFile={() =>
               run(async () => {
                 if (!verifyUpload) throw new Error("Select a proof JSON file first");
                 const response = await verifyProofFile(verifyUpload);
                 setVerifyUpload(null);
-                setVerifyResult(response);
-                setResult(null);
+                setVerifyResult({ response: response.response });
                 return response;
-              }, false)
+              })
             }
           />
         )}
       </Card>
-
-      {stampResultRecord && (
-        <StampResultCard
-          record={stampResultRecord}
-          technicalDetails={stampResultDetails ?? undefined}
-          onClose={() => {
-            setStampResultRecord(null);
-            setStampResultDetails(null);
-          }}
-        />
-      )}
-
-      {result !== null && <JsonPreview value={result} />}
     </Page>
   );
 }

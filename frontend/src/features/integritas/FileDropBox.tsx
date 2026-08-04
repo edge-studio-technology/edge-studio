@@ -1,6 +1,5 @@
 import { SquareX, Upload } from "lucide-react";
 import { useState } from "react";
-import { JsonPreview } from "../../components/patterns/JsonPreview";
 import { useToast } from "../../components/ToastProvider";
 import { IconButton } from "../../components/ui/Button";
 import { ErrorText } from "../../components/ui/ErrorText";
@@ -10,22 +9,17 @@ export function FileDropBox({
   title,
   file,
   onFile,
-  result,
-  resultText,
   accept,
 }: {
   title: string;
   file: File | null;
   onFile: (file: File | null) => void;
-  result?: unknown;
-  resultText?: string;
   accept?: string;
 }) {
   const { showToast } = useToast();
   const [dragging, setDragging] = useState(false);
   const [rejectError, setRejectError] = useState<string | null>(null);
   const disabled = file !== null;
-  const hasResult = result !== undefined && result !== null && !file;
 
   function isAccepted(selected: File) {
     if (!accept) return true;
@@ -151,13 +145,6 @@ export function FileDropBox({
           >
             <SquareX className="text-icon-error" aria-hidden />
           </IconButton>
-        </div>
-      )}
-
-      {hasResult && (
-        <div className="gap-detail-tight flex w-full flex-col">
-          <JsonPreview value={result} label="View results" />
-          {resultText ? <p className="type-body text-text-secondary m-0">{resultText}</p> : null}
         </div>
       )}
     </div>

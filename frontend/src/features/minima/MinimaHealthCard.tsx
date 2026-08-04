@@ -59,6 +59,7 @@ export function MinimaHealthCard({
         value={effectiveStatus?.rpc.raw}
         label="View RPC debug"
         variant="button"
+        className="w-full"
         icon={<Terminal size={16} />}
         disabled={effectiveStatus?.rpc.raw === undefined}
       />

@@ -8,9 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Moved `ButtonRow` into `components/patterns/` with design-system spacing (`gap-detail-next`); flat re-export kept.
 - Integritas stamp and verify failures that return HTTP 402 (plan/API limit) are now classified as `payment_required` and show an upgrade toast (and a clear automation stamp error) instead of a generic stamp/verify failure.
 - Integritas “Prove local data” now switches stamp and verify with tabs in one card instead of side-by-side panels
 - File drop zones on Integritas stamp/verify use the shared upload pattern (clear selected file, design-system styling). Verify accepts JSON only and shows an error toast when another type is dropped.
+- Stamp and verify success stay in-panel (status badge, file/hash, next steps) instead of resetting to an empty drop zone and showing a card below the grid.
+- Integritas stamp/verify receipts: status pill + stamp fields (file/UID/hash) and a Diagnostics link; verify shows Full match / No match only. Stamp result actions use matching compact secondary controls (`JsonPreview` button variant).
+- `JsonPreview` button variant no longer forces full width; pass `className="w-full"` when needed.
 
 ### Removed
 

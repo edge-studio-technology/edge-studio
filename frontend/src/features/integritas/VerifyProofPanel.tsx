@@ -1,19 +1,22 @@
 import { ButtonRow } from "../../components/ButtonRow";
 import { Button } from "../../components/ui/Button";
 import { FileDropBox } from "./FileDropBox";
+import { VerifyResult } from "./VerifyResult";
 
 export function VerifyProofPanel({
   file,
   setFile,
   busy,
-  result,
   onVerifyFile,
+  result,
+  onClearResult,
 }: {
   file: File | null;
   setFile: (file: File | null) => void;
   busy: boolean;
-  result: unknown;
   onVerifyFile: () => void;
+  result: { response: unknown } | null;
+  onClearResult: () => void;
 }) {
   return (
     <div className="gap-detail-close flex flex-col">
@@ -22,14 +25,13 @@ export function VerifyProofPanel({
         file={file}
         onFile={setFile}
         accept=".json,application/json"
-        result={result}
-        resultText="Drop a new file to verify again."
       />
       <ButtonRow>
         <Button type="button" disabled={busy || !file} onClick={onVerifyFile}>
           Verify proof
         </Button>
       </ButtonRow>
+      {result && <VerifyResult response={result.response} onClose={onClearResult} />}
     </div>
   );
 }
