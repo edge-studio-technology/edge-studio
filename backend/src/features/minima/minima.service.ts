@@ -191,8 +191,9 @@ export async function resyncMegammr() {
   beginMinimaOperation("resync");
   try {
     return await runMinimaPathCommand(command, 30000);
-  } finally {
+  } catch (error) {
     endMinimaOperation();
+    throw error;
   }
 }
 
@@ -258,13 +259,7 @@ async function performGracefulRestart(containerId: string, baseline: ContainerRe
 
 export async function restartMinimaContainer(options: { awaitCompletion?: boolean } = {}) {
   beginMinimaOperation("restart");
-  let container;
-  try {
-    container = await getComposeServiceContainer("minima");
-  } catch (error) {
-    endMinimaOperation();
-    throw error;
-  }
+  const container = await getComposeServiceContainer("minima");
   if (!container) {
     endMinimaOperation();
     throw new Error('Docker container not found for service "minima"');
