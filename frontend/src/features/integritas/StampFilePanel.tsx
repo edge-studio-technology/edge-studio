@@ -23,19 +23,19 @@ export function StampFilePanel({
 }) {
   return (
     <div className="gap-detail-close flex flex-col">
-      <FileDropBox title="Upload a local data file" file={file} onFile={setFile} />
+      <FileDropBox title="Upload a local data file" file={file} onFile={setFile} busy={busy} />
       <ButtonRow>
         <Button type="button" disabled={busy || !file} onClick={onStamp}>
           Stamp file
         </Button>
       </ButtonRow>
-      {resultRecord && (
+      {resultRecord ? (
         <StampResult
           record={resultRecord}
           technicalDetails={resultDetails ?? undefined}
           onClose={onClearResult}
         />
-      )}
+      ) : null}
     </div>
   );
 }

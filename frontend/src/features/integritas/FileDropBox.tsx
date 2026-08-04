@@ -10,11 +10,13 @@ export function FileDropBox({
   file,
   onFile,
   accept,
+  busy = false,
 }: {
   title: string;
   file: File | null;
   onFile: (file: File | null) => void;
   accept?: string;
+  busy?: boolean;
 }) {
   const { showToast } = useToast();
   const [dragging, setDragging] = useState(false);
@@ -137,13 +139,14 @@ export function FileDropBox({
             variant="ghost"
             size="compact"
             aria-label={`Remove ${file.name}`}
+            disabled={busy}
             onClick={() => {
               setRejectError(null);
               onFile(null);
             }}
-            className="border-transparent"
+            className="border-transparent disabled:bg-transparent disabled:hover:bg-transparent"
           >
-            <SquareX className="text-icon-error" aria-hidden />
+            <SquareX className={busy ? "text-icon-tertiary" : "text-icon-error"} aria-hidden />
           </IconButton>
         </div>
       )}

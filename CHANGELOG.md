@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Integritas verify shows an in-panel loading result shell (with bouncing dots) while a proof file upload is in progress; the selected-file remove control is disabled while stamp/verify is busy.
+
 ### Changed
 
 - Moved `ButtonRow` into `components/patterns/` with design-system spacing (`gap-detail-next`); flat re-export kept.

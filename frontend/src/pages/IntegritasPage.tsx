@@ -23,22 +23,22 @@ export function IntegritasPage() {
   const [stampResultRecord, setStampResultRecord] = useState<IntegritasProofRecord | null>(null);
   const [stampResultDetails, setStampResultDetails] = useState<unknown>(null);
   const [verifyResult, setVerifyResult] = useState<VerifySuccess | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<"stamp" | "verify" | null>(null);
 
   function showIntegritasError(error: unknown) {
     const { title, message } = integritasErrorToast(error);
     showToast({ tone: "error", title, message, timeoutMs: 9000 });
   }
 
-  async function run(action: () => Promise<unknown>) {
-    setBusy(true);
+  async function run(action: "stamp" | "verify", fn: () => Promise<unknown>) {
+    setBusyAction(action);
     try {
-      return await action();
+      return await fn();
     } catch (err) {
       showIntegritasError(err);
       return null;
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   }
 
@@ -68,7 +68,7 @@ export function IntegritasPage() {
                 setStampResultDetails(null);
               }
             }}
-            busy={busy}
+            busy={busyAction !== null}
             resultRecord={stampResultRecord}
             resultDetails={stampResultDetails}
             onClearResult={() => {
@@ -76,7 +76,7 @@ export function IntegritasPage() {
               setStampResultDetails(null);
             }}
             onStamp={() =>
-              run(async () => {
+              run("stamp", async () => {
                 if (!stampUpload) throw new Error("Select a file first");
                 const response = await stampFile(stampUpload);
                 setStampUpload(null);
@@ -93,11 +93,12 @@ export function IntegritasPage() {
               setVerifyUpload(file);
               if (file) setVerifyResult(null);
             }}
-            busy={busy}
+            busy={busyAction !== null}
+            loading={busyAction === "verify"}
             result={verifyResult}
             onClearResult={() => setVerifyResult(null)}
             onVerifyFile={() =>
-              run(async () => {
+              run("verify", async () => {
                 if (!verifyUpload) throw new Error("Select a proof JSON file first");
                 const response = await verifyProofFile(verifyUpload);
                 setVerifyUpload(null);

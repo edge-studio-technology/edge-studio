@@ -118,6 +118,11 @@ export function StampResult({
   return (
     <ResultShell
       title="Timestamp proof submitted"
+      description={
+        record.proof_status === "pending"
+          ? "Proof is pending on-chain. It will be confirmed in a few minutes."
+          : undefined
+      }
       ariaLabel="Stamp result"
       tone={statusTone(record)}
       badge={statusBadge(record)}
