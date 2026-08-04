@@ -4,6 +4,12 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased]
+
+### Changed
+
+- Integritas stamp and verify failures that return HTTP 402 (plan/API limit) are now classified as `payment_required` and show an upgrade toast (and a clear automation stamp error) instead of a generic stamp/verify failure.
+
 ## [0.28.3] 2026-08-03
 
 ### Added

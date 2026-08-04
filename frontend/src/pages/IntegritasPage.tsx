@@ -10,7 +10,7 @@ import { stampFile, verifyProofFile } from '../features/integritas/integritasApi
 import { integritasErrorToast } from '../features/integritas/integritasErrors';
 import { IntegritasRuntimeConfig } from '../features/integritas/IntegritasRuntimeConfig';
 import { StampFilePanel } from '../features/integritas/StampFilePanel';
-import { StampResultModal } from '../features/integritas/StampResultModal';
+import { StampResultCard } from '../features/integritas/StampResultCard';
 import type { IntegritasProofRecord } from '../features/integritas/integritasTypes';
 import { VerifyProofPanel } from '../features/integritas/VerifyProofPanel';
 import { SettingsIcon } from 'lucide-react';
@@ -20,9 +20,9 @@ export function IntegritasPage() {
   const [config, setConfig] = useState<IntegritasConfig | null>(null);
   const [stampUpload, setStampUpload] = useState<File | null>(null);
   const [verifyUpload, setVerifyUpload] = useState<File | null>(null);
-  const [stampModalRecord, setStampModalRecord] =
+  const [stampResultRecord, setStampResultRecord] =
     useState<IntegritasProofRecord | null>(null);
-  const [stampModalDetails, setStampModalDetails] = useState<unknown>(null);
+  const [stampResultDetails, setStampResultDetails] = useState<unknown>(null);
   const [verifyResult, setVerifyResult] = useState<unknown>(null);
   const [result, setResult] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
@@ -88,17 +88,6 @@ export function IntegritasPage() {
         </Modal>
       )}
 
-      {stampModalRecord && (
-        <StampResultModal
-          record={stampModalRecord}
-          technicalDetails={stampModalDetails ?? undefined}
-          onClose={() => {
-            setStampModalRecord(null);
-            setStampModalDetails(null);
-          }}
-        />
-      )}
-
       <div className='grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]'>
         <StampFilePanel
           file={stampUpload}
@@ -109,8 +98,8 @@ export function IntegritasPage() {
               if (!stampUpload) throw new Error('Select a file first');
               const response = await stampFile(stampUpload);
               setStampUpload(null);
-              setStampModalRecord(response.record);
-              setStampModalDetails(response);
+              setStampResultRecord(response.record);
+              setStampResultDetails(response);
               return response;
             }, false)
           }
@@ -136,6 +125,17 @@ export function IntegritasPage() {
           }
         />
       </div>
+
+      {stampResultRecord && (
+        <StampResultCard
+          record={stampResultRecord}
+          technicalDetails={stampResultDetails ?? undefined}
+          onClose={() => {
+            setStampResultRecord(null);
+            setStampResultDetails(null);
+          }}
+        />
+      )}
 
       {result !== null && <JsonPreview value={result} />}
     </Page>

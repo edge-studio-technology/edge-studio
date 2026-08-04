@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
+import { IconButton } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { JsonPreview } from "../../components/JsonPreview";
-import { Modal } from "../../components/Modal";
 import { StatusBadge } from "../../components/StatusBadge";
 import { MutedText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
@@ -26,15 +28,18 @@ function statusMessage(record: IntegritasProofRecord) {
     return "Your hash is confirmed on-chain. Export or verify the proof from Diagnostics when needed.";
   }
   if (record.proof_status === "failed") {
-    return record.proof_error ?? "Integritas could not complete this proof. Check Diagnostics for details or try stamping again.";
+    return (
+      record.proof_error ??
+      "Integritas could not complete this proof. Check Diagnostics for details or try stamping again."
+    );
   }
   return "Proof requested. Status updates automatically here and on Diagnostics (usually within a few minutes).";
 }
 
-export function StampResultModal({
+export function StampResultCard({
   record: initialRecord,
   technicalDetails,
-  onClose
+  onClose,
 }: {
   record: IntegritasProofRecord;
   technicalDetails?: unknown;
@@ -93,27 +98,40 @@ export function StampResultModal({
   }, [record.id, record.proof_status, showToast]);
 
   return (
-    <Modal title="Timestamp proof submitted" onClose={onClose}>
-      <div className="grid gap-4">
-        {statusBadge(record)}
-        <p className="m-0 leading-relaxed text-slate-700">{statusMessage(record)}</p>
-        <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2">
-          {record.file_name && (
-            <>
-              <dt className="m-0 font-semibold text-slate-500">File</dt>
-              <dd className="m-0 break-all">{record.file_name}</dd>
-            </>
-          )}
-          <dt className="m-0 font-semibold text-slate-500">Proof UID</dt>
-          <dd className="m-0 break-all"><code>{record.proof_uid ?? "—"}</code></dd>
-          <dt className="m-0 font-semibold text-slate-500">Data hash</dt>
-          <dd className="m-0 break-all"><code>{record.hash}</code></dd>
-        </dl>
-        {polling && <MutedText>Checking on-chain status…</MutedText>}
-        {technicalDetails !== undefined && (
-          <JsonPreview value={technicalDetails} label="View technical details" />
-        )}
+    <Card className="grid gap-4">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <h3 className="m-0">Timestamp proof submitted</h3>
+        <IconButton
+          variant="ghost"
+          size="compact"
+          aria-label="Dismiss stamp result"
+          onClick={onClose}
+        >
+          <X aria-hidden />
+        </IconButton>
       </div>
-    </Modal>
+      {statusBadge(record)}
+      <p className="m-0 leading-relaxed text-slate-700">{statusMessage(record)}</p>
+      <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2">
+        {record.file_name && (
+          <>
+            <dt className="m-0 font-semibold text-slate-500">File</dt>
+            <dd className="m-0 break-all">{record.file_name}</dd>
+          </>
+        )}
+        <dt className="m-0 font-semibold text-slate-500">Proof UID</dt>
+        <dd className="m-0 break-all">
+          <code>{record.proof_uid ?? "—"}</code>
+        </dd>
+        <dt className="m-0 font-semibold text-slate-500">Data hash</dt>
+        <dd className="m-0 break-all">
+          <code>{record.hash}</code>
+        </dd>
+      </dl>
+      {polling && <MutedText>Checking on-chain status…</MutedText>}
+      {technicalDetails !== undefined && (
+        <JsonPreview value={technicalDetails} label="View technical details" />
+      )}
+    </Card>
   );
 }

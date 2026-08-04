@@ -109,6 +109,7 @@ function sleep(ms: number) {
 
 function classifyErrorCode(status: number, operation: IntegritasOperation): IntegritasErrorCode {
   if (status === 401 || status === 403) return "unauthorized";
+  if (status === 402) return "payment_required";
   if (status === 429) return "rate_limited";
   if (status === 502 || status === 503) return "upstream_unavailable";
   if (operation === "stamp") return "stamp_failed";
