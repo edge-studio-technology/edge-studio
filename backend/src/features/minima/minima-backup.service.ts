@@ -158,9 +158,8 @@ export async function createBackup({ auto = false }: { auto?: boolean } = {}) {
     }
 
     return { ...result, fileName, auto };
-  } catch (error) {
+  } finally {
     endMinimaOperation();
-    throw error;
   }
 }
 
@@ -180,9 +179,8 @@ export async function restoreBackup({ fileName, password }: { fileName: string; 
   beginMinimaOperation("restore");
   try {
     return await runMinimaPathCommand(command, 60000);
-  } catch (error) {
+  } finally {
     endMinimaOperation();
-    throw error;
   }
 }
 

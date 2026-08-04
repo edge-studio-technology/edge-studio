@@ -6,6 +6,7 @@ import {
   recordPollerCheck,
   recordStallDetected
 } from "./minima-monitoring.js";
+import { MinimaOperationConflictError } from "./minima-monitoring.js";
 import { parseMegammrResyncMessage } from "./minima.parse.js";
 import { getMinimaNodeStatus, resyncMegammr } from "./minima.service.js";
 
@@ -39,6 +40,10 @@ export async function pollMinimaHealth() {
       recordAutoResync(message);
       console.log(`Minima health poller: auto-resync completed (${message})`);
     } catch (error) {
+      if (error instanceof MinimaOperationConflictError) {
+        console.warn(`Minima health poller: auto-resync skipped (${error.message})`);
+        return;
+      }
       const message = error instanceof Error ? error.message : "resync failed";
       recordAutoResync(message);
       console.error(`Minima health poller: auto-resync failed (${message})`);

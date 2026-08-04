@@ -5,7 +5,14 @@ import { getSetting, saveSetting } from "../settings/settings.repository.js";
 import { excludedConsoleCommandVerbs, minimaConsoleCatalog, type ConsoleCommandEntry } from "./minima-console.catalog.js";
 import { createBackup, restoreBackup } from "./minima-backup.service.js";
 import { addMinimaPeers, resyncMegammr } from "./minima.service.js";
+import { beginMinimaOperation, endMinimaOperation } from "./minima-monitoring.js";
 import { runMinimaPathCommand } from "./minima.rpc.js";
+
+// `restore`/`reset` are raw passthrough (see .claude/rules/minima.md) with no dedicated
+// narrow action to hold the operation lock for them, but they touch the same wallet/chain
+// state as backup/restoresync — so they must respect the lock too, not just the four
+// dispatch-mapped commands.
+const lockedPassthroughVerbs = new Set(["restore", "reset"]);
 
 const whitelistSetting = "minima_console_whitelist";
 
@@ -110,6 +117,13 @@ export async function runConsoleCommand(userId: string | undefined, rawInput: st
     const passwordMatch = /password:"?([^"\s]+)"?/i.exec(command);
     const fileName = (fileMatch?.[1] ?? "").replace(/^backups\//, "");
     result = await restoreBackup({ fileName, password: passwordMatch?.[1] });
+  } else if (lockedPassthroughVerbs.has(entry.verb)) {
+    beginMinimaOperation("restore");
+    try {
+      result = await runMinimaPathCommand(command);
+    } finally {
+      endMinimaOperation();
+    }
   } else {
     result = await runMinimaPathCommand(command);
   }

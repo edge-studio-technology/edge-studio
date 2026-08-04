@@ -93,25 +93,30 @@ export function MinimaPage() {
       showToast({ tone: "error", title: "Minima restart failed", message, timeoutMs: 9000 });
       throw error;
     } finally {
-      const recovered = await refreshAfterOperation();
-      setRestarting(false);
+      if (commandSucceeded) {
+        const recovered = await refreshAfterOperation();
+        setRestarting(false);
 
-      if (commandSucceeded && !options?.silent) {
-        showToast(
-          recovered
-            ? {
-                tone: "success",
-                title: "Restart complete",
-                message: "Minima container is back online.",
-                timeoutMs: 8000,
-              }
-            : {
-                tone: "error",
-                title: "Restart taking longer than expected",
-                message: "Minima RPC hasn't responded yet — check Node health.",
-                timeoutMs: 9000,
-              },
-        );
+        if (!options?.silent) {
+          showToast(
+            recovered
+              ? {
+                  tone: "success",
+                  title: "Restart complete",
+                  message: "Minima container is back online.",
+                  timeoutMs: 8000,
+                }
+              : {
+                  tone: "error",
+                  title: "Restart taking longer than expected",
+                  message: "Minima RPC hasn't responded yet — check Node health.",
+                  timeoutMs: 9000,
+                },
+          );
+        }
+      } else {
+        setRestarting(false);
+        setStatusError(null);
       }
     }
   }
