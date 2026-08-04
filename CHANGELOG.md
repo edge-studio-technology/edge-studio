@@ -11,6 +11,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automatic Minima node backups now run at a fixed nightly time (00:30 on the backend container's clock) instead of a rolling 24-hour interval from container start, so they land overnight instead of at whatever hour the container happened to boot. A new `TZ` environment variable (default `UTC`) sets the backend container's timezone so "nightly" can mean the Pi's actual local night.
 - Restarting the Minima node now shuts it down gracefully first: it sends the node a `quit`-with-compaction command and waits (up to 5 minutes, since the node can take a while to actually stop even after reporting shutdown complete) for it to actually stop before starting it back up, instead of immediately force-stopping the container. If the node still hasn't stopped after that, it falls back to the previous forceful restart so the action still always completes.
 
+## [0.28.3] 2026-08-03
+
+### Added
+
+- Shared `Disclosure` (`components/ui/`) for native collapse/expand sections with lucide chevron styling; the workflow toolkit now uses it for block categories.
+- Shared `ScrollArea` (`components/ui/`) for panels and rails that need thin ESDS-token scrollbar styling; the workflow toolkit now uses it.
+
+### Changed
+
+- Moved `LoadingDots` into `components/ui/` (flat re-export kept).
+- Moved `ErrorText` into `components/ui/` (flat `Text` re-export kept).
+- Moved `JsonPreview` into `components/patterns/` (flat re-export kept).
+- Removed legacy `Eyebrow` text helper; section labels use `type-meta` + text colour tokens.
+- Shared `Modal` Dialog layout: scrollable body, footer actions, nesting-safe scroll lock when stacked.
+- Minima RPC console UI aligned with the design system (actions, scrollback, loading state).
+- Minima console whitelist: clearer command list, select-all per group, PIN/password confirm on save.
+- Minima container restart uses a confirm Modal instead of the browser confirm dialog.
+- Minima in-progress feedback uses short warn Pills on the Sync/Container cards; detailed RPC/Megammr copy moved to toasts (page banner removed).
+- Automation workflow create/edit/watch canvases now use the new ESDS/Figma-inspired workflow frame, explicit workflow routes, full-bleed shell layout, right-side toolkit, flat category block cards, selected-block treatment, and create-workflow leave confirmation.
+- Automation selected-block inspector now opens as a full-height viewport side sheet above the workspace chrome, with cleaner section cards and shared form controls.
+- Automation watch-mode runtime inspector now uses the same section-card hierarchy for run summary, block status, output JSON, and Diagnostics links.
+- Automation watch-mode Run controls now share the same rail panel shell and header typography as the workflow toolkit.
+
+### Fixed
+
+- Closing stacked modals no longer leaves page scrolling stuck (e.g. after saving the Minima whitelist).
+
 ## [0.28.2] 2026-07-30
 
 ### Added

@@ -68,9 +68,11 @@ function statusBarItem({
 }
 
 export function AppShell({
+  fullBleed = false,
   onSignOut,
   children,
 }: {
+  fullBleed?: boolean;
   onSignOut: () => void;
   children: React.ReactNode;
 }) {
@@ -142,8 +144,8 @@ export function AppShell({
           onSignOut={onSignOut}
         />
 
-        <main className="min-w-0 flex-1">
-          <StatusBar items={statusItems} />
+        <main className="relative z-0 min-w-0 flex-1">
+          {!fullBleed && <StatusBar items={statusItems} />}
           {children}
         </main>
       </div>

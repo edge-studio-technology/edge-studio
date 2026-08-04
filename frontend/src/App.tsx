@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ToastProvider } from "./components/ToastProvider";
@@ -22,9 +22,11 @@ function LoginRoute() {
 
 function AppContent() {
   const { signOut } = useAuth();
+  const { pathname } = useLocation();
+  const fullBleed = /^\/automation\/(new|[^/]+\/(edit|watch)(\/[^/]+)?)$/.test(pathname);
 
   return (
-    <AppShell onSignOut={() => void signOut()}>
+    <AppShell fullBleed={fullBleed} onSignOut={() => void signOut()}>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
@@ -34,6 +36,10 @@ function AppContent() {
         <Route path="/integritas" element={<IntegritasPage />} />
         <Route path="/data" element={<DataSourcesPage />} />
         <Route path="/automation" element={<AutomationPage />} />
+        <Route path="/automation/new" element={<AutomationPage />} />
+        <Route path="/automation/:workflowId/edit" element={<AutomationPage />} />
+        <Route path="/automation/:workflowId/watch" element={<AutomationPage />} />
+        <Route path="/automation/:workflowId/watch/:runId" element={<AutomationPage />} />
         <Route path="/diagnostics" element={<DiagnosticsPage />} />
         <Route path="/settings" element={<AuthSettingsPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

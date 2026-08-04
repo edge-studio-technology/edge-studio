@@ -54,7 +54,7 @@ Migration is **incremental**, not a big-bang move:
 
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `CredentialInput` (or retire into `InputField`) |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
 | `patterns/`    | `Page`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`, `MetricCard`                                                                                 |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                       |
 
@@ -85,9 +85,11 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [CheckboxField](#checkboxfield): labeled checkbox
 - [RadioField](#radiofield): labeled radio option
 - [SwitchField](#switchfield): labeled on/off switch
-- `Text`: muted, error, and eyebrow text
+- `Text`: muted text (legacy flat helper; `ErrorText` lives in `ui/`)
+- `ErrorText`: inline error copy
 - [ErrorAlert](#erroralert): in-page error alert
 - [Modal](#modal): dialog overlay
+- `LoadingDots`: bouncing loading indicator
 - `Input`: bare text control
 - [InputField](#inputfield): labeled text field
 - [SelectField](#selectfield): labeled select
@@ -103,7 +105,9 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `ListPagerFilterBar`: list filter and pager
 - `Pagination`: prev/next page strip
 - [Tooltip](#tooltip): hover / click tip
-- `JsonPreview`: JSON / code preview
+- [Disclosure](#disclosure): native collapse / expand section
+- [ScrollArea](#scrollarea): thin ESDS-token scrollbar container
+- `JsonPreview`: trigger that opens a modal with pretty-printed JSON
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
 
@@ -283,7 +287,7 @@ Default on: `icon-primary` track + inverse knob. Off: inverse track + `stroke-pr
 
 ### Modal
 
-Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, white panel (`max-w-[600px]`, `rounded-soft`, `p-margin-relaxed`), title, optional description / body / footer, close `IconButton`. Prefer this for confirmations and focused forms. Sheet variant is not implemented yet.
+Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, white panel (`max-w-[600px]`, `rounded-soft`, `p-pad-relaxed`), title, optional description, children in a bordered `surface-primary` scroll body, optional footer action row, close `IconButton`. Prefer this for confirmations and focused forms. Sheet variant is not implemented yet.
 
 | Prop            | Notes                                                    |
 | --------------- | -------------------------------------------------------- |
@@ -357,6 +361,47 @@ Pass `children` as the trigger. Without `actions`, opens on hover/focus (tooltip
     Open
   </Button>
 </Tooltip>;
+```
+
+### Disclosure
+
+Disclosure (`frontend/src/components/ui/Disclosure.tsx`): native `<details>` / `<summary>` collapse-expand section with ESDS text, focus ring, and a lucide chevron that rotates when open.
+
+Use it for reusable collapsible sections such as toolkit groups, settings groups, diagnostics details, and setup-guide sections. It intentionally does not coordinate with sibling disclosures; add that later only if a true accordion behavior is needed.
+
+| Prop               | Notes                                                |
+| ------------------ | ---------------------------------------------------- |
+| `title`            | Required summary label/content                       |
+| `children`         | Required collapsed/expanded body                     |
+| `defaultOpen`      | Initial native open state, default `true`            |
+| `open`             | Optional controlled native `details` state           |
+| `className`        | Merged onto `<details>`                              |
+| `summaryClassName` | Merged onto `<summary>`                              |
+| `contentClassName` | Merged onto the content wrapper                      |
+| ...props           | Standard `HTMLDetailsElement` attributes             |
+
+```tsx
+<Disclosure title="Group title" defaultOpen>
+  <Menu items={items} />
+</Disclosure>
+```
+
+### ScrollArea
+
+Scroll container (`frontend/src/components/ui/ScrollArea.tsx`): reusable overflow container with a stable scrollbar gutter, thin Firefox scrollbar styling, and WebKit scrollbar thumb styling using ESDS stroke tokens.
+
+Use it when a panel, modal body, console, or rail needs visible internal scrolling. Keep sizing (`max-h-*`, sticky positioning, padding, grid/flex layout) at the call site.
+
+| Prop        | Notes                                |
+| ----------- | ------------------------------------ |
+| `children`  | Required scrollable content          |
+| `className` | Merged onto the scroll container     |
+| ...props    | Standard `HTMLDivElement` attributes |
+
+```tsx
+<ScrollArea className="max-h-80 rounded-soft border border-stroke-secondary p-margin-tight">
+  {items.map((item) => <Item key={item.id} item={item} />)}
+</ScrollArea>
 ```
 
 ### ProgressBar

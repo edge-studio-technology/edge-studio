@@ -307,7 +307,7 @@ export function DataSourcesPage() {
       {setupGuideSource && (
         <Modal title={getDeviceSetupGuide(setupGuideSource)?.title ?? "Device setup guide"} onClose={() => setSetupGuideSource(null)}>
           {setupGuideBme680SupportWarning && <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{setupGuideBme680SupportWarning}</div>}
-          {setupGuideSource.type === "mqtt" && setupGuideSource.config.profile === "esp32-mqtt-board" ? <Esp32FirmwareSetup source={setupGuideSource} /> : <StandardDeviceSetupGuide source={setupGuideSource} createdWorkflowIds={guideWorkflowIdsForSource(setupGuideSource, createdGuideWorkflowIds)} runningActionKey={runningGuideActionKey} onAction={(action) => runGuideAction(setupGuideSource, action)} onGoToWorkflow={(workflowId) => navigate(`/automation?flow=watch&id=${encodeURIComponent(workflowId)}`)} />}
+          {setupGuideSource.type === "mqtt" && setupGuideSource.config.profile === "esp32-mqtt-board" ? <Esp32FirmwareSetup source={setupGuideSource} /> : <StandardDeviceSetupGuide source={setupGuideSource} createdWorkflowIds={guideWorkflowIdsForSource(setupGuideSource, createdGuideWorkflowIds)} runningActionKey={runningGuideActionKey} onAction={(action) => runGuideAction(setupGuideSource, action)} onGoToWorkflow={(workflowId) => navigate(`/automation/${encodeURIComponent(workflowId)}/watch`)} />} 
         </Modal>
       )}
 
