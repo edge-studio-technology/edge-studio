@@ -24,7 +24,7 @@ export const excludedConsoleCommandVerbs = [
   "quit"
 ] as const;
 
-export type ConsoleDispatch = "passthrough" | "megammrsync-resync" | "peers-add";
+export type ConsoleDispatch = "passthrough" | "megammrsync-resync" | "peers-add" | "backup" | "restoresync";
 
 export type ConsoleCommandEntry = {
   key: string;
@@ -65,6 +65,22 @@ export const minimaConsoleCatalog: ConsoleCommandEntry[] = [
     kind: "write",
     defaultEnabled: false,
     dispatch: "megammrsync-resync"
+  },
+  {
+    key: "backup",
+    verb: "backup",
+    label: "Backup the system",
+    kind: "write",
+    defaultEnabled: false,
+    dispatch: "backup"
+  },
+  {
+    key: "restoresync",
+    verb: "restoresync",
+    label: "Restore and archive-sync",
+    kind: "write",
+    defaultEnabled: false,
+    dispatch: "restoresync"
   },
 
   // Read-only, default enabled.
@@ -155,9 +171,7 @@ export const minimaConsoleCatalog: ConsoleCommandEntry[] = [
   write("rpc", "Enable or disable RPC"),
   write("webhooks", "Manage webhooks"),
   write("mds", "MiniDAPP system management"),
-  write("backup", "Backup the system"),
   write("restore", "Restore the system"),
-  write("restoresync", "Restore and archive-sync"),
   write("reset", "Reset using an archive backup"),
   write("archive", "Resync chain from archive"),
   write("megammr", "MegaMMR info, import, or export"),

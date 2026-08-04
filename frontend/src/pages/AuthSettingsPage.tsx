@@ -11,6 +11,7 @@ import { isValidAdminCredential, sanitizePinInput, type AdminCredentialType } fr
 import { PasswordRequirements } from "../features/auth/PasswordRequirements";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
 import { IntegritasConnectPanel } from "../features/integritas-auth/IntegritasConnectPanel";
+import { MinimaBackupPanel } from "../features/minima/MinimaBackupPanel";
 import { MinimaSettingsPanel } from "../features/minima/MinimaSettingsPanel";
 import { useUpdateStatusRefresh } from "../features/update/useUpdateStatusRefresh";
 import { WalletSettingsPanel } from "../features/wallet/WalletSettingsPanel";
@@ -150,7 +151,14 @@ export function AuthSettingsPage() {
 
       <MinimaSettingsPanel />
 
-      <WalletSettingsPanel />
+      <MinimaBackupPanel />
+
+      {/* Deprecated in favor of Node backup & restore above (superset: full node backup
+          vs. wallet-keys-only). Seed-phrase-only restore is still a distinct recovery path
+          (no backup file needed) and is planned as a "coming soon" option in
+          MinimaBackupPanel for v1.5 — see docs/TASKS.md. Left commented, not deleted, for
+          an easy revert. */}
+      {/* <WalletSettingsPanel /> */}
 
       <Card>
         <div className="grid gap-1" style={{ marginBottom: 16 }}>

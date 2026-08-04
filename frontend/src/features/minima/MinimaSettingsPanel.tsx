@@ -3,7 +3,14 @@ import type { MinimaConfig, MinimaNodeState, MinimaPeersResponse } from "../../a
 import { Card } from "../../components/Card";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
-import { addMinimaPeers, getMinimaConfig, getMinimaPeers, saveMinimaConfig } from "./minimaApi";
+import {
+  addMinimaPeers,
+  getAutoRestartEnabled,
+  getMinimaConfig,
+  getMinimaPeers,
+  saveMinimaConfig,
+  setAutoRestartEnabled
+} from "./minimaApi";
 import { MinimaRuntimeConfig } from "./MinimaRuntimeConfig";
 import { useMinimaStatusRefresh } from "./useMinimaStatusRefresh";
 
@@ -26,9 +33,14 @@ export function MinimaSettingsPanel() {
   const [peersLoading, setPeersLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [autoRestartEnabled, setAutoRestartEnabledState] = useState<boolean | null>(null);
+  const [togglingAutoRestart, setTogglingAutoRestart] = useState(false);
 
   useEffect(() => {
     refreshConfig().catch((err: Error) => setConfigError(err.message));
+    getAutoRestartEnabled()
+      .then((res) => setAutoRestartEnabledState(res.autoRestartEnabled))
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -99,6 +111,24 @@ export function MinimaSettingsPanel() {
     }
   }
 
+  async function handleToggleAutoRestart() {
+    if (autoRestartEnabled === null) return;
+    setTogglingAutoRestart(true);
+    try {
+      const res = await setAutoRestartEnabled(!autoRestartEnabled);
+      setAutoRestartEnabledState(res.autoRestartEnabled);
+    } catch (error) {
+      showToast({
+        tone: "error",
+        title: "Failed to update auto-restart",
+        message: error instanceof Error ? error.message : "Unknown error",
+        timeoutMs: 9000
+      });
+    } finally {
+      setTogglingAutoRestart(false);
+    }
+  }
+
   return (
     <Card>
       <div className="grid gap-1" style={{ marginBottom: 16 }}>
@@ -129,6 +159,25 @@ export function MinimaSettingsPanel() {
         onAddPeers={runAddPeers}
       />
       {configError && <ErrorText>{configError}</ErrorText>}
+
+      {/* Auto restart is disabled for now — deferred until automations get graceful
+          handling around node restarts. See docs/TASKS.md. */}
+      {/* <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2" style={{ marginTop: 16 }}>
+        <input
+          type="checkbox"
+          className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
+          checked={autoRestartEnabled ?? false}
+          disabled={autoRestartEnabled === null || togglingAutoRestart || actionsBlocked}
+          onChange={() => void handleToggleAutoRestart()}
+        />
+        <span className="grid gap-0.5">
+          <span className="text-sm font-semibold text-slate-700">Auto restart (every 48h)</span>
+          <span className="text-xs text-slate-500">
+            Restarts the Minima container on the same nightly schedule as auto backups, but only every other
+            night, as a preventive node health measure.
+          </span>
+        </span>
+      </label> */}
     </Card>
   );
 }

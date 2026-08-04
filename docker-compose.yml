@@ -4,6 +4,7 @@ services:
       context: ./backend
     image: ${BACKEND_IMAGE}
     environment:
+      TZ: ${TZ:-UTC}
       PORT: 3000
       HOST_FILES_ROOT: /host-files
       MINIMA_STATUS_URL: http://minima:9005/status
@@ -46,6 +47,7 @@ services:
     volumes:
       - ${HOST_FILES_DIR:-/home/pi}:/host-files:ro
       - ${DATA_DIR:-./data}:/data
+      - ${MINIMA_DATA_DIR:-./minima}/backups:/minima-backups
       - /var/run/docker.sock:/var/run/docker.sock
     group_add:
       - "${DOCKER_GID:-0}"
@@ -74,18 +76,20 @@ services:
       - integritas
 
   minima:
-    image: minimaglobal/minima:dev
+    image: minimaglobal/minimacore
     stop_grace_period: 60s
     environment:
-      minima_mdsenable: "false"
+      # minima_mdsenable: "false"
       minima_rpcenable: "true"
       minima_rpccrlf: "true"
       minima_p2pnodes: "https://spartacusrex.com/minimapeers.txt"
+      minima_rescuenode: "megammr.minima.global:9001"
     ports:
       - "${MINIMA_P2P_PORT:-9003}:9003"
       - "${MINIMA_RPC_BIND:-127.0.0.1}:${MINIMA_RPC_PORT:-9005}:9005"
     volumes:
       - ${MINIMA_DATA_DIR:-./minima}:/home/minima/data
+      - ${MINIMA_DATA_DIR:-./minima}/backups:/home/minima/backups
     restart: unless-stopped
     networks:
       - integritas

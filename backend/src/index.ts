@@ -15,6 +15,10 @@ import {
   stopMinimaHealthPoller,
 } from "./features/minima/minima-poll.service.js";
 import {
+  startMinimaAutoBackupScheduler,
+  stopMinimaAutoBackupScheduler,
+} from "./features/minima/minima-backup-scheduler.service.js";
+import {
   startMqttIngestion,
   stopMqttIngestion,
 } from "./features/data-sources/mqttIngestion.service.js";
@@ -36,6 +40,7 @@ await ensureDeviceId();
 startAutomationScheduler();
 startIntegritasProofPoller();
 startMinimaHealthPoller();
+startMinimaAutoBackupScheduler();
 startMqttIngestion();
 startGpioIngestion();
 
@@ -54,6 +59,7 @@ function shutdown() {
   stopAutomationScheduler();
   stopIntegritasProofPoller();
   stopMinimaHealthPoller();
+  stopMinimaAutoBackupScheduler();
   stopMqttIngestion();
   stopGpioIngestion();
   stopGpioOutputHolders();

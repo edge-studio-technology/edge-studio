@@ -104,6 +104,7 @@ export type MinimaRestartResult = {
   service: string;
   containerId: string;
 };
+export type MinimaAutoRestartResponse = { autoRestartEnabled: boolean };
 export type MinimaConsoleCatalogEntry = {
   key: string;
   verb: string;
@@ -116,6 +117,11 @@ export type MinimaConsoleWhitelist = {
   enabledKeys: string[];
 };
 export type MinimaConsoleRunResult = MinimaCommandResult;
+export type MinimaBackupEntry = { fileName: string; sizeBytes: number; createdAt: string };
+export type MinimaBackupListResponse = MinimaBackupEntry[];
+export type MinimaBackupCreateResult = MinimaCommandResult & { fileName: string; auto: boolean };
+export type MinimaAutoBackupResponse = { autoBackupEnabled: boolean };
+export type MinimaBackupPasswordResponse = { hasPassword: boolean };
 export type IntegritasConfig = {
   baseUrl: string;
   requestId: string;
