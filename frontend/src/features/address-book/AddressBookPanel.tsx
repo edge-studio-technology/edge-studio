@@ -1,44 +1,45 @@
-import { useEffect, useState } from 'react';
-import { Eye, Loader2, Pencil, Trash2 } from 'lucide-react';
-import { Button } from '../../components/Button';
-import { CopyableCode } from '../../components/CopyableCode';
+import { useEffect, useState } from "react";
+import { Eye, Loader2 } from "lucide-react";
+import { Button } from "../../components/Button";
+import { CopyableCode } from "../../components/CopyableCode";
 import {
   DataTable,
   RowActions,
   TableIconButton,
+  TableIconMenu,
   TableWrap,
   tableCellClass,
   tableHeaderCellClass,
   tableHeadRowClass,
   tableRowClass,
-} from '../../components/DataTable';
-import { ListPagerFilterBar } from '../../components/ListPagerFilterBar';
-import { Modal } from '../../components/Modal';
-import { TablePager } from '../../components/TablePager';
-import { ErrorText, MutedText } from '../../components/Text';
-import { useToast } from '../../components/ToastProvider';
-import { DEFAULT_PAGE_SIZE_OPTIONS } from '../../lib/paginated';
+} from "../../components/DataTable";
+import { ListPagerFilterBar } from "../../components/ListPagerFilterBar";
+import { Modal } from "../../components/Modal";
+import { TablePager } from "../../components/TablePager";
+import { ErrorText, MutedText } from "../../components/Text";
+import { useToast } from "../../components/ToastProvider";
+import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import {
   createAddressBookEntry,
   deleteAddressBookEntry,
   listAddressBookEntries,
   updateAddressBookEntry,
-} from './addressBookApi';
+} from "./addressBookApi";
 import type {
   AddressBookEntry,
   CreateAddressBookEntryInput,
   UpdateAddressBookEntryInput,
-} from './addressBookTypes';
+} from "./addressBookTypes";
 
 function sortByLabel(entries: AddressBookEntry[]): AddressBookEntry[] {
   return [...entries].sort((a, b) =>
-    a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }),
+    a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
   );
 }
 
-const fieldLabelClass = 'text-xs font-bold uppercase tracking-widest text-slate-500';
+const fieldLabelClass = "text-xs font-bold uppercase tracking-widest text-slate-500";
 const inputClass =
-  'w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-55';
+  "w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-55";
 
 export function AddressBookPanel({
   actionsBlocked,
@@ -53,28 +54,23 @@ export function AddressBookPanel({
   const [entries, setEntries] = useState<AddressBookEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
-  const [entryAction, setEntryAction] = useState<
-    { entry: AddressBookEntry; mode: 'view' | 'edit' | 'delete' } | null
-  >(null);
+  const [entryAction, setEntryAction] = useState<{
+    entry: AddressBookEntry;
+    mode: "view" | "edit" | "delete";
+  } | null>(null);
 
   useEffect(() => {
     listAddressBookEntries()
       .then(setEntries)
-      .catch((err) =>
-        setError(
-          err instanceof Error ? err.message : 'Failed to load address book.',
-        ),
-      )
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load address book."))
       .finally(() => setLoading(false));
   }, []);
 
   function upsertEntry(next: AddressBookEntry) {
-    setEntries((prev) =>
-      sortByLabel([...prev.filter((e) => e.id !== next.id), next]),
-    );
+    setEntries((prev) => sortByLabel([...prev.filter((e) => e.id !== next.id), next]));
   }
 
   const isLoading = loading || actionsBlocked;
@@ -84,28 +80,25 @@ export function AddressBookPanel({
     return (
       entry.label.toLowerCase().includes(trimmedQuery) ||
       entry.address.toLowerCase().includes(trimmedQuery) ||
-      (entry.notes ?? '').toLowerCase().includes(trimmedQuery)
+      (entry.notes ?? "").toLowerCase().includes(trimmedQuery)
     );
   });
   const totalPages = Math.max(1, Math.ceil(filteredEntries.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pagedEntries = filteredEntries.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  const pagedEntries = filteredEntries.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <>
       {error && <ErrorText>{error}</ErrorText>}
 
       {addOpen && (
-        <Modal title='Add contact' onClose={onCloseAdd}>
+        <Modal title="Add contact" onClose={onCloseAdd}>
           <AddContactForm
             onSave={async (data) => {
               const entry = await createAddressBookEntry(data);
               upsertEntry(entry);
               onCloseAdd();
-              showToast({ tone: 'success', title: 'Contact added' });
+              showToast({ tone: "success", title: "Contact added" });
             }}
             onCancel={onCloseAdd}
           />
@@ -118,7 +111,7 @@ export function AddressBookPanel({
         total={filteredEntries.length}
         totalPages={totalPages}
         q={query}
-        searchPlaceholder='Name, address, or notes'
+        searchPlaceholder="Name, address, or notes"
         disabled={isLoading}
         onPageChange={setPage}
         onPageSizeChange={(size) => {
@@ -143,18 +136,18 @@ export function AddressBookPanel({
           <tbody>
             {isLoading ? (
               <tr className={tableRowClass}>
-                <td colSpan={3} className='p-0'>
-                  <div className='flex justify-center py-10'>
-                    <Loader2 className='size-10 animate-spin text-slate-400' aria-hidden='true' />
+                <td colSpan={3} className="p-0">
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="size-10 animate-spin text-slate-400" aria-hidden="true" />
                   </div>
                 </td>
               </tr>
             ) : filteredEntries.length === 0 ? (
               <tr className={tableRowClass}>
-                <td colSpan={3} className='p-0'>
-                  <div className='p-margin-tight py-pad-relaxed'>
+                <td colSpan={3} className="p-0">
+                  <div className="p-margin-tight py-pad-relaxed">
                     <MutedText>
-                      {trimmedQuery ? 'No matching contacts.' : 'No contacts saved yet.'}
+                      {trimmedQuery ? "No matching contacts." : "No contacts saved yet."}
                     </MutedText>
                   </div>
                 </td>
@@ -163,38 +156,35 @@ export function AddressBookPanel({
               pagedEntries.map((entry) => (
                 <tr key={entry.id} className={tableRowClass}>
                   <td className={`${tableCellClass} min-w-48`}>
-                    <span className='font-semibold text-slate-900'>{entry.label}</span>
+                    <span className="font-semibold text-slate-900">{entry.label}</span>
                   </td>
                   <td className={tableCellClass}>
-                    <span className='text-sm text-slate-600'>{entry.notes || '—'}</span>
+                    <span className="text-sm text-slate-600">{entry.notes || "—"}</span>
                   </td>
                   <td className={`${tableCellClass} w-px whitespace-nowrap`}>
                     <RowActions>
                       <TableIconButton
-                        type='button'
-                        title='View contact'
+                        type="button"
+                        title="View contact"
                         aria-label={`View ${entry.label}`}
-                        onClick={() => setEntryAction({ entry, mode: 'view' })}
+                        onClick={() => setEntryAction({ entry, mode: "view" })}
                       >
                         <Eye size={16} />
                       </TableIconButton>
-                      <TableIconButton
-                        type='button'
-                        title='Edit contact'
-                        aria-label={`Edit ${entry.label}`}
-                        onClick={() => setEntryAction({ entry, mode: 'edit' })}
-                      >
-                        <Pencil size={16} />
-                      </TableIconButton>
-                      <TableIconButton
-                        danger
-                        type='button'
-                        title='Remove contact'
-                        aria-label={`Remove ${entry.label}`}
-                        onClick={() => setEntryAction({ entry, mode: 'delete' })}
-                      >
-                        <Trash2 size={16} />
-                      </TableIconButton>
+                      <TableIconMenu
+                        aria-label={`More actions for ${entry.label}`}
+                        items={[
+                          {
+                            label: "Edit",
+                            onClick: () => setEntryAction({ entry, mode: "edit" }),
+                          },
+                          {
+                            label: "Remove",
+                            danger: true,
+                            onClick: () => setEntryAction({ entry, mode: "delete" }),
+                          },
+                        ]}
+                      />
                     </RowActions>
                   </td>
                 </tr>
@@ -203,7 +193,7 @@ export function AddressBookPanel({
           </tbody>
         </DataTable>
       </TableWrap>
-      <div className='mt-3'>
+      <div className="mt-3">
         <TablePager
           page={currentPage}
           pageSize={pageSize}
@@ -226,20 +216,20 @@ export function AddressBookPanel({
           onSave={async (data) => {
             const updated = await updateAddressBookEntry(entryAction.entry.id, data);
             upsertEntry(updated);
-            setEntryAction({ entry: updated, mode: 'view' });
-            showToast({ tone: 'success', title: 'Contact updated' });
+            setEntryAction({ entry: updated, mode: "view" });
+            showToast({ tone: "success", title: "Contact updated" });
           }}
           onDelete={async () => {
             try {
               await deleteAddressBookEntry(entryAction.entry.id);
               setEntries((prev) => prev.filter((e) => e.id !== entryAction.entry.id));
               setEntryAction(null);
-              showToast({ tone: 'success', title: 'Contact deleted' });
+              showToast({ tone: "success", title: "Contact deleted" });
             } catch (err) {
               showToast({
-                tone: 'error',
-                title: 'Delete failed',
-                message: err instanceof Error ? err.message : 'Could not delete.',
+                tone: "error",
+                title: "Delete failed",
+                message: err instanceof Error ? err.message : "Could not delete.",
               });
               throw err;
             }
@@ -252,18 +242,18 @@ export function AddressBookPanel({
 
 function ContactDetailModal({
   entry,
-  initialMode = 'view',
+  initialMode = "view",
   onClose,
   onSave,
   onDelete,
 }: {
   entry: AddressBookEntry;
-  initialMode?: 'view' | 'edit' | 'delete';
+  initialMode?: "view" | "edit" | "delete";
   onClose: () => void;
   onSave: (data: UpdateAddressBookEntryInput) => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
-  const [mode, setMode] = useState<'view' | 'edit' | 'delete'>(initialMode);
+  const [mode, setMode] = useState<"view" | "edit" | "delete">(initialMode);
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
@@ -275,16 +265,16 @@ function ContactDetailModal({
     }
   }
 
-  if (mode === 'edit') {
+  if (mode === "edit") {
     return (
-      <Modal title='Edit contact' onClose={onClose}>
+      <Modal title="Edit contact" onClose={onClose}>
         <EditContactForm
           entry={entry}
           onSave={async (data) => {
             await onSave(data);
-            setMode('view');
+            setMode("view");
           }}
-          onCancel={() => setMode('view')}
+          onCancel={() => setMode("view")}
         />
       </Modal>
     );
@@ -292,37 +282,42 @@ function ContactDetailModal({
 
   return (
     <Modal title={entry.label} onClose={onClose}>
-      <div className='grid gap-4'>
-        <div className='grid gap-1'>
+      <div className="grid gap-4">
+        <div className="grid gap-1">
           <p className={fieldLabelClass}>Address</p>
           <CopyableCode value={entry.address} />
         </div>
         {entry.notes && (
-          <div className='grid gap-1'>
+          <div className="grid gap-1">
             <p className={fieldLabelClass}>Notes</p>
-            <p className='text-sm text-slate-700'>{entry.notes}</p>
+            <p className="text-sm text-slate-700">{entry.notes}</p>
           </div>
         )}
-        {mode === 'delete' ? (
-          <div className='grid gap-3'>
-            <p className='text-sm text-slate-700'>
-              Delete <span className='font-semibold'>{entry.label}</span>? This cannot be undone.
+        {mode === "delete" ? (
+          <div className="grid gap-3">
+            <p className="text-sm text-slate-700">
+              Delete <span className="font-semibold">{entry.label}</span>? This cannot be undone.
             </p>
-            <div className='flex justify-end gap-2'>
-              <Button type='button' variant='secondary' onClick={() => setMode('view')} disabled={deleting}>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setMode("view")}
+                disabled={deleting}
+              >
                 Cancel
               </Button>
-              <Button type='button' variant='danger' onClick={handleDelete} disabled={deleting}>
-                {deleting ? 'Deleting…' : 'Delete'}
+              <Button type="button" variant="danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? "Deleting…" : "Delete"}
               </Button>
             </div>
           </div>
         ) : (
-          <div className='flex justify-end gap-2'>
-            <Button type='button' variant='secondary' onClick={() => setMode('edit')}>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setMode("edit")}>
               Edit
             </Button>
-            <Button type='button' variant='danger' onClick={() => setMode('delete')}>
+            <Button type="button" variant="danger" onClick={() => setMode("delete")}>
               Delete
             </Button>
           </div>
@@ -339,9 +334,9 @@ function AddContactForm({
   onSave: (data: CreateAddressBookEntryInput) => Promise<void>;
   onCancel: () => void;
 }) {
-  const [label, setLabel] = useState('');
-  const [address, setAddress] = useState('');
-  const [notes, setNotes] = useState('');
+  const [label, setLabel] = useState("");
+  const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -350,19 +345,19 @@ function AddContactForm({
     const trimLabel = label.trim();
     const trimAddress = address.trim();
     if (!trimLabel) {
-      setFormError('Label is required.');
+      setFormError("Label is required.");
       return;
     }
     if (trimLabel.length > 80) {
-      setFormError('Label must be 80 characters or fewer.');
+      setFormError("Label must be 80 characters or fewer.");
       return;
     }
     if (!trimAddress) {
-      setFormError('Address is required.');
+      setFormError("Address is required.");
       return;
     }
     if (!/^(Mx|0x)/i.test(trimAddress)) {
-      setFormError('Address must start with Mx or 0x.');
+      setFormError("Address must start with Mx or 0x.");
       return;
     }
     setFormError(null);
@@ -374,57 +369,45 @@ function AddContactForm({
         notes: notes.trim() || null,
       });
     } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : 'Could not save contact.',
-      );
+      setFormError(err instanceof Error ? err.message : "Could not save contact.");
       setSubmitting(false);
     }
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className='grid gap-3'
-    >
-      <div className='grid gap-3 sm:grid-cols-2'>
-        <label className='grid gap-1.5'>
-          <span className={fieldLabelClass}>
-            Label
-          </span>
+    <form onSubmit={handleSubmit} className="grid gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-1.5">
+          <span className={fieldLabelClass}>Label</span>
           <input
-            type='text'
+            type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder='e.g. Alice'
+            placeholder="e.g. Alice"
             maxLength={80}
             autoFocus
             className={inputClass}
           />
         </label>
-        <label className='grid gap-1.5'>
-          <span className={fieldLabelClass}>
-            Address
-          </span>
+        <label className="grid gap-1.5">
+          <span className={fieldLabelClass}>Address</span>
           <input
-            type='text'
+            type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder='Mx… or 0x…'
-            autoComplete='off'
+            placeholder="Mx… or 0x…"
+            autoComplete="off"
             spellCheck={false}
             className={inputClass}
           />
         </label>
       </div>
-      <label className='grid gap-1.5'>
+      <label className="grid gap-1.5">
         <span className={fieldLabelClass}>
-          Notes{' '}
-          <span className='normal-case font-normal text-slate-400'>
-            (optional)
-          </span>
+          Notes <span className="font-normal text-slate-400 normal-case">(optional)</span>
         </span>
         <input
-          type='text'
+          type="text"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="e.g. Alice's main wallet"
@@ -432,24 +415,16 @@ function AddContactForm({
         />
       </label>
       {formError && (
-        <div className='rounded-xl bg-red-50 border border-red-200 p-3'>
-          <p className='text-sm text-red-700'>{formError}</p>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+          <p className="text-sm text-red-700">{formError}</p>
         </div>
       )}
-      <div className='flex gap-2 justify-end'>
-        <Button
-          type='button'
-          variant='secondary'
-          onClick={onCancel}
-          disabled={submitting}
-        >
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
-        <Button
-          type='submit'
-          disabled={submitting}
-        >
-          {submitting ? 'Saving…' : 'Add contact'}
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : "Add contact"}
         </Button>
       </div>
     </form>
@@ -466,7 +441,7 @@ function EditContactForm({
   onCancel: () => void;
 }) {
   const [label, setLabel] = useState(entry.label);
-  const [notes, setNotes] = useState(entry.notes ?? '');
+  const [notes, setNotes] = useState(entry.notes ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -474,11 +449,11 @@ function EditContactForm({
     e.preventDefault();
     const trimLabel = label.trim();
     if (!trimLabel) {
-      setFormError('Label is required.');
+      setFormError("Label is required.");
       return;
     }
     if (trimLabel.length > 80) {
-      setFormError('Label must be 80 characters or fewer.');
+      setFormError("Label must be 80 characters or fewer.");
       return;
     }
     setFormError(null);
@@ -486,25 +461,19 @@ function EditContactForm({
     try {
       await onSave({ label: trimLabel, notes: notes.trim() || null });
     } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : 'Could not update contact.',
-      );
+      setFormError(err instanceof Error ? err.message : "Could not update contact.");
       setSubmitting(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className='grid gap-3'>
-      <p className='text-xs text-slate-400 font-mono truncate'>
-        {entry.address}
-      </p>
-      <div className='grid gap-3 sm:grid-cols-2'>
-        <label className='grid gap-1.5'>
-          <span className={fieldLabelClass}>
-            Label
-          </span>
+    <form onSubmit={handleSubmit} className="grid gap-3">
+      <p className="truncate font-mono text-xs text-slate-400">{entry.address}</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-1.5">
+          <span className={fieldLabelClass}>Label</span>
           <input
-            type='text'
+            type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             maxLength={80}
@@ -512,41 +481,30 @@ function EditContactForm({
             className={inputClass}
           />
         </label>
-        <label className='grid gap-1.5'>
+        <label className="grid gap-1.5">
           <span className={fieldLabelClass}>
-            Notes{' '}
-            <span className='normal-case font-normal text-slate-400'>
-              (optional)
-            </span>
+            Notes <span className="font-normal text-slate-400 normal-case">(optional)</span>
           </span>
           <input
-            type='text'
+            type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder='Optional note'
+            placeholder="Optional note"
             className={inputClass}
           />
         </label>
       </div>
       {formError && (
-        <div className='rounded-xl bg-red-50 border border-red-200 p-3'>
-          <p className='text-sm text-red-700'>{formError}</p>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+          <p className="text-sm text-red-700">{formError}</p>
         </div>
       )}
-      <div className='flex gap-2 justify-end'>
-        <Button
-          type='button'
-          variant='secondary'
-          onClick={onCancel}
-          disabled={submitting}
-        >
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
-        <Button
-          type='submit'
-          disabled={submitting}
-        >
-          {submitting ? 'Saving…' : 'Save changes'}
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : "Save changes"}
         </Button>
       </div>
     </form>

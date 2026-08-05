@@ -55,7 +55,7 @@ Migration is **incremental**, not a big-bang move:
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `MetricCard`                                                                                                      |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `MetricCard`                                                                                                         |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
 ## Styling Rules
@@ -99,7 +99,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [ToggleTabs](#toggletabs): segmented toggle
 - `PinField`: segmented PIN / code field
 - `CredentialInput`: PIN or password field
-- `DataTable`: native table shell, wrap, row helpers (`TableWrap` included)
+- `DataTable`: native table shell, wrap, row helpers (`TableWrap`, `TableIconMenu` included)
 - `StatusRow`: label / value / status row
 - [StatusBar](#statusbar): app shell status chrome
 - `ListPagerFilterBar`: list filter and pager
@@ -716,6 +716,7 @@ Selected: `surface-inverse` / `text-inverse`. Idle: transparent with `stroke-sec
 
 - Use `DataTable` for tabular workflow/history/list surfaces (native `<table>` + helpers in `frontend/src/components/patterns/DataTable.tsx`; flat `components/DataTable.tsx` re-exports for now).
 - Wrap list tables in `TableWrap` from that module: bordered scroll shell with a modest min-height (~4 rows).
+- Prefer one primary `TableIconButton` in the Actions column; put secondary actions in `TableIconMenu` (⋮).
 - Use compact cards/lists instead of tables when the content is entity-detail oriented, narrow, or action-heavy.
 - When migrating off native `<table>` markup, prefer the shared table shell pattern in `frontend/src/components/patterns/Table.tsx` (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`).
 

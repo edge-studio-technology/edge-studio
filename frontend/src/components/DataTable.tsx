@@ -2,6 +2,7 @@ export {
   DataTable,
   EmptyTableState,
   RowActions,
+  TableIconMenu,
   TableCard,
   TableIconButton,
   TableWrap,
@@ -10,3 +11,4 @@ export {
   tableHeadRowClass,
   tableRowClass,
 } from "./patterns/DataTable";
+export type { RowOverflowMenuItem } from "./patterns/DataTable";

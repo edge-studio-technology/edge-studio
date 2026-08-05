@@ -1,8 +1,19 @@
-import type { ButtonHTMLAttributes, ReactNode, TableHTMLAttributes } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+  type TableHTMLAttributes,
+} from "react";
+import { createPortal } from "react-dom";
+import { EllipsisVertical } from "lucide-react";
 import { Card } from "../Card";
 import { StatusRow } from "../StatusRow";
 import { MutedText } from "../Text";
 import { cx } from "../../lib/cx";
+import { IconButton } from "../ui/Button";
 
 /** Bordered scroll shell for list tables. Includes a modest min-height (~4 rows). */
 export function TableWrap({ children, className }: { children: ReactNode; className?: string }) {
@@ -103,17 +114,123 @@ export function TableIconButton({
   danger?: boolean;
 }) {
   return (
-    <button
+    <IconButton
       type={type}
+      size="compact"
+      variant="secondary"
       className={cx(
-        "border-stroke-primary bg-surface-always-white text-icon-primary hover:border-stroke-active hover:text-text-accent inline-flex size-9 shrink-0 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-45",
         danger && "text-icon-error hover:border-stroke-error hover:text-text-error",
         className,
       )}
       {...props}
     >
       {children}
-    </button>
+    </IconButton>
+  );
+}
+export type RowOverflowMenuItem = {
+  label: ReactNode;
+  danger?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+};
+
+/** Row-actions overflow: ⋮ opens a menu (portaled so table overflow doesn’t clip it). */
+export function TableIconMenu({
+  items,
+  "aria-label": ariaLabel = "More actions",
+}: {
+  items: RowOverflowMenuItem[];
+  "aria-label"?: string;
+}) {
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; right: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function place() {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setCoords({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (document.getElementById(menuId)?.contains(target)) return;
+      setOpen(false);
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, menuId]);
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <IconButton
+        type="button"
+        size="compact"
+        variant="ghost"
+        className="border-secondary hover:bg-surface-secondary bg-transparent"
+        title={ariaLabel}
+        aria-label={ariaLabel}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-controls={open ? menuId : undefined}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <EllipsisVertical aria-hidden />
+      </IconButton>
+      {open && coords
+        ? createPortal(
+            <div
+              id={menuId}
+              role="menu"
+              className="border-stroke-primary bg-surface-always-white rounded-loose fixed z-50 min-w-40 overflow-clip border"
+              style={{ top: coords.top, right: coords.right }}
+            >
+              {items.map((item, index) => (
+                <button
+                  key={`table-more-${index}`}
+                  type="button"
+                  role="menuitem"
+                  disabled={item.disabled}
+                  className={cx(
+                    "type-body enabled:hover:bg-surface-secondary focus-visible:bg-surface-secondary focus-visible:ring-stroke-active p-margin-tight disabled:text-text-disabled [&:not(:first-child)]:border-stroke-secondary w-full cursor-pointer border-0 bg-transparent text-left transition-colors duration-200 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset disabled:cursor-not-allowed [&:not(:first-child)]:border-t",
+                    item.danger ? "text-text-error" : "text-text-primary",
+                  )}
+                  onClick={() => {
+                    item.onClick();
+                    setOpen(false);
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>,
+            document.body,
+          )
+        : null}
+    </div>
   );
 }
 
