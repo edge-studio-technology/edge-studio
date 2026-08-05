@@ -47,11 +47,11 @@ export function TableCard({
   className?: string;
 }) {
   return (
-    <Card className={cx("grid gap-4", className)}>
+    <Card className={cx("gap-detail-close grid", className)}>
       <StatusRow className="sm:items-start">
         <div>
           <strong>{title}</strong>
-          {description && <MutedText className="m-0 mt-1">{description}</MutedText>}
+          {description && <MutedText className="mt-detail-tight m-0">{description}</MutedText>}
         </div>
         {actions}
       </StatusRow>
@@ -73,14 +73,20 @@ export function EmptyTableState({
 export function RowActions({
   children,
   className,
-  wrap = true,
+  wrap = false,
 }: {
   children: ReactNode;
   className?: string;
   wrap?: boolean;
 }) {
   return (
-    <div className={cx("flex items-center gap-2", wrap ? "flex-wrap" : "flex-nowrap", className)}>
+    <div
+      className={cx(
+        "gap-detail-next flex flex-row items-center",
+        wrap ? "flex-wrap" : "flex-nowrap",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -100,7 +106,7 @@ export function TableIconButton({
     <button
       type={type}
       className={cx(
-        "border-stroke-primary bg-surface-always-white text-icon-primary hover:border-stroke-active hover:text-text-accent inline-flex h-9 w-9 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-45",
+        "border-stroke-primary bg-surface-always-white text-icon-primary hover:border-stroke-active hover:text-text-accent inline-flex size-9 shrink-0 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-45",
         danger && "text-icon-error hover:border-stroke-error hover:text-text-error",
         className,
       )}
@@ -112,7 +118,7 @@ export function TableIconButton({
 }
 
 export const tableHeadRowClass = "bg-surface-secondary type-body-em text-text-primary";
-export const tableHeaderCellClass = "px-margin-tight py-margin-tight text-left";
-export const tableRowClass = "border-t border-stroke-primary bg-surface-always-white align-top";
+export const tableHeaderCellClass = "px-margin-tight py-margin-tight text-left align-middle";
+export const tableRowClass = "border-t border-stroke-primary bg-surface-always-white";
 export const tableCellClass =
-  "px-margin-tight py-margin-tight type-meta text-text-secondary align-top";
+  "px-margin-tight py-margin-tight type-meta text-text-secondary align-middle";

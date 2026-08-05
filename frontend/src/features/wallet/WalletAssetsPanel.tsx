@@ -145,7 +145,7 @@ export function WalletAssetsPanel({
                     </span>
                   </td>
                   <td className={`${tableCellClass} w-px whitespace-nowrap`}>
-                    <RowActions wrap={false}>
+                    <RowActions>
                       <TableIconButton
                         type="button"
                         title="View details"
