@@ -36,6 +36,7 @@ export function Modal({
   onClose,
   closeDisabled = false,
   className,
+  bodyClassName,
 }: {
   title: string;
   description?: ReactNode;
@@ -44,6 +45,7 @@ export function Modal({
   onClose: () => void;
   closeDisabled?: boolean;
   className?: string;
+  bodyClassName?: string;
 }) {
   const titleId = useId();
   const descriptionId = useId();
@@ -110,7 +112,12 @@ export function Modal({
           </div>
 
           {children ? (
-            <ScrollArea className="border-stroke-secondary bg-surface-primary rounded-soft p-pad-close min-h-0 flex-1 border">
+            <ScrollArea
+              className={
+                bodyClassName ??
+                "border-stroke-secondary bg-surface-primary rounded-soft p-pad-close min-h-0 flex-1 border"
+              }
+            >
               {children}
             </ScrollArea>
           ) : null}

@@ -13,7 +13,7 @@ export function Disclosure({
   onToggle,
   open: controlledOpen,
   ...props
-}: Omit<DetailsHTMLAttributes<HTMLDetailsElement>, "className" | "children"> & {
+}: Omit<DetailsHTMLAttributes<HTMLDetailsElement>, "className" | "children" | "title"> & {
   title: ReactNode;
   children: ReactNode;
   className?: string;
