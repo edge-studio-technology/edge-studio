@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Card } from "../components/Card";
-import { ListPagerFilterBar } from "../components/ListPagerFilterBar";
-import { Page } from "../components/Page";
-import { StatusRow } from "../components/StatusRow";
-import { SubTabs } from "../components/SubTabs";
-import { ErrorText, MutedText } from "../components/Text";
+import { ErrorAlert } from "../components/patterns/ErrorAlert";
+import { ListFilterBar } from "../components/patterns/ListFilterBar";
+import { ListPaginationFooter } from "../components/patterns/ListPaginationFooter";
+import { Page } from "../components/patterns/Page";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { TabList } from "../components/ui/TabList";
 import { useToast } from "../components/ToastProvider";
 import { listAutomationRuns } from "../features/automation/automationApi";
 import { AutomationRunsTable } from "../features/automation/AutomationRunsTable";
@@ -26,7 +27,7 @@ import type {
   IntegritasProofRecord,
 } from "../features/integritas/integritasTypes";
 import { useIntegritasHistoryAutoRefresh } from "../features/integritas/useIntegritasHistoryAutoRefresh";
-import { emptyPaginatedPage } from "../lib/paginated";
+import { DEFAULT_PAGE_SIZE_OPTIONS, emptyPaginatedPage } from "../lib/paginated";
 import {
   defaultDiagnosticsListQuery,
   diagnosticsSearchParams,
@@ -39,6 +40,17 @@ import {
   type DiagnosticsListQuery,
   type DiagnosticsTab,
 } from "./diagnosticsQuery";
+
+const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
+  value: String(size),
+  label: String(size),
+}));
+
+const TAB_DESCRIPTION: Record<DiagnosticsTab, string> = {
+  proofs: "Stored Integritas proof requests and their status.",
+  reads: "Data-source read logs from polls, webhooks, and device events.",
+  "workflow-runs": "Recent automated and manual workflow runs across all workflows.",
+};
 
 function applyPaginatedPage<T extends { totalPages: number }>(
   response: T,
@@ -219,70 +231,89 @@ export function DiagnosticsPage() {
       title="Operational history"
       desc="Inspect stored proof requests and data-source read logs from one diagnostics workspace."
     >
-      <SubTabs
-        label="Diagnostics history"
-        value={activeTab}
-        options={[
-          { value: "proofs", label: "Proof history" },
-          { value: "reads", label: "Read history" },
-          { value: "workflow-runs", label: "Workflow logs" },
-        ]}
-        onChange={selectTab}
-      />
-
-      <ListPagerFilterBar
-        page={listQuery.page}
-        pageSize={listQuery.pageSize}
-        total={activePager.total}
-        totalPages={activePager.totalPages}
-        status={listQuery.status}
-        q={listQuery.q}
-        statusOptions={statusOptions}
-        onPageChange={(page) => updateListQuery({ page })}
-        onPageSizeChange={(pageSize) => updateListQuery({ pageSize })}
-        onStatusChange={(status) => updateListQuery({ status })}
-        onQueryChange={(q) => updateListQuery({ q })}
-        onRefresh={() => void handleRefresh()}
-        refreshing={refreshing}
-      />
-
-      {activeTab === "proofs" ? (
-        <IntegritasHistoryTable
-          records={proofsPage.items}
-          selectedIds={selectedIds}
-          filtered={listFiltered}
-          busy={busy}
-          onToggle={(id) => {
-            setSelectedIds((ids) =>
-              ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id],
-            );
-          }}
-          onVerify={(record) => run(() => verifyRecord(record.id))}
-          onDeleteSelected={() =>
-            run(async () => {
-              await deleteSelected(selectedIds);
-              setSelectedIds([]);
-            })
-          }
-          onDownloadSelected={() => run(() => downloadSelected(selectedIds), { refresh: false })}
+      <Card className="gap-detail-close flex w-full flex-col">
+        <TabList
+          label="Diagnostics history"
+          value={activeTab}
+          options={[
+            { value: "proofs", label: "Proof history" },
+            { value: "reads", label: "Read history" },
+            { value: "workflow-runs", label: "Workflow logs" },
+          ]}
+          onChange={selectTab}
         />
-      ) : activeTab === "reads" ? (
-        <DataReadsHistoryTable items={readsPage.items} filtered={listFiltered} />
-      ) : (
-        <Card>
-          <StatusRow>
-            <div>
-              <strong>Workflow logs</strong>
-              <MutedText className="m-0 mt-1">
-                Recent automated and manual workflow runs across all workflows.
-              </MutedText>
-            </div>
-          </StatusRow>
-          <AutomationRunsTable runs={workflowRunsPage.items} />
-        </Card>
-      )}
 
-      {error && <ErrorText>{error}</ErrorText>}
+        <p className="type-body text-text-secondary m-0">{TAB_DESCRIPTION[activeTab]}</p>
+
+        <div className="gap-detail-close flex flex-wrap items-end justify-between">
+          <div className="min-w-0 flex-1 [&>div]:mb-0">
+            <ListFilterBar
+              filter={listQuery.status}
+              q={listQuery.q}
+              filterOptions={statusOptions}
+              filterLabel="Status"
+              searchPlaceholder="Hash, UID, or source name"
+              disabled={refreshing}
+              onFilterChange={(status) => updateListQuery({ status })}
+              onQueryChange={(q) => updateListQuery({ q })}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              void handleRefresh();
+            }}
+            disabled={refreshing}
+          >
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </Button>
+        </div>
+
+        {error ? (
+          <ErrorAlert title="Couldn't load diagnostics" className="w-full max-w-none">
+            {error}
+          </ErrorAlert>
+        ) : null}
+
+        {activeTab === "proofs" ? (
+          <IntegritasHistoryTable
+            records={proofsPage.items}
+            selectedIds={selectedIds}
+            filtered={listFiltered}
+            busy={busy}
+            onToggle={(id) => {
+              setSelectedIds((ids) =>
+                ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id],
+              );
+            }}
+            onVerify={(record) => run(() => verifyRecord(record.id))}
+            onDeleteSelected={() =>
+              run(async () => {
+                await deleteSelected(selectedIds);
+                setSelectedIds([]);
+              })
+            }
+            onDownloadSelected={() => run(() => downloadSelected(selectedIds), { refresh: false })}
+          />
+        ) : activeTab === "reads" ? (
+          <DataReadsHistoryTable items={readsPage.items} filtered={listFiltered} />
+        ) : (
+          <AutomationRunsTable runs={workflowRunsPage.items} />
+        )}
+
+        <ListPaginationFooter
+          page={listQuery.page}
+          pageSize={listQuery.pageSize}
+          total={activePager.total}
+          totalPages={Math.max(1, activePager.totalPages)}
+          disabled={refreshing}
+          onPageChange={(page) => updateListQuery({ page })}
+          onPageSizeChange={(pageSize) => updateListQuery({ pageSize })}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+        />
+      </Card>
     </Page>
   );
 }

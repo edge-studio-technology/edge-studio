@@ -4,6 +4,12 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## Unreleased
+
+### Changed
+
+- Diagnostics page imports design-system `Page` / `Card` / `ErrorText` / `TabList` from `ui/` and `patterns/` (replacing flat re-exports and `SubTabs`).
+
 ## [0.30.2] 2026-08-05
 
 ### Added
