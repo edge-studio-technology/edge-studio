@@ -1,20 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Layers3, LogOut, MessageCircle, Minimize2, PanelLeftOpen } from "lucide-react";
+import { LogOut, MessageCircle, Minimize2, PanelLeftOpen } from "lucide-react";
 import { nav } from "../app/nav";
 import { cx } from "../lib/cx";
 import { APP_NAME } from "../app/brand";
+import { BrandMark } from "./BrandMark";
 
 /** Below this width the sidebar stays collapsed. */
 const EXPAND_MQ = "(min-width: 1024px)";
-
-function BrandMark() {
-  return (
-    <div className="bg-grey-06 rounded-loose flex size-8 shrink-0 items-center justify-center">
-      <Layers3 className="text-icon-inverse" size={18} />
-    </div>
-  );
-}
 
 function CollapsibleLabel({
   collapsed,
@@ -81,7 +74,7 @@ export function AppShellSidebar({
             )}
             aria-hidden={collapsed}
           >
-            <BrandMark />
+            <BrandMark size={32} variant="white" />
             <p className="type-title text-text-inverse m-0 whitespace-nowrap">{APP_NAME}</p>
           </div>
           <button
@@ -189,7 +182,7 @@ export function AppShellSidebar({
           )}
           aria-hidden={!collapsed}
         >
-          <BrandMark />
+          <BrandMark size={32} variant="white" />
         </div>
       </div>
     </aside>
