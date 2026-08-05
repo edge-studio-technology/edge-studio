@@ -25,7 +25,7 @@ export function WalletPage() {
   // const [createTokenOpen, setCreateTokenOpen] = useState(false);
   const [sendHistory, setSendHistory] = useState<WalletSendHistoryItem[]>([]);
   const [addContactOpen, setAddContactOpen] = useState(false);
-  const [mainTab, setMainTab] = useState<WalletTab>("assets");
+  const [mainTab, setMainTab] = useState<WalletTab>("history");
   const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
   const previousMinimaStateRef = useRef<MinimaNodeState | null>(null);
 
@@ -94,8 +94,8 @@ export function WalletPage() {
           label="Wallet sections"
           value={mainTab}
           options={[
-            { value: "assets", label: "Assets" },
             { value: "history", label: "History" },
+            { value: "assets", label: "Assets" },
             { value: "address-book", label: "Address book" },
           ]}
           onChange={setMainTab}
