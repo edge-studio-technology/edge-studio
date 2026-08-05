@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
-import { Button } from "../../components/Button";
-import { Modal } from "../../components/Modal";
-import { useToast } from "../../components/ToastProvider";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { Button } from "../../components/ui/Button";
 import { InputField } from "../../components/ui/InputField";
 import { Label } from "../../components/ui/Label";
+import { Modal } from "../../components/ui/Modal";
 import { SelectField } from "../../components/ui/SelectField";
+import { ToggleTabs } from "../../components/ui/ToggleTabs";
+import { useToast } from "../../components/ToastProvider";
 import { listAddressBookEntries } from "../address-book/addressBookApi";
 import type { AddressBookEntry } from "../address-book/addressBookTypes";
 import { sendPayment as sendPaymentApi } from "./walletApi";
 import type { WalletStatus } from "./walletTypes";
 import { compareDecimalStrings, isPositiveDecimal } from "./walletUtils";
+import { ErrorText } from "../../components/ui/ErrorText";
+
+type AddressMode = "external" | "address-book";
 
 export function SendPaymentModal({
   walletStatus,
@@ -28,7 +33,7 @@ export function SendPaymentModal({
   const [tokenId, setTokenId] = useState("0x00");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [addressMode, setAddressMode] = useState<"external" | "address-book">("external");
+  const [addressMode, setAddressMode] = useState<AddressMode>("external");
   const [contacts, setContacts] = useState<AddressBookEntry[]>([]);
 
   useEffect(() => {
@@ -108,36 +113,35 @@ export function SendPaymentModal({
 
   return (
     <Modal title="Send payment" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="grid gap-4">
-        <div className="gap-detail-next flex flex-col">
-          <div className="flex items-center justify-between gap-3">
-            <Label htmlFor={addressMode === "external" ? "send-address" : "send-contact"}>
+      <form onSubmit={handleSubmit} className="gap-detail-close grid">
+        <div className="gap-detail-next flex min-w-0 flex-col">
+          <div className="gap-detail-next flex min-w-0 items-center justify-between">
+            <Label
+              htmlFor={addressMode === "external" ? "send-address" : "send-contact"}
+              className="mt-auto shrink-0 whitespace-nowrap"
+            >
               Recipient address
             </Label>
-            <div className="flex gap-1 rounded-lg bg-slate-100 p-0.5">
-              {(["external", "address-book"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => {
-                    setAddressMode(mode);
-                    setAddress("");
-                    setFormError(null);
-                  }}
-                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                    addressMode === mode
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  {mode === "external" ? "External" : "Address book"}
-                </button>
-              ))}
-            </div>
+            <ToggleTabs
+              size="sm"
+              className="w-1/2 shrink-0"
+              label="Recipient source"
+              value={addressMode}
+              options={[
+                { value: "external", label: "External" },
+                { value: "address-book", label: "Address book" },
+              ]}
+              onChange={(mode) => {
+                setAddressMode(mode);
+                setAddress("");
+                setFormError(null);
+              }}
+            />
           </div>
           {addressMode === "external" ? (
             <InputField
               id="send-address"
+              className="min-w-0"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Enter an address (Mx… or 0x…)"
@@ -149,6 +153,7 @@ export function SendPaymentModal({
           ) : (
             <SelectField
               id="send-contact"
+              className="min-w-0"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Select a contact…"
@@ -176,6 +181,9 @@ export function SendPaymentModal({
         <InputField
           label="Amount"
           inputMode="decimal"
+          min="0"
+          max={availableSendable}
+          type="number"
           value={amount}
           onChange={(e) => {
             setAmount(e.target.value);
@@ -184,27 +192,19 @@ export function SendPaymentModal({
           placeholder="0.00"
         />
 
-        {exceedsBalance && selectedToken && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <p className="text-sm text-amber-800">
-              Amount exceeds available balance ({availableSendable} {availableLabel}).
-            </p>
-          </div>
-        )}
+        {exceedsBalance && selectedToken ? (
+          <ErrorText className="max-w-none">
+            Amount exceeds available balance ({availableSendable} {availableLabel}).
+          </ErrorText>
+        ) : null}
 
-        {formError && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-            <p className="text-sm text-red-700">{formError}</p>
-          </div>
-        )}
+        {formError ? <ErrorAlert className="max-w-none">{formError}</ErrorAlert> : null}
 
-        {minimaConfirmedUnavailable && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <p className="text-sm text-amber-800">
-              Minima isn't running — sending is unavailable right now.
-            </p>
-          </div>
-        )}
+        {minimaConfirmedUnavailable ? (
+          <ErrorAlert status="warning" className="max-w-none">
+            Minima isn't running — sending is unavailable right now.
+          </ErrorAlert>
+        ) : null}
 
         <Button type="submit" disabled={!canSubmit} className="w-full justify-center">
           {submitting ? "Sending…" : "Send payment"}

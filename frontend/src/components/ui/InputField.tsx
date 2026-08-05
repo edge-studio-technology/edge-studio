@@ -20,7 +20,6 @@ export function InputField({
   label?: ReactNode;
   description?: ReactNode;
   error?: ReactNode;
-  /** Outer stack class. */
   className?: string;
 }) {
   const autoId = useId();

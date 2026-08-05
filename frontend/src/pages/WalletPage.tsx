@@ -95,8 +95,8 @@ export function WalletPage() {
           value={mainTab}
           options={[
             { value: "assets", label: "Assets" },
-            { value: "address-book", label: "Address book" },
             { value: "history", label: "History" },
+            { value: "address-book", label: "Address book" },
           ]}
           onChange={setMainTab}
         />

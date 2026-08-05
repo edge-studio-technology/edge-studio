@@ -683,7 +683,7 @@ States per tab: active (`stroke-active` / `text-primary`) → hover (`stroke-pri
 
 ### ToggleTabs
 
-Equal-width segments on a `surface-secondary` track (`p-detail-tight`, `gap-detail-next`, `rounded-loose`). Prefer this for compact binary/segmented controls. `ToggleTabItem` is not exported — pass segments through `options`.
+Equal-width segments on a `surface-secondary` track (`rounded-loose`). Prefer this for compact binary/segmented controls. `ToggleTabItem` is not exported — pass segments through `options`.
 
 | Prop        | Notes                                                                 |
 | ----------- | --------------------------------------------------------------------- |
@@ -691,9 +691,10 @@ Equal-width segments on a `surface-secondary` track (`p-detail-tight`, `gap-deta
 | `value`     | Currently selected option value                                       |
 | `options`   | `{ value, label, disabled? }[]` — typically two segments              |
 | `onChange`  | Called with the selected value                                        |
+| `size`      | `md` (default, 44px / `type-body`) or `sm` (32px / `type-meta`)       |
 | `className` | Merged onto the track (set width when equal flex segments need a box) |
 
-Selected: `surface-inverse` / `text-inverse`, 44px tall, `type-body`. Idle: transparent with `stroke-secondary` border / `text-primary` (border blends into the track).
+Selected: `surface-inverse` / `text-inverse`. Idle: transparent with `stroke-secondary` border / `text-primary` (border blends into the track). Labels stay on one line (`whitespace-nowrap`).
 
 ```tsx
 <ToggleTabs
@@ -706,6 +707,7 @@ Selected: `surface-inverse` / `text-inverse`, 44px tall, `type-body`. Idle: tran
   ]}
   onChange={setView}
 />
+<ToggleTabs size="sm" label="Recipient source" value={mode} options={…} onChange={setMode} />
 ```
 
 ## Tables And Lists

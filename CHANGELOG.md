@@ -8,12 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- `ErrorAlert` supports `status="warning"` (stroke/wash/icon + `role="status"`); Wallet page uses it when Minima is unavailable.
-- Wallet hero inlines its dark surface styles; shared `DarkHeroCard` removed (wallet was the only call site).
-
-### Removed
-
-- Shared `DarkHeroCard` component (styles live on `WalletHero`).
+- Wallet sections use `TabList` in a card; node-unavailable warning uses `ErrorAlert` (`status="warning"`).
+- Wallet hero inlines dark surface styles; Send and receive QR live in the hero (`DarkHeroCard` removed).
+- Send payment modal uses `ToggleTabs`, `ErrorAlert`, and design-system Button/Modal.
+- `ToggleTabs` adds optional `size="sm"`.
 
 ## [0.29.1] 2026-08-04
 
