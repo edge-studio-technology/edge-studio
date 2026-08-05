@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, LogIn } from "lucide-react";
-import { APP_NAME, APP_TAGLINE } from "../../app/brand";
-import { BrandMark } from "../../components/BrandMark";
+import { APP_NAME } from "../../app/brand";
 import { ErrorText } from "../../components/Text";
 import { login } from "./api";
 import { TOTP_ENABLED } from "./totpEnabled";
@@ -59,24 +58,23 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
         role="main"
         aria-label="Sign in"
       >
-        <div className="grid justify-items-center gap-3 text-center">
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white"
-            aria-hidden="true"
-          >
-            <BrandMark size={32} />
-          </div>
-          <div>
-            <p className="m-0 text-sm text-slate-500">{APP_TAGLINE}</p>
-            <h1 className="m-0 text-xl text-slate-950">{APP_NAME}</h1>
-          </div>
+        <div className="grid justify-items-center gap-3 py-4 text-center">
+          <h1 className="sr-only">{APP_NAME}</h1>
+          <img src="/es_logo/svg/es-lockup.svg" alt={APP_NAME} className="h-12 w-auto" />
+          {/* Tagline superseded by the lockup wordmark. Left commented, not deleted,
+              for an easy revert. */}
+          {/* <p className="m-0 text-sm text-slate-500">{APP_TAGLINE}</p> */}
         </div>
 
         {phase === "credentials" ? (
           <div className="grid gap-3">
-            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Sign in</p>
+            <p className="m-0 text-xs font-extrabold tracking-[0.18em] text-slate-500 uppercase">
+              Sign in
+            </p>
             <h2 className="m-0 text-xl leading-tight text-slate-950">Welcome back</h2>
-            <p className="m-0 text-sm leading-relaxed text-slate-600">Enter your admin PIN or password to continue.</p>
+            <p className="m-0 text-sm leading-relaxed text-slate-600">
+              Enter your admin PIN or password to continue.
+            </p>
 
             <div className="grid gap-2.5">
               <label className="grid gap-2 font-bold text-slate-700">
@@ -132,10 +130,13 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
               <ArrowLeft size={16} /> Back
             </button>
 
-            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Two-factor auth</p>
+            <p className="m-0 text-xs font-extrabold tracking-[0.18em] text-slate-500 uppercase">
+              Two-factor auth
+            </p>
             <h2 className="m-0 text-xl leading-tight text-slate-950">Enter your code</h2>
             <p className="m-0 text-sm leading-relaxed text-slate-600">
-              Open your authenticator app and enter the 6-digit code for <strong>{TOTP_ACCOUNT_LABEL}</strong>.
+              Open your authenticator app and enter the 6-digit code for{" "}
+              <strong>{TOTP_ACCOUNT_LABEL}</strong>.
             </p>
 
             <div className="grid gap-2.5">
@@ -144,7 +145,9 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
                 <input
                   className="w-full max-w-none rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-center text-lg font-semibold tracking-[0.35em] text-slate-950"
                   value={twoFactorCode}
-                  onChange={(event) => setTwoFactorCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onChange={(event) =>
+                    setTwoFactorCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   placeholder="000000"

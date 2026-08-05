@@ -36,7 +36,6 @@ import { MinimaBackupPanel } from "../features/minima/MinimaBackupPanel";
 import { formatNodeState, nodeStateTone } from "../features/minima/minimaFormat";
 import { MinimaSettingsPanel } from "../features/minima/MinimaSettingsPanel";
 import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
-import { useUpdateStatusRefresh } from "../features/update/useUpdateStatusRefresh";
 import { WalletSettingsPanel } from "../features/wallet/WalletSettingsPanel";
 
 type TotpResetPhase = "idle" | "scan" | "done";
@@ -56,9 +55,6 @@ export function AuthSettingsPage() {
   const [verifyCode, setVerifyCode] = useState("");
   const [verifySubmitting, setVerifySubmitting] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
-
-  const [currentVersion, setCurrentVersion] = useState<string | null>(null);
-  useUpdateStatusRefresh((status) => setCurrentVersion(status?.currentVersion ?? null));
 
   const integritasAuth = useIntegritasAuth({ refreshProfileOnConnected: true });
   const integritasKind = integritasAuth.status?.status;
@@ -130,14 +126,7 @@ export function AuthSettingsPage() {
   return (
     <Page
       eyebrow="Admin account"
-      title={
-        <>
-          Account settings{" "}
-          <span className="text-sm font-normal text-slate-400">
-            {currentVersion ?? "Unknown version"}
-          </span>
-        </>
-      }
+      title="Account settings"
       action={
         <ButtonRow>
           <Button type="button" variant="ghost" onClick={() => void signOut()}>
@@ -386,8 +375,8 @@ export function AuthSettingsPage() {
           </div>
         </Disclosure>
 
-        {/* Version box deprecated in favor of the version indicator next to the page
-          heading and the "Check for updates" button next to Sign out. Left commented,
+        {/* Version box deprecated in favor of the version indicator in the sidebar
+          corner and the "Check for updates" button next to Sign out. Left commented,
           not deleted, for an easy revert. */}
         {/* <Disclosure title="Version" className="pt-4" defaultOpen={false}>
         <p className="mt-2 tabular-nums text-slate-500">{currentVersion ?? "Unknown"}</p>
