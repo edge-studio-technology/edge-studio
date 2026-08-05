@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, Loader2 } from "lucide-react";
+import { Eye } from "lucide-react";
 import {
   DataTable,
   RowActions,
@@ -12,7 +12,8 @@ import {
 } from "../../components/DataTable";
 import { ListPagerFilterBar } from "../../components/ListPagerFilterBar";
 import { TablePager } from "../../components/TablePager";
-import { MutedText } from "../../components/Text";
+import { Button } from "../../components/ui/Button";
+import { LoadingDots } from "../../components/ui/LoadingDots";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatAmountAdaptive } from "../../lib/format";
 import { AssetDetailModal } from "./AssetDetailModal";
@@ -41,6 +42,7 @@ export function WalletAssetsPanel({
   const [selectedAsset, setSelectedAsset] = useState<TokenBalance | null>(null);
 
   const trimmedAssetQuery = assetQuery.trim().toLowerCase();
+  const filtersActive = Boolean(assetKind || trimmedAssetQuery);
   const visibleAssets = tokens.filter((t) => {
     if (assetKind === "minima" && !t.isNative) return false;
     if (assetKind === "tokens" && t.isNative) return false;
@@ -57,42 +59,59 @@ export function WalletAssetsPanel({
     assetCurrentPage * assetPageSize,
   );
 
+  function clearFilters() {
+    setAssetKind("");
+    setAssetQuery("");
+    setAssetPage(1);
+  }
+
   return (
-    <>
-      <p className="type-title mb-4">Assets</p>
-      <ListPagerFilterBar
-        page={assetCurrentPage}
-        pageSize={assetPageSize}
-        total={visibleAssets.length}
-        totalPages={assetTotalPages}
-        status={assetKind}
-        q={assetQuery}
-        statusOptions={ASSET_KIND_OPTIONS}
-        statusLabel="Kind"
-        searchPlaceholder="Name or coin ID"
-        disabled={loading || actionsBlocked}
-        onPageChange={setAssetPage}
-        onPageSizeChange={(size) => {
-          setAssetPageSize(size);
-          setAssetPage(1);
-        }}
-        onStatusChange={(kind) => {
-          setAssetKind(kind);
-          setAssetPage(1);
-        }}
-        onQueryChange={(q) => {
-          setAssetQuery(q);
-          setAssetPage(1);
-        }}
-      />
+    <div className="gap-detail-close flex flex-col">
+      <div className="[&>div]:mb-0">
+        <ListPagerFilterBar
+          page={assetCurrentPage}
+          pageSize={assetPageSize}
+          total={visibleAssets.length}
+          totalPages={assetTotalPages}
+          status={assetKind}
+          q={assetQuery}
+          statusOptions={ASSET_KIND_OPTIONS}
+          statusLabel="Kind"
+          searchPlaceholder="Name or coin ID"
+          disabled={loading || actionsBlocked}
+          onPageChange={setAssetPage}
+          onPageSizeChange={(size) => {
+            setAssetPageSize(size);
+            setAssetPage(1);
+          }}
+          onStatusChange={(kind) => {
+            setAssetKind(kind);
+            setAssetPage(1);
+          }}
+          onQueryChange={(q) => {
+            setAssetQuery(q);
+            setAssetPage(1);
+          }}
+        />
+      </div>
+
       {loading || actionsBlocked ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="size-10 animate-spin text-slate-400" aria-hidden="true" />
+        <div className="py-pad-relaxed flex justify-center" aria-busy="true">
+          <LoadingDots />
         </div>
       ) : visibleAssets.length === 0 ? (
-        <MutedText>
-          {assetKind || trimmedAssetQuery ? "No matching assets." : "No assets found."}
-        </MutedText>
+        <div className="gap-detail-next flex flex-col items-start">
+          <p className="type-body text-text-secondary m-0">
+            {filtersActive
+              ? "No assets match this kind or search."
+              : "No assets in this wallet yet."}
+          </p>
+          {/* {filtersActive ? (
+            <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          ) : null} */}
+        </div>
       ) : (
         <TableWrap>
           <DataTable>
@@ -107,14 +126,13 @@ export function WalletAssetsPanel({
               {pagedAssets.map((token) => (
                 <tr key={token.tokenId} className={tableRowClass}>
                   <td className={`${tableCellClass} min-w-48`}>
-                    <span className="inline-flex items-center gap-1.5 font-semibold text-slate-900">
+                    <span className="gap-detail-next type-body-em text-text-primary inline-flex items-center">
                       <TokenGlyph isNative={token.isNative} />
                       {token.name}
                     </span>
                   </td>
                   <td className={tableCellClass}>
-                    <span className="inline-flex items-center gap-1.5 font-mono text-sm text-slate-700 tabular-nums">
-                      <TokenGlyph isNative={token.isNative} />
+                    <span className="type-mono text-text-secondary tabular-nums">
                       {formatAmountAdaptive(token.sendable)}
                     </span>
                   </td>
@@ -136,23 +154,23 @@ export function WalletAssetsPanel({
           </DataTable>
         </TableWrap>
       )}
-      <div className="mt-3">
-        <TablePager
-          page={assetCurrentPage}
-          pageSize={assetPageSize}
-          total={visibleAssets.length}
-          totalPages={assetTotalPages}
-          disabled={loading || actionsBlocked}
-          onPageChange={setAssetPage}
-          onPageSizeChange={(size) => {
-            setAssetPageSize(size);
-            setAssetPage(1);
-          }}
-        />
-      </div>
+
+      <TablePager
+        page={assetCurrentPage}
+        pageSize={assetPageSize}
+        total={visibleAssets.length}
+        totalPages={assetTotalPages}
+        disabled={loading || actionsBlocked}
+        onPageChange={setAssetPage}
+        onPageSizeChange={(size) => {
+          setAssetPageSize(size);
+          setAssetPage(1);
+        }}
+      />
+
       {selectedAsset && (
         <AssetDetailModal token={selectedAsset} onClose={() => setSelectedAsset(null)} />
       )}
-    </>
+    </div>
   );
 }

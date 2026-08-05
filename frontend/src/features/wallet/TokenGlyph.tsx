@@ -17,7 +17,7 @@ function FilledHexTokenIcon({ size = 13, className = "" }: { size?: number; clas
 
 export function TokenGlyph({ isNative }: { isNative: boolean }) {
   if (isNative) {
-    return <MinimaIcon size={13} className="shrink-0 text-slate-400" />;
+    return <MinimaIcon size={13} className="text-icon-tertiary shrink-0" />;
   }
-  return <FilledHexTokenIcon size={13} className="shrink-0 text-slate-400" />;
+  return <FilledHexTokenIcon size={13} className="text-icon-tertiary shrink-0" />;
 }
