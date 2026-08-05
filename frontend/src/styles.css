@@ -170,6 +170,17 @@
   font-weight: 600;
 }
 
+/* Scrollable region with no native scrollbar — used where scroll is driven by
+   arrow buttons or the wheel instead, e.g. the sidebar nav list. */
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 :root {
   color: var(--color-text-primary);
   background: var(--color-surface-secondary);
