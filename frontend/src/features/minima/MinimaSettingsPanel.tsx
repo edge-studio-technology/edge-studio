@@ -11,16 +11,17 @@ import {
   saveMinimaConfig,
   setAutoRestartEnabled
 } from "./minimaApi";
-import { MinimaRuntimeConfig } from "./MinimaRuntimeConfig";
-import { useMinimaStatusRefresh } from "./useMinimaStatusRefresh";
+import { MinimaMegammrHostSection } from "./MinimaMegammrHostSection";
+import { MinimaPeerConnectionsSection } from "./MinimaPeerConnectionsSection";
 
-export function MinimaSettingsPanel({ bare = false }: { bare?: boolean } = {}) {
+export function MinimaSettingsPanel({
+  bare = false,
+  minimaState,
+}: {
+  bare?: boolean;
+  minimaState: MinimaNodeState | null;
+}) {
   const { showToast } = useToast();
-  const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
-  useMinimaStatusRefresh(
-    (status) => setMinimaState(status.state),
-    () => {}
-  );
   // Same "confirmed running" gate used on the Wallet settings panel and the Minima
   // Core page's own Resync/Restart buttons — config/peer RPC calls would just fail
   // while the node isn't up.
@@ -140,24 +141,19 @@ export function MinimaSettingsPanel({ bare = false }: { bare?: boolean } = {}) {
         </div>
       )}
 
-      {actionsBlocked && (
-        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
-          <p className="text-sm text-amber-800" style={{ margin: 0 }}>
-            Unavailable until Minima is running.
-          </p>
-        </div>
-      )}
-
-      <MinimaRuntimeConfig
+      <MinimaMegammrHostSection
         config={config}
         megammrHostInput={megammrHostInput}
         setMegammrHostInput={setMegammrHostInput}
+        busy={busy || actionsBlocked}
+        onSave={saveConfig}
+      />
+      <MinimaPeerConnectionsSection
         peers={peers}
         peersLoading={peersLoading}
         peerslistInput={peerslistInput}
         setPeerslistInput={setPeerslistInput}
         busy={busy || actionsBlocked}
-        onSave={saveConfig}
         onAddPeers={runAddPeers}
       />
       {configError && <ErrorText>{configError}</ErrorText>}

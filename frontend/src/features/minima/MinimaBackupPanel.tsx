@@ -4,12 +4,13 @@ import type { MinimaBackupEntry, MinimaBackupListResponse, MinimaNodeState } fro
 import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
-import { Input } from "../../components/Input";
 import { LoadingDots } from "../../components/LoadingDots";
 import { Modal } from "../../components/Modal";
 import { ListDisclosure } from "../../components/patterns/ListDisclosure";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
+import { CheckboxField } from "../../components/ui/CheckboxField";
+import { InputField } from "../../components/ui/InputField";
 import {
   clearBackupPassword,
   createMinimaBackup,
@@ -23,7 +24,6 @@ import {
   setAutoBackupEnabled,
   setBackupPassword
 } from "./minimaBackupApi";
-import { useMinimaStatusRefresh } from "./useMinimaStatusRefresh";
 
 const MAX_BACKUPS = 20;
 
@@ -103,13 +103,14 @@ function BackupRow({
   );
 }
 
-export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
+export function MinimaBackupPanel({
+  bare = false,
+  minimaState,
+}: {
+  bare?: boolean;
+  minimaState: MinimaNodeState | null;
+}) {
   const { showToast } = useToast();
-  const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
-  useMinimaStatusRefresh(
-    (status) => setMinimaState(status.state),
-    () => {}
-  );
   // Same "confirmed running" gate used by MinimaSettingsPanel/WalletSettingsPanel.
   const actionsBlocked = minimaState !== "running";
 
@@ -356,14 +357,6 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
         </p>
       </div>
 
-      {actionsBlocked && (
-        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
-          <p className="text-sm text-amber-800" style={{ margin: 0 }}>
-            Unavailable until Minima is running.
-          </p>
-        </div>
-      )}
-
       {hasPassword === false && (
         <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
           <p className="text-sm text-amber-800 m-0">
@@ -397,20 +390,17 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
             <Upload size={16} />
           </button>
 
-          <label className="flex shrink-0 items-center gap-2">
-            <input
-              type="checkbox"
-              className="size-4 shrink-0 rounded border-slate-300"
-              checked={autoBackupEnabled ?? false}
-              disabled={autoBackupEnabled === null || togglingAuto || actionsBlocked || !hasPassword}
-              onChange={() => void handleToggleAutoBackup()}
-            />
-            <span className="text-sm font-semibold text-slate-700">Auto backups (nightly)</span>
-          </label>
+          <CheckboxField
+            className="shrink-0"
+            label="Auto backups (nightly)"
+            checked={autoBackupEnabled ?? false}
+            disabled={autoBackupEnabled === null || togglingAuto || actionsBlocked || !hasPassword}
+            onChange={() => void handleToggleAutoBackup()}
+          />
         </div>
 
         <p className="m-0 text-xs text-slate-500">
-          Auto backup runs nightly and keeps the last {MAX_BACKUPS}, deleting the oldest.
+          Auto backup runs nightly at 00:30 and keeps the last {MAX_BACKUPS}, deleting the oldest.
         </p>
 
         {listError && <ErrorText className="m-0">{listError}</ErrorText>}
@@ -444,18 +434,16 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
         >
           <div className="grid gap-3">
             <p className="text-sm text-slate-600 m-0">Re-enter your current PIN or password to download this backup.</p>
-            <label className="grid gap-1.5 font-bold text-slate-700">
-              Current PIN or password
-              <Input
-                type="password"
-                value={downloadPassword}
-                onChange={(e) => {
-                  setDownloadPassword(e.target.value);
-                  setDownloadError(null);
-                }}
-                autoComplete="current-password"
-              />
-            </label>
+            <InputField
+              label="Current PIN or password"
+              type="password"
+              value={downloadPassword}
+              onChange={(e) => {
+                setDownloadPassword(e.target.value);
+                setDownloadError(null);
+              }}
+              autoComplete="current-password"
+            />
             {downloadError && <ErrorText className="m-0">{downloadError}</ErrorText>}
             <ButtonRow>
               <Button onClick={() => void confirmDownload()} disabled={downloadBusy || downloadPassword.length === 0}>
@@ -481,28 +469,22 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
                 ever shown again, so keep a copy somewhere safe.
               </p>
             )}
-            <label className="grid gap-1.5">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                {hasPassword ? "New backup password" : "Backup password"}
-              </span>
-              <Input
-                type="password"
-                value={newBackupPassword}
-                onChange={(e) => setNewBackupPassword(e.target.value)}
-                autoComplete="new-password"
-                required
-              />
-            </label>
-            <label className="grid gap-1.5">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Current PIN or password</span>
-              <Input
-                type="password"
-                value={setupCurrentPassword}
-                onChange={(e) => setSetupCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-              />
-            </label>
+            <InputField
+              label={hasPassword ? "New backup password" : "Backup password"}
+              type="password"
+              value={newBackupPassword}
+              onChange={(e) => setNewBackupPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+            />
+            <InputField
+              label="Current PIN or password"
+              type="password"
+              value={setupCurrentPassword}
+              onChange={(e) => setSetupCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
             {setupError && <ErrorText className="m-0">{setupError}</ErrorText>}
             <ButtonRow>
               <Button type="submit" disabled={setupBusy || !newBackupPassword || !setupCurrentPassword}>
@@ -550,30 +532,24 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
               </label>
             )}
 
-            <label className="grid gap-1.5">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                Password override (leave blank to use your saved backup password)
-              </span>
-              <Input
-                type="password"
-                value={uploadPasswordOverride}
-                onChange={(e) => setUploadPasswordOverride(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
+            <InputField
+              label="Password override (leave blank to use your saved backup password)"
+              type="password"
+              value={uploadPasswordOverride}
+              onChange={(e) => setUploadPasswordOverride(e.target.value)}
+              autoComplete="off"
+            />
 
-            <label className="grid gap-1.5 font-bold text-slate-700">
-              Current PIN or password
-              <Input
-                type="password"
-                value={uploadCurrentPassword}
-                onChange={(e) => {
-                  setUploadCurrentPassword(e.target.value);
-                  setUploadError(null);
-                }}
-                autoComplete="current-password"
-              />
-            </label>
+            <InputField
+              label="Current PIN or password"
+              type="password"
+              value={uploadCurrentPassword}
+              onChange={(e) => {
+                setUploadCurrentPassword(e.target.value);
+                setUploadError(null);
+              }}
+              autoComplete="current-password"
+            />
 
             {uploadError && <ErrorText className="m-0">{uploadError}</ErrorText>}
             <ButtonRow>
@@ -602,18 +578,16 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
               Restoring <span className="font-mono">{rowRestoreTarget.fileName}</span>. Re-enter your current PIN or
               password to confirm.
             </p>
-            <label className="grid gap-1.5 font-bold text-slate-700">
-              Current PIN or password
-              <Input
-                type="password"
-                value={rowRestorePassword}
-                onChange={(e) => {
-                  setRowRestorePassword(e.target.value);
-                  setRowRestoreError(null);
-                }}
-                autoComplete="current-password"
-              />
-            </label>
+            <InputField
+              label="Current PIN or password"
+              type="password"
+              value={rowRestorePassword}
+              onChange={(e) => {
+                setRowRestorePassword(e.target.value);
+                setRowRestoreError(null);
+              }}
+              autoComplete="current-password"
+            />
             {rowRestoreError && <ErrorText className="m-0">{rowRestoreError}</ErrorText>}
             <ButtonRow>
               <Button onClick={() => void confirmRowRestore()} disabled={rowRestoreBusy || rowRestorePassword.length === 0}>
@@ -660,18 +634,16 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
                 You'll need to set a new backup password before creating another backup.
               </p>
             </div>
-            <label className="grid gap-1.5 font-bold text-slate-700">
-              Current PIN or password
-              <Input
-                type="password"
-                value={clearPasswordCurrentPassword}
-                onChange={(e) => {
-                  setClearPasswordCurrentPassword(e.target.value);
-                  setClearPasswordError(null);
-                }}
-                autoComplete="current-password"
-              />
-            </label>
+            <InputField
+              label="Current PIN or password"
+              type="password"
+              value={clearPasswordCurrentPassword}
+              onChange={(e) => {
+                setClearPasswordCurrentPassword(e.target.value);
+                setClearPasswordError(null);
+              }}
+              autoComplete="current-password"
+            />
             {clearPasswordError && <ErrorText className="m-0">{clearPasswordError}</ErrorText>}
             <ButtonRow>
               <Button

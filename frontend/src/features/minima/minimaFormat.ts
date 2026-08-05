@@ -1,4 +1,4 @@
-import type { MinimaNodeState, MinimaSyncStatus, Status } from "../../app/types";
+import type { MinimaNodeState, MinimaSyncStatus, Status, Tone } from "../../app/types";
 
 export function formatBlockAge(seconds: number | null) {
   if (seconds === null) return "—";
@@ -38,4 +38,11 @@ export function syncStatusTone(status: MinimaSyncStatus | null | undefined): Sta
 
 export function nodeStateIsHealthy(state: MinimaNodeState | null) {
   return state === "running";
+}
+
+export function nodeStateTone(state: MinimaNodeState | null): Tone {
+  if (state === "running") return "good";
+  if (state === "stopped") return "warn";
+  if (state === "error") return "error";
+  return "neutral"; // restarting | null
 }

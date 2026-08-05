@@ -1,59 +1,49 @@
 import { useState } from "react";
 import {
-  Check,
   CheckCircle2,
   Copy,
   Database,
   Eye,
   EyeOff,
-  Stamp,
-  KeyRound,
   Link2,
   LogOut,
   RotateCcw,
-  Server,
   ShieldAlert,
   ShieldCheck,
-  UserCog,
 } from "lucide-react";
+import type { MinimaNodeState } from "../app/types";
 import { Button } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
 import { Page } from "../components/Page";
+import { Pill } from "../components/Pill";
 import { SubSection } from "../components/patterns/SubSection";
 import { ErrorText } from "../components/Text";
 import { Disclosure } from "../components/ui/Disclosure";
-import { changePassword, initTotpReset, verifyTotpReset } from "../features/auth/api";
-import {
-  isValidAdminCredential,
-  sanitizePinInput,
-  type AdminCredentialType,
-} from "../features/auth/adminCredentials";
-import { PasswordRequirements } from "../features/auth/PasswordRequirements";
+import { InputField } from "../components/ui/InputField";
+import { initTotpReset, verifyTotpReset } from "../features/auth/api";
+import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
 import { useAuth } from "../features/auth/hooks";
-import { IntegritasConnectPanel } from "../features/integritas-auth/IntegritasConnectPanel";
+import {
+  IntegritasConnectPanel,
+  statusLabel as integritasStatusLabel,
+  statusTone as integritasStatusTone,
+} from "../features/integritas-auth/IntegritasConnectPanel";
+import { useIntegritasAuth } from "../features/integritas-auth/useIntegritasAuth";
 import { MinimaBackupPanel } from "../features/minima/MinimaBackupPanel";
+import { formatNodeState, nodeStateTone } from "../features/minima/minimaFormat";
 import { MinimaSettingsPanel } from "../features/minima/MinimaSettingsPanel";
+import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
 import { useUpdateStatusRefresh } from "../features/update/useUpdateStatusRefresh";
 import { WalletSettingsPanel } from "../features/wallet/WalletSettingsPanel";
 
 type TotpResetPhase = "idle" | "scan" | "done";
 
 const formClass = "grid gap-3";
-const labelClass = "grid gap-3 font-bold text-slate-700";
 
 export function AuthSettingsPage() {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newCredentialType, setNewCredentialType] = useState<AdminCredentialType>("pin");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [pwTotpToken, setPwTotpToken] = useState("");
-  const [pwSubmitting, setPwSubmitting] = useState(false);
-  const [pwError, setPwError] = useState<string | null>(null);
-  const [pwSuccess, setPwSuccess] = useState(false);
-
   const [totpPhase, setTotpPhase] = useState<TotpResetPhase>("idle");
   const [resetCurrentPassword, setResetCurrentPassword] = useState("");
   const [resetCurrentToken, setResetCurrentToken] = useState("");
@@ -70,28 +60,14 @@ export function AuthSettingsPage() {
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
   useUpdateStatusRefresh((status) => setCurrentVersion(status?.currentVersion ?? null));
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPwSubmitting(true);
-    setPwError(null);
-    setPwSuccess(false);
-    try {
-      await changePassword({
-        currentPassword,
-        newPassword,
-        ...(TOTP_ENABLED ? { totpToken: pwTotpToken } : {}),
-      });
-      setPwSuccess(true);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
-      setPwTotpToken("");
-    } catch (err) {
-      setPwError(err instanceof Error ? err.message : "Failed to change credential");
-    } finally {
-      setPwSubmitting(false);
-    }
-  };
+  const integritasAuth = useIntegritasAuth({ refreshProfileOnConnected: true });
+  const integritasKind = integritasAuth.status?.status;
+
+  const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
+  useMinimaStatusRefresh(
+    (status) => setMinimaState(status.state),
+    () => {},
+  );
 
   const handleInitTotpReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,15 +125,6 @@ export function AuthSettingsPage() {
     setShowManualKey(false);
   };
 
-  const newCredentialIsPin = newCredentialType === "pin";
-  const newCredentialLabel = newCredentialIsPin ? "PIN" : "password";
-  const newCredentialsMatch = !confirmNewPassword || newPassword === confirmNewPassword;
-  const passwordFormReady =
-    currentPassword.length > 0 &&
-    isValidAdminCredential(newCredentialType, newPassword) &&
-    newPassword === confirmNewPassword &&
-    (!TOTP_ENABLED || pwTotpToken.length === 6);
-
   const { signOut } = useAuth();
 
   return (
@@ -186,146 +153,14 @@ export function AuthSettingsPage() {
         <Disclosure
           title={
             <span className="flex items-center gap-2">
-              <UserCog size={18} /> User settings
+              <h2 className="type-title text-text-primary m-0">User settings</h2>
             </span>
           }
           className="pt-4 pb-6"
           defaultOpen={true}
         >
-          <div className="mt-2 grid gap-6">
-            <SubSection
-              icon={<KeyRound size={13} />}
-              title="Change PIN or password"
-              description={
-                TOTP_ENABLED
-                  ? "Choose a 6-digit PIN or a strong password. A valid 2FA code is also required."
-                  : "Choose a 6-digit PIN or a strong password."
-              }
-            >
-              {pwSuccess && (
-                <div
-                  className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"
-                  style={{ marginBottom: 16 }}
-                >
-                  <p
-                    className="flex items-center gap-2 text-sm text-emerald-700"
-                    style={{ margin: 0 }}
-                  >
-                    <Check size={14} /> Credential changed successfully.
-                  </p>
-                </div>
-              )}
-
-              <form onSubmit={(e) => void handleChangePassword(e)} className={formClass}>
-                <label className={labelClass}>
-                  Current PIN or password
-                  <Input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => {
-                      setCurrentPassword(e.target.value);
-                      setPwError(null);
-                      setPwSuccess(false);
-                    }}
-                    placeholder="Your current credential"
-                    autoComplete="current-password"
-                  />
-                </label>
-                <fieldset className="grid gap-2 border-0 p-0">
-                  <legend className="mb-2 font-bold text-slate-700">New credential type</legend>
-                  <div className="grid max-w-md grid-cols-2 gap-2">
-                    {(["pin", "password"] as const).map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        className={`rounded-xl border px-3 py-2.5 text-sm font-bold ${
-                          newCredentialType === type
-                            ? "border-slate-950 bg-slate-950 text-white"
-                            : "border-slate-300 bg-white text-slate-700"
-                        }`}
-                        aria-pressed={newCredentialType === type}
-                        onClick={() => {
-                          setNewCredentialType(type);
-                          setNewPassword("");
-                          setConfirmNewPassword("");
-                          setPwError(null);
-                          setPwSuccess(false);
-                        }}
-                      >
-                        {type === "pin" ? "6-digit PIN" : "Password"}
-                      </button>
-                    ))}
-                  </div>
-                </fieldset>
-                <label className={labelClass}>
-                  New {newCredentialLabel}
-                  <Input
-                    type="password"
-                    inputMode={newCredentialIsPin ? "numeric" : "text"}
-                    pattern={newCredentialIsPin ? "[0-9]*" : undefined}
-                    maxLength={newCredentialIsPin ? 6 : undefined}
-                    value={newPassword}
-                    onChange={(e) => {
-                      setNewPassword(
-                        newCredentialIsPin ? sanitizePinInput(e.target.value) : e.target.value,
-                      );
-                      setPwError(null);
-                      setPwSuccess(false);
-                    }}
-                    placeholder={newCredentialIsPin ? "000000" : "Create a strong password"}
-                    autoComplete="new-password"
-                  />
-                </label>
-                {!newCredentialIsPin && <PasswordRequirements password={newPassword} />}
-                <label className={labelClass}>
-                  Confirm new {newCredentialLabel}
-                  <Input
-                    type="password"
-                    inputMode={newCredentialIsPin ? "numeric" : "text"}
-                    pattern={newCredentialIsPin ? "[0-9]*" : undefined}
-                    maxLength={newCredentialIsPin ? 6 : undefined}
-                    value={confirmNewPassword}
-                    onChange={(e) => {
-                      setConfirmNewPassword(
-                        newCredentialIsPin ? sanitizePinInput(e.target.value) : e.target.value,
-                      );
-                      setPwError(null);
-                      setPwSuccess(false);
-                    }}
-                    placeholder={`Repeat new ${newCredentialLabel}`}
-                    autoComplete="new-password"
-                  />
-                  {!newCredentialsMatch && (
-                    <span className="text-sm font-medium text-amber-700">
-                      {newCredentialIsPin ? "PINs" : "Passwords"} do not match
-                    </span>
-                  )}
-                </label>
-                {TOTP_ENABLED ? (
-                  <label className={labelClass}>
-                    2FA code
-                    <Input
-                      value={pwTotpToken}
-                      onChange={(e) => {
-                        setPwTotpToken(e.target.value.replace(/\D/g, "").slice(0, 6));
-                        setPwError(null);
-                        setPwSuccess(false);
-                      }}
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      placeholder="000000"
-                      maxLength={6}
-                    />
-                  </label>
-                ) : null}
-                {pwError && <ErrorText className="m-0">{pwError}</ErrorText>}
-                <ButtonRow>
-                  <Button type="submit" disabled={pwSubmitting || !passwordFormReady}>
-                    {pwSubmitting ? "Updating…" : "Change credential"}
-                  </Button>
-                </ButtonRow>
-              </form>
-            </SubSection>
+          <div className="mt-2 grid gap-10">
+            <ChangeCredentialPanel />
 
             {TOTP_ENABLED ? (
               <SubSection
@@ -345,33 +180,29 @@ export function AuthSettingsPage() {
                         is available before continuing.
                       </p>
                     </div>
-                    <label className={labelClass}>
-                      Current PIN or password
-                      <Input
-                        type="password"
-                        value={resetCurrentPassword}
-                        onChange={(e) => {
-                          setResetCurrentPassword(e.target.value);
-                          setResetError(null);
-                        }}
-                        placeholder="Your current credential"
-                        autoComplete="current-password"
-                      />
-                    </label>
-                    <label className={labelClass}>
-                      Current 2FA code
-                      <Input
-                        value={resetCurrentToken}
-                        onChange={(e) => {
-                          setResetCurrentToken(e.target.value.replace(/\D/g, "").slice(0, 6));
-                          setResetError(null);
-                        }}
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        placeholder="000000"
-                        maxLength={6}
-                      />
-                    </label>
+                    <InputField
+                      label="Current PIN or password"
+                      type="password"
+                      value={resetCurrentPassword}
+                      onChange={(e) => {
+                        setResetCurrentPassword(e.target.value);
+                        setResetError(null);
+                      }}
+                      placeholder="Your current credential"
+                      autoComplete="current-password"
+                    />
+                    <InputField
+                      label="Current 2FA code"
+                      value={resetCurrentToken}
+                      onChange={(e) => {
+                        setResetCurrentToken(e.target.value.replace(/\D/g, "").slice(0, 6));
+                        setResetError(null);
+                      }}
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="000000"
+                      maxLength={6}
+                    />
                     {resetError && <ErrorText className="m-0">{resetError}</ErrorText>}
                     <ButtonRow>
                       <Button
@@ -463,20 +294,18 @@ export function AuthSettingsPage() {
                     </div>
 
                     <form onSubmit={(e) => void handleVerifyTotpReset(e)} className={formClass}>
-                      <label className={labelClass}>
-                        Confirmation code
-                        <Input
-                          value={verifyCode}
-                          onChange={(e) => {
-                            setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                            setVerifyError(null);
-                          }}
-                          inputMode="numeric"
-                          autoComplete="one-time-code"
-                          placeholder="000000"
-                          maxLength={6}
-                        />
-                      </label>
+                      <InputField
+                        label="Confirmation code"
+                        value={verifyCode}
+                        onChange={(e) => {
+                          setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                          setVerifyError(null);
+                        }}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        placeholder="000000"
+                        maxLength={6}
+                      />
                       {verifyError && <ErrorText className="m-0">{verifyError}</ErrorText>}
                       <ButtonRow>
                         <Button
@@ -517,19 +346,24 @@ export function AuthSettingsPage() {
         <Disclosure
           title={
             <span className="flex items-center gap-2">
-              <Stamp size={18} /> Integritas settings
+              <h2 className="type-title text-text-primary m-0">Integritas settings</h2>
+              {integritasKind && (
+                <Pill tone={integritasStatusTone[integritasKind]}>
+                  {integritasStatusLabel[integritasKind]}
+                </Pill>
+              )}
             </span>
           }
           className="pt-4 pb-6"
           defaultOpen={true}
         >
-          <div className="mt-2 grid gap-6">
+          <div className="mt-2 grid gap-10">
             <SubSection
               icon={<Link2 size={13} />}
               title="Integritas Connect"
               description="Stamp proofs and sync plan usage with your Integritas Connect account."
             >
-              <IntegritasConnectPanel bare />
+              <IntegritasConnectPanel bare auth={integritasAuth} />
             </SubSection>
           </div>
         </Disclosure>
@@ -537,17 +371,20 @@ export function AuthSettingsPage() {
         <Disclosure
           title={
             <span className="flex items-center gap-2">
-              <Server size={18} /> Minima settings
+              <h2 className="type-title text-text-primary m-0">Minima settings</h2>
+              <Pill tone={minimaState ? nodeStateTone(minimaState) : "neutral"}>
+                {minimaState ? formatNodeState(minimaState) : "Checking…"}
+              </Pill>
             </span>
           }
           className="pt-4 pb-6"
           defaultOpen={true}
         >
-          <div className="mt-2 grid gap-6">
-            <MinimaSettingsPanel bare />
+          <div className="mt-2 grid gap-10">
+            <MinimaSettingsPanel bare minimaState={minimaState} />
 
             <SubSection icon={<Database size={13} />} title="Node backup & restore">
-              <MinimaBackupPanel bare />
+              <MinimaBackupPanel bare minimaState={minimaState} />
             </SubSection>
 
             {/* Deprecated in favor of Node backup & restore above (superset: full node backup

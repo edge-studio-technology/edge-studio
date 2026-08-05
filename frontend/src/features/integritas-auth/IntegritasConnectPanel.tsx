@@ -3,14 +3,13 @@ import { ExternalLink, Link2, RefreshCw } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
-import { Pill } from "../../components/Pill";
 import { ErrorText, MutedText } from "../../components/Text";
 import type { IntegritasConfig, Tone } from "../../app/types";
 import { getJson } from "../../lib/api";
-import { useIntegritasAuth } from "./useIntegritasAuth";
+import type { UseIntegritasAuthResult } from "./useIntegritasAuth";
 import { hasConnectedProfile, type IntegritasAuthStatusKind } from "./integritasAuthApi";
 
-const statusTone: Record<IntegritasAuthStatusKind, Tone> = {
+export const statusTone: Record<IntegritasAuthStatusKind, Tone> = {
   unauthenticated: "neutral",
   pending: "warn",
   connected: "good",
@@ -19,7 +18,7 @@ const statusTone: Record<IntegritasAuthStatusKind, Tone> = {
   revoked: "warn",
 };
 
-const statusLabel: Record<IntegritasAuthStatusKind, string> = {
+export const statusLabel: Record<IntegritasAuthStatusKind, string> = {
   unauthenticated: "Not connected",
   pending: "Waiting for verification",
   connected: "Connected",
@@ -32,10 +31,14 @@ function formatUsageRemaining(remaining: number): string {
   return remaining.toLocaleString();
 }
 
-export function IntegritasConnectPanel({ bare = false }: { bare?: boolean } = {}) {
-  const { status, loading, starting, error, notice, start, openVerification } = useIntegritasAuth({
-    refreshProfileOnConnected: true,
-  });
+export function IntegritasConnectPanel({
+  bare = false,
+  auth,
+}: {
+  bare?: boolean;
+  auth: UseIntegritasAuthResult;
+}) {
+  const { status, loading, starting, error, notice, start, openVerification } = auth;
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
 
   const kind = status?.status;
@@ -48,20 +51,17 @@ export function IntegritasConnectPanel({ bare = false }: { bare?: boolean } = {}
 
   const content = (
     <>
-      {kind && (
+      {(!bare || portalUrl) && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
           {!bare && <h3 style={{ margin: 0 }}>Integritas Connect</h3>}
-          <Pill tone={statusTone[kind]}>{statusLabel[kind]}</Pill>
           {portalUrl && (
-            <a
-              className="inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-slate-900 underline-offset-2 hover:underline"
-              href={portalUrl}
-              target="_blank"
-              rel="noreferrer"
+            <Button
+              type="button"
+              iconEnd={<ExternalLink aria-hidden="true" />}
+              onClick={() => window.open(portalUrl, "_blank", "noopener,noreferrer")}
             >
               Open Integritas portal
-              <ExternalLink size={14} aria-hidden />
-            </a>
+            </Button>
           )}
         </div>
       )}
