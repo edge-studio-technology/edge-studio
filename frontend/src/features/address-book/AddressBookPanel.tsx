@@ -1,24 +1,29 @@
 import { useEffect, useState } from "react";
-import { Eye, Loader2 } from "lucide-react";
-import { Button } from "../../components/Button";
-import { CopyableCode } from "../../components/CopyableCode";
+import { Eye, Inbox } from "lucide-react";
 import {
   DataTable,
   RowActions,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
   TableIconButton,
   TableIconMenu,
+  TableRow,
   TableWrap,
-  tableCellClass,
-  tableHeaderCellClass,
-  tableHeadRowClass,
-  tableRowClass,
 } from "../../components/DataTable";
-import { ListPagerFilterBar } from "../../components/ListPagerFilterBar";
-import { Modal } from "../../components/Modal";
-import { TablePager } from "../../components/TablePager";
-import { ErrorText, MutedText } from "../../components/Text";
+import { ButtonRow } from "../../components/patterns/ButtonRow";
+import { CopyableCode } from "../../components/patterns/CopyableCode";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { ListFilterBar } from "../../components/patterns/ListFilterBar";
+import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
+import { Button } from "../../components/ui/Button";
+import { InputField } from "../../components/ui/InputField";
+import { LoadingDots } from "../../components/ui/LoadingDots";
+import { Modal } from "../../components/ui/Modal";
 import { useToast } from "../../components/ToastProvider";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
+import { shortAddress } from "../wallet/walletUtils";
 import {
   createAddressBookEntry,
   deleteAddressBookEntry,
@@ -31,25 +36,18 @@ import type {
   UpdateAddressBookEntryInput,
 } from "./addressBookTypes";
 
+const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
+  value: String(size),
+  label: String(size),
+}));
+
 function sortByLabel(entries: AddressBookEntry[]): AddressBookEntry[] {
   return [...entries].sort((a, b) =>
     a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
   );
 }
 
-const fieldLabelClass = "text-xs font-bold uppercase tracking-widest text-slate-500";
-const inputClass =
-  "w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-55";
-
-export function AddressBookPanel({
-  actionsBlocked,
-  addOpen,
-  onCloseAdd,
-}: {
-  actionsBlocked: boolean;
-  addOpen: boolean;
-  onCloseAdd: () => void;
-}) {
+export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }) {
   const { showToast } = useToast();
   const [entries, setEntries] = useState<AddressBookEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +55,7 @@ export function AddressBookPanel({
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
+  const [addOpen, setAddOpen] = useState(false);
   const [entryAction, setEntryAction] = useState<{
     entry: AddressBookEntry;
     mode: "view" | "edit" | "delete";
@@ -75,6 +74,7 @@ export function AddressBookPanel({
 
   const isLoading = loading || actionsBlocked;
   const trimmedQuery = query.trim().toLowerCase();
+  const filtersActive = Boolean(trimmedQuery);
   const filteredEntries = entries.filter((entry) => {
     if (!trimmedQuery) return true;
     return (
@@ -87,81 +87,117 @@ export function AddressBookPanel({
   const currentPage = Math.min(page, totalPages);
   const pagedEntries = filteredEntries.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  function clearFilters() {
+    setQuery("");
+    setPage(1);
+  }
+
   return (
-    <>
-      {error && <ErrorText>{error}</ErrorText>}
-
-      {addOpen && (
-        <Modal title="Add contact" onClose={onCloseAdd}>
-          <AddContactForm
-            onSave={async (data) => {
-              const entry = await createAddressBookEntry(data);
-              upsertEntry(entry);
-              onCloseAdd();
-              showToast({ tone: "success", title: "Contact added" });
+    <div className="gap-detail-close flex flex-col">
+      <div className="gap-detail-close flex flex-wrap items-end justify-between">
+        <div className="min-w-0 flex-1 [&>div]:mb-0">
+          <ListFilterBar
+            q={query}
+            searchPlaceholder="Name, address, or notes"
+            disabled={isLoading}
+            onQueryChange={(q) => {
+              setQuery(q);
+              setPage(1);
             }}
-            onCancel={onCloseAdd}
           />
-        </Modal>
-      )}
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => setAddOpen(true)}
+          disabled={actionsBlocked}
+        >
+          Add contact
+        </Button>
+      </div>
 
-      <ListPagerFilterBar
-        page={currentPage}
-        pageSize={pageSize}
-        total={filteredEntries.length}
-        totalPages={totalPages}
-        q={query}
-        searchPlaceholder="Name, address, or notes"
-        disabled={isLoading}
-        onPageChange={setPage}
-        onPageSizeChange={(size) => {
-          setPageSize(size);
-          setPage(1);
-        }}
-        onQueryChange={(q) => {
-          setQuery(q);
-          setPage(1);
-        }}
-      />
+      {error ? (
+        <ErrorAlert title="Couldn't load address book" className="w-full max-w-none">
+          {error}
+        </ErrorAlert>
+      ) : null}
 
       <TableWrap>
-        <DataTable>
-          <thead>
-            <tr className={tableHeadRowClass}>
-              <th className={`${tableHeaderCellClass} min-w-48`}>Name</th>
-              <th className={`${tableHeaderCellClass} w-full`}>Notes</th>
-              <th className={`${tableHeaderCellClass} w-px whitespace-nowrap`}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+        <DataTable aria-label="Address book">
+          <TableHead>
+            <TableHeaderCell>Name</TableHeaderCell>
+            <TableHeaderCell>Address</TableHeaderCell>
+            <TableHeaderCell>Notes</TableHeaderCell>
+            <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+          </TableHead>
+          <TableBody>
             {isLoading ? (
-              <tr className={tableRowClass}>
-                <td colSpan={3} className="p-0">
-                  <div className="flex justify-center py-10">
-                    <Loader2 className="size-10 animate-spin text-slate-400" aria-hidden="true" />
+              <TableRow>
+                <TableCell colSpan={4} className="p-0">
+                  <div className="py-pad-relaxed flex items-center justify-center" aria-busy="true">
+                    <LoadingDots />
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : filteredEntries.length === 0 ? (
-              <tr className={tableRowClass}>
-                <td colSpan={3} className="p-0">
-                  <div className="p-margin-tight py-pad-relaxed">
-                    <MutedText>
-                      {trimmedQuery ? "No matching contacts." : "No contacts saved yet."}
-                    </MutedText>
+              <TableRow>
+                <td colSpan={4} className="p-0">
+                  <div className="gap-detail-close p-margin-tight py-pad-relaxed flex flex-col items-start">
+                    <span
+                      className="bg-surface-secondary text-icon-primary rounded-loose flex size-10 items-center justify-center"
+                      aria-hidden
+                    >
+                      <Inbox size={20} />
+                    </span>
+                    <div className="gap-detail-tight flex flex-col">
+                      <p className="type-body-em text-text-primary m-0">
+                        {filtersActive ? "No matching contacts" : "No contacts saved yet"}
+                      </p>
+                      <p className="type-body text-text-secondary m-0">
+                        {filtersActive
+                          ? "Try another search, or clear filters."
+                          : "Save recipients here to pick them when sending payments."}
+                      </p>
+                    </div>
+                    {filtersActive ? (
+                      <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
+                        Clear filters
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setAddOpen(true)}
+                        disabled={actionsBlocked}
+                      >
+                        Add contact
+                      </Button>
+                    )}
                   </div>
                 </td>
-              </tr>
+              </TableRow>
             ) : (
               pagedEntries.map((entry) => (
-                <tr key={entry.id} className={tableRowClass}>
-                  <td className={`${tableCellClass} min-w-48`}>
-                    <span className="font-semibold text-slate-900">{entry.label}</span>
-                  </td>
-                  <td className={tableCellClass}>
-                    <span className="text-sm text-slate-600">{entry.notes || "—"}</span>
-                  </td>
-                  <td className={`${tableCellClass} w-px whitespace-nowrap`}>
+                <TableRow key={entry.id}>
+                  <TableCell className="min-w-0">
+                    <span className="type-body-em text-text-primary truncate">{entry.label}</span>
+                  </TableCell>
+                  <TableCell className="min-w-0">
+                    <code
+                      className="type-mono text-text-secondary block truncate"
+                      title={entry.address}
+                    >
+                      {shortAddress(entry.address)}
+                    </code>
+                  </TableCell>
+                  <TableCell className="min-w-0">
+                    <span className="type-body text-text-secondary truncate">
+                      {entry.notes || "—"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="w-px whitespace-nowrap">
                     <RowActions>
                       <TableIconButton
                         type="button"
@@ -169,7 +205,7 @@ export function AddressBookPanel({
                         aria-label={`View ${entry.label}`}
                         onClick={() => setEntryAction({ entry, mode: "view" })}
                       >
-                        <Eye size={16} />
+                        <Eye size={16} aria-hidden />
                       </TableIconButton>
                       <TableIconMenu
                         aria-label={`More actions for ${entry.label}`}
@@ -186,29 +222,47 @@ export function AddressBookPanel({
                         ]}
                       />
                     </RowActions>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
+          </TableBody>
         </DataTable>
       </TableWrap>
-      <div className="mt-3">
-        <TablePager
-          page={currentPage}
-          pageSize={pageSize}
-          total={filteredEntries.length}
-          totalPages={totalPages}
-          disabled={isLoading}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
-        />
-      </div>
 
-      {entryAction && (
+      <ListPaginationFooter
+        page={currentPage}
+        pageSize={pageSize}
+        total={filteredEntries.length}
+        totalPages={totalPages}
+        disabled={isLoading}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+      />
+
+      {addOpen ? (
+        <Modal
+          title="Add contact"
+          description="Save a recipient for future sends."
+          onClose={() => setAddOpen(false)}
+        >
+          <AddContactForm
+            onSave={async (data) => {
+              const entry = await createAddressBookEntry(data);
+              upsertEntry(entry);
+              setAddOpen(false);
+              showToast({ tone: "success", title: "Contact added" });
+            }}
+            onCancel={() => setAddOpen(false)}
+          />
+        </Modal>
+      ) : null}
+
+      {entryAction ? (
         <ContactDetailModal
           entry={entryAction.entry}
           initialMode={entryAction.mode}
@@ -235,8 +289,8 @@ export function AddressBookPanel({
             }
           }}
         />
-      )}
-    </>
+      ) : null}
+    </div>
   );
 }
 
@@ -281,47 +335,59 @@ function ContactDetailModal({
   }
 
   return (
-    <Modal title={entry.label} onClose={onClose}>
-      <div className="grid gap-4">
-        <div className="grid gap-1">
-          <p className={fieldLabelClass}>Address</p>
-          <CopyableCode value={entry.address} />
-        </div>
-        {entry.notes && (
-          <div className="grid gap-1">
-            <p className={fieldLabelClass}>Notes</p>
-            <p className="text-sm text-slate-700">{entry.notes}</p>
-          </div>
-        )}
-        {mode === "delete" ? (
-          <div className="grid gap-3">
-            <p className="text-sm text-slate-700">
-              Delete <span className="font-semibold">{entry.label}</span>? This cannot be undone.
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setMode("view")}
-                disabled={deleting}
-              >
-                Cancel
-              </Button>
-              <Button type="button" variant="danger" onClick={handleDelete} disabled={deleting}>
-                {deleting ? "Deleting…" : "Delete"}
-              </Button>
-            </div>
-          </div>
+    <Modal
+      title={entry.label}
+      description="Saved recipient details."
+      onClose={onClose}
+      footer={
+        mode === "delete" ? (
+          <ButtonRow className="justify-end">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setMode("view")}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button type="button" variant="danger" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </ButtonRow>
         ) : (
-          <div className="flex justify-end gap-2">
+          <ButtonRow className="justify-end">
             <Button type="button" variant="secondary" onClick={() => setMode("edit")}>
               Edit
             </Button>
             <Button type="button" variant="danger" onClick={() => setMode("delete")}>
               Delete
             </Button>
-          </div>
-        )}
+          </ButtonRow>
+        )
+      }
+    >
+      <div className="gap-detail-close grid">
+        {mode === "delete" ? (
+          <ErrorAlert status="warning" title="Delete this contact?" className="w-full max-w-none">
+            Remove <span className="type-body-em">{entry.label}</span>? This cannot be undone.
+          </ErrorAlert>
+        ) : null}
+
+        <section className="gap-detail-next flex flex-col" aria-labelledby="contact-address-label">
+          <p className="type-meta text-text-secondary m-0" id="contact-address-label">
+            Address
+          </p>
+          <CopyableCode value={entry.address} />
+        </section>
+
+        {entry.notes ? (
+          <section className="gap-detail-next flex flex-col" aria-labelledby="contact-notes-label">
+            <p className="type-meta text-text-secondary m-0" id="contact-notes-label">
+              Notes
+            </p>
+            <p className="type-body text-text-primary m-0">{entry.notes}</p>
+          </section>
+        ) : null}
       </div>
     </Modal>
   );
@@ -375,58 +441,50 @@ function AddContactForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-3">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="grid gap-1.5">
-          <span className={fieldLabelClass}>Label</span>
-          <input
-            type="text"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="e.g. Alice"
-            maxLength={80}
-            autoFocus
-            className={inputClass}
-          />
-        </label>
-        <label className="grid gap-1.5">
-          <span className={fieldLabelClass}>Address</span>
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Mx… or 0x…"
-            autoComplete="off"
-            spellCheck={false}
-            className={inputClass}
-          />
-        </label>
-      </div>
-      <label className="grid gap-1.5">
-        <span className={fieldLabelClass}>
-          Notes <span className="font-normal text-slate-400 normal-case">(optional)</span>
-        </span>
-        <input
-          type="text"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="e.g. Alice's main wallet"
-          className={inputClass}
+    <form onSubmit={handleSubmit} className="gap-detail-close grid">
+      <div className="gap-detail-close grid sm:grid-cols-2">
+        <InputField
+          label="Label"
+          description="The label of the contact"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="e.g. Alice"
+          maxLength={80}
+          autoFocus
+          disabled={submitting}
         />
-      </label>
-      {formError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-          <p className="text-sm text-red-700">{formError}</p>
-        </div>
-      )}
-      <div className="flex justify-end gap-2">
+        <InputField
+          label="Address"
+          description="The Minima address for the contact"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="Mx… or 0x…"
+          autoComplete="off"
+          spellCheck={false}
+          disabled={submitting}
+        />
+      </div>
+      <InputField
+        label="Notes"
+        description="Optional note"
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="e.g. Alice's main wallet"
+        disabled={submitting}
+      />
+      {formError ? (
+        <ErrorAlert title="Couldn't save contact" className="w-full max-w-none">
+          {formError}
+        </ErrorAlert>
+      ) : null}
+      <ButtonRow className="justify-end">
         <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
         <Button type="submit" disabled={submitting}>
           {submitting ? "Saving…" : "Add contact"}
         </Button>
-      </div>
+      </ButtonRow>
     </form>
   );
 }
@@ -467,46 +525,48 @@ function EditContactForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-3">
-      <p className="truncate font-mono text-xs text-slate-400">{entry.address}</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="grid gap-1.5">
-          <span className={fieldLabelClass}>Label</span>
-          <input
-            type="text"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            maxLength={80}
-            autoFocus
-            className={inputClass}
-          />
-        </label>
-        <label className="grid gap-1.5">
-          <span className={fieldLabelClass}>
-            Notes <span className="font-normal text-slate-400 normal-case">(optional)</span>
-          </span>
-          <input
-            type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Optional note"
-            className={inputClass}
-          />
-        </label>
+    <form onSubmit={handleSubmit} className="gap-detail-close grid">
+      <section
+        className="gap-detail-next flex flex-col"
+        aria-labelledby="edit-contact-address-label"
+      >
+        <p className="type-meta text-text-secondary m-0" id="edit-contact-address-label">
+          Address
+        </p>
+        <CopyableCode value={entry.address} />
+      </section>
+      <div className="gap-detail-close grid sm:grid-cols-2">
+        <InputField
+          label="Label"
+          description="Name of the contact"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          maxLength={80}
+          autoFocus
+          disabled={submitting}
+        />
+        <InputField
+          label="Notes"
+          description="Optional note"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="e.g. Alice's main wallet"
+          disabled={submitting}
+        />
       </div>
-      {formError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-          <p className="text-sm text-red-700">{formError}</p>
-        </div>
-      )}
-      <div className="flex justify-end gap-2">
+      {formError ? (
+        <ErrorAlert title="Couldn't update contact" className="w-full max-w-none">
+          {formError}
+        </ErrorAlert>
+      ) : null}
+      <ButtonRow className="justify-end">
         <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
         <Button type="submit" disabled={submitting}>
           {submitting ? "Saving…" : "Save changes"}
         </Button>
-      </div>
+      </ButtonRow>
     </form>
   );
 }

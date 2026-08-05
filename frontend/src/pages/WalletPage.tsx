@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import type { MinimaNodeState } from "../app/types";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Page } from "../components/patterns/Page";
-import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { TabList } from "../components/ui/TabList";
 import { getWalletStatus, listWalletSendHistory } from "../features/wallet/walletApi";
@@ -24,7 +23,6 @@ export function WalletPage() {
   const [sendOpen, setSendOpen] = useState(false);
   // const [createTokenOpen, setCreateTokenOpen] = useState(false);
   const [sendHistory, setSendHistory] = useState<WalletSendHistoryItem[]>([]);
-  const [addContactOpen, setAddContactOpen] = useState(false);
   const [mainTab, setMainTab] = useState<WalletTab>("history");
   const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
   const previousMinimaStateRef = useRef<MinimaNodeState | null>(null);
@@ -108,24 +106,7 @@ export function WalletPage() {
             actionsBlocked={actionsBlocked}
           />
         ) : mainTab === "address-book" ? (
-          <>
-            <div className="gap-detail-close flex items-center justify-between">
-              <p className="type-title text-text-primary m-0">Address book</p>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setAddContactOpen(true)}
-                disabled={actionsBlocked}
-              >
-                Add contact
-              </Button>
-            </div>
-            <AddressBookPanel
-              actionsBlocked={actionsBlocked}
-              addOpen={addContactOpen}
-              onCloseAdd={() => setAddContactOpen(false)}
-            />
-          </>
+          <AddressBookPanel actionsBlocked={actionsBlocked} />
         ) : (
           <WalletHistoryPanel
             items={sendHistory}
