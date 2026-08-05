@@ -136,13 +136,13 @@ Text and icon buttons (`frontend/src/components/ui/Button.tsx`). Flat `component
 
 #### Text `Button`
 
-Variant matrix: Primary, Secondary, Tertiary (`ghost`), Accent × Default (`md` 44px) / Compact (`sm` 32px). App-only variants: `danger`, `onDark`.
+Variant matrix: Primary, Secondary, Tertiary (`ghost`), Accent × Default (`md` 44px) / Compact (`sm` 32px). App-only variant: `danger`.
 
-| Prop                    | Values                                                                  | Notes                                                                                 |
-| ----------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `variant`               | `primary` \| `secondary` \| `ghost` \| `accent` \| `danger` \| `onDark` | Prefer primary / secondary / ghost / accent for new UI                                |
-| `size`                  | `md` (44px) \| `sm` / `xs` (32px)                                       | `xs` matches `sm` today; prefer `sm` for compact                                      |
-| `iconStart` / `iconEnd` | optional `ReactNode`                                                    | Leading/trailing icon slots (16px). Prefer these over stuffing icons into `children`. |
+| Prop                    | Values                                                      | Notes                                                                                 |
+| ----------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `variant`               | `primary` \| `secondary` \| `ghost` \| `accent` \| `danger` | Prefer primary / secondary / ghost / accent for new UI                                |
+| `size`                  | `md` (44px) \| `sm` / `xs` (32px)                           | `xs` matches `sm` today; prefer `sm` for compact                                      |
+| `iconStart` / `iconEnd` | optional `ReactNode`                                        | Leading/trailing icon slots (16px). Prefer these over stuffing icons into `children`. |
 
 Icons in `iconStart` / `iconEnd` are layout-only; keep the visible label in `children` so the accessible name stays clear. Mark decorative SVGs with `aria-hidden` when they add no meaning beyond the label.
 
@@ -154,7 +154,7 @@ Icons in `iconStart` / `iconEnd` are layout-only; keep the visible label in `chi
 
 #### Circular `IconButton`
 
-Circular icon-only button: Primary / Secondary / Tertiary (`ghost`) × Default / Compact. Fully circular (`rounded-full`). No accent / danger / onDark.
+Circular icon-only button: Primary / Secondary / Tertiary (`ghost`) × Default / Compact. Fully circular (`rounded-full`). No accent / danger.
 
 | Prop      | Values                                                                     | Notes                                          |
 | --------- | -------------------------------------------------------------------------- | ---------------------------------------------- |

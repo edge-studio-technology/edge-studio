@@ -20,8 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `DataTable` no longer forces `min-w-190`; tables fill the container, and wide lists still opt in (e.g. `min-w-[920px]`). `TableWrap` keeps horizontal scroll when content overflows.
 - Wallet asset detail modal: sendable hero, side-by-side confirmed/unconfirmed tiles (warning when pending), token type pill, copyable ID last.
 - Moved `CopyableCode` into `components/patterns/` and restyled with design-system tokens / `IconButton`; flat re-export kept. Copy shows a success toast (error toast if clipboard fails).
+- Wallet hero focuses on balance with Send + Receive actions; receive opens a modal with copyable address. Receive on the dark hero uses local button styles with hover; shared Button `onDark` variant removed.
 - Wallet sections use `TabList` in a card; node-unavailable warning uses `ErrorAlert` (`status="warning"`).
-- Wallet hero inlines dark surface styles; Send and receive QR live in the hero (`DarkHeroCard` removed).
+- Wallet hero inlines dark surface styles (`DarkHeroCard` removed).
 - Send payment modal uses `ToggleTabs`, `ErrorAlert`, and design-system Button/Modal.
 - `ToggleTabs` adds optional `size="sm"`.
 - `Input` / `InputField` add optional `size` (`md` \| `sm`), matching `SelectField`.

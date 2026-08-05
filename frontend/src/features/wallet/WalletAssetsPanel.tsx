@@ -132,7 +132,7 @@ export function WalletAssetsPanel({
                   <TableCell className="min-w-0">
                     <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
                       <TokenGlyph isNative={token.isNative} />
-                      <span className="type-mono truncate">{token.name}</span>
+                      <span className="truncate">{token.name}</span>
                     </span>
                   </TableCell>
                   <TableCell>

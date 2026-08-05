@@ -9,6 +9,7 @@ import type { WalletSendHistoryItem, WalletStatus } from "../features/wallet/wal
 import { AddressBookPanel } from "../features/address-book/AddressBookPanel";
 // import { CreateTokenModal } from "../features/wallet/CreateTokenModal";
 import { SendPaymentModal } from "../features/wallet/SendPaymentModal";
+import { ReceiveAddressModal } from "../features/wallet/ReceiveAddressModal";
 import { WalletAssetsPanel } from "../features/wallet/WalletAssetsPanel";
 import { WalletHero } from "../features/wallet/WalletHero";
 import { WalletHistoryPanel } from "../features/wallet/WalletHistoryPanel";
@@ -21,6 +22,7 @@ export function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
+  const [receiveOpen, setReceiveOpen] = useState(false);
   // const [createTokenOpen, setCreateTokenOpen] = useState(false);
   const [sendHistory, setSendHistory] = useState<WalletSendHistoryItem[]>([]);
   const [mainTab, setMainTab] = useState<WalletTab>("history");
@@ -84,6 +86,7 @@ export function WalletPage() {
         totalMinima={totalMinima}
         disabled={actionsBlocked}
         onSend={() => setSendOpen(true)}
+        onReceive={() => setReceiveOpen(true)}
         // onCreateToken={() => setCreateTokenOpen(true)}
       />
 
@@ -126,6 +129,13 @@ export function WalletPage() {
           onClose={() => setSendOpen(false)}
         />
       )}
+
+      {receiveOpen ? (
+        <ReceiveAddressModal
+          actionsBlocked={actionsBlocked}
+          onClose={() => setReceiveOpen(false)}
+        />
+      ) : null}
 
       {/* {createTokenOpen && (
         <CreateTokenModal
