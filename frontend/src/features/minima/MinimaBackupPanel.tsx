@@ -1,11 +1,13 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Download, KeyRound, RotateCcw, Trash2, Upload } from "lucide-react";
 import type { MinimaBackupEntry, MinimaBackupListResponse, MinimaNodeState } from "../../app/types";
 import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
+import { Input } from "../../components/Input";
 import { LoadingDots } from "../../components/LoadingDots";
 import { Modal } from "../../components/Modal";
+import { ListDisclosure } from "../../components/patterns/ListDisclosure";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
 import {
@@ -98,20 +100,6 @@ function BackupRow({
         </button>
       </div>
     </div>
-  );
-}
-
-function BackupSection({ title, count, max, children }: { title: string; count: number; max: number; children: ReactNode }) {
-  return (
-    <details className="group border-t border-slate-200 pt-4">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 [&::-webkit-details-marker]:hidden">
-        <span>
-          {title} ({count}/{max})
-        </span>
-        <span className="text-slate-400 transition-transform group-open:rotate-90">›</span>
-      </summary>
-      <div className="grid gap-1.5 pt-3">{children}</div>
-    </details>
   );
 }
 
@@ -408,30 +396,28 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
           >
             <Upload size={16} />
           </button>
+
+          <label className="flex shrink-0 items-center gap-2">
+            <input
+              type="checkbox"
+              className="size-4 shrink-0 rounded border-slate-300"
+              checked={autoBackupEnabled ?? false}
+              disabled={autoBackupEnabled === null || togglingAuto || actionsBlocked || !hasPassword}
+              onChange={() => void handleToggleAutoBackup()}
+            />
+            <span className="text-sm font-semibold text-slate-700">Auto backups (nightly)</span>
+          </label>
         </div>
 
-        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
-          <input
-            type="checkbox"
-            className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
-            checked={autoBackupEnabled ?? false}
-            disabled={autoBackupEnabled === null || togglingAuto || actionsBlocked || !hasPassword}
-            onChange={() => void handleToggleAutoBackup()}
-          />
-          <span className="grid gap-0.5">
-            <span className="text-sm font-semibold text-slate-700">Auto backups (nightly)</span>
-            <span className="text-xs text-slate-500">
-              Creates a backup around 00:30 on the server's clock using your backup password and keeps the last{" "}
-              {MAX_BACKUPS}, deleting the oldest.
-            </span>
-          </span>
-        </label>
+        <p className="m-0 text-xs text-slate-500">
+          Auto backup runs nightly and keeps the last {MAX_BACKUPS}, deleting the oldest.
+        </p>
 
         {listError && <ErrorText className="m-0">{listError}</ErrorText>}
         {!backups && !listError && <LoadingDots />}
 
         {backups && (
-          <BackupSection title="Backups" count={backups.length} max={MAX_BACKUPS}>
+          <ListDisclosure title="Backups" count={backups.length} max={MAX_BACKUPS}>
             {backups.length === 0 && <p className="text-sm text-slate-500 m-0">None yet.</p>}
             {backups.map((backup) => (
               <BackupRow
@@ -444,7 +430,7 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
                 onDelete={() => startDelete(backup)}
               />
             ))}
-          </BackupSection>
+          </ListDisclosure>
         )}
       </div>
 
@@ -460,7 +446,7 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
             <p className="text-sm text-slate-600 m-0">Re-enter your current PIN or password to download this backup.</p>
             <label className="grid gap-1.5 font-bold text-slate-700">
               Current PIN or password
-              <input
+              <Input
                 type="password"
                 value={downloadPassword}
                 onChange={(e) => {
@@ -499,7 +485,7 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
               <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
                 {hasPassword ? "New backup password" : "Backup password"}
               </span>
-              <input
+              <Input
                 type="password"
                 value={newBackupPassword}
                 onChange={(e) => setNewBackupPassword(e.target.value)}
@@ -509,7 +495,7 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
             </label>
             <label className="grid gap-1.5">
               <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Current PIN or password</span>
-              <input
+              <Input
                 type="password"
                 value={setupCurrentPassword}
                 onChange={(e) => setSetupCurrentPassword(e.target.value)}
@@ -568,7 +554,7 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
               <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
                 Password override (leave blank to use your saved backup password)
               </span>
-              <input
+              <Input
                 type="password"
                 value={uploadPasswordOverride}
                 onChange={(e) => setUploadPasswordOverride(e.target.value)}
@@ -578,7 +564,7 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
 
             <label className="grid gap-1.5 font-bold text-slate-700">
               Current PIN or password
-              <input
+              <Input
                 type="password"
                 value={uploadCurrentPassword}
                 onChange={(e) => {
@@ -618,7 +604,7 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
             </p>
             <label className="grid gap-1.5 font-bold text-slate-700">
               Current PIN or password
-              <input
+              <Input
                 type="password"
                 value={rowRestorePassword}
                 onChange={(e) => {
@@ -676,7 +662,7 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
             </div>
             <label className="grid gap-1.5 font-bold text-slate-700">
               Current PIN or password
-              <input
+              <Input
                 type="password"
                 value={clearPasswordCurrentPassword}
                 onChange={(e) => {

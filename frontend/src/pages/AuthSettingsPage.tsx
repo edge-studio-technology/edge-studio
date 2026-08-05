@@ -6,6 +6,7 @@ import {
   Database,
   Eye,
   EyeOff,
+  Stamp,
   KeyRound,
   Link2,
   LogOut,
@@ -18,6 +19,7 @@ import {
 import { Button } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
+import { Input } from "../components/Input";
 import { Page } from "../components/Page";
 import { SubSection } from "../components/patterns/SubSection";
 import { ErrorText } from "../components/Text";
@@ -174,12 +176,9 @@ export function AuthSettingsPage() {
           <Button type="button" variant="ghost" onClick={() => void signOut()}>
             <LogOut size={16} /> Sign out
           </Button>
-          <a
-            href="/update"
-            className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
-          >
+          <Button type="button" onClick={() => window.location.assign("/update")}>
             Check for updates
-          </a>
+          </Button>
         </ButtonRow>
       }
     >
@@ -220,7 +219,7 @@ export function AuthSettingsPage() {
               <form onSubmit={(e) => void handleChangePassword(e)} className={formClass}>
                 <label className={labelClass}>
                   Current PIN or password
-                  <input
+                  <Input
                     type="password"
                     value={currentPassword}
                     onChange={(e) => {
@@ -260,7 +259,7 @@ export function AuthSettingsPage() {
                 </fieldset>
                 <label className={labelClass}>
                   New {newCredentialLabel}
-                  <input
+                  <Input
                     type="password"
                     inputMode={newCredentialIsPin ? "numeric" : "text"}
                     pattern={newCredentialIsPin ? "[0-9]*" : undefined}
@@ -280,7 +279,7 @@ export function AuthSettingsPage() {
                 {!newCredentialIsPin && <PasswordRequirements password={newPassword} />}
                 <label className={labelClass}>
                   Confirm new {newCredentialLabel}
-                  <input
+                  <Input
                     type="password"
                     inputMode={newCredentialIsPin ? "numeric" : "text"}
                     pattern={newCredentialIsPin ? "[0-9]*" : undefined}
@@ -305,7 +304,7 @@ export function AuthSettingsPage() {
                 {TOTP_ENABLED ? (
                   <label className={labelClass}>
                     2FA code
-                    <input
+                    <Input
                       value={pwTotpToken}
                       onChange={(e) => {
                         setPwTotpToken(e.target.value.replace(/\D/g, "").slice(0, 6));
@@ -348,7 +347,7 @@ export function AuthSettingsPage() {
                     </div>
                     <label className={labelClass}>
                       Current PIN or password
-                      <input
+                      <Input
                         type="password"
                         value={resetCurrentPassword}
                         onChange={(e) => {
@@ -361,7 +360,7 @@ export function AuthSettingsPage() {
                     </label>
                     <label className={labelClass}>
                       Current 2FA code
-                      <input
+                      <Input
                         value={resetCurrentToken}
                         onChange={(e) => {
                           setResetCurrentToken(e.target.value.replace(/\D/g, "").slice(0, 6));
@@ -437,7 +436,7 @@ export function AuthSettingsPage() {
                             <strong>Edge Workbench</strong>
                           </p>
                           <div className="flex gap-2">
-                            <input
+                            <Input
                               readOnly
                               value={
                                 showManualKey
@@ -466,7 +465,7 @@ export function AuthSettingsPage() {
                     <form onSubmit={(e) => void handleVerifyTotpReset(e)} className={formClass}>
                       <label className={labelClass}>
                         Confirmation code
-                        <input
+                        <Input
                           value={verifyCode}
                           onChange={(e) => {
                             setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6));
@@ -518,7 +517,7 @@ export function AuthSettingsPage() {
         <Disclosure
           title={
             <span className="flex items-center gap-2">
-              <Link2 size={18} /> Integritas settings
+              <Stamp size={18} /> Integritas settings
             </span>
           }
           className="pt-4 pb-6"
