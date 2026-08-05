@@ -90,6 +90,7 @@ export function AppShell({
   const integritasService = findService(overview, "integritas");
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
   useUpdateStatusRefresh((status) => {
     // update-agent's own self-update runs automatically in the background after
     // a frontend/backend update and isn't something the user needs to act on —
@@ -100,6 +101,7 @@ export function AppShell({
         status?.services.some((service) => service.service !== "update-agent" && !service.upToDate),
       ),
     );
+    setAppVersion(status?.currentVersion ?? null);
   });
 
   const [debugPinging, setDebugPinging] = useState(false);
@@ -142,6 +144,7 @@ export function AppShell({
           pathname={pathname}
           onFeedback={() => setFeedbackOpen(true)}
           onSignOut={onSignOut}
+          version={appVersion}
         />
 
         <main className="relative z-0 min-w-0 flex-1">

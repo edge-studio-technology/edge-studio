@@ -36,10 +36,12 @@ export function AppShellSidebar({
   pathname,
   onFeedback,
   onSignOut,
+  version,
 }: {
   pathname: string;
   onFeedback: () => void;
   onSignOut: () => void;
+  version: string | null;
 }) {
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== "undefined" && !window.matchMedia(EXPAND_MQ).matches,
@@ -54,7 +56,9 @@ export function AppShellSidebar({
   }, []);
 
   const activeId = useMemo(() => {
-    const match = nav.find((item) => pathname === `/${item.id}` || pathname.startsWith(`/${item.id}/`));
+    const match = nav.find(
+      (item) => pathname === `/${item.id}` || pathname.startsWith(`/${item.id}/`),
+    );
     return match?.id ?? "dashboard";
   }, [pathname]);
 
@@ -185,6 +189,16 @@ export function AppShellSidebar({
           <BrandMark size={32} variant="white" />
         </div>
       </div>
+
+      <p
+        className={cx(
+          "type-meta text-text-disabled p-margin-tight absolute bottom-0 left-0 m-0 whitespace-nowrap transition-opacity duration-200 ease-in-out",
+          collapsed ? "pointer-events-none opacity-0" : "opacity-100",
+        )}
+        aria-hidden={collapsed}
+      >
+        {version ?? "Unknown version"}
+      </p>
     </aside>
   );
 }
