@@ -11,9 +11,9 @@ import {
   tableRowClass,
 } from "../../components/DataTable";
 import { ListPagerFilterBar } from "../../components/ListPagerFilterBar";
-import { TablePager } from "../../components/TablePager";
 import { Button } from "../../components/ui/Button";
 import { LoadingDots } from "../../components/ui/LoadingDots";
+import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatAmountAdaptive } from "../../lib/format";
 import { AssetDetailModal } from "./AssetDetailModal";
@@ -25,6 +25,11 @@ const ASSET_KIND_OPTIONS = [
   { value: "minima", label: "Minima" },
   { value: "tokens", label: "Tokens" },
 ] as const;
+
+const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
+  value: String(size),
+  label: String(size),
+}));
 
 export function WalletAssetsPanel({
   tokens,
@@ -43,6 +48,7 @@ export function WalletAssetsPanel({
 
   const trimmedAssetQuery = assetQuery.trim().toLowerCase();
   const filtersActive = Boolean(assetKind || trimmedAssetQuery);
+  const pagerDisabled = loading || actionsBlocked;
   const visibleAssets = tokens.filter((t) => {
     if (assetKind === "minima" && !t.isNative) return false;
     if (assetKind === "tokens" && t.isNative) return false;
@@ -78,7 +84,8 @@ export function WalletAssetsPanel({
           statusOptions={ASSET_KIND_OPTIONS}
           statusLabel="Kind"
           searchPlaceholder="Name or coin ID"
-          disabled={loading || actionsBlocked}
+          disabled={pagerDisabled}
+          showPager={false}
           onPageChange={setAssetPage}
           onPageSizeChange={(size) => {
             setAssetPageSize(size);
@@ -106,11 +113,11 @@ export function WalletAssetsPanel({
               ? "No assets match this kind or search."
               : "No assets in this wallet yet."}
           </p>
-          {/* {filtersActive ? (
+          {filtersActive ? (
             <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
               Clear filters
             </Button>
-          ) : null} */}
+          ) : null}
         </div>
       ) : (
         <TableWrap>
@@ -155,17 +162,18 @@ export function WalletAssetsPanel({
         </TableWrap>
       )}
 
-      <TablePager
+      <ListPaginationFooter
         page={assetCurrentPage}
         pageSize={assetPageSize}
         total={visibleAssets.length}
         totalPages={assetTotalPages}
-        disabled={loading || actionsBlocked}
+        disabled={pagerDisabled}
         onPageChange={setAssetPage}
         onPageSizeChange={(size) => {
           setAssetPageSize(size);
           setAssetPage(1);
         }}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
       />
 
       {selectedAsset && (

@@ -3,8 +3,12 @@ import { ChevronDown } from "lucide-react";
 import { cx } from "../../lib/cx";
 import { Label } from "./Label";
 
-const selectClass =
-  "h-[44px] min-w-[120px] w-full appearance-none rounded-loose border border-stroke-primary bg-surface-always-white py-0 pl-detail-close pr-10 type-body text-text-primary outline-none transition-[border-color] duration-200 focus-visible:border-stroke-active disabled:cursor-not-allowed disabled:bg-surface-primary disabled:text-text-disabled aria-invalid:border-stroke-error motion-reduce:transition-none";
+export type SelectFieldSize = "md" | "sm";
+
+const selectClassBySize: Record<SelectFieldSize, string> = {
+  md: "h-[44px] min-w-[120px] w-full appearance-none rounded-loose border border-stroke-primary bg-surface-always-white py-0 pl-detail-close pr-10 type-body text-text-primary outline-none transition-[border-color] duration-200 focus-visible:border-stroke-active disabled:cursor-not-allowed disabled:bg-surface-primary disabled:text-text-disabled aria-invalid:border-stroke-error motion-reduce:transition-none",
+  sm: "h-8 min-w-0 w-full appearance-none rounded-loose border border-stroke-primary bg-surface-always-white py-0 pl-detail-close pr-10 type-meta text-text-primary outline-none transition-[border-color] duration-200 focus-visible:border-stroke-active disabled:cursor-not-allowed disabled:bg-surface-primary disabled:text-text-disabled aria-invalid:border-stroke-error motion-reduce:transition-none",
+};
 
 export type SelectOption = {
   value: string;
@@ -17,19 +21,25 @@ function Select({
   disabled,
   value,
   defaultValue,
+  size,
   children,
   ...props
-}: SelectHTMLAttributes<HTMLSelectElement>) {
+}: Omit<SelectHTMLAttributes<HTMLSelectElement>, "size"> & { size?: SelectFieldSize }) {
   const isPlaceholder = value === "" || (value === undefined && defaultValue === "");
 
   return (
-    <div className="relative w-full min-w-[120px]">
+    <div
+      className={cx(
+        "relative w-full",
+        size === "sm" ? "min-w-0" : "min-w-[120px]",
+      )}
+    >
       <select
         {...props}
         value={value}
         defaultValue={defaultValue}
         disabled={disabled}
-        className={cx(selectClass, isPlaceholder && "text-text-disabled", className)}
+        className={cx(selectClassBySize[size ?? "md"], isPlaceholder && "text-text-disabled", className)}
       >
         {children}
       </select>
@@ -53,16 +63,18 @@ export function SelectField({
   description,
   error,
   className,
+  size = "md",
   id,
   disabled,
   options,
   placeholder,
   ...props
-}: Omit<SelectHTMLAttributes<HTMLSelectElement>, "className" | "children"> & {
+}: Omit<SelectHTMLAttributes<HTMLSelectElement>, "className" | "children" | "size"> & {
   label?: ReactNode;
   description?: ReactNode;
   error?: ReactNode;
   className?: string;
+  size?: SelectFieldSize;
   options: SelectOption[];
   placeholder?: string;
 }) {
@@ -96,6 +108,7 @@ export function SelectField({
         disabled={disabled}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
+        size={size}
       >
         {placeholder != null ? <option value="">{placeholder}</option> : null}
         {options.map((option) => (
