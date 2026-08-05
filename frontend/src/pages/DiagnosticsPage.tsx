@@ -26,6 +26,7 @@ import type {
   IntegritasHistoryPage,
   IntegritasProofRecord,
 } from "../features/integritas/integritasTypes";
+import { extractVerifyMatch } from "../features/integritas/VerifyResult";
 import { useIntegritasHistoryAutoRefresh } from "../features/integritas/useIntegritasHistoryAutoRefresh";
 import { DEFAULT_PAGE_SIZE_OPTIONS, emptyPaginatedPage } from "../lib/paginated";
 import {
@@ -82,8 +83,10 @@ export function DiagnosticsPage() {
   const [workflowRunsPage, setWorkflowRunsPage] = useState(emptyPaginatedPage<AutomationRun>);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState<"download" | "delete" | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const busy = bulkBusy !== null;
 
   const updateListQuery = useCallback(
     (patch: Partial<DiagnosticsListQuery>) => {
@@ -189,18 +192,65 @@ export function DiagnosticsPage() {
     });
   }
 
-  async function run(action: () => Promise<unknown>, options?: { refresh?: boolean }) {
-    setBusy(true);
+  async function run(
+    action: () => Promise<unknown>,
+    options: {
+      refresh?: boolean;
+      successTitle?: string;
+      successMessage?: string;
+      busyAs: "download" | "delete";
+    },
+  ) {
+    setBulkBusy(options.busyAs);
     try {
       await action();
-      if (options?.refresh !== false) {
+      if (options.refresh !== false) {
         applyPaginatedPage(await getHistory(listQuery), listQuery.page, setProofsPage, clampPage);
+      }
+      if (options.successTitle) {
+        showToast({
+          tone: "success",
+          title: options.successTitle,
+          message: options.successMessage,
+          timeoutMs: 4000,
+        });
       }
     } catch (err) {
       const { title, message } = integritasErrorToast(err);
       showToast({ tone: "error", title, message, timeoutMs: 9000 });
     } finally {
-      setBusy(false);
+      setBulkBusy(null);
+    }
+  }
+
+  async function handleVerify(record: IntegritasProofRecord) {
+    setVerifyingId(record.id);
+    try {
+      const result = await verifyRecord(record.id);
+      applyPaginatedPage(await getHistory(listQuery), listQuery.page, setProofsPage, clampPage);
+      const isFullMatch = extractVerifyMatch(result.response) === "full_match";
+      showToast({
+        tone: isFullMatch ? "success" : "warning",
+        title: isFullMatch ? "Full match" : "No match",
+        message: isFullMatch
+          ? "The proof matches the original data."
+          : "The proof does not match.",
+        timeoutMs: 6000,
+      });
+    } catch (err) {
+      const { title, message } = integritasErrorToast(err);
+      showToast({ tone: "error", title, message, timeoutMs: 9000 });
+    } finally {
+      setVerifyingId(null);
+    }
+  }
+
+  async function handleDownload(record: IntegritasProofRecord) {
+    try {
+      await downloadSelected([record.id]);
+    } catch (err) {
+      const { title, message } = integritasErrorToast(err);
+      showToast({ tone: "error", title, message, timeoutMs: 9000 });
     }
   }
 
@@ -283,19 +333,59 @@ export function DiagnosticsPage() {
             selectedIds={selectedIds}
             filtered={listFiltered}
             busy={busy}
+            bulkBusy={bulkBusy}
+            verifyingId={verifyingId}
             onToggle={(id) => {
               setSelectedIds((ids) =>
                 ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id],
               );
             }}
-            onVerify={(record) => run(() => verifyRecord(record.id))}
+            onToggleAllVisible={() => {
+              const pageIds = proofsPage.items.map((record) => record.id);
+              const allSelected =
+                pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+              setSelectedIds((ids) =>
+                allSelected
+                  ? ids.filter((id) => !pageIds.includes(id))
+                  : [...new Set([...ids, ...pageIds])],
+              );
+            }}
+            onClearSelection={() => setSelectedIds([])}
+            onVerify={(record) => {
+              void handleVerify(record);
+            }}
+            onDownload={(record) => {
+              void handleDownload(record);
+            }}
             onDeleteSelected={() =>
-              run(async () => {
-                await deleteSelected(selectedIds);
-                setSelectedIds([]);
+              void run(
+                async () => {
+                  const count = selectedIds.length;
+                  await deleteSelected(selectedIds);
+                  setSelectedIds([]);
+                  return count;
+                },
+                {
+                  busyAs: "delete",
+                  successTitle: "Proofs deleted",
+                  successMessage:
+                    selectedIds.length === 1
+                      ? "1 proof record was deleted."
+                      : `${selectedIds.length} proof records were deleted.`,
+                },
+              )
+            }
+            onDownloadSelected={() =>
+              void run(() => downloadSelected(selectedIds), {
+                refresh: false,
+                busyAs: "download",
+                successTitle: "Download started",
+                successMessage:
+                  selectedIds.length === 1
+                    ? "1 proof file is downloading."
+                    : `${selectedIds.length} proofs are downloading.`,
               })
             }
-            onDownloadSelected={() => run(() => downloadSelected(selectedIds), { refresh: false })}
           />
         ) : activeTab === "reads" ? (
           <DataReadsHistoryTable items={readsPage.items} filtered={listFiltered} />

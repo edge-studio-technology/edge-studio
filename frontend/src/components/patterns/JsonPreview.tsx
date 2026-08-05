@@ -7,6 +7,7 @@ import { cx } from "../../lib/cx";
 export function JsonPreview({
   value,
   label = "View JSON",
+  title = "JSON preview",
   variant = "link",
   icon,
   disabled = false,
@@ -14,6 +15,7 @@ export function JsonPreview({
 }: {
   value: unknown;
   label?: string;
+  title?: string;
   variant?: "link" | "button";
   icon?: ReactNode;
   disabled?: boolean;
@@ -49,7 +51,7 @@ export function JsonPreview({
         </button>
       )}
       {open && (
-        <Modal title="JSON preview" onClose={() => setOpen(false)}>
+        <Modal title={title} onClose={() => setOpen(false)}>
           <pre className="type-mono text-text-inverse bg-surface-inverse border-stroke-secondary rounded-soft border p-pad-tight m-0 overflow-x-auto leading-[1.5] whitespace-pre [tab-size:2]">
             {JSON.stringify(value, null, 2)}
           </pre>

@@ -233,24 +233,25 @@ Labeled checkbox (`frontend/src/components/ui/CheckboxField.tsx`): 16px control 
 
 | Prop            | Values / notes                                                              |
 | --------------- | --------------------------------------------------------------------------- |
-| `label`         | Required; `type-body` beside the control                                    |
+| `label`         | Optional; defaults to `"Label"`. Pass `null` to hide (use `aria-label`)     |
 | `description`   | Optional helper under the row (`text-secondary` / disabled `text-disabled`) |
 | `checked`       | Controlled checked state                                                    |
 | `indeterminate` | Shows minus mark; sets native `indeterminate` + `aria-checked="mixed"`      |
 | `disabled`      | Secondary surface box + tertiary/disabled text                              |
 | `className`     | Outer stack                                                                 |
-| …input props    | Standard checkbox `onChange`, `name`, `defaultChecked`, etc.                |
+| …input props    | Standard checkbox `onChange`, `name`, `defaultChecked`, `aria-label`, etc.  |
 
 Default checked / indeterminate: `icon-primary` fill with inverse glyph. Unchecked: white fill + `stroke-primary` border. Disabled: `surface-secondary` fill + `stroke-primary` border (glyph `icon-disabled` when present).
 
 ```tsx
 <CheckboxField
-  label="Label"
+  label="Enabled"
   description="Description"
   checked={enabled}
   onChange={(event) => setEnabled(event.target.checked)}
 />
 <CheckboxField label="Partial" indeterminate checked={false} readOnly />
+<CheckboxField label={null} aria-label="Select row" checked={selected} onChange={onToggle} />
 ```
 
 ### RadioField

@@ -8,7 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Diagnostics page imports design-system `Page` / `Card` / `ErrorText` / `TabList` from `ui/` and `patterns/` (replacing flat re-exports and `SubTabs`).
+- Diagnostics page uses a card shell (`TabList` + content) with `ListFilterBar`, Refresh, and `ListPaginationFooter` instead of `ListPagerFilterBar`.
+- Diagnostics load/refresh failures use `ErrorAlert` instead of inline `ErrorText`.
+- Diagnostics shows a per-tab description under `TabList` for proofs, reads, and workflow logs.
+- Integritas proof history table on Diagnostics uses ESDS table primitives, `formatLocalDateTime`, status pills, and bulk actions without a nested `TableCard`.
+- Proof verify on Diagnostics toasts Full match / No match from the verify response; the active row shows “Verifying…”.
+- Proof history selection bar shows count + Clear, icon Download/Delete actions, delete confirmation, and success toasts; download stays available while verifying.
+- Proof history header checkbox selects or clears all proofs on the current page (indeterminate when partially selected).
+- `JsonPreview` accepts an optional `title` for the modal (proof history uses “Proof payload”).
+- `CheckboxField` `label` defaults to `"Label"`; pass `label={null}` with `aria-label` for control-only use (e.g. tables).
 
 ## [0.30.2] 2026-08-05
 
