@@ -4,6 +4,17 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [0.30.1] 2026-08-05
+
+### Added
+
+- New ESDS logo/brand assets (`frontend/public/es_logo/`), replacing the old favicon SVGs; `BrandMark` renders the new lockup.
+- Sidebar nav shows scroll up/down arrows when its items overflow the available height.
+
+### Changed
+
+- Moved the app version indicator from account settings into the sidebar.
+
 ## [0.30.0] 2026-08-05
 
 ### Added
