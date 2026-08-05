@@ -9,7 +9,7 @@ export function Page({
 }: {
   /** @deprecated Unused. Drop when migrating each page call site. */
   eyebrow?: string;
-  title: string;
+  title: ReactNode;
   desc?: ReactNode;
   /** @deprecated Might be unused. Unused. Drop when migrating each page call site. */
   action?: ReactNode;

@@ -30,6 +30,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `TableIconMenu` adds a ⋮ overflow menu for secondary row actions (primary icon stays visible).
 - Wallet asset list pagination now uses shared `ListPaginationFooter` with compact rows/page-size controls (`SelectField` `size="sm"`) and `ListPagerFilterBar` can hide its pager via `showPager`.
 
+## [0.30.1] 2026-08-05
+
+### Added
+
+- New ESDS logo/brand assets (`frontend/public/es_logo/`), replacing the old favicon SVGs; `BrandMark` renders the new lockup.
+- Sidebar nav shows scroll up/down arrows when its items overflow the available height.
+
+### Changed
+
+- Moved the app version indicator from account settings into the sidebar.
+
+## [0.30.0] 2026-08-05
+
+### Added
+
+- Shared `DetailList`/`DetailRow` (`components/patterns/`) for label/value detail rows, replacing hand-rolled `<dl>` markup duplicated across the Megammr host config and Integritas Connect profile panels.
+
+### Changed
+
+- Account settings page and its Minima backup/Integritas Connect panels: replaced hand-rolled icon buttons and inline-hex-styled text with the shared `Button`/`IconButton` components and ESDS text-color tokens, for visual consistency with the rest of the design system.
+- Backups/peers list inside `ListDisclosure` now scrolls within a fixed max height instead of growing the page unbounded.
+
 ## [0.29.1] 2026-08-04
 
 ### Added

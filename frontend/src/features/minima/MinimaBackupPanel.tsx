@@ -1,13 +1,17 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Download, KeyRound, RotateCcw, Trash2, Upload } from "lucide-react";
 import type { MinimaBackupEntry, MinimaBackupListResponse, MinimaNodeState } from "../../app/types";
-import { Button } from "../../components/Button";
+import { Button, IconButton } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
 import { LoadingDots } from "../../components/LoadingDots";
 import { Modal } from "../../components/Modal";
+import { FileDropZone } from "../../components/patterns/FileDropZone";
+import { ListDisclosure } from "../../components/patterns/ListDisclosure";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
+import { CheckboxField } from "../../components/ui/CheckboxField";
+import { InputField } from "../../components/ui/InputField";
 import {
   clearBackupPassword,
   createMinimaBackup,
@@ -21,7 +25,6 @@ import {
   setAutoBackupEnabled,
   setBackupPassword
 } from "./minimaBackupApi";
-import { useMinimaStatusRefresh } from "./useMinimaStatusRefresh";
 
 const MAX_BACKUPS = 20;
 
@@ -62,7 +65,7 @@ function BackupRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
+    <div className="flex items-center justify-between gap-3 px-3 py-2">
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-slate-900 m-0">{backup.fileName}</p>
         <p className="text-xs text-slate-500 m-0">
@@ -70,58 +73,49 @@ function BackupRow({
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
-        <button
-          type="button"
+        <IconButton
+          size="compact"
+          variant="ghost"
           title="Download"
+          aria-label={`Download ${backup.fileName}`}
           onClick={onDownload}
-          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
         >
-          <Download size={14} />
-        </button>
-        <button
-          type="button"
+          <Download />
+        </IconButton>
+        <IconButton
+          size="compact"
+          variant="ghost"
           title="Restore"
+          aria-label={`Restore ${backup.fileName}`}
           disabled={actionsBlocked}
           onClick={onRestore}
-          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
         >
-          <RotateCcw size={14} />
-        </button>
-        <button
-          type="button"
+          <RotateCcw />
+        </IconButton>
+        <IconButton
+          size="compact"
+          variant="ghost"
           title="Delete"
+          aria-label={`Delete ${backup.fileName}`}
           disabled={deleting}
           onClick={onDelete}
-          className="rounded-lg border border-slate-200 bg-white p-2 text-red-600 hover:bg-red-50 disabled:opacity-40"
+          className="text-feedback-error hover:border-feedback-error"
         >
-          <Trash2 size={14} />
-        </button>
+          <Trash2 />
+        </IconButton>
       </div>
     </div>
   );
 }
 
-function BackupSection({ title, count, max, children }: { title: string; count: number; max: number; children: ReactNode }) {
-  return (
-    <details className="group rounded-xl border border-slate-200 bg-slate-50">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 [&::-webkit-details-marker]:hidden">
-        <span>
-          {title} ({count}/{max})
-        </span>
-        <span className="text-slate-400 transition-transform group-open:rotate-90">›</span>
-      </summary>
-      <div className="grid gap-1.5 border-t border-slate-200 p-2">{children}</div>
-    </details>
-  );
-}
-
-export function MinimaBackupPanel() {
+export function MinimaBackupPanel({
+  bare = false,
+  minimaState,
+}: {
+  bare?: boolean;
+  minimaState: MinimaNodeState | null;
+}) {
   const { showToast } = useToast();
-  const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
-  useMinimaStatusRefresh(
-    (status) => setMinimaState(status.state),
-    () => {}
-  );
   // Same "confirmed running" gate used by MinimaSettingsPanel/WalletSettingsPanel.
   const actionsBlocked = minimaState !== "running";
 
@@ -358,26 +352,20 @@ export function MinimaBackupPanel() {
     }
   }
 
-  return (
-    <Card>
-      <div className="grid gap-1" style={{ marginBottom: 16 }}>
-        <h3 style={{ margin: 0 }}>Node backup & restore</h3>
-        <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
-          Full node backups include the seed phrase, private keys, coin proofs, and transaction
-          history — a superset of a plain seed-phrase wallet import.
-        </p>
-      </div>
-
-      {actionsBlocked && (
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3" style={{ marginBottom: 16 }}>
-          <p className="text-sm text-amber-800" style={{ margin: 0 }}>
-            Unavailable until Minima is running.
+  const content = (
+    <>
+      {!bare && (
+        <div className="mb-4 grid gap-1">
+          <h3 style={{ margin: 0 }}>Node backup & restore</h3>
+          <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
+            Full node backups include the seed phrase, private keys, coin proofs, and transaction
+            history — a superset of a plain seed-phrase wallet import.
           </p>
         </div>
       )}
 
       {hasPassword === false && (
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3" style={{ marginBottom: 16 }}>
+        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
           <p className="text-sm text-amber-800 m-0">
             No backup password set. Use the key icon below to set one — required for manual and automatic backups.
           </p>
@@ -389,50 +377,46 @@ export function MinimaBackupPanel() {
           <Button onClick={() => void handleCreateBackup()} disabled={creating || actionsBlocked || !hasPassword}>
             {creating ? "Backing up…" : "Backup now"}
           </Button>
-          <button
-            type="button"
+          <IconButton
+            size="compact"
+            variant="ghost"
             title={hasPassword ? "Manage backup password" : "Set backup password"}
+            aria-label={hasPassword ? "Manage backup password" : "Set backup password"}
             onClick={openPasswordModal}
-            className={`rounded-lg border p-2 hover:bg-slate-50 ${
-              hasPassword === false ? "border-amber-300 text-amber-700 bg-amber-50" : "border-slate-200 bg-white text-slate-600"
-            }`}
+            className={hasPassword === false ? "border-amber-300 bg-amber-50 text-amber-700" : undefined}
           >
-            <KeyRound size={16} />
-          </button>
-          <button
-            type="button"
+            <KeyRound />
+          </IconButton>
+          <IconButton
+            size="compact"
+            variant="ghost"
             title="Restore from backup"
+            aria-label="Restore from backup"
             onClick={openUploadRestore}
             disabled={actionsBlocked}
-            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
           >
-            <Upload size={16} />
-          </button>
-        </div>
+            <Upload />
+          </IconButton>
 
-        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
-          <input
-            type="checkbox"
-            className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
+          <CheckboxField
+            className="shrink-0"
+            label="Auto backups (nightly)"
             checked={autoBackupEnabled ?? false}
             disabled={autoBackupEnabled === null || togglingAuto || actionsBlocked || !hasPassword}
             onChange={() => void handleToggleAutoBackup()}
           />
-          <span className="grid gap-0.5">
-            <span className="text-sm font-semibold text-slate-700">Auto backups (nightly)</span>
-            <span className="text-xs text-slate-500">
-              Creates a backup around 00:30 on the server's clock using your backup password and keeps the last{" "}
-              {MAX_BACKUPS}, deleting the oldest.
-            </span>
-          </span>
-        </label>
+        </div>
+
+        <p className="m-0 text-xs text-slate-500">
+          Auto backup runs nightly at 00:30 and keeps the last {MAX_BACKUPS}, deleting the oldest.
+        </p>
 
         {listError && <ErrorText className="m-0">{listError}</ErrorText>}
         {!backups && !listError && <LoadingDots />}
 
         {backups && (
-          <BackupSection title="Backups" count={backups.length} max={MAX_BACKUPS}>
-            {backups.length === 0 && <p className="text-sm text-slate-500 m-0">None yet.</p>}
+          <ListDisclosure title="Backups" count={backups.length} max={MAX_BACKUPS}>
+            {backups.length === 0 && <p className="m-0 px-3 py-2 text-sm text-slate-500">None yet.</p>}
             {backups.map((backup) => (
               <BackupRow
                 key={backup.fileName}
@@ -444,7 +428,7 @@ export function MinimaBackupPanel() {
                 onDelete={() => startDelete(backup)}
               />
             ))}
-          </BackupSection>
+          </ListDisclosure>
         )}
       </div>
 
@@ -455,21 +439,20 @@ export function MinimaBackupPanel() {
             if (!downloadBusy) setDownloadTarget(null);
           }}
           closeDisabled={downloadBusy}
+          bodyClassName="min-h-0 flex-1"
         >
           <div className="grid gap-3">
             <p className="text-sm text-slate-600 m-0">Re-enter your current PIN or password to download this backup.</p>
-            <label className="grid gap-1.5 font-bold text-slate-700">
-              Current PIN or password
-              <input
-                type="password"
-                value={downloadPassword}
-                onChange={(e) => {
-                  setDownloadPassword(e.target.value);
-                  setDownloadError(null);
-                }}
-                autoComplete="current-password"
-              />
-            </label>
+            <InputField
+              label="Current PIN or password"
+              type="password"
+              value={downloadPassword}
+              onChange={(e) => {
+                setDownloadPassword(e.target.value);
+                setDownloadError(null);
+              }}
+              autoComplete="current-password"
+            />
             {downloadError && <ErrorText className="m-0">{downloadError}</ErrorText>}
             <ButtonRow>
               <Button onClick={() => void confirmDownload()} disabled={downloadBusy || downloadPassword.length === 0}>
@@ -487,6 +470,7 @@ export function MinimaBackupPanel() {
             if (!setupBusy) setPasswordModalOpen(false);
           }}
           closeDisabled={setupBusy}
+          bodyClassName="min-h-0 flex-1"
         >
           <form onSubmit={(e) => void handleSetBackupPassword(e)} className="grid gap-3">
             {hasPassword === false && (
@@ -495,28 +479,22 @@ export function MinimaBackupPanel() {
                 ever shown again, so keep a copy somewhere safe.
               </p>
             )}
-            <label className="grid gap-1.5">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                {hasPassword ? "New backup password" : "Backup password"}
-              </span>
-              <input
-                type="password"
-                value={newBackupPassword}
-                onChange={(e) => setNewBackupPassword(e.target.value)}
-                autoComplete="new-password"
-                required
-              />
-            </label>
-            <label className="grid gap-1.5">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Current PIN or password</span>
-              <input
-                type="password"
-                value={setupCurrentPassword}
-                onChange={(e) => setSetupCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-              />
-            </label>
+            <InputField
+              label={hasPassword ? "New backup password" : "Backup password"}
+              type="password"
+              value={newBackupPassword}
+              onChange={(e) => setNewBackupPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+            />
+            <InputField
+              label="Current PIN or password"
+              type="password"
+              value={setupCurrentPassword}
+              onChange={(e) => setSetupCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
             {setupError && <ErrorText className="m-0">{setupError}</ErrorText>}
             <ButtonRow>
               <Button type="submit" disabled={setupBusy || !newBackupPassword || !setupCurrentPassword}>
@@ -539,55 +517,37 @@ export function MinimaBackupPanel() {
             if (!uploadBusy) setUploadRestoreOpen(false);
           }}
           closeDisabled={uploadBusy}
+          bodyClassName="min-h-0 flex-1"
         >
           <div className="grid gap-3">
             {restoreWarning}
 
-            {uploadFile ? (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
-                <span className="truncate text-sm text-slate-800">{uploadFile.name}</span>
-                <button type="button" onClick={() => setUploadFile(null)} className="text-xs font-bold text-slate-500">
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <label className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 cursor-pointer">
-                <span className="flex items-center gap-2 text-sm text-slate-600">
-                  <Upload size={14} /> Upload a .bak file
-                </span>
-                <input
-                  type="file"
-                  accept=".bak"
-                  className="hidden"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
-                />
-              </label>
-            )}
+            <FileDropZone
+              file={uploadFile}
+              onFile={setUploadFile}
+              onClear={() => setUploadFile(null)}
+              accept=".bak"
+              placeholder="Upload a .bak file"
+            />
 
-            <label className="grid gap-1.5">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                Password override (leave blank to use your saved backup password)
-              </span>
-              <input
-                type="password"
-                value={uploadPasswordOverride}
-                onChange={(e) => setUploadPasswordOverride(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
+            <InputField
+              label="Password override (leave blank to use your saved backup password)"
+              type="password"
+              value={uploadPasswordOverride}
+              onChange={(e) => setUploadPasswordOverride(e.target.value)}
+              autoComplete="off"
+            />
 
-            <label className="grid gap-1.5 font-bold text-slate-700">
-              Current PIN or password
-              <input
-                type="password"
-                value={uploadCurrentPassword}
-                onChange={(e) => {
-                  setUploadCurrentPassword(e.target.value);
-                  setUploadError(null);
-                }}
-                autoComplete="current-password"
-              />
-            </label>
+            <InputField
+              label="Current PIN or password"
+              type="password"
+              value={uploadCurrentPassword}
+              onChange={(e) => {
+                setUploadCurrentPassword(e.target.value);
+                setUploadError(null);
+              }}
+              autoComplete="current-password"
+            />
 
             {uploadError && <ErrorText className="m-0">{uploadError}</ErrorText>}
             <ButtonRow>
@@ -609,6 +569,7 @@ export function MinimaBackupPanel() {
             if (!rowRestoreBusy) setRowRestoreTarget(null);
           }}
           closeDisabled={rowRestoreBusy}
+          bodyClassName="min-h-0 flex-1"
         >
           <div className="grid gap-3">
             {restoreWarning}
@@ -616,18 +577,16 @@ export function MinimaBackupPanel() {
               Restoring <span className="font-mono">{rowRestoreTarget.fileName}</span>. Re-enter your current PIN or
               password to confirm.
             </p>
-            <label className="grid gap-1.5 font-bold text-slate-700">
-              Current PIN or password
-              <input
-                type="password"
-                value={rowRestorePassword}
-                onChange={(e) => {
-                  setRowRestorePassword(e.target.value);
-                  setRowRestoreError(null);
-                }}
-                autoComplete="current-password"
-              />
-            </label>
+            <InputField
+              label="Current PIN or password"
+              type="password"
+              value={rowRestorePassword}
+              onChange={(e) => {
+                setRowRestorePassword(e.target.value);
+                setRowRestoreError(null);
+              }}
+              autoComplete="current-password"
+            />
             {rowRestoreError && <ErrorText className="m-0">{rowRestoreError}</ErrorText>}
             <ButtonRow>
               <Button onClick={() => void confirmRowRestore()} disabled={rowRestoreBusy || rowRestorePassword.length === 0}>
@@ -645,6 +604,7 @@ export function MinimaBackupPanel() {
             if (deletingFile !== deleteTarget.fileName) setDeleteTarget(null);
           }}
           closeDisabled={deletingFile === deleteTarget.fileName}
+          bodyClassName="min-h-0 flex-1"
         >
           <div className="grid gap-3">
             <p className="text-sm text-slate-600 m-0">
@@ -666,6 +626,7 @@ export function MinimaBackupPanel() {
             if (!clearPasswordBusy) setClearPasswordOpen(false);
           }}
           closeDisabled={clearPasswordBusy}
+          bodyClassName="min-h-0 flex-1"
         >
           <div className="grid gap-3">
             <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
@@ -674,18 +635,16 @@ export function MinimaBackupPanel() {
                 You'll need to set a new backup password before creating another backup.
               </p>
             </div>
-            <label className="grid gap-1.5 font-bold text-slate-700">
-              Current PIN or password
-              <input
-                type="password"
-                value={clearPasswordCurrentPassword}
-                onChange={(e) => {
-                  setClearPasswordCurrentPassword(e.target.value);
-                  setClearPasswordError(null);
-                }}
-                autoComplete="current-password"
-              />
-            </label>
+            <InputField
+              label="Current PIN or password"
+              type="password"
+              value={clearPasswordCurrentPassword}
+              onChange={(e) => {
+                setClearPasswordCurrentPassword(e.target.value);
+                setClearPasswordError(null);
+              }}
+              autoComplete="current-password"
+            />
             {clearPasswordError && <ErrorText className="m-0">{clearPasswordError}</ErrorText>}
             <ButtonRow>
               <Button
@@ -699,6 +658,8 @@ export function MinimaBackupPanel() {
           </div>
         </Modal>
       )}
-    </Card>
+    </>
   );
+
+  return bare ? content : <Card>{content}</Card>;
 }

@@ -101,6 +101,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `CredentialInput`: PIN or password field
 - `DataTable`: native table shell and row primitives (`TableWrap`, `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`, `TableIconMenu`)
 - `StatusRow`: label / value / status row
+- [DetailList](#detaillist): label / value detail rows
 - [StatusBar](#statusbar): app shell status chrome
 - `ListPagerFilterBar`: list filter and pager
 - `Pagination`: prev/next page strip
@@ -540,6 +541,22 @@ Mono value chip with a compact copy control (`frontend/src/components/patterns/C
 
 ```tsx
 <CopyableCode value={token.tokenId} />
+### DetailList
+
+Label/value detail rows (`frontend/src/components/patterns/DetailList.tsx`): `DetailList` is the `<dl>` wrapper, `DetailRow` is one label/value pair. Prefer this for read-only config/profile detail blocks instead of hand-rolled `<dl>`/`<dt>`/`<dd>` markup.
+
+| Prop (`DetailRow`) | Notes                                                              |
+| ------------------- | ------------------------------------------------------------------- |
+| `label`             | Row label (`ReactNode`)                                             |
+| `value`             | Row value (`ReactNode`)                                             |
+| `mono`              | Monospace value, for technical strings like hosts/IDs (default off) |
+| `className`         | Merged onto the row grid — override to widen the label column       |
+
+```tsx
+<DetailList className="border-t border-stroke-secondary pt-4">
+  <DetailRow label="Name" value={user.name} />
+  <DetailRow label="baseUrl" value={config.baseUrl} mono />
+</DetailList>
 ```
 
 ### StatusBar

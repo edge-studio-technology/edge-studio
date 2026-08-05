@@ -1,36 +1,48 @@
 import { useState } from "react";
-import { Check, CheckCircle2, Copy, Eye, EyeOff, LogOut, RotateCcw, ShieldAlert, Tag } from "lucide-react";
+import {
+  CheckCircle2,
+  Copy,
+  Database,
+  Eye,
+  EyeOff,
+  Link2,
+  LogOut,
+  RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
+} from "lucide-react";
+import type { MinimaNodeState } from "../app/types";
 import { Button } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
+import { Input } from "../components/Input";
 import { Page } from "../components/Page";
+import { Pill } from "../components/Pill";
+import { SubSection } from "../components/patterns/SubSection";
 import { ErrorText } from "../components/Text";
-import { changePassword, initTotpReset, verifyTotpReset } from "../features/auth/api";
-import { isValidAdminCredential, sanitizePinInput, type AdminCredentialType } from "../features/auth/adminCredentials";
-import { PasswordRequirements } from "../features/auth/PasswordRequirements";
+import { Disclosure } from "../components/ui/Disclosure";
+import { InputField } from "../components/ui/InputField";
+import { initTotpReset, verifyTotpReset } from "../features/auth/api";
+import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
 import { useAuth } from "../features/auth/hooks";
-import { IntegritasConnectPanel } from "../features/integritas-auth/IntegritasConnectPanel";
+import {
+  IntegritasConnectPanel,
+  statusLabel as integritasStatusLabel,
+  statusTone as integritasStatusTone,
+} from "../features/integritas-auth/IntegritasConnectPanel";
+import { useIntegritasAuth } from "../features/integritas-auth/useIntegritasAuth";
 import { MinimaBackupPanel } from "../features/minima/MinimaBackupPanel";
+import { formatNodeState, nodeStateTone } from "../features/minima/minimaFormat";
 import { MinimaSettingsPanel } from "../features/minima/MinimaSettingsPanel";
-import { useUpdateStatusRefresh } from "../features/update/useUpdateStatusRefresh";
+import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
 import { WalletSettingsPanel } from "../features/wallet/WalletSettingsPanel";
 
 type TotpResetPhase = "idle" | "scan" | "done";
 
 const formClass = "grid gap-3";
-const labelClass = "grid gap-3 font-bold text-slate-700";
 
 export function AuthSettingsPage() {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newCredentialType, setNewCredentialType] = useState<AdminCredentialType>("pin");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [pwTotpToken, setPwTotpToken] = useState("");
-  const [pwSubmitting, setPwSubmitting] = useState(false);
-  const [pwError, setPwError] = useState<string | null>(null);
-  const [pwSuccess, setPwSuccess] = useState(false);
-
   const [totpPhase, setTotpPhase] = useState<TotpResetPhase>("idle");
   const [resetCurrentPassword, setResetCurrentPassword] = useState("");
   const [resetCurrentToken, setResetCurrentToken] = useState("");
@@ -44,38 +56,24 @@ export function AuthSettingsPage() {
   const [verifySubmitting, setVerifySubmitting] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
-  const [currentVersion, setCurrentVersion] = useState<string | null>(null);
-  useUpdateStatusRefresh((status) => setCurrentVersion(status?.currentVersion ?? null));
+  const integritasAuth = useIntegritasAuth({ refreshProfileOnConnected: true });
+  const integritasKind = integritasAuth.status?.status;
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPwSubmitting(true);
-    setPwError(null);
-    setPwSuccess(false);
-    try {
-      await changePassword({
-        currentPassword,
-        newPassword,
-        ...(TOTP_ENABLED ? { totpToken: pwTotpToken } : {}),
-      });
-      setPwSuccess(true);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
-      setPwTotpToken("");
-    } catch (err) {
-      setPwError(err instanceof Error ? err.message : "Failed to change credential");
-    } finally {
-      setPwSubmitting(false);
-    }
-  };
+  const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
+  useMinimaStatusRefresh(
+    (status) => setMinimaState(status.state),
+    () => {},
+  );
 
   const handleInitTotpReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetSubmitting(true);
     setResetError(null);
     try {
-      const result = await initTotpReset({ currentPassword: resetCurrentPassword, totpToken: resetCurrentToken });
+      const result = await initTotpReset({
+        currentPassword: resetCurrentPassword,
+        totpToken: resetCurrentToken,
+      });
       setQrCode(result.qrCodePngBase64);
       setTotpSecret(result.secret);
       setTotpPhase("scan");
@@ -123,15 +121,6 @@ export function AuthSettingsPage() {
     setShowManualKey(false);
   };
 
-  const newCredentialIsPin = newCredentialType === "pin";
-  const newCredentialLabel = newCredentialIsPin ? "PIN" : "password";
-  const newCredentialsMatch = !confirmNewPassword || newPassword === confirmNewPassword;
-  const passwordFormReady =
-    currentPassword.length > 0 &&
-    isValidAdminCredential(newCredentialType, newPassword) &&
-    newPassword === confirmNewPassword &&
-    (!TOTP_ENABLED || pwTotpToken.length === 6);
-
   const { signOut } = useAuth();
 
   return (
@@ -143,300 +132,253 @@ export function AuthSettingsPage() {
           <Button type="button" variant="ghost" onClick={() => void signOut()}>
             <LogOut size={16} /> Sign out
           </Button>
+          <Button type="button" onClick={() => window.location.assign("/update")}>
+            Check for updates
+          </Button>
         </ButtonRow>
       }
     >
-      <IntegritasConnectPanel />
+      <Card className="grid w-full gap-4 divide-y divide-slate-200">
+        <Disclosure
+          title={
+            <span className="flex items-center gap-2">
+              <h2 className="type-title text-text-primary m-0">User settings</h2>
+            </span>
+          }
+          className="pt-4 pb-6"
+          defaultOpen={true}
+        >
+          <div className="mt-2 grid gap-10">
+            <ChangeCredentialPanel />
 
-      <MinimaSettingsPanel />
+            {TOTP_ENABLED ? (
+              <SubSection
+                icon={<ShieldCheck size={13} />}
+                title="Reset two-factor authentication"
+                description="Generates a new TOTP secret. The QR code is shown once — save it in your authenticator before closing."
+              >
+                {totpPhase === "idle" && (
+                  <form onSubmit={(e) => void handleInitTotpReset(e)} className={formClass}>
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                      <p className="m-0 flex items-center gap-2 text-sm text-amber-800">
+                        <ShieldAlert size={14} />
+                        Your current 2FA secret will be replaced. Make sure your authenticator app
+                        is available before continuing.
+                      </p>
+                    </div>
+                    <InputField
+                      label="Current PIN or password"
+                      type="password"
+                      value={resetCurrentPassword}
+                      onChange={(e) => {
+                        setResetCurrentPassword(e.target.value);
+                        setResetError(null);
+                      }}
+                      placeholder="Your current credential"
+                      autoComplete="current-password"
+                    />
+                    <InputField
+                      label="Current 2FA code"
+                      value={resetCurrentToken}
+                      onChange={(e) => {
+                        setResetCurrentToken(e.target.value.replace(/\D/g, "").slice(0, 6));
+                        setResetError(null);
+                      }}
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="000000"
+                      maxLength={6}
+                    />
+                    {resetError && <ErrorText className="m-0">{resetError}</ErrorText>}
+                    <ButtonRow>
+                      <Button
+                        type="submit"
+                        disabled={
+                          resetSubmitting ||
+                          resetCurrentPassword.length === 0 ||
+                          resetCurrentToken.length !== 6
+                        }
+                      >
+                        {resetSubmitting ? "Verifying…" : "Start 2FA reset"}
+                      </Button>
+                    </ButtonRow>
+                  </form>
+                )}
 
-      <MinimaBackupPanel />
-
-      {/* Deprecated in favor of Node backup & restore above (superset: full node backup
-          vs. wallet-keys-only). Seed-phrase-only restore is still a distinct recovery path
-          (no backup file needed) and is planned as a "coming soon" option in
-          MinimaBackupPanel for v1.5 — see docs/TASKS.md. Left commented, not deleted, for
-          an easy revert. */}
-      {/* <WalletSettingsPanel /> */}
-
-      <Card>
-        <div className="grid gap-1" style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: 0 }}>Change PIN or password</h3>
-          <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
-            {TOTP_ENABLED
-              ? "Choose a 6-digit PIN or a strong password. A valid 2FA code is also required."
-              : "Choose a 6-digit PIN or a strong password."}
-          </p>
-        </div>
-
-        {pwSuccess && (
-          <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3" style={{ marginBottom: 16 }}>
-            <p className="text-sm text-emerald-700 flex items-center gap-2" style={{ margin: 0 }}>
-              <Check size={14} /> Credential changed successfully.
-            </p>
-          </div>
-        )}
-
-        <form onSubmit={(e) => void handleChangePassword(e)} className={formClass}>
-          <label className={labelClass}>
-            Current PIN or password
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => {
-                setCurrentPassword(e.target.value);
-                setPwError(null);
-                setPwSuccess(false);
-              }}
-              placeholder="Your current credential"
-              autoComplete="current-password"
-            />
-          </label>
-          <fieldset className="grid gap-2 border-0 p-0">
-            <legend className="mb-2 font-bold text-slate-700">New credential type</legend>
-            <div className="grid max-w-md grid-cols-2 gap-2">
-              {(["pin", "password"] as const).map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  className={`rounded-xl border px-3 py-2.5 text-sm font-bold ${
-                    newCredentialType === type ? "border-slate-950 bg-slate-950 text-white" : "border-slate-300 bg-white text-slate-700"
-                  }`}
-                  aria-pressed={newCredentialType === type}
-                  onClick={() => {
-                    setNewCredentialType(type);
-                    setNewPassword("");
-                    setConfirmNewPassword("");
-                    setPwError(null);
-                    setPwSuccess(false);
-                  }}
-                >
-                  {type === "pin" ? "6-digit PIN" : "Password"}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-          <label className={labelClass}>
-            New {newCredentialLabel}
-            <input
-              type="password"
-              inputMode={newCredentialIsPin ? "numeric" : "text"}
-              pattern={newCredentialIsPin ? "[0-9]*" : undefined}
-              maxLength={newCredentialIsPin ? 6 : undefined}
-              value={newPassword}
-              onChange={(e) => {
-                setNewPassword(newCredentialIsPin ? sanitizePinInput(e.target.value) : e.target.value);
-                setPwError(null);
-                setPwSuccess(false);
-              }}
-              placeholder={newCredentialIsPin ? "000000" : "Create a strong password"}
-              autoComplete="new-password"
-            />
-          </label>
-          {!newCredentialIsPin && <PasswordRequirements password={newPassword} />}
-          <label className={labelClass}>
-            Confirm new {newCredentialLabel}
-            <input
-              type="password"
-              inputMode={newCredentialIsPin ? "numeric" : "text"}
-              pattern={newCredentialIsPin ? "[0-9]*" : undefined}
-              maxLength={newCredentialIsPin ? 6 : undefined}
-              value={confirmNewPassword}
-              onChange={(e) => {
-                setConfirmNewPassword(newCredentialIsPin ? sanitizePinInput(e.target.value) : e.target.value);
-                setPwError(null);
-                setPwSuccess(false);
-              }}
-              placeholder={`Repeat new ${newCredentialLabel}`}
-              autoComplete="new-password"
-            />
-            {!newCredentialsMatch && (
-              <span className="text-sm font-medium text-amber-700">{newCredentialIsPin ? "PINs" : "Passwords"} do not match</span>
-            )}
-          </label>
-          {TOTP_ENABLED ? (
-            <label className={labelClass}>
-              2FA code
-              <input
-                value={pwTotpToken}
-                onChange={(e) => {
-                  setPwTotpToken(e.target.value.replace(/\D/g, "").slice(0, 6));
-                  setPwError(null);
-                  setPwSuccess(false);
-                }}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                placeholder="000000"
-                maxLength={6}
-              />
-            </label>
-          ) : null}
-          {pwError && <ErrorText className="m-0">{pwError}</ErrorText>}
-          <ButtonRow>
-            <Button type="submit" disabled={pwSubmitting || !passwordFormReady}>
-              {pwSubmitting ? "Updating…" : "Change credential"}
-            </Button>
-          </ButtonRow>
-        </form>
-      </Card>
-
-      {TOTP_ENABLED ? (
-        <Card>
-          <div className="grid gap-1" style={{ marginBottom: 16 }}>
-            <h3 style={{ margin: 0 }}>Reset two-factor authentication</h3>
-            <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
-              Generates a new TOTP secret. The QR code is shown once — save it in your authenticator before closing.
-            </p>
-          </div>
-
-          {totpPhase === "idle" && (
-            <form onSubmit={(e) => void handleInitTotpReset(e)} className={formClass}>
-              <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
-                <p className="flex items-center gap-2" style={{ margin: 0, fontSize: "0.875rem", color: "#92400e" }}>
-                  <ShieldAlert size={14} />
-                  Your current 2FA secret will be replaced. Make sure your authenticator app is available before continuing.
-                </p>
-              </div>
-              <label className={labelClass}>
-                Current PIN or password
-                <input
-                  type="password"
-                  value={resetCurrentPassword}
-                  onChange={(e) => {
-                    setResetCurrentPassword(e.target.value);
-                    setResetError(null);
-                  }}
-                  placeholder="Your current credential"
-                  autoComplete="current-password"
-                />
-              </label>
-              <label className={labelClass}>
-                Current 2FA code
-                <input
-                  value={resetCurrentToken}
-                  onChange={(e) => {
-                    setResetCurrentToken(e.target.value.replace(/\D/g, "").slice(0, 6));
-                    setResetError(null);
-                  }}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder="000000"
-                  maxLength={6}
-                />
-              </label>
-              {resetError && <ErrorText className="m-0">{resetError}</ErrorText>}
-              <ButtonRow>
-                <Button type="submit" disabled={resetSubmitting || resetCurrentPassword.length === 0 || resetCurrentToken.length !== 6}>
-                  {resetSubmitting ? "Verifying…" : "Start 2FA reset"}
-                </Button>
-              </ButtonRow>
-            </form>
-          )}
-
-          {totpPhase === "scan" && qrCode && (
-            <div className="grid gap-6">
-              <div className="flex gap-6 flex-wrap items-start">
-                <img src={qrCode} alt="TOTP QR code" style={{ width: 160, height: 160, borderRadius: 12, border: "1px solid #e2e8f0" }} />
-                {totpSecret && (
-                  <div className="grid gap-3 flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-3">
-                      <span
+                {totpPhase === "scan" && qrCode && (
+                  <div className="grid gap-6">
+                    <div className="flex flex-wrap items-start gap-6">
+                      <img
+                        src={qrCode}
+                        alt="TOTP QR code"
                         style={{
-                          fontSize: "0.75rem",
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                          color: "#64748b",
+                          width: 160,
+                          height: 160,
+                          borderRadius: 12,
+                          border: "1px solid #e2e8f0",
                         }}
-                      >
-                        Manual setup key
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowManualKey((v) => !v)}
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 flex items-center gap-1"
-                      >
-                        {showManualKey ? (
-                          <>
-                            <EyeOff size={12} /> Hide
-                          </>
-                        ) : (
-                          <>
-                            <Eye size={12} /> Show
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748b" }}>
-                      Issuer: <strong>Integritas Pi</strong>, Account: <strong>Edge Workbench</strong>
-                    </p>
-                    <div className="flex gap-2">
-                      <input
-                        readOnly
-                        value={showManualKey ? totpSecret : "•".repeat(Math.min(totpSecret.length, 32))}
-                        style={{ fontFamily: "ui-monospace, monospace", fontSize: "0.875rem" }}
-                        aria-label="Authenticator setup key"
                       />
-                      <button
-                        type="button"
-                        onClick={() => void copyManualKey()}
-                        className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 flex items-center gap-1.5"
-                      >
-                        <Copy size={13} />
-                        {copyState === "copied" ? "Copied" : "Copy"}
-                      </button>
+                      {totpSecret && (
+                        <div className="grid min-w-0 flex-1 gap-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-xs font-bold tracking-wide text-text-secondary uppercase">
+                              Manual setup key
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowManualKey((v) => !v)}
+                            >
+                              {showManualKey ? (
+                                <>
+                                  <EyeOff size={12} /> Hide
+                                </>
+                              ) : (
+                                <>
+                                  <Eye size={12} /> Show
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                          <p className="type-meta text-text-secondary m-0">
+                            Issuer: <strong>Integritas Pi</strong>, Account:{" "}
+                            <strong>Edge Workbench</strong>
+                          </p>
+                          <div className="flex gap-2">
+                            <Input
+                              readOnly
+                              value={
+                                showManualKey
+                                  ? totpSecret
+                                  : "•".repeat(Math.min(totpSecret.length, 32))
+                              }
+                              className="font-mono text-sm"
+                              aria-label="Authenticator setup key"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="shrink-0"
+                              onClick={() => void copyManualKey()}
+                            >
+                              <Copy size={13} />
+                              {copyState === "copied" ? "Copied" : "Copy"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
+
+                    <form onSubmit={(e) => void handleVerifyTotpReset(e)} className={formClass}>
+                      <InputField
+                        label="Confirmation code"
+                        value={verifyCode}
+                        onChange={(e) => {
+                          setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                          setVerifyError(null);
+                        }}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        placeholder="000000"
+                        maxLength={6}
+                      />
+                      {verifyError && <ErrorText className="m-0">{verifyError}</ErrorText>}
+                      <ButtonRow>
+                        <Button
+                          type="submit"
+                          disabled={verifySubmitting || verifyCode.length !== 6}
+                        >
+                          {verifySubmitting ? "Verifying…" : "Confirm new 2FA"}
+                        </Button>
+                      </ButtonRow>
+                    </form>
                   </div>
                 )}
-              </div>
 
-              <form onSubmit={(e) => void handleVerifyTotpReset(e)} className={formClass}>
-                <label className={labelClass}>
-                  Confirmation code
-                  <input
-                    value={verifyCode}
-                    onChange={(e) => {
-                      setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                      setVerifyError(null);
-                    }}
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    placeholder="000000"
-                    maxLength={6}
-                  />
-                </label>
-                {verifyError && <ErrorText className="m-0">{verifyError}</ErrorText>}
-                <ButtonRow>
-                  <Button type="submit" disabled={verifySubmitting || verifyCode.length !== 6}>
-                    {verifySubmitting ? "Verifying…" : "Confirm new 2FA"}
-                  </Button>
-                </ButtonRow>
-              </form>
-            </div>
-          )}
+                {totpPhase === "done" && (
+                  <div className="grid gap-4">
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                      <p className="m-0 flex items-center gap-2 text-sm text-emerald-700">
+                        <CheckCircle2 size={14} />
+                        Two-factor authentication has been reset. Your authenticator app is now
+                        linked to the new secret.
+                      </p>
+                    </div>
+                    <ButtonRow>
+                      <Button type="button" onClick={resetTotpFlow}>
+                        <RotateCcw size={14} /> Reset again
+                      </Button>
+                    </ButtonRow>
+                  </div>
+                )}
+              </SubSection>
+            ) : null}
+          </div>
+        </Disclosure>
 
-          {totpPhase === "done" && (
-            <div className="grid gap-4">
-              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3">
-                <p className="flex items-center gap-2" style={{ margin: 0, fontSize: "0.875rem", color: "#065f46" }}>
-                  <CheckCircle2 size={14} />
-                  Two-factor authentication has been reset. Your authenticator app is now linked to the new secret.
-                </p>
-              </div>
-              <ButtonRow>
-                <Button type="button" onClick={resetTotpFlow}>
-                  <RotateCcw size={14} /> Reset again
-                </Button>
-              </ButtonRow>
-            </div>
-          )}
-        </Card>
-      ) : null}
+        <Disclosure
+          title={
+            <span className="flex items-center gap-2">
+              <h2 className="type-title text-text-primary m-0">Integritas settings</h2>
+              {integritasKind && (
+                <Pill tone={integritasStatusTone[integritasKind]}>
+                  {integritasStatusLabel[integritasKind]}
+                </Pill>
+              )}
+            </span>
+          }
+          className="pt-4 pb-6"
+          defaultOpen={true}
+        >
+          <div className="mt-2 grid gap-10">
+            <SubSection
+              icon={<Link2 size={13} />}
+              title="Integritas Connect"
+              description="Stamp proofs and sync plan usage with your Integritas Connect account."
+            >
+              <IntegritasConnectPanel bare auth={integritasAuth} />
+            </SubSection>
+          </div>
+        </Disclosure>
 
-      <Card>
-        <div className="flex items-center gap-2 font-bold">
-          <Tag size={18} /> Version
-        </div>
+        <Disclosure
+          title={
+            <span className="flex items-center gap-2">
+              <h2 className="type-title text-text-primary m-0">Minima settings</h2>
+              <Pill tone={minimaState ? nodeStateTone(minimaState) : "neutral"}>
+                {minimaState ? formatNodeState(minimaState) : "Checking…"}
+              </Pill>
+            </span>
+          }
+          className="pt-4 pb-6"
+          defaultOpen={true}
+        >
+          <div className="mt-2 grid gap-10">
+            <MinimaSettingsPanel bare minimaState={minimaState} />
+
+            <SubSection
+              icon={<Database size={13} />}
+              title="Node backup & restore"
+              description="Full node backups include the seed phrase, private keys, coin proofs, and transaction history — a superset of a plain seed-phrase wallet import."
+            >
+              <MinimaBackupPanel bare minimaState={minimaState} />
+            </SubSection>
+
+            {/* Deprecated in favor of Node backup & restore above (superset: full node backup
+                vs. wallet-keys-only). Seed-phrase-only restore is still a distinct recovery path
+                (no backup file needed) and is planned as a "coming soon" option in
+                MinimaBackupPanel for v1.5 — see docs/TASKS.md. Left commented, not deleted, for
+                an easy revert. */}
+            {/* <WalletSettingsPanel /> */}
+          </div>
+        </Disclosure>
+
+        {/* Version box deprecated in favor of the version indicator in the sidebar
+          corner and the "Check for updates" button next to Sign out. Left commented,
+          not deleted, for an easy revert. */}
+        {/* <Disclosure title="Version" className="pt-4" defaultOpen={false}>
         <p className="mt-2 tabular-nums text-slate-500">{currentVersion ?? "Unknown"}</p>
         <ButtonRow className="mt-3">
           <a
@@ -446,6 +388,7 @@ export function AuthSettingsPage() {
             Check for updates
           </a>
         </ButtonRow>
+      </Disclosure> */}
       </Card>
     </Page>
   );
