@@ -92,5 +92,6 @@ Read the rules relevant to the area you're working in before editing:
 | [.claude/rules/update-agent.md](.claude/rules/update-agent.md) | Update Agent service rules |
 | [.claude/rules/verification.md](.claude/rules/verification.md) | Commands to run before finishing changes |
 | [.claude/rules/documenting-work.md](.claude/rules/documenting-work.md) | Task summaries, doc updates, changelog policy |
+| [.claude/rules/adr.md](.claude/rules/adr.md) | Where decision rationale goes (not changelog/comments/commits) |
 
 Also see `docs/PROJECT.md` (goals/constraints), `docs/TASKS.md` (current work), and `SECURITY.md` (security policy).
