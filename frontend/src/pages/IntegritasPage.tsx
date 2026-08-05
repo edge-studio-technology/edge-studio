@@ -1,143 +1,114 @@
-import { useEffect, useState } from 'react';
-import type { IntegritasConfig } from '../app/types';
-import { JsonPreview } from '../components/JsonPreview';
-import { Modal } from '../components/Modal';
-import { Page } from '../components/Page';
-import { IconButton } from '../components/Button';
-import { useToast } from '../components/ToastProvider';
-import { getJson } from '../lib/api';
-import { stampFile, verifyProofFile } from '../features/integritas/integritasApi';
-import { integritasErrorToast } from '../features/integritas/integritasErrors';
-import { IntegritasRuntimeConfig } from '../features/integritas/IntegritasRuntimeConfig';
-import { StampFilePanel } from '../features/integritas/StampFilePanel';
-import { StampResultModal } from '../features/integritas/StampResultModal';
-import type { IntegritasProofRecord } from '../features/integritas/integritasTypes';
-import { VerifyProofPanel } from '../features/integritas/VerifyProofPanel';
-import { SettingsIcon } from 'lucide-react';
+import { useState } from "react";
+import { Page } from "../components/patterns/Page";
+import { useToast } from "../components/ToastProvider";
+import { Card } from "../components/ui/Card";
+import { TabList } from "../components/ui/TabList";
+import { stampFile, verifyProofFile } from "../features/integritas/integritasApi";
+import { integritasErrorToast } from "../features/integritas/integritasErrors";
+import { StampFilePanel } from "../features/integritas/StampFilePanel";
+import type { IntegritasProofRecord } from "../features/integritas/integritasTypes";
+import { VerifyProofPanel } from "../features/integritas/VerifyProofPanel";
+
+type IntegritasTab = "stamp" | "verify";
+
+type VerifySuccess = {
+  response: unknown;
+};
 
 export function IntegritasPage() {
   const { showToast } = useToast();
-  const [config, setConfig] = useState<IntegritasConfig | null>(null);
+  const [tab, setTab] = useState<IntegritasTab>("stamp");
   const [stampUpload, setStampUpload] = useState<File | null>(null);
   const [verifyUpload, setVerifyUpload] = useState<File | null>(null);
-  const [stampModalRecord, setStampModalRecord] =
-    useState<IntegritasProofRecord | null>(null);
-  const [stampModalDetails, setStampModalDetails] = useState<unknown>(null);
-  const [verifyResult, setVerifyResult] = useState<unknown>(null);
-  const [result, setResult] = useState<unknown>(null);
-  const [busy, setBusy] = useState(false);
-  const [configOpen, setConfigOpen] = useState(false);
-
-  useEffect(() => {
-    refreshConfig().catch((err: Error) => {
-      showToast({
-        tone: 'error',
-        title: 'Could not load Integritas config',
-        message: err.message,
-      });
-    });
-  }, []);
-
-  async function refreshConfig() {
-    setConfig(await getJson<IntegritasConfig>('/api/integritas/config'));
-  }
+  const [stampResultRecord, setStampResultRecord] = useState<IntegritasProofRecord | null>(null);
+  const [stampResultDetails, setStampResultDetails] = useState<unknown>(null);
+  const [verifyResult, setVerifyResult] = useState<VerifySuccess | null>(null);
+  const [busyAction, setBusyAction] = useState<"stamp" | "verify" | null>(null);
 
   function showIntegritasError(error: unknown) {
     const { title, message } = integritasErrorToast(error);
-    showToast({ tone: 'error', title, message, timeoutMs: 9000 });
-    const err = error as { errorCode?: string };
-    if (err.errorCode === 'unauthorized') {
-      setConfigOpen(true);
-    }
+    showToast({ tone: "error", title, message, timeoutMs: 9000 });
   }
 
-  async function run(action: () => Promise<unknown>, showResult = true) {
-    setBusy(true);
+  async function run(action: "stamp" | "verify", fn: () => Promise<unknown>) {
+    setBusyAction(action);
     try {
-      const response = await action();
-      if (showResult) setResult(response);
-      return response;
+      return await fn();
     } catch (err) {
       showIntegritasError(err);
       return null;
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   }
 
   return (
     <Page
-      eyebrow='Integritas'
-      title='Prove local data'
-      desc='Generate timestamp proofs from local files, poll proof status, export proof payloads, and verify JSON proof files.'
-      action={
-        <IconButton
-          variant='primary'
-          onClick={() => setConfigOpen(true)}
-        >
-          <SettingsIcon size={20} />
-        </IconButton>
-      }
+      title="Prove local data"
+      desc="Stamp a local file to generate a timestamp proof. Verify an existing proof JSON when you need to check one."
     >
-      {configOpen && (
-        <Modal
-          title='Runtime configuration'
-          onClose={() => setConfigOpen(false)}
-        >
-          <IntegritasRuntimeConfig config={config} />
-        </Modal>
-      )}
-
-      {stampModalRecord && (
-        <StampResultModal
-          record={stampModalRecord}
-          technicalDetails={stampModalDetails ?? undefined}
-          onClose={() => {
-            setStampModalRecord(null);
-            setStampModalDetails(null);
-          }}
+      <Card className="gap-detail-close flex w-full flex-col">
+        <TabList
+          label="Integritas actions"
+          value={tab}
+          options={[
+            { value: "stamp", label: "Stamp a file" },
+            { value: "verify", label: "Verify a proof file" },
+          ]}
+          onChange={setTab}
         />
-      )}
 
-      <div className='grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]'>
-        <StampFilePanel
-          file={stampUpload}
-          setFile={setStampUpload}
-          busy={busy}
-          onStamp={() =>
-            run(async () => {
-              if (!stampUpload) throw new Error('Select a file first');
-              const response = await stampFile(stampUpload);
-              setStampUpload(null);
-              setStampModalRecord(response.record);
-              setStampModalDetails(response);
-              return response;
-            }, false)
-          }
-        />
-        <VerifyProofPanel
-          file={verifyUpload}
-          setFile={(file) => {
-            setVerifyUpload(file);
-            setVerifyResult(null);
-          }}
-          busy={busy}
-          result={verifyResult}
-          onVerifyFile={() =>
-            run(async () => {
-              if (!verifyUpload)
-                throw new Error('Select a proof JSON file first');
-              const response = await verifyProofFile(verifyUpload);
-              setVerifyUpload(null);
-              setVerifyResult(response);
-              setResult(null);
-              return response;
-            }, false)
-          }
-        />
-      </div>
-
-      {result !== null && <JsonPreview value={result} />}
+        {tab === "stamp" ? (
+          <StampFilePanel
+            file={stampUpload}
+            setFile={(file) => {
+              setStampUpload(file);
+              if (file) {
+                setStampResultRecord(null);
+                setStampResultDetails(null);
+              }
+            }}
+            busy={busyAction !== null}
+            resultRecord={stampResultRecord}
+            resultDetails={stampResultDetails}
+            onClearResult={() => {
+              setStampResultRecord(null);
+              setStampResultDetails(null);
+            }}
+            onStamp={() =>
+              run("stamp", async () => {
+                if (!stampUpload) throw new Error("Select a file first");
+                const response = await stampFile(stampUpload);
+                setStampUpload(null);
+                setStampResultRecord(response.record);
+                setStampResultDetails(response);
+                return response;
+              })
+            }
+          />
+        ) : (
+          <VerifyProofPanel
+            file={verifyUpload}
+            setFile={(file) => {
+              setVerifyUpload(file);
+              if (file) setVerifyResult(null);
+            }}
+            busy={busyAction !== null}
+            loading={busyAction === "verify"}
+            result={verifyResult}
+            onClearResult={() => setVerifyResult(null)}
+            onVerifyFile={() =>
+              run("verify", async () => {
+                if (!verifyUpload) throw new Error("Select a proof JSON file first");
+                const response = await verifyProofFile(verifyUpload);
+                setVerifyUpload(null);
+                setVerifyResult({ response: response.response });
+                return response;
+              })
+            }
+          />
+        )}
+      </Card>
     </Page>
   );
 }

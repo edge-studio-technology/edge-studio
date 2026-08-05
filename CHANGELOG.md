@@ -4,7 +4,25 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased]
+## [0.29.1] 2026-08-04
+
+### Added
+
+- Integritas verify shows an in-panel loading result shell (with bouncing dots) while a proof file upload is in progress; the selected-file remove control is disabled while stamp/verify is busy.
+
+### Changed
+
+- Moved `ButtonRow` into `components/patterns/` with design-system spacing (`gap-detail-next`); flat re-export kept.
+- Integritas stamp and verify failures that return HTTP 402 (plan/API limit) are now classified as `payment_required` and show an upgrade toast (and a clear automation stamp error) instead of a generic stamp/verify failure.
+- Integritas “Prove local data” now switches stamp and verify with tabs in one card instead of side-by-side panels
+- File drop zones on Integritas stamp/verify use the shared upload pattern (clear selected file, design-system styling). Verify accepts JSON only and shows an error toast when another type is dropped.
+- Stamp and verify success stay in-panel (status badge, file/hash, next steps) instead of resetting to an empty drop zone and showing a card below the grid.
+- Integritas stamp/verify receipts: status pill + stamp fields (file/UID/hash) and a Diagnostics link; verify shows Full match / No match only. Stamp result actions use matching compact secondary controls (`JsonPreview` button variant).
+- `JsonPreview` button variant no longer forces full width; pass `className="w-full"` when needed.
+
+### Removed
+
+- Runtime configuration modal on the Integritas Prove page (Connect link status, `baseUrl`, `requestId`, and related debug fields).
 
 ### Added
 

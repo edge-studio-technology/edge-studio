@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
+import { cx } from "../../lib/cx";
 
 export function JsonPreview({
   value,
@@ -9,12 +10,14 @@ export function JsonPreview({
   variant = "link",
   icon,
   disabled = false,
+  className,
 }: {
   value: unknown;
   label?: string;
   variant?: "link" | "button";
   icon?: ReactNode;
   disabled?: boolean;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -25,7 +28,7 @@ export function JsonPreview({
           type="button"
           size="sm"
           variant="secondary"
-          className="w-full"
+          className={className}
           disabled={disabled}
           onClick={() => setOpen(true)}
         >
@@ -36,7 +39,10 @@ export function JsonPreview({
         <button
           type="button"
           disabled={disabled}
-          className="type-meta text-text-accent border-0 bg-transparent p-0 font-semibold underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-55"
+          className={cx(
+            "type-meta text-text-accent border-0 bg-transparent p-0 font-semibold underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-55",
+            className,
+          )}
           onClick={() => setOpen(true)}
         >
           {label}

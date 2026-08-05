@@ -79,7 +79,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Card](#card): white card surface
 - [MetricCard](#metriccard): compact metric / status card
 - [Button / IconButton](#button): text and icon-only buttons
-- `ButtonRow`: wrapping button group
+- [ButtonRow](#buttonrow): wrapping button group
 - [Pill](#pill): status / tag pill
 - [ProgressBar](#progressbar): step progress bar
 - [CheckboxField](#checkboxfield): labeled checkbox
@@ -111,6 +111,24 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `JsonPreview`: trigger that opens a modal with pretty-printed JSON
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
+
+### ButtonRow
+
+Wrapping horizontal group for buttons and button-like actions (`frontend/src/components/patterns/ButtonRow.tsx`): flex wrap, `gap-detail-next`, centered on the cross axis. Pass actions as `children` (`Button`, links, etc.). Flat `components/ButtonRow.tsx` re-exports for now.
+
+| Prop        | Notes                          |
+| ----------- | ------------------------------ |
+| `children`  | Action controls to lay out     |
+| `className` | Merged onto the outer flex row |
+
+```tsx
+<ButtonRow>
+  <Button type="button">Save</Button>
+  <Button type="button" variant="secondary">
+    Cancel
+  </Button>
+</ButtonRow>
+```
 
 ### Button
 
