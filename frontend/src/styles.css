@@ -30,6 +30,7 @@
   --color-surface-secondary: var(--color-grey-02);
   --color-surface-tertiary: var(--color-grey-03);
   --color-surface-inverse: var(--color-core-black);
+  --color-surface-inverse-hover: var(--color-grey-06);
   --color-surface-always-white: var(--color-core-white);
   --color-surface-always-black: var(--color-core-black);
   --color-surface-accent: var(--color-brand-01);

@@ -2,9 +2,9 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cx } from "../../lib/cx";
 
 /**
- * App-only: danger | onDark (keep until those surfaces are redesigned).
+ * App-only: `danger` (keep until that surface is redesigned).
  */
-type ButtonVariant = "primary" | "secondary" | "ghost" | "accent" | "danger" | "onDark";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "accent" | "danger";
 /**
  * Default → md (44px), Compact → sm (32px).
  * TODO(migrate): `xs` is an alias of `sm` — replace call sites with `sm`, then remove `xs`.
@@ -24,8 +24,6 @@ const variantClass: Record<ButtonVariant, string> = {
     "border-transparent bg-surface-accent text-text-inverse enabled:hover:bg-surface-accent-hover disabled:bg-surface-secondary disabled:text-text-disabled",
   danger:
     "border-transparent bg-feedback-error text-text-inverse disabled:bg-surface-secondary disabled:text-text-disabled",
-  onDark:
-    "border-stroke-always-white bg-overlay-light text-text-inverse enabled:hover:bg-overlay-heavy disabled:bg-overlay-light disabled:text-text-disabled",
 };
 
 const iconButtonVariantClass: Record<IconButtonVariant, string> = {
