@@ -3,6 +3,7 @@ import { ExternalLink, Link2, RefreshCw } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
+import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { ErrorText, MutedText } from "../../components/Text";
 import type { IntegritasConfig, Tone } from "../../app/types";
 import { getJson } from "../../lib/api";
@@ -106,18 +107,17 @@ export function IntegritasConnectPanel({
           </MutedText>
 
           <ButtonRow className="border-t border-slate-200 pt-4">
-            <a
-              className="inline-flex w-fit items-center justify-center gap-2 rounded-2xl border border-transparent bg-slate-950 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800"
-              href={status.verificationUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(event) => {
-                if (openVerification()) event.preventDefault();
+            <Button
+              type="button"
+              iconStart={<ExternalLink aria-hidden="true" />}
+              onClick={() => {
+                if (!openVerification()) {
+                  window.open(status.verificationUrl, "_blank", "noopener,noreferrer");
+                }
               }}
             >
-              <ExternalLink size={14} />
               Connect account
-            </a>
+            </Button>
           </ButtonRow>
         </div>
       )}
@@ -129,31 +129,22 @@ export function IntegritasConnectPanel({
           </MutedText>
           {hasConnectedProfile(status) ? (
             <>
-              <dl className="m-0 grid gap-3 border-t border-slate-200 pt-4">
-                <div className="grid gap-1 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-3">
-                  <dt className="m-0 text-sm font-medium text-slate-500">Name</dt>
-                  <dd className="m-0 text-sm text-slate-800">{status.user.name}</dd>
-                </div>
-                <div className="grid gap-1 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-3">
-                  <dt className="m-0 text-sm font-medium text-slate-500">Email</dt>
-                  <dd className="m-0 text-sm break-all text-slate-800">{status.user.email}</dd>
-                </div>
-                <div className="grid gap-1 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-3">
-                  <dt className="m-0 text-sm font-medium text-slate-500">Plan</dt>
-                  <dd className="m-0 text-sm text-slate-800">
-                    {status.plan.name}
-                    {status.plan.status ? (
-                      <span className="text-slate-500"> ({status.plan.status})</span>
-                    ) : null}
-                  </dd>
-                </div>
-                <div className="grid gap-1 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-3">
-                  <dt className="m-0 text-sm font-medium text-slate-500">Usage left</dt>
-                  <dd className="m-0 text-sm text-slate-800">
-                    {formatUsageRemaining(status.usage.remaining)}
-                  </dd>
-                </div>
-              </dl>
+              <DetailList>
+                <DetailRow label="Name" value={status.user.name} />
+                <DetailRow label="Email" value={status.user.email} />
+                <DetailRow
+                  label="Plan"
+                  value={
+                    <>
+                      {status.plan.name}
+                      {status.plan.status ? (
+                        <span className="text-slate-500"> ({status.plan.status})</span>
+                      ) : null}
+                    </>
+                  }
+                />
+                <DetailRow label="Usage left" value={formatUsageRemaining(status.usage.remaining)} />
+              </DetailList>
             </>
           ) : (
             <MutedText className="m-0">

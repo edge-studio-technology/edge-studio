@@ -101,6 +101,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `CredentialInput`: PIN or password field
 - `DataTable`: table shell and rows
 - `StatusRow`: label / value / status row
+- [DetailList](#detaillist): label / value detail rows
 - [StatusBar](#statusbar): app shell status chrome
 - `ListPagerFilterBar`: list filter and pager
 - `Pagination`: prev/next page strip
@@ -503,6 +504,24 @@ Standalone compact metric tile (`frontend/src/components/patterns/MetricCard.tsx
   description="Primary Pi Wallet"
 />
 <MetricCard label="Node status" loading={loading} value="Running" status="success" />
+```
+
+### DetailList
+
+Label/value detail rows (`frontend/src/components/patterns/DetailList.tsx`): `DetailList` is the `<dl>` wrapper, `DetailRow` is one label/value pair. Prefer this for read-only config/profile detail blocks instead of hand-rolled `<dl>`/`<dt>`/`<dd>` markup.
+
+| Prop (`DetailRow`) | Notes                                                              |
+| ------------------- | ------------------------------------------------------------------- |
+| `label`             | Row label (`ReactNode`)                                             |
+| `value`             | Row value (`ReactNode`)                                             |
+| `mono`              | Monospace value, for technical strings like hosts/IDs (default off) |
+| `className`         | Merged onto the row grid — override to widen the label column       |
+
+```tsx
+<DetailList className="border-t border-stroke-secondary pt-4">
+  <DetailRow label="Name" value={user.name} />
+  <DetailRow label="baseUrl" value={config.baseUrl} mono />
+</DetailList>
 ```
 
 ### StatusBar

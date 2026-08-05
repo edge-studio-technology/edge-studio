@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Shared `DetailList`/`DetailRow` (`components/patterns/`) for label/value detail rows, replacing hand-rolled `<dl>` markup duplicated across the Megammr host config and Integritas Connect profile panels.
+
+### Changed
+
+- Account settings page and its Minima backup/Integritas Connect panels: replaced hand-rolled icon buttons and inline-hex-styled text with the shared `Button`/`IconButton` components and ESDS text-color tokens, for visual consistency with the rest of the design system.
+- Backups/peers list inside `ListDisclosure` now scrolls within a fixed max height instead of growing the page unbounded.
+
 ## [0.29.0] 2026-08-04
 
 ### Changed

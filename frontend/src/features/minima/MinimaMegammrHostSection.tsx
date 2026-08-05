@@ -2,17 +2,11 @@ import { Globe } from "lucide-react";
 import type { MinimaConfig } from "../../app/types";
 import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
+import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { SubSection } from "../../components/patterns/SubSection";
 import { InputField } from "../../components/ui/InputField";
 
-function ConfigDetail({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid gap-1 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-3">
-      <dt className="m-0 text-sm font-medium text-slate-500">{label}</dt>
-      <dd className="m-0 min-w-0 font-mono text-sm text-slate-800 break-all">{value}</dd>
-    </div>
-  );
-}
+const detailRowClass = "sm:grid-cols-[11rem_minmax(0,1fr)]";
 
 export function MinimaMegammrHostSection({
   config,
@@ -48,10 +42,20 @@ export function MinimaMegammrHostSection({
           </ButtonRow>
         </div>
 
-        <dl className="m-0 grid gap-3 border-t border-slate-200 pt-4">
-          <ConfigDetail label="megammrHost" value={config?.megammrHost ?? "loading..."} />
-          <ConfigDetail label="megammrHostSource" value={config?.megammrHostSource ?? "loading..."} />
-        </dl>
+        <DetailList>
+          <DetailRow
+            label="megammrHost"
+            value={config?.megammrHost ?? "loading..."}
+            mono
+            className={detailRowClass}
+          />
+          <DetailRow
+            label="megammrHostSource"
+            value={config?.megammrHostSource ?? "loading..."}
+            mono
+            className={detailRowClass}
+          />
+        </DetailList>
       </div>
     </SubSection>
   );

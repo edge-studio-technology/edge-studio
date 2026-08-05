@@ -171,10 +171,7 @@ export function AuthSettingsPage() {
                 {totpPhase === "idle" && (
                   <form onSubmit={(e) => void handleInitTotpReset(e)} className={formClass}>
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                      <p
-                        className="flex items-center gap-2"
-                        style={{ margin: 0, fontSize: "0.875rem", color: "#92400e" }}
-                      >
+                      <p className="m-0 flex items-center gap-2 text-sm text-amber-800">
                         <ShieldAlert size={14} />
                         Your current 2FA secret will be replaced. Make sure your authenticator app
                         is available before continuing.
@@ -235,21 +232,14 @@ export function AuthSettingsPage() {
                       {totpSecret && (
                         <div className="grid min-w-0 flex-1 gap-3">
                           <div className="flex items-center justify-between gap-3">
-                            <span
-                              style={{
-                                fontSize: "0.75rem",
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.1em",
-                                color: "#64748b",
-                              }}
-                            >
+                            <span className="text-xs font-bold tracking-wide text-text-secondary uppercase">
                               Manual setup key
                             </span>
-                            <button
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="sm"
                               onClick={() => setShowManualKey((v) => !v)}
-                              className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700"
                             >
                               {showManualKey ? (
                                 <>
@@ -260,9 +250,9 @@ export function AuthSettingsPage() {
                                   <Eye size={12} /> Show
                                 </>
                               )}
-                            </button>
+                            </Button>
                           </div>
-                          <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748b" }}>
+                          <p className="type-meta text-text-secondary m-0">
                             Issuer: <strong>Integritas Pi</strong>, Account:{" "}
                             <strong>Edge Workbench</strong>
                           </p>
@@ -274,20 +264,19 @@ export function AuthSettingsPage() {
                                   ? totpSecret
                                   : "•".repeat(Math.min(totpSecret.length, 32))
                               }
-                              style={{
-                                fontFamily: "ui-monospace, monospace",
-                                fontSize: "0.875rem",
-                              }}
+                              className="font-mono text-sm"
                               aria-label="Authenticator setup key"
                             />
-                            <button
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="shrink-0"
                               onClick={() => void copyManualKey()}
-                              className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
                             >
                               <Copy size={13} />
                               {copyState === "copied" ? "Copied" : "Copy"}
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       )}
@@ -322,10 +311,7 @@ export function AuthSettingsPage() {
                 {totpPhase === "done" && (
                   <div className="grid gap-4">
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                      <p
-                        className="flex items-center gap-2"
-                        style={{ margin: 0, fontSize: "0.875rem", color: "#065f46" }}
-                      >
+                      <p className="m-0 flex items-center gap-2 text-sm text-emerald-700">
                         <CheckCircle2 size={14} />
                         Two-factor authentication has been reset. Your authenticator app is now
                         linked to the new secret.
@@ -383,7 +369,11 @@ export function AuthSettingsPage() {
           <div className="mt-2 grid gap-10">
             <MinimaSettingsPanel bare minimaState={minimaState} />
 
-            <SubSection icon={<Database size={13} />} title="Node backup & restore">
+            <SubSection
+              icon={<Database size={13} />}
+              title="Node backup & restore"
+              description="Full node backups include the seed phrase, private keys, coin proofs, and transaction history — a superset of a plain seed-phrase wallet import."
+            >
               <MinimaBackupPanel bare minimaState={minimaState} />
             </SubSection>
 

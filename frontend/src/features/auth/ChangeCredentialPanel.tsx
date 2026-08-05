@@ -64,11 +64,8 @@ export function ChangeCredentialPanel() {
       }
     >
       {pwSuccess && (
-        <div
-          className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"
-          style={{ marginBottom: 16 }}
-        >
-          <p className="flex items-center gap-2 text-sm text-emerald-700" style={{ margin: 0 }}>
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+          <p className="m-0 flex items-center gap-2 text-sm text-emerald-700">
             <Check size={14} /> Credential changed successfully.
           </p>
         </div>

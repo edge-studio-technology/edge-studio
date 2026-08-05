@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Download, KeyRound, RotateCcw, Trash2, Upload } from "lucide-react";
 import type { MinimaBackupEntry, MinimaBackupListResponse, MinimaNodeState } from "../../app/types";
-import { Button } from "../../components/Button";
+import { Button, IconButton } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
 import { LoadingDots } from "../../components/LoadingDots";
@@ -73,32 +73,36 @@ function BackupRow({
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
-        <button
-          type="button"
+        <IconButton
+          size="compact"
+          variant="ghost"
           title="Download"
+          aria-label={`Download ${backup.fileName}`}
           onClick={onDownload}
-          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
         >
-          <Download size={14} />
-        </button>
-        <button
-          type="button"
+          <Download />
+        </IconButton>
+        <IconButton
+          size="compact"
+          variant="ghost"
           title="Restore"
+          aria-label={`Restore ${backup.fileName}`}
           disabled={actionsBlocked}
           onClick={onRestore}
-          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
         >
-          <RotateCcw size={14} />
-        </button>
-        <button
-          type="button"
+          <RotateCcw />
+        </IconButton>
+        <IconButton
+          size="compact"
+          variant="ghost"
           title="Delete"
+          aria-label={`Delete ${backup.fileName}`}
           disabled={deleting}
           onClick={onDelete}
-          className="rounded-lg border border-slate-200 bg-white p-2 text-red-600 hover:bg-red-50 disabled:opacity-40"
+          className="text-feedback-error hover:border-feedback-error"
         >
-          <Trash2 size={14} />
-        </button>
+          <Trash2 />
+        </IconButton>
       </div>
     </div>
   );
@@ -350,13 +354,15 @@ export function MinimaBackupPanel({
 
   const content = (
     <>
-      <div className="mb-4 grid gap-1">
-        {!bare && <h3 style={{ margin: 0 }}>Node backup & restore</h3>}
-        <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
-          Full node backups include the seed phrase, private keys, coin proofs, and transaction
-          history — a superset of a plain seed-phrase wallet import.
-        </p>
-      </div>
+      {!bare && (
+        <div className="mb-4 grid gap-1">
+          <h3 style={{ margin: 0 }}>Node backup & restore</h3>
+          <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
+            Full node backups include the seed phrase, private keys, coin proofs, and transaction
+            history — a superset of a plain seed-phrase wallet import.
+          </p>
+        </div>
+      )}
 
       {hasPassword === false && (
         <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
@@ -371,25 +377,26 @@ export function MinimaBackupPanel({
           <Button onClick={() => void handleCreateBackup()} disabled={creating || actionsBlocked || !hasPassword}>
             {creating ? "Backing up…" : "Backup now"}
           </Button>
-          <button
-            type="button"
+          <IconButton
+            size="compact"
+            variant="ghost"
             title={hasPassword ? "Manage backup password" : "Set backup password"}
+            aria-label={hasPassword ? "Manage backup password" : "Set backup password"}
             onClick={openPasswordModal}
-            className={`rounded-lg border p-2 hover:bg-slate-50 ${
-              hasPassword === false ? "border-amber-300 text-amber-700 bg-amber-50" : "border-slate-200 bg-white text-slate-600"
-            }`}
+            className={hasPassword === false ? "border-amber-300 bg-amber-50 text-amber-700" : undefined}
           >
-            <KeyRound size={16} />
-          </button>
-          <button
-            type="button"
+            <KeyRound />
+          </IconButton>
+          <IconButton
+            size="compact"
+            variant="ghost"
             title="Restore from backup"
+            aria-label="Restore from backup"
             onClick={openUploadRestore}
             disabled={actionsBlocked}
-            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
           >
-            <Upload size={16} />
-          </button>
+            <Upload />
+          </IconButton>
 
           <CheckboxField
             className="shrink-0"

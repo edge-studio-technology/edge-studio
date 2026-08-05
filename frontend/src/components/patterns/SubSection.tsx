@@ -15,14 +15,12 @@ export function SubSection({
   className?: string;
 }) {
   return (
-    <div className={"pl-3 " + className}>
-      <h4 className="mb-2 flex items-center gap-1.5 text-sm font-bold tracking-wide text-slate-500">
+    <div className={"pl-4 " + className}>
+      <h4 className="text-text-secondary mb-2 flex items-center gap-1.5 text-sm font-bold tracking-wide">
         {icon} {title}
       </h4>
-      {description ? (
-        <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>{description}</p>
-      ) : null}
-      <div className="mt-2 grid">{children}</div>
+      {description ? <p className="type-body text-text-secondary m-0">{description}</p> : null}
+      <div className="mt-4 grid">{children}</div>
     </div>
   );
 }
