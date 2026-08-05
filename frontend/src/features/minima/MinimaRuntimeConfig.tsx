@@ -1,8 +1,8 @@
+import { Cpu, Globe, Users } from "lucide-react";
 import type { MinimaConfig, MinimaPeersResponse } from "../../app/types";
 import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
-
-const sectionTitleClass = "m-0 text-sm font-semibold text-slate-900";
+import { SubSection } from "../../components/patterns/SubSection";
 
 function ConfigDetail({ label, value }: { label: string; value: string }) {
   return (
@@ -45,37 +45,40 @@ export function MinimaRuntimeConfig({
         : "Unavailable";
 
   return (
-    <section className="grid min-w-0 gap-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h4 className={`${sectionTitleClass} mb-3`}>Runtime configuration</h4>
+    <div className="grid min-w-0 gap-6">
+      <SubSection icon={<Cpu size={13} />} title="Runtime configuration">
         <dl className="m-0 grid gap-3">
           <ConfigDetail label="megammrHost" value={config?.megammrHost ?? "loading..."} />
           <ConfigDetail label="megammrHostSource" value={config?.megammrHostSource ?? "loading..."} />
         </dl>
-      </div>
+      </SubSection>
 
-      <div className="grid min-w-[min(100%,360px)] gap-2.5 rounded-2xl border border-slate-200 bg-white p-4">
-        <h4 className={`${sectionTitleClass} mb-3`}>Megammr host</h4>
-        <input
-          value={megammrHostInput}
-          onChange={(event) => setMegammrHostInput(event.target.value)}
-          placeholder="megammr.minima.global:9001"
-          aria-label="Megammr host"
-        />
-        <ButtonRow>
-          <Button type="button" disabled={busy || !megammrHostInput.trim()} onClick={onSave}>
-            Save configuration
-          </Button>
-        </ButtonRow>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <h4 className={sectionTitleClass}>Peer connections</h4>
-          <p className="m-0 text-sm text-slate-500">{peersSummary}</p>
+      <SubSection icon={<Globe size={13} />} title="Megammr host">
+        <div className="grid min-w-[min(100%,360px)] gap-2.5">
+          <input
+            value={megammrHostInput}
+            onChange={(event) => setMegammrHostInput(event.target.value)}
+            placeholder="megammr.minima.global:9001"
+            aria-label="Megammr host"
+          />
+          <ButtonRow>
+            <Button type="button" disabled={busy || !megammrHostInput.trim()} onClick={onSave}>
+              Save configuration
+            </Button>
+          </ButtonRow>
         </div>
+      </SubSection>
 
-        <div className="grid min-w-[min(100%,360px)] gap-2.5 border-0 bg-transparent p-0">
+      <SubSection
+        icon={<Users size={13} />}
+        title={
+          <span className="flex flex-1 flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <span>Peer connections</span>
+            <span className="text-xs font-normal normal-case tracking-normal text-slate-500">{peersSummary}</span>
+          </span>
+        }
+      >
+        <div className="grid min-w-[min(100%,360px)] gap-2.5">
           <input
             value={peerslistInput}
             onChange={(event) => setPeerslistInput(event.target.value)}
@@ -106,7 +109,7 @@ export function MinimaRuntimeConfig({
         <p className="mb-0 mt-3 text-xs leading-5 text-slate-500">
           Active peer count on the health card reflects live P2P connections, not this list.
         </p>
-      </div>
-    </section>
+      </SubSection>
+    </div>
   );
 }

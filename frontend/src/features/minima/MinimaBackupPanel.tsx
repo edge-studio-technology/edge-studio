@@ -103,14 +103,14 @@ function BackupRow({
 
 function BackupSection({ title, count, max, children }: { title: string; count: number; max: number; children: ReactNode }) {
   return (
-    <details className="group rounded-xl border border-slate-200 bg-slate-50">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 [&::-webkit-details-marker]:hidden">
+    <details className="group border-t border-slate-200 pt-4">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 [&::-webkit-details-marker]:hidden">
         <span>
           {title} ({count}/{max})
         </span>
         <span className="text-slate-400 transition-transform group-open:rotate-90">›</span>
       </summary>
-      <div className="grid gap-1.5 border-t border-slate-200 p-2">{children}</div>
+      <div className="grid gap-1.5 pt-3">{children}</div>
     </details>
   );
 }
@@ -360,7 +360,7 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
 
   const content = (
     <>
-      <div className="grid gap-1" style={{ marginBottom: 16 }}>
+      <div className="mb-4 grid gap-1">
         {!bare && <h3 style={{ margin: 0 }}>Node backup & restore</h3>}
         <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
           Full node backups include the seed phrase, private keys, coin proofs, and transaction
@@ -369,7 +369,7 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
       </div>
 
       {actionsBlocked && (
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3" style={{ marginBottom: 16 }}>
+        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
           <p className="text-sm text-amber-800" style={{ margin: 0 }}>
             Unavailable until Minima is running.
           </p>
@@ -377,7 +377,7 @@ export function MinimaBackupPanel({ bare = false }: { bare?: boolean } = {}) {
       )}
 
       {hasPassword === false && (
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3" style={{ marginBottom: 16 }}>
+        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
           <p className="text-sm text-amber-800 m-0">
             No backup password set. Use the key icon below to set one — required for manual and automatic backups.
           </p>

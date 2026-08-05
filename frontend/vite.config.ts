@@ -38,11 +38,13 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     server: {
       host: "0.0.0.0",
+      port: 3030,
       https,
       proxy,
     },
     preview: {
       host: "0.0.0.0",
+      port: 3030,
       https,
       proxy,
     },

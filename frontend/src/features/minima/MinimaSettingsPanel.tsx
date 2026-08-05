@@ -131,15 +131,17 @@ export function MinimaSettingsPanel({ bare = false }: { bare?: boolean } = {}) {
 
   const content = (
     <>
-      <div className="grid gap-1" style={{ marginBottom: 16 }}>
-        {!bare && <h3 style={{ margin: 0 }}>Minima node settings</h3>}
-        <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
-          Configure the megammr sync host and manage peer connections.
-        </p>
-      </div>
+      {!bare && (
+        <div className="mb-4 grid gap-1">
+          <h3 style={{ margin: 0 }}>Minima node settings</h3>
+          <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
+            Configure the megammr sync host and manage peer connections.
+          </p>
+        </div>
+      )}
 
       {actionsBlocked && (
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3" style={{ marginBottom: 16 }}>
+        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
           <p className="text-sm text-amber-800" style={{ margin: 0 }}>
             Unavailable until Minima is running.
           </p>
