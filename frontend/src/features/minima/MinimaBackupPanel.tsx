@@ -6,6 +6,7 @@ import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
 import { LoadingDots } from "../../components/LoadingDots";
 import { Modal } from "../../components/Modal";
+import { FileDropZone } from "../../components/patterns/FileDropZone";
 import { ListDisclosure } from "../../components/patterns/ListDisclosure";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
@@ -64,7 +65,7 @@ function BackupRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
+    <div className="flex items-center justify-between gap-3 px-3 py-2">
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-slate-900 m-0">{backup.fileName}</p>
         <p className="text-xs text-slate-500 m-0">
@@ -408,7 +409,7 @@ export function MinimaBackupPanel({
 
         {backups && (
           <ListDisclosure title="Backups" count={backups.length} max={MAX_BACKUPS}>
-            {backups.length === 0 && <p className="text-sm text-slate-500 m-0">None yet.</p>}
+            {backups.length === 0 && <p className="m-0 px-3 py-2 text-sm text-slate-500">None yet.</p>}
             {backups.map((backup) => (
               <BackupRow
                 key={backup.fileName}
@@ -431,6 +432,7 @@ export function MinimaBackupPanel({
             if (!downloadBusy) setDownloadTarget(null);
           }}
           closeDisabled={downloadBusy}
+          bodyClassName="min-h-0 flex-1"
         >
           <div className="grid gap-3">
             <p className="text-sm text-slate-600 m-0">Re-enter your current PIN or password to download this backup.</p>
@@ -461,6 +463,7 @@ export function MinimaBackupPanel({
             if (!setupBusy) setPasswordModalOpen(false);
           }}
           closeDisabled={setupBusy}
+          bodyClassName="min-h-0 flex-1"
         >
           <form onSubmit={(e) => void handleSetBackupPassword(e)} className="grid gap-3">
             {hasPassword === false && (
@@ -507,30 +510,18 @@ export function MinimaBackupPanel({
             if (!uploadBusy) setUploadRestoreOpen(false);
           }}
           closeDisabled={uploadBusy}
+          bodyClassName="min-h-0 flex-1"
         >
           <div className="grid gap-3">
             {restoreWarning}
 
-            {uploadFile ? (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
-                <span className="truncate text-sm text-slate-800">{uploadFile.name}</span>
-                <button type="button" onClick={() => setUploadFile(null)} className="text-xs font-bold text-slate-500">
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <label className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 cursor-pointer">
-                <span className="flex items-center gap-2 text-sm text-slate-600">
-                  <Upload size={14} /> Upload a .bak file
-                </span>
-                <input
-                  type="file"
-                  accept=".bak"
-                  className="hidden"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
-                />
-              </label>
-            )}
+            <FileDropZone
+              file={uploadFile}
+              onFile={setUploadFile}
+              onClear={() => setUploadFile(null)}
+              accept=".bak"
+              placeholder="Upload a .bak file"
+            />
 
             <InputField
               label="Password override (leave blank to use your saved backup password)"
@@ -571,6 +562,7 @@ export function MinimaBackupPanel({
             if (!rowRestoreBusy) setRowRestoreTarget(null);
           }}
           closeDisabled={rowRestoreBusy}
+          bodyClassName="min-h-0 flex-1"
         >
           <div className="grid gap-3">
             {restoreWarning}
@@ -605,6 +597,7 @@ export function MinimaBackupPanel({
             if (deletingFile !== deleteTarget.fileName) setDeleteTarget(null);
           }}
           closeDisabled={deletingFile === deleteTarget.fileName}
+          bodyClassName="min-h-0 flex-1"
         >
           <div className="grid gap-3">
             <p className="text-sm text-slate-600 m-0">
@@ -626,6 +619,7 @@ export function MinimaBackupPanel({
             if (!clearPasswordBusy) setClearPasswordOpen(false);
           }}
           closeDisabled={clearPasswordBusy}
+          bodyClassName="min-h-0 flex-1"
         >
           <div className="grid gap-3">
             <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">

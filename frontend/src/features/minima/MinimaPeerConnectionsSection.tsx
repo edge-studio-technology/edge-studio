@@ -51,12 +51,12 @@ export function MinimaPeerConnectionsSection({
         <ListDisclosure title="Peers" count={peerItems.length}>
           {peerItems.length > 0 ? (
             peerItems.map((peer) => (
-              <p key={peer} className="m-0 truncate text-sm text-slate-700">
+              <p key={peer} className="m-0 truncate px-3 py-2 text-sm text-slate-700">
                 <code className="text-slate-800">{peer}</code>
               </p>
             ))
           ) : (
-            <p className="m-0 text-sm text-slate-500">
+            <p className="m-0 px-3 py-2 text-sm text-slate-500">
               {peersLoading ? "Loading peer list…" : "No configured peers returned from Minima RPC."}
             </p>
           )}
