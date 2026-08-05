@@ -4,8 +4,11 @@ import {
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type HTMLAttributes,
   type ReactNode,
   type TableHTMLAttributes,
+  type TdHTMLAttributes,
+  type ThHTMLAttributes,
 } from "react";
 import { createPortal } from "react-dom";
 import { EllipsisVertical } from "lucide-react";
@@ -14,6 +17,13 @@ import { StatusRow } from "../StatusRow";
 import { MutedText } from "../Text";
 import { cx } from "../../lib/cx";
 import { IconButton } from "../ui/Button";
+
+/** Shared visual tokens — prefer `TableHead` / `TableRow` / `TableCell` components in new code. Remove this comment when migrated */
+export const tableHeadRowClass = "bg-surface-secondary type-body-em text-text-primary";
+export const tableHeaderCellClass = "px-margin-tight py-margin-tight text-left align-middle";
+export const tableRowClass = "border-t border-stroke-primary bg-surface-always-white";
+export const tableCellClass =
+  "px-margin-tight py-margin-tight type-body text-text-primary align-middle";
 
 /** Bordered scroll shell for list tables. Includes a modest min-height (~4 rows). */
 export function TableWrap({ children, className }: { children: ReactNode; className?: string }) {
@@ -36,11 +46,72 @@ export function DataTable({
 }: TableHTMLAttributes<HTMLTableElement> & { children: ReactNode }) {
   return (
     <table
-      className={cx("type-meta w-full min-w-190 border-collapse text-left", className)}
+      className={cx("type-meta w-full border-collapse text-left", className)}
       {...props}
     >
       {children}
     </table>
+  );
+}
+
+/** Header section: one grey row; put `TableHeaderCell` children inside. */
+export function TableHead({
+  children,
+  className,
+  ...props
+}: HTMLAttributes<HTMLTableSectionElement> & { children: ReactNode }) {
+  return (
+    <thead className={className} {...props}>
+      <tr className={tableHeadRowClass}>{children}</tr>
+    </thead>
+  );
+}
+
+export function TableBody({
+  children,
+  className,
+  ...props
+}: HTMLAttributes<HTMLTableSectionElement> & { children: ReactNode }) {
+  return (
+    <tbody className={className} {...props}>
+      {children}
+    </tbody>
+  );
+}
+
+export function TableRow({
+  children,
+  className,
+  ...props
+}: HTMLAttributes<HTMLTableRowElement> & { children: ReactNode }) {
+  return (
+    <tr className={cx(tableRowClass, className)} {...props}>
+      {children}
+    </tr>
+  );
+}
+
+export function TableHeaderCell({
+  children,
+  className,
+  ...props
+}: ThHTMLAttributes<HTMLTableCellElement>) {
+  return (
+    <th className={cx(tableHeaderCellClass, className)} {...props}>
+      {children}
+    </th>
+  );
+}
+
+export function TableCell({
+  children,
+  className,
+  ...props
+}: TdHTMLAttributes<HTMLTableCellElement>) {
+  return (
+    <td className={cx(tableCellClass, className)} {...props}>
+      {children}
+    </td>
   );
 }
 
@@ -233,9 +304,3 @@ export function TableIconMenu({
     </div>
   );
 }
-
-export const tableHeadRowClass = "bg-surface-secondary type-body-em text-text-primary";
-export const tableHeaderCellClass = "px-margin-tight py-margin-tight text-left align-middle";
-export const tableRowClass = "border-t border-stroke-primary bg-surface-always-white";
-export const tableCellClass =
-  "px-margin-tight py-margin-tight type-meta text-text-secondary align-middle";

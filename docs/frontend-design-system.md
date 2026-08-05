@@ -99,7 +99,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [ToggleTabs](#toggletabs): segmented toggle
 - `PinField`: segmented PIN / code field
 - `CredentialInput`: PIN or password field
-- `DataTable`: native table shell, wrap, row helpers (`TableWrap`, `TableIconMenu` included)
+- `DataTable`: native table shell and row primitives (`TableWrap`, `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`, `TableIconMenu`)
 - `StatusRow`: label / value / status row
 - [StatusBar](#statusbar): app shell status chrome
 - `ListPagerFilterBar`: list filter and pager
@@ -108,6 +108,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Disclosure](#disclosure): native collapse / expand section
 - [ScrollArea](#scrollarea): thin ESDS-token scrollbar container
 - `JsonPreview`: trigger that opens a modal with pretty-printed JSON
+- [CopyableCode](#copyablecode): mono value with copy control
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
 
@@ -528,6 +529,19 @@ Standalone compact metric tile (`frontend/src/components/patterns/MetricCard.tsx
 <MetricCard label="Node status" loading={loading} value="Running" status="success" />
 ```
 
+### CopyableCode
+
+Mono value chip with a compact copy control (`frontend/src/components/patterns/CopyableCode.tsx`): secondary surface, `type-mono` value, `IconButton` copy/check. Copy success and failure use the shared toast. Prefer this for addresses, token IDs, and hashes. Flat `components/CopyableCode.tsx` re-exports for now.
+
+| Prop        | Notes                          |
+| ----------- | ------------------------------ |
+| `value`     | String shown and copied        |
+| `className` | Optional; merged onto the chip |
+
+```tsx
+<CopyableCode value={token.tokenId} />
+```
+
 ### StatusBar
 
 Status bar (`frontend/src/components/StatusBar.tsx`): shell chrome with status Tags on the left and Local/UTC clock Tags on the right (`surface-primary`, `p-margin-tight`). Composes `Pill`, `Clock`, and optional `Tooltip` detail on each status item.
@@ -715,10 +729,28 @@ Selected: `surface-inverse` / `text-inverse`. Idle: transparent with `stroke-sec
 ## Tables And Lists
 
 - Use `DataTable` for tabular workflow/history/list surfaces (native `<table>` + helpers in `frontend/src/components/patterns/DataTable.tsx`; flat `components/DataTable.tsx` re-exports for now).
+- Prefer the row primitives (`TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`) over applying the exported class constants by hand. Class constants remain for older call sites.
 - Wrap list tables in `TableWrap` from that module: bordered scroll shell with a modest min-height (~4 rows).
 - Prefer one primary `TableIconButton` in the Actions column; put secondary actions in `TableIconMenu` (⋮).
 - Use compact cards/lists instead of tables when the content is entity-detail oriented, narrow, or action-heavy.
 - When migrating off native `<table>` markup, prefer the shared table shell pattern in `frontend/src/components/patterns/Table.tsx` (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`).
+
+```tsx
+<TableWrap>
+  <DataTable>
+    <TableHead>
+      <TableHeaderCell>Name</TableHeaderCell>
+      <TableHeaderCell>Amount</TableHeaderCell>
+    </TableHead>
+    <TableBody>
+      <TableRow>
+        <TableCell>…</TableCell>
+        <TableCell>…</TableCell>
+      </TableRow>
+    </TableBody>
+  </DataTable>
+</TableWrap>
+```
 
 ## Tokens
 

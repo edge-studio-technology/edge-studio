@@ -3,12 +3,13 @@ import { Eye } from "lucide-react";
 import {
   DataTable,
   RowActions,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
   TableIconButton,
+  TableRow,
   TableWrap,
-  tableCellClass,
-  tableHeaderCellClass,
-  tableHeadRowClass,
-  tableRowClass,
 } from "../../components/DataTable";
 import { Button } from "../../components/ui/Button";
 import { LoadingDots } from "../../components/ui/LoadingDots";
@@ -94,29 +95,24 @@ export function WalletAssetsPanel({
 
       <TableWrap>
         <DataTable>
-          <thead>
-            <tr className={tableHeadRowClass}>
-              <th className={`${tableHeaderCellClass} min-w-48`}>Name</th>
-              <th className={tableHeaderCellClass}>Amount</th>
-              <th className={`${tableHeaderCellClass} w-px whitespace-nowrap`}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+          <TableHead>
+            <TableHeaderCell>Name</TableHeaderCell>
+            <TableHeaderCell>Amount</TableHeaderCell>
+            <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+          </TableHead>
+          <TableBody>
             {loading || actionsBlocked ? (
-              <tr className={tableRowClass}>
-                <td colSpan={3} className="p-0">
-                  <div
-                    className="py-pad-relaxed flex items-center justify-center"
-                    aria-busy="true"
-                  >
+              <TableRow>
+                <TableCell colSpan={3} className="p-0">
+                  <div className="py-pad-relaxed flex items-center justify-center" aria-busy="true">
                     <LoadingDots />
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : visibleAssets.length === 0 ? (
-              <tr className={tableRowClass}>
+              <TableRow>
                 <td colSpan={3} className="p-0">
-                  <div className="gap-detail-close flex flex-col items-start p-margin-tight py-pad-relaxed">
+                  <div className="gap-detail-close p-margin-tight py-pad-relaxed flex flex-col items-start">
                     <p className="type-body text-text-secondary m-0">
                       {filtersActive
                         ? "No assets match this kind or search."
@@ -129,22 +125,22 @@ export function WalletAssetsPanel({
                     ) : null}
                   </div>
                 </td>
-              </tr>
+              </TableRow>
             ) : (
               pagedAssets.map((token) => (
-                <tr key={token.tokenId} className={tableRowClass}>
-                  <td className={`${tableCellClass} min-w-48`}>
-                    <span className="gap-detail-next type-body-em text-text-primary inline-flex items-center">
+                <TableRow key={token.tokenId}>
+                  <TableCell className="min-w-0">
+                    <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
                       <TokenGlyph isNative={token.isNative} />
-                      {token.name}
+                      <span className="truncate">{token.name}</span>
                     </span>
-                  </td>
-                  <td className={tableCellClass}>
-                    <span className="type-mono text-text-secondary tabular-nums">
+                  </TableCell>
+                  <TableCell>
+                    <span className="type-mono tabular-nums">
                       {formatAmountAdaptive(token.sendable)}
                     </span>
-                  </td>
-                  <td className={`${tableCellClass} w-px whitespace-nowrap`}>
+                  </TableCell>
+                  <TableCell className="w-px whitespace-nowrap">
                     <RowActions>
                       <TableIconButton
                         type="button"
@@ -155,11 +151,11 @@ export function WalletAssetsPanel({
                         <Eye size={16} />
                       </TableIconButton>
                     </RowActions>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
+          </TableBody>
         </DataTable>
       </TableWrap>
 

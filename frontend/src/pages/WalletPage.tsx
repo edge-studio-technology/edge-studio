@@ -8,7 +8,7 @@ import { TabList } from "../components/ui/TabList";
 import { getWalletStatus, listWalletSendHistory } from "../features/wallet/walletApi";
 import type { WalletSendHistoryItem, WalletStatus } from "../features/wallet/walletTypes";
 import { AddressBookPanel } from "../features/address-book/AddressBookPanel";
-import { CreateTokenModal } from "../features/wallet/CreateTokenModal";
+// import { CreateTokenModal } from "../features/wallet/CreateTokenModal";
 import { SendPaymentModal } from "../features/wallet/SendPaymentModal";
 import { WalletAssetsPanel } from "../features/wallet/WalletAssetsPanel";
 import { WalletHero } from "../features/wallet/WalletHero";
@@ -94,8 +94,8 @@ export function WalletPage() {
           label="Wallet sections"
           value={mainTab}
           options={[
-            { value: "assets", label: "Assets" },
             { value: "history", label: "History" },
+            { value: "assets", label: "Assets" },
             { value: "address-book", label: "Address book" },
           ]}
           onChange={setMainTab}
