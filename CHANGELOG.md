@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Wallet hero inlines dark surface styles; Send and receive QR live in the hero (`DarkHeroCard` removed).
 - Send payment modal uses `ToggleTabs`, `ErrorAlert`, and design-system Button/Modal.
 - `ToggleTabs` adds optional `size="sm"`.
+- `Input` / `InputField` add optional `size` (`md` \| `sm`), matching `SelectField`.
+- Moved `DataTable` into `components/patterns/`; flat re-export kept.
 - Wallet asset list pagination now uses shared `ListPaginationFooter` with compact rows/page-size controls (`SelectField` `size="sm"`) and `ListPagerFilterBar` can hide its pager via `showPager`.
 
 ## [0.29.1] 2026-08-04

@@ -10,10 +10,10 @@ import {
   tableHeadRowClass,
   tableRowClass,
 } from "../../components/DataTable";
-import { ListPagerFilterBar } from "../../components/ListPagerFilterBar";
 import { Button } from "../../components/ui/Button";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
+import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatAmountAdaptive } from "../../lib/format";
 import { AssetDetailModal } from "./AssetDetailModal";
@@ -74,24 +74,14 @@ export function WalletAssetsPanel({
   return (
     <div className="gap-detail-close flex flex-col">
       <div className="[&>div]:mb-0">
-        <ListPagerFilterBar
-          page={assetCurrentPage}
-          pageSize={assetPageSize}
-          total={visibleAssets.length}
-          totalPages={assetTotalPages}
-          status={assetKind}
+        <ListFilterBar
+          filter={assetKind}
           q={assetQuery}
-          statusOptions={ASSET_KIND_OPTIONS}
-          statusLabel="Kind"
+          filterOptions={ASSET_KIND_OPTIONS}
+          filterLabel="Kind"
           searchPlaceholder="Name or coin ID"
           disabled={pagerDisabled}
-          showPager={false}
-          onPageChange={setAssetPage}
-          onPageSizeChange={(size) => {
-            setAssetPageSize(size);
-            setAssetPage(1);
-          }}
-          onStatusChange={(kind) => {
+          onFilterChange={(kind) => {
             setAssetKind(kind);
             setAssetPage(1);
           }}
@@ -102,35 +92,46 @@ export function WalletAssetsPanel({
         />
       </div>
 
-      {loading || actionsBlocked ? (
-        <div className="py-pad-relaxed flex justify-center" aria-busy="true">
-          <LoadingDots />
-        </div>
-      ) : visibleAssets.length === 0 ? (
-        <div className="gap-detail-next flex flex-col items-start">
-          <p className="type-body text-text-secondary m-0">
-            {filtersActive
-              ? "No assets match this kind or search."
-              : "No assets in this wallet yet."}
-          </p>
-          {filtersActive ? (
-            <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
-              Clear filters
-            </Button>
-          ) : null}
-        </div>
-      ) : (
-        <TableWrap>
-          <DataTable>
-            <thead>
-              <tr className={tableHeadRowClass}>
-                <th className={`${tableHeaderCellClass} min-w-48`}>Name</th>
-                <th className={tableHeaderCellClass}>Amount</th>
-                <th className={`${tableHeaderCellClass} w-px whitespace-nowrap`}>Actions</th>
+      <TableWrap>
+        <DataTable>
+          <thead>
+            <tr className={tableHeadRowClass}>
+              <th className={`${tableHeaderCellClass} min-w-48`}>Name</th>
+              <th className={tableHeaderCellClass}>Amount</th>
+              <th className={`${tableHeaderCellClass} w-px whitespace-nowrap`}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading || actionsBlocked ? (
+              <tr className={tableRowClass}>
+                <td colSpan={3} className="p-0">
+                  <div
+                    className="py-pad-relaxed flex items-center justify-center"
+                    aria-busy="true"
+                  >
+                    <LoadingDots />
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {pagedAssets.map((token) => (
+            ) : visibleAssets.length === 0 ? (
+              <tr className={tableRowClass}>
+                <td colSpan={3} className="p-0">
+                  <div className="gap-detail-close flex flex-col items-start p-margin-tight py-pad-relaxed">
+                    <p className="type-body text-text-secondary m-0">
+                      {filtersActive
+                        ? "No assets match this kind or search."
+                        : "No assets in this wallet yet."}
+                    </p>
+                    {filtersActive ? (
+                      <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
+                        Clear filters
+                      </Button>
+                    ) : null}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              pagedAssets.map((token) => (
                 <tr key={token.tokenId} className={tableRowClass}>
                   <td className={`${tableCellClass} min-w-48`}>
                     <span className="gap-detail-next type-body-em text-text-primary inline-flex items-center">
@@ -156,11 +157,11 @@ export function WalletAssetsPanel({
                     </RowActions>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </DataTable>
-        </TableWrap>
-      )}
+              ))
+            )}
+          </tbody>
+        </DataTable>
+      </TableWrap>
 
       <ListPaginationFooter
         page={assetCurrentPage}

@@ -138,16 +138,8 @@ export function WalletHistoryPanel({
           setHistoryPage(1);
         }}
       />
-      {loading || actionsBlocked ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="size-10 animate-spin text-slate-400" aria-hidden="true" />
-        </div>
-      ) : error ? (
+      {error ? (
         <ErrorText>{error}</ErrorText>
-      ) : filteredHistory.length === 0 ? (
-        <MutedText>
-          {historyStatus || trimmedHistoryQuery ? "No matching history." : "No send activity yet."}
-        </MutedText>
       ) : (
         <TableWrap>
           <DataTable>
@@ -161,43 +153,65 @@ export function WalletHistoryPanel({
               </tr>
             </thead>
             <tbody>
-              {pagedHistory.map((entry) => (
-                <tr key={entry.id} className={tableRowClass}>
-                  <td className={tableCellClass}>
-                    <span className="inline-flex items-center gap-1.5 font-semibold text-slate-900">
-                      <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
-                      {entry.amount} {entry.tokenName}
-                    </span>
-                  </td>
-                  <td className={tableCellClass}>
-                    <code className="font-mono text-xs text-slate-500">
-                      {shortAddress(entry.toAddress)}
-                    </code>
-                  </td>
-                  <td className={tableCellClass}>
-                    <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                      {entry.status}
-                    </span>
-                  </td>
-                  <td className={tableCellClass}>
-                    <span className="text-xs text-slate-500">
-                      {new Date(entry.createdAt).toLocaleString()}
-                    </span>
-                  </td>
-                  <td className={`${tableCellClass} w-px whitespace-nowrap`}>
-                    <RowActions wrap={false}>
-                      <TableIconButton
-                        type="button"
-                        title="View details"
-                        aria-label="View history item"
-                        onClick={() => setSelectedHistoryItem(entry)}
-                      >
-                        <Eye size={16} />
-                      </TableIconButton>
-                    </RowActions>
+              {loading || actionsBlocked ? (
+                <tr className={tableRowClass}>
+                  <td colSpan={5} className="p-0">
+                    <div className="flex justify-center py-10">
+                      <Loader2 className="size-10 animate-spin text-slate-400" aria-hidden="true" />
+                    </div>
                   </td>
                 </tr>
-              ))}
+              ) : filteredHistory.length === 0 ? (
+                <tr className={tableRowClass}>
+                  <td colSpan={5} className="p-0">
+                    <div className="p-margin-tight py-pad-relaxed">
+                      <MutedText>
+                        {historyStatus || trimmedHistoryQuery
+                          ? "No matching history."
+                          : "No send activity yet."}
+                      </MutedText>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                pagedHistory.map((entry) => (
+                  <tr key={entry.id} className={tableRowClass}>
+                    <td className={tableCellClass}>
+                      <span className="inline-flex items-center gap-1.5 font-semibold text-slate-900">
+                        <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
+                        {entry.amount} {entry.tokenName}
+                      </span>
+                    </td>
+                    <td className={tableCellClass}>
+                      <code className="font-mono text-xs text-slate-500">
+                        {shortAddress(entry.toAddress)}
+                      </code>
+                    </td>
+                    <td className={tableCellClass}>
+                      <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                        {entry.status}
+                      </span>
+                    </td>
+                    <td className={tableCellClass}>
+                      <span className="text-xs text-slate-500">
+                        {new Date(entry.createdAt).toLocaleString()}
+                      </span>
+                    </td>
+                    <td className={`${tableCellClass} w-px whitespace-nowrap`}>
+                      <RowActions wrap={false}>
+                        <TableIconButton
+                          type="button"
+                          title="View details"
+                          aria-label="View history item"
+                          onClick={() => setSelectedHistoryItem(entry)}
+                        >
+                          <Eye size={16} />
+                        </TableIconButton>
+                      </RowActions>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </DataTable>
         </TableWrap>

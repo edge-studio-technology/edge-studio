@@ -131,26 +131,36 @@ export function AddressBookPanel({
         }}
       />
 
-      {isLoading ? (
-        <div className='flex justify-center py-10'>
-          <Loader2 className='size-10 animate-spin text-slate-400' aria-hidden='true' />
-        </div>
-      ) : filteredEntries.length === 0 ? (
-        <MutedText>
-          {trimmedQuery ? 'No matching contacts.' : 'No contacts saved yet.'}
-        </MutedText>
-      ) : (
-        <TableWrap>
-          <DataTable>
-            <thead>
-              <tr className={tableHeadRowClass}>
-                <th className={`${tableHeaderCellClass} min-w-48`}>Name</th>
-                <th className={`${tableHeaderCellClass} w-full`}>Notes</th>
-                <th className={`${tableHeaderCellClass} w-px whitespace-nowrap`}>Actions</th>
+      <TableWrap>
+        <DataTable>
+          <thead>
+            <tr className={tableHeadRowClass}>
+              <th className={`${tableHeaderCellClass} min-w-48`}>Name</th>
+              <th className={`${tableHeaderCellClass} w-full`}>Notes</th>
+              <th className={`${tableHeaderCellClass} w-px whitespace-nowrap`}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr className={tableRowClass}>
+                <td colSpan={3} className='p-0'>
+                  <div className='flex justify-center py-10'>
+                    <Loader2 className='size-10 animate-spin text-slate-400' aria-hidden='true' />
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {pagedEntries.map((entry) => (
+            ) : filteredEntries.length === 0 ? (
+              <tr className={tableRowClass}>
+                <td colSpan={3} className='p-0'>
+                  <div className='p-margin-tight py-pad-relaxed'>
+                    <MutedText>
+                      {trimmedQuery ? 'No matching contacts.' : 'No contacts saved yet.'}
+                    </MutedText>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              pagedEntries.map((entry) => (
                 <tr key={entry.id} className={tableRowClass}>
                   <td className={`${tableCellClass} min-w-48`}>
                     <span className='font-semibold text-slate-900'>{entry.label}</span>
@@ -188,11 +198,11 @@ export function AddressBookPanel({
                     </RowActions>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </DataTable>
-        </TableWrap>
-      )}
+              ))
+            )}
+          </tbody>
+        </DataTable>
+      </TableWrap>
       <div className='mt-3'>
         <TablePager
           page={currentPage}

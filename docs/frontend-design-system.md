@@ -55,7 +55,7 @@ Migration is **incremental**, not a big-bang move:
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `MetricCard`                                                                                                                             |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `MetricCard`                                                                                                      |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
 ## Styling Rules
@@ -99,7 +99,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [ToggleTabs](#toggletabs): segmented toggle
 - `PinField`: segmented PIN / code field
 - `CredentialInput`: PIN or password field
-- `DataTable`: table shell and rows
+- `DataTable`: native table shell, wrap, row helpers (`TableWrap` included)
 - `StatusRow`: label / value / status row
 - [StatusBar](#statusbar): app shell status chrome
 - `ListPagerFilterBar`: list filter and pager
@@ -577,16 +577,17 @@ Default (`neutral`): `surface-secondary` fill. Success / Warning / Error: white 
 
 Labeled text field: label → optional description → control → optional error.
 
-| Prop          | Notes                                                     |
-| ------------- | --------------------------------------------------------- |
-| `label`       | Optional; `type-meta` (tertiary when `disabled`)          |
-| `description` | Optional helper under the label                           |
-| `error`       | Optional; red alert text + `aria-invalid` on the control  |
-| `disabled`    | Dims label/description; disables the control              |
-| `className`   | Outer stack                                               |
-| …input props  | Standard `value`, `onChange`, `type`, `placeholder`, etc. |
+| Prop          | Notes                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------ |
+| `label`       | Optional; `type-meta` (tertiary when `disabled`)                                                 |
+| `description` | Optional helper under the label                                                                  |
+| `error`       | Optional; red alert text + `aria-invalid` on the control                                         |
+| `size`        | `md` (default, 44px / `type-body`) or `sm` (32px / `type-meta`); same as `Input` / `SelectField` |
+| `disabled`    | Dims label/description; disables the control                                                     |
+| `className`   | Outer stack                                                                                      |
+| …input props  | Standard `value`, `onChange`, `type`, `placeholder`, etc.                                        |
 
-Control states live on `Input` (used by `InputField`): inset 1px outline `stroke-primary`, disabled fill `surface-primary`, error outline `stroke-error`, focus outline `stroke-active`.
+Control states live on `Input` (used by `InputField`): inset 1px outline `stroke-primary`, disabled fill `surface-primary`, error outline `stroke-error`, focus outline `stroke-active`. Native HTML `size` is omitted so this prop is the visual size.
 
 ```tsx
 <InputField
@@ -613,11 +614,12 @@ Labeled select (`frontend/src/components/ui/SelectField.tsx`): label → optiona
 | `error`       | Optional; red alert text + `aria-invalid` on the control           |
 | `options`     | `{ value, label, disabled? }[]` — rendered as native `<option>`s   |
 | `placeholder` | Optional empty-value option (`value=""`); shown in `text-disabled` |
+| `size`        | `md` (default, 44px / `type-body`) or `sm` (32px / `type-meta`)    |
 | `disabled`    | Dims label/description; disables the control                       |
 | `className`   | Outer stack                                                        |
 | …select props | Standard `value`, `onChange`, `name`, `defaultValue`, etc.         |
 
-Control matches `Input` chrome: 44px tall, `rounded-loose`, `border-stroke-primary`, white fill, focus `stroke-active`, error `stroke-error`, disabled `surface-primary` + `text-disabled`. ChevronDown sits at the trailing edge (`icon-primary` / disabled `icon-disabled`).
+Control matches `Input` chrome: `rounded-loose`, `border-stroke-primary`, white fill, focus `stroke-active`, error `stroke-error`, disabled `surface-primary` + `text-disabled`. Height/type follow `size`. ChevronDown sits at the trailing edge (`icon-primary` / disabled `icon-disabled`).
 
 ```tsx
 <SelectField
@@ -712,7 +714,8 @@ Selected: `surface-inverse` / `text-inverse`. Idle: transparent with `stroke-sec
 
 ## Tables And Lists
 
-- Use `DataTable` for tabular workflow/history/list surfaces (native `<table>` + `frontend/src/components/DataTable.tsx`, styled with shared table visuals).
+- Use `DataTable` for tabular workflow/history/list surfaces (native `<table>` + helpers in `frontend/src/components/patterns/DataTable.tsx`; flat `components/DataTable.tsx` re-exports for now).
+- Wrap list tables in `TableWrap` from that module: bordered scroll shell with a modest min-height (~4 rows).
 - Use compact cards/lists instead of tables when the content is entity-detail oriented, narrow, or action-heavy.
 - When migrating off native `<table>` markup, prefer the shared table shell pattern in `frontend/src/components/patterns/Table.tsx` (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`).
 

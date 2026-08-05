@@ -1,12 +1,8 @@
 import { useId, type InputHTMLAttributes, type ReactNode } from "react";
 import { cx } from "../../lib/cx";
-import { Input } from "../Input";
+import { Input, type InputSize } from "../Input";
 import { Label } from "./Label";
 
-/**
- * ESDS Input Field: label → description → control → error.
- * Default form control for login and other labeled text fields.
- */
 export function InputField({
   label,
   description,
@@ -15,12 +11,14 @@ export function InputField({
   id,
   disabled,
   type = "text",
+  size = "md",
   ...props
-}: Omit<InputHTMLAttributes<HTMLInputElement>, "className"> & {
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "className" | "size"> & {
   label?: ReactNode;
   description?: ReactNode;
   error?: ReactNode;
   className?: string;
+  size?: InputSize;
 }) {
   const autoId = useId();
   const controlId = id ?? autoId;
@@ -50,6 +48,7 @@ export function InputField({
         {...props}
         id={controlId}
         type={type}
+        size={size}
         disabled={disabled}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
