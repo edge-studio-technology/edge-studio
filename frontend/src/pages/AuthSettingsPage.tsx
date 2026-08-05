@@ -190,7 +190,7 @@ export function AuthSettingsPage() {
             </span>
           }
           className="pt-4 pb-6"
-          defaultOpen={false}
+          defaultOpen={true}
         >
           <div className="mt-2 grid gap-6">
             <SubSection
@@ -521,7 +521,7 @@ export function AuthSettingsPage() {
             </span>
           }
           className="pt-4 pb-6"
-          defaultOpen={false}
+          defaultOpen={true}
         >
           <div className="mt-2 grid gap-6">
             <SubSection
@@ -541,7 +541,7 @@ export function AuthSettingsPage() {
             </span>
           }
           className="pt-4 pb-6"
-          defaultOpen={false}
+          defaultOpen={true}
         >
           <div className="mt-2 grid gap-6">
             <MinimaSettingsPanel bare />

@@ -1,10 +1,12 @@
+import { useEffect, useState } from "react";
 import { ExternalLink, Link2, RefreshCw } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
 import { Pill } from "../../components/Pill";
 import { ErrorText, MutedText } from "../../components/Text";
-import type { Tone } from "../../app/types";
+import type { IntegritasConfig, Tone } from "../../app/types";
+import { getJson } from "../../lib/api";
 import { useIntegritasAuth } from "./useIntegritasAuth";
 import { hasConnectedProfile, type IntegritasAuthStatusKind } from "./integritasAuthApi";
 
@@ -34,20 +36,35 @@ export function IntegritasConnectPanel({ bare = false }: { bare?: boolean } = {}
   const { status, loading, starting, error, notice, start, openVerification } = useIntegritasAuth({
     refreshProfileOnConnected: true,
   });
+  const [portalUrl, setPortalUrl] = useState<string | null>(null);
 
   const kind = status?.status;
 
+  useEffect(() => {
+    getJson<IntegritasConfig>("/api/integritas/config")
+      .then((config) => setPortalUrl(config.portalUrl || null))
+      .catch(() => setPortalUrl(null));
+  }, []);
+
   const content = (
     <>
-      {/* <div className="mb-4 grid gap-1">
-        <div className="flex flex-wrap items-center gap-2">
+      {kind && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           {!bare && <h3 style={{ margin: 0 }}>Integritas Connect</h3>}
-          {kind && <Pill tone={statusTone[kind]}>{statusLabel[kind]}</Pill>}
+          <Pill tone={statusTone[kind]}>{statusLabel[kind]}</Pill>
+          {portalUrl && (
+            <a
+              className="inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-slate-900 underline-offset-2 hover:underline"
+              href={portalUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open Integritas portal
+              <ExternalLink size={14} aria-hidden />
+            </a>
+          )}
         </div>
-        <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
-          Stamp proofs and sync plan usage with your Integritas Connect account.
-        </p>
-      </div> */}
+      )}
 
       {loading && !status && <MutedText className="m-0">Checking connection…</MutedText>}
 
@@ -83,12 +100,12 @@ export function IntegritasConnectPanel({ bare = false }: { bare?: boolean } = {}
 
       {status?.status === "pending" && (
         <div className="grid gap-4">
-          <MutedText className="m-0">
+          <MutedText className="m-0 text-xs">
             Approve the pending request after connecting to your Integritas Connect account. The
             request will expire in 20 minutes for your security.
           </MutedText>
 
-          <ButtonRow>
+          <ButtonRow className="border-t border-slate-200 pt-4">
             <a
               className="inline-flex w-fit items-center justify-center gap-2 rounded-2xl border border-transparent bg-slate-950 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800"
               href={status.verificationUrl}
@@ -107,18 +124,12 @@ export function IntegritasConnectPanel({ bare = false }: { bare?: boolean } = {}
 
       {status?.status === "connected" && (
         <div className="grid gap-4">
+          <MutedText className="m-0 text-xs">
+            To unlink, revoke this Edge Workbench from your Integritas Connect account.
+          </MutedText>
           {hasConnectedProfile(status) ? (
             <>
-              <dl className="m-0 grid gap-3">
-                <div className="grid gap-1 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-3">
-                  <dt className="m-0 text-sm font-medium text-slate-500">Status</dt>
-                  <dd className="m-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {!bare && <h3 style={{ margin: 0 }}>Integritas Connect</h3>}
-                      {kind && <Pill tone={statusTone[kind]}>{statusLabel[kind]}</Pill>}
-                    </div>
-                  </dd>
-                </div>
+              <dl className="m-0 grid gap-3 border-t border-slate-200 pt-4">
                 <div className="grid gap-1 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-3">
                   <dt className="m-0 text-sm font-medium text-slate-500">Name</dt>
                   <dd className="m-0 text-sm text-slate-800">{status.user.name}</dd>
@@ -149,21 +160,18 @@ export function IntegritasConnectPanel({ bare = false }: { bare?: boolean } = {}
               Connected. Profile details will appear when Connect is reachable.
             </MutedText>
           )}
-          <MutedText className="m-0 text-sm">
-            To unlink, revoke this Edge Workbench from your Integritas Connect account.
-          </MutedText>
         </div>
       )}
 
       {(kind === "denied" || kind === "expired" || kind === "revoked") && (
         <div className="grid gap-4">
-          <MutedText className="m-0">
+          <MutedText className="m-0 text-xs">
             {kind === "denied" && "Activation was denied in Integritas Connect."}
             {kind === "expired" && "The verification code expired."}
             {kind === "revoked" && "This device was revoked in Integritas Connect."} Start again to
             link a new activation.
           </MutedText>
-          <ButtonRow>
+          <ButtonRow className="border-t border-slate-200 pt-4">
             <Button
               type="button"
               disabled={starting}
