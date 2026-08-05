@@ -8,10 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Shared native table row primitives on `DataTable`: `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell` (wallet assets list migrated).
+- Shared native table row primitives on `DataTable`: `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell` (wallet assets and history lists migrated).
+- `formatLocalDateTime` in `frontend/src/lib/time.ts` for compact local date+time in tables and detail fields.
 
 ### Changed
 
+- Wallet history tab matches assets: `ListFilterBar`, `ListPaginationFooter`, table primitives, `LoadingDots`, status `Pill`, and clear-filters empty state.
+- Wallet history UX: amount/token hierarchy, status pills, semantic `<time>`, fuller empty state, `ErrorAlert` on load failure, and descriptive row action labels; send detail modal aligned with asset detail layout.
+- Wallet send history table and detail modal use `formatLocalDateTime` instead of raw `toLocaleString()`.
 - `DataTable` no longer forces `min-w-190`; tables fill the container, and wide lists still opt in (e.g. `min-w-[920px]`). `TableWrap` keeps horizontal scroll when content overflows.
 - Wallet asset detail modal: sendable hero, side-by-side confirmed/unconfirmed tiles (warning when pending), token type pill, copyable ID last.
 - Moved `CopyableCode` into `components/patterns/` and restyled with design-system tokens / `IconButton`; flat re-export kept. Copy shows a success toast (error toast if clipboard fails).

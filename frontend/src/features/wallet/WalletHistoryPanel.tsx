@@ -1,21 +1,26 @@
 import { useState } from "react";
-import { Eye, Loader2 } from "lucide-react";
-import { Button } from "../../components/Button";
+import { Eye, Inbox } from "lucide-react";
 import {
   DataTable,
   RowActions,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
   TableIconButton,
+  TableRow,
   TableWrap,
-  tableCellClass,
-  tableHeaderCellClass,
-  tableHeadRowClass,
-  tableRowClass,
-} from "../../components/DataTable";
-import { ListPagerFilterBar } from "../../components/ListPagerFilterBar";
-import { TablePager } from "../../components/TablePager";
-import { ErrorText, MutedText } from "../../components/Text";
+} from "../../components/patterns/DataTable";
+import { Button } from "../../components/ui/Button";
+import { LoadingDots } from "../../components/ui/LoadingDots";
+import { Pill } from "../../components/ui/Pill";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
+import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { useToast } from "../../components/ToastProvider";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
+import { formatAmountAdaptive } from "../../lib/format";
+import { formatLocalDateTime } from "../../lib/time";
 import { clearWalletHistoryForDebug } from "./walletApi";
 import { HistoryDetailModal } from "./HistoryDetailModal";
 import { TokenGlyph } from "./TokenGlyph";
@@ -27,6 +32,19 @@ const HISTORY_STATUS_OPTIONS = [
   { value: "submitted", label: "Submitted" },
   { value: "failed", label: "Failed" },
 ] as const;
+
+const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
+  value: String(size),
+  label: String(size),
+}));
+
+function historyStatusTone(status: WalletSendHistoryItem["status"]) {
+  return status === "failed" ? "error" : "good";
+}
+
+function historyStatusLabel(status: WalletSendHistoryItem["status"]) {
+  return status === "submitted" ? "Submitted" : "Failed";
+}
 
 export function WalletHistoryPanel({
   items,
@@ -53,6 +71,9 @@ export function WalletHistoryPanel({
   const isDev = import.meta.env.DEV;
 
   const trimmedHistoryQuery = historyQuery.trim().toLowerCase();
+  const filtersActive = Boolean(historyStatus || trimmedHistoryQuery);
+  const pagerDisabled = loading || actionsBlocked;
+  const showLoading = loading || actionsBlocked;
   const filteredHistory = items.filter((entry) => {
     if (historyStatus && entry.status !== historyStatus) return false;
     if (!trimmedHistoryQuery) return true;
@@ -68,6 +89,12 @@ export function WalletHistoryPanel({
     (historyCurrentPage - 1) * historyPageSize,
     historyCurrentPage * historyPageSize,
   );
+
+  function clearFilters() {
+    setHistoryStatus("");
+    setHistoryQuery("");
+    setHistoryPage(1);
+  }
 
   async function handleDebugClearWalletHistory() {
     const confirmed = window.confirm(
@@ -95,146 +122,168 @@ export function WalletHistoryPanel({
   }
 
   return (
-    <>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="type-title">History</p>
-        <div className="flex items-center gap-3">
-          <p className="text-xs text-slate-500">Sent</p>
-          <Button
-            type="button"
-            variant="secondary"
-            className="rounded-xl px-3 py-2 text-xs"
-            onClick={() => {
-              void onRefresh();
-            }}
-            disabled={loading || actionsBlocked}
-          >
-            Refresh
-          </Button>
-        </div>
+    <div className="gap-detail-close flex flex-col">
+      <div className="[&>div]:mb-0">
+        <ListFilterBar
+          filter={historyStatus}
+          q={historyQuery}
+          filterOptions={HISTORY_STATUS_OPTIONS}
+          filterLabel="Status"
+          searchPlaceholder="Address, token, or txpow ID"
+          disabled={pagerDisabled}
+          onFilterChange={(status) => {
+            setHistoryStatus(status);
+            setHistoryPage(1);
+          }}
+          onQueryChange={(q) => {
+            setHistoryQuery(q);
+            setHistoryPage(1);
+          }}
+        />
       </div>
-      <ListPagerFilterBar
+
+      {error ? (
+        <ErrorAlert title="Couldn't load history" className="w-full max-w-none">
+          {error}
+        </ErrorAlert>
+      ) : null}
+
+      <p className="sr-only" aria-live="polite">
+        {showLoading
+          ? "Loading send history."
+          : filtersActive
+            ? `${filteredHistory.length} matching ${filteredHistory.length === 1 ? "send" : "sends"}.`
+            : `${filteredHistory.length} ${filteredHistory.length === 1 ? "send" : "sends"} in history.`}
+      </p>
+
+      <div aria-busy={showLoading || undefined}>
+        <TableWrap>
+          <DataTable aria-label="Send history">
+            <TableHead>
+              <TableHeaderCell>Amount</TableHeaderCell>
+              <TableHeaderCell>To</TableHeaderCell>
+              <TableHeaderCell>Status</TableHeaderCell>
+              <TableHeaderCell className="whitespace-nowrap">Date</TableHeaderCell>
+              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+            </TableHead>
+            <TableBody>
+              {showLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="p-0">
+                    <div
+                      className="py-pad-relaxed flex items-center justify-center"
+                      aria-busy="true"
+                    >
+                      <LoadingDots />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filteredHistory.length === 0 ? (
+                <TableRow>
+                  <td colSpan={5} className="p-0">
+                    <div className="gap-detail-close p-margin-tight py-pad-relaxed flex flex-col items-start">
+                      <span
+                        className="bg-surface-secondary text-icon-primary rounded-loose flex size-10 items-center justify-center"
+                        aria-hidden
+                      >
+                        <Inbox size={20} />
+                      </span>
+                      <div className="gap-detail-tight flex flex-col">
+                        <p className="type-body-em text-text-primary m-0">
+                          {filtersActive ? "No matching sends" : "No send activity yet"}
+                        </p>
+                        <p className="type-body text-text-secondary m-0">
+                          {filtersActive
+                            ? "Try another status or search, or clear filters."
+                            : "Payments you send from this wallet will appear here."}
+                        </p>
+                      </div>
+                      {filtersActive ? (
+                        <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
+                          Clear filters
+                        </Button>
+                      ) : null}
+                    </div>
+                  </td>
+                </TableRow>
+              ) : (
+                pagedHistory.map((entry) => {
+                  const amountLabel = formatAmountAdaptive(entry.amount);
+                  const toShort = shortAddress(entry.toAddress);
+                  return (
+                    <TableRow key={entry.id}>
+                      <TableCell className="min-w-0">
+                        <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
+                          <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
+                          <span className="gap-detail-tight flex min-w-0 flex-col">
+                            <span className="type-mono text-text-primary truncate tabular-nums">
+                              {amountLabel}
+                            </span>
+                            {/* <span className="type-meta text-text-secondary truncate">
+                            {entry.tokenName}
+                          </span> */}
+                          </span>
+                        </span>
+                      </TableCell>
+                      <TableCell className="min-w-0">
+                        <code
+                          className="type-mono text-text-secondary block truncate"
+                          title={entry.toAddress}
+                        >
+                          {toShort}
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        <Pill tone={historyStatusTone(entry.status)} indicator>
+                          {historyStatusLabel(entry.status)}
+                        </Pill>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <time className="type-meta text-text-secondary" dateTime={entry.createdAt}>
+                          {formatLocalDateTime(entry.createdAt)}
+                        </time>
+                      </TableCell>
+                      <TableCell className="w-px whitespace-nowrap">
+                        <RowActions>
+                          <TableIconButton
+                            type="button"
+                            title="View details"
+                            aria-label={`View send of ${amountLabel} ${entry.tokenName} to ${toShort}`}
+                            onClick={() => setSelectedHistoryItem(entry)}
+                          >
+                            <Eye size={16} aria-hidden />
+                          </TableIconButton>
+                        </RowActions>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </DataTable>
+        </TableWrap>
+      </div>
+
+      <ListPaginationFooter
         page={historyCurrentPage}
         pageSize={historyPageSize}
         total={filteredHistory.length}
         totalPages={historyTotalPages}
-        status={historyStatus}
-        q={historyQuery}
-        statusOptions={HISTORY_STATUS_OPTIONS}
-        statusLabel="Status"
-        searchPlaceholder="Address, token, or txpow ID"
-        disabled={loading || actionsBlocked}
+        disabled={pagerDisabled}
         onPageChange={setHistoryPage}
         onPageSizeChange={(size) => {
           setHistoryPageSize(size);
           setHistoryPage(1);
         }}
-        onStatusChange={(status) => {
-          setHistoryStatus(status);
-          setHistoryPage(1);
-        }}
-        onQueryChange={(q) => {
-          setHistoryQuery(q);
-          setHistoryPage(1);
-        }}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
       />
-      {error ? (
-        <ErrorText>{error}</ErrorText>
-      ) : (
-        <TableWrap>
-          <DataTable>
-            <thead>
-              <tr className={tableHeadRowClass}>
-                <th className={tableHeaderCellClass}>Amount</th>
-                <th className={tableHeaderCellClass}>To</th>
-                <th className={tableHeaderCellClass}>Status</th>
-                <th className={tableHeaderCellClass}>Date</th>
-                <th className={`${tableHeaderCellClass} w-px whitespace-nowrap`}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading || actionsBlocked ? (
-                <tr className={tableRowClass}>
-                  <td colSpan={5} className="p-0">
-                    <div className="flex justify-center py-10">
-                      <Loader2 className="size-10 animate-spin text-slate-400" aria-hidden="true" />
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredHistory.length === 0 ? (
-                <tr className={tableRowClass}>
-                  <td colSpan={5} className="p-0">
-                    <div className="p-margin-tight py-pad-relaxed">
-                      <MutedText>
-                        {historyStatus || trimmedHistoryQuery
-                          ? "No matching history."
-                          : "No send activity yet."}
-                      </MutedText>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                pagedHistory.map((entry) => (
-                  <tr key={entry.id} className={tableRowClass}>
-                    <td className={tableCellClass}>
-                      <span className="inline-flex items-center gap-1.5 font-semibold text-slate-900">
-                        <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
-                        {entry.amount} {entry.tokenName}
-                      </span>
-                    </td>
-                    <td className={tableCellClass}>
-                      <code className="font-mono text-xs text-slate-500">
-                        {shortAddress(entry.toAddress)}
-                      </code>
-                    </td>
-                    <td className={tableCellClass}>
-                      <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                        {entry.status}
-                      </span>
-                    </td>
-                    <td className={tableCellClass}>
-                      <span className="text-xs text-slate-500">
-                        {new Date(entry.createdAt).toLocaleString()}
-                      </span>
-                    </td>
-                    <td className={`${tableCellClass} w-px whitespace-nowrap`}>
-                      <RowActions>
-                        <TableIconButton
-                          type="button"
-                          title="View details"
-                          aria-label="View history item"
-                          onClick={() => setSelectedHistoryItem(entry)}
-                        >
-                          <Eye size={16} />
-                        </TableIconButton>
-                      </RowActions>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </DataTable>
-        </TableWrap>
-      )}
-      <div className="mt-3">
-        <TablePager
-          page={historyCurrentPage}
-          pageSize={historyPageSize}
-          total={filteredHistory.length}
-          totalPages={historyTotalPages}
-          disabled={loading || actionsBlocked}
-          onPageChange={setHistoryPage}
-          onPageSizeChange={(size) => {
-            setHistoryPageSize(size);
-            setHistoryPage(1);
-          }}
-        />
-      </div>
-      {isDev && (
-        <div className="mt-4 flex justify-start">
+
+      {/* {isDev ? (
+        <div className="flex justify-start">
           <Button
             type="button"
             variant="secondary"
+            size="sm"
             onClick={handleDebugClearWalletHistory}
             disabled={debugClearingHistory}
             title="Dev-only: clears wallet_send_history table"
@@ -242,13 +291,14 @@ export function WalletHistoryPanel({
             {debugClearingHistory ? "Clearing…" : "Debug: clear history"}
           </Button>
         </div>
-      )}
-      {selectedHistoryItem && (
+      ) : null} */}
+
+      {selectedHistoryItem ? (
         <HistoryDetailModal
           item={selectedHistoryItem}
           onClose={() => setSelectedHistoryItem(null)}
         />
-      )}
-    </>
+      ) : null}
+    </div>
   );
 }
