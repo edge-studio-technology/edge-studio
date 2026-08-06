@@ -12,6 +12,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Local services card lists the LAN and internal MQTT broker URLs as labelled fields with per-field Copy buttons (with copied confirmation), and shows the broker Enabled/Disabled state as a status pill.
 - Table cards (Configured devices, Integritas history, data reads history) use the shared design-system card heading style.
 
+## [0.30.2] 2026-08-05
+
+### Added
+
+- Shared native table row primitives on `DataTable`: `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell` (wallet assets and history lists migrated).
+- `formatLocalDateTime` in `frontend/src/lib/time.ts` for compact local date+time in tables and detail fields.
+
+### Changed
+
+- Wallet history tab matches assets: `ListFilterBar`, `ListPaginationFooter`, table primitives, `LoadingDots`, status `Pill`, and clear-filters empty state.
+- Wallet history UX: amount/token hierarchy, status pills, semantic `<time>`, fuller empty state, `ErrorAlert` on load failure, and descriptive row action labels; send detail modal aligned with asset detail layout.
+- Address book tab matches assets/history ESDS: `ListFilterBar`, `ListPaginationFooter`, table primitives, `LoadingDots`, `InputField` forms, `ErrorAlert`, and contact detail modal; Add contact lives in the panel.
+- Wallet send history table and detail modal use `formatLocalDateTime` instead of raw `toLocaleString()`.
+- `DataTable` no longer forces `min-w-190`; tables fill the container, and wide lists still opt in (e.g. `min-w-[920px]`). `TableWrap` keeps horizontal scroll when content overflows.
+- Wallet asset detail modal: sendable hero, side-by-side confirmed/unconfirmed tiles (warning when pending), token type pill, copyable ID last.
+- Moved `CopyableCode` into `components/patterns/` and restyled with design-system tokens / `IconButton`; flat re-export kept. Copy shows a success toast (error toast if clipboard fails).
+- Wallet hero focuses on balance with Send + Receive actions; receive opens a modal with copyable address. Receive on the dark hero uses local button styles with hover; shared Button `onDark` variant removed.
+- Wallet sections use `TabList` in a card; node-unavailable warning uses `ErrorAlert` (`status="warning"`).
+- Wallet hero inlines dark surface styles (`DarkHeroCard` removed).
+- Send payment modal uses `ToggleTabs`, `ErrorAlert`, and design-system Button/Modal.
+- `ToggleTabs` adds optional `size="sm"`.
+- `Input` / `InputField` add optional `size` (`md` \| `sm`), matching `SelectField`.
+- Moved `DataTable` into `components/patterns/`; flat re-export kept.
+- `TableIconMenu` adds a ⋮ overflow menu for secondary row actions (primary icon stays visible).
+- Wallet asset list pagination now uses shared `ListPaginationFooter` with compact rows/page-size controls (`SelectField` `size="sm"`) and `ListPagerFilterBar` can hide its pager via `showPager`.
+
 ## [0.30.1] 2026-08-05
 
 ### Added
@@ -39,8 +65,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Integritas verify shows an in-panel loading result shell (with bouncing dots) while a proof file upload is in progress; the selected-file remove control is disabled while stamp/verify is busy.
-
-### Changed
 
 - Moved `ButtonRow` into `components/patterns/` with design-system spacing (`gap-detail-next`); flat re-export kept.
 - Integritas stamp and verify failures that return HTTP 402 (plan/API limit) are now classified as `payment_required` and show an upgrade toast (and a clear automation stamp error) instead of a generic stamp/verify failure.

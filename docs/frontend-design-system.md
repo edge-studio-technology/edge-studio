@@ -52,11 +52,11 @@ Migration is **incremental**, not a big-bang move:
 
 **Target homes (when migrated)**
 
-| Target         | Components (indicative)                                                                                                                                                                                                                                                                                      |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `ButtonRow`, `DataTable`, `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `DarkHeroCard`, `BrandLineGrid`, `MetricCard`                                                                                 |
-| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                       |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `MetricCard`                                                                                                         |
+| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
 ## Styling Rules
 
@@ -87,7 +87,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [SwitchField](#switchfield): labeled on/off switch
 - `Text`: muted text (legacy flat helper; `ErrorText` lives in `ui/`)
 - `ErrorText`: inline error copy
-- [ErrorAlert](#erroralert): in-page error alert
+- [ErrorAlert](#erroralert): in-page error / warning alert
 - [Modal](#modal): dialog overlay
 - `LoadingDots`: bouncing loading indicator
 - `Input`: bare text control
@@ -99,7 +99,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [ToggleTabs](#toggletabs): segmented toggle
 - `PinField`: segmented PIN / code field
 - `CredentialInput`: PIN or password field
-- `DataTable`: table shell and rows
+- `DataTable`: native table shell and row primitives (`TableWrap`, `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`, `TableIconMenu`)
 - `StatusRow`: label / value / status row
 - [DetailList](#detaillist): label / value detail rows
 - [StatusBar](#statusbar): app shell status chrome
@@ -109,6 +109,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Disclosure](#disclosure): native collapse / expand section
 - [ScrollArea](#scrollarea): thin ESDS-token scrollbar container
 - `JsonPreview`: trigger that opens a modal with pretty-printed JSON
+- [CopyableCode](#copyablecode): mono value with copy control
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
 
@@ -136,13 +137,13 @@ Text and icon buttons (`frontend/src/components/ui/Button.tsx`). Flat `component
 
 #### Text `Button`
 
-Variant matrix: Primary, Secondary, Tertiary (`ghost`), Accent × Default (`md` 44px) / Compact (`sm` 32px). App-only variants: `danger`, `onDark`.
+Variant matrix: Primary, Secondary, Tertiary (`ghost`), Accent × Default (`md` 44px) / Compact (`sm` 32px). App-only variant: `danger`.
 
-| Prop                    | Values                                                                  | Notes                                                                                 |
-| ----------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `variant`               | `primary` \| `secondary` \| `ghost` \| `accent` \| `danger` \| `onDark` | Prefer primary / secondary / ghost / accent for new UI                                |
-| `size`                  | `md` (44px) \| `sm` / `xs` (32px)                                       | `xs` matches `sm` today; prefer `sm` for compact                                      |
-| `iconStart` / `iconEnd` | optional `ReactNode`                                                    | Leading/trailing icon slots (16px). Prefer these over stuffing icons into `children`. |
+| Prop                    | Values                                                      | Notes                                                                                 |
+| ----------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `variant`               | `primary` \| `secondary` \| `ghost` \| `accent` \| `danger` | Prefer primary / secondary / ghost / accent for new UI                                |
+| `size`                  | `md` (44px) \| `sm` / `xs` (32px)                           | `xs` matches `sm` today; prefer `sm` for compact                                      |
+| `iconStart` / `iconEnd` | optional `ReactNode`                                        | Leading/trailing icon slots (16px). Prefer these over stuffing icons into `children`. |
 
 Icons in `iconStart` / `iconEnd` are layout-only; keep the visible label in `children` so the accessible name stays clear. Mark decorative SVGs with `aria-hidden` when they add no meaning beyond the label.
 
@@ -154,7 +155,7 @@ Icons in `iconStart` / `iconEnd` are layout-only; keep the visible label in `chi
 
 #### Circular `IconButton`
 
-Circular icon-only button: Primary / Secondary / Tertiary (`ghost`) × Default / Compact. Fully circular (`rounded-full`). No accent / danger / onDark.
+Circular icon-only button: Primary / Secondary / Tertiary (`ghost`) × Default / Compact. Fully circular (`rounded-full`). No accent / danger.
 
 | Prop      | Values                                                                     | Notes                                          |
 | --------- | -------------------------------------------------------------------------- | ---------------------------------------------- |
@@ -388,16 +389,16 @@ Disclosure (`frontend/src/components/ui/Disclosure.tsx`): native `<details>` / `
 
 Use it for reusable collapsible sections such as toolkit groups, settings groups, diagnostics details, and setup-guide sections. It intentionally does not coordinate with sibling disclosures; add that later only if a true accordion behavior is needed.
 
-| Prop               | Notes                                                |
-| ------------------ | ---------------------------------------------------- |
-| `title`            | Required summary label/content                       |
-| `children`         | Required collapsed/expanded body                     |
-| `defaultOpen`      | Initial native open state, default `true`            |
-| `open`             | Optional controlled native `details` state           |
-| `className`        | Merged onto `<details>`                              |
-| `summaryClassName` | Merged onto `<summary>`                              |
-| `contentClassName` | Merged onto the content wrapper                      |
-| ...props           | Standard `HTMLDetailsElement` attributes             |
+| Prop               | Notes                                      |
+| ------------------ | ------------------------------------------ |
+| `title`            | Required summary label/content             |
+| `children`         | Required collapsed/expanded body           |
+| `defaultOpen`      | Initial native open state, default `true`  |
+| `open`             | Optional controlled native `details` state |
+| `className`        | Merged onto `<details>`                    |
+| `summaryClassName` | Merged onto `<summary>`                    |
+| `contentClassName` | Merged onto the content wrapper            |
+| ...props           | Standard `HTMLDetailsElement` attributes   |
 
 ```tsx
 <Disclosure title="Group title" defaultOpen>
@@ -418,8 +419,10 @@ Use it when a panel, modal body, console, or rail needs visible internal scrolli
 | ...props    | Standard `HTMLDivElement` attributes |
 
 ```tsx
-<ScrollArea className="max-h-80 rounded-soft border border-stroke-secondary p-margin-tight">
-  {items.map((item) => <Item key={item.id} item={item} />)}
+<ScrollArea className="rounded-soft border-stroke-secondary p-margin-tight max-h-80 border">
+  {items.map((item) => (
+    <Item key={item.id} item={item} />
+  ))}
 </ScrollArea>
 ```
 
@@ -446,22 +449,25 @@ Back control is `IconButton` ghost compact with ChevronLeft. Count uses `Pill`. 
 
 ### ErrorAlert
 
-In-page error alert (`frontend/src/components/patterns/ErrorAlert.tsx`): same feedback chrome as toast error (white surface, `stroke-error` border, 20% `feedback-error` wash). Prefer field `error` for per-control validation; prefer toast for transient action failures.
+In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): white surface, status stroke, 20% feedback wash (same chrome as matching toast tones). Prefer field `error` for per-control validation; prefer toast for transient action failures.
 
-| Prop        | Notes                                             |
-| ----------- | ------------------------------------------------- |
-| `title`     | Optional; `type-body-em` primary                  |
-| `children`  | Body; primary when alone, secondary under a title |
-| `action`    | Optional recovery control (e.g. Retry)            |
-| `className` | Merged onto the outer alert shell                 |
+| Prop        | Notes                                                                  |
+| ----------- | ---------------------------------------------------------------------- |
+| `status`    | `error` (default) or `warning`                                         |
+| `title`     | Optional; `type-body-em` primary                                       |
+| `children`  | Body; primary when alone, secondary under a title                      |
+| `action`    | Optional recovery control (e.g. Retry)                                 |
+| `className` | Merged onto the outer alert shell (e.g. `max-w-none w-full` for pages) |
 
-Uses `role="alert"`, Lucide `AlertCircle` (`icon-error`), `rounded-soft`, `p-margin-tight`. Flat `components/ErrorAlert.tsx` re-exports.
+`error` uses `role="alert"` + `AlertCircle` (`icon-error`). `warning` uses `role="status"` + `TriangleAlert` (`icon-warning`). Flat `components/ErrorAlert.tsx` re-exports.
 
 ```tsx
 <ErrorAlert title="Couldn't start Connect" action={<RetryButton />}>
   {error}
 </ErrorAlert>
-<ErrorAlert>{error}</ErrorAlert>
+<ErrorAlert status="warning" title="Minima isn't running" className="w-full max-w-none">
+  Wallet actions are unavailable until the node is running again.
+</ErrorAlert>
 ```
 
 ### Page
@@ -488,11 +494,11 @@ Cleanup later: drop `eyebrow` from remaining page call sites, then remove the pr
 
 White card surface (`frontend/src/components/ui/Card.tsx`): fill, radius, padding, overflow clip only. Layout (`flex` / `grid` / `gap`) belongs on the caller. Flat `components/Card.tsx` re-exports for now.
 
-| Prop        | Notes                                                        |
-| ----------- | ------------------------------------------------------------ |
+| Prop        | Notes                                                    |
+| ----------- | -------------------------------------------------------- |
 | `size`      | `Default` (`p-pad-relaxed`) \| `Compact` (`p-pad-tight`) |
-| `className` | Merged onto the surface                                      |
-| `children`  | Card body                                                    |
+| `className` | Merged onto the surface                                  |
+| `children`  | Card body                                                |
 
 ```tsx
 <Card className="gap-detail-close flex flex-col">…</Card>
@@ -524,6 +530,17 @@ Standalone compact metric tile (`frontend/src/components/patterns/MetricCard.tsx
 <MetricCard label="Node status" loading={loading} value="Running" status="success" />
 ```
 
+### CopyableCode
+
+Mono value chip with a compact copy control (`frontend/src/components/patterns/CopyableCode.tsx`): secondary surface, `type-mono` value, `IconButton` copy/check. Copy success and failure use the shared toast. Prefer this for addresses, token IDs, and hashes. Flat `components/CopyableCode.tsx` re-exports for now.
+
+| Prop        | Notes                          |
+| ----------- | ------------------------------ |
+| `value`     | String shown and copied        |
+| `className` | Optional; merged onto the chip |
+
+```tsx
+<CopyableCode value={token.tokenId} />
 ### DetailList
 
 Label/value detail rows (`frontend/src/components/patterns/DetailList.tsx`): `DetailList` is the `<dl>` wrapper, `DetailRow` is one label/value pair. Prefer this for read-only config/profile detail blocks instead of hand-rolled `<dl>`/`<dt>`/`<dd>` markup.
@@ -591,16 +608,17 @@ Default (`neutral`): `surface-secondary` fill. Success / Warning / Error: white 
 
 Labeled text field: label → optional description → control → optional error.
 
-| Prop          | Notes                                                     |
-| ------------- | --------------------------------------------------------- |
-| `label`       | Optional; `type-meta` (tertiary when `disabled`)          |
-| `description` | Optional helper under the label                           |
-| `error`       | Optional; red alert text + `aria-invalid` on the control  |
-| `disabled`    | Dims label/description; disables the control              |
-| `className`   | Outer stack                                               |
-| …input props  | Standard `value`, `onChange`, `type`, `placeholder`, etc. |
+| Prop          | Notes                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------ |
+| `label`       | Optional; `type-meta` (tertiary when `disabled`)                                                 |
+| `description` | Optional helper under the label                                                                  |
+| `error`       | Optional; red alert text + `aria-invalid` on the control                                         |
+| `size`        | `md` (default, 44px / `type-body`) or `sm` (32px / `type-meta`); same as `Input` / `SelectField` |
+| `disabled`    | Dims label/description; disables the control                                                     |
+| `className`   | Outer stack                                                                                      |
+| …input props  | Standard `value`, `onChange`, `type`, `placeholder`, etc.                                        |
 
-Control states live on `Input` (used by `InputField`): inset 1px outline `stroke-primary`, disabled fill `surface-primary`, error outline `stroke-error`, focus outline `stroke-active`.
+Control states live on `Input` (used by `InputField`): inset 1px outline `stroke-primary`, disabled fill `surface-primary`, error outline `stroke-error`, focus outline `stroke-active`. Native HTML `size` is omitted so this prop is the visual size.
 
 ```tsx
 <InputField
@@ -627,11 +645,12 @@ Labeled select (`frontend/src/components/ui/SelectField.tsx`): label → optiona
 | `error`       | Optional; red alert text + `aria-invalid` on the control           |
 | `options`     | `{ value, label, disabled? }[]` — rendered as native `<option>`s   |
 | `placeholder` | Optional empty-value option (`value=""`); shown in `text-disabled` |
+| `size`        | `md` (default, 44px / `type-body`) or `sm` (32px / `type-meta`)    |
 | `disabled`    | Dims label/description; disables the control                       |
 | `className`   | Outer stack                                                        |
 | …select props | Standard `value`, `onChange`, `name`, `defaultValue`, etc.         |
 
-Control matches `Input` chrome: 44px tall, `rounded-loose`, `border-stroke-primary`, white fill, focus `stroke-active`, error `stroke-error`, disabled `surface-primary` + `text-disabled`. ChevronDown sits at the trailing edge (`icon-primary` / disabled `icon-disabled`).
+Control matches `Input` chrome: `rounded-loose`, `border-stroke-primary`, white fill, focus `stroke-active`, error `stroke-error`, disabled `surface-primary` + `text-disabled`. Height/type follow `size`. ChevronDown sits at the trailing edge (`icon-primary` / disabled `icon-disabled`).
 
 ```tsx
 <SelectField
@@ -697,7 +716,7 @@ States per tab: active (`stroke-active` / `text-primary`) → hover (`stroke-pri
 
 ### ToggleTabs
 
-Equal-width segments on a `surface-secondary` track (`p-detail-tight`, `gap-detail-next`, `rounded-loose`). Prefer this for compact binary/segmented controls. `ToggleTabItem` is not exported — pass segments through `options`.
+Equal-width segments on a `surface-secondary` track (`rounded-loose`). Prefer this for compact binary/segmented controls. `ToggleTabItem` is not exported — pass segments through `options`.
 
 | Prop        | Notes                                                                 |
 | ----------- | --------------------------------------------------------------------- |
@@ -705,9 +724,10 @@ Equal-width segments on a `surface-secondary` track (`p-detail-tight`, `gap-deta
 | `value`     | Currently selected option value                                       |
 | `options`   | `{ value, label, disabled? }[]` — typically two segments              |
 | `onChange`  | Called with the selected value                                        |
+| `size`      | `md` (default, 44px / `type-body`) or `sm` (32px / `type-meta`)       |
 | `className` | Merged onto the track (set width when equal flex segments need a box) |
 
-Selected: `surface-inverse` / `text-inverse`, 44px tall, `type-body`. Idle: transparent with `stroke-secondary` border / `text-primary` (border blends into the track).
+Selected: `surface-inverse` / `text-inverse`. Idle: transparent with `stroke-secondary` border / `text-primary` (border blends into the track). Labels stay on one line (`whitespace-nowrap`).
 
 ```tsx
 <ToggleTabs
@@ -720,13 +740,34 @@ Selected: `surface-inverse` / `text-inverse`, 44px tall, `type-body`. Idle: tran
   ]}
   onChange={setView}
 />
+<ToggleTabs size="sm" label="Recipient source" value={mode} options={…} onChange={setMode} />
 ```
 
 ## Tables And Lists
 
-- Use `DataTable` for tabular workflow/history/list surfaces (native `<table>` + `frontend/src/components/DataTable.tsx`, styled with shared table visuals).
+- Use `DataTable` for tabular workflow/history/list surfaces (native `<table>` + helpers in `frontend/src/components/patterns/DataTable.tsx`; flat `components/DataTable.tsx` re-exports for now).
+- Prefer the row primitives (`TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`) over applying the exported class constants by hand. Class constants remain for older call sites.
+- Wrap list tables in `TableWrap` from that module: bordered scroll shell with a modest min-height (~4 rows).
+- Prefer one primary `TableIconButton` in the Actions column; put secondary actions in `TableIconMenu` (⋮).
 - Use compact cards/lists instead of tables when the content is entity-detail oriented, narrow, or action-heavy.
 - When migrating off native `<table>` markup, prefer the shared table shell pattern in `frontend/src/components/patterns/Table.tsx` (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`).
+
+```tsx
+<TableWrap>
+  <DataTable>
+    <TableHead>
+      <TableHeaderCell>Name</TableHeaderCell>
+      <TableHeaderCell>Amount</TableHeaderCell>
+    </TableHead>
+    <TableBody>
+      <TableRow>
+        <TableCell>…</TableCell>
+        <TableCell>…</TableCell>
+      </TableRow>
+    </TableBody>
+  </DataTable>
+</TableWrap>
+```
 
 ## Tokens
 
