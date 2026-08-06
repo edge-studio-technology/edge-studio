@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { cx } from "../../lib/cx";
+import { JsonBlock } from "./JsonBlock";
 
 export function JsonPreview({
   value,
@@ -51,13 +52,13 @@ export function JsonPreview({
           {label}
         </button>
       )}
-      {open && (
+      {open ? (
         <Modal title={title} onClose={() => setOpen(false)}>
-          <pre className="type-mono text-text-inverse bg-surface-inverse border-stroke-secondary rounded-soft border p-pad-tight m-0 overflow-x-auto leading-[1.5] whitespace-pre [tab-size:2]">
-            {JSON.stringify(value, null, 2)}
-          </pre>
+          <div className="px-detail-next py-pad-close">
+            <JsonBlock value={value} />
+          </div>
         </Modal>
-      )}
+      ) : null}
     </>
   );
 }

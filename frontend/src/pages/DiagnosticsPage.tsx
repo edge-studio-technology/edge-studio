@@ -390,7 +390,7 @@ export function DiagnosticsPage() {
         ) : activeTab === "reads" ? (
           <DataReadsHistoryTable items={readsPage.items} filtered={listFiltered} />
         ) : (
-          <AutomationRunsTable runs={workflowRunsPage.items} />
+          <AutomationRunsTable runs={workflowRunsPage.items} filtered={listFiltered} />
         )}
 
         <ListPaginationFooter

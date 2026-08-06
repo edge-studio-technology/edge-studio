@@ -4,13 +4,14 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## Unreleased
+## [Unreleased] ui/diagnostics
 
 ### Added
 
 - Shared `Text` family (`components/ui/`): `Text.Link` for in-app text links with accent hover (more roles planned). Flat `components/Text.tsx` re-exports; legacy `MutedText` stays there for now.
 - Text colour token `text-accent-hover` (`brand-02`) for accent link hover, paired with `text-accent`.
-- Shared `ErrorDetails` in `components/patterns/`: Dialog layout with scrollable detail fields, inverse mono JSON blocks, and Close action. Flat `components/ErrorDetails.tsx` kept for older call sites.
+- Shared `ErrorDetails` in `components/patterns/`: Dialog with Type / Message / Native / Context / optional Additional context / Raw, and Close action. Flat `components/ErrorDetails.tsx` kept for older call sites.
+- Shared `JsonBlock` in `components/patterns/`: inverse mono pretty-printed JSON in a scroll area for embedding in modals and disclosures.
 
 ### Changed
 
@@ -19,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Diagnostics shows a per-tab description under `TabList` for proofs, reads, and workflow logs.
 - Integritas proof history table on Diagnostics uses ESDS table primitives, `formatLocalDateTime`, status pills, and bulk actions without a nested `TableCard`.
 - Diagnostics read history table uses the same ESDS table primitives, `formatLocalDateTime`, and status pills, without a nested `TableCard`.
+- Diagnostics workflow logs table uses ESDS table primitives, `formatLocalDateTime`, status/trigger pills; Eye opens a run inspect modal and `TableIconMenu` offers Show on canvas. The modal shows a plain summary (failed block, type, message) plus disclosures for workflow error JSON, per-block error JSON, and full run data (`JsonBlock`; no nested error dialogs).
+- `JsonPreview` modal body uses shared `JsonBlock`.
 - Read history uses patterns `ErrorDetails` for row error inspection.
 - Read history Integritas proof IDs link to Diagnostics proof history filtered by that proof ID (`Text.Link` “Open proof”).
 - Proof verify on Diagnostics toasts Full match / No match from the verify response; the active row shows “Verifying…”.
