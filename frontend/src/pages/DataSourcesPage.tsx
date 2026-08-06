@@ -7,7 +7,6 @@ import { Modal } from "../components/Modal";
 import { Page } from "../components/Page";
 import { ProgressModal } from "../components/ProgressModal";
 import { useToast } from "../components/ToastProvider";
-import { ToggleTabs } from "../components/ui/ToggleTabs";
 import { createAutomationWorkflow } from "../features/automation/automationApi";
 import {
   checkDataSourceHealth,
@@ -34,34 +33,13 @@ import {
   type DeviceGuideAction,
 } from "../features/data-sources/deviceSetupGuides";
 import { Esp32FirmwareSetup } from "../features/data-sources/Esp32FirmwareSetup";
-import { TabsAddDeviceFlow } from "../features/data-sources/TabsAddDeviceFlow";
 import { useDeviceFormFields } from "../features/data-sources/useDeviceFormFields";
-
-/**
- * Two add-device UIs are kept side by side for comparison: "classic" (method choice ->
- * template grid -> form, each its own modal step, `ClassicAddDeviceFlow`) and "tabs"
- * (Guided/Manual tabs with a collapsible section per template, form inline,
- * `TabsAddDeviceFlow`). Delete the loser's component/import and this toggle once the team
- * picks one.
- */
-type AddDeviceFlow = "classic" | "tabs";
-const ADD_DEVICE_FLOW_STORAGE_KEY = "integritas-pi:add-device-flow";
-
-function readStoredAddDeviceFlow(): AddDeviceFlow {
-  if (typeof window === "undefined") return "tabs";
-  return window.localStorage.getItem(ADD_DEVICE_FLOW_STORAGE_KEY) === "classic"
-    ? "classic"
-    : "tabs";
-}
 
 export function DataSourcesPage() {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [items, setItems] = useState<DataSource[]>([]);
   const [capabilities, setCapabilities] = useState<DataSourceCapabilities | null>(null);
-  const [addDeviceFlow, setAddDeviceFlow] = useState<AddDeviceFlow>(() =>
-    readStoredAddDeviceFlow(),
-  );
   const [addDeviceMode, setAddDeviceMode] = useState<"input" | "output" | null>(null);
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -74,10 +52,6 @@ export function DataSourcesPage() {
   const [createdGuideWorkflowIds, setCreatedGuideWorkflowIds] = useState<Record<string, string>>(
     {},
   );
-
-  useEffect(() => {
-    window.localStorage.setItem(ADD_DEVICE_FLOW_STORAGE_KEY, addDeviceFlow);
-  }, [addDeviceFlow]);
 
   useEffect(() => {
     refresh().catch((err: Error) =>
@@ -208,24 +182,12 @@ export function DataSourcesPage() {
       desc="Add input sources for data and events, then prepare output targets for automation workflows."
     >
       <Card className="gap-detail-near grid w-full">
-        <div className="gap-detail-close flex flex-wrap items-start justify-between">
-          <div>
-            <h2 className="type-title text-text-primary m-0">Add devices</h2>
-            <p className="type-body text-text-secondary mt-detail-next m-0">
-              Create a configured input source or output target. Local services show connection
-              details for app-provided services.
-            </p>
-          </div>
-          <ToggleTabs
-            label="Add-device flow (comparison, temporary)"
-            size="sm"
-            value={addDeviceFlow}
-            options={[
-              { value: "classic", label: "Classic" },
-              { value: "tabs", label: "Tabs" },
-            ]}
-            onChange={setAddDeviceFlow}
-          />
+        <div>
+          <h2 className="type-title text-text-primary m-0">Add devices</h2>
+          <p className="type-body text-text-secondary mt-detail-next m-0">
+            Create a configured input source or output target. Local services show connection
+            details for app-provided services.
+          </p>
         </div>
         <ButtonRow>
           <Button onClick={() => setAddDeviceMode("input")}>Add input source</Button>
@@ -237,21 +199,12 @@ export function DataSourcesPage() {
 
       <LocalServicesCard capabilities={capabilities} />
 
-      {addDeviceFlow === "classic" ? (
-        <ClassicAddDeviceFlow
-          mode={addDeviceMode}
-          capabilities={capabilities}
-          onClose={() => setAddDeviceMode(null)}
-          onCreated={handleDeviceCreated}
-        />
-      ) : (
-        <TabsAddDeviceFlow
-          mode={addDeviceMode}
-          capabilities={capabilities}
-          onClose={() => setAddDeviceMode(null)}
-          onCreated={handleDeviceCreated}
-        />
-      )}
+      <ClassicAddDeviceFlow
+        mode={addDeviceMode}
+        capabilities={capabilities}
+        onClose={() => setAddDeviceMode(null)}
+        onCreated={handleDeviceCreated}
+      />
 
       {formOpen && (
         <Modal title="Edit device" closeDisabled={busy} onClose={closeForm}>

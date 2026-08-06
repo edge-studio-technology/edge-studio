@@ -265,11 +265,7 @@ export function templateKind(template: DataSourceTemplate) {
   return "manual";
 }
 
-/**
- * Classic add-device picker: a grid of template cards, one "Add input"/"Add output" button each.
- * Kept alongside `AddDevicePanel`'s tabs+accordion layout so both can be compared in the running app
- * (see the flow toggle in `DataSourcesPage`).
- */
+/** Add-device template picker: a grid of pressable template cards. */
 export function DataSourceTemplates({
   mode,
   category,

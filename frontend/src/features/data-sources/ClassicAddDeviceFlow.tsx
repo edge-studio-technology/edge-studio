@@ -12,9 +12,7 @@ import type { DataSource, DataSourceCapabilities, DataSourceTemplate } from "./d
 import { useDeviceFormFields } from "./useDeviceFormFields";
 
 /**
- * Classic add-device flow: method choice -> template grid -> form, each its own modal step.
- * Fully self-contained (own step state, own form fields, own submit) so it can be deleted
- * on its own once the team picks a flow — see the toggle in `DataSourcesPage`.
+ * Add-device flow: method choice -> template grid -> form, each its own modal step.
  */
 export function ClassicAddDeviceFlow({
   mode,
