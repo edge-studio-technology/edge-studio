@@ -4,6 +4,14 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ui/devices-page
+
+### Changed
+
+- Devices page now offers **Add input source** and **Add output target** as two direct buttons, removing the extra "Add device or source" choice step that previously sat in front of them. The template/manual step and its Back control are unchanged.
+- Local services card lists the LAN and internal MQTT broker URLs as labelled fields with per-field Copy buttons (with copied confirmation), and shows the broker Enabled/Disabled state as a status pill.
+- Table cards (Configured devices, Integritas history, data reads history) use the shared design-system card heading style.
+
 ## [0.30.1] 2026-08-05
 
 ### Added

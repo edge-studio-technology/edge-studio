@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
+import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
 import { Modal } from "../components/Modal";
 import { Page } from "../components/Page";
@@ -15,7 +16,7 @@ import { DataSourceTemplates, LocalServicesCard } from "../features/data-sources
 import type { DataSource, DataSourceCapabilities, DataSourceHealthStatus, DataSourceTemplate } from "../features/data-sources/dataSourceTypes";
 import { getDeviceSetupGuide, StandardDeviceSetupGuide, type DeviceGuideAction } from "../features/data-sources/deviceSetupGuides";
 
-type AddDeviceStep = "choose" | "input" | "output" | "input-template" | "input-manual" | "output-template" | "output-manual";
+type AddDeviceStep = "input" | "output" | "input-template" | "input-manual" | "output-template" | "output-manual";
 
 export function DataSourcesPage() {
   const { showToast } = useToast();
@@ -213,22 +214,23 @@ export function DataSourcesPage() {
   const setupGuideBme680SupportWarning = setupGuideSource ? bme680SupportWarning(setupGuideSource, capabilities) : null;
 
   return (
-      <Page eyebrow="Devices" title="Connect inputs and outputs" desc="Add input sources for data and events, then prepare output targets for automation workflows.">
-      <Card className="grid gap-4">
+    <Page title="Connect inputs and outputs" desc="Add input sources for data and events, then prepare output targets for automation workflows.">
+      <Card className="gap-detail-near grid w-full">
         <div>
-          <strong>Add devices</strong>
-          <MutedText className="m-0 mt-1">Create a configured input source or output target. Local services show connection details for app-provided services.</MutedText>
+          <h2 className="type-title text-text-primary m-0">Add devices</h2>
+          <p className="type-body text-text-secondary mt-detail-next m-0">Create a configured input source or output target. Local services show connection details for app-provided services.</p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <Button type="button" onClick={() => setTemplateMode("choose")}>Add device or source</Button>
-        </div>
+        <ButtonRow>
+          <Button onClick={() => setTemplateMode("input")}>Add input source</Button>
+          <Button variant="secondary" onClick={() => setTemplateMode("output")}>Add output target</Button>
+        </ButtonRow>
       </Card>
 
       <LocalServicesCard capabilities={capabilities} />
 
       {templateMode && (
-        <Modal title={addDeviceBreadcrumb(templateMode)} footer={templateMode !== "choose" ? <button className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-2.5 font-bold text-slate-700" type="button" onClick={() => setTemplateMode(previousAddDeviceStep(templateMode))}>Back</button> : null} onClose={() => setTemplateMode(null)}>
-          {templateMode === "choose" ? <AddDeviceKindChoice onSelect={setTemplateMode} /> : templateMode === "input" || templateMode === "output" ? <AddDeviceMethodChoice mode={templateMode} onSelect={(category) => setTemplateMode(`${templateMode}-${category}` as "input-template" | "input-manual" | "output-template" | "output-manual")} /> : <DataSourceTemplates mode={templateMode.startsWith("input") ? "input" : "output"} category={templateMode.endsWith("template") ? "template" : "manual"} capabilities={capabilities} onSelect={applyTemplate} />}
+        <Modal title={addDeviceBreadcrumb(templateMode)} footer={templateMode !== "input" && templateMode !== "output" ? <Button variant="secondary" size="sm" onClick={() => setTemplateMode(previousAddDeviceStep(templateMode))}>Back</Button> : null} onClose={() => setTemplateMode(null)}>
+          {templateMode === "input" || templateMode === "output" ? <AddDeviceMethodChoice mode={templateMode} onSelect={(category) => setTemplateMode(`${templateMode}-${category}` as "input-template" | "input-manual" | "output-template" | "output-manual")} /> : <DataSourceTemplates mode={templateMode.startsWith("input") ? "input" : "output"} category={templateMode.endsWith("template") ? "template" : "manual"} capabilities={capabilities} onSelect={applyTemplate} />}
         </Modal>
       )}
 
@@ -342,29 +344,6 @@ function bme680SupportWarning(source: DataSource, capabilities: DataSourceCapabi
   return "The sensor helper is not reporting BME680 support yet. Re-run the installer with ENABLE_SENSORS=true or install the PyPI bme680 module in /opt/integritas-pi/.venv-sensor-helper, then restart the sensor helper.";
 }
 
-function AddDeviceKindChoice({ onSelect }: { onSelect: (mode: "input" | "output") => void }) {
-  return (
-    <div className="grid min-h-[min(520px,calc(90vh-160px))] gap-4 md:grid-cols-2">
-      <button type="button" className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]" onClick={() => onSelect("input")}>
-        <div>
-          <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Input</span>
-          <h3 className="mt-3 text-2xl">Add input source</h3>
-          <MutedText className="m-0 mt-2">Receive JSON, MQTT messages, webhooks, GPIO events, camera captures, or board data that workflows can record and react to.</MutedText>
-        </div>
-        <span className="font-extrabold text-blue-700">Choose input source</span>
-      </button>
-      <button type="button" className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]" onClick={() => onSelect("output")}>
-        <div>
-          <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Output</span>
-          <h3 className="mt-3 text-2xl">Add output target</h3>
-          <MutedText className="m-0 mt-2">Connect LEDs, HTTP endpoints, MQTT topics, or other devices that automation workflows can control.</MutedText>
-        </div>
-        <span className="font-extrabold text-blue-700">Choose output target</span>
-      </button>
-    </div>
-  );
-}
-
 function AddDeviceMethodChoice({ mode, onSelect }: { mode: "input" | "output"; onSelect: (category: "template" | "manual") => void }) {
   return (
     <div className="grid min-h-[min(520px,calc(90vh-160px))] gap-4 md:grid-cols-2">
@@ -389,18 +368,14 @@ function AddDeviceMethodChoice({ mode, onSelect }: { mode: "input" | "output"; o
 }
 
 function addDeviceBreadcrumb(mode: AddDeviceStep) {
-  const parts = ["Add device or source"];
-  if (mode.startsWith("input")) parts.push("Add input source");
-  if (mode.startsWith("output")) parts.push("Add output target");
+  const parts = [mode.startsWith("input") ? "Add input source" : "Add output target"];
   if (mode.includes("template")) parts.push("Template");
   if (mode.endsWith("manual")) parts.push("Manual");
   return parts.join(" > ");
 }
 
 function previousAddDeviceStep(mode: AddDeviceStep) {
-  if (mode === "input" || mode === "output") return "choose";
-  if (mode.startsWith("input")) return "input";
-  return "output";
+  return mode.startsWith("input") ? "input" : "output";
 }
 
 function Esp32FirmwareSetup({ source }: { source: DataSource }) {

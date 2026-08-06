@@ -46,11 +46,11 @@ export function TableCard({
   className?: string;
 }) {
   return (
-    <Card className={cx("grid gap-4", className)}>
+    <Card className={cx("gap-detail-near grid w-full", className)}>
       <StatusRow className="sm:items-start">
         <div>
-          <strong>{title}</strong>
-          {description && <MutedText className="m-0 mt-1">{description}</MutedText>}
+          <h2 className="type-title text-text-primary m-0">{title}</h2>
+          {description && <p className="type-body text-text-secondary mt-detail-next m-0">{description}</p>}
         </div>
         {actions}
       </StatusRow>

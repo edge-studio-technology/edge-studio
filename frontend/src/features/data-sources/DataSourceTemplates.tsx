@@ -1,6 +1,8 @@
-import { Camera, Cpu, Globe2, Lightbulb, Radio, Send, ShieldAlert, ThermometerSun, Webhook } from "lucide-react";
+import { Camera, Cpu, Globe2, Lightbulb, Radio, ShieldAlert, ThermometerSun, Webhook } from "lucide-react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { CopyField } from "../../components/patterns/CopyField";
+import { Pill } from "../../components/Pill";
 import { MutedText } from "../../components/Text";
 import type { DataSourceCapabilities, DataSourceTemplate } from "./dataSourceTypes";
 
@@ -90,31 +92,24 @@ export function LocalServicesCard({ capabilities }: { capabilities: DataSourceCa
   const internalUrl = broker?.internalUrl ?? "mqtt://mqtt:1883";
 
   return (
-    <Card className="grid gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <strong>Local services</strong>
-          <MutedText className="m-0 mt-1">Connection details for app-provided services that help devices talk to this Pi.</MutedText>
+    <Card className="gap-detail-near grid w-full">
+      <div>
+        <div className="gap-detail-close flex flex-wrap items-center">
+          <h2 className="type-title text-text-primary m-0">Local services</h2>
+          <Pill tone={broker?.enabled ? "good" : "neutral"} indicator>{broker?.enabled ? "Enabled" : "Disabled"}</Pill>
         </div>
-        <Send size={22} />
+        <p className="type-body text-text-secondary mt-detail-next m-0">Connection details for the local MQTT broker, so devices can connect directly to this Pi without a separate broker.</p>
       </div>
-      <Card className="grid gap-3 bg-slate-50">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <strong>Local MQTT Broker</strong>
-          <span className={broker?.enabled ? "font-extrabold text-emerald-700" : "font-extrabold text-slate-500"}>{broker?.enabled ? "Enabled" : "Disabled"}</span>
+      <div className="gap-detail-close grid md:grid-cols-2">
+        <CopyField label="LAN URL" value={lanUrl} description="Use this from external devices on the LAN." />
+        <CopyField label="Internal URL" value={internalUrl} description="Use this in Integritas Pi MQTT device configs." />
+      </div>
+      {!broker?.enabled && (
+        <div>
+          <p className="type-meta text-text-tertiary m-0">Enable with</p>
+          <p className="type-body text-text-secondary mt-detail-tight m-0"><code>ENABLE_MQTT_BROKER=true</code> and the Docker Compose MQTT profile.</p>
         </div>
-        <MutedText className="m-0">Run a broker on this Raspberry Pi so devices can connect directly without a separate broker.</MutedText>
-        <div className="grid gap-2 text-sm">
-          <div>LAN URL: <code>{lanUrl}</code></div>
-          <div>Internal URL: <code>{internalUrl}</code></div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" onClick={() => navigator.clipboard?.writeText(lanUrl)}>Copy LAN URL</Button>
-          <Button type="button" variant="secondary" onClick={() => navigator.clipboard?.writeText(internalUrl)}>Copy internal URL</Button>
-        </div>
-        <MutedText className="m-0">Use the LAN URL for external devices. Use the internal URL in Integritas Pi MQTT device configs.</MutedText>
-        {!broker?.enabled && <MutedText className="m-0">Enable with <code>ENABLE_MQTT_BROKER=true</code> and the Docker Compose MQTT profile.</MutedText>}
-      </Card>
+      )}
     </Card>
   );
 }
