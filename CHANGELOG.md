@@ -6,12 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- Shared `Text` family (`components/ui/`): `Text.Link` for in-app text links with accent hover (more roles planned). Flat `components/Text.tsx` re-exports; legacy `MutedText` stays there for now.
+- Text colour token `text-accent-hover` (`brand-02`) for accent link hover, paired with `text-accent`.
+- Shared `ErrorDetails` in `components/patterns/`: Dialog layout with scrollable detail fields, inverse mono JSON blocks, and Close action. Flat `components/ErrorDetails.tsx` kept for older call sites.
+
 ### Changed
 
 - Diagnostics page uses a card shell (`TabList` + content) with `ListFilterBar`, Refresh, and `ListPaginationFooter` instead of `ListPagerFilterBar`.
 - Diagnostics load/refresh failures use `ErrorAlert` instead of inline `ErrorText`.
 - Diagnostics shows a per-tab description under `TabList` for proofs, reads, and workflow logs.
 - Integritas proof history table on Diagnostics uses ESDS table primitives, `formatLocalDateTime`, status pills, and bulk actions without a nested `TableCard`.
+- Diagnostics read history table uses the same ESDS table primitives, `formatLocalDateTime`, and status pills, without a nested `TableCard`.
+- Read history uses patterns `ErrorDetails` for row error inspection.
+- Read history Integritas proof IDs link to Diagnostics proof history filtered by that proof ID (`Text.Link` “Open proof”).
 - Proof verify on Diagnostics toasts Full match / No match from the verify response; the active row shows “Verifying…”.
 - Proof history selection bar shows count + Clear, icon Download/Delete actions, delete confirmation, and success toasts; download stays available while verifying.
 - Proof history header checkbox selects or clears all proofs on the current page (indeterminate when partially selected).

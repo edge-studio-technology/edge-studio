@@ -85,9 +85,10 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [CheckboxField](#checkboxfield): labeled checkbox
 - [RadioField](#radiofield): labeled radio option
 - [SwitchField](#switchfield): labeled on/off switch
-- `Text`: muted text (legacy flat helper; `ErrorText` lives in `ui/`)
+- [Text](#text): text link role (`Text.Link`; more roles planned)
 - `ErrorText`: inline error copy
 - [ErrorAlert](#erroralert): in-page error / warning alert
+- [ErrorDetails](#errordetails): trigger + dialog for inspecting an operational error
 - [Modal](#modal): dialog overlay
 - `LoadingDots`: bouncing loading indicator
 - `Input`: bare text control
@@ -471,6 +472,20 @@ In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): whit
 </ErrorAlert>
 ```
 
+### ErrorDetails
+
+Trigger + dialog for inspecting a normalized operational error (`frontend/src/components/patterns/ErrorDetails.tsx`): text-link trigger opens a Dialog (max-width 600) with a scrollable detail panel, optional inverse mono blocks for JSON context/raw, and a secondary Close action. Prefer this for row-level / persisted errors operators need to inspect. Flat `components/ErrorDetails.tsx` remains for older call sites until migrated.
+
+| Prop        | Notes                                      |
+| ----------- | ------------------------------------------ |
+| `error`     | Unknown value; normalized via `normalizeError` |
+| `label`     | Trigger copy (default `View details`)      |
+| `className` | Merged onto the trigger button             |
+
+```tsx
+<ErrorDetails error={item.errorDetails ?? item.error} label="View error" />
+```
+
 ### Page
 
 Route content frame: distant pad padding (`p-pad-distant`), title + optional description, optional action, then children. Owns content padding so `AppShell` stays full-bleed (status bar chrome). Header is a two-column grid on `sm+` (title/desc | action). Implementation: `components/patterns/Page.tsx`; flat `components/Page.tsx` re-exports for now.
@@ -603,6 +618,20 @@ Default (`neutral`): `surface-secondary` fill. Success / Warning / Error: white 
   Success
 </Pill>
 <Pill tone="error">Failed</Pill>
+```
+
+### Text
+
+Text roles (`frontend/src/components/ui/Text.tsx`): wraps type tokens so call sites pick a role instead of assembling `type-*` + colour classes. Flat `components/Text.tsx` re-exports; legacy `MutedText` remains there for older call sites.
+
+Shipped now: `Text.Link`. Planned later: Body, Muted/Meta, Title, Mono, Error.
+
+| Member      | Token / look                     | Default element | Notes                          |
+| ----------- | -------------------------------- | --------------- | ------------------------------ |
+| `Text.Link` | `type-link` + `text-text-accent` | router `Link`   | Hover uses `text-accent-hover` |
+
+```tsx
+<Text.Link to="/diagnostics?tab=proofs">Open proof</Text.Link>
 ```
 
 ### InputField
@@ -790,7 +819,7 @@ Prefer **semantic** colour tokens, **named type styles**, and **ESDS radius/spac
 | Group   | Examples                                                                                                                                        | Role                              |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | Surface | `surface-primary`, `surface-secondary`, `surface-tertiary`, `surface-inverse`, `surface-always-white`, `surface-always-black`, `surface-accent` | Backgrounds and fills             |
-| Text    | `text-primary`, `text-secondary`, `text-tertiary`, `text-disabled`, `text-inverse`, `text-accent`, `text-error`, `text-warning`, `text-success` | Foreground colour (not type size) |
+| Text    | `text-primary`, `text-secondary`, `text-tertiary`, `text-disabled`, `text-inverse`, `text-accent`, `text-accent-hover`, `text-error`, `text-warning`, `text-success` | Foreground colour (not type size) |
 | Icon    | `icon-primary`, `icon-secondary`, `icon-tertiary`, `icon-disabled`, `icon-inverse`, `icon-error`, `icon-warning`, `icon-success`                | Icon colour                       |
 | Stroke  | `stroke-primary`, `stroke-secondary`, `stroke-active`, `stroke-error`, `stroke-warning`, `stroke-success`, `stroke-always-white`                | Borders and dividers              |
 | Overlay | `overlay-light`, `overlay-heavy`                                                                                                                | Scrims / dimmers                  |

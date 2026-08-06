@@ -42,7 +42,8 @@ export function JsonPreview({
           type="button"
           disabled={disabled}
           className={cx(
-            "type-meta text-text-accent border-0 bg-transparent p-0 font-semibold underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-55",
+            "type-link text-text-accent hover:text-text-accent-hover transition-colors duration-200",
+            "cursor-pointer border-0 bg-transparent p-0 disabled:cursor-not-allowed disabled:no-underline disabled:opacity-55",
             className,
           )}
           onClick={() => setOpen(true)}

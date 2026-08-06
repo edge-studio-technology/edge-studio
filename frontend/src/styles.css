@@ -42,6 +42,7 @@
   --color-text-disabled: var(--color-grey-03);
   --color-text-inverse: var(--color-core-white);
   --color-text-accent: var(--color-brand-01);
+  --color-text-accent-hover: var(--color-brand-02);
   --color-text-error: var(--color-feedback-error);
   --color-text-warning: var(--color-feedback-warning);
   --color-text-success: var(--color-feedback-positive);
