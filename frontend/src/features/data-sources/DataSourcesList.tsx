@@ -3,17 +3,19 @@ import {
   DataTable,
   EmptyTableState,
   RowActions,
+  TableBody,
   TableCard,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
   TableIconButton,
+  TableRow,
   TableWrap,
-  tableCellClass,
-  tableHeaderCellClass,
-  tableHeadRowClass,
-  tableRowClass,
 } from "../../components/DataTable";
 import { JsonPreview } from "../../components/JsonPreview";
 import { ErrorDetails } from "../../components/ErrorDetails";
 import { MutedText } from "../../components/Text";
+import { Pill } from "../../components/ui/Pill";
 import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
 import { hasDeviceSetupGuide } from "./deviceSetupGuides";
 
@@ -40,53 +42,51 @@ export function DataSourcesList({
     <TableCard title="Configured devices" description="Input sources, capture devices, and output targets saved in SQLite.">
       <TableWrap>
         <DataTable className="min-w-[980px]">
-          <thead>
-            <tr className={tableHeadRowClass}>
-              <th className={tableHeaderCellClass}>Name</th>
-              <th className={tableHeaderCellClass}>Direction</th>
-              <th className={tableHeaderCellClass}>Type</th>
-              <th className={tableHeaderCellClass}>Endpoint</th>
-              <th className={tableHeaderCellClass}>Health</th>
-              <th className={tableHeaderCellClass}>Last hash</th>
-              <th className={tableHeaderCellClass}>Last preview</th>
-              <th className={tableHeaderCellClass}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+          <TableHead>
+            <TableHeaderCell>Name</TableHeaderCell>
+            <TableHeaderCell>Direction</TableHeaderCell>
+            <TableHeaderCell>Type</TableHeaderCell>
+            <TableHeaderCell>Endpoint</TableHeaderCell>
+            <TableHeaderCell>Health</TableHeaderCell>
+            <TableHeaderCell>Last hash</TableHeaderCell>
+            <TableHeaderCell>Last preview</TableHeaderCell>
+            <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+          </TableHead>
+          <TableBody>
             {items.map((source) => {
               const usedByWorkflows = source.usedByWorkflows ?? [];
               const deleteDisabledReason = usedByWorkflows.length > 0 ? `Used by workflow: ${usedByWorkflows.map((workflow) => workflow.name).join(", ")}` : "Delete device";
               return (
-              <tr key={source.id} className={tableRowClass}>
-                <td className={tableCellClass}>
+              <TableRow key={source.id}>
+                <TableCell>
                   <strong>{source.name}</strong>
                   <MutedText className="m-0 mt-1">{source.description}</MutedText>
-                </td>
-                <td className={tableCellClass}>{source.type === "pi-camera" ? "Capture" : isInputSource(source) ? "Input" : "Output"}</td>
-                <td className={tableCellClass}>{sourceTypeLabel(source)}</td>
-                <td className={tableCellClass}>
+                </TableCell>
+                <TableCell>{source.type === "pi-camera" ? "Capture" : isInputSource(source) ? "Input" : "Output"}</TableCell>
+                <TableCell>{sourceTypeLabel(source)}</TableCell>
+                <TableCell>
                   <code>{source.type === "webhook" ? webhookUrl(source) : source.type === "mqtt" || source.type === "mqtt-output" ? mqttEndpoint(source) : source.type === "gpio-input" ? gpioEndpoint(source) : source.type === "gpio-output" ? gpioOutputEndpoint(source) : source.type === "pi-camera" ? cameraEndpoint(source) : source.type === "bme-sensor" ? bmeEndpoint(source) : source.config.url}</code>
-                </td>
-                <td className={tableCellClass}>
+                </TableCell>
+                <TableCell>
                   <HealthCell source={source} status={healthStatuses[source.id]} />
-                </td>
-                <td className={tableCellClass}>
+                </TableCell>
+                <TableCell>
                   {source.lastHash ? (
                     <code>{source.lastHash}</code>
                   ) : (
                     <span className="text-slate-500">Not read yet</span>
                   )}
-                </td>
-                <td className={tableCellClass}>
+                </TableCell>
+                <TableCell>
                   {source.lastPreview ? (
                     <JsonPreview value={source.lastPreview} />
                   ) : source.lastError ? (
-                    <span className="grid gap-2"><HealthStatus ok={false}>Device error</HealthStatus><ErrorDetails error={source.lastErrorDetails ?? source.lastError} label="View error" /></span>
+                    <span className="grid gap-2"><Pill tone="error" indicator>Device error</Pill><ErrorDetails error={source.lastErrorDetails ?? source.lastError} label="View error" /></span>
                   ) : (
                     <span className="text-slate-500">No preview</span>
                   )}
-                </td>
-                <td className={tableCellClass}>
+                </TableCell>
+                <TableCell className="w-px whitespace-nowrap">
                   <RowActions>
                     <TableIconButton
                       type="button"
@@ -139,11 +139,11 @@ export function DataSourcesList({
                       <Trash2 size={16} />
                     </TableIconButton>
                   </RowActions>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
               );
             })}
-          </tbody>
+          </TableBody>
         </DataTable>
       </TableWrap>
       {items.length === 0 && (
@@ -200,17 +200,12 @@ function HealthCell({ source, status }: { source: DataSource; status?: DataSourc
   if (source.type === "bme-sensor") return <span className="text-slate-500">Read on demand</span>;
   if (source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "gpio-output" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output") return <span className="text-slate-500">Automation controlled</span>;
   if (!source.config.healthStatusUrl) return <span className="text-slate-500">Not configured</span>;
-  if (!status) return <HealthStatus pending>Checking</HealthStatus>;
+  if (!status) return <Pill tone="neutral" indicator>Checking</Pill>;
 
   return (
     <div className="grid gap-2">
-      <HealthStatus ok={status.ok}>{status.ok ? "Online" : "Error"}{status.status ? ` HTTP ${status.status}` : ""}</HealthStatus>
+      <Pill tone={status.ok ? "good" : "error"} indicator>{status.ok ? "Online" : "Error"}{status.status ? ` HTTP ${status.status}` : ""}</Pill>
       {status.body !== undefined ? <JsonPreview value={status.body} label="View response" /> : status.error ? <JsonPreview value={{ error: status.error }} label="View error" /> : null}
     </div>
   );
-}
-
-function HealthStatus({ children, ok, pending }: { children: React.ReactNode; ok?: boolean; pending?: boolean }) {
-  const dotClass = pending ? "bg-amber-500" : ok ? "bg-emerald-600" : "bg-red-600";
-  return <span className="inline-flex items-center gap-2 text-[0.86rem] font-extrabold text-slate-600"><span className={`inline-block size-2.5 rounded-full ${dotClass}`} />{children}</span>;
 }

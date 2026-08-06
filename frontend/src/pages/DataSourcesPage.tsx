@@ -9,14 +9,36 @@ import { ProgressModal } from "../components/ProgressModal";
 import { MutedText } from "../components/Text";
 import { useToast } from "../components/ToastProvider";
 import { createAutomationWorkflow } from "../features/automation/automationApi";
-import { checkDataSourceHealth, createDataSource, deleteDataSource, getDataSourceCapabilities, listDataSources, readDataSource, testDataSourceOutput, updateDataSource } from "../features/data-sources/dataSourcesApi";
+import {
+  checkDataSourceHealth,
+  createDataSource,
+  deleteDataSource,
+  getDataSourceCapabilities,
+  listDataSources,
+  readDataSource,
+  testDataSourceOutput,
+  updateDataSource,
+} from "../features/data-sources/dataSourcesApi";
 import { DataSourceForm } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
-import { DataSourceTemplates, LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
-import type { DataSource, DataSourceCapabilities, DataSourceHealthStatus, DataSourceTemplate } from "../features/data-sources/dataSourceTypes";
-import { getDeviceSetupGuide, StandardDeviceSetupGuide, type DeviceGuideAction } from "../features/data-sources/deviceSetupGuides";
+import {
+  DataSourceTemplates,
+  LocalServicesCard,
+} from "../features/data-sources/DataSourceTemplates";
+import type {
+  DataSource,
+  DataSourceCapabilities,
+  DataSourceHealthStatus,
+  DataSourceTemplate,
+} from "../features/data-sources/dataSourceTypes";
+import {
+  getDeviceSetupGuide,
+  StandardDeviceSetupGuide,
+  type DeviceGuideAction,
+} from "../features/data-sources/deviceSetupGuides";
 
-type AddDeviceStep = "input" | "output" | "input-template" | "input-manual" | "output-template" | "output-manual";
+type AddDeviceStep =
+  "input" | "output" | "input-template" | "input-manual" | "output-template" | "output-manual";
 
 export function DataSourcesPage() {
   const { showToast } = useToast();
@@ -54,10 +76,14 @@ export function DataSourcesPage() {
   const [deletingSource, setDeletingSource] = useState<DataSource | null>(null);
   const [setupGuideSource, setSetupGuideSource] = useState<DataSource | null>(null);
   const [runningGuideActionKey, setRunningGuideActionKey] = useState<string | null>(null);
-  const [createdGuideWorkflowIds, setCreatedGuideWorkflowIds] = useState<Record<string, string>>({});
+  const [createdGuideWorkflowIds, setCreatedGuideWorkflowIds] = useState<Record<string, string>>(
+    {},
+  );
 
   useEffect(() => {
-    refresh().catch((err: Error) => showToast({ tone: "error", title: "Could not load devices", message: err.message }));
+    refresh().catch((err: Error) =>
+      showToast({ tone: "error", title: "Could not load devices", message: err.message }),
+    );
   }, []);
 
   useEffect(() => {
@@ -67,7 +93,10 @@ export function DataSourcesPage() {
   }, [items]);
 
   async function refresh() {
-    const [response, capabilityResponse] = await Promise.all([listDataSources(), getDataSourceCapabilities()]);
+    const [response, capabilityResponse] = await Promise.all([
+      listDataSources(),
+      getDataSourceCapabilities(),
+    ]);
     setItems(response.items);
     setCapabilities(capabilityResponse);
   }
@@ -79,7 +108,12 @@ export function DataSourcesPage() {
     sourcesWithHealth.forEach((source) => {
       checkDataSourceHealth(source.id)
         .then((status) => setHealthStatuses((current) => ({ ...current, [source.id]: status })))
-        .catch((err: Error) => setHealthStatuses((current) => ({ ...current, [source.id]: { ok: false, error: err.message } })));
+        .catch((err: Error) =>
+          setHealthStatuses((current) => ({
+            ...current,
+            [source.id]: { ok: false, error: err.message },
+          })),
+        );
     });
   }
 
@@ -181,7 +215,11 @@ export function DataSourcesPage() {
       await refresh();
       if (successTitle) showToast({ tone: "success", title: successTitle });
     } catch (err) {
-      showToast({ tone: "error", title: "Device action failed", message: err instanceof Error ? err.message : "Unknown error" });
+      showToast({
+        tone: "error",
+        title: "Device action failed",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
       await refresh().catch(() => undefined);
     } finally {
       setBusy(false);
@@ -201,36 +239,84 @@ export function DataSourcesPage() {
     setRunningGuideActionKey(action.key);
     try {
       const response = await createAutomationWorkflow(action.workflow(source));
-      setCreatedGuideWorkflowIds((current) => ({ ...current, [guideActionStateKey(source, action)]: response.item.id }));
+      setCreatedGuideWorkflowIds((current) => ({
+        ...current,
+        [guideActionStateKey(source, action)]: response.item.id,
+      }));
       await refresh();
       showToast({ tone: "success", title: "Workflow created", message: response.item.name });
     } catch (err) {
-      showToast({ tone: "error", title: "Guide action failed", message: err instanceof Error ? err.message : "Unknown error" });
+      showToast({
+        tone: "error",
+        title: "Guide action failed",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
     } finally {
       setRunningGuideActionKey(null);
     }
   }
 
-  const setupGuideBme680SupportWarning = setupGuideSource ? bme680SupportWarning(setupGuideSource, capabilities) : null;
+  const setupGuideBme680SupportWarning = setupGuideSource
+    ? bme680SupportWarning(setupGuideSource, capabilities)
+    : null;
 
   return (
-    <Page title="Connect inputs and outputs" desc="Add input sources for data and events, then prepare output targets for automation workflows.">
+    <Page
+      title="Connect inputs and outputs"
+      desc="Add input sources for data and events, then prepare output targets for automation workflows."
+    >
       <Card className="gap-detail-near grid w-full">
         <div>
           <h2 className="type-title text-text-primary m-0">Add devices</h2>
-          <p className="type-body text-text-secondary mt-detail-next m-0">Create a configured input source or output target. Local services show connection details for app-provided services.</p>
+          <p className="type-body text-text-secondary mt-detail-next m-0">
+            Create a configured input source or output target. Local services show connection
+            details for app-provided services.
+          </p>
         </div>
         <ButtonRow>
           <Button onClick={() => setTemplateMode("input")}>Add input source</Button>
-          <Button variant="secondary" onClick={() => setTemplateMode("output")}>Add output target</Button>
+          <Button variant="secondary" onClick={() => setTemplateMode("output")}>
+            Add output target
+          </Button>
         </ButtonRow>
       </Card>
 
       <LocalServicesCard capabilities={capabilities} />
 
       {templateMode && (
-        <Modal title={addDeviceBreadcrumb(templateMode)} footer={templateMode !== "input" && templateMode !== "output" ? <Button variant="secondary" size="sm" onClick={() => setTemplateMode(previousAddDeviceStep(templateMode))}>Back</Button> : null} onClose={() => setTemplateMode(null)}>
-          {templateMode === "input" || templateMode === "output" ? <AddDeviceMethodChoice mode={templateMode} onSelect={(category) => setTemplateMode(`${templateMode}-${category}` as "input-template" | "input-manual" | "output-template" | "output-manual")} /> : <DataSourceTemplates mode={templateMode.startsWith("input") ? "input" : "output"} category={templateMode.endsWith("template") ? "template" : "manual"} capabilities={capabilities} onSelect={applyTemplate} />}
+        <Modal
+          title={addDeviceBreadcrumb(templateMode)}
+          footer={
+            templateMode !== "input" && templateMode !== "output" ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setTemplateMode(previousAddDeviceStep(templateMode))}
+              >
+                Back
+              </Button>
+            ) : null
+          }
+          onClose={() => setTemplateMode(null)}
+        >
+          {templateMode === "input" || templateMode === "output" ? (
+            <AddDeviceMethodChoice
+              mode={templateMode}
+              onSelect={(category) =>
+                setTemplateMode(
+                  `${templateMode}-${category}` as
+                    "input-template" | "input-manual" | "output-template" | "output-manual",
+                )
+              }
+            />
+          ) : (
+            <DataSourceTemplates
+              mode={templateMode.startsWith("input") ? "input" : "output"}
+              category={templateMode.endsWith("template") ? "template" : "manual"}
+              capabilities={capabilities}
+              onSelect={applyTemplate}
+            />
+          )}
         </Modal>
       )}
 
@@ -284,16 +370,93 @@ export function DataSourcesPage() {
             setMethod={setMethod}
             busy={busy}
             submitLabel={editingSource ? "Save device" : "Add device"}
-            onSubmit={() => run(async () => {
-              const input = { name, description, type, config: type === "webhook" ? { webhookToken: editingSource?.config.webhookToken } : type === "mqtt" ? { brokerUrl, topic, profile: template?.config.profile === "esp32-mqtt-board" ? "esp32-mqtt-board" as const : undefined } : type === "mqtt-output" ? { brokerUrl, topic, qos: 0 as const, retain: false } : type === "http-output" ? { url, method: method === "GET" ? "POST" as const : method, headers: {}, timeoutMs: 5000 } : type === "gpio-input" ? { chip: gpioChip, pin: Number(gpioPin), profile: gpioProfile, pull: gpioPull, edge: gpioEdge, debounceMs: Number(gpioDebounceMs), activeState: gpioActiveState } : type === "gpio-output" ? { chip: gpioChip, pin: Number(gpioPin), profile: "led" as const, activeState: gpioActiveState, initialState: "inactive" as const } : type === "pi-camera" ? { mode: cameraMode, width: Number(cameraWidth), height: Number(cameraHeight), durationMs: Number(cameraDurationMs), fps: Number(cameraFps), outputFormat: cameraMode === "video" ? "h264" as const : "jpg" as const } : type === "bme-sensor" ? { sensor: (template?.config.sensor ?? editingSource?.config.sensor ?? "bme280") as "bme280" | "bme680", bus: Number(bmeBus), address: bmeAddress } : { url, method: method === "PUT" || method === "PATCH" ? "POST" as const : method, healthStatusUrl: healthStatusUrl.trim() || undefined, headers: {} } };
-              if (editingSource) await updateDataSource(editingSource.id, input);
-              else {
-                const response = await createDataSource(input);
-                if (getDeviceSetupGuide(response.item)) setSetupGuideSource(response.item);
-              }
-              setFormOpen(false);
-              resetForm();
-            }, editingSource ? "Device updated" : "Device added")}
+            onSubmit={() =>
+              run(
+                async () => {
+                  const input = {
+                    name,
+                    description,
+                    type,
+                    config:
+                      type === "webhook"
+                        ? { webhookToken: editingSource?.config.webhookToken }
+                        : type === "mqtt"
+                          ? {
+                              brokerUrl,
+                              topic,
+                              profile:
+                                template?.config.profile === "esp32-mqtt-board"
+                                  ? ("esp32-mqtt-board" as const)
+                                  : undefined,
+                            }
+                          : type === "mqtt-output"
+                            ? { brokerUrl, topic, qos: 0 as const, retain: false }
+                            : type === "http-output"
+                              ? {
+                                  url,
+                                  method: method === "GET" ? ("POST" as const) : method,
+                                  headers: {},
+                                  timeoutMs: 5000,
+                                }
+                              : type === "gpio-input"
+                                ? {
+                                    chip: gpioChip,
+                                    pin: Number(gpioPin),
+                                    profile: gpioProfile,
+                                    pull: gpioPull,
+                                    edge: gpioEdge,
+                                    debounceMs: Number(gpioDebounceMs),
+                                    activeState: gpioActiveState,
+                                  }
+                                : type === "gpio-output"
+                                  ? {
+                                      chip: gpioChip,
+                                      pin: Number(gpioPin),
+                                      profile: "led" as const,
+                                      activeState: gpioActiveState,
+                                      initialState: "inactive" as const,
+                                    }
+                                  : type === "pi-camera"
+                                    ? {
+                                        mode: cameraMode,
+                                        width: Number(cameraWidth),
+                                        height: Number(cameraHeight),
+                                        durationMs: Number(cameraDurationMs),
+                                        fps: Number(cameraFps),
+                                        outputFormat:
+                                          cameraMode === "video"
+                                            ? ("h264" as const)
+                                            : ("jpg" as const),
+                                      }
+                                    : type === "bme-sensor"
+                                      ? {
+                                          sensor: (template?.config.sensor ??
+                                            editingSource?.config.sensor ??
+                                            "bme280") as "bme280" | "bme680",
+                                          bus: Number(bmeBus),
+                                          address: bmeAddress,
+                                        }
+                                      : {
+                                          url,
+                                          method:
+                                            method === "PUT" || method === "PATCH"
+                                              ? ("POST" as const)
+                                              : method,
+                                          healthStatusUrl: healthStatusUrl.trim() || undefined,
+                                          headers: {},
+                                        },
+                  };
+                  if (editingSource) await updateDataSource(editingSource.id, input);
+                  else {
+                    const response = await createDataSource(input);
+                    if (getDeviceSetupGuide(response.item)) setSetupGuideSource(response.item);
+                  }
+                  setFormOpen(false);
+                  resetForm();
+                },
+                editingSource ? "Device updated" : "Device added",
+              )
+            }
           />
         </Modal>
       )}
@@ -307,9 +470,32 @@ export function DataSourcesPage() {
       )}
 
       {setupGuideSource && (
-        <Modal title={getDeviceSetupGuide(setupGuideSource)?.title ?? "Device setup guide"} onClose={() => setSetupGuideSource(null)}>
-          {setupGuideBme680SupportWarning && <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{setupGuideBme680SupportWarning}</div>}
-          {setupGuideSource.type === "mqtt" && setupGuideSource.config.profile === "esp32-mqtt-board" ? <Esp32FirmwareSetup source={setupGuideSource} /> : <StandardDeviceSetupGuide source={setupGuideSource} createdWorkflowIds={guideWorkflowIdsForSource(setupGuideSource, createdGuideWorkflowIds)} runningActionKey={runningGuideActionKey} onAction={(action) => runGuideAction(setupGuideSource, action)} onGoToWorkflow={(workflowId) => navigate(`/automation/${encodeURIComponent(workflowId)}/watch`)} />} 
+        <Modal
+          title={getDeviceSetupGuide(setupGuideSource)?.title ?? "Device setup guide"}
+          onClose={() => setSetupGuideSource(null)}
+        >
+          {setupGuideBme680SupportWarning && (
+            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+              {setupGuideBme680SupportWarning}
+            </div>
+          )}
+          {setupGuideSource.type === "mqtt" &&
+          setupGuideSource.config.profile === "esp32-mqtt-board" ? (
+            <Esp32FirmwareSetup source={setupGuideSource} />
+          ) : (
+            <StandardDeviceSetupGuide
+              source={setupGuideSource}
+              createdWorkflowIds={guideWorkflowIdsForSource(
+                setupGuideSource,
+                createdGuideWorkflowIds,
+              )}
+              runningActionKey={runningGuideActionKey}
+              onAction={(action) => runGuideAction(setupGuideSource, action)}
+              onGoToWorkflow={(workflowId) =>
+                navigate(`/automation/${encodeURIComponent(workflowId)}/watch`)
+              }
+            />
+          )}
         </Modal>
       )}
 
@@ -333,7 +519,11 @@ function guideActionStateKey(source: DataSource, action: DeviceGuideAction) {
 
 function guideWorkflowIdsForSource(source: DataSource, workflowIds: Record<string, string>) {
   const prefix = `${source.id}:`;
-  return Object.fromEntries(Object.entries(workflowIds).filter(([key]) => key.startsWith(prefix)).map(([key, workflowId]) => [key.slice(prefix.length), workflowId]));
+  return Object.fromEntries(
+    Object.entries(workflowIds)
+      .filter(([key]) => key.startsWith(prefix))
+      .map(([key, workflowId]) => [key.slice(prefix.length), workflowId]),
+  );
 }
 
 function bme680SupportWarning(source: DataSource, capabilities: DataSourceCapabilities | null) {
@@ -344,22 +534,52 @@ function bme680SupportWarning(source: DataSource, capabilities: DataSourceCapabi
   return "The sensor helper is not reporting BME680 support yet. Re-run the installer with ENABLE_SENSORS=true or install the PyPI bme680 module in /opt/integritas-pi/.venv-sensor-helper, then restart the sensor helper.";
 }
 
-function AddDeviceMethodChoice({ mode, onSelect }: { mode: "input" | "output"; onSelect: (category: "template" | "manual") => void }) {
+function AddDeviceMethodChoice({
+  mode,
+  onSelect,
+}: {
+  mode: "input" | "output";
+  onSelect: (category: "template" | "manual") => void;
+}) {
   return (
     <div className="grid min-h-[min(520px,calc(90vh-160px))] gap-4 md:grid-cols-2">
-      <button type="button" className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]" onClick={() => onSelect("template")}>
+      <button
+        type="button"
+        className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]"
+        onClick={() => onSelect("template")}
+      >
         <div>
-          <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Guided</span>
+          <span className="text-xs font-extrabold tracking-wide text-slate-500 uppercase">
+            Guided
+          </span>
           <h3 className="mt-3 text-2xl">Start from a template</h3>
-          <MutedText className="m-0 mt-2">Use guided presets for common {mode === "input" ? "devices, sensors, cameras, and board examples" : "output devices and hardware setups"}.</MutedText>
+          <MutedText className="m-0 mt-2">
+            Use guided presets for common{" "}
+            {mode === "input"
+              ? "devices, sensors, cameras, and board examples"
+              : "output devices and hardware setups"}
+            .
+          </MutedText>
         </div>
         <span className="font-extrabold text-blue-700">Choose template</span>
       </button>
-      <button type="button" className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]" onClick={() => onSelect("manual")}>
+      <button
+        type="button"
+        className="grid min-h-[240px] content-between gap-6 rounded-[24px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_36px_rgba(15,23,42,0.10)]"
+        onClick={() => onSelect("manual")}
+      >
         <div>
-          <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Manual</span>
+          <span className="text-xs font-extrabold tracking-wide text-slate-500 uppercase">
+            Manual
+          </span>
           <h3 className="mt-3 text-2xl">Define manually</h3>
-          <MutedText className="m-0 mt-2">Configure the {mode === "input" ? "protocol, endpoint, topic, or GPIO input settings" : "endpoint, MQTT topic, or output target settings"} yourself.</MutedText>
+          <MutedText className="m-0 mt-2">
+            Configure the{" "}
+            {mode === "input"
+              ? "protocol, endpoint, topic, or GPIO input settings"
+              : "endpoint, MQTT topic, or output target settings"}{" "}
+            yourself.
+          </MutedText>
         </div>
         <span className="font-extrabold text-blue-700">Choose manual setup</span>
       </button>
@@ -385,59 +605,181 @@ function Esp32FirmwareSetup({ source }: { source: DataSource }) {
   const savedBroker = esp32BrokerParts(source.config.brokerUrl ?? "mqtt://localhost:1883");
   const [esp32BrokerHost, setEsp32BrokerHost] = useState(savedBroker.host);
   const [esp32BrokerPort, setEsp32BrokerPort] = useState(String(savedBroker.port));
-  const broker = { host: esp32BrokerHost.trim() || savedBroker.host, port: Number(esp32BrokerPort) || savedBroker.port };
-  const firmware = esp32Firmware({ deviceName: source.name, mqttHost: broker.host, mqttPort: broker.port, topic: source.config.topic ?? "sensors/esp32/data", wifiSsid, wifiPassword });
+  const broker = {
+    host: esp32BrokerHost.trim() || savedBroker.host,
+    port: Number(esp32BrokerPort) || savedBroker.port,
+  };
+  const firmware = esp32Firmware({
+    deviceName: source.name,
+    mqttHost: broker.host,
+    mqttPort: broker.port,
+    topic: source.config.topic ?? "sensors/esp32/data",
+    wifiSsid,
+    wifiPassword,
+  });
 
   return (
     <Card className="grid max-w-4xl gap-4">
       <div>
         <strong>Next steps</strong>
-        <MutedText className="m-0 mt-1">The device was saved as a normal MQTT input source. Follow these steps to flash an ESP32 and verify that Integritas Pi receives its JSON messages.</MutedText>
+        <MutedText className="m-0 mt-1">
+          The device was saved as a normal MQTT input source. Follow these steps to flash an ESP32
+          and verify that Integritas Pi receives its JSON messages.
+        </MutedText>
       </div>
       <div className="grid gap-2 text-sm">
-        <div>Saved MQTT broker URL: <code>{source.config.brokerUrl}</code></div>
-        <div>ESP32 broker host: <code>{broker.host}</code></div>
-        <div>ESP32 broker port: <code>{broker.port}</code></div>
-        <div>Publish topic: <code>{source.config.topic}</code></div>
-      </div>
-      {savedBroker.needsEsp32Override && <div className="grid gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <strong>ESP32 broker address needed</strong>
-        <div>{savedBroker.reason} Enter the broker host and port that the ESP32 can reach from Wi-Fi/LAN.</div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="grid gap-2 font-bold">ESP32 broker host<input value={esp32BrokerHost} onChange={(event) => setEsp32BrokerHost(event.target.value)} placeholder="192.168.1.75" /></label>
-          <label className="grid gap-2 font-bold">ESP32 broker port<input value={esp32BrokerPort} onChange={(event) => setEsp32BrokerPort(event.target.value)} placeholder="1883" inputMode="numeric" /></label>
+        <div>
+          Saved MQTT broker URL: <code>{source.config.brokerUrl}</code>
         </div>
-      </div>}
+        <div>
+          ESP32 broker host: <code>{broker.host}</code>
+        </div>
+        <div>
+          ESP32 broker port: <code>{broker.port}</code>
+        </div>
+        <div>
+          Publish topic: <code>{source.config.topic}</code>
+        </div>
+      </div>
+      {savedBroker.needsEsp32Override && (
+        <div className="grid gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <strong>ESP32 broker address needed</strong>
+          <div>
+            {savedBroker.reason} Enter the broker host and port that the ESP32 can reach from
+            Wi-Fi/LAN.
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="grid gap-2 font-bold">
+              ESP32 broker host
+              <input
+                value={esp32BrokerHost}
+                onChange={(event) => setEsp32BrokerHost(event.target.value)}
+                placeholder="192.168.1.75"
+              />
+            </label>
+            <label className="grid gap-2 font-bold">
+              ESP32 broker port
+              <input
+                value={esp32BrokerPort}
+                onChange={(event) => setEsp32BrokerPort(event.target.value)}
+                placeholder="1883"
+                inputMode="numeric"
+              />
+            </label>
+          </div>
+        </div>
+      )}
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
         <strong>Walkthrough</strong>
         <ol className="m-0 grid gap-2 pl-5">
-          <li>Connect the ESP32 to the computer you will use for flashing, using a USB data cable. This can be a laptop, desktop, or Raspberry Pi.</li>
-          <li>Choose one flashing method below. Use Arduino IDE for a graphical app, or Arduino CLI for terminal/Raspberry Pi/headless use.</li>
+          <li>
+            Connect the ESP32 to the computer you will use for flashing, using a USB data cable.
+            This can be a laptop, desktop, or Raspberry Pi.
+          </li>
+          <li>
+            Choose one flashing method below. Use Arduino IDE for a graphical app, or Arduino CLI
+            for terminal/Raspberry Pi/headless use.
+          </li>
         </ol>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant={flashMethod === "ide" ? "primary" : "secondary"} onClick={() => setFlashMethod("ide")}>Arduino IDE</Button>
-          <Button type="button" size="sm" variant={flashMethod === "cli" ? "primary" : "secondary"} onClick={() => setFlashMethod("cli")}>Arduino CLI</Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={flashMethod === "ide" ? "primary" : "secondary"}
+            onClick={() => setFlashMethod("ide")}
+          >
+            Arduino IDE
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={flashMethod === "cli" ? "primary" : "secondary"}
+            onClick={() => setFlashMethod("cli")}
+          >
+            Arduino CLI
+          </Button>
         </div>
-        {flashMethod === "ide" ? <ArduinoIdeSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} /> : <ArduinoCliSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} />}
+        {flashMethod === "ide" ? (
+          <ArduinoIdeSteps
+            firmware={firmware}
+            wifiSsid={wifiSsid}
+            wifiPassword={wifiPassword}
+            onWifiSsidChange={setWifiSsid}
+            onWifiPasswordChange={setWifiPassword}
+          />
+        ) : (
+          <ArduinoCliSteps
+            firmware={firmware}
+            wifiSsid={wifiSsid}
+            wifiPassword={wifiPassword}
+            onWifiSsidChange={setWifiSsid}
+            onWifiPasswordChange={setWifiPassword}
+          />
+        )}
       </div>
-      <MutedText className="m-0">The starter sketch publishes a simple Ping JSON message first; replace it with real sensor fields after the MQTT path works.</MutedText>
+      <MutedText className="m-0">
+        The starter sketch publishes a simple Ping JSON message first; replace it with real sensor
+        fields after the MQTT path works.
+      </MutedText>
     </Card>
   );
 }
 
-function ArduinoIdeSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, onWifiPasswordChange }: FirmwareStepProps) {
+function ArduinoIdeSteps({
+  firmware,
+  wifiSsid,
+  wifiPassword,
+  onWifiSsidChange,
+  onWifiPasswordChange,
+}: FirmwareStepProps) {
   return (
     <div className="grid gap-3">
       <strong>Arduino IDE steps</strong>
-      <SetupStep index={1} title="Install Arduino IDE">Install and open Arduino IDE on the flashing computer from <InlineCode>arduino.cc/en/software</InlineCode>.</SetupStep>
-      <SetupStep index={2} title="Add ESP32 Board Manager URL">Open <InlineCode>File -&gt; Preferences</InlineCode> and add this Boards Manager URL: <InlineCode>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</InlineCode>.</SetupStep>
-      <SetupStep index={3} title="Install ESP32 Board Support">Open <InlineCode>Tools -&gt; Board -&gt; Boards Manager</InlineCode>, search for <InlineCode>esp32</InlineCode>, and install <InlineCode>esp32 by Espressif Systems</InlineCode>.</SetupStep>
-      <SetupStep index={4} title="Install PubSubClient">Open <InlineCode>Sketch -&gt; Include Library -&gt; Manage Libraries</InlineCode>, search for <InlineCode>PubSubClient</InlineCode>, and install it.</SetupStep>
-      <SetupStep index={5} title="Paste Firmware And Wi-Fi"><FirmwareStepContent firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={onWifiSsidChange} onWifiPasswordChange={onWifiPasswordChange} /></SetupStep>
-      <SetupStep index={6} title="Select Board And Port">Select <InlineCode>Tools -&gt; Board -&gt; ESP32 Dev Module</InlineCode> if unsure, then select the ESP32 serial port under <InlineCode>Tools -&gt; Port</InlineCode>.</SetupStep>
-      <SetupStep index={7} title="Upload Firmware">Click Upload. If it gets stuck at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts.</SetupStep>
-      <SetupStep index={8} title="Monitor Serial Output">Open <InlineCode>Tools -&gt; Serial Monitor</InlineCode> at <InlineCode>115200</InlineCode> baud and look for Wi-Fi, MQTT, and Publishing messages.</SetupStep>
-      <SetupStep index={9} title="Create Or Enable Workflow">Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</SetupStep>
+      <SetupStep index={1} title="Install Arduino IDE">
+        Install and open Arduino IDE on the flashing computer from{" "}
+        <InlineCode>arduino.cc/en/software</InlineCode>.
+      </SetupStep>
+      <SetupStep index={2} title="Add ESP32 Board Manager URL">
+        Open <InlineCode>File -&gt; Preferences</InlineCode> and add this Boards Manager URL:{" "}
+        <InlineCode>
+          https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+        </InlineCode>
+        .
+      </SetupStep>
+      <SetupStep index={3} title="Install ESP32 Board Support">
+        Open <InlineCode>Tools -&gt; Board -&gt; Boards Manager</InlineCode>, search for{" "}
+        <InlineCode>esp32</InlineCode>, and install{" "}
+        <InlineCode>esp32 by Espressif Systems</InlineCode>.
+      </SetupStep>
+      <SetupStep index={4} title="Install PubSubClient">
+        Open <InlineCode>Sketch -&gt; Include Library -&gt; Manage Libraries</InlineCode>, search
+        for <InlineCode>PubSubClient</InlineCode>, and install it.
+      </SetupStep>
+      <SetupStep index={5} title="Paste Firmware And Wi-Fi">
+        <FirmwareStepContent
+          firmware={firmware}
+          wifiSsid={wifiSsid}
+          wifiPassword={wifiPassword}
+          onWifiSsidChange={onWifiSsidChange}
+          onWifiPasswordChange={onWifiPasswordChange}
+        />
+      </SetupStep>
+      <SetupStep index={6} title="Select Board And Port">
+        Select <InlineCode>Tools -&gt; Board -&gt; ESP32 Dev Module</InlineCode> if unsure, then
+        select the ESP32 serial port under <InlineCode>Tools -&gt; Port</InlineCode>.
+      </SetupStep>
+      <SetupStep index={7} title="Upload Firmware">
+        Click Upload. If it gets stuck at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode>{" "}
+        button until upload starts.
+      </SetupStep>
+      <SetupStep index={8} title="Monitor Serial Output">
+        Open <InlineCode>Tools -&gt; Serial Monitor</InlineCode> at <InlineCode>115200</InlineCode>{" "}
+        baud and look for Wi-Fi, MQTT, and Publishing messages.
+      </SetupStep>
+      <SetupStep index={9} title="Create Or Enable Workflow">
+        Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode>{" "}
+        as the start block and this source selected.
+      </SetupStep>
     </div>
   );
 }
@@ -450,7 +792,13 @@ type FirmwareStepProps = {
   onWifiPasswordChange: (value: string) => void;
 };
 
-function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, onWifiPasswordChange }: FirmwareStepProps) {
+function ArduinoCliSteps({
+  firmware,
+  wifiSsid,
+  wifiPassword,
+  onWifiSsidChange,
+  onWifiPasswordChange,
+}: FirmwareStepProps) {
   const [boardListOutput, setBoardListOutput] = useState("");
   const [manualFqbn, setManualFqbn] = useState("esp32:esp32:esp32");
   const detectedBoard = detectEsp32Board(boardListOutput);
@@ -464,75 +812,209 @@ function ArduinoCliSteps({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, o
     <div className="grid gap-3">
       <strong>Arduino CLI steps</strong>
       <SetupStep index={1} title="Install Arduino CLI">
-          <div>Run this on the computer connected to the ESP32.</div>
-          <CommandBlock value={commands.installCli} />
-          <div className="mt-2">If the installer says <InlineCode>arduino-cli not found</InlineCode>, that is usually OK. Use <InlineCode>/home/pi/bin/arduino-cli</InlineCode> or <InlineCode>~/bin/arduino-cli</InlineCode> in commands.</div>
+        <div>Run this on the computer connected to the ESP32.</div>
+        <CommandBlock value={commands.installCli} />
+        <div className="mt-2">
+          If the installer says <InlineCode>arduino-cli not found</InlineCode>, that is usually OK.
+          Use <InlineCode>/home/pi/bin/arduino-cli</InlineCode> or{" "}
+          <InlineCode>~/bin/arduino-cli</InlineCode> in commands.
+        </div>
       </SetupStep>
       <SetupStep index={2} title="Install ESP32 Core">
-          <CommandBlock value={commands.installEsp32Core} />
+        <CommandBlock value={commands.installEsp32Core} />
       </SetupStep>
       <SetupStep index={3} title="Install PubSubClient">
-          <CommandBlock value={commands.installLibrary} />
+        <CommandBlock value={commands.installLibrary} />
       </SetupStep>
       <SetupStep index={4} title="Find The ESP32 Port">
-          <CommandBlock value={commands.boardList} />
-          <div className="mt-2">Run the command and paste its output here. For native-USB ESP32 boards, hold <InlineCode>BOOT</InlineCode>, tap <InlineCode>RESET</InlineCode>/<InlineCode>EN</InlineCode>, then run the command again if the board appears as <InlineCode>Unknown</InlineCode>.</div>
-          <textarea className="mt-2 min-h-[110px] font-mono text-xs" value={boardListOutput} onChange={(event) => setBoardListOutput(event.target.value)} placeholder={'Port         Protocol Type              Board Name          FQBN                      Core\n/dev/ttyACM0 serial   Serial Port (USB) ESP32 Family Device esp32:esp32:esp32_family  esp32:esp32\n/dev/ttyAMA0 serial   Serial Port       Unknown'} />
-          {detectedBoard ? <div className="mt-2">Detected ESP32 port: <InlineCode>{detectedBoard.port}</InlineCode>.</div> : <div className="mt-2">Look for a USB serial port such as <InlineCode>/dev/ttyUSB0</InlineCode>, <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.</div>}
+        <CommandBlock value={commands.boardList} />
+        <div className="mt-2">
+          Run the command and paste its output here. For native-USB ESP32 boards, hold{" "}
+          <InlineCode>BOOT</InlineCode>, tap <InlineCode>RESET</InlineCode>/
+          <InlineCode>EN</InlineCode>, then run the command again if the board appears as{" "}
+          <InlineCode>Unknown</InlineCode>.
+        </div>
+        <textarea
+          className="mt-2 min-h-[110px] font-mono text-xs"
+          value={boardListOutput}
+          onChange={(event) => setBoardListOutput(event.target.value)}
+          placeholder={
+            "Port         Protocol Type              Board Name          FQBN                      Core\n/dev/ttyACM0 serial   Serial Port (USB) ESP32 Family Device esp32:esp32:esp32_family  esp32:esp32\n/dev/ttyAMA0 serial   Serial Port       Unknown"
+          }
+        />
+        {detectedBoard ? (
+          <div className="mt-2">
+            Detected ESP32 port: <InlineCode>{detectedBoard.port}</InlineCode>.
+          </div>
+        ) : (
+          <div className="mt-2">
+            Look for a USB serial port such as <InlineCode>/dev/ttyUSB0</InlineCode>,{" "}
+            <InlineCode>/dev/ttyACM0</InlineCode>, or <InlineCode>COM3</InlineCode>.
+          </div>
+        )}
       </SetupStep>
       <SetupStep index={5} title="Create Sketch File">
-          <div>Create the sketch folder and file, then paste the generated firmware below.</div>
-          <CommandBlock value={commands.createSketch} />
-          <FirmwareStepContent firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={onWifiSsidChange} onWifiPasswordChange={onWifiPasswordChange} />
+        <div>Create the sketch folder and file, then paste the generated firmware below.</div>
+        <CommandBlock value={commands.createSketch} />
+        <FirmwareStepContent
+          firmware={firmware}
+          wifiSsid={wifiSsid}
+          wifiPassword={wifiPassword}
+          onWifiSsidChange={onWifiSsidChange}
+          onWifiPasswordChange={onWifiPasswordChange}
+        />
       </SetupStep>
       <SetupStep index={6} title="Choose Board Target">
-          <div>List available ESP32 board targets, then choose the target that matches the board or chip family.</div>
-          <CommandBlock value={commands.boardListAll} />
-          <label className="grid gap-2 font-bold text-slate-700">Board FQBN<input value={usableDetectedFqbn ?? manualFqbn} onChange={(event) => setManualFqbn(event.target.value)} disabled={Boolean(usableDetectedFqbn)} placeholder="esp32:esp32:esp32" /></label>
-          <div className="mt-2">This board target is used by both compile and upload. Use <InlineCode>esp32:esp32:esp32</InlineCode> for a generic ESP32 Dev Module. If upload reports a different chip family, choose the matching FQBN from the available ESP32 board targets, then rerun compile/upload.</div>
-          <div className="mt-2">Board options can be appended to the FQBN. For native-USB boards with blank serial monitor output, try enabling USB CDC on boot, for example <InlineCode>esp32:esp32:esp32s3:CDCOnBoot=cdc</InlineCode>.</div>
-          <div className="mt-2">{usableDetectedFqbn ? <>Using detected FQBN <InlineCode>{usableDetectedFqbn}</InlineCode>.</> : <>Using Board FQBN <InlineCode>{selectedFqbn}</InlineCode>.</>}</div>
-          {detectedFqbn === "esp32:esp32:esp32_family" && <div className="mt-2">Arduino reported <InlineCode>esp32:esp32:esp32_family</InlineCode> in step 4. That identifies the ESP32 family but is not a build target, so choose a real Board FQBN here.</div>}
+        <div>
+          List available ESP32 board targets, then choose the target that matches the board or chip
+          family.
+        </div>
+        <CommandBlock value={commands.boardListAll} />
+        <label className="grid gap-2 font-bold text-slate-700">
+          Board FQBN
+          <input
+            value={usableDetectedFqbn ?? manualFqbn}
+            onChange={(event) => setManualFqbn(event.target.value)}
+            disabled={Boolean(usableDetectedFqbn)}
+            placeholder="esp32:esp32:esp32"
+          />
+        </label>
+        <div className="mt-2">
+          This board target is used by both compile and upload. Use{" "}
+          <InlineCode>esp32:esp32:esp32</InlineCode> for a generic ESP32 Dev Module. If upload
+          reports a different chip family, choose the matching FQBN from the available ESP32 board
+          targets, then rerun compile/upload.
+        </div>
+        <div className="mt-2">
+          Board options can be appended to the FQBN. For native-USB boards with blank serial monitor
+          output, try enabling USB CDC on boot, for example{" "}
+          <InlineCode>esp32:esp32:esp32s3:CDCOnBoot=cdc</InlineCode>.
+        </div>
+        <div className="mt-2">
+          {usableDetectedFqbn ? (
+            <>
+              Using detected FQBN <InlineCode>{usableDetectedFqbn}</InlineCode>.
+            </>
+          ) : (
+            <>
+              Using Board FQBN <InlineCode>{selectedFqbn}</InlineCode>.
+            </>
+          )}
+        </div>
+        {detectedFqbn === "esp32:esp32:esp32_family" && (
+          <div className="mt-2">
+            Arduino reported <InlineCode>esp32:esp32:esp32_family</InlineCode> in step 4. That
+            identifies the ESP32 family but is not a build target, so choose a real Board FQBN here.
+          </div>
+        )}
       </SetupStep>
       <SetupStep index={7} title="Compile Sketch">
-          <CommandBlock value={commands.compile} />
+        <CommandBlock value={commands.compile} />
       </SetupStep>
       <SetupStep index={8} title="Upload Firmware">
-          <div>{detectedPort ? <>Using detected port <InlineCode>{detectedPort}</InlineCode>.</> : <>Using placeholder port <InlineCode>/dev/ttyUSB0</InlineCode>. Paste the board list output in step 4 to update this command.</>}</div>
-          <CommandBlock value={commands.upload} />
-          <div className="mt-2">If it waits at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until upload starts. If the error says the chip is not the selected target, set Board FQBN in step 6 to the matching target, such as <InlineCode>esp32:esp32:esp32s3</InlineCode>, <InlineCode>esp32:esp32:esp32c3</InlineCode>, or <InlineCode>esp32:esp32:esp32s2</InlineCode>.</div>
+        <div>
+          {detectedPort ? (
+            <>
+              Using detected port <InlineCode>{detectedPort}</InlineCode>.
+            </>
+          ) : (
+            <>
+              Using placeholder port <InlineCode>/dev/ttyUSB0</InlineCode>. Paste the board list
+              output in step 4 to update this command.
+            </>
+          )}
+        </div>
+        <CommandBlock value={commands.upload} />
+        <div className="mt-2">
+          If it waits at Connecting, hold the ESP32 <InlineCode>BOOT</InlineCode> button until
+          upload starts. If the error says the chip is not the selected target, set Board FQBN in
+          step 6 to the matching target, such as <InlineCode>esp32:esp32:esp32s3</InlineCode>,{" "}
+          <InlineCode>esp32:esp32:esp32c3</InlineCode>, or{" "}
+          <InlineCode>esp32:esp32:esp32s2</InlineCode>.
+        </div>
       </SetupStep>
       <SetupStep index={9} title="Monitor Serial Output">
-          <CommandBlock value={commands.monitor} />
-          <div className="mt-2">Look for Wi-Fi connected, MQTT connected, and Publishing messages. If the monitor stays blank, press <InlineCode>RESET</InlineCode>/<InlineCode>EN</InlineCode> once. For native-USB boards, enable USB CDC on boot in the Board FQBN and compile/upload again.</div>
+        <CommandBlock value={commands.monitor} />
+        <div className="mt-2">
+          Look for Wi-Fi connected, MQTT connected, and Publishing messages. If the monitor stays
+          blank, press <InlineCode>RESET</InlineCode>/<InlineCode>EN</InlineCode> once. For
+          native-USB boards, enable USB CDC on boot in the Board FQBN and compile/upload again.
+        </div>
       </SetupStep>
-      <SetupStep index={10} title="Create Or Enable Workflow">Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode> as the start block and this source selected.</SetupStep>
+      <SetupStep index={10} title="Create Or Enable Workflow">
+        Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode>{" "}
+        as the start block and this source selected.
+      </SetupStep>
     </div>
   );
 }
 
-function FirmwareStepContent({ firmware, wifiSsid, wifiPassword, onWifiSsidChange, onWifiPasswordChange }: FirmwareStepProps) {
+function FirmwareStepContent({
+  firmware,
+  wifiSsid,
+  wifiPassword,
+  onWifiSsidChange,
+  onWifiPasswordChange,
+}: FirmwareStepProps) {
   const [showFirmware, setShowFirmware] = useState(false);
   return (
     <div className="mt-3 grid gap-3">
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="grid gap-2 font-bold text-slate-700">Wi-Fi name<input value={wifiSsid} onChange={(event) => onWifiSsidChange(event.target.value)} placeholder="MyWifi" /></label>
-        <label className="grid gap-2 font-bold text-slate-700">Wi-Fi password<input type="password" value={wifiPassword} onChange={(event) => onWifiPasswordChange(event.target.value)} placeholder="Wi-Fi password" /></label>
+        <label className="grid gap-2 font-bold text-slate-700">
+          Wi-Fi name
+          <input
+            value={wifiSsid}
+            onChange={(event) => onWifiSsidChange(event.target.value)}
+            placeholder="MyWifi"
+          />
+        </label>
+        <label className="grid gap-2 font-bold text-slate-700">
+          Wi-Fi password
+          <input
+            type="password"
+            value={wifiPassword}
+            onChange={(event) => onWifiPasswordChange(event.target.value)}
+            placeholder="Wi-Fi password"
+          />
+        </label>
       </div>
-      <div className="text-sm text-slate-600">These values are inserted into the firmware text only. They are not saved to Integritas Pi.</div>
+      <div className="text-sm text-slate-600">
+        These values are inserted into the firmware text only. They are not saved to Integritas Pi.
+      </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="xs" onClick={() => navigator.clipboard?.writeText(firmware)}>Copy firmware</Button>
-        <Button type="button" size="xs" variant="secondary" onClick={() => setShowFirmware((value) => !value)}>{showFirmware ? "Hide firmware" : "Show firmware"}</Button>
+        <Button type="button" size="xs" onClick={() => navigator.clipboard?.writeText(firmware)}>
+          Copy firmware
+        </Button>
+        <Button
+          type="button"
+          size="xs"
+          variant="secondary"
+          onClick={() => setShowFirmware((value) => !value)}
+        >
+          {showFirmware ? "Hide firmware" : "Show firmware"}
+        </Button>
       </div>
-      {showFirmware && <textarea className="min-h-[420px] font-mono text-xs" readOnly value={firmware} />}
+      {showFirmware && (
+        <textarea className="min-h-[420px] font-mono text-xs" readOnly value={firmware} />
+      )}
     </div>
   );
 }
 
-function SetupStep({ index, title, children }: { index: number; title: string; children: React.ReactNode }) {
+function SetupStep({
+  index,
+  title,
+  children,
+}: {
+  index: number;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="border-t border-slate-200 pt-3 first:border-t-0 first:pt-0">
-      <h4 className="m-0 text-sm font-extrabold text-slate-800">{index}. {title}</h4>
+      <h4 className="m-0 text-sm font-extrabold text-slate-800">
+        {index}. {title}
+      </h4>
       <div className="mt-2 text-sm leading-6 text-slate-700">{children}</div>
     </section>
   );
@@ -542,20 +1024,32 @@ function CommandBlock({ value }: { value: string }) {
   return (
     <div className="mt-2 grid gap-2">
       <textarea className="min-h-[92px] font-mono text-xs" readOnly value={value} />
-      <Button type="button" size="xs" variant="secondary" onClick={() => navigator.clipboard?.writeText(value)}>Copy commands</Button>
+      <Button
+        type="button"
+        size="xs"
+        variant="secondary"
+        onClick={() => navigator.clipboard?.writeText(value)}
+      >
+        Copy commands
+      </Button>
     </div>
   );
 }
 
 function InlineCode({ children }: { children: React.ReactNode }) {
-  return <span className="break-all rounded bg-white px-1.5 py-0.5 font-mono text-[0.9em] text-slate-600">{children}</span>;
+  return (
+    <span className="rounded bg-white px-1.5 py-0.5 font-mono text-[0.9em] break-all text-slate-600">
+      {children}
+    </span>
+  );
 }
 
 function esp32CliCommands(port: string, fqbn: string) {
   const cli = "~/bin/arduino-cli";
   const sketchPath = "~/esp32-integritas-sensor";
   return {
-    installCli: "curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh",
+    installCli:
+      "curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh",
     installEsp32Core: [
       `${cli} config init`,
       `${cli} config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`,
@@ -565,7 +1059,9 @@ function esp32CliCommands(port: string, fqbn: string) {
     installLibrary: `${cli} lib install PubSubClient`,
     boardList: `${cli} board list`,
     boardListAll: `${cli} board listall esp32`,
-    createSketch: [`mkdir -p ${sketchPath}`, `nano ${sketchPath}/esp32-integritas-sensor.ino`].join("\n"),
+    createSketch: [`mkdir -p ${sketchPath}`, `nano ${sketchPath}/esp32-integritas-sensor.ino`].join(
+      "\n",
+    ),
     compile: `${cli} compile --fqbn ${fqbn} ${sketchPath}`,
     upload: `${cli} upload -p ${port} --fqbn ${fqbn} ${sketchPath}`,
     monitor: `${cli} monitor -p ${port} --config baudrate=115200`,
@@ -573,9 +1069,19 @@ function esp32CliCommands(port: string, fqbn: string) {
 }
 
 function detectEsp32Board(output: string) {
-  const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const usbLine = lines.find((line) => /\bserial\b/i.test(line) && /\b(USB|Serial Port \(USB\))\b/i.test(line) && /^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i.test(line));
-  const fallbackLine = lines.find((line) => /^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i.test(line));
+  const lines = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const usbLine = lines.find(
+    (line) =>
+      /\bserial\b/i.test(line) &&
+      /\b(USB|Serial Port \(USB\))\b/i.test(line) &&
+      /^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i.test(line),
+  );
+  const fallbackLine = lines.find((line) =>
+    /^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i.test(line),
+  );
   const line = usbLine ?? fallbackLine;
   const portMatch = line?.match(/^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i);
   if (!portMatch) return null;
@@ -590,19 +1096,34 @@ function esp32BrokerParts(brokerUrl: string) {
     const url = new URL(brokerUrl);
     const host = url.hostname;
     const port = Number(url.port || 1883);
-    const internalHost = host === "mqtt" || host === "localhost" || host === "127.0.0.1" || host === "::1";
+    const internalHost =
+      host === "mqtt" || host === "localhost" || host === "127.0.0.1" || host === "::1";
     return {
       host: internalHost ? browserHost : host,
       port,
       needsEsp32Override: internalHost,
-      reason: internalHost ? `The saved broker host ${host} is only reachable from the backend host/container, not from the ESP32.` : null,
+      reason: internalHost
+        ? `The saved broker host ${host} is only reachable from the backend host/container, not from the ESP32.`
+        : null,
     };
   } catch {
-    return { host: "", port: 1883, needsEsp32Override: true, reason: "The saved broker URL could not be parsed." };
+    return {
+      host: "",
+      port: 1883,
+      needsEsp32Override: true,
+      reason: "The saved broker URL could not be parsed.",
+    };
   }
 }
 
-function esp32Firmware(input: { deviceName: string; mqttHost: string; mqttPort: number; topic: string; wifiSsid: string; wifiPassword: string }) {
+function esp32Firmware(input: {
+  deviceName: string;
+  mqttHost: string;
+  mqttPort: number;
+  topic: string;
+  wifiSsid: string;
+  wifiPassword: string;
+}) {
   const deviceSlug = slugifyDeviceName(input.deviceName);
   const wifiSsid = input.wifiSsid || "YOUR_WIFI_NAME";
   const wifiPassword = input.wifiPassword || "YOUR_WIFI_PASSWORD";
@@ -751,9 +1272,15 @@ void loop() {
 }
 
 function slugifyDeviceName(value: string) {
-  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "esp32-mqtt-board";
+  return (
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "esp32-mqtt-board"
+  );
 }
 
 function escapeCppString(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
