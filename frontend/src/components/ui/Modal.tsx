@@ -38,7 +38,7 @@ export function Modal({
   className,
   bodyClassName,
 }: {
-  title: string;
+  title: string | ReactNode;
   description?: ReactNode;
   children?: ReactNode;
   footer?: ReactNode;
@@ -80,7 +80,7 @@ export function Modal({
     >
       <div
         className={cx(
-          "bg-surface-always-white gap-detail-near rounded-soft p-pad-relaxed relative flex max-h-[min(90vh,760px)] w-full max-w-[800px] flex-col overflow-hidden",
+          "bg-surface-always-white gap-detail-near rounded-soft p-pad-relaxed relative flex max-h-[min(90vh,760px)] w-full max-w-200 flex-col overflow-hidden",
           className,
         )}
         role="dialog"

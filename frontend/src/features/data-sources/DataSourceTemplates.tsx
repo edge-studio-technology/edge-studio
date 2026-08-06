@@ -8,9 +8,10 @@ import {
   ThermometerSun,
   Webhook,
 } from "lucide-react";
-import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { CopyField } from "../../components/patterns/CopyField";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { OptionCard } from "../../components/patterns/OptionCard";
 import { Pill } from "../../components/Pill";
 import { MutedText } from "../../components/Text";
 import type { DataSourceCapabilities, DataSourceTemplate } from "./dataSourceTypes";
@@ -149,6 +150,126 @@ export const outputTemplates: DataSourceTemplate[] = [
   },
 ];
 
+export function templateIcon(template: DataSourceTemplate) {
+  if (template.config.profile === "pir-motion") return ShieldAlert;
+  if (template.config.profile === "esp32-mqtt-board") return Cpu;
+  if (template.type === "json-api" || template.type === "http-output") return Globe2;
+  if (template.type === "webhook") return Webhook;
+  if (template.type === "mqtt" || template.type === "mqtt-output") return Radio;
+  if (template.type === "gpio-output") return Lightbulb;
+  if (template.type === "pi-camera") return Camera;
+  if (template.type === "bme-sensor") return ThermometerSun;
+  return Cpu;
+}
+
+/** Applies runtime capability values (currently the local broker URL) to a template's saved config. */
+export function resolveTemplateConfig(
+  template: DataSourceTemplate,
+  capabilities: DataSourceCapabilities | null,
+) {
+  if (template.type !== "mqtt" && template.type !== "mqtt-output") return template.config;
+  const brokerUrl = capabilities?.mqttBroker?.enabled
+    ? capabilities.mqttBroker.internalUrl
+    : "mqtt://localhost:1883";
+  return { ...template.config, brokerUrl };
+}
+
+/** Wiring/capability notes shown alongside a template's form. */
+export function TemplateNotes({
+  template,
+  capabilities,
+}: {
+  template: DataSourceTemplate;
+  capabilities: DataSourceCapabilities | null;
+}) {
+  const missingBme680Support =
+    template.type === "bme-sensor" && template.config.sensor === "bme680"
+      ? bme680SupportWarning(capabilities)
+      : null;
+
+  return (
+    <>
+      {template.type === "gpio-output" && (
+        <MutedText className="m-0">
+          LED profile only. Use a 220-330 ohm resistor in series with the LED.
+        </MutedText>
+      )}
+      {template.config.profile === "pir-motion" && (
+        <MutedText className="m-0">
+          Tested default: OUT to GPIO23 / physical pin 16, active high, no pull resistor. Let the
+          sensor warm up for 60-90 seconds.
+        </MutedText>
+      )}
+      {template.config.profile === "esp32-mqtt-board" && (
+        <MutedText className="m-0">
+          Creates a normal MQTT input source and shows copyable Arduino ESP32 starter firmware after
+          saving.
+        </MutedText>
+      )}
+      {template.type === "bme-sensor" && (
+        <MutedText className="m-0">
+          Wire VIN, GND, SCL, SDA to the Pi I2C pins and enable I2C/sensor support before reading.
+        </MutedText>
+      )}
+      {missingBme680Support && (
+        <ErrorAlert status="warning" className="max-w-none">
+          {missingBme680Support}
+        </ErrorAlert>
+      )}
+      {template.type === "bme-sensor" &&
+        capabilities?.sensors?.enabled &&
+        capabilities.sensors.available === false && (
+          <ErrorAlert status="warning" className="max-w-none">
+            Sensor helper is not ready yet: {capabilities.sensors.reason}
+          </ErrorAlert>
+        )}
+      {template.type === "pi-camera" && (
+        <MutedText className="m-0">
+          Captures are stored locally under{" "}
+          <code>{capabilities?.camera?.captureDir ?? "/data/captures"}</code> and hashed for
+          stamping.
+        </MutedText>
+      )}
+      {template.type === "pi-camera" &&
+        capabilities?.camera?.enabled &&
+        capabilities.camera.available === false && (
+          <ErrorAlert status="warning" className="max-w-none">
+            Camera capture is not ready yet: {capabilities.camera.reason}
+          </ErrorAlert>
+        )}
+      {(template.type === "mqtt" || template.type === "mqtt-output") &&
+        capabilities?.mqttBroker?.enabled && (
+          <MutedText className="m-0">
+            Local broker available: <code>{capabilities.mqttBroker.internalUrl}</code>
+          </MutedText>
+        )}
+      {hardwareSetupWarning(template, capabilities) && (
+        <ErrorAlert status="warning" className="max-w-none">
+          {hardwareSetupWarning(template, capabilities)}
+        </ErrorAlert>
+      )}
+    </>
+  );
+}
+
+export function templateKind(template: DataSourceTemplate) {
+  if (
+    template.title === "GPIO Button" ||
+    template.config.profile === "esp32-mqtt-board" ||
+    template.config.profile === "pir-motion" ||
+    template.type === "pi-camera" ||
+    template.type === "bme-sensor" ||
+    template.type === "gpio-output"
+  )
+    return "template";
+  return "manual";
+}
+
+/**
+ * Classic add-device picker: a grid of template cards, one "Add input"/"Add output" button each.
+ * Kept alongside `AddDevicePanel`'s tabs+accordion layout so both can be compared in the running app
+ * (see the flow toggle in `DataSourcesPage`).
+ */
 export function DataSourceTemplates({
   mode,
   category,
@@ -163,12 +284,9 @@ export function DataSourceTemplates({
   const templates = (mode === "input" ? inputTemplates : outputTemplates).filter(
     (template) => !category || templateKind(template) === category,
   );
-  const brokerUrl = capabilities?.mqttBroker?.enabled
-    ? capabilities.mqttBroker.internalUrl
-    : "mqtt://localhost:1883";
 
   return (
-    <Card className="grid gap-6">
+    <div className="grid gap-6">
       <div>
         <strong>
           {category === "template"
@@ -189,122 +307,25 @@ export function DataSourceTemplates({
                 : "Outputs are devices or endpoints the app can control from automation action blocks."}
         </MutedText>
       </div>
-      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))] gap-4">
-        {templates.map((template) => {
-          const Icon =
-            template.config.profile === "pir-motion"
-              ? ShieldAlert
-              : template.config.profile === "esp32-mqtt-board"
-                ? Cpu
-                : template.type === "json-api" || template.type === "http-output"
-                  ? Globe2
-                  : template.type === "webhook"
-                    ? Webhook
-                    : template.type === "mqtt" || template.type === "mqtt-output"
-                      ? Radio
-                      : template.type === "gpio-output"
-                        ? Lightbulb
-                        : template.type === "pi-camera"
-                          ? Camera
-                          : template.type === "bme-sensor"
-                            ? ThermometerSun
-                            : Cpu;
-          const config =
-            template.type === "mqtt" || template.type === "mqtt-output"
-              ? { ...template.config, brokerUrl }
-              : template.config;
-          const missingBme680Support =
-            template.type === "bme-sensor" && template.config.sensor === "bme680"
-              ? bme680SupportWarning(capabilities)
-              : null;
-          return (
-            <Card
-              className="grid gap-3 transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
-              key={template.title}
-            >
-              <Icon size={24} />
-              <h3 className="m-0">{template.title}</h3>
-              <MutedText className="m-0">{template.description}</MutedText>
-              {template.type === "gpio-output" && (
-                <MutedText className="m-0">
-                  LED profile only. Use a 220-330 ohm resistor in series with the LED.
-                </MutedText>
-              )}
-              {template.config.profile === "pir-motion" && (
-                <MutedText className="m-0">
-                  Tested default: OUT to GPIO23 / physical pin 16, active high, no pull resistor.
-                  Let the sensor warm up for 60-90 seconds.
-                </MutedText>
-              )}
-              {template.config.profile === "esp32-mqtt-board" && (
-                <MutedText className="m-0">
-                  Creates a normal MQTT input source and shows copyable Arduino ESP32 starter
-                  firmware after saving.
-                </MutedText>
-              )}
-              {template.type === "bme-sensor" && (
-                <MutedText className="m-0">
-                  Wire VIN, GND, SCL, SDA to the Pi I2C pins and enable I2C/sensor support before
-                  reading.
-                </MutedText>
-              )}
-              {missingBme680Support && (
-                <MutedText className="m-0">{missingBme680Support}</MutedText>
-              )}
-              {template.type === "bme-sensor" &&
-                capabilities?.sensors?.enabled &&
-                capabilities.sensors.available === false && (
-                  <MutedText className="m-0">
-                    Sensor helper is not ready yet: {capabilities.sensors.reason}
-                  </MutedText>
-                )}
-              {template.type === "pi-camera" && (
-                <MutedText className="m-0">
-                  Captures are stored locally under{" "}
-                  <code>{capabilities?.camera?.captureDir ?? "/data/captures"}</code> and hashed for
-                  stamping.
-                </MutedText>
-              )}
-              {template.type === "pi-camera" &&
-                capabilities?.camera?.enabled &&
-                capabilities.camera.available === false && (
-                  <MutedText className="m-0">
-                    Camera capture is not ready yet: {capabilities.camera.reason}
-                  </MutedText>
-                )}
-              {(template.type === "mqtt" || template.type === "mqtt-output") &&
-                capabilities?.mqttBroker?.enabled && (
-                  <MutedText className="m-0">
-                    Local broker available: <code>{capabilities.mqttBroker.internalUrl}</code>
-                  </MutedText>
-                )}
-              {hardwareSetupWarning(template, capabilities) && (
-                <MutedText className="m-0">
-                  {hardwareSetupWarning(template, capabilities)}
-                </MutedText>
-              )}
-              <Button type="button" onClick={() => onSelect({ ...template, config })}>
-                {mode === "input" ? "Add input" : "Add output"}
-              </Button>
-            </Card>
-          );
-        })}
+      <div className="flex flex-wrap gap-4">
+        {templates.map((template) => (
+          <OptionCard
+            key={template.title}
+            className="w-full sm:w-80"
+            icon={templateIcon(template)}
+            title={template.title}
+            description={template.description}
+            actionLabel={mode === "input" ? "Add input" : "Add output"}
+            onClick={() =>
+              onSelect({ ...template, config: resolveTemplateConfig(template, capabilities) })
+            }
+          >
+            <TemplateNotes template={template} capabilities={capabilities} />
+          </OptionCard>
+        ))}
       </div>
-    </Card>
+    </div>
   );
-}
-
-function templateKind(template: DataSourceTemplate) {
-  if (
-    template.title === "GPIO Button" ||
-    template.config.profile === "esp32-mqtt-board" ||
-    template.config.profile === "pir-motion" ||
-    template.type === "pi-camera" ||
-    template.type === "bme-sensor" ||
-    template.type === "gpio-output"
-  )
-    return "template";
-  return "manual";
 }
 
 function hardwareSetupWarning(

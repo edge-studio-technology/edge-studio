@@ -6,12 +6,11 @@ import { Card } from "../components/Card";
 import { Modal } from "../components/Modal";
 import { Page } from "../components/Page";
 import { ProgressModal } from "../components/ProgressModal";
-import { MutedText } from "../components/Text";
 import { useToast } from "../components/ToastProvider";
+import { ToggleTabs } from "../components/ui/ToggleTabs";
 import { createAutomationWorkflow } from "../features/automation/automationApi";
 import {
   checkDataSourceHealth,
-  createDataSource,
   deleteDataSource,
   getDataSourceCapabilities,
   listDataSources,
@@ -19,23 +18,15 @@ import {
   testDataSourceOutput,
   updateDataSource,
 } from "../features/data-sources/dataSourcesApi";
-import {
-  AddDeviceMethodChoice,
-  addDeviceBreadcrumb,
-  previousAddDeviceStep,
-  type AddDeviceStep,
-} from "../features/data-sources/AddDeviceMethodChoice";
+import { buildDeviceConfigInput } from "../features/data-sources/buildDeviceConfig";
+import { ClassicAddDeviceFlow } from "../features/data-sources/ClassicAddDeviceFlow";
 import { DataSourceForm } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
-import {
-  DataSourceTemplates,
-  LocalServicesCard,
-} from "../features/data-sources/DataSourceTemplates";
+import { LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
 import type {
   DataSource,
   DataSourceCapabilities,
   DataSourceHealthStatus,
-  DataSourceTemplate,
 } from "../features/data-sources/dataSourceTypes";
 import {
   getDeviceSetupGuide,
@@ -43,38 +34,38 @@ import {
   type DeviceGuideAction,
 } from "../features/data-sources/deviceSetupGuides";
 import { Esp32FirmwareSetup } from "../features/data-sources/Esp32FirmwareSetup";
+import { TabsAddDeviceFlow } from "../features/data-sources/TabsAddDeviceFlow";
+import { useDeviceFormFields } from "../features/data-sources/useDeviceFormFields";
+
+/**
+ * Two add-device UIs are kept side by side for comparison: "classic" (method choice ->
+ * template grid -> form, each its own modal step, `ClassicAddDeviceFlow`) and "tabs"
+ * (Guided/Manual tabs with a collapsible section per template, form inline,
+ * `TabsAddDeviceFlow`). Delete the loser's component/import and this toggle once the team
+ * picks one.
+ */
+type AddDeviceFlow = "classic" | "tabs";
+const ADD_DEVICE_FLOW_STORAGE_KEY = "integritas-pi:add-device-flow";
+
+function readStoredAddDeviceFlow(): AddDeviceFlow {
+  if (typeof window === "undefined") return "tabs";
+  return window.localStorage.getItem(ADD_DEVICE_FLOW_STORAGE_KEY) === "classic"
+    ? "classic"
+    : "tabs";
+}
 
 export function DataSourcesPage() {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [items, setItems] = useState<DataSource[]>([]);
   const [capabilities, setCapabilities] = useState<DataSourceCapabilities | null>(null);
-  const [template, setTemplate] = useState<DataSourceTemplate | null>(null);
-  const [templateMode, setTemplateMode] = useState<AddDeviceStep | null>(null);
+  const [addDeviceFlow, setAddDeviceFlow] = useState<AddDeviceFlow>(() =>
+    readStoredAddDeviceFlow(),
+  );
+  const [addDeviceMode, setAddDeviceMode] = useState<"input" | "output" | null>(null);
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [type, setType] = useState<DataSource["type"]>("json-api");
-  const [url, setUrl] = useState("");
-  const [healthStatusUrl, setHealthStatusUrl] = useState("");
-  const [brokerUrl, setBrokerUrl] = useState("");
-  const [topic, setTopic] = useState("");
-  const [gpioChip, setGpioChip] = useState("gpiochip0");
-  const [gpioPin, setGpioPin] = useState("17");
-  const [gpioProfile, setGpioProfile] = useState<"generic" | "pir-motion">("generic");
-  const [gpioPull, setGpioPull] = useState<"off" | "up" | "down">("off");
-  const [gpioEdge, setGpioEdge] = useState<"rising" | "falling" | "both">("both");
-  const [gpioDebounceMs, setGpioDebounceMs] = useState("100");
-  const [gpioActiveState, setGpioActiveState] = useState<"high" | "low">("high");
-  const [cameraMode, setCameraMode] = useState<"photo" | "video">("photo");
-  const [cameraWidth, setCameraWidth] = useState("1280");
-  const [cameraHeight, setCameraHeight] = useState("720");
-  const [cameraDurationMs, setCameraDurationMs] = useState("1000");
-  const [cameraFps, setCameraFps] = useState("30");
-  const [bmeBus, setBmeBus] = useState("1");
-  const [bmeAddress, setBmeAddress] = useState<"0x76" | "0x77">("0x76");
-  const [method, setMethod] = useState<"GET" | "POST" | "PUT" | "PATCH">("GET");
+  const editForm = useDeviceFormFields();
   const [healthStatuses, setHealthStatuses] = useState<Record<string, DataSourceHealthStatus>>({});
   const [busy, setBusy] = useState(false);
   const [deletingSource, setDeletingSource] = useState<DataSource | null>(null);
@@ -83,6 +74,10 @@ export function DataSourcesPage() {
   const [createdGuideWorkflowIds, setCreatedGuideWorkflowIds] = useState<Record<string, string>>(
     {},
   );
+
+  useEffect(() => {
+    window.localStorage.setItem(ADD_DEVICE_FLOW_STORAGE_KEY, addDeviceFlow);
+  }, [addDeviceFlow]);
 
   useEffect(() => {
     refresh().catch((err: Error) =>
@@ -121,95 +116,23 @@ export function DataSourcesPage() {
     });
   }
 
-  function applyTemplate(nextTemplate: DataSourceTemplate) {
-    setEditingSource(null);
-    setTemplate(nextTemplate);
-    setName(nextTemplate.title);
-    setDescription(nextTemplate.description);
-    setType(nextTemplate.type);
-    setUrl(nextTemplate.config.url ?? "");
-    setHealthStatusUrl(nextTemplate.config.healthStatusUrl ?? "");
-    setBrokerUrl(nextTemplate.config.brokerUrl ?? "");
-    setTopic(nextTemplate.config.topic ?? "");
-    setGpioChip(nextTemplate.config.chip ?? "gpiochip0");
-    setGpioPin(String(nextTemplate.config.pin ?? 17));
-    setGpioProfile(nextTemplate.config.profile === "pir-motion" ? "pir-motion" : "generic");
-    setGpioPull(nextTemplate.config.pull ?? "off");
-    setGpioEdge(nextTemplate.config.edge ?? "both");
-    setGpioDebounceMs(String(nextTemplate.config.debounceMs ?? 100));
-    setGpioActiveState(nextTemplate.config.activeState ?? "high");
-    setCameraMode(nextTemplate.config.mode ?? "photo");
-    setCameraWidth(String(nextTemplate.config.width ?? 1280));
-    setCameraHeight(String(nextTemplate.config.height ?? 720));
-    setCameraDurationMs(String(nextTemplate.config.durationMs ?? 1000));
-    setCameraFps(String(nextTemplate.config.fps ?? 30));
-    setBmeBus(String(nextTemplate.config.bus ?? 1));
-    setBmeAddress(nextTemplate.config.address ?? "0x76");
-    setMethod(nextTemplate.config.method ?? "GET");
-    setFormOpen(true);
-    setTemplateMode(null);
+  function handleDeviceCreated(source: DataSource) {
+    setAddDeviceMode(null);
+    refresh();
+    if (getDeviceSetupGuide(source)) setSetupGuideSource(source);
   }
 
   function editSource(source: DataSource) {
     setEditingSource(source);
-    setTemplate(null);
-    setName(source.name);
-    setDescription(source.description ?? "");
-    setType(source.type);
-    setUrl(source.config.url ?? "");
-    setHealthStatusUrl(source.config.healthStatusUrl ?? "");
-    setBrokerUrl(source.config.brokerUrl ?? "");
-    setTopic(source.config.topic ?? "");
-    setGpioChip(source.config.chip ?? "gpiochip0");
-    setGpioPin(String(source.config.pin ?? 17));
-    setGpioProfile(source.config.profile === "pir-motion" ? "pir-motion" : "generic");
-    setGpioPull(source.config.pull ?? "off");
-    setGpioEdge(source.config.edge ?? "both");
-    setGpioDebounceMs(String(source.config.debounceMs ?? 100));
-    setGpioActiveState(source.config.activeState ?? "high");
-    setCameraMode(source.config.mode ?? "photo");
-    setCameraWidth(String(source.config.width ?? 1280));
-    setCameraHeight(String(source.config.height ?? 720));
-    setCameraDurationMs(String(source.config.durationMs ?? 1000));
-    setCameraFps(String(source.config.fps ?? 30));
-    setBmeBus(String(source.config.bus ?? 1));
-    setBmeAddress(source.config.address ?? "0x76");
-    setMethod(source.config.method ?? "GET");
+    editForm.fillFromSource(source);
     setFormOpen(true);
-    setTemplateMode(null);
-  }
-
-  function resetForm() {
-    setTemplate(null);
-    setEditingSource(null);
-    setName("");
-    setDescription("");
-    setType("json-api");
-    setUrl("");
-    setHealthStatusUrl("");
-    setBrokerUrl("");
-    setTopic("");
-    setGpioChip("gpiochip0");
-    setGpioPin("17");
-    setGpioProfile("generic");
-    setGpioPull("off");
-    setGpioEdge("both");
-    setGpioDebounceMs("100");
-    setGpioActiveState("high");
-    setCameraMode("photo");
-    setCameraWidth("1280");
-    setCameraHeight("720");
-    setCameraDurationMs("1000");
-    setCameraFps("30");
-    setBmeBus("1");
-    setBmeAddress("0x76");
-    setMethod("GET");
   }
 
   function closeForm() {
     if (busy) return;
     setFormOpen(false);
-    resetForm();
+    setEditingSource(null);
+    editForm.reset();
   }
 
   async function run(action: () => Promise<unknown>, successTitle?: string) {
@@ -260,6 +183,21 @@ export function DataSourcesPage() {
     }
   }
 
+  async function saveEditedDevice() {
+    if (!editingSource) return;
+    await run(async () => {
+      await updateDataSource(editingSource.id, {
+        name: editForm.fields.name,
+        description: editForm.fields.description,
+        type: editForm.fields.type,
+        config: buildDeviceConfigInput(editForm.fields, { editingSource }),
+      });
+      setFormOpen(false);
+      setEditingSource(null);
+      editForm.reset();
+    }, "Device updated");
+  }
+
   const setupGuideBme680SupportWarning = setupGuideSource
     ? bme680SupportWarning(setupGuideSource, capabilities)
     : null;
@@ -270,16 +208,28 @@ export function DataSourcesPage() {
       desc="Add input sources for data and events, then prepare output targets for automation workflows."
     >
       <Card className="gap-detail-near grid w-full">
-        <div>
-          <h2 className="type-title text-text-primary m-0">Add devices</h2>
-          <p className="type-body text-text-secondary mt-detail-next m-0">
-            Create a configured input source or output target. Local services show connection
-            details for app-provided services.
-          </p>
+        <div className="gap-detail-close flex flex-wrap items-start justify-between">
+          <div>
+            <h2 className="type-title text-text-primary m-0">Add devices</h2>
+            <p className="type-body text-text-secondary mt-detail-next m-0">
+              Create a configured input source or output target. Local services show connection
+              details for app-provided services.
+            </p>
+          </div>
+          <ToggleTabs
+            label="Add-device flow (comparison, temporary)"
+            size="sm"
+            value={addDeviceFlow}
+            options={[
+              { value: "classic", label: "Classic" },
+              { value: "tabs", label: "Tabs" },
+            ]}
+            onChange={setAddDeviceFlow}
+          />
         </div>
         <ButtonRow>
-          <Button onClick={() => setTemplateMode("input")}>Add input source</Button>
-          <Button variant="secondary" onClick={() => setTemplateMode("output")}>
+          <Button onClick={() => setAddDeviceMode("input")}>Add input source</Button>
+          <Button variant="secondary" onClick={() => setAddDeviceMode("output")}>
             Add output target
           </Button>
         </ButtonRow>
@@ -287,180 +237,30 @@ export function DataSourcesPage() {
 
       <LocalServicesCard capabilities={capabilities} />
 
-      {templateMode && (
-        <Modal
-          title={addDeviceBreadcrumb(templateMode)}
-          footer={
-            templateMode !== "input" && templateMode !== "output" ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setTemplateMode(previousAddDeviceStep(templateMode))}
-              >
-                Back
-              </Button>
-            ) : null
-          }
-          onClose={() => setTemplateMode(null)}
-        >
-          {templateMode === "input" || templateMode === "output" ? (
-            <AddDeviceMethodChoice
-              mode={templateMode}
-              onSelect={(category) =>
-                setTemplateMode(
-                  `${templateMode}-${category}` as
-                    "input-template" | "input-manual" | "output-template" | "output-manual",
-                )
-              }
-            />
-          ) : (
-            <DataSourceTemplates
-              mode={templateMode.startsWith("input") ? "input" : "output"}
-              category={templateMode.endsWith("template") ? "template" : "manual"}
-              capabilities={capabilities}
-              onSelect={applyTemplate}
-            />
-          )}
-        </Modal>
+      {addDeviceFlow === "classic" ? (
+        <ClassicAddDeviceFlow
+          mode={addDeviceMode}
+          capabilities={capabilities}
+          onClose={() => setAddDeviceMode(null)}
+          onCreated={handleDeviceCreated}
+        />
+      ) : (
+        <TabsAddDeviceFlow
+          mode={addDeviceMode}
+          capabilities={capabilities}
+          onClose={() => setAddDeviceMode(null)}
+          onCreated={handleDeviceCreated}
+        />
       )}
 
       {formOpen && (
-        <Modal title={editingSource ? "Edit device" : "Add device"} onClose={closeForm}>
+        <Modal title="Edit device" closeDisabled={busy} onClose={closeForm}>
           <DataSourceForm
-            template={template}
-            name={name}
-            setName={setName}
-            description={description}
-            setDescription={setDescription}
-            type={type}
-            setType={setType}
-            url={url}
-            setUrl={setUrl}
-            healthStatusUrl={healthStatusUrl}
-            setHealthStatusUrl={setHealthStatusUrl}
-            brokerUrl={brokerUrl}
-            setBrokerUrl={setBrokerUrl}
-            topic={topic}
-            setTopic={setTopic}
-            gpioChip={gpioChip}
-            setGpioChip={setGpioChip}
-            gpioPin={gpioPin}
-            setGpioPin={setGpioPin}
-            gpioProfile={gpioProfile}
-            setGpioProfile={setGpioProfile}
-            gpioPull={gpioPull}
-            setGpioPull={setGpioPull}
-            gpioEdge={gpioEdge}
-            setGpioEdge={setGpioEdge}
-            gpioDebounceMs={gpioDebounceMs}
-            setGpioDebounceMs={setGpioDebounceMs}
-            gpioActiveState={gpioActiveState}
-            setGpioActiveState={setGpioActiveState}
-            cameraMode={cameraMode}
-            setCameraMode={setCameraMode}
-            cameraWidth={cameraWidth}
-            setCameraWidth={setCameraWidth}
-            cameraHeight={cameraHeight}
-            setCameraHeight={setCameraHeight}
-            cameraDurationMs={cameraDurationMs}
-            setCameraDurationMs={setCameraDurationMs}
-            cameraFps={cameraFps}
-            setCameraFps={setCameraFps}
-            bmeBus={bmeBus}
-            setBmeBus={setBmeBus}
-            bmeAddress={bmeAddress}
-            setBmeAddress={setBmeAddress}
-            method={method}
-            setMethod={setMethod}
+            {...editForm.fields}
+            template={null}
             busy={busy}
-            submitLabel={editingSource ? "Save device" : "Add device"}
-            onSubmit={() =>
-              run(
-                async () => {
-                  const input = {
-                    name,
-                    description,
-                    type,
-                    config:
-                      type === "webhook"
-                        ? { webhookToken: editingSource?.config.webhookToken }
-                        : type === "mqtt"
-                          ? {
-                              brokerUrl,
-                              topic,
-                              profile:
-                                template?.config.profile === "esp32-mqtt-board"
-                                  ? ("esp32-mqtt-board" as const)
-                                  : undefined,
-                            }
-                          : type === "mqtt-output"
-                            ? { brokerUrl, topic, qos: 0 as const, retain: false }
-                            : type === "http-output"
-                              ? {
-                                  url,
-                                  method: method === "GET" ? ("POST" as const) : method,
-                                  headers: {},
-                                  timeoutMs: 5000,
-                                }
-                              : type === "gpio-input"
-                                ? {
-                                    chip: gpioChip,
-                                    pin: Number(gpioPin),
-                                    profile: gpioProfile,
-                                    pull: gpioPull,
-                                    edge: gpioEdge,
-                                    debounceMs: Number(gpioDebounceMs),
-                                    activeState: gpioActiveState,
-                                  }
-                                : type === "gpio-output"
-                                  ? {
-                                      chip: gpioChip,
-                                      pin: Number(gpioPin),
-                                      profile: "led" as const,
-                                      activeState: gpioActiveState,
-                                      initialState: "inactive" as const,
-                                    }
-                                  : type === "pi-camera"
-                                    ? {
-                                        mode: cameraMode,
-                                        width: Number(cameraWidth),
-                                        height: Number(cameraHeight),
-                                        durationMs: Number(cameraDurationMs),
-                                        fps: Number(cameraFps),
-                                        outputFormat:
-                                          cameraMode === "video"
-                                            ? ("h264" as const)
-                                            : ("jpg" as const),
-                                      }
-                                    : type === "bme-sensor"
-                                      ? {
-                                          sensor: (template?.config.sensor ??
-                                            editingSource?.config.sensor ??
-                                            "bme280") as "bme280" | "bme680",
-                                          bus: Number(bmeBus),
-                                          address: bmeAddress,
-                                        }
-                                      : {
-                                          url,
-                                          method:
-                                            method === "PUT" || method === "PATCH"
-                                              ? ("POST" as const)
-                                              : method,
-                                          healthStatusUrl: healthStatusUrl.trim() || undefined,
-                                          headers: {},
-                                        },
-                  };
-                  if (editingSource) await updateDataSource(editingSource.id, input);
-                  else {
-                    const response = await createDataSource(input);
-                    if (getDeviceSetupGuide(response.item)) setSetupGuideSource(response.item);
-                  }
-                  setFormOpen(false);
-                  resetForm();
-                },
-                editingSource ? "Device updated" : "Device added",
-              )
-            }
+            submitLabel="Save device"
+            onSubmit={saveEditedDevice}
           />
         </Modal>
       )}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { ErrorAlert } from "../../components/ErrorAlert";
 import { MutedText } from "../../components/Text";
 import type { DataSource } from "./dataSourceTypes";
 
@@ -48,34 +49,35 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
         </div>
       </div>
       {savedBroker.needsEsp32Override && (
-        <div className="grid gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <strong>ESP32 broker address needed</strong>
-          <div>
-            {savedBroker.reason} Enter the broker host and port that the ESP32 can reach from
-            Wi-Fi/LAN.
+        <ErrorAlert status="warning" title="ESP32 broker address needed">
+          <div className="grid gap-3">
+            <div>
+              {savedBroker.reason} Enter the broker host and port that the ESP32 can reach from
+              Wi-Fi/LAN.
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="grid gap-2 font-bold">
+                ESP32 broker host
+                <input
+                  value={esp32BrokerHost}
+                  onChange={(event) => setEsp32BrokerHost(event.target.value)}
+                  placeholder="192.168.1.75"
+                />
+              </label>
+              <label className="grid gap-2 font-bold">
+                ESP32 broker port
+                <input
+                  value={esp32BrokerPort}
+                  onChange={(event) => setEsp32BrokerPort(event.target.value)}
+                  placeholder="1883"
+                  inputMode="numeric"
+                />
+              </label>
+            </div>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="grid gap-2 font-bold">
-              ESP32 broker host
-              <input
-                value={esp32BrokerHost}
-                onChange={(event) => setEsp32BrokerHost(event.target.value)}
-                placeholder="192.168.1.75"
-              />
-            </label>
-            <label className="grid gap-2 font-bold">
-              ESP32 broker port
-              <input
-                value={esp32BrokerPort}
-                onChange={(event) => setEsp32BrokerPort(event.target.value)}
-                placeholder="1883"
-                inputMode="numeric"
-              />
-            </label>
-          </div>
-        </div>
+        </ErrorAlert>
       )}
-      <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+      <div className="grid gap-3 text-sm text-slate-700">
         <strong>Walkthrough</strong>
         <ol className="m-0 grid gap-2 pl-5">
           <li>
