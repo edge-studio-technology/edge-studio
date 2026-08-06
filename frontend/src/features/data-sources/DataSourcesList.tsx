@@ -1,4 +1,4 @@
-import { BookOpen, Pencil, Play, Trash2, Zap } from "lucide-react";
+import { Play } from "lucide-react";
 import {
   DataTable,
   EmptyTableState,
@@ -9,12 +9,12 @@ import {
   TableHead,
   TableHeaderCell,
   TableIconButton,
+  TableIconMenu,
   TableRow,
   TableWrap,
 } from "../../components/DataTable";
 import { JsonPreview } from "../../components/JsonPreview";
 import { ErrorDetails } from "../../components/ErrorDetails";
-import { MutedText } from "../../components/Text";
 import { Pill } from "../../components/ui/Pill";
 import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
 import { hasDeviceSetupGuide } from "./deviceSetupGuides";
@@ -39,7 +39,10 @@ export function DataSourcesList({
   onDelete: (source: DataSource) => void;
 }) {
   return (
-    <TableCard title="Configured devices" description="Input sources, capture devices, and output targets saved in SQLite.">
+    <TableCard
+      title="Configured devices"
+      description="Input sources, capture devices, and output targets saved in SQLite."
+    >
       <TableWrap>
         <DataTable className="min-w-[980px]">
           <TableHead>
@@ -55,106 +58,142 @@ export function DataSourcesList({
           <TableBody>
             {items.map((source) => {
               const usedByWorkflows = source.usedByWorkflows ?? [];
-              const deleteDisabledReason = usedByWorkflows.length > 0 ? `Used by workflow: ${usedByWorkflows.map((workflow) => workflow.name).join(", ")}` : "Delete device";
+              const deleteDisabledReason =
+                usedByWorkflows.length > 0
+                  ? `Used by workflow: ${usedByWorkflows.map((workflow) => workflow.name).join(", ")}`
+                  : "Delete device";
               return (
-              <TableRow key={source.id}>
-                <TableCell>
-                  <strong>{source.name}</strong>
-                  <MutedText className="m-0 mt-1">{source.description}</MutedText>
-                </TableCell>
-                <TableCell>{source.type === "pi-camera" ? "Capture" : isInputSource(source) ? "Input" : "Output"}</TableCell>
-                <TableCell>{sourceTypeLabel(source)}</TableCell>
-                <TableCell>
-                  <code>{source.type === "webhook" ? webhookUrl(source) : source.type === "mqtt" || source.type === "mqtt-output" ? mqttEndpoint(source) : source.type === "gpio-input" ? gpioEndpoint(source) : source.type === "gpio-output" ? gpioOutputEndpoint(source) : source.type === "pi-camera" ? cameraEndpoint(source) : source.type === "bme-sensor" ? bmeEndpoint(source) : source.config.url}</code>
-                </TableCell>
-                <TableCell>
-                  <HealthCell source={source} status={healthStatuses[source.id]} />
-                </TableCell>
-                <TableCell>
-                  {source.lastHash ? (
-                    <code>{source.lastHash}</code>
-                  ) : (
-                    <span className="text-slate-500">Not read yet</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {source.lastPreview ? (
-                    <JsonPreview value={source.lastPreview} />
-                  ) : source.lastError ? (
-                    <span className="grid gap-2"><Pill tone="error" indicator>Device error</Pill><ErrorDetails error={source.lastErrorDetails ?? source.lastError} label="View error" /></span>
-                  ) : (
-                    <span className="text-slate-500">No preview</span>
-                  )}
-                </TableCell>
-                <TableCell className="w-px whitespace-nowrap">
-                  <RowActions>
-                    <TableIconButton
-                      type="button"
-                      disabled={busy || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "gpio-output" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output"}
-                      title="Trigger manually"
-                      aria-label={`Trigger ${source.name} manually`}
-                      onClick={() => onRead(source)}
-                    >
-                      <Play size={16} />
-                    </TableIconButton>
-                    {(source.type === "gpio-output" || source.type === "http-output" || source.type === "mqtt-output") && (
+                <TableRow key={source.id}>
+                  <TableCell>
+                    <strong>{source.name}</strong>
+                  </TableCell>
+                  <TableCell>
+                    {source.type === "pi-camera"
+                      ? "Capture"
+                      : isInputSource(source)
+                        ? "Input"
+                        : "Output"}
+                  </TableCell>
+                  <TableCell>{sourceTypeLabel(source)}</TableCell>
+                  <TableCell>
+                    <code>
+                      {source.type === "webhook"
+                        ? webhookUrl(source)
+                        : source.type === "mqtt" || source.type === "mqtt-output"
+                          ? mqttEndpoint(source)
+                          : source.type === "gpio-input"
+                            ? gpioEndpoint(source)
+                            : source.type === "gpio-output"
+                              ? gpioOutputEndpoint(source)
+                              : source.type === "pi-camera"
+                                ? cameraEndpoint(source)
+                                : source.type === "bme-sensor"
+                                  ? bmeEndpoint(source)
+                                  : source.config.url}
+                    </code>
+                  </TableCell>
+                  <TableCell>
+                    <HealthCell source={source} status={healthStatuses[source.id]} />
+                  </TableCell>
+                  <TableCell>
+                    {source.lastHash ? (
+                      <code>{source.lastHash}</code>
+                    ) : (
+                      <span className="text-slate-500">Not read yet</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {source.lastPreview ? (
+                      <JsonPreview value={source.lastPreview} />
+                    ) : source.lastError ? (
+                      <span className="grid gap-2">
+                        <Pill tone="error" indicator>
+                          Device error
+                        </Pill>
+                        <ErrorDetails
+                          error={source.lastErrorDetails ?? source.lastError}
+                          label="View error"
+                        />
+                      </span>
+                    ) : (
+                      <span className="text-slate-500">No preview</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="w-px whitespace-nowrap">
+                    <RowActions>
                       <TableIconButton
                         type="button"
-                        disabled={busy}
-                        title={source.type === "gpio-output" ? "Test pulse" : "Test output"}
-                        aria-label={`Test output ${source.name}`}
-                        onClick={() => onTestOutput(source)}
+                        disabled={
+                          busy ||
+                          source.type === "webhook" ||
+                          source.type === "mqtt" ||
+                          source.type === "gpio-input" ||
+                          source.type === "gpio-output" ||
+                          source.type === "pi-camera" ||
+                          source.type === "http-output" ||
+                          source.type === "mqtt-output"
+                        }
+                        title="Trigger manually"
+                        aria-label={`Trigger ${source.name} manually`}
+                        onClick={() => onRead(source)}
                       >
-                        <Zap size={16} />
+                        <Play size={16} />
                       </TableIconButton>
-                    )}
-                    {hasDeviceSetupGuide(source) && (
-                      <TableIconButton
-                        type="button"
-                        disabled={busy}
-                        title="Open setup guide"
-                        aria-label={`Open setup guide for ${source.name}`}
-                        onClick={() => onOpenSetupGuide(source)}
-                      >
-                        <BookOpen size={16} />
-                      </TableIconButton>
-                    )}
-                    <TableIconButton
-                      type="button"
-                      disabled={busy}
-                      title="Edit device"
-                      aria-label={`Edit ${source.name}`}
-                      onClick={() => onEdit(source)}
-                    >
-                      <Pencil size={16} />
-                    </TableIconButton>
-                    <TableIconButton
-                      danger
-                      type="button"
-                      disabled={busy || usedByWorkflows.length > 0}
-                      title={deleteDisabledReason}
-                      aria-label={`Delete ${source.name}`}
-                      onClick={() => onDelete(source)}
-                    >
-                      <Trash2 size={16} />
-                    </TableIconButton>
-                  </RowActions>
-                </TableCell>
-              </TableRow>
+                      <TableIconMenu
+                        aria-label={`More actions for ${source.name}`}
+                        items={[
+                          ...(source.type === "gpio-output" ||
+                          source.type === "http-output" ||
+                          source.type === "mqtt-output"
+                            ? [
+                                {
+                                  label:
+                                    source.type === "gpio-output" ? "Test pulse" : "Test output",
+                                  disabled: busy,
+                                  onClick: () => onTestOutput(source),
+                                },
+                              ]
+                            : []),
+                          ...(hasDeviceSetupGuide(source)
+                            ? [
+                                {
+                                  label: "Details",
+                                  disabled: busy,
+                                  onClick: () => onOpenSetupGuide(source),
+                                },
+                              ]
+                            : []),
+                          {
+                            label: "Edit",
+                            disabled: busy,
+                            onClick: () => onEdit(source),
+                          },
+                          {
+                            label: "Delete",
+                            title: deleteDisabledReason,
+                            danger: true,
+                            disabled: busy || usedByWorkflows.length > 0,
+                            onClick: () => onDelete(source),
+                          },
+                        ]}
+                      />
+                    </RowActions>
+                  </TableCell>
+                </TableRow>
               );
             })}
           </TableBody>
         </DataTable>
       </TableWrap>
-      {items.length === 0 && (
-        <EmptyTableState>No devices added yet.</EmptyTableState>
-      )}
+      {items.length === 0 && <EmptyTableState>No devices added yet.</EmptyTableState>}
     </TableCard>
   );
 }
 
 function webhookUrl(source: DataSource) {
-  return source.config.webhookToken ? `${window.location.origin}/api/data-source-webhooks/${source.config.webhookToken}` : "Generated after save";
+  return source.config.webhookToken
+    ? `${window.location.origin}/api/data-source-webhooks/${source.config.webhookToken}`
+    : "Generated after save";
 }
 
 function mqttEndpoint(source: DataSource) {
@@ -166,15 +205,20 @@ function gpioEndpoint(source: DataSource) {
 }
 
 function sourceTypeLabel(source: DataSource) {
-  if (source.type === "gpio-input" && source.config.profile === "pir-motion") return "PIR Motion Sensor";
-  if (source.type === "mqtt" && source.config.profile === "esp32-mqtt-board") return "ESP32 MQTT Board";
+  if (source.type === "gpio-input" && source.config.profile === "pir-motion")
+    return "PIR Motion Sensor";
+  if (source.type === "mqtt" && source.config.profile === "esp32-mqtt-board")
+    return "ESP32 MQTT Board";
   if (source.type === "json-api" || source.type === "internal-json-api") return "HTTP JSON Source";
   if (source.type === "webhook") return "Webhook Receiver";
   if (source.type === "mqtt") return "MQTT Subscriber";
   if (source.type === "gpio-input") return "GPIO Input Pin";
   if (source.type === "gpio-output") return "GPIO LED";
   if (source.type === "pi-camera") return "Raspberry Pi Camera";
-  if (source.type === "bme-sensor") return source.config.sensor === "bme680" ? "BME680 Environmental Sensor" : "BME280 Environmental Sensor";
+  if (source.type === "bme-sensor")
+    return source.config.sensor === "bme680"
+      ? "BME680 Environmental Sensor"
+      : "BME280 Environmental Sensor";
   if (source.type === "http-output") return "HTTP JSON Target";
   if (source.type === "mqtt-output") return "MQTT Publisher";
   return source.type;
@@ -193,19 +237,48 @@ function bmeEndpoint(source: DataSource) {
 }
 
 function isInputSource(source: DataSource) {
-  return source.type === "json-api" || source.type === "internal-json-api" || source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "pi-camera" || source.type === "bme-sensor";
+  return (
+    source.type === "json-api" ||
+    source.type === "internal-json-api" ||
+    source.type === "webhook" ||
+    source.type === "mqtt" ||
+    source.type === "gpio-input" ||
+    source.type === "pi-camera" ||
+    source.type === "bme-sensor"
+  );
 }
 
 function HealthCell({ source, status }: { source: DataSource; status?: DataSourceHealthStatus }) {
   if (source.type === "bme-sensor") return <span className="text-slate-500">Read on demand</span>;
-  if (source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "gpio-output" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output") return <span className="text-slate-500">Automation controlled</span>;
+  if (
+    source.type === "webhook" ||
+    source.type === "mqtt" ||
+    source.type === "gpio-input" ||
+    source.type === "gpio-output" ||
+    source.type === "pi-camera" ||
+    source.type === "http-output" ||
+    source.type === "mqtt-output"
+  )
+    return <span className="text-slate-500">Automation controlled</span>;
   if (!source.config.healthStatusUrl) return <span className="text-slate-500">Not configured</span>;
-  if (!status) return <Pill tone="neutral" indicator>Checking</Pill>;
+  if (!status)
+    return (
+      <Pill tone="neutral" indicator>
+        Checking
+      </Pill>
+    );
 
   return (
     <div className="grid gap-2">
-      <Pill tone={status.ok ? "good" : "error"} indicator>{status.ok ? "Online" : "Error"}{status.status ? ` HTTP ${status.status}` : ""}</Pill>
-      {status.body !== undefined ? <JsonPreview value={status.body} label="View response" /> : status.error ? <JsonPreview value={{ error: status.error }} label="View error" /> : null}
+      <Pill tone={status.ok ? "good" : "error"} indicator>
+        {status.ok ? "Online" : "Error"}
+        {status.status ? ` HTTP ${status.status}` : ""}
+      </Pill>
+      {status.body !== undefined ? (
+        <JsonPreview value={status.body} label="View response" />
+      ) : status.error ? (
+        <JsonPreview value={{ error: status.error }} label="View error" />
+      ) : null}
     </div>
   );
 }
