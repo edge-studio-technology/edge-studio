@@ -6,7 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] ui/devices-page
 
+### Added
+
+- Alternative add-device modal flow on the Devices page, now the default: two steps (Input source / Output target → Add device) instead of three, with Back and the add action in the modal footer. It offers manual device setup only — guided template presets (ESP32 MQTT Board, GPIO Button, PIR Motion Sensor) are not listed while guided setup is reworked. Wiring notes and hardware-not-enabled warnings are not shown in this flow yet; per-device setup guides still open after saving.
+- `AltOptionCard` shared component: quieter choice card with a bare glyph, title, short description, and an explicit action button (the card surface is not pressable).
+
 ### Changed
+
+- The previous three-step add-device flow is kept intact for comparison under `features/data-sources/add-device-classic/`; the new flow lives in `features/data-sources/add-device-alt/`. Which one renders is a single constant in the Devices page until the old flow is removed.
 
 - Devices page now offers **Add input source** and **Add output target** as two direct buttons, removing the extra "Add device or source" choice step that previously sat in front of them. The template/manual step and its Back control are unchanged.
 - Local services card lists the LAN and internal MQTT broker URLs as labelled fields with per-field Copy buttons (with copied confirmation), and shows the broker Enabled/Disabled state as a status pill.

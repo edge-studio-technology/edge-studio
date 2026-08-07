@@ -1,15 +1,16 @@
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "../../components/Button";
-import { Modal } from "../../components/Modal";
-import { useToast } from "../../components/ToastProvider";
-import { createDataSource } from "./dataSourcesApi";
+import { Button } from "../../../components/Button";
+import { Modal } from "../../../components/Modal";
+import { useToast } from "../../../components/ToastProvider";
+import { createDataSource } from "../dataSourcesApi";
 import { AddDeviceMethodChoice } from "./AddDeviceMethodChoice";
-import { buildDeviceConfigInput } from "./buildDeviceConfig";
-import { DataSourceForm } from "./DataSourceForm";
-import { DataSourceTemplates, resolveTemplateConfig } from "./DataSourceTemplates";
-import type { DataSource, DataSourceCapabilities, DataSourceTemplate } from "./dataSourceTypes";
-import { useDeviceFormFields } from "./useDeviceFormFields";
+import { buildDeviceConfigInput } from "../buildDeviceConfig";
+import { DataSourceForm } from "../DataSourceForm";
+import { resolveTemplateConfig } from "../DataSourceTemplates";
+import { DataSourceTemplates } from "./ClassicDeviceTemplates";
+import type { DataSource, DataSourceCapabilities, DataSourceTemplate } from "../dataSourceTypes";
+import { useDeviceFormFields } from "../useDeviceFormFields";
 
 /**
  * Add-device flow: method choice -> template grid -> form, each its own modal step.

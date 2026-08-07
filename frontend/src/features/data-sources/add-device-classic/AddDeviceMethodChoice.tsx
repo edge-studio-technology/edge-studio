@@ -1,4 +1,4 @@
-import { OptionCard } from "../../components/patterns/OptionCard";
+import { OptionCard } from "../../../components/patterns/OptionCard";
 
 export function AddDeviceMethodChoice({
   mode,

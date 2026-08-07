@@ -18,7 +18,8 @@ import {
   updateDataSource,
 } from "../features/data-sources/dataSourcesApi";
 import { buildDeviceConfigInput } from "../features/data-sources/buildDeviceConfig";
-import { ClassicAddDeviceFlow } from "../features/data-sources/ClassicAddDeviceFlow";
+import { AltAddDeviceFlow } from "../features/data-sources/add-device-alt/AltAddDeviceFlow";
+import { ClassicAddDeviceFlow } from "../features/data-sources/add-device-classic/ClassicAddDeviceFlow";
 import { DataSourceForm } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
 import { LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
@@ -34,6 +35,9 @@ import {
 } from "../features/data-sources/deviceSetupGuides";
 import { Esp32FirmwareSetup } from "../features/data-sources/Esp32FirmwareSetup";
 import { useDeviceFormFields } from "../features/data-sources/useDeviceFormFields";
+
+/** Flip to "classic" to compare against the previous add-device flow before it is removed. */
+const ADD_DEVICE_FLOW: "alt" | "classic" = "alt";
 
 export function DataSourcesPage() {
   const { showToast } = useToast();
@@ -199,12 +203,21 @@ export function DataSourcesPage() {
 
       <LocalServicesCard capabilities={capabilities} />
 
-      <ClassicAddDeviceFlow
-        mode={addDeviceMode}
-        capabilities={capabilities}
-        onClose={() => setAddDeviceMode(null)}
-        onCreated={handleDeviceCreated}
-      />
+      {ADD_DEVICE_FLOW === "alt" ? (
+        <AltAddDeviceFlow
+          mode={addDeviceMode}
+          capabilities={capabilities}
+          onClose={() => setAddDeviceMode(null)}
+          onCreated={handleDeviceCreated}
+        />
+      ) : (
+        <ClassicAddDeviceFlow
+          mode={addDeviceMode}
+          capabilities={capabilities}
+          onClose={() => setAddDeviceMode(null)}
+          onCreated={handleDeviceCreated}
+        />
+      )}
 
       {formOpen && (
         <Modal title="Edit device" closeDisabled={busy} onClose={closeForm}>
