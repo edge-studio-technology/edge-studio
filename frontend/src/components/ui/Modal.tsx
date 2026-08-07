@@ -26,7 +26,8 @@ function unlockBodyScroll() {
 }
 
 /**
- * Dialog max-width 600: title + optional description, bordered scroll body, footer, close IconButton.
+ * Dialog: title + optional description, bordered scroll body, footer, close IconButton.
+ * `width` picks the max-width track; default is 800px, "wide" is 960px.
  */
 export function Modal({
   title,
@@ -37,6 +38,7 @@ export function Modal({
   closeDisabled = false,
   className,
   bodyClassName,
+  width = "default",
 }: {
   title: string | ReactNode;
   description?: ReactNode;
@@ -46,6 +48,7 @@ export function Modal({
   closeDisabled?: boolean;
   className?: string;
   bodyClassName?: string;
+  width?: "default" | "wide";
 }) {
   const titleId = useId();
   const descriptionId = useId();
@@ -80,7 +83,8 @@ export function Modal({
     >
       <div
         className={cx(
-          "bg-surface-always-white gap-detail-near rounded-soft p-pad-relaxed relative flex max-h-[min(90vh,760px)] w-full max-w-200 flex-col overflow-hidden",
+          "bg-surface-always-white gap-detail-near rounded-soft p-pad-relaxed relative flex max-h-[min(90vh,760px)] w-full flex-col overflow-hidden",
+          width === "wide" ? "max-w-240" : "max-w-200",
           className,
         )}
         role="dialog"

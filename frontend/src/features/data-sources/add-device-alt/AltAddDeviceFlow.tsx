@@ -75,6 +75,7 @@ export function AltAddDeviceFlow({
         title={<AddDeviceBreadcrumb mode={mode} final="Add device" />}
         closeDisabled={saving}
         onClose={onClose}
+        width="wide"
         bodyClassName="min-h-0 flex-1"
         footer={
           <>
@@ -104,6 +105,7 @@ export function AltAddDeviceFlow({
     <Modal
       title={<AddDeviceBreadcrumb mode={mode} />}
       onClose={onClose}
+      width="wide"
       bodyClassName="min-h-0 flex-1"
       footer={
         <Button variant="secondary" onClick={onClose}>
