@@ -1,10 +1,29 @@
-import { DataTable, EmptyTableState, TableCard, TableWrap, tableCellClass, tableHeaderCellClass, tableHeadRowClass, tableRowClass } from "../../components/DataTable";
-import { ErrorDetails } from "../../components/ErrorDetails";
-import { JsonPreview } from "../../components/JsonPreview";
-import { Pill } from "../../components/Pill";
-import { ErrorText, MutedText } from "../../components/Text";
-import { formatLocalTime, formatUtcTime } from "../../lib/time";
+import {
+  DataTable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+  TableWrap,
+} from "../../components/patterns/DataTable";
+import { ErrorDetails } from "../../components/patterns/ErrorDetails";
+import { JsonPreview } from "../../components/patterns/JsonPreview";
+import { Text } from "../../components/ui/Text";
+import { Pill } from "../../components/ui/Pill";
+import { DEFAULT_PAGE_SIZE } from "../../lib/paginated";
+import { formatLocalDateTime } from "../../lib/time";
 import type { DataSourceRead } from "./dataReadTypes";
+
+function proofHistoryLink(proofId: string) {
+  const params = new URLSearchParams({
+    tab: "proofs",
+    page: "1",
+    pageSize: String(DEFAULT_PAGE_SIZE),
+    q: proofId,
+  });
+  return `/diagnostics?${params.toString()}`;
+}
 
 export function DataReadsHistoryTable({
   items,
@@ -14,37 +33,100 @@ export function DataReadsHistoryTable({
   filtered?: boolean;
 }) {
   return (
-    <TableCard title="Read history">
-      <TableWrap>
-        <DataTable>
-          <thead><tr className={tableHeadRowClass}><th className={tableHeaderCellClass}>Read time</th><th className={tableHeaderCellClass}>Source</th><th className={tableHeaderCellClass}>Trigger</th><th className={tableHeaderCellClass}>Status</th><th className={tableHeaderCellClass}>Hash</th><th className={tableHeaderCellClass}>Integritas proof</th><th className={tableHeaderCellClass}>Preview / error</th></tr></thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id} className={tableRowClass}>
-                <td className={tableCellClass}><TimeStack value={item.createdAt} /></td>
-                <td className={tableCellClass}><strong>{item.sourceName}</strong><MutedText className="m-0"><code>{item.sourceUrl}</code></MutedText></td>
-                <td className={tableCellClass}><Pill>{item.triggerType}</Pill></td>
-                <td className={tableCellClass}>{item.status === "success" ? <Pill tone="good">Success</Pill> : <Pill tone="warn">Failed</Pill>}</td>
-                <td className={tableCellClass}>{item.hash ? <code>{item.hash}</code> : <span className="text-slate-500">No hash</span>}</td>
-                <td className={tableCellClass}>{item.integritasProofId ? <code>{item.integritasProofId}</code> : <span className="text-slate-500">No proof</span>}</td>
-                <td className={tableCellClass}>{item.preview ? <JsonPreview value={item.preview} /> : item.error ? <span className="grid gap-2"><ErrorText className="m-0">{item.error}</ErrorText><ErrorDetails error={item.errorDetails ?? item.error} label="View error" /></span> : <span className="text-slate-500">No data</span>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </DataTable>
-      </TableWrap>
-      {items.length === 0 && (
-        <EmptyTableState>{filtered ? 'No matching read history.' : 'No reads recorded yet.'}</EmptyTableState>
-      )}
-    </TableCard>
-  );
-}
-
-function TimeStack({ value }: { value: string }) {
-  return (
-    <div className="grid gap-0.5">
-      <strong className="font-mono text-sm text-slate-950">{formatLocalTime(value)} local</strong>
-      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">UTC: {formatUtcTime(value)}</span>
-    </div>
+    <TableWrap>
+      <DataTable aria-label="Read history" className="min-w-[1020px]">
+        <TableHead>
+          <TableHeaderCell>Read time</TableHeaderCell>
+          <TableHeaderCell>Source</TableHeaderCell>
+          <TableHeaderCell>Trigger</TableHeaderCell>
+          <TableHeaderCell>Status</TableHeaderCell>
+          <TableHeaderCell>Hash</TableHeaderCell>
+          <TableHeaderCell>Integritas proof</TableHeaderCell>
+          <TableHeaderCell>Actions</TableHeaderCell>
+        </TableHead>
+        <TableBody>
+          {items.length === 0 ? (
+            <TableRow>
+              <td colSpan={7} className="p-0">
+                <div className="p-margin-tight py-pad-relaxed">
+                  <p className="type-body text-text-secondary m-0">
+                    {filtered ? "No matching read history." : "No reads recorded yet."}
+                  </p>
+                </div>
+              </td>
+            </TableRow>
+          ) : (
+            items.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  <time className="type-meta text-text-secondary" dateTime={item.createdAt}>
+                    {formatLocalDateTime(item.createdAt)}
+                  </time>
+                </TableCell>
+                <TableCell className="max-w-56 min-w-0">
+                  <div className="gap-detail-tight flex min-w-0 flex-col">
+                    <span className="type-body-em text-text-primary truncate">
+                      {item.sourceName}
+                    </span>
+                    <code
+                      className="type-mono text-text-secondary block truncate"
+                      title={item.sourceUrl}
+                    >
+                      {item.sourceUrl}
+                    </code>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Pill>{item.triggerType}</Pill>
+                </TableCell>
+                <TableCell>
+                  {item.status === "success" ? (
+                    <Pill tone="good" indicator>
+                      Success
+                    </Pill>
+                  ) : (
+                    <Pill tone="error" indicator>
+                      Failed
+                    </Pill>
+                  )}
+                </TableCell>
+                <TableCell className="max-w-48 min-w-0">
+                  {item.hash ? (
+                    <code
+                      className="type-mono text-text-secondary block truncate"
+                      title={item.hash}
+                    >
+                      {item.hash}
+                    </code>
+                  ) : (
+                    <span className="text-text-secondary">No hash</span>
+                  )}
+                </TableCell>
+                <TableCell className="max-w-40 min-w-0">
+                  {item.integritasProofId ? (
+                    <Text.Link to={proofHistoryLink(item.integritasProofId)} title="Go to proof">
+                      Go to proof
+                    </Text.Link>
+                  ) : (
+                    <span className="text-text-secondary">No proof</span>
+                  )}
+                </TableCell>
+                <TableCell className="w-px whitespace-nowrap">
+                  {item.preview ? (
+                    <JsonPreview label="View" title="Read preview" value={item.preview} />
+                  ) : item.error ? (
+                    <div className="gap-detail-tight flex flex-col">
+                      <ErrorDetails error={item.errorDetails ?? item.error} label="View error" />
+                    </div>
+                  ) : (
+                    <span className="type-meta text-text-secondary">No data</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </DataTable>
+    </TableWrap>
   );
 }

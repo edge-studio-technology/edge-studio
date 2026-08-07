@@ -55,7 +55,7 @@ Migration is **incremental**, not a big-bang move:
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `MetricCard`                                                                                                         |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonBlock`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `MetricCard`                                                                                                         |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
 ## Styling Rules
@@ -87,9 +87,10 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [CheckboxField](#checkboxfield): labeled checkbox
 - [RadioField](#radiofield): labeled radio option
 - [SwitchField](#switchfield): labeled on/off switch
-- `Text`: muted text (legacy flat helper; `ErrorText` lives in `ui/`)
+- [Text](#text): text link role (`Text.Link`; more roles planned)
 - `ErrorText`: inline error copy
 - [ErrorAlert](#erroralert): in-page error / warning alert
+- [ErrorDetails](#errordetails): trigger + dialog for inspecting an operational error
 - [Modal](#modal): dialog overlay
 - `LoadingDots`: bouncing loading indicator
 - `Input`: bare text control
@@ -110,7 +111,8 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Tooltip](#tooltip): hover / click tip
 - [Disclosure](#disclosure): native collapse / expand section
 - [ScrollArea](#scrollarea): thin ESDS-token scrollbar container
-- `JsonPreview`: trigger that opens a modal with pretty-printed JSON
+- [JsonBlock](#jsonblock): inverse mono pretty-printed JSON surface
+- [JsonPreview](#jsonpreview): trigger that opens a modal with pretty-printed JSON
 - [CopyableCode](#copyablecode): mono value with copy control
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
@@ -235,24 +237,25 @@ Labeled checkbox (`frontend/src/components/ui/CheckboxField.tsx`): 16px control 
 
 | Prop            | Values / notes                                                              |
 | --------------- | --------------------------------------------------------------------------- |
-| `label`         | Required; `type-body` beside the control                                    |
+| `label`         | Optional; defaults to `"Label"`. Pass `null` to hide (use `aria-label`)     |
 | `description`   | Optional helper under the row (`text-secondary` / disabled `text-disabled`) |
 | `checked`       | Controlled checked state                                                    |
 | `indeterminate` | Shows minus mark; sets native `indeterminate` + `aria-checked="mixed"`      |
 | `disabled`      | Secondary surface box + tertiary/disabled text                              |
 | `className`     | Outer stack                                                                 |
-| …input props    | Standard checkbox `onChange`, `name`, `defaultChecked`, etc.                |
+| …input props    | Standard checkbox `onChange`, `name`, `defaultChecked`, `aria-label`, etc.  |
 
 Default checked / indeterminate: `icon-primary` fill with inverse glyph. Unchecked: white fill + `stroke-primary` border. Disabled: `surface-secondary` fill + `stroke-primary` border (glyph `icon-disabled` when present).
 
 ```tsx
 <CheckboxField
-  label="Label"
+  label="Enabled"
   description="Description"
   checked={enabled}
   onChange={(event) => setEnabled(event.target.checked)}
 />
 <CheckboxField label="Partial" indeterminate checked={false} readOnly />
+<CheckboxField label={null} aria-label="Select row" checked={selected} onChange={onToggle} />
 ```
 
 ### RadioField
@@ -472,6 +475,51 @@ In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): whit
 </ErrorAlert>
 ```
 
+### ErrorDetails
+
+Trigger + dialog for inspecting a normalized operational error (`frontend/src/components/patterns/ErrorDetails.tsx`): text-link opens a Dialog (max-width 600) with Type, Message, optional Native details, Context (domain / type / native code / time), optional Additional context JSON, Raw JSON, and a secondary Close action. Prefer this for row-level errors (e.g. read history). For fields inside another dialog (e.g. workflow run inspect), call `normalizeError` and render local fields / `JsonBlock` instead — avoids modal-on-modal. Flat `components/ErrorDetails.tsx` remains for older call sites until migrated.
+
+| Prop        | Notes                                          |
+| ----------- | ---------------------------------------------- |
+| `error`     | Unknown value; normalized via `normalizeError` |
+| `label`     | Trigger copy (default `View details`)          |
+| `className` | Merged onto the trigger button                 |
+
+```tsx
+<ErrorDetails error={item.errorDetails ?? item.error} label="View error" />
+```
+
+### JsonBlock
+
+Inverse mono pretty-printed JSON surface (`frontend/src/components/patterns/JsonBlock.tsx`): bordered `ScrollArea` with wrapped `type-mono` content. Prefer this when embedding JSON inside a modal, disclosure, or panel. Prefer `JsonPreview` when the operator needs a trigger that opens JSON in its own dialog.
+
+| Prop        | Notes                                        |
+| ----------- | -------------------------------------------- |
+| `value`     | Serialized with `JSON.stringify(…, null, 2)` |
+| `className` | Merged onto the `ScrollArea` shell           |
+
+```tsx
+<JsonBlock value={run} />
+```
+
+### JsonPreview
+
+Trigger that opens a dialog with pretty-printed JSON (`frontend/src/components/patterns/JsonPreview.tsx`): link or secondary button; modal body uses `JsonBlock`. Flat `components/JsonPreview.tsx` re-exports for now.
+
+| Prop        | Notes                                      |
+| ----------- | ------------------------------------------ |
+| `value`     | JSON-serializable payload                  |
+| `label`     | Trigger copy (default `View JSON`)         |
+| `title`     | Modal title (default `JSON preview`)       |
+| `variant`   | `link` (default) \| `button`               |
+| `icon`      | Optional leading icon when `variant=button`|
+| `disabled`  | Disables the trigger                       |
+| `className` | Merged onto the trigger                    |
+
+```tsx
+<JsonPreview label="View" title="Read preview" value={item.preview} />
+```
+
 ### Page
 
 Route content frame: distant pad padding (`p-pad-distant`), title + optional description, optional action, then children. Owns content padding so `AppShell` stays full-bleed (status bar chrome). Header is a two-column grid on `sm+` (title/desc | action). Implementation: `components/patterns/Page.tsx`; flat `components/Page.tsx` re-exports for now.
@@ -633,6 +681,20 @@ Default (`neutral`): `surface-secondary` fill. Success / Warning / Error: white 
   Success
 </Pill>
 <Pill tone="error">Failed</Pill>
+```
+
+### Text
+
+Text roles (`frontend/src/components/ui/Text.tsx`): wraps type tokens so call sites pick a role instead of assembling `type-*` + colour classes. Flat `components/Text.tsx` re-exports; legacy `MutedText` remains there for older call sites.
+
+Shipped now: `Text.Link`. Planned later: Body, Muted/Meta, Title, Mono, Error.
+
+| Member      | Token / look                     | Default element | Notes                          |
+| ----------- | -------------------------------- | --------------- | ------------------------------ |
+| `Text.Link` | `type-link` + `text-text-accent` | router `Link`   | Hover uses `text-accent-hover` |
+
+```tsx
+<Text.Link to="/diagnostics?tab=proofs">Open proof</Text.Link>
 ```
 
 ### InputField
@@ -820,7 +882,7 @@ Prefer **semantic** colour tokens, **named type styles**, and **ESDS radius/spac
 | Group   | Examples                                                                                                                                        | Role                              |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | Surface | `surface-primary`, `surface-secondary`, `surface-tertiary`, `surface-inverse`, `surface-always-white`, `surface-always-black`, `surface-accent` | Backgrounds and fills             |
-| Text    | `text-primary`, `text-secondary`, `text-tertiary`, `text-disabled`, `text-inverse`, `text-accent`, `text-error`, `text-warning`, `text-success` | Foreground colour (not type size) |
+| Text    | `text-primary`, `text-secondary`, `text-tertiary`, `text-disabled`, `text-inverse`, `text-accent`, `text-accent-hover`, `text-error`, `text-warning`, `text-success` | Foreground colour (not type size) |
 | Icon    | `icon-primary`, `icon-secondary`, `icon-tertiary`, `icon-disabled`, `icon-inverse`, `icon-error`, `icon-warning`, `icon-success`                | Icon colour                       |
 | Stroke  | `stroke-primary`, `stroke-secondary`, `stroke-active`, `stroke-error`, `stroke-warning`, `stroke-success`, `stroke-always-white`                | Borders and dividers              |
 | Overlay | `overlay-light`, `overlay-heavy`                                                                                                                | Scrims / dimmers                  |

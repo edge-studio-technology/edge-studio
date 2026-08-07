@@ -3,10 +3,12 @@ import { useState } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { cx } from "../../lib/cx";
+import { JsonBlock } from "./JsonBlock";
 
 export function JsonPreview({
   value,
   label = "View JSON",
+  title = "JSON preview",
   variant = "link",
   icon,
   disabled = false,
@@ -14,6 +16,7 @@ export function JsonPreview({
 }: {
   value: unknown;
   label?: string;
+  title?: string;
   variant?: "link" | "button";
   icon?: ReactNode;
   disabled?: boolean;
@@ -40,7 +43,8 @@ export function JsonPreview({
           type="button"
           disabled={disabled}
           className={cx(
-            "type-meta text-text-accent border-0 bg-transparent p-0 font-semibold underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-55",
+            "type-link text-text-accent hover:text-text-accent-hover transition-colors duration-200",
+            "cursor-pointer border-0 bg-transparent p-0 disabled:cursor-not-allowed disabled:no-underline disabled:opacity-55",
             className,
           )}
           onClick={() => setOpen(true)}
@@ -52,7 +56,7 @@ export function JsonPreview({
         <Modal title="JSON preview" onClose={() => setOpen(false)}>
           <JsonPreviewContent value={value} />
         </Modal>
-      )}
+      ) : null}
     </>
   );
 }
