@@ -50,11 +50,18 @@ export function JsonPreview({
       )}
       {open && (
         <Modal title="JSON preview" onClose={() => setOpen(false)}>
-          <pre className="type-mono text-text-inverse bg-surface-inverse border-stroke-secondary rounded-soft border p-pad-tight m-0 overflow-x-auto leading-[1.5] whitespace-pre [tab-size:2]">
-            {JSON.stringify(value, null, 2)}
-          </pre>
+          <JsonPreviewContent value={value} />
         </Modal>
       )}
     </>
+  );
+}
+
+/** Bare `<pre>` block, for callers composing their own modal/section around it. */
+export function JsonPreviewContent({ value }: { value: unknown }) {
+  return (
+    <pre className="type-mono text-text-inverse bg-surface-inverse border-stroke-secondary rounded-soft p-pad-tight m-0 overflow-x-auto border leading-[1.5] whitespace-pre [tab-size:2]">
+      {JSON.stringify(value, null, 2)}
+    </pre>
   );
 }

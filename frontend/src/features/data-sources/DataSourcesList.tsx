@@ -1,4 +1,5 @@
 import { Play } from "lucide-react";
+import { useState } from "react";
 import {
   DataTable,
   EmptyTableState,
@@ -13,8 +14,10 @@ import {
   TableRow,
   TableWrap,
 } from "../../components/DataTable";
-import { JsonPreview } from "../../components/JsonPreview";
-import { ErrorDetails } from "../../components/ErrorDetails";
+import { Modal } from "../../components/Modal";
+import { JsonPreviewContent } from "../../components/JsonPreview";
+import { ErrorDetailsContent } from "../../components/ErrorDetails";
+import { MutedText } from "../../components/Text";
 import { Pill } from "../../components/ui/Pill";
 import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
 import { hasDeviceSetupGuide } from "./deviceSetupGuides";
@@ -38,6 +41,8 @@ export function DataSourcesList({
   onEdit: (source: DataSource) => void;
   onDelete: (source: DataSource) => void;
 }) {
+  const [detailsSource, setDetailsSource] = useState<DataSource | null>(null);
+
   return (
     <TableCard
       className="w-full"
@@ -105,19 +110,17 @@ export function DataSourcesList({
                   </TableCell>
                   <TableCell>
                     {source.lastPreview ? (
-                      <JsonPreview value={source.lastPreview} />
+                      <Pill tone="good" indicator>
+                        Success
+                      </Pill>
                     ) : source.lastError ? (
-                      <span className="grid gap-2">
-                        <Pill tone="error" indicator>
-                          Device error
-                        </Pill>
-                        <ErrorDetails
-                          error={source.lastErrorDetails ?? source.lastError}
-                          label="View error"
-                        />
-                      </span>
+                      <Pill tone="error" indicator>
+                        Failed
+                      </Pill>
                     ) : (
-                      <span className="text-slate-500">No preview</span>
+                      <Pill tone="neutral" indicator>
+                        No preview
+                      </Pill>
                     )}
                   </TableCell>
                   <TableCell className="w-px whitespace-nowrap">
@@ -158,12 +161,17 @@ export function DataSourcesList({
                           ...(hasDeviceSetupGuide(source)
                             ? [
                                 {
-                                  label: "Details",
+                                  label: "Setup guide",
                                   disabled: busy,
                                   onClick: () => onOpenSetupGuide(source),
                                 },
                               ]
                             : []),
+                          {
+                            label: "View details",
+                            disabled: busy,
+                            onClick: () => setDetailsSource(source),
+                          },
                           {
                             label: "Edit",
                             disabled: busy,
@@ -187,6 +195,13 @@ export function DataSourcesList({
         </DataTable>
       </TableWrap>
       {items.length === 0 && <EmptyTableState>No devices added yet.</EmptyTableState>}
+      {detailsSource && (
+        <DeviceDetailsModal
+          source={detailsSource}
+          status={healthStatuses[detailsSource.id]}
+          onClose={() => setDetailsSource(null)}
+        />
+      )}
     </TableCard>
   );
 }
@@ -249,37 +264,68 @@ function isInputSource(source: DataSource) {
   );
 }
 
+function supportsHealthCheck(source: DataSource) {
+  return (
+    source.type !== "bme-sensor" &&
+    source.type !== "webhook" &&
+    source.type !== "mqtt" &&
+    source.type !== "gpio-input" &&
+    source.type !== "gpio-output" &&
+    source.type !== "pi-camera" &&
+    source.type !== "http-output" &&
+    source.type !== "mqtt-output" &&
+    Boolean(source.config.healthStatusUrl)
+  );
+}
+
 function HealthCell({ source, status }: { source: DataSource; status?: DataSourceHealthStatus }) {
-  if (source.type === "bme-sensor") return <span className="text-slate-500">Read on demand</span>;
-  if (
-    source.type === "webhook" ||
-    source.type === "mqtt" ||
-    source.type === "gpio-input" ||
-    source.type === "gpio-output" ||
-    source.type === "pi-camera" ||
-    source.type === "http-output" ||
-    source.type === "mqtt-output"
-  )
-    return <span className="text-slate-500">Automation controlled</span>;
-  if (!source.config.healthStatusUrl) return <span className="text-slate-500">Not configured</span>;
-  if (!status)
+  if (!supportsHealthCheck(source) || !status)
     return (
       <Pill tone="neutral" indicator>
-        Checking
+        Not configured
       </Pill>
     );
 
   return (
-    <div className="grid gap-2">
-      <Pill tone={status.ok ? "good" : "error"} indicator>
-        {status.ok ? "Online" : "Error"}
-        {status.status ? ` HTTP ${status.status}` : ""}
-      </Pill>
-      {status.body !== undefined ? (
-        <JsonPreview value={status.body} label="View response" />
-      ) : status.error ? (
-        <JsonPreview value={{ error: status.error }} label="View error" />
-      ) : null}
-    </div>
+    <Pill tone={status.ok ? "good" : "error"} indicator>
+      {status.ok ? "Success" : "Failed"}
+    </Pill>
+  );
+}
+
+function DeviceDetailsModal({
+  source,
+  status,
+  onClose,
+}: {
+  source: DataSource;
+  status?: DataSourceHealthStatus;
+  onClose: () => void;
+}) {
+  return (
+    <Modal title="Device details" description={source.description || undefined} onClose={onClose}>
+      <div className="gap-detail-near grid">
+        <section className="gap-detail-tight grid">
+          <strong>Health</strong>
+          {status?.body !== undefined ? (
+            <JsonPreviewContent value={status.body} />
+          ) : status?.error ? (
+            <ErrorDetailsContent error={{ error: status.error }} />
+          ) : (
+            <MutedText className="m-0">No health data.</MutedText>
+          )}
+        </section>
+        <section className="gap-detail-tight grid">
+          <strong>Last preview</strong>
+          {source.lastPreview ? (
+            <JsonPreviewContent value={source.lastPreview} />
+          ) : source.lastError ? (
+            <ErrorDetailsContent error={source.lastErrorDetails ?? source.lastError} />
+          ) : (
+            <MutedText className="m-0">No preview.</MutedText>
+          )}
+        </section>
+      </div>
+    </Modal>
   );
 }

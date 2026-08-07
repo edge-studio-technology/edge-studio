@@ -1,4 +1,4 @@
-export { JsonPreview } from "./patterns/JsonPreview";
+export { JsonPreview, JsonPreviewContent } from "./patterns/JsonPreview";
 // import type { ReactNode } from "react";
 // import { useState } from "react";
 // import { Button } from "./Button";
