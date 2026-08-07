@@ -4,6 +4,7 @@ import { Button } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
 import { Modal } from "../components/Modal";
+import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Page } from "../components/Page";
 import { ProgressModal } from "../components/ProgressModal";
 import { useToast } from "../components/ToastProvider";
@@ -242,12 +243,13 @@ export function DataSourcesPage() {
       {setupGuideSource && (
         <Modal
           title={getDeviceSetupGuide(setupGuideSource)?.title ?? "Device setup guide"}
+          description={getDeviceSetupGuide(setupGuideSource)?.intro}
           onClose={() => setSetupGuideSource(null)}
         >
           {setupGuideBme680SupportWarning && (
-            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+            <ErrorAlert status="warning" className="mb-4 max-w-none">
               {setupGuideBme680SupportWarning}
-            </div>
+            </ErrorAlert>
           )}
           {setupGuideSource.type === "mqtt" &&
           setupGuideSource.config.profile === "esp32-mqtt-board" ? (

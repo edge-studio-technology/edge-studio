@@ -335,7 +335,7 @@ function DeviceDetailsModal({
           />
         </DetailList>
 
-        <div className="flex flex-col gap-4 pb-1 pl-2">
+        <div className="flex flex-col gap-4 pb-2 pl-2">
           <Disclosure
             title={
               <span className="flex items-center gap-2">
