@@ -6,7 +6,6 @@ import { Card } from "../components/Card";
 import { Modal } from "../components/Modal";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Page } from "../components/Page";
-import { ProgressModal } from "../components/ProgressModal";
 import { useToast } from "../components/ToastProvider";
 import { createAutomationWorkflow } from "../features/automation/automationApi";
 import {
@@ -23,6 +22,10 @@ import { AltAddDeviceFlow } from "../features/data-sources/add-device-alt/AltAdd
 import { ClassicAddDeviceFlow } from "../features/data-sources/add-device-classic/ClassicAddDeviceFlow";
 import { DataSourceForm } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
+import {
+  DeleteDeviceConfirmModal,
+  DeleteDeviceProgressModal,
+} from "../features/data-sources/DeleteDeviceModal";
 import { LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
 import type {
   DataSource,
@@ -52,6 +55,7 @@ export function DataSourcesPage() {
   const [healthStatuses, setHealthStatuses] = useState<Record<string, DataSourceHealthStatus>>({});
   const [busy, setBusy] = useState(false);
   const [deletingSource, setDeletingSource] = useState<DataSource | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DataSource | null>(null);
   const [setupGuideSource, setSetupGuideSource] = useState<DataSource | null>(null);
   const [runningGuideActionKey, setRunningGuideActionKey] = useState<string | null>(null);
   const [createdGuideWorkflowIds, setCreatedGuideWorkflowIds] = useState<Record<string, string>>(
@@ -135,10 +139,19 @@ export function DataSourcesPage() {
   async function deleteSource(source: DataSource) {
     setDeletingSource(source);
     try {
+      // TODO: remove artificial delay, added temporarily to preview the loading state.
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       await run(() => deleteDataSource(source.id), "Device deleted");
     } finally {
       setDeletingSource(null);
     }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const source = deleteTarget;
+    setDeleteTarget(null);
+    await deleteSource(source);
   }
 
   async function runGuideAction(source: DataSource, action: DeviceGuideAction) {
@@ -232,11 +245,13 @@ export function DataSourcesPage() {
         </Modal>
       )}
 
-      {deletingSource && (
-        <ProgressModal
-          title="Deleting device"
-          headline="Deleting in progress"
-          message={`Removing ${deletingSource.name}. Large read histories can take a few seconds while saved read rows are detached from this device.`}
+      {deletingSource && <DeleteDeviceProgressModal source={deletingSource} />}
+
+      {deleteTarget && (
+        <DeleteDeviceConfirmModal
+          source={deleteTarget}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => void confirmDelete()}
         />
       )}
 
@@ -279,7 +294,7 @@ export function DataSourcesPage() {
         onTestOutput={(source) => run(() => testDataSourceOutput(source.id), "Test pulse sent")}
         onOpenSetupGuide={setSetupGuideSource}
         onEdit={editSource}
-        onDelete={deleteSource}
+        onDelete={setDeleteTarget}
       />
     </Page>
   );
