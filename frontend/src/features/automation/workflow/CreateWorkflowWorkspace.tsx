@@ -183,11 +183,19 @@ export function CreateWorkflowWorkspace({
   }
 
   function selectStartBlock(type: AutomationBlockType) {
-    setDraftBlocks((blocks) => {
-      const start = createDraftBlock(type, sources);
-      if (blocks.some((block) => block.type.endsWith("_start"))) return blocks;
-      return [start];
-    });
+    const start = createDraftBlock(type, sources);
+    const startIndex = draftBlocks.findIndex((block) => block.type.endsWith("_start"));
+    if (startIndex < 0) {
+      setDraftBlocks([start]);
+      setSelectedBlockId(start.id);
+      return;
+    }
+    if (draftBlocks[startIndex].type === type) return;
+    const previousId = draftBlocks[startIndex].id;
+    const next = [...draftBlocks];
+    next[startIndex] = start;
+    setDraftBlocks(next);
+    setSelectedBlockId((current) => (!current || current === previousId ? start.id : current));
   }
 
   function resetCanvas() {
@@ -265,6 +273,7 @@ export function CreateWorkflowWorkspace({
           <aside className={inspectorClass}>
             <WorkflowBlockLibrary
               hasStartBlock={hasStartBlock}
+              selectedStartType={draftBlocks.find((block) => block.type.endsWith("_start"))?.type}
               selectedBlock={toolkitSelectedBlock}
               onSelectStartBlock={selectStartBlock}
               onAddBlock={addDraftBlock}

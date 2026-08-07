@@ -15,11 +15,7 @@ import type {
   AutomationWorkflow,
 } from "../automationTypes";
 import { PersistedBlockInspector } from "./WorkflowBlockInspectors";
-import {
-  WatchRunControls,
-  WatchRuntimeInspector,
-  WatchRunHistory,
-} from "./WorkflowWatchUi";
+import { WatchRunControls, WatchRuntimeInspector, WatchRunHistory } from "./WorkflowWatchUi";
 import {
   automationBlockToCanvasBlock,
   draftBlockDescription,
@@ -259,6 +255,7 @@ export function WorkflowWorkspace({
             <WorkflowBlockLibrary
               mode="edit"
               hasStartBlock={Boolean(startBlock)}
+              selectedStartType={startBlock?.type}
               selectedBlock={selectedDraftBlock}
               canAddRecordTriggerEvent={canAddRecordTriggerEvent}
               onSelectStartBlock={() => undefined}

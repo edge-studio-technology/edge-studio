@@ -74,11 +74,7 @@ export function DraftBlockInspector({
       block.type === "webhook_event_start" ||
       block.type === "mqtt_event_start";
     return (
-      <InspectorSection
-        title="Configuration"
-        description="To choose a different start block, reset the canvas."
-        className={formGridClass}
-      >
+      <InspectorSection title="Configuration" className={formGridClass}>
         {block.type === "schedule_start" ? (
           <SelectField
             label="Interval"
