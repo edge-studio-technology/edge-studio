@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Alternative add-device modal flow on the Devices page, now the default: two steps (Input source / Output target → Add device) instead of three, with Back and the add action in the modal footer. It offers manual device setup only — guided template presets (ESP32 MQTT Board, GPIO Button, PIR Motion Sensor) are not listed while guided setup is reworked. Wiring notes and hardware-not-enabled warnings are not shown in this flow yet; per-device setup guides still open after saving.
 - `AltOptionCard` shared component: quieter choice card with a bare glyph, title, short description, and an explicit action button (the card surface is not pressable).
+- Device setup guides now open in a reusable modal with collapsible sections (wiring, testing, troubleshooting, code examples) and optional action blocks to create Automation workflows.
+- `EmptyState` shared component (`components/patterns/`) for icon + title + description empty states.
+- `DeleteDeviceConfirmModal` and `DeleteDeviceProgressModal` components to show confirmation and progress during device deletion.
+- Devices list now supports pagination with configurable page size (25, 50, 100 rows per page).
 
 ### Changed
 
@@ -18,6 +22,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Devices page now offers **Add input source** and **Add output target** as two direct buttons, removing the extra "Add device or source" choice step that previously sat in front of them. The template/manual step and its Back control are unchanged.
 - Local services card lists the LAN and internal MQTT broker URLs as labelled fields with per-field Copy buttons (with copied confirmation), and shows the broker Enabled/Disabled state as a status pill.
 - Table cards (Configured devices, Integritas history, data reads history) use the shared design-system card heading style.
+- Device details modal now shows health and last-preview sections as collapsible `Disclosure` components with timestamps and structured error panels.
+- DataTable card titles now use ESDS `type-title` and `type-body` typography instead of legacy `<strong>` / `MutedText`.
+- Device setup guide section titles now include "Guide" suffix (e.g., "ESP32 MQTT Board Setup Guide") for clarity.
+- Device setup guide sections are now organized with `Disclosure` components for collapsible subsections and guide actions, with `CommandBlock` components supporting copy-to-clipboard for command examples.
+- Data source health check errors now include the checked-at timestamp and source URL in the backend response, shown in the details panel.
+- Devices list rows show truncated data-source hashes extracted as a reusable `TruncatedHash` component.
 
 ## [0.30.2] 2026-08-05
 
