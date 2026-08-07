@@ -20,6 +20,7 @@ import { ErrorDetailsContent } from "../../components/ErrorDetails";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { MutedText } from "../../components/Text";
+import { Disclosure } from "../../components/ui/Disclosure";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
@@ -50,7 +51,7 @@ export function DataSourcesList({
     <TableCard
       className="w-full"
       title="Configured devices"
-      description="Input sources, capture devices, and output targets saved in SQLite."
+      description="Monitor your configured input sources, and output targets."
     >
       <TableWrap>
         <DataTable className="table-fixed">
@@ -332,32 +333,40 @@ function DeviceDetailsModal({
           />
         </DetailList>
 
-        <section className="gap-detail-tight grid">
-          <div className="flex items-center justify-between">
-            <strong>Health</strong>
-            <HealthCell source={source} status={status} />
-          </div>
-          {status?.body !== undefined ? (
-            <JsonPreviewContent value={status.body} />
-          ) : status?.error ? (
-            <ErrorDetailsContent error={{ error: status.error }} />
-          ) : (
-            <MutedText className="m-0">No health data.</MutedText>
-          )}
-        </section>
-        <section className="gap-detail-tight grid">
-          <div className="flex items-center justify-between">
-            <strong>Last preview</strong>
-            <LastPreviewCell source={source} />
-          </div>
-          {source.lastPreview ? (
-            <JsonPreviewContent value={source.lastPreview} />
-          ) : source.lastError ? (
-            <ErrorDetailsContent error={source.lastErrorDetails ?? source.lastError} />
-          ) : (
-            <MutedText className="m-0">No preview.</MutedText>
-          )}
-        </section>
+        <div className="flex flex-col gap-4 pb-1 pl-2">
+          <Disclosure
+            title={
+              <span className="flex items-center gap-2">
+                Health
+                <HealthCell source={source} status={status} />
+              </span>
+            }
+          >
+            {status?.body !== undefined ? (
+              <JsonPreviewContent value={status.body} />
+            ) : status?.error ? (
+              <ErrorDetailsContent error={{ error: status.error }} />
+            ) : (
+              <MutedText className="m-0">No health data.</MutedText>
+            )}
+          </Disclosure>
+          <Disclosure
+            title={
+              <span className="flex items-center gap-2">
+                Last preview
+                <LastPreviewCell source={source} />
+              </span>
+            }
+          >
+            {source.lastPreview ? (
+              <JsonPreviewContent value={source.lastPreview} />
+            ) : source.lastError ? (
+              <ErrorDetailsContent error={source.lastErrorDetails ?? source.lastError} />
+            ) : (
+              <MutedText className="m-0">No preview.</MutedText>
+            )}
+          </Disclosure>
+        </div>
       </div>
     </Modal>
   );
