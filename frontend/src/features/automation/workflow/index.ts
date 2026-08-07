@@ -27,6 +27,13 @@ export {
 } from "./WorkflowBlockInspectors";
 
 export {
+  WatchRunControls,
+  WatchRuntimeInspector,
+  WatchRunHistory,
+  WorkflowValidationPanel,
+} from "./WorkflowWatchUi";
+
+export {
   IconAction,
   InspectorSection,
   Panel,
