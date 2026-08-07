@@ -1,8 +1,10 @@
 import type { DataSource } from "../../../data-sources/dataSourceTypes";
 import { Pill } from "../../../../components/Pill";
+import { IconButton } from "../../../../components/ui/Button";
 import { ScrollArea } from "../../../../components/ui/ScrollArea";
 import { cx } from "../../../../lib/cx";
-import { blockPresentation } from "./blockPresentation";
+import { ChevronDown, ChevronUp, Trash2, TriangleAlert } from "lucide-react";
+import { blockPresentation, type WorkflowCanvasBadge } from "./blockPresentation";
 import type {
   DraftWorkflowBlock,
   WorkflowCanvasBlock,
@@ -22,10 +24,11 @@ const canvasEndSpacerClass = "h-[40px] w-px shrink-0";
 const emptyCanvasClass =
   "border-stroke-primary bg-surface-secondary text-text-primary grid min-h-[180px] w-full max-w-[520px] place-items-center rounded-soft border border-dashed p-margin-relaxed text-center";
 const blockBaseClass =
-  "relative w-full max-w-[520px] cursor-pointer rounded-loose border px-detail-close py-detail-close text-text-primary transition-[border-color,box-shadow] before:absolute before:left-1/2 before:top-[-25px] before:hidden before:h-[24px] before:w-px before:-translate-x-1/2 before:bg-stroke-active focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none [&+&]:mt-detail-near [&+&]:before:block";
+  "relative w-full max-w-[520px] cursor-pointer rounded-soft border p-margin-tight text-text-primary transition-[border-color,box-shadow] before:absolute before:left-1/2 before:top-[-25px] before:hidden before:h-[24px] before:w-px before:-translate-x-1/2 before:bg-stroke-active focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none [&+&]:mt-detail-near [&+&]:before:block";
 const selectedBlockClass = "border-stroke-active shadow-[0_0_0_1px_var(--color-stroke-active)]";
-const blockActionClass =
-  "type-meta border-stroke-secondary bg-surface-always-white text-text-primary h-6 rounded-loose border px-detail-next disabled:cursor-not-allowed disabled:text-text-disabled";
+const canvasFrostTagClass =
+  "type-meta text-text-primary bg-white/70 inline-flex h-6 shrink-0 items-center justify-center rounded-full px-detail-next";
+const canvasCardIconButtonClass = "!bg-surface-always-white";
 
 export function WorkflowCanvas({
   mode,
@@ -151,6 +154,8 @@ function WorkflowBlockCard({
   onRemove: () => void;
 }) {
   const presentation = blockPresentation(block, sources, validationIssues, runtime);
+  const headerBadges = presentation.badges.slice(0, 3);
+  const overflowBadges = presentation.badges.slice(3);
   return (
     <div
       className={cx(blockBaseClass, presentation.className, selected && selectedBlockClass)}
@@ -161,56 +166,67 @@ function WorkflowBlockCard({
         if (event.key === "Enter" || event.key === " ") onSelect();
       }}
     >
-      <span className="type-meta text-text-secondary mb-detail-tight block uppercase">
-        {index === 0 ? "Start" : "Then"}
-      </span>
-      <div className="gap-detail-close flex items-start justify-between">
-        <div className="min-w-0">
-          <strong className="type-body-em text-text-primary block">{presentation.title}</strong>
-          <p className="type-meta text-text-primary mt-detail-tight mb-0">
-            {presentation.description}
-          </p>
+      <div className="gap-detail-next grid">
+        <div className="gap-detail-next flex items-center justify-between">
+          <span className="type-meta text-text-secondary shrink-0 uppercase">
+            {index === 0 ? "Start" : "Then"}
+          </span>
+          <WorkflowBadges badges={headerBadges} frost />
         </div>
-        <WorkflowBadges badges={presentation.badges.slice(0, 3)} />
+        <div className="gap-detail-tight grid">
+          <strong className="type-body-em text-text-primary">{presentation.title}</strong>
+          <p className="type-body text-text-primary m-0">{presentation.description}</p>
+        </div>
       </div>
-      {presentation.badges.length > 3 && <WorkflowBadges badges={presentation.badges.slice(3)} />}
+      {overflowBadges.length > 0 && <WorkflowBadges badges={overflowBadges} frost />}
       {block.attachedBlocks?.map((attached) => (
         <AttachedBlockCard key={attached.id} block={attached} sources={sources} />
       ))}
       {!block.type.endsWith("_start") && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <button
+        <div className="mt-detail-close flex items-center justify-between">
+          <IconButton
             type="button"
-            className={blockActionClass}
-            disabled={!canMoveUp}
-            onClick={(event) => {
-              event.stopPropagation();
-              onMoveUp();
-            }}
-          >
-            {actionLabels.up}
-          </button>
-          <button
-            type="button"
-            className={blockActionClass}
-            disabled={!canMoveDown}
-            onClick={(event) => {
-              event.stopPropagation();
-              onMoveDown();
-            }}
-          >
-            {actionLabels.down}
-          </button>
-          <button
-            type="button"
-            className={blockActionClass}
+            variant="secondary"
+            size="compact"
+            className={canvasCardIconButtonClass}
+            aria-label={actionLabels.remove}
             onClick={(event) => {
               event.stopPropagation();
               onRemove();
             }}
           >
-            {actionLabels.remove}
-          </button>
+            <Trash2 aria-hidden />
+          </IconButton>
+          <div className="gap-detail-next flex items-center">
+            <IconButton
+              type="button"
+              variant="secondary"
+              size="compact"
+              className={canvasCardIconButtonClass}
+              aria-label={actionLabels.up}
+              disabled={!canMoveUp}
+              onClick={(event) => {
+                event.stopPropagation();
+                onMoveUp();
+              }}
+            >
+              <ChevronUp aria-hidden />
+            </IconButton>
+            <IconButton
+              type="button"
+              variant="secondary"
+              size="compact"
+              className={canvasCardIconButtonClass}
+              aria-label={actionLabels.down}
+              disabled={!canMoveDown}
+              onClick={(event) => {
+                event.stopPropagation();
+                onMoveDown();
+              }}
+            >
+              <ChevronDown aria-hidden />
+            </IconButton>
+          </div>
         </div>
       )}
     </div>
@@ -226,21 +242,51 @@ function AttachedBlockCard({
 }) {
   const presentation = blockPresentation(block, sources, [], undefined);
   return (
-    <div className="border-stroke-secondary bg-surface-always-white mt-detail-close gap-detail-tight rounded-loose p-detail-close grid border">
+    <div className="border-stroke-secondary mt-detail-close gap-detail-tight rounded-soft p-margin-close grid border bg-white/70">
       <strong className="type-body-em text-text-primary">{presentation.title}</strong>
-      <p className="type-meta text-text-primary m-0">{presentation.description}</p>
-      <WorkflowBadges badges={presentation.badges} />
+      <p className="type-body text-text-primary m-0">{presentation.description}</p>
     </div>
   );
 }
 
-function WorkflowBadges({ badges }: { badges: string[] }) {
+function WorkflowBadges({
+  badges,
+  frost = false,
+}: {
+  badges: WorkflowCanvasBadge[];
+  frost?: boolean;
+}) {
   if (badges.length === 0) return null;
   return (
-    <div className="gap-detail-tight flex shrink-0 flex-wrap justify-end">
-      {badges.map((badge) => (
-        <Pill key={badge}>{badge}</Pill>
-      ))}
+    <div className="gap-detail-next flex shrink-0 flex-wrap justify-end">
+      {badges.map((badge) => {
+        if (badge.tone === "error" || badge.tone === "warn") {
+          return (
+            <Pill key={badge.label} tone={badge.tone}>
+              <span className="gap-detail-tight inline-flex items-center">
+                {badge.alert ? (
+                  <TriangleAlert
+                    aria-hidden
+                    className={
+                      badge.tone === "error"
+                        ? "text-icon-error size-3 shrink-0"
+                        : "text-icon-warning size-3 shrink-0"
+                    }
+                  />
+                ) : null}
+                {badge.label}
+              </span>
+            </Pill>
+          );
+        }
+        return frost ? (
+          <span key={badge.label} className={canvasFrostTagClass}>
+            {badge.label}
+          </span>
+        ) : (
+          <Pill key={badge.label}>{badge.label}</Pill>
+        );
+      })}
     </div>
   );
 }

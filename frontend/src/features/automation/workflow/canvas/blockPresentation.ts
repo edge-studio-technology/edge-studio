@@ -1,3 +1,4 @@
+import type { Tone } from "../../../../app/types";
 import type { DataSource } from "../../../data-sources/dataSourceTypes";
 import type { AutomationBlock, AutomationBlockType } from "../../automationTypes";
 import type {
@@ -7,6 +8,12 @@ import type {
   WorkflowCanvasValidationIssue,
 } from "./types";
 
+export type WorkflowCanvasBadge = {
+  label: string;
+  tone?: Tone;
+  alert?: boolean;
+};
+
 export function blockPresentation(
   block: DraftWorkflowBlock,
   sources: DataSource[],
@@ -15,41 +22,39 @@ export function blockPresentation(
 ) {
   const validationErrors = validationIssues.filter((issue) => issue.level === "error");
   const validationWarnings = validationIssues.filter((issue) => issue.level === "warning");
-  const badges = capabilityBadges(block);
+  const badges: WorkflowCanvasBadge[] = [];
 
-  if (typeof block.enabled === "boolean") badges.push(block.enabled ? "Enabled" : "Disabled");
-  if (block.lastRunAt) badges.push(`Ran ${new Date(block.lastRunAt).toLocaleString()}`);
-  if (block.lastError) badges.push("Error");
   if (validationErrors.length > 0)
-    badges.push(
-      `${validationErrors.length} validation error${validationErrors.length === 1 ? "" : "s"}`,
-    );
+    badges.push({
+      label: `${validationErrors.length} validation error${validationErrors.length === 1 ? "" : "s"}`,
+      tone: "error",
+      alert: true,
+    });
   if (validationWarnings.length > 0)
-    badges.push(
-      `${validationWarnings.length} warning${validationWarnings.length === 1 ? "" : "s"}`,
-    );
+    badges.push({
+      label: `${validationWarnings.length} warning${validationWarnings.length === 1 ? "" : "s"}`,
+      tone: "warn",
+      alert: true,
+    });
+  for (const label of capabilityBadges(block)) badges.push({ label });
+  if (typeof block.enabled === "boolean")
+    badges.push({ label: block.enabled ? "Enabled" : "Disabled" });
+  if (block.lastRunAt) badges.push({ label: `Ran ${new Date(block.lastRunAt).toLocaleString()}` });
+  if (block.lastError) badges.push({ label: "Error", tone: "error", alert: true });
   if (runtime)
-    badges.push(
-      runtime.durationMs === null
-        ? runtime.status
-        : `${runtime.status} · ${formatDuration(runtime.durationMs)}`,
-    );
-  if (runtime?.error) badges.push("Run error");
+    badges.push({
+      label:
+        runtime.durationMs === null
+          ? runtime.status
+          : `${runtime.status} · ${formatDuration(runtime.durationMs)}`,
+    });
+  if (runtime?.error) badges.push({ label: "Run error", tone: "error", alert: true });
 
   return {
     title: draftBlockTitle(block),
     description: draftBlockDescription(block, sources),
     badges,
-    className: [
-      blockCategoryClass(block.type),
-      validationErrors.length > 0 ? "outline outline-4 outline-offset-4 outline-red-500/50" : "",
-      validationWarnings.length > 0
-        ? "outline outline-4 outline-offset-4 outline-amber-500/50"
-        : "",
-      runtimeClass(runtime),
-    ]
-      .filter(Boolean)
-      .join(" "),
+    className: [blockCategoryClass(block.type), runtimeClass(runtime)].filter(Boolean).join(" "),
   };
 }
 

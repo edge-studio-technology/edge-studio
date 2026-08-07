@@ -6,16 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] ui/workflow-canvas
 
+### Added
+
+- Text components on the shared `Text` family.
+
 ### Changed
 
-- Grouped one-pipeline editor under `features/automation/workflow/` with graph code in `workflow/canvas/` (shell, rail, toolkit, canvas, presentation helpers).
-- Moved pure draft/config/label/filter helpers into `workflow/workflowHelpers.ts`.
-- Moved shared workflow chrome (`Panel`, selected-block sheet, inspector section, status pills, save/validation row helpers) into `workflow/workflowWorkspaceUi.tsx` (workspace chrome; not canvas).
-- Documented frontend Automation vs Workflow naming in automation agent rules (`automation*` for feature-wide, `workflow/` + `workflow/canvas/` for one pipeline and its graph).
-- Moved the Automation inbox panel and preview modal out of `AutomationPage` into `features/automation/AutomationInboxPanel.tsx`.
-- Moved draft/persisted block inspectors (and attached stamp settings) into `workflow/WorkflowBlockInspectors.tsx`.
-- Moved watch-mode run controls, runtime inspector, historic runs, and the shared validation panel into `workflow/WorkflowWatchUi.tsx`.
-- Moved create and edit/watch workspaces out of `AutomationPage` into `workflow/CreateWorkflowWorkspace.tsx` and `workflow/WorkflowWorkspace.tsx` (page keeps list + route/data wiring).
+- Split the automation workflow editor into `features/automation/workflow/` (workspaces, helpers, chrome) with graph UI in `workflow/canvas/`.
+- Create workflow: default name `New workflow - <date>`, validation on the left (quiet until the first block), toolkit on the right; uses shared `Pill` for status.
+- Create workflow: change the start block from the toolkit without resetting the canvas (later blocks are kept).
+- Toolkit: disabled block cards show why they can’t be added in a hover tooltip.
+- Toolkit: groups open by workflow stage (Start first, then Data).
+- Toolkit: Stamp attaches to the only stampable data block, or opens an in-rail picker when there are several.
+- Toolkit: selected start block shows a check mark in addition to the active border.
+- Canvas block cards use Figma shell chrome (`rounded-soft`, `p-margin-tight`); category colors unchanged.
+- Canvas block cards: TAG and frost white capability tags share the top header row.
+- Canvas block cards: title uses body emphasis and description uses body under the header.
+- Canvas attached blocks use the frosted inset slot (title + body) from the Figma content card.
+- Canvas block card footer: trash icon to remove, circular chevron IconButtons to reorder (non-start).
+- Canvas validation shows an error/warning Pill with triangle icon on the block card (no validation ring).
 
 ## [0.30.3] 2026-08-07
 

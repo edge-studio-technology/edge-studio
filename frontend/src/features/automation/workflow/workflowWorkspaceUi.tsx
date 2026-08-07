@@ -6,6 +6,7 @@ import { TableIconButton } from "../../../components/DataTable";
 import { Card } from "../../../components/ui/Card";
 import { Pill } from "../../../components/ui/Pill";
 import { ScrollArea } from "../../../components/ui/ScrollArea";
+import { Text } from "../../../components/ui/Text";
 import { cx } from "../../../lib/cx";
 import type { AutomationValidationResult, AutomationWorkflow } from "../automationTypes";
 import { groupValidationIssues } from "./workflowHelpers";
@@ -144,7 +145,13 @@ export function WorkflowValidationPanel({
         ? "passed"
         : "issues";
 
-  const issuesTone = errors.length > 0 ? "warn" : "neutral";
+  const issuesTone = errors.length > 0 ? "error" : "warn";
+  const issuesSummary =
+    errors.length > 0 && warnings.length > 0
+      ? `${countLabel(errors.length, "error", "errors")}, ${countLabel(warnings.length, "warning", "warnings")}`
+      : errors.length > 0
+        ? countLabel(errors.length, "error", "errors")
+        : countLabel(warnings.length, "warning", "warnings");
 
   return (
     <Panel
@@ -155,7 +162,7 @@ export function WorkflowValidationPanel({
     >
       <div className="gap-detail-tight grid">
         <div className="gap-detail-next flex flex-wrap items-center justify-between">
-          <strong className="type-body-em text-text-primary">Validation</strong>
+          <Text.Title>Validation</Text.Title>
           {status === "checking" && (
             <Pill tone="neutral" indicator>
               Checking
@@ -173,8 +180,7 @@ export function WorkflowValidationPanel({
           )}
           {status === "issues" && (
             <Pill tone={issuesTone} indicator>
-              {countLabel(errors.length, "error", "errors")}
-              {warnings.length > 0 ? `, ${countLabel(warnings.length, "warning", "warnings")}` : ""}
+              {issuesSummary}
             </Pill>
           )}
         </div>
@@ -294,7 +300,7 @@ export function ValidationIssueRow({
 }) {
   return (
     <div className="gap-detail-next border-stroke-secondary py-detail-close grid grid-cols-[5.5rem_minmax(0,1fr)] items-start border-b last:border-b-0">
-      <Pill tone={issue.level === "error" ? "error" : "neutral"} indicator>
+      <Pill tone={issue.level === "error" ? "error" : "warn"} indicator>
         {issue.level}
       </Pill>
       <p className={cx(issue.level === "error" ? errorText : mutedText, "m-0 min-w-0")}>
