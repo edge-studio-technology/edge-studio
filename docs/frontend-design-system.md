@@ -93,6 +93,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [ErrorDetails](#errordetails): trigger + dialog for inspecting an operational error
 - [Modal](#modal): dialog overlay
 - `LoadingDots`: bouncing loading indicator
+- `Spinner`: rotating ring loading indicator
 - `Input`: bare text control
 - [InputField](#inputfield): labeled text field
 - [SelectField](#selectfield): labeled select

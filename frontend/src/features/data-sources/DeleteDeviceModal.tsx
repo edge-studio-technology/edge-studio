@@ -1,7 +1,8 @@
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { Modal } from "../../components/Modal";
+import { Spinner } from "../../components/ui/Spinner";
 import type { DataSource } from "./dataSourceTypes";
 
 export function DeleteDeviceConfirmModal({
@@ -43,7 +44,7 @@ export function DeleteDeviceProgressModal({ source }: { source: DataSource }) {
       bodyClassName="min-h-0 flex-1"
     >
       <div className="gap-detail-near grid min-h-56 place-items-center text-center">
-        <Loader2 size={64} className="text-icon-primary animate-spin" aria-hidden />
+        <Spinner size="lg" />
         <div className="gap-detail-tight grid">
           <p className="type-title text-text-primary m-0">Deleting in progress</p>
           <p className="type-body text-text-secondary m-0 max-w-xl">
