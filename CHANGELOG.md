@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Split the automation workflow canvas into `features/automation/workflow-canvas/` (shell, rail, toolkit, canvas, presentation helpers).
+- Moved pure automation draft/config/label/filter helpers out of `AutomationPage` into `features/automation/workflowHelpers.ts`.
 
 ## [0.30.3] 2026-08-07
 
