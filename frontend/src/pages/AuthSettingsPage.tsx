@@ -136,7 +136,7 @@ export function AuthSettingsPage() {
             <LogOut size={16} /> Sign out
           </Button>
           <Button type="button" onClick={() => navigate("/update")}>
-            Check for updates
+            Check updates
           </Button>
         </ButtonRow>
       }
@@ -224,7 +224,7 @@ export function AuthSettingsPage() {
                       {totpSecret && (
                         <div className="grid min-w-0 flex-1 gap-3">
                           <div className="flex items-center justify-between gap-3">
-                            <span className="text-xs font-bold tracking-wide text-text-secondary uppercase">
+                            <span className="text-text-secondary text-xs font-bold tracking-wide uppercase">
                               Manual setup key
                             </span>
                             <Button

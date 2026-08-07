@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { DetailList, DetailRow } from "../components/patterns/DetailList";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Page } from "../components/patterns/Page";
 import { Button } from "../components/ui/Button";
@@ -8,6 +7,7 @@ import { Card } from "../components/ui/Card";
 import { ErrorText } from "../components/ui/ErrorText";
 import { LoadingDots } from "../components/ui/LoadingDots";
 import { Pill } from "../components/ui/Pill";
+import { ChangelogPreview } from "../features/update/ChangelogPreview";
 import { getUpdateStatus, startUpdateApply } from "../features/update/updateApi";
 import type { ApiError } from "../lib/api";
 import type { UpdateStatus } from "../app/types";
@@ -85,7 +85,7 @@ export function UpdatePage() {
           <>
             <div className="gap-detail-tight flex flex-col">
               <div className="gap-detail-next flex items-center">
-                <h2 className="type-body-em text-text-primary m-0">
+                <h2 className="type-title text-text-primary m-0">
                   {upToDate ? "Up to date" : "Update available"}
                 </h2>
                 <Pill tone={upToDate ? "good" : "warn"} indicator>
@@ -102,19 +102,10 @@ export function UpdatePage() {
               {startError ? <ErrorText>{startError}</ErrorText> : null}
             </div>
 
-            <DetailList>
-              {status.services.map((service) => (
-                <DetailRow
-                  key={service.service}
-                  label={service.service}
-                  value={
-                    <Pill tone={service.upToDate ? "good" : "warn"}>
-                      {service.upToDate ? "current" : "update available"}
-                    </Pill>
-                  }
-                />
-              ))}
-            </DetailList>
+            <div className="border-stroke-secondary gap-detail-close flex flex-col border-t pt-detail-close">
+              <h3 className="type-title text-text-primary m-0">What's new</h3>
+              <ChangelogPreview />
+            </div>
           </>
         ) : null}
       </Card>
