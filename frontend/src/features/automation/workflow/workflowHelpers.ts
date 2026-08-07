@@ -76,7 +76,11 @@ export function defaultDraftConfig(
   if (type === "manual_start") return {};
   if (type === "fetch_data_source") return { sourceId: firstReadableSource(sources)?.id ?? "" };
   if (type === "capture_camera") return { sourceId: firstCameraSource(sources)?.id ?? "" };
-  if (type === "gpio_event_start" || type === "webhook_event_start" || type === "mqtt_event_start") {
+  if (
+    type === "gpio_event_start" ||
+    type === "webhook_event_start" ||
+    type === "mqtt_event_start"
+  ) {
     const source = defaultSourceForStart(type, sources);
     return {
       sourceId: source?.id ?? "",
@@ -84,19 +88,30 @@ export function defaultDraftConfig(
       cooldownSeconds: source?.config.profile === "pir-motion" ? 60 : 0,
     };
   }
-  if (type === "if_payload_field_equals") return { source: "trigger", fieldPath: "active", operator: "equals", value: true };
+  if (type === "if_payload_field_equals")
+    return { source: "trigger", fieldPath: "active", operator: "equals", value: true };
   if (type === "wait") return { durationMs: 1000 };
   if (type === "show_preview") {
-    return { title: "Workflow preview", previewFormat: "text", contentMode: "custom", contentTemplateText: "Workflow preview" };
+    return {
+      title: "Workflow preview",
+      previewFormat: "text",
+      contentMode: "custom",
+      contentTemplateText: "Workflow preview",
+    };
   }
   if (type === "set_variable") {
-    return { variableName: "message", variableSource: "custom_json", valueJsonText: '"Button pressed"' };
+    return {
+      variableName: "message",
+      variableSource: "custom_json",
+      valueJsonText: '"Button pressed"',
+    };
   }
   if (type === "control_output") {
     const target = sources.find((source) => isOutputTarget(source));
     return defaultOutputBlockConfig(target, 500);
   }
-  if (type === "send_transaction") return { recipientAddressBookId: "", tokenId: "0x00", amount: "" };
+  if (type === "send_transaction")
+    return { recipientAddressBookId: "", tokenId: "0x00", amount: "" };
   if (type === "stamp_integritas") return { condition: null };
   return {};
 }
@@ -107,14 +122,18 @@ export function defaultEditBlockConfig(
   addressBook: AddressBookEntry[],
 ): AutomationBlock["config"] {
   const config = defaultDraftConfig(type, sources);
-  if (type === "send_transaction") return { ...config, recipientAddressBookId: addressBook[0]?.id ?? "" };
+  if (type === "send_transaction")
+    return { ...config, recipientAddressBookId: addressBook[0]?.id ?? "" };
   return config;
 }
 
 export function groupValidationIssues(
   issues: AutomationValidationResult["errors"],
 ): { issue: AutomationValidationResult["errors"][number]; count: number }[] {
-  const grouped = new Map<string, { issue: AutomationValidationResult["errors"][number]; count: number }>();
+  const grouped = new Map<
+    string,
+    { issue: AutomationValidationResult["errors"][number]; count: number }
+  >();
   for (const issue of issues) {
     const key = [issue.level, issue.code, issue.message, issue.blockType ?? ""].join("|");
     const existing = grouped.get(key);
@@ -131,7 +150,10 @@ export function validationIssuesByBlockId(
   if (!validation) return result;
   for (const issue of [...validation.errors, ...validation.warnings]) {
     if (!issue.blockId) continue;
-    result[issue.blockId] = [...(result[issue.blockId] ?? []), { level: issue.level, message: issue.message }];
+    result[issue.blockId] = [
+      ...(result[issue.blockId] ?? []),
+      { level: issue.level, message: issue.message },
+    ];
   }
   return result;
 }
@@ -143,7 +165,11 @@ export function runtimeByBlockIdFromRun(
   if (!run) return result;
   for (const block of run.blocks) {
     if (!block.blockId) continue;
-    result[block.blockId] = { status: block.status, durationMs: block.durationMs, error: block.error };
+    result[block.blockId] = {
+      status: block.status,
+      durationMs: block.durationMs,
+      error: block.error,
+    };
   }
   return result;
 }
@@ -193,7 +219,9 @@ export function workflowMatchesFilter(
     workflow.lastHash ?? "",
     workflow.lastProofId ?? "",
     workflow.lastError ?? "",
-    workflow.blocks.map((block) => `${block.type} ${block.config.sourceId ?? ""} ${block.config.targetId ?? ""}`).join(" "),
+    workflow.blocks
+      .map((block) => `${block.type} ${block.config.sourceId ?? ""} ${block.config.targetId ?? ""}`)
+      .join(" "),
   ]
     .join(" ")
     .toLowerCase();
@@ -292,11 +320,18 @@ export function workflowPrimarySourceId(workflow: AutomationWorkflow) {
   const fetchBlock = mainBlocks.find((block) => block.type === "fetch_data_source");
   const captureBlock = mainBlocks.find((block) => block.type === "capture_camera");
   const startBlock = mainBlocks.find((block) => block.type.endsWith("_start"));
-  return fetchBlock?.config.sourceId ?? captureBlock?.config.sourceId ?? startBlock?.config.sourceId ?? "";
+  return (
+    fetchBlock?.config.sourceId ??
+    captureBlock?.config.sourceId ??
+    startBlock?.config.sourceId ??
+    ""
+  );
 }
 
 export function workflowIntervalSeconds(workflow: AutomationWorkflow) {
-  const startBlock = workflow.blocks.find((block) => !block.parentBlockId && block.type === "schedule_start");
+  const startBlock = workflow.blocks.find(
+    (block) => !block.parentBlockId && block.type === "schedule_start",
+  );
   const intervalSeconds = Number(startBlock?.config.intervalSeconds);
   return Number.isFinite(intervalSeconds) ? intervalSeconds : 0;
 }
@@ -316,7 +351,9 @@ export function nativeMinimaTokens(walletStatus: WalletStatus | null) {
 }
 
 export function examplePayload(workflow: AutomationWorkflow) {
-  const startBlock = workflow.blocks.find((block) => !block.parentBlockId && block.type.endsWith("_start"));
+  const startBlock = workflow.blocks.find(
+    (block) => !block.parentBlockId && block.type.endsWith("_start"),
+  );
   const now = new Date().toISOString();
 
   if (startBlock?.type === "gpio_event_start") {
@@ -369,15 +406,18 @@ export function examplePayload(workflow: AutomationWorkflow) {
 
 export function sourceLabel(source: DataSource) {
   if (source.type === "webhook") return "Webhook receive URL";
-  if (source.type === "mqtt") return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
+  if (source.type === "mqtt")
+    return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
   if (source.type === "gpio-input") {
     return `${source.config.profile === "pir-motion" ? "PIR motion " : ""}${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
   }
   if (source.type === "gpio-output") {
     return `${source.config.profile ?? "led"} ${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"} active:${source.config.activeState ?? "high"}`;
   }
-  if (source.type === "http-output") return `${source.config.method ?? "POST"} ${source.config.url ?? "HTTP output"}`;
-  if (source.type === "mqtt-output") return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
+  if (source.type === "http-output")
+    return `${source.config.method ?? "POST"} ${source.config.url ?? "HTTP output"}`;
+  if (source.type === "mqtt-output")
+    return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
   if (source.type === "pi-camera") {
     return `${source.config.mode ?? "photo"} ${source.config.width ?? 1280}x${source.config.height ?? 720}`;
   }
@@ -388,11 +428,17 @@ export function sourceLabel(source: DataSource) {
 }
 
 export function isReadableSource(source: DataSource) {
-  return source.type === "json-api" || source.type === "internal-json-api" || source.type === "bme-sensor";
+  return (
+    source.type === "json-api" ||
+    source.type === "internal-json-api" ||
+    source.type === "bme-sensor"
+  );
 }
 
 export function isOutputTarget(source: DataSource) {
-  return source.type === "gpio-output" || source.type === "http-output" || source.type === "mqtt-output";
+  return (
+    source.type === "gpio-output" || source.type === "http-output" || source.type === "mqtt-output"
+  );
 }
 
 export function outputActionForTarget(source: DataSource | undefined) {
@@ -407,10 +453,20 @@ export function defaultOutputBlockConfig(
 ): AutomationBlock["config"] {
   if (source?.type === "gpio-output") return { targetId: source.id, action: "pulse", durationMs };
   if (source?.type === "http-output") {
-    return { targetId: source.id, action: "send_request", bodyMode: "custom", bodyTemplateText: defaultCustomBodyText() };
+    return {
+      targetId: source.id,
+      action: "send_request",
+      bodyMode: "custom",
+      bodyTemplateText: defaultCustomBodyText(),
+    };
   }
   if (source?.type === "mqtt-output") {
-    return { targetId: source.id, action: "publish", bodyMode: "custom", bodyTemplateText: defaultCustomBodyText() };
+    return {
+      targetId: source.id,
+      action: "publish",
+      bodyMode: "custom",
+      bodyTemplateText: defaultCustomBodyText(),
+    };
   }
   return { targetId: "", action: "pulse", durationMs };
 }
@@ -420,8 +476,10 @@ export function retargetOutputBlockConfig(
   target: DataSource | undefined,
 ): AutomationBlock["config"] {
   if (!target) return { ...config, targetId: "" };
-  if (target.type === "gpio-output") return { targetId: target.id, action: "pulse", durationMs: config.durationMs ?? 500 };
-  if (target.type !== "http-output" && target.type !== "mqtt-output") return { ...config, targetId: target.id };
+  if (target.type === "gpio-output")
+    return { targetId: target.id, action: "pulse", durationMs: config.durationMs ?? 500 };
+  if (target.type !== "http-output" && target.type !== "mqtt-output")
+    return { ...config, targetId: target.id };
 
   const action = outputActionForTarget(target);
   const bodyMode = compatibleBodyMode(config.bodyMode, target.type);
@@ -445,7 +503,8 @@ export function outputBodyModeConfig(
   targetType: "http-output" | "mqtt-output",
 ): AutomationBlock["config"] {
   const next = { ...config, bodyMode };
-  if (bodyMode === "custom" && !next.bodyTemplateText) next.bodyTemplateText = defaultCustomBodyText();
+  if (bodyMode === "custom" && !next.bodyTemplateText)
+    next.bodyTemplateText = defaultCustomBodyText();
   if (bodyMode !== "custom") delete next.bodyTemplateText;
   if (bodyMode === "multipart_media") {
     next.multipartFileField = next.multipartFileField ?? "file";
@@ -456,7 +515,8 @@ export function outputBodyModeConfig(
     delete next.multipartJsonField;
     delete next.multipartJsonText;
   }
-  if (targetType === "mqtt-output" && bodyMode === "none") return { ...next, bodyMode: "workflow_context" };
+  if (targetType === "mqtt-output" && bodyMode === "none")
+    return { ...next, bodyMode: "workflow_context" };
   return next;
 }
 
@@ -497,7 +557,7 @@ export function defaultPreviewFormatConfig(
     ...config,
     previewFormat,
     contentTemplateText: defaultPreviewContentText(previewFormat, config.imageSource),
-    imageSource: previewFormat === "image" ? config.imageSource ?? "url" : undefined,
+    imageSource: previewFormat === "image" ? (config.imageSource ?? "url") : undefined,
   };
 }
 
@@ -510,7 +570,8 @@ export function previewContentModeConfig(
       ...config,
       contentMode,
       contentTemplateText:
-        config.contentTemplateText ?? defaultPreviewContentText(config.previewFormat ?? "text", config.imageSource),
+        config.contentTemplateText ??
+        defaultPreviewContentText(config.previewFormat ?? "text", config.imageSource),
     };
   }
   return { ...config, contentMode, contentTemplateText: undefined };
@@ -523,7 +584,9 @@ export function defaultPreviewContentText(
   if (format === "json") return "{}";
   if (format === "link") return "https://integritas.technology";
   if (format === "image") {
-    return imageSource === "local_path" ? "camera/snapshot.jpg" : "https://integritas.technology/favicon.ico";
+    return imageSource === "local_path"
+      ? "camera/snapshot.jpg"
+      : "https://integritas.technology/favicon.ico";
   }
   return "Workflow preview";
 }
@@ -535,7 +598,9 @@ export function outputBodyModes(targetType: "http-output" | "mqtt-output") {
     { value: "trigger_payload", label: "Trigger payload" },
     { value: "latest_data", label: "Latest data" },
     { value: "latest_data_with_media", label: "Latest data + media" },
-    ...(targetType === "http-output" ? [{ value: "multipart_media", label: "Multipart media upload" }] : []),
+    ...(targetType === "http-output"
+      ? [{ value: "multipart_media", label: "Multipart media upload" }]
+      : []),
     ...(targetType === "http-output" ? [{ value: "none", label: "No body" }] : []),
   ] as { value: NonNullable<AutomationBlock["config"]["bodyMode"]>; label: string }[];
 }
@@ -549,8 +614,10 @@ export function bodyModeDescription(
       ? "Send exactly this JSON as the request body."
       : "Publish exactly this JSON as the message payload.";
   }
-  if (bodyMode === "trigger_payload") return "Send only the event payload that started this workflow.";
-  if (bodyMode === "latest_data") return "Send the data recorded or fetched earlier in this workflow.";
+  if (bodyMode === "trigger_payload")
+    return "Send only the event payload that started this workflow.";
+  if (bodyMode === "latest_data")
+    return "Send the data recorded or fetched earlier in this workflow.";
   if (bodyMode === "latest_data_with_media") {
     return "Send latest data plus captured media bytes as base64 JSON. Requires a camera capture earlier in the workflow.";
   }
@@ -586,9 +653,9 @@ export function isImagePreviewContent(
 ): value is { source: "url" | "local_path"; value: string } {
   return Boolean(
     value &&
-      typeof value === "object" &&
-      "source" in value &&
-      "value" in value &&
-      typeof (value as { value?: unknown }).value === "string",
+    typeof value === "object" &&
+    "source" in value &&
+    "value" in value &&
+    typeof (value as { value?: unknown }).value === "string",
   );
 }

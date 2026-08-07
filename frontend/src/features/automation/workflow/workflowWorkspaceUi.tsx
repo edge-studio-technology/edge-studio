@@ -31,7 +31,7 @@ export function StatusPill({
   return (
     <span
       className={cx(
-        "inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide",
+        "inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-extrabold tracking-wide uppercase",
         status === "good"
           ? "bg-emerald-100 text-emerald-700"
           : status === "warn"
@@ -122,10 +122,12 @@ export function SelectedBlockSheet({
     <div className="fixed inset-0 z-[70] grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px]">
       <div className="bg-overlay-light min-h-0" />
       <aside className="bg-surface-always-white border-stroke-secondary grid h-screen min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] border-l shadow-[0_24px_60px_rgba(0,0,0,0.18)]">
-        <div className="px-margin-tight pt-margin-tight pb-detail-close flex items-start justify-between gap-detail-close">
-          <div className="grid gap-detail-tight">
+        <div className="px-margin-tight pt-margin-tight pb-detail-close gap-detail-close flex items-start justify-between">
+          <div className="gap-detail-tight grid">
             <h2 className="type-title text-text-primary m-0">{title}</h2>
-            {description ? <p className="type-meta text-text-secondary m-0">{description}</p> : null}
+            {description ? (
+              <p className="type-meta text-text-secondary m-0">{description}</p>
+            ) : null}
           </div>
           <IconButton
             type="button"
@@ -137,9 +139,11 @@ export function SelectedBlockSheet({
             <X aria-hidden />
           </IconButton>
         </div>
-        <ScrollArea className="min-h-0 px-margin-tight py-detail-close">{children}</ScrollArea>
+        <ScrollArea className="px-margin-tight py-detail-close min-h-0">{children}</ScrollArea>
         {footer && (
-          <div className="px-margin-tight pt-detail-close pb-margin-tight flex justify-end">{footer}</div>
+          <div className="px-margin-tight pt-detail-close pb-margin-tight flex justify-end">
+            {footer}
+          </div>
         )}
       </aside>
     </div>,
@@ -159,8 +163,11 @@ export function InspectorSection({
   className?: string;
 }) {
   return (
-    <Card size="Compact" className={cx("border-stroke-secondary grid gap-detail-close border", className)}>
-      <div className="grid gap-detail-tight">
+    <Card
+      size="Compact"
+      className={cx("border-stroke-secondary gap-detail-close grid border", className)}
+    >
+      <div className="gap-detail-tight grid">
         <h3 className="type-body-em text-text-primary m-0">{title}</h3>
         {description ? <p className="type-meta text-text-secondary m-0">{description}</p> : null}
       </div>
@@ -171,7 +178,7 @@ export function InspectorSection({
 
 export function RuntimeStat({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="border-stroke-secondary flex items-center justify-between gap-detail-close border-b py-detail-tight last:border-b-0">
+    <div className="border-stroke-secondary gap-detail-close py-detail-tight flex items-center justify-between border-b last:border-b-0">
       <span className="type-meta text-text-secondary">{label}</span>
       <strong className="type-meta text-text-primary text-right">{value}</strong>
     </div>
@@ -199,7 +206,8 @@ export function SaveState({ dirty, saved }: { dirty: boolean; saved: boolean }) 
   if (dirty) {
     return (
       <p className={mutedText}>
-        <StatusPill status="warn">Unsaved changes</StatusPill> Use this block's save button to apply edits.
+        <StatusPill status="warn">Unsaved changes</StatusPill> Use this block's save button to apply
+        edits.
       </p>
     );
   }

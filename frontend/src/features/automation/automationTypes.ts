@@ -31,7 +31,15 @@ export type AutomationBlockType =
   | "control_output"
   | "send_transaction";
 
-export type ConditionOperator = "equals" | "not_equals" | "greater_than" | "greater_than_or_equals" | "less_than" | "less_than_or_equals" | "exists" | "does_not_exist";
+export type ConditionOperator =
+  | "equals"
+  | "not_equals"
+  | "greater_than"
+  | "greater_than_or_equals"
+  | "less_than"
+  | "less_than_or_equals"
+  | "exists"
+  | "does_not_exist";
 
 export type AutomationBlock = {
   id: string;
@@ -51,7 +59,14 @@ export type AutomationBlock = {
     amount?: string;
     intervalSeconds?: number;
     durationMs?: number;
-    bodyMode?: "custom" | "workflow_context" | "trigger_payload" | "latest_data" | "latest_data_with_media" | "multipart_media" | "none";
+    bodyMode?:
+      | "custom"
+      | "workflow_context"
+      | "trigger_payload"
+      | "latest_data"
+      | "latest_data_with_media"
+      | "multipart_media"
+      | "none";
     bodyTemplateText?: string;
     bodyTemplate?: unknown;
     multipartFileField?: string;
@@ -145,4 +160,3 @@ export type AutomationInboxItem = {
   createdAt: string;
   readAt: string | null;
 };
-
