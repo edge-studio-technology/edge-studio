@@ -78,6 +78,8 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Page](#page): route content frame
 - [Card](#card): white card surface
 - [MetricCard](#metriccard): compact metric / status card
+- `OptionCard`: pressable choice card (whole card is the click target)
+- [AltOptionCard](#altoptioncard): quieter choice card with an explicit action button
 - [Button / IconButton](#button): text and icon-only buttons
 - [ButtonRow](#buttonrow): wrapping button group
 - [Pill](#pill): status / tag pill
@@ -576,6 +578,35 @@ Standalone compact metric tile (`frontend/src/components/patterns/MetricCard.tsx
   description="Primary Pi Wallet"
 />
 <MetricCard label="Node status" loading={loading} value="Running" status="success" />
+```
+
+### AltOptionCard
+
+Quieter choice card (`frontend/src/components/patterns/AltOptionCard.tsx`): `surface-primary` fill, `stroke-secondary` border, bare 24px glyph, `type-body-em` title, `type-body` secondary description, then a shared `Button` pinned to the bottom.
+
+Same slots as `OptionCard`, two differences: the glyph has no filled circle, and the card surface is **not** pressable — only the button is. Prefer this for dense grids of options where each option needs one explicit, labelled action; prefer `OptionCard` when the whole card should be one large target.
+
+| Prop          | Notes                                          |
+| ------------- | ---------------------------------------------- |
+| `icon`        | Optional `LucideIcon`, rendered bare at 24px   |
+| `title`       | Required card heading                          |
+| `description` | Optional supporting copy                       |
+| `actionLabel` | Button label                                   |
+| `onClick`     | Button click handler                           |
+| `disabled`    | Disables the action button                     |
+| `children`    | Optional extra content above the button        |
+| `className`   | Merged onto the card shell                     |
+
+```tsx
+<div className="gap-detail-close grid sm:grid-cols-2 lg:grid-cols-3">
+  <AltOptionCard
+    icon={Globe2}
+    title="HTTP JSON Source"
+    description="Fetch JSON from an external API or Pi service"
+    actionLabel="Add input"
+    onClick={() => select(template)}
+  />
+</div>
 ```
 
 ### CopyableCode
