@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Disclosure } from "../../../../components/ui/Disclosure";
+import { Menu } from "../../../../components/ui/Menu";
 import { Tooltip } from "../../../../components/ui/Tooltip";
 import { cx } from "../../../../lib/cx";
 import type { AutomationBlockType } from "../../automationTypes";
-import { isDataBlock } from "./blockPresentation";
+import { draftBlockTitle, isDataBlock } from "./blockPresentation";
 import type { DraftWorkflowBlock } from "./types";
 import { WorkflowRailHeader, WorkflowRailPanel } from "./WorkflowRail";
 
@@ -17,7 +19,7 @@ export function WorkflowBlockLibrary({
   mode = "build",
   hasStartBlock,
   selectedStartType,
-  selectedBlock,
+  blocks,
   canAddRecordTriggerEvent = true,
   onSelectStartBlock,
   onAddBlock,
@@ -26,12 +28,13 @@ export function WorkflowBlockLibrary({
   mode?: "build" | "edit";
   hasStartBlock: boolean;
   selectedStartType?: AutomationBlockType;
-  selectedBlock: DraftWorkflowBlock | undefined;
+  blocks: DraftWorkflowBlock[];
   canAddRecordTriggerEvent?: boolean;
   onSelectStartBlock: (type: AutomationBlockType) => void;
   onAddBlock: (type: AutomationBlockType) => void;
   onAttachStamp: (parentId: string) => void;
 }) {
+  const [stampPickerOpen, setStampPickerOpen] = useState(false);
   const canAddMainBlock = hasStartBlock;
   const needsStartReason = canAddMainBlock ? undefined : NEEDS_START_REASON;
   const recordTriggerReason = recordTriggerDisabledReason(
@@ -39,7 +42,32 @@ export function WorkflowBlockLibrary({
     canAddRecordTriggerEvent,
     selectedStartType,
   );
-  const stampReason = stampDisabledReason(selectedBlock);
+  const stampTargets = blocks.filter(
+    (block) =>
+      isDataBlock(block.type) &&
+      !block.attachedBlocks?.some((attached) => attached.type === "stamp_integritas"),
+  );
+  const stampReason = stampDisabledReason(
+    stampTargets,
+    blocks.some((block) => isDataBlock(block.type)),
+  );
+
+  useEffect(() => {
+    if (stampTargets.length < 2) setStampPickerOpen(false);
+  }, [stampTargets.length]);
+
+  function attachStamp() {
+    if (stampTargets.length === 1) {
+      onAttachStamp(stampTargets[0].id);
+      return;
+    }
+    if (stampTargets.length >= 2) setStampPickerOpen((open) => !open);
+  }
+
+  function pickStampTarget(parentId: string) {
+    onAttachStamp(parentId);
+    setStampPickerOpen(false);
+  }
 
   return (
     <WorkflowRailPanel>
@@ -162,10 +190,19 @@ export function WorkflowBlockLibrary({
         <LibraryCard
           disabled={Boolean(stampReason)}
           disabledReason={stampReason}
-          onClick={() => selectedBlock && onAttachStamp(selectedBlock.id)}
+          selected={stampPickerOpen}
+          onClick={attachStamp}
           title="Stamp data"
           description="Create an Integritas proof for recorded or fetched data."
         />
+        {stampPickerOpen && stampTargets.length >= 2 && (
+          <Menu
+            items={stampTargets.map((block) => ({
+              label: draftBlockTitle(block),
+              onClick: () => pickStampTarget(block.id),
+            }))}
+          />
+        )}
       </ToolkitGroup>
     </WorkflowRailPanel>
   );
@@ -188,14 +225,12 @@ function recordTriggerDisabledReason(
   return "Only available for GPIO, webhook, or MQTT starts.";
 }
 
-function stampDisabledReason(selectedBlock: DraftWorkflowBlock | undefined): string | undefined {
-  if (!selectedBlock || !isDataBlock(selectedBlock.type)) {
-    return "Select a data block on the canvas.";
-  }
-  if (selectedBlock.attachedBlocks?.some((block) => block.type === "stamp_integritas")) {
-    return "Already attached to this block.";
-  }
-  return undefined;
+function stampDisabledReason(
+  stampTargets: DraftWorkflowBlock[],
+  hasAnyDataBlock: boolean,
+): string | undefined {
+  if (stampTargets.length > 0) return undefined;
+  return hasAnyDataBlock ? "All data blocks already have a stamp." : "Add a data block first.";
 }
 
 function ToolkitGroup({

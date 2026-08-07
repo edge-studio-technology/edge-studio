@@ -74,7 +74,6 @@ export function CreateWorkflowWorkspace({
   const selectedBlock = selectedBlockId
     ? draftBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
-  const toolkitSelectedBlock = selectedBlock ?? draftBlocks[0];
   const localErrors = name.trim() ? [] : ["Workflow name is required."];
   const canCreate = localErrors.length === 0 && Boolean(backendValidation?.ok);
   const hasStartBlock = draftBlocks.some((block) => block.type.endsWith("_start"));
@@ -274,7 +273,7 @@ export function CreateWorkflowWorkspace({
             <WorkflowBlockLibrary
               hasStartBlock={hasStartBlock}
               selectedStartType={draftBlocks.find((block) => block.type.endsWith("_start"))?.type}
-              selectedBlock={toolkitSelectedBlock}
+              blocks={draftBlocks}
               onSelectStartBlock={selectStartBlock}
               onAddBlock={addDraftBlock}
               onAttachStamp={attachStampBlock}

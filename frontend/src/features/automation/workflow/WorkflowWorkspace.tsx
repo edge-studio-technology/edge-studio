@@ -113,6 +113,14 @@ export function WorkflowWorkspace({
   const canvasBlocks = mainBlocks.map((block) =>
     automationBlockToCanvasBlock(block, workflow.blocks),
   );
+  const libraryBlocks = mainBlocks.map((block) => ({
+    id: block.id,
+    type: block.type,
+    config: block.config,
+    attachedBlocks: workflow.blocks
+      .filter((item) => item.parentBlockId === block.id)
+      .map((item) => ({ id: item.id, type: item.type, config: item.config })),
+  }));
   const canAddRecordTriggerEvent = Boolean(
     startBlock &&
     (startBlock.type === "gpio_event_start" ||
@@ -256,7 +264,7 @@ export function WorkflowWorkspace({
               mode="edit"
               hasStartBlock={Boolean(startBlock)}
               selectedStartType={startBlock?.type}
-              selectedBlock={selectedDraftBlock}
+              blocks={libraryBlocks}
               canAddRecordTriggerEvent={canAddRecordTriggerEvent}
               onSelectStartBlock={() => undefined}
               onAddBlock={addBlockFromLibrary}
