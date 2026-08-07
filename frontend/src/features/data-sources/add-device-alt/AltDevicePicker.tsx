@@ -14,7 +14,7 @@ export function AltDevicePicker({
   onSelect: (template: DataSourceTemplate) => void;
 }) {
   return (
-    <div className="gap-detail-close grid sm:grid-cols-2 lg:grid-cols-3">
+    <div className="gap-detail-close grid auto-rows-fr sm:grid-cols-2 lg:grid-cols-3">
       {altDeviceOptions(mode).map((template) => (
         <AltOptionCard
           key={template.title}

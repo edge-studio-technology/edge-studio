@@ -197,6 +197,15 @@ export function AltDeviceForm({
 
       {type === "bme-sensor" && (
         <>
+          <SelectField
+            label="Sensor model"
+            value={fields.bmeSensor}
+            onChange={(event) => fields.setBmeSensor(event.target.value as "bme280" | "bme680")}
+            options={[
+              { value: "bme280", label: "BME280" },
+              { value: "bme680", label: "BME680" },
+            ]}
+          />
           <InputField
             label="I2C bus"
             value={fields.bmeBus}

@@ -3,13 +3,16 @@ import type { DataSource, DataSourceTemplate } from "./dataSourceTypes";
 
 /**
  * Builds the `config` payload for create/update from the flat form fields. `editingSource`
- * (webhook token passthrough, sensor fallback) and `template` (esp32/sensor profile) are
- * both optional since add flows have a template but no editing source, and the edit modal
- * has an editing source but no template.
+ * (webhook token passthrough) and `template` (esp32 profile) are both optional since add
+ * flows have a template but no editing source, and the edit modal has an editing source
+ * but no template.
  */
 export function buildDeviceConfigInput(
   fields: DeviceFormFields,
-  { editingSource, template }: { editingSource?: DataSource | null; template?: DataSourceTemplate | null },
+  {
+    editingSource,
+    template,
+  }: { editingSource?: DataSource | null; template?: DataSourceTemplate | null },
 ) {
   const {
     type,
@@ -29,6 +32,7 @@ export function buildDeviceConfigInput(
     cameraHeight,
     cameraDurationMs,
     cameraFps,
+    bmeSensor,
     bmeBus,
     bmeAddress,
     method,
@@ -79,9 +83,7 @@ export function buildDeviceConfigInput(
     };
   if (type === "bme-sensor")
     return {
-      sensor: (template?.config.sensor ?? editingSource?.config.sensor ?? "bme280") as
-        | "bme280"
-        | "bme680",
+      sensor: bmeSensor,
       bus: Number(bmeBus),
       address: bmeAddress,
     };

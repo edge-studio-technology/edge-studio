@@ -26,6 +26,7 @@ export function useDeviceFormFields() {
   const [cameraHeight, setCameraHeight] = useState("720");
   const [cameraDurationMs, setCameraDurationMs] = useState("1000");
   const [cameraFps, setCameraFps] = useState("30");
+  const [bmeSensor, setBmeSensor] = useState<"bme280" | "bme680">("bme280");
   const [bmeBus, setBmeBus] = useState("1");
   const [bmeAddress, setBmeAddress] = useState<"0x76" | "0x77">("0x76");
   const [method, setMethod] = useState<"GET" | "POST" | "PUT" | "PATCH">("GET");
@@ -55,6 +56,7 @@ export function useDeviceFormFields() {
     setCameraHeight(String(config.height ?? 720));
     setCameraDurationMs(String(config.durationMs ?? 1000));
     setCameraFps(String(config.fps ?? 30));
+    setBmeSensor(config.sensor ?? "bme280");
     setBmeBus(String(config.bus ?? 1));
     setBmeAddress(config.address ?? "0x76");
     setMethod(config.method ?? "GET");
@@ -88,6 +90,7 @@ export function useDeviceFormFields() {
     setCameraHeight("720");
     setCameraDurationMs("1000");
     setCameraFps("30");
+    setBmeSensor("bme280");
     setBmeBus("1");
     setBmeAddress("0x76");
     setMethod("GET");
@@ -133,6 +136,8 @@ export function useDeviceFormFields() {
       setCameraDurationMs,
       cameraFps,
       setCameraFps,
+      bmeSensor,
+      setBmeSensor,
       bmeBus,
       setBmeBus,
       bmeAddress,
