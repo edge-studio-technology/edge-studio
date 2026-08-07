@@ -84,6 +84,7 @@ of carrying the full rationale inline.
 | ADR                                                                                     | Decision                          |
 | ---------------------------------------------------------------------------------------- | ---------------------------------- |
 | [adr/0001-minima-graceful-node-restart.md](./adr/0001-minima-graceful-node-restart.md)   | Minima restart: `quit` + Docker `RestartCount` baseline detection + 5-min forceful fallback |
+| [adr/0002-update-page-split.md](./adr/0002-update-page-split.md)                         | Update page split: frontend owns `/update` (status/check/start), `update-agent` owns `/update/` (apply progress) |
 
 ---
 

@@ -13,6 +13,7 @@ import { AutomationPage } from "./pages/AutomationPage";
 import { SetupPage } from "./pages/SetupPage";
 import { WalletPage } from "./pages/WalletPage";
 import { AuthSettingsPage } from "./pages/AuthSettingsPage";
+import { UpdatePage } from "./pages/UpdatePage";
 
 function LoginRoute() {
   const { user, refreshSession } = useAuth();
@@ -42,6 +43,7 @@ function AppContent() {
         <Route path="/automation/:workflowId/watch/:runId" element={<AutomationPage />} />
         <Route path="/diagnostics" element={<DiagnosticsPage />} />
         <Route path="/settings" element={<AuthSettingsPage />} />
+        <Route path="/update" element={<UpdatePage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AppShell>

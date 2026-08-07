@@ -244,7 +244,7 @@ Future versions may support custom certificates or an external reverse proxy.
 
 `SESSION_MAX_AGE_DAYS` and `SESSION_IDLE_HOURS` control session lifetime (default 7 days max, 24 hours idle).
 
-`MANIFEST_URL` configures the `update-agent` service: the signed update manifest URL hosted on the VPS. The Ed25519 public key used to verify its signature is baked into the `update-agent` image at build time from the committed `update-agent/manifest-public-key.pem`, not an env var. Leave `MANIFEST_URL` empty to disable update checks. The update UI is served at `https://<pi-ip>:8080/update` (same TLS cert/origin as the main app, proxied through `frontend`'s nginx — no extra browser approval). See [.agents/rules/update-agent.md](.agents/rules/update-agent.md) for the full design.
+`MANIFEST_URL` configures the `update-agent` service: the signed update manifest URL hosted on the VPS. The Ed25519 public key used to verify its signature is baked into the `update-agent` image at build time from the committed `update-agent/manifest-public-key.pem`, not an env var. Leave `MANIFEST_URL` empty to disable update checks. The update flow is split across two origins-in-one: `https://<pi-ip>:8080/update` (no trailing slash) is the product frontend's own page — checks for updates and starts one; `https://<pi-ip>:8080/update/` (trailing slash) is `update-agent`'s own static page — shows apply progress and survives a frontend container swap mid-update. Both are the same TLS cert/origin, proxied through `frontend`'s nginx (no extra browser approval). See [.agents/rules/update-agent.md](.agents/rules/update-agent.md) for the full design.
 
 `frontend`/`backend` are `build:`-based in `docker-compose.yml`, not pinned to a digest — re-running `install.sh` (or a bare `docker compose up -d --build`) rebuilds them from this checkout's source and silently reverts any updates applied via the Update page since. `git pull` the matching release tag first if you want to keep an update, or just use the Update page instead of re-running the installer on an already-updated device.
 
@@ -309,7 +309,7 @@ docker compose up -d minima
 
 Without Minima, the rest of the app still works; the status overview will report Minima as unavailable.
 
-Optional: run `backend` and `update-agent` in Docker while the frontend runs natively with hot reload (e.g. `npm run dev:frontend` alone, pointed at an otherwise-Dockerized stack). Vite's dev proxy forwards `/api` to `http://localhost:3000` and `/update` to `http://localhost:8081`, so those container ports need to be published to the host. Create a gitignored `docker-compose.override.yml` in the repo root (Compose loads it automatically, and `install.sh` deletes/regenerates its own copy on every install, so a local one here never affects a deployed Pi):
+Optional: run `backend` and `update-agent` in Docker while the frontend runs natively with hot reload (e.g. `npm run dev:frontend` alone, pointed at an otherwise-Dockerized stack). Vite's dev proxy forwards `/api` to `http://localhost:3000` and `/update/...` (trailing slash and deeper — status/apply checks and update-agent's own progress page; bare `/update` stays the SPA's own route) to `http://localhost:8081`, so those container ports need to be published to the host. Create a gitignored `docker-compose.override.yml` in the repo root (Compose loads it automatically, and `install.sh` deletes/regenerates its own copy on every install, so a local one here never affects a deployed Pi):
 
 ```yaml
 services:

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
   Copy,
@@ -122,6 +123,7 @@ export function AuthSettingsPage() {
   };
 
   const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <Page
@@ -132,7 +134,7 @@ export function AuthSettingsPage() {
           <Button type="button" variant="ghost" onClick={() => void signOut()}>
             <LogOut size={16} /> Sign out
           </Button>
-          <Button type="button" onClick={() => window.location.assign("/update")}>
+          <Button type="button" onClick={() => navigate("/update")}>
             Check for updates
           </Button>
         </ButtonRow>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { nav } from "../app/nav";
 import type { StatusOverview, Tone } from "../app/types";
 import { Button } from "./ui/Button";
@@ -79,6 +79,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const { pathname, search } = useLocation();
+  const navigate = useNavigate();
 
   const activeItem = useMemo(
     () => nav.find((navItem) => pathname === `/${navItem.id}`) ?? nav[0],
@@ -162,7 +163,7 @@ export function AppShell({
                     variant="primary"
                     size="sm"
                     className="w-full"
-                    onClick={() => window.location.assign("/update")}
+                    onClick={() => navigate("/update")}
                   >
                     View update
                   </Button>

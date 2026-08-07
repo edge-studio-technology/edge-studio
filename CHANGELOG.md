@@ -9,10 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - `NoticeCard` shared component (`components/patterns/`): standalone call-to-action card (title, body, action, optional dismiss) for chrome outside page layout. Used in the sidebar, above Feedback, to surface an "Update available" notice driven by the existing update-status poller, with a per-version dismiss.
+- New in-app Update page (`/update`, not yet linked from the sidebar nav): shows the live up-to-date/available check and starts an update, styled with the same shared components as the rest of the app. See [docs/adr/0002-update-page-split.md](docs/adr/0002-update-page-split.md).
 
 ### Changed
 
-- Native frontend dev (`npm run dev:frontend` against an otherwise-Dockerized stack) can now reach `update-agent`: Vite's dev proxy forwards `/update` to `http://localhost:8081`, alongside the existing `/api` → `backend` proxy. Requires publishing `update-agent`'s port via a local (gitignored) `docker-compose.override.yml`, documented in the README — dev-only, and `install.sh` regenerates its own copy of that file on every install, so it never affects a deployed Pi.
+- Native frontend dev (`npm run dev:frontend` against an otherwise-Dockerized stack) can now reach `update-agent`: Vite's dev proxy forwards `/update/...` (trailing slash and deeper) to `http://localhost:8081`, alongside the existing `/api` → `backend` proxy. Requires publishing `update-agent`'s port via a local (gitignored) `docker-compose.override.yml`, documented in the README — dev-only, and `install.sh` regenerates its own copy of that file on every install, so it never affects a deployed Pi.
+- The Update page is now split: the in-app `/update` page (above) handles checking for updates and starting one; `update-agent`'s own static page, at `/update/` (trailing slash), is trimmed down to only the apply-in-progress/success/failure view, and no longer starts a job on its own — visiting it directly with nothing running now shows a neutral "nothing to update right now" state instead of the old checking/available screens.
+- "Check for updates" (Account settings) and the sidebar update notice now navigate to `/update` in-app instead of a full page reload.
 
 ## [0.31.0] 2026-08-07
 

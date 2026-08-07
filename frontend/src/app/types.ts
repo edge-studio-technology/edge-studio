@@ -28,6 +28,19 @@ export type UpdateStatusSummary = {
   availableVersion: string;
 } | null;
 
+export type UpdateManifest = {
+  frontend: string;
+  backend: string;
+  updateAgent: string;
+  version: string;
+  createdAt: string;
+};
+export type UpdateStatus = {
+  manifest: UpdateManifest;
+  services: UpdateServiceStatus[];
+  currentVersion: string | null;
+};
+
 export type Health = { status: string; service: string };
 export type FileItem = { name: string; type: "file" | "directory" | "other"; size?: number };
 export type FilesResponse = { path: string; items: FileItem[] };
