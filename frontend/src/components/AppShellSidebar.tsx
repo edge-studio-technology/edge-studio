@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import {
   ChevronDown,
@@ -47,11 +47,13 @@ export function AppShellSidebar({
   onFeedback,
   onSignOut,
   version,
+  updateNotice,
 }: {
   pathname: string;
   onFeedback: () => void;
   onSignOut: () => void;
   version: string | null;
+  updateNotice?: ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== "undefined" && !window.matchMedia(EXPAND_MQ).matches,
@@ -211,6 +213,7 @@ export function AppShellSidebar({
           )}
           aria-hidden={collapsed}
         >
+          {updateNotice}
           <button
             type="button"
             className={cx(
