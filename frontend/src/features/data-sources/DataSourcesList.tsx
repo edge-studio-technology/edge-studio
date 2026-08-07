@@ -16,15 +16,17 @@ import {
 } from "../../components/DataTable";
 import { Modal } from "../../components/Modal";
 import { JsonPreviewContent } from "../../components/JsonPreview";
-import { ErrorDetailsContent } from "../../components/ErrorDetails";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
+import { ErrorDetailPanel } from "../../components/patterns/ErrorDetailPanel";
 import { MutedText } from "../../components/Text";
 import { Disclosure } from "../../components/ui/Disclosure";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
+import { formatLocalDateTime } from "../../lib/time";
 import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
 import { hasDeviceSetupGuide } from "./deviceSetupGuides";
+import { HealthErrorPanel } from "./HealthErrorPanel";
 
 export function DataSourcesList({
   items,
@@ -342,12 +344,21 @@ function DeviceDetailsModal({
               </span>
             }
           >
-            {status?.body !== undefined ? (
-              <JsonPreviewContent value={status.body} />
-            ) : status?.error ? (
-              <ErrorDetailsContent error={{ error: status.error }} />
+            {status && !status.ok ? (
+              <HealthErrorPanel status={status} />
             ) : (
-              <MutedText className="m-0">No health data.</MutedText>
+              <div className="gap-detail-near grid">
+                {status?.checkedAt && (
+                  <DetailList>
+                    <DetailRow label="Checked at" value={formatLocalDateTime(status.checkedAt)} />
+                  </DetailList>
+                )}
+                {status?.body !== undefined ? (
+                  <JsonPreviewContent value={status.body} />
+                ) : (
+                  <MutedText className="m-0">No health data.</MutedText>
+                )}
+              </div>
             )}
           </Disclosure>
           <Disclosure
@@ -359,9 +370,23 @@ function DeviceDetailsModal({
             }
           >
             {source.lastPreview ? (
-              <JsonPreviewContent value={source.lastPreview} />
+              <div className="gap-detail-near grid">
+                {source.lastReadAt && (
+                  <DetailList>
+                    <DetailRow label="Checked at" value={formatLocalDateTime(source.lastReadAt)} />
+                  </DetailList>
+                )}
+                <JsonPreviewContent value={source.lastPreview} />
+              </div>
             ) : source.lastError ? (
-              <ErrorDetailsContent error={source.lastErrorDetails ?? source.lastError} />
+              <ErrorDetailPanel
+                error={source.lastErrorDetails ?? source.lastError}
+                extraRows={
+                  source.lastReadAt ? (
+                    <DetailRow label="Checked at" value={formatLocalDateTime(source.lastReadAt)} />
+                  ) : undefined
+                }
+              />
             ) : (
               <MutedText className="m-0">No preview.</MutedText>
             )}

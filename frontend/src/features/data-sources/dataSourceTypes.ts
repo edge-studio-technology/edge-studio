@@ -58,6 +58,7 @@ export type DataSourceHealthStatus = {
   body?: unknown;
   checkedAt?: string;
   error?: string;
+  errorDetails?: unknown;
 };
 
 export type DataSourceCapabilities = {
