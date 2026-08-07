@@ -20,7 +20,8 @@ import { IconButton } from "../ui/Button";
 
 /** Shared visual tokens — prefer `TableHead` / `TableRow` / `TableCell` components in new code. Remove this comment when migrated */
 export const tableHeadRowClass = "bg-surface-secondary type-body-em text-text-primary";
-export const tableHeaderCellClass = "px-margin-tight py-margin-tight text-left align-middle whitespace-nowrap";
+export const tableHeaderCellClass =
+  "px-margin-tight py-margin-tight text-left align-middle whitespace-nowrap";
 export const tableRowClass = "border-t border-stroke-primary bg-surface-always-white";
 export const tableCellClass =
   "px-margin-tight py-margin-tight type-body text-text-primary align-middle whitespace-nowrap";
@@ -45,10 +46,7 @@ export function DataTable({
   ...props
 }: TableHTMLAttributes<HTMLTableElement> & { children: ReactNode }) {
   return (
-    <table
-      className={cx("type-meta w-full border-collapse text-left", className)}
-      {...props}
-    >
+    <table className={cx("type-meta w-full border-collapse text-left", className)} {...props}>
       {children}
     </table>
   );
@@ -132,8 +130,10 @@ export function TableCard({
     <Card className={cx("gap-detail-close grid", className)}>
       <StatusRow className="sm:items-start">
         <div>
-          <strong>{title}</strong>
-          {description && <MutedText className="mt-detail-tight m-0">{description}</MutedText>}
+          <h2 className="type-title text-text-primary m-0">{title}</h2>
+          {description && (
+            <p className="type-body text-text-secondary mt-detail-next m-0">{description}</p>
+          )}
         </div>
         {actions}
       </StatusRow>
