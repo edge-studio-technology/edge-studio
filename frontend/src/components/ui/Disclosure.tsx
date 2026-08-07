@@ -27,7 +27,7 @@ export function Disclosure({
   return (
     <details
       {...props}
-      className={cx("group grid gap-detail-next", className)}
+      className={cx("group gap-detail-next grid", className)}
       open={open}
       onToggle={(event) => {
         if (controlledOpen === undefined) setUncontrolledOpen(event.currentTarget.open);
@@ -36,14 +36,17 @@ export function Disclosure({
     >
       <summary
         className={cx(
-          "type-body-em text-text-primary flex cursor-pointer list-none items-center justify-between gap-detail-close rounded-loose focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden",
+          "type-body-em text-text-primary gap-detail-close rounded-loose focus-visible:ring-stroke-active flex cursor-pointer list-none items-center justify-between focus-visible:ring-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden",
           summaryClassName,
         )}
       >
         <span>{title}</span>
-        <ChevronDown aria-hidden className="size-4 shrink-0 transition-transform group-open:rotate-180" />
+        <ChevronDown
+          aria-hidden
+          className="size-4 shrink-0 transition-transform group-open:rotate-180"
+        />
       </summary>
-      <div className={cx("grid gap-detail-next", contentClassName)}>{children}</div>
+      <div className={cx("gap-detail-next grid", contentClassName)}>{children}</div>
     </details>
   );
 }

@@ -1,14 +1,13 @@
 import type { ReactNode } from "react";
 import { Disclosure } from "../../../../components/ui/Disclosure";
-import { cx } from "../../../../lib/cx";
+import { Text } from "../../../../components/ui/Text";
 import type { AutomationBlockType } from "../../automationTypes";
 import { isDataBlock } from "./blockPresentation";
 import type { DraftWorkflowBlock } from "./types";
 import { WorkflowRailHeader, WorkflowRailPanel } from "./WorkflowRail";
 
-const mutedText = "type-meta text-text-secondary";
 const libraryCardClass =
-  "border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-loose border p-detail-close text-left transition-colors hover:border-stroke-primary hover:bg-surface-always-white focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-text-disabled disabled:opacity-60";
+  "cursor-pointer border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-loose border p-detail-close text-left transition-colors hover:border-stroke-primary hover:bg-surface-always-white focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-text-disabled disabled:opacity-60";
 
 export function WorkflowBlockLibrary({
   mode = "build",
@@ -68,9 +67,7 @@ export function WorkflowBlockLibrary({
         </ToolkitGroup>
       )}
       {mode === "build" && hasStartBlock && (
-        <p className={cx(mutedText, "m-0")}>
-          Start block selected. Data and logic blocks can now be added.
-        </p>
+        <Text.Muted>Start block selected. Data and logic blocks can now be added.</Text.Muted>
       )}
       <ToolkitGroup title="Data blocks">
         <LibraryCard
@@ -151,7 +148,11 @@ export function WorkflowBlockLibrary({
 }
 
 function ToolkitGroup({ title, children }: { title: string; children: ReactNode }) {
-  return <Disclosure title={title}>{children}</Disclosure>;
+  return (
+    <Disclosure title={title} summaryClassName="type-callout">
+      {children}
+    </Disclosure>
+  );
 }
 
 function LibraryCard({
@@ -167,8 +168,8 @@ function LibraryCard({
 }) {
   return (
     <button type="button" className={libraryCardClass} disabled={disabled} onClick={onClick}>
-      <span className="type-body-em">{title}</span>
-      <small className="type-meta text-text-secondary">{description}</small>
+      <span className="type-body-em text-text-primary">{title}</span>
+      <span className="type-body text-text-secondary">{description}</span>
     </button>
   );
 }

@@ -85,7 +85,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [CheckboxField](#checkboxfield): labeled checkbox
 - [RadioField](#radiofield): labeled radio option
 - [SwitchField](#switchfield): labeled on/off switch
-- [Text](#text): text link role (`Text.Link`; more roles planned)
+- [Text](#text): text roles (`Text.Title`, `Text.Subtitle`, `Text.Body`, `Text.BodyEm`, `Text.Muted`, `Text.Link`)
 - `ErrorText`: inline error copy
 - [ErrorAlert](#erroralert): in-page error / warning alert
 - [ErrorDetails](#errordetails): trigger + dialog for inspecting an operational error
@@ -654,15 +654,23 @@ Default (`neutral`): `surface-secondary` fill. Success / Warning / Error: white 
 
 ### Text
 
-Text roles (`frontend/src/components/ui/Text.tsx`): wraps type tokens so call sites pick a role instead of assembling `type-*` + colour classes. Flat `components/Text.tsx` re-exports; legacy `MutedText` remains there for older call sites.
+Text roles (`frontend/src/components/ui/Text.tsx`): wraps type tokens so call sites pick a role instead of assembling `type-*` + colour classes. Flat `components/Text.tsx` re-exports; legacy `MutedText` stays there for older call sites.
 
-Shipped now: `Text.Link`. Planned later: Body, Muted/Meta, Title, Mono, Error.
-
-| Member      | Token / look                     | Default element | Notes                          |
-| ----------- | -------------------------------- | --------------- | ------------------------------ |
-| `Text.Link` | `type-link` + `text-text-accent` | router `Link`   | Hover uses `text-accent-hover` |
+| Member          | Token / look                           | Default element | Notes                                      |
+| --------------- | -------------------------------------- | --------------- | ------------------------------------------ |
+| `Text.Title`    | `type-title` + `text-text-primary`     | `h2`            | Section / page title                       |
+| `Text.Subtitle` | `type-callout` + `text-text-secondary` | `p`             | Supporting line under a title (callout)    |
+| `Text.Body`     | `type-body` + `text-text-primary`      | `p`             | Body copy; override colour via `className` |
+| `Text.BodyEm`   | `type-body-em` + `text-text-primary`   | `p`             | Emphasized / bold body                     |
+| `Text.Muted`    | `type-meta` + `text-text-secondary`    | `p`             | Helper / secondary meta copy               |
+| `Text.Link`     | `type-link` + `text-text-accent`       | router `Link`   | Hover uses `text-accent-hover`             |
 
 ```tsx
+<Text.Title>Automation</Text.Title>
+<Text.Subtitle>Build and run block workflows</Text.Subtitle>
+<Text.Body>Optional supporting detail.</Text.Body>
+<Text.BodyEm>Important label</Text.BodyEm>
+<Text.Muted>Last updated just now</Text.Muted>
 <Text.Link to="/diagnostics?tab=proofs">Open proof</Text.Link>
 ```
 
