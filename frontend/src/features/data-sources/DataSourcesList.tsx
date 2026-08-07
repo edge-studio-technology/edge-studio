@@ -20,13 +20,21 @@ import { CopyableCode } from "../../components/patterns/CopyableCode";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { EmptyState } from "../../components/patterns/EmptyState";
 import { ErrorDetailPanel } from "../../components/patterns/ErrorDetailPanel";
+import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { Disclosure } from "../../components/ui/Disclosure";
+import { Pagination } from "../../components/ui/Pagination";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
+import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatLocalDateTime } from "../../lib/time";
 import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
 import { hasDeviceSetupGuide } from "./deviceSetupGuides";
 import { HealthErrorPanel } from "./HealthErrorPanel";
+
+const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
+  value: String(size),
+  label: String(size),
+}));
 
 export function DataSourcesList({
   items,
@@ -48,6 +56,12 @@ export function DataSourcesList({
   onDelete: (source: DataSource) => void;
 }) {
   const [detailsSource, setDetailsSource] = useState<DataSource | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedItems = items.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <TableCard
@@ -55,6 +69,9 @@ export function DataSourcesList({
       title="Configured devices"
       description="Monitor your configured input sources, and output targets."
     >
+      {items.length > 0 && (
+        <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
+      )}
       <TableWrap>
         <DataTable className="table-fixed">
           <TableHead>
@@ -68,7 +85,7 @@ export function DataSourcesList({
             <TableHeaderCell className="w-28 whitespace-nowrap">Actions</TableHeaderCell>
           </TableHead>
           <TableBody>
-            {items.map((source) => {
+            {pagedItems.map((source) => {
               const usedByWorkflows = source.usedByWorkflows ?? [];
               const deleteDisabledReason =
                 usedByWorkflows.length > 0
@@ -172,7 +189,22 @@ export function DataSourcesList({
           </TableBody>
         </DataTable>
       </TableWrap>
-      {items.length === 0 && <EmptyTableState>No devices added yet.</EmptyTableState>}
+      {items.length === 0 ? (
+        <EmptyTableState>No devices added yet.</EmptyTableState>
+      ) : (
+        <ListPaginationFooter
+          page={currentPage}
+          pageSize={pageSize}
+          total={items.length}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+        />
+      )}
       {detailsSource && (
         <DeviceDetailsModal
           source={detailsSource}
