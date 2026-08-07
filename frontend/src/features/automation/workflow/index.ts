@@ -33,6 +33,9 @@ export {
   WorkflowValidationPanel,
 } from "./WorkflowWatchUi";
 
+export { CreateWorkflowWorkspace } from "./CreateWorkflowWorkspace";
+export { WorkflowWorkspace } from "./WorkflowWorkspace";
+
 export {
   IconAction,
   InspectorSection,

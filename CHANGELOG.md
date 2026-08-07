@@ -8,11 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Split the automation workflow canvas into `features/automation/workflow-canvas/` (shell, rail, toolkit, canvas, presentation helpers).
-- Moved pure automation draft/config/label/filter helpers out of `AutomationPage` into `features/automation/workflowHelpers.ts`.
-- Moved shared automation workflow chrome (`Panel`, selected-block sheet, inspector section, status pills, save/validation row helpers) into `features/automation/workflowWorkspaceUi.tsx` (workspace chrome; not `workflow-canvas`).
-- Documented frontend Automation vs Workflow naming in automation agent rules (`automation*` for feature-wide, `workflow*` / `workflow-canvas/` for one pipeline and its graph).
+- Grouped one-pipeline editor under `features/automation/workflow/` with graph code in `workflow/canvas/` (shell, rail, toolkit, canvas, presentation helpers).
+- Moved pure draft/config/label/filter helpers into `workflow/workflowHelpers.ts`.
+- Moved shared workflow chrome (`Panel`, selected-block sheet, inspector section, status pills, save/validation row helpers) into `workflow/workflowWorkspaceUi.tsx` (workspace chrome; not canvas).
+- Documented frontend Automation vs Workflow naming in automation agent rules (`automation*` for feature-wide, `workflow/` + `workflow/canvas/` for one pipeline and its graph).
 - Moved the Automation inbox panel and preview modal out of `AutomationPage` into `features/automation/AutomationInboxPanel.tsx`.
+- Moved draft/persisted block inspectors (and attached stamp settings) into `workflow/WorkflowBlockInspectors.tsx`.
+- Moved watch-mode run controls, runtime inspector, historic runs, and the shared validation panel into `workflow/WorkflowWatchUi.tsx`.
+- Moved create and edit/watch workspaces out of `AutomationPage` into `workflow/CreateWorkflowWorkspace.tsx` and `workflow/WorkflowWorkspace.tsx` (page keeps list + route/data wiring).
 
 ## [0.30.3] 2026-08-07
 

@@ -61,7 +61,13 @@ export function AutomationInboxPanel({
                 >
                   {item.readAt ? "Mark unread" : "Mark read"}
                 </Button>
-                <Button type="button" variant="danger" size="sm" disabled={busy} onClick={() => onDelete(item)}>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => onDelete(item)}
+                >
                   Delete
                 </Button>
               </div>
@@ -101,14 +107,19 @@ function InboxPreviewModal({ item }: { item: AutomationInboxItem }) {
 function InboxPreviewContent({ item }: { item: AutomationInboxItem }) {
   if (item.format === "json") {
     return (
-      <pre className="m-0 overflow-visible whitespace-pre-wrap rounded-2xl bg-slate-900 p-3.5 text-[0.84rem] text-blue-100 [overflow-wrap:anywhere]">
+      <pre className="m-0 overflow-visible rounded-2xl bg-slate-900 p-3.5 text-[0.84rem] [overflow-wrap:anywhere] whitespace-pre-wrap text-blue-100">
         {JSON.stringify(item.content, null, 2)}
       </pre>
     );
   }
   if (item.format === "link" && typeof item.content === "string") {
     return (
-      <a className="font-bold text-blue-700 underline" href={item.content} target="_blank" rel="noreferrer">
+      <a
+        className="font-bold text-blue-700 underline"
+        href={item.content}
+        target="_blank"
+        rel="noreferrer"
+      >
         {item.content}
       </a>
     );
@@ -131,5 +142,5 @@ function InboxPreviewContent({ item }: { item: AutomationInboxItem }) {
       </div>
     );
   }
-  return <p className="whitespace-pre-wrap text-sm text-slate-700">{textPreviewContent(item)}</p>;
+  return <p className="text-sm whitespace-pre-wrap text-slate-700">{textPreviewContent(item)}</p>;
 }
