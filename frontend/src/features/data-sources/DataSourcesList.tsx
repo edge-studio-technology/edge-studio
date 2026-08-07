@@ -1,4 +1,4 @@
-import { Play } from "lucide-react";
+import { Activity, Inbox, Play } from "lucide-react";
 import { useState } from "react";
 import {
   DataTable,
@@ -18,8 +18,8 @@ import { Modal } from "../../components/Modal";
 import { JsonPreviewContent } from "../../components/JsonPreview";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
+import { EmptyState } from "../../components/patterns/EmptyState";
 import { ErrorDetailPanel } from "../../components/patterns/ErrorDetailPanel";
-import { MutedText } from "../../components/Text";
 import { Disclosure } from "../../components/ui/Disclosure";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
@@ -356,7 +356,11 @@ function DeviceDetailsModal({
                 {status?.body !== undefined ? (
                   <JsonPreviewContent value={status.body} />
                 ) : (
-                  <MutedText className="m-0">No health data.</MutedText>
+                  <EmptyState
+                    icon={Activity}
+                    title="No health data"
+                    description="Add a health status URL to this device to monitor its availability here."
+                  />
                 )}
               </div>
             )}
@@ -388,7 +392,11 @@ function DeviceDetailsModal({
                 }
               />
             ) : (
-              <MutedText className="m-0">No preview.</MutedText>
+              <EmptyState
+                icon={Inbox}
+                title="No preview"
+                description="Trigger a manual read, or wait for the next scheduled run, to see a preview here."
+              />
             )}
           </Disclosure>
         </div>
