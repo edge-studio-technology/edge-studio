@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { Check } from "lucide-react";
 import { Disclosure } from "../../../../components/ui/Disclosure";
 import { Menu } from "../../../../components/ui/Menu";
 import { Tooltip } from "../../../../components/ui/Tooltip";
@@ -190,7 +191,6 @@ export function WorkflowBlockLibrary({
         <LibraryCard
           disabled={Boolean(stampReason)}
           disabledReason={stampReason}
-          selected={stampPickerOpen}
           onClick={attachStamp}
           title="Stamp data"
           description="Create an Integritas proof for recorded or fetched data."
@@ -277,7 +277,12 @@ function LibraryCard({
       aria-pressed={selected || undefined}
       onClick={onClick}
     >
-      <span className="type-body-em text-text-primary">{title}</span>
+      <span className="gap-detail-close flex items-center justify-between">
+        <span className="type-body-em text-text-primary">{title}</span>
+        {selected ? (
+          <Check aria-hidden className="text-icon-primary size-4 shrink-0" strokeWidth={2.5} />
+        ) : null}
+      </span>
       <span className="type-body text-text-secondary">{description}</span>
     </button>
   );
