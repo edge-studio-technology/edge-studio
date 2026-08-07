@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `NoticeCard` shared component (`components/patterns/`): standalone call-to-action card (title, body, action, optional dismiss) for chrome outside page layout. Used in the sidebar, above Feedback, to surface an "Update available" notice driven by the existing update-status poller, with a per-version dismiss.
 - New in-app Update page (`/update`, not yet linked from the sidebar nav): shows the live up-to-date/available check and starts an update, styled with the same shared components as the rest of the app. See [docs/adr/0002-update-page-split.md](docs/adr/0002-update-page-split.md).
+- `UPDATE_DRY_RUN` env var for `update-agent` (dev only, defaults off, never set by `install.sh`): simulates a successful update apply — same running/succeeded flow, no manifest recorded as applied — without pulling or swapping any container, so the Update flow can be exercised repeatedly in dev. See [docs/adr/0003-update-dry-run.md](docs/adr/0003-update-dry-run.md) and `SECURITY.md`.
 
 ### Changed
 

@@ -327,6 +327,8 @@ Then start the Dockerized services:
 docker compose --profile update-agent up -d backend minima update-agent
 ```
 
+In dev, `update-agent` almost always reports an update as available, since locally built images never match a real signed manifest's digests — that's expected, and useful: it means the Update page/flow is always testable. To exercise the flow without actually pulling or swapping any container, set `UPDATE_DRY_RUN=true` in `.env` (dev only — never set this in production, see `SECURITY.md`) before starting `update-agent`. A dry-run apply still goes through the normal running → succeeded flow but never marks the manifest as applied, so "update available" keeps showing for repeat testing.
+
 ### Full stack in Docker
 
 Generate a TLS certificate (once per machine, or after a LAN IP change):
