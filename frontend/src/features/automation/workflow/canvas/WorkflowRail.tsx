@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { ScrollArea } from "../../../components/ui/ScrollArea";
-import { cx } from "../../../lib/cx";
+import { ScrollArea } from "../../../../components/ui/ScrollArea";
+import { cx } from "../../../../lib/cx";
 
 const mutedText = "type-meta text-text-secondary";
 const railPanelClass =

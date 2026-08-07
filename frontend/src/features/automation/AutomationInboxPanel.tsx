@@ -4,16 +4,16 @@ import { Modal } from "../../components/Modal";
 import { cx } from "../../lib/cx";
 import { formatLocalTime } from "../../lib/time";
 import type { AutomationInboxItem } from "./automationTypes";
-import { isImagePreviewContent, textPreviewContent } from "./workflowHelpers";
+import { isImagePreviewContent, textPreviewContent } from "./workflow/workflowHelpers";
 import {
   StatusPill,
   cardClass,
   mutedText,
   softCardClass,
   statusRowClass,
-} from "./workflowWorkspaceUi";
+} from "./workflow/workflowWorkspaceUi";
 
-/** Feature-wide Automation inbox (Show preview outputs). Not workflow-canvas. */
+/** Feature-wide Automation inbox (Show preview outputs). Not the workflow editor. */
 export function AutomationInboxPanel({
   items,
   busy,

@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { IconButton } from "../../components/Button";
-import { TableIconButton } from "../../components/DataTable";
-import { Card } from "../../components/ui/Card";
-import { ScrollArea } from "../../components/ui/ScrollArea";
-import { cx } from "../../lib/cx";
-import type { AutomationValidationResult, AutomationWorkflow } from "./automationTypes";
+import { IconButton } from "../../../components/Button";
+import { TableIconButton } from "../../../components/DataTable";
+import { Card } from "../../../components/ui/Card";
+import { ScrollArea } from "../../../components/ui/ScrollArea";
+import { cx } from "../../../lib/cx";
+import type { AutomationValidationResult, AutomationWorkflow } from "../automationTypes";
 
-/** Workspace chrome for Automation page screens (list/create/edit/watch). Not the graph — that lives in `workflow-canvas/`. */
+/** Workspace chrome for Automation page screens (list/create/edit/watch). Not the graph — that lives in `workflow/canvas/`. */
 export const mutedText = "type-body text-text-secondary";
 export const errorText = "type-body-em text-text-error";
 export const cardClass =

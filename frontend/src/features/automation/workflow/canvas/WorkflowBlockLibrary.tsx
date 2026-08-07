@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { Disclosure } from "../../../components/ui/Disclosure";
-import { cx } from "../../../lib/cx";
-import type { AutomationBlockType } from "../automationTypes";
+import { Disclosure } from "../../../../components/ui/Disclosure";
+import { cx } from "../../../../lib/cx";
+import type { AutomationBlockType } from "../../automationTypes";
 import { isDataBlock } from "./blockPresentation";
 import type { DraftWorkflowBlock } from "./types";
 import { WorkflowRailHeader, WorkflowRailPanel } from "./WorkflowRail";

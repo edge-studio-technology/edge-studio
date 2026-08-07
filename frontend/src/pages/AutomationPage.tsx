@@ -31,7 +31,7 @@ import {
   workflowIntervalSeconds,
   workflowMatchesFilter,
   workflowPrimarySourceId,
-} from "../features/automation/workflowHelpers";
+} from "../features/automation/workflow/workflowHelpers";
 import {
   IconAction,
   InspectorSection,
@@ -47,10 +47,10 @@ import {
   inspectorClass,
   mutedText,
   statusRowClass,
-} from "../features/automation/workflowWorkspaceUi";
+} from "../features/automation/workflow/workflowWorkspaceUi";
 import { AutomationInboxPanel } from "../features/automation/AutomationInboxPanel";
-import { DraftBlockInspector, PersistedBlockInspector } from "../features/automation/WorkflowBlockInspectors";
-import { automationBlockToCanvasBlock, draftBlockDescription, draftBlockTitle, WorkflowBlockLibrary, WorkflowCanvas, WorkflowRailHeader, WorkflowRailPanel, WorkflowWorkspaceShell, type DraftWorkflowBlock } from "../features/automation/workflow-canvas";
+import { DraftBlockInspector, PersistedBlockInspector } from "../features/automation/workflow/WorkflowBlockInspectors";
+import { automationBlockToCanvasBlock, draftBlockDescription, draftBlockTitle, WorkflowBlockLibrary, WorkflowCanvas, WorkflowRailHeader, WorkflowRailPanel, WorkflowWorkspaceShell, type DraftWorkflowBlock } from "../features/automation/workflow/canvas";
 import type { AutomationBlock, AutomationBlockType, AutomationInboxItem, AutomationRun, AutomationValidationResult, AutomationWorkflow } from "../features/automation/automationTypes";
 import { listAddressBookEntries } from "../features/address-book/addressBookApi";
 import type { AddressBookEntry } from "../features/address-book/addressBookTypes";

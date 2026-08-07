@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cx } from "../../../lib/cx";
+import { cx } from "../../../../lib/cx";
 
 const shellClass =
   "border-stroke-primary bg-surface-always-white flex h-screen min-h-0 flex-col overflow-hidden border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";

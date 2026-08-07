@@ -1,4 +1,4 @@
-import type { AutomationBlock, AutomationBlockType } from "../automationTypes";
+import type { AutomationBlock, AutomationBlockType } from "../../automationTypes";
 
 export type DraftWorkflowBlock = {
   id: string;

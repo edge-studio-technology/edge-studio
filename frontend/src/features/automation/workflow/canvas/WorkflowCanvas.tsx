@@ -1,7 +1,7 @@
-import type { DataSource } from "../../data-sources/dataSourceTypes";
-import { Pill } from "../../../components/Pill";
-import { ScrollArea } from "../../../components/ui/ScrollArea";
-import { cx } from "../../../lib/cx";
+import type { DataSource } from "../../../data-sources/dataSourceTypes";
+import { Pill } from "../../../../components/Pill";
+import { ScrollArea } from "../../../../components/ui/ScrollArea";
+import { cx } from "../../../../lib/cx";
 import { blockPresentation } from "./blockPresentation";
 import type {
   DraftWorkflowBlock,

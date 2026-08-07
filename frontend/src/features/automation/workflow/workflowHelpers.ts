@@ -1,7 +1,7 @@
-import type { AddressBookEntry } from "../address-book/addressBookTypes";
-import type { DataSource } from "../data-sources/dataSourceTypes";
-import type { WalletStatus } from "../wallet/walletTypes";
-import { formatRunDuration } from "./automationRunDisplay";
+import type { AddressBookEntry } from "../../address-book/addressBookTypes";
+import type { DataSource } from "../../data-sources/dataSourceTypes";
+import type { WalletStatus } from "../../wallet/walletTypes";
+import { formatRunDuration } from "../automationRunDisplay";
 import type {
   AutomationBlock,
   AutomationBlockType,
@@ -10,14 +10,14 @@ import type {
   AutomationValidationResult,
   AutomationWorkflow,
   ConditionOperator,
-} from "./automationTypes";
+} from "../automationTypes";
 import type {
   DraftWorkflowBlock,
   WorkflowCanvasRuntimeState,
   WorkflowCanvasValidationIssue,
-} from "./workflow-canvas";
+} from "./canvas";
 
-/** Pure workflow draft/config/label helpers (no React). Graph visuals stay in `workflow-canvas/`. */
+/** Pure workflow draft/config/label helpers (no React). Graph visuals stay in `workflow/canvas/`. */
 export const WORKFLOW_INTERVAL_OPTIONS = [10, 30, 60, 300, 900, 3600] as const;
 
 export const conditionOperatorOptions: { value: ConditionOperator; label: string }[] = [

@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import { Button } from "../../components/Button";
-import { RowActions } from "../../components/DataTable";
-import { CheckboxField } from "../../components/ui/CheckboxField";
-import { InputField } from "../../components/ui/InputField";
-import { SelectField } from "../../components/ui/SelectField";
-import { TextareaField } from "../../components/ui/TextareaField";
-import type { AddressBookEntry } from "../address-book/addressBookTypes";
-import type { DataSource } from "../data-sources/dataSourceTypes";
-import type { WalletStatus } from "../wallet/walletTypes";
-import { updateAutomationBlock } from "./automationApi";
-import type { AutomationBlock, ConditionOperator } from "./automationTypes";
+import { Button } from "../../../components/Button";
+import { RowActions } from "../../../components/DataTable";
+import { CheckboxField } from "../../../components/ui/CheckboxField";
+import { InputField } from "../../../components/ui/InputField";
+import { SelectField } from "../../../components/ui/SelectField";
+import { TextareaField } from "../../../components/ui/TextareaField";
+import type { AddressBookEntry } from "../../address-book/addressBookTypes";
+import type { DataSource } from "../../data-sources/dataSourceTypes";
+import type { WalletStatus } from "../../wallet/walletTypes";
+import { updateAutomationBlock } from "../automationApi";
+import type { AutomationBlock, ConditionOperator } from "../automationTypes";
 import {
   WORKFLOW_INTERVAL_OPTIONS,
   bodyModeDescription,
@@ -35,7 +35,7 @@ import {
   sourcesForStart,
 } from "./workflowHelpers";
 import { InspectorSection, SaveState, errorText, formGridClass, mutedText } from "./workflowWorkspaceUi";
-import { draftBlockDescription, isDataBlock, type DraftWorkflowBlock } from "./workflow-canvas";
+import { draftBlockDescription, isDataBlock, type DraftWorkflowBlock } from "./canvas";
 
 /** Block config inspectors for create/edit workflow workspaces. */
 export function DraftBlockInspector({ block, sources, addressBook, walletStatus, onChange, onAttachedChange, onAttachedRemove }: { block: DraftWorkflowBlock; sources: DataSource[]; addressBook: AddressBookEntry[]; walletStatus: WalletStatus | null; onChange: (config: AutomationBlock["config"]) => void; onAttachedChange: (attachedId: string, config: AutomationBlock["config"]) => void; onAttachedRemove: (attachedId: string) => void }) {

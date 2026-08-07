@@ -1,5 +1,5 @@
-import type { DataSource } from "../../data-sources/dataSourceTypes";
-import type { AutomationBlock, AutomationBlockType } from "../automationTypes";
+import type { DataSource } from "../../../data-sources/dataSourceTypes";
+import type { AutomationBlock, AutomationBlockType } from "../../automationTypes";
 import type {
   DraftWorkflowBlock,
   WorkflowCanvasBlock,
