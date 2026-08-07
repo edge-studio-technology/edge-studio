@@ -40,6 +40,7 @@ export function DataSourcesList({
 }) {
   return (
     <TableCard
+      className="w-full"
       title="Configured devices"
       description="Input sources, capture devices, and output targets saved in SQLite."
     >
