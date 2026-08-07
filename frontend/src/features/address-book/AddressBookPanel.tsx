@@ -21,9 +21,9 @@ import { Button } from "../../components/ui/Button";
 import { InputField } from "../../components/ui/InputField";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { Modal } from "../../components/ui/Modal";
+import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { useToast } from "../../components/ToastProvider";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
-import { shortAddress } from "../wallet/walletUtils";
 import {
   createAddressBookEntry,
   deleteAddressBookEntry,
@@ -185,12 +185,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
                     <span className="type-body-em text-text-primary truncate">{entry.label}</span>
                   </TableCell>
                   <TableCell className="min-w-0">
-                    <code
-                      className="type-mono text-text-secondary block truncate"
-                      title={entry.address}
-                    >
-                      {shortAddress(entry.address)}
-                    </code>
+                    <TruncatedHash value={entry.address} />
                   </TableCell>
                   <TableCell className="min-w-0">
                     <span className="type-body text-text-secondary truncate">

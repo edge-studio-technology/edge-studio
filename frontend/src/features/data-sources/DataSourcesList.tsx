@@ -19,6 +19,7 @@ import { JsonPreviewContent } from "../../components/JsonPreview";
 import { ErrorDetailsContent } from "../../components/ErrorDetails";
 import { MutedText } from "../../components/Text";
 import { Pill } from "../../components/ui/Pill";
+import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
 import { hasDeviceSetupGuide } from "./deviceSetupGuides";
 
@@ -103,7 +104,7 @@ export function DataSourcesList({
                   </TableCell>
                   <TableCell>
                     {source.lastHash ? (
-                      <code>{source.lastHash}</code>
+                      <TruncatedHash value={source.lastHash} />
                     ) : (
                       <span className="text-slate-500">Not read yet</span>
                     )}

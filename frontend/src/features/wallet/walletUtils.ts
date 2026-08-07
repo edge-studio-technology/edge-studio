@@ -26,10 +26,3 @@ export function isPositiveDecimal(value: string): boolean {
 export function isNativeTokenId(tokenId: string): boolean {
   return tokenId.trim().toLowerCase() === "0x00";
 }
-
-export function shortAddress(value: string): string {
-  if (value.length <= 18) return value;
-  if (value.startsWith("Mx")) return `${value.slice(0, 8)}…${value.slice(-6)}`;
-  if (value.startsWith("0x")) return `${value.slice(0, 10)}…${value.slice(-6)}`;
-  return `${value.slice(0, 8)}…${value.slice(-6)}`;
-}

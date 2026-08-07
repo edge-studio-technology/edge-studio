@@ -14,18 +14,19 @@ import {
 import { Button } from "../../components/ui/Button";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { Pill } from "../../components/ui/Pill";
+import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { useToast } from "../../components/ToastProvider";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
-import { formatAmountAdaptive } from "../../lib/format";
+import { formatAmountAdaptive, shortHash } from "../../lib/format";
 import { formatLocalDateTime } from "../../lib/time";
 import { clearWalletHistoryForDebug } from "./walletApi";
 import { HistoryDetailModal } from "./HistoryDetailModal";
 import { TokenGlyph } from "./TokenGlyph";
 import type { WalletSendHistoryItem } from "./walletTypes";
-import { isNativeTokenId, shortAddress } from "./walletUtils";
+import { isNativeTokenId } from "./walletUtils";
 
 const HISTORY_STATUS_OPTIONS = [
   { value: "", label: "All" },
@@ -209,7 +210,7 @@ export function WalletHistoryPanel({
               ) : (
                 pagedHistory.map((entry) => {
                   const amountLabel = formatAmountAdaptive(entry.amount);
-                  const toShort = shortAddress(entry.toAddress);
+                  const toShort = shortHash(entry.toAddress);
                   return (
                     <TableRow key={entry.id}>
                       <TableCell className="min-w-0">
@@ -226,12 +227,7 @@ export function WalletHistoryPanel({
                         </span>
                       </TableCell>
                       <TableCell className="min-w-0">
-                        <code
-                          className="type-mono text-text-secondary block truncate"
-                          title={entry.toAddress}
-                        >
-                          {toShort}
-                        </code>
+                        <TruncatedHash value={entry.toAddress} />
                       </TableCell>
                       <TableCell>
                         <Pill tone={historyStatusTone(entry.status)} indicator>
