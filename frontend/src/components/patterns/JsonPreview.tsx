@@ -56,7 +56,7 @@ export function JsonPreview({
         <Modal title="JSON preview" onClose={() => setOpen(false)}>
           <JsonPreviewContent value={value} />
         </Modal>
-      ) : null}
+      )}
     </>
   );
 }

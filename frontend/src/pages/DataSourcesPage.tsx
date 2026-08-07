@@ -139,8 +139,6 @@ export function DataSourcesPage() {
   async function deleteSource(source: DataSource) {
     setDeletingSource(source);
     try {
-      // TODO: remove artificial delay, added temporarily to preview the loading state.
-      await new Promise((resolve) => setTimeout(resolve, 5000));
       await run(() => deleteDataSource(source.id), "Device deleted");
     } finally {
       setDeletingSource(null);
