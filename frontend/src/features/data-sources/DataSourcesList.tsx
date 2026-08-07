@@ -17,6 +17,8 @@ import {
 import { Modal } from "../../components/Modal";
 import { JsonPreviewContent } from "../../components/JsonPreview";
 import { ErrorDetailsContent } from "../../components/ErrorDetails";
+import { CopyableCode } from "../../components/patterns/CopyableCode";
+import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { MutedText } from "../../components/Text";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
@@ -51,16 +53,16 @@ export function DataSourcesList({
       description="Input sources, capture devices, and output targets saved in SQLite."
     >
       <TableWrap>
-        <DataTable className="min-w-[980px]">
+        <DataTable className="table-fixed">
           <TableHead>
-            <TableHeaderCell>Name</TableHeaderCell>
-            <TableHeaderCell>Direction</TableHeaderCell>
-            <TableHeaderCell>Type</TableHeaderCell>
-            <TableHeaderCell>Endpoint</TableHeaderCell>
-            <TableHeaderCell>Health</TableHeaderCell>
-            <TableHeaderCell>Last hash</TableHeaderCell>
-            <TableHeaderCell>Last preview</TableHeaderCell>
-            <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+            <TableHeaderCell className="w-72">Name</TableHeaderCell>
+            <TableHeaderCell className="w-24">Direction</TableHeaderCell>
+            <TableHeaderCell className="w-56">Type</TableHeaderCell>
+            <TableHeaderCell className="w-lg">Endpoint</TableHeaderCell>
+            <TableHeaderCell className="w-36">Health</TableHeaderCell>
+            <TableHeaderCell className="w-40">Last hash</TableHeaderCell>
+            <TableHeaderCell className="w-32">Last preview</TableHeaderCell>
+            <TableHeaderCell className="w-28 whitespace-nowrap">Actions</TableHeaderCell>
           </TableHead>
           <TableBody>
             {items.map((source) => {
@@ -72,31 +74,15 @@ export function DataSourcesList({
               return (
                 <TableRow key={source.id}>
                   <TableCell>
-                    <strong>{source.name}</strong>
+                    <strong className="block truncate" title={source.name}>
+                      {source.name}
+                    </strong>
                   </TableCell>
-                  <TableCell>
-                    {source.type === "pi-camera"
-                      ? "Capture"
-                      : isInputSource(source)
-                        ? "Input"
-                        : "Output"}
-                  </TableCell>
+                  <TableCell>{sourceDirection(source)}</TableCell>
                   <TableCell>{sourceTypeLabel(source)}</TableCell>
                   <TableCell>
-                    <code>
-                      {source.type === "webhook"
-                        ? webhookUrl(source)
-                        : source.type === "mqtt" || source.type === "mqtt-output"
-                          ? mqttEndpoint(source)
-                          : source.type === "gpio-input"
-                            ? gpioEndpoint(source)
-                            : source.type === "gpio-output"
-                              ? gpioOutputEndpoint(source)
-                              : source.type === "pi-camera"
-                                ? cameraEndpoint(source)
-                                : source.type === "bme-sensor"
-                                  ? bmeEndpoint(source)
-                                  : source.config.url}
+                    <code className="block truncate" title={sourceEndpoint(source)}>
+                      {sourceEndpoint(source)}
                     </code>
                   </TableCell>
                   <TableCell>
@@ -110,21 +96,9 @@ export function DataSourcesList({
                     )}
                   </TableCell>
                   <TableCell>
-                    {source.lastPreview ? (
-                      <Pill tone="good" indicator>
-                        Success
-                      </Pill>
-                    ) : source.lastError ? (
-                      <Pill tone="error" indicator>
-                        Failed
-                      </Pill>
-                    ) : (
-                      <Pill tone="neutral" indicator>
-                        No preview
-                      </Pill>
-                    )}
+                    <LastPreviewCell source={source} />
                   </TableCell>
-                  <TableCell className="w-px whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap">
                     <RowActions>
                       <TableIconButton
                         type="button"
@@ -265,6 +239,20 @@ function isInputSource(source: DataSource) {
   );
 }
 
+function sourceDirection(source: DataSource) {
+  return source.type === "pi-camera" ? "Capture" : isInputSource(source) ? "Input" : "Output";
+}
+
+function sourceEndpoint(source: DataSource) {
+  if (source.type === "webhook") return webhookUrl(source);
+  if (source.type === "mqtt" || source.type === "mqtt-output") return mqttEndpoint(source);
+  if (source.type === "gpio-input") return gpioEndpoint(source);
+  if (source.type === "gpio-output") return gpioOutputEndpoint(source);
+  if (source.type === "pi-camera") return cameraEndpoint(source);
+  if (source.type === "bme-sensor") return bmeEndpoint(source);
+  return source.config.url;
+}
+
 function supportsHealthCheck(source: DataSource) {
   return (
     source.type !== "bme-sensor" &&
@@ -294,6 +282,26 @@ function HealthCell({ source, status }: { source: DataSource; status?: DataSourc
   );
 }
 
+function LastPreviewCell({ source }: { source: DataSource }) {
+  if (source.lastPreview)
+    return (
+      <Pill tone="good" indicator>
+        Success
+      </Pill>
+    );
+  if (source.lastError)
+    return (
+      <Pill tone="error" indicator>
+        Failed
+      </Pill>
+    );
+  return (
+    <Pill tone="neutral" indicator>
+      No preview
+    </Pill>
+  );
+}
+
 function DeviceDetailsModal({
   source,
   status,
@@ -304,10 +312,31 @@ function DeviceDetailsModal({
   onClose: () => void;
 }) {
   return (
-    <Modal title="Device details" description={source.description || undefined} onClose={onClose}>
+    <Modal title="Device details" onClose={onClose}>
       <div className="gap-detail-near grid">
+        <DetailList>
+          <DetailRow label="Name" value={source.name} />
+          <DetailRow label="Description" value={source.description || "—"} />
+          <DetailRow label="Direction" value={sourceDirection(source)} />
+          <DetailRow label="Type" value={sourceTypeLabel(source)} />
+          <DetailRow label="Endpoint" value={sourceEndpoint(source)} mono />
+          <DetailRow
+            label="Last hash"
+            value={
+              source.lastHash ? (
+                <CopyableCode value={source.lastHash} />
+              ) : (
+                <span className="text-slate-500">Not read yet</span>
+              )
+            }
+          />
+        </DetailList>
+
         <section className="gap-detail-tight grid">
-          <strong>Health</strong>
+          <div className="flex items-center justify-between">
+            <strong>Health</strong>
+            <HealthCell source={source} status={status} />
+          </div>
           {status?.body !== undefined ? (
             <JsonPreviewContent value={status.body} />
           ) : status?.error ? (
@@ -317,7 +346,10 @@ function DeviceDetailsModal({
           )}
         </section>
         <section className="gap-detail-tight grid">
-          <strong>Last preview</strong>
+          <div className="flex items-center justify-between">
+            <strong>Last preview</strong>
+            <LastPreviewCell source={source} />
+          </div>
           {source.lastPreview ? (
             <JsonPreviewContent value={source.lastPreview} />
           ) : source.lastError ? (
