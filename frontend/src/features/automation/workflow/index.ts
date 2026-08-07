@@ -30,7 +30,6 @@ export {
   WatchRunControls,
   WatchRuntimeInspector,
   WatchRunHistory,
-  WorkflowValidationPanel,
 } from "./WorkflowWatchUi";
 
 export { CreateWorkflowWorkspace } from "./CreateWorkflowWorkspace";
@@ -46,6 +45,7 @@ export {
   StatusPill,
   ValidationIssueRow,
   WorkflowStatusPill,
+  WorkflowValidationPanel,
   RulePart,
   cardClass,
   errorText,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
+import { InputField } from "../../../components/ui/InputField";
 import { cx } from "../../../lib/cx";
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
@@ -24,12 +25,10 @@ import { createDraftBlock, flattenDraftBlocks, validationIssuesByBlockId } from 
 import {
   Panel,
   SelectedBlockSheet,
-  errorText,
+  WorkflowValidationPanel,
   formGridClass,
   inspectorClass,
-  mutedText,
 } from "./workflowWorkspaceUi";
-import { InputField } from "../../../components/ui/InputField";
 
 /** Create-mode workflow editor (draft blocks + leave confirmation). */
 export function CreateWorkflowWorkspace({
@@ -77,8 +76,6 @@ export function CreateWorkflowWorkspace({
     : undefined;
   const toolkitSelectedBlock = selectedBlock ?? draftBlocks[0];
   const localErrors = name.trim() ? [] : ["Workflow name is required."];
-  const backendErrors = backendValidation?.errors.map((issue) => issue.message) ?? [];
-  const backendWarnings = backendValidation?.warnings.map((issue) => issue.message) ?? [];
   const canCreate = localErrors.length === 0 && Boolean(backendValidation?.ok);
   const hasStartBlock = draftBlocks.some((block) => block.type.endsWith("_start"));
   const draftValidationByBlockId = validationIssuesByBlockId(backendValidation);
@@ -217,6 +214,7 @@ export function CreateWorkflowWorkspace({
             value={name}
             onChange={(event) => onNameChange(event.target.value)}
             placeholder="Workflow name"
+            error={localErrors[0]}
           />
         }
         actions={
@@ -241,7 +239,7 @@ export function CreateWorkflowWorkspace({
             </Button>
           </>
         }
-        rail={
+        leftRail={
           <aside className={cx(inspectorClass, formGridClass)}>
             <Panel>
               <label className="gap-detail-next type-meta text-text-primary grid grid-cols-[auto_minmax(0,1fr)] items-center">
@@ -250,35 +248,21 @@ export function CreateWorkflowWorkspace({
                   type="checkbox"
                   checked={enabled}
                   onChange={(event) => onEnabledChange(event.target.checked)}
-                />{" "}
+                />
                 Enabled after create
               </label>
-              <strong>Validation</strong>
-              {localErrors.map((issue) => (
-                <p key={issue} className={errorText}>
-                  {issue}
-                </p>
-              ))}
-              {backendErrors.map((issue) => (
-                <p key={issue} className={errorText}>
-                  {issue}
-                </p>
-              ))}
-              {backendWarnings.map((issue) => (
-                <p key={issue} className={mutedText}>
-                  {issue}
-                </p>
-              ))}
-              {backendValidationError && <p className={errorText}>{backendValidationError}</p>}
-              {!backendValidation && !backendValidationError && (
-                <p className={mutedText}>Checking draft workflow...</p>
-              )}
-              {canCreate && (
-                <p className={mutedText}>
-                  No blocking draft errors. Review any warnings before creating.
-                </p>
-              )}
             </Panel>
+            {draftBlocks.length > 0 && (
+              <WorkflowValidationPanel
+                validation={backendValidation}
+                fetchError={backendValidationError}
+                description="Fix errors before creating. Review any warnings before creating."
+              />
+            )}
+          </aside>
+        }
+        rail={
+          <aside className={inspectorClass}>
             <WorkflowBlockLibrary
               hasStartBlock={hasStartBlock}
               selectedBlock={toolkitSelectedBlock}

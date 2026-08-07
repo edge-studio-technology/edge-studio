@@ -8,7 +8,8 @@ const topbarClass =
   "border-stroke-secondary bg-surface-always-white pt-margin-relaxed px-margin-relaxed pb-margin-tight flex flex-col gap-detail-close border-b lg:flex-row lg:items-end lg:justify-between";
 const workspaceClass = "bg-surface-secondary relative min-h-0 flex-1 overflow-hidden";
 const canvasFrameClass = "h-full min-h-0";
-const railClass = "z-10 xl:absolute xl:top-margin-tight xl:right-detail-near xl:w-[360px]";
+const leftRailClass = "z-10 xl:absolute xl:top-margin-tight xl:left-detail-near xl:w-[320px]";
+const rightRailClass = "z-10 xl:absolute xl:top-margin-tight xl:right-detail-near xl:w-[360px]";
 const rowActionsClass = "gap-detail-next flex flex-wrap items-center self-end";
 
 export function WorkflowWorkspaceShell({
@@ -16,6 +17,7 @@ export function WorkflowWorkspaceShell({
   nameControl,
   actions,
   canvas,
+  leftRail,
   rail,
   selectedSheet,
   bottom,
@@ -25,6 +27,7 @@ export function WorkflowWorkspaceShell({
   nameControl: ReactNode;
   actions?: ReactNode;
   canvas: ReactNode;
+  leftRail?: ReactNode;
   rail: ReactNode;
   selectedSheet?: ReactNode;
   bottom?: ReactNode;
@@ -52,7 +55,8 @@ export function WorkflowWorkspaceShell({
       )}
       <div className={workspaceClass}>
         <div className={canvasFrameClass}>{canvas}</div>
-        <div className={railClass}>{rail}</div>
+        {leftRail && <div className={leftRailClass}>{leftRail}</div>}
+        <div className={rightRailClass}>{rail}</div>
         {selectedSheet}
         {bottom && (
           <div className="inset-x-margin-tight bottom-margin-tight md:inset-x-detail-near md:bottom-detail-near absolute z-10">

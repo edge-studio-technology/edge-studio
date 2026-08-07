@@ -19,7 +19,6 @@ import {
   WatchRunControls,
   WatchRuntimeInspector,
   WatchRunHistory,
-  WorkflowValidationPanel,
 } from "./WorkflowWatchUi";
 import {
   automationBlockToCanvasBlock,
@@ -42,6 +41,7 @@ import {
   SelectedBlockSheet,
   StatusPill,
   WorkflowStatusPill,
+  WorkflowValidationPanel,
   errorText,
   inspectorClass,
   mutedText,
@@ -245,9 +245,16 @@ export function WorkflowWorkspace({
           </>
         ) : undefined
       }
+      leftRail={
+        <aside className={inspectorClass}>
+          <WorkflowValidationPanel
+            validation={validation}
+            description="Fix errors before running. Warnings are allowed, but should be reviewed before enabling hardware or wallet actions."
+          />
+        </aside>
+      }
       rail={
         <aside className={inspectorClass}>
-          <WorkflowValidationPanel validation={validation} />
           {mode === "edit" ? (
             <WorkflowBlockLibrary
               mode="edit"

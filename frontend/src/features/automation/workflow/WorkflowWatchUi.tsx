@@ -24,7 +24,6 @@ import {
   blockLabel,
   diagnosticsLink,
   formatDuration,
-  groupValidationIssues,
   proofIdFromOutput,
   readIdFromOutput,
 } from "./workflowHelpers";
@@ -33,58 +32,12 @@ import {
   Panel,
   RuntimeStat,
   StatusPill,
-  ValidationIssueRow,
+  WorkflowValidationPanel,
   errorText,
   formGridClass,
   mutedText,
   statusRowClass,
 } from "./workflowWorkspaceUi";
-
-/** Shared validation summary for edit/watch rails and watch inspectors. */
-export function WorkflowValidationPanel({
-  validation,
-}: {
-  validation: AutomationValidationResult | null;
-}) {
-  if (!validation)
-    return (
-      <Panel>
-        <p className={mutedText}>Checking workflow validation...</p>
-      </Panel>
-    );
-  if (validation.errors.length === 0 && validation.warnings.length === 0) {
-    return (
-      <Panel>
-        <StatusPill status="good">Workflow validation passed</StatusPill>
-      </Panel>
-    );
-  }
-  const groupedIssues = groupValidationIssues([...validation.errors, ...validation.warnings]);
-
-  return (
-    <Panel className="max-h-[280px] overflow-hidden">
-      <div className={statusRowClass}>
-        <div>
-          <strong>Workflow validation</strong>
-          <p className={mutedText}>
-            Fix errors before running. Warnings are allowed, but should be reviewed before enabling
-            hardware or wallet actions.
-          </p>
-        </div>
-        <StatusPill status={validation.errors.length > 0 ? "warn" : "neutral"}>
-          {validation.errors.length} error(s), {validation.warnings.length} warning(s)
-        </StatusPill>
-      </div>
-      {groupedIssues.map((issue) => (
-        <ValidationIssueRow
-          key={`${issue.issue.level}-${issue.issue.code}-${issue.issue.message}-${issue.issue.blockType ?? "workflow"}`}
-          issue={issue.issue}
-          count={issue.count}
-        />
-      ))}
-    </Panel>
-  );
-}
 
 /** Watch-mode rail: run now + test payload. */
 export function WatchRunControls({
