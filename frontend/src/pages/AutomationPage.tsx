@@ -1,15 +1,13 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
-import { Archive, Copy, Eye, Pencil, Play, RotateCcw, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Archive, Copy, Eye, Pencil, Play, RotateCcw, Trash2 } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { Button, IconButton } from "../components/Button";
-import { DataTable, RowActions, TableIconButton, TableWrap, tableCellClass, tableHeaderCellClass, tableHeadRowClass, tableRowClass } from "../components/DataTable";
+import { Button } from "../components/Button";
+import { DataTable, RowActions, TableWrap, tableCellClass, tableHeaderCellClass, tableHeadRowClass, tableRowClass } from "../components/DataTable";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { JsonPreview } from "../components/JsonPreview";
 import { Modal } from "../components/Modal";
 import { Page } from "../components/Page";
 import { ProgressModal } from "../components/ProgressModal";
-import { Card } from "../components/ui/Card";
 import { CheckboxField } from "../components/ui/CheckboxField";
 import { InputField } from "../components/ui/InputField";
 import { ScrollArea } from "../components/ui/ScrollArea";
@@ -38,7 +36,6 @@ import {
   formatDuration,
   formatInterval,
   groupValidationIssues,
-  isImagePreviewContent,
   isOutputTarget,
   isReadableSource,
   moveBlock,
@@ -55,12 +52,29 @@ import {
   sourceLabel,
   sourcesForStart,
   summarizeBlocks,
-  textPreviewContent,
   validationIssuesByBlockId,
   workflowIntervalSeconds,
   workflowMatchesFilter,
   workflowPrimarySourceId,
 } from "../features/automation/workflowHelpers";
+import {
+  IconAction,
+  InspectorSection,
+  Panel,
+  RuntimeStat,
+  SaveState,
+  SelectedBlockSheet,
+  StatusPill,
+  ValidationIssueRow,
+  WorkflowStatusPill,
+  cardClass,
+  errorText,
+  formGridClass,
+  inspectorClass,
+  mutedText,
+  statusRowClass,
+} from "../features/automation/workflowWorkspaceUi";
+import { AutomationInboxPanel } from "../features/automation/AutomationInboxPanel";
 import { automationBlockToCanvasBlock, draftBlockDescription, draftBlockTitle, isDataBlock, WorkflowBlockLibrary, WorkflowCanvas, WorkflowRailHeader, WorkflowRailPanel, WorkflowWorkspaceShell, type DraftWorkflowBlock } from "../features/automation/workflow-canvas";
 import type { AutomationBlock, AutomationBlockType, AutomationInboxItem, AutomationRun, AutomationValidationResult, AutomationWorkflow, ConditionOperator } from "../features/automation/automationTypes";
 import { listAddressBookEntries } from "../features/address-book/addressBookApi";
@@ -71,14 +85,6 @@ import { getWalletStatus } from "../features/wallet/walletApi";
 import type { WalletStatus } from "../features/wallet/walletTypes";
 import { cx } from "../lib/cx";
 import { formatLocalTime } from "../lib/time";
-
-const mutedText = "type-body text-text-secondary";
-const errorText = "type-body-em text-text-error";
-const cardClass = "rounded-soft border border-stroke-secondary bg-surface-always-white p-margin-tight shadow-sm";
-const softCardClass = "rounded-soft border border-stroke-secondary bg-surface-always-white p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)]";
-const statusRowClass = "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between";
-const formGridClass = "grid gap-detail-close [&_label]:grid [&_label]:gap-detail-next [&_label]:type-meta [&_label]:text-text-primary";
-const inspectorClass = "grid content-start gap-detail-close overflow-visible xl:sticky xl:top-margin-tight";
 
 type AutomationPageFlow =
   | { mode: "list" }
@@ -357,112 +363,6 @@ export function AutomationPage() {
 
       <AutomationInboxPanel items={inboxItems} busy={busy} onMarkRead={(item, read) => run(() => updateAutomationInboxItem(item.id, { read }), read ? "Could not mark preview read" : "Could not mark preview unread")} onDelete={(item) => run(() => deleteAutomationInboxItem(item.id), "Could not delete preview")} />
     </Page>
-  );
-}
-
-function AutomationInboxPanel({ items, busy, onMarkRead, onDelete }: { items: AutomationInboxItem[]; busy: boolean; onMarkRead: (item: AutomationInboxItem, read: boolean) => void; onDelete: (item: AutomationInboxItem) => void }) {
-  return <section className={cx(cardClass, "grid gap-4")}>
-    <div className={statusRowClass}>
-      <div><strong>Automation inbox</strong><p className={mutedText}>Local workflow previews stay here even if no browser was open when the workflow ran.</p></div>
-      <StatusPill status={items.some((item) => !item.readAt) ? "warn" : "neutral"}>{items.filter((item) => !item.readAt).length} unread</StatusPill>
-    </div>
-    {items.length === 0 && <p className={mutedText}>No preview items yet. Add a Show preview block to a workflow.</p>}
-    <div className="grid gap-3">
-      {items.map((item) => <article key={item.id} className={cx(softCardClass, "grid gap-3")}> 
-        <div className={statusRowClass}>
-          <div><strong>{item.title}</strong><p className={mutedText}>{item.workflowName} · {item.format} · {formatLocalTime(item.createdAt)}</p></div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => onMarkRead(item, !item.readAt)}>{item.readAt ? "Mark unread" : "Mark read"}</Button>
-            <Button type="button" variant="danger" size="sm" disabled={busy} onClick={() => onDelete(item)}>Delete</Button>
-          </div>
-        </div>
-        <InboxPreview item={item} />
-      </article>)}
-    </div>
-  </section>;
-}
-
-function InboxPreview({ item }: { item: AutomationInboxItem }) {
-  return <InboxPreviewModal item={item} />;
-}
-
-function InboxPreviewModal({ item }: { item: AutomationInboxItem }) {
-  const [open, setOpen] = useState(false);
-  return <>
-    <button type="button" className="border-0 bg-transparent p-0 text-left font-extrabold text-blue-600 underline" onClick={() => setOpen(true)}>View preview</button>
-    {open && <Modal title={item.title} onClose={() => setOpen(false)}>
-      <InboxPreviewContent item={item} />
-    </Modal>}
-  </>;
-}
-
-function InboxPreviewContent({ item }: { item: AutomationInboxItem }) {
-  if (item.format === "json") return <pre className="m-0 overflow-visible whitespace-pre-wrap rounded-2xl bg-slate-900 p-3.5 text-[0.84rem] text-blue-100 [overflow-wrap:anywhere]">{JSON.stringify(item.content, null, 2)}</pre>;
-  if (item.format === "link" && typeof item.content === "string") return <a className="font-bold text-blue-700 underline" href={item.content} target="_blank" rel="noreferrer">{item.content}</a>;
-  if (item.format === "image" && isImagePreviewContent(item.content)) {
-    const src = item.content.source === "local_path" ? `/api/automation/inbox/${item.id}/image` : item.content.value;
-    return <div className="grid gap-3"><img className="max-h-[72vh] max-w-full rounded-2xl border border-slate-200 object-contain" src={src} alt={item.title} /><small className={mutedText}>{item.content.source}: {item.content.value}</small></div>;
-  }
-  return <p className="whitespace-pre-wrap text-sm text-slate-700">{textPreviewContent(item)}</p>;
-}
-
-function StatusPill({ status, children }: { status: "good" | "warn" | "neutral"; children: ReactNode }) {
-  return (
-    <span className={cx("inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide", status === "good" ? "bg-emerald-100 text-emerald-700" : status === "warn" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600")}>
-      {children}
-    </span>
-  );
-}
-
-function WorkflowStatusPill({ workflow }: { workflow: AutomationWorkflow }) {
-  const label = workflow.archived ? "Archived" : workflow.lastError ? "Error" : workflow.enabled ? "Enabled" : "Paused";
-  const status = workflow.archived ? "neutral" : workflow.lastError ? "warn" : workflow.enabled ? "good" : "neutral";
-  return <StatusPill status={status}>{label}</StatusPill>;
-}
-
-function IconAction({ children, title, label, disabled, danger, onClick }: { children: ReactNode; title: string; label: string; disabled?: boolean; danger?: boolean; onClick: () => void }) {
-  return (
-    <TableIconButton danger={danger} type="button" disabled={disabled} title={title} aria-label={label} onClick={onClick}>
-      {children}
-    </TableIconButton>
-  );
-}
-
-function Panel({ children, soft = true, className }: { children: ReactNode; soft?: boolean; className?: string }) {
-  return <section className={cx(soft ? softCardClass : cardClass, className)}>{children}</section>;
-}
-
-function SelectedBlockSheet({ title, description, children, onClose, footer }: { title: string; description?: ReactNode; children: ReactNode; onClose: () => void; footer?: ReactNode }) {
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-[70] grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px]">
-      <div className="bg-overlay-light min-h-0" />
-      <aside className="bg-surface-always-white border-stroke-secondary grid h-screen min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] border-l shadow-[0_24px_60px_rgba(0,0,0,0.18)]">
-        <div className="px-margin-tight pt-margin-tight pb-detail-close flex items-start justify-between gap-detail-close">
-          <div className="grid gap-detail-tight">
-            <h2 className="type-title text-text-primary m-0">{title}</h2>
-            {description ? <p className="type-meta text-text-secondary m-0">{description}</p> : null}
-          </div>
-          <IconButton type="button" variant="ghost" size="compact" aria-label={`Close ${title.toLowerCase()}`} onClick={onClose}><X aria-hidden /></IconButton>
-        </div>
-        <ScrollArea className="min-h-0 px-margin-tight py-detail-close">{children}</ScrollArea>
-        {footer && <div className="px-margin-tight pt-detail-close pb-margin-tight flex justify-end">{footer}</div>}
-      </aside>
-    </div>,
-    document.body
-  );
-}
-
-function InspectorSection({ title, description, children, className }: { title: string; description?: ReactNode; children?: ReactNode; className?: string }) {
-  return (
-    <Card size="Compact" className={cx("border-stroke-secondary grid gap-detail-close border", className)}>
-      <div className="grid gap-detail-tight">
-        <h3 className="type-body-em text-text-primary m-0">{title}</h3>
-        {description ? <p className="type-meta text-text-secondary m-0">{description}</p> : null}
-      </div>
-      {children}
-    </Card>
   );
 }
 
@@ -1014,15 +914,6 @@ function WatchRuntimeInspector({ selectedBlock, latestBlockRun, selectedRun, val
   );
 }
 
-function RuntimeStat({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="border-stroke-secondary flex items-center justify-between gap-detail-close border-b py-detail-tight last:border-b-0">
-      <span className="type-meta text-text-secondary">{label}</span>
-      <strong className="type-meta text-text-primary text-right">{value}</strong>
-    </div>
-  );
-}
-
 function WatchRunHistory({ runs, selectedRunId, onSelectRun }: { runs: AutomationRun[]; selectedRunId: string | null; onSelectRun: (runId: string) => void }) {
   const [rawRunId, setRawRunId] = useState<string | null>(null);
   const rawRun = runs.find((run) => run.id === rawRunId);
@@ -1073,22 +964,4 @@ function WatchRunHistory({ runs, selectedRunId, onSelectRun }: { runs: Automatio
       </Panel>}
     </Panel>
   );
-}
-
-function ValidationIssueRow({ issue, count = 1 }: { issue: AutomationValidationResult["errors"][number]; count?: number }) {
-  return (
-    <p className={issue.level === "error" ? errorText : mutedText}>
-      <StatusPill status={issue.level === "error" ? "warn" : "neutral"}>{issue.level}</StatusPill> {issue.message}{issue.blockType ? ` (${issue.blockType})` : ""}{count > 1 ? ` · ${count} blocks` : ""}
-    </p>
-  );
-}
-
-function SaveState({ dirty, saved }: { dirty: boolean; saved: boolean }) {
-  if (dirty) return <p className={mutedText}><StatusPill status="warn">Unsaved changes</StatusPill> Use this block's save button to apply edits.</p>;
-  if (saved) return <p className={mutedText}><StatusPill status="good">Saved</StatusPill></p>;
-  return <p className={mutedText}><StatusPill status="neutral">No unsaved changes</StatusPill></p>;
-}
-
-function RulePart({ title, value }: { title: string; value: string }) {
-  return <div><span className={mutedText}>{title}</span><strong>{value}</strong></div>;
 }

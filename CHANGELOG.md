@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Split the automation workflow canvas into `features/automation/workflow-canvas/` (shell, rail, toolkit, canvas, presentation helpers).
 - Moved pure automation draft/config/label/filter helpers out of `AutomationPage` into `features/automation/workflowHelpers.ts`.
+- Moved shared automation workflow chrome (`Panel`, selected-block sheet, inspector section, status pills, save/validation row helpers) into `features/automation/workflowWorkspaceUi.tsx` (workspace chrome; not `workflow-canvas`).
+- Documented frontend Automation vs Workflow naming in automation agent rules (`automation*` for feature-wide, `workflow*` / `workflow-canvas/` for one pipeline and its graph).
+- Moved the Automation inbox panel and preview modal out of `AutomationPage` into `features/automation/AutomationInboxPanel.tsx`.
 
 ## [0.30.3] 2026-08-07
 

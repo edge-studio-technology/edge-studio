@@ -17,6 +17,7 @@ import type {
   WorkflowCanvasValidationIssue,
 } from "./workflow-canvas";
 
+/** Pure workflow draft/config/label helpers (no React). Graph visuals stay in `workflow-canvas/`. */
 export const WORKFLOW_INTERVAL_OPTIONS = [10, 30, 60, 300, 900, 3600] as const;
 
 export const conditionOperatorOptions: { value: ConditionOperator; label: string }[] = [
