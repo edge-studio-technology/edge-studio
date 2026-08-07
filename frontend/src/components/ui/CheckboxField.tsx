@@ -11,11 +11,12 @@ import {
 import { cx } from "../../lib/cx";
 
 /**
- * ESDS Checkbox Field: checkbox + label row, optional indented description.
+ * Checkbox + optional label row, optional indented description.
  * Value types: unchecked / checked / indeterminate × default / disabled.
+ * Pass `label={null}` for control-only (e.g. tables); set `aria-label` when there is no visible label.
  */
 export function CheckboxField({
-  label,
+  label = "Label",
   description,
   className,
   disabled,
@@ -26,7 +27,7 @@ export function CheckboxField({
   onChange,
   ...props
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "className" | "type" | "size"> & {
-  label: ReactNode;
+  label?: ReactNode | null;
   description?: ReactNode;
   indeterminate?: boolean;
   className?: string;
@@ -38,6 +39,7 @@ export function CheckboxField({
   const isControlled = checked !== undefined;
   const [uncontrolledChecked, setUncontrolledChecked] = useState(Boolean(defaultChecked));
   const isChecked = isControlled ? Boolean(checked) : uncontrolledChecked;
+  const showLabel = label != null;
 
   useEffect(() => {
     if (inputRef.current) {
@@ -60,7 +62,8 @@ export function CheckboxField({
       <label
         htmlFor={controlId}
         className={cx(
-          "gap-detail-next flex min-w-[120px] items-center",
+          "gap-detail-next flex items-center",
+          showLabel && "min-w-[120px]",
           disabled ? "cursor-not-allowed" : "cursor-pointer",
         )}
       >
@@ -104,14 +107,16 @@ export function CheckboxField({
             ) : null}
           </span>
         </span>
-        <span
-          className={cx(
-            "type-body min-w-px flex-1 [overflow-wrap:anywhere]",
-            disabled ? "text-text-tertiary" : "text-text-primary",
-          )}
-        >
-          {label}
-        </span>
+        {showLabel ? (
+          <span
+            className={cx(
+              "type-body min-w-px flex-1 [overflow-wrap:anywhere]",
+              disabled ? "text-text-tertiary" : "text-text-primary",
+            )}
+          >
+            {label}
+          </span>
+        ) : null}
       </label>
       {description ? (
         <div className="gap-detail-next flex min-w-[120px] items-center">

@@ -4,7 +4,6 @@ import { cx } from "../../lib/cx";
 import { useToast } from "../ToastProvider";
 import { IconButton } from "../ui/Button";
 
-/** Mono value chip with a copy IconButton (addresses, token IDs, hashes). */
 export function CopyableCode({ value, className }: { value: string; className?: string }) {
   const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
@@ -14,7 +13,12 @@ export function CopyableCode({ value, className }: { value: string; className?: 
       await navigator.clipboard.writeText(value);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
-      showToast({ tone: "success", title: "Copied", message: "Value copied to clipboard.", timeoutMs: 2500 });
+      showToast({
+        tone: "success",
+        title: "Copied",
+        message: "Value copied to clipboard.",
+        timeoutMs: 2500,
+      });
     } catch {
       showToast({
         tone: "error",
