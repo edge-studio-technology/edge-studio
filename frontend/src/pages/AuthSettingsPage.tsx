@@ -129,6 +129,7 @@ export function AuthSettingsPage() {
     <Page
       eyebrow="Admin account"
       title="Account settings"
+      desc="Manage your admin credentials, Integritas Connect, and Minima node settings and backups."
       action={
         <ButtonRow>
           <Button type="button" variant="ghost" onClick={() => void signOut()}>

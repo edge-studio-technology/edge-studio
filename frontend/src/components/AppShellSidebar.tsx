@@ -71,7 +71,7 @@ export function AppShellSidebar({
     const match = nav.find(
       (item) => pathname === `/${item.id}` || pathname.startsWith(`/${item.id}/`),
     );
-    return match?.id ?? "dashboard";
+    return match?.id;
   }, [pathname]);
 
   const navRef = useRef<HTMLElement>(null);

@@ -23,6 +23,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The Update page is now split: the in-app `/update` page (above) handles checking for updates and starting one; `update-agent`'s own static page, at `/update/` (trailing slash), is trimmed down to only the apply-in-progress/success/failure view, and no longer starts a job on its own — visiting it directly with nothing running now shows a neutral "nothing to update right now" state instead of the old checking/available screens.
 - "Check for updates" (Account settings) and the sidebar update notice now navigate to `/update` in-app instead of a full page reload.
 - `update-agent`'s own waitroom page (`/update/`, plain static HTML/CSS — no build step) now uses the same ESDS token values (colors, radius, type scale) as the in-app Update page instead of ad hoc hex colors, so the two pages read as one continuous flow.
+- In-app Update page: "Update now"/"Check again" moved into the page title row (`Page`'s `action` slot) instead of sitting in the card body; it renders disabled from first paint instead of popping in once the status check resolves. The card is now full width instead of capped at `max-w-xl`.
+- `Page`'s `action` prop is no longer marked deprecated — it's an active, intentional right-aligned header-action slot (used by Account settings and now Update), not dead API surface.
+
+### Fixed
+
+- Sidebar nav item and feedback-modal page label no longer default to "Dashboard" on routes with no matching nav entry (e.g. `/update`, which is intentionally not in the sidebar nav) — nothing is now highlighted instead of incorrectly highlighting Dashboard.
 
 ## [0.31.0] 2026-08-07
 

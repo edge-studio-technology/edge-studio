@@ -49,8 +49,22 @@ export function UpdatePage() {
   const upToDate = Boolean(status) && outOfDate.length === 0;
 
   return (
-    <Page title="Update" desc="Check for and apply software updates.">
-      <Card className="gap-detail-close flex w-full max-w-xl flex-col">
+    <Page
+      title="Update"
+      desc="Check for and apply software updates."
+      action={
+        status && upToDate ? (
+          <Button variant="secondary" size="sm" iconStart={<RefreshCw aria-hidden />} onClick={load}>
+            Check again
+          </Button>
+        ) : (
+          <Button variant="primary" onClick={() => void startUpdate()} disabled={!status || starting}>
+            {starting ? "Starting…" : "Update now"}
+          </Button>
+        )
+      }
+    >
+      <Card className="gap-detail-close flex w-full flex-col">
         {loading ? (
           <div className="gap-detail-next flex items-center">
             <LoadingDots />
@@ -85,6 +99,7 @@ export function UpdatePage() {
                     ? `${status.currentVersion} → ${status.manifest.version}`
                     : `Version ${status.manifest.version} is available.`}
               </p>
+              {startError ? <ErrorText>{startError}</ErrorText> : null}
             </div>
 
             <DetailList>
@@ -100,24 +115,6 @@ export function UpdatePage() {
                 />
               ))}
             </DetailList>
-
-            {upToDate ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                iconStart={<RefreshCw aria-hidden />}
-                onClick={load}
-              >
-                Check again
-              </Button>
-            ) : (
-              <div className="gap-detail-next flex flex-col items-start">
-                <Button variant="primary" onClick={() => void startUpdate()} disabled={starting}>
-                  {starting ? "Starting…" : "Update now"}
-                </Button>
-                {startError ? <ErrorText>{startError}</ErrorText> : null}
-              </div>
-            )}
           </>
         ) : null}
       </Card>

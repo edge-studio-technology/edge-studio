@@ -82,7 +82,7 @@ export function AppShell({
   const navigate = useNavigate();
 
   const activeItem = useMemo(
-    () => nav.find((navItem) => pathname === `/${navItem.id}`) ?? nav[0],
+    () => nav.find((navItem) => pathname === `/${navItem.id}`),
     [pathname],
   );
 
@@ -184,7 +184,7 @@ export function AppShell({
       {feedbackOpen && (
         <FeedbackModal
           pagePath={`${pathname}${search}`}
-          pageLabel={activeItem.label}
+          pageLabel={activeItem?.label ?? pathname.slice(1)}
           onClose={() => setFeedbackOpen(false)}
         />
       )}
