@@ -24,9 +24,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `JsonPreview` modal body uses shared `JsonBlock`.
 - Read history uses patterns `ErrorDetails` for row error inspection.
 - Read history Integritas proof IDs link to Diagnostics proof history filtered by that proof ID (`Text.Link` “Open proof”).
+- Read history preview uses an Eye `TableIconButton` (same pattern as proof payload / workflow-log inspect).
 - Proof verify on Diagnostics toasts Full match / No match from the verify response; the active row shows “Verifying…”.
 - Proof history selection bar shows count + Clear, icon Download/Delete actions, delete confirmation, and success toasts; download stays available while verifying.
 - Proof history header checkbox selects or clears all proofs on the current page (indeterminate when partially selected).
+- Proof history “View” payload control is an Eye `TableIconButton` (same pattern as workflow-log inspect), opening the proof payload modal.
+- Proof history Eye (view payload) and Download sit in the Actions column with Verify; separate Payload/Download columns removed.
 - `JsonPreview` accepts an optional `title` for the modal (proof history uses “Proof payload”).
 - `CheckboxField` `label` defaults to `"Label"`; pass `label={null}` with `aria-label` for control-only use (e.g. tables).
 

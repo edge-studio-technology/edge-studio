@@ -10,14 +10,26 @@ import {
   TableRow,
   TableWrap,
 } from "../../components/patterns/DataTable";
-import { JsonPreview } from "../../components/patterns/JsonPreview";
+import { JsonBlock } from "../../components/patterns/JsonBlock";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { Modal } from "../../components/ui/Modal";
 import { Pill } from "../../components/ui/Pill";
 import { formatLocalDateTime } from "../../lib/time";
-import { Download, Trash2 } from "lucide-react";
+import type { Tone } from "../../app/types";
+import { Download, Eye, Trash2 } from "lucide-react";
 import type { IntegritasProofRecord } from "./integritasTypes";
+
+const PROOF_STATUS: Record<string, { tone: Tone; label: string }> = {
+  ready: { tone: "good", label: "On chain" },
+  "on-chain": { tone: "good", label: "On chain" },
+  completed: { tone: "good", label: "On chain" },
+  confirmed: { tone: "good", label: "On chain" },
+  success: { tone: "good", label: "On chain" },
+  pending: { tone: "neutral", label: "Pending" },
+  failed: { tone: "error", label: "Failed" },
+  error: { tone: "error", label: "Error" },
+};
 
 export function IntegritasHistoryTable({
   records,
@@ -49,6 +61,7 @@ export function IntegritasHistoryTable({
   verifyingId?: string | null;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [payloadRecord, setPayloadRecord] = useState<IntegritasProofRecord | null>(null);
   const selectedCount = selectedIds.length;
   const selectedOnPage = records.filter((record) => selectedIds.includes(record.id)).length;
   const allVisibleSelected = records.length > 0 && selectedOnPage === records.length;
@@ -142,6 +155,14 @@ export function IntegritasHistoryTable({
         />
       ) : null}
 
+      {payloadRecord?.proof_payload ? (
+        <Modal title="Proof payload" onClose={() => setPayloadRecord(null)}>
+          <div className="px-detail-next py-pad-close">
+            <JsonBlock value={JSON.parse(payloadRecord.proof_payload)} />
+          </div>
+        </Modal>
+      ) : null}
+
       <TableWrap>
         <DataTable aria-label="Proof history" className="min-w-[1020px]">
           <TableHead>
@@ -157,18 +178,14 @@ export function IntegritasHistoryTable({
             </TableHeaderCell>
             <TableHeaderCell className="whitespace-nowrap">Timestamp</TableHeaderCell>
             <TableHeaderCell>UID</TableHeaderCell>
-            <TableHeaderCell>Data hash</TableHeaderCell>
             <TableHeaderCell>Status</TableHeaderCell>
-            <TableHeaderCell className="w-px whitespace-nowrap">Payload</TableHeaderCell>
-            <TableHeaderCell className="w-px whitespace-nowrap">
-              <span className="sr-only">Download</span>
-            </TableHeaderCell>
+            <TableHeaderCell>Data hash</TableHeaderCell>
             <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
           </TableHead>
           <TableBody>
             {records.length === 0 ? (
               <TableRow>
-                <td colSpan={8} className="p-0">
+                <td colSpan={6} className="p-0">
                   <div className="p-margin-tight py-pad-relaxed">
                     <p className="type-body text-text-secondary m-0">
                       {filtered ? "No matching proof history." : "No proof history yet."}
@@ -204,6 +221,9 @@ export function IntegritasHistoryTable({
                         {record.proof_uid ?? "—"}
                       </code>
                     </TableCell>
+                    <TableCell>
+                      <ProofStatusPill status={record.proof_status} />
+                    </TableCell>
                     <TableCell className="max-w-48 min-w-0">
                       <code
                         className="type-mono text-text-secondary block truncate"
@@ -212,32 +232,24 @@ export function IntegritasHistoryTable({
                         {record.hash}
                       </code>
                     </TableCell>
-                    <TableCell>
-                      <ProofStatusPill status={record.proof_status} />
-                    </TableCell>
-                    <TableCell className="w-px whitespace-nowrap">
-                      {hasPayload ? (
-                        <JsonPreview
-                          label="View"
-                          title="Proof payload"
-                          value={JSON.parse(record.proof_payload!)}
-                        />
-                      ) : (
-                        <span className="type-meta text-text-secondary">Not ready</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="w-px whitespace-nowrap">
-                      <TableIconButton
-                        title="Download proof"
-                        aria-label={`Download proof ${record.proof_uid ?? record.id}`}
-                        disabled={!hasPayload}
-                        onClick={() => onDownload(record)}
-                      >
-                        <Download aria-hidden />
-                      </TableIconButton>
-                    </TableCell>
                     <TableCell className="w-px whitespace-nowrap">
                       <RowActions>
+                        <TableIconButton
+                          title="View payload"
+                          aria-label={`View payload for ${record.proof_uid ?? record.id}`}
+                          disabled={!hasPayload}
+                          onClick={() => setPayloadRecord(record)}
+                        >
+                          <Eye size={16} aria-hidden />
+                        </TableIconButton>
+                        <TableIconButton
+                          title="Download proof"
+                          aria-label={`Download proof ${record.proof_uid ?? record.id}`}
+                          disabled={!hasPayload}
+                          onClick={() => onDownload(record)}
+                        >
+                          <Download aria-hidden />
+                        </TableIconButton>
                         <Button
                           type="button"
                           variant="secondary"
@@ -263,19 +275,14 @@ export function IntegritasHistoryTable({
 }
 
 function ProofStatusPill({ status }: { status: string | null }) {
-  const normalized = status ?? "unknown";
-  const tone =
-    normalized === "completed" ||
-    normalized === "confirmed" ||
-    normalized === "success" ||
-    normalized === "on-chain"
-      ? "good"
-      : normalized === "failed" || normalized === "error"
-        ? "error"
-        : "neutral";
+  const display = PROOF_STATUS[status ?? "unknown"] ?? {
+    tone: "neutral" as const,
+    label: status ?? "unknown",
+  };
+
   return (
-    <Pill tone={tone} indicator>
-      {normalized}
+    <Pill tone={display.tone} indicator>
+      {display.label}
     </Pill>
   );
 }

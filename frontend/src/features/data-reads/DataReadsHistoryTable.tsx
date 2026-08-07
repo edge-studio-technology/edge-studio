@@ -36,13 +36,13 @@ export function DataReadsHistoryTable({
     <TableWrap>
       <DataTable aria-label="Read history" className="min-w-[1020px]">
         <TableHead>
-          <TableHeaderCell className="whitespace-nowrap">Read time</TableHeaderCell>
+          <TableHeaderCell>Read time</TableHeaderCell>
           <TableHeaderCell>Source</TableHeaderCell>
           <TableHeaderCell>Trigger</TableHeaderCell>
           <TableHeaderCell>Status</TableHeaderCell>
           <TableHeaderCell>Hash</TableHeaderCell>
           <TableHeaderCell>Integritas proof</TableHeaderCell>
-          <TableHeaderCell className="w-px whitespace-nowrap">Preview</TableHeaderCell>
+          <TableHeaderCell>Actions</TableHeaderCell>
         </TableHead>
         <TableBody>
           {items.length === 0 ? (
@@ -58,7 +58,7 @@ export function DataReadsHistoryTable({
           ) : (
             items.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="whitespace-nowrap">
+                <TableCell>
                   <time className="type-meta text-text-secondary" dateTime={item.createdAt}>
                     {formatLocalDateTime(item.createdAt)}
                   </time>
@@ -104,8 +104,8 @@ export function DataReadsHistoryTable({
                 </TableCell>
                 <TableCell className="max-w-40 min-w-0">
                   {item.integritasProofId ? (
-                    <Text.Link to={proofHistoryLink(item.integritasProofId)} title="Open proof">
-                      Open proof
+                    <Text.Link to={proofHistoryLink(item.integritasProofId)} title="Go to proof">
+                      Go to proof
                     </Text.Link>
                   ) : (
                     <span className="text-text-secondary">No proof</span>

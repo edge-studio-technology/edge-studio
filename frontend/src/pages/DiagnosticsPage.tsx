@@ -53,6 +53,12 @@ const TAB_DESCRIPTION: Record<DiagnosticsTab, string> = {
   "workflow-runs": "Recent automated and manual workflow runs across all workflows.",
 };
 
+const TAB_SEARCH_PLACEHOLDER: Record<DiagnosticsTab, string> = {
+  proofs: "UID, hash, or file name",
+  reads: "Source, hash, or proof ID",
+  "workflow-runs": "Workflow name or trigger",
+};
+
 function applyPaginatedPage<T extends { totalPages: number }>(
   response: T,
   currentPage: number,
@@ -232,9 +238,7 @@ export function DiagnosticsPage() {
       showToast({
         tone: isFullMatch ? "success" : "warning",
         title: isFullMatch ? "Full match" : "No match",
-        message: isFullMatch
-          ? "The proof matches the original data."
-          : "The proof does not match.",
+        message: isFullMatch ? "The proof matches the original data." : "The proof does not match.",
         timeoutMs: 6000,
       });
     } catch (err) {
@@ -278,8 +282,8 @@ export function DiagnosticsPage() {
 
   return (
     <Page
-      title="Operational history"
-      desc="Inspect stored proof requests and data-source read logs from one diagnostics workspace."
+      title="Diagnostics history"
+      desc="Inspect stored proof requests, data-source read logs, and workflow runs from one diagnostics workspace."
     >
       <Card className="gap-detail-close flex w-full flex-col">
         <TabList
@@ -302,7 +306,7 @@ export function DiagnosticsPage() {
               q={listQuery.q}
               filterOptions={statusOptions}
               filterLabel="Status"
-              searchPlaceholder="Hash, UID, or source name"
+              searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
               disabled={refreshing}
               onFilterChange={(status) => updateListQuery({ status })}
               onQueryChange={(q) => updateListQuery({ q })}
