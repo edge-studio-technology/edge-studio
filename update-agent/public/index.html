@@ -5,8 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Integritas Pi — Update</title>
 <style>
+  /*
+   * Static page (no build step, no React) — can't import ESDS components
+   * directly. Token values below are copied from frontend/src/styles.css's
+   * `@theme` block (source of truth); keep them in sync if that changes.
+   */
   :root {
     color-scheme: light;
+    --color-core-white: #ffffff;
+    --color-core-black: #000000;
+    --color-grey-02: #e6e8ea;
+    --color-grey-03: #c7ccd1;
+    --color-grey-05: #6a7581;
+    --color-feedback-error: #dc0428;
   }
 
   * {
@@ -18,29 +29,32 @@
     min-height: 100vh;
     display: grid;
     place-items: center;
-    background: #f1f5f9;
-    color: #020617;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--color-grey-02);
+    color: var(--color-core-black);
+    font-family: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   }
 
   .card {
     width: min(420px, calc(100vw - 32px));
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 24px;
-    padding: 32px;
+    background: var(--color-core-white);
+    border-radius: 8px;
+    padding: 40px;
     text-align: center;
   }
 
   .card h1 {
-    font-size: 18px;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
     margin: 0 0 8px;
   }
 
   .card p {
-    color: #475569;
+    color: var(--color-grey-05);
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
     margin: 0 0 20px;
   }
 
@@ -49,8 +63,8 @@
     height: 36px;
     margin: 0 auto 20px;
     border-radius: 50%;
-    border: 3px solid #e2e8f0;
-    border-top-color: #020617;
+    border: 3px solid var(--color-grey-02);
+    border-top-color: var(--color-core-black);
     animation: spin 0.8s linear infinite;
   }
 
@@ -62,14 +76,18 @@
 
   .button-link {
     display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    padding: 0 16px;
     font: inherit;
+    font-size: 14px;
     text-decoration: none;
     cursor: pointer;
-    border: 1px solid #e2e8f0;
-    border-radius: 999px;
-    padding: 10px 24px;
-    background: #ffffff;
-    color: #020617;
+    border: none;
+    border-radius: 4px;
+    background: var(--color-grey-02);
+    color: var(--color-core-black);
   }
 
   .hidden {
@@ -77,7 +95,7 @@
   }
 
   .error-text {
-    color: #b91c1c;
+    color: var(--color-feedback-error);
   }
 </style>
 </head>
