@@ -76,7 +76,6 @@ export function AltAddDeviceFlow({
         closeDisabled={saving}
         onClose={onClose}
         width="wide"
-        bodyClassName="min-h-0 flex-1"
         footer={
           <>
             <Button
