@@ -309,6 +309,24 @@ docker compose up -d minima
 
 Without Minima, the rest of the app still works; the status overview will report Minima as unavailable.
 
+Optional: run `backend` and `update-agent` in Docker while the frontend runs natively with hot reload (e.g. `npm run dev:frontend` alone, pointed at an otherwise-Dockerized stack). Vite's dev proxy forwards `/api` to `http://localhost:3000` and `/update` to `http://localhost:8081`, so those container ports need to be published to the host. Create a gitignored `docker-compose.override.yml` in the repo root (Compose loads it automatically, and `install.sh` deletes/regenerates its own copy on every install, so a local one here never affects a deployed Pi):
+
+```yaml
+services:
+  backend:
+    ports:
+      - "3000:3000"
+  update-agent:
+    ports:
+      - "8081:8081"
+```
+
+Then start the Dockerized services:
+
+```bash
+docker compose --profile update-agent up -d backend minima update-agent
+```
+
 ### Full stack in Docker
 
 Generate a TLS certificate (once per machine, or after a LAN IP change):

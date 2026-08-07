@@ -4,6 +4,16 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ui/update-page
+
+### Added
+
+- `NoticeCard` shared component (`components/patterns/`): standalone call-to-action card (title, body, action, optional dismiss) for chrome outside page layout. Used in the sidebar, above Feedback, to surface an "Update available" notice driven by the existing update-status poller, with a per-version dismiss.
+
+### Changed
+
+- Native frontend dev (`npm run dev:frontend` against an otherwise-Dockerized stack) can now reach `update-agent`: Vite's dev proxy forwards `/update` to `http://localhost:8081`, alongside the existing `/api` → `backend` proxy. Requires publishing `update-agent`'s port via a local (gitignored) `docker-compose.override.yml`, documented in the README — dev-only, and `install.sh` regenerates its own copy of that file on every install, so it never affects a deployed Pi.
+
 ## [0.31.0] 2026-08-07
 
 ### Added

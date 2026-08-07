@@ -32,6 +32,14 @@ export default defineConfig(({ mode }) => {
   const https = devHttpsOptions(mode);
   const proxy = {
     "/api": backendTarget,
+    // update-agent's fixed container port (docker-compose.yml), published to
+    // the host for native dev via docker-compose.override.yml. Strips the
+    // "/update" prefix the same way nginx.conf's rewrite does in prod, since
+    // update-agent's own routes are mounted at "/", "/status", "/apply".
+    "/update": {
+      target: "http://localhost:8081",
+      rewrite: (path: string) => path.replace(/^\/update/, "") || "/",
+    },
   };
 
   return {
