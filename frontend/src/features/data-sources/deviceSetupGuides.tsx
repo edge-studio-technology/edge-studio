@@ -55,7 +55,7 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
   if (source.type === "mqtt" && source.config.profile === "esp32-mqtt-board")
     return guide(
       source,
-      "ESP32 MQTT Board Setup",
+      "ESP32 MQTT Board Setup Guide",
       "Flash starter firmware, connect the board to Wi-Fi, publish JSON over MQTT, then use an MQTT event workflow.",
       [],
       "docs/guides/esp32-mqtt-sensors.md",
@@ -410,7 +410,7 @@ function gpioInputGuide(source: DataSource) {
   if (source.name.toLowerCase().includes("button")) return gpioButtonGuide(source);
   return guide(
     source,
-    "GPIO Input Setup",
+    "GPIO Input Setup Guide",
     "Record Raspberry Pi BCM pin edge events as JSON while an enabled workflow watches this source.",
     [
       {
@@ -447,7 +447,7 @@ function gpioInputGuide(source: DataSource) {
 function gpioButtonGuide(source: DataSource) {
   return guide(
     source,
-    "GPIO Button Setup",
+    "GPIO Button Setup Guide",
     "Detect a simple push button connected to a Raspberry Pi GPIO input pin.",
     [
       {
@@ -484,7 +484,7 @@ function gpioButtonGuide(source: DataSource) {
 function pirGuide(source: DataSource) {
   return guide(
     source,
-    "PIR Motion Sensor Setup",
+    "PIR Motion Sensor Setup Guide",
     "Detect HC-SR501-style motion events from a GPIO input pin.",
     [
       {
@@ -520,7 +520,7 @@ function pirGuide(source: DataSource) {
 function gpioLedGuide(source: DataSource) {
   return guide(
     source,
-    "GPIO LED Output Setup",
+    "GPIO LED Output Setup Guide",
     "Pulse a low-current LED from Automation control-output blocks.",
     [
       {
@@ -555,7 +555,7 @@ function gpioLedGuide(source: DataSource) {
 function piCameraGuide(source: DataSource) {
   return guide(
     source,
-    "Raspberry Pi Camera Setup",
+    "Raspberry Pi Camera Setup Guide",
     "Capture photos or short video clips from Automation workflows and hash captured media bytes.",
     [
       {
@@ -590,7 +590,7 @@ function piCameraGuide(source: DataSource) {
 function httpJsonSourceGuide(source: DataSource) {
   return guide(
     source,
-    "HTTP JSON Source Setup",
+    "HTTP JSON Source Setup Guide",
     "Fetch JSON from an HTTP endpoint manually or from Automation workflows.",
     [
       {
@@ -626,7 +626,7 @@ function webhookGuide(source: DataSource) {
   const url = `${browserOrigin()}/api/data-source-webhooks/${source.config.webhookToken ?? "<token>"}`;
   return guide(
     source,
-    "Webhook Receiver Setup",
+    "Webhook Receiver Setup Guide",
     "Receive pushed JSON at a generated URL while an enabled workflow listens to this source.",
     [
       {
@@ -660,7 +660,7 @@ function webhookGuide(source: DataSource) {
 function mqttSubscriberGuide(source: DataSource) {
   return guide(
     source,
-    "MQTT Subscriber Setup",
+    "MQTT Subscriber Setup Guide",
     "Subscribe to a broker topic and record incoming JSON messages while an enabled workflow listens.",
     [
       {
@@ -689,7 +689,7 @@ function mqttSubscriberGuide(source: DataSource) {
 function httpJsonTargetGuide(source: DataSource) {
   return guide(
     source,
-    "HTTP JSON Target Setup",
+    "HTTP JSON Target Setup Guide",
     "Send JSON commands to an HTTP endpoint from Automation Control device blocks.",
     [
       {
@@ -715,7 +715,7 @@ function httpJsonTargetGuide(source: DataSource) {
 function mqttPublisherGuide(source: DataSource) {
   return guide(
     source,
-    "MQTT Publisher Setup",
+    "MQTT Publisher Setup Guide",
     "Publish JSON commands to a broker topic from Automation Control device blocks.",
     [
       {
