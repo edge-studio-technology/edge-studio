@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { cx } from "../../../../lib/cx";
 
 const shellClass =
   "border-stroke-primary bg-surface-always-white flex h-screen min-h-0 flex-col overflow-hidden border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";
 const topbarClass =
-  "border-stroke-secondary bg-surface-always-white px-margin-tight py-detail-close flex flex-col gap-detail-close border-b lg:flex-row lg:items-start lg:justify-between xl:items-center";
+  "border-stroke-secondary bg-surface-always-white pt-margin-relaxed px-margin-relaxed pb-margin-tight flex flex-col gap-detail-close border-b lg:flex-row lg:items-end lg:justify-between";
 const workspaceClass = "bg-surface-secondary relative min-h-0 flex-1 overflow-hidden";
 const canvasFrameClass = "h-full min-h-0";
 const railClass = "z-10 xl:absolute xl:top-margin-tight xl:right-detail-near xl:w-[360px]";
-const rowActionsClass = "gap-detail-next flex flex-wrap items-center";
+const rowActionsClass = "gap-detail-next flex flex-wrap items-center self-end";
 
 export function WorkflowWorkspaceShell({
   breadcrumbLabel,
@@ -32,11 +33,14 @@ export function WorkflowWorkspaceShell({
   return (
     <section className={shellClass}>
       <div className={topbarClass}>
-        <div className="gap-detail-next grid min-w-0 flex-1">
-          <p className="type-meta text-text-secondary m-0">
-            Automation <span aria-hidden>&gt;</span>{" "}
+        <div className="gap-detail-close grid min-w-0 flex-1">
+          <nav aria-label="Breadcrumb" className="type-body text-text-secondary">
+            <Link to="/automation" className="hover:text-text-primary">
+              Automation
+            </Link>
+            {" > "}
             <strong className="text-text-primary">{breadcrumbLabel}</strong>
-          </p>
+          </nav>
           <div className="max-w-[360px]">{nameControl}</div>
         </div>
         {actions && <div className={cx("relative z-10", rowActionsClass)}>{actions}</div>}

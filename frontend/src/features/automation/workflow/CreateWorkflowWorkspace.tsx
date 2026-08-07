@@ -29,6 +29,7 @@ import {
   inspectorClass,
   mutedText,
 } from "./workflowWorkspaceUi";
+import { InputField } from "../../../components/ui/InputField";
 
 /** Create-mode workflow editor (draft blocks + leave confirmation). */
 export function CreateWorkflowWorkspace({
@@ -211,7 +212,7 @@ export function CreateWorkflowWorkspace({
       <WorkflowWorkspaceShell
         breadcrumbLabel="Create workflow"
         nameControl={
-          <input
+          <InputField
             aria-label="Workflow name"
             value={name}
             onChange={(event) => onNameChange(event.target.value)}
@@ -220,19 +221,12 @@ export function CreateWorkflowWorkspace({
         }
         actions={
           <>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={busy}
-              onClick={requestCancel}
-            >
-              Back to workflows
+            <Button type="button" variant="ghost" disabled={busy} onClick={requestCancel}>
+              Back
             </Button>
             <Button
               type="button"
               variant="secondary"
-              size="sm"
               disabled={busy || draftBlocks.length === 0}
               onClick={resetCanvas}
             >
@@ -240,7 +234,6 @@ export function CreateWorkflowWorkspace({
             </Button>
             <Button
               type="button"
-              size="sm"
               disabled={busy || !canCreate}
               onClick={() => onCreate(flattenDraftBlocks(draftBlocks))}
             >
