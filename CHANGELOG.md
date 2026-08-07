@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `UPDATE_DRY_RUN` env var for `update-agent` (dev only, defaults off, never set by `install.sh`): simulates a successful update apply — same running/succeeded flow, no manifest recorded as applied — without pulling or swapping any container, so the Update flow can be exercised repeatedly in dev. See [docs/adr/0003-update-dry-run.md](docs/adr/0003-update-dry-run.md) and `SECURITY.md`.
 - `Spinner` shared component (`components/ui/`): rotating ring loading indicator matching `update-agent`'s waitroom page style, replacing ad hoc `lucide-react` `Loader2`/`animate-spin` usage in `ProgressModal`, `DeleteDeviceProgressModal`, and the Connect Integritas setup step so all spinner-style loaders share one style.
 
+### Fixed
+
+- `CredentialInput` no longer breaks `tsc`/the frontend build: its props type didn't exclude the native HTML `size` (`number`) attribute the way `Input` (which it wraps) requires, so any change touching the frontend build tripped a pre-existing type error even though the component has no live call sites yet.
+
 ### Changed
 
 - Native frontend dev (`npm run dev:frontend` against an otherwise-Dockerized stack) can now reach `update-agent`: Vite's dev proxy forwards `/update/...` (trailing slash and deeper) to `http://localhost:8081`, alongside the existing `/api` → `backend` proxy. Requires publishing `update-agent`'s port via a local (gitignored) `docker-compose.override.yml`, documented in the README — dev-only, and `install.sh` regenerates its own copy of that file on every install, so it never affects a deployed Pi.

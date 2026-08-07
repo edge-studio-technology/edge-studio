@@ -13,7 +13,7 @@ export function CredentialInput({
   type = "password",
   autoComplete,
   ...props
-}: InputHTMLAttributes<HTMLInputElement> & { mode: CredentialInputMode }) {
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & { mode: CredentialInputMode }) {
   const isPin = mode === "pin";
 
   return (
