@@ -33,6 +33,7 @@ import {
   updateAutomationWorkflow,
 } from "../features/automation/automationApi";
 import {
+  defaultCreateWorkflowName,
   formatInterval,
   summarizeBlocks,
   workflowIntervalSeconds,
@@ -99,6 +100,7 @@ export function AutomationPage() {
   const [workflows, setWorkflows] = useState<AutomationWorkflow[]>([]);
   const [inboxItems, setInboxItems] = useState<AutomationInboxItem[]>([]);
   const [name, setName] = useState("");
+  const [createInitialName, setCreateInitialName] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [workflowSearch, setWorkflowSearch] = useState("");
   const [workflowFilter, setWorkflowFilter] = useState<
@@ -125,6 +127,14 @@ export function AutomationPage() {
   useEffect(() => {
     refresh().catch((err: Error) => setLoadError(err.message));
   }, []);
+
+  useEffect(() => {
+    if (flow.mode !== "build") return;
+    const nextName = defaultCreateWorkflowName();
+    setCreateInitialName(nextName);
+    setName(nextName);
+    setEnabled(true);
+  }, [flow.mode]);
 
   useEffect(() => {
     if (!flowWorkflowId) {
@@ -196,8 +206,13 @@ export function AutomationPage() {
       navigate("/automation");
       return;
     }
-    if (nextFlow.mode === "build") navigate("/automation/new");
-    else if (nextFlow.mode === "edit")
+    if (nextFlow.mode === "build") {
+      const nextName = defaultCreateWorkflowName();
+      setCreateInitialName(nextName);
+      setName(nextName);
+      setEnabled(true);
+      navigate("/automation/new");
+    } else if (nextFlow.mode === "edit")
       navigate(`/automation/${encodeURIComponent(nextFlow.workflowId)}/edit`);
     else
       navigate(
@@ -278,6 +293,7 @@ export function AutomationPage() {
       <>
         <CreateWorkflowWorkspace
           name={name}
+          initialName={createInitialName}
           enabled={enabled}
           sources={sources}
           addressBook={addressBook}

@@ -33,6 +33,16 @@ export const conditionOperatorOptions: { value: ConditionOperator; label: string
 
 export { formatRunDuration as formatDuration };
 
+/** Default name when opening create workflow (e.g. "New workflow - 7 Aug 2026"). */
+export function defaultCreateWorkflowName(now = new Date()) {
+  const date = now.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  return `New workflow - ${date}`;
+}
+
 export function flattenDraftBlocks(blocks: DraftWorkflowBlock[]) {
   return blocks.flatMap((block) => [
     { type: block.type, config: block.config, clientId: block.id },
