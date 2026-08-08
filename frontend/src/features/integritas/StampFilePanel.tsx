@@ -1,6 +1,6 @@
 import { ButtonRow } from "../../components/ButtonRow";
 import { Button } from "../../components/ui/Button";
-import { FileDropBox } from "./FileDropBox";
+import { FileDropBox } from "../../components/patterns/FileDropBox";
 import { StampResult } from "./StampResult";
 import type { IntegritasProofRecord } from "./integritasTypes";
 

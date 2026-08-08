@@ -115,6 +115,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [JsonBlock](#jsonblock): inverse mono pretty-printed JSON surface
 - [JsonPreview](#jsonpreview): trigger that opens a modal with pretty-printed JSON
 - [CopyableCode](#copyablecode): mono value with copy control
+- `FileDropBox`: large drag/drop or click file picker with reject toast, selected-file row, and busy/disabled state (`components/patterns/FileDropBox.tsx`)
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
 

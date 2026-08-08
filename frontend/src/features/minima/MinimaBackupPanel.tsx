@@ -7,7 +7,7 @@ import { Card } from "../../components/Card";
 import { LoadingDots } from "../../components/LoadingDots";
 import { Modal } from "../../components/Modal";
 import { DeleteConfirmModal, DeleteProgressModal } from "../../components/patterns/DeleteConfirmModal";
-import { FileDropZone } from "../../components/patterns/FileDropZone";
+import { FileDropBox } from "../../components/patterns/FileDropBox";
 import { ListDisclosure } from "../../components/patterns/ListDisclosure";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
@@ -523,12 +523,12 @@ export function MinimaBackupPanel({
           <div className="grid gap-3">
             {restoreWarning}
 
-            <FileDropZone
+            <FileDropBox
+              title="Upload a .bak file"
               file={uploadFile}
               onFile={setUploadFile}
-              onClear={() => setUploadFile(null)}
               accept=".bak"
-              placeholder="Upload a .bak file"
+              busy={uploadBusy}
             />
 
             <InputField
