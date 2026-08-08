@@ -7,7 +7,7 @@ import { TOTP_ENABLED } from "./totpEnabled";
 
 type LoginPhase = "credentials" | "twofa";
 
-const TOTP_ACCOUNT_LABEL = "Edge Workbench";
+const TOTP_ACCOUNT_LABEL = "Edge Studio";
 
 export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
   const [phase, setPhase] = useState<LoginPhase>("credentials");

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Layers3 } from "lucide-react";
 import { APP_NAME } from "../../app/brand";
+import { BrandMark } from "../../components/BrandMark";
 import { Button } from "../../components/Button";
 import { ErrorText } from "../../components/Text";
 import { ProgressBar } from "../../components/ui/ProgressBar";
@@ -179,7 +179,7 @@ export function OnboardingWizard({
   const continueLabel = submitting
     ? "Securing device…"
     : connectReady
-      ? "Enter Edge Workbench"
+      ? "Enter Edge Studio"
       : "Continue";
   const progressCurrent = connectReady
     ? onboardingWorkSteps.length
@@ -284,7 +284,7 @@ export function OnboardingWizard({
                 : "bg-surface-always-black text-icon-inverse flex size-8 shrink-0 items-center justify-center rounded"
             }
           >
-            <Layers3 size={20} aria-hidden="true" strokeWidth={2.25} />
+            <BrandMark size={20} variant="white" />
           </div>
           <p className={isFinalOnboardingView ? "type-title text-text-inverse m-0" : "type-title text-surface-always-black m-0"}>
             {APP_NAME}

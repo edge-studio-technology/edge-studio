@@ -631,7 +631,7 @@ install_camera_helper() {
   log "Installing camera helper service"
   cat > "$service_file" <<EOF
 [Unit]
-Description=Integritas Pi Camera Helper
+Description=Edge Studio Camera Helper
 After=network.target
 
 [Service]
@@ -725,7 +725,7 @@ PY
   log "Installing sensor helper service"
   cat > "$service_file" <<EOF
 [Unit]
-Description=Integritas Pi Sensor Helper
+Description=Edge Studio Sensor Helper
 After=network.target
 
 [Service]

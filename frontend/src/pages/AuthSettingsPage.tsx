@@ -245,8 +245,8 @@ export function AuthSettingsPage() {
                             </Button>
                           </div>
                           <p className="type-meta text-text-secondary m-0">
-                            Issuer: <strong>Integritas Pi</strong>, Account:{" "}
-                            <strong>Edge Workbench</strong>
+                            Issuer: <strong>Edge Studio</strong>, Account:{" "}
+                            <strong>Edge Studio</strong>
                           </p>
                           <div className="flex gap-2">
                             <Input

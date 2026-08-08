@@ -1467,11 +1467,11 @@ function bodyModeDescription(bodyMode: AutomationBlock["config"]["bodyMode"], ta
 }
 
 function defaultCustomBodyText() {
-  return '{\n  "content": "Integritas Pi workflow triggered."\n}';
+  return '{\n  "content": "Edge Studio workflow triggered."\n}';
 }
 
 function defaultMultipartJsonText() {
-  return '{\n  "message": "Integritas Pi camera capture",\n  "hash": "{{hash}}",\n  "readId": "{{readId}}",\n  "sourceName": "{{sourceName}}",\n  "fileName": "{{fileName}}"\n}';
+  return '{\n  "message": "Edge Studio camera capture",\n  "hash": "{{hash}}",\n  "readId": "{{readId}}",\n  "sourceName": "{{sourceName}}",\n  "fileName": "{{fileName}}"\n}';
 }
 
 function formatInterval(seconds: number) {

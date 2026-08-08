@@ -111,7 +111,7 @@ export function DataSourceForm({
         <div>
           <strong>{submitLabel}</strong>
           <MutedText className="m-0 mt-1">
-            Configure how this device communicates with Integritas Pi.
+            Configure how this device communicates with Edge Studio.
           </MutedText>
         </div>
         {template && <Pill>{template.title}</Pill>}

@@ -4,7 +4,7 @@ Use this guide for a 4-pin BME280 or BME680 I2C environmental sensor module with
 
 ## Enable Support
 
-Install or update Integritas Pi with sensor support enabled:
+Install or update Edge Studio with sensor support enabled:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo env ENABLE_SENSORS=true bash

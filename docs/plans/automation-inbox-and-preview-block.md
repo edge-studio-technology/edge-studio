@@ -2,7 +2,7 @@
 
 **Status:** V1 implemented  
 **Created:** 2026-07-27  
-**Goal:** Let workflows send local operator-facing messages, JSON, links, and image previews to the Integritas Pi UI without requiring an external webhook such as Discord.
+**Goal:** Let workflows send local operator-facing messages, JSON, links, and image previews to the Edge Studio UI without requiring an external webhook such as Discord.
 
 ## Summary
 

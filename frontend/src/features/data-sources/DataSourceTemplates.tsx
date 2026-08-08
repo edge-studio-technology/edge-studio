@@ -206,7 +206,7 @@ export function LocalServicesCard({
         <CopyField
           label="Internal URL"
           value={internalUrl}
-          description="Use this in Integritas Pi MQTT device configs."
+          description="Use this in Edge Studio MQTT device configs."
         />
       </div>
       {!broker?.enabled && (

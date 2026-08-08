@@ -1,6 +1,6 @@
 # GPIO Device Settings
 
-This guide lists Raspberry Pi GPIO device settings for Integritas Pi Devices. It uses BCM pin numbering, matching the app UI and `gpiomon`/`gpioset` commands.
+This guide lists Raspberry Pi GPIO device settings for Edge Studio Devices. It uses BCM pin numbering, matching the app UI and `gpiomon`/`gpioset` commands.
 
 GPIO is 3.3V only. Do not connect GPIO pins directly to 5V, motors, relays, mains voltage, or unknown modules. For output LEDs, always use a resistor in series.
 

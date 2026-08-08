@@ -10,10 +10,10 @@ import { MutedText } from "../components/Text";
 const setupSteps = [
   {
     title: "Install package",
-    description: "Confirm the Minima Edge Stack Pi Edition bundle is installed and running as a local service.",
+    description: "Confirm the Edge Studio Pi Edition bundle is installed and running as a local service.",
     complete: true,
   },
-  { title: "Open dashboard", description: "Access Edge Workbench from a browser on the local network.", complete: true },
+  { title: "Open dashboard", description: "Access Edge Studio from a browser on the local network.", complete: true },
   { title: "Secure access", description: "Set PIN, local access rules, API keys, and backup options.", complete: false, icon: LockKeyhole },
   {
     title: "Connect devices",

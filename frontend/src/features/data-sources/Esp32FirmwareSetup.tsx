@@ -31,7 +31,7 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
         <strong>Next steps</strong>
         <MutedText className="m-0 mt-1">
           The device was saved as a normal MQTT input source. Follow these steps to flash an ESP32
-          and verify that Integritas Pi receives its JSON messages.
+          and verify that Edge Studio receives its JSON messages.
         </MutedText>
       </div>
       <div className="grid gap-2 text-sm">
@@ -387,7 +387,7 @@ function FirmwareStepContent({
         </label>
       </div>
       <div className="text-sm text-slate-600">
-        These values are inserted into the firmware text only. They are not saved to Integritas Pi.
+        These values are inserted into the firmware text only. They are not saved to Edge Studio.
       </div>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="xs" onClick={() => navigator.clipboard?.writeText(firmware)}>

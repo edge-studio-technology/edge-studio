@@ -189,7 +189,7 @@ Pi Camera devices are capture/input devices, not generic output targets. Automat
 Proof stamping uses the Integritas Connect account API key stored encrypted in `integritas_auth.api_key_enc` after device linking. Link Integritas Connect from Auth Settings or during first-run setup. API keys are never exposed in the frontend bundle.
 
 `INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS` is how often the Pi polls Connect while device activation is pending (default `5`).
-`ENABLE_MQTT_BROKER=true` enables the optional local Mosquitto broker when `COMPOSE_PROFILES=mqtt` is also set. The installer sets both values when launched with `ENABLE_MQTT_BROKER=true`. The Devices page shows the LAN broker URL for external devices and the internal Docker URL for Integritas Pi MQTT input/output configs.
+`ENABLE_MQTT_BROKER=true` enables the optional local Mosquitto broker when `COMPOSE_PROFILES=mqtt` is also set. The installer sets both values when launched with `ENABLE_MQTT_BROKER=true`. The Devices page shows the LAN broker URL for external devices and the internal Docker URL for Edge Studio MQTT input/output configs.
 
 The ESP32 MQTT Board onboarding option creates a normal MQTT input source and then shows copyable Arduino ESP32 starter firmware. The generated firmware uses the LAN broker host/port for the ESP32 while the saved MQTT source can keep using the backend's internal broker URL.
 
@@ -359,7 +359,7 @@ docker compose logs -f
 
 ## Authentication
 
-On first launch with an empty database, Edge Workbench shows a setup wizard:
+On first launch with an empty database, Edge Studio shows a setup wizard:
 
 1. Choose a local admin credential: a 6-digit PIN or a password with at least 8 characters, including uppercase, lowercase, a number, and a symbol
 2. Create or connect the Integritas Connect account used for plan and proof usage

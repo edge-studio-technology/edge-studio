@@ -4,6 +4,13 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ui/global-style-realignment
+
+### Changed
+
+- Remaining user-facing "Integritas Pi" product-name references (TOTP issuer/account labels, device setup copy, ESP32/MQTT/GPIO/BME guides, onboarding wizard brand mark) renamed to "Edge Studio", matching the earlier in-app rebrand. Also caught leftover pre-"Edge Studio" brand names still live in the app: "Edge Workbench" (TOTP account label, setup page, Integritas Connect panel, onboarding wizard's "Enter" button) and "Minima Edge Stack" (setup page). The repository name (`integritas-pi`, package names, Docker network/service names, file paths) is unchanged and will be renamed separately with the full repo rename.
+- Onboarding wizard header now renders the actual `BrandMark` logo instead of a generic `Layers3` placeholder icon.
+
 ## [0.32.0] 2026-08-08
 
 ### Added

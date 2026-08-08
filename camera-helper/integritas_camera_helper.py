@@ -171,7 +171,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Integritas Pi camera helper")
+    parser = argparse.ArgumentParser(description="Edge Studio camera helper")
     parser.add_argument("--host", default=os.environ.get("CAMERA_HELPER_HOST", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.environ.get("CAMERA_HELPER_PORT", "38180")))
     parser.add_argument("--capture-dir", default=os.environ.get("CAMERA_CAPTURE_DIR", "/opt/integritas-pi/data/captures"))
