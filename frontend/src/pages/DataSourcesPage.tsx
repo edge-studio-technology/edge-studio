@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../components/Button";
-import { ButtonRow } from "../components/ButtonRow";
-import { Card } from "../components/Card";
+// import { Button } from "../components/Button";
+// import { ButtonRow } from "../components/ButtonRow";
+// import { Card } from "../components/Card";
 import { Modal } from "../components/Modal";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Page } from "../components/Page";
@@ -194,6 +194,8 @@ export function DataSourcesPage() {
       title="Devices"
       desc="Add input sources for data and events, then prepare output targets for automation workflows."
     >
+      {/* "Add devices" card disabled for v1 — its actions moved next to the device list's
+      filter bar (New input / New output), making this separate card redundant.
       <Card className="gap-detail-near grid w-full">
         <div>
           <h2 className="type-title text-text-primary m-0">Add devices</h2>
@@ -208,7 +210,7 @@ export function DataSourcesPage() {
             Add output target
           </Button>
         </ButtonRow>
-      </Card>
+      </Card> */}
 
       <LocalServicesCard capabilities={capabilities} />
 
@@ -298,7 +300,8 @@ export function DataSourcesPage() {
         onOpenSetupGuide={setSetupGuideSource}
         onEdit={editSource}
         onDelete={setDeleteTarget}
-        onAddDevice={() => setAddDeviceMode("input")}
+        onAddInput={() => setAddDeviceMode("input")}
+        onAddOutput={() => setAddDeviceMode("output")}
       />
     </Page>
   );

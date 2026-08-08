@@ -21,6 +21,10 @@ export function EmptyContentState({
   actionVariant = "primary",
   actionDisabled,
   onAction,
+  secondaryActionLabel,
+  secondaryActionIcon,
+  secondaryActionDisabled,
+  onSecondaryAction,
   className,
 }: {
   icon?: LucideIcon;
@@ -31,6 +35,10 @@ export function EmptyContentState({
   actionVariant?: "primary" | "secondary";
   actionDisabled?: boolean;
   onAction?: () => void;
+  secondaryActionLabel?: ReactNode;
+  secondaryActionIcon?: ReactNode;
+  secondaryActionDisabled?: boolean;
+  onSecondaryAction?: () => void;
   className?: string;
 }) {
   return (
@@ -40,16 +48,31 @@ export function EmptyContentState({
         <p className="type-body-em text-text-primary m-0">{title}</p>
         {description ? <p className="type-body text-text-primary m-0">{description}</p> : null}
       </div>
-      {actionLabel && onAction ? (
-        <Button
-          type="button"
-          variant={actionVariant}
-          iconStart={actionIcon}
-          disabled={actionDisabled}
-          onClick={onAction}
-        >
-          {actionLabel}
-        </Button>
+      {(actionLabel && onAction) || (secondaryActionLabel && onSecondaryAction) ? (
+        <div className="gap-detail-next flex flex-wrap items-center justify-center">
+          {actionLabel && onAction ? (
+            <Button
+              type="button"
+              variant={actionVariant}
+              iconStart={actionIcon}
+              disabled={actionDisabled}
+              onClick={onAction}
+            >
+              {actionLabel}
+            </Button>
+          ) : null}
+          {secondaryActionLabel && onSecondaryAction ? (
+            <Button
+              type="button"
+              variant="secondary"
+              iconStart={secondaryActionIcon}
+              disabled={secondaryActionDisabled}
+              onClick={onSecondaryAction}
+            >
+              {secondaryActionLabel}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

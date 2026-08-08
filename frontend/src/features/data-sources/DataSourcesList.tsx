@@ -20,10 +20,11 @@ import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { EmptyState } from "../../components/patterns/EmptyState";
 import { ErrorDetailPanel } from "../../components/patterns/ErrorDetailPanel";
+import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
+import { Button } from "../../components/ui/Button";
 import { Disclosure } from "../../components/ui/Disclosure";
-import { Pagination } from "../../components/ui/Pagination";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
@@ -37,6 +38,13 @@ const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
   label: String(size),
 }));
 
+const DIRECTION_FILTER_OPTIONS = [
+  { value: "", label: "All" },
+  { value: "Input", label: "Input" },
+  { value: "Output", label: "Output" },
+  { value: "Capture", label: "Capture" },
+] as const;
+
 export function DataSourcesList({
   items,
   healthStatuses,
@@ -47,7 +55,8 @@ export function DataSourcesList({
   onOpenSetupGuide,
   onEdit,
   onDelete,
-  onAddDevice,
+  onAddInput,
+  onAddOutput,
 }: {
   items: DataSource[];
   healthStatuses: Record<string, DataSourceHealthStatus>;
@@ -58,15 +67,35 @@ export function DataSourcesList({
   onOpenSetupGuide: (source: DataSource) => void;
   onEdit: (source: DataSource) => void;
   onDelete: (source: DataSource) => void;
-  onAddDevice?: () => void;
+  onAddInput?: () => void;
+  onAddOutput?: () => void;
 }) {
   const [detailsSource, setDetailsSource] = useState<DataSource | null>(null);
+  const [direction, setDirection] = useState("");
+  const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
 
-  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const trimmedQuery = query.trim().toLowerCase();
+  const filtersActive = Boolean(direction || trimmedQuery);
+  const visibleItems = items.filter((source) => {
+    if (direction && sourceDirection(source) !== direction) return false;
+    if (!trimmedQuery) return true;
+    return (
+      source.name.toLowerCase().includes(trimmedQuery) ||
+      sourceTypeLabel(source).toLowerCase().includes(trimmedQuery) ||
+      (sourceEndpoint(source) ?? "").toLowerCase().includes(trimmedQuery)
+    );
+  });
+  const totalPages = Math.max(1, Math.ceil(visibleItems.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pagedItems = items.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pagedItems = visibleItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  function clearFilters() {
+    setDirection("");
+    setQuery("");
+    setPage(1);
+  }
 
   return (
     <TableCard
@@ -74,23 +103,63 @@ export function DataSourcesList({
       title="Configured devices"
       description="Monitor your configured input sources, and output targets."
     >
-      <Pagination
-        page={currentPage}
-        totalPages={totalPages}
-        disabled={loading}
-        onPageChange={setPage}
-      />
+      <div className="gap-detail-close flex flex-wrap items-end justify-between">
+        <div className="min-w-0 flex-1 [&>div]:mb-0">
+          <ListFilterBar
+            filter={direction}
+            q={query}
+            filterOptions={DIRECTION_FILTER_OPTIONS}
+            searchPlaceholder="Name, type, or endpoint"
+            disabled={loading || visibleItems.length === 0}
+            onFilterChange={(value) => {
+              setDirection(value);
+              setPage(1);
+            }}
+            onQueryChange={(q) => {
+              setQuery(q);
+              setPage(1);
+            }}
+          />
+        </div>
+        {onAddInput || onAddOutput ? (
+          <div className="gap-detail-next flex flex-wrap items-center">
+            {onAddInput ? (
+              <Button type="button" iconStart={<Plus aria-hidden />} onClick={onAddInput}>
+                New input
+              </Button>
+            ) : null}
+            {onAddOutput ? (
+              <Button
+                type="button"
+                variant="secondary"
+                iconStart={<Plus aria-hidden />}
+                onClick={onAddOutput}
+              >
+                New output
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       {loading ? (
         <LoadingState title="Fetching your devices" description="This should take a few seconds." />
-      ) : items.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <EmptyContentState
-          icon={Cable}
-          title="Connect your first device"
-          description="Your input sources and output targets will be added to your library here."
-          actionLabel={onAddDevice ? "New device" : undefined}
-          actionIcon={onAddDevice ? <Plus aria-hidden /> : undefined}
-          onAction={onAddDevice}
+          icon={filtersActive ? Inbox : Cable}
+          title={filtersActive ? "No matching devices" : "Connect your first device"}
+          description={
+            filtersActive
+              ? "Try another direction or search, or clear filters."
+              : "Your input sources and output targets will be added to your library here."
+          }
+          actionLabel={filtersActive ? "Clear filters" : onAddInput ? "New input" : undefined}
+          actionIcon={filtersActive ? undefined : onAddInput ? <Plus aria-hidden /> : undefined}
+          actionVariant={filtersActive ? "secondary" : "primary"}
+          onAction={filtersActive ? clearFilters : onAddInput}
+          secondaryActionLabel={!filtersActive && onAddOutput ? "New output" : undefined}
+          secondaryActionIcon={!filtersActive && onAddOutput ? <Plus aria-hidden /> : undefined}
+          onSecondaryAction={!filtersActive ? onAddOutput : undefined}
         />
       ) : (
         <TableWrap>
@@ -215,7 +284,7 @@ export function DataSourcesList({
       <ListPaginationFooter
         page={currentPage}
         pageSize={pageSize}
-        total={items.length}
+        total={visibleItems.length}
         totalPages={totalPages}
         disabled={loading}
         onPageChange={setPage}

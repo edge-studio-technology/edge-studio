@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The small secondary/compact buttons next to a table's search bar (address book "New contact", Diagnostics "Refresh") are now full-size primary (black) buttons with a leading icon, matching the weight of other primary actions instead of looking like a minor/secondary control.
 - Diagnostics' "Automation" tab (workflow run logs) brought in line with its "Integritas" and "Devices" sibling tabs: it now shows the shared fetching spinner while the tab loads (previously showed nothing) and the shared empty-state panel with a "Clear filters" action when filtered to no results (previously an inline "No workflow runs recorded yet." table row with no clear-filters action).
 - Wallet page's "Assets" tab is disabled for v1 (commented out, not deleted) — with a single native token, a separate assets list is redundant; Wallet now opens straight to "History".
+- Devices page's separate "Add devices" card (with its own "Add input source"/"Add output target" buttons) is disabled for v1 (commented out, not deleted) — those actions moved next to the device list's new filter/search bar.
+- Devices list now has a working filter (by direction: All/Input/Output/Capture) and search (name, type, or endpoint) bar, replacing the top numbered-page `Pagination` control. "New input" and "New output" buttons sit to its right (bottom pagination footer is unchanged), and the empty state gained a matching second "New output" action alongside "New input" (`EmptyContentState` now supports an optional secondary action button).
 
 ### Fixed
 
