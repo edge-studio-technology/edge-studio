@@ -26,7 +26,7 @@ export function DeleteConfirmModal({
         <Trash2 size={40} className="text-icon-secondary" aria-hidden />
         <div className="gap-detail-tight grid">
           <p className="type-title text-text-primary m-0">Delete {itemLabel}?</p>
-          <p className="type-body text-text-secondary m-0 max-w-xl">{description}</p>
+          <p className="type-body text-text-secondary m-0 mt-4">{description}</p>
         </div>
         <ButtonRow>
           <Button variant="secondary" onClick={onCancel}>
@@ -54,7 +54,7 @@ export function DeleteProgressModal({
         <Spinner size="lg" />
         <div className="gap-detail-tight grid">
           <p className="type-title text-text-primary m-0">Deleting in progress</p>
-          <p className="type-body text-text-secondary m-0 max-w-xl">{description}</p>
+          <p className="type-body text-text-secondary m-0 mt-4">{description}</p>
         </div>
       </div>
     </Modal>
