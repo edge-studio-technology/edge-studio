@@ -36,6 +36,7 @@
 - [ ] Manual browser check of the Account page's "Delete backup" flow after switching it to the shared `DeleteConfirmModal`/`DeleteProgressModal` component, and confirm the modal-swap flicker fix (removed `Modal`'s `mounted` render gate) actually resolves it in-browser.
 - [ ] Manual browser check of the restyled "Send feedback" modal (`FeedbackModal.tsx`) — all form states (bug / feature request / other), the description validation error, and the saved/download state.
 - [ ] Manual browser check of Account settings' new "Software update"/"Feedback" subsections and the Update page's relocated "Update now"/"Check again" actions.
+- [ ] Manual browser check of `update-agent`'s static update-progress page (`/update/` during an in-progress apply) to confirm the new logo lockup renders correctly there.
 
 ## Done
 
@@ -77,6 +78,7 @@
 - [x] Fixed Account settings page's Integritas/Minima status `Pill`s missing the `indicator` dot that the header `StatusBar`'s pills already have — same shared `Pill` component, just one missing prop — branch `ui/global-style-realignment`, build verified.
 - [x] Added `LinkButton` (`components/ui/Button.tsx`) — `Button` chrome on a real `<a>`, with its own `linkVariantClass` map since `Button`'s `enabled:hover:*` classes never match on anchors — and used it for the "Send feedback" modal's download link and the new Account settings "Export feedback JSON" action; no other button-styled anchors found elsewhere to convert — branch `ui/global-style-realignment`, typecheck/build verified.
 - [x] Added "Software update" and "Feedback" subsections to Account settings' "User settings" (above "Change PIN or password"), moving "Check updates" out of the page header and adding a direct feedback-JSON export action so operators aren't forced through the "Send feedback" modal just to get the export file — scope intentionally kept to export-only (no list/edit/delete of individual submissions; that's still V3+ per `docs/plans/feedback.md`, no backend changes needed here). Renamed the in-app Update page's title "Update" → "Software update" to match, and moved that page's own "Update now" action out of its header into the body next to the version copy it acts on — branch `ui/global-style-realignment`, typecheck/build/`docker compose config` verified.
+- [x] Added the Edge Studio logo lockup to `update-agent`'s own static update-progress page (`update-agent/public/index.html` + copied `es-lockup.svg`, same asset the login page uses) — branch `ui/global-style-realignment`, `npm --prefix update-agent run build`/`npm run check`/`docker compose config` verified.
 
 ## Ideas
 

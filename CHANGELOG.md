@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Account page's Integritas/Minima status pills now show the same status dot indicator as the header status bar (`Pill`'s `indicator` prop was set on the header's pills but not these), so both use identical chrome for the same status concept instead of drifting apart visually.
 - Account page's "Check updates" action moved out of the page header into a new "Software update" subsection (User settings), and a new "Feedback" subsection was added next to it with a direct "Export feedback JSON" download — so operators can get the local feedback export file without having to submit a new feedback entry first. Renamed the in-app Update page's title from "Update" to "Software update" to match.
 - Update page's "Update now" action moved out of the page header into the body, next to the "Update available"/version copy it acts on; the header now only shows "Check again" once already up to date.
+- `update-agent`'s own static update-progress page (`/update/`, shown during an in-progress apply) now shows the Edge Studio logo lockup above the status card, matching the login page.
 - Added `LinkButton` (`components/ui/Button.tsx`): `Button` chrome rendered on a real `<a>`, for actions that must be a link (e.g. file downloads) rather than a click handler. Used by the new "Export feedback JSON" action and the "Send feedback" modal's existing download link (previously a one-off locally-styled anchor).
 
 ### Fixed
