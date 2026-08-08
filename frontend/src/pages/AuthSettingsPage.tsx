@@ -355,11 +355,9 @@ export function AuthSettingsPage() {
           title={
             <span className="flex items-center gap-2">
               <h2 className="type-title text-text-primary m-0">Integritas settings</h2>
-              {integritasKind && (
-                <Pill tone={integritasStatusTone[integritasKind]} indicator>
-                  {integritasStatusLabel[integritasKind]}
-                </Pill>
-              )}
+              <Pill tone={integritasKind ? integritasStatusTone[integritasKind] : "neutral"} indicator>
+                {integritasKind ? integritasStatusLabel[integritasKind] : "Checking…"}
+              </Pill>
             </span>
           }
           className="pt-4 pb-6"

@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Sidebar "Marketplace" nav item now actually links to `/marketplace` — it had hardcoded a redirect to `/dashboard` while the route didn't exist yet; that hardcode was never removed once the page landed.
 - `StatusPage` (404/coming-soon/error states) now centers within the actual remaining page height below the header instead of a fixed `70vh` guess, which under- or over-shot depending on viewport height. `AppShell`'s content area is now a proper flex column so page content can size against it precisely.
 - Account settings page's "User settings", "Integritas settings", and "Minima settings" sections now start collapsed instead of expanded.
+- Account settings page's "Integritas settings" status badge now shows a neutral "Checking…" state while loading instead of popping in once resolved, matching the "Minima settings" badge's existing behavior.
 - Shared `Modal` closes on an outside press again (previously disabled entirely after it closed unexpectedly): it now only reacts to `mousedown` landing directly on the backdrop, not `click`/release, so a text selection or drag that starts inside the dialog and ends outside it can no longer trigger an accidental close. A small padding buffer around the dialog edge also absorbs near-edge presses so they don't count as "outside". Gated by the new Account page "Close modal when clicking outside it" setting.
 
 ### Fixed
