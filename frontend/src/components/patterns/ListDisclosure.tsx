@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { cx } from "../../lib/cx";
 import { ScrollArea } from "../ui/ScrollArea";
 
+/** Unused as of the settings-page ListDisclosure -> DataTable migration. Possible deprecation candidate — keep until we decide whether disclosure-style lists are still wanted. */
 export function ListDisclosure({
   title,
   count,

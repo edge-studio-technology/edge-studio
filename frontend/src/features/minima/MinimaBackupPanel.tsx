@@ -1,18 +1,31 @@
 import { useEffect, useState } from "react";
-import { Download, KeyRound, RotateCcw, Trash2, Upload } from "lucide-react";
+import { Download, KeyRound, Upload } from "lucide-react";
 import type { MinimaBackupEntry, MinimaBackupListResponse, MinimaNodeState } from "../../app/types";
 import { Button, IconButton } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
+import {
+  DataTable,
+  EmptyTableState,
+  RowActions,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableIconButton,
+  TableIconMenu,
+  TableRow,
+} from "../../components/DataTable";
 import { LoadingDots } from "../../components/LoadingDots";
 import { Modal } from "../../components/Modal";
 import { DeleteConfirmModal, DeleteProgressModal } from "../../components/patterns/DeleteConfirmModal";
 import { FileDropBox } from "../../components/patterns/FileDropBox";
-import { ListDisclosure } from "../../components/patterns/ListDisclosure";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { InputField } from "../../components/ui/InputField";
+import { ScrollArea } from "../../components/ui/ScrollArea";
+import { formatLocalDateTime } from "../../lib/time";
 import {
   clearBackupPassword,
   createMinimaBackup,
@@ -33,12 +46,6 @@ function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatCreatedAt(iso: string) {
-  const date = new Date(iso);
-  const utc = date.toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC");
-  return `${date.toLocaleString()} local · ${utc}`;
 }
 
 const restoreWarning = (
@@ -66,46 +73,35 @@ function BackupRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-3 py-2">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-slate-900 m-0">{backup.fileName}</p>
-        <p className="text-xs text-slate-500 m-0">
-          {formatSize(backup.sizeBytes)} · {formatCreatedAt(backup.createdAt)}
-        </p>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <IconButton
-          size="compact"
-          variant="ghost"
-          title="Download"
-          aria-label={`Download ${backup.fileName}`}
-          onClick={onDownload}
-        >
-          <Download />
-        </IconButton>
-        <IconButton
-          size="compact"
-          variant="ghost"
-          title="Restore"
-          aria-label={`Restore ${backup.fileName}`}
-          disabled={actionsBlocked}
-          onClick={onRestore}
-        >
-          <RotateCcw />
-        </IconButton>
-        <IconButton
-          size="compact"
-          variant="ghost"
-          title="Delete"
-          aria-label={`Delete ${backup.fileName}`}
-          disabled={deleting}
-          onClick={onDelete}
-          className="text-feedback-error hover:border-feedback-error"
-        >
-          <Trash2 />
-        </IconButton>
-      </div>
-    </div>
+    <TableRow>
+      <TableCell className="min-w-0">
+        <span className="type-body-em text-text-primary block truncate">{backup.fileName}</span>
+      </TableCell>
+      <TableCell className="whitespace-nowrap">{formatSize(backup.sizeBytes)}</TableCell>
+      <TableCell className="whitespace-nowrap">
+        <time className="type-meta text-text-secondary" dateTime={backup.createdAt}>
+          {formatLocalDateTime(backup.createdAt)}
+        </time>
+      </TableCell>
+      <TableCell className="w-px whitespace-nowrap">
+        <RowActions>
+          <TableIconButton
+            title="Download"
+            aria-label={`Download ${backup.fileName}`}
+            onClick={onDownload}
+          >
+            <Download size={16} aria-hidden />
+          </TableIconButton>
+          <TableIconMenu
+            aria-label={`More actions for ${backup.fileName}`}
+            items={[
+              { label: "Restore", disabled: actionsBlocked, onClick: onRestore },
+              { label: "Delete", danger: true, disabled: deleting, onClick: onDelete }
+            ]}
+          />
+        </RowActions>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -416,20 +412,45 @@ export function MinimaBackupPanel({
         {!backups && !listError && <LoadingDots />}
 
         {backups && (
-          <ListDisclosure title="Backups" count={backups.length} max={MAX_BACKUPS}>
-            {backups.length === 0 && <p className="m-0 px-3 py-2 text-sm text-slate-500">None yet.</p>}
-            {backups.map((backup) => (
-              <BackupRow
-                key={backup.fileName}
-                backup={backup}
-                actionsBlocked={actionsBlocked}
-                deleting={deletingFile === backup.fileName}
-                onDownload={() => startDownload(backup.fileName)}
-                onRestore={() => startRowRestore(backup)}
-                onDelete={() => startDelete(backup)}
-              />
-            ))}
-          </ListDisclosure>
+          <div className="grid gap-2">
+            <p className="m-0 text-sm font-medium text-slate-500">
+              Backups ({backups.length}/{MAX_BACKUPS})
+            </p>
+            <ScrollArea
+              stableGutter={false}
+              className="max-h-80 rounded-loose border border-stroke-primary bg-surface-always-white"
+            >
+              <DataTable aria-label="Backups">
+                <TableHead>
+                  <TableHeaderCell>File</TableHeaderCell>
+                  <TableHeaderCell>Size</TableHeaderCell>
+                  <TableHeaderCell>Created</TableHeaderCell>
+                  <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+                </TableHead>
+                <TableBody>
+                  {backups.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4}>
+                        <EmptyTableState>None yet.</EmptyTableState>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    backups.map((backup) => (
+                      <BackupRow
+                        key={backup.fileName}
+                        backup={backup}
+                        actionsBlocked={actionsBlocked}
+                        deleting={deletingFile === backup.fileName}
+                        onDownload={() => startDownload(backup.fileName)}
+                        onRestore={() => startRowRestore(backup)}
+                        onDelete={() => startDelete(backup)}
+                      />
+                    ))
+                  )}
+                </TableBody>
+              </DataTable>
+            </ScrollArea>
+          </div>
         )}
       </div>
 
