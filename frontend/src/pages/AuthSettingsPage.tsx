@@ -11,6 +11,7 @@ import {
   LogOut,
   MessageSquare,
   MousePointerClick,
+  PanelLeft,
   RefreshCw,
   RotateCcw,
   ShieldAlert,
@@ -28,7 +29,7 @@ import { ErrorText } from "../components/Text";
 import { Disclosure } from "../components/ui/Disclosure";
 import { InputField } from "../components/ui/InputField";
 import { SwitchField } from "../components/ui/SwitchField";
-import { closeModalOnOutsideClickSetting } from "../lib/behaviourSettings";
+import { closeModalOnOutsideClickSetting, sidebarStartCollapsedSetting } from "../lib/behaviourSettings";
 import { initTotpReset, verifyTotpReset } from "../features/auth/api";
 import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
@@ -134,6 +135,10 @@ export function AuthSettingsPage() {
   const closeModalOnOutsideClick = useSyncExternalStore(
     closeModalOnOutsideClickSetting.subscribe,
     closeModalOnOutsideClickSetting.get,
+  );
+  const sidebarStartCollapsed = useSyncExternalStore(
+    sidebarStartCollapsedSetting.subscribe,
+    sidebarStartCollapsedSetting.get,
   );
 
   return (
@@ -426,6 +431,19 @@ export function AuthSettingsPage() {
                 description="Turn off if you'd rather only close modals with the X button or Escape."
                 checked={closeModalOnOutsideClick}
                 onChange={(e) => closeModalOnOutsideClickSetting.set(e.target.checked)}
+              />
+            </SubSection>
+
+            <SubSection
+              icon={<PanelLeft size={13} />}
+              title="Sidebar"
+              description="Control whether the sidebar starts collapsed or expanded on page load."
+            >
+              <SwitchField
+                label="Start sidebar collapsed"
+                description="Applies on page load at desktop widths. The collapse/expand button still works as normal in between."
+                checked={sidebarStartCollapsed}
+                onChange={(e) => sidebarStartCollapsedSetting.set(e.target.checked)}
               />
             </SubSection>
           </div>

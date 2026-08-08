@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - New 404 "Page not found" page, now shown for any unmatched app route (previously silently redirected to the dashboard) — icon, title, description, and a "Back to dashboard" action, via a new shared `StatusPage` layout (`components/patterns/`) for whole-page icon/title/description/action states.
 - New `/marketplace` page ("Coming soon"), reached from the existing sidebar "Marketplace" nav item, which previously had no route and fell through to the dashboard. Built on the same new `StatusPage` layout as the 404 page.
 - New "Something went wrong" fallback, shown in place of a crashed page's content (sidebar/header stay up) instead of a blank white screen, via a new `ErrorBoundary` (`components/ErrorBoundary.tsx`) wrapping routed page content — resets automatically on navigation, with a "Reload page" action for anything it can't recover from on its own.
-- New "Behaviour settings" section on the Account settings page with a "Close modal when clicking outside it" toggle (on by default, stored in the browser via a small reusable local-preference helper (`lib/localSettings.ts`), not on the backend).
+- New "Behaviour settings" section on the Account settings page with a "Close modal when clicking outside it" toggle (on by default, stored in the browser via a small reusable local-preference helper (`lib/localSettings.ts`), not on the backend) and a "Start sidebar collapsed" toggle (off by default) fixing the sidebar always starting expanded at desktop widths on every refresh regardless of how it was last left.
 
 ### Changed
 

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { nav } from "../app/nav";
 import { cx } from "../lib/cx";
+import { sidebarStartCollapsedSetting } from "../lib/behaviourSettings";
 import { APP_NAME } from "../app/brand";
 import { BrandMark } from "./BrandMark";
 
@@ -55,13 +56,17 @@ export function AppShellSidebar({
   version: string | null;
   updateNotice?: ReactNode;
 }) {
+  // Below EXPAND_MQ, narrow viewport space always wins and forces collapsed regardless of the
+  // setting; at/above it, the "start sidebar collapsed" preference decides the default.
   const [collapsed, setCollapsed] = useState(
-    () => typeof window !== "undefined" && !window.matchMedia(EXPAND_MQ).matches,
+    () =>
+      typeof window !== "undefined" &&
+      (!window.matchMedia(EXPAND_MQ).matches || sidebarStartCollapsedSetting.get()),
   );
 
   useEffect(() => {
     const mq = window.matchMedia(EXPAND_MQ);
-    const sync = () => setCollapsed(!mq.matches);
+    const sync = () => setCollapsed(!mq.matches || sidebarStartCollapsedSetting.get());
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
