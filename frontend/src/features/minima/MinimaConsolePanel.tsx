@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Maximize2, Minimize2, Trash2 } from "lucide-react";
+import { Maximize2, Minimize2, Settings, Trash2 } from "lucide-react";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { IconButton } from "../../components/ui/Button";
 import { ScrollArea } from "../../components/ui/ScrollArea";
@@ -17,7 +17,7 @@ type ScrollbackEntry = {
 };
 
 const shellClass =
-  "border-stroke-primary bg-surface-primary type-mono text-text-primary flex flex-col rounded-soft border";
+  "border-surface-inverse-hover bg-surface-inverse type-mono text-text-inverse flex flex-col rounded-soft border";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -47,7 +47,7 @@ function ConsoleResult({ payload }: { payload: unknown }) {
 
   if (response === undefined) {
     return (
-      <pre className="text-text-primary m-0 break-words whitespace-pre-wrap">
+      <pre className="text-text-inverse m-0 break-words whitespace-pre-wrap">
         {prettyJson(payload)}
       </pre>
     );
@@ -58,7 +58,7 @@ function ConsoleResult({ payload }: { payload: unknown }) {
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
-        className="text-text-secondary hover:text-text-primary border-0 bg-transparent p-0"
+        className="text-text-secondary hover:text-text-inverse cursor-pointer border-0 bg-transparent p-0"
       >
         {expanded ? "▾" : "▸"} Payload (response shown below)
       </button>
@@ -67,14 +67,20 @@ function ConsoleResult({ payload }: { payload: unknown }) {
           {prettyJson(envelope)}
         </pre>
       )}
-      <pre className="text-text-primary mt-detail-tight m-0 break-words whitespace-pre-wrap">
+      <pre className="text-text-inverse mt-detail-tight m-0 break-words whitespace-pre-wrap">
         {prettyJson(response)}
       </pre>
     </div>
   );
 }
 
-export function MinimaConsolePanel({ disabled }: { disabled?: boolean }) {
+export function MinimaConsolePanel({
+  disabled,
+  onEditWhitelist,
+}: {
+  disabled?: boolean;
+  onEditWhitelist: () => void;
+}) {
   const [command, setCommand] = useState("");
   const [entries, setEntries] = useState<ScrollbackEntry[]>([]);
   const [fullscreen, setFullscreen] = useState(false);
@@ -161,7 +167,7 @@ export function MinimaConsolePanel({ disabled }: { disabled?: boolean }) {
           <div key={entry.id} className="mb-detail-close last:mb-0">
             <div className="text-text-success">$ {entry.command}</div>
             {entry.status === "pending" && (
-              <div className="text-text-secondary">
+              <div className="text-text-secondary mt-2">
                 <LoadingDots />
               </div>
             )}
@@ -180,7 +186,7 @@ export function MinimaConsolePanel({ disabled }: { disabled?: boolean }) {
   const promptRow = (
     <form
       onSubmit={(e) => void runCommand(e)}
-      className="border-stroke-primary gap-detail-next px-pad-close py-detail-next flex items-center border-b"
+      className="border-surface-inverse-hover gap-detail-next px-pad-close py-detail-next flex items-center border-b"
     >
       <span className="text-text-success">$</span>
       <input
@@ -191,7 +197,7 @@ export function MinimaConsolePanel({ disabled }: { disabled?: boolean }) {
         autoComplete="off"
         spellCheck={false}
         placeholder={disabled ? "Unavailable" : "status"}
-        className="text-text-primary placeholder:text-text-tertiary flex-1 bg-transparent outline-none disabled:opacity-55"
+        className="text-text-inverse placeholder:text-text-tertiary flex-1 bg-transparent outline-none disabled:opacity-55"
       />
       <IconButton
         aria-label="Clear scrollback"
@@ -210,35 +216,49 @@ export function MinimaConsolePanel({ disabled }: { disabled?: boolean }) {
       >
         {fullscreen ? <Minimize2 /> : <Maximize2 />}
       </IconButton>
+      <IconButton
+        aria-label="Edit console command whitelist"
+        size="compact"
+        variant="secondary"
+        onClick={onEditWhitelist}
+      >
+        <Settings />
+      </IconButton>
     </form>
   );
 
-  if (fullscreen) {
-    return createPortal(
-      <div
-        className="bg-overlay-heavy p-pad-tight fixed inset-0 z-50"
-        role="dialog"
-        aria-modal="true"
-        aria-label="RPC console, fullscreen"
-      >
-        <div
-          className={cx(
-            shellClass,
-            "mx-auto h-full max-w-5xl shadow-[0_28px_80px_rgba(0,0,0,0.28)]",
-          )}
-        >
-          {promptRow}
-          {scrollback}
-        </div>
-      </div>,
-      document.body,
-    );
-  }
-
   return (
-    <div className={cx(shellClass, "h-[28rem]")}>
-      {promptRow}
-      {scrollback}
-    </div>
+    <>
+      {/* Keeps the in-flow layout occupying its usual height while fullscreen is
+          portaled out — otherwise the page reflows/jumps when toggling fullscreen. */}
+      <div className={cx(shellClass, "h-[28rem]")}>
+        {fullscreen ? null : (
+          <>
+            {promptRow}
+            {scrollback}
+          </>
+        )}
+      </div>
+      {fullscreen &&
+        createPortal(
+          <div
+            className="bg-overlay-heavy p-pad-tight fixed inset-0 z-50"
+            role="dialog"
+            aria-modal="true"
+            aria-label="RPC console, fullscreen"
+          >
+            <div
+              className={cx(
+                shellClass,
+                "mx-auto h-full max-w-5xl shadow-[0_28px_80px_rgba(0,0,0,0.28)]",
+              )}
+            >
+              {promptRow}
+              {scrollback}
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
