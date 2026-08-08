@@ -1,9 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { Download } from "lucide-react";
-import { Button } from "../../components/Button";
-import { ButtonRow } from "../../components/ButtonRow";
-import { Modal } from "../../components/Modal";
-import { ErrorText, MutedText } from "../../components/Text";
+import { CheckCircle2, Download } from "lucide-react";
+import { Button } from "../../components/ui/Button";
+import { Card } from "../../components/ui/Card";
+import { InputField } from "../../components/ui/InputField";
+import { Modal } from "../../components/ui/Modal";
+import { SelectField } from "../../components/ui/SelectField";
+import { TextareaField } from "../../components/ui/TextareaField";
+import { ButtonRow } from "../../components/patterns/ButtonRow";
 import { postJson } from "../../lib/api";
 import { useToast } from "../../components/ToastProvider";
 
@@ -48,6 +51,10 @@ const featurePriorities = [
   { value: "important", label: "Important" },
   { value: "blocking_workflow", label: "Blocking workflow" }
 ];
+
+// Button has no anchor/href support; mirror its primary variant chrome for this download link.
+const downloadLinkClass =
+  "gap-detail-next rounded-loose h-[44px] px-detail-close type-body inline-flex w-fit cursor-pointer items-center justify-center border border-transparent bg-surface-inverse text-text-inverse transition-colors duration-200 hover:bg-grey-06";
 
 type FeedbackSubmitResponse = {
   id: string;
@@ -116,100 +123,117 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
   return (
     <Modal title="Send feedback" onClose={onClose}>
       {saved ? (
-        <div className="grid gap-4">
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-            <h4 className="m-0 text-base font-extrabold text-emerald-950">Feedback saved locally</h4>
-            <MutedText className="mt-2 text-emerald-800">
-              Your feedback was appended to <code>{saved.fileName}</code>. Download the aggregate JSON file and send it manually to the Integritas team.
-            </MutedText>
+        <div className="gap-detail-close grid">
+          <div className="border-stroke-success bg-surface-always-white rounded-soft relative flex items-start overflow-clip border">
+            <div className="bg-feedback-positive pointer-events-none absolute inset-0 opacity-20" aria-hidden />
+            <div className="gap-detail-close p-margin-tight relative flex min-w-0 flex-1 items-start">
+              <div className="grid size-5 shrink-0 place-items-center">
+                <CheckCircle2 className="text-icon-success" size={20} aria-hidden />
+              </div>
+              <div className="gap-detail-tight grid min-w-0 flex-1">
+                <strong className="type-body-em text-text-primary">Feedback saved locally</strong>
+                <p className="type-body text-text-secondary m-0">
+                  Your feedback was appended to <code className="type-mono">{saved.fileName}</code>. Download the
+                  aggregate JSON file and send it manually to the Integritas team.
+                </p>
+              </div>
+            </div>
           </div>
           <ButtonRow>
-            <a className="inline-flex w-fit items-center justify-center gap-2 rounded-2xl border border-transparent bg-slate-950 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800" href={saved.exportUrl}>
-              <Download size={16} /> Download feedback JSON
+            <a className={downloadLinkClass} href={saved.exportUrl}>
+              <Download size={16} aria-hidden /> Download feedback JSON
             </a>
             <Button variant="secondary" onClick={onClose}>Close</Button>
           </ButtonRow>
         </div>
       ) : (
-        <form className="grid gap-4" onSubmit={submitFeedback}>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">Current page</p>
-            <p className="m-0 mt-2 font-bold text-slate-950">{pageLabel}</p>
-            <code className="mt-2 block break-all rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">{pagePath}</code>
-          </div>
+        <form className="gap-detail-close grid" onSubmit={submitFeedback}>
+          <Card size="Compact" className="border-stroke-secondary gap-detail-tight grid border">
+            <p className="type-meta text-text-secondary m-0">Current page</p>
+            <p className="type-body-em text-text-primary m-0">{pageLabel}</p>
+            <code className="type-mono text-text-secondary bg-surface-primary rounded-loose px-detail-next py-detail-tight block break-all">
+              {pagePath}
+            </code>
+          </Card>
 
-          <label className="grid gap-2 font-bold text-slate-700">
-            Feedback type
-            <select value={type} onChange={(event) => setType(event.target.value)}>
-              {feedbackTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-            </select>
-          </label>
+          <SelectField
+            label="Feedback type"
+            value={type}
+            onChange={(event) => setType(event.target.value)}
+            options={feedbackTypes}
+          />
 
-          <label className="grid gap-2 font-bold text-slate-700">
-            What is this about?
-            <select value={area} onChange={(event) => setArea(event.target.value)}>
-              {feedbackAreas.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-            </select>
-          </label>
+          <SelectField
+            label="What is this about?"
+            value={area}
+            onChange={(event) => setArea(event.target.value)}
+            options={feedbackAreas}
+          />
 
           {type === "bug" && (
-            <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="grid gap-3 md:grid-cols-2">
-                <label className="grid gap-2 font-bold text-slate-700">
-                  Severity
-                  <select value={bugSeverity} onChange={(event) => setBugSeverity(event.target.value)}>
-                    {bugSeverities.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
-                </label>
-                <label className="grid gap-2 font-bold text-slate-700">
-                  Reproducibility
-                  <select value={bugReproducibility} onChange={(event) => setBugReproducibility(event.target.value)}>
-                    {bugReproducibilities.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
-                </label>
+            <Card size="Compact" className="border-stroke-secondary gap-detail-close grid border">
+              <div className="gap-detail-close grid sm:grid-cols-2">
+                <SelectField
+                  label="Severity"
+                  value={bugSeverity}
+                  onChange={(event) => setBugSeverity(event.target.value)}
+                  options={bugSeverities}
+                />
+                <SelectField
+                  label="Reproducibility"
+                  value={bugReproducibility}
+                  onChange={(event) => setBugReproducibility(event.target.value)}
+                  options={bugReproducibilities}
+                />
               </div>
-              <label className="grid gap-2 font-bold text-slate-700">
-                Expected behavior
-                <input maxLength={1000} value={expectedBehavior} onChange={(event) => setExpectedBehavior(event.target.value)} placeholder="What did you expect to happen?" />
-              </label>
-              <label className="grid gap-2 font-bold text-slate-700">
-                Actual behavior
-                <input maxLength={1000} value={actualBehavior} onChange={(event) => setActualBehavior(event.target.value)} placeholder="What happened instead?" />
-              </label>
-            </div>
+              <InputField
+                label="Expected behavior"
+                maxLength={1000}
+                value={expectedBehavior}
+                onChange={(event) => setExpectedBehavior(event.target.value)}
+                placeholder="What did you expect to happen?"
+              />
+              <InputField
+                label="Actual behavior"
+                maxLength={1000}
+                value={actualBehavior}
+                onChange={(event) => setActualBehavior(event.target.value)}
+                placeholder="What happened instead?"
+              />
+            </Card>
           )}
 
           {type === "feature_request" && (
-            <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-              <label className="grid gap-2 font-bold text-slate-700">
-                Priority
-                <select value={featurePriority} onChange={(event) => setFeaturePriority(event.target.value)}>
-                  {featurePriorities.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                </select>
-              </label>
-              <label className="grid gap-2 font-bold text-slate-700">
-                Desired outcome
-                <input maxLength={1000} value={desiredOutcome} onChange={(event) => setDesiredOutcome(event.target.value)} placeholder="What should this help you do?" />
-              </label>
-            </div>
+            <Card size="Compact" className="border-stroke-secondary gap-detail-close grid border">
+              <SelectField
+                label="Priority"
+                value={featurePriority}
+                onChange={(event) => setFeaturePriority(event.target.value)}
+                options={featurePriorities}
+              />
+              <InputField
+                label="Desired outcome"
+                maxLength={1000}
+                value={desiredOutcome}
+                onChange={(event) => setDesiredOutcome(event.target.value)}
+                placeholder="What should this help you do?"
+              />
+            </Card>
           )}
 
-          <label className="grid gap-2 font-bold text-slate-700">
-            Description
-            <textarea
-              className="min-h-40 resize-y"
-              maxLength={10000}
-              placeholder="What happened, what did you expect, or what would you like to improve?"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </label>
+          <TextareaField
+            label="Description"
+            maxLength={10000}
+            placeholder="What happened, what did you expect, or what would you like to improve?"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            error={error ?? undefined}
+          />
 
-          <MutedText className="m-0">
-            The local JSON export includes app/device metadata and a small stats snapshot. It does not include passwords, TOTP secrets, session cookies, Integritas API keys, or wallet seed phrases.
-          </MutedText>
-
-          {error && <ErrorText className="m-0">{error}</ErrorText>}
+          <p className="type-meta text-text-secondary m-0">
+            The local JSON export includes app/device metadata and a small stats snapshot. It does not include
+            passwords, TOTP secrets, session cookies, Integritas API keys, or wallet seed phrases.
+          </p>
 
           <ButtonRow>
             <Button type="submit" disabled={submitting}>{submitting ? "Saving..." : "Save feedback"}</Button>
