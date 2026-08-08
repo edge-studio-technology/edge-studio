@@ -154,7 +154,7 @@ export function AppShellSidebar({
               return (
                 <NavLink
                   key={id}
-                  to={id === "marketplace" ? "/dashboard" : `/${id}`}
+                  to={`/${id}`}
                   title={collapsed ? label : undefined}
                   className={cx(
                     "rounded-loose px-detail-close flex h-[44px] w-full shrink-0 items-center overflow-hidden border transition-[colors,border-color,gap] duration-200",

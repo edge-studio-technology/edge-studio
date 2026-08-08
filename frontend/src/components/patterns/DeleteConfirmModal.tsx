@@ -23,7 +23,7 @@ export function DeleteConfirmModal({
   return (
     <Modal title={title} onClose={onCancel} bodyClassName="min-h-0 flex-1">
       <div className="gap-detail-near grid min-h-56 place-items-center text-center">
-        <Trash2 size={40} className="text-icon-error" aria-hidden />
+        <Trash2 size={40} className="text-icon-secondary" aria-hidden />
         <div className="gap-detail-tight grid">
           <p className="type-title text-text-primary m-0">Delete {itemLabel}?</p>
           <p className="type-body text-text-secondary m-0 max-w-xl">{description}</p>

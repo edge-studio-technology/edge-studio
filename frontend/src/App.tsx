@@ -8,7 +8,9 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { DataSourcesPage } from "./pages/DataSourcesPage";
 import { DiagnosticsPage } from "./pages/DiagnosticsPage";
 import { IntegritasPage } from "./pages/IntegritasPage";
+import { MarketplacePage } from "./pages/MarketplacePage";
 import { MinimaPage } from "./pages/MinimaPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { AutomationPage } from "./pages/AutomationPage";
 import { SetupPage } from "./pages/SetupPage";
 import { WalletPage } from "./pages/WalletPage";
@@ -42,9 +44,10 @@ function AppContent() {
         <Route path="/automation/:workflowId/watch" element={<AutomationPage />} />
         <Route path="/automation/:workflowId/watch/:runId" element={<AutomationPage />} />
         <Route path="/diagnostics" element={<DiagnosticsPage />} />
+        <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/settings" element={<AuthSettingsPage />} />
         <Route path="/update" element={<UpdatePage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AppShell>
   );

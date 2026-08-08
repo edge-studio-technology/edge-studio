@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] ui/global-style-realignment
 
+### Added
+
+- New 404 "Page not found" page, now shown for any unmatched app route (previously silently redirected to the dashboard) — icon, title, description, and a "Back to dashboard" action, via a new shared `StatusPage` layout (`components/patterns/`) for whole-page icon/title/description/action states.
+- New `/marketplace` page ("Coming soon"), reached from the existing sidebar "Marketplace" nav item, which previously had no route and fell through to the dashboard. Built on the same new `StatusPage` layout as the 404 page.
+- New "Something went wrong" fallback, shown in place of a crashed page's content (sidebar/header stay up) instead of a blank white screen, via a new `ErrorBoundary` (`components/ErrorBoundary.tsx`) wrapping routed page content — resets automatically on navigation, with a "Reload page" action for anything it can't recover from on its own.
+
 ### Changed
 
 - Remaining user-facing "Integritas Pi" product-name references (TOTP issuer/account labels, device setup copy, ESP32/MQTT/GPIO/BME guides, onboarding wizard brand mark) renamed to "Edge Studio", matching the earlier in-app rebrand. Also caught leftover pre-"Edge Studio" brand names still live in the app: "Edge Workbench" (TOTP account label, setup page, Integritas Connect panel, onboarding wizard's "Enter" button) and "Minima Edge Stack" (setup page). The repository name (`integritas-pi`, package names, Docker network/service names, file paths) is unchanged and will be renamed separately with the full repo rename.
@@ -17,6 +23,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Update page's "Update now" action moved out of the page header into the body, next to the "Update available"/version copy it acts on; the header now only shows "Check again" once already up to date.
 - `update-agent`'s own static update-progress page (`/update/`, shown during an in-progress apply) now shows the Edge Studio logo lockup above the status card, matching the login page.
 - Added `LinkButton` (`components/ui/Button.tsx`): `Button` chrome rendered on a real `<a>`, for actions that must be a link (e.g. file downloads) rather than a click handler. Used by the new "Export feedback JSON" action and the "Send feedback" modal's existing download link (previously a one-off locally-styled anchor).
+- Shared `DeleteConfirmModal`'s icon retoned from the red "error" icon color to the same neutral/secondary icon color as the new `StatusPage` states, so icon color no longer duplicates what the red "Delete" button already conveys. The "Delete" button itself is unchanged (still `danger`/red).
+- Sidebar "Marketplace" nav item now actually links to `/marketplace` — it had hardcoded a redirect to `/dashboard` while the route didn't exist yet; that hardcode was never removed once the page landed.
+- `StatusPage` (404/coming-soon/error states) now centers within the actual remaining page height below the header instead of a fixed `70vh` guess, which under- or over-shot depending on viewport height. `AppShell`'s content area is now a proper flex column so page content can size against it precisely.
 
 ### Fixed
 
