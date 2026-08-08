@@ -16,7 +16,7 @@ import { LoadingDots } from "../../components/ui/LoadingDots";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
-import { formatAmountAdaptive } from "../../lib/format";
+import { formatMinimaAmount } from "../../lib/format";
 import { AssetDetailModal } from "./AssetDetailModal";
 import { TokenGlyph } from "./TokenGlyph";
 import type { TokenBalance } from "./walletTypes";
@@ -137,7 +137,7 @@ export function WalletAssetsPanel({
                   </TableCell>
                   <TableCell>
                     <span className="type-mono tabular-nums">
-                      {formatAmountAdaptive(token.sendable)}
+                      {formatMinimaAmount(token.sendable, 12)}
                     </span>
                   </TableCell>
                   <TableCell className="w-px whitespace-nowrap">

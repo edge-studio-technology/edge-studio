@@ -3,7 +3,7 @@ import { ButtonRow } from "../../components/patterns/ButtonRow";
 import { Button } from "../../components/ui/Button";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { MinimaIcon } from "../../components/MinimaIcon";
-import { formatAmountThreshold } from "../../lib/format";
+import { formatMinimaAmount } from "../../lib/format";
 
 /** Overrides shared Button colors for the dark wallet hero (cx does not merge Tailwind). */
 const receiveOnDarkButtonClass =
@@ -27,7 +27,7 @@ export function WalletHero({
   const balanceBusy = loading || disabled;
 
   return (
-    <section className="rounded-soft p-pad-tight relative w-full overflow-hidden border border-slate-800 bg-slate-950 text-white before:absolute before:-top-20 before:-right-10 before:size-[260px] before:rounded-full before:bg-cyan-400 before:opacity-30 before:blur-[64px] after:absolute after:right-40 after:-bottom-28 after:size-[260px] after:rounded-full after:bg-violet-400 after:opacity-30 after:blur-[64px]">
+    <section className="rounded-soft p-pad-tight border-stroke-always-white bg-surface-inverse text-text-inverse before:bg-surface-accent-hover after:bg-surface-accent relative w-full overflow-hidden border before:absolute before:-top-20 before:-right-10 before:size-[260px] before:rounded-full before:opacity-30 before:blur-[64px] after:absolute after:right-40 after:-bottom-28 after:size-[260px] after:rounded-full after:opacity-30 after:blur-[64px]">
       <div className="gap-detail-near relative z-10 flex flex-col">
         <div className="gap-detail-next flex flex-col">
           <p className="type-body text-grey-03 m-0" id="wallet-balance-label">
@@ -46,7 +46,7 @@ export function WalletHero({
               {balanceBusy ? (
                 <LoadingDots className="scale-125" />
               ) : (
-                formatAmountThreshold(totalMinima)
+                formatMinimaAmount(totalMinima, 12)
               )}
             </span>
           </div>

@@ -20,7 +20,7 @@ import { ListPaginationFooter } from "../../components/patterns/ListPaginationFo
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { useToast } from "../../components/ToastProvider";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
-import { formatAmountAdaptive, shortHash } from "../../lib/format";
+import { formatMinimaAmount, shortHash } from "../../lib/format";
 import { formatLocalDateTime } from "../../lib/time";
 import { clearWalletHistoryForDebug } from "./walletApi";
 import { HistoryDetailModal } from "./HistoryDetailModal";
@@ -209,7 +209,7 @@ export function WalletHistoryPanel({
                 </TableRow>
               ) : (
                 pagedHistory.map((entry) => {
-                  const amountLabel = formatAmountAdaptive(entry.amount);
+                  const amountLabel = formatMinimaAmount(entry.amount, 12);
                   const toShort = shortHash(entry.toAddress);
                   return (
                     <TableRow key={entry.id}>

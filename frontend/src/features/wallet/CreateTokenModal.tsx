@@ -3,7 +3,7 @@ import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { useToast } from "../../components/ToastProvider";
 import { InputField } from "../../components/ui/InputField";
-import { formatAmountAdaptive } from "../../lib/format";
+import { formatMinimaAmount } from "../../lib/format";
 import {
   createToken as createTokenApi,
   getTokenCreateRequirements,
@@ -113,7 +113,7 @@ export function CreateTokenModal({
         <p className="text-sm text-slate-500">
           Wallet MINIMA:{" "}
           <span className={hasSufficientMinima ? "text-slate-900" : "text-red-700"}>
-            {formatAmountAdaptive(availableMinima)} sendable
+            {formatMinimaAmount(availableMinima, 12)} sendable
           </span>{" "}
           (minimum: {minimumBalance})
         </p>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Status } from "../../app/types";
 import { MinimaIcon } from "../../components/MinimaIcon";
 import { MetricCard } from "../../components/patterns/MetricCard";
-import { formatAmountThreshold } from "../../lib/format";
+import { formatMinimaAmount } from "../../lib/format";
 import { getDeviceStatus } from "../status/statusApi";
 import type { DeviceNodeState, DeviceStatus } from "../status/statusTypes";
 import { getWalletStatus } from "../wallet/walletApi";
@@ -112,7 +112,7 @@ export function DashboardDevices() {
             "Unavailable"
           ) : (
             <span className="block min-w-0 truncate" title={walletBalance ?? undefined}>
-              {formatAmountThreshold(walletBalance!)}
+              {formatMinimaAmount(walletBalance!)}
             </span>
           )
         }

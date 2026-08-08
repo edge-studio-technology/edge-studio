@@ -1,7 +1,7 @@
 import { CopyableCode } from "../../components/patterns/CopyableCode";
 import { Modal } from "../../components/ui/Modal";
 import { cx } from "../../lib/cx";
-import { formatAmountAdaptive } from "../../lib/format";
+import { formatMinimaAmount } from "../../lib/format";
 import { TokenGlyph } from "./TokenGlyph";
 import type { TokenBalance } from "./walletTypes";
 
@@ -38,7 +38,7 @@ function BalanceTile({
           tone === "warning" ? "text-text-warning" : "text-text-primary",
         )}
       >
-        {formatAmountAdaptive(value)}
+        {formatMinimaAmount(value, 12)}
       </p>
       {hint ? <p className="type-meta text-text-warning m-0">{hint}</p> : null}
     </div>
@@ -66,7 +66,7 @@ export function AssetDetailModal({ token, onClose }: { token: TokenBalance; onCl
               <TokenGlyph isNative={token.isNative} />
             </span>
             <p className="type-title text-text-primary m-0 min-w-0 break-all tabular-nums">
-              {formatAmountAdaptive(token.sendable)}
+              {formatMinimaAmount(token.sendable, 12)}
             </p>
           </div>
           <p className="type-meta text-text-tertiary m-0">Available to send from this wallet</p>
