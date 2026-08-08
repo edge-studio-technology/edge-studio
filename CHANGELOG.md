@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Onboarding wizard header now renders the actual `BrandMark` logo instead of a generic `Layers3` placeholder icon.
 - Account page's backup delete confirmation now reuses the same delete confirm/progress modal pattern as the Devices page, extracted into a shared `DeleteConfirmModal`/`DeleteProgressModal` component (`components/patterns/`).
 - "Send feedback" modal restyled onto shared ESDS components (`Modal`, `SelectField`, `InputField`, `TextareaField`, `Card`, `Button`, `ButtonRow`) and design-system colour/type/spacing tokens, replacing bespoke raw-Tailwind (`slate-*`, `rounded-2xl`, ad hoc borders) markup. No behavior change.
+- Account page's Integritas/Minima status pills now show the same status dot indicator as the header status bar (`Pill`'s `indicator` prop was set on the header's pills but not these), so both use identical chrome for the same status concept instead of drifting apart visually.
 
 ### Fixed
 

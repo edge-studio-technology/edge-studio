@@ -73,6 +73,7 @@
 - [x] Extracted the Devices page's device-delete confirm/progress modal pair into a shared `DeleteConfirmModal`/`DeleteProgressModal` (`components/patterns/DeleteConfirmModal.tsx`), removed the device-specific `features/data-sources/DeleteDeviceModal.tsx`, and switched the Account page's backup delete flow (`MinimaBackupPanel.tsx`) to the same component/UX — branch `ui/global-style-realignment`, typecheck/build/`docker compose config` verified.
 - [x] Fixed a blank-frame flicker on any modal-to-modal swap (e.g. delete confirm → progress modal): removed shared `Modal`'s dead `mounted` render gate (`components/ui/Modal.tsx`), which forced every newly-mounted modal to render `null` for one commit — branch `ui/global-style-realignment`, build verified. Rationale in `docs/adr/0005-modal-mount-gate-removal.md`.
 - [x] Restyled the "Send feedback" modal (`FeedbackModal.tsx`) onto shared ESDS components/tokens (`Modal`, `SelectField`, `InputField`, `TextareaField`, `Card`, `Button`, `ButtonRow`), replacing bespoke raw-Tailwind markup and the legacy non-token `MutedText`; no behavior change — branch `ui/global-style-realignment`, typecheck/build verified.
+- [x] Fixed Account settings page's Integritas/Minima status `Pill`s missing the `indicator` dot that the header `StatusBar`'s pills already have — same shared `Pill` component, just one missing prop — branch `ui/global-style-realignment`, build verified.
 
 ## Ideas
 

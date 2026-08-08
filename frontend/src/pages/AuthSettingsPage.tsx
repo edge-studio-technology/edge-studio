@@ -326,7 +326,7 @@ export function AuthSettingsPage() {
             <span className="flex items-center gap-2">
               <h2 className="type-title text-text-primary m-0">Integritas settings</h2>
               {integritasKind && (
-                <Pill tone={integritasStatusTone[integritasKind]}>
+                <Pill tone={integritasStatusTone[integritasKind]} indicator>
                   {integritasStatusLabel[integritasKind]}
                 </Pill>
               )}
@@ -350,7 +350,7 @@ export function AuthSettingsPage() {
           title={
             <span className="flex items-center gap-2">
               <h2 className="type-title text-text-primary m-0">Minima settings</h2>
-              <Pill tone={minimaState ? nodeStateTone(minimaState) : "neutral"}>
+              <Pill tone={minimaState ? nodeStateTone(minimaState) : "neutral"} indicator>
                 {minimaState ? formatNodeState(minimaState) : "Checking…"}
               </Pill>
             </span>
