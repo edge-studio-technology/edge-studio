@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { APP_NAME } from "../../app/brand";
-import { BrandMark } from "../../components/BrandMark";
+import { BRAND_GRADIENT } from "../../app/brand";
 import { Button } from "../../components/Button";
+import { BrandLockup } from "../../components/patterns/BrandLockup";
 import { ErrorText } from "../../components/Text";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { isValidAdminCredential } from "../auth/adminCredentials";
@@ -190,10 +190,7 @@ export function OnboardingWizard({
       className="text-text-primary fixed inset-0 z-50 flex min-h-0 flex-col overflow-hidden overscroll-contain"
       style={
         isFinalOnboardingView
-          ? {
-              background:
-                "linear-gradient(180deg, var(--color-surface-inverse, #000) 30%, var(--color-surface-accent, #6D48DC) 100%)",
-            }
+          ? { background: BRAND_GRADIENT }
           : { background: "var(--color-surface-secondary)" }
       }
     >
@@ -276,20 +273,7 @@ export function OnboardingWizard({
           </div>
         </div>
 
-        <div className="gap-detail-close flex shrink-0 items-center">
-          <div
-            className={
-              isFinalOnboardingView
-                ? "bg-overlay-light text-icon-inverse border-stroke-always-white/20 flex size-8 shrink-0 items-center justify-center rounded border"
-                : "bg-surface-always-black text-icon-inverse flex size-8 shrink-0 items-center justify-center rounded"
-            }
-          >
-            <BrandMark size={20} variant="white" />
-          </div>
-          <p className={isFinalOnboardingView ? "type-title text-text-inverse m-0" : "type-title text-surface-always-black m-0"}>
-            {APP_NAME}
-          </p>
-        </div>
+        <BrandLockup tone={isFinalOnboardingView ? "on-dark" : "on-light"} className="shrink-0" />
       </div>
     </div>
   );

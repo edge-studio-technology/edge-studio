@@ -55,7 +55,7 @@ Migration is **incremental**, not a big-bang move:
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonBlock`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `MetricCard`                                                                                                         |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonBlock`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `BrandLockup`, `MetricCard`                                                                                                         |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
 ## Styling Rules
@@ -541,6 +541,22 @@ Route content frame: distant pad padding (`p-pad-distant`), title + optional des
 ```
 
 Cleanup later: drop `eyebrow` from remaining page call sites, then remove the prop and the flat `components/Page.tsx` re-export (import from `patterns/Page` instead).
+
+### BrandLockup
+
+Brand mark + wordmark (`frontend/src/components/patterns/BrandLockup.tsx`): 32px rounded mark box with the white `BrandMark` glyph, then `APP_NAME` in `type-title`. Prefer this on full-screen brand surfaces (login, onboarding wizard) instead of re-assembling the mark box and wordmark inline. Pair with `BRAND_GRADIENT` (`app/brand.ts`) for the shared black → accent backdrop.
+
+| Prop        | Notes                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `tone`      | `on-light` (default: black mark box, black wordmark) \| `on-dark` (translucent bordered mark box, inverse wordmark) |
+| `className` | Merged onto the lockup row                                                                                                |
+
+```tsx
+<div style={{ background: BRAND_GRADIENT }}>
+  …
+  <BrandLockup tone="on-dark" className="shrink-0" />
+</div>
+```
 
 ### Card
 

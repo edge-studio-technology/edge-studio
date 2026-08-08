@@ -29,7 +29,10 @@ import { ErrorText } from "../components/Text";
 import { Disclosure } from "../components/ui/Disclosure";
 import { InputField } from "../components/ui/InputField";
 import { SwitchField } from "../components/ui/SwitchField";
-import { closeModalOnOutsideClickSetting, sidebarStartCollapsedSetting } from "../lib/behaviourSettings";
+import {
+  closeModalOnOutsideClickSetting,
+  sidebarStartCollapsedSetting,
+} from "../lib/behaviourSettings";
 import { initTotpReset, verifyTotpReset } from "../features/auth/api";
 import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
@@ -148,7 +151,7 @@ export function AuthSettingsPage() {
       desc="Manage your admin credentials, Integritas Connect, and Minima node settings and backups."
       action={
         <Button type="button" variant="ghost" onClick={() => void signOut()}>
-          <LogOut size={16} /> Sign out
+          <LogOut size={16} /> Log out
         </Button>
       }
     >
@@ -360,7 +363,10 @@ export function AuthSettingsPage() {
           title={
             <span className="flex items-center gap-2">
               <h2 className="type-title text-text-primary m-0">Integritas settings</h2>
-              <Pill tone={integritasKind ? integritasStatusTone[integritasKind] : "neutral"} indicator>
+              <Pill
+                tone={integritasKind ? integritasStatusTone[integritasKind] : "neutral"}
+                indicator
+              >
                 {integritasKind ? integritasStatusLabel[integritasKind] : "Checking…"}
               </Pill>
             </span>
