@@ -11,7 +11,7 @@ export function Page({
   eyebrow?: string;
   title: ReactNode;
   desc?: ReactNode;
-  /** @deprecated Might be unused. Unused. Drop when migrating each page call site. */
+  /** Optional header action, right-aligned next to title/desc (e.g. a primary button). */
   action?: ReactNode;
   children: ReactNode;
 }) {

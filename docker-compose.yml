@@ -122,6 +122,8 @@ services:
       HEALTH_CHECK_INTERVAL_MS: ${UPDATE_HEALTH_CHECK_INTERVAL_MS:-2000}
       PULL_TIMEOUT_MS: ${UPDATE_PULL_TIMEOUT_MS:-300000}
       STATUS_POLL_INTERVAL_MS: ${STATUS_POLL_INTERVAL_MS:-43200000}
+      # Dev only — never set true in production. See docs/adr/0003-update-dry-run.md.
+      UPDATE_DRY_RUN: ${UPDATE_DRY_RUN:-false}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${UPDATE_AGENT_STATE_DIR:-./update-agent-state}:/state

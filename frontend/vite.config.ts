@@ -32,6 +32,13 @@ export default defineConfig(({ mode }) => {
   const https = devHttpsOptions(mode);
   const proxy = {
     "/api": backendTarget,
+    // update-agent's fixed container port, published to the host via
+    // docker-compose.override.yml for native dev. Trailing slash required —
+    // bare "/update" is the SPA's own route. See docs/adr/0002-update-page-split.md.
+    "^/update/": {
+      target: "http://localhost:8081",
+      rewrite: (path: string) => path.replace(/^\/update/, "") || "/",
+    },
   };
 
   return {

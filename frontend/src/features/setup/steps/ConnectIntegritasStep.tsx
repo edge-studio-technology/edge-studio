@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { CheckCircle2, ExternalLink, RefreshCw } from "lucide-react";
 import { APP_NAME } from "../../../app/brand";
 import { Button } from "../../../components/Button";
 import { ErrorAlert } from "../../../components/ErrorAlert";
 import { ProgressBar } from "../../../components/ui/ProgressBar";
+import { Spinner } from "../../../components/ui/Spinner";
 import { cx } from "../../../lib/cx";
 import type { AdminCredentialType } from "../../auth/adminCredentials";
 import { TOTP_ENABLED } from "../../auth/totpEnabled";
@@ -259,11 +260,7 @@ export function ConnectIntegritasStep({
           ) : showPreparingLoader ? (
             <div className="grid max-w-xl gap-3" aria-live="polite">
               <div className="bg-surface-primary border-stroke-secondary rounded-soft flex items-start gap-3 border p-3.5">
-                <Loader2
-                  className="text-text-secondary mt-0.5 shrink-0 animate-spin motion-reduce:animate-none"
-                  size={20}
-                  aria-hidden="true"
-                />
+                <Spinner size="sm" tone="secondary" className="mt-0.5 shrink-0" />
                 <div>
                   <strong className="type-body-em text-text-primary">
                     Connecting to Integritas…

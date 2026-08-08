@@ -4,6 +4,33 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ui/update-page
+
+### Added
+
+- `NoticeCard` shared component (`components/patterns/`): standalone call-to-action card (title, body, action, optional dismiss) for chrome outside page layout. Used in the sidebar, above Feedback, to surface an "Update available" notice driven by the existing update-status poller, with a per-version dismiss.
+- New in-app Update page (`/update`, not yet linked from the sidebar nav): shows the live up-to-date/available check and starts an update, styled with the same shared components as the rest of the app. See [docs/adr/0002-update-page-split.md](docs/adr/0002-update-page-split.md).
+- `UPDATE_DRY_RUN` env var for `update-agent` (dev only, defaults off, never set by `install.sh`): simulates a successful update apply — same running/succeeded flow, no manifest recorded as applied — without pulling or swapping any container, so the Update flow can be exercised repeatedly in dev. See [docs/adr/0003-update-dry-run.md](docs/adr/0003-update-dry-run.md) and `SECURITY.md`.
+- `Spinner` shared component (`components/ui/`): rotating ring loading indicator matching `update-agent`'s waitroom page style, replacing ad hoc `lucide-react` `Loader2`/`animate-spin` usage in `ProgressModal`, `DeleteDeviceProgressModal`, and the Connect Integritas setup step so all spinner-style loaders share one style.
+- Update page now shows a "What's new" changelog preview (most recent entries of `CHANGELOG.md`, fetched directly from GitHub, rendered client-side — no server proxy), replacing the per-service update-available row list. Each version is a collapsible `Disclosure` (most recent expanded by default). Heading sizes reuse the app's existing two-tier convention: "Up to date"/"Update available" and "What's new" (sibling section headers) at `type-title`, version names at `Disclosure`'s own `type-body-em`, category labels at `type-meta`. Experimental: see [docs/adr/0004-update-page-changelog.md](docs/adr/0004-update-page-changelog.md) for the security/architecture tradeoffs (client-side third-party fetch, no HTML injection).
+
+### Fixed
+
+- `CredentialInput` no longer breaks `tsc`/the frontend build: its props type didn't exclude the native HTML `size` (`number`) attribute the way `Input` (which it wraps) requires, so any change touching the frontend build tripped a pre-existing type error even though the component has no live call sites yet.
+
+### Changed
+
+- Native frontend dev (`npm run dev:frontend` against an otherwise-Dockerized stack) can now reach `update-agent`: Vite's dev proxy forwards `/update/...` (trailing slash and deeper) to `http://localhost:8081`, alongside the existing `/api` → `backend` proxy. Requires publishing `update-agent`'s port via a local (gitignored) `docker-compose.override.yml`, documented in the README — dev-only, and `install.sh` regenerates its own copy of that file on every install, so it never affects a deployed Pi.
+- The Update page is now split: the in-app `/update` page (above) handles checking for updates and starting one; `update-agent`'s own static page, at `/update/` (trailing slash), is trimmed down to only the apply-in-progress/success/failure view, and no longer starts a job on its own — visiting it directly with nothing running now shows a neutral "nothing to update right now" state instead of the old checking/available screens.
+- "Check for updates" (Account settings) and the sidebar update notice now navigate to `/update` in-app instead of a full page reload.
+- `update-agent`'s own waitroom page (`/update/`, plain static HTML/CSS — no build step) now uses the same ESDS token values (colors, radius, type scale) as the in-app Update page instead of ad hoc hex colors, so the two pages read as one continuous flow.
+- In-app Update page: "Update now"/"Check again" moved into the page title row (`Page`'s `action` slot) instead of sitting in the card body; it renders disabled from first paint instead of popping in once the status check resolves. The card is now full width instead of capped at `max-w-xl`.
+- `Page`'s `action` prop is no longer marked deprecated — it's an active, intentional right-aligned header-action slot (used by Account settings and now Update), not dead API surface.
+
+### Fixed
+
+- Sidebar nav item and feedback-modal page label no longer default to "Dashboard" on routes with no matching nav entry (e.g. `/update`, which is intentionally not in the sidebar nav) — nothing is now highlighted instead of incorrectly highlighting Dashboard.
+
 ## [0.31.0] 2026-08-07
 
 ### Added
