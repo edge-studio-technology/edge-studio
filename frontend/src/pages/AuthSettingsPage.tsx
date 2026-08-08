@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
@@ -10,6 +10,7 @@ import {
   Link2,
   LogOut,
   MessageSquare,
+  MousePointerClick,
   RefreshCw,
   RotateCcw,
   ShieldAlert,
@@ -26,6 +27,8 @@ import { SubSection } from "../components/patterns/SubSection";
 import { ErrorText } from "../components/Text";
 import { Disclosure } from "../components/ui/Disclosure";
 import { InputField } from "../components/ui/InputField";
+import { SwitchField } from "../components/ui/SwitchField";
+import { closeModalOnOutsideClickSetting } from "../lib/behaviourSettings";
 import { initTotpReset, verifyTotpReset } from "../features/auth/api";
 import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
@@ -128,6 +131,11 @@ export function AuthSettingsPage() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
+  const closeModalOnOutsideClick = useSyncExternalStore(
+    closeModalOnOutsideClickSetting.subscribe,
+    closeModalOnOutsideClickSetting.get,
+  );
+
   return (
     <Page
       eyebrow="Admin account"
@@ -147,7 +155,7 @@ export function AuthSettingsPage() {
             </span>
           }
           className="pt-4 pb-6"
-          defaultOpen={true}
+          defaultOpen={false}
         >
           <div className="mt-2 grid gap-10">
             <SubSection
@@ -355,7 +363,7 @@ export function AuthSettingsPage() {
             </span>
           }
           className="pt-4 pb-6"
-          defaultOpen={true}
+          defaultOpen={false}
         >
           <div className="mt-2 grid gap-10">
             <SubSection
@@ -378,7 +386,7 @@ export function AuthSettingsPage() {
             </span>
           }
           className="pt-4 pb-6"
-          defaultOpen={true}
+          defaultOpen={false}
         >
           <div className="mt-2 grid gap-10">
             <MinimaSettingsPanel bare minimaState={minimaState} />
@@ -397,6 +405,31 @@ export function AuthSettingsPage() {
                 MinimaBackupPanel for v1.5 — see docs/TASKS.md. Left commented, not deleted, for
                 an easy revert. */}
             {/* <WalletSettingsPanel /> */}
+          </div>
+        </Disclosure>
+
+        <Disclosure
+          title={
+            <span className="flex items-center gap-2">
+              <h2 className="type-title text-text-primary m-0">Behaviour settings</h2>
+            </span>
+          }
+          className="pt-4 pb-6"
+          defaultOpen={false}
+        >
+          <div className="mt-2 grid gap-10">
+            <SubSection
+              icon={<MousePointerClick size={13} />}
+              title="Modals"
+              description="Control how modal dialogs respond to clicks outside their content."
+            >
+              <SwitchField
+                label="Close modal when clicking outside it"
+                description="Turn off if you'd rather only close modals with the X button or Escape."
+                checked={closeModalOnOutsideClick}
+                onChange={(e) => closeModalOnOutsideClickSetting.set(e.target.checked)}
+              />
+            </SubSection>
           </div>
         </Disclosure>
 

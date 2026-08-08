@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - New 404 "Page not found" page, now shown for any unmatched app route (previously silently redirected to the dashboard) — icon, title, description, and a "Back to dashboard" action, via a new shared `StatusPage` layout (`components/patterns/`) for whole-page icon/title/description/action states.
 - New `/marketplace` page ("Coming soon"), reached from the existing sidebar "Marketplace" nav item, which previously had no route and fell through to the dashboard. Built on the same new `StatusPage` layout as the 404 page.
 - New "Something went wrong" fallback, shown in place of a crashed page's content (sidebar/header stay up) instead of a blank white screen, via a new `ErrorBoundary` (`components/ErrorBoundary.tsx`) wrapping routed page content — resets automatically on navigation, with a "Reload page" action for anything it can't recover from on its own.
+- New "Behaviour settings" section on the Account settings page with a "Close modal when clicking outside it" toggle (on by default, stored in the browser via a small reusable local-preference helper (`lib/localSettings.ts`), not on the backend).
 
 ### Changed
 
@@ -26,6 +27,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Shared `DeleteConfirmModal`'s icon retoned from the red "error" icon color to the same neutral/secondary icon color as the new `StatusPage` states, so icon color no longer duplicates what the red "Delete" button already conveys. The "Delete" button itself is unchanged (still `danger`/red).
 - Sidebar "Marketplace" nav item now actually links to `/marketplace` — it had hardcoded a redirect to `/dashboard` while the route didn't exist yet; that hardcode was never removed once the page landed.
 - `StatusPage` (404/coming-soon/error states) now centers within the actual remaining page height below the header instead of a fixed `70vh` guess, which under- or over-shot depending on viewport height. `AppShell`'s content area is now a proper flex column so page content can size against it precisely.
+- Account settings page's "User settings", "Integritas settings", and "Minima settings" sections now start collapsed instead of expanded.
+- Shared `Modal` closes on an outside press again (previously disabled entirely after it closed unexpectedly): it now only reacts to `mousedown` landing directly on the backdrop, not `click`/release, so a text selection or drag that starts inside the dialog and ends outside it can no longer trigger an accidental close. A small padding buffer around the dialog edge also absorbs near-edge presses so they don't count as "outside". Gated by the new Account page "Close modal when clicking outside it" setting.
 
 ### Fixed
 
