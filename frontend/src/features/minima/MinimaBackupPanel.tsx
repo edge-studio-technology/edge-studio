@@ -6,6 +6,7 @@ import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
 import { LoadingDots } from "../../components/LoadingDots";
 import { Modal } from "../../components/Modal";
+import { DeleteConfirmModal, DeleteProgressModal } from "../../components/patterns/DeleteConfirmModal";
 import { FileDropZone } from "../../components/patterns/FileDropZone";
 import { ListDisclosure } from "../../components/patterns/ListDisclosure";
 import { ErrorText } from "../../components/Text";
@@ -265,10 +266,10 @@ export function MinimaBackupPanel({
   async function confirmDelete() {
     if (!deleteTarget) return;
     const fileName = deleteTarget.fileName;
+    setDeleteTarget(null);
     setDeletingFile(fileName);
     try {
       await deleteMinimaBackup(fileName);
-      setDeleteTarget(null);
       await refreshBackups();
     } catch (error) {
       showToast({
@@ -597,26 +598,18 @@ export function MinimaBackupPanel({
         </Modal>
       )}
 
+      {deletingFile && (
+        <DeleteProgressModal title="Deleting backup" description={`Removing ${deletingFile}.`} />
+      )}
+
       {deleteTarget && (
-        <Modal
+        <DeleteConfirmModal
           title="Delete backup"
-          onClose={() => {
-            if (deletingFile !== deleteTarget.fileName) setDeleteTarget(null);
-          }}
-          closeDisabled={deletingFile === deleteTarget.fileName}
-          bodyClassName="min-h-0 flex-1"
-        >
-          <div className="grid gap-3">
-            <p className="text-sm text-slate-600 m-0">
-              Delete <span className="font-mono">{deleteTarget.fileName}</span>? This can't be undone.
-            </p>
-            <ButtonRow>
-              <Button variant="danger" onClick={() => void confirmDelete()} disabled={deletingFile === deleteTarget.fileName}>
-                {deletingFile === deleteTarget.fileName ? "Deleting…" : "Delete backup"}
-              </Button>
-            </ButtonRow>
-          </div>
-        </Modal>
+          itemLabel={<span className="font-mono">{deleteTarget.fileName}</span>}
+          confirmLabel="Delete backup"
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => void confirmDelete()}
+        />
       )}
 
       {clearPasswordOpen && (

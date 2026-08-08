@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Remaining user-facing "Integritas Pi" product-name references (TOTP issuer/account labels, device setup copy, ESP32/MQTT/GPIO/BME guides, onboarding wizard brand mark) renamed to "Edge Studio", matching the earlier in-app rebrand. Also caught leftover pre-"Edge Studio" brand names still live in the app: "Edge Workbench" (TOTP account label, setup page, Integritas Connect panel, onboarding wizard's "Enter" button) and "Minima Edge Stack" (setup page). The repository name (`integritas-pi`, package names, Docker network/service names, file paths) is unchanged and will be renamed separately with the full repo rename.
 - Onboarding wizard header now renders the actual `BrandMark` logo instead of a generic `Layers3` placeholder icon.
+- Account page's backup delete confirmation now reuses the same delete confirm/progress modal pattern as the Devices page, extracted into a shared `DeleteConfirmModal`/`DeleteProgressModal` component (`components/patterns/`).
 
 ## [0.32.0] 2026-08-08
 

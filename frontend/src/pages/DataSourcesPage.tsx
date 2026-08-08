@@ -22,11 +22,11 @@ import { AltAddDeviceFlow } from "../features/data-sources/add-device-alt/AltAdd
 import { ClassicAddDeviceFlow } from "../features/data-sources/add-device-classic/ClassicAddDeviceFlow";
 import { DataSourceForm } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
-import {
-  DeleteDeviceConfirmModal,
-  DeleteDeviceProgressModal,
-} from "../features/data-sources/DeleteDeviceModal";
 import { LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
+import {
+  DeleteConfirmModal,
+  DeleteProgressModal,
+} from "../components/patterns/DeleteConfirmModal";
 import type {
   DataSource,
   DataSourceCapabilities,
@@ -243,11 +243,18 @@ export function DataSourcesPage() {
         </Modal>
       )}
 
-      {deletingSource && <DeleteDeviceProgressModal source={deletingSource} />}
+      {deletingSource && (
+        <DeleteProgressModal
+          title="Deleting device"
+          description={`Removing ${deletingSource.name}. Large read histories can take a few seconds while saved read rows are detached from this device.`}
+        />
+      )}
 
       {deleteTarget && (
-        <DeleteDeviceConfirmModal
-          source={deleteTarget}
+        <DeleteConfirmModal
+          title="Delete device"
+          itemLabel={deleteTarget.name}
+          confirmLabel="Delete device"
           onCancel={() => setDeleteTarget(null)}
           onConfirm={() => void confirmDelete()}
         />

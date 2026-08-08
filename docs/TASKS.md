@@ -33,6 +33,7 @@
 - [ ] Sanity-check two catalog exclusions added beyond `docs/plans/minima-rpc-console.md`'s named list during `help`-output reconciliation: `createtokenfrom` (same raw-`privatekey:` risk as the named `*from` commands) and `decryptbackup` (can turn an encrypted backup into plaintext key material) — see `docs/SESSION.md` Notes for reasoning.
 - [ ] Manual check that the Minima 48h auto-restart toggle no longer appears in Minima node settings and the nightly scheduler still runs auto-backup normally (auto-restart execution + UI toggle were commented out; see `minima-backup-scheduler.service.ts`/`MinimaSettingsPanel.tsx`).
 - [ ] Manual browser check of the onboarding wizard's brand mark (first-run setup) after swapping its placeholder `Layers3` icon for the real `BrandMark` component.
+- [ ] Manual browser check of the Account page's "Delete backup" flow after switching it to the shared `DeleteConfirmModal`/`DeleteProgressModal` component.
 
 ## Done
 
@@ -68,6 +69,7 @@
 - [x] Added a short tester guide for Pi and PC device/source/target workflows, hardware requirements, and end-to-end pass criteria — see `docs/guides/tester-device-workflows.md`.
 - [x] Reverted (via `git revert`, history preserved) a shelved Minima status/operation-lock redesign back to the working `a37f808` state after it regressed reported UX; disabled the 48h Minima auto-restart feature (commented out the scheduler call and the settings-panel toggle, setting/routes left intact) pending graceful automation handling around node restarts — branch `feature/minima-resync-rescue-improvements`, typecheck/build verified.
 - [x] Renamed remaining "Integritas Pi" product-name references app-wide to "Edge Studio" (TOTP issuer/account label, device/ESP32/MQTT setup copy, guides/plans docs, `SECURITY.md`, `install.sh`, `update-agent`), leaving repo/technical identifiers (package names, Docker network name, systemd unit names, README/PROJECT.md titles) for the later full repo rename; also caught and fixed leftover pre-"Edge Studio" brand names still live in the app ("Edge Workbench" in the TOTP account label, `SetupPage.tsx`, `IntegritasConnectPanel.tsx`, and `OnboardingWizard.tsx`'s "Enter" button; "Minima Edge Stack" in `SetupPage.tsx`), and swapped the onboarding wizard's generic `Layers3` placeholder icon for the real `BrandMark` logo — branch `ui/global-style-realignment`, typecheck/build/`docker compose config` verified.
+- [x] Extracted the Devices page's device-delete confirm/progress modal pair into a shared `DeleteConfirmModal`/`DeleteProgressModal` (`components/patterns/DeleteConfirmModal.tsx`), removed the device-specific `features/data-sources/DeleteDeviceModal.tsx`, and switched the Account page's backup delete flow (`MinimaBackupPanel.tsx`) to the same component/UX — branch `ui/global-style-realignment`, typecheck/build/`docker compose config` verified.
 
 ## Ideas
 
