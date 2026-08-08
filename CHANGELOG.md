@@ -44,6 +44,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Wallet page's "Assets" tab is disabled for v1 (commented out, not deleted) — with a single native token, a separate assets list is redundant; Wallet now opens straight to "History".
 - Devices page's separate "Add devices" card (with its own "Add input source"/"Add output target" buttons) is disabled for v1 (commented out, not deleted) — those actions moved next to the device list's new filter/search bar.
 - Devices list now has a working filter (by direction: All/Input/Output/Capture) and search (name, type, or endpoint) bar, replacing the top numbered-page `Pagination` control. "New input" and "New output" buttons sit to its right (bottom pagination footer is unchanged), and the empty state gained a matching second "New output" action alongside "New input" (`EmptyContentState` now supports an optional secondary action button).
+- Sidebar icons for Minima, Wallet, Integritas, and Automation updated to match the current design reference (`Radio`, `CreditCard`, `Shield`, and `FastForward`, replacing `RadioTower`, `Wallet`, `ShieldCheck`, and `Workflow`).
+- Sidebar's collapsed-state "expand sidebar" button now uses the plain `PanelLeft` icon instead of `PanelLeftOpen` (which had an arrow baked in), matching the design reference.
 
 ### Fixed
 

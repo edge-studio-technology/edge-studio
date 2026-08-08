@@ -6,7 +6,7 @@ import {
   LogOut,
   MessageCircle,
   Minimize2,
-  PanelLeftOpen,
+  PanelLeft,
 } from "lucide-react";
 import { nav } from "../app/nav";
 import { cx } from "../lib/cx";
@@ -134,7 +134,7 @@ export function AppShellSidebar({
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {collapsed ? <PanelLeftOpen size={16} /> : <Minimize2 size={16} />}
+            {collapsed ? <PanelLeft size={16} /> : <Minimize2 size={16} />}
           </button>
         </div>
 
