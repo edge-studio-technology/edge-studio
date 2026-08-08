@@ -100,7 +100,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
           <ListFilterBar
             q={query}
             searchPlaceholder="Name, address, or notes"
-            disabled={isLoading}
+            disabled={isLoading || filteredEntries.length === 0}
             onQueryChange={(q) => {
               setQuery(q);
               setPage(1);
@@ -109,12 +109,11 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         </div>
         <Button
           type="button"
-          variant="secondary"
-          size="sm"
+          iconStart={<Plus aria-hidden />}
           onClick={() => setAddOpen(true)}
           disabled={actionsBlocked}
         >
-          Add contact
+          New contact
         </Button>
       </div>
 
@@ -216,7 +215,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
 
       {addOpen ? (
         <Modal
-          title="Add contact"
+          title="New contact"
           description="Save a recipient for future sends."
           onClose={() => setAddOpen(false)}
         >

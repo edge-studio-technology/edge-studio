@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye } from "lucide-react";
+import { Coins, Eye, Inbox } from "lucide-react";
 import {
   DataTable,
   RowActions,
@@ -11,10 +11,10 @@ import {
   TableRow,
   TableWrap,
 } from "../../components/DataTable";
-import { Button } from "../../components/ui/Button";
-import { LoadingDots } from "../../components/ui/LoadingDots";
+import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatMinimaAmount } from "../../lib/format";
 import { AssetDetailModal } from "./AssetDetailModal";
@@ -79,9 +79,8 @@ export function WalletAssetsPanel({
           filter={assetKind}
           q={assetQuery}
           filterOptions={ASSET_KIND_OPTIONS}
-          filterLabel="Kind"
           searchPlaceholder="Name or coin ID"
-          disabled={pagerDisabled}
+          disabled={pagerDisabled || visibleAssets.length === 0}
           onFilterChange={(kind) => {
             setAssetKind(kind);
             setAssetPage(1);
@@ -93,41 +92,31 @@ export function WalletAssetsPanel({
         />
       </div>
 
-      <TableWrap>
-        <DataTable>
-          <TableHead>
-            <TableHeaderCell>Name</TableHeaderCell>
-            <TableHeaderCell>Amount</TableHeaderCell>
-            <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-          </TableHead>
-          <TableBody>
-            {loading || actionsBlocked ? (
-              <TableRow>
-                <TableCell colSpan={3} className="p-0">
-                  <div className="py-pad-relaxed flex items-center justify-center" aria-busy="true">
-                    <LoadingDots />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : visibleAssets.length === 0 ? (
-              <TableRow>
-                <td colSpan={3} className="p-0">
-                  <div className="gap-detail-close p-margin-tight py-pad-relaxed flex flex-col items-start">
-                    <p className="type-body text-text-secondary m-0">
-                      {filtersActive
-                        ? "No assets match this kind or search."
-                        : "No assets in this wallet yet."}
-                    </p>
-                    {filtersActive ? (
-                      <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
-                        Clear filters
-                      </Button>
-                    ) : null}
-                  </div>
-                </td>
-              </TableRow>
-            ) : (
-              pagedAssets.map((token) => (
+      {loading || actionsBlocked ? (
+        <LoadingState title="Fetching your assets" description="This should take a few seconds." />
+      ) : visibleAssets.length === 0 ? (
+        <EmptyContentState
+          icon={filtersActive ? Inbox : Coins}
+          title={filtersActive ? "No matching assets" : "No assets yet"}
+          description={
+            filtersActive
+              ? "Try another kind or search, or clear filters."
+              : "Assets held by this wallet will be added to your library here."
+          }
+          actionLabel={filtersActive ? "Clear filters" : undefined}
+          actionVariant="secondary"
+          onAction={filtersActive ? clearFilters : undefined}
+        />
+      ) : (
+        <TableWrap>
+          <DataTable>
+            <TableHead>
+              <TableHeaderCell>Name</TableHeaderCell>
+              <TableHeaderCell>Amount</TableHeaderCell>
+              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+            </TableHead>
+            <TableBody>
+              {pagedAssets.map((token) => (
                 <TableRow key={token.tokenId}>
                   <TableCell className="min-w-0">
                     <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
@@ -153,11 +142,11 @@ export function WalletAssetsPanel({
                     </RowActions>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </DataTable>
-      </TableWrap>
+              ))}
+            </TableBody>
+          </DataTable>
+        </TableWrap>
+      )}
 
       <ListPaginationFooter
         page={assetCurrentPage}

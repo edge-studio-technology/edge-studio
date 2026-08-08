@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../components/patterns/ListPaginationFooter";
@@ -312,17 +313,15 @@ export function DiagnosticsPage() {
               filter={listQuery.status}
               q={listQuery.q}
               filterOptions={statusOptions}
-              filterLabel="Status"
               searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
-              disabled={refreshing}
+              disabled={refreshing || tabLoading || activePager.items.length === 0}
               onFilterChange={(status) => updateListQuery({ status })}
               onQueryChange={(q) => updateListQuery({ q })}
             />
           </div>
           <Button
             type="button"
-            variant="secondary"
-            size="sm"
+            iconStart={<RefreshCw aria-hidden />}
             onClick={() => {
               void handleRefresh();
             }}
@@ -408,7 +407,12 @@ export function DiagnosticsPage() {
             onClearFilters={() => updateListQuery({ status: "", q: "" })}
           />
         ) : (
-          <AutomationRunsTable runs={workflowRunsPage.items} filtered={listFiltered} />
+          <AutomationRunsTable
+            runs={workflowRunsPage.items}
+            filtered={listFiltered}
+            loading={tabLoading}
+            onClearFilters={() => updateListQuery({ status: "", q: "" })}
+          />
         )}
 
         <ListPaginationFooter
@@ -416,7 +420,7 @@ export function DiagnosticsPage() {
           pageSize={listQuery.pageSize}
           total={activePager.total}
           totalPages={Math.max(1, activePager.totalPages)}
-          disabled={refreshing}
+          disabled={refreshing || tabLoading}
           onPageChange={(page) => updateListQuery({ page })}
           onPageSizeChange={(pageSize) => updateListQuery({ pageSize })}
           pageSizeOptions={PAGE_SIZE_OPTIONS}

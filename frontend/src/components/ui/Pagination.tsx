@@ -92,15 +92,22 @@ export type PaginationProps = {
   className?: string;
   page: number;
   totalPages: number;
+  disabled?: boolean;
   onPageChange?: (page: number) => void;
 };
 
-export function Pagination({ className, page, totalPages, onPageChange }: PaginationProps) {
+export function Pagination({
+  className,
+  page,
+  totalPages,
+  disabled = false,
+  onPageChange,
+}: PaginationProps) {
   const safeTotalPages = Math.max(1, totalPages);
   const safePage = Math.min(Math.max(1, page), safeTotalPages);
 
-  const canPrev = safePage > 1 && Boolean(onPageChange);
-  const canNext = safePage < safeTotalPages && Boolean(onPageChange);
+  const canPrev = safePage > 1 && Boolean(onPageChange) && !disabled;
+  const canNext = safePage < safeTotalPages && Boolean(onPageChange) && !disabled;
 
   const items = getCondensedPageItems(safePage, safeTotalPages);
 
@@ -142,7 +149,7 @@ export function Pagination({ className, page, totalPages, onPageChange }: Pagina
               key={item}
               number={item}
               state={isCurrent ? "Current" : "Default"}
-              onClick={isCurrent ? undefined : () => onPageChange?.(item)}
+              onClick={isCurrent || disabled ? undefined : () => onPageChange?.(item)}
             />
           );
         })}

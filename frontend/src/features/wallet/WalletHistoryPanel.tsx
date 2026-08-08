@@ -130,9 +130,8 @@ export function WalletHistoryPanel({
           filter={historyStatus}
           q={historyQuery}
           filterOptions={HISTORY_STATUS_OPTIONS}
-          filterLabel="Status"
           searchPlaceholder="Address, token, or txpow ID"
-          disabled={pagerDisabled}
+          disabled={pagerDisabled || filteredHistory.length === 0}
           onFilterChange={(status) => {
             setHistoryStatus(status);
             setHistoryPage(1);
@@ -177,82 +176,80 @@ export function WalletHistoryPanel({
           onAction={filtersActive ? clearFilters : undefined}
         />
       ) : (
-        <div className="gap-detail-close flex flex-col">
-          <TableWrap>
-            <DataTable aria-label="Send history">
-              <TableHead>
-                <TableHeaderCell>Amount</TableHeaderCell>
-                <TableHeaderCell>To</TableHeaderCell>
-                <TableHeaderCell>Status</TableHeaderCell>
-                <TableHeaderCell className="whitespace-nowrap">Date</TableHeaderCell>
-                <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-              </TableHead>
-              <TableBody>
-                {pagedHistory.map((entry) => {
-                  const amountLabel = formatMinimaAmount(entry.amount, 12);
-                  const toShort = shortHash(entry.toAddress);
-                  return (
-                    <TableRow key={entry.id}>
-                      <TableCell className="min-w-0">
-                        <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
-                          <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
-                          <span className="gap-detail-tight flex min-w-0 flex-col">
-                            <span className="type-mono text-text-primary truncate tabular-nums">
-                              {amountLabel}
-                            </span>
-                            {/* <span className="type-meta text-text-secondary truncate">
+        <TableWrap>
+          <DataTable aria-label="Send history">
+            <TableHead>
+              <TableHeaderCell>Amount</TableHeaderCell>
+              <TableHeaderCell>To</TableHeaderCell>
+              <TableHeaderCell>Status</TableHeaderCell>
+              <TableHeaderCell className="whitespace-nowrap">Date</TableHeaderCell>
+              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+            </TableHead>
+            <TableBody>
+              {pagedHistory.map((entry) => {
+                const amountLabel = formatMinimaAmount(entry.amount, 12);
+                const toShort = shortHash(entry.toAddress);
+                return (
+                  <TableRow key={entry.id}>
+                    <TableCell className="min-w-0">
+                      <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
+                        <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
+                        <span className="gap-detail-tight flex min-w-0 flex-col">
+                          <span className="type-mono text-text-primary truncate tabular-nums">
+                            {amountLabel}
+                          </span>
+                          {/* <span className="type-meta text-text-secondary truncate">
                             {entry.tokenName}
                           </span> */}
-                          </span>
                         </span>
-                      </TableCell>
-                      <TableCell className="min-w-0">
-                        <TruncatedHash value={entry.toAddress} />
-                      </TableCell>
-                      <TableCell>
-                        <Pill tone={historyStatusTone(entry.status)} indicator>
-                          {historyStatusLabel(entry.status)}
-                        </Pill>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <time className="type-meta text-text-secondary" dateTime={entry.createdAt}>
-                          {formatLocalDateTime(entry.createdAt)}
-                        </time>
-                      </TableCell>
-                      <TableCell className="w-px whitespace-nowrap">
-                        <RowActions>
-                          <TableIconButton
-                            type="button"
-                            title="View details"
-                            aria-label={`View send of ${amountLabel} ${entry.tokenName} to ${toShort}`}
-                            onClick={() => setSelectedHistoryItem(entry)}
-                          >
-                            <Eye size={16} aria-hidden />
-                          </TableIconButton>
-                        </RowActions>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </DataTable>
-          </TableWrap>
-
-          <ListPaginationFooter
-            page={historyCurrentPage}
-            pageSize={historyPageSize}
-            total={filteredHistory.length}
-            totalPages={historyTotalPages}
-            disabled={pagerDisabled}
-            onPageChange={setHistoryPage}
-            onPageSizeChange={(size) => {
-              setHistoryPageSize(size);
-              setHistoryPage(1);
-            }}
-            pageSizeOptions={PAGE_SIZE_OPTIONS}
-          />
-        </div>
+                      </span>
+                    </TableCell>
+                    <TableCell className="min-w-0">
+                      <TruncatedHash value={entry.toAddress} />
+                    </TableCell>
+                    <TableCell>
+                      <Pill tone={historyStatusTone(entry.status)} indicator>
+                        {historyStatusLabel(entry.status)}
+                      </Pill>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <time className="type-meta text-text-secondary" dateTime={entry.createdAt}>
+                        {formatLocalDateTime(entry.createdAt)}
+                      </time>
+                    </TableCell>
+                    <TableCell className="w-px whitespace-nowrap">
+                      <RowActions>
+                        <TableIconButton
+                          type="button"
+                          title="View details"
+                          aria-label={`View send of ${amountLabel} ${entry.tokenName} to ${toShort}`}
+                          onClick={() => setSelectedHistoryItem(entry)}
+                        >
+                          <Eye size={16} aria-hidden />
+                        </TableIconButton>
+                      </RowActions>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </DataTable>
+        </TableWrap>
       )}
+
+      <ListPaginationFooter
+        page={historyCurrentPage}
+        pageSize={historyPageSize}
+        total={filteredHistory.length}
+        totalPages={historyTotalPages}
+        disabled={pagerDisabled}
+        onPageChange={setHistoryPage}
+        onPageSizeChange={(size) => {
+          setHistoryPageSize(size);
+          setHistoryPage(1);
+        }}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+      />
 
       {/* {isDev ? (
         <div className="flex justify-start">

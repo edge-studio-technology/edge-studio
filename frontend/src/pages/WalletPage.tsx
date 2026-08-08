@@ -10,7 +10,7 @@ import { AddressBookPanel } from "../features/address-book/AddressBookPanel";
 // import { CreateTokenModal } from "../features/wallet/CreateTokenModal";
 import { SendPaymentModal } from "../features/wallet/SendPaymentModal";
 import { ReceiveAddressModal } from "../features/wallet/ReceiveAddressModal";
-import { WalletAssetsPanel } from "../features/wallet/WalletAssetsPanel";
+// import { WalletAssetsPanel } from "../features/wallet/WalletAssetsPanel";
 import { WalletHero } from "../features/wallet/WalletHero";
 import { WalletHistoryPanel } from "../features/wallet/WalletHistoryPanel";
 import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
@@ -96,19 +96,21 @@ export function WalletPage() {
           value={mainTab}
           options={[
             { value: "history", label: "History" },
-            { value: "assets", label: "Assets" },
+            // { value: "assets", label: "Assets" },
             { value: "address-book", label: "Address book" },
           ]}
           onChange={setMainTab}
         />
 
+        {/* Assets tab disabled for v1 — a single native token makes a separate assets list redundant.
         {mainTab === "assets" ? (
           <WalletAssetsPanel
             tokens={walletStatus?.tokens ?? []}
             loading={loading}
             actionsBlocked={actionsBlocked}
           />
-        ) : mainTab === "address-book" ? (
+        ) : */}
+        {mainTab === "address-book" ? (
           <AddressBookPanel actionsBlocked={actionsBlocked} />
         ) : (
           <WalletHistoryPanel
