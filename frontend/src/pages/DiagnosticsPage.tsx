@@ -290,9 +290,12 @@ export function DiagnosticsPage() {
           label="Diagnostics history"
           value={activeTab}
           options={[
-            { value: "proofs", label: "Proof history" },
-            { value: "reads", label: "Read history" },
-            { value: "workflow-runs", label: "Workflow logs" },
+            // { value: "proofs", label: "Proof history" },
+            // { value: "reads", label: "Read history" },
+            // { value: "workflow-runs", label: "Workflow logs" },
+            { value: "proofs", label: "Integritas" },
+            { value: "reads", label: "Devices" },
+            { value: "workflow-runs", label: "Automation" },
           ]}
           onChange={selectTab}
         />
