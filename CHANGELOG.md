@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Onboarding wizard header now renders the actual `BrandMark` logo instead of a generic `Layers3` placeholder icon.
 - Account page's backup delete confirmation now reuses the same delete confirm/progress modal pattern as the Devices page, extracted into a shared `DeleteConfirmModal`/`DeleteProgressModal` component (`components/patterns/`).
 
+### Fixed
+
+- Fixed a brief blank flash whenever one `Modal` is swapped for another in the same action (e.g. backup/device delete confirm → progress modal): the shared `Modal` gated its first paint behind a post-commit effect for no visual purpose (no mount transition used it), so a modal-to-modal swap always had one frame with neither visible. Removed the gate.
+
 ## [0.32.0] 2026-08-08
 
 ### Added

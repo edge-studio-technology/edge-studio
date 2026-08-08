@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "../../lib/cx";
 import { IconButton } from "./Button";
@@ -52,11 +52,6 @@ export function Modal({
 }) {
   const titleId = useId();
   const descriptionId = useId();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     lockBodyScroll();
@@ -73,8 +68,6 @@ export function Modal({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [closeDisabled, onClose]);
-
-  if (!mounted) return null;
 
   return createPortal(
     <div
