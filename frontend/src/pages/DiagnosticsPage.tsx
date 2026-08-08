@@ -92,6 +92,7 @@ export function DiagnosticsPage() {
   const [bulkBusy, setBulkBusy] = useState<"download" | "delete" | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [tabLoading, setTabLoading] = useState(true);
   const busy = bulkBusy !== null;
 
   const updateListQuery = useCallback(
@@ -168,12 +169,15 @@ export function DiagnosticsPage() {
 
     async function load() {
       setError(null);
+      setTabLoading(true);
       try {
         await loadActiveTab(listQuery, () => cancelled);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load diagnostics history.");
         }
+      } finally {
+        if (!cancelled) setTabLoading(false);
       }
     }
 
@@ -339,6 +343,8 @@ export function DiagnosticsPage() {
             records={proofsPage.items}
             selectedIds={selectedIds}
             filtered={listFiltered}
+            loading={tabLoading}
+            onClearFilters={() => updateListQuery({ status: "", q: "" })}
             busy={busy}
             bulkBusy={bulkBusy}
             verifyingId={verifyingId}
@@ -395,7 +401,12 @@ export function DiagnosticsPage() {
             }
           />
         ) : activeTab === "reads" ? (
-          <DataReadsHistoryTable items={readsPage.items} filtered={listFiltered} />
+          <DataReadsHistoryTable
+            items={readsPage.items}
+            filtered={listFiltered}
+            loading={tabLoading}
+            onClearFilters={() => updateListQuery({ status: "", q: "" })}
+          />
         ) : (
           <AutomationRunsTable runs={workflowRunsPage.items} filtered={listFiltered} />
         )}

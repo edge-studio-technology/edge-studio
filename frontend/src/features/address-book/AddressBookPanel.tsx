@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, Inbox } from "lucide-react";
+import { Eye, Inbox, Plus, UserPlus } from "lucide-react";
 import {
   DataTable,
   RowActions,
@@ -14,12 +14,13 @@ import {
 } from "../../components/DataTable";
 import { ButtonRow } from "../../components/patterns/ButtonRow";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
+import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { Button } from "../../components/ui/Button";
 import { InputField } from "../../components/ui/InputField";
-import { LoadingDots } from "../../components/ui/LoadingDots";
 import { Modal } from "../../components/ui/Modal";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { useToast } from "../../components/ToastProvider";
@@ -123,63 +124,37 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         </ErrorAlert>
       ) : null}
 
-      <TableWrap>
-        <DataTable aria-label="Address book">
-          <TableHead>
-            <TableHeaderCell>Name</TableHeaderCell>
-            <TableHeaderCell>Address</TableHeaderCell>
-            <TableHeaderCell>Notes</TableHeaderCell>
-            <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-          </TableHead>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={4} className="p-0">
-                  <div className="py-pad-relaxed flex items-center justify-center" aria-busy="true">
-                    <LoadingDots />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : filteredEntries.length === 0 ? (
-              <TableRow>
-                <td colSpan={4} className="p-0">
-                  <div className="gap-detail-close p-margin-tight py-pad-relaxed flex flex-col items-start">
-                    <span
-                      className="bg-surface-secondary text-icon-primary rounded-loose flex size-10 items-center justify-center"
-                      aria-hidden
-                    >
-                      <Inbox size={20} />
-                    </span>
-                    <div className="gap-detail-tight flex flex-col">
-                      <p className="type-body-em text-text-primary m-0">
-                        {filtersActive ? "No matching contacts" : "No contacts saved yet"}
-                      </p>
-                      <p className="type-body text-text-secondary m-0">
-                        {filtersActive
-                          ? "Try another search, or clear filters."
-                          : "Save recipients here to pick them when sending payments."}
-                      </p>
-                    </div>
-                    {filtersActive ? (
-                      <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
-                        Clear filters
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setAddOpen(true)}
-                        disabled={actionsBlocked}
-                      >
-                        Add contact
-                      </Button>
-                    )}
-                  </div>
-                </td>
-              </TableRow>
-            ) : (
-              pagedEntries.map((entry) => (
+      {isLoading ? (
+        <LoadingState
+          title="Fetching your contacts"
+          description="This should take a few seconds."
+        />
+      ) : filteredEntries.length === 0 ? (
+        <EmptyContentState
+          icon={filtersActive ? Inbox : UserPlus}
+          title={filtersActive ? "No matching contacts" : "Save your first contact"}
+          description={
+            filtersActive
+              ? "Try another search, or clear filters."
+              : "Your saved recipients will be added to your address book here."
+          }
+          actionLabel={filtersActive ? "Clear filters" : "New contact"}
+          actionIcon={filtersActive ? undefined : <Plus aria-hidden />}
+          actionVariant={filtersActive ? "secondary" : "primary"}
+          actionDisabled={!filtersActive && actionsBlocked}
+          onAction={filtersActive ? clearFilters : () => setAddOpen(true)}
+        />
+      ) : (
+        <TableWrap>
+          <DataTable aria-label="Address book">
+            <TableHead>
+              <TableHeaderCell>Name</TableHeaderCell>
+              <TableHeaderCell>Address</TableHeaderCell>
+              <TableHeaderCell>Notes</TableHeaderCell>
+              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+            </TableHead>
+            <TableBody>
+              {pagedEntries.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell className="min-w-0">
                     <span className="type-body-em text-text-primary truncate">{entry.label}</span>
@@ -219,11 +194,11 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
                     </RowActions>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </DataTable>
-      </TableWrap>
+              ))}
+            </TableBody>
+          </DataTable>
+        </TableWrap>
+      )}
 
       <ListPaginationFooter
         page={currentPage}

@@ -202,6 +202,16 @@
   }
 }
 
+/* Spinner: each pin fades from lit to dim, staggered around the dial. */
+@keyframes spinner-pin {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.15;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .onboarding-enter,
   .onboarding-enter-stagger > * {

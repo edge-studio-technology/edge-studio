@@ -12,12 +12,13 @@ import {
   TableWrap,
 } from "../../components/patterns/DataTable";
 import { Button } from "../../components/ui/Button";
-import { LoadingDots } from "../../components/ui/LoadingDots";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
+import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { useToast } from "../../components/ToastProvider";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatMinimaAmount, shortHash } from "../../lib/format";
@@ -157,58 +158,37 @@ export function WalletHistoryPanel({
             : `${filteredHistory.length} ${filteredHistory.length === 1 ? "send" : "sends"} in history.`}
       </p>
 
-      <div aria-busy={showLoading || undefined}>
-        <TableWrap>
-          <DataTable aria-label="Send history">
-            <TableHead>
-              <TableHeaderCell>Amount</TableHeaderCell>
-              <TableHeaderCell>To</TableHeaderCell>
-              <TableHeaderCell>Status</TableHeaderCell>
-              <TableHeaderCell className="whitespace-nowrap">Date</TableHeaderCell>
-              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-            </TableHead>
-            <TableBody>
-              {showLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="p-0">
-                    <div
-                      className="py-pad-relaxed flex items-center justify-center"
-                      aria-busy="true"
-                    >
-                      <LoadingDots />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : filteredHistory.length === 0 ? (
-                <TableRow>
-                  <td colSpan={5} className="p-0">
-                    <div className="gap-detail-close p-margin-tight py-pad-relaxed flex flex-col items-start">
-                      <span
-                        className="bg-surface-secondary text-icon-primary rounded-loose flex size-10 items-center justify-center"
-                        aria-hidden
-                      >
-                        <Inbox size={20} />
-                      </span>
-                      <div className="gap-detail-tight flex flex-col">
-                        <p className="type-body-em text-text-primary m-0">
-                          {filtersActive ? "No matching sends" : "No send activity yet"}
-                        </p>
-                        <p className="type-body text-text-secondary m-0">
-                          {filtersActive
-                            ? "Try another status or search, or clear filters."
-                            : "Payments you send from this wallet will appear here."}
-                        </p>
-                      </div>
-                      {filtersActive ? (
-                        <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
-                          Clear filters
-                        </Button>
-                      ) : null}
-                    </div>
-                  </td>
-                </TableRow>
-              ) : (
-                pagedHistory.map((entry) => {
+      {showLoading ? (
+        <LoadingState
+          title="Fetching your send history"
+          description="This should take a few seconds."
+        />
+      ) : filteredHistory.length === 0 ? (
+        <EmptyContentState
+          icon={Inbox}
+          title={filtersActive ? "No matching sends" : "No send activity yet"}
+          description={
+            filtersActive
+              ? "Try another status or search, or clear filters."
+              : "Payments you send from this wallet will be added to your history here."
+          }
+          actionLabel={filtersActive ? "Clear filters" : undefined}
+          actionVariant="secondary"
+          onAction={filtersActive ? clearFilters : undefined}
+        />
+      ) : (
+        <div className="gap-detail-close flex flex-col">
+          <TableWrap>
+            <DataTable aria-label="Send history">
+              <TableHead>
+                <TableHeaderCell>Amount</TableHeaderCell>
+                <TableHeaderCell>To</TableHeaderCell>
+                <TableHeaderCell>Status</TableHeaderCell>
+                <TableHeaderCell className="whitespace-nowrap">Date</TableHeaderCell>
+                <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+              </TableHead>
+              <TableBody>
+                {pagedHistory.map((entry) => {
                   const amountLabel = formatMinimaAmount(entry.amount, 12);
                   const toShort = shortHash(entry.toAddress);
                   return (
@@ -253,26 +233,26 @@ export function WalletHistoryPanel({
                       </TableCell>
                     </TableRow>
                   );
-                })
-              )}
-            </TableBody>
-          </DataTable>
-        </TableWrap>
-      </div>
+                })}
+              </TableBody>
+            </DataTable>
+          </TableWrap>
 
-      <ListPaginationFooter
-        page={historyCurrentPage}
-        pageSize={historyPageSize}
-        total={filteredHistory.length}
-        totalPages={historyTotalPages}
-        disabled={pagerDisabled}
-        onPageChange={setHistoryPage}
-        onPageSizeChange={(size) => {
-          setHistoryPageSize(size);
-          setHistoryPage(1);
-        }}
-        pageSizeOptions={PAGE_SIZE_OPTIONS}
-      />
+          <ListPaginationFooter
+            page={historyCurrentPage}
+            pageSize={historyPageSize}
+            total={filteredHistory.length}
+            totalPages={historyTotalPages}
+            disabled={pagerDisabled}
+            onPageChange={setHistoryPage}
+            onPageSizeChange={(size) => {
+              setHistoryPageSize(size);
+              setHistoryPage(1);
+            }}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+          />
+        </div>
+      )}
 
       {/* {isDev ? (
         <div className="flex justify-start">

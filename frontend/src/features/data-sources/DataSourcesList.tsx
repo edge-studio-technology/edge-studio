@@ -1,8 +1,7 @@
-import { Activity, Inbox, Play } from "lucide-react";
+import { Activity, Cable, Inbox, Play, Plus } from "lucide-react";
 import { useState } from "react";
 import {
   DataTable,
-  EmptyTableState,
   RowActions,
   TableBody,
   TableCard,
@@ -18,9 +17,11 @@ import { Modal } from "../../components/Modal";
 import { JsonPreviewContent } from "../../components/JsonPreview";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
+import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { EmptyState } from "../../components/patterns/EmptyState";
 import { ErrorDetailPanel } from "../../components/patterns/ErrorDetailPanel";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { Disclosure } from "../../components/ui/Disclosure";
 import { Pagination } from "../../components/ui/Pagination";
 import { Pill } from "../../components/ui/Pill";
@@ -40,20 +41,24 @@ export function DataSourcesList({
   items,
   healthStatuses,
   busy,
+  loading = false,
   onRead,
   onTestOutput,
   onOpenSetupGuide,
   onEdit,
   onDelete,
+  onAddDevice,
 }: {
   items: DataSource[];
   healthStatuses: Record<string, DataSourceHealthStatus>;
   busy: boolean;
+  loading?: boolean;
   onRead: (source: DataSource) => void;
   onTestOutput: (source: DataSource) => void;
   onOpenSetupGuide: (source: DataSource) => void;
   onEdit: (source: DataSource) => void;
   onDelete: (source: DataSource) => void;
+  onAddDevice?: () => void;
 }) {
   const [detailsSource, setDetailsSource] = useState<DataSource | null>(null);
   const [page, setPage] = useState(1);
@@ -69,141 +74,152 @@ export function DataSourcesList({
       title="Configured devices"
       description="Monitor your configured input sources, and output targets."
     >
-      {items.length > 0 && (
-        <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
-      )}
-      <TableWrap>
-        <DataTable className="table-fixed">
-          <TableHead>
-            <TableHeaderCell className="w-72">Name</TableHeaderCell>
-            <TableHeaderCell className="w-24">Direction</TableHeaderCell>
-            <TableHeaderCell className="w-56">Type</TableHeaderCell>
-            <TableHeaderCell className="w-lg">Endpoint</TableHeaderCell>
-            <TableHeaderCell className="w-36">Health</TableHeaderCell>
-            <TableHeaderCell className="w-40">Last hash</TableHeaderCell>
-            <TableHeaderCell className="w-32">Last preview</TableHeaderCell>
-            <TableHeaderCell className="w-28 whitespace-nowrap">Actions</TableHeaderCell>
-          </TableHead>
-          <TableBody>
-            {pagedItems.map((source) => {
-              const usedByWorkflows = source.usedByWorkflows ?? [];
-              const deleteDisabledReason =
-                usedByWorkflows.length > 0
-                  ? `Used by workflow: ${usedByWorkflows.map((workflow) => workflow.name).join(", ")}`
-                  : "Delete device";
-              return (
-                <TableRow key={source.id}>
-                  <TableCell>
-                    <strong className="block truncate" title={source.name}>
-                      {source.name}
-                    </strong>
-                  </TableCell>
-                  <TableCell>{sourceDirection(source)}</TableCell>
-                  <TableCell>{sourceTypeLabel(source)}</TableCell>
-                  <TableCell>
-                    <code className="block truncate" title={sourceEndpoint(source)}>
-                      {sourceEndpoint(source)}
-                    </code>
-                  </TableCell>
-                  <TableCell>
-                    <HealthCell source={source} status={healthStatuses[source.id]} />
-                  </TableCell>
-                  <TableCell>
-                    {source.lastHash ? (
-                      <TruncatedHash value={source.lastHash} />
-                    ) : (
-                      <span className="text-slate-500">Not read yet</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <LastPreviewCell source={source} />
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <RowActions>
-                      <TableIconButton
-                        type="button"
-                        disabled={
-                          busy ||
-                          source.type === "webhook" ||
-                          source.type === "mqtt" ||
-                          source.type === "gpio-input" ||
-                          source.type === "gpio-output" ||
-                          source.type === "pi-camera" ||
-                          source.type === "http-output" ||
-                          source.type === "mqtt-output"
-                        }
-                        title="Trigger manually"
-                        aria-label={`Trigger ${source.name} manually`}
-                        onClick={() => onRead(source)}
-                      >
-                        <Play size={16} />
-                      </TableIconButton>
-                      <TableIconMenu
-                        aria-label={`More actions for ${source.name}`}
-                        items={[
-                          ...(source.type === "gpio-output" ||
-                          source.type === "http-output" ||
-                          source.type === "mqtt-output"
-                            ? [
-                                {
-                                  label:
-                                    source.type === "gpio-output" ? "Test pulse" : "Test output",
-                                  disabled: busy,
-                                  onClick: () => onTestOutput(source),
-                                },
-                              ]
-                            : []),
-                          ...(hasDeviceSetupGuide(source)
-                            ? [
-                                {
-                                  label: "Setup guide",
-                                  disabled: busy,
-                                  onClick: () => onOpenSetupGuide(source),
-                                },
-                              ]
-                            : []),
-                          {
-                            label: "View details",
-                            disabled: busy,
-                            onClick: () => setDetailsSource(source),
-                          },
-                          {
-                            label: "Edit",
-                            disabled: busy,
-                            onClick: () => onEdit(source),
-                          },
-                          {
-                            label: "Delete",
-                            title: deleteDisabledReason,
-                            danger: true,
-                            disabled: busy || usedByWorkflows.length > 0,
-                            onClick: () => onDelete(source),
-                          },
-                        ]}
-                      />
-                    </RowActions>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </DataTable>
-      </TableWrap>
-      {items.length === 0 ? (
-        <EmptyTableState>No devices added yet.</EmptyTableState>
-      ) : (
-        <ListPaginationFooter
-          page={currentPage}
-          pageSize={pageSize}
-          total={items.length}
-          totalPages={totalPages}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
-          pageSizeOptions={PAGE_SIZE_OPTIONS}
+      {loading ? (
+        <LoadingState title="Fetching your devices" description="This should take a few seconds." />
+      ) : items.length === 0 ? (
+        <EmptyContentState
+          icon={Cable}
+          title="Connect your first device"
+          description="Your input sources and output targets will be added to your library here."
+          actionLabel={onAddDevice ? "New device" : undefined}
+          actionIcon={onAddDevice ? <Plus aria-hidden /> : undefined}
+          onAction={onAddDevice}
         />
+      ) : (
+        <>
+          <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
+          <TableWrap>
+            <DataTable className="table-fixed">
+              <TableHead>
+                <TableHeaderCell className="w-72">Name</TableHeaderCell>
+                <TableHeaderCell className="w-24">Direction</TableHeaderCell>
+                <TableHeaderCell className="w-56">Type</TableHeaderCell>
+                <TableHeaderCell className="w-lg">Endpoint</TableHeaderCell>
+                <TableHeaderCell className="w-36">Health</TableHeaderCell>
+                <TableHeaderCell className="w-40">Last hash</TableHeaderCell>
+                <TableHeaderCell className="w-32">Last preview</TableHeaderCell>
+                <TableHeaderCell className="w-28 whitespace-nowrap">Actions</TableHeaderCell>
+              </TableHead>
+              <TableBody>
+                {pagedItems.map((source) => {
+                  const usedByWorkflows = source.usedByWorkflows ?? [];
+                  const deleteDisabledReason =
+                    usedByWorkflows.length > 0
+                      ? `Used by workflow: ${usedByWorkflows.map((workflow) => workflow.name).join(", ")}`
+                      : "Delete device";
+                  return (
+                    <TableRow key={source.id}>
+                      <TableCell>
+                        <strong className="block truncate" title={source.name}>
+                          {source.name}
+                        </strong>
+                      </TableCell>
+                      <TableCell>{sourceDirection(source)}</TableCell>
+                      <TableCell>{sourceTypeLabel(source)}</TableCell>
+                      <TableCell>
+                        <code className="block truncate" title={sourceEndpoint(source)}>
+                          {sourceEndpoint(source)}
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        <HealthCell source={source} status={healthStatuses[source.id]} />
+                      </TableCell>
+                      <TableCell>
+                        {source.lastHash ? (
+                          <TruncatedHash value={source.lastHash} />
+                        ) : (
+                          <span className="text-slate-500">Not read yet</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <LastPreviewCell source={source} />
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <RowActions>
+                          <TableIconButton
+                            type="button"
+                            disabled={
+                              busy ||
+                              source.type === "webhook" ||
+                              source.type === "mqtt" ||
+                              source.type === "gpio-input" ||
+                              source.type === "gpio-output" ||
+                              source.type === "pi-camera" ||
+                              source.type === "http-output" ||
+                              source.type === "mqtt-output"
+                            }
+                            title="Trigger manually"
+                            aria-label={`Trigger ${source.name} manually`}
+                            onClick={() => onRead(source)}
+                          >
+                            <Play size={16} />
+                          </TableIconButton>
+                          <TableIconMenu
+                            aria-label={`More actions for ${source.name}`}
+                            items={[
+                              ...(source.type === "gpio-output" ||
+                              source.type === "http-output" ||
+                              source.type === "mqtt-output"
+                                ? [
+                                    {
+                                      label:
+                                        source.type === "gpio-output"
+                                          ? "Test pulse"
+                                          : "Test output",
+                                      disabled: busy,
+                                      onClick: () => onTestOutput(source),
+                                    },
+                                  ]
+                                : []),
+                              ...(hasDeviceSetupGuide(source)
+                                ? [
+                                    {
+                                      label: "Setup guide",
+                                      disabled: busy,
+                                      onClick: () => onOpenSetupGuide(source),
+                                    },
+                                  ]
+                                : []),
+                              {
+                                label: "View details",
+                                disabled: busy,
+                                onClick: () => setDetailsSource(source),
+                              },
+                              {
+                                label: "Edit",
+                                disabled: busy,
+                                onClick: () => onEdit(source),
+                              },
+                              {
+                                label: "Delete",
+                                title: deleteDisabledReason,
+                                danger: true,
+                                disabled: busy || usedByWorkflows.length > 0,
+                                onClick: () => onDelete(source),
+                              },
+                            ]}
+                          />
+                        </RowActions>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </DataTable>
+          </TableWrap>
+          <ListPaginationFooter
+            page={currentPage}
+            pageSize={pageSize}
+            total={items.length}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+          />
+        </>
       )}
       {detailsSource && (
         <DeviceDetailsModal

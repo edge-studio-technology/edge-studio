@@ -2,7 +2,7 @@ import { Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
-import { Spinner } from "../ui/Spinner";
+import { SpinnerAlt } from "../ui/SpinnerAlt";
 import { ButtonRow } from "./ButtonRow";
 
 export function DeleteConfirmModal({
@@ -51,7 +51,7 @@ export function DeleteProgressModal({
   return (
     <Modal title={title} closeDisabled onClose={() => undefined} bodyClassName="min-h-0 flex-1">
       <div className="gap-detail-near grid min-h-56 place-items-center text-center">
-        <Spinner size="lg" />
+        <SpinnerAlt size="lg" />
         <div className="gap-detail-tight grid">
           <p className="type-title text-text-primary m-0">Deleting in progress</p>
           <p className="type-body text-text-secondary m-0 mt-4">{description}</p>

@@ -1,11 +1,11 @@
 import { Modal } from "./Modal";
-import { Spinner } from "./ui/Spinner";
+import { SpinnerAlt } from "./ui/SpinnerAlt";
 
 export function ProgressModal({ title, headline, message }: { title: string; headline: string; message: string }) {
   return (
     <Modal title={title} closeDisabled onClose={() => undefined}>
       <div className="grid min-h-56 place-items-center gap-5 text-center">
-        <Spinner size="lg" />
+        <SpinnerAlt size="lg" />
         <div className="grid gap-2">
           <p className="m-0 text-3xl font-extrabold text-slate-950">{headline}</p>
           <p className="m-0 max-w-xl text-sm text-slate-500">{message}</p>

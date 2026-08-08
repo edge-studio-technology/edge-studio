@@ -93,7 +93,8 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [ErrorDetails](#errordetails): trigger + dialog for inspecting an operational error
 - [Modal](#modal): dialog overlay
 - `LoadingDots`: bouncing loading indicator
-- `Spinner`: rotating ring loading indicator
+- `Spinner`: rotating ring loading indicator (deprecated — use [SpinnerAlt](#spinneralt))
+- [SpinnerAlt](#spinneralt): pin-dial loading indicator
 - `Input`: bare text control
 - [InputField](#inputfield): labeled text field
 - [SelectField](#selectfield): labeled select
@@ -115,6 +116,8 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [JsonBlock](#jsonblock): inverse mono pretty-printed JSON surface
 - [JsonPreview](#jsonpreview): trigger that opens a modal with pretty-printed JSON
 - [CopyableCode](#copyablecode): mono value with copy control
+- [EmptyContentState](#emptycontentstate): empty table/content state with icon, title, description, and optional action
+- [LoadingState](#loadingstate): fetching state with spinner, optional title and description
 - `FileDropBox`: large drag/drop or click file picker with reject toast, selected-file row, and busy/disabled state (`components/patterns/FileDropBox.tsx`)
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
@@ -638,6 +641,74 @@ Mono value chip with a compact copy control (`frontend/src/components/patterns/C
 
 ```tsx
 <CopyableCode value={token.tokenId} />
+```
+
+### EmptyContentState
+
+Empty content state (`frontend/src/components/patterns/EmptyContentState.tsx`): centered bare glyph, bold title, description, and an optional `Button` action, on a bordered `surface-primary` panel. Prefer this over a bare "No X yet." string wherever a table or list can be genuinely empty — no rows, no filter matches, nothing saved yet.
+
+**Render it in place of the table/list, not as a row inside it.** Putting it in a `<td colSpan>` leaves empty header chrome above it, which is not the intended state. Pair it with `LoadingState`, which uses the same panel shell (`contentStatePanelClass`, exported here) so the two swap cleanly.
+
+| Prop             | Notes                                                                     |
+| ---------------- | ------------------------------------------------------------------------- |
+| `icon`           | Optional `LucideIcon`, rendered bare at 24px                              |
+| `title`          | Required bold heading                                                     |
+| `description`    | Optional copy under the title                                             |
+| `actionLabel`    | Optional action button label (omit to hide the button)                    |
+| `actionIcon`     | Optional leading icon for the action button (e.g. `Plus` on a create CTA) |
+| `actionVariant`  | `primary` (default) or `secondary` — use `secondary` for "Clear filters"  |
+| `actionDisabled` | Disables the action button                                                |
+| `onAction`       | Action button click handler                                               |
+| `className`      | Merged onto the panel                                                     |
+
+```tsx
+{loading ? (
+  <LoadingState title="Fetching your devices" description="This should take a few seconds." />
+) : items.length === 0 ? (
+  <EmptyContentState
+    icon={Cable}
+    title="Connect your first device"
+    description="Your input sources and output targets will be added to your library here."
+    actionLabel="New device"
+    actionIcon={<Plus aria-hidden />}
+    onAction={onAddDevice}
+  />
+) : (
+  <TableWrap>…</TableWrap>
+)}
+```
+
+### LoadingState
+
+Fetching content state (`frontend/src/components/patterns/LoadingState.tsx`): centered `SpinnerAlt` with an optional bold title and description, on the same panel as `EmptyContentState`. Prefer this over a bare inline spinner wherever a table or list is waiting on its first load, not just a busy row/button. Same placement rule: render it **in place of** the table, not inside it.
+
+| Prop          | Notes                                                |
+| ------------- | ---------------------------------------------------- |
+| `title`       | Optional bold heading (e.g. "Fetching your devices") |
+| `description` | Optional copy under the title                        |
+| `className`   | Merged onto the panel                                |
+
+```tsx
+<LoadingState title="Fetching your devices" description="This should take a few seconds." />
+```
+
+### SpinnerAlt
+
+Loading indicator (`frontend/src/components/ui/SpinnerAlt.tsx`): eight pins around a dial that light and fade in sequence so the lit pin travels clockwise. It does **not** rotate — the animation is per-pin opacity (`spinner-pin` keyframes in `styles.css`), staggered by index, and respects `prefers-reduced-motion`. Prefer this for any new loading indicator; the older rotating-ring `Spinner` is deprecated.
+
+| Prop        | Values                                    | Notes                    |
+| ----------- | ----------------------------------------- | ------------------------ |
+| `size`      | `sm` (20px) \| `md` (32px) \| `lg` (64px) | Default `md`             |
+| `tone`      | `primary` \| `secondary`                  | Default `primary`        |
+| `className` | optional                                  | Merged onto the `<svg>`  |
+
+Decorative (`aria-hidden`) by design — always pair it with adjacent text describing what's loading, as `LoadingState` does.
+
+```tsx
+<SpinnerAlt />
+<SpinnerAlt size="sm" tone="secondary" />
+```
+
 ### DetailList
 
 Label/value detail rows (`frontend/src/components/patterns/DetailList.tsx`): `DetailList` is the `<dl>` wrapper, `DetailRow` is one label/value pair. Prefer this for read-only config/profile detail blocks instead of hand-rolled `<dl>`/`<dt>`/`<dd>` markup.

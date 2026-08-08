@@ -292,11 +292,13 @@ export function DataSourcesPage() {
         items={items}
         healthStatuses={healthStatuses}
         busy={busy}
+        loading={capabilities === null}
         onRead={(source) => run(() => readDataSource(source.id), "Manual read completed")}
         onTestOutput={(source) => run(() => testDataSourceOutput(source.id), "Test pulse sent")}
         onOpenSetupGuide={setSetupGuideSource}
         onEdit={editSource}
         onDelete={setDeleteTarget}
+        onAddDevice={() => setAddDeviceMode("input")}
       />
     </Page>
   );

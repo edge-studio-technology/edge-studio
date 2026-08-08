@@ -10,14 +10,16 @@ import {
   TableRow,
   TableWrap,
 } from "../../components/patterns/DataTable";
+import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { JsonBlock } from "../../components/patterns/JsonBlock";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { Modal } from "../../components/ui/Modal";
 import { Pill } from "../../components/ui/Pill";
 import { formatLocalDateTime } from "../../lib/time";
 import type { Tone } from "../../app/types";
-import { Download, Eye, Trash2 } from "lucide-react";
+import { Download, Eye, Stamp, Trash2 } from "lucide-react";
 import type { IntegritasProofRecord } from "./integritasTypes";
 
 const PROOF_STATUS: Record<string, { tone: Tone; label: string }> = {
@@ -35,11 +37,13 @@ export function IntegritasHistoryTable({
   records,
   selectedIds,
   filtered,
+  loading = false,
   onToggle,
   onToggleAllVisible,
   onVerify,
   onDownload,
   onClearSelection,
+  onClearFilters,
   onDeleteSelected,
   onDownloadSelected,
   busy,
@@ -49,11 +53,13 @@ export function IntegritasHistoryTable({
   records: IntegritasProofRecord[];
   selectedIds: string[];
   filtered?: boolean;
+  loading?: boolean;
   onToggle: (id: string) => void;
   onToggleAllVisible: () => void;
   onVerify: (record: IntegritasProofRecord) => void;
   onDownload: (record: IntegritasProofRecord) => void;
   onClearSelection: () => void;
+  onClearFilters?: () => void;
   onDeleteSelected: () => void;
   onDownloadSelected: () => void;
   busy: boolean;
@@ -163,38 +169,46 @@ export function IntegritasHistoryTable({
         </Modal>
       ) : null}
 
-      <TableWrap>
-        <DataTable aria-label="Proof history" className="min-w-[1020px]">
-          <TableHead>
-            <TableHeaderCell className="w-px whitespace-nowrap">
-              <CheckboxField
-                label={null}
-                aria-label="Select all proofs on this page"
-                checked={allVisibleSelected}
-                indeterminate={someVisibleSelected}
-                disabled={busy || records.length === 0}
-                onChange={onToggleAllVisible}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell className="whitespace-nowrap">Timestamp</TableHeaderCell>
-            <TableHeaderCell>UID</TableHeaderCell>
-            <TableHeaderCell>Status</TableHeaderCell>
-            <TableHeaderCell>Data hash</TableHeaderCell>
-            <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-          </TableHead>
-          <TableBody>
-            {records.length === 0 ? (
-              <TableRow>
-                <td colSpan={6} className="p-0">
-                  <div className="p-margin-tight py-pad-relaxed">
-                    <p className="type-body text-text-secondary m-0">
-                      {filtered ? "No matching proof history." : "No proof history yet."}
-                    </p>
-                  </div>
-                </td>
-              </TableRow>
-            ) : (
-              records.map((record) => {
+      {loading ? (
+        <LoadingState
+          title="Fetching your proof history"
+          description="This should take a few seconds."
+        />
+      ) : records.length === 0 ? (
+        <EmptyContentState
+          icon={Stamp}
+          title={filtered ? "No matching proof history" : "No proof history yet"}
+          description={
+            filtered
+              ? "Try another status or search, or clear filters."
+              : "Proofs you stamp with Integritas will be added to your history here."
+          }
+          actionLabel={filtered && onClearFilters ? "Clear filters" : undefined}
+          actionVariant="secondary"
+          onAction={filtered ? onClearFilters : undefined}
+        />
+      ) : (
+        <TableWrap>
+          <DataTable aria-label="Proof history" className="min-w-255">
+            <TableHead>
+              <TableHeaderCell className="w-px whitespace-nowrap">
+                <CheckboxField
+                  label={null}
+                  aria-label="Select all proofs on this page"
+                  checked={allVisibleSelected}
+                  indeterminate={someVisibleSelected}
+                  disabled={busy || records.length === 0}
+                  onChange={onToggleAllVisible}
+                />
+              </TableHeaderCell>
+              <TableHeaderCell className="whitespace-nowrap">Timestamp</TableHeaderCell>
+              <TableHeaderCell>UID</TableHeaderCell>
+              <TableHeaderCell>Status</TableHeaderCell>
+              <TableHeaderCell>Data hash</TableHeaderCell>
+              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+            </TableHead>
+            <TableBody>
+              {records.map((record) => {
                 const hasPayload = Boolean(record.proof_payload);
                 const selected = selectedIds.includes(record.id);
                 return (
@@ -265,11 +279,11 @@ export function IntegritasHistoryTable({
                     </TableCell>
                   </TableRow>
                 );
-              })
-            )}
-          </TableBody>
-        </DataTable>
-      </TableWrap>
+              })}
+            </TableBody>
+          </DataTable>
+        </TableWrap>
+      )}
     </div>
   );
 }
