@@ -42,7 +42,7 @@ export function DashboardPage() {
   return (
     <Page
       title={`${APP_NAME} dashboard`}
-      desc="Your workspace for trusted data, proofs, automation and value flows at the edge."
+      desc="Node and device status, wallet balance, and recent proof and read activity."
     >
       <DashboardNextAction />
       <DashboardDevices />

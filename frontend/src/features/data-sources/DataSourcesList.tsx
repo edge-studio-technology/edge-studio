@@ -101,7 +101,7 @@ export function DataSourcesList({
     <TableCard
       className="w-full"
       title="Configured devices"
-      description="Monitor your configured input sources, and output targets."
+      description="Create and monitor your configured input sources and output targets."
     >
       <div className="gap-detail-close flex flex-wrap items-end justify-between">
         <div className="min-w-0 flex-1 [&>div]:mb-0">

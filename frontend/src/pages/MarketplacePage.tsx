@@ -10,7 +10,7 @@ export function MarketplacePage() {
     <StatusPage
       icon={ShoppingCart}
       title="Coming soon"
-      description="The marketplace is on its way. Check back soon for new integrations and add-ons."
+      description="New integrations and add-ons are coming soon."
       action={
         <Button variant="primary" onClick={() => navigate("/dashboard")}>
           Back to dashboard

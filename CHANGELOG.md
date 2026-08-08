@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Devices list now has a working filter (by direction: All/Input/Output/Capture) and search (name, type, or endpoint) bar, replacing the top numbered-page `Pagination` control. "New input" and "New output" buttons sit to its right (bottom pagination footer is unchanged), and the empty state gained a matching second "New output" action alongside "New input" (`EmptyContentState` now supports an optional secondary action button).
 - Sidebar icons for Minima, Wallet, Integritas, and Automation updated to match the current design reference (`Radio`, `CreditCard`, `Shield`, and `FastForward`, replacing `RadioTower`, `Wallet`, `ShieldCheck`, and `Workflow`).
 - Sidebar's collapsed-state "expand sidebar" button now uses the plain `PanelLeft` icon instead of `PanelLeftOpen` (which had an arrow baked in), matching the design reference.
+- Tightened vague/narrative page and section descriptions into direct, one-line summaries: Dashboard, Devices, Integritas, Minima, and Account settings page headers; the Devices list's "Configured devices" table description (also fixed a stray comma); the onboarding wizard's welcome step intro; and the Marketplace "Coming soon" copy.
 
 ### Fixed
 

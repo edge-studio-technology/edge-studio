@@ -148,7 +148,7 @@ export function AuthSettingsPage() {
     <Page
       eyebrow="Admin account"
       title="Account settings"
-      desc="Manage your admin credentials, Integritas Connect, and Minima node settings and backups."
+      desc="Manage your admin credentials, Integritas Connect, Minima node settings and backups, and interface preferences."
       action={
         <Button type="button" variant="ghost" onClick={() => void signOut()}>
           <LogOut size={16} /> Log out

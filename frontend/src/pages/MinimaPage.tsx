@@ -188,7 +188,7 @@ export function MinimaPage() {
   return (
     <Page
       title="Minima"
-      desc="Start, monitor, and manage the Minima node running on the Raspberry Pi Edition."
+      desc="Start, monitor, and manage the Minima node running on this device."
     >
       <section className="gap-detail-close grid w-full items-stretch lg:grid-cols-2">
         <MinimaHealthCard
