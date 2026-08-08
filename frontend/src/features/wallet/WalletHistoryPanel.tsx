@@ -131,7 +131,7 @@ export function WalletHistoryPanel({
           q={historyQuery}
           filterOptions={HISTORY_STATUS_OPTIONS}
           searchPlaceholder="Address, token, or txpow ID"
-          disabled={pagerDisabled || filteredHistory.length === 0}
+          disabled={pagerDisabled || items.length === 0}
           onFilterChange={(status) => {
             setHistoryStatus(status);
             setHistoryPage(1);

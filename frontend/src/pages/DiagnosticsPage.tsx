@@ -314,7 +314,7 @@ export function DiagnosticsPage() {
               q={listQuery.q}
               filterOptions={statusOptions}
               searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
-              disabled={refreshing || tabLoading || activePager.items.length === 0}
+              disabled={refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)}
               onFilterChange={(status) => updateListQuery({ status })}
               onQueryChange={(q) => updateListQuery({ q })}
             />

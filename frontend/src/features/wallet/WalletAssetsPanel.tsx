@@ -80,7 +80,7 @@ export function WalletAssetsPanel({
           q={assetQuery}
           filterOptions={ASSET_KIND_OPTIONS}
           searchPlaceholder="Name or coin ID"
-          disabled={pagerDisabled || visibleAssets.length === 0}
+          disabled={pagerDisabled || tokens.length === 0}
           onFilterChange={(kind) => {
             setAssetKind(kind);
             setAssetPage(1);

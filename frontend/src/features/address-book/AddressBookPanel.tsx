@@ -100,7 +100,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
           <ListFilterBar
             q={query}
             searchPlaceholder="Name, address, or notes"
-            disabled={isLoading || filteredEntries.length === 0}
+            disabled={isLoading || entries.length === 0}
             onQueryChange={(q) => {
               setQuery(q);
               setPage(1);

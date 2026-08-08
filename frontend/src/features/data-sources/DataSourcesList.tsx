@@ -110,7 +110,7 @@ export function DataSourcesList({
             q={query}
             filterOptions={DIRECTION_FILTER_OPTIONS}
             searchPlaceholder="Name, type, or endpoint"
-            disabled={loading || visibleItems.length === 0}
+            disabled={loading || items.length === 0}
             onFilterChange={(value) => {
               setDirection(value);
               setPage(1);
