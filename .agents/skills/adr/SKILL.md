@@ -20,5 +20,4 @@ description: Use when a change involves non-obvious "why" worth preserving — r
    - `## Consequences` — resulting tradeoffs or limitations.
    - `## Where this lives in code` — files/functions that implement the decision.
 3. Add the new file to the table in `docs/README.md` under `## Architecture decisions`.
-4. Leave a short pointer comment in the affected code (one line, e.g. `// see docs/adr/0004-...md`) — not the reasoning itself.
-5. Report the file path written, nothing else.
+4. Report the file path written, nothing else.
