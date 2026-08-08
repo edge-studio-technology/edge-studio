@@ -4,16 +4,19 @@ import {
   CheckCircle2,
   Copy,
   Database,
+  Download,
   Eye,
   EyeOff,
   Link2,
   LogOut,
+  MessageSquare,
+  RefreshCw,
   RotateCcw,
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
 import type { MinimaNodeState } from "../app/types";
-import { Button } from "../components/Button";
+import { Button, LinkButton } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
@@ -131,14 +134,9 @@ export function AuthSettingsPage() {
       title="Account settings"
       desc="Manage your admin credentials, Integritas Connect, and Minima node settings and backups."
       action={
-        <ButtonRow>
-          <Button type="button" variant="ghost" onClick={() => void signOut()}>
-            <LogOut size={16} /> Sign out
-          </Button>
-          <Button type="button" onClick={() => navigate("/update")}>
-            Check updates
-          </Button>
-        </ButtonRow>
+        <Button type="button" variant="ghost" onClick={() => void signOut()}>
+          <LogOut size={16} /> Sign out
+        </Button>
       }
     >
       <Card className="grid w-full gap-4 divide-y divide-slate-200">
@@ -152,6 +150,30 @@ export function AuthSettingsPage() {
           defaultOpen={true}
         >
           <div className="mt-2 grid gap-10">
+            <SubSection
+              icon={<RefreshCw size={13} />}
+              title="Software update"
+              description="Check for and install the latest Edge Studio update."
+            >
+              <ButtonRow>
+                <Button type="button" onClick={() => navigate("/update")}>
+                  Check for updates
+                </Button>
+              </ButtonRow>
+            </SubSection>
+
+            <SubSection
+              icon={<MessageSquare size={13} />}
+              title="Feedback"
+              description="Download the local feedback export file to share with the Integritas team."
+            >
+              <ButtonRow>
+                <LinkButton href="/api/feedback/export" iconStart={<Download aria-hidden />}>
+                  Export feedback JSON
+                </LinkButton>
+              </ButtonRow>
+            </SubSection>
+
             <ChangeCredentialPanel />
 
             {TOTP_ENABLED ? (

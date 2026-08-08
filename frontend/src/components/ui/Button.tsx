@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import { cx } from "../../lib/cx";
 
 /**
@@ -39,6 +39,17 @@ const sizeClass: Record<ButtonSize, string> = {
   md: "h-[44px] px-detail-close type-body",
   sm: "h-8 px-detail-close type-meta",
   xs: "h-8 px-detail-close type-meta",
+};
+
+/**
+ * `:enabled`/`:disabled` never match `<a>`, so `variantClass` (which relies on
+ * `enabled:hover:*`) can't be reused here — this mirrors it with plain `hover:`.
+ */
+const linkVariantClass: Record<Exclude<ButtonVariant, "danger">, string> = {
+  primary: "border-transparent bg-surface-inverse text-text-inverse hover:bg-grey-06",
+  secondary: "border-transparent bg-surface-secondary text-text-primary hover:border-stroke-primary",
+  ghost: "border-stroke-secondary bg-transparent text-text-primary hover:border-stroke-primary",
+  accent: "border-transparent bg-surface-accent text-text-inverse hover:bg-surface-accent-hover",
 };
 
 /** Circle control size + inner glyph size (Icon Button). */
@@ -94,6 +105,50 @@ export function Button({
         </span>
       ) : null}
     </button>
+  );
+}
+
+/**
+ * `Button` chrome on a real `<a>` — use when the action must be a link (e.g. a
+ * file download), not `danger` (app-only, button-only for now).
+ */
+export function LinkButton({
+  children,
+  className,
+  iconEnd,
+  iconStart,
+  size = "md",
+  variant = "primary",
+  ...props
+}: AnchorHTMLAttributes<HTMLAnchorElement> & {
+  children: ReactNode;
+  iconEnd?: ReactNode;
+  iconStart?: ReactNode;
+  size?: ButtonSize;
+  variant?: Exclude<ButtonVariant, "danger">;
+}) {
+  return (
+    <a
+      className={cx(
+        "gap-detail-next rounded-loose focus-visible:ring-stroke-active inline-flex w-fit cursor-pointer items-center justify-center overflow-clip border transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+        linkVariantClass[variant],
+        sizeClass[size],
+        className,
+      )}
+      {...props}
+    >
+      {iconStart ? (
+        <span className="inline-flex size-4 shrink-0 items-center justify-center [&>svg]:size-full">
+          {iconStart}
+        </span>
+      ) : null}
+      {children}
+      {iconEnd ? (
+        <span className="inline-flex size-4 shrink-0 items-center justify-center [&>svg]:size-full">
+          {iconEnd}
+        </span>
+      ) : null}
+    </a>
   );
 }
 

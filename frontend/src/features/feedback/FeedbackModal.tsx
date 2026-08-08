@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { CheckCircle2, Download } from "lucide-react";
-import { Button } from "../../components/ui/Button";
+import { Button, LinkButton } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { InputField } from "../../components/ui/InputField";
 import { Modal } from "../../components/ui/Modal";
@@ -51,10 +51,6 @@ const featurePriorities = [
   { value: "important", label: "Important" },
   { value: "blocking_workflow", label: "Blocking workflow" }
 ];
-
-// Button has no anchor/href support; mirror its primary variant chrome for this download link.
-const downloadLinkClass =
-  "gap-detail-next rounded-loose h-[44px] px-detail-close type-body inline-flex w-fit cursor-pointer items-center justify-center border border-transparent bg-surface-inverse text-text-inverse transition-colors duration-200 hover:bg-grey-06";
 
 type FeedbackSubmitResponse = {
   id: string;
@@ -140,9 +136,9 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
             </div>
           </div>
           <ButtonRow>
-            <a className={downloadLinkClass} href={saved.exportUrl}>
-              <Download size={16} aria-hidden /> Download feedback JSON
-            </a>
+            <LinkButton href={saved.exportUrl} iconStart={<Download aria-hidden />}>
+              Download feedback JSON
+            </LinkButton>
             <Button variant="secondary" onClick={onClose}>Close</Button>
           </ButtonRow>
         </div>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { ButtonRow } from "../components/patterns/ButtonRow";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Page } from "../components/patterns/Page";
 import { Button } from "../components/ui/Button";
@@ -50,18 +51,19 @@ export function UpdatePage() {
 
   return (
     <Page
-      title="Update"
+      title="Software update"
       desc="Check for and apply software updates."
       action={
         status && upToDate ? (
-          <Button variant="secondary" size="sm" iconStart={<RefreshCw aria-hidden />} onClick={load}>
+          <Button
+            variant="secondary"
+            size="sm"
+            iconStart={<RefreshCw aria-hidden />}
+            onClick={load}
+          >
             Check again
           </Button>
-        ) : (
-          <Button variant="primary" onClick={() => void startUpdate()} disabled={!status || starting}>
-            {starting ? "Starting…" : "Update now"}
-          </Button>
-        )
+        ) : undefined
       }
     >
       <Card className="gap-detail-close flex w-full flex-col">
@@ -92,17 +94,24 @@ export function UpdatePage() {
                   {upToDate ? "Current" : "Update"}
                 </Pill>
               </div>
-              <p className="type-body text-text-secondary m-0">
+              <p className="type-body text-text-secondary m-0 mb-2">
                 {upToDate
                   ? `Running version ${status.currentVersion ?? status.manifest.version}.`
                   : status.currentVersion
                     ? `${status.currentVersion} → ${status.manifest.version}`
                     : `Version ${status.manifest.version} is available.`}
               </p>
+              {!upToDate ? (
+                <ButtonRow>
+                  <Button variant="primary" onClick={() => void startUpdate()} disabled={starting}>
+                    {starting ? "Starting…" : "Update now"}
+                  </Button>
+                </ButtonRow>
+              ) : null}
               {startError ? <ErrorText>{startError}</ErrorText> : null}
             </div>
 
-            <div className="border-stroke-secondary gap-detail-close flex flex-col border-t pt-detail-close">
+            <div className="border-stroke-secondary gap-detail-close pt-detail-close flex flex-col border-t">
               <h3 className="type-title text-text-primary m-0">What's new</h3>
               <ChangelogPreview />
             </div>
