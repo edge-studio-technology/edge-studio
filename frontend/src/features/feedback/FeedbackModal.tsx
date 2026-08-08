@@ -21,7 +21,7 @@ const feedbackTypes = [
 const feedbackAreas = [
   { value: "current_page", label: "Current page" },
   { value: "dashboard", label: "Dashboard" },
-  { value: "node", label: "Minima Core" },
+  { value: "node", label: "Minima" },
   { value: "wallet", label: "Wallet" },
   { value: "integritas", label: "Integritas" },
   { value: "data", label: "Devices" },

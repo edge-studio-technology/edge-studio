@@ -282,12 +282,12 @@ export function DiagnosticsPage() {
 
   return (
     <Page
-      title="Diagnostics history"
+      title="Diagnostics"
       desc="Inspect stored proof requests, data-source read logs, and workflow runs from one diagnostics workspace."
     >
       <Card className="gap-detail-close flex w-full flex-col">
         <TabList
-          label="Diagnostics history"
+          label="Diagnostics"
           value={activeTab}
           options={[
             // { value: "proofs", label: "Proof history" },

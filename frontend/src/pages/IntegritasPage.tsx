@@ -44,7 +44,7 @@ export function IntegritasPage() {
 
   return (
     <Page
-      title="Prove local data"
+      title="Integritas"
       desc="Stamp a local file to generate a timestamp proof. Verify an existing proof JSON when you need to check one."
     >
       <Card className="gap-detail-close flex w-full flex-col">

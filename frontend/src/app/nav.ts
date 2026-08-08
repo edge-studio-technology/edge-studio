@@ -17,7 +17,7 @@ export const nav: NavItem[] = [
   // Setup nav item hidden pending relocation of its actions. Left commented, not
   // deleted, for an easy revert.
   // { id: "setup", label: "Setup", icon: Settings },
-  { id: "node", label: "Minima Core", icon: RadioTower },
+  { id: "node", label: "Minima", icon: RadioTower },
   { id: "wallet", label: "Wallet", icon: Wallet },
   { id: "integritas", label: "Integritas", icon: ShieldCheck },
   { id: "data", label: "Devices", icon: Database },

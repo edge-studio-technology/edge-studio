@@ -23,10 +23,7 @@ import { ClassicAddDeviceFlow } from "../features/data-sources/add-device-classi
 import { DataSourceForm } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
 import { LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
-import {
-  DeleteConfirmModal,
-  DeleteProgressModal,
-} from "../components/patterns/DeleteConfirmModal";
+import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import type {
   DataSource,
   DataSourceCapabilities,
@@ -194,7 +191,7 @@ export function DataSourcesPage() {
 
   return (
     <Page
-      title="Connect inputs and outputs"
+      title="Devices"
       desc="Add input sources for data and events, then prepare output targets for automation workflows."
     >
       <Card className="gap-detail-near grid w-full">
