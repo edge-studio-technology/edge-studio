@@ -86,6 +86,14 @@ export function CreateWorkflowWorkspace({
           ? "Checking workflow…"
           : undefined;
   const hasStartBlock = draftBlocks.some((block) => block.type.endsWith("_start"));
+  const selectedStartType = draftBlocks.find((block) => block.type.endsWith("_start"))?.type;
+  const canAddRecordTriggerEvent = Boolean(
+    selectedStartType &&
+      (selectedStartType === "gpio_event_start" ||
+        selectedStartType === "webhook_event_start" ||
+        selectedStartType === "mqtt_event_start") &&
+      !draftBlocks.some((block) => block.type === "record_trigger_event"),
+  );
   const draftValidationByBlockId = validationIssuesByBlockId(backendValidation);
 
   useEffect(() => {
@@ -275,7 +283,8 @@ export function CreateWorkflowWorkspace({
             <div className="min-h-0 flex-1">
               <WorkflowBlockLibrary
                 hasStartBlock={hasStartBlock}
-                selectedStartType={draftBlocks.find((block) => block.type.endsWith("_start"))?.type}
+                selectedStartType={selectedStartType}
+                canAddRecordTriggerEvent={canAddRecordTriggerEvent}
                 enableAfterCreate={enabled}
                 onEnableAfterCreateChange={onEnabledChange}
                 onSelectStartBlock={selectStartBlock}
