@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import {
-  ChevronDown,
-  ChevronUp,
-  LogOut,
-  MessageCircle,
-  Minimize2,
-  PanelLeft,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, LogOut, MessageCircle, Minimize2, PanelLeft } from "lucide-react";
 import { nav } from "../app/nav";
 import { cx } from "../lib/cx";
 import { sidebarStartCollapsedSetting } from "../lib/behaviourSettings";
@@ -16,9 +9,7 @@ import { BrandMark } from "./BrandMark";
 
 /** Below this width the sidebar stays collapsed. */
 const EXPAND_MQ = "(min-width: 1024px)";
-
-/** Roughly 3 nav rows per arrow-button press. */
-const NAV_SCROLL_STEP = 132;
+const NAV_SCROLL_STEP = 96;
 
 function CollapsibleLabel({
   collapsed,
