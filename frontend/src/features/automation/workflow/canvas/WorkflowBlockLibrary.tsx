@@ -18,8 +18,9 @@ export function WorkflowBlockLibrary({
   hasStartBlock,
   selectedStartType,
   canAddRecordTriggerEvent = true,
-  enableAfterCreate,
-  onEnableAfterCreateChange,
+  enabled,
+  onEnabledChange,
+  enabledDisabled = false,
   onSelectStartBlock,
   onAddBlock,
 }: {
@@ -27,8 +28,9 @@ export function WorkflowBlockLibrary({
   hasStartBlock: boolean;
   selectedStartType?: AutomationBlockType;
   canAddRecordTriggerEvent?: boolean;
-  enableAfterCreate?: boolean;
-  onEnableAfterCreateChange?: (value: boolean) => void;
+  enabled?: boolean;
+  onEnabledChange?: (value: boolean) => void;
+  enabledDisabled?: boolean;
   onSelectStartBlock: (type: AutomationBlockType) => void;
   onAddBlock: (type: AutomationBlockType) => void;
 }) {
@@ -39,8 +41,7 @@ export function WorkflowBlockLibrary({
     canAddRecordTriggerEvent,
     selectedStartType,
   );
-  const showEnableAfterCreate =
-    mode === "build" && enableAfterCreate !== undefined && onEnableAfterCreateChange !== undefined;
+  const showEnabled = enabled !== undefined && onEnabledChange !== undefined;
 
   return (
     <WorkflowRailPanel>
@@ -52,12 +53,17 @@ export function WorkflowBlockLibrary({
             : "Add blocks to this workflow. Select a block on the canvas to configure it."
         }
       />
-      {showEnableAfterCreate && (
+      {showEnabled && (
         <SwitchField
-          label="Enable after create"
-          description="Start the workflow as soon as it is created."
-          checked={enableAfterCreate}
-          onChange={(event) => onEnableAfterCreateChange(event.target.checked)}
+          label={mode === "build" ? "Enable after create" : "Run automatically"}
+          description={
+            mode === "build"
+              ? "Start the workflow as soon as it is created."
+              : "When on, this workflow can run on schedule or incoming data immediately."
+          }
+          checked={enabled}
+          disabled={enabledDisabled}
+          onChange={(event) => onEnabledChange(event.target.checked)}
           className="border-stroke-secondary pb-detail-close pt-detail-close min-w-0 border-t border-b"
         />
       )}

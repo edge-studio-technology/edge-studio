@@ -46,6 +46,7 @@ import {
   isWorkflowValidationVisible,
   mutedText,
 } from "./workflowWorkspaceUi";
+import { Text } from "../../../components/Text";
 import { formatLocalTime } from "../../../lib/time";
 
 /** Edit/watch workspace for a persisted automation workflow. */
@@ -100,10 +101,16 @@ export function WorkflowWorkspace({
   const [payloadError, setPayloadError] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState(workflow.name);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [pausedForEditNotice, setPausedForEditNotice] = useState(false);
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
   const startBlock = mainBlocks[0];
   const [selectedBlockId, setSelectedBlockId] = useState("");
   const inspectorRef = useRef<PersistedBlockInspectorHandle>(null);
+  /** Edit-session pause: pause once per workflow while editing. */
+  const editPauseSessionRef = useRef<{
+    workflowId: string;
+    didPause: boolean;
+  } | null>(null);
   const selectedBlock = selectedBlockId
     ? mainBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
@@ -147,6 +154,27 @@ export function WorkflowWorkspace({
   useEffect(() => {
     setWorkflowName(workflow.name);
   }, [workflow.id, workflow.name]);
+
+  // Auto-pause while editing so schedule/event triggers cannot run mid-change.
+  useEffect(() => {
+    if (mode !== "edit" || workflow.archived) return;
+
+    let session = editPauseSessionRef.current;
+    if (!session || session.workflowId !== workflow.id) {
+      session = {
+        workflowId: workflow.id,
+        didPause: false,
+      };
+      editPauseSessionRef.current = session;
+    }
+    if (session.didPause) return;
+
+    session.didPause = true;
+    if (workflow.enabled) {
+      setPausedForEditNotice(true);
+      onUpdateWorkflow({ enabled: false });
+    }
+  }, [mode, workflow.archived, workflow.enabled, workflow.id, onUpdateWorkflow]);
 
   useEffect(() => {
     if (mode !== "watch") return;
@@ -240,11 +268,13 @@ export function WorkflowWorkspace({
           >
             Run now
           </Button>
-          <WorkflowStatusPill workflow={workflow} />
           {mode === "watch" && (
-            <StatusPill status={selectedRun?.status === "running" ? "good" : "neutral"}>
-              {watchRunStatusLabel}
-            </StatusPill>
+            <>
+              <WorkflowStatusPill workflow={workflow} />
+              <StatusPill status={selectedRun?.status === "running" ? "good" : "neutral"}>
+                {watchRunStatusLabel}
+              </StatusPill>
+            </>
           )}
           <StatusPill status="neutral">Blocks {workflow.blocks.length}</StatusPill>
           <StatusPill status="neutral">
@@ -261,8 +291,15 @@ export function WorkflowWorkspace({
         </>
       }
       notices={
-        workflow.archived || workflow.lastError ? (
+        (mode === "edit" && pausedForEditNotice) || workflow.archived || workflow.lastError ? (
           <>
+            {mode === "edit" && pausedForEditNotice && (
+              <Text.Body className={mutedText}>
+                Paused while editing to prevent it from running with unfinished changes. Turn on{" "}
+                <strong className="text-text-primary">Run automatically</strong> in the toolkit when
+                you want it live again.
+              </Text.Body>
+            )}
             {workflow.archived && (
               <p className={mutedText}>
                 Archived workflows do not run automatically or manually until restored.
@@ -288,6 +325,9 @@ export function WorkflowWorkspace({
                   hasStartBlock={Boolean(startBlock)}
                   selectedStartType={startBlock?.type}
                   canAddRecordTriggerEvent={canAddRecordTriggerEvent}
+                  enabled={workflow.enabled}
+                  enabledDisabled={busy || workflow.archived}
+                  onEnabledChange={(value) => onUpdateWorkflow({ enabled: value })}
                   onSelectStartBlock={() => undefined}
                   onAddBlock={addBlockFromLibrary}
                 />

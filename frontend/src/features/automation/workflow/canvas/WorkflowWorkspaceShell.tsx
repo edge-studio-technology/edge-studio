@@ -49,7 +49,7 @@ export function WorkflowWorkspaceShell({
         {actions && <div className={cx("relative z-10", rowActionsClass)}>{actions}</div>}
       </div>
       {notices && (
-        <div className="border-stroke-secondary bg-surface-primary px-pad-tight py-detail-next gap-detail-next grid border-b">
+        <div className="border-stroke-secondary bg-surface-primary gap-detail-next px-pad-relaxed py-pad-tight grid border-b">
           {notices}
         </div>
       )}

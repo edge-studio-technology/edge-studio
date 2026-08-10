@@ -285,8 +285,8 @@ export function CreateWorkflowWorkspace({
                 hasStartBlock={hasStartBlock}
                 selectedStartType={selectedStartType}
                 canAddRecordTriggerEvent={canAddRecordTriggerEvent}
-                enableAfterCreate={enabled}
-                onEnableAfterCreateChange={onEnabledChange}
+                enabled={enabled}
+                onEnabledChange={onEnabledChange}
                 onSelectStartBlock={selectStartBlock}
                 onAddBlock={addDraftBlock}
               />
