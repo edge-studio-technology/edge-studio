@@ -18,7 +18,6 @@ import { JsonPreviewContent } from "../../components/JsonPreview";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
-import { EmptyState } from "../../components/patterns/EmptyState";
 import { ErrorDetailPanel } from "../../components/patterns/ErrorDetailPanel";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
@@ -478,7 +477,7 @@ function DeviceDetailsModal({
                 {status?.body !== undefined ? (
                   <JsonPreviewContent value={status.body} />
                 ) : (
-                  <EmptyState
+                  <EmptyContentState
                     icon={Activity}
                     title="No health data"
                     description="Add a health status URL to this device to monitor its availability here."
@@ -514,7 +513,7 @@ function DeviceDetailsModal({
                 }
               />
             ) : (
-              <EmptyState
+              <EmptyContentState
                 icon={Inbox}
                 title="No preview"
                 description="Trigger a manual read, or wait for the next scheduled run, to see a preview here."
