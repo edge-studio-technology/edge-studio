@@ -54,7 +54,7 @@ Migration is **incremental**, not a big-bang move:
 
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Divider`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
 | `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonBlock`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `MetricCard`                                                                                                         |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
@@ -81,6 +81,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Button / IconButton](#button): text and icon-only buttons
 - [ButtonRow](#buttonrow): wrapping button group
 - [Pill](#pill): status / tag pill
+- [Divider](#divider): horizontal or vertical rule
 - [ProgressBar](#progressbar): step progress bar
 - [CheckboxField](#checkboxfield): labeled checkbox
 - [RadioField](#radiofield): labeled radio option
@@ -630,6 +631,22 @@ Status bar (`frontend/src/components/StatusBar.tsx`): shell chrome with status T
     },
   ]}
 />
+```
+
+### Divider
+
+Hairline rule (`frontend/src/components/ui/Divider.tsx`): 1px `stroke-secondary` separator for splitting content from actions or adjacent sections.
+
+| Prop          | Values                         | Notes                                      |
+| ------------- | ------------------------------ | ------------------------------------------ |
+| `orientation` | `horizontal` \| `vertical`     | Default `horizontal` (`h-px w-full`)       |
+| `className`   | optional                       | Spacing / inset overrides on the separator |
+
+Vertical uses `w-px self-stretch` (needs a stretched flex/grid parent). Decorative: `role="separator"` with matching `aria-orientation`.
+
+```tsx
+<Divider />
+<Divider orientation="vertical" className="mx-detail-next" />
 ```
 
 ### Pill

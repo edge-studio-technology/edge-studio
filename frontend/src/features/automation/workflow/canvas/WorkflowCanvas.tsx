@@ -1,6 +1,7 @@
 import type { DataSource } from "../../../data-sources/dataSourceTypes";
 import { Pill } from "../../../../components/Pill";
 import { IconButton } from "../../../../components/ui/Button";
+import { Divider } from "../../../../components/ui/Divider";
 import { ScrollArea } from "../../../../components/ui/ScrollArea";
 import { cx } from "../../../../lib/cx";
 import type { LucideIcon } from "lucide-react";
@@ -119,7 +120,7 @@ export function WorkflowCanvas({
         </p>
       </div>
       <ScrollArea className={canvasLaneClass}>
-        <div className="top-pad-tight right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] absolute z-10">
+        <div className="top-pad-tight absolute right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] z-10">
           <Pill tone={statusPillClass(statusGood)}>{statusLabel}</Pill>
         </div>
         <div className={cx(canvasContentClass, bottomOverlay && "pb-[240px]")}>
@@ -193,9 +194,9 @@ function WorkflowBlockCard({
   onRemove: () => void;
 }) {
   const presentation = blockPresentation(block, sources, validationIssues, runtime);
-  const headerBadges = presentation.badges.slice(0, 3);
-  const overflowBadges = presentation.badges.slice(3);
   const BlockIcon = blockTypeIcon[block.type];
+  const showActions = !block.type.endsWith("_start");
+  const showFooter = presentation.badges.length > 0 || showActions;
   return (
     <div
       className={cx(blockBaseClass, presentation.className, selected && selectedBlockClass)}
@@ -208,11 +209,24 @@ function WorkflowBlockCard({
     >
       <div className="gap-detail-next grid">
         <div className="gap-detail-next flex items-center justify-between">
-          <span className="type-meta text-text-secondary shrink-0 uppercase">
+          <span className="type-meta text-text-secondary uppercase">
             {index === 0 ? "Start" : "Then"}
           </span>
-          {/* Capability / validation tags: shared Pill */}
-          <WorkflowBadges badges={headerBadges} />
+          {showActions && (
+            <IconButton
+              type="button"
+              variant="ghost"
+              size="compact"
+              className="text-icon-secondary hover:border-stroke-error hover:text-icon-error"
+              aria-label={actionLabels.remove}
+              onClick={(event) => {
+                event.stopPropagation();
+                onRemove();
+              }}
+            >
+              <Trash2 aria-hidden />
+            </IconButton>
+          )}
         </div>
         {/* Title row: category icon badge + title/description */}
         <div className="gap-detail-next flex items-start">
@@ -228,52 +242,48 @@ function WorkflowBlockCard({
           </div>
         </div>
       </div>
-      {overflowBadges.length > 0 && <WorkflowBadges badges={overflowBadges} />}
       {block.attachedBlocks?.map((attached) => (
         <AttachedBlockCard key={attached.id} block={attached} sources={sources} />
       ))}
-      {/* Footer: trash + move up/down */}
-      {!block.type.endsWith("_start") && (
-        <div className="mt-detail-close gap-detail-next flex items-center justify-end">
-          <IconButton
-            type="button"
-            variant="ghost"
-            size="compact"
-            className="text-icon-secondary hover:border-stroke-error hover:text-icon-error"
-            aria-label={actionLabels.remove}
-            onClick={(event) => {
-              event.stopPropagation();
-              onRemove();
-            }}
-          >
-            <Trash2 aria-hidden />
-          </IconButton>
-          <IconButton
-            type="button"
-            variant="secondary"
-            size="compact"
-            aria-label={actionLabels.up}
-            disabled={!canMoveUp}
-            onClick={(event) => {
-              event.stopPropagation();
-              onMoveUp();
-            }}
-          >
-            <ChevronUp aria-hidden />
-          </IconButton>
-          <IconButton
-            type="button"
-            variant="secondary"
-            size="compact"
-            aria-label={actionLabels.down}
-            disabled={!canMoveDown}
-            onClick={(event) => {
-              event.stopPropagation();
-              onMoveDown();
-            }}
-          >
-            <ChevronDown aria-hidden />
-          </IconButton>
+      {/* Footer: pills left, move up/down right */}
+      {showFooter && (
+        <div className="mt-detail-close gap-detail-next grid min-w-0">
+          <Divider />
+          <div className="gap-detail-next flex min-w-0 items-start">
+            <div className="min-w-0 flex-1">
+              <WorkflowBadges badges={presentation.badges} />
+            </div>
+            {showActions && (
+              <div className="gap-detail-next flex shrink-0 items-center">
+                <IconButton
+                  type="button"
+                  variant="secondary"
+                  size="compact"
+                  aria-label={actionLabels.up}
+                  disabled={!canMoveUp}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onMoveUp();
+                  }}
+                >
+                  <ChevronUp aria-hidden />
+                </IconButton>
+                <IconButton
+                  type="button"
+                  variant="secondary"
+                  size="compact"
+                  aria-label={actionLabels.down}
+                  disabled={!canMoveDown}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onMoveDown();
+                  }}
+                >
+                  <ChevronDown aria-hidden />
+                </IconButton>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -311,13 +321,13 @@ function AttachedBlockCard({
 function WorkflowBadges({ badges }: { badges: WorkflowCanvasBadge[] }) {
   if (badges.length === 0) return null;
   return (
-    <div className="gap-detail-next flex shrink-0 flex-wrap justify-end">
+    <div className="gap-detail-next flex min-w-0 flex-wrap">
       {badges.map((badge) => {
         // Validation alerts: error/warn Pill + triangle (no colored validation ring on the card).
         if (badge.tone === "error" || badge.tone === "warn") {
           return (
-            <Pill key={badge.label} tone={badge.tone}>
-              <span className="gap-detail-tight inline-flex items-center">
+            <Pill key={badge.label} tone={badge.tone} className="max-w-full">
+              <span className="gap-detail-tight inline-flex max-w-full items-center">
                 {badge.alert ? (
                   <TriangleAlert
                     aria-hidden
@@ -328,12 +338,16 @@ function WorkflowBadges({ badges }: { badges: WorkflowCanvasBadge[] }) {
                     }
                   />
                 ) : null}
-                {badge.label}
+                <span className="min-w-0 truncate">{badge.label}</span>
               </span>
             </Pill>
           );
         }
-        return <Pill key={badge.label}>{badge.label}</Pill>;
+        return (
+          <Pill key={badge.label} className="max-w-full">
+            <span className="min-w-0 truncate">{badge.label}</span>
+          </Pill>
+        );
       })}
     </div>
   );
