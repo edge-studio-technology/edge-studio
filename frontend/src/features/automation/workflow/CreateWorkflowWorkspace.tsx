@@ -76,6 +76,15 @@ export function CreateWorkflowWorkspace({
     : undefined;
   const localErrors = name.trim() ? [] : ["Workflow name is required."];
   const canCreate = localErrors.length === 0 && Boolean(backendValidation?.ok);
+  const createBlockedReason = !name.trim()
+    ? "Workflow name is required."
+    : backendValidation && !backendValidation.ok
+      ? "Fix validation errors before creating."
+      : backendValidationError
+        ? "Validation is unavailable."
+        : !backendValidation
+          ? "Checking workflow…"
+          : undefined;
   const hasStartBlock = draftBlocks.some((block) => block.type.endsWith("_start"));
   const draftValidationByBlockId = validationIssuesByBlockId(backendValidation);
 
@@ -119,6 +128,7 @@ export function CreateWorkflowWorkspace({
           : block,
       ),
     );
+    setSelectedBlockId(parentId);
   }
 
   function updateAttachedBlock(
@@ -157,7 +167,9 @@ export function CreateWorkflowWorkspace({
 
   function addDraftBlock(type: AutomationBlockType) {
     if (!hasStartBlock && !type.endsWith("_start")) return;
-    setDraftBlocks((blocks) => [...blocks, createDraftBlock(type, sources)]);
+    const block = createDraftBlock(type, sources);
+    setDraftBlocks((blocks) => [...blocks, block]);
+    setSelectedBlockId(block.id);
   }
 
   function removeDraftBlock(id: string) {
@@ -186,15 +198,18 @@ export function CreateWorkflowWorkspace({
     const startIndex = draftBlocks.findIndex((block) => block.type.endsWith("_start"));
     if (startIndex < 0) {
       setDraftBlocks([start]);
-      setSelectedBlockId(start.id);
+      setSelectedBlockId(type === "manual_start" ? "" : start.id);
       return;
     }
-    if (draftBlocks[startIndex].type === type) return;
-    const previousId = draftBlocks[startIndex].id;
+    if (draftBlocks[startIndex].type === type) {
+      // Re-open options for starts that have configuration.
+      if (type !== "manual_start") setSelectedBlockId(draftBlocks[startIndex].id);
+      return;
+    }
     const next = [...draftBlocks];
     next[startIndex] = start;
     setDraftBlocks(next);
-    setSelectedBlockId((current) => (!current || current === previousId ? start.id : current));
+    setSelectedBlockId(type === "manual_start" ? "" : start.id);
   }
 
   function resetCanvas() {
@@ -240,6 +255,7 @@ export function CreateWorkflowWorkspace({
             <Button
               type="button"
               disabled={busy || !canCreate}
+              title={createBlockedReason}
               onClick={() => onCreate(flattenDraftBlocks(draftBlocks))}
             >
               Create workflow
@@ -287,28 +303,26 @@ export function CreateWorkflowWorkspace({
             sources={sources}
             statusLabel={enabled ? "Enabled on create" : "Paused on create"}
             statusGood={enabled}
-            dimmed={Boolean(selectedBlock)}
             selectedBlockId={selectedBlock?.id ?? ""}
             validationByBlockId={draftValidationByBlockId}
-            onSelectBlock={setSelectedBlockId}
+            onSelectBlock={(id) => {
+              const block = draftBlocks.find((item) => item.id === id);
+              // Manual run has nothing to configure — don't open the options sheet.
+              setSelectedBlockId(block?.type === "manual_start" ? "" : id);
+            }}
             onMoveBlock={moveDraftBlock}
             onRemoveBlock={removeDraftBlock}
           />
         }
         selectedSheet={
-          selectedBlock ? (
+          selectedBlock && selectedBlock.type !== "manual_start" ? (
             <SelectedBlockSheet
               title={draftBlockTitle(selectedBlock)}
               description={draftBlockDescription(selectedBlock, sources)}
               onClose={() => setSelectedBlockId("")}
               footer={
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={busy || !canCreate}
-                  onClick={() => onCreate(flattenDraftBlocks(draftBlocks))}
-                >
-                  Save and close
+                <Button type="button" onClick={() => setSelectedBlockId("")}>
+                  Done
                 </Button>
               }
             >

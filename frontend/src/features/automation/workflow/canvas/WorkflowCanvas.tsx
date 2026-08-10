@@ -84,7 +84,6 @@ export function WorkflowCanvas({
   selectedBlockId,
   statusLabel,
   statusGood,
-  dimmed = false,
   bottomOverlay = false,
   validationByBlockId = {},
   runtimeByBlockId = {},
@@ -98,7 +97,6 @@ export function WorkflowCanvas({
   selectedBlockId: string;
   statusLabel: string;
   statusGood: boolean;
-  dimmed?: boolean;
   bottomOverlay?: boolean;
   validationByBlockId?: Record<string, WorkflowCanvasValidationIssue[]>;
   runtimeByBlockId?: Record<string, WorkflowCanvasRuntimeState>;
@@ -120,13 +118,7 @@ export function WorkflowCanvas({
             : "Select a block to edit or inspect it. Move and remove actions apply immediately."}
         </p>
       </div>
-      <ScrollArea
-        className={cx(
-          canvasLaneClass,
-          dimmed &&
-            "xl:after:bg-overlay-light after:pointer-events-none after:absolute after:inset-0 after:z-20",
-        )}
-      >
+      <ScrollArea className={canvasLaneClass}>
         <div className="right-margin-tight top-margin-tight absolute z-10">
           <Pill tone={statusPillClass(statusGood)}>{statusLabel}</Pill>
         </div>

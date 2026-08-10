@@ -9,6 +9,7 @@ import {
   updateAutomationWorkflow,
 } from "../automationApi";
 import type {
+  AutomationBlock,
   AutomationBlockType,
   AutomationRun,
   AutomationValidationResult,
@@ -80,7 +81,9 @@ export function WorkflowWorkspace({
   onBack: () => void;
   onNavigateMode: (mode: "edit" | "watch") => void;
   onSelectWatchRun: (runId: string) => void;
-  onAddBlock: (input: Parameters<typeof addAutomationBlock>[1]) => void;
+  onAddBlock: (
+    input: Parameters<typeof addAutomationBlock>[1],
+  ) => void | Promise<{ item: AutomationBlock } | undefined>;
   onDeleteBlock: (blockId: string) => void;
   onUpdateBlock: (blockId: string, input: Parameters<typeof updateAutomationBlock>[2]) => void;
   onUpdateWorkflow: (input: Parameters<typeof updateAutomationWorkflow>[1]) => void;
@@ -163,8 +166,12 @@ export function WorkflowWorkspace({
       setSelectedRunId(runs[0].id);
   }, [initialRunId, mode, runs, selectedRunId]);
 
-  function addBlockFromLibrary(type: AutomationBlockType) {
-    onAddBlock({ type, config: defaultEditBlockConfig(type, sources, addressBook) });
+  async function addBlockFromLibrary(type: AutomationBlockType) {
+    const result = await onAddBlock({
+      type,
+      config: defaultEditBlockConfig(type, sources, addressBook),
+    });
+    if (result?.item && !result.item.parentBlockId) setSelectedBlockId(result.item.id);
   }
 
   const workflowNameDirty = workflowName.trim() !== workflow.name;
@@ -268,9 +275,14 @@ export function WorkflowWorkspace({
               canAddRecordTriggerEvent={canAddRecordTriggerEvent}
               onSelectStartBlock={() => undefined}
               onAddBlock={addBlockFromLibrary}
-              onAttachStamp={(parentId) =>
-                onAddBlock({ type: "stamp_integritas", config: {}, parentBlockId: parentId })
-              }
+              onAttachStamp={(parentId) => {
+                void onAddBlock({
+                  type: "stamp_integritas",
+                  config: {},
+                  parentBlockId: parentId,
+                });
+                setSelectedBlockId(parentId);
+              }}
             />
           ) : (
             <WatchRunControls
@@ -301,12 +313,18 @@ export function WorkflowWorkspace({
           sources={sources}
           statusLabel={workflow.archived ? "Archived" : workflow.enabled ? "Enabled" : "Paused"}
           statusGood={!workflow.archived && workflow.enabled}
-          dimmed={Boolean(selectedBlock)}
           bottomOverlay={mode === "watch"}
           selectedBlockId={selectedBlock?.id ?? ""}
           validationByBlockId={validationByBlockId}
           runtimeByBlockId={runtimeByBlockId}
-          onSelectBlock={setSelectedBlockId}
+          onSelectBlock={(id) => {
+            const block = mainBlocks.find((item) => item.id === id);
+            if (mode !== "watch" && block?.type === "manual_start") {
+              setSelectedBlockId("");
+              return;
+            }
+            setSelectedBlockId(id);
+          }}
           onMoveBlock={(blockId, direction) => {
             const index = mainBlocks.findIndex((block) => block.id === blockId);
             if (index > 0) onReorderBlocks(moveBlock(mainBlocks, index, index + direction));
@@ -318,7 +336,7 @@ export function WorkflowWorkspace({
         />
       }
       selectedSheet={
-        selectedBlock ? (
+        selectedBlock && (mode === "watch" || selectedBlock.type !== "manual_start") ? (
           <SelectedBlockSheet
             title={
               mode === "watch" ? `${blockLabel(selectedBlock)} runtime` : blockLabel(selectedBlock)
@@ -329,6 +347,11 @@ export function WorkflowWorkspace({
                 : draftBlockDescription(selectedBlock, sources)
             }
             onClose={() => setSelectedBlockId("")}
+            footer={
+              <Button type="button" size="sm" onClick={() => setSelectedBlockId("")}>
+                Done
+              </Button>
+            }
           >
             {mode === "edit" ? (
               <PersistedBlockInspector

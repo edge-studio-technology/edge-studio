@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { IconButton } from "../../../components/Button";
@@ -223,12 +224,33 @@ export function SelectedBlockSheet({
   onClose: () => void;
   footer?: ReactNode;
 }) {
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[70] grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px]">
-      <div className="bg-overlay-light min-h-0" />
-      <aside className="bg-surface-always-white border-stroke-secondary grid h-screen min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] border-l shadow-[0_24px_60px_rgba(0,0,0,0.18)]">
+    <div className="fixed inset-0 z-[70]">
+      <div
+        className="bg-overlay-light absolute inset-0"
+        aria-hidden
+        onPointerDown={onClose}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          onClose();
+        }}
+      />
+      <aside
+        className="bg-surface-always-white border-stroke-secondary absolute inset-y-0 right-0 grid h-full w-full max-w-[400px] min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] border-l shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <div className="px-margin-tight pt-margin-tight pb-detail-close gap-detail-close flex items-start justify-between">
           <div className="gap-detail-tight grid">
             <h2 className="type-title text-text-primary m-0">{title}</h2>

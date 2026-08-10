@@ -220,11 +220,12 @@ export function AutomationPage() {
       );
   }
 
-  async function run(action: () => Promise<unknown>, errorTitle = "Action failed") {
+  async function run<T>(action: () => Promise<T>, errorTitle = "Action failed"): Promise<T | undefined> {
     setBusy(true);
     try {
-      await action();
+      const result = await action();
       await refresh();
+      return result;
     } catch (err) {
       showToast({
         tone: "error",
@@ -232,6 +233,7 @@ export function AutomationPage() {
         message: err instanceof Error ? err.message : "Unknown error",
         timeoutMs: 9000,
       });
+      return undefined;
     } finally {
       setBusy(false);
     }
