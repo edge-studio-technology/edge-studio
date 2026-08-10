@@ -18,6 +18,7 @@ export function WorkflowBlockLibrary({
   hasStartBlock,
   selectedStartType,
   canAddRecordTriggerEvent = true,
+  canAddSendPayment = true,
   enabled,
   onEnabledChange,
   enabledDisabled = false,
@@ -28,6 +29,7 @@ export function WorkflowBlockLibrary({
   hasStartBlock: boolean;
   selectedStartType?: AutomationBlockType;
   canAddRecordTriggerEvent?: boolean;
+  canAddSendPayment?: boolean;
   enabled?: boolean;
   onEnabledChange?: (value: boolean) => void;
   enabledDisabled?: boolean;
@@ -41,6 +43,11 @@ export function WorkflowBlockLibrary({
     canAddRecordTriggerEvent,
     selectedStartType,
   );
+  const sendPaymentReason = !canAddMainBlock
+    ? NEEDS_START_REASON
+    : mode === "edit" && !canAddSendPayment
+      ? "Add an address book contact in Wallet first."
+      : undefined;
   const showEnabled = enabled !== undefined && onEnabledChange !== undefined;
 
   return (
@@ -167,8 +174,8 @@ export function WorkflowBlockLibrary({
           description="Send a command to a configured output target."
         />
         <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
+          disabled={Boolean(sendPaymentReason)}
+          disabledReason={sendPaymentReason}
           onClick={() => onAddBlock("send_transaction")}
           title="Send payment"
           description="Send funds to a saved recipient."

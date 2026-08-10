@@ -1,6 +1,7 @@
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { WalletStatus } from "../../wallet/walletTypes";
+import { compareDecimalStrings } from "../../wallet/walletUtils";
 import { formatRunDuration } from "../automationRunDisplay";
 import type {
   AutomationBlock,
@@ -125,6 +126,48 @@ export function defaultEditBlockConfig(
   if (type === "send_transaction")
     return { ...config, recipientAddressBookId: addressBook[0]?.id ?? "" };
   return config;
+}
+
+/** True when send payment config can be persisted (API requires recipient + positive amount). */
+export function canPersistSendTransactionConfig(
+  config: AutomationBlock["config"],
+  options: { sendableMinima?: string | null } = {},
+) {
+  const errors = sendPaymentFieldErrors(config, {
+    revealRequired: true,
+    sendableMinima: options.sendableMinima,
+  });
+  return !errors.recipient && !errors.amount;
+}
+
+/** Field errors for Send payment. Pass revealRequired after the user tries Done. */
+export function sendPaymentFieldErrors(
+  config: AutomationBlock["config"],
+  options: { revealRequired?: boolean; sendableMinima?: string | null } = {},
+) {
+  const recipient = String(config.recipientAddressBookId ?? "").trim();
+  const amount = String(config.amount ?? "").trim();
+  const revealRequired = options.revealRequired === true;
+  const sendable = options.sendableMinima?.trim() || null;
+
+  let recipientError: string | undefined;
+  let amountError: string | undefined;
+
+  if (revealRequired && !recipient) {
+    recipientError = "Choose an address book recipient.";
+  }
+
+  if (amount) {
+    if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) {
+      amountError = "Enter a positive amount (for example 1 or 0.5).";
+    } else if (sendable != null && compareDecimalStrings(amount, sendable) > 0) {
+      amountError = `Amount exceeds available balance (${sendable} Minima).`;
+    }
+  } else if (revealRequired) {
+    amountError = "Enter a positive amount.";
+  }
+
+  return { recipient: recipientError, amount: amountError };
 }
 
 export function groupValidationIssues(

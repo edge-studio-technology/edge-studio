@@ -16,6 +16,7 @@ import type {
   AutomationWorkflow,
 } from "../automationTypes";
 import {
+  DraftBlockInspector,
   PersistedBlockInspector,
   type PersistedBlockInspectorHandle,
 } from "./WorkflowBlockInspectors";
@@ -23,16 +24,21 @@ import { WatchRunControls, WatchRuntimeInspector, WatchRunHistory } from "./Work
 import {
   automationBlockToCanvasBlock,
   draftBlockDescription,
+  draftBlockTitle,
   WorkflowBlockLibrary,
   WorkflowCanvas,
   WorkflowWorkspaceShell,
+  type DraftWorkflowBlock,
 } from "./canvas";
 import {
   blockLabel,
   blockRunForBlock,
+  canPersistSendTransactionConfig,
+  createDraftBlock,
   defaultEditBlockConfig,
   examplePayload,
   moveBlock,
+  nativeMinimaTokens,
   runtimeByBlockIdFromRun,
   validationIssuesByBlockId,
   workflowIntervalSeconds,
@@ -105,6 +111,8 @@ export function WorkflowWorkspace({
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
   const startBlock = mainBlocks[0];
   const [selectedBlockId, setSelectedBlockId] = useState("");
+  const [draftBlock, setDraftBlock] = useState<DraftWorkflowBlock | null>(null);
+  const [draftRevealErrors, setDraftRevealErrors] = useState(false);
   const inspectorRef = useRef<PersistedBlockInspectorHandle>(null);
   /** Edit-session pause: pause once per workflow while editing. */
   const editPauseSessionRef = useRef<{
@@ -114,19 +122,16 @@ export function WorkflowWorkspace({
   const selectedBlock = selectedBlockId
     ? mainBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
-  const selectedDraftBlock = selectedBlock
-    ? {
-        id: selectedBlock.id,
-        type: selectedBlock.type,
-        config: selectedBlock.config,
-        attachedBlocks: workflow.blocks
-          .filter((item) => item.parentBlockId === selectedBlock.id)
-          .map((item) => ({ id: item.id, type: item.type, config: item.config })),
-      }
-    : undefined;
-  const canvasBlocks = mainBlocks.map((block) =>
+  const draftSelected =
+    draftBlock && selectedBlockId === draftBlock.id ? draftBlock : null;
+
+  // Saved workflow blocks, plus an unsaved Send payment draft while its options sheet is open.
+  const persistedCanvasBlocks = mainBlocks.map((block) =>
     automationBlockToCanvasBlock(block, workflow.blocks),
   );
+  const canvasBlocks = draftBlock
+    ? [...persistedCanvasBlocks, draftBlock]
+    : persistedCanvasBlocks;
   const canAddRecordTriggerEvent = Boolean(
     startBlock &&
     (startBlock.type === "gpio_event_start" ||
@@ -134,6 +139,7 @@ export function WorkflowWorkspace({
       startBlock.type === "mqtt_event_start") &&
     !mainBlocks.some((block) => block.type === "record_trigger_event"),
   );
+  const canAddSendPayment = addressBook.length > 0;
   const hasValidationErrors = Boolean(validation && validation.errors.length > 0);
   const validationByBlockId = validationIssuesByBlockId(validation);
   const selectedRun =
@@ -147,9 +153,10 @@ export function WorkflowWorkspace({
         : "No run selected";
 
   useEffect(() => {
-    if (selectedBlockId && !mainBlocks.some((block) => block.id === selectedBlockId))
-      setSelectedBlockId("");
-  }, [mainBlocks, selectedBlockId]);
+    if (!selectedBlockId) return;
+    if (draftBlock?.id === selectedBlockId) return;
+    if (!mainBlocks.some((block) => block.id === selectedBlockId)) setSelectedBlockId("");
+  }, [mainBlocks, draftBlock, selectedBlockId]);
 
   useEffect(() => {
     setWorkflowName(workflow.name);
@@ -192,6 +199,17 @@ export function WorkflowWorkspace({
 
   async function addBlockFromLibrary(type: AutomationBlockType) {
     flushSelectedInspector();
+    // Send payment must be configured before the API will accept it — open a local draft sheet.
+    if (type === "send_transaction") {
+      if (!canAddSendPayment) return;
+      const draft = createDraftBlock(type, sources);
+      setDraftRevealErrors(false);
+      setDraftBlock(draft);
+      setSelectedBlockId(draft.id);
+      return;
+    }
+    setDraftRevealErrors(false);
+    setDraftBlock(null);
     const result = await onAddBlock({
       type,
       config: defaultEditBlockConfig(type, sources, addressBook),
@@ -203,18 +221,55 @@ export function WorkflowWorkspace({
     if (mode === "edit") inspectorRef.current?.flush();
   }
 
+  function discardDraftBlock() {
+    if (draftBlock && selectedBlockId === draftBlock.id) setSelectedBlockId("");
+    setDraftBlock(null);
+    setDraftRevealErrors(false);
+  }
+
+  async function saveDraftBlock() {
+    if (!draftBlock) return;
+    if (
+      !canPersistSendTransactionConfig(draftBlock.config, {
+        sendableMinima: nativeMinimaTokens(walletStatus)[0]?.sendable,
+      })
+    ) {
+      setDraftRevealErrors(true);
+      return;
+    }
+    const draft = draftBlock;
+    const result = await onAddBlock({ type: draft.type, config: draft.config });
+    setDraftRevealErrors(false);
+    setDraftBlock(null);
+    if (result?.item && !result.item.parentBlockId) setSelectedBlockId(result.item.id);
+    else setSelectedBlockId("");
+  }
+
   function closeSelectedSheet() {
+    if (draftSelected) {
+      discardDraftBlock();
+      return;
+    }
     flushSelectedInspector();
     setSelectedBlockId("");
   }
 
+  async function finishSelectedSheet() {
+    if (draftSelected) {
+      await saveDraftBlock();
+      return;
+    }
+    closeSelectedSheet();
+  }
+
   function selectCanvasBlock(id: string) {
+    if (draftBlock && id !== draftBlock.id) discardDraftBlock();
     const block = mainBlocks.find((item) => item.id === id);
     if (mode !== "watch" && block?.type === "manual_start") {
       closeSelectedSheet();
       return;
     }
-    if (id !== selectedBlockId) flushSelectedInspector();
+    if (id !== selectedBlockId && !draftBlock) flushSelectedInspector();
     setSelectedBlockId(id);
   }
 
@@ -325,6 +380,7 @@ export function WorkflowWorkspace({
                   hasStartBlock={Boolean(startBlock)}
                   selectedStartType={startBlock?.type}
                   canAddRecordTriggerEvent={canAddRecordTriggerEvent}
+                  canAddSendPayment={canAddSendPayment}
                   enabled={workflow.enabled}
                   enabledDisabled={busy || workflow.archived}
                   onEnabledChange={(value) => onUpdateWorkflow({ enabled: value })}
@@ -372,6 +428,10 @@ export function WorkflowWorkspace({
             if (index > 0) onReorderBlocks(moveBlock(mainBlocks, index, index + direction));
           }}
           onRemoveBlock={(blockId) => {
+            if (draftBlock?.id === blockId) {
+              discardDraftBlock();
+              return;
+            }
             const block = mainBlocks.find((item) => item.id === blockId);
             if (block && !block.type.endsWith("_start")) {
               if (blockId === selectedBlockId) flushSelectedInspector();
@@ -381,7 +441,43 @@ export function WorkflowWorkspace({
         />
       }
       selectedSheet={
-        selectedBlock && (mode === "watch" || selectedBlock.type !== "manual_start") ? (
+        draftSelected && mode === "edit" ? (
+          <SelectedBlockSheet
+            title={draftBlockTitle(draftSelected)}
+            description={
+              <>
+                {draftBlockDescription(draftSelected, sources)} Set recipient and amount, then
+                Done to add this block.
+              </>
+            }
+            onClose={closeSelectedSheet}
+            footer={
+              <Button
+                type="button"
+                size="sm"
+                disabled={busy}
+                onClick={() => void finishSelectedSheet()}
+              >
+                Done
+              </Button>
+            }
+          >
+            <div className="gap-detail-close grid">
+              <DraftBlockInspector
+                block={draftSelected}
+                sources={sources}
+                addressBook={addressBook}
+                walletStatus={walletStatus}
+                revealSendPaymentErrors={draftRevealErrors}
+                onChange={(config) => {
+                  setDraftBlock((current) => (current ? { ...current, config } : current));
+                }}
+                onAttachedChange={() => undefined}
+                onAttachedRemove={() => undefined}
+              />
+            </div>
+          </SelectedBlockSheet>
+        ) : selectedBlock && (mode === "watch" || selectedBlock.type !== "manual_start") ? (
           <SelectedBlockSheet
             title={
               mode === "watch" ? `${blockLabel(selectedBlock)} runtime` : blockLabel(selectedBlock)
@@ -393,9 +489,18 @@ export function WorkflowWorkspace({
             }
             onClose={closeSelectedSheet}
             footer={
-              <Button type="button" size="sm" onClick={closeSelectedSheet}>
-                Done
-              </Button>
+              mode === "edit" ? (
+                <div className="gap-detail-next flex w-full items-center justify-between">
+                  <p className={`${mutedText} m-0`}>Changes save when you leave this panel.</p>
+                  <Button type="button" onClick={() => void finishSelectedSheet()}>
+                    Done
+                  </Button>
+                </div>
+              ) : (
+                <Button type="button" onClick={() => void finishSelectedSheet()}>
+                  Done
+                </Button>
+              )
             }
           >
             {mode === "edit" ? (

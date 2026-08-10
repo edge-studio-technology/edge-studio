@@ -278,7 +278,7 @@ export function SelectedBlockSheet({
         </div>
         <ScrollArea className="px-margin-tight py-detail-close min-h-0">{children}</ScrollArea>
         {footer && (
-          <div className="px-margin-tight pt-detail-close pb-margin-tight flex justify-end">
+          <div className="px-margin-tight pt-detail-close pb-margin-tight flex items-center justify-end">
             {footer}
           </div>
         )}

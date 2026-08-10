@@ -21,7 +21,13 @@ import {
   WorkflowWorkspaceShell,
   type DraftWorkflowBlock,
 } from "./canvas";
-import { createDraftBlock, flattenDraftBlocks, validationIssuesByBlockId } from "./workflowHelpers";
+import {
+  canPersistSendTransactionConfig,
+  createDraftBlock,
+  flattenDraftBlocks,
+  nativeMinimaTokens,
+  validationIssuesByBlockId,
+} from "./workflowHelpers";
 import {
   formGridClass,
   InspectorSection,
@@ -66,6 +72,7 @@ export function CreateWorkflowWorkspace({
 }) {
   const [draftBlocks, setDraftBlocks] = useState<DraftWorkflowBlock[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState("");
+  const [revealSendPaymentErrors, setRevealSendPaymentErrors] = useState(false);
   const [backendValidation, setBackendValidation] = useState<AutomationValidationResult | null>(
     null,
   );
@@ -305,6 +312,7 @@ export function CreateWorkflowWorkspace({
             onSelectBlock={(id) => {
               const block = draftBlocks.find((item) => item.id === id);
               // Manual run has nothing to configure — don't open the options sheet.
+              setRevealSendPaymentErrors(false);
               setSelectedBlockId(block?.type === "manual_start" ? "" : id);
             }}
             onMoveBlock={moveDraftBlock}
@@ -316,9 +324,27 @@ export function CreateWorkflowWorkspace({
             <SelectedBlockSheet
               title={draftBlockTitle(selectedBlock)}
               description={draftBlockDescription(selectedBlock, sources)}
-              onClose={() => setSelectedBlockId("")}
+              onClose={() => {
+                setRevealSendPaymentErrors(false);
+                setSelectedBlockId("");
+              }}
               footer={
-                <Button type="button" onClick={() => setSelectedBlockId("")}>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      selectedBlock.type === "send_transaction" &&
+                      !canPersistSendTransactionConfig(selectedBlock.config, {
+                        sendableMinima: nativeMinimaTokens(walletStatus)[0]?.sendable,
+                      })
+                    ) {
+                      setRevealSendPaymentErrors(true);
+                      return;
+                    }
+                    setRevealSendPaymentErrors(false);
+                    setSelectedBlockId("");
+                  }}
+                >
                   Done
                 </Button>
               }
@@ -329,6 +355,7 @@ export function CreateWorkflowWorkspace({
                   sources={sources}
                   addressBook={addressBook}
                   walletStatus={walletStatus}
+                  revealSendPaymentErrors={revealSendPaymentErrors}
                   onChange={(config) => updateBlock(selectedBlock.id, { config })}
                   onAttachedChange={(attachedId, config) =>
                     updateAttachedBlock(selectedBlock.id, attachedId, config)

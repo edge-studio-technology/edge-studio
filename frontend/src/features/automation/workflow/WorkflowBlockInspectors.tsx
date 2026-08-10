@@ -31,6 +31,7 @@ import {
   parseCompareValueInput,
   previewContentModeConfig,
   retargetOutputBlockConfig,
+  sendPaymentFieldErrors,
   sourceLabel,
   sourcesForStart,
 } from "./workflowHelpers";
@@ -51,6 +52,7 @@ export function DraftBlockInspector({
   onChange,
   onAttachedChange,
   onAttachedRemove,
+  revealSendPaymentErrors = false,
 }: {
   block: DraftWorkflowBlock;
   sources: DataSource[];
@@ -59,12 +61,19 @@ export function DraftBlockInspector({
   onChange: (config: AutomationBlock["config"]) => void;
   onAttachedChange: (attachedId: string, config: AutomationBlock["config"]) => void;
   onAttachedRemove: (attachedId: string) => void;
+  /** After Done on incomplete Send payment, show required-field errors. */
+  revealSendPaymentErrors?: boolean;
 }) {
   const startSources = sourcesForStart(block.type, sources);
   const readableSources = sources.filter(isReadableSource);
   const cameraSources = sources.filter((source) => source.type === "pi-camera");
   const outputTargets = sources.filter((source) => isOutputTarget(source));
   const nativeTokens = nativeMinimaTokens(walletStatus);
+  const sendableMinima = nativeTokens[0]?.sendable ?? null;
+  const paymentErrors = sendPaymentFieldErrors(block.config, {
+    revealRequired: revealSendPaymentErrors,
+    sendableMinima,
+  });
 
   if (block.type.endsWith("_start")) {
     const selectedStartSource = startSources.find((source) => source.id === block.config.sourceId);
@@ -604,14 +613,15 @@ export function DraftBlockInspector({
     return (
       <InspectorSection
         title="Payment"
-        description="This spends wallet funds automatically when the workflow runs. Consider creating paused until you are ready to test."
+        description="This spends wallet funds automatically when the workflow runs."
         className={formGridClass}
       >
         <SelectField
-          label="Recipient"
+          label="Address book recipient"
           value={block.config.recipientAddressBookId ?? ""}
           placeholder="Select address book recipient..."
           options={addressBook.map((entry) => ({ value: entry.id, label: entry.label }))}
+          error={paymentErrors.recipient}
           onChange={(event) =>
             onChange({
               ...block.config,
@@ -637,6 +647,7 @@ export function DraftBlockInspector({
           label="Amount"
           value={block.config.amount ?? ""}
           inputMode="decimal"
+          error={paymentErrors.amount}
           onChange={(event) =>
             onChange({ ...block.config, tokenId: "0x00", amount: event.target.value })
           }
@@ -833,6 +844,7 @@ export const PersistedBlockInspector = forwardRef<
         sources={sources}
         addressBook={addressBook}
         walletStatus={walletStatus}
+        revealSendPaymentErrors
         onChange={setConfig}
         onAttachedChange={(attachedId, nextConfig) =>
           onUpdateAttached(attachedId, { config: nextConfig })
