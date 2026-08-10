@@ -499,6 +499,7 @@ function EditContactForm({
       title="Edit contact"
       onClose={onCancel}
       closeDisabled={submitting}
+      bodyClassName="min-h-0 flex-1"
       footer={
         <>
           <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>

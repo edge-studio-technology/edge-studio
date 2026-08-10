@@ -111,6 +111,7 @@ export function CreateTokenModal({
     <Modal
       title="Create custom token"
       onClose={handleCloseRequest}
+      bodyClassName="min-h-0 flex-1"
       footer={
         <>
           <Button type="button" variant="secondary" disabled={submitting} onClick={handleCloseRequest}>

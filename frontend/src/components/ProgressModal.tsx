@@ -3,7 +3,12 @@ import { SpinnerAlt } from "./ui/SpinnerAlt";
 
 export function ProgressModal({ title, headline, message }: { title: string; headline: string; message: string }) {
   return (
-    <Modal title={title} closeDisabled onClose={() => undefined}>
+    <Modal
+      title={title}
+      closeDisabled
+      onClose={() => undefined}
+      bodyClassName="min-h-0 flex-1"
+    >
       <div className="grid min-h-56 place-items-center gap-5 text-center">
         <SpinnerAlt size="lg" />
         <div className="grid gap-2">

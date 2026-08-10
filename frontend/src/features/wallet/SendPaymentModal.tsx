@@ -115,6 +115,7 @@ export function SendPaymentModal({
     <Modal
       title="Send payment"
       onClose={onClose}
+      bodyClassName="min-h-0 flex-1"
       footer={
         <>
           <Button type="button" variant="secondary" disabled={submitting} onClick={onClose}>
