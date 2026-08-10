@@ -13,6 +13,7 @@ import {
   TableWrap,
 } from "../../components/DataTable";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
+import { DeleteConfirmModal, DeleteProgressModal } from "../../components/patterns/DeleteConfirmModal";
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
@@ -56,10 +57,10 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
   const [addOpen, setAddOpen] = useState(false);
-  const [entryAction, setEntryAction] = useState<{
-    entry: AddressBookEntry;
-    mode: "view" | "edit" | "delete";
-  } | null>(null);
+  const [viewEntry, setViewEntry] = useState<AddressBookEntry | null>(null);
+  const [editEntry, setEditEntry] = useState<AddressBookEntry | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AddressBookEntry | null>(null);
+  const [deletingEntry, setDeletingEntry] = useState<AddressBookEntry | null>(null);
 
   useEffect(() => {
     listAddressBookEntries()
@@ -90,6 +91,26 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
   function clearFilters() {
     setQuery("");
     setPage(1);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    setDeletingEntry(target);
+    try {
+      await deleteAddressBookEntry(target.id);
+      setEntries((prev) => prev.filter((e) => e.id !== target.id));
+      showToast({ tone: "success", title: "Contact deleted" });
+    } catch (err) {
+      showToast({
+        tone: "error",
+        title: "Delete failed",
+        message: err instanceof Error ? err.message : "Could not delete.",
+      });
+    } finally {
+      setDeletingEntry(null);
+    }
   }
 
   return (
@@ -171,7 +192,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
                         type="button"
                         title="View contact"
                         aria-label={`View ${entry.label}`}
-                        onClick={() => setEntryAction({ entry, mode: "view" })}
+                        onClick={() => setViewEntry(entry)}
                       >
                         <Eye size={16} aria-hidden />
                       </TableIconButton>
@@ -180,12 +201,12 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
                         items={[
                           {
                             label: "Edit",
-                            onClick: () => setEntryAction({ entry, mode: "edit" }),
+                            onClick: () => setEditEntry(entry),
                           },
                           {
                             label: "Remove",
                             danger: true,
-                            onClick: () => setEntryAction({ entry, mode: "delete" }),
+                            onClick: () => setDeleteTarget(entry),
                           },
                         ]}
                       />
@@ -224,115 +245,53 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         />
       ) : null}
 
-      {entryAction ? (
-        <ContactDetailModal
-          entry={entryAction.entry}
-          initialMode={entryAction.mode}
-          onClose={() => setEntryAction(null)}
+      {viewEntry ? (
+        <ContactDetailModal entry={viewEntry} onClose={() => setViewEntry(null)} />
+      ) : null}
+
+      {editEntry ? (
+        <EditContactForm
+          entry={editEntry}
           onSave={async (data) => {
-            const updated = await updateAddressBookEntry(entryAction.entry.id, data);
+            const updated = await updateAddressBookEntry(editEntry.id, data);
             upsertEntry(updated);
-            setEntryAction({ entry: updated, mode: "view" });
+            setEditEntry(null);
             showToast({ tone: "success", title: "Contact updated" });
           }}
-          onDelete={async () => {
-            try {
-              await deleteAddressBookEntry(entryAction.entry.id);
-              setEntries((prev) => prev.filter((e) => e.id !== entryAction.entry.id));
-              setEntryAction(null);
-              showToast({ tone: "success", title: "Contact deleted" });
-            } catch (err) {
-              showToast({
-                tone: "error",
-                title: "Delete failed",
-                message: err instanceof Error ? err.message : "Could not delete.",
-              });
-              throw err;
-            }
-          }}
+          onCancel={() => setEditEntry(null)}
         />
       ) : null}
+
+      {deletingEntry && (
+        <DeleteProgressModal
+          title="Deleting contact"
+          description={`Removing ${deletingEntry.label}.`}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteConfirmModal
+          title="Delete contact"
+          itemLabel={deleteTarget.label}
+          confirmLabel="Delete contact"
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => void confirmDelete()}
+        />
+      )}
     </div>
   );
 }
 
 function ContactDetailModal({
   entry,
-  initialMode = "view",
   onClose,
-  onSave,
-  onDelete,
 }: {
   entry: AddressBookEntry;
-  initialMode?: "view" | "edit" | "delete";
   onClose: () => void;
-  onSave: (data: UpdateAddressBookEntryInput) => Promise<void>;
-  onDelete: () => Promise<void>;
 }) {
-  const [mode, setMode] = useState<"view" | "edit" | "delete">(initialMode);
-  const [deleting, setDeleting] = useState(false);
-
-  async function handleDelete() {
-    setDeleting(true);
-    try {
-      await onDelete();
-    } catch {
-      setDeleting(false);
-    }
-  }
-
-  if (mode === "edit") {
-    return (
-      <EditContactForm
-        entry={entry}
-        onSave={async (data) => {
-          await onSave(data);
-          setMode("view");
-        }}
-        onCancel={() => setMode("view")}
-      />
-    );
-  }
-
   return (
-    <Modal
-      title={entry.label}
-      description="Saved recipient details."
-      onClose={onClose}
-      footer={
-        mode === "delete" ? (
-          <>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setMode("view")}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button type="button" variant="danger" onClick={handleDelete} disabled={deleting}>
-              {deleting ? "Deleting…" : "Delete"}
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button type="button" variant="secondary" onClick={() => setMode("edit")}>
-              Edit
-            </Button>
-            <Button type="button" variant="danger" onClick={() => setMode("delete")}>
-              Delete
-            </Button>
-          </>
-        )
-      }
-    >
+    <Modal title={entry.label} description="Saved recipient details." onClose={onClose}>
       <div className="gap-detail-close grid">
-        {mode === "delete" ? (
-          <ErrorAlert status="warning" title="Delete this contact?" className="w-full max-w-none">
-            Remove <span className="type-body-em">{entry.label}</span>? This cannot be undone.
-          </ErrorAlert>
-        ) : null}
-
         <section className="gap-detail-next flex flex-col" aria-labelledby="contact-address-label">
           <p className="type-meta text-text-secondary m-0" id="contact-address-label">
             Address
