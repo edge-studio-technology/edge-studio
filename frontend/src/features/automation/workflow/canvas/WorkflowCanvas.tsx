@@ -3,8 +3,29 @@ import { Pill } from "../../../../components/Pill";
 import { IconButton } from "../../../../components/ui/Button";
 import { ScrollArea } from "../../../../components/ui/ScrollArea";
 import { cx } from "../../../../lib/cx";
-import { ChevronDown, ChevronUp, Trash2, TriangleAlert } from "lucide-react";
-import { blockPresentation, type WorkflowCanvasBadge } from "./blockPresentation";
+import type { LucideIcon } from "lucide-react";
+import {
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Cpu,
+  Database,
+  GitBranch,
+  Inbox,
+  Play,
+  Radio,
+  Send,
+  ShieldCheck,
+  Timer,
+  Trash2,
+  TriangleAlert,
+  Variable,
+  Webhook,
+  Zap,
+} from "lucide-react";
+import type { AutomationBlockType } from "../../automationTypes";
+import { blockPresentation, isDataBlock, type WorkflowCanvasBadge } from "./blockPresentation";
 import type {
   DraftWorkflowBlock,
   WorkflowCanvasBlock,
@@ -17,7 +38,7 @@ const mutedText = "type-meta text-text-secondary";
 const statusPillClass = (good: boolean) => (good ? "good" : "neutral");
 const canvasClass = "h-full min-h-0 overflow-hidden";
 const canvasLaneClass =
-  "relative flex h-full min-h-[360px] flex-col items-center px-detail-close py-margin-relaxed md:min-h-0 md:px-margin-relaxed md:py-margin-relaxed";
+  "relative flex h-full min-h-[360px] flex-col items-center bg-surface-primary bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-grey-03)_32%,transparent)_1px,transparent_1px)] bg-[length:18px_18px] px-detail-close py-margin-relaxed md:min-h-0 md:px-margin-relaxed md:py-margin-relaxed";
 const canvasContentClass =
   "flex min-h-full w-full flex-col items-center [justify-content:safe_center]";
 const canvasEndSpacerClass = "h-[40px] w-px shrink-0";
@@ -26,9 +47,35 @@ const emptyCanvasClass =
 const blockBaseClass =
   "relative w-full max-w-[520px] cursor-pointer rounded-soft border p-margin-tight text-text-primary transition-[border-color,box-shadow] before:absolute before:left-1/2 before:top-[-25px] before:hidden before:h-[24px] before:w-px before:-translate-x-1/2 before:bg-stroke-active focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none [&+&]:mt-detail-near [&+&]:before:block";
 const selectedBlockClass = "border-stroke-active shadow-[0_0_0_1px_var(--color-stroke-active)]";
-const canvasFrostTagClass =
-  "type-meta text-text-primary bg-white/70 inline-flex h-6 shrink-0 items-center justify-center rounded-full px-detail-next";
-const canvasCardIconButtonClass = "!bg-surface-always-white";
+const blockIconTileBaseClass = "flex size-7 shrink-0 items-center justify-center rounded-full";
+
+/** Soft tint + icon color by category; shape/icon carry meaning so color isn’t the only cue. */
+function blockIconToneClass(type: AutomationBlockType) {
+  if (type.endsWith("_start")) return "bg-feedback-warning/20 text-icon-warning";
+  if (isDataBlock(type)) return "bg-[#2563EB]/15 text-[#2563EB]";
+  if (type === "set_variable" || type === "if_payload_field_equals" || type === "wait")
+    return "bg-surface-accent/15 text-text-accent";
+  if (type === "stamp_integritas") return "bg-feedback-positive/20 text-icon-success";
+  return "bg-[#DB2777]/15 text-[#DB2777]";
+}
+
+const blockTypeIcon: Record<AutomationBlockType, LucideIcon> = {
+  manual_start: Play,
+  schedule_start: Clock,
+  gpio_event_start: Cpu,
+  webhook_event_start: Webhook,
+  mqtt_event_start: Radio,
+  record_trigger_event: Inbox,
+  fetch_data_source: Database,
+  capture_camera: Camera,
+  set_variable: Variable,
+  if_payload_field_equals: GitBranch,
+  wait: Timer,
+  show_preview: Zap,
+  stamp_integritas: ShieldCheck,
+  control_output: Cpu,
+  send_transaction: Send,
+};
 
 export function WorkflowCanvas({
   mode,
@@ -156,6 +203,7 @@ function WorkflowBlockCard({
   const presentation = blockPresentation(block, sources, validationIssues, runtime);
   const headerBadges = presentation.badges.slice(0, 3);
   const overflowBadges = presentation.badges.slice(3);
+  const BlockIcon = blockTypeIcon[block.type];
   return (
     <div
       className={cx(blockBaseClass, presentation.className, selected && selectedBlockClass)}
@@ -171,24 +219,35 @@ function WorkflowBlockCard({
           <span className="type-meta text-text-secondary shrink-0 uppercase">
             {index === 0 ? "Start" : "Then"}
           </span>
-          <WorkflowBadges badges={headerBadges} frost />
+          {/* Capability / validation tags: shared Pill */}
+          <WorkflowBadges badges={headerBadges} />
         </div>
-        <div className="gap-detail-tight grid">
-          <strong className="type-body-em text-text-primary">{presentation.title}</strong>
-          <p className="type-body text-text-primary m-0">{presentation.description}</p>
+        {/* Title row: category icon badge + title/description */}
+        <div className="gap-detail-next flex items-start">
+          <span
+            className={cx(blockIconTileBaseClass, "mt-detail-fine", blockIconToneClass(block.type))}
+            aria-hidden
+          >
+            <BlockIcon className="size-4" strokeWidth={2} />
+          </span>
+          <div className="gap-detail-tight grid min-w-0 flex-1">
+            <strong className="type-body-em text-text-primary">{presentation.title}</strong>
+            <p className="type-body text-text-primary m-0">{presentation.description}</p>
+          </div>
         </div>
       </div>
-      {overflowBadges.length > 0 && <WorkflowBadges badges={overflowBadges} frost />}
+      {overflowBadges.length > 0 && <WorkflowBadges badges={overflowBadges} />}
       {block.attachedBlocks?.map((attached) => (
         <AttachedBlockCard key={attached.id} block={attached} sources={sources} />
       ))}
+      {/* Footer: trash + move up/down */}
       {!block.type.endsWith("_start") && (
-        <div className="mt-detail-close flex items-center justify-between">
+        <div className="mt-detail-close gap-detail-next flex items-center justify-end">
           <IconButton
             type="button"
-            variant="secondary"
+            variant="ghost"
             size="compact"
-            className={canvasCardIconButtonClass}
+            className="text-icon-secondary hover:border-stroke-error hover:text-icon-error"
             aria-label={actionLabels.remove}
             onClick={(event) => {
               event.stopPropagation();
@@ -197,36 +256,32 @@ function WorkflowBlockCard({
           >
             <Trash2 aria-hidden />
           </IconButton>
-          <div className="gap-detail-next flex items-center">
-            <IconButton
-              type="button"
-              variant="secondary"
-              size="compact"
-              className={canvasCardIconButtonClass}
-              aria-label={actionLabels.up}
-              disabled={!canMoveUp}
-              onClick={(event) => {
-                event.stopPropagation();
-                onMoveUp();
-              }}
-            >
-              <ChevronUp aria-hidden />
-            </IconButton>
-            <IconButton
-              type="button"
-              variant="secondary"
-              size="compact"
-              className={canvasCardIconButtonClass}
-              aria-label={actionLabels.down}
-              disabled={!canMoveDown}
-              onClick={(event) => {
-                event.stopPropagation();
-                onMoveDown();
-              }}
-            >
-              <ChevronDown aria-hidden />
-            </IconButton>
-          </div>
+          <IconButton
+            type="button"
+            variant="secondary"
+            size="compact"
+            aria-label={actionLabels.up}
+            disabled={!canMoveUp}
+            onClick={(event) => {
+              event.stopPropagation();
+              onMoveUp();
+            }}
+          >
+            <ChevronUp aria-hidden />
+          </IconButton>
+          <IconButton
+            type="button"
+            variant="secondary"
+            size="compact"
+            aria-label={actionLabels.down}
+            disabled={!canMoveDown}
+            onClick={(event) => {
+              event.stopPropagation();
+              onMoveDown();
+            }}
+          >
+            <ChevronDown aria-hidden />
+          </IconButton>
         </div>
       )}
     </div>
@@ -241,25 +296,32 @@ function AttachedBlockCard({
   sources: DataSource[];
 }) {
   const presentation = blockPresentation(block, sources, [], undefined);
+  const BlockIcon = blockTypeIcon[block.type];
   return (
-    <div className="border-stroke-secondary mt-detail-close gap-detail-tight rounded-soft p-margin-close grid border bg-white/70">
-      <strong className="type-body-em text-text-primary">{presentation.title}</strong>
-      <p className="type-body text-text-primary m-0">{presentation.description}</p>
+    <div className="border-stroke-secondary bg-surface-secondary mt-detail-close gap-detail-next rounded-soft p-margin-close grid border">
+      <span className="type-meta text-text-secondary uppercase">Attached</span>
+      <div className="gap-detail-next flex items-start">
+        <span
+          className={cx(blockIconTileBaseClass, "mt-detail-fine", blockIconToneClass(block.type))}
+          aria-hidden
+        >
+          <BlockIcon className="size-4" strokeWidth={2} />
+        </span>
+        <div className="gap-detail-tight grid min-w-0 flex-1">
+          <strong className="type-body-em text-text-primary">{presentation.title}</strong>
+          <p className="type-body text-text-primary m-0">{presentation.description}</p>
+        </div>
+      </div>
     </div>
   );
 }
 
-function WorkflowBadges({
-  badges,
-  frost = false,
-}: {
-  badges: WorkflowCanvasBadge[];
-  frost?: boolean;
-}) {
+function WorkflowBadges({ badges }: { badges: WorkflowCanvasBadge[] }) {
   if (badges.length === 0) return null;
   return (
     <div className="gap-detail-next flex shrink-0 flex-wrap justify-end">
       {badges.map((badge) => {
+        // Validation alerts: error/warn Pill + triangle (no colored validation ring on the card).
         if (badge.tone === "error" || badge.tone === "warn") {
           return (
             <Pill key={badge.label} tone={badge.tone}>
@@ -279,13 +341,7 @@ function WorkflowBadges({
             </Pill>
           );
         }
-        return frost ? (
-          <span key={badge.label} className={canvasFrostTagClass}>
-            {badge.label}
-          </span>
-        ) : (
-          <Pill key={badge.label}>{badge.label}</Pill>
-        );
+        return <Pill key={badge.label}>{badge.label}</Pill>;
       })}
     </div>
   );

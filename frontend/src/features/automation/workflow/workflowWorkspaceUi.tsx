@@ -6,10 +6,10 @@ import { TableIconButton } from "../../../components/DataTable";
 import { Card } from "../../../components/ui/Card";
 import { Pill } from "../../../components/ui/Pill";
 import { ScrollArea } from "../../../components/ui/ScrollArea";
-import { Text } from "../../../components/ui/Text";
 import { cx } from "../../../lib/cx";
 import type { AutomationValidationResult, AutomationWorkflow } from "../automationTypes";
 import { groupValidationIssues } from "./workflowHelpers";
+import { Text } from "../../../components/Text";
 
 /** Workspace chrome for Automation page screens (list/create/edit/watch). Not the graph — that lives in `workflow/canvas/`. */
 export const mutedText = "type-body text-text-secondary";
@@ -145,6 +145,7 @@ export function WorkflowValidationPanel({
         ? "passed"
         : "issues";
 
+  // Summary Pill: red when any errors, yellow when warnings-only.
   const issuesTone = errors.length > 0 ? "error" : "warn";
   const issuesSummary =
     errors.length > 0 && warnings.length > 0

@@ -54,7 +54,8 @@ export function blockPresentation(
     title: draftBlockTitle(block),
     description: draftBlockDescription(block, sources),
     badges,
-    className: [blockCategoryClass(block.type), runtimeClass(runtime)].filter(Boolean).join(" "),
+    // Neutral shell for all types; category color moved to the canvas icon badge.
+    className: [blockShellClass, runtimeClass(runtime)].filter(Boolean).join(" "),
   };
 }
 
@@ -142,15 +143,8 @@ function capabilityBadges(block: DraftWorkflowBlock) {
   return badges;
 }
 
-function blockCategoryClass(type: AutomationBlockType) {
-  if (type.endsWith("_start")) return "border-feedback-warning bg-[#fff0c7]";
-  if (type === "record_trigger_event" || type === "fetch_data_source" || type === "capture_camera")
-    return "border-[#4f9cff] bg-[#cfe8ff]";
-  if (type === "set_variable" || type === "if_payload_field_equals" || type === "wait")
-    return "border-[#d35cff] bg-[#ead1ff]";
-  if (type === "stamp_integritas") return "border-[#63c893] bg-[#bee9d4]";
-  return "border-[#ff7f9b] bg-[#ffc4d3]";
-}
+/** Shared neutral chrome — category is conveyed by icons, not fill color. */
+export const blockShellClass = "border-stroke-primary bg-surface-always-white";
 
 function runtimeClass(runtime?: WorkflowCanvasRuntimeState) {
   if (!runtime) return "";
