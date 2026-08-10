@@ -48,10 +48,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Sidebar's collapsed-state "expand sidebar" button now uses the plain `PanelLeft` icon instead of `PanelLeftOpen` (which had an arrow baked in), matching the design reference.
 - Tightened vague/narrative page and section descriptions into direct, one-line summaries: Dashboard, Devices, Integritas, Minima, and Account settings page headers; the Devices list's "Configured devices" table description (also fixed a stray comma); the onboarding wizard's welcome step intro; and the Marketplace "Coming soon" copy.
 - Device details modal's "No health data"/"No preview" states now use the shared `EmptyContentState` panel instead of the removed bare `EmptyState`.
+- Diagnostics' "view details" modals (Integritas proof payload, device read preview/error, workflow run inspect) now share the same layout as the Devices "View details" modal: a `DetailList` of key facts up top, then `Disclosure` sections for expandable content, using the shared `ErrorDetailPanel`/`EmptyContentState`/`JsonPreviewContent` bodies instead of each tab's own one-off dialog. Device reads no longer show separate "View"/"View error" actions — one "View details" action covers preview, error, and no-data cases the same way the other tabs do.
+- Dropped the small "Raw" caption that sat above the JSON block in error sections (`ErrorDetailPanel`, device health errors): every other JSON block in these modals (payload, preview, run data) is already labeled only by its surrounding `Disclosure` title, so the extra label on error sections was the odd one out.
+- Workflow run "view details" modal's "Block errors" section no longer repeats the failing block's type (e.g. "Fetch data source" — a generic block-type name, not the specific device/source) as its own unlabeled heading; that now shows once, as a "Failed block" row in the top `DetailList`, alongside Started/Trigger/Status/Duration/Blocks.
+- Diagnostics' Integritas ("Data hash") and Devices ("Hash") tables now use the shared `TruncatedHash` component (shortened value, full hash on hover) instead of plain CSS-truncated `<code>` text, matching the Devices "Configured devices" table's own hash column.
+- Diagnostics' per-row actions are now consistent across all three tabs: a dedicated "View details" (eye icon) button, then a kebab (⋮) menu for everything else. Integritas' "Verify" and "Download" moved from standalone buttons into that kebab menu; Automation's existing "View run" button is relabelled "View details" to match.
 
 ### Removed
 
 - `EmptyState` shared component (`components/patterns/`), superseded by `EmptyContentState` at its one remaining call site (device details modal).
+- `ErrorDetails` and `JsonBlock` shared components (`components/patterns/`), superseded by `ErrorDetailPanel` and `JsonPreviewContent` now that the Diagnostics modals use the same embeddable pattern as the Devices modal instead of their own standalone dialogs.
 
 ### Fixed
 

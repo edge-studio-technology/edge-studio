@@ -18,10 +18,7 @@ export function ErrorDetailPanel({ error, extraRows }: { error: unknown; extraRo
         <DetailRow label="Message" value={normalized.message} />
         {extraRows}
       </DetailList>
-      <section className="gap-detail-tight grid">
-        <span className="type-meta text-text-secondary">Raw</span>
-        <JsonPreviewContent value={normalized.raw} />
-      </section>
+      <JsonPreviewContent value={normalized.raw} />
     </div>
   );
 }

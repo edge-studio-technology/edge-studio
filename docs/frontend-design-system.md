@@ -55,7 +55,7 @@ Migration is **incremental**, not a big-bang move:
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonBlock`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `BrandLockup`, `MetricCard`                                                                                                         |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `BrandLockup`, `MetricCard`                                                                                                         |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
 ## Styling Rules
@@ -90,7 +90,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Text](#text): text link role (`Text.Link`; more roles planned)
 - `ErrorText`: inline error copy
 - [ErrorAlert](#erroralert): in-page error / warning alert
-- [ErrorDetails](#errordetails): trigger + dialog for inspecting an operational error
+- [ErrorDetailPanel](#errordetailpanel): embeddable message + raw-JSON breakdown for an operational error
 - [Modal](#modal): dialog overlay
 - `LoadingDots`: bouncing loading indicator
 - `Spinner`: rotating ring loading indicator (deprecated — use [SpinnerAlt](#spinneralt))
@@ -113,7 +113,6 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Tooltip](#tooltip): hover / click tip
 - [Disclosure](#disclosure): native collapse / expand section
 - [ScrollArea](#scrollarea): thin ESDS-token scrollbar container
-- [JsonBlock](#jsonblock): inverse mono pretty-printed JSON surface
 - [JsonPreview](#jsonpreview): trigger that opens a modal with pretty-printed JSON
 - [CopyableCode](#copyablecode): mono value with copy control
 - [EmptyContentState](#emptycontentstate): empty table/content state with icon, title, description, and optional action
@@ -480,36 +479,24 @@ In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): whit
 </ErrorAlert>
 ```
 
-### ErrorDetails
+### ErrorDetailPanel
 
-Trigger + dialog for inspecting a normalized operational error (`frontend/src/components/patterns/ErrorDetails.tsx`): text-link opens a Dialog (max-width 600) with Type, Message, optional Native details, Context (domain / type / native code / time), optional Additional context JSON, Raw JSON, and a secondary Close action. Prefer this for row-level errors (e.g. read history). For fields inside another dialog (e.g. workflow run inspect), call `normalizeError` and render local fields / `JsonBlock` instead — avoids modal-on-modal. Flat `components/ErrorDetails.tsx` remains for older call sites until migrated.
+Minimal, embeddable error breakdown (`frontend/src/components/patterns/ErrorDetailPanel.tsx`): a `DetailList` "Message" row (plus any caller-supplied `extraRows`, e.g. a "Checked at" timestamp), followed by an unlabeled `JsonPreviewContent` block with the raw error. No "Raw" caption above the JSON — the surrounding `Disclosure` title (e.g. "Preview", "Error") already labels the whole section, matching every other JSON block embedded in these modals (payload, run data), so error sections don't get an extra label the non-error ones don't have. Error shapes differ across source types, so everything beyond the message falls back into that raw JSON instead of being guessed at as separate fields. It has no trigger or dialog of its own — compose it inside a caller's own `Modal`/`Disclosure`. This is the shared error body used by the Devices, Integritas, Data reads, and Automation "view details" modals (paired with `DetailList` for the top-level facts and `Disclosure` for the expandable section around it), so a source's error and its raw response render the same way everywhere instead of drifting per feature.
 
-| Prop        | Notes                                          |
-| ----------- | ---------------------------------------------- |
-| `error`     | Unknown value; normalized via `normalizeError` |
-| `label`     | Trigger copy (default `View details`)          |
-| `className` | Merged onto the trigger button                 |
-
-```tsx
-<ErrorDetails error={item.errorDetails ?? item.error} label="View error" />
-```
-
-### JsonBlock
-
-Inverse mono pretty-printed JSON surface (`frontend/src/components/patterns/JsonBlock.tsx`): bordered `ScrollArea` with wrapped `type-mono` content. Prefer this when embedding JSON inside a modal, disclosure, or panel. Prefer `JsonPreview` when the operator needs a trigger that opens JSON in its own dialog.
-
-| Prop        | Notes                                        |
-| ----------- | -------------------------------------------- |
-| `value`     | Serialized with `JSON.stringify(…, null, 2)` |
-| `className` | Merged onto the `ScrollArea` shell           |
+| Prop        | Notes                                                   |
+| ----------- | -------------------------------------------------------- |
+| `error`     | Unknown value; normalized via `normalizeError`            |
+| `extraRows` | Optional additional `DetailRow`s rendered after Message   |
 
 ```tsx
-<JsonBlock value={run} />
+<Disclosure title="Preview">
+  <ErrorDetailPanel error={item.errorDetails ?? item.error} />
+</Disclosure>
 ```
 
 ### JsonPreview
 
-Trigger that opens a dialog with pretty-printed JSON (`frontend/src/components/patterns/JsonPreview.tsx`): link or secondary button; modal body uses `JsonBlock`. Flat `components/JsonPreview.tsx` re-exports for now.
+Trigger that opens a dialog with pretty-printed JSON (`frontend/src/components/patterns/JsonPreview.tsx`): link or secondary button; modal body uses the same bare-`<pre>` `JsonPreviewContent`, also exported for callers embedding JSON directly inside their own modal/disclosure without a second trigger (e.g. the "view details" modals' payload/data sections). Flat `components/JsonPreview.tsx` re-exports both for now.
 
 | Prop        | Notes                                      |
 | ----------- | ------------------------------------------ |

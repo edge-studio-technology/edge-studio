@@ -131,8 +131,8 @@ function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void
     <RowActions>
       <TableIconButton
         type="button"
-        title="View run"
-        aria-label={`View run for ${label}`}
+        title="View details"
+        aria-label={`View details for ${label}`}
         onClick={onView}
       >
         <Eye size={16} aria-hidden />
