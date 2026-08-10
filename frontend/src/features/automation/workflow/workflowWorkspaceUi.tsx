@@ -5,12 +5,12 @@ import { X } from "lucide-react";
 import { IconButton } from "../../../components/Button";
 import { TableIconButton } from "../../../components/DataTable";
 import { Card } from "../../../components/ui/Card";
+import { Disclosure } from "../../../components/ui/Disclosure";
 import { Pill } from "../../../components/ui/Pill";
 import { ScrollArea } from "../../../components/ui/ScrollArea";
 import { cx } from "../../../lib/cx";
 import type { AutomationValidationResult, AutomationWorkflow } from "../automationTypes";
 import { groupValidationIssues } from "./workflowHelpers";
-import { Text } from "../../../components/Text";
 
 /** Workspace chrome for Automation page screens (list/create/edit/watch). Not the graph — that lives in `workflow/canvas/`. */
 export const mutedText = "type-body text-text-secondary";
@@ -115,6 +115,19 @@ function validationIssueKey(issue: AutomationValidationResult["errors"][number],
   return `${issue.level}-${issue.code}-${issue.message}-${issue.blockType ?? "workflow"}-${count}`;
 }
 
+/** True when the validation card should render (hidden when fully passed). */
+export function isWorkflowValidationVisible(
+  validation: AutomationValidationResult | null,
+  localErrors: string[] = [],
+  fetchError: string | null = null,
+): boolean {
+  if (fetchError) return true;
+  if (!validation && localErrors.length === 0) return true;
+  const errorCount = localErrors.length + (validation?.errors.length ?? 0);
+  const warningCount = validation?.warnings.length ?? 0;
+  return errorCount > 0 || warningCount > 0;
+}
+
 /** Shared validation summary for create/edit/watch rails and watch inspectors. */
 export function WorkflowValidationPanel({
   validation,
@@ -155,58 +168,60 @@ export function WorkflowValidationPanel({
         ? countLabel(errors.length, "error", "errors")
         : countLabel(warnings.length, "warning", "warnings");
 
+  // Quiet when OK — block cards and the primary CTA already signal success.
+  if (status === "passed") return null;
+
+  const statusPill =
+    status === "checking" ? (
+      <Pill tone="neutral" indicator>
+        Checking
+      </Pill>
+    ) : status === "unavailable" ? (
+      <Pill tone="error" indicator>
+        Unavailable
+      </Pill>
+    ) : (
+      <Pill tone={issuesTone} indicator>
+        {issuesSummary}
+      </Pill>
+    );
+
   return (
     <Panel
       className={cx(
-        "gap-detail-close grid",
+        "relative grid",
         status === "issues" && "max-h-[320px] overflow-hidden",
       )}
     >
-      <div className="gap-detail-tight grid">
-        <div className="gap-detail-next flex flex-wrap items-center justify-between">
-          <Text.Title>Validation</Text.Title>
-          {status === "checking" && (
-            <Pill tone="neutral" indicator>
-              Checking
-            </Pill>
-          )}
-          {status === "unavailable" && (
-            <Pill tone="error" indicator>
-              Unavailable
-            </Pill>
-          )}
-          {status === "passed" && (
-            <Pill tone="good" indicator>
-              Passed
-            </Pill>
-          )}
-          {status === "issues" && (
-            <Pill tone={issuesTone} indicator>
-              {issuesSummary}
-            </Pill>
-          )}
-        </div>
+      <Disclosure
+        title={
+          <span className="gap-detail-next flex min-w-0 flex-wrap items-center">
+            <span className="type-title text-text-primary">Validation</span>
+            {statusPill}
+          </span>
+        }
+        defaultOpen={false}
+        summaryClassName="items-center"
+        contentClassName={cx(
+          "gap-detail-close grid min-h-0",
+          status === "issues" && "overflow-auto",
+        )}
+      >
         <p className={cx(mutedText, "m-0")}>{description}</p>
-      </div>
-
-      {status === "checking" && <p className={cx(mutedText, "m-0")}>Checking workflow…</p>}
-      {status === "unavailable" && <p className={cx(errorText, "m-0")}>{fetchError}</p>}
-      {status === "passed" && (
-        <p className={cx(mutedText, "m-0")}>
-          No blocking issues. Review the canvas, then continue.
-        </p>
-      )}
-      {status === "issues" && (
-        <div className="gap-detail-tight grid min-h-0 overflow-auto">
-          {groupedIssues.map(({ issue, count }) => (
-            <ValidationIssueRow
-              key={validationIssueKey(issue, count)}
-              issue={issue}
-              count={count}
-            />
-          ))}
-        </div>
-      )}
+        {status === "checking" && <p className={cx(mutedText, "m-0")}>Checking workflow…</p>}
+        {status === "unavailable" && <p className={cx(errorText, "m-0")}>{fetchError}</p>}
+        {status === "issues" && (
+          <div className="gap-detail-tight grid min-h-0">
+            {groupedIssues.map(({ issue, count }) => (
+              <ValidationIssueRow
+                key={validationIssueKey(issue, count)}
+                issue={issue}
+                count={count}
+              />
+            ))}
+          </div>
+        )}
+      </Disclosure>
     </Panel>
   );
 }
@@ -246,7 +261,7 @@ export function SelectedBlockSheet({
         }}
       />
       <aside
-        className="bg-surface-always-white border-stroke-secondary absolute inset-y-0 right-0 grid h-full w-full max-w-[400px] min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] border-l shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
+        className="bg-surface-always-white border-stroke-secondary absolute inset-y-0 right-0 grid h-full min-h-0 w-full max-w-[400px] grid-rows-[auto_minmax(0,1fr)_auto] border-l shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
         role="dialog"
         aria-modal="true"
         aria-label={title}

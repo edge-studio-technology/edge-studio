@@ -27,7 +27,7 @@ export function Disclosure({
   return (
     <details
       {...props}
-      className={cx("group gap-detail-next grid", className)}
+      className={cx("group grid gap-0 open:gap-detail-next", className)}
       open={open}
       onToggle={(event) => {
         if (controlledOpen === undefined) setUncontrolledOpen(event.currentTarget.open);

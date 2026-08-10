@@ -5,11 +5,13 @@ import { cx } from "../../../../lib/cx";
 const shellClass =
   "border-stroke-primary bg-surface-always-white flex h-screen min-h-0 flex-col overflow-hidden border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";
 const topbarClass =
-  "border-stroke-secondary bg-surface-always-white pt-margin-relaxed px-margin-relaxed pb-margin-tight flex flex-col gap-detail-close border-b lg:flex-row lg:items-end lg:justify-between";
+  "border-stroke-secondary bg-surface-always-white pt-pad-relaxed px-pad-relaxed pb-pad-tight flex flex-col gap-detail-close border-b lg:flex-row lg:items-end lg:justify-between";
+/** Full-bleed canvas area. */
 const workspaceClass = "bg-surface-secondary relative min-h-0 flex-1 overflow-hidden";
 const canvasFrameClass = "h-full min-h-0";
-const leftRailClass = "z-10 xl:absolute xl:top-margin-tight xl:left-detail-near xl:w-[320px]";
-const rightRailClass = "z-10 xl:absolute xl:top-margin-tight xl:right-detail-near xl:w-[360px]";
+/** Toolkit always visible over the canvas. */
+const rightRailClass =
+  "z-10 absolute top-pad-tight bottom-pad-tight right-pad-relaxed flex w-[360px] min-h-0 flex-col";
 const rowActionsClass = "gap-detail-next flex flex-wrap items-center self-end";
 
 export function WorkflowWorkspaceShell({
@@ -17,7 +19,6 @@ export function WorkflowWorkspaceShell({
   nameControl,
   actions,
   canvas,
-  leftRail,
   rail,
   selectedSheet,
   bottom,
@@ -27,7 +28,6 @@ export function WorkflowWorkspaceShell({
   nameControl: ReactNode;
   actions?: ReactNode;
   canvas: ReactNode;
-  leftRail?: ReactNode;
   rail: ReactNode;
   selectedSheet?: ReactNode;
   bottom?: ReactNode;
@@ -49,20 +49,19 @@ export function WorkflowWorkspaceShell({
         {actions && <div className={cx("relative z-10", rowActionsClass)}>{actions}</div>}
       </div>
       {notices && (
-        <div className="border-stroke-secondary bg-surface-primary px-margin-tight py-detail-next gap-detail-next grid border-b">
+        <div className="border-stroke-secondary bg-surface-primary px-pad-tight py-detail-next gap-detail-next grid border-b">
           {notices}
         </div>
       )}
       <div className={workspaceClass}>
         <div className={canvasFrameClass}>{canvas}</div>
-        {leftRail && <div className={leftRailClass}>{leftRail}</div>}
-        <div className={rightRailClass}>{rail}</div>
+        <aside className={rightRailClass}>{rail}</aside>
         {selectedSheet}
-        {bottom && (
-          <div className="inset-x-margin-tight bottom-margin-tight md:inset-x-detail-near md:bottom-detail-near absolute z-10">
+        {bottom ? (
+          <div className="left-pad-tight bottom-pad-tight md:left-detail-near md:bottom-detail-near absolute right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] z-10">
             {bottom}
           </div>
-        )}
+        ) : null}
       </div>
     </section>
   );

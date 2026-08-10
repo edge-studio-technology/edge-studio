@@ -4,7 +4,7 @@ import { Text } from "../../../../components/ui/Text";
 import { cx } from "../../../../lib/cx";
 
 const railPanelClass =
-  "bg-surface-always-white border-stroke-secondary grid content-start gap-detail-close rounded-soft border p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)] xl:sticky xl:top-margin-tight xl:max-h-[calc(100vh-260px)]";
+  "bg-surface-always-white border-stroke-secondary grid h-full max-h-full content-start gap-detail-close rounded-soft border p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)]";
 
 export function WorkflowRailPanel({
   children,

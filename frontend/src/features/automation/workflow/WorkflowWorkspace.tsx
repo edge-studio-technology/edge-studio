@@ -40,7 +40,7 @@ import {
   WorkflowStatusPill,
   WorkflowValidationPanel,
   errorText,
-  inspectorClass,
+  isWorkflowValidationVisible,
   mutedText,
 } from "./workflowWorkspaceUi";
 import { formatLocalTime } from "../../../lib/time";
@@ -256,16 +256,8 @@ export function WorkflowWorkspace({
           </>
         ) : undefined
       }
-      leftRail={
-        <aside className={inspectorClass}>
-          <WorkflowValidationPanel
-            validation={validation}
-            description="Fix errors before running. Warnings are allowed, but should be reviewed before enabling hardware or wallet actions."
-          />
-        </aside>
-      }
       rail={
-        <aside className={inspectorClass}>
+        <aside className="h-full min-h-0">
           {mode === "edit" ? (
             <WorkflowBlockLibrary
               mode="edit"
@@ -315,6 +307,14 @@ export function WorkflowWorkspace({
           statusGood={!workflow.archived && workflow.enabled}
           bottomOverlay={mode === "watch"}
           selectedBlockId={selectedBlock?.id ?? ""}
+          topSlot={
+            isWorkflowValidationVisible(validation) ? (
+              <WorkflowValidationPanel
+                validation={validation}
+                description="Fix errors before running. Warnings are allowed, but should be reviewed before enabling hardware or wallet actions."
+              />
+            ) : undefined
+          }
           validationByBlockId={validationByBlockId}
           runtimeByBlockId={runtimeByBlockId}
           onSelectBlock={(id) => {

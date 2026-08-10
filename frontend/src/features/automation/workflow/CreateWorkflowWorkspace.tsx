@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
+import { CheckboxField } from "../../../components/ui/CheckboxField";
 import { InputField } from "../../../components/ui/InputField";
-import { cx } from "../../../lib/cx";
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { WalletStatus } from "../../wallet/walletTypes";
@@ -23,11 +23,9 @@ import {
 } from "./canvas";
 import { createDraftBlock, flattenDraftBlocks, validationIssuesByBlockId } from "./workflowHelpers";
 import {
-  Panel,
   SelectedBlockSheet,
   WorkflowValidationPanel,
-  formGridClass,
-  inspectorClass,
+  isWorkflowValidationVisible,
 } from "./workflowWorkspaceUi";
 
 /** Create-mode workflow editor (draft blocks + leave confirmation). */
@@ -231,13 +229,20 @@ export function CreateWorkflowWorkspace({
       <WorkflowWorkspaceShell
         breadcrumbLabel="Create workflow"
         nameControl={
-          <InputField
-            aria-label="Workflow name"
-            value={name}
-            onChange={(event) => onNameChange(event.target.value)}
-            placeholder="Workflow name"
-            error={localErrors[0]}
-          />
+          <div className="gap-detail-close grid">
+            <InputField
+              aria-label="Workflow name"
+              value={name}
+              onChange={(event) => onNameChange(event.target.value)}
+              placeholder="Workflow name"
+              error={localErrors[0]}
+            />
+            <CheckboxField
+              label="Enabled after create"
+              checked={enabled}
+              onChange={(event) => onEnabledChange(event.target.checked)}
+            />
+          </div>
         }
         actions={
           <>
@@ -262,30 +267,8 @@ export function CreateWorkflowWorkspace({
             </Button>
           </>
         }
-        leftRail={
-          <aside className={cx(inspectorClass, formGridClass)}>
-            <Panel>
-              <label className="gap-detail-next type-meta text-text-primary grid grid-cols-[auto_minmax(0,1fr)] items-center">
-                <input
-                  className="w-auto"
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(event) => onEnabledChange(event.target.checked)}
-                />
-                Enabled after create
-              </label>
-            </Panel>
-            {draftBlocks.length > 0 && (
-              <WorkflowValidationPanel
-                validation={backendValidation}
-                fetchError={backendValidationError}
-                description="Fix errors before creating. Review any warnings before creating."
-              />
-            )}
-          </aside>
-        }
         rail={
-          <aside className={inspectorClass}>
+          <aside className="h-full min-h-0">
             <WorkflowBlockLibrary
               hasStartBlock={hasStartBlock}
               selectedStartType={draftBlocks.find((block) => block.type.endsWith("_start"))?.type}
@@ -304,6 +287,16 @@ export function CreateWorkflowWorkspace({
             statusLabel={enabled ? "Enabled on create" : "Paused on create"}
             statusGood={enabled}
             selectedBlockId={selectedBlock?.id ?? ""}
+            topSlot={
+              draftBlocks.length > 0 &&
+              isWorkflowValidationVisible(backendValidation, [], backendValidationError) ? (
+                <WorkflowValidationPanel
+                  validation={backendValidation}
+                  fetchError={backendValidationError}
+                  description="Fix errors before creating. Review any warnings before creating."
+                />
+              ) : undefined
+            }
             validationByBlockId={draftValidationByBlockId}
             onSelectBlock={(id) => {
               const block = draftBlocks.find((item) => item.id === id);
