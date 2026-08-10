@@ -257,25 +257,35 @@ export function WorkflowWorkspace({
         ) : undefined
       }
       rail={
-        <aside className="h-full min-h-0">
+        <aside className="gap-detail-close flex h-full min-h-0 flex-col">
           {mode === "edit" ? (
-            <WorkflowBlockLibrary
-              mode="edit"
-              hasStartBlock={Boolean(startBlock)}
-              selectedStartType={startBlock?.type}
-              blocks={libraryBlocks}
-              canAddRecordTriggerEvent={canAddRecordTriggerEvent}
-              onSelectStartBlock={() => undefined}
-              onAddBlock={addBlockFromLibrary}
-              onAttachStamp={(parentId) => {
-                void onAddBlock({
-                  type: "stamp_integritas",
-                  config: {},
-                  parentBlockId: parentId,
-                });
-                setSelectedBlockId(parentId);
-              }}
-            />
+            <>
+              {isWorkflowValidationVisible(validation) ? (
+                <WorkflowValidationPanel
+                  validation={validation}
+                  description="Fix errors before running. Warnings are allowed, but should be reviewed before enabling hardware or wallet actions."
+                />
+              ) : null}
+              <div className="min-h-0 flex-1">
+                <WorkflowBlockLibrary
+                  mode="edit"
+                  hasStartBlock={Boolean(startBlock)}
+                  selectedStartType={startBlock?.type}
+                  blocks={libraryBlocks}
+                  canAddRecordTriggerEvent={canAddRecordTriggerEvent}
+                  onSelectStartBlock={() => undefined}
+                  onAddBlock={addBlockFromLibrary}
+                  onAttachStamp={(parentId) => {
+                    void onAddBlock({
+                      type: "stamp_integritas",
+                      config: {},
+                      parentBlockId: parentId,
+                    });
+                    setSelectedBlockId(parentId);
+                  }}
+                />
+              </div>
+            </>
           ) : (
             <WatchRunControls
               workflow={workflow}
@@ -307,14 +317,6 @@ export function WorkflowWorkspace({
           statusGood={!workflow.archived && workflow.enabled}
           bottomOverlay={mode === "watch"}
           selectedBlockId={selectedBlock?.id ?? ""}
-          topSlot={
-            isWorkflowValidationVisible(validation) ? (
-              <WorkflowValidationPanel
-                validation={validation}
-                description="Fix errors before running. Warnings are allowed, but should be reviewed before enabling hardware or wallet actions."
-              />
-            ) : undefined
-          }
           validationByBlockId={validationByBlockId}
           runtimeByBlockId={runtimeByBlockId}
           onSelectBlock={(id) => {

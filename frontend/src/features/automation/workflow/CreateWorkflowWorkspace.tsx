@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
-import { CheckboxField } from "../../../components/ui/CheckboxField";
 import { InputField } from "../../../components/ui/InputField";
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
@@ -229,20 +228,13 @@ export function CreateWorkflowWorkspace({
       <WorkflowWorkspaceShell
         breadcrumbLabel="Create workflow"
         nameControl={
-          <div className="gap-detail-close grid">
-            <InputField
-              aria-label="Workflow name"
-              value={name}
-              onChange={(event) => onNameChange(event.target.value)}
-              placeholder="Workflow name"
-              error={localErrors[0]}
-            />
-            <CheckboxField
-              label="Enabled after create"
-              checked={enabled}
-              onChange={(event) => onEnabledChange(event.target.checked)}
-            />
-          </div>
+          <InputField
+            aria-label="Workflow name"
+            value={name}
+            onChange={(event) => onNameChange(event.target.value)}
+            placeholder="Workflow name"
+            error={localErrors[0]}
+          />
         }
         actions={
           <>
@@ -268,15 +260,27 @@ export function CreateWorkflowWorkspace({
           </>
         }
         rail={
-          <aside className="h-full min-h-0">
-            <WorkflowBlockLibrary
-              hasStartBlock={hasStartBlock}
-              selectedStartType={draftBlocks.find((block) => block.type.endsWith("_start"))?.type}
-              blocks={draftBlocks}
-              onSelectStartBlock={selectStartBlock}
-              onAddBlock={addDraftBlock}
-              onAttachStamp={attachStampBlock}
-            />
+          <aside className="gap-detail-close flex h-full min-h-0 flex-col">
+            {draftBlocks.length > 0 &&
+            isWorkflowValidationVisible(backendValidation, [], backendValidationError) ? (
+              <WorkflowValidationPanel
+                validation={backendValidation}
+                fetchError={backendValidationError}
+                description="Fix errors before creating. Review any warnings before creating."
+              />
+            ) : null}
+            <div className="min-h-0 flex-1">
+              <WorkflowBlockLibrary
+                hasStartBlock={hasStartBlock}
+                selectedStartType={draftBlocks.find((block) => block.type.endsWith("_start"))?.type}
+                blocks={draftBlocks}
+                enableAfterCreate={enabled}
+                onEnableAfterCreateChange={onEnabledChange}
+                onSelectStartBlock={selectStartBlock}
+                onAddBlock={addDraftBlock}
+                onAttachStamp={attachStampBlock}
+              />
+            </div>
           </aside>
         }
         canvas={
@@ -287,16 +291,6 @@ export function CreateWorkflowWorkspace({
             statusLabel={enabled ? "Enabled on create" : "Paused on create"}
             statusGood={enabled}
             selectedBlockId={selectedBlock?.id ?? ""}
-            topSlot={
-              draftBlocks.length > 0 &&
-              isWorkflowValidationVisible(backendValidation, [], backendValidationError) ? (
-                <WorkflowValidationPanel
-                  validation={backendValidation}
-                  fetchError={backendValidationError}
-                  description="Fix errors before creating. Review any warnings before creating."
-                />
-              ) : undefined
-            }
             validationByBlockId={draftValidationByBlockId}
             onSelectBlock={(id) => {
               const block = draftBlocks.find((item) => item.id === id);

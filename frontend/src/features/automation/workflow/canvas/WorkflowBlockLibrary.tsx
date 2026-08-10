@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { Disclosure } from "../../../../components/ui/Disclosure";
 import { Menu } from "../../../../components/ui/Menu";
+import { SwitchField } from "../../../../components/ui/SwitchField";
 import { Tooltip } from "../../../../components/ui/Tooltip";
 import { cx } from "../../../../lib/cx";
 import type { AutomationBlockType } from "../../automationTypes";
@@ -22,6 +23,8 @@ export function WorkflowBlockLibrary({
   selectedStartType,
   blocks,
   canAddRecordTriggerEvent = true,
+  enableAfterCreate,
+  onEnableAfterCreateChange,
   onSelectStartBlock,
   onAddBlock,
   onAttachStamp,
@@ -31,6 +34,8 @@ export function WorkflowBlockLibrary({
   selectedStartType?: AutomationBlockType;
   blocks: DraftWorkflowBlock[];
   canAddRecordTriggerEvent?: boolean;
+  enableAfterCreate?: boolean;
+  onEnableAfterCreateChange?: (value: boolean) => void;
   onSelectStartBlock: (type: AutomationBlockType) => void;
   onAddBlock: (type: AutomationBlockType) => void;
   onAttachStamp: (parentId: string) => void;
@@ -52,6 +57,8 @@ export function WorkflowBlockLibrary({
     stampTargets,
     blocks.some((block) => isDataBlock(block.type)),
   );
+  const showEnableAfterCreate =
+    mode === "build" && enableAfterCreate !== undefined && onEnableAfterCreateChange !== undefined;
 
   useEffect(() => {
     if (stampTargets.length < 2) setStampPickerOpen(false);
@@ -80,6 +87,15 @@ export function WorkflowBlockLibrary({
             : "Add blocks to this workflow. Select a block on the canvas to configure it."
         }
       />
+      {showEnableAfterCreate && (
+        <SwitchField
+          label="Enable after create"
+          description="Start the workflow as soon as it is created."
+          checked={enableAfterCreate}
+          onChange={(event) => onEnableAfterCreateChange(event.target.checked)}
+          className="border-stroke-secondary pb-detail-close pt-detail-close min-w-0 border-t border-b"
+        />
+      )}
       {mode === "build" && (
         <ToolkitGroup
           key={`start-${hasStartBlock}`}
@@ -243,7 +259,12 @@ function ToolkitGroup({
   defaultOpen?: boolean;
 }) {
   return (
-    <Disclosure title={title} summaryClassName="type-callout" defaultOpen={defaultOpen}>
+    <Disclosure
+      title={title}
+      summaryClassName="type-callout"
+      defaultOpen={defaultOpen}
+      className="border-stroke-secondary border-b pb-detail-close"
+    >
       {children}
     </Disclosure>
   );

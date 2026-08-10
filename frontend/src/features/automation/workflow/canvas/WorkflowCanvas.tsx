@@ -4,7 +4,6 @@ import { IconButton } from "../../../../components/ui/Button";
 import { ScrollArea } from "../../../../components/ui/ScrollArea";
 import { cx } from "../../../../lib/cx";
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
 import {
   Camera,
   ChevronDown,
@@ -40,12 +39,8 @@ const statusPillClass = (good: boolean) => (good ? "good" : "neutral");
 const canvasClass = "h-full min-h-0 overflow-hidden";
 const canvasLaneClass =
   "relative flex h-full min-h-[360px] flex-col items-center bg-surface-primary bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-grey-03)_32%,transparent)_1px,transparent_1px)] bg-[length:18px_18px] py-pad-relaxed pl-pad-relaxed pr-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] md:min-h-0";
-/** Reserves closed validation height; the card itself is absolute and expands over blocks. */
-const canvasTopSlotClass = "relative z-20 mb-detail-close max-w-[320px] w-full shrink-0 self-start";
-const canvasTopSlotReserveClass =
-  "pointer-events-none h-[calc(2*var(--spacing-margin-tight)+1.75rem+2px)] w-full";
 const canvasContentClass =
-  "flex min-h-0 w-full flex-1 flex-col items-center [justify-content:safe_center]";
+  "flex min-h-full w-full flex-col items-center [justify-content:safe_center]";
 const canvasEndSpacerClass = "h-[40px] w-px shrink-0";
 const emptyCanvasClass =
   "border-stroke-primary bg-surface-secondary text-text-primary grid min-h-[180px] w-full max-w-[520px] place-items-center rounded-soft border border-dashed p-margin-relaxed text-center";
@@ -90,7 +85,6 @@ export function WorkflowCanvas({
   statusLabel,
   statusGood,
   bottomOverlay = false,
-  topSlot,
   validationByBlockId = {},
   runtimeByBlockId = {},
   onSelectBlock,
@@ -104,7 +98,6 @@ export function WorkflowCanvas({
   statusLabel: string;
   statusGood: boolean;
   bottomOverlay?: boolean;
-  topSlot?: ReactNode;
   validationByBlockId?: Record<string, WorkflowCanvasValidationIssue[]>;
   runtimeByBlockId?: Record<string, WorkflowCanvasRuntimeState>;
   onSelectBlock: (id: string) => void;
@@ -129,12 +122,6 @@ export function WorkflowCanvas({
         <div className="top-pad-tight right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] absolute z-10">
           <Pill tone={statusPillClass(statusGood)}>{statusLabel}</Pill>
         </div>
-        {topSlot ? (
-          <div className={canvasTopSlotClass}>
-            <div className={canvasTopSlotReserveClass} aria-hidden />
-            <div className="absolute top-0 right-0 left-0">{topSlot}</div>
-          </div>
-        ) : null}
         <div className={cx(canvasContentClass, bottomOverlay && "pb-[240px]")}>
           {blocks.length === 0 && (
             <div className={emptyCanvasClass}>
