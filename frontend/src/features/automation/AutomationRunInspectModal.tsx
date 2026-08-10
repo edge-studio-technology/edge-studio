@@ -1,7 +1,6 @@
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { ErrorDetailPanel } from "../../components/patterns/ErrorDetailPanel";
 import { JsonPreviewContent } from "../../components/JsonPreview";
-import { Button } from "../../components/ui/Button";
 import { Disclosure } from "../../components/ui/Disclosure";
 import { Modal } from "../../components/ui/Modal";
 import { Pill } from "../../components/ui/Pill";
@@ -31,15 +30,7 @@ export function AutomationRunInspectModal({
   const status = RUN_STATUS[run.status];
 
   return (
-    <Modal
-      title={`${run.workflowName} workflow`}
-      onClose={onClose}
-      footer={
-        <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-          Close
-        </Button>
-      }
-    >
+    <Modal title={`${run.workflowName} workflow`} onClose={onClose}>
       <div className="gap-detail-near grid">
         <DetailList>
           <DetailRow label="Started" value={formatLocalDateTime(run.startedAt)} />
