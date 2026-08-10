@@ -147,8 +147,8 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         <TableWrap>
           <DataTable aria-label="Address book">
             <TableHead>
-              <TableHeaderCell>Name</TableHeaderCell>
-              <TableHeaderCell>Address</TableHeaderCell>
+              <TableHeaderCell className="w-72">Name</TableHeaderCell>
+              <TableHeaderCell className="w-40">Address</TableHeaderCell>
               <TableHeaderCell>Notes</TableHeaderCell>
               <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
             </TableHead>
