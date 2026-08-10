@@ -48,6 +48,7 @@ addressBookRouter.patch("/:id", requireRole("admin"), (req, res) => {
   if (!entry) return notFound(res, "entry not found", { ok: false });
 
   const label = typeof req.body?.label === "string" ? req.body.label.trim() : undefined;
+  const address = typeof req.body?.address === "string" ? req.body.address.trim() : undefined;
   const notes =
     req.body?.notes !== undefined
       ? typeof req.body.notes === "string"
@@ -61,8 +62,20 @@ addressBookRouter.patch("/:id", requireRole("admin"), (req, res) => {
   if (label !== undefined && label.length > 80) {
     return validationFailed(res, "label must be 80 characters or fewer", { label: "label must be 80 characters or fewer" }, { ok: false });
   }
+  if (address !== undefined) {
+    if (!address) {
+      return validationFailed(res, "address cannot be empty", { address: "address cannot be empty" }, { ok: false });
+    }
+    if (!isMinimaAddress(address)) {
+      return badRequest(res, "address must start with Mx or 0x", { field: "address" }, { ok: false });
+    }
+    const existing = getAddressBookEntryByAddress(address);
+    if (existing && existing.id !== id) {
+      return conflict(res, "address already exists in address book", { address }, { ok: false });
+    }
+  }
 
-  const updated = updateAddressBookEntry(id, { label, notes });
+  const updated = updateAddressBookEntry(id, { label, address, notes });
   recordAuditEvent("address-book.update", {
     userId: req.user?.id,
     detail: JSON.stringify({ id, label: updated?.label }),

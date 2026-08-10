@@ -428,6 +428,7 @@ function EditContactForm({
   onCancel: () => void;
 }) {
   const [label, setLabel] = useState(entry.label);
+  const [address, setAddress] = useState(entry.address);
   const [notes, setNotes] = useState(entry.notes ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -435,6 +436,7 @@ function EditContactForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimLabel = label.trim();
+    const trimAddress = address.trim();
     if (!trimLabel) {
       setFormError("Label is required.");
       return;
@@ -443,10 +445,18 @@ function EditContactForm({
       setFormError("Label must be 80 characters or fewer.");
       return;
     }
+    if (!trimAddress) {
+      setFormError("Address is required.");
+      return;
+    }
+    if (!/^(Mx|0x)/i.test(trimAddress)) {
+      setFormError("Address must start with Mx or 0x.");
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
     try {
-      await onSave({ label: trimLabel, notes: notes.trim() || null });
+      await onSave({ label: trimLabel, address: trimAddress, notes: notes.trim() || null });
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Could not update contact.");
       setSubmitting(false);
@@ -471,15 +481,6 @@ function EditContactForm({
       }
     >
       <form id="edit-contact-form" onSubmit={handleSubmit} className="gap-detail-close grid">
-        <section
-          className="gap-detail-next flex flex-col"
-          aria-labelledby="edit-contact-address-label"
-        >
-          <p className="type-meta text-text-secondary m-0" id="edit-contact-address-label">
-            Address
-          </p>
-          <CopyableCode value={entry.address} />
-        </section>
         <div className="gap-detail-close grid sm:grid-cols-2">
           <InputField
             label="Label"
@@ -491,14 +492,24 @@ function EditContactForm({
             disabled={submitting}
           />
           <InputField
-            label="Notes"
-            description="Optional note"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="e.g. Alice's main wallet"
+            label="Address"
+            description="The Minima address for the contact"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Mx… or 0x…"
+            autoComplete="off"
+            spellCheck={false}
             disabled={submitting}
           />
         </div>
+        <InputField
+          label="Notes"
+          description="Optional note"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="e.g. Alice's main wallet"
+          disabled={submitting}
+        />
         {formError ? (
           <ErrorAlert title="Couldn't update contact" className="w-full max-w-none">
             {formError}

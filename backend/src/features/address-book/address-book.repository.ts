@@ -46,17 +46,18 @@ export function insertAddressBookEntry(input: {
 
 export function updateAddressBookEntry(
   id: string,
-  input: { label?: string; notes?: string | null }
+  input: { label?: string; address?: string; notes?: string | null }
 ): AddressBookEntry | null {
   const entry = getAddressBookEntryById(id);
   if (!entry) return null;
 
   const newLabel = input.label ?? entry.label;
+  const newAddress = input.address ?? entry.address;
   const newNotes = input.notes !== undefined ? input.notes : entry.notes;
 
   db.prepare(`
-    UPDATE address_book SET label = ?, notes = ? WHERE id = ?
-  `).run(newLabel, newNotes, id);
+    UPDATE address_book SET label = ?, address = ?, notes = ? WHERE id = ?
+  `).run(newLabel, newAddress, newNotes, id);
 
   return getAddressBookEntryById(id)!;
 }
