@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import { Button } from "../components/Button";
-// import { ButtonRow } from "../components/ButtonRow";
 // import { Card } from "../components/Card";
+import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Page } from "../components/Page";
@@ -20,7 +19,7 @@ import {
 import { buildDeviceConfigInput } from "../features/data-sources/buildDeviceConfig";
 import { AltAddDeviceFlow } from "../features/data-sources/add-device-alt/AltAddDeviceFlow";
 import { ClassicAddDeviceFlow } from "../features/data-sources/add-device-classic/ClassicAddDeviceFlow";
-import { DataSourceForm } from "../features/data-sources/DataSourceForm";
+import { DataSourceForm, isDataSourceFormValid } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
 import { LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
 import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
@@ -231,14 +230,25 @@ export function DataSourcesPage() {
       )}
 
       {formOpen && (
-        <Modal title="Edit device" closeDisabled={busy} onClose={closeForm}>
-          <DataSourceForm
-            {...editForm.fields}
-            template={null}
-            busy={busy}
-            submitLabel="Save device"
-            onSubmit={saveEditedDevice}
-          />
+        <Modal
+          title="Edit device"
+          closeDisabled={busy}
+          onClose={closeForm}
+          footer={
+            <>
+              <Button type="button" variant="secondary" disabled={busy} onClick={closeForm}>
+                Cancel
+              </Button>
+              <Button
+                disabled={busy || !isDataSourceFormValid(editForm.fields)}
+                onClick={() => void saveEditedDevice()}
+              >
+                Save device
+              </Button>
+            </>
+          }
+        >
+          <DataSourceForm {...editForm.fields} template={null} submitLabel="Save device" />
         </Modal>
       )}
 

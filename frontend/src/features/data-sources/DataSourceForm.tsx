@@ -1,10 +1,23 @@
-import { Button } from "../../components/Button";
 import { Pill } from "../../components/Pill";
 import { StatusRow } from "../../components/StatusRow";
 import { MutedText } from "../../components/Text";
 import { InputField } from "../../components/ui/InputField";
 import { SelectField } from "../../components/ui/SelectField";
 import type { DataSource, DataSourceTemplate } from "./dataSourceTypes";
+import type { DeviceFormFields } from "./useDeviceFormFields";
+
+/** True when the current field values are complete enough to submit the device form. */
+export function isDataSourceFormValid(fields: DeviceFormFields) {
+  const { type, name, url, brokerUrl, topic, gpioChip, gpioPin } = fields;
+  if (!name) return false;
+  if (type === "mqtt" || type === "mqtt-output") return Boolean(brokerUrl && topic);
+  if (type === "gpio-input" || type === "gpio-output") return Boolean(gpioChip && gpioPin);
+  if (type === "pi-camera")
+    return Boolean(fields.cameraWidth && fields.cameraHeight && fields.cameraDurationMs);
+  if (type === "bme-sensor") return Boolean(fields.bmeBus);
+  if (type === "webhook") return true;
+  return Boolean(url);
+}
 
 export function DataSourceForm({
   template,
@@ -52,8 +65,6 @@ export function DataSourceForm({
   setBmeAddress,
   method,
   setMethod,
-  onSubmit,
-  busy,
   submitLabel = "Add source",
 }: {
   template: DataSourceTemplate | null;
@@ -101,8 +112,6 @@ export function DataSourceForm({
   setBmeAddress: (value: "0x76" | "0x77") => void;
   method: "GET" | "POST" | "PUT" | "PATCH";
   setMethod: (value: "GET" | "POST" | "PUT" | "PATCH") => void;
-  onSubmit: () => void;
-  busy: boolean;
   submitLabel?: string;
 }) {
   return (
@@ -386,28 +395,6 @@ export function DataSourceForm({
           />
         </>
       )}
-      <Button
-        type="button"
-        disabled={
-          busy ||
-          !name ||
-          (type !== "webhook" &&
-            type !== "mqtt" &&
-            type !== "mqtt-output" &&
-            type !== "gpio-input" &&
-            type !== "gpio-output" &&
-            type !== "pi-camera" &&
-            type !== "bme-sensor" &&
-            !url) ||
-          ((type === "mqtt" || type === "mqtt-output") && (!brokerUrl || !topic)) ||
-          ((type === "gpio-input" || type === "gpio-output") && (!gpioChip || !gpioPin)) ||
-          (type === "pi-camera" && (!cameraWidth || !cameraHeight || !cameraDurationMs)) ||
-          (type === "bme-sensor" && !bmeBus)
-        }
-        onClick={onSubmit}
-      >
-        {submitLabel}
-      </Button>
     </section>
   );
 }

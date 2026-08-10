@@ -6,9 +6,10 @@ import { InputField } from "../../components/ui/InputField";
 import { Modal } from "../../components/ui/Modal";
 import { SelectField } from "../../components/ui/SelectField";
 import { TextareaField } from "../../components/ui/TextareaField";
-import { ButtonRow } from "../../components/patterns/ButtonRow";
 import { postJson } from "../../lib/api";
 import { useToast } from "../../components/ToastProvider";
+
+const FEEDBACK_FORM_ID = "feedback-form";
 
 const feedbackTypes = [
   { value: "bug", label: "Bug" },
@@ -117,7 +118,31 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
   }
 
   return (
-    <Modal title="Send feedback" onClose={onClose}>
+    <Modal
+      title="Send feedback"
+      onClose={onClose}
+      footer={
+        saved ? (
+          <>
+            <Button variant="secondary" onClick={onClose}>
+              Close
+            </Button>
+            <LinkButton href={saved.exportUrl} iconStart={<Download aria-hidden />}>
+              Download feedback JSON
+            </LinkButton>
+          </>
+        ) : (
+          <>
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" form={FEEDBACK_FORM_ID} disabled={submitting}>
+              {submitting ? "Saving..." : "Save feedback"}
+            </Button>
+          </>
+        )
+      }
+    >
       {saved ? (
         <div className="gap-detail-close grid">
           <div className="border-stroke-success bg-surface-always-white rounded-soft relative flex items-start overflow-clip border">
@@ -135,15 +160,9 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
               </div>
             </div>
           </div>
-          <ButtonRow>
-            <LinkButton href={saved.exportUrl} iconStart={<Download aria-hidden />}>
-              Download feedback JSON
-            </LinkButton>
-            <Button variant="secondary" onClick={onClose}>Close</Button>
-          </ButtonRow>
         </div>
       ) : (
-        <form className="gap-detail-close grid" onSubmit={submitFeedback}>
+        <form className="gap-detail-close grid" id={FEEDBACK_FORM_ID} onSubmit={submitFeedback}>
           <Card size="Compact" className="border-stroke-secondary gap-detail-tight grid border">
             <p className="type-meta text-text-secondary m-0">Current page</p>
             <p className="type-body-em text-text-primary m-0">{pageLabel}</p>
@@ -230,11 +249,6 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
             The local JSON export includes app/device metadata and a small stats snapshot. It does not include
             passwords, TOTP secrets, session cookies, Integritas API keys, or wallet seed phrases.
           </p>
-
-          <ButtonRow>
-            <Button type="submit" disabled={submitting}>{submitting ? "Saving..." : "Save feedback"}</Button>
-            <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          </ButtonRow>
         </form>
       )}
     </Modal>

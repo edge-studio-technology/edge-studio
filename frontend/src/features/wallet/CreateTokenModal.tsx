@@ -108,8 +108,25 @@ export function CreateTokenModal({
   }
 
   return (
-    <Modal title="Create custom token" onClose={handleCloseRequest}>
-      <form onSubmit={handleSubmit} className="grid gap-4">
+    <Modal
+      title="Create custom token"
+      onClose={handleCloseRequest}
+      footer={
+        <>
+          <Button type="button" variant="secondary" disabled={submitting} onClick={handleCloseRequest}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="create-token-form"
+            disabled={submitting || !hasSufficientMinima || actionsBlocked}
+          >
+            {submitting ? "Creating…" : "Create token"}
+          </Button>
+        </>
+      }
+    >
+      <form id="create-token-form" onSubmit={handleSubmit} className="grid gap-4">
         <p className="text-sm text-slate-500">
           Wallet MINIMA:{" "}
           <span className={hasSufficientMinima ? "text-slate-900" : "text-red-700"}>
@@ -156,13 +173,6 @@ export function CreateTokenModal({
             </p>
           </div>
         )}
-        <Button
-          type="submit"
-          disabled={submitting || !hasSufficientMinima || actionsBlocked}
-          className="w-full justify-center"
-        >
-          {submitting ? "Creating…" : "Create token"}
-        </Button>
       </form>
     </Modal>
   );

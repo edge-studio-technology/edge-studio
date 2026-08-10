@@ -12,7 +12,6 @@ import {
   TableRow,
   TableWrap,
 } from "../../components/DataTable";
-import { ButtonRow } from "../../components/patterns/ButtonRow";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
@@ -214,21 +213,15 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
       />
 
       {addOpen ? (
-        <Modal
-          title="New contact"
-          description="Save a recipient for future sends."
-          onClose={() => setAddOpen(false)}
-        >
-          <AddContactForm
-            onSave={async (data) => {
-              const entry = await createAddressBookEntry(data);
-              upsertEntry(entry);
-              setAddOpen(false);
-              showToast({ tone: "success", title: "Contact added" });
-            }}
-            onCancel={() => setAddOpen(false)}
-          />
-        </Modal>
+        <AddContactForm
+          onSave={async (data) => {
+            const entry = await createAddressBookEntry(data);
+            upsertEntry(entry);
+            setAddOpen(false);
+            showToast({ tone: "success", title: "Contact added" });
+          }}
+          onCancel={() => setAddOpen(false)}
+        />
       ) : null}
 
       {entryAction ? (
@@ -290,16 +283,14 @@ function ContactDetailModal({
 
   if (mode === "edit") {
     return (
-      <Modal title="Edit contact" onClose={onClose}>
-        <EditContactForm
-          entry={entry}
-          onSave={async (data) => {
-            await onSave(data);
-            setMode("view");
-          }}
-          onCancel={() => setMode("view")}
-        />
-      </Modal>
+      <EditContactForm
+        entry={entry}
+        onSave={async (data) => {
+          await onSave(data);
+          setMode("view");
+        }}
+        onCancel={() => setMode("view")}
+      />
     );
   }
 
@@ -310,7 +301,7 @@ function ContactDetailModal({
       onClose={onClose}
       footer={
         mode === "delete" ? (
-          <ButtonRow className="justify-end">
+          <>
             <Button
               type="button"
               variant="secondary"
@@ -322,16 +313,16 @@ function ContactDetailModal({
             <Button type="button" variant="danger" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting…" : "Delete"}
             </Button>
-          </ButtonRow>
+          </>
         ) : (
-          <ButtonRow className="justify-end">
+          <>
             <Button type="button" variant="secondary" onClick={() => setMode("edit")}>
               Edit
             </Button>
             <Button type="button" variant="danger" onClick={() => setMode("delete")}>
               Delete
             </Button>
-          </ButtonRow>
+          </>
         )
       }
     >
@@ -410,51 +401,61 @@ function AddContactForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="gap-detail-close grid">
-      <div className="gap-detail-close grid sm:grid-cols-2">
+    <Modal
+      title="New contact"
+      description="Save a recipient for future sends."
+      bodyClassName="min-h-0 flex-1"
+      onClose={onCancel}
+      closeDisabled={submitting}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button type="submit" form="add-contact-form" disabled={submitting}>
+            {submitting ? "Saving…" : "Add contact"}
+          </Button>
+        </>
+      }
+    >
+      <form id="add-contact-form" onSubmit={handleSubmit} className="gap-detail-close grid">
+        <div className="gap-detail-close grid sm:grid-cols-2">
+          <InputField
+            label="Label"
+            description="The label of the contact"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Alice"
+            maxLength={80}
+            autoFocus
+            disabled={submitting}
+          />
+          <InputField
+            label="Address"
+            description="The Minima address for the contact"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Mx… or 0x…"
+            autoComplete="off"
+            spellCheck={false}
+            disabled={submitting}
+          />
+        </div>
         <InputField
-          label="Label"
-          description="The label of the contact"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="e.g. Alice"
-          maxLength={80}
-          autoFocus
+          label="Notes"
+          description="Optional note"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="e.g. Alice's main wallet"
           disabled={submitting}
         />
-        <InputField
-          label="Address"
-          description="The Minima address for the contact"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="Mx… or 0x…"
-          autoComplete="off"
-          spellCheck={false}
-          disabled={submitting}
-        />
-      </div>
-      <InputField
-        label="Notes"
-        description="Optional note"
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        placeholder="e.g. Alice's main wallet"
-        disabled={submitting}
-      />
-      {formError ? (
-        <ErrorAlert title="Couldn't save contact" className="w-full max-w-none">
-          {formError}
-        </ErrorAlert>
-      ) : null}
-      <ButtonRow className="justify-end">
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? "Saving…" : "Add contact"}
-        </Button>
-      </ButtonRow>
-    </form>
+        {formError ? (
+          <ErrorAlert title="Couldn't save contact" className="w-full max-w-none">
+            {formError}
+          </ErrorAlert>
+        ) : null}
+      </form>
+    </Modal>
   );
 }
 
@@ -494,48 +495,56 @@ function EditContactForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="gap-detail-close grid">
-      <section
-        className="gap-detail-next flex flex-col"
-        aria-labelledby="edit-contact-address-label"
-      >
-        <p className="type-meta text-text-secondary m-0" id="edit-contact-address-label">
-          Address
-        </p>
-        <CopyableCode value={entry.address} />
-      </section>
-      <div className="gap-detail-close grid sm:grid-cols-2">
-        <InputField
-          label="Label"
-          description="Name of the contact"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          maxLength={80}
-          autoFocus
-          disabled={submitting}
-        />
-        <InputField
-          label="Notes"
-          description="Optional note"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="e.g. Alice's main wallet"
-          disabled={submitting}
-        />
-      </div>
-      {formError ? (
-        <ErrorAlert title="Couldn't update contact" className="w-full max-w-none">
-          {formError}
-        </ErrorAlert>
-      ) : null}
-      <ButtonRow className="justify-end">
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? "Saving…" : "Save changes"}
-        </Button>
-      </ButtonRow>
-    </form>
+    <Modal
+      title="Edit contact"
+      onClose={onCancel}
+      closeDisabled={submitting}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button type="submit" form="edit-contact-form" disabled={submitting}>
+            {submitting ? "Saving…" : "Save changes"}
+          </Button>
+        </>
+      }
+    >
+      <form id="edit-contact-form" onSubmit={handleSubmit} className="gap-detail-close grid">
+        <section
+          className="gap-detail-next flex flex-col"
+          aria-labelledby="edit-contact-address-label"
+        >
+          <p className="type-meta text-text-secondary m-0" id="edit-contact-address-label">
+            Address
+          </p>
+          <CopyableCode value={entry.address} />
+        </section>
+        <div className="gap-detail-close grid sm:grid-cols-2">
+          <InputField
+            label="Label"
+            description="Name of the contact"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            maxLength={80}
+            autoFocus
+            disabled={submitting}
+          />
+          <InputField
+            label="Notes"
+            description="Optional note"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g. Alice's main wallet"
+            disabled={submitting}
+          />
+        </div>
+        {formError ? (
+          <ErrorAlert title="Couldn't update contact" className="w-full max-w-none">
+            {formError}
+          </ErrorAlert>
+        ) : null}
+      </form>
+    </Modal>
   );
 }

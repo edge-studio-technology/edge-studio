@@ -6,7 +6,7 @@ import { useToast } from "../../../components/ToastProvider";
 import { createDataSource } from "../dataSourcesApi";
 import { AddDeviceMethodChoice } from "./AddDeviceMethodChoice";
 import { buildDeviceConfigInput } from "../buildDeviceConfig";
-import { DataSourceForm } from "../DataSourceForm";
+import { DataSourceForm, isDataSourceFormValid } from "../DataSourceForm";
 import { resolveTemplateConfig } from "../DataSourceTemplates";
 import { DataSourceTemplates } from "./ClassicDeviceTemplates";
 import type { DataSource, DataSourceCapabilities, DataSourceTemplate } from "../dataSourceTypes";
@@ -80,25 +80,35 @@ export function ClassicAddDeviceFlow({
         title={addDeviceBreadcrumb(mode, category, "Add device")}
         closeDisabled={saving}
         onClose={onClose}
+        footer={
+          <>
+            <BackButton disabled={saving} onClick={() => setFormOpen(false)} />
+            <Button
+              disabled={saving || !isDataSourceFormValid(fields)}
+              onClick={() => void handleSubmit()}
+            >
+              {mode === "input" ? "Add input" : "Add output"}
+            </Button>
+          </>
+        }
       >
-        <div className="gap-detail-close p-pad-tight grid">
-          <BackButton onClick={() => setFormOpen(false)} />
-          <DataSourceForm
-            {...fields}
-            template={template}
-            busy={saving}
-            submitLabel={mode === "input" ? "Add input" : "Add output"}
-            onSubmit={handleSubmit}
-          />
-        </div>
+        <DataSourceForm
+          {...fields}
+          template={template}
+          submitLabel={mode === "input" ? "Add input" : "Add output"}
+        />
       </Modal>
     );
   }
 
   return (
-    <Modal title={addDeviceBreadcrumb(mode, category)} closeDisabled={saving} onClose={onClose}>
+    <Modal
+      title={addDeviceBreadcrumb(mode, category)}
+      closeDisabled={saving}
+      onClose={onClose}
+      footer={category ? <BackButton onClick={() => setCategory(null)} /> : undefined}
+    >
       <div className="gap-detail-close p-pad-tight grid">
-        {category && <BackButton onClick={() => setCategory(null)} />}
         {category ? (
           <DataSourceTemplates
             mode={mode}
@@ -114,13 +124,12 @@ export function ClassicAddDeviceFlow({
   );
 }
 
-function BackButton({ onClick }: { onClick: () => void }) {
+function BackButton({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
   return (
     <Button
       variant="ghost"
-      size="sm"
-      className="self-start"
-      iconStart={<ArrowLeft />}
+      disabled={disabled}
+      iconStart={<ArrowLeft aria-hidden />}
       onClick={onClick}
     >
       Back

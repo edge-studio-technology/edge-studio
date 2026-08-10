@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { SpinnerAlt } from "../ui/SpinnerAlt";
-import { ButtonRow } from "./ButtonRow";
 
 export function DeleteConfirmModal({
   title,
@@ -21,21 +20,27 @@ export function DeleteConfirmModal({
   onConfirm: () => void;
 }) {
   return (
-    <Modal title={title} onClose={onCancel} bodyClassName="min-h-0 flex-1">
+    <Modal
+      title={title}
+      onClose={onCancel}
+      bodyClassName="min-h-0 flex-1"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="danger" iconStart={<Trash2 aria-hidden />} onClick={onConfirm}>
+            {confirmLabel}
+          </Button>
+        </>
+      }
+    >
       <div className="gap-detail-near grid min-h-56 place-items-center text-center">
         <Trash2 size={40} className="text-icon-secondary" aria-hidden />
         <div className="gap-detail-tight grid">
           <p className="type-title text-text-primary m-0">Delete {itemLabel}?</p>
           <p className="type-body text-text-secondary m-0 mt-4">{description}</p>
         </div>
-        <ButtonRow>
-          <Button variant="secondary" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={onConfirm}>
-            {confirmLabel}
-          </Button>
-        </ButtonRow>
       </div>
     </Modal>
   );

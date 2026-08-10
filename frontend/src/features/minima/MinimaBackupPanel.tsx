@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Download, KeyRound, Upload } from "lucide-react";
 import type { MinimaBackupEntry, MinimaBackupListResponse, MinimaNodeState } from "../../app/types";
 import { Button, IconButton } from "../../components/Button";
-import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
 import {
   DataTable,
@@ -462,6 +461,21 @@ export function MinimaBackupPanel({
           }}
           closeDisabled={downloadBusy}
           bodyClassName="min-h-0 flex-1"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={downloadBusy}
+                onClick={() => setDownloadTarget(null)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={() => void confirmDownload()} disabled={downloadBusy || downloadPassword.length === 0}>
+                {downloadBusy ? "Confirming…" : "Confirm"}
+              </Button>
+            </>
+          }
         >
           <div className="grid gap-3">
             <p className="text-sm text-slate-600 m-0">Re-enter your current PIN or password to download this backup.</p>
@@ -476,11 +490,6 @@ export function MinimaBackupPanel({
               autoComplete="current-password"
             />
             {downloadError && <ErrorText className="m-0">{downloadError}</ErrorText>}
-            <ButtonRow>
-              <Button onClick={() => void confirmDownload()} disabled={downloadBusy || downloadPassword.length === 0}>
-                {downloadBusy ? "Confirming…" : "Confirm"}
-              </Button>
-            </ButtonRow>
           </div>
         </Modal>
       )}
@@ -493,8 +502,36 @@ export function MinimaBackupPanel({
           }}
           closeDisabled={setupBusy}
           bodyClassName="min-h-0 flex-1"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={setupBusy}
+                onClick={() => setPasswordModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              {hasPassword === true && (
+                <Button variant="danger" type="button" onClick={openClearPassword} disabled={setupBusy}>
+                  Remove backup password
+                </Button>
+              )}
+              <Button
+                type="submit"
+                form="backup-password-form"
+                disabled={setupBusy || !newBackupPassword || !setupCurrentPassword}
+              >
+                {setupBusy ? "Saving…" : hasPassword ? "Update backup password" : "Save backup password"}
+              </Button>
+            </>
+          }
         >
-          <form onSubmit={(e) => void handleSetBackupPassword(e)} className="grid gap-3">
+          <form
+            id="backup-password-form"
+            onSubmit={(e) => void handleSetBackupPassword(e)}
+            className="grid gap-3"
+          >
             {hasPassword === false && (
               <p className="text-sm text-slate-600 m-0">
                 One password protects every manual and automatic backup. It's stored encrypted; nothing about it is
@@ -518,16 +555,6 @@ export function MinimaBackupPanel({
               required
             />
             {setupError && <ErrorText className="m-0">{setupError}</ErrorText>}
-            <ButtonRow>
-              <Button type="submit" disabled={setupBusy || !newBackupPassword || !setupCurrentPassword}>
-                {setupBusy ? "Saving…" : hasPassword ? "Update backup password" : "Save backup password"}
-              </Button>
-              {hasPassword === true && (
-                <Button variant="danger" type="button" onClick={openClearPassword} disabled={setupBusy}>
-                  Remove backup password
-                </Button>
-              )}
-            </ButtonRow>
           </form>
         </Modal>
       )}
@@ -540,6 +567,24 @@ export function MinimaBackupPanel({
           }}
           closeDisabled={uploadBusy}
           bodyClassName="min-h-0 flex-1"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={uploadBusy}
+                onClick={() => setUploadRestoreOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => void confirmUploadRestore()}
+                disabled={uploadBusy || !uploadFile || uploadCurrentPassword.length === 0}
+              >
+                {uploadBusy ? "Restoring…" : "Restore"}
+              </Button>
+            </>
+          }
         >
           <div className="grid gap-3">
             {restoreWarning}
@@ -572,14 +617,6 @@ export function MinimaBackupPanel({
             />
 
             {uploadError && <ErrorText className="m-0">{uploadError}</ErrorText>}
-            <ButtonRow>
-              <Button
-                onClick={() => void confirmUploadRestore()}
-                disabled={uploadBusy || !uploadFile || uploadCurrentPassword.length === 0}
-              >
-                {uploadBusy ? "Restoring…" : "Restore"}
-              </Button>
-            </ButtonRow>
           </div>
         </Modal>
       )}
@@ -592,6 +629,21 @@ export function MinimaBackupPanel({
           }}
           closeDisabled={rowRestoreBusy}
           bodyClassName="min-h-0 flex-1"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={rowRestoreBusy}
+                onClick={() => setRowRestoreTarget(null)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={() => void confirmRowRestore()} disabled={rowRestoreBusy || rowRestorePassword.length === 0}>
+                {rowRestoreBusy ? "Restoring…" : "Confirm restore"}
+              </Button>
+            </>
+          }
         >
           <div className="grid gap-3">
             {restoreWarning}
@@ -610,11 +662,6 @@ export function MinimaBackupPanel({
               autoComplete="current-password"
             />
             {rowRestoreError && <ErrorText className="m-0">{rowRestoreError}</ErrorText>}
-            <ButtonRow>
-              <Button onClick={() => void confirmRowRestore()} disabled={rowRestoreBusy || rowRestorePassword.length === 0}>
-                {rowRestoreBusy ? "Restoring…" : "Confirm restore"}
-              </Button>
-            </ButtonRow>
           </div>
         </Modal>
       )}
@@ -641,6 +688,25 @@ export function MinimaBackupPanel({
           }}
           closeDisabled={clearPasswordBusy}
           bodyClassName="min-h-0 flex-1"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={clearPasswordBusy}
+                onClick={() => setClearPasswordOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => void confirmClearPassword()}
+                disabled={clearPasswordBusy || clearPasswordCurrentPassword.length === 0}
+              >
+                {clearPasswordBusy ? "Removing…" : "Remove password"}
+              </Button>
+            </>
+          }
         >
           <div className="grid gap-3">
             <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
@@ -660,15 +726,6 @@ export function MinimaBackupPanel({
               autoComplete="current-password"
             />
             {clearPasswordError && <ErrorText className="m-0">{clearPasswordError}</ErrorText>}
-            <ButtonRow>
-              <Button
-                variant="danger"
-                onClick={() => void confirmClearPassword()}
-                disabled={clearPasswordBusy || clearPasswordCurrentPassword.length === 0}
-              >
-                {clearPasswordBusy ? "Removing…" : "Remove password"}
-              </Button>
-            </ButtonRow>
           </div>
         </Modal>
       )}
