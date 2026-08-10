@@ -1,29 +1,42 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Archive, Copy, Eye, Pencil, Play, RotateCcw, Trash2, X } from "lucide-react";
+import { Inbox, Pause, Play, Plus, Workflow, X } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Button, IconButton } from "../components/Button";
 import {
   DataTable,
   RowActions,
+  TableBody,
+  TableCard,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
   TableIconButton,
+  TableIconMenu,
+  TableRow,
   TableWrap,
   tableCellClass,
   tableHeaderCellClass,
   tableHeadRowClass,
   tableRowClass,
 } from "../components/DataTable";
+import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
+import { EmptyContentState } from "../components/patterns/EmptyContentState";
+import { ListFilterBar } from "../components/patterns/ListFilterBar";
+import { ListPaginationFooter } from "../components/patterns/ListPaginationFooter";
+import { LoadingState } from "../components/patterns/LoadingState";
 import { ErrorAlert } from "../components/ErrorAlert";
-import { JsonPreview } from "../components/JsonPreview";
+import { JsonPreview, JsonPreviewContent } from "../components/JsonPreview";
 import { Modal } from "../components/Modal";
 import { Page } from "../components/Page";
-import { ProgressModal } from "../components/ProgressModal";
 import { Card } from "../components/ui/Card";
 import { CheckboxField } from "../components/ui/CheckboxField";
 import { InputField } from "../components/ui/InputField";
+import { Pill } from "../components/ui/Pill";
 import { ScrollArea } from "../components/ui/ScrollArea";
 import { SelectField } from "../components/ui/SelectField";
 import { TextareaField } from "../components/ui/TextareaField";
+import { TruncatedHash } from "../components/ui/TruncatedHash";
 import { useToast } from "../components/ToastProvider";
 import {
   addAutomationBlock,
@@ -73,9 +86,22 @@ import type { DataSource } from "../features/data-sources/dataSourceTypes";
 import { getWalletStatus } from "../features/wallet/walletApi";
 import type { WalletStatus } from "../features/wallet/walletTypes";
 import { cx } from "../lib/cx";
-import { formatLocalTime } from "../lib/time";
+import { DEFAULT_PAGE_SIZE_OPTIONS } from "../lib/paginated";
+import { formatLocalDateTime, formatLocalTime } from "../lib/time";
 
 const intervals = [10, 30, 60, 300, 900, 3600];
+const workflowStatusFilterOptions = [
+  { value: "active", label: "Active list (not archived)" },
+  { value: "all", label: "All workflows" },
+  { value: "enabled", label: "Enabled" },
+  { value: "paused", label: "Paused" },
+  { value: "error", label: "With errors" },
+  { value: "archived", label: "Archived" },
+] as const;
+const workflowPageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
+  value: String(size),
+  label: String(size),
+}));
 const mutedText = "type-body text-text-secondary";
 const errorText = "type-body-em text-text-error";
 const cardClass =
@@ -140,9 +166,15 @@ export function AutomationPage() {
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingWorkflow, setDeletingWorkflow] = useState<AutomationWorkflow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AutomationWorkflow | null>(null);
+  const [workflowsLoading, setWorkflowsLoading] = useState(true);
+  const [workflowPage, setWorkflowPage] = useState(1);
+  const [workflowPageSize, setWorkflowPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
 
   useEffect(() => {
-    refresh().catch((err: Error) => setLoadError(err.message));
+    refresh()
+      .catch((err: Error) => setLoadError(err.message))
+      .finally(() => setWorkflowsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -250,6 +282,19 @@ export function AutomationPage() {
     }
   }
 
+  async function confirmDeleteWorkflow() {
+    if (!deleteTarget) return;
+    const workflow = deleteTarget;
+    setDeleteTarget(null);
+    await deleteWorkflow(workflow);
+  }
+
+  function clearWorkflowFilters() {
+    setWorkflowSearch("");
+    setWorkflowFilter("active");
+    setWorkflowPage(1);
+  }
+
   async function submitWorkflow(
     blocks: {
       type: AutomationBlockType;
@@ -289,6 +334,13 @@ export function AutomationPage() {
       workflowFilter,
       sourceName(workflowPrimarySourceId(workflow)),
     ),
+  );
+  const workflowFiltersActive = Boolean(workflowSearch.trim()) || workflowFilter !== "active";
+  const workflowTotalPages = Math.max(1, Math.ceil(filteredWorkflows.length / workflowPageSize));
+  const workflowCurrentPage = Math.min(workflowPage, workflowTotalPages);
+  const pagedWorkflows = filteredWorkflows.slice(
+    (workflowCurrentPage - 1) * workflowPageSize,
+    workflowCurrentPage * workflowPageSize,
   );
   const workspaceMode = flow.mode === "edit" || flow.mode === "watch" ? flow.mode : null;
 
@@ -420,20 +472,6 @@ export function AutomationPage() {
       title="Automation"
       desc="Build workflows from small start, data, logic, and Integritas blocks."
     >
-      <section className={cardClass}>
-        <div className={statusRowClass}>
-          <div>
-            <strong>Workflow builders</strong>
-            <p className={mutedText}>
-              Create a workflow from a start block, then connect action blocks in the workspace.
-            </p>
-          </div>
-          <Button type="button" size="sm" onClick={() => navigateFlow({ mode: "build" })}>
-            Create new workflow
-          </Button>
-        </div>
-      </section>
-
       {loadError && (
         <ErrorAlert
           title="Automation data could not be loaded"
@@ -454,197 +492,259 @@ export function AutomationPage() {
       )}
 
       {deletingWorkflow && (
-        <ProgressModal
+        <DeleteProgressModal
           title="Deleting workflow"
-          headline="Deleting in progress"
-          message={`Removing ${deletingWorkflow.name}. Large workflow logs can take a few seconds while saved run history is detached from this workflow.`}
+          description={`Removing ${deletingWorkflow.name}. Large workflow logs can take a few seconds while saved run history is detached from this workflow.`}
         />
       )}
 
-      <section className={cx(cardClass, "grid gap-4")}>
-        <div className={statusRowClass}>
-          <div>
-            <strong>Workflows</strong>
-            <p className={mutedText}>
-              Search, filter, duplicate, and archive workflows as your test list grows.
-            </p>
-          </div>
-          <StatusPill status="neutral">
-            {filteredWorkflows.length}/{workflows.length} shown
-          </StatusPill>
-        </div>
-        <div className={cx(formGridClass, "md:grid-cols-2")}>
-          <label>
-            Search workflows
-            <input
-              value={workflowSearch}
-              onChange={(event) => setWorkflowSearch(event.target.value)}
-              placeholder="Name, block type, device, hash..."
+      {deleteTarget && (
+        <DeleteConfirmModal
+          title="Delete workflow"
+          itemLabel={deleteTarget.name}
+          confirmLabel="Delete workflow"
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => void confirmDeleteWorkflow()}
+        />
+      )}
+
+      <TableCard
+        className="w-full"
+        title="Workflows"
+        description="Search, filter, duplicate, and archive workflows as your test list grows."
+      >
+        <div className="gap-detail-close flex flex-wrap items-end justify-between">
+          <div className="min-w-0 flex-1 [&>div]:mb-0">
+            <ListFilterBar
+              filter={workflowFilter}
+              q={workflowSearch}
+              filterOptions={workflowStatusFilterOptions}
+              searchPlaceholder="Name, block type, device, hash..."
+              disabled={workflowsLoading || workflows.length === 0}
+              onFilterChange={(value) => {
+                setWorkflowFilter(value as typeof workflowFilter);
+                setWorkflowPage(1);
+              }}
+              onQueryChange={(q) => {
+                setWorkflowSearch(q);
+                setWorkflowPage(1);
+              }}
             />
-          </label>
-          <label>
-            Status filter
-            <select
-              value={workflowFilter}
-              onChange={(event) => setWorkflowFilter(event.target.value as typeof workflowFilter)}
-            >
-              <option value="active">Active list (not archived)</option>
-              <option value="all">All workflows</option>
-              <option value="enabled">Enabled</option>
-              <option value="paused">Paused</option>
-              <option value="error">With errors</option>
-              <option value="archived">Archived</option>
-            </select>
-          </label>
+          </div>
+          <Button
+            type="button"
+            iconStart={<Plus aria-hidden />}
+            onClick={() => navigateFlow({ mode: "build" })}
+          >
+            Create new workflow
+          </Button>
         </div>
-        <TableWrap>
-          <DataTable className="min-w-[920px]">
-            <thead>
-              <tr className={tableHeadRowClass}>
-                <th className={tableHeaderCellClass}>Name</th>
-                <th className={tableHeaderCellClass}>Status</th>
-                <th className={tableHeaderCellClass}>Trigger / source</th>
-                <th className={tableHeaderCellClass}>Blocks</th>
-                <th className={tableHeaderCellClass}>Last run</th>
-                <th className={tableHeaderCellClass}>Last hash</th>
-                <th className={tableHeaderCellClass}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredWorkflows.map((workflow) => (
-                <tr key={workflow.id} className={tableRowClass}>
-                  <td className={tableCellClass}>
-                    <strong>{workflow.name}</strong>
-                    {workflow.lastError && <p className={errorText}>{workflow.lastError}</p>}
-                    {workflow.archived && (
-                      <p className={mutedText}>Archived workflows do not run until restored.</p>
-                    )}
-                  </td>
-                  <td className={tableCellClass}>
-                    <WorkflowStatusPill workflow={workflow} />
-                  </td>
-                  <td className={tableCellClass}>
-                    {sourceName(workflowPrimarySourceId(workflow))}
-                    <p className={mutedText}>
-                      {workflowIntervalSeconds(workflow) > 0
-                        ? formatInterval(workflowIntervalSeconds(workflow))
-                        : "Event driven"}
-                    </p>
-                  </td>
-                  <td className={tableCellClass}>
-                    <span>{workflow.blocks.length}</span>
-                    <p className={mutedText}>{summarizeBlocks(workflow)}</p>
-                  </td>
-                  <td className={tableCellClass}>
-                    {workflow.lastRunAt ? (
-                      formatLocalTime(workflow.lastRunAt)
-                    ) : (
-                      <span className={mutedText}>Never</span>
-                    )}
-                  </td>
-                  <td className={tableCellClass}>
-                    {workflow.lastHash ? (
-                      <code>{workflow.lastHash}</code>
-                    ) : (
-                      <span className={mutedText}>No hash yet</span>
-                    )}
-                  </td>
-                  <td className={tableCellClass}>
-                    <RowActions>
-                      <IconAction
-                        disabled={busy}
-                        title="Open and edit"
-                        label={`Open and edit ${workflow.name}`}
-                        onClick={() => navigateFlow({ mode: "edit", workflowId: workflow.id })}
-                      >
-                        <Pencil size={16} />
-                      </IconAction>
-                      <IconAction
-                        disabled={busy}
-                        title="Watch workflow"
-                        label={`Watch ${workflow.name}`}
-                        onClick={() => navigateFlow({ mode: "watch", workflowId: workflow.id })}
-                      >
-                        <Eye size={16} />
-                      </IconAction>
-                      <IconAction
-                        disabled={busy || workflow.archived}
-                        title="Run now"
-                        label={`Run ${workflow.name} now`}
-                        onClick={() =>
-                          run(() => runAutomationWorkflow(workflow.id), "Could not run workflow")
+
+        {workflowsLoading ? (
+          <LoadingState
+            title="Fetching your workflows"
+            description="This should take a few seconds."
+          />
+        ) : filteredWorkflows.length === 0 ? (
+          <EmptyContentState
+            icon={workflowFiltersActive ? Inbox : Workflow}
+            title={workflowFiltersActive ? "No matching workflows" : "Build your first workflow"}
+            description={
+              workflowFiltersActive
+                ? "Try another search or filter, or clear filters."
+                : "Start from a trigger block, then chain data, logic, and Integritas stamping blocks."
+            }
+            actionLabel={workflowFiltersActive ? "Clear filters" : "Create new workflow"}
+            actionIcon={workflowFiltersActive ? undefined : <Plus aria-hidden />}
+            actionVariant={workflowFiltersActive ? "secondary" : "primary"}
+            onAction={
+              workflowFiltersActive ? clearWorkflowFilters : () => navigateFlow({ mode: "build" })
+            }
+          />
+        ) : (
+          <TableWrap>
+            <DataTable className="table-fixed">
+              <TableHead>
+                <TableHeaderCell className="w-64">Name</TableHeaderCell>
+                <TableHeaderCell className="w-28">Status</TableHeaderCell>
+                <TableHeaderCell className="w-56">Source</TableHeaderCell>
+                <TableHeaderCell className="w-48">Blocks</TableHeaderCell>
+                <TableHeaderCell className="w-36">Last run</TableHeaderCell>
+                <TableHeaderCell className="w-40">Last hash</TableHeaderCell>
+                <TableHeaderCell className="w-28 whitespace-nowrap">Actions</TableHeaderCell>
+              </TableHead>
+              <TableBody>
+                {pagedWorkflows.map((workflow) => (
+                  <TableRow key={workflow.id}>
+                    <TableCell className="min-w-0">
+                      <strong className="block truncate" title={workflow.name}>
+                        {workflow.name}
+                      </strong>
+                      {workflow.lastError && (
+                        <p
+                          className="type-meta text-text-error mt-detail-next m-0 truncate"
+                          title={workflow.lastError}
+                        >
+                          {workflow.lastError}
+                        </p>
+                      )}
+                      {workflow.archived && (
+                        <p className="type-meta text-text-secondary mt-detail-next m-0">
+                          Archived, does not run until restored.
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Pill
+                        tone={
+                          workflow.archived
+                            ? "neutral"
+                            : workflow.lastError
+                              ? "warn"
+                              : workflow.enabled
+                                ? "good"
+                                : "neutral"
                         }
+                        indicator
                       >
-                        <Play size={16} />
-                      </IconAction>
-                      <IconAction
-                        disabled={busy || workflow.archived}
-                        title={workflow.enabled ? "Pause workflow" : "Enable workflow"}
-                        label={`${workflow.enabled ? "Pause" : "Enable"} ${workflow.name}`}
-                        onClick={() =>
-                          run(
-                            () =>
-                              updateAutomationWorkflow(workflow.id, { enabled: !workflow.enabled }),
-                            workflow.enabled
-                              ? "Could not pause workflow"
-                              : "Could not enable workflow",
-                          )
-                        }
-                      >
-                        <RotateCcw size={16} />
-                      </IconAction>
-                      <IconAction
-                        disabled={busy}
-                        title="Duplicate workflow"
-                        label={`Duplicate ${workflow.name}`}
-                        onClick={() =>
-                          run(
-                            () => duplicateAutomationWorkflow(workflow.id),
-                            "Could not duplicate workflow",
-                          )
-                        }
-                      >
-                        <Copy size={16} />
-                      </IconAction>
-                      <IconAction
-                        disabled={busy}
-                        title={workflow.archived ? "Restore workflow" : "Archive workflow"}
-                        label={`${workflow.archived ? "Restore" : "Archive"} ${workflow.name}`}
-                        onClick={() =>
-                          run(
-                            () =>
-                              updateAutomationWorkflow(workflow.id, {
-                                archived: !workflow.archived,
-                              }),
-                            workflow.archived
-                              ? "Could not restore workflow"
-                              : "Could not archive workflow",
-                          )
-                        }
-                      >
-                        <Archive size={16} />
-                      </IconAction>
-                      <IconAction
-                        danger
-                        disabled={busy}
-                        title="Delete workflow"
-                        label={`Delete workflow ${workflow.name}`}
-                        onClick={() => deleteWorkflow(workflow)}
-                      >
-                        <Trash2 size={16} />
-                      </IconAction>
-                    </RowActions>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </DataTable>
-        </TableWrap>
-        {workflows.length === 0 && <p className={mutedText}>No automation workflows yet.</p>}
-        {workflows.length > 0 && filteredWorkflows.length === 0 && (
-          <p className={mutedText}>No workflows match this filter.</p>
+                        {workflow.archived
+                          ? "Archived"
+                          : workflow.lastError
+                            ? "Error"
+                            : workflow.enabled
+                              ? "Enabled"
+                              : "Paused"}
+                      </Pill>
+                    </TableCell>
+                    <TableCell className="min-w-0">
+                      <span className="block truncate">
+                        {sourceName(workflowPrimarySourceId(workflow))}
+                      </span>
+                      <p className="type-meta text-text-secondary mt-detail-next m-0">
+                        {workflowIntervalSeconds(workflow) > 0
+                          ? formatInterval(workflowIntervalSeconds(workflow))
+                          : "Event driven"}
+                      </p>
+                    </TableCell>
+                    <TableCell className="min-w-0">
+                      <span>{workflow.blocks.length}</span>
+                      <p className="type-meta text-text-secondary mt-detail-next m-0 truncate">
+                        {summarizeBlocks(workflow)}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      {workflow.lastRunAt ? (
+                        formatLocalDateTime(workflow.lastRunAt)
+                      ) : (
+                        <span className="text-text-secondary">Never</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {workflow.lastHash ? (
+                        <TruncatedHash value={workflow.lastHash} />
+                      ) : (
+                        <span className="text-text-secondary">Not read yet</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <RowActions>
+                        <TableIconButton
+                          type="button"
+                          disabled={busy || workflow.archived}
+                          title={workflow.enabled ? "Pause workflow" : "Enable workflow"}
+                          aria-label={`${workflow.enabled ? "Pause" : "Enable"} ${workflow.name}`}
+                          onClick={() =>
+                            run(
+                              () =>
+                                updateAutomationWorkflow(workflow.id, {
+                                  enabled: !workflow.enabled,
+                                }),
+                              workflow.enabled
+                                ? "Could not pause workflow"
+                                : "Could not enable workflow",
+                            )
+                          }
+                        >
+                          {workflow.enabled ? <Pause size={16} /> : <Play size={16} />}
+                        </TableIconButton>
+                        <TableIconMenu
+                          aria-label={`More actions for ${workflow.name}`}
+                          items={[
+                            {
+                              label: "Run now",
+                              disabled: busy || workflow.archived,
+                              onClick: () =>
+                                run(
+                                  () => runAutomationWorkflow(workflow.id),
+                                  "Could not run workflow",
+                                ),
+                            },
+                            {
+                              label: "Open and edit",
+                              disabled: busy,
+                              onClick: () =>
+                                navigateFlow({ mode: "edit", workflowId: workflow.id }),
+                            },
+                            {
+                              label: "Watch workflow",
+                              disabled: busy,
+                              onClick: () =>
+                                navigateFlow({ mode: "watch", workflowId: workflow.id }),
+                            },
+                            {
+                              label: "Duplicate",
+                              disabled: busy,
+                              onClick: () =>
+                                run(
+                                  () => duplicateAutomationWorkflow(workflow.id),
+                                  "Could not duplicate workflow",
+                                ),
+                            },
+                            {
+                              label: workflow.archived ? "Restore" : "Archive",
+                              disabled: busy,
+                              onClick: () =>
+                                run(
+                                  () =>
+                                    updateAutomationWorkflow(workflow.id, {
+                                      archived: !workflow.archived,
+                                    }),
+                                  workflow.archived
+                                    ? "Could not restore workflow"
+                                    : "Could not archive workflow",
+                                ),
+                            },
+                            {
+                              label: "Delete",
+                              danger: true,
+                              disabled: busy,
+                              onClick: () => setDeleteTarget(workflow),
+                            },
+                          ]}
+                        />
+                      </RowActions>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </DataTable>
+          </TableWrap>
         )}
-      </section>
+
+        <ListPaginationFooter
+          page={workflowCurrentPage}
+          pageSize={workflowPageSize}
+          total={filteredWorkflows.length}
+          totalPages={workflowTotalPages}
+          disabled={workflowsLoading}
+          onPageChange={setWorkflowPage}
+          onPageSizeChange={(size) => {
+            setWorkflowPageSize(size);
+            setWorkflowPage(1);
+          }}
+          pageSizeOptions={workflowPageSizeOptions}
+        />
+      </TableCard>
 
       <AutomationInboxPanel
         items={inboxItems}
@@ -674,58 +774,69 @@ function AutomationInboxPanel({
   onMarkRead: (item: AutomationInboxItem, read: boolean) => void;
   onDelete: (item: AutomationInboxItem) => void;
 }) {
+  const unreadCount = items.filter((item) => !item.readAt).length;
+
   return (
-    <section className={cx(cardClass, "grid gap-4")}>
-      <div className={statusRowClass}>
-        <div>
-          <strong>Automation inbox</strong>
-          <p className={mutedText}>
-            Local workflow previews stay here even if no browser was open when the workflow ran.
-          </p>
+    <Card className="gap-detail-close grid w-full">
+      <div>
+        <div className="gap-detail-close flex flex-wrap items-center">
+          <h2 className="type-title text-text-primary m-0">Automation inbox</h2>
+          <Pill tone={unreadCount > 0 ? "warn" : "neutral"} indicator>
+            {unreadCount} unread
+          </Pill>
         </div>
-        <StatusPill status={items.some((item) => !item.readAt) ? "warn" : "neutral"}>
-          {items.filter((item) => !item.readAt).length} unread
-        </StatusPill>
+        <p className="type-body text-text-secondary mt-detail-next m-0">
+          Local workflow previews stay here even if no browser was open when the workflow ran.
+        </p>
       </div>
-      {items.length === 0 && (
-        <p className={mutedText}>No preview items yet. Add a Show preview block to a workflow.</p>
+
+      {items.length === 0 ? (
+        <EmptyContentState
+          icon={Inbox}
+          title="No preview items yet"
+          description="Add a Show preview block to a workflow to see previews here."
+        />
+      ) : (
+        <div className="gap-detail-close grid">
+          {items.map((item) => (
+            <article
+              key={item.id}
+              className="border-stroke-secondary rounded-soft p-margin-tight gap-detail-close grid border"
+            >
+              <div className={statusRowClass}>
+                <div>
+                  <strong className="type-body-em text-text-primary">{item.title}</strong>
+                  <p className={mutedText}>
+                    {item.workflowName} · {item.format} · {formatLocalTime(item.createdAt)}
+                  </p>
+                </div>
+                <div className="gap-detail-next flex flex-wrap items-center">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => onMarkRead(item, !item.readAt)}
+                  >
+                    {item.readAt ? "Mark unread" : "Mark read"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => onDelete(item)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+              <InboxPreview item={item} />
+            </article>
+          ))}
+        </div>
       )}
-      <div className="grid gap-3">
-        {items.map((item) => (
-          <article key={item.id} className={cx(softCardClass, "grid gap-3")}>
-            <div className={statusRowClass}>
-              <div>
-                <strong>{item.title}</strong>
-                <p className={mutedText}>
-                  {item.workflowName} · {item.format} · {formatLocalTime(item.createdAt)}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => onMarkRead(item, !item.readAt)}
-                >
-                  {item.readAt ? "Mark unread" : "Mark read"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="danger"
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => onDelete(item)}
-                >
-                  Delete
-                </Button>
-              </div>
-            </div>
-            <InboxPreview item={item} />
-          </article>
-        ))}
-      </div>
-    </section>
+    </Card>
   );
 }
 
@@ -743,13 +854,9 @@ function InboxPreviewModal({ item }: { item: AutomationInboxItem }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
-        type="button"
-        className="border-0 bg-transparent p-0 text-left font-extrabold text-blue-600 underline"
-        onClick={() => setOpen(true)}
-      >
+      <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(true)}>
         View preview
-      </button>
+      </Button>
       {open && (
         <Modal title={item.title} onClose={() => setOpen(false)}>
           <InboxPreviewContent item={item} />
@@ -760,16 +867,11 @@ function InboxPreviewModal({ item }: { item: AutomationInboxItem }) {
 }
 
 function InboxPreviewContent({ item }: { item: AutomationInboxItem }) {
-  if (item.format === "json")
-    return (
-      <pre className="m-0 overflow-visible rounded-2xl bg-slate-900 p-3.5 text-[0.84rem] [overflow-wrap:anywhere] whitespace-pre-wrap text-blue-100">
-        {JSON.stringify(item.content, null, 2)}
-      </pre>
-    );
+  if (item.format === "json") return <JsonPreviewContent value={item.content} />;
   if (item.format === "link" && typeof item.content === "string")
     return (
       <a
-        className="font-bold text-blue-700 underline"
+        className="type-link text-text-accent hover:text-text-accent-hover transition-colors duration-200"
         href={item.content}
         target="_blank"
         rel="noreferrer"
@@ -783,9 +885,9 @@ function InboxPreviewContent({ item }: { item: AutomationInboxItem }) {
         ? `/api/automation/inbox/${item.id}/image`
         : item.content.value;
     return (
-      <div className="grid gap-3">
+      <div className="gap-detail-close grid">
         <img
-          className="max-h-[72vh] max-w-full rounded-2xl border border-slate-200 object-contain"
+          className="rounded-soft border-stroke-secondary max-h-[72vh] max-w-full border object-contain"
           src={src}
           alt={item.title}
         />
@@ -795,7 +897,11 @@ function InboxPreviewContent({ item }: { item: AutomationInboxItem }) {
       </div>
     );
   }
-  return <p className="text-sm whitespace-pre-wrap text-slate-700">{textPreviewContent(item)}</p>;
+  return (
+    <p className="type-body text-text-primary m-0 whitespace-pre-wrap">
+      {textPreviewContent(item)}
+    </p>
+  );
 }
 
 function isImagePreviewContent(
@@ -849,35 +955,6 @@ function WorkflowStatusPill({ workflow }: { workflow: AutomationWorkflow }) {
         ? "good"
         : "neutral";
   return <StatusPill status={status}>{label}</StatusPill>;
-}
-
-function IconAction({
-  children,
-  title,
-  label,
-  disabled,
-  danger,
-  onClick,
-}: {
-  children: ReactNode;
-  title: string;
-  label: string;
-  disabled?: boolean;
-  danger?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <TableIconButton
-      danger={danger}
-      type="button"
-      disabled={disabled}
-      title={title}
-      aria-label={label}
-      onClick={onClick}
-    >
-      {children}
-    </TableIconButton>
-  );
 }
 
 function Panel({
