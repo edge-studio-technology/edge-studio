@@ -15,6 +15,7 @@ import { DraftBlockInspector } from "./WorkflowBlockInspectors";
 import {
   draftBlockDescription,
   draftBlockTitle,
+  isDataBlock,
   WorkflowBlockLibrary,
   WorkflowCanvas,
   WorkflowWorkspaceShell,
@@ -22,6 +23,8 @@ import {
 } from "./canvas";
 import { createDraftBlock, flattenDraftBlocks, validationIssuesByBlockId } from "./workflowHelpers";
 import {
+  formGridClass,
+  InspectorSection,
   SelectedBlockSheet,
   WorkflowValidationPanel,
   isWorkflowValidationVisible,
@@ -273,12 +276,10 @@ export function CreateWorkflowWorkspace({
               <WorkflowBlockLibrary
                 hasStartBlock={hasStartBlock}
                 selectedStartType={draftBlocks.find((block) => block.type.endsWith("_start"))?.type}
-                blocks={draftBlocks}
                 enableAfterCreate={enabled}
                 onEnableAfterCreateChange={onEnabledChange}
                 onSelectStartBlock={selectStartBlock}
                 onAddBlock={addDraftBlock}
-                onAttachStamp={attachStampBlock}
               />
             </div>
           </aside>
@@ -313,17 +314,38 @@ export function CreateWorkflowWorkspace({
                 </Button>
               }
             >
-              <DraftBlockInspector
-                block={selectedBlock}
-                sources={sources}
-                addressBook={addressBook}
-                walletStatus={walletStatus}
-                onChange={(config) => updateBlock(selectedBlock.id, { config })}
-                onAttachedChange={(attachedId, config) =>
-                  updateAttachedBlock(selectedBlock.id, attachedId, config)
-                }
-                onAttachedRemove={(attachedId) => removeAttachedBlock(selectedBlock.id, attachedId)}
-              />
+              <div className={formGridClass}>
+                <DraftBlockInspector
+                  block={selectedBlock}
+                  sources={sources}
+                  addressBook={addressBook}
+                  walletStatus={walletStatus}
+                  onChange={(config) => updateBlock(selectedBlock.id, { config })}
+                  onAttachedChange={(attachedId, config) =>
+                    updateAttachedBlock(selectedBlock.id, attachedId, config)
+                  }
+                  onAttachedRemove={(attachedId) =>
+                    removeAttachedBlock(selectedBlock.id, attachedId)
+                  }
+                />
+                {isDataBlock(selectedBlock.type) &&
+                !selectedBlock.attachedBlocks?.some(
+                  (attached) => attached.type === "stamp_integritas",
+                ) ? (
+                  <InspectorSection
+                    title="Stamp data"
+                    description="Create an Integritas proof for this block's data."
+                  >
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => attachStampBlock(selectedBlock.id)}
+                    >
+                      Attach stamp
+                    </Button>
+                  </InspectorSection>
+                ) : null}
+              </div>
             </SelectedBlockSheet>
           ) : undefined
         }

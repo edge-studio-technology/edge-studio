@@ -1,14 +1,10 @@
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { Disclosure } from "../../../../components/ui/Disclosure";
-import { Menu } from "../../../../components/ui/Menu";
 import { SwitchField } from "../../../../components/ui/SwitchField";
 import { Tooltip } from "../../../../components/ui/Tooltip";
 import { cx } from "../../../../lib/cx";
 import type { AutomationBlockType } from "../../automationTypes";
-import { draftBlockTitle, isDataBlock } from "./blockPresentation";
-import type { DraftWorkflowBlock } from "./types";
 import { WorkflowRailHeader, WorkflowRailPanel } from "./WorkflowRail";
 
 const libraryCardClass =
@@ -21,26 +17,21 @@ export function WorkflowBlockLibrary({
   mode = "build",
   hasStartBlock,
   selectedStartType,
-  blocks,
   canAddRecordTriggerEvent = true,
   enableAfterCreate,
   onEnableAfterCreateChange,
   onSelectStartBlock,
   onAddBlock,
-  onAttachStamp,
 }: {
   mode?: "build" | "edit";
   hasStartBlock: boolean;
   selectedStartType?: AutomationBlockType;
-  blocks: DraftWorkflowBlock[];
   canAddRecordTriggerEvent?: boolean;
   enableAfterCreate?: boolean;
   onEnableAfterCreateChange?: (value: boolean) => void;
   onSelectStartBlock: (type: AutomationBlockType) => void;
   onAddBlock: (type: AutomationBlockType) => void;
-  onAttachStamp: (parentId: string) => void;
 }) {
-  const [stampPickerOpen, setStampPickerOpen] = useState(false);
   const canAddMainBlock = hasStartBlock;
   const needsStartReason = canAddMainBlock ? undefined : NEEDS_START_REASON;
   const recordTriggerReason = recordTriggerDisabledReason(
@@ -48,34 +39,8 @@ export function WorkflowBlockLibrary({
     canAddRecordTriggerEvent,
     selectedStartType,
   );
-  const stampTargets = blocks.filter(
-    (block) =>
-      isDataBlock(block.type) &&
-      !block.attachedBlocks?.some((attached) => attached.type === "stamp_integritas"),
-  );
-  const stampReason = stampDisabledReason(
-    stampTargets,
-    blocks.some((block) => isDataBlock(block.type)),
-  );
   const showEnableAfterCreate =
     mode === "build" && enableAfterCreate !== undefined && onEnableAfterCreateChange !== undefined;
-
-  useEffect(() => {
-    if (stampTargets.length < 2) setStampPickerOpen(false);
-  }, [stampTargets.length]);
-
-  function attachStamp() {
-    if (stampTargets.length === 1) {
-      onAttachStamp(stampTargets[0].id);
-      return;
-    }
-    if (stampTargets.length >= 2) setStampPickerOpen((open) => !open);
-  }
-
-  function pickStampTarget(parentId: string) {
-    onAttachStamp(parentId);
-    setStampPickerOpen(false);
-  }
 
   return (
     <WorkflowRailPanel>
@@ -203,7 +168,7 @@ export function WorkflowBlockLibrary({
           description="Send funds to a saved recipient."
         />
       </ToolkitGroup>
-      <ToolkitGroup title="Attached actions">
+      {/* <ToolkitGroup title="Attached actions">
         <LibraryCard
           disabled={Boolean(stampReason)}
           disabledReason={stampReason}
@@ -219,7 +184,7 @@ export function WorkflowBlockLibrary({
             }))}
           />
         )}
-      </ToolkitGroup>
+      </ToolkitGroup> */}
     </WorkflowRailPanel>
   );
 }
@@ -241,14 +206,6 @@ function recordTriggerDisabledReason(
   return "Only available for GPIO, webhook, or MQTT starts.";
 }
 
-function stampDisabledReason(
-  stampTargets: DraftWorkflowBlock[],
-  hasAnyDataBlock: boolean,
-): string | undefined {
-  if (stampTargets.length > 0) return undefined;
-  return hasAnyDataBlock ? "All data blocks already have a stamp." : "Add a data block first.";
-}
-
 function ToolkitGroup({
   title,
   children,
@@ -263,7 +220,7 @@ function ToolkitGroup({
       title={title}
       summaryClassName="type-callout"
       defaultOpen={defaultOpen}
-      className="border-stroke-secondary border-b pb-detail-close"
+      className="border-stroke-secondary pb-detail-close border-b"
     >
       {children}
     </Disclosure>

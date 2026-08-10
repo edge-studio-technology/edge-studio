@@ -11,6 +11,7 @@ import { ScrollArea } from "../../../components/ui/ScrollArea";
 import { cx } from "../../../lib/cx";
 import type { AutomationValidationResult, AutomationWorkflow } from "../automationTypes";
 import { groupValidationIssues } from "./workflowHelpers";
+import { Text } from "../../../components/ui/Text";
 
 /** Workspace chrome for Automation page screens (list/create/edit/watch). Not the graph — that lives in `workflow/canvas/`. */
 export const mutedText = "type-body text-text-secondary";
@@ -20,8 +21,7 @@ export const cardClass =
 export const softCardClass =
   "rounded-soft border border-stroke-secondary bg-surface-always-white p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)]";
 export const statusRowClass = "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between";
-export const formGridClass =
-  "grid gap-detail-close [&_label]:grid [&_label]:gap-detail-next [&_label]:type-meta [&_label]:text-text-primary";
+export const formGridClass = "grid gap-detail-close";
 export const inspectorClass =
   "grid content-start gap-detail-close overflow-visible xl:sticky xl:top-margin-tight";
 
@@ -187,12 +187,7 @@ export function WorkflowValidationPanel({
     );
 
   return (
-    <Panel
-      className={cx(
-        "relative grid",
-        status === "issues" && "max-h-[320px] overflow-hidden",
-      )}
-    >
+    <Panel className={cx("relative grid", status === "issues" && "max-h-[320px] overflow-hidden")}>
       <Disclosure
         title={
           <span className="gap-detail-next flex min-w-0 flex-wrap items-center">
@@ -268,10 +263,8 @@ export function SelectedBlockSheet({
       >
         <div className="px-margin-tight pt-margin-tight pb-detail-close gap-detail-close flex items-start justify-between">
           <div className="gap-detail-tight grid">
-            <h2 className="type-title text-text-primary m-0">{title}</h2>
-            {description ? (
-              <p className="type-meta text-text-secondary m-0">{description}</p>
-            ) : null}
+            <Text.Title>{title}</Text.Title>
+            {description ? <Text.Body>{description}</Text.Body> : null}
           </div>
           <IconButton
             type="button"
@@ -312,8 +305,8 @@ export function InspectorSection({
       className={cx("border-stroke-secondary gap-detail-close grid border", className)}
     >
       <div className="gap-detail-tight grid">
-        <h3 className="type-body-em text-text-primary m-0">{title}</h3>
-        {description ? <p className="type-meta text-text-secondary m-0">{description}</p> : null}
+        <Text.Subtitle>{title}</Text.Subtitle>
+        {description ? <Text.Body className="text-text-secondary">{description}</Text.Body> : null}
       </div>
       {children}
     </Card>

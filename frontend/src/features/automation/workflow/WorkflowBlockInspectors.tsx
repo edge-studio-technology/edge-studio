@@ -4,6 +4,7 @@ import { RowActions } from "../../../components/DataTable";
 import { CheckboxField } from "../../../components/ui/CheckboxField";
 import { InputField } from "../../../components/ui/InputField";
 import { SelectField } from "../../../components/ui/SelectField";
+import { SwitchField } from "../../../components/ui/SwitchField";
 import { TextareaField } from "../../../components/ui/TextareaField";
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
@@ -144,69 +145,73 @@ export function DraftBlockInspector({
 
   if (block.type === "fetch_data_source") {
     return (
-      <InspectorSection
-        title="Source"
-        description="Fetch JSON from a readable device/source such as HTTP JSON or a BME sensor."
-        className={formGridClass}
-      >
-        <SelectField
-          label="Readable source"
-          value={block.config.sourceId ?? ""}
-          placeholder="Select source..."
-          options={readableSources.map((source) => ({
-            value: source.id,
-            label: `${source.name} - ${sourceLabel(source)}`,
-          }))}
-          onChange={(event) => onChange({ ...block.config, sourceId: event.target.value })}
-        />
+      <>
+        <InspectorSection
+          title="Source"
+          description="Fetch JSON from a readable device/source such as HTTP JSON or a BME sensor."
+          className={formGridClass}
+        >
+          <SelectField
+            label="Readable source"
+            value={block.config.sourceId ?? ""}
+            placeholder="Select source..."
+            options={readableSources.map((source) => ({
+              value: source.id,
+              label: `${source.name} - ${sourceLabel(source)}`,
+            }))}
+            onChange={(event) => onChange({ ...block.config, sourceId: event.target.value })}
+          />
+        </InspectorSection>
         <AttachedStampSettings
           block={block}
           onAttachedChange={onAttachedChange}
           onAttachedRemove={onAttachedRemove}
         />
-      </InspectorSection>
+      </>
     );
   }
 
   if (block.type === "capture_camera") {
     const selectedCamera = cameraSources.find((source) => source.id === block.config.sourceId);
     return (
-      <InspectorSection
-        title="Camera"
-        description="Capture a photo or video clip from a configured Raspberry Pi Camera. The media bytes are hashed; read history stores capture metadata."
-        className={formGridClass}
-      >
-        <SelectField
-          label="Camera device"
-          value={block.config.sourceId ?? ""}
-          placeholder="Select camera..."
-          options={cameraSources.map((source) => ({
-            value: source.id,
-            label: `${source.name} - ${sourceLabel(source)}`,
-          }))}
-          onChange={(event) => onChange({ ...block.config, sourceId: event.target.value })}
-        />
-        {selectedCamera?.config.mode === "video" && (
-          <InputField
-            label="Capture duration ms"
-            value={String(block.config.durationMs ?? selectedCamera.config.durationMs ?? 5000)}
-            inputMode="numeric"
-            onChange={(event) =>
-              onChange({ ...block.config, durationMs: Number(event.target.value) })
-            }
+      <>
+        <InspectorSection
+          title="Camera"
+          description="Capture a photo or video clip from a configured Raspberry Pi Camera. The media bytes are hashed; read history stores capture metadata."
+          className={formGridClass}
+        >
+          <SelectField
+            label="Camera device"
+            value={block.config.sourceId ?? ""}
+            placeholder="Select camera..."
+            options={cameraSources.map((source) => ({
+              value: source.id,
+              label: `${source.name} - ${sourceLabel(source)}`,
+            }))}
+            onChange={(event) => onChange({ ...block.config, sourceId: event.target.value })}
           />
-        )}
-        {selectedCamera?.config.mode === "photo" && (
-          <p className={mutedText}>
-            Photo captures use the camera device warmup timeout configured on Devices.
-          </p>
-        )}
+          {selectedCamera?.config.mode === "video" && (
+            <InputField
+              label="Capture duration ms"
+              value={String(block.config.durationMs ?? selectedCamera.config.durationMs ?? 5000)}
+              inputMode="numeric"
+              onChange={(event) =>
+                onChange({ ...block.config, durationMs: Number(event.target.value) })
+              }
+            />
+          )}
+          {selectedCamera?.config.mode === "photo" && (
+            <p className={mutedText}>
+              Photo captures use the camera device warmup timeout configured on Devices.
+            </p>
+          )}
+        </InspectorSection>
         <AttachedStampSettings
           block={block}
           onAttachedChange={onAttachedChange}
           onAttachedRemove={onAttachedRemove}
         />
-      </InspectorSection>
+      </>
     );
   }
 
@@ -642,22 +647,20 @@ export function DraftBlockInspector({
     );
   }
 
-  if (
-    isDataBlock(block.type) &&
-    block.attachedBlocks?.some((attached) => attached.type === "stamp_integritas")
-  ) {
+  if (isDataBlock(block.type)) {
     return (
-      <InspectorSection
-        title="Data"
-        description={draftBlockDescription(block, sources)}
-        className={formGridClass}
-      >
+      <>
+        <InspectorSection
+          title="Data"
+          description={draftBlockDescription(block, sources)}
+          className={formGridClass}
+        />
         <AttachedStampSettings
           block={block}
           onAttachedChange={onAttachedChange}
           onAttachedRemove={onAttachedRemove}
         />
-      </InspectorSection>
+      </>
     );
   }
 
@@ -686,11 +689,12 @@ export function AttachedStampSettings({
   return (
     <InspectorSection
       title="Stamp data"
-      description="Create an Integritas proof from this block's produced data."
+      description="An Integritas proof is created from this block's data when the workflow runs."
       className={formGridClass}
     >
-      <CheckboxField
-        label="Only stamp when this block's data matches"
+      <SwitchField
+        label="Only stamp when data matches"
+        description="Compare a field from this block's produced data before creating the proof."
         checked={Boolean(conditionObject)}
         onChange={(event) =>
           onAttachedChange(stamp.id, {
@@ -700,14 +704,11 @@ export function AttachedStampSettings({
           })
         }
       />
-      {conditionObject && (
+      {conditionObject ? (
         <>
-          <p className={mutedText}>
-            The condition checks the data produced by the Record/Fetch block this stamp is attached
-            to.
-          </p>
           <InputField
-            label="This block's data field path"
+            label="Field path"
+            description="Path in this block's data (for example active)."
             value={conditionObject.fieldPath ?? "active"}
             onChange={(event) =>
               onAttachedChange(stamp.id, {
@@ -732,7 +733,7 @@ export function AttachedStampSettings({
               })
             }
           />
-          {!operatorHasNoValue(conditionObject.operator ?? "equals") && (
+          {!operatorHasNoValue(conditionObject.operator ?? "equals") ? (
             <InputField
               label="Compare value"
               value={compareValueInputText(conditionObject.value ?? true)}
@@ -746,11 +747,11 @@ export function AttachedStampSettings({
                 })
               }
             />
-          )}
+          ) : null}
         </>
-      )}
-      <Button type="button" variant="danger" size="sm" onClick={() => onAttachedRemove(stamp.id)}>
-        Remove attached stamp
+      ) : null}
+      <Button type="button" variant="danger" onClick={() => onAttachedRemove(stamp.id)}>
+        Remove stamp
       </Button>
     </InspectorSection>
   );
