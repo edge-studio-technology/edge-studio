@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/Button";
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
@@ -15,7 +15,10 @@ import type {
   AutomationValidationResult,
   AutomationWorkflow,
 } from "../automationTypes";
-import { PersistedBlockInspector } from "./WorkflowBlockInspectors";
+import {
+  PersistedBlockInspector,
+  type PersistedBlockInspectorHandle,
+} from "./WorkflowBlockInspectors";
 import { WatchRunControls, WatchRuntimeInspector, WatchRunHistory } from "./WorkflowWatchUi";
 import {
   automationBlockToCanvasBlock,
@@ -100,6 +103,7 @@ export function WorkflowWorkspace({
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
   const startBlock = mainBlocks[0];
   const [selectedBlockId, setSelectedBlockId] = useState("");
+  const inspectorRef = useRef<PersistedBlockInspectorHandle>(null);
   const selectedBlock = selectedBlockId
     ? mainBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
@@ -159,11 +163,31 @@ export function WorkflowWorkspace({
   }, [initialRunId, mode, runs, selectedRunId]);
 
   async function addBlockFromLibrary(type: AutomationBlockType) {
+    flushSelectedInspector();
     const result = await onAddBlock({
       type,
       config: defaultEditBlockConfig(type, sources, addressBook),
     });
     if (result?.item && !result.item.parentBlockId) setSelectedBlockId(result.item.id);
+  }
+
+  function flushSelectedInspector() {
+    if (mode === "edit") inspectorRef.current?.flush();
+  }
+
+  function closeSelectedSheet() {
+    flushSelectedInspector();
+    setSelectedBlockId("");
+  }
+
+  function selectCanvasBlock(id: string) {
+    const block = mainBlocks.find((item) => item.id === id);
+    if (mode !== "watch" && block?.type === "manual_start") {
+      closeSelectedSheet();
+      return;
+    }
+    if (id !== selectedBlockId) flushSelectedInspector();
+    setSelectedBlockId(id);
   }
 
   const workflowNameDirty = workflowName.trim() !== workflow.name;
@@ -302,21 +326,17 @@ export function WorkflowWorkspace({
           selectedBlockId={selectedBlock?.id ?? ""}
           validationByBlockId={validationByBlockId}
           runtimeByBlockId={runtimeByBlockId}
-          onSelectBlock={(id) => {
-            const block = mainBlocks.find((item) => item.id === id);
-            if (mode !== "watch" && block?.type === "manual_start") {
-              setSelectedBlockId("");
-              return;
-            }
-            setSelectedBlockId(id);
-          }}
+          onSelectBlock={selectCanvasBlock}
           onMoveBlock={(blockId, direction) => {
             const index = mainBlocks.findIndex((block) => block.id === blockId);
             if (index > 0) onReorderBlocks(moveBlock(mainBlocks, index, index + direction));
           }}
           onRemoveBlock={(blockId) => {
             const block = mainBlocks.find((item) => item.id === blockId);
-            if (block && !block.type.endsWith("_start")) onDeleteBlock(block.id);
+            if (block && !block.type.endsWith("_start")) {
+              if (blockId === selectedBlockId) flushSelectedInspector();
+              onDeleteBlock(block.id);
+            }
           }}
         />
       }
@@ -331,9 +351,9 @@ export function WorkflowWorkspace({
                 ? "Latest run details for this block."
                 : draftBlockDescription(selectedBlock, sources)
             }
-            onClose={() => setSelectedBlockId("")}
+            onClose={closeSelectedSheet}
             footer={
-              <Button type="button" size="sm" onClick={() => setSelectedBlockId("")}>
+              <Button type="button" size="sm" onClick={closeSelectedSheet}>
                 Done
               </Button>
             }
@@ -341,6 +361,7 @@ export function WorkflowWorkspace({
             {mode === "edit" ? (
               <PersistedBlockInspector
                 key={selectedBlock.id}
+                ref={inspectorRef}
                 block={selectedBlock}
                 attachedBlocks={workflow.blocks.filter(
                   (item) => item.parentBlockId === selectedBlock.id,
@@ -349,20 +370,6 @@ export function WorkflowWorkspace({
                 addressBook={addressBook}
                 walletStatus={walletStatus}
                 busy={busy}
-                canMoveUp={mainBlocks.findIndex((block) => block.id === selectedBlock.id) > 1}
-                canMoveDown={
-                  mainBlocks.findIndex((block) => block.id === selectedBlock.id) > 0 &&
-                  mainBlocks.findIndex((block) => block.id === selectedBlock.id) <
-                    mainBlocks.length - 1
-                }
-                onMoveUp={() => {
-                  const index = mainBlocks.findIndex((block) => block.id === selectedBlock.id);
-                  onReorderBlocks(moveBlock(mainBlocks, index, index - 1));
-                }}
-                onMoveDown={() => {
-                  const index = mainBlocks.findIndex((block) => block.id === selectedBlock.id);
-                  onReorderBlocks(moveBlock(mainBlocks, index, index + 1));
-                }}
                 onAttachStamp={() =>
                   onAddBlock({
                     type: "stamp_integritas",

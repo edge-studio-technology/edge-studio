@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Button } from "../../../components/Button";
-import { RowActions } from "../../../components/DataTable";
 import { CheckboxField } from "../../../components/ui/CheckboxField";
 import { InputField } from "../../../components/ui/InputField";
 import { SelectField } from "../../../components/ui/SelectField";
@@ -35,14 +34,13 @@ import {
   sourceLabel,
   sourcesForStart,
 } from "./workflowHelpers";
-import {
-  InspectorSection,
-  SaveState,
-  errorText,
-  formGridClass,
-  mutedText,
-} from "./workflowWorkspaceUi";
+import { InspectorSection, errorText, formGridClass, mutedText } from "./workflowWorkspaceUi";
 import { draftBlockDescription, isDataBlock, type DraftWorkflowBlock } from "./canvas";
+
+export type PersistedBlockInspectorHandle = {
+  /** Persist dirty block config before leaving the options sheet. */
+  flush: () => void;
+};
 
 /** Block config inspectors for create/edit workflow workspaces. */
 export function DraftBlockInspector({
@@ -750,48 +748,47 @@ export function AttachedStampSettings({
           ) : null}
         </>
       ) : null}
-      <Button type="button" variant="danger" onClick={() => onAttachedRemove(stamp.id)}>
+      <Button type="button" size="sm" variant="danger" onClick={() => onAttachedRemove(stamp.id)}>
         Remove stamp
       </Button>
     </InspectorSection>
   );
 }
 
-export function PersistedBlockInspector({
-  block,
-  attachedBlocks,
-  sources,
-  addressBook,
-  walletStatus,
-  busy,
-  canMoveUp,
-  canMoveDown,
-  onMoveUp,
-  onMoveDown,
-  onAttachStamp,
-  onUpdate,
-  onUpdateAttached,
-  onDelete,
-  onDeleteAttached,
-}: {
-  block: AutomationBlock;
-  attachedBlocks: AutomationBlock[];
-  sources: DataSource[];
-  addressBook: AddressBookEntry[];
-  walletStatus: WalletStatus | null;
-  busy: boolean;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  onAttachStamp: () => void;
-  onUpdate: (input: Parameters<typeof updateAutomationBlock>[2]) => void;
-  onUpdateAttached: (blockId: string, input: Parameters<typeof updateAutomationBlock>[2]) => void;
-  onDelete: () => void;
-  onDeleteAttached: (blockId: string) => void;
-}) {
+export const PersistedBlockInspector = forwardRef<
+  PersistedBlockInspectorHandle,
+  {
+    block: AutomationBlock;
+    attachedBlocks: AutomationBlock[];
+    sources: DataSource[];
+    addressBook: AddressBookEntry[];
+    walletStatus: WalletStatus | null;
+    busy: boolean;
+    onAttachStamp: () => void;
+    onUpdate: (input: Parameters<typeof updateAutomationBlock>[2]) => void;
+    onUpdateAttached: (blockId: string, input: Parameters<typeof updateAutomationBlock>[2]) => void;
+    onDelete: () => void;
+    onDeleteAttached: (blockId: string) => void;
+  }
+>(function PersistedBlockInspector(
+  {
+    block,
+    attachedBlocks,
+    sources,
+    addressBook,
+    walletStatus,
+    busy,
+    onAttachStamp,
+    onUpdate,
+    onUpdateAttached,
+    onDelete,
+    onDeleteAttached,
+  },
+  ref,
+) {
   const [config, setConfig] = useState(block.config);
-  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [enabled, setEnabled] = useState(block.enabled);
+  const configRef = useRef(config);
   const draftBlock: DraftWorkflowBlock = {
     id: block.id,
     type: block.type,
@@ -803,6 +800,7 @@ export function PersistedBlockInspector({
     })),
   };
   const dirty = JSON.stringify(config) !== JSON.stringify(block.config);
+  const dirtyRef = useRef(dirty);
   const removable = !block.type.endsWith("_start");
   const canAttachStamp =
     isDataBlock(block.type) &&
@@ -810,8 +808,23 @@ export function PersistedBlockInspector({
 
   useEffect(() => {
     setConfig(block.config);
-    setSaveNotice(null);
   }, [block.id, block.config]);
+
+  useEffect(() => {
+    setEnabled(block.enabled);
+  }, [block.id, block.enabled]);
+
+  useEffect(() => {
+    configRef.current = config;
+    dirtyRef.current = dirty;
+  }, [config, dirty]);
+
+  useImperativeHandle(ref, () => ({
+    flush() {
+      if (!dirtyRef.current) return;
+      onUpdate({ config: configRef.current });
+    },
+  }));
 
   return (
     <div className={formGridClass}>
@@ -820,81 +833,50 @@ export function PersistedBlockInspector({
         sources={sources}
         addressBook={addressBook}
         walletStatus={walletStatus}
-        onChange={(nextConfig) => {
-          setConfig(nextConfig);
-          setSaveNotice(null);
-        }}
+        onChange={setConfig}
         onAttachedChange={(attachedId, nextConfig) =>
           onUpdateAttached(attachedId, { config: nextConfig })
         }
         onAttachedRemove={onDeleteAttached}
       />
       {block.lastError && <p className={errorText}>{block.lastError}</p>}
-      <InspectorSection title="Actions">
-        <SaveState dirty={dirty} saved={saveNotice === "Block saved"} />
-        <RowActions>
+      {canAttachStamp ? (
+        <InspectorSection
+          title="Stamp data"
+          description="Create an Integritas proof for this block's data."
+        >
           <Button
             type="button"
             size="sm"
-            disabled={busy || !dirty}
-            onClick={() => {
-              onUpdate({ config });
-              setSaveNotice("Block saved");
-            }}
+            variant="secondary"
+            disabled={busy}
+            onClick={onAttachStamp}
           >
-            Save changes
+            Attach stamp
           </Button>
-          {removable && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={busy || !canMoveUp}
-              onClick={onMoveUp}
-            >
-              Move up
-            </Button>
-          )}
-          {removable && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={busy || !canMoveDown}
-              onClick={onMoveDown}
-            >
-              Move down
-            </Button>
-          )}
-          {removable && canAttachStamp && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={busy}
-              onClick={onAttachStamp}
-            >
-              Attach stamp
-            </Button>
-          )}
-          {removable && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={busy}
-              onClick={() => onUpdate({ enabled: !block.enabled })}
-            >
-              {block.enabled ? "Disable" : "Enable"}
-            </Button>
-          )}
-          {removable && (
-            <Button type="button" variant="danger" size="sm" disabled={busy} onClick={onDelete}>
-              Remove block
-            </Button>
-          )}
-        </RowActions>
-      </InspectorSection>
+        </InspectorSection>
+      ) : null}
+      {removable ? (
+        <InspectorSection
+          title="Block actions"
+          description="Enable or remove this block."
+          className={formGridClass}
+        >
+          <SwitchField
+            label="Enabled"
+            description="Disabled blocks are skipped when the workflow runs."
+            checked={enabled}
+            onChange={(event) => {
+              const nextEnabled = event.target.checked;
+              setEnabled(nextEnabled);
+              onUpdate(dirty ? { config, enabled: nextEnabled } : { enabled: nextEnabled });
+            }}
+          />
+          <Button type="button" size="sm" variant="danger" onClick={onDelete}>
+            Remove block
+          </Button>
+        </InspectorSection>
+      ) : null}
     </div>
   );
-}
+});

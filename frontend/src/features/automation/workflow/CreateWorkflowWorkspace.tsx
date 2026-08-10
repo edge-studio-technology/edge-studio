@@ -89,10 +89,10 @@ export function CreateWorkflowWorkspace({
   const selectedStartType = draftBlocks.find((block) => block.type.endsWith("_start"))?.type;
   const canAddRecordTriggerEvent = Boolean(
     selectedStartType &&
-      (selectedStartType === "gpio_event_start" ||
-        selectedStartType === "webhook_event_start" ||
-        selectedStartType === "mqtt_event_start") &&
-      !draftBlocks.some((block) => block.type === "record_trigger_event"),
+    (selectedStartType === "gpio_event_start" ||
+      selectedStartType === "webhook_event_start" ||
+      selectedStartType === "mqtt_event_start") &&
+    !draftBlocks.some((block) => block.type === "record_trigger_event"),
   );
   const draftValidationByBlockId = validationIssuesByBlockId(backendValidation);
 
@@ -347,6 +347,7 @@ export function CreateWorkflowWorkspace({
                   >
                     <Button
                       type="button"
+                      size="sm"
                       variant="secondary"
                       onClick={() => attachStampBlock(selectedBlock.id)}
                     >
