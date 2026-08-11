@@ -4,6 +4,12 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] refactor/repalce-openssl-with-node
+
+### Fixed
+
+- Frontend Docker image now includes the `es_logo`/brand SVG assets — the build stage previously omitted the `public/` directory, so logos 404'd on Pi installs while working in native dev.
+
 ## [0.34.0] 2026-08-11
 
 ### Added

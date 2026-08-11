@@ -8,6 +8,7 @@ Branch `refactor/repalce-openssl-with-node`. (Previous log entries here were for
 
 - Replaced `install.sh`'s host-`openssl`-dependent Ed25519 manifest signature verification with a check run inside a disposable `node:20-bookworm-slim` container (`scripts/verify-manifest.mjs`), removing the previous silent "verification disabled" fallback on OpenSSL < 3.
 - Merged `main` into this branch to pick up everything released as `0.33.0`/`0.34.0` since this branch diverged.
+- Fixed brand logo assets (`es_logo/`) 404ing on Pi/Docker installs: `frontend/Dockerfile`'s build stage never `COPY`'d the `public/` directory into the build context, so Vite's build output (`dist/`) was missing it in the container image even though it worked in native dev. Added `COPY public ./public`; verified with a real `docker build`/`docker compose build` that `es-logo-white.svg` and siblings now land in `/usr/share/nginx/html/es_logo/`.
 
 ## Next Steps
 
