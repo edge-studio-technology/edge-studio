@@ -12,6 +12,12 @@ import { useStatusOverviewRefresh } from "../features/status/useStatusOverviewRe
 import { useUpdateStatusRefresh } from "../features/update/useUpdateStatusRefresh";
 import { StatusBar, type StatusBarItem } from "./StatusBar";
 
+// Route labels for pages reachable outside the sidebar (`nav`), so the feedback
+// modal's "Current page" card doesn't fall back to a raw path segment.
+const EXTRA_PAGE_LABELS: Record<string, string> = {
+  update: "Software update",
+};
+
 function findService(overview: StatusOverview | null, name: string) {
   return overview?.services.find((service) => service.name === name);
 }
@@ -187,7 +193,7 @@ export function AppShell({
       {feedbackOpen && (
         <FeedbackModal
           pagePath={`${pathname}${search}`}
-          pageLabel={activeItem?.label ?? pathname.slice(1)}
+          pageLabel={activeItem?.label ?? EXTRA_PAGE_LABELS[pathname.slice(1)] ?? pathname.slice(1)}
           onClose={() => setFeedbackOpen(false)}
         />
       )}

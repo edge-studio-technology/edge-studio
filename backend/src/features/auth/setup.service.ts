@@ -11,7 +11,12 @@ import {
   clearSetupPending,
   markSetupPendingVerified
 } from "./auth.repository.js";
-import { adminCredentialValidationError, hashPassword, isValidAdminCredential } from "./password.service.js";
+import {
+  adminCredentialValidationError,
+  getAdminCredentialType,
+  hashPassword,
+  isValidAdminCredential
+} from "./password.service.js";
 import { createSession } from "./session.service.js";
 import { decryptTotpSecret, encryptTotpSecret, generateSecret, getOtpAuthUrl, renderQrPngBase64, verifyToken } from "./totp.service.js";
 
@@ -108,6 +113,7 @@ export async function completeSetup(input: { password: string }) {
   }
 
   const passwordHash = await hashPassword(password);
+  const credentialType = getAdminCredentialType(password);
 
   const complete = db.transaction(() => {
     if (countUsers() > 0) throw new SetupError("Setup is already complete", 403);
@@ -115,7 +121,8 @@ export async function completeSetup(input: { password: string }) {
     const userId = createUser({
       username: LOCAL_ADMIN_USERNAME,
       passwordHash,
-      totpSecretEncrypted
+      totpSecretEncrypted,
+      credentialType
     });
 
     clearSetupPending();
@@ -129,6 +136,6 @@ export async function completeSetup(input: { password: string }) {
 
   return {
     sessionToken,
-    user: { displayName: LOCAL_ADMIN_DISPLAY_NAME, role: "admin" as const }
+    user: { displayName: LOCAL_ADMIN_DISPLAY_NAME, role: "admin" as const, credentialType }
   };
 }

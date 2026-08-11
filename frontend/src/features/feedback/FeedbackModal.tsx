@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { CheckCircle2, Download } from "lucide-react";
+import { CheckCircle2, Download, Info } from "lucide-react";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { Button, LinkButton } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -74,6 +74,7 @@ type FeedbackExportDoc = {
       memory: { totalBytes: number };
       disk: { totalBytes: number } | null;
     };
+    integritasAccount: { userId: string | null };
   };
 };
 
@@ -224,12 +225,17 @@ export function FeedbackModal({
       ) : (
         <form className="gap-detail-close grid" id={FEEDBACK_FORM_ID} onSubmit={submitFeedback}>
           <Disclosure
-            title="What we save with this feedback"
+            title={
+              <span className="gap-detail-tight flex items-center">
+                <Info aria-hidden className="text-icon-secondary size-4 shrink-0" />
+                What we save with this feedback
+              </span>
+            }
             defaultOpen={false}
             className="mx-2 mt-2"
           >
             <DetailList>
-              <DetailRow label="User agent" value={browser.userAgent} />
+              <DetailRow label="Browser / OS" value={browser.userAgent} />
               <DetailRow label="Language" value={browser.language} />
               <DetailRow label="Timezone" value={browser.timezone ?? "Unknown"} />
               <DetailRow
@@ -244,6 +250,11 @@ export function FeedbackModal({
                     ? `${exportDoc.metadata.user.displayName} (${exportDoc.metadata.user.role})`
                     : "—"
                 }
+              />
+              <DetailRow
+                label="Integritas account ID"
+                value={exportDoc?.metadata.integritasAccount?.userId ?? "Not connected"}
+                mono
               />
               <DetailRow label="Device ID" value={exportDoc?.metadata.device.id ?? "—"} mono />
               <DetailRow label="Hostname" value={exportDoc?.metadata.device.hostname ?? "—"} />

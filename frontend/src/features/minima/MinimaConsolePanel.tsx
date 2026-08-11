@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Maximize2, Minimize2, Settings, Trash2 } from "lucide-react";
+import { Info, Maximize2, Minimize2, Settings, Trash2 } from "lucide-react";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { IconButton } from "../../components/ui/Button";
 import { ScrollArea } from "../../components/ui/ScrollArea";
+import { Tooltip } from "../../components/ui/Tooltip";
 import { cx } from "../../lib/cx";
 import { runConsoleCommand } from "./minimaConsoleApi";
 
@@ -199,6 +200,15 @@ export function MinimaConsolePanel({
         placeholder={disabled ? "Unavailable" : "status"}
         className="text-text-inverse placeholder:text-text-tertiary flex-1 bg-transparent outline-none disabled:opacity-55"
       />
+      <Tooltip
+        title="RPC console"
+        body="Type a Minima RPC command and press Enter, e.g. status. Only commands enabled in the whitelist (gear icon) will run."
+        placement="bottom"
+      >
+        <IconButton aria-label="RPC console instructions" size="compact" variant="secondary">
+          <Info />
+        </IconButton>
+      </Tooltip>
       <IconButton
         aria-label="Clear scrollback"
         size="compact"
@@ -250,7 +260,7 @@ export function MinimaConsolePanel({
             <div
               className={cx(
                 shellClass,
-                "mx-auto h-full max-w-5xl shadow-[0_28px_80px_rgba(0,0,0,0.28)]",
+                "h-full w-full shadow-[0_28px_80px_rgba(0,0,0,0.28)]",
               )}
             >
               {promptRow}

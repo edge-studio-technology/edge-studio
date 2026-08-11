@@ -220,6 +220,7 @@ export function runMigrations() {
       last_login TEXT
     )
   `);
+  ensureColumn("users", "credential_type", "TEXT NOT NULL DEFAULT 'password'");
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (

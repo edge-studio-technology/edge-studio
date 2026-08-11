@@ -349,7 +349,7 @@ Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, 
 
 ### Tooltip
 
-Tooltip (`frontend/src/components/ui/Tooltip.tsx`): white bubble with `stroke-secondary` border (and matching beak edges) so it stays visible on light surfaces; placement beak (top / bottom / left / right); title, optional body, optional action row.
+Tooltip (`frontend/src/components/ui/Tooltip.tsx`): dark (default, `surface-inverse-hover` border like the RPC console) or light (`stroke-secondary` border) bubble with matching beak edges so it stays visible on either surface; placement beak (top / bottom / left / right); title, optional body, optional action row.
 
 Pass `children` as the trigger. Without `actions`, opens on hover/focus (tooltip). With `actions`, opens on click and closes on Escape / outside click (toggletip). Positions via portal with basic flip when the preferred side would clip.
 
@@ -360,6 +360,7 @@ Pass `children` as the trigger. Without `actions`, opens on hover/focus (tooltip
 | `body`         | Optional secondary copy under the title (`type-body`)                                           |
 | `actions`      | Optional right-aligned action row (use compact `Button`s, `size="sm"`) — enables toggletip mode |
 | `placement`    | `top` (default) \| `bottom` \| `left` \| `right` — preferred side; may flip to stay on-screen   |
+| `variant`      | `dark` (default) \| `light`                                                                     |
 | `className`    | Merged onto the bubble                                                                          |
 | `open`         | Optional controlled open state                                                                  |
 | `defaultOpen`  | Uncontrolled initial open (default `false`)                                                     |

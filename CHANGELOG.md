@@ -17,6 +17,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automation Send payment inspector no longer blocks configuring an amount above the current wallet balance; recipient/amount required-field checks are unchanged.
 - Automation Send payment shows a note and disables the recipient field when the address book has no contacts.
 
+## [0.34.0] 2026-08-11
+
+### Added
+
+- Feedback submissions now record the connected Integritas Connect account ID (`null` if not connected).
+- Wallet balance info button/modal showing native token details.
+- Dark and light variants for the shared `Tooltip` component.
+- Instructions tooltip on the Minima RPC console.
+- "Download ZIP" action on Integritas history rows, alongside the existing "Download".
+
+### Fixed
+
+- Feedback app version now reads from `update-agent`'s last-applied-manifest record instead of the unused, stale `INTEGRITAS_PI_VERSION` env var (removed). Falls back to "Unknown version" if no manifest has been applied yet, instead of a possibly-stale package.json version.
+- Local admin account now tracks PIN vs password (`credentialType`, returned from `GET /api/auth/me` and login). No UI change yet.
+- Automation run rows: kebab menu no longer disappears when the run's workflow was deleted; "Show on canvas" is disabled instead.
+
+### Changed
+
+- Automation "Workflows" table restyled onto shared ESDS list patterns (filter bar, pagination, loading/empty states, overflow menu with Run now/Open/Watch/Duplicate/Archive/Delete). Delete now uses the confirm-then-progress modal pattern.
+- Automation inbox rebuilt as a table on the same patterns, in a collapsible section (collapsed by default). Row details open in a modal instead of an inline preview; viewing a preview marks it read automatically.
+- "Change PIN or password" panel uses the segmented `PinField` for the new PIN, matching onboarding.
+- `update-agent`'s static update page matches the login page's brand gradient and logo placement.
+- Minima RPC console widened to full page width.
+- StatusBar is now sticky with a border/shadow while scrolling.
+
 ## [0.33.0] 2026-08-11
 
 ### Added

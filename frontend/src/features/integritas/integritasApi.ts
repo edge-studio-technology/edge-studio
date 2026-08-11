@@ -53,3 +53,20 @@ export async function downloadSelected(ids: string[]) {
   link.click();
   URL.revokeObjectURL(url);
 }
+
+export async function downloadProofZip(id: string) {
+  const response = await fetch(`/api/integritas/history/${id}/download-zip`, {
+    credentials: "include"
+  });
+  if (!response.ok) {
+    const parsed = await response.json().catch(() => ({})) as { error?: string };
+    throw new Error(parsed?.error || `HTTP ${response.status}`);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `integritas-proof-${id}.zip`;
+  link.click();
+  URL.revokeObjectURL(url);
+}

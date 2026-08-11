@@ -48,6 +48,7 @@ export function IntegritasHistoryTable({
   onToggleAllVisible,
   onVerify,
   onDownload,
+  onDownloadZip,
   onClearSelection,
   onClearFilters,
   onDeleteSelected,
@@ -64,6 +65,7 @@ export function IntegritasHistoryTable({
   onToggleAllVisible: () => void;
   onVerify: (record: IntegritasProofRecord) => void;
   onDownload: (record: IntegritasProofRecord) => void;
+  onDownloadZip: (record: IntegritasProofRecord) => void;
   onClearSelection: () => void;
   onClearFilters?: () => void;
   onDeleteSelected: () => void;
@@ -264,6 +266,11 @@ export function IntegritasHistoryTable({
                               label: "Download",
                               disabled: busy || !hasPayload,
                               onClick: () => onDownload(record),
+                            },
+                            {
+                              label: "Download ZIP",
+                              disabled: busy || !hasPayload,
+                              onClick: () => onDownloadZip(record),
                             },
                           ]}
                         />
