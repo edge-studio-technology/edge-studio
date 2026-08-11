@@ -137,20 +137,22 @@ function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void
       >
         <Eye size={16} aria-hidden />
       </TableIconButton>
-      {run.workflowId ? (
-        <TableIconMenu
-          aria-label={`More actions for ${label}`}
-          items={[
-            {
-              label: "Show on canvas",
-              onClick: () =>
-                navigate(
-                  `/automation/${encodeURIComponent(run.workflowId!)}/watch/${encodeURIComponent(run.id)}`,
-                ),
+      <TableIconMenu
+        aria-label={`More actions for ${label}`}
+        items={[
+          {
+            label: "Show on canvas",
+            disabled: !run.workflowId,
+            title: run.workflowId ? undefined : "Workflow was deleted",
+            onClick: () => {
+              if (!run.workflowId) return;
+              navigate(
+                `/automation/${encodeURIComponent(run.workflowId)}/watch/${encodeURIComponent(run.id)}`,
+              );
             },
-          ]}
-        />
-      ) : null}
+          },
+        ]}
+      />
     </RowActions>
   );
 }
