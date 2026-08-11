@@ -23,6 +23,7 @@
 
 ## Next
 
+- [ ] On a real device or a local `install.sh` run, confirm end-to-end that `last-applied-manifest.json` gets written and a Feedback submission's `app.version` reflects it (see `docs/adr/0006-app-version-single-source-of-truth.md`).
 - [ ] Manual browser check of the rebuilt Automation "Workflows" table (`AutomationWorkflowsList.tsx`): filter/search, pagination, pause/play, the overflow menu's six actions, and the delete flow now going through confirm → progress modal instead of deleting immediately.
 - [ ] Manual browser check of the rebuilt Automation inbox table (`AutomationInboxTable.tsx`): now full width (previously a bare `<section>` missing `w-full`); filter (All/Unread/Read) + search; the "View preview" modal for each of the four preview formats (text/json/link/image); "Mark read/unread"; and Delete now going through confirm → progress modal instead of deleting immediately.
 - [ ] Manual browser check of the "Send feedback" modal's new "Integritas account ID" disclosure row (`FeedbackModal.tsx`): "Not connected" when unlinked, real account ID once linked via Integritas Connect.
@@ -62,6 +63,7 @@
 
 ## Done
 
+- [x] Made `update-agent` the single source of truth for the app version reported by Feedback submissions: `getAppVersion()` now reads `update-agent`'s own `last-applied-manifest.json` (read-only mount, `/update-agent-state`) instead of the never-synced, drifted `INTEGRITAS_PI_VERSION` env var (now removed). See `docs/adr/0006-app-version-single-source-of-truth.md` — branch `ui/pre-release-improvements`, `npm run check`/backend+frontend build/`docker compose config` verified; not yet verified end-to-end against a real `install.sh` run (see Next).
 - [x] Added a `credential_type` ("pin"/"password") flag to the local admin account (`users` table), set at setup and on every credential change, returned from login and `GET /api/auth/me` — groundwork for a later UI that distinguishes PIN vs password sign-in; no UI change yet — branch `ui/pre-release-improvements`, typecheck/backend+frontend build/`docker compose config` verified.
 - [x] Account settings' "Change PIN or password" panel now uses the shared `PinField` (segmented digit boxes, capped `max-w-md`) for the new PIN and its confirmation, matching the onboarding wizard, instead of a numeric-constrained plain text input. (A broader app-wide pass wiring every "Current PIN or password" re-auth prompt to auto-detect PIN vs password via the flag above was attempted and then reverted at the user's request, pending a better look/feel pass post-v1 — see Next.) — branch `ui/pre-release-improvements`, typecheck/backend+frontend build/`docker compose config`/prettier verified.
 - [x] Added the connected Integritas Connect user account ID (`integritas_auth.integritas_user_id`, `null` if unlinked) to the Feedback system's stored metadata alongside existing local device info, surfaced in the "Send feedback" modal's disclosure — branch `ui/pre-release-improvements`, typecheck/backend+frontend build/`docker compose config` verified, no manual browser check yet (see Next).

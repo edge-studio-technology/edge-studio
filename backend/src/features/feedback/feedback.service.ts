@@ -315,20 +315,24 @@ function buildMetadata(user: SessionUser, createdAt: string, updatedAt: string):
   };
 }
 
-function getAppVersion() {
-  if (process.env.INTEGRITAS_PI_VERSION) return process.env.INTEGRITAS_PI_VERSION;
+// update-agent is the single source of truth for the installed app version:
+// install.sh writes this file at install time from the signed manifest, and
+// update-agent keeps it current after every applied update. Read-only mount,
+// see docker-compose.yml (`UPDATE_AGENT_STATE_DIR` -> `/update-agent-state`).
+const UPDATE_AGENT_STATE_DIR = "/update-agent-state";
 
-  for (const packagePath of [path.resolve(process.cwd(), "package.json"), path.resolve(process.cwd(), "..", "package.json")]) {
-    try {
-      const parsed = JSON.parse(fs.readFileSync(packagePath, "utf8")) as { name?: string; version?: string };
-      if (parsed.name === "integritas-pi" && parsed.version) return parsed.version;
-      if (parsed.version) return parsed.version;
-    } catch {
-      // Keep searching fallback locations.
-    }
+function getAppVersion() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(path.join(UPDATE_AGENT_STATE_DIR, "last-applied-manifest.json"), "utf8")) as { version?: string };
+    if (parsed.version) return parsed.version;
+  } catch {
+    // Not recorded yet — native dev, a from-source build, or update-agent has never
+    // applied/recorded a manifest. Report this plainly rather than falling back to a
+    // package.json version, which would misrepresent an unverified build as a real release
+    // version (backend/package.json's own version, unrelated to the app release version).
   }
 
-  return "unknown";
+  return "Unknown version";
 }
 
 function getFeedbackStats(): FeedbackSubmission["stats"] {

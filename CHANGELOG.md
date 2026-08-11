@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Feedback submissions now also record the connected Integritas Connect account ID (`null` if not connected) alongside the existing local device info, shown in the "Send feedback" modal's "What we save with this feedback" disclosure.
+
+### Fixed
+
+- Feedback submissions' recorded app version now reads from `update-agent`'s own last-applied-manifest record (mounted read-only into the backend container) instead of a separate `INTEGRITAS_PI_VERSION` env var that was never kept in sync and had drifted stale. Removed the unused env var. If that record isn't present (native dev, a from-source build, or `update-agent` has never applied an update), reports "Unknown version" instead of silently falling back to a package.json version, which could misrepresent an unverified build as a real release.
 - Local admin account now tracks whether its credential is a PIN or a password (`credentialType`, set at setup and whenever it's changed, returned from `GET /api/auth/me` and login), so the UI can distinguish PIN vs password sign-in later. No UI change yet.
 
 ### Changed

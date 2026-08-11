@@ -22,7 +22,6 @@ services:
       MINIMA_AUTO_RESYNC: ${MINIMA_AUTO_RESYNC:-false}
       MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES: ${MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES:-30}
       DATABASE_PATH: /data/integritas-pi.db
-      INTEGRITAS_PI_VERSION: ${INTEGRITAS_PI_VERSION:-0.15.0}
       ENABLE_MQTT_BROKER: ${ENABLE_MQTT_BROKER:-false}
       MQTT_PUBLIC_HOST: ${MQTT_PUBLIC_HOST:-}
       MQTT_PUBLIC_PORT: ${MQTT_PUBLIC_PORT:-1883}
@@ -48,6 +47,7 @@ services:
       - ${HOST_FILES_DIR:-/home/pi}:/host-files:ro
       - ${DATA_DIR:-./data}:/data
       - ${MINIMA_DATA_DIR:-./minima}/backups:/minima-backups
+      - ${UPDATE_AGENT_STATE_DIR:-./update-agent-state}:/update-agent-state:ro
       - /var/run/docker.sock:/var/run/docker.sock
     group_add:
       - "${DOCKER_GID:-0}"
