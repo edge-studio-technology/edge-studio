@@ -4,6 +4,7 @@ import path from "node:path";
 import { env } from "../../config/env.js";
 import { db } from "../../db/database.js";
 import type { SessionUser } from "../auth/auth.types.js";
+import { getIntegritasAuth } from "../integritas-auth/integritas-auth.repository.js";
 import { getDeviceInfo } from "../status/device.service.js";
 
 const FEEDBACK_DIR = "feedback";
@@ -82,6 +83,9 @@ type FeedbackDocument = {
       role: string;
     };
     device: ReturnType<typeof getDeviceInfo>;
+    integritasAccount: {
+      userId: string | null;
+    };
   };
   submissions: FeedbackSubmission[];
 };
@@ -304,7 +308,10 @@ function buildMetadata(user: SessionUser, createdAt: string, updatedAt: string):
       displayName: user.displayName,
       role: user.role
     },
-    device: getDeviceInfo()
+    device: getDeviceInfo(),
+    integritasAccount: {
+      userId: getIntegritasAuth()?.integritas_user_id ?? null
+    }
   };
 }
 

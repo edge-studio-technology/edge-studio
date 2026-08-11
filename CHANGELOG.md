@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] ui/pre-release-improvements
 
+### Added
+
+- Feedback submissions now also record the connected Integritas Connect account ID (`null` if not connected) alongside the existing local device info, shown in the "Send feedback" modal's "What we save with this feedback" disclosure.
+
 ### Changed
 
 - Automation page's "Workflows" table restyled onto shared ESDS list patterns (`TableCard`, `ListFilterBar`, `ListPaginationFooter`, `EmptyContentState`, `LoadingState`, `TableIconMenu`, `Pill`, `TruncatedHash`), matching the Devices list. The separate "Workflow builders" card is gone — "Create new workflow" now lives next to the table's filter bar. Row actions collapsed to a primary pause/play button plus an overflow menu (Run now, Open and edit, Watch, Duplicate, Archive/Restore, Delete). Deleting a workflow now shows the same confirm-then-progress modal pattern as device/backup deletion instead of deleting immediately. The table adds pagination and a first-load loading state; "Last run" now shows local date+time instead of time only. Extracted into a new `features/automation/AutomationWorkflowsList.tsx`.
