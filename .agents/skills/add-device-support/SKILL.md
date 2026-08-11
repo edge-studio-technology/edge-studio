@@ -1,6 +1,6 @@
 ---
 name: add-device-support
-description: Use when adding support for a new device, sensor, input source, capture source, output target, or local device helper in Integritas Pi. Guides backend data-source types, frontend device templates/forms/guides, automation integration, docs, security notes, and verification.
+description: Use when adding support for a new device, sensor, input source, capture source, output target, or local device helper in Edge Studio. Guides backend data-source types, frontend device templates/forms/guides, automation integration, docs, security notes, and verification.
 ---
 
 # Add Device Support

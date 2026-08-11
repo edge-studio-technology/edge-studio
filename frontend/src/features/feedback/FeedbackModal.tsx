@@ -1,24 +1,30 @@
-import { useState, type FormEvent } from "react";
-import { Download } from "lucide-react";
-import { Button } from "../../components/Button";
-import { ButtonRow } from "../../components/ButtonRow";
-import { Modal } from "../../components/Modal";
-import { ErrorText, MutedText } from "../../components/Text";
-import { postJson } from "../../lib/api";
+import { useEffect, useState, type FormEvent } from "react";
+import { CheckCircle2, Download } from "lucide-react";
+import { DetailList, DetailRow } from "../../components/patterns/DetailList";
+import { Button, LinkButton } from "../../components/ui/Button";
+import { Card } from "../../components/ui/Card";
+import { Disclosure } from "../../components/ui/Disclosure";
+import { InputField } from "../../components/ui/InputField";
+import { Modal } from "../../components/ui/Modal";
+import { SelectField } from "../../components/ui/SelectField";
+import { TextareaField } from "../../components/ui/TextareaField";
+import { getJson, postJson } from "../../lib/api";
 import { useToast } from "../../components/ToastProvider";
+
+const FEEDBACK_FORM_ID = "feedback-form";
 
 const feedbackTypes = [
   { value: "bug", label: "Bug" },
   { value: "ux_issue", label: "UX issue" },
   { value: "feature_request", label: "Feature request" },
   { value: "question", label: "Question" },
-  { value: "other", label: "Other" }
+  { value: "other", label: "Other" },
 ];
 
 const feedbackAreas = [
   { value: "current_page", label: "Current page" },
   { value: "dashboard", label: "Dashboard" },
-  { value: "node", label: "Minima Core" },
+  { value: "node", label: "Minima" },
   { value: "wallet", label: "Wallet" },
   { value: "integritas", label: "Integritas" },
   { value: "data", label: "Devices" },
@@ -26,27 +32,27 @@ const feedbackAreas = [
   { value: "diagnostics", label: "Diagnostics" },
   { value: "setup_login", label: "Setup / Login" },
   { value: "install_update", label: "Install / Update" },
-  { value: "other", label: "Other" }
+  { value: "other", label: "Other" },
 ];
 
 const bugSeverities = [
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
-  { value: "blocking", label: "Blocking" }
+  { value: "blocking", label: "Blocking" },
 ];
 
 const bugReproducibilities = [
   { value: "always", label: "Always" },
   { value: "sometimes", label: "Sometimes" },
   { value: "once", label: "Once" },
-  { value: "not_sure", label: "Not sure" }
+  { value: "not_sure", label: "Not sure" },
 ];
 
 const featurePriorities = [
   { value: "nice_to_have", label: "Nice to have" },
   { value: "important", label: "Important" },
-  { value: "blocking_workflow", label: "Blocking workflow" }
+  { value: "blocking_workflow", label: "Blocking workflow" },
 ];
 
 type FeedbackSubmitResponse = {
@@ -55,7 +61,37 @@ type FeedbackSubmitResponse = {
   exportUrl: string;
 };
 
-export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: string; pageLabel: string; onClose: () => void }) {
+type FeedbackExportDoc = {
+  metadata: {
+    app: { version: string };
+    user: { id: string; displayName: string; role: string };
+    device: {
+      id: string;
+      hostname: string;
+      platform: string;
+      arch: string;
+      cpuCount: number;
+      memory: { totalBytes: number };
+      disk: { totalBytes: number } | null;
+    };
+  };
+};
+
+function formatBytes(bytes: number) {
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${bytes} B`;
+}
+
+export function FeedbackModal({
+  pagePath,
+  pageLabel,
+  onClose,
+}: {
+  pagePath: string;
+  pageLabel: string;
+  onClose: () => void;
+}) {
   const { showToast } = useToast();
   const [type, setType] = useState("bug");
   const [area, setArea] = useState("current_page");
@@ -69,6 +105,22 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState<FeedbackSubmitResponse | null>(null);
+  const [exportDoc, setExportDoc] = useState<FeedbackExportDoc | null>(null);
+  const browser = useState(getBrowserContext)[0];
+
+  useEffect(() => {
+    let cancelled = false;
+    getJson<FeedbackExportDoc>("/api/feedback/export")
+      .then((result) => {
+        if (!cancelled) setExportDoc(result);
+      })
+      .catch(() => {
+        // Leave exportDoc null; the disclosure rows fall back to "—".
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function submitFeedback(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -86,26 +138,35 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
         area: { id: area, label: feedbackAreas.find((item) => item.value === area)?.label ?? area },
         description: trimmedDescription,
         page: { path: pagePath, label: pageLabel },
-        ...(type === "bug" ? {
-          bug: {
-            severity: bugSeverity,
-            reproducibility: bugReproducibility,
-            expectedBehavior,
-            actualBehavior
-          }
-        } : {}),
-        ...(type === "feature_request" ? {
-          featureRequest: {
-            priority: featurePriority,
-            desiredOutcome
-          }
-        } : {}),
-        browser: getBrowserContext()
+        ...(type === "bug"
+          ? {
+              bug: {
+                severity: bugSeverity,
+                reproducibility: bugReproducibility,
+                expectedBehavior,
+                actualBehavior,
+              },
+            }
+          : {}),
+        ...(type === "feature_request"
+          ? {
+              featureRequest: {
+                priority: featurePriority,
+                desiredOutcome,
+              },
+            }
+          : {}),
+        browser,
       });
       setSaved(result);
-      showToast({ tone: "success", title: "Feedback saved locally", message: "Download the JSON file when you are ready to share it." });
+      showToast({
+        tone: "success",
+        title: "Feedback saved locally",
+        message: "Download the JSON file when you are ready to share it.",
+      });
     } catch (submitError) {
-      const message = submitError instanceof Error ? submitError.message : "Could not save feedback.";
+      const message =
+        submitError instanceof Error ? submitError.message : "Could not save feedback.";
       showToast({ tone: "error", title: "Feedback was not saved", message });
       setError(message);
     } finally {
@@ -114,107 +175,189 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
   }
 
   return (
-    <Modal title="Send feedback" onClose={onClose}>
+    <Modal
+      title="Send feedback"
+      onClose={onClose}
+      footer={
+        saved ? (
+          <>
+            <Button variant="secondary" onClick={onClose}>
+              Close
+            </Button>
+            <LinkButton href={saved.exportUrl} iconStart={<Download aria-hidden />}>
+              Download feedback JSON
+            </LinkButton>
+          </>
+        ) : (
+          <>
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" form={FEEDBACK_FORM_ID} disabled={submitting}>
+              {submitting ? "Saving..." : "Save feedback"}
+            </Button>
+          </>
+        )
+      }
+    >
       {saved ? (
-        <div className="grid gap-4">
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-            <h4 className="m-0 text-base font-extrabold text-emerald-950">Feedback saved locally</h4>
-            <MutedText className="mt-2 text-emerald-800">
-              Your feedback was appended to <code>{saved.fileName}</code>. Download the aggregate JSON file and send it manually to the Integritas team.
-            </MutedText>
+        <div className="gap-detail-close grid">
+          <div className="border-stroke-success bg-surface-always-white rounded-soft relative flex items-start overflow-clip border">
+            <div
+              className="bg-feedback-positive pointer-events-none absolute inset-0 opacity-20"
+              aria-hidden
+            />
+            <div className="gap-detail-close p-margin-tight relative flex min-w-0 flex-1 items-start">
+              <div className="grid size-5 shrink-0 place-items-center">
+                <CheckCircle2 className="text-icon-success" size={20} aria-hidden />
+              </div>
+              <div className="gap-detail-tight grid min-w-0 flex-1">
+                <strong className="type-body-em text-text-primary">Feedback saved locally</strong>
+                <p className="type-body text-text-secondary m-0">
+                  Your feedback was appended to <code className="type-mono">{saved.fileName}</code>.
+                  Download the aggregate JSON file and send it manually to the Integritas team.
+                </p>
+              </div>
+            </div>
           </div>
-          <ButtonRow>
-            <a className="inline-flex w-fit items-center justify-center gap-2 rounded-2xl border border-transparent bg-slate-950 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800" href={saved.exportUrl}>
-              <Download size={16} /> Download feedback JSON
-            </a>
-            <Button variant="secondary" onClick={onClose}>Close</Button>
-          </ButtonRow>
         </div>
       ) : (
-        <form className="grid gap-4" onSubmit={submitFeedback}>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">Current page</p>
-            <p className="m-0 mt-2 font-bold text-slate-950">{pageLabel}</p>
-            <code className="mt-2 block break-all rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">{pagePath}</code>
-          </div>
+        <form className="gap-detail-close grid" id={FEEDBACK_FORM_ID} onSubmit={submitFeedback}>
+          <Disclosure
+            title="What we save with this feedback"
+            defaultOpen={false}
+            className="mx-2 mt-2"
+          >
+            <DetailList>
+              <DetailRow label="User agent" value={browser.userAgent} />
+              <DetailRow label="Language" value={browser.language} />
+              <DetailRow label="Timezone" value={browser.timezone ?? "Unknown"} />
+              <DetailRow
+                label="Viewport"
+                value={`${browser.viewport.width} × ${browser.viewport.height} @ ${browser.viewport.devicePixelRatio}x`}
+              />
+              <DetailRow label="App version" value={exportDoc?.metadata.app.version ?? "—"} />
+              <DetailRow
+                label="Account"
+                value={
+                  exportDoc
+                    ? `${exportDoc.metadata.user.displayName} (${exportDoc.metadata.user.role})`
+                    : "—"
+                }
+              />
+              <DetailRow label="Device ID" value={exportDoc?.metadata.device.id ?? "—"} mono />
+              <DetailRow label="Hostname" value={exportDoc?.metadata.device.hostname ?? "—"} />
+              <DetailRow
+                label="Platform / arch"
+                value={
+                  exportDoc
+                    ? `${exportDoc.metadata.device.platform} / ${exportDoc.metadata.device.arch}`
+                    : "—"
+                }
+              />
+              <DetailRow label="CPU cores" value={exportDoc?.metadata.device.cpuCount ?? "—"} />
+              <DetailRow
+                label="Memory"
+                value={exportDoc ? formatBytes(exportDoc.metadata.device.memory.totalBytes) : "—"}
+              />
+              <DetailRow
+                label="Disk"
+                value={
+                  exportDoc
+                    ? exportDoc.metadata.device.disk
+                      ? formatBytes(exportDoc.metadata.device.disk.totalBytes)
+                      : "Unknown"
+                    : "—"
+                }
+              />
+              <DetailRow
+                label="Not included"
+                value="Passwords, TOTP secrets, session cookies, Integritas API keys, or wallet seed phrases."
+              />
+            </DetailList>
+          </Disclosure>
 
-          <label className="grid gap-2 font-bold text-slate-700">
-            Feedback type
-            <select value={type} onChange={(event) => setType(event.target.value)}>
-              {feedbackTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-            </select>
-          </label>
+          <Card size="Compact" className="border-stroke-secondary gap-detail-tight grid border">
+            <p className="type-meta text-text-secondary m-0">Current page</p>
+            <p className="type-body-em text-text-primary m-0">{pageLabel}</p>
+            <code className="type-mono text-text-secondary bg-surface-primary rounded-loose px-detail-next py-detail-tight block break-all">
+              {pagePath}
+            </code>
+          </Card>
 
-          <label className="grid gap-2 font-bold text-slate-700">
-            What is this about?
-            <select value={area} onChange={(event) => setArea(event.target.value)}>
-              {feedbackAreas.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-            </select>
-          </label>
+          <SelectField
+            label="Feedback type"
+            value={type}
+            onChange={(event) => setType(event.target.value)}
+            options={feedbackTypes}
+          />
+
+          <SelectField
+            label="What is this about?"
+            value={area}
+            onChange={(event) => setArea(event.target.value)}
+            options={feedbackAreas}
+          />
 
           {type === "bug" && (
-            <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="grid gap-3 md:grid-cols-2">
-                <label className="grid gap-2 font-bold text-slate-700">
-                  Severity
-                  <select value={bugSeverity} onChange={(event) => setBugSeverity(event.target.value)}>
-                    {bugSeverities.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
-                </label>
-                <label className="grid gap-2 font-bold text-slate-700">
-                  Reproducibility
-                  <select value={bugReproducibility} onChange={(event) => setBugReproducibility(event.target.value)}>
-                    {bugReproducibilities.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
-                </label>
+            <Card size="Compact" className="border-stroke-secondary gap-detail-close grid border">
+              <div className="gap-detail-close grid sm:grid-cols-2">
+                <SelectField
+                  label="Severity"
+                  value={bugSeverity}
+                  onChange={(event) => setBugSeverity(event.target.value)}
+                  options={bugSeverities}
+                />
+                <SelectField
+                  label="Reproducibility"
+                  value={bugReproducibility}
+                  onChange={(event) => setBugReproducibility(event.target.value)}
+                  options={bugReproducibilities}
+                />
               </div>
-              <label className="grid gap-2 font-bold text-slate-700">
-                Expected behavior
-                <input maxLength={1000} value={expectedBehavior} onChange={(event) => setExpectedBehavior(event.target.value)} placeholder="What did you expect to happen?" />
-              </label>
-              <label className="grid gap-2 font-bold text-slate-700">
-                Actual behavior
-                <input maxLength={1000} value={actualBehavior} onChange={(event) => setActualBehavior(event.target.value)} placeholder="What happened instead?" />
-              </label>
-            </div>
+              <InputField
+                label="Expected behavior"
+                maxLength={1000}
+                value={expectedBehavior}
+                onChange={(event) => setExpectedBehavior(event.target.value)}
+                placeholder="What did you expect to happen?"
+              />
+              <InputField
+                label="Actual behavior"
+                maxLength={1000}
+                value={actualBehavior}
+                onChange={(event) => setActualBehavior(event.target.value)}
+                placeholder="What happened instead?"
+              />
+            </Card>
           )}
 
           {type === "feature_request" && (
-            <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-              <label className="grid gap-2 font-bold text-slate-700">
-                Priority
-                <select value={featurePriority} onChange={(event) => setFeaturePriority(event.target.value)}>
-                  {featurePriorities.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                </select>
-              </label>
-              <label className="grid gap-2 font-bold text-slate-700">
-                Desired outcome
-                <input maxLength={1000} value={desiredOutcome} onChange={(event) => setDesiredOutcome(event.target.value)} placeholder="What should this help you do?" />
-              </label>
-            </div>
+            <Card size="Compact" className="border-stroke-secondary gap-detail-close grid border">
+              <SelectField
+                label="Priority"
+                value={featurePriority}
+                onChange={(event) => setFeaturePriority(event.target.value)}
+                options={featurePriorities}
+              />
+              <InputField
+                label="Desired outcome"
+                maxLength={1000}
+                value={desiredOutcome}
+                onChange={(event) => setDesiredOutcome(event.target.value)}
+                placeholder="What should this help you do?"
+              />
+            </Card>
           )}
 
-          <label className="grid gap-2 font-bold text-slate-700">
-            Description
-            <textarea
-              className="min-h-40 resize-y"
-              maxLength={10000}
-              placeholder="What happened, what did you expect, or what would you like to improve?"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </label>
-
-          <MutedText className="m-0">
-            The local JSON export includes app/device metadata and a small stats snapshot. It does not include passwords, TOTP secrets, session cookies, Integritas API keys, or wallet seed phrases.
-          </MutedText>
-
-          {error && <ErrorText className="m-0">{error}</ErrorText>}
-
-          <ButtonRow>
-            <Button type="submit" disabled={submitting}>{submitting ? "Saving..." : "Save feedback"}</Button>
-            <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          </ButtonRow>
+          <TextareaField
+            label="Description"
+            maxLength={10000}
+            placeholder="What happened, what did you expect, or what would you like to improve?"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            error={error ?? undefined}
+          />
         </form>
       )}
     </Modal>
@@ -230,7 +373,7 @@ function getBrowserContext() {
     viewport: {
       width: window.innerWidth,
       height: window.innerHeight,
-      devicePixelRatio: window.devicePixelRatio
-    }
+      devicePixelRatio: window.devicePixelRatio,
+    },
   };
 }

@@ -252,7 +252,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Integritas Pi sensor helper")
+    parser = argparse.ArgumentParser(description="Edge Studio sensor helper")
     parser.add_argument("--host", default=os.environ.get("SENSOR_HELPER_HOST", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.environ.get("SENSOR_HELPER_PORT", "38181")))
     parser.add_argument("--token", default=os.environ.get("SENSOR_HELPER_TOKEN", ""))

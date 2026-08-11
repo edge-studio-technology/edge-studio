@@ -8,9 +8,9 @@
 
 The Devices page should help operators work with three related but different things:
 
-- Input sources: endpoints, devices, or services that send data/events into Integritas Pi.
+- Input sources: endpoints, devices, or services that send data/events into Edge Studio.
 - Capture sources: local hardware that produces evidence when a workflow asks it to capture, currently Pi Camera.
-- Output targets: endpoints, devices, or services that Integritas Pi can control from workflows.
+- Output targets: endpoints, devices, or services that Edge Studio can control from workflows.
 - Local services: app-provided services or connection details that help devices talk to the Pi app.
 
 MQTT broker support belongs under local services. It does not create a third device category. MQTT input subscriptions and MQTT publish targets remain configured devices; the broker is the transport service they can use.
@@ -73,7 +73,7 @@ LAN URL: mqtt://<pi-host-or-ip>:1883
 Internal URL: mqtt://mqtt:1883
 
 Use the LAN URL for ESP32/sensors/devices on the local network.
-Use the internal URL for Integritas Pi backend MQTT device configs.
+Use the internal URL for Edge Studio backend MQTT device configs.
 
 [Enable broker] [Copy LAN URL] [Copy internal URL]
 ```

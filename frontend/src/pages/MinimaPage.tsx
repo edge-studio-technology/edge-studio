@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
-import { ChevronDown, ChevronRight, Settings } from "lucide-react";
 import type { MinimaNodeStatus } from "../app/types";
-import { Button, IconButton } from "../components/ui/Button";
+import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
+import { Disclosure } from "../components/ui/Disclosure";
 import { Modal } from "../components/ui/Modal";
+import { Pill } from "../components/ui/Pill";
 import { Page } from "../components/patterns/Page";
 import { useToast } from "../components/ToastProvider";
 import {
@@ -186,8 +187,8 @@ export function MinimaPage() {
 
   return (
     <Page
-      title="Run the Minima node"
-      desc="Start, monitor, and manage the Minima Core node running on the Raspberry Pi Edition."
+      title="Minima"
+      desc="Start, monitor, and manage the Minima node running on this device."
     >
       <section className="gap-detail-close grid w-full items-stretch lg:grid-cols-2">
         <MinimaHealthCard
@@ -214,34 +215,26 @@ export function MinimaPage() {
       />
 
       <Card className="gap-detail-close flex w-full flex-col">
-        <div className="gap-detail-next flex items-start justify-between">
-          <button
-            type="button"
-            onClick={() => setConsoleOpen((open) => !open)}
-            aria-expanded={consoleOpen}
-            className="gap-detail-next flex min-w-0 flex-1 items-start border-0 bg-transparent p-0 text-left"
-          >
-            {consoleOpen ? (
-              <ChevronDown size={18} className="text-icon-secondary mt-detail-tight shrink-0" />
-            ) : (
-              <ChevronRight size={18} className="text-icon-secondary mt-detail-tight shrink-0" />
-            )}
+        <Disclosure
+          title={
             <div className="gap-detail-next flex min-w-0 flex-col">
-              <h2 className="type-title text-text-primary m-0">RPC console</h2>
+              <div className="gap-detail-next flex items-center">
+                <h2 className="type-title text-text-primary m-0">RPC console</h2>
+                <Pill>Beta</Pill>
+              </div>
               <p className="type-body text-text-secondary m-0">
                 Run whitelisted Minima RPC commands and see the raw response.
               </p>
             </div>
-          </button>
-          <IconButton
-            aria-label="Edit console command whitelist"
-            variant="secondary"
-            onClick={() => setConsoleWhitelistOpen(true)}
-          >
-            <Settings size={16} />
-          </IconButton>
-        </div>
-        {consoleOpen ? <MinimaConsolePanel disabled={actionsBlocked} /> : null}
+          }
+          open={consoleOpen}
+          onToggle={(event) => setConsoleOpen(event.currentTarget.open)}
+        >
+          <MinimaConsolePanel
+            disabled={actionsBlocked}
+            onEditWhitelist={() => setConsoleWhitelistOpen(true)}
+          />
+        </Disclosure>
       </Card>
 
       {consoleWhitelistOpen ? (

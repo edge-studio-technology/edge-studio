@@ -1,6 +1,6 @@
 import { ButtonRow } from "../../components/ButtonRow";
 import { Button } from "../../components/ui/Button";
-import { FileDropBox } from "./FileDropBox";
+import { FileDropBox } from "../../components/patterns/FileDropBox";
 import { ResultLoadingShell } from "./ResultLoadingShell";
 import { VerifyResult } from "./VerifyResult";
 

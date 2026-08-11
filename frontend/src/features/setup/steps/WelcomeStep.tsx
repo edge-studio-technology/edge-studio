@@ -1,5 +1,4 @@
 import { Link2, LockKeyhole, Shield } from "lucide-react";
-import { APP_NAME } from "../../../app/brand";
 import { Button } from "../../../components/Button";
 import { Card } from "../../../components/Card";
 import { TOTP_ENABLED } from "../../auth/totpEnabled";
@@ -33,8 +32,7 @@ export function WelcomeStep({ onContinue }: { onContinue: () => void }) {
             Setup guide
           </h2>
           <p className="type-body text-text-secondary m-0">
-            {APP_NAME} is a platform used to manage, secure, and monitor your devices. This setup
-            wizard will guide you through the setup process.
+            A few steps to secure this device and connect it to Integritas.
           </p>
         </header>
 

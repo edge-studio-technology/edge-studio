@@ -1,23 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import {
-  ChevronDown,
-  ChevronUp,
-  LogOut,
-  MessageCircle,
-  Minimize2,
-  PanelLeftOpen,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, LogOut, MessageCircle, Minimize2, PanelLeft } from "lucide-react";
 import { nav } from "../app/nav";
 import { cx } from "../lib/cx";
+import { sidebarStartCollapsedSetting } from "../lib/behaviourSettings";
 import { APP_NAME } from "../app/brand";
 import { BrandMark } from "./BrandMark";
 
 /** Below this width the sidebar stays collapsed. */
 const EXPAND_MQ = "(min-width: 1024px)";
-
-/** Roughly 3 nav rows per arrow-button press. */
-const NAV_SCROLL_STEP = 132;
+const NAV_SCROLL_STEP = 96;
 
 function CollapsibleLabel({
   collapsed,
@@ -55,13 +47,17 @@ export function AppShellSidebar({
   version: string | null;
   updateNotice?: ReactNode;
 }) {
+  // Below EXPAND_MQ, narrow viewport space always wins and forces collapsed regardless of the
+  // setting; at/above it, the "start sidebar collapsed" preference decides the default.
   const [collapsed, setCollapsed] = useState(
-    () => typeof window !== "undefined" && !window.matchMedia(EXPAND_MQ).matches,
+    () =>
+      typeof window !== "undefined" &&
+      (!window.matchMedia(EXPAND_MQ).matches || sidebarStartCollapsedSetting.get()),
   );
 
   useEffect(() => {
     const mq = window.matchMedia(EXPAND_MQ);
-    const sync = () => setCollapsed(!mq.matches);
+    const sync = () => setCollapsed(!mq.matches || sidebarStartCollapsedSetting.get());
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
@@ -129,7 +125,7 @@ export function AppShellSidebar({
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {collapsed ? <PanelLeftOpen size={16} /> : <Minimize2 size={16} />}
+            {collapsed ? <PanelLeft size={16} /> : <Minimize2 size={16} />}
           </button>
         </div>
 
@@ -154,7 +150,7 @@ export function AppShellSidebar({
               return (
                 <NavLink
                   key={id}
-                  to={id === "marketplace" ? "/dashboard" : `/${id}`}
+                  to={`/${id}`}
                   title={collapsed ? label : undefined}
                   className={cx(
                     "rounded-loose px-detail-close flex h-[44px] w-full shrink-0 items-center overflow-hidden border transition-[colors,border-color,gap] duration-200",

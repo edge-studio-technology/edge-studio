@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { Disclosure } from "../../components/ui/Disclosure";
-import { Spinner } from "../../components/ui/Spinner";
+import { SpinnerAlt } from "../../components/ui/SpinnerAlt";
 import { fetchChangelog, parseChangelog } from "./changelog";
 import type { ChangelogEntry } from "./changelog";
 
@@ -100,7 +100,7 @@ export function ChangelogPreview() {
   if (!entries) {
     return (
       <div className="gap-detail-next flex items-center">
-        <Spinner size="sm" />
+        <SpinnerAlt size="sm" />
         <span className="type-body text-text-secondary">Loading changelog…</span>
       </div>
     );

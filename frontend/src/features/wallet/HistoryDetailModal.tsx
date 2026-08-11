@@ -1,6 +1,6 @@
 import { CopyableCode } from "../../components/patterns/CopyableCode";
 import { Modal } from "../../components/ui/Modal";
-import { formatAmountAdaptive } from "../../lib/format";
+import { formatMinimaAmount } from "../../lib/format";
 import { formatLocalDateTime } from "../../lib/time";
 import { TokenGlyph } from "./TokenGlyph";
 import type { WalletSendHistoryItem } from "./walletTypes";
@@ -13,7 +13,7 @@ export function HistoryDetailModal({
   item: WalletSendHistoryItem;
   onClose: () => void;
 }) {
-  const amountLabel = formatAmountAdaptive(item.amount);
+  const amountLabel = formatMinimaAmount(item.amount, 12);
 
   return (
     <Modal title="History details" onClose={onClose}>

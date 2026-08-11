@@ -84,7 +84,7 @@ export function IntegritasConnectPanel({
       {kind === "unauthenticated" && (
         <div className="grid gap-4">
           <MutedText className="m-0">
-            This Edge Workbench is not connected to your Integritas Connect account.
+            This Edge Studio is not connected to your Integritas Connect account.
           </MutedText>
           <ButtonRow>
             <Button
@@ -125,7 +125,7 @@ export function IntegritasConnectPanel({
       {status?.status === "connected" && (
         <div className="grid gap-4">
           <MutedText className="m-0 text-xs">
-            To unlink, revoke this Edge Workbench from your Integritas Connect account.
+            To unlink, revoke this Edge Studio from your Integritas Connect account.
           </MutedText>
           {hasConnectedProfile(status) ? (
             <>

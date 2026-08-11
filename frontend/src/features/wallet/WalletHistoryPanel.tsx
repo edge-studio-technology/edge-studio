@@ -12,15 +12,16 @@ import {
   TableWrap,
 } from "../../components/patterns/DataTable";
 import { Button } from "../../components/ui/Button";
-import { LoadingDots } from "../../components/ui/LoadingDots";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
+import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { useToast } from "../../components/ToastProvider";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
-import { formatAmountAdaptive, shortHash } from "../../lib/format";
+import { formatMinimaAmount, shortHash } from "../../lib/format";
 import { formatLocalDateTime } from "../../lib/time";
 import { clearWalletHistoryForDebug } from "./walletApi";
 import { HistoryDetailModal } from "./HistoryDetailModal";
@@ -129,9 +130,8 @@ export function WalletHistoryPanel({
           filter={historyStatus}
           q={historyQuery}
           filterOptions={HISTORY_STATUS_OPTIONS}
-          filterLabel="Status"
           searchPlaceholder="Address, token, or txpow ID"
-          disabled={pagerDisabled}
+          disabled={pagerDisabled || items.length === 0}
           onFilterChange={(status) => {
             setHistoryStatus(status);
             setHistoryPage(1);
@@ -157,7 +157,25 @@ export function WalletHistoryPanel({
             : `${filteredHistory.length} ${filteredHistory.length === 1 ? "send" : "sends"} in history.`}
       </p>
 
-      <div aria-busy={showLoading || undefined}>
+      {showLoading ? (
+        <LoadingState
+          title="Fetching your send history"
+          description="This should take a few seconds."
+        />
+      ) : filteredHistory.length === 0 ? (
+        <EmptyContentState
+          icon={Inbox}
+          title={filtersActive ? "No matching sends" : "No send activity yet"}
+          description={
+            filtersActive
+              ? "Try another status or search, or clear filters."
+              : "Payments you send from this wallet will be added to your history here."
+          }
+          actionLabel={filtersActive ? "Clear filters" : undefined}
+          actionVariant="secondary"
+          onAction={filtersActive ? clearFilters : undefined}
+        />
+      ) : (
         <TableWrap>
           <DataTable aria-label="Send history">
             <TableHead>
@@ -168,97 +186,56 @@ export function WalletHistoryPanel({
               <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
             </TableHead>
             <TableBody>
-              {showLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="p-0">
-                    <div
-                      className="py-pad-relaxed flex items-center justify-center"
-                      aria-busy="true"
-                    >
-                      <LoadingDots />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : filteredHistory.length === 0 ? (
-                <TableRow>
-                  <td colSpan={5} className="p-0">
-                    <div className="gap-detail-close p-margin-tight py-pad-relaxed flex flex-col items-start">
-                      <span
-                        className="bg-surface-secondary text-icon-primary rounded-loose flex size-10 items-center justify-center"
-                        aria-hidden
-                      >
-                        <Inbox size={20} />
-                      </span>
-                      <div className="gap-detail-tight flex flex-col">
-                        <p className="type-body-em text-text-primary m-0">
-                          {filtersActive ? "No matching sends" : "No send activity yet"}
-                        </p>
-                        <p className="type-body text-text-secondary m-0">
-                          {filtersActive
-                            ? "Try another status or search, or clear filters."
-                            : "Payments you send from this wallet will appear here."}
-                        </p>
-                      </div>
-                      {filtersActive ? (
-                        <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
-                          Clear filters
-                        </Button>
-                      ) : null}
-                    </div>
-                  </td>
-                </TableRow>
-              ) : (
-                pagedHistory.map((entry) => {
-                  const amountLabel = formatAmountAdaptive(entry.amount);
-                  const toShort = shortHash(entry.toAddress);
-                  return (
-                    <TableRow key={entry.id}>
-                      <TableCell className="min-w-0">
-                        <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
-                          <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
-                          <span className="gap-detail-tight flex min-w-0 flex-col">
-                            <span className="type-mono text-text-primary truncate tabular-nums">
-                              {amountLabel}
-                            </span>
-                            {/* <span className="type-meta text-text-secondary truncate">
+              {pagedHistory.map((entry) => {
+                const amountLabel = formatMinimaAmount(entry.amount, 12);
+                const toShort = shortHash(entry.toAddress);
+                return (
+                  <TableRow key={entry.id}>
+                    <TableCell className="min-w-0">
+                      <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
+                        <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
+                        <span className="gap-detail-tight flex min-w-0 flex-col">
+                          <span className="type-mono text-text-primary truncate tabular-nums">
+                            {amountLabel}
+                          </span>
+                          {/* <span className="type-meta text-text-secondary truncate">
                             {entry.tokenName}
                           </span> */}
-                          </span>
                         </span>
-                      </TableCell>
-                      <TableCell className="min-w-0">
-                        <TruncatedHash value={entry.toAddress} />
-                      </TableCell>
-                      <TableCell>
-                        <Pill tone={historyStatusTone(entry.status)} indicator>
-                          {historyStatusLabel(entry.status)}
-                        </Pill>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <time className="type-meta text-text-secondary" dateTime={entry.createdAt}>
-                          {formatLocalDateTime(entry.createdAt)}
-                        </time>
-                      </TableCell>
-                      <TableCell className="w-px whitespace-nowrap">
-                        <RowActions>
-                          <TableIconButton
-                            type="button"
-                            title="View details"
-                            aria-label={`View send of ${amountLabel} ${entry.tokenName} to ${toShort}`}
-                            onClick={() => setSelectedHistoryItem(entry)}
-                          >
-                            <Eye size={16} aria-hidden />
-                          </TableIconButton>
-                        </RowActions>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
+                      </span>
+                    </TableCell>
+                    <TableCell className="min-w-0">
+                      <TruncatedHash value={entry.toAddress} />
+                    </TableCell>
+                    <TableCell>
+                      <Pill tone={historyStatusTone(entry.status)} indicator>
+                        {historyStatusLabel(entry.status)}
+                      </Pill>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <time className="type-meta text-text-secondary" dateTime={entry.createdAt}>
+                        {formatLocalDateTime(entry.createdAt)}
+                      </time>
+                    </TableCell>
+                    <TableCell className="w-px whitespace-nowrap">
+                      <RowActions>
+                        <TableIconButton
+                          type="button"
+                          title="View details"
+                          aria-label={`View send of ${amountLabel} ${entry.tokenName} to ${toShort}`}
+                          onClick={() => setSelectedHistoryItem(entry)}
+                        >
+                          <Eye size={16} aria-hidden />
+                        </TableIconButton>
+                      </RowActions>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </DataTable>
         </TableWrap>
-      </div>
+      )}
 
       <ListPaginationFooter
         page={historyCurrentPage}

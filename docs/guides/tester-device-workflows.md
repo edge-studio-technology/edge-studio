@@ -4,7 +4,7 @@ Use this guide to choose a quick end-to-end test. A passing test means the devic
 
 ## Basic Test Process
 
-1. Open Integritas Pi in the browser.
+1. Open Edge Studio in the browser.
 2. Go to `Devices`.
 3. Click `Add device or source`.
 4. Choose the device, source, or target you want to test from the wizard.
@@ -24,7 +24,7 @@ Use this guide to choose a quick end-to-end test. A passing test means the devic
 |---|---|---|
 | `HTTP JSON Source` | Reachable JSON endpoint; no extra Pi hardware | `Manual run` -> `Fetch data source` -> `Show preview`; attach `Stamp data` to `Fetch data source` |
 | `Webhook Receiver` | A PC, phone, or another service that can POST JSON to the Pi webhook URL | `Webhook received` -> `Record trigger event` -> `Show preview`; attach `Stamp data` to `Record trigger event` |
-| `MQTT Subscriber` | MQTT broker, or Integritas Pi local MQTT broker enabled; MQTT publisher on PC, Pi, or ESP32 | `MQTT message received` -> `Record trigger event` -> `Show preview`; attach `Stamp data` to `Record trigger event` |
+| `MQTT Subscriber` | MQTT broker, or Edge Studio local MQTT broker enabled; MQTT publisher on PC, Pi, or ESP32 | `MQTT message received` -> `Record trigger event` -> `Show preview`; attach `Stamp data` to `Record trigger event` |
 | `ESP32 MQTT Board` | ESP32 dev board, USB data cable, Wi-Fi, MQTT broker reachable from the ESP32, Arduino IDE or Arduino CLI for flashing | `MQTT message received` -> `Record trigger event` -> `Show preview`; attach `Stamp data` to `Record trigger event` |
 | `GPIO Input Pin` / `GPIO Button` | Push button or jumper wire; safe 3.3V GPIO wiring | `GPIO input event` -> `Record trigger event` -> `Show preview`; attach `Stamp data` to `Record trigger event` |
 | `PIR Motion Sensor` | HC-SR501-style PIR module, jumper wires, 5V power, GPIO-safe `OUT` signal; warm up for `60-90` seconds | `GPIO input event` -> `Record trigger event` -> `Show preview`; attach `Stamp data` to `Record trigger event` |
@@ -37,7 +37,7 @@ Use this guide to choose a quick end-to-end test. A passing test means the devic
 
 ## Test With A PC
 
-These tests can be driven from a PC browser and PC tools. Integritas Pi can still be running on the Pi, Docker, or another test host, but Pi-only GPIO, I2C, and camera hardware cannot be tested from the PC alone.
+These tests can be driven from a PC browser and PC tools. Edge Studio can still be running on the Pi, Docker, or another test host, but Pi-only GPIO, I2C, and camera hardware cannot be tested from the PC alone.
 
 | Device or source to add | Extra hardware or tool | Simple workflow blocks |
 |---|---|---|

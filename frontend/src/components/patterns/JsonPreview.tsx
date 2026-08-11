@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { cx } from "../../lib/cx";
-import { JsonBlock } from "./JsonBlock";
 
 export function JsonPreview({
   value,

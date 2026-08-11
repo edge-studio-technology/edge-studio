@@ -1,19 +1,24 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
   Copy,
   Database,
+  Download,
   Eye,
   EyeOff,
   Link2,
   LogOut,
+  MessageSquare,
+  MousePointerClick,
+  PanelLeft,
+  RefreshCw,
   RotateCcw,
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
 import type { MinimaNodeState } from "../app/types";
-import { Button } from "../components/Button";
+import { Button, LinkButton } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
@@ -23,10 +28,16 @@ import { SubSection } from "../components/patterns/SubSection";
 import { ErrorText } from "../components/Text";
 import { Disclosure } from "../components/ui/Disclosure";
 import { InputField } from "../components/ui/InputField";
+import { SwitchField } from "../components/ui/SwitchField";
+import {
+  closeModalOnOutsideClickSetting,
+  sidebarStartCollapsedSetting,
+} from "../lib/behaviourSettings";
 import { initTotpReset, verifyTotpReset } from "../features/auth/api";
 import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
 import { useAuth } from "../features/auth/hooks";
+import { FeedbackAuditButton } from "../features/feedback/FeedbackAuditButton";
 import {
   IntegritasConnectPanel,
   statusLabel as integritasStatusLabel,
@@ -125,20 +136,24 @@ export function AuthSettingsPage() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
+  const closeModalOnOutsideClick = useSyncExternalStore(
+    closeModalOnOutsideClickSetting.subscribe,
+    closeModalOnOutsideClickSetting.get,
+  );
+  const sidebarStartCollapsed = useSyncExternalStore(
+    sidebarStartCollapsedSetting.subscribe,
+    sidebarStartCollapsedSetting.get,
+  );
+
   return (
     <Page
       eyebrow="Admin account"
       title="Account settings"
-      desc="Manage your admin credentials, Integritas Connect, and Minima node settings and backups."
+      desc="Manage your admin credentials, Integritas Connect, Minima node settings and backups, and interface preferences."
       action={
-        <ButtonRow>
-          <Button type="button" variant="ghost" onClick={() => void signOut()}>
-            <LogOut size={16} /> Sign out
-          </Button>
-          <Button type="button" onClick={() => navigate("/update")}>
-            Check updates
-          </Button>
-        </ButtonRow>
+        <Button type="button" variant="ghost" onClick={() => void signOut()}>
+          <LogOut size={16} /> Log out
+        </Button>
       }
     >
       <Card className="grid w-full gap-4 divide-y divide-slate-200">
@@ -149,9 +164,34 @@ export function AuthSettingsPage() {
             </span>
           }
           className="pt-4 pb-6"
-          defaultOpen={true}
+          defaultOpen={false}
         >
           <div className="mt-2 grid gap-10">
+            <SubSection
+              icon={<RefreshCw size={13} />}
+              title="Software update"
+              description="Check for and install the latest Edge Studio update."
+            >
+              <ButtonRow>
+                <Button type="button" onClick={() => navigate("/update")}>
+                  Check for updates
+                </Button>
+              </ButtonRow>
+            </SubSection>
+
+            <SubSection
+              icon={<MessageSquare size={13} />}
+              title="Feedback"
+              description="Download the local feedback export file to share with the Integritas team, or view exactly what's stored."
+            >
+              <ButtonRow>
+                <LinkButton href="/api/feedback/export" iconStart={<Download aria-hidden />}>
+                  Export feedback JSON
+                </LinkButton>
+                <FeedbackAuditButton />
+              </ButtonRow>
+            </SubSection>
+
             <ChangeCredentialPanel />
 
             {TOTP_ENABLED ? (
@@ -245,8 +285,8 @@ export function AuthSettingsPage() {
                             </Button>
                           </div>
                           <p className="type-meta text-text-secondary m-0">
-                            Issuer: <strong>Integritas Pi</strong>, Account:{" "}
-                            <strong>Edge Workbench</strong>
+                            Issuer: <strong>Edge Studio</strong>, Account:{" "}
+                            <strong>Edge Studio</strong>
                           </p>
                           <div className="flex gap-2">
                             <Input
@@ -325,15 +365,16 @@ export function AuthSettingsPage() {
           title={
             <span className="flex items-center gap-2">
               <h2 className="type-title text-text-primary m-0">Integritas settings</h2>
-              {integritasKind && (
-                <Pill tone={integritasStatusTone[integritasKind]}>
-                  {integritasStatusLabel[integritasKind]}
-                </Pill>
-              )}
+              <Pill
+                tone={integritasKind ? integritasStatusTone[integritasKind] : "neutral"}
+                indicator
+              >
+                {integritasKind ? integritasStatusLabel[integritasKind] : "Checking…"}
+              </Pill>
             </span>
           }
           className="pt-4 pb-6"
-          defaultOpen={true}
+          defaultOpen={false}
         >
           <div className="mt-2 grid gap-10">
             <SubSection
@@ -350,13 +391,13 @@ export function AuthSettingsPage() {
           title={
             <span className="flex items-center gap-2">
               <h2 className="type-title text-text-primary m-0">Minima settings</h2>
-              <Pill tone={minimaState ? nodeStateTone(minimaState) : "neutral"}>
+              <Pill tone={minimaState ? nodeStateTone(minimaState) : "neutral"} indicator>
                 {minimaState ? formatNodeState(minimaState) : "Checking…"}
               </Pill>
             </span>
           }
           className="pt-4 pb-6"
-          defaultOpen={true}
+          defaultOpen={false}
         >
           <div className="mt-2 grid gap-10">
             <MinimaSettingsPanel bare minimaState={minimaState} />
@@ -375,6 +416,44 @@ export function AuthSettingsPage() {
                 MinimaBackupPanel for v1.5 — see docs/TASKS.md. Left commented, not deleted, for
                 an easy revert. */}
             {/* <WalletSettingsPanel /> */}
+          </div>
+        </Disclosure>
+
+        <Disclosure
+          title={
+            <span className="flex items-center gap-2">
+              <h2 className="type-title text-text-primary m-0">Behaviour settings</h2>
+            </span>
+          }
+          className="pt-4 pb-6"
+          defaultOpen={false}
+        >
+          <div className="mt-2 grid gap-10">
+            <SubSection
+              icon={<MousePointerClick size={13} />}
+              title="Modals"
+              description="Control how modal dialogs respond to clicks outside their content."
+            >
+              <SwitchField
+                label="Close modal when clicking outside it"
+                description="Turn off if you'd rather only close modals with the X button or Escape."
+                checked={closeModalOnOutsideClick}
+                onChange={(e) => closeModalOnOutsideClickSetting.set(e.target.checked)}
+              />
+            </SubSection>
+
+            <SubSection
+              icon={<PanelLeft size={13} />}
+              title="Sidebar"
+              description="Control whether the sidebar starts collapsed or expanded on page load."
+            >
+              <SwitchField
+                label="Start sidebar collapsed"
+                description="Applies on page load at desktop widths. The collapse/expand button still works as normal in between."
+                checked={sidebarStartCollapsed}
+                onChange={(e) => sidebarStartCollapsedSetting.set(e.target.checked)}
+              />
+            </SubSection>
           </div>
         </Disclosure>
 

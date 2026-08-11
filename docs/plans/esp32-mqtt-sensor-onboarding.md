@@ -2,17 +2,17 @@
 
 **Status:** In progress
 **Created:** 2026-07-23  
-**Goal:** Help operators connect ESP32 boards to Integritas Pi workflows by generating MQTT configuration and starter firmware, without making the Pi app responsible for flashing firmware in V1.
+**Goal:** Help operators connect ESP32 boards to Edge Studio workflows by generating MQTT configuration and starter firmware, without making the Pi app responsible for flashing firmware in V1.
 
 ## Summary
 
-Integritas Pi already supports the runtime path needed for ESP32 boards:
+Edge Studio already supports the runtime path needed for ESP32 boards:
 
 ```txt
 ESP32 board
   -> publishes JSON over MQTT
   -> Raspberry Pi local MQTT broker
-  -> Integritas Pi MQTT input source
+  -> Edge Studio MQTT input source
   -> Automation workflow
   -> record / condition / output / stamp
 ```
@@ -102,7 +102,7 @@ If the existing schema should stay minimal, `profile` and `expectedPayload` can 
 
 The important boundary:
 
-- Integritas Pi owns workflow ingestion and generated setup help.
+- Edge Studio owns workflow ingestion and generated setup help.
 - ESP32 firmware owns Wi-Fi, sensor reads, MQTT publish, and reconnect behavior.
 
 ## Firmware Template Scope
@@ -142,7 +142,7 @@ Example payload:
 }
 ```
 
-Note: ESP32 does not have reliable wall-clock time unless the firmware uses NTP. If NTP is not included, use `uptimeMs` instead of `sentAt`, and let Integritas Pi record receipt time.
+Note: ESP32 does not have reliable wall-clock time unless the firmware uses NTP. If NTP is not included, use `uptimeMs` instead of `sentAt`, and let Edge Studio record receipt time.
 
 ## Initial Templates
 
@@ -178,7 +178,7 @@ Document these tradeoffs:
 - Wi-Fi credentials are placed in firmware source if using the generated Arduino sketch.
 - The local MQTT broker currently targets trusted LAN use.
 - Anonymous MQTT broker access is convenient but not production-grade.
-- ESP32 devices should publish JSON only; no arbitrary code or shell execution is involved in Integritas Pi.
+- ESP32 devices should publish JSON only; no arbitrary code or shell execution is involved in Edge Studio.
 - Do not paste secrets into workflow output payloads or public logs.
 
 If broker authentication is added later, update the generator to include username/password placeholders and document secret handling.

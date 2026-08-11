@@ -9,8 +9,9 @@ import type { DataSourceRead } from "../features/data-reads/dataReadTypes";
 import { getHistory } from "../features/integritas/integritasApi";
 import type { IntegritasProofRecord } from "../features/integritas/integritasTypes";
 import { useIntegritasHistoryAutoRefresh } from "../features/integritas/useIntegritasHistoryAutoRefresh";
-import { formatLocalTime } from "../lib/time";
+import { formatLocalDateTime } from "../lib/time";
 import { APP_NAME } from "../app/names";
+import type { Tone } from "../app/types";
 
 type ActivityItem = {
   id: string;
@@ -18,7 +19,7 @@ type ActivityItem = {
   category: string;
   message: string;
   status: string;
-  good: boolean;
+  tone: Tone;
 };
 
 export function DashboardPage() {
@@ -42,7 +43,7 @@ export function DashboardPage() {
   return (
     <Page
       title={`${APP_NAME} dashboard`}
-      desc="Your workspace for trusted data, proofs, automation and value flows at the edge."
+      desc="Node and device status, wallet balance, and recent proof and read activity."
     >
       <DashboardNextAction />
       <DashboardDevices />
@@ -65,10 +66,12 @@ export function DashboardPage() {
                 <p className="type-body-em text-text-primary m-0">{item.category}</p>
                 <p className="type-meta text-text-secondary mt-detail-tight m-0">{item.message}</p>
               </div>
-              <time className="type-mono text-text-secondary">
-                {formatLocalTime(item.createdAt)}
+              <time className="type-meta text-text-secondary" dateTime={item.createdAt}>
+                {formatLocalDateTime(item.createdAt)}
               </time>
-              <Pill tone={item.good ? "good" : "warn"}>{item.status}</Pill>
+              <Pill tone={item.tone} indicator>
+                {item.status}
+              </Pill>
             </article>
           ))}
         </div>
@@ -94,7 +97,7 @@ function buildActivity(proofs: IntegritasProofRecord[], reads: DataSourceRead[])
         : proof.proof_status === "failed"
           ? "Failed"
           : "Pending",
-    good: proof.proof_status !== "failed",
+    tone: proof.proof_status === "ready" ? "good" : proof.proof_status === "failed" ? "error" : "neutral",
   }));
 
   const readItems: ActivityItem[] = reads.map((read) => ({
@@ -112,7 +115,7 @@ function buildActivity(proofs: IntegritasProofRecord[], reads: DataSourceRead[])
               : "Data read log",
     message: `${read.sourceName} ${read.triggerType === "automation" ? "automation poll" : read.triggerType === "mqtt" ? "MQTT message received" : read.triggerType === "webhook" ? "webhook payload received" : read.triggerType === "gpio" ? "GPIO edge detected" : "manual read"}`,
     status: read.status === "success" ? "Success" : "Failed",
-    good: read.status === "success",
+    tone: read.status === "success" ? "good" : "error",
   }));
 
   return [...proofItems, ...readItems]

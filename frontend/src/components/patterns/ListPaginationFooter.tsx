@@ -61,7 +61,8 @@ export function ListPaginationFooter({
       <Pagination
         page={page}
         totalPages={totalPages}
-        onPageChange={disabled ? undefined : onPageChange}
+        disabled={disabled}
+        onPageChange={onPageChange}
       />
     </div>
   );

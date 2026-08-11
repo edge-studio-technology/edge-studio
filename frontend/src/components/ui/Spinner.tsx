@@ -14,7 +14,12 @@ const toneClass: Record<SpinnerTone, string> = {
   secondary: "border-t-icon-secondary",
 };
 
-/** Decorative by design — always pair with adjacent text describing what's loading. */
+/**
+ * @deprecated Use `SpinnerAlt` (radial dash, `components/ui/SpinnerAlt.tsx`) instead.
+ * Kept until remaining call sites migrate.
+ *
+ * Decorative by design — always pair with adjacent text describing what's loading.
+ */
 export function Spinner({
   className,
   size = "md",

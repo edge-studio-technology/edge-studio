@@ -7,6 +7,7 @@ import { NoticeCard } from "./patterns/NoticeCard";
 import { getDebugPing } from "../features/debug/debugApi";
 import { FeedbackModal } from "../features/feedback/FeedbackModal";
 import { AppShellSidebar } from "./AppShellSidebar";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { useStatusOverviewRefresh } from "../features/status/useStatusOverviewRefresh";
 import { useUpdateStatusRefresh } from "../features/update/useUpdateStatusRefresh";
 import { StatusBar, type StatusBarItem } from "./StatusBar";
@@ -176,9 +177,11 @@ export function AppShell({
           }
         />
 
-        <main className="relative z-0 min-w-0 flex-1">
+        <main className="relative z-0 flex min-w-0 flex-1 flex-col">
           {!fullBleed && <StatusBar items={statusItems} />}
-          {children}
+          <div className="min-h-0 flex-1">
+            <ErrorBoundary key={pathname}>{children}</ErrorBoundary>
+          </div>
         </main>
       </div>
       {feedbackOpen && (

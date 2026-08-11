@@ -20,10 +20,7 @@ export function HealthErrorPanel({ status }: { status: DataSourceHealthStatus })
           <DetailRow label="Checked at" value={formatLocalDateTime(status.checkedAt)} />
         )}
       </DetailList>
-      <section className="gap-detail-tight grid">
-        <span className="type-meta text-text-secondary">Raw</span>
-        <JsonPreviewContent value={status.body !== undefined ? status.body : status} />
-      </section>
+      <JsonPreviewContent value={status.body !== undefined ? status.body : status} />
     </div>
   );
 }

@@ -220,7 +220,10 @@ export function AutomationPage() {
       );
   }
 
-  async function run<T>(action: () => Promise<T>, errorTitle = "Action failed"): Promise<T | undefined> {
+  async function run<T>(
+    action: () => Promise<T>,
+    errorTitle = "Action failed",
+  ): Promise<T | undefined> {
     setBusy(true);
     try {
       const result = await action();
@@ -416,8 +419,7 @@ export function AutomationPage() {
 
   return (
     <Page
-      eyebrow="Automation"
-      title="Block automation workspace"
+      title="Automation"
       desc="Build workflows from small start, data, logic, and Integritas blocks."
     >
       <section className={cardClass}>

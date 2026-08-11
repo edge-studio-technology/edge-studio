@@ -7,7 +7,7 @@ import { cx } from "../../../lib/cx";
 import { OnboardingCard } from "../components/OnboardingCard";
 import type { CheckState, OnboardingFormState } from "../types";
 
-const TOTP_ACCOUNT_LABEL = "Edge Workbench";
+const TOTP_ACCOUNT_LABEL = "Edge Studio";
 
 type PillTone = "neutral" | "good" | "warn";
 
@@ -109,7 +109,7 @@ export function TwoFactorStep({
                   </Button>
                 </div>
                 <p className="text-sm font-medium text-slate-500">
-                  Use issuer <strong>Integritas Pi</strong> and account{" "}
+                  Use issuer <strong>Edge Studio</strong> and account{" "}
                   <strong>{TOTP_ACCOUNT_LABEL}</strong> if your app asks for them.
                 </p>
                 <div className="flex flex-wrap items-stretch gap-2">

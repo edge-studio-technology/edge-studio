@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, Inbox } from "lucide-react";
+import { Eye, Inbox, Plus, UserPlus } from "lucide-react";
 import {
   DataTable,
   RowActions,
@@ -12,14 +12,15 @@ import {
   TableRow,
   TableWrap,
 } from "../../components/DataTable";
-import { ButtonRow } from "../../components/patterns/ButtonRow";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
+import { DeleteConfirmModal, DeleteProgressModal } from "../../components/patterns/DeleteConfirmModal";
+import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { Button } from "../../components/ui/Button";
 import { InputField } from "../../components/ui/InputField";
-import { LoadingDots } from "../../components/ui/LoadingDots";
 import { Modal } from "../../components/ui/Modal";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { useToast } from "../../components/ToastProvider";
@@ -56,10 +57,10 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
   const [addOpen, setAddOpen] = useState(false);
-  const [entryAction, setEntryAction] = useState<{
-    entry: AddressBookEntry;
-    mode: "view" | "edit" | "delete";
-  } | null>(null);
+  const [viewEntry, setViewEntry] = useState<AddressBookEntry | null>(null);
+  const [editEntry, setEditEntry] = useState<AddressBookEntry | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AddressBookEntry | null>(null);
+  const [deletingEntry, setDeletingEntry] = useState<AddressBookEntry | null>(null);
 
   useEffect(() => {
     listAddressBookEntries()
@@ -92,6 +93,26 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
     setPage(1);
   }
 
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    setDeletingEntry(target);
+    try {
+      await deleteAddressBookEntry(target.id);
+      setEntries((prev) => prev.filter((e) => e.id !== target.id));
+      showToast({ tone: "success", title: "Contact deleted" });
+    } catch (err) {
+      showToast({
+        tone: "error",
+        title: "Delete failed",
+        message: err instanceof Error ? err.message : "Could not delete.",
+      });
+    } finally {
+      setDeletingEntry(null);
+    }
+  }
+
   return (
     <div className="gap-detail-close flex flex-col">
       <div className="gap-detail-close flex flex-wrap items-end justify-between">
@@ -99,7 +120,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
           <ListFilterBar
             q={query}
             searchPlaceholder="Name, address, or notes"
-            disabled={isLoading}
+            disabled={isLoading || entries.length === 0}
             onQueryChange={(q) => {
               setQuery(q);
               setPage(1);
@@ -108,12 +129,11 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         </div>
         <Button
           type="button"
-          variant="secondary"
-          size="sm"
+          iconStart={<Plus aria-hidden />}
           onClick={() => setAddOpen(true)}
           disabled={actionsBlocked}
         >
-          Add contact
+          New contact
         </Button>
       </div>
 
@@ -123,63 +143,37 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         </ErrorAlert>
       ) : null}
 
-      <TableWrap>
-        <DataTable aria-label="Address book">
-          <TableHead>
-            <TableHeaderCell>Name</TableHeaderCell>
-            <TableHeaderCell>Address</TableHeaderCell>
-            <TableHeaderCell>Notes</TableHeaderCell>
-            <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-          </TableHead>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={4} className="p-0">
-                  <div className="py-pad-relaxed flex items-center justify-center" aria-busy="true">
-                    <LoadingDots />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : filteredEntries.length === 0 ? (
-              <TableRow>
-                <td colSpan={4} className="p-0">
-                  <div className="gap-detail-close p-margin-tight py-pad-relaxed flex flex-col items-start">
-                    <span
-                      className="bg-surface-secondary text-icon-primary rounded-loose flex size-10 items-center justify-center"
-                      aria-hidden
-                    >
-                      <Inbox size={20} />
-                    </span>
-                    <div className="gap-detail-tight flex flex-col">
-                      <p className="type-body-em text-text-primary m-0">
-                        {filtersActive ? "No matching contacts" : "No contacts saved yet"}
-                      </p>
-                      <p className="type-body text-text-secondary m-0">
-                        {filtersActive
-                          ? "Try another search, or clear filters."
-                          : "Save recipients here to pick them when sending payments."}
-                      </p>
-                    </div>
-                    {filtersActive ? (
-                      <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
-                        Clear filters
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setAddOpen(true)}
-                        disabled={actionsBlocked}
-                      >
-                        Add contact
-                      </Button>
-                    )}
-                  </div>
-                </td>
-              </TableRow>
-            ) : (
-              pagedEntries.map((entry) => (
+      {isLoading ? (
+        <LoadingState
+          title="Fetching your contacts"
+          description="This should take a few seconds."
+        />
+      ) : filteredEntries.length === 0 ? (
+        <EmptyContentState
+          icon={filtersActive ? Inbox : UserPlus}
+          title={filtersActive ? "No matching contacts" : "Save your first contact"}
+          description={
+            filtersActive
+              ? "Try another search, or clear filters."
+              : "Your saved recipients will be added to your address book here."
+          }
+          actionLabel={filtersActive ? "Clear filters" : "New contact"}
+          actionIcon={filtersActive ? undefined : <Plus aria-hidden />}
+          actionVariant={filtersActive ? "secondary" : "primary"}
+          actionDisabled={!filtersActive && actionsBlocked}
+          onAction={filtersActive ? clearFilters : () => setAddOpen(true)}
+        />
+      ) : (
+        <TableWrap>
+          <DataTable aria-label="Address book">
+            <TableHead>
+              <TableHeaderCell className="w-72">Name</TableHeaderCell>
+              <TableHeaderCell className="w-40">Address</TableHeaderCell>
+              <TableHeaderCell>Notes</TableHeaderCell>
+              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+            </TableHead>
+            <TableBody>
+              {pagedEntries.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell className="min-w-0">
                     <span className="type-body-em text-text-primary truncate">{entry.label}</span>
@@ -198,7 +192,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
                         type="button"
                         title="View contact"
                         aria-label={`View ${entry.label}`}
-                        onClick={() => setEntryAction({ entry, mode: "view" })}
+                        onClick={() => setViewEntry(entry)}
                       >
                         <Eye size={16} aria-hidden />
                       </TableIconButton>
@@ -207,23 +201,23 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
                         items={[
                           {
                             label: "Edit",
-                            onClick: () => setEntryAction({ entry, mode: "edit" }),
+                            onClick: () => setEditEntry(entry),
                           },
                           {
                             label: "Remove",
                             danger: true,
-                            onClick: () => setEntryAction({ entry, mode: "delete" }),
+                            onClick: () => setDeleteTarget(entry),
                           },
                         ]}
                       />
                     </RowActions>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </DataTable>
-      </TableWrap>
+              ))}
+            </TableBody>
+          </DataTable>
+        </TableWrap>
+      )}
 
       <ListPaginationFooter
         page={currentPage}
@@ -240,134 +234,64 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
       />
 
       {addOpen ? (
-        <Modal
-          title="Add contact"
-          description="Save a recipient for future sends."
-          onClose={() => setAddOpen(false)}
-        >
-          <AddContactForm
-            onSave={async (data) => {
-              const entry = await createAddressBookEntry(data);
-              upsertEntry(entry);
-              setAddOpen(false);
-              showToast({ tone: "success", title: "Contact added" });
-            }}
-            onCancel={() => setAddOpen(false)}
-          />
-        </Modal>
-      ) : null}
-
-      {entryAction ? (
-        <ContactDetailModal
-          entry={entryAction.entry}
-          initialMode={entryAction.mode}
-          onClose={() => setEntryAction(null)}
+        <AddContactForm
           onSave={async (data) => {
-            const updated = await updateAddressBookEntry(entryAction.entry.id, data);
-            upsertEntry(updated);
-            setEntryAction({ entry: updated, mode: "view" });
-            showToast({ tone: "success", title: "Contact updated" });
+            const entry = await createAddressBookEntry(data);
+            upsertEntry(entry);
+            setAddOpen(false);
+            showToast({ tone: "success", title: "Contact added" });
           }}
-          onDelete={async () => {
-            try {
-              await deleteAddressBookEntry(entryAction.entry.id);
-              setEntries((prev) => prev.filter((e) => e.id !== entryAction.entry.id));
-              setEntryAction(null);
-              showToast({ tone: "success", title: "Contact deleted" });
-            } catch (err) {
-              showToast({
-                tone: "error",
-                title: "Delete failed",
-                message: err instanceof Error ? err.message : "Could not delete.",
-              });
-              throw err;
-            }
-          }}
+          onCancel={() => setAddOpen(false)}
         />
       ) : null}
+
+      {viewEntry ? (
+        <ContactDetailModal entry={viewEntry} onClose={() => setViewEntry(null)} />
+      ) : null}
+
+      {editEntry ? (
+        <EditContactForm
+          entry={editEntry}
+          onSave={async (data) => {
+            const updated = await updateAddressBookEntry(editEntry.id, data);
+            upsertEntry(updated);
+            setEditEntry(null);
+            showToast({ tone: "success", title: "Contact updated" });
+          }}
+          onCancel={() => setEditEntry(null)}
+        />
+      ) : null}
+
+      {deletingEntry && (
+        <DeleteProgressModal
+          title="Deleting contact"
+          description={`Removing ${deletingEntry.label}.`}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteConfirmModal
+          title="Delete contact"
+          itemLabel={deleteTarget.label}
+          confirmLabel="Delete contact"
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => void confirmDelete()}
+        />
+      )}
     </div>
   );
 }
 
 function ContactDetailModal({
   entry,
-  initialMode = "view",
   onClose,
-  onSave,
-  onDelete,
 }: {
   entry: AddressBookEntry;
-  initialMode?: "view" | "edit" | "delete";
   onClose: () => void;
-  onSave: (data: UpdateAddressBookEntryInput) => Promise<void>;
-  onDelete: () => Promise<void>;
 }) {
-  const [mode, setMode] = useState<"view" | "edit" | "delete">(initialMode);
-  const [deleting, setDeleting] = useState(false);
-
-  async function handleDelete() {
-    setDeleting(true);
-    try {
-      await onDelete();
-    } catch {
-      setDeleting(false);
-    }
-  }
-
-  if (mode === "edit") {
-    return (
-      <Modal title="Edit contact" onClose={onClose}>
-        <EditContactForm
-          entry={entry}
-          onSave={async (data) => {
-            await onSave(data);
-            setMode("view");
-          }}
-          onCancel={() => setMode("view")}
-        />
-      </Modal>
-    );
-  }
-
   return (
-    <Modal
-      title={entry.label}
-      description="Saved recipient details."
-      onClose={onClose}
-      footer={
-        mode === "delete" ? (
-          <ButtonRow className="justify-end">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setMode("view")}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button type="button" variant="danger" onClick={handleDelete} disabled={deleting}>
-              {deleting ? "Deleting…" : "Delete"}
-            </Button>
-          </ButtonRow>
-        ) : (
-          <ButtonRow className="justify-end">
-            <Button type="button" variant="secondary" onClick={() => setMode("edit")}>
-              Edit
-            </Button>
-            <Button type="button" variant="danger" onClick={() => setMode("delete")}>
-              Delete
-            </Button>
-          </ButtonRow>
-        )
-      }
-    >
+    <Modal title={entry.label} description="Saved recipient details." onClose={onClose}>
       <div className="gap-detail-close grid">
-        {mode === "delete" ? (
-          <ErrorAlert status="warning" title="Delete this contact?" className="w-full max-w-none">
-            Remove <span className="type-body-em">{entry.label}</span>? This cannot be undone.
-          </ErrorAlert>
-        ) : null}
-
         <section className="gap-detail-next flex flex-col" aria-labelledby="contact-address-label">
           <p className="type-meta text-text-secondary m-0" id="contact-address-label">
             Address
@@ -436,51 +360,61 @@ function AddContactForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="gap-detail-close grid">
-      <div className="gap-detail-close grid sm:grid-cols-2">
+    <Modal
+      title="New contact"
+      description="Save a recipient for future sends."
+      bodyClassName="min-h-0 flex-1"
+      onClose={onCancel}
+      closeDisabled={submitting}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button type="submit" form="add-contact-form" disabled={submitting}>
+            {submitting ? "Saving…" : "Add contact"}
+          </Button>
+        </>
+      }
+    >
+      <form id="add-contact-form" onSubmit={handleSubmit} className="gap-detail-close grid">
+        <div className="gap-detail-close grid sm:grid-cols-2">
+          <InputField
+            label="Label"
+            description="The label of the contact"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Alice"
+            maxLength={80}
+            autoFocus
+            disabled={submitting}
+          />
+          <InputField
+            label="Address"
+            description="The Minima address for the contact"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Mx… or 0x…"
+            autoComplete="off"
+            spellCheck={false}
+            disabled={submitting}
+          />
+        </div>
         <InputField
-          label="Label"
-          description="The label of the contact"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="e.g. Alice"
-          maxLength={80}
-          autoFocus
+          label="Notes"
+          description="Optional note"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="e.g. Alice's main wallet"
           disabled={submitting}
         />
-        <InputField
-          label="Address"
-          description="The Minima address for the contact"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="Mx… or 0x…"
-          autoComplete="off"
-          spellCheck={false}
-          disabled={submitting}
-        />
-      </div>
-      <InputField
-        label="Notes"
-        description="Optional note"
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        placeholder="e.g. Alice's main wallet"
-        disabled={submitting}
-      />
-      {formError ? (
-        <ErrorAlert title="Couldn't save contact" className="w-full max-w-none">
-          {formError}
-        </ErrorAlert>
-      ) : null}
-      <ButtonRow className="justify-end">
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? "Saving…" : "Add contact"}
-        </Button>
-      </ButtonRow>
-    </form>
+        {formError ? (
+          <ErrorAlert title="Couldn't save contact" className="w-full max-w-none">
+            {formError}
+          </ErrorAlert>
+        ) : null}
+      </form>
+    </Modal>
   );
 }
 
@@ -494,6 +428,7 @@ function EditContactForm({
   onCancel: () => void;
 }) {
   const [label, setLabel] = useState(entry.label);
+  const [address, setAddress] = useState(entry.address);
   const [notes, setNotes] = useState(entry.notes ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -501,6 +436,7 @@ function EditContactForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimLabel = label.trim();
+    const trimAddress = address.trim();
     if (!trimLabel) {
       setFormError("Label is required.");
       return;
@@ -509,10 +445,18 @@ function EditContactForm({
       setFormError("Label must be 80 characters or fewer.");
       return;
     }
+    if (!trimAddress) {
+      setFormError("Address is required.");
+      return;
+    }
+    if (!/^(Mx|0x)/i.test(trimAddress)) {
+      setFormError("Address must start with Mx or 0x.");
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
     try {
-      await onSave({ label: trimLabel, notes: notes.trim() || null });
+      await onSave({ label: trimLabel, address: trimAddress, notes: notes.trim() || null });
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Could not update contact.");
       setSubmitting(false);
@@ -520,26 +464,44 @@ function EditContactForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="gap-detail-close grid">
-      <section
-        className="gap-detail-next flex flex-col"
-        aria-labelledby="edit-contact-address-label"
-      >
-        <p className="type-meta text-text-secondary m-0" id="edit-contact-address-label">
-          Address
-        </p>
-        <CopyableCode value={entry.address} />
-      </section>
-      <div className="gap-detail-close grid sm:grid-cols-2">
-        <InputField
-          label="Label"
-          description="Name of the contact"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          maxLength={80}
-          autoFocus
-          disabled={submitting}
-        />
+    <Modal
+      title="Edit contact"
+      onClose={onCancel}
+      closeDisabled={submitting}
+      bodyClassName="min-h-0 flex-1"
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button type="submit" form="edit-contact-form" disabled={submitting}>
+            {submitting ? "Saving…" : "Save changes"}
+          </Button>
+        </>
+      }
+    >
+      <form id="edit-contact-form" onSubmit={handleSubmit} className="gap-detail-close grid">
+        <div className="gap-detail-close grid sm:grid-cols-2">
+          <InputField
+            label="Label"
+            description="Name of the contact"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            maxLength={80}
+            autoFocus
+            disabled={submitting}
+          />
+          <InputField
+            label="Address"
+            description="The Minima address for the contact"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Mx… or 0x…"
+            autoComplete="off"
+            spellCheck={false}
+            disabled={submitting}
+          />
+        </div>
         <InputField
           label="Notes"
           description="Optional note"
@@ -548,20 +510,12 @@ function EditContactForm({
           placeholder="e.g. Alice's main wallet"
           disabled={submitting}
         />
-      </div>
-      {formError ? (
-        <ErrorAlert title="Couldn't update contact" className="w-full max-w-none">
-          {formError}
-        </ErrorAlert>
-      ) : null}
-      <ButtonRow className="justify-end">
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? "Saving…" : "Save changes"}
-        </Button>
-      </ButtonRow>
-    </form>
+        {formError ? (
+          <ErrorAlert title="Couldn't update contact" className="w-full max-w-none">
+            {formError}
+          </ErrorAlert>
+        ) : null}
+      </form>
+    </Modal>
   );
 }

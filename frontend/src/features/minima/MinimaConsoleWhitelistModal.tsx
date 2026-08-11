@@ -298,6 +298,7 @@ export function MinimaConsoleWhitelistModal({ onClose }: { onClose: () => void }
           onClose={closeConfirm}
           closeDisabled={saving}
           className="!max-w-[420px]"
+          bodyClassName="min-h-0 flex-1"
           footer={
             <>
               <Button type="button" variant="secondary" disabled={saving} onClick={closeConfirm}>

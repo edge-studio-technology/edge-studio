@@ -55,7 +55,7 @@ Migration is **incremental**, not a big-bang move:
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Divider`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `ErrorDetails`, `JsonBlock`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `MetricCard`                                                                                                         |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `BrandLockup`, `MetricCard`                                                                                                         |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
 ## Styling Rules
@@ -91,10 +91,11 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Text](#text): text roles (`Text.Title`, `Text.Subtitle`, `Text.Body`, `Text.BodyEm`, `Text.Muted`, `Text.Link`)
 - `ErrorText`: inline error copy
 - [ErrorAlert](#erroralert): in-page error / warning alert
-- [ErrorDetails](#errordetails): trigger + dialog for inspecting an operational error
+- [ErrorDetailPanel](#errordetailpanel): embeddable message + raw-JSON breakdown for an operational error
 - [Modal](#modal): dialog overlay
 - `LoadingDots`: bouncing loading indicator
-- `Spinner`: rotating ring loading indicator
+- `Spinner`: rotating ring loading indicator (deprecated — use [SpinnerAlt](#spinneralt))
+- [SpinnerAlt](#spinneralt): pin-dial loading indicator
 - `Input`: bare text control
 - [InputField](#inputfield): labeled text field
 - [SelectField](#selectfield): labeled select
@@ -113,9 +114,11 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Tooltip](#tooltip): hover / click tip
 - [Disclosure](#disclosure): native collapse / expand section
 - [ScrollArea](#scrollarea): thin ESDS-token scrollbar container
-- [JsonBlock](#jsonblock): inverse mono pretty-printed JSON surface
 - [JsonPreview](#jsonpreview): trigger that opens a modal with pretty-printed JSON
 - [CopyableCode](#copyablecode): mono value with copy control
+- [EmptyContentState](#emptycontentstate): empty table/content state with icon, title, description, and optional action
+- [LoadingState](#loadingstate): fetching state with spinner, optional title and description
+- `FileDropBox`: large drag/drop or click file picker with reject toast, selected-file row, and busy/disabled state (`components/patterns/FileDropBox.tsx`)
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
 
@@ -477,36 +480,24 @@ In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): whit
 </ErrorAlert>
 ```
 
-### ErrorDetails
+### ErrorDetailPanel
 
-Trigger + dialog for inspecting a normalized operational error (`frontend/src/components/patterns/ErrorDetails.tsx`): text-link opens a Dialog (max-width 600) with Type, Message, optional Native details, Context (domain / type / native code / time), optional Additional context JSON, Raw JSON, and a secondary Close action. Prefer this for row-level errors (e.g. read history). For fields inside another dialog (e.g. workflow run inspect), call `normalizeError` and render local fields / `JsonBlock` instead — avoids modal-on-modal. Flat `components/ErrorDetails.tsx` remains for older call sites until migrated.
+Minimal, embeddable error breakdown (`frontend/src/components/patterns/ErrorDetailPanel.tsx`): a `DetailList` "Message" row (plus any caller-supplied `extraRows`, e.g. a "Checked at" timestamp), followed by an unlabeled `JsonPreviewContent` block with the raw error. No "Raw" caption above the JSON — the surrounding `Disclosure` title (e.g. "Preview", "Error") already labels the whole section, matching every other JSON block embedded in these modals (payload, run data), so error sections don't get an extra label the non-error ones don't have. Error shapes differ across source types, so everything beyond the message falls back into that raw JSON instead of being guessed at as separate fields. It has no trigger or dialog of its own — compose it inside a caller's own `Modal`/`Disclosure`. This is the shared error body used by the Devices, Integritas, Data reads, and Automation "view details" modals (paired with `DetailList` for the top-level facts and `Disclosure` for the expandable section around it), so a source's error and its raw response render the same way everywhere instead of drifting per feature.
 
-| Prop        | Notes                                          |
-| ----------- | ---------------------------------------------- |
-| `error`     | Unknown value; normalized via `normalizeError` |
-| `label`     | Trigger copy (default `View details`)          |
-| `className` | Merged onto the trigger button                 |
-
-```tsx
-<ErrorDetails error={item.errorDetails ?? item.error} label="View error" />
-```
-
-### JsonBlock
-
-Inverse mono pretty-printed JSON surface (`frontend/src/components/patterns/JsonBlock.tsx`): bordered `ScrollArea` with wrapped `type-mono` content. Prefer this when embedding JSON inside a modal, disclosure, or panel. Prefer `JsonPreview` when the operator needs a trigger that opens JSON in its own dialog.
-
-| Prop        | Notes                                        |
-| ----------- | -------------------------------------------- |
-| `value`     | Serialized with `JSON.stringify(…, null, 2)` |
-| `className` | Merged onto the `ScrollArea` shell           |
+| Prop        | Notes                                                   |
+| ----------- | -------------------------------------------------------- |
+| `error`     | Unknown value; normalized via `normalizeError`            |
+| `extraRows` | Optional additional `DetailRow`s rendered after Message   |
 
 ```tsx
-<JsonBlock value={run} />
+<Disclosure title="Preview">
+  <ErrorDetailPanel error={item.errorDetails ?? item.error} />
+</Disclosure>
 ```
 
 ### JsonPreview
 
-Trigger that opens a dialog with pretty-printed JSON (`frontend/src/components/patterns/JsonPreview.tsx`): link or secondary button; modal body uses `JsonBlock`. Flat `components/JsonPreview.tsx` re-exports for now.
+Trigger that opens a dialog with pretty-printed JSON (`frontend/src/components/patterns/JsonPreview.tsx`): link or secondary button; modal body uses the same bare-`<pre>` `JsonPreviewContent`, also exported for callers embedding JSON directly inside their own modal/disclosure without a second trigger (e.g. the "view details" modals' payload/data sections). Flat `components/JsonPreview.tsx` re-exports both for now.
 
 | Prop        | Notes                                      |
 | ----------- | ------------------------------------------ |
@@ -541,6 +532,22 @@ Route content frame: distant pad padding (`p-pad-distant`), title + optional des
 ```
 
 Cleanup later: drop `eyebrow` from remaining page call sites, then remove the prop and the flat `components/Page.tsx` re-export (import from `patterns/Page` instead).
+
+### BrandLockup
+
+Brand mark + wordmark (`frontend/src/components/patterns/BrandLockup.tsx`): 32px rounded mark box with the white `BrandMark` glyph, then `APP_NAME` in `type-title`. Prefer this on full-screen brand surfaces (login, onboarding wizard) instead of re-assembling the mark box and wordmark inline. Pair with `BRAND_GRADIENT` (`app/brand.ts`) for the shared black → accent backdrop.
+
+| Prop        | Notes                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `tone`      | `on-light` (default: black mark box, black wordmark) \| `on-dark` (translucent bordered mark box, inverse wordmark) |
+| `className` | Merged onto the lockup row                                                                                                |
+
+```tsx
+<div style={{ background: BRAND_GRADIENT }}>
+  …
+  <BrandLockup tone="on-dark" className="shrink-0" />
+</div>
+```
 
 ### Card
 
@@ -622,6 +629,74 @@ Mono value chip with a compact copy control (`frontend/src/components/patterns/C
 
 ```tsx
 <CopyableCode value={token.tokenId} />
+```
+
+### EmptyContentState
+
+Empty content state (`frontend/src/components/patterns/EmptyContentState.tsx`): centered bare glyph, bold title, description, and an optional `Button` action, on a bordered `surface-primary` panel. Prefer this over a bare "No X yet." string wherever a table or list can be genuinely empty — no rows, no filter matches, nothing saved yet.
+
+**Render it in place of the table/list, not as a row inside it.** Putting it in a `<td colSpan>` leaves empty header chrome above it, which is not the intended state. Pair it with `LoadingState`, which uses the same panel shell (`contentStatePanelClass`, exported here) so the two swap cleanly.
+
+| Prop             | Notes                                                                     |
+| ---------------- | ------------------------------------------------------------------------- |
+| `icon`           | Optional `LucideIcon`, rendered bare at 24px                              |
+| `title`          | Required bold heading                                                     |
+| `description`    | Optional copy under the title                                             |
+| `actionLabel`    | Optional action button label (omit to hide the button)                    |
+| `actionIcon`     | Optional leading icon for the action button (e.g. `Plus` on a create CTA) |
+| `actionVariant`  | `primary` (default) or `secondary` — use `secondary` for "Clear filters"  |
+| `actionDisabled` | Disables the action button                                                |
+| `onAction`       | Action button click handler                                               |
+| `className`      | Merged onto the panel                                                     |
+
+```tsx
+{loading ? (
+  <LoadingState title="Fetching your devices" description="This should take a few seconds." />
+) : items.length === 0 ? (
+  <EmptyContentState
+    icon={Cable}
+    title="Connect your first device"
+    description="Your input sources and output targets will be added to your library here."
+    actionLabel="New device"
+    actionIcon={<Plus aria-hidden />}
+    onAction={onAddDevice}
+  />
+) : (
+  <TableWrap>…</TableWrap>
+)}
+```
+
+### LoadingState
+
+Fetching content state (`frontend/src/components/patterns/LoadingState.tsx`): centered `SpinnerAlt` with an optional bold title and description, on the same panel as `EmptyContentState`. Prefer this over a bare inline spinner wherever a table or list is waiting on its first load, not just a busy row/button. Same placement rule: render it **in place of** the table, not inside it.
+
+| Prop          | Notes                                                |
+| ------------- | ---------------------------------------------------- |
+| `title`       | Optional bold heading (e.g. "Fetching your devices") |
+| `description` | Optional copy under the title                        |
+| `className`   | Merged onto the panel                                |
+
+```tsx
+<LoadingState title="Fetching your devices" description="This should take a few seconds." />
+```
+
+### SpinnerAlt
+
+Loading indicator (`frontend/src/components/ui/SpinnerAlt.tsx`): eight pins around a dial that light and fade in sequence so the lit pin travels clockwise. It does **not** rotate — the animation is per-pin opacity (`spinner-pin` keyframes in `styles.css`), staggered by index, and respects `prefers-reduced-motion`. Prefer this for any new loading indicator; the older rotating-ring `Spinner` is deprecated.
+
+| Prop        | Values                                    | Notes                    |
+| ----------- | ----------------------------------------- | ------------------------ |
+| `size`      | `sm` (20px) \| `md` (32px) \| `lg` (64px) | Default `md`             |
+| `tone`      | `primary` \| `secondary`                  | Default `primary`        |
+| `className` | optional                                  | Merged onto the `<svg>`  |
+
+Decorative (`aria-hidden`) by design — always pair it with adjacent text describing what's loading, as `LoadingState` does.
+
+```tsx
+<SpinnerAlt />
+<SpinnerAlt size="sm" tone="secondary" />
+```
+
 ### DetailList
 
 Label/value detail rows (`frontend/src/components/patterns/DetailList.tsx`): `DetailList` is the `<dl>` wrapper, `DetailRow` is one label/value pair. Prefer this for read-only config/profile detail blocks instead of hand-rolled `<dl>`/`<dt>`/`<dd>` markup.

@@ -188,6 +188,7 @@
   background: var(--color-surface-secondary);
   font-family: var(--font-sans);
   font-weight: var(--font-weight-base);
+  scrollbar-gutter: stable;
 }
 
 @keyframes onboarding-fade-up {
@@ -198,6 +199,16 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Spinner: each pin fades from lit to dim, staggered around the dial. */
+@keyframes spinner-pin {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.15;
   }
 }
 

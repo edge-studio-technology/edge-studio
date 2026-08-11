@@ -2,9 +2,18 @@ import { Users } from "lucide-react";
 import type { MinimaPeersResponse } from "../../app/types";
 import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
-import { ListDisclosure } from "../../components/patterns/ListDisclosure";
+import {
+  DataTable,
+  EmptyTableState,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from "../../components/DataTable";
 import { SubSection } from "../../components/patterns/SubSection";
 import { InputField } from "../../components/ui/InputField";
+import { ScrollArea } from "../../components/ui/ScrollArea";
 
 export function MinimaPeerConnectionsSection({
   peers,
@@ -48,19 +57,38 @@ export function MinimaPeerConnectionsSection({
           Active peer count on the health card reflects live P2P connections, not this list.
         </p>
 
-        <ListDisclosure title="Peers" count={peerItems.length}>
-          {peerItems.length > 0 ? (
-            peerItems.map((peer) => (
-              <p key={peer} className="m-0 truncate px-3 py-2 text-sm text-slate-700">
-                <code className="text-slate-800">{peer}</code>
-              </p>
-            ))
-          ) : (
-            <p className="m-0 px-3 py-2 text-sm text-slate-500">
-              {peersLoading ? "Loading peer list…" : "No configured peers returned from Minima RPC."}
-            </p>
-          )}
-        </ListDisclosure>
+        <div className="grid gap-2">
+          <p className="m-0 text-sm font-medium text-slate-500">Peers ({peerItems.length})</p>
+          <ScrollArea
+            stableGutter={false}
+            className="max-h-80 rounded-loose border border-stroke-primary bg-surface-always-white"
+          >
+            <DataTable aria-label="Peers">
+              <TableHead>
+                <TableHeaderCell>Address</TableHeaderCell>
+              </TableHead>
+              <TableBody>
+                {peerItems.length > 0 ? (
+                  peerItems.map((peer) => (
+                    <TableRow key={peer}>
+                      <TableCell className="min-w-0">
+                        <code className="text-text-primary truncate">{peer}</code>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell>
+                      <EmptyTableState>
+                        {peersLoading ? "Loading peer list…" : "No configured peers returned from Minima RPC."}
+                      </EmptyTableState>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </DataTable>
+          </ScrollArea>
+        </div>
       </div>
     </SubSection>
   );

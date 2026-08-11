@@ -11,7 +11,6 @@ export type ListFilterBarProps = {
   filter?: string;
   q: string;
   filterOptions?: readonly ListFilterBarOption[];
-  filterLabel?: string;
   searchPlaceholder?: string;
   onFilterChange?: (filter: string) => void;
   onQueryChange: (q: string) => void;
@@ -22,7 +21,6 @@ export function ListFilterBar({
   filter,
   q,
   filterOptions,
-  filterLabel = "Filter",
   searchPlaceholder = "Hash, UID, or source name",
   onFilterChange,
   onQueryChange,
@@ -47,8 +45,7 @@ export function ListFilterBar({
         {filterOptions && onFilterChange ? (
           <div className="gap-detail-tight flex min-w-40 flex-col">
             <SelectField
-              label={filterLabel}
-              size="sm"
+              label="Filter"
               className="min-w-0"
               value={filter ?? ""}
               disabled={disabled}
@@ -61,7 +58,6 @@ export function ListFilterBar({
         <InputField
           label="Search"
           type="search"
-          size="sm"
           placeholder={searchPlaceholder}
           value={searchInput}
           disabled={disabled}

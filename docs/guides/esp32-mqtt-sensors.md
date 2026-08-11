@@ -1,6 +1,6 @@
 # ESP32 MQTT Boards
 
-This guide walks through connecting an ESP32 board to Integritas Pi with MQTT.
+This guide walks through connecting an ESP32 board to Edge Studio with MQTT.
 
 The app side is already handled by the `ESP32 MQTT Board` input source. The remaining work is flashing firmware onto the ESP32 so it can connect to Wi-Fi and publish JSON to the Pi's MQTT broker.
 
@@ -10,12 +10,12 @@ The app side is already handled by the `ESP32 MQTT Board` input source. The rema
 - USB data cable. Some USB cables charge only and cannot flash boards.
 - Computer used for flashing the ESP32. This can be a laptop, desktop, or Raspberry Pi.
 - Wi-Fi network name and password.
-- Integritas Pi running with the local MQTT broker enabled.
-- The generated firmware from the Integritas Pi setup modal.
+- Edge Studio running with the local MQTT broker enabled.
+- The generated firmware from the Edge Studio setup modal.
 
-## 1. Create The Device In Integritas Pi
+## 1. Create The Device In Edge Studio
 
-1. Open Integritas Pi in the browser.
+1. Open Edge Studio in the browser.
 2. Go to `Devices`.
 3. Click `Add device or source`.
 4. Select `ESP32 MQTT Board`.
@@ -84,7 +84,7 @@ In Arduino IDE:
 
 1. In Arduino IDE, create a new sketch.
 2. Delete the default contents.
-3. Copy the generated firmware from Integritas Pi.
+3. Copy the generated firmware from Edge Studio.
 4. Paste it into Arduino IDE.
 
 ### 5. Set Wi-Fi Credentials
@@ -336,7 +336,7 @@ After the ESP32 publishes, check:
 ### MQTT Does Not Connect
 
 - Confirm the Pi and ESP32 are on the same LAN.
-- Use the Pi LAN IP shown in the Integritas Pi modal.
+- Use the Pi LAN IP shown in the Edge Studio modal.
 - Confirm the local MQTT broker is enabled.
 - Confirm port `1883` is reachable from the LAN.
 - Do not use `mqtt://mqtt:1883` in ESP32 firmware; that name only works inside Docker.

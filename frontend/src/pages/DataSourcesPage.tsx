@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+// import { Card } from "../components/Card";
 import { Button } from "../components/Button";
-import { ButtonRow } from "../components/ButtonRow";
-import { Card } from "../components/Card";
 import { Modal } from "../components/Modal";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Page } from "../components/Page";
@@ -20,13 +19,10 @@ import {
 import { buildDeviceConfigInput } from "../features/data-sources/buildDeviceConfig";
 import { AltAddDeviceFlow } from "../features/data-sources/add-device-alt/AltAddDeviceFlow";
 import { ClassicAddDeviceFlow } from "../features/data-sources/add-device-classic/ClassicAddDeviceFlow";
-import { DataSourceForm } from "../features/data-sources/DataSourceForm";
+import { DataSourceForm, isDataSourceFormValid } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
-import {
-  DeleteDeviceConfirmModal,
-  DeleteDeviceProgressModal,
-} from "../features/data-sources/DeleteDeviceModal";
 import { LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
+import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import type {
   DataSource,
   DataSourceCapabilities,
@@ -194,9 +190,11 @@ export function DataSourcesPage() {
 
   return (
     <Page
-      title="Connect inputs and outputs"
-      desc="Add input sources for data and events, then prepare output targets for automation workflows."
+      title="Devices"
+      desc="Add input sources for data and events, and output targets for automation workflows."
     >
+      {/* "Add devices" card disabled for v1 — its actions moved next to the device list's
+      filter bar (New input / New output), making this separate card redundant.
       <Card className="gap-detail-near grid w-full">
         <div>
           <h2 className="type-title text-text-primary m-0">Add devices</h2>
@@ -211,7 +209,7 @@ export function DataSourcesPage() {
             Add output target
           </Button>
         </ButtonRow>
-      </Card>
+      </Card> */}
 
       <LocalServicesCard capabilities={capabilities} />
 
@@ -232,22 +230,40 @@ export function DataSourcesPage() {
       )}
 
       {formOpen && (
-        <Modal title="Edit device" closeDisabled={busy} onClose={closeForm}>
-          <DataSourceForm
-            {...editForm.fields}
-            template={null}
-            busy={busy}
-            submitLabel="Save device"
-            onSubmit={saveEditedDevice}
-          />
+        <Modal
+          title="Edit device"
+          closeDisabled={busy}
+          onClose={closeForm}
+          footer={
+            <>
+              <Button type="button" variant="secondary" disabled={busy} onClick={closeForm}>
+                Cancel
+              </Button>
+              <Button
+                disabled={busy || !isDataSourceFormValid(editForm.fields)}
+                onClick={() => void saveEditedDevice()}
+              >
+                Save device
+              </Button>
+            </>
+          }
+        >
+          <DataSourceForm {...editForm.fields} template={null} submitLabel="Save device" />
         </Modal>
       )}
 
-      {deletingSource && <DeleteDeviceProgressModal source={deletingSource} />}
+      {deletingSource && (
+        <DeleteProgressModal
+          title="Deleting device"
+          description={`Removing ${deletingSource.name}. Large read histories can take a few seconds while saved read rows are detached from this device.`}
+        />
+      )}
 
       {deleteTarget && (
-        <DeleteDeviceConfirmModal
-          source={deleteTarget}
+        <DeleteConfirmModal
+          title="Delete device"
+          itemLabel={deleteTarget.name}
+          confirmLabel="Delete device"
           onCancel={() => setDeleteTarget(null)}
           onConfirm={() => void confirmDelete()}
         />
@@ -288,11 +304,14 @@ export function DataSourcesPage() {
         items={items}
         healthStatuses={healthStatuses}
         busy={busy}
+        loading={capabilities === null}
         onRead={(source) => run(() => readDataSource(source.id), "Manual read completed")}
         onTestOutput={(source) => run(() => testDataSourceOutput(source.id), "Test pulse sent")}
         onOpenSetupGuide={setSetupGuideSource}
         onEdit={editSource}
         onDelete={setDeleteTarget}
+        onAddInput={() => setAddDeviceMode("input")}
+        onAddOutput={() => setAddDeviceMode("output")}
       />
     </Page>
   );

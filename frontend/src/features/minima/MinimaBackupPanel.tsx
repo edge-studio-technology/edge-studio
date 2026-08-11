@@ -1,17 +1,30 @@
 import { useEffect, useState } from "react";
-import { Download, KeyRound, RotateCcw, Trash2, Upload } from "lucide-react";
+import { Download, KeyRound, Upload } from "lucide-react";
 import type { MinimaBackupEntry, MinimaBackupListResponse, MinimaNodeState } from "../../app/types";
 import { Button, IconButton } from "../../components/Button";
-import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
+import {
+  DataTable,
+  EmptyTableState,
+  RowActions,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableIconButton,
+  TableIconMenu,
+  TableRow,
+} from "../../components/DataTable";
 import { LoadingDots } from "../../components/LoadingDots";
 import { Modal } from "../../components/Modal";
-import { FileDropZone } from "../../components/patterns/FileDropZone";
-import { ListDisclosure } from "../../components/patterns/ListDisclosure";
+import { DeleteConfirmModal, DeleteProgressModal } from "../../components/patterns/DeleteConfirmModal";
+import { FileDropBox } from "../../components/patterns/FileDropBox";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { InputField } from "../../components/ui/InputField";
+import { ScrollArea } from "../../components/ui/ScrollArea";
+import { formatLocalDateTime } from "../../lib/time";
 import {
   clearBackupPassword,
   createMinimaBackup,
@@ -32,12 +45,6 @@ function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatCreatedAt(iso: string) {
-  const date = new Date(iso);
-  const utc = date.toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC");
-  return `${date.toLocaleString()} local · ${utc}`;
 }
 
 const restoreWarning = (
@@ -65,46 +72,35 @@ function BackupRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-3 py-2">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-slate-900 m-0">{backup.fileName}</p>
-        <p className="text-xs text-slate-500 m-0">
-          {formatSize(backup.sizeBytes)} · {formatCreatedAt(backup.createdAt)}
-        </p>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <IconButton
-          size="compact"
-          variant="ghost"
-          title="Download"
-          aria-label={`Download ${backup.fileName}`}
-          onClick={onDownload}
-        >
-          <Download />
-        </IconButton>
-        <IconButton
-          size="compact"
-          variant="ghost"
-          title="Restore"
-          aria-label={`Restore ${backup.fileName}`}
-          disabled={actionsBlocked}
-          onClick={onRestore}
-        >
-          <RotateCcw />
-        </IconButton>
-        <IconButton
-          size="compact"
-          variant="ghost"
-          title="Delete"
-          aria-label={`Delete ${backup.fileName}`}
-          disabled={deleting}
-          onClick={onDelete}
-          className="text-feedback-error hover:border-feedback-error"
-        >
-          <Trash2 />
-        </IconButton>
-      </div>
-    </div>
+    <TableRow>
+      <TableCell className="min-w-0">
+        <span className="type-body-em text-text-primary block truncate">{backup.fileName}</span>
+      </TableCell>
+      <TableCell className="whitespace-nowrap">{formatSize(backup.sizeBytes)}</TableCell>
+      <TableCell className="whitespace-nowrap">
+        <time className="type-meta text-text-secondary" dateTime={backup.createdAt}>
+          {formatLocalDateTime(backup.createdAt)}
+        </time>
+      </TableCell>
+      <TableCell className="w-px whitespace-nowrap">
+        <RowActions>
+          <TableIconButton
+            title="Download"
+            aria-label={`Download ${backup.fileName}`}
+            onClick={onDownload}
+          >
+            <Download size={16} aria-hidden />
+          </TableIconButton>
+          <TableIconMenu
+            aria-label={`More actions for ${backup.fileName}`}
+            items={[
+              { label: "Restore", disabled: actionsBlocked, onClick: onRestore },
+              { label: "Delete", danger: true, disabled: deleting, onClick: onDelete }
+            ]}
+          />
+        </RowActions>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -265,10 +261,10 @@ export function MinimaBackupPanel({
   async function confirmDelete() {
     if (!deleteTarget) return;
     const fileName = deleteTarget.fileName;
+    setDeleteTarget(null);
     setDeletingFile(fileName);
     try {
       await deleteMinimaBackup(fileName);
-      setDeleteTarget(null);
       await refreshBackups();
     } catch (error) {
       showToast({
@@ -415,20 +411,45 @@ export function MinimaBackupPanel({
         {!backups && !listError && <LoadingDots />}
 
         {backups && (
-          <ListDisclosure title="Backups" count={backups.length} max={MAX_BACKUPS}>
-            {backups.length === 0 && <p className="m-0 px-3 py-2 text-sm text-slate-500">None yet.</p>}
-            {backups.map((backup) => (
-              <BackupRow
-                key={backup.fileName}
-                backup={backup}
-                actionsBlocked={actionsBlocked}
-                deleting={deletingFile === backup.fileName}
-                onDownload={() => startDownload(backup.fileName)}
-                onRestore={() => startRowRestore(backup)}
-                onDelete={() => startDelete(backup)}
-              />
-            ))}
-          </ListDisclosure>
+          <div className="grid gap-2">
+            <p className="m-0 text-sm font-medium text-slate-500">
+              Backups ({backups.length}/{MAX_BACKUPS})
+            </p>
+            <ScrollArea
+              stableGutter={false}
+              className="max-h-80 rounded-loose border border-stroke-primary bg-surface-always-white"
+            >
+              <DataTable aria-label="Backups">
+                <TableHead>
+                  <TableHeaderCell>File</TableHeaderCell>
+                  <TableHeaderCell>Size</TableHeaderCell>
+                  <TableHeaderCell>Created</TableHeaderCell>
+                  <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+                </TableHead>
+                <TableBody>
+                  {backups.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4}>
+                        <EmptyTableState>None yet.</EmptyTableState>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    backups.map((backup) => (
+                      <BackupRow
+                        key={backup.fileName}
+                        backup={backup}
+                        actionsBlocked={actionsBlocked}
+                        deleting={deletingFile === backup.fileName}
+                        onDownload={() => startDownload(backup.fileName)}
+                        onRestore={() => startRowRestore(backup)}
+                        onDelete={() => startDelete(backup)}
+                      />
+                    ))
+                  )}
+                </TableBody>
+              </DataTable>
+            </ScrollArea>
+          </div>
         )}
       </div>
 
@@ -440,6 +461,21 @@ export function MinimaBackupPanel({
           }}
           closeDisabled={downloadBusy}
           bodyClassName="min-h-0 flex-1"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={downloadBusy}
+                onClick={() => setDownloadTarget(null)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={() => void confirmDownload()} disabled={downloadBusy || downloadPassword.length === 0}>
+                {downloadBusy ? "Confirming…" : "Confirm"}
+              </Button>
+            </>
+          }
         >
           <div className="grid gap-3">
             <p className="text-sm text-slate-600 m-0">Re-enter your current PIN or password to download this backup.</p>
@@ -454,11 +490,6 @@ export function MinimaBackupPanel({
               autoComplete="current-password"
             />
             {downloadError && <ErrorText className="m-0">{downloadError}</ErrorText>}
-            <ButtonRow>
-              <Button onClick={() => void confirmDownload()} disabled={downloadBusy || downloadPassword.length === 0}>
-                {downloadBusy ? "Confirming…" : "Confirm"}
-              </Button>
-            </ButtonRow>
           </div>
         </Modal>
       )}
@@ -471,8 +502,36 @@ export function MinimaBackupPanel({
           }}
           closeDisabled={setupBusy}
           bodyClassName="min-h-0 flex-1"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={setupBusy}
+                onClick={() => setPasswordModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              {hasPassword === true && (
+                <Button variant="danger" type="button" onClick={openClearPassword} disabled={setupBusy}>
+                  Remove backup password
+                </Button>
+              )}
+              <Button
+                type="submit"
+                form="backup-password-form"
+                disabled={setupBusy || !newBackupPassword || !setupCurrentPassword}
+              >
+                {setupBusy ? "Saving…" : hasPassword ? "Update backup password" : "Save backup password"}
+              </Button>
+            </>
+          }
         >
-          <form onSubmit={(e) => void handleSetBackupPassword(e)} className="grid gap-3">
+          <form
+            id="backup-password-form"
+            onSubmit={(e) => void handleSetBackupPassword(e)}
+            className="grid gap-3"
+          >
             {hasPassword === false && (
               <p className="text-sm text-slate-600 m-0">
                 One password protects every manual and automatic backup. It's stored encrypted; nothing about it is
@@ -496,16 +555,6 @@ export function MinimaBackupPanel({
               required
             />
             {setupError && <ErrorText className="m-0">{setupError}</ErrorText>}
-            <ButtonRow>
-              <Button type="submit" disabled={setupBusy || !newBackupPassword || !setupCurrentPassword}>
-                {setupBusy ? "Saving…" : hasPassword ? "Update backup password" : "Save backup password"}
-              </Button>
-              {hasPassword === true && (
-                <Button variant="danger" type="button" onClick={openClearPassword} disabled={setupBusy}>
-                  Remove backup password
-                </Button>
-              )}
-            </ButtonRow>
           </form>
         </Modal>
       )}
@@ -518,16 +567,34 @@ export function MinimaBackupPanel({
           }}
           closeDisabled={uploadBusy}
           bodyClassName="min-h-0 flex-1"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={uploadBusy}
+                onClick={() => setUploadRestoreOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => void confirmUploadRestore()}
+                disabled={uploadBusy || !uploadFile || uploadCurrentPassword.length === 0}
+              >
+                {uploadBusy ? "Restoring…" : "Restore"}
+              </Button>
+            </>
+          }
         >
           <div className="grid gap-3">
             {restoreWarning}
 
-            <FileDropZone
+            <FileDropBox
+              title="Upload a .bak file"
               file={uploadFile}
               onFile={setUploadFile}
-              onClear={() => setUploadFile(null)}
               accept=".bak"
-              placeholder="Upload a .bak file"
+              busy={uploadBusy}
             />
 
             <InputField
@@ -550,14 +617,6 @@ export function MinimaBackupPanel({
             />
 
             {uploadError && <ErrorText className="m-0">{uploadError}</ErrorText>}
-            <ButtonRow>
-              <Button
-                onClick={() => void confirmUploadRestore()}
-                disabled={uploadBusy || !uploadFile || uploadCurrentPassword.length === 0}
-              >
-                {uploadBusy ? "Restoring…" : "Restore"}
-              </Button>
-            </ButtonRow>
           </div>
         </Modal>
       )}
@@ -570,6 +629,21 @@ export function MinimaBackupPanel({
           }}
           closeDisabled={rowRestoreBusy}
           bodyClassName="min-h-0 flex-1"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={rowRestoreBusy}
+                onClick={() => setRowRestoreTarget(null)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={() => void confirmRowRestore()} disabled={rowRestoreBusy || rowRestorePassword.length === 0}>
+                {rowRestoreBusy ? "Restoring…" : "Confirm restore"}
+              </Button>
+            </>
+          }
         >
           <div className="grid gap-3">
             {restoreWarning}
@@ -588,35 +662,22 @@ export function MinimaBackupPanel({
               autoComplete="current-password"
             />
             {rowRestoreError && <ErrorText className="m-0">{rowRestoreError}</ErrorText>}
-            <ButtonRow>
-              <Button onClick={() => void confirmRowRestore()} disabled={rowRestoreBusy || rowRestorePassword.length === 0}>
-                {rowRestoreBusy ? "Restoring…" : "Confirm restore"}
-              </Button>
-            </ButtonRow>
           </div>
         </Modal>
       )}
 
+      {deletingFile && (
+        <DeleteProgressModal title="Deleting backup" description={`Removing ${deletingFile}.`} />
+      )}
+
       {deleteTarget && (
-        <Modal
+        <DeleteConfirmModal
           title="Delete backup"
-          onClose={() => {
-            if (deletingFile !== deleteTarget.fileName) setDeleteTarget(null);
-          }}
-          closeDisabled={deletingFile === deleteTarget.fileName}
-          bodyClassName="min-h-0 flex-1"
-        >
-          <div className="grid gap-3">
-            <p className="text-sm text-slate-600 m-0">
-              Delete <span className="font-mono">{deleteTarget.fileName}</span>? This can't be undone.
-            </p>
-            <ButtonRow>
-              <Button variant="danger" onClick={() => void confirmDelete()} disabled={deletingFile === deleteTarget.fileName}>
-                {deletingFile === deleteTarget.fileName ? "Deleting…" : "Delete backup"}
-              </Button>
-            </ButtonRow>
-          </div>
-        </Modal>
+          itemLabel={<span className="font-mono">{deleteTarget.fileName}</span>}
+          confirmLabel="Delete backup"
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => void confirmDelete()}
+        />
       )}
 
       {clearPasswordOpen && (
@@ -627,6 +688,25 @@ export function MinimaBackupPanel({
           }}
           closeDisabled={clearPasswordBusy}
           bodyClassName="min-h-0 flex-1"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={clearPasswordBusy}
+                onClick={() => setClearPasswordOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => void confirmClearPassword()}
+                disabled={clearPasswordBusy || clearPasswordCurrentPassword.length === 0}
+              >
+                {clearPasswordBusy ? "Removing…" : "Remove password"}
+              </Button>
+            </>
+          }
         >
           <div className="grid gap-3">
             <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
@@ -646,15 +726,6 @@ export function MinimaBackupPanel({
               autoComplete="current-password"
             />
             {clearPasswordError && <ErrorText className="m-0">{clearPasswordError}</ErrorText>}
-            <ButtonRow>
-              <Button
-                variant="danger"
-                onClick={() => void confirmClearPassword()}
-                disabled={clearPasswordBusy || clearPasswordCurrentPassword.length === 0}
-              >
-                {clearPasswordBusy ? "Removing…" : "Remove password"}
-              </Button>
-            </ButtonRow>
           </div>
         </Modal>
       )}

@@ -112,8 +112,22 @@ export function SendPaymentModal({
   }
 
   return (
-    <Modal title="Send payment" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="gap-detail-close grid">
+    <Modal
+      title="Send payment"
+      onClose={onClose}
+      bodyClassName="min-h-0 flex-1"
+      footer={
+        <>
+          <Button type="button" variant="secondary" disabled={submitting} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="send-payment-form" disabled={!canSubmit}>
+            {submitting ? "Sending…" : "Send payment"}
+          </Button>
+        </>
+      }
+    >
+      <form id="send-payment-form" onSubmit={handleSubmit} className="gap-detail-close grid">
         <div className="gap-detail-next flex min-w-0 flex-col">
           <div className="gap-detail-next flex min-w-0 items-center justify-between">
             <Label
@@ -206,9 +220,6 @@ export function SendPaymentModal({
           </ErrorAlert>
         ) : null}
 
-        <Button type="submit" disabled={!canSubmit} className="w-full justify-center">
-          {submitting ? "Sending…" : "Send payment"}
-        </Button>
       </form>
     </Modal>
   );

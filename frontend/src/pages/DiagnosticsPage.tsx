@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../components/patterns/ListPaginationFooter";
@@ -92,6 +93,7 @@ export function DiagnosticsPage() {
   const [bulkBusy, setBulkBusy] = useState<"download" | "delete" | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [tabLoading, setTabLoading] = useState(true);
   const busy = bulkBusy !== null;
 
   const updateListQuery = useCallback(
@@ -168,12 +170,15 @@ export function DiagnosticsPage() {
 
     async function load() {
       setError(null);
+      setTabLoading(true);
       try {
         await loadActiveTab(listQuery, () => cancelled);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load diagnostics history.");
         }
+      } finally {
+        if (!cancelled) setTabLoading(false);
       }
     }
 
@@ -282,17 +287,20 @@ export function DiagnosticsPage() {
 
   return (
     <Page
-      title="Diagnostics history"
+      title="Diagnostics"
       desc="Inspect stored proof requests, data-source read logs, and workflow runs from one diagnostics workspace."
     >
       <Card className="gap-detail-close flex w-full flex-col">
         <TabList
-          label="Diagnostics history"
+          label="Diagnostics"
           value={activeTab}
           options={[
-            { value: "proofs", label: "Proof history" },
-            { value: "reads", label: "Read history" },
-            { value: "workflow-runs", label: "Workflow logs" },
+            // { value: "proofs", label: "Proof history" },
+            // { value: "reads", label: "Read history" },
+            // { value: "workflow-runs", label: "Workflow logs" },
+            { value: "proofs", label: "Integritas" },
+            { value: "reads", label: "Devices" },
+            { value: "workflow-runs", label: "Automation" },
           ]}
           onChange={selectTab}
         />
@@ -305,17 +313,15 @@ export function DiagnosticsPage() {
               filter={listQuery.status}
               q={listQuery.q}
               filterOptions={statusOptions}
-              filterLabel="Status"
               searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
-              disabled={refreshing}
+              disabled={refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)}
               onFilterChange={(status) => updateListQuery({ status })}
               onQueryChange={(q) => updateListQuery({ q })}
             />
           </div>
           <Button
             type="button"
-            variant="secondary"
-            size="sm"
+            iconStart={<RefreshCw aria-hidden />}
             onClick={() => {
               void handleRefresh();
             }}
@@ -336,6 +342,8 @@ export function DiagnosticsPage() {
             records={proofsPage.items}
             selectedIds={selectedIds}
             filtered={listFiltered}
+            loading={tabLoading}
+            onClearFilters={() => updateListQuery({ status: "", q: "" })}
             busy={busy}
             bulkBusy={bulkBusy}
             verifyingId={verifyingId}
@@ -392,9 +400,19 @@ export function DiagnosticsPage() {
             }
           />
         ) : activeTab === "reads" ? (
-          <DataReadsHistoryTable items={readsPage.items} filtered={listFiltered} />
+          <DataReadsHistoryTable
+            items={readsPage.items}
+            filtered={listFiltered}
+            loading={tabLoading}
+            onClearFilters={() => updateListQuery({ status: "", q: "" })}
+          />
         ) : (
-          <AutomationRunsTable runs={workflowRunsPage.items} filtered={listFiltered} />
+          <AutomationRunsTable
+            runs={workflowRunsPage.items}
+            filtered={listFiltered}
+            loading={tabLoading}
+            onClearFilters={() => updateListQuery({ status: "", q: "" })}
+          />
         )}
 
         <ListPaginationFooter
@@ -402,7 +420,7 @@ export function DiagnosticsPage() {
           pageSize={listQuery.pageSize}
           total={activePager.total}
           totalPages={Math.max(1, activePager.totalPages)}
-          disabled={refreshing}
+          disabled={refreshing || tabLoading}
           onPageChange={(page) => updateListQuery({ page })}
           onPageSizeChange={(pageSize) => updateListQuery({ pageSize })}
           pageSizeOptions={PAGE_SIZE_OPTIONS}

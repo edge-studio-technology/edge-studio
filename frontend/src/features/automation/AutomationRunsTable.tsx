@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye } from "lucide-react";
+import { Eye, Inbox } from "lucide-react";
 import {
   DataTable,
   RowActions,
@@ -13,6 +13,8 @@ import {
   TableRow,
   TableWrap,
 } from "../../components/patterns/DataTable";
+import { EmptyContentState } from "../../components/patterns/EmptyContentState";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { Pill } from "../../components/ui/Pill";
 import { formatLocalDateTime } from "../../lib/time";
 import { AutomationRunInspectModal } from "./AutomationRunInspectModal";
@@ -23,14 +25,41 @@ export function AutomationRunsTable({
   runs,
   compact = false,
   filtered = false,
+  loading = false,
+  onClearFilters,
 }: {
   runs: AutomationRun[];
   compact?: boolean;
   filtered?: boolean;
+  loading?: boolean;
+  onClearFilters?: () => void;
 }) {
   const [inspectRunId, setInspectRunId] = useState<string | null>(null);
   const inspectRun = inspectRunId ? (runs.find((run) => run.id === inspectRunId) ?? null) : null;
-  const colCount = compact ? 6 : 7;
+
+  if (loading)
+    return (
+      <LoadingState
+        title="Fetching your workflow runs"
+        description="This should take a few seconds."
+      />
+    );
+
+  if (runs.length === 0)
+    return (
+      <EmptyContentState
+        icon={Inbox}
+        title={filtered ? "No matching workflow runs" : "No workflow runs yet"}
+        description={
+          filtered
+            ? "Try another status or search, or clear filters."
+            : "Runs from your automation workflows will be added to your history here."
+        }
+        actionLabel={filtered && onClearFilters ? "Clear filters" : undefined}
+        actionVariant="secondary"
+        onAction={filtered ? onClearFilters : undefined}
+      />
+    );
 
   return (
     <>
@@ -46,57 +75,43 @@ export function AutomationRunsTable({
             <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
           </TableHead>
           <TableBody>
-            {runs.length === 0 ? (
-              <TableRow>
-                <td colSpan={colCount} className="p-0">
-                  <div className="p-margin-tight py-pad-relaxed">
-                    <p className="type-body text-text-secondary m-0">
-                      {filtered ? "No matching workflow runs." : "No workflow runs recorded yet."}
-                    </p>
-                  </div>
-                </td>
-              </TableRow>
-            ) : (
-              runs.map((run) => {
-                const status = RUN_STATUS[run.status];
-                const successBlocks = run.blocks.filter(
-                  (block) => block.status === "success",
-                ).length;
-                return (
-                  <TableRow key={run.id}>
-                    <TableCell className="whitespace-nowrap">
-                      <time className="type-meta text-text-secondary" dateTime={run.startedAt}>
-                        {formatLocalDateTime(run.startedAt)}
-                      </time>
+            {runs.map((run) => {
+              const status = RUN_STATUS[run.status];
+              const successBlocks = run.blocks.filter((block) => block.status === "success").length;
+              return (
+                <TableRow key={run.id}>
+                  <TableCell className="whitespace-nowrap">
+                    <time className="type-meta text-text-secondary" dateTime={run.startedAt}>
+                      {formatLocalDateTime(run.startedAt)}
+                    </time>
+                  </TableCell>
+                  {!compact && (
+                    <TableCell className="max-w-56 min-w-0">
+                      <span className="type-body-em text-text-primary block truncate">
+                        {run.workflowName}
+                      </span>
                     </TableCell>
-                    {!compact && (
-                      <TableCell className="max-w-56 min-w-0">
-                        <span className="type-body-em text-text-primary block truncate">
-                          {run.workflowName}
-                        </span>
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      <Pill>{run.triggerType}</Pill>
-                    </TableCell>
-                    <TableCell>
-                      <Pill tone={status.tone} indicator>
-                        {status.label}
-                      </Pill>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatRunDuration(run.durationMs)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {successBlocks}/{run.blockCount}
-                    </TableCell>
-                    <TableCell className="w-px whitespace-nowrap">
-                      <RunRowActions run={run} onView={() => setInspectRunId(run.id)} />
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
+                  )}
+                  <TableCell>
+                    <Pill>{run.triggerType}</Pill>
+                  </TableCell>
+                  <TableCell>
+                    <Pill tone={status.tone} indicator>
+                      {status.label}
+                    </Pill>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {formatRunDuration(run.durationMs)}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {successBlocks}/{run.blockCount}
+                  </TableCell>
+                  <TableCell className="w-px whitespace-nowrap">
+                    <RunRowActions run={run} onView={() => setInspectRunId(run.id)} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </DataTable>
       </TableWrap>
@@ -116,8 +131,8 @@ function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void
     <RowActions>
       <TableIconButton
         type="button"
-        title="View run"
-        aria-label={`View run for ${label}`}
+        title="View details"
+        aria-label={`View details for ${label}`}
         onClick={onView}
       >
         <Eye size={16} aria-hidden />
