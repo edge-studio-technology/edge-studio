@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
-import { Check, HelpCircle } from "lucide-react";
-import { Link } from "react-router-dom";
-import { IconButton } from "../../../../components/ui/Button";
+import { Check } from "lucide-react";
 import { Disclosure } from "../../../../components/ui/Disclosure";
 import { SwitchField } from "../../../../components/ui/SwitchField";
 import { Tooltip } from "../../../../components/ui/Tooltip";
@@ -222,11 +220,11 @@ function LibraryCard({
       aria-disabled={disabled || undefined}
       aria-pressed={selected || undefined}
       onClick={(event) => {
-        if (disabled || (event.target as HTMLElement).closest("[data-block-help]")) return;
+        if (disabled) return;
         onClick();
       }}
       onKeyDown={(event) => {
-        if (disabled || (event.target as HTMLElement).closest("[data-block-help]")) return;
+        if (disabled) return;
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           onClick();
@@ -236,13 +234,11 @@ function LibraryCard({
       <span className="gap-detail-close flex items-center justify-between">
         <span className="type-body-em text-text-primary">{help.title}</span>
         <span className="gap-detail-tight flex shrink-0 items-center">
-          <BlockHelpToggletip type={type} />
           {selected ? (
             <Check aria-hidden className="text-icon-primary size-4 shrink-0" strokeWidth={2.5} />
           ) : null}
         </span>
       </span>
-      <span className="type-body text-text-secondary">{help.shortDescription}</span>
     </div>
   );
 
@@ -251,33 +247,6 @@ function LibraryCard({
   return (
     <Tooltip title={disabledReason} placement="left">
       <span className="block w-full">{card}</span>
-    </Tooltip>
-  );
-}
-
-function BlockHelpToggletip({ type }: { type: AutomationBlockType }) {
-  const help = blockHelp(type);
-  return (
-    <Tooltip
-      title={help.title}
-      body={help.tooltip}
-      placement="left"
-      actions={
-        <Link className="type-meta text-text-accent hover:underline" to={`/automation/help#${type}`}>
-          Open guide
-        </Link>
-      }
-    >
-      <IconButton
-        data-block-help
-        type="button"
-        variant="ghost"
-        size="compact"
-        className="size-7 border-transparent"
-        aria-label={`Explain ${help.title}`}
-      >
-        <HelpCircle aria-hidden />
-      </IconButton>
     </Tooltip>
   );
 }

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import { IconButton } from "../../../components/Button";
 import { TableIconButton } from "../../../components/DataTable";
@@ -9,9 +10,14 @@ import { Disclosure } from "../../../components/ui/Disclosure";
 import { Pill } from "../../../components/ui/Pill";
 import { ScrollArea } from "../../../components/ui/ScrollArea";
 import { cx } from "../../../lib/cx";
-import type { AutomationValidationResult, AutomationWorkflow } from "../automationTypes";
+import type {
+  AutomationBlockType,
+  AutomationValidationResult,
+  AutomationWorkflow,
+} from "../automationTypes";
 import { groupValidationIssues } from "./workflowHelpers";
 import { Text } from "../../../components/ui/Text";
+import { blockHelp } from "./workflowBlockHelp";
 
 /** Workspace chrome for Automation page screens (list/create/edit/watch). Not the graph — that lives in `workflow/canvas/`. */
 export const mutedText = "type-body text-text-secondary";
@@ -319,6 +325,38 @@ export function InspectorSection({
       </div>
       {children}
     </Card>
+  );
+}
+
+export function BlockHelpDisclosure({ type }: { type: AutomationBlockType }) {
+  const help = blockHelp(type);
+  return (
+    <Card size="Compact" className="border-stroke-secondary border">
+      <Disclosure title="About this block" summaryClassName="type-callout" defaultOpen={false}>
+        <div className="gap-detail-close grid">
+          <Text.Body className="text-text-secondary">{help.tooltip}</Text.Body>
+          <BlockHelpList title="What it does" items={[help.whatItDoes]} />
+          <BlockHelpList title="When to use it" items={[help.whenToUse]} />
+          <BlockHelpList title="Outputs" items={help.outputs} />
+          <Link className="type-meta text-text-accent hover:underline" to={`/automation/help#${type}`}>
+            Open full guide
+          </Link>
+        </div>
+      </Disclosure>
+    </Card>
+  );
+}
+
+function BlockHelpList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <section className="grid gap-detail-tight">
+      <h4 className="type-meta text-text-secondary m-0 uppercase">{title}</h4>
+      <ul className="type-body text-text-secondary m-0 grid gap-detail-tight pl-margin-tight">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

@@ -29,6 +29,7 @@ import {
   validationIssuesByBlockId,
 } from "./workflowHelpers";
 import {
+  BlockHelpDisclosure,
   formGridClass,
   InspectorSection,
   SelectedBlockSheet,
@@ -350,6 +351,7 @@ export function CreateWorkflowWorkspace({
               }
             >
               <div className={formGridClass}>
+                <BlockHelpDisclosure type={selectedBlock.type} />
                 <DraftBlockInspector
                   block={selectedBlock}
                   sources={sources}

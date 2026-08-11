@@ -46,6 +46,7 @@ import {
   workflowIntervalSeconds,
 } from "./workflowHelpers";
 import {
+  BlockHelpDisclosure,
   SelectedBlockSheet,
   StatusPill,
   WorkflowStatusPill,
@@ -488,6 +489,7 @@ export function WorkflowWorkspace({
             }
           >
             <div className="gap-detail-close grid">
+              <BlockHelpDisclosure type={draftSelected.type} />
               <DraftBlockInspector
                 block={draftSelected}
                 sources={sources}
@@ -529,33 +531,36 @@ export function WorkflowWorkspace({
             }
           >
             {mode === "edit" ? (
-              <PersistedBlockInspector
-                key={selectedBlock.id}
-                ref={inspectorRef}
-                block={selectedBlock}
-                attachedBlocks={workflow.blocks.filter(
-                  (item) => item.parentBlockId === selectedBlock.id,
-                )}
-                sources={sources}
-                addressBook={addressBook}
-                walletStatus={walletStatus}
-                busy={busy}
-                onAttachStamp={() =>
-                  onAddBlock({
-                    type: "stamp_integritas",
-                    config: {},
-                    parentBlockId: selectedBlock.id,
-                  })
-                }
-                onUpdate={(input) => onUpdateBlock(selectedBlock.id, input)}
-                onUpdateAttached={(blockId, input) => onUpdateBlock(blockId, input)}
-                onDelete={() =>
-                  selectedBlock.type.endsWith("_start")
-                    ? undefined
-                    : onDeleteBlock(selectedBlock.id)
-                }
-                onDeleteAttached={onDeleteBlock}
-              />
+              <div className="gap-detail-close grid">
+                <BlockHelpDisclosure type={selectedBlock.type} />
+                <PersistedBlockInspector
+                  key={selectedBlock.id}
+                  ref={inspectorRef}
+                  block={selectedBlock}
+                  attachedBlocks={workflow.blocks.filter(
+                    (item) => item.parentBlockId === selectedBlock.id,
+                  )}
+                  sources={sources}
+                  addressBook={addressBook}
+                  walletStatus={walletStatus}
+                  busy={busy}
+                  onAttachStamp={() =>
+                    onAddBlock({
+                      type: "stamp_integritas",
+                      config: {},
+                      parentBlockId: selectedBlock.id,
+                    })
+                  }
+                  onUpdate={(input) => onUpdateBlock(selectedBlock.id, input)}
+                  onUpdateAttached={(blockId, input) => onUpdateBlock(blockId, input)}
+                  onDelete={() =>
+                    selectedBlock.type.endsWith("_start")
+                      ? undefined
+                      : onDeleteBlock(selectedBlock.id)
+                  }
+                  onDeleteAttached={onDeleteBlock}
+                />
+              </div>
             ) : (
               <WatchRuntimeInspector
                 selectedBlock={selectedBlock}
