@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Button } from "../components/Button";
+import { Button, LinkButton } from "../components/Button";
 import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { LoadingState } from "../components/patterns/LoadingState";
