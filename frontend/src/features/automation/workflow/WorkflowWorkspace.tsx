@@ -237,11 +237,11 @@ export function WorkflowWorkspace({
       return;
     }
     const draft = draftBlock;
-    const result = await onAddBlock({ type: draft.type, config: draft.config });
+    await onAddBlock({ type: draft.type, config: draft.config });
     setDraftRevealErrors(false);
     setDraftBlock(null);
-    if (result?.item && !result.item.parentBlockId) setSelectedBlockId(result.item.id);
-    else setSelectedBlockId("");
+    // Done means finish adding — don't reopen the persisted inspector for the new block.
+    setSelectedBlockId("");
   }
 
   function closeSelectedSheet() {
