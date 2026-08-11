@@ -320,6 +320,7 @@ export function CreateWorkflowWorkspace({
             mode="build"
             blocks={draftBlocks}
             sources={sources}
+            addressBook={addressBook}
             statusLabel={enabled ? "Enabled on create" : "Paused on create"}
             statusGood={enabled}
             selectedBlockId={selectedBlock?.id ?? ""}
@@ -338,7 +339,7 @@ export function CreateWorkflowWorkspace({
           selectedBlock && selectedBlock.type !== "manual_start" ? (
             <SelectedBlockSheet
               title={draftBlockTitle(selectedBlock)}
-              description={draftBlockDescription(selectedBlock, sources)}
+              description={draftBlockDescription(selectedBlock, sources, addressBook)}
               onClose={() => {
                 setRevealSendPaymentErrors(false);
                 setSelectedBlockId("");

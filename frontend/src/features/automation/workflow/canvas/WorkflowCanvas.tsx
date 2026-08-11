@@ -1,4 +1,5 @@
 import type { DataSource } from "../../../data-sources/dataSourceTypes";
+import type { AddressBookEntry } from "../../../address-book/addressBookTypes";
 import { Pill } from "../../../../components/Pill";
 import { IconButton } from "../../../../components/ui/Button";
 import { Divider } from "../../../../components/ui/Divider";
@@ -82,6 +83,7 @@ export function WorkflowCanvas({
   mode,
   blocks,
   sources,
+  addressBook,
   selectedBlockId,
   statusLabel,
   statusGood,
@@ -95,6 +97,7 @@ export function WorkflowCanvas({
   mode: WorkflowCanvasMode;
   blocks: WorkflowCanvasBlock[];
   sources: DataSource[];
+  addressBook: AddressBookEntry[];
   selectedBlockId: string;
   statusLabel: string;
   statusGood: boolean;
@@ -145,6 +148,7 @@ export function WorkflowCanvas({
               block={block}
               index={index}
               sources={sources}
+              addressBook={addressBook}
               selected={block.id === selectedBlockId}
               canMoveUp={index > 1}
               canMoveDown={index > 0 && index < blocks.length - 1}
@@ -168,6 +172,7 @@ function WorkflowBlockCard({
   block,
   index,
   sources,
+  addressBook,
   selected,
   canMoveUp,
   canMoveDown,
@@ -182,6 +187,7 @@ function WorkflowBlockCard({
   block: DraftWorkflowBlock;
   index: number;
   sources: DataSource[];
+  addressBook: AddressBookEntry[];
   selected: boolean;
   canMoveUp: boolean;
   canMoveDown: boolean;
@@ -193,7 +199,7 @@ function WorkflowBlockCard({
   onMoveDown: () => void;
   onRemove: () => void;
 }) {
-  const presentation = blockPresentation(block, sources, validationIssues, runtime);
+  const presentation = blockPresentation(block, sources, addressBook, validationIssues, runtime);
   const BlockIcon = blockTypeIcon[block.type];
   const showActions = !block.type.endsWith("_start");
   const showFooter = presentation.badges.length > 0 || showActions;
@@ -243,7 +249,12 @@ function WorkflowBlockCard({
         </div>
       </div>
       {block.attachedBlocks?.map((attached) => (
-        <AttachedBlockCard key={attached.id} block={attached} sources={sources} />
+        <AttachedBlockCard
+          key={attached.id}
+          block={attached}
+          sources={sources}
+          addressBook={addressBook}
+        />
       ))}
       {/* Footer: pills left, move up/down right */}
       {showFooter && (
@@ -293,11 +304,13 @@ function WorkflowBlockCard({
 function AttachedBlockCard({
   block,
   sources,
+  addressBook,
 }: {
   block: DraftWorkflowBlock;
   sources: DataSource[];
+  addressBook: AddressBookEntry[];
 }) {
-  const presentation = blockPresentation(block, sources, [], undefined);
+  const presentation = blockPresentation(block, sources, addressBook, [], undefined);
   const BlockIcon = blockTypeIcon[block.type];
   return (
     <div
