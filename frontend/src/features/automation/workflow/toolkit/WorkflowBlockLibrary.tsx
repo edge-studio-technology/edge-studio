@@ -1,11 +1,14 @@
 import type { ReactNode } from "react";
-import { Check } from "lucide-react";
+import { Check, HelpCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { IconButton } from "../../../../components/ui/Button";
 import { Disclosure } from "../../../../components/ui/Disclosure";
 import { SwitchField } from "../../../../components/ui/SwitchField";
 import { Tooltip } from "../../../../components/ui/Tooltip";
 import { cx } from "../../../../lib/cx";
 import type { AutomationBlockType } from "../../automationTypes";
 import { WorkflowRailHeader, WorkflowRailPanel } from "../chrome/WorkflowRail";
+import { blockHelp, workflowBlockLibraryTypes } from "../workflowBlockHelp";
 
 const libraryCardClass =
   "cursor-pointer border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-loose border p-detail-close text-left transition-colors hover:border-stroke-primary hover:bg-surface-always-white focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-text-disabled disabled:opacity-60";
@@ -90,106 +93,48 @@ export function WorkflowBlockLibrary({
           title="Start blocks"
           defaultOpen={!hasStartBlock}
         >
-          <LibraryCard
-            selected={selectedStartType === "manual_start"}
-            onClick={() => onSelectStartBlock("manual_start")}
-            title="Manual run"
-            description="Run only when an operator starts it."
-          />
-          <LibraryCard
-            selected={selectedStartType === "schedule_start"}
-            onClick={() => onSelectStartBlock("schedule_start")}
-            title="Schedule"
-            description="Run repeatedly on an interval."
-          />
-          <LibraryCard
-            selected={selectedStartType === "gpio_event_start"}
-            onClick={() => onSelectStartBlock("gpio_event_start")}
-            title="GPIO input event"
-            description="Start from a configured GPIO input device."
-          />
-          <LibraryCard
-            selected={selectedStartType === "webhook_event_start"}
-            onClick={() => onSelectStartBlock("webhook_event_start")}
-            title="Webhook received"
-            description="Start when JSON arrives at a webhook URL."
-          />
-          <LibraryCard
-            selected={selectedStartType === "mqtt_event_start"}
-            onClick={() => onSelectStartBlock("mqtt_event_start")}
-            title="MQTT message received"
-            description="Start when JSON arrives on an MQTT topic."
-          />
+          {workflowBlockLibraryTypes.Start.map((type) => (
+            <LibraryCard
+              key={type}
+              type={type}
+              selected={selectedStartType === type}
+              onClick={() => onSelectStartBlock(type)}
+            />
+          ))}
         </ToolkitGroup>
       )}
       <ToolkitGroup key={`data-${hasStartBlock}`} title="Data blocks" defaultOpen={hasStartBlock}>
-        <LibraryCard
-          disabled={Boolean(recordTriggerReason)}
-          disabledReason={recordTriggerReason}
-          onClick={() => onAddBlock("record_trigger_event")}
-          title="Record trigger event"
-          description="Store the trigger payload as data."
-        />
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("fetch_data_source")}
-          title="Fetch data source"
-          description="Read a configured source such as HTTP JSON or BME sensor."
-        />
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("capture_camera")}
-          title="Capture camera"
-          description="Capture media from a configured Raspberry Pi Camera."
-        />
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("set_variable")}
-          title="Add variable"
-          description="Save a value for later blocks."
-        />
+        {workflowBlockLibraryTypes.Data.map((type) => (
+          <LibraryCard
+            key={type}
+            type={type}
+            disabled={Boolean(type === "record_trigger_event" ? recordTriggerReason : needsStartReason)}
+            disabledReason={type === "record_trigger_event" ? recordTriggerReason : needsStartReason}
+            onClick={() => onAddBlock(type)}
+          />
+        ))}
       </ToolkitGroup>
       <ToolkitGroup title="Logic blocks" defaultOpen={false}>
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("if_payload_field_equals")}
-          title="If field matches"
-          description="Stop unless a trigger field or variable matches."
-        />
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("wait")}
-          title="Wait"
-          description="Pause before the next block."
-        />
+        {workflowBlockLibraryTypes.Logic.map((type) => (
+          <LibraryCard
+            key={type}
+            type={type}
+            disabled={Boolean(needsStartReason)}
+            disabledReason={needsStartReason}
+            onClick={() => onAddBlock(type)}
+          />
+        ))}
       </ToolkitGroup>
       <ToolkitGroup title="Action blocks" defaultOpen={false}>
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("show_preview")}
-          title="Show preview"
-          description="Display a message, JSON, link, or image in the Pi UI."
-        />
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("control_output")}
-          title="Control device"
-          description="Send a command to a configured output target."
-        />
-        <LibraryCard
-          disabled={Boolean(sendPaymentReason)}
-          disabledReason={sendPaymentReason}
-          onClick={() => onAddBlock("send_transaction")}
-          title="Send payment"
-          description="Send funds to a saved recipient."
-        />
+        {workflowBlockLibraryTypes.Action.map((type) => (
+          <LibraryCard
+            key={type}
+            type={type}
+            disabled={Boolean(type === "send_transaction" ? sendPaymentReason : needsStartReason)}
+            disabledReason={type === "send_transaction" ? sendPaymentReason : needsStartReason}
+            onClick={() => onAddBlock(type)}
+          />
+        ))}
       </ToolkitGroup>
       {/* <ToolkitGroup title="Attached actions">
         <LibraryCard
@@ -251,41 +196,54 @@ function ToolkitGroup({
 }
 
 function LibraryCard({
-  title,
-  description,
+  type,
   disabled,
   disabledReason,
   selected,
   onClick,
 }: {
-  title: string;
-  description: string;
+  type: AutomationBlockType;
   disabled?: boolean;
   disabledReason?: string;
   selected?: boolean;
   onClick: () => void;
 }) {
+  const help = blockHelp(type);
   const card = (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
       className={cx(
         libraryCardClass,
         "w-full",
         selected && libraryCardSelectedClass,
-        disabled && disabledReason && "pointer-events-none",
+        disabled && "cursor-not-allowed text-text-disabled opacity-60",
       )}
-      disabled={disabled}
+      aria-disabled={disabled || undefined}
       aria-pressed={selected || undefined}
-      onClick={onClick}
+      onClick={(event) => {
+        if (disabled || (event.target as HTMLElement).closest("[data-block-help]")) return;
+        onClick();
+      }}
+      onKeyDown={(event) => {
+        if (disabled || (event.target as HTMLElement).closest("[data-block-help]")) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
     >
       <span className="gap-detail-close flex items-center justify-between">
-        <span className="type-body-em text-text-primary">{title}</span>
-        {selected ? (
-          <Check aria-hidden className="text-icon-primary size-4 shrink-0" strokeWidth={2.5} />
-        ) : null}
+        <span className="type-body-em text-text-primary">{help.title}</span>
+        <span className="gap-detail-tight flex shrink-0 items-center">
+          <BlockHelpToggletip type={type} />
+          {selected ? (
+            <Check aria-hidden className="text-icon-primary size-4 shrink-0" strokeWidth={2.5} />
+          ) : null}
+        </span>
       </span>
-      <span className="type-body text-text-secondary">{description}</span>
-    </button>
+      <span className="type-body text-text-secondary">{help.shortDescription}</span>
+    </div>
   );
 
   if (!disabled || !disabledReason) return card;
@@ -293,6 +251,33 @@ function LibraryCard({
   return (
     <Tooltip title={disabledReason} placement="left">
       <span className="block w-full">{card}</span>
+    </Tooltip>
+  );
+}
+
+function BlockHelpToggletip({ type }: { type: AutomationBlockType }) {
+  const help = blockHelp(type);
+  return (
+    <Tooltip
+      title={help.title}
+      body={help.tooltip}
+      placement="left"
+      actions={
+        <Link className="type-meta text-text-accent hover:underline" to={`/automation/help#${type}`}>
+          Open guide
+        </Link>
+      }
+    >
+      <IconButton
+        data-block-help
+        type="button"
+        variant="ghost"
+        size="compact"
+        className="size-7 border-transparent"
+        aria-label={`Explain ${help.title}`}
+      >
+        <HelpCircle aria-hidden />
+      </IconButton>
     </Tooltip>
   );
 }

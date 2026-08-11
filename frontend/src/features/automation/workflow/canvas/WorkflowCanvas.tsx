@@ -3,6 +3,7 @@ import { Pill } from "../../../../components/Pill";
 import { IconButton } from "../../../../components/ui/Button";
 import { Divider } from "../../../../components/ui/Divider";
 import { ScrollArea } from "../../../../components/ui/ScrollArea";
+import { Tooltip } from "../../../../components/ui/Tooltip";
 import { cx } from "../../../../lib/cx";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -13,6 +14,7 @@ import {
   Cpu,
   Database,
   GitBranch,
+  HelpCircle,
   Inbox,
   Play,
   Radio,
@@ -25,8 +27,10 @@ import {
   Webhook,
   Zap,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { AutomationBlockType } from "../../automationTypes";
 import { blockPresentation, isDataBlock, type WorkflowCanvasBadge } from "./blockPresentation";
+import { blockHelp } from "../workflowBlockHelp";
 import type {
   DraftWorkflowBlock,
   WorkflowCanvasBlock,
@@ -200,10 +204,14 @@ function WorkflowBlockCard({
   return (
     <div
       className={cx(blockBaseClass, presentation.className, selected && selectedBlockClass)}
-      onClick={onSelect}
+      onClick={(event) => {
+        if ((event.target as HTMLElement).closest("[data-block-help]")) return;
+        onSelect();
+      }}
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
+        if ((event.target as HTMLElement).closest("[data-block-help]")) return;
         if (event.key === "Enter" || event.key === " ") onSelect();
       }}
     >
@@ -237,7 +245,12 @@ function WorkflowBlockCard({
             <BlockIcon className="size-4" strokeWidth={2} />
           </span>
           <div className="gap-detail-tight grid min-w-0 flex-1">
-            <strong className="type-body-em text-text-primary">{presentation.title}</strong>
+            <span className="gap-detail-tight flex min-w-0 items-center">
+              <strong className="type-body-em text-text-primary min-w-0 truncate">
+                {presentation.title}
+              </strong>
+              <BlockHelpToggletip type={block.type} />
+            </span>
             <p className="type-body text-text-primary m-0">{presentation.description}</p>
           </div>
         </div>
@@ -310,11 +323,43 @@ function AttachedBlockCard({
           <BlockIcon className="size-4" strokeWidth={2} />
         </span>
         <div className="gap-detail-tight grid min-w-0 flex-1">
-          <strong className="type-body-em text-text-primary">{presentation.title}</strong>
+          <span className="gap-detail-tight flex min-w-0 items-center">
+            <strong className="type-body-em text-text-primary min-w-0 truncate">
+              {presentation.title}
+            </strong>
+            <BlockHelpToggletip type={block.type} />
+          </span>
           <p className="type-body text-text-primary m-0">{presentation.description}</p>
         </div>
       </div>
     </div>
+  );
+}
+
+function BlockHelpToggletip({ type }: { type: AutomationBlockType }) {
+  const help = blockHelp(type);
+  return (
+    <Tooltip
+      title={help.title}
+      body={help.tooltip}
+      placement="right"
+      actions={
+        <Link className="type-meta text-text-accent hover:underline" to={`/automation/help#${type}`}>
+          Open guide
+        </Link>
+      }
+    >
+      <IconButton
+        data-block-help
+        type="button"
+        variant="ghost"
+        size="compact"
+        className="size-7 border-transparent"
+        aria-label={`Explain ${help.title}`}
+      >
+        <HelpCircle aria-hidden />
+      </IconButton>
+    </Tooltip>
   );
 }
 

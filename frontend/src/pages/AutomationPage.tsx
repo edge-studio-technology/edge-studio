@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Archive, Copy, Eye, Pencil, Play, RotateCcw, Trash2 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Button } from "../components/Button";
+import { Button, LinkButton } from "../components/Button";
 import {
   DataTable,
   RowActions,
@@ -421,6 +421,11 @@ export function AutomationPage() {
     <Page
       title="Automation"
       desc="Build workflows from small start, data, logic, and Integritas blocks."
+      action={
+        <LinkButton href="/automation/help" size="sm" variant="secondary">
+          Workflow guide
+        </LinkButton>
+      }
     >
       <section className={cardClass}>
         <div className={statusRowClass}>

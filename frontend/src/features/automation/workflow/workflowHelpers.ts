@@ -17,6 +17,7 @@ import type {
   WorkflowCanvasRuntimeState,
   WorkflowCanvasValidationIssue,
 } from "./canvas";
+import { blockHelp } from "./workflowBlockHelp";
 
 /** Pure workflow draft/config/label helpers (no React). Graph visuals stay in `workflow/canvas/`. */
 export const WORKFLOW_INTERVAL_OPTIONS = [10, 30, 60, 300, 900, 3600] as const;
@@ -292,39 +293,16 @@ export function summarizeBlocks(workflow: AutomationWorkflow) {
 }
 
 export function blockLabel(block: AutomationBlock) {
-  if (block.type === "schedule_start") return "Start on schedule";
-  if (block.type === "gpio_event_start") return "Start on GPIO event";
-  if (block.type === "webhook_event_start") return "Start on webhook";
-  if (block.type === "mqtt_event_start") return "Start on MQTT message";
-  if (block.type === "manual_start") return "Start manually";
-  if (block.type === "record_trigger_event") return "Record trigger event";
-  if (block.type === "fetch_data_source") return "Fetch data source";
-  if (block.type === "capture_camera") return "Capture camera";
-  if (block.type === "set_variable") return "Set variable";
+  if (block.type !== "if_payload_field_equals") return blockHelp(block.type).shortTitle;
   if (block.type === "if_payload_field_equals") {
     return `If ${conditionSourceLabel(block.config.source ?? "trigger")} field matches`;
   }
-  if (block.type === "wait") return "Wait";
-  if (block.type === "show_preview") return "Show preview";
-  if (block.type === "stamp_integritas") return "Stamp data";
-  if (block.type === "control_output") return "Control device";
-  if (block.type === "send_transaction") return "Send payment";
   return block.type;
 }
 
 export function blockShortLabel(block: AutomationBlock) {
   if (block.type.endsWith("_start")) return "Start";
-  if (block.type === "record_trigger_event") return "Record event";
-  if (block.type === "fetch_data_source") return "Fetch source";
-  if (block.type === "capture_camera") return "Capture camera";
-  if (block.type === "set_variable") return "Set variable";
-  if (block.type === "if_payload_field_equals") return "If field matches";
-  if (block.type === "show_preview") return "Show preview";
-  if (block.type === "stamp_integritas") return "Stamp";
-  if (block.type === "control_output") return "Control device";
-  if (block.type === "send_transaction") return "Send payment";
-  if (block.type === "wait") return "Wait";
-  return block.type;
+  return blockHelp(block.type).shortTitle;
 }
 
 export function conditionSourceLabel(source: "trigger" | "variable") {

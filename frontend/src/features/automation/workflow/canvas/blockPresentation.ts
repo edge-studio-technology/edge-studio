@@ -1,6 +1,7 @@
 import type { Tone } from "../../../../app/types";
 import type { DataSource } from "../../../data-sources/dataSourceTypes";
 import type { AutomationBlock, AutomationBlockType } from "../../automationTypes";
+import { blockHelp } from "../workflowBlockHelp";
 import type {
   DraftWorkflowBlock,
   WorkflowCanvasBlock,
@@ -90,20 +91,7 @@ export function isDataBlock(type: AutomationBlockType) {
 }
 
 export function draftBlockTitle(block: { type: AutomationBlockType }) {
-  if (block.type === "manual_start") return "Manual run";
-  if (block.type === "schedule_start") return "Schedule";
-  if (block.type === "gpio_event_start") return "GPIO input event";
-  if (block.type === "webhook_event_start") return "Webhook received";
-  if (block.type === "mqtt_event_start") return "MQTT message received";
-  if (block.type === "record_trigger_event") return "Record trigger event";
-  if (block.type === "fetch_data_source") return "Fetch data source";
-  if (block.type === "capture_camera") return "Capture camera";
-  if (block.type === "set_variable") return "Set variable";
-  if (block.type === "show_preview") return "Show preview";
-  if (block.type === "stamp_integritas") return "Stamp data";
-  if (block.type === "control_output") return "Control device";
-  if (block.type === "send_transaction") return "Send payment";
-  return block.type;
+  return blockHelp(block.type).title;
 }
 
 export function draftBlockDescription(
@@ -115,17 +103,17 @@ export function draftBlockDescription(
   const sourceId = block.config.sourceId ?? block.config.targetId;
   const source = sourceId ? sources.find((item) => item.id === sourceId) : undefined;
   if (source) return `${source.name} - ${sourceLabel(source)}`;
-  if (block.type === "manual_start") return "Runs only from a manual test/action.";
-  if (block.type === "record_trigger_event") return "Stores the trigger payload as a data read.";
-  if (block.type === "fetch_data_source") return "Fetches JSON and creates a hash.";
+  if (block.type === "manual_start") return blockHelp(block.type).tooltip;
+  if (block.type === "record_trigger_event") return blockHelp(block.type).tooltip;
+  if (block.type === "fetch_data_source") return blockHelp(block.type).tooltip;
   if (block.type === "capture_camera")
-    return "Captures media, hashes the file bytes, and stores capture metadata.";
+    return blockHelp(block.type).tooltip;
   if (block.type === "set_variable")
     return `Save ${block.config.variableName || "a variable"} for later blocks.`;
   if (block.type === "show_preview")
     return `Display ${block.config.previewFormat ?? "text"} in the Automation inbox.`;
-  if (block.type === "stamp_integritas") return "Stamp this data block's hash.";
-  if (block.type === "control_output") return "Send a command to a configured output target.";
+  if (block.type === "stamp_integritas") return blockHelp(block.type).tooltip;
+  if (block.type === "control_output") return blockHelp(block.type).tooltip;
   if (block.type === "send_transaction")
     return `Send ${block.config.amount || "?"} to a saved recipient.`;
   return "Select a source in Setup.";
