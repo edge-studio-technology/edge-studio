@@ -4,7 +4,7 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] ui/workflow-canvas
+## [0.32.1] 2026-08-11
 
 ### Added
 
@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Stamp attaches from the selected-block options sheet on stampable data blocks (not the toolkit).
 - Block options sheet saves on leave (Done, backdrop, Escape, or switching blocks); no separate Save changes.
 - Edit: **Run automatically** cannot turn on while there are validation errors (pause still allowed); tooltip explains why.
+
 ## [0.32.0] 2026-08-08
 
 ### Added
