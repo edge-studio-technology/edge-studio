@@ -61,6 +61,15 @@ export function WorkflowStatusPill({ workflow }: { workflow: AutomationWorkflow 
   );
 }
 
+/** Status pills under the workspace top bar. */
+export function WorkflowStatusStrip({ children }: { children: ReactNode }) {
+  return (
+    <div className="gap-detail-next flex flex-wrap items-center" role="status">
+      {children}
+    </div>
+  );
+}
+
 export function IconAction({
   children,
   title,

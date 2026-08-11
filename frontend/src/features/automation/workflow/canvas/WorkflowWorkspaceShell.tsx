@@ -22,6 +22,7 @@ export function WorkflowWorkspaceShell({
   rail,
   selectedSheet,
   bottom,
+  statusStrip,
   notices,
 }: {
   breadcrumbLabel: string;
@@ -31,6 +32,8 @@ export function WorkflowWorkspaceShell({
   rail: ReactNode;
   selectedSheet?: ReactNode;
   bottom?: ReactNode;
+  /** Meta status pills. */
+  statusStrip?: ReactNode;
   notices?: ReactNode;
 }) {
   return (
@@ -48,8 +51,9 @@ export function WorkflowWorkspaceShell({
         </div>
         {actions && <div className={cx("relative z-10", rowActionsClass)}>{actions}</div>}
       </div>
-      {notices && (
-        <div className="border-stroke-secondary bg-surface-primary gap-detail-next px-pad-relaxed py-pad-tight grid border-b">
+      {(statusStrip || notices) && (
+        <div className="border-stroke-secondary bg-surface-primary gap-detail-close px-pad-relaxed py-pad-tight grid border-b">
+          {statusStrip}
           {notices}
         </div>
       )}

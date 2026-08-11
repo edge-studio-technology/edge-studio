@@ -16,7 +16,6 @@ import { formatLocalTime } from "../../../lib/time";
 import type {
   AutomationBlock,
   AutomationRun,
-  AutomationValidationResult,
   AutomationWorkflow,
 } from "../automationTypes";
 import { WorkflowRailHeader, WorkflowRailPanel } from "./canvas";
@@ -32,7 +31,6 @@ import {
   Panel,
   RuntimeStat,
   StatusPill,
-  WorkflowValidationPanel,
   errorText,
   formGridClass,
   mutedText,
@@ -130,13 +128,11 @@ export function WatchRuntimeInspector({
   selectedBlock,
   latestBlockRun,
   selectedRun,
-  validation,
   onCloseSelectedBlock,
 }: {
   selectedBlock: AutomationBlock | undefined;
   latestBlockRun: AutomationRun["blocks"][number] | null;
   selectedRun: AutomationRun | undefined;
-  validation: AutomationValidationResult | null;
   onCloseSelectedBlock?: () => void;
 }) {
   const readId = readIdFromOutput(latestBlockRun?.output);
@@ -161,7 +157,6 @@ export function WatchRuntimeInspector({
 
   return (
     <div className="gap-detail-close grid">
-      <WorkflowValidationPanel validation={validation} />
       <InspectorSection
         title="Run summary"
         description="The selected workflow run currently visualized on the canvas."

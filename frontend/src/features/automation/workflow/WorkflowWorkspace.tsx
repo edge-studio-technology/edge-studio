@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/Button";
+import { InputField } from "../../../components/ui/InputField";
+import { Text } from "../../../components/Text";
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { WalletStatus } from "../../wallet/walletTypes";
@@ -47,12 +49,12 @@ import {
   SelectedBlockSheet,
   StatusPill,
   WorkflowStatusPill,
+  WorkflowStatusStrip,
   WorkflowValidationPanel,
   errorText,
   isWorkflowValidationVisible,
   mutedText,
 } from "./workflowWorkspaceUi";
-import { Text } from "../../../components/Text";
 import { formatLocalTime } from "../../../lib/time";
 
 /** Edit/watch workspace for a persisted automation workflow. */
@@ -122,16 +124,13 @@ export function WorkflowWorkspace({
   const selectedBlock = selectedBlockId
     ? mainBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
-  const draftSelected =
-    draftBlock && selectedBlockId === draftBlock.id ? draftBlock : null;
+  const draftSelected = draftBlock && selectedBlockId === draftBlock.id ? draftBlock : null;
 
   // Saved workflow blocks, plus an unsaved Send payment draft while its options sheet is open.
   const persistedCanvasBlocks = mainBlocks.map((block) =>
     automationBlockToCanvasBlock(block, workflow.blocks),
   );
-  const canvasBlocks = draftBlock
-    ? [...persistedCanvasBlocks, draftBlock]
-    : persistedCanvasBlocks;
+  const canvasBlocks = draftBlock ? [...persistedCanvasBlocks, draftBlock] : persistedCanvasBlocks;
   const canAddRecordTriggerEvent = Boolean(
     startBlock &&
     (startBlock.type === "gpio_event_start" ||
@@ -274,63 +273,66 @@ export function WorkflowWorkspace({
   }
 
   const workflowNameDirty = workflowName.trim() !== workflow.name;
+  const workflowNameError = !workflowName.trim() ? "Workflow name is required." : undefined;
 
   return (
     <WorkflowWorkspaceShell
       breadcrumbLabel={mode === "watch" ? "Watch workflow" : "Edit workflow"}
       nameControl={
         mode === "edit" ? (
-          <input
+          <InputField
             aria-label="Workflow name"
             value={workflowName}
             onChange={(event) => setWorkflowName(event.target.value)}
             placeholder="Workflow name"
+            error={workflowNameError}
           />
         ) : (
-          <input aria-label="Workflow name" value={workflow.name} readOnly />
+          <InputField aria-label="Workflow name" value={workflow.name} readOnly />
         )
       }
       actions={
         <>
-          <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={onBack}>
-            Back to workflows
+          <Button type="button" variant="ghost" disabled={busy} onClick={onBack}>
+            Back
           </Button>
           <Button
             type="button"
             variant="secondary"
-            size="sm"
             disabled={busy}
             onClick={() => onNavigateMode(mode === "watch" ? "edit" : "watch")}
           >
             {mode === "watch" ? "Open in edit" : "Open in watch"}
           </Button>
-          {mode === "edit" && (
-            <Button
-              type="button"
-              size="sm"
-              disabled={busy || !workflowName.trim() || !workflowNameDirty}
-              onClick={() => onUpdateWorkflow({ name: workflowName.trim() })}
-            >
-              Save workflow name
-            </Button>
-          )}
           <Button
             type="button"
             variant="secondary"
-            size="sm"
             disabled={busy || hasValidationErrors || workflow.archived}
             onClick={onRunNow}
           >
             Run now
           </Button>
-          {mode === "watch" && (
+          {mode === "edit" ? (
+            <Button
+              type="button"
+              disabled={busy || Boolean(workflowNameError) || !workflowNameDirty}
+              onClick={() => onUpdateWorkflow({ name: workflowName.trim() })}
+            >
+              Save workflow name
+            </Button>
+          ) : null}
+        </>
+      }
+      statusStrip={
+        <WorkflowStatusStrip>
+          {mode === "watch" ? (
             <>
               <WorkflowStatusPill workflow={workflow} />
               <StatusPill status={selectedRun?.status === "running" ? "good" : "neutral"}>
                 {watchRunStatusLabel}
               </StatusPill>
             </>
-          )}
+          ) : null}
           <StatusPill status="neutral">Blocks {workflow.blocks.length}</StatusPill>
           <StatusPill status="neutral">
             Last run {workflow.lastRunAt ? formatLocalTime(workflow.lastRunAt) : "Never"}
@@ -343,7 +345,7 @@ export function WorkflowWorkspace({
                 ? "Paused"
                 : "On incoming data"}
           </StatusPill>
-        </>
+        </WorkflowStatusStrip>
       }
       notices={
         (mode === "edit" && pausedForEditNotice) || workflow.archived || workflow.lastError ? (
@@ -360,7 +362,11 @@ export function WorkflowWorkspace({
                 Archived workflows do not run automatically or manually until restored.
               </p>
             )}
-            {workflow.lastError && <p className={errorText}>{workflow.lastError}</p>}
+            {workflow.lastError ? (
+              <p className={errorText} role="alert">
+                Last run failed: {workflow.lastError}
+              </p>
+            ) : null}
           </>
         ) : undefined
       }
@@ -390,24 +396,29 @@ export function WorkflowWorkspace({
               </div>
             </>
           ) : (
-            <WatchRunControls
-              workflow={workflow}
-              busy={busy}
-              hasValidationErrors={hasValidationErrors}
-              payloadText={payloadText}
-              payloadError={payloadError}
-              onPayloadTextChange={(value) => {
-                setPayloadText(value);
-                setPayloadError(null);
-              }}
-              onPayloadError={setPayloadError}
-              onResetPayload={() => {
-                setPayloadText(JSON.stringify(examplePayload(workflow), null, 2));
-                setPayloadError(null);
-              }}
-              onRunNow={onRunNow}
-              onRunWithPayload={onRunWithPayload}
-            />
+            <>
+              {isWorkflowValidationVisible(validation) ? (
+                <WorkflowValidationPanel validation={validation} />
+              ) : null}
+              <WatchRunControls
+                workflow={workflow}
+                busy={busy}
+                hasValidationErrors={hasValidationErrors}
+                payloadText={payloadText}
+                payloadError={payloadError}
+                onPayloadTextChange={(value) => {
+                  setPayloadText(value);
+                  setPayloadError(null);
+                }}
+                onPayloadError={setPayloadError}
+                onResetPayload={() => {
+                  setPayloadText(JSON.stringify(examplePayload(workflow), null, 2));
+                  setPayloadError(null);
+                }}
+                onRunNow={onRunNow}
+                onRunWithPayload={onRunWithPayload}
+              />
+            </>
           )}
         </aside>
       }
@@ -446,8 +457,8 @@ export function WorkflowWorkspace({
             title={draftBlockTitle(draftSelected)}
             description={
               <>
-                {draftBlockDescription(draftSelected, sources)} Set recipient and amount, then
-                Done to add this block.
+                {draftBlockDescription(draftSelected, sources)} Set recipient and amount, then Done
+                to add this block.
               </>
             }
             onClose={closeSelectedSheet}
@@ -536,7 +547,6 @@ export function WorkflowWorkspace({
                 selectedBlock={selectedBlock}
                 latestBlockRun={blockRunForBlock(selectedRun, selectedBlock.id)}
                 selectedRun={selectedRun}
-                validation={validation}
               />
             )}
           </SelectedBlockSheet>
