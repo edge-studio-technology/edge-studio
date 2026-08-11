@@ -4,7 +4,17 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [0.35.0] 20206-08-11
+## [Unreleased] refactor/repalce-openssl-with-node
+
+### Fixed
+
+- Brand/logo assets no longer 404 on Docker installs.
+
+### Security
+
+- `install.sh` now always verifies the update manifest signature before installing, using a disposable Docker container instead of the host's `openssl` CLI.
+
+## [0.35.0] 2026-08-11
 
 ### Changed
 
@@ -450,7 +460,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Wallet page actions (Receive, Send, Create token) and the Minima settings panel are now disabled with an inline notice until the Minima node is confirmed `running`, avoiding RPC calls that would just fail mid-restart/resync.
 - Wallet balance, assets, and history now auto-refresh once Minima comes back online after a resync/restart, instead of staying stuck on stale data until the operator navigates away and back.
 - Address book is now its own tab on the Wallet page instead of a modal opened from the page header.
-- Added a Minima RPC console to the Minima Core page: an admin-curated, closed-world checkbox whitelist of ~90 Minima RPC commands (sorted alphabetically within their read/write groups) with a terminal-like input/scrollback — light theme, custom scrollbar, collapsible section, fullscreen mode, and a clear-scrollback button. `vault`, `sendfrom`, `signfrom`, `createfrom`, `postfrom`, `createtokenfrom`, `decryptbackup`, `keys`, and `quit` are permanently excluded (can never be whitelisted) because they can expose/accept a raw wallet private key or seed phrase, or halt the node with no recovery path. Every other command defaults to enabled if read-only and disabled if it mutates funds/chain/config/network/wallet. Editing the whitelist requires re-entering the admin PIN/password. `megammrsync` and `peers action:addpeers` run through the existing narrow `resyncMegammr()`/`addMinimaPeers()` actions instead of a generic RPC passthrough, so operation-tracking and audit logging stay consistent with the existing Resync/Add peers UI (`docs/plans/minima-rpc-console.md`, `docs/security/host-and-infrastructure.md`).
+- Added a Minima RPC console to the Minima Core page: an admin-curated, closed-world checkbox whitelist of ~90 Minima RPC commands (sorted alphabetically within their read/write groups) with a terminal-like input/scrollback — light theme, custom scrollbar, collapsible section, fullscreen mode, and a clear-scrollback button. `vault`, `sendfrom`, `signfrom`, `createfrom`, `postfrom`, `createtokenfrom`, `decryptbackup`, `keys`, and `quit` are permanently excluded (can never be whitelisted) because they can expose/accept a raw wallet private key or seed phrase, or halt the node with no recovery path. Every other command defaults to enabled if read-only and disabled if it mutates funds/chain/config/network/wallet. Editing the whitelist requires re-entering the admin PIN/password. `megammrsync` and `peers action:addpeers` run through the existing narrow `resyncMegammr()`/`addMinimaPeers()` actions instead of a generic RPC passthrough, so operation-tracking and audit logging stay consistent with the existing Resync/Add peers UI (`docs/security/host-and-infrastructure.md`).
 - `npm run docker:rebuild` operational script to rebuild and restart just the `backend`/`frontend` Docker Compose services and tail their logs, for quickly checking a local change in the Docker environment.
 
 ### Changed

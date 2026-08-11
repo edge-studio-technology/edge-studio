@@ -2,7 +2,7 @@
 
 Status: Implemented for active route-level API error responses. Shared backend helpers and frontend parsing are in place; active routes now return structured `errorDetails` while preserving existing compatibility fields. Status endpoints may still embed plain nested service-error strings inside successful status payloads.
 
-This plan covers request, validation, authorization, and unexpected system errors. It is separate from domain/operational errors such as data-source failures and workflow block failures; see `docs/plans/structured-error-handling.md` for those.
+This plan covers request, validation, authorization, and unexpected system errors. It is separate from domain/operational errors such as data-source failures and workflow block failures; see `docs/plans/archive/structured-error-handling.md` for those.
 
 ## Problem
 
@@ -43,7 +43,7 @@ Examples:
 - Camera capture block fails.
 - Integritas stamp fails.
 
-Handled by: `docs/plans/structured-error-handling.md`.
+Handled by: `docs/plans/archive/structured-error-handling.md`.
 
 ### App/API Errors
 
