@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Button } from "../components/Button";
+import { Button, LinkButton } from "../components/Button";
 import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { LoadingState } from "../components/patterns/LoadingState";
@@ -418,6 +418,11 @@ export function AutomationPage() {
     <Page
       title="Automation"
       desc="Build workflows from small start, data, logic, and Integritas blocks."
+      action={
+        <LinkButton href="/automation/help" size="sm" variant="secondary">
+          Workflow guide
+        </LinkButton>
+      }
     >
       {loadError && (
         <ErrorAlert

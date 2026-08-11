@@ -4,12 +4,18 @@ import { Disclosure } from "../../../../components/ui/Disclosure";
 import { SwitchField } from "../../../../components/ui/SwitchField";
 import { Tooltip } from "../../../../components/ui/Tooltip";
 import { cx } from "../../../../lib/cx";
+import type { DataSource } from "../../../data-sources/dataSourceTypes";
 import type { AutomationBlockType } from "../../automationTypes";
 import { WorkflowRailHeader, WorkflowRailPanel } from "../chrome/WorkflowRail";
+import { blockHelp, workflowBlockLibraryTypes } from "../workflowBlockHelp";
+import { missingDeviceLibraryReason } from "../workflowHelpers";
 
 const libraryCardClass =
-  "cursor-pointer border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-loose border p-detail-close text-left transition-colors hover:border-stroke-primary hover:bg-surface-always-white focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-text-disabled disabled:opacity-60";
+  "border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-loose border p-detail-close text-left transition-colors focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none";
 const libraryCardSelectedClass = "border-stroke-active bg-surface-always-white";
+const libraryCardInteractiveClass =
+  "hover:border-stroke-primary hover:bg-surface-always-white cursor-pointer";
+const libraryCardDisabledClass = "text-text-disabled cursor-not-allowed opacity-60";
 
 const NEEDS_START_REASON = "Choose a start block first.";
 
@@ -19,6 +25,7 @@ export function WorkflowBlockLibrary({
   selectedStartType,
   canAddRecordTriggerEvent = true,
   canAddSendPayment = true,
+  sources = [],
   enabled,
   onEnabledChange,
   enabledDisabled = false,
@@ -31,6 +38,7 @@ export function WorkflowBlockLibrary({
   selectedStartType?: AutomationBlockType;
   canAddRecordTriggerEvent?: boolean;
   canAddSendPayment?: boolean;
+  sources?: DataSource[];
   enabled?: boolean;
   onEnabledChange?: (value: boolean) => void;
   enabledDisabled?: boolean;
@@ -39,32 +47,33 @@ export function WorkflowBlockLibrary({
   onAddBlock: (type: AutomationBlockType) => void;
 }) {
   const canAddMainBlock = hasStartBlock;
-  const needsStartReason = canAddMainBlock ? undefined : NEEDS_START_REASON;
-  const recordTriggerReason = recordTriggerDisabledReason(
-    canAddMainBlock,
-    canAddRecordTriggerEvent,
-    selectedStartType,
-  );
-  const sendPaymentReason = !canAddMainBlock
-    ? NEEDS_START_REASON
-    : mode === "edit" && !canAddSendPayment
-      ? "Add an address book contact in Wallet first."
-      : undefined;
-  const showEnabled = enabled !== undefined && onEnabledChange !== undefined;
+  // Enable toggle is create-only; edit auto-pauses and re-enable lives on the workflow list.
+  const showEnabled = mode === "build" && enabled !== undefined && onEnabledChange !== undefined;
   const enableSwitch = showEnabled ? (
     <SwitchField
-      label={mode === "build" ? "Enable after create" : "Enable workflow"}
-      description={
-        mode === "build"
-          ? "Start the workflow as soon as it is created."
-          : "This workflow runs directly when enabled."
-      }
+      label="Enable after create"
+      description="Start the workflow as soon as it is created."
       checked={enabled}
       disabled={enabledDisabled}
       onChange={(event) => onEnabledChange(event.target.checked)}
       className="border-stroke-secondary pb-detail-close pt-detail-close min-w-0 border-t border-b"
     />
   ) : null;
+
+  function cardDisabledReason(type: AutomationBlockType): string | undefined {
+    if (!type.endsWith("_start") && !canAddMainBlock) return NEEDS_START_REASON;
+    if (type === "record_trigger_event") {
+      return recordTriggerDisabledReason(
+        canAddMainBlock,
+        canAddRecordTriggerEvent,
+        selectedStartType,
+      );
+    }
+    if (type === "send_transaction" && !canAddSendPayment) {
+      return "Add an address book contact in Wallet first.";
+    }
+    return missingDeviceLibraryReason(type, sources);
+  }
 
   return (
     <WorkflowRailPanel>
@@ -90,106 +99,62 @@ export function WorkflowBlockLibrary({
           title="Start blocks"
           defaultOpen={!hasStartBlock}
         >
-          <LibraryCard
-            selected={selectedStartType === "manual_start"}
-            onClick={() => onSelectStartBlock("manual_start")}
-            title="Manual run"
-            description="Run only when an operator starts it."
-          />
-          <LibraryCard
-            selected={selectedStartType === "schedule_start"}
-            onClick={() => onSelectStartBlock("schedule_start")}
-            title="Schedule"
-            description="Run repeatedly on an interval."
-          />
-          <LibraryCard
-            selected={selectedStartType === "gpio_event_start"}
-            onClick={() => onSelectStartBlock("gpio_event_start")}
-            title="GPIO input event"
-            description="Start from a configured GPIO input device."
-          />
-          <LibraryCard
-            selected={selectedStartType === "webhook_event_start"}
-            onClick={() => onSelectStartBlock("webhook_event_start")}
-            title="Webhook received"
-            description="Start when JSON arrives at a webhook URL."
-          />
-          <LibraryCard
-            selected={selectedStartType === "mqtt_event_start"}
-            onClick={() => onSelectStartBlock("mqtt_event_start")}
-            title="MQTT message received"
-            description="Start when JSON arrives on an MQTT topic."
-          />
+          {workflowBlockLibraryTypes.Start.map((type) => {
+            const disabledReason = cardDisabledReason(type);
+            return (
+              <LibraryCard
+                key={type}
+                type={type}
+                selected={selectedStartType === type}
+                disabled={Boolean(disabledReason)}
+                disabledReason={disabledReason}
+                onClick={() => onSelectStartBlock(type)}
+              />
+            );
+          })}
         </ToolkitGroup>
       )}
       <ToolkitGroup key={`data-${hasStartBlock}`} title="Data blocks" defaultOpen={hasStartBlock}>
-        <LibraryCard
-          disabled={Boolean(recordTriggerReason)}
-          disabledReason={recordTriggerReason}
-          onClick={() => onAddBlock("record_trigger_event")}
-          title="Record trigger event"
-          description="Store the trigger payload as data."
-        />
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("fetch_data_source")}
-          title="Fetch data source"
-          description="Read a configured source such as HTTP JSON or BME sensor."
-        />
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("capture_camera")}
-          title="Capture camera"
-          description="Capture media from a configured Raspberry Pi Camera."
-        />
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("set_variable")}
-          title="Add variable"
-          description="Save a value for later blocks."
-        />
+        {workflowBlockLibraryTypes.Data.map((type) => {
+          const disabledReason = cardDisabledReason(type);
+          return (
+            <LibraryCard
+              key={type}
+              type={type}
+              disabled={Boolean(disabledReason)}
+              disabledReason={disabledReason}
+              onClick={() => onAddBlock(type)}
+            />
+          );
+        })}
       </ToolkitGroup>
       <ToolkitGroup title="Logic blocks" defaultOpen={false}>
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("if_payload_field_equals")}
-          title="If field matches"
-          description="Stop unless a trigger field or variable matches."
-        />
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("wait")}
-          title="Wait"
-          description="Pause before the next block."
-        />
+        {workflowBlockLibraryTypes.Logic.map((type) => {
+          const disabledReason = cardDisabledReason(type);
+          return (
+            <LibraryCard
+              key={type}
+              type={type}
+              disabled={Boolean(disabledReason)}
+              disabledReason={disabledReason}
+              onClick={() => onAddBlock(type)}
+            />
+          );
+        })}
       </ToolkitGroup>
       <ToolkitGroup title="Action blocks" defaultOpen={false}>
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("show_preview")}
-          title="Show preview"
-          description="Display a message, JSON, link, or image in the Pi UI."
-        />
-        <LibraryCard
-          disabled={Boolean(needsStartReason)}
-          disabledReason={needsStartReason}
-          onClick={() => onAddBlock("control_output")}
-          title="Control device"
-          description="Send a command to a configured output target."
-        />
-        <LibraryCard
-          disabled={Boolean(sendPaymentReason)}
-          disabledReason={sendPaymentReason}
-          onClick={() => onAddBlock("send_transaction")}
-          title="Send payment"
-          description="Send funds to a saved recipient."
-        />
+        {workflowBlockLibraryTypes.Action.map((type) => {
+          const disabledReason = cardDisabledReason(type);
+          return (
+            <LibraryCard
+              key={type}
+              type={type}
+              disabled={Boolean(disabledReason)}
+              disabledReason={disabledReason}
+              onClick={() => onAddBlock(type)}
+            />
+          );
+        })}
       </ToolkitGroup>
       {/* <ToolkitGroup title="Attached actions">
         <LibraryCard
@@ -251,41 +216,52 @@ function ToolkitGroup({
 }
 
 function LibraryCard({
-  title,
-  description,
+  type,
   disabled,
   disabledReason,
   selected,
   onClick,
 }: {
-  title: string;
-  description: string;
+  type: AutomationBlockType;
   disabled?: boolean;
   disabledReason?: string;
   selected?: boolean;
   onClick: () => void;
 }) {
+  const help = blockHelp(type);
   const card = (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
       className={cx(
         libraryCardClass,
         "w-full",
         selected && libraryCardSelectedClass,
-        disabled && disabledReason && "pointer-events-none",
+        disabled ? libraryCardDisabledClass : libraryCardInteractiveClass,
       )}
-      disabled={disabled}
+      aria-disabled={disabled || undefined}
       aria-pressed={selected || undefined}
-      onClick={onClick}
+      onClick={() => {
+        if (disabled) return;
+        onClick();
+      }}
+      onKeyDown={(event) => {
+        if (disabled) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
     >
       <span className="gap-detail-close flex items-center justify-between">
-        <span className="type-body-em text-text-primary">{title}</span>
-        {selected ? (
-          <Check aria-hidden className="text-icon-primary size-4 shrink-0" strokeWidth={2.5} />
-        ) : null}
+        <span className="type-body-em text-text-primary">{help.title}</span>
+        <span className="gap-detail-tight flex shrink-0 items-center">
+          {selected ? (
+            <Check aria-hidden className="text-icon-primary size-4 shrink-0" strokeWidth={2.5} />
+          ) : null}
+        </span>
       </span>
-      <span className="type-body text-text-secondary">{description}</span>
-    </button>
+    </div>
   );
 
   if (!disabled || !disabledReason) return card;

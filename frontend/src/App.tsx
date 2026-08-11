@@ -12,6 +12,7 @@ import { MarketplacePage } from "./pages/MarketplacePage";
 import { MinimaPage } from "./pages/MinimaPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { AutomationPage } from "./pages/AutomationPage";
+import { AutomationHelpPage } from "./pages/AutomationHelpPage";
 import { SetupPage } from "./pages/SetupPage";
 import { WalletPage } from "./pages/WalletPage";
 import { AuthSettingsPage } from "./pages/AuthSettingsPage";
@@ -39,6 +40,7 @@ function AppContent() {
         <Route path="/integritas" element={<IntegritasPage />} />
         <Route path="/data" element={<DataSourcesPage />} />
         <Route path="/automation" element={<AutomationPage />} />
+        <Route path="/automation/help" element={<AutomationHelpPage />} />
         <Route path="/automation/new" element={<AutomationPage />} />
         <Route path="/automation/:workflowId/edit" element={<AutomationPage />} />
         <Route path="/automation/:workflowId/watch" element={<AutomationPage />} />
