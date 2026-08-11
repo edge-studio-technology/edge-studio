@@ -1,7 +1,6 @@
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { AutomationBlock, AutomationBlockType, ConditionOperator } from "../automationTypes";
-import { blockHelp } from "./workflowBlockHelp";
 import { conditionOperatorOptions, formatInterval, sourceLabel } from "./workflowHelpers";
 
 export type WorkflowBlockSummaryField = {
@@ -30,14 +29,14 @@ type WorkflowBlockSummaryFormatter = (
 ) => WorkflowBlockSummary;
 
 const blockSummaryFormatters = {
-  manual_start: () => summary("Manual run only"),
+  manual_start: () => summary([{ label: "Run mode", value: "Manual" }]),
   schedule_start: (block) => {
     const interval = formatInterval(Number(block.config.intervalSeconds ?? 60));
-    return summary(interval, [{ label: "Interval", value: interval }]);
+    return summary([{ label: "Interval", value: interval }]);
   },
   gpio_event_start: (block, context) => {
     const source = sourceById(context.sources, block.config.sourceId);
-    return summaryWithSource(block.type, source, [
+    return summary([
       { label: "Source", value: sourceDisplay(source) },
       { label: "Active only", value: block.config.activeOnly ? "Yes" : "No" },
       { label: "Cooldown", value: formatSeconds(Number(block.config.cooldownSeconds ?? 0)) },
@@ -45,7 +44,7 @@ const blockSummaryFormatters = {
   },
   webhook_event_start: (block, context) => eventStartSummary(block, context),
   mqtt_event_start: (block, context) => eventStartSummary(block, context),
-  record_trigger_event: () => summary("Record the trigger event payload"),
+  record_trigger_event: () => summary([{ label: "Input", value: "Trigger event payload" }]),
   fetch_data_source: (block, context) => sourceBlockSummary(block, context),
   capture_camera: (block, context) => sourceBlockSummary(block, context),
   set_variable: (block) => {
@@ -53,7 +52,7 @@ const blockSummaryFormatters = {
     const source = variableSourceLabel(block.config.variableSource);
     const field = stringValue(block.config.fieldPath, "value");
     const value = block.config.variableSource === "custom_json" ? shortText(block.config.valueJsonText) : field;
-    return summary(`Set ${name} from ${source}: ${value}`, [
+    return summary([
       { label: "Variable", value: name },
       { label: "Source", value: source },
       { label: block.config.variableSource === "custom_json" ? "Value" : "Field", value },
@@ -71,30 +70,27 @@ const blockSummaryFormatters = {
     const valueRequired = !operatorHasNoValue(block.config.operator);
     const value = valueRequired ? formatValue(block.config.value) : "";
     if (valueRequired) fields.push({ label: "Value", value });
-    return summary(
-      valueRequired ? `${source} ${field} ${operator} ${value}` : `${source} ${field} ${operator}`,
-      fields,
-    );
+    return summary(fields);
   },
   wait: (block) => {
     const duration = formatDurationMs(Number(block.config.durationMs ?? 1000));
-    return summary(`Wait ${duration}`, [{ label: "Duration", value: duration }]);
+    return summary([{ label: "Duration", value: duration }]);
   },
   show_preview: (block) => {
     const format = previewFormatLabel(block.config.previewFormat);
     const mode = contentModeLabel(block.config.contentMode);
     const title = stringValue(block.config.title, "Workflow preview");
-    return summary(`${format} preview: ${title}`, [
-      { label: "Title", value: title },
+    return summary([
       { label: "Format", value: format },
-      { label: "Content", value: mode },
+      { label: "Title", value: title },
+      { label: "Content source", value: mode },
     ]);
   },
-  stamp_integritas: () => summary("Stamp parent data hash"),
+  stamp_integritas: () => summary([{ label: "Data", value: "Parent block hash" }]),
   control_output: (block, context) => {
     const target = sourceById(context.sources, block.config.targetId);
     const action = outputActionLabel(block.config.action);
-    return summary(target ? `${action} ${target.name}` : "Choose an output target", [
+    return summary([
       { label: "Target", value: sourceDisplay(target) },
       { label: "Action", value: action },
       ...(block.config.action === "pulse"
@@ -105,7 +101,7 @@ const blockSummaryFormatters = {
   send_transaction: (block, context) => {
     const recipient = recipientName(context.addressBook, block.config.recipientAddressBookId);
     const amount = stringValue(block.config.amount, "amount not set");
-    return summary(`Send ${amount} Minima to ${recipient}`, [
+    return summary([
       { label: "Recipient", value: recipient },
       { label: "Amount", value: amount },
     ]);
@@ -121,7 +117,7 @@ export function blockSummary(
 
 function eventStartSummary(block: WorkflowBlockSummaryInput, context: WorkflowBlockSummaryContext) {
   const source = sourceById(context.sources, block.config.sourceId);
-  return summaryWithSource(block.type, source, [
+  return summary([
     { label: "Source", value: sourceDisplay(source) },
     { label: "Cooldown", value: formatSeconds(Number(block.config.cooldownSeconds ?? 0)) },
   ]);
@@ -129,20 +125,15 @@ function eventStartSummary(block: WorkflowBlockSummaryInput, context: WorkflowBl
 
 function sourceBlockSummary(block: WorkflowBlockSummaryInput, context: WorkflowBlockSummaryContext) {
   const source = sourceById(context.sources, block.config.sourceId);
-  return summaryWithSource(block.type, source, [{ label: "Source", value: sourceDisplay(source) }]);
+  return summary([{ label: "Source", value: sourceDisplay(source) }]);
 }
 
-function summaryWithSource(
-  type: AutomationBlockType,
-  source: DataSource | undefined,
-  fields: WorkflowBlockSummaryField[],
-) {
-  if (!source) return summary(`Choose ${blockHelp(type).title.toLowerCase()} source`, fields);
-  return summary(`${source.name} - ${sourceLabel(source)}`, fields);
+function summary(fields: WorkflowBlockSummaryField[]): WorkflowBlockSummary {
+  return { sentence: fields.map(formatSummaryField).join(" · "), fields };
 }
 
-function summary(sentence: string, fields: WorkflowBlockSummaryField[] = []): WorkflowBlockSummary {
-  return { sentence, fields };
+function formatSummaryField(field: WorkflowBlockSummaryField) {
+  return `${field.label}: ${field.value}`;
 }
 
 function sourceById(sources: DataSource[], sourceId: string | undefined) {
@@ -221,8 +212,8 @@ function contentModeLabel(mode: AutomationBlock["config"]["contentMode"]) {
 }
 
 function outputActionLabel(action: AutomationBlock["config"]["action"]) {
-  if (action === "send_request") return "Send request to";
-  if (action === "publish") return "Publish to";
+  if (action === "send_request") return "Send request";
+  if (action === "publish") return "Publish";
   return "Pulse";
 }
 
