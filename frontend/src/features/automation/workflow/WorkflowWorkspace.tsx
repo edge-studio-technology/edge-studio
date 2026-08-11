@@ -27,11 +27,11 @@ import {
   automationBlockToCanvasBlock,
   draftBlockDescription,
   draftBlockTitle,
-  WorkflowBlockLibrary,
   WorkflowCanvas,
-  WorkflowWorkspaceShell,
   type DraftWorkflowBlock,
 } from "./canvas";
+import { WorkflowWorkspaceShell } from "./chrome/WorkflowWorkspaceShell";
+import { WorkflowBlockLibrary } from "./toolkit/WorkflowBlockLibrary";
 import {
   blockLabel,
   blockRunForBlock,

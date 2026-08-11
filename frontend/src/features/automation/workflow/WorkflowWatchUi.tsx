@@ -18,7 +18,7 @@ import type {
   AutomationRun,
   AutomationWorkflow,
 } from "../automationTypes";
-import { WorkflowRailHeader, WorkflowRailPanel } from "./canvas";
+import { WorkflowRailHeader, WorkflowRailPanel } from "./chrome/WorkflowRail";
 import {
   blockLabel,
   diagnosticsLink,

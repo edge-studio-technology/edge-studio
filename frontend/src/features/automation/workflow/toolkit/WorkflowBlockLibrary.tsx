@@ -5,7 +5,7 @@ import { SwitchField } from "../../../../components/ui/SwitchField";
 import { Tooltip } from "../../../../components/ui/Tooltip";
 import { cx } from "../../../../lib/cx";
 import type { AutomationBlockType } from "../../automationTypes";
-import { WorkflowRailHeader, WorkflowRailPanel } from "./WorkflowRail";
+import { WorkflowRailHeader, WorkflowRailPanel } from "../chrome/WorkflowRail";
 
 const libraryCardClass =
   "cursor-pointer border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-loose border p-detail-close text-left transition-colors hover:border-stroke-primary hover:bg-surface-always-white focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-text-disabled disabled:opacity-60";

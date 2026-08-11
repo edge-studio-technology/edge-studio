@@ -16,11 +16,11 @@ import {
   draftBlockDescription,
   draftBlockTitle,
   isDataBlock,
-  WorkflowBlockLibrary,
   WorkflowCanvas,
-  WorkflowWorkspaceShell,
   type DraftWorkflowBlock,
 } from "./canvas";
+import { WorkflowWorkspaceShell } from "./chrome/WorkflowWorkspaceShell";
+import { WorkflowBlockLibrary } from "./toolkit/WorkflowBlockLibrary";
 import {
   canPersistSendTransactionConfig,
   createDraftBlock,
