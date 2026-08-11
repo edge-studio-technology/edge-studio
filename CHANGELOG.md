@@ -4,7 +4,7 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] ui/global-style-realignment
+## [0.33.0] 2026-08-11
 
 ### Added
 
@@ -66,7 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Fixed shared search/filter bars (Devices, Diagnostics, wallet history/assets, address book) locking themselves once a search or filter matched nothing: the search/filter fields were disabling on the *filtered* result being empty, so typing a query with no matches disabled the very field needed to fix or clear it. They now only disable when the underlying (unfiltered) list itself has no rows at all.
+- Fixed shared search/filter bars (Devices, Diagnostics, wallet history/assets, address book) locking themselves once a search or filter matched nothing: the search/filter fields were disabling on the _filtered_ result being empty, so typing a query with no matches disabled the very field needed to fix or clear it. They now only disable when the underlying (unfiltered) list itself has no rows at all.
 - Fixed a brief blank flash whenever one `Modal` is swapped for another in the same action (e.g. backup/device delete confirm → progress modal): the shared `Modal` gated its first paint behind a post-commit effect for no visual purpose (no mount transition used it), so a modal-to-modal swap always had one frame with neither visible. Removed the gate.
 - Address book's "Edit contact" form now lets the Mx/0x address itself be changed, not just label/notes — it previously showed the address read-only. Same format/uniqueness validation as adding a new contact applies (`PATCH /api/wallet/address-book/:id`).
 
