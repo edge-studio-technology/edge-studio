@@ -8,23 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Text components on the shared `Text` family.
+- Shared `Text` family and `Divider` leaf controls.
+- Toolkit: tooltip on disabled blocks explaining why they can’t be added.
+
+### Fixed
+
+- **Send payment**: opens the options sheet first; **Done** saves when recipient and amount are set (backdrop/Escape discards). Field errors show on those fields; disabled in the toolkit with no address-book recipient.
+- Edit/watch: last-run failure (`lastError`) shows in the notices strip; meta status pills sit under the top bar.
 
 ### Changed
 
-- Split the automation workflow editor into `features/automation/workflow/` (workspaces, helpers, chrome) with graph UI in `workflow/canvas/`.
-- Create workflow: default name `New workflow - <date>`, validation on the left (quiet until the first block), toolkit on the right; uses shared `Pill` for status.
-- Create workflow: change the start block from the toolkit without resetting the canvas (later blocks are kept).
-- Toolkit: disabled block cards show why they can’t be added in a hover tooltip.
-- Toolkit: groups open by workflow stage (Start first, then Data).
-- Toolkit: Stamp attaches to the only stampable data block, or opens an in-rail picker when there are several.
-- Toolkit: selected start block shows a check mark in addition to the active border.
-- Canvas block cards use Figma shell chrome (`rounded-soft`, `p-margin-tight`); category colors unchanged.
-- Canvas block cards: TAG and frost white capability tags share the top header row.
-- Canvas block cards: title uses body emphasis and description uses body under the header.
-- Canvas attached blocks use the frosted inset slot (title + body) from the Figma content card.
-- Canvas block card footer: trash icon to remove, circular chevron IconButtons to reorder (non-start).
-- Canvas validation shows an error/warning Pill with triangle icon on the block card (no validation ring).
+- Workflow editor layout: create/edit chrome, toolkit rail, and canvas block cards; enable/run-automatically switches live in the toolkit.
+- Opening an enabled workflow for edit pauses it automatically so schedule/event triggers cannot run mid-edit.
+- Create: change the start block without resetting later blocks; edit keeps start type fixed (configure from the options sheet).
+- Stamp attaches from the selected-block options sheet on stampable data blocks (not the toolkit).
+- Block options sheet saves on leave (Done, backdrop, Escape, or switching blocks); no separate Save changes.
+- Edit: **Run automatically** cannot turn on while there are validation errors (pause still allowed); tooltip explains why.
 
 ## [0.30.3] 2026-08-07
 

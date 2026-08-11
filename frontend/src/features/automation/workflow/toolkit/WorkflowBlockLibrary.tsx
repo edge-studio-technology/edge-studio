@@ -22,6 +22,7 @@ export function WorkflowBlockLibrary({
   enabled,
   onEnabledChange,
   enabledDisabled = false,
+  enabledDisabledReason,
   onSelectStartBlock,
   onAddBlock,
 }: {
@@ -33,6 +34,7 @@ export function WorkflowBlockLibrary({
   enabled?: boolean;
   onEnabledChange?: (value: boolean) => void;
   enabledDisabled?: boolean;
+  enabledDisabledReason?: string;
   onSelectStartBlock: (type: AutomationBlockType) => void;
   onAddBlock: (type: AutomationBlockType) => void;
 }) {
@@ -49,6 +51,20 @@ export function WorkflowBlockLibrary({
       ? "Add an address book contact in Wallet first."
       : undefined;
   const showEnabled = enabled !== undefined && onEnabledChange !== undefined;
+  const enableSwitch = showEnabled ? (
+    <SwitchField
+      label={mode === "build" ? "Enable after create" : "Enable workflow"}
+      description={
+        mode === "build"
+          ? "Start the workflow as soon as it is created."
+          : "This workflow runs directly when enabled."
+      }
+      checked={enabled}
+      disabled={enabledDisabled}
+      onChange={(event) => onEnabledChange(event.target.checked)}
+      className="border-stroke-secondary pb-detail-close pt-detail-close min-w-0 border-t border-b"
+    />
+  ) : null;
 
   return (
     <WorkflowRailPanel>
@@ -60,20 +76,14 @@ export function WorkflowBlockLibrary({
             : "Add blocks to this workflow. Select a block on the canvas to configure it."
         }
       />
-      {showEnabled && (
-        <SwitchField
-          label={mode === "build" ? "Enable after create" : "Run automatically"}
-          description={
-            mode === "build"
-              ? "Start the workflow as soon as it is created."
-              : "When on, this workflow can run on schedule or incoming data immediately."
-          }
-          checked={enabled}
-          disabled={enabledDisabled}
-          onChange={(event) => onEnabledChange(event.target.checked)}
-          className="border-stroke-secondary pb-detail-close pt-detail-close min-w-0 border-t border-b"
-        />
-      )}
+      {enableSwitch &&
+        (enabledDisabled && enabledDisabledReason ? (
+          <Tooltip title={enabledDisabledReason} placement="left">
+            <span className="block w-full">{enableSwitch}</span>
+          </Tooltip>
+        ) : (
+          enableSwitch
+        ))}
       {mode === "build" && (
         <ToolkitGroup
           key={`start-${hasStartBlock}`}

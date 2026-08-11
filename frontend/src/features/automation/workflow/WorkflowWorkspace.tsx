@@ -388,8 +388,22 @@ export function WorkflowWorkspace({
                   canAddRecordTriggerEvent={canAddRecordTriggerEvent}
                   canAddSendPayment={canAddSendPayment}
                   enabled={workflow.enabled}
-                  enabledDisabled={busy || workflow.archived}
-                  onEnabledChange={(value) => onUpdateWorkflow({ enabled: value })}
+                  enabledDisabled={
+                    busy ||
+                    workflow.archived ||
+                    (hasValidationErrors && !workflow.enabled)
+                  }
+                  enabledDisabledReason={
+                    workflow.archived
+                      ? "Archived workflows cannot run until restored."
+                      : hasValidationErrors && !workflow.enabled
+                        ? "Fix validation errors before enabling."
+                        : undefined
+                  }
+                  onEnabledChange={(value) => {
+                    if (value && hasValidationErrors) return;
+                    onUpdateWorkflow({ enabled: value });
+                  }}
                   onSelectStartBlock={() => undefined}
                   onAddBlock={addBlockFromLibrary}
                 />
