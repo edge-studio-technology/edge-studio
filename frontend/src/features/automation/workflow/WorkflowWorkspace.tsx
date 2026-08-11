@@ -350,9 +350,8 @@ export function WorkflowWorkspace({
           <>
             {mode === "edit" && pausedForEditNotice && (
               <Text.Body className={mutedText}>
-                Paused while editing to prevent it from running with unfinished changes. Turn on{" "}
-                <strong className="text-text-primary">Run automatically</strong> in the toolkit when
-                you want it live again.
+                Paused while editing to prevent it from running with unfinished changes. Enable it
+                again from the workflow list when you want it live.
               </Text.Body>
             )}
             {workflow.archived && (
@@ -385,23 +384,6 @@ export function WorkflowWorkspace({
                   selectedStartType={startBlock?.type}
                   canAddRecordTriggerEvent={canAddRecordTriggerEvent}
                   canAddSendPayment={canAddSendPayment}
-                  enabled={workflow.enabled}
-                  enabledDisabled={
-                    busy ||
-                    workflow.archived ||
-                    (hasValidationErrors && !workflow.enabled)
-                  }
-                  enabledDisabledReason={
-                    workflow.archived
-                      ? "Archived workflows cannot run until restored."
-                      : hasValidationErrors && !workflow.enabled
-                        ? "Fix validation errors before enabling."
-                        : undefined
-                  }
-                  onEnabledChange={(value) => {
-                    if (value && hasValidationErrors) return;
-                    onUpdateWorkflow({ enabled: value });
-                  }}
                   onSelectStartBlock={() => undefined}
                   onAddBlock={addBlockFromLibrary}
                 />

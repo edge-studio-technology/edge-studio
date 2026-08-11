@@ -51,15 +51,13 @@ export function WorkflowBlockLibrary({
     : mode === "edit" && !canAddSendPayment
       ? "Add an address book contact in Wallet first."
       : undefined;
-  const showEnabled = enabled !== undefined && onEnabledChange !== undefined;
+  // Enable toggle is create-only; edit auto-pauses and re-enable lives on the workflow list.
+  const showEnabled =
+    mode === "build" && enabled !== undefined && onEnabledChange !== undefined;
   const enableSwitch = showEnabled ? (
     <SwitchField
-      label={mode === "build" ? "Enable after create" : "Enable workflow"}
-      description={
-        mode === "build"
-          ? "Start the workflow as soon as it is created."
-          : "This workflow runs directly when enabled."
-      }
+      label="Enable after create"
+      description="Start the workflow as soon as it is created."
       checked={enabled}
       disabled={enabledDisabled}
       onChange={(event) => onEnabledChange(event.target.checked)}
