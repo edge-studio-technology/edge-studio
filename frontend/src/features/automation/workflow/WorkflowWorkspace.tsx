@@ -460,6 +460,7 @@ export function WorkflowWorkspace({
           mode={mode}
           blocks={canvasBlocks}
           sources={sources}
+          addressBook={addressBook}
           statusLabel={workflow.archived ? "Archived" : workflow.enabled ? "Enabled" : "Paused"}
           statusGood={!workflow.archived && workflow.enabled}
           bottomOverlay={mode === "watch"}
@@ -490,8 +491,8 @@ export function WorkflowWorkspace({
             title={draftBlockTitle(draftSelected)}
             description={
               <>
-                {draftBlockDescription(draftSelected, sources)} Set recipient and amount, then Done
-                to add this block.
+                {draftBlockDescription(draftSelected, sources, addressBook)} Set recipient and
+                amount, then Done to add this block.
               </>
             }
             onClose={closeSelectedSheet}
@@ -530,7 +531,7 @@ export function WorkflowWorkspace({
             description={
               mode === "watch"
                 ? "Latest run details for this block."
-                : draftBlockDescription(selectedBlock, sources)
+                : draftBlockDescription(selectedBlock, sources, addressBook)
             }
             onClose={closeSelectedSheet}
             footer={

@@ -1,7 +1,9 @@
 import type { Tone } from "../../../../app/types";
+import type { AddressBookEntry } from "../../../address-book/addressBookTypes";
 import type { DataSource } from "../../../data-sources/dataSourceTypes";
 import type { AutomationBlock, AutomationBlockType } from "../../automationTypes";
 import { blockHelp } from "../workflowBlockHelp";
+import { blockSummary } from "../workflowBlockSummaries";
 import type {
   DraftWorkflowBlock,
   WorkflowCanvasBlock,
@@ -18,6 +20,7 @@ export type WorkflowCanvasBadge = {
 export function blockPresentation(
   block: DraftWorkflowBlock,
   sources: DataSource[],
+  addressBook: AddressBookEntry[],
   validationIssues: WorkflowCanvasValidationIssue[],
   runtime?: WorkflowCanvasRuntimeState,
 ) {
@@ -53,7 +56,7 @@ export function blockPresentation(
 
   return {
     title: draftBlockTitle(block),
-    description: draftBlockDescription(block, sources),
+    description: draftBlockDescription(block, sources, addressBook),
     badges,
     // Neutral shell for all types; category color moved to the canvas icon badge.
     className: [
@@ -103,26 +106,9 @@ export function draftBlockTitle(block: { type: AutomationBlockType }) {
 export function draftBlockDescription(
   block: { type: AutomationBlockType; config: AutomationBlock["config"] },
   sources: DataSource[],
+  addressBook: AddressBookEntry[] = [],
 ) {
-  if (block.type === "schedule_start")
-    return `Every ${formatInterval(Number(block.config.intervalSeconds ?? 60)).replace("Every ", "")}`;
-  const sourceId = block.config.sourceId ?? block.config.targetId;
-  const source = sourceId ? sources.find((item) => item.id === sourceId) : undefined;
-  if (source) return `${source.name} - ${sourceLabel(source)}`;
-  if (block.type === "manual_start") return blockHelp(block.type).tooltip;
-  if (block.type === "record_trigger_event") return blockHelp(block.type).tooltip;
-  if (block.type === "fetch_data_source") return blockHelp(block.type).tooltip;
-  if (block.type === "capture_camera")
-    return blockHelp(block.type).tooltip;
-  if (block.type === "set_variable")
-    return `Save ${block.config.variableName || "a variable"} for later blocks.`;
-  if (block.type === "show_preview")
-    return `Display ${block.config.previewFormat ?? "text"} in the Automation inbox.`;
-  if (block.type === "stamp_integritas") return blockHelp(block.type).tooltip;
-  if (block.type === "control_output") return blockHelp(block.type).tooltip;
-  if (block.type === "send_transaction")
-    return `Send ${block.config.amount || "?"} to a saved recipient.`;
-  return "Select a source in Setup.";
+  return blockSummary(block, { sources, addressBook }).sentence;
 }
 
 function capabilityBadges(block: DraftWorkflowBlock) {
@@ -147,25 +133,6 @@ function runtimeClass(runtime?: WorkflowCanvasRuntimeState) {
   if (runtime.status === "failed") return "shadow-[0_0_0_2px_var(--color-stroke-error)]";
   if (runtime.status === "skipped") return "opacity-80";
   return "";
-}
-
-function sourceLabel(source: DataSource) {
-  if (source.type === "webhook") return "Webhook receive URL";
-  if (source.type === "mqtt")
-    return `${source.config.brokerUrl ?? "MQTT broker"} ${source.config.topic ?? ""}`;
-  if (source.type === "gpio-input")
-    return `${source.config.profile === "pir-motion" ? "PIR motion " : ""}${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
-  if (source.type === "gpio-output")
-    return `${source.config.profile ?? "led"} ${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? "?"}`;
-  if (source.type === "pi-camera")
-    return `${source.config.mode ?? "photo"} ${source.config.width ?? 1280}x${source.config.height ?? 720}`;
-  return source.config.url ?? "HTTP JSON Source";
-}
-
-function formatInterval(seconds: number) {
-  if (seconds < 60) return `Every ${seconds}s`;
-  if (seconds < 3600) return `Every ${seconds / 60}m`;
-  return `Every ${seconds / 3600}h`;
 }
 
 function formatDuration(ms: number | null) {

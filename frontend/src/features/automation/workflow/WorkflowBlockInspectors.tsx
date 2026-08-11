@@ -664,7 +664,7 @@ export function DraftBlockInspector({
       <>
         <InspectorSection
           title="Data"
-          description={draftBlockDescription(block, sources)}
+          description={draftBlockDescription(block, sources, addressBook)}
           className={formGridClass}
         />
         <AttachedStampSettings
@@ -677,7 +677,10 @@ export function DraftBlockInspector({
   }
 
   return (
-    <InspectorSection title="Configuration" description={draftBlockDescription(block, sources)} />
+    <InspectorSection
+      title="Configuration"
+      description={draftBlockDescription(block, sources, addressBook)}
+    />
   );
 }
 
