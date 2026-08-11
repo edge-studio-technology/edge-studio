@@ -56,7 +56,8 @@ export function validateSession(rawToken: string): SessionUser | null {
     id: user.id,
     displayName: LOCAL_ADMIN_DISPLAY_NAME,
     role: user.role,
-    lastLogin: user.last_login
+    lastLogin: user.last_login,
+    credentialType: user.credential_type
   };
 }
 
