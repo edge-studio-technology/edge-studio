@@ -17,6 +17,7 @@ import { DataReadsHistoryTable } from "../features/data-reads/DataReadsHistoryTa
 import type { DataSourceRead } from "../features/data-reads/dataReadTypes";
 import {
   deleteSelected,
+  downloadProofZip,
   downloadSelected,
   getHistory,
   verifyRecord,
@@ -263,6 +264,15 @@ export function DiagnosticsPage() {
     }
   }
 
+  async function handleDownloadZip(record: IntegritasProofRecord) {
+    try {
+      await downloadProofZip(record.id);
+    } catch (err) {
+      const { title, message } = integritasErrorToast(err);
+      showToast({ tone: "error", title, message, timeoutMs: 9000 });
+    }
+  }
+
   async function handleRefresh() {
     setRefreshing(true);
     setError(null);
@@ -368,6 +378,9 @@ export function DiagnosticsPage() {
             }}
             onDownload={(record) => {
               void handleDownload(record);
+            }}
+            onDownloadZip={(record) => {
+              void handleDownloadZip(record);
             }}
             onDeleteSelected={() =>
               void run(

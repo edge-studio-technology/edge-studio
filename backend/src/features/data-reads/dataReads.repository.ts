@@ -67,6 +67,10 @@ export function getDataSourceRead(id: string) {
   return db.prepare("SELECT * FROM data_source_reads WHERE id = ?").get(id) as DataSourceReadRecord | undefined;
 }
 
+export function getDataSourceReadByProofId(proofId: string) {
+  return db.prepare("SELECT * FROM data_source_reads WHERE integritas_proof_id = ?").get(proofId) as DataSourceReadRecord | undefined;
+}
+
 export function createDataSourceRead(input: { dataSourceId: string; workflowId?: string | null; sourceName: string; sourceUrl: string; triggerType: "manual" | "automation" | "webhook" | "mqtt" | "gpio" | "schedule"; status: "success" | "failed"; hash?: string | null; preview?: unknown; error?: string | StructuredError | null; triggerSourceId?: string | null; triggerPayload?: unknown; blockId?: string | null }) {
   const id = crypto.randomUUID();
   db.prepare(`
