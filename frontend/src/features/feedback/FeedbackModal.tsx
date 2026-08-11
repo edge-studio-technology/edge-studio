@@ -18,7 +18,7 @@ const feedbackTypes = [
   { value: "ux_issue", label: "UX issue" },
   { value: "feature_request", label: "Feature request" },
   { value: "question", label: "Question" },
-  { value: "other", label: "Other" }
+  { value: "other", label: "Other" },
 ];
 
 const feedbackAreas = [
@@ -32,27 +32,27 @@ const feedbackAreas = [
   { value: "diagnostics", label: "Diagnostics" },
   { value: "setup_login", label: "Setup / Login" },
   { value: "install_update", label: "Install / Update" },
-  { value: "other", label: "Other" }
+  { value: "other", label: "Other" },
 ];
 
 const bugSeverities = [
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
-  { value: "blocking", label: "Blocking" }
+  { value: "blocking", label: "Blocking" },
 ];
 
 const bugReproducibilities = [
   { value: "always", label: "Always" },
   { value: "sometimes", label: "Sometimes" },
   { value: "once", label: "Once" },
-  { value: "not_sure", label: "Not sure" }
+  { value: "not_sure", label: "Not sure" },
 ];
 
 const featurePriorities = [
   { value: "nice_to_have", label: "Nice to have" },
   { value: "important", label: "Important" },
-  { value: "blocking_workflow", label: "Blocking workflow" }
+  { value: "blocking_workflow", label: "Blocking workflow" },
 ];
 
 type FeedbackSubmitResponse = {
@@ -83,7 +83,15 @@ function formatBytes(bytes: number) {
   return `${bytes} B`;
 }
 
-export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: string; pageLabel: string; onClose: () => void }) {
+export function FeedbackModal({
+  pagePath,
+  pageLabel,
+  onClose,
+}: {
+  pagePath: string;
+  pageLabel: string;
+  onClose: () => void;
+}) {
   const { showToast } = useToast();
   const [type, setType] = useState("bug");
   const [area, setArea] = useState("current_page");
@@ -130,26 +138,35 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
         area: { id: area, label: feedbackAreas.find((item) => item.value === area)?.label ?? area },
         description: trimmedDescription,
         page: { path: pagePath, label: pageLabel },
-        ...(type === "bug" ? {
-          bug: {
-            severity: bugSeverity,
-            reproducibility: bugReproducibility,
-            expectedBehavior,
-            actualBehavior
-          }
-        } : {}),
-        ...(type === "feature_request" ? {
-          featureRequest: {
-            priority: featurePriority,
-            desiredOutcome
-          }
-        } : {}),
-        browser
+        ...(type === "bug"
+          ? {
+              bug: {
+                severity: bugSeverity,
+                reproducibility: bugReproducibility,
+                expectedBehavior,
+                actualBehavior,
+              },
+            }
+          : {}),
+        ...(type === "feature_request"
+          ? {
+              featureRequest: {
+                priority: featurePriority,
+                desiredOutcome,
+              },
+            }
+          : {}),
+        browser,
       });
       setSaved(result);
-      showToast({ tone: "success", title: "Feedback saved locally", message: "Download the JSON file when you are ready to share it." });
+      showToast({
+        tone: "success",
+        title: "Feedback saved locally",
+        message: "Download the JSON file when you are ready to share it.",
+      });
     } catch (submitError) {
-      const message = submitError instanceof Error ? submitError.message : "Could not save feedback.";
+      const message =
+        submitError instanceof Error ? submitError.message : "Could not save feedback.";
       showToast({ tone: "error", title: "Feedback was not saved", message });
       setError(message);
     } finally {
@@ -186,7 +203,10 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
       {saved ? (
         <div className="gap-detail-close grid">
           <div className="border-stroke-success bg-surface-always-white rounded-soft relative flex items-start overflow-clip border">
-            <div className="bg-feedback-positive pointer-events-none absolute inset-0 opacity-20" aria-hidden />
+            <div
+              className="bg-feedback-positive pointer-events-none absolute inset-0 opacity-20"
+              aria-hidden
+            />
             <div className="gap-detail-close p-margin-tight relative flex min-w-0 flex-1 items-start">
               <div className="grid size-5 shrink-0 place-items-center">
                 <CheckCircle2 className="text-icon-success" size={20} aria-hidden />
@@ -194,8 +214,8 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
               <div className="gap-detail-tight grid min-w-0 flex-1">
                 <strong className="type-body-em text-text-primary">Feedback saved locally</strong>
                 <p className="type-body text-text-secondary m-0">
-                  Your feedback was appended to <code className="type-mono">{saved.fileName}</code>. Download the
-                  aggregate JSON file and send it manually to the Integritas team.
+                  Your feedback was appended to <code className="type-mono">{saved.fileName}</code>.
+                  Download the aggregate JSON file and send it manually to the Integritas team.
                 </p>
               </div>
             </div>
@@ -203,7 +223,11 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
         </div>
       ) : (
         <form className="gap-detail-close grid" id={FEEDBACK_FORM_ID} onSubmit={submitFeedback}>
-          <Disclosure title="What we save with this feedback" defaultOpen={false}>
+          <Disclosure
+            title="What we save with this feedback"
+            defaultOpen={false}
+            className="mx-2 mt-2"
+          >
             <DetailList>
               <DetailRow label="User agent" value={browser.userAgent} />
               <DetailRow label="Language" value={browser.language} />
@@ -213,20 +237,43 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
                 value={`${browser.viewport.width} × ${browser.viewport.height} @ ${browser.viewport.devicePixelRatio}x`}
               />
               <DetailRow label="App version" value={exportDoc?.metadata.app.version ?? "—"} />
-              <DetailRow label="Account" value={exportDoc ? `${exportDoc.metadata.user.displayName} (${exportDoc.metadata.user.role})` : "—"} />
+              <DetailRow
+                label="Account"
+                value={
+                  exportDoc
+                    ? `${exportDoc.metadata.user.displayName} (${exportDoc.metadata.user.role})`
+                    : "—"
+                }
+              />
               <DetailRow label="Device ID" value={exportDoc?.metadata.device.id ?? "—"} mono />
               <DetailRow label="Hostname" value={exportDoc?.metadata.device.hostname ?? "—"} />
               <DetailRow
                 label="Platform / arch"
-                value={exportDoc ? `${exportDoc.metadata.device.platform} / ${exportDoc.metadata.device.arch}` : "—"}
+                value={
+                  exportDoc
+                    ? `${exportDoc.metadata.device.platform} / ${exportDoc.metadata.device.arch}`
+                    : "—"
+                }
               />
               <DetailRow label="CPU cores" value={exportDoc?.metadata.device.cpuCount ?? "—"} />
-              <DetailRow label="Memory" value={exportDoc ? formatBytes(exportDoc.metadata.device.memory.totalBytes) : "—"} />
+              <DetailRow
+                label="Memory"
+                value={exportDoc ? formatBytes(exportDoc.metadata.device.memory.totalBytes) : "—"}
+              />
               <DetailRow
                 label="Disk"
-                value={exportDoc ? (exportDoc.metadata.device.disk ? formatBytes(exportDoc.metadata.device.disk.totalBytes) : "Unknown") : "—"}
+                value={
+                  exportDoc
+                    ? exportDoc.metadata.device.disk
+                      ? formatBytes(exportDoc.metadata.device.disk.totalBytes)
+                      : "Unknown"
+                    : "—"
+                }
               />
-              <DetailRow label="Not included" value="Passwords, TOTP secrets, session cookies, Integritas API keys, or wallet seed phrases." />
+              <DetailRow
+                label="Not included"
+                value="Passwords, TOTP secrets, session cookies, Integritas API keys, or wallet seed phrases."
+              />
             </DetailList>
           </Disclosure>
 
@@ -311,7 +358,6 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
             onChange={(event) => setDescription(event.target.value)}
             error={error ?? undefined}
           />
-
         </form>
       )}
     </Modal>
@@ -327,7 +373,7 @@ function getBrowserContext() {
     viewport: {
       width: window.innerWidth,
       height: window.innerHeight,
-      devicePixelRatio: window.devicePixelRatio
-    }
+      devicePixelRatio: window.devicePixelRatio,
+    },
   };
 }
