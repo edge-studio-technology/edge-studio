@@ -4,6 +4,26 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ui/workflow-canvas
+
+### Added
+
+- Shared `Text` family and `Divider` leaf controls.
+- Toolkit: tooltip on disabled blocks explaining why they can’t be added.
+
+### Fixed
+
+- **Send payment**: opens the options sheet first; **Done** saves when recipient and amount are set (backdrop/Escape discards). Field errors show on those fields; disabled in the toolkit with no address-book recipient.
+- Edit/watch: last-run failure (`lastError`) shows in the notices strip; meta status pills sit under the top bar.
+
+### Changed
+
+- Workflow editor layout: create/edit chrome, toolkit rail, and canvas block cards; enable/run-automatically switches live in the toolkit.
+- Opening an enabled workflow for edit pauses it automatically so schedule/event triggers cannot run mid-edit.
+- Create: change the start block without resetting later blocks; edit keeps start type fixed (configure from the options sheet).
+- Stamp attaches from the selected-block options sheet on stampable data blocks (not the toolkit).
+- Block options sheet saves on leave (Done, backdrop, Escape, or switching blocks); no separate Save changes.
+- Edit: **Run automatically** cannot turn on while there are validation errors (pause still allowed); tooltip explains why.
 ## [0.32.0] 2026-08-08
 
 ### Added

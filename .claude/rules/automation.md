@@ -10,3 +10,11 @@
 - Save `last_hash` after successful data fetch or push ingestion even if Integritas stamping fails.
 - Raspberry Pi Camera capture blocks hash the captured media file bytes, not only the JSON metadata preview.
 - Surface detailed upstream errors where possible without leaking secrets.
+
+## Frontend naming
+
+- **Automation** is the feature area (`features/automation/`, nav, API, inbox, runs).
+- **Workflow** is one ordered block pipeline inside automation.
+- Prefer `automation*` for feature-wide domain/API/runs (`automationTypes`, `automationApi`, run tables).
+- Prefer `workflow*` for one-pipeline build/edit logic and UI (`workflowHelpers`, `workflowWorkspaceUi`, workspaces).
+- Keep graph visuals in `workflow-canvas/` only; do not put canvas layout in `workflowWorkspaceUi`.
