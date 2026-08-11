@@ -4,6 +4,14 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ui/pre-release-improvements
+
+### Changed
+
+- Automation page's "Workflows" table restyled onto shared ESDS list patterns (`TableCard`, `ListFilterBar`, `ListPaginationFooter`, `EmptyContentState`, `LoadingState`, `TableIconMenu`, `Pill`, `TruncatedHash`), matching the Devices list. The separate "Workflow builders" card is gone — "Create new workflow" now lives next to the table's filter bar. Row actions collapsed to a primary pause/play button plus an overflow menu (Run now, Open and edit, Watch, Duplicate, Archive/Restore, Delete). Deleting a workflow now shows the same confirm-then-progress modal pattern as device/backup deletion instead of deleting immediately. The table adds pagination and a first-load loading state; "Last run" now shows local date+time instead of time only. Extracted into a new `features/automation/AutomationWorkflowsList.tsx`.
+- Automation inbox rebuilt as a table (`features/automation/AutomationInboxTable.tsx`, replacing the old stacked-card `AutomationInboxPanel.tsx`) on the same shared ESDS list patterns as the Workflows table above it: filter (All/Unread/Read) + search, `TableWrap`, pagination, and a first-load loading state. Each row shows Title/Workflow/Format/Created/Status, with a primary view action opening a details modal (key facts + an expandable "Preview" section, matching the Diagnostics history modals) instead of the previous always-expanded inline preview, and a "Mark read/unread"/"Delete" overflow menu. Deleting a preview now goes through the same confirm-then-progress modal pattern as workflow/device deletion instead of deleting immediately. Both the Workflows and inbox tables (and the workspace's "Loading workflow…" state) now consistently fill the page width and use the shared `LoadingState`, closing out the remaining ESDS drift on the Automation page.
+- Automation inbox now sits inside a collapsible section (collapsed by default; the unread count stays visible in the header either way), so it no longer competes for space with the Workflows table above it. Viewing a preview now marks it read automatically (no separate "Mark read" press needed); the row's primary action icon reflects that state directly (closed-envelope `Mail` for unread, open-envelope `MailOpen` for read) instead of a generic "view" eye icon. The overflow menu's manual "Mark read"/"Mark unread" toggle is unchanged, for reverting or marking read without opening an item. The preview modal no longer shows a redundant "Status" row, since opening it always marks the item read.
+
 ## [0.33.0] 2026-08-11
 
 ### Added
