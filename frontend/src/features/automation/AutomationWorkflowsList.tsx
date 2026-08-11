@@ -150,15 +150,15 @@ export function AutomationWorkflowsList({
         />
       ) : (
         <TableWrap>
-          <DataTable className="table-fixed">
+          <DataTable>
             <TableHead>
-              <TableHeaderCell className="w-64">Name</TableHeaderCell>
-              <TableHeaderCell className="w-28">Status</TableHeaderCell>
-              <TableHeaderCell className="w-56">Source</TableHeaderCell>
-              <TableHeaderCell className="w-48">Blocks</TableHeaderCell>
-              <TableHeaderCell className="w-36">Last run</TableHeaderCell>
-              <TableHeaderCell className="w-40">Last hash</TableHeaderCell>
-              <TableHeaderCell className="w-28 whitespace-nowrap">Actions</TableHeaderCell>
+              <TableHeaderCell>Name</TableHeaderCell>
+              <TableHeaderCell>Status</TableHeaderCell>
+              {/* <TableHeaderCell className="w-56">Source</TableHeaderCell> */}
+              {/* <TableHeaderCell className="w-48">Blocks</TableHeaderCell> */}
+              <TableHeaderCell>Last run</TableHeaderCell>
+              {/* <TableHeaderCell className="w-40">Last hash</TableHeaderCell> */}
+              <TableHeaderCell className="whitespace-nowrap">Actions</TableHeaderCell>
             </TableHead>
             <TableBody>
               {pagedWorkflows.map((workflow) => (
@@ -184,7 +184,7 @@ export function AutomationWorkflowsList({
                   <TableCell>
                     <WorkflowStatusPill workflow={workflow} />
                   </TableCell>
-                  <TableCell className="min-w-0">
+                  {/* <TableCell className="min-w-0">
                     <span className="block truncate">
                       {sourceName(workflowPrimarySourceId(workflow))}
                     </span>
@@ -193,27 +193,29 @@ export function AutomationWorkflowsList({
                         ? formatInterval(workflowIntervalSeconds(workflow))
                         : "Event driven"}
                     </p>
-                  </TableCell>
-                  <TableCell className="min-w-0">
+                  </TableCell> */}
+                  {/* <TableCell className="min-w-0">
                     <span>{workflow.blocks.length}</span>
                     <p className="type-meta text-text-secondary mt-detail-next m-0 truncate">
                       {summarizeBlocks(workflow)}
                     </p>
-                  </TableCell>
-                  <TableCell>
+                  </TableCell> */}
+                  <TableCell className="whitespace-nowrap">
                     {workflow.lastRunAt ? (
-                      formatLocalDateTime(workflow.lastRunAt)
+                      <time className="type-meta text-text-secondary" dateTime={workflow.lastRunAt}>
+                        {formatLocalDateTime(workflow.lastRunAt)}
+                      </time>
                     ) : (
-                      <span className="text-text-secondary">Never</span>
+                      <span className="type-meta text-text-secondary">Never</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     {workflow.lastHash ? (
                       <TruncatedHash value={workflow.lastHash} />
                     ) : (
                       <span className="text-text-secondary">Not read yet</span>
                     )}
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell className="whitespace-nowrap">
                     <RowActions>
                       <TableIconButton
@@ -238,11 +240,11 @@ export function AutomationWorkflowsList({
                             disabled: busy,
                             onClick: () => onEdit(workflow),
                           },
-                          {
-                            label: "Watch workflow",
-                            disabled: busy,
-                            onClick: () => onWatch(workflow),
-                          },
+                          // {
+                          //   label: "Watch workflow",
+                          //   disabled: busy,
+                          //   onClick: () => onWatch(workflow),
+                          // },
                           {
                             label: "Duplicate",
                             disabled: busy,

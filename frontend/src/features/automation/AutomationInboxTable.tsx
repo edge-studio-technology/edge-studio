@@ -163,7 +163,11 @@ export function AutomationInboxTable({
                     <TableCell>
                       <Pill>{item.format}</Pill>
                     </TableCell>
-                    <TableCell>{formatLocalDateTime(item.createdAt)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <time className="type-meta text-text-secondary" dateTime={item.createdAt}>
+                        {formatLocalDateTime(item.createdAt)}
+                      </time>
+                    </TableCell>
                     <TableCell>
                       {item.readAt ? (
                         <Pill tone="neutral" indicator>
