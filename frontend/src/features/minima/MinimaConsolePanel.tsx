@@ -260,7 +260,7 @@ export function MinimaConsolePanel({
             <div
               className={cx(
                 shellClass,
-                "mx-auto h-full max-w-5xl shadow-[0_28px_80px_rgba(0,0,0,0.28)]",
+                "h-full w-full shadow-[0_28px_80px_rgba(0,0,0,0.28)]",
               )}
             >
               {promptRow}

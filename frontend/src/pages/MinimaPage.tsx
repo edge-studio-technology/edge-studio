@@ -217,19 +217,18 @@ export function MinimaPage() {
       <Card className="gap-detail-close flex w-full flex-col">
         <Disclosure
           title={
-            <div className="gap-detail-next flex min-w-0 flex-col">
-              <div className="gap-detail-next flex items-center">
-                <h2 className="type-title text-text-primary m-0">RPC console</h2>
-                <Pill>Beta</Pill>
-              </div>
-              <p className="type-body text-text-secondary m-0">
-                Run whitelisted Minima RPC commands and see the raw response.
-              </p>
+            <div className="gap-detail-next flex min-w-0 items-center">
+              <h2 className="type-title text-text-primary m-0">RPC console</h2>
+              <Pill>Beta</Pill>
             </div>
           }
+          contentClassName="gap-detail-close grid"
           open={consoleOpen}
           onToggle={(event) => setConsoleOpen(event.currentTarget.open)}
         >
+          <p className="type-body text-text-secondary m-0">
+            Run whitelisted Minima RPC commands and see the raw response.
+          </p>
           <MinimaConsolePanel
             disabled={actionsBlocked}
             onEditWhitelist={() => setConsoleWhitelistOpen(true)}
