@@ -2,14 +2,14 @@
 
 **Status:** In progress
 **Created:** 2026-07-31
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-07
 **Goal:** Redesign the workflow canvas create, edit, and watch experiences to match the approved Figma direction while preserving current automation behavior and ESDS frontend rules.
 
 ## Context
 
 The app redesign is being done component by component and page by page. The workflow canvas is the next focus area, covering the create, edit, and watch variants shown in the designer's Figma screenshots: empty workflow, populated workflow, scrolled populated state, selected-block side panel, leave confirmation dialog, and default/selected block card states.
 
-The current implementation already has functional route modes and automation behavior in place. The redesign should therefore be primarily a frontend composition and styling change, not a backend contract change. Preserve the existing `flow.mode` split in `frontend/src/pages/AutomationPage.tsx` and the shared canvas primitives in `frontend/src/features/automation/WorkflowCanvas.tsx` unless a small UI-state addition is needed for selected-block focus or unsaved-leave confirmation.
+The current implementation already has functional route modes and automation behavior in place. The redesign should therefore be primarily a frontend composition and styling change, not a backend contract change. Preserve the existing `flow.mode` split in `frontend/src/pages/AutomationPage.tsx` and the shared canvas primitives in `frontend/src/features/automation/workflow/canvas/` unless a small UI-state addition is needed for selected-block focus or unsaved-leave confirmation.
 
 Rejected/deferred alternatives:
 
@@ -21,7 +21,7 @@ Rejected/deferred alternatives:
 
 Implemented in the current working tree:
 
-- `frontend/src/features/automation/WorkflowCanvas.tsx` now uses a redesigned workflow frame with a white top bar, grey canvas surface, right-side toolkit, dashed empty state, flat category-colored block cards, connector lines, `Pill` badges, inset attached-block cards, selected-block border, runtime/validation highlighting, and responsive canvas/panel sizing.
+- `frontend/src/features/automation/workflow/canvas/` now uses a redesigned workflow frame with a white top bar, grey canvas surface, right-side toolkit, dashed empty state, flat category-colored block cards, connector lines, `Pill` badges, inset attached-block cards, selected-block border, runtime/validation highlighting, and responsive canvas/panel sizing.
 - `frontend/src/pages/AutomationPage.tsx` now places create-workflow name/enabled controls in the workflow top bar, restyles create/edit/watch inspector panels, renders selected block configuration/runtime in a full-height right-side overlay sheet, dims the workspace while a selected-block sheet is active, and adds a create-workflow leave confirmation modal.
 - Workflow validation/setup controls now live above the toolkit or watch run controls in the same right rail. Redundant empty selected-block placeholder panels and duplicate create action buttons were removed because selected block details now live in the overlay sheet and workflow actions live in the topbar.
 - Workflow modes now use explicit routes (`/automation/new`, `/automation/:workflowId/edit`, `/automation/:workflowId/watch`, `/automation/:workflowId/watch/:runId`) instead of query parameters, and `AppShell` uses that route metadata to hide the global status bar for workflow routes.
@@ -38,7 +38,7 @@ Remaining / not yet strict-plan-complete:
 
 ## Frontend changes
 
-**`frontend/src/features/automation/WorkflowCanvas.tsx`** — redesign the feature-owned canvas components:
+**`frontend/src/features/automation/workflow/canvas/`** — redesign the feature-owned canvas components:
 
 - Replace the current dark hero `WorkflowWorkspaceShell` treatment with a Figma-like workflow frame: white top bar, breadcrumb/name/action row, grey canvas surface, and right-side `Toolkit` panel.
 - Keep layout and styling local to the automation feature. Use Tailwind utilities, ESDS semantic tokens from `frontend/src/styles.css`, and `cx` for conditional classes.

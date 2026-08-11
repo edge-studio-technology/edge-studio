@@ -54,7 +54,7 @@ Migration is **incremental**, not a big-bang move:
 
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ui/`          | `Button` / `IconButton`, `Pill`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Divider`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
 | `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `BrandLockup`, `MetricCard`                                                                                                         |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
@@ -83,11 +83,12 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [Button / IconButton](#button): text and icon-only buttons
 - [ButtonRow](#buttonrow): wrapping button group
 - [Pill](#pill): status / tag pill
+- [Divider](#divider): horizontal or vertical rule
 - [ProgressBar](#progressbar): step progress bar
 - [CheckboxField](#checkboxfield): labeled checkbox
 - [RadioField](#radiofield): labeled radio option
 - [SwitchField](#switchfield): labeled on/off switch
-- [Text](#text): text link role (`Text.Link`; more roles planned)
+- [Text](#text): text roles (`Text.Title`, `Text.Subtitle`, `Text.Body`, `Text.BodyEm`, `Text.Muted`, `Text.Link`)
 - `ErrorText`: inline error copy
 - [ErrorAlert](#erroralert): in-page error / warning alert
 - [ErrorDetailPanel](#errordetailpanel): embeddable message + raw-JSON breakdown for an operational error
@@ -739,6 +740,22 @@ Status bar (`frontend/src/components/StatusBar.tsx`): shell chrome with status T
 />
 ```
 
+### Divider
+
+Hairline rule (`frontend/src/components/ui/Divider.tsx`): 1px `stroke-secondary` separator for splitting content from actions or adjacent sections.
+
+| Prop          | Values                         | Notes                                      |
+| ------------- | ------------------------------ | ------------------------------------------ |
+| `orientation` | `horizontal` \| `vertical`     | Default `horizontal` (`h-px w-full`)       |
+| `className`   | optional                       | Spacing / inset overrides on the separator |
+
+Vertical uses `w-px self-stretch` (needs a stretched flex/grid parent). Decorative: `role="separator"` with matching `aria-orientation`.
+
+```tsx
+<Divider />
+<Divider orientation="vertical" className="mx-detail-next" />
+```
+
 ### Pill
 
 Tag / pill (`frontend/src/components/ui/Pill.tsx`): 24px-tall rounded pill (`type-meta`, `px-detail-next`). Prefer this for compact status/category labels. Flat `components/Pill.tsx` re-exports for now.
@@ -761,15 +778,23 @@ Default (`neutral`): `surface-secondary` fill. Success / Warning / Error: white 
 
 ### Text
 
-Text roles (`frontend/src/components/ui/Text.tsx`): wraps type tokens so call sites pick a role instead of assembling `type-*` + colour classes. Flat `components/Text.tsx` re-exports; legacy `MutedText` remains there for older call sites.
+Text roles (`frontend/src/components/ui/Text.tsx`): wraps type tokens so call sites pick a role instead of assembling `type-*` + colour classes. Flat `components/Text.tsx` re-exports; legacy `MutedText` stays there for older call sites.
 
-Shipped now: `Text.Link`. Planned later: Body, Muted/Meta, Title, Mono, Error.
-
-| Member      | Token / look                     | Default element | Notes                          |
-| ----------- | -------------------------------- | --------------- | ------------------------------ |
-| `Text.Link` | `type-link` + `text-text-accent` | router `Link`   | Hover uses `text-accent-hover` |
+| Member          | Token / look                           | Default element | Notes                                      |
+| --------------- | -------------------------------------- | --------------- | ------------------------------------------ |
+| `Text.Title`    | `type-title` + `text-text-primary`     | `h2`            | Section / page title                       |
+| `Text.Subtitle` | `type-callout` + `text-text-secondary` | `p`             | Supporting line under a title (callout)    |
+| `Text.Body`     | `type-body` + `text-text-primary`      | `p`             | Body copy; override colour via `className` |
+| `Text.BodyEm`   | `type-body-em` + `text-text-primary`   | `p`             | Emphasized / bold body                     |
+| `Text.Muted`    | `type-meta` + `text-text-secondary`    | `p`             | Helper / secondary meta copy               |
+| `Text.Link`     | `type-link` + `text-text-accent`       | router `Link`   | Hover uses `text-accent-hover`             |
 
 ```tsx
+<Text.Title>Automation</Text.Title>
+<Text.Subtitle>Build and run block workflows</Text.Subtitle>
+<Text.Body>Optional supporting detail.</Text.Body>
+<Text.BodyEm>Important label</Text.BodyEm>
+<Text.Muted>Last updated just now</Text.Muted>
 <Text.Link to="/diagnostics?tab=proofs">Open proof</Text.Link>
 ```
 
