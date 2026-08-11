@@ -842,6 +842,11 @@ export const PersistedBlockInspector = forwardRef<
 
   return (
     <div className={formGridClass}>
+      {!enabled ? (
+        <p className={`${mutedText} m-0`}>
+          This block is disabled and will be skipped when the workflow runs.
+        </p>
+      ) : null}
       <DraftBlockInspector
         block={draftBlock}
         sources={sources}

@@ -25,6 +25,7 @@ import {
   canPersistSendTransactionConfig,
   createDraftBlock,
   flattenDraftBlocks,
+  missingDeviceLibraryReason,
   validationIssuesByBlockId,
   withSoftenedInsufficientBalance,
 } from "./workflowHelpers";
@@ -184,6 +185,8 @@ export function CreateWorkflowWorkspace({
 
   function addDraftBlock(type: AutomationBlockType) {
     if (!hasStartBlock && !type.endsWith("_start")) return;
+    if (type === "send_transaction" && addressBook.length === 0) return;
+    if (missingDeviceLibraryReason(type, sources)) return;
     const block = createDraftBlock(type, sources);
     setDraftBlocks((blocks) => [...blocks, block]);
     setSelectedBlockId(block.id);
@@ -211,6 +214,7 @@ export function CreateWorkflowWorkspace({
   }
 
   function selectStartBlock(type: AutomationBlockType) {
+    if (missingDeviceLibraryReason(type, sources)) return;
     const start = createDraftBlock(type, sources);
     const startIndex = draftBlocks.findIndex((block) => block.type.endsWith("_start"));
     if (startIndex < 0) {
@@ -294,6 +298,8 @@ export function CreateWorkflowWorkspace({
                 hasStartBlock={hasStartBlock}
                 selectedStartType={selectedStartType}
                 canAddRecordTriggerEvent={canAddRecordTriggerEvent}
+                canAddSendPayment={addressBook.length > 0}
+                sources={sources}
                 enabled={enabled}
                 onEnabledChange={onEnabledChange}
                 onSelectStartBlock={selectStartBlock}

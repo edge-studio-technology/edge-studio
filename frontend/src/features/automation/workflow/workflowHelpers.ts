@@ -381,6 +381,32 @@ export function firstCameraSource(sources: DataSource[]) {
   return sources.find((source) => source.type === "pi-camera") ?? null;
 }
 
+/** Why a toolkit card can't be added yet — missing Devices prerequisite. */
+export function missingDeviceLibraryReason(
+  type: AutomationBlockType,
+  sources: DataSource[],
+): string | undefined {
+  if (type === "gpio_event_start" && sourcesForStart(type, sources).length === 0) {
+    return "Add a GPIO input on Devices first.";
+  }
+  if (type === "webhook_event_start" && sourcesForStart(type, sources).length === 0) {
+    return "Add a webhook source on Devices first.";
+  }
+  if (type === "mqtt_event_start" && sourcesForStart(type, sources).length === 0) {
+    return "Add an MQTT source on Devices first.";
+  }
+  if (type === "fetch_data_source" && !firstReadableSource(sources)) {
+    return "Add a readable input device on Devices first.";
+  }
+  if (type === "capture_camera" && !firstCameraSource(sources)) {
+    return "Add a Pi Camera on Devices first.";
+  }
+  if (type === "control_output" && !sources.some(isOutputTarget)) {
+    return "Add an output target on Devices first.";
+  }
+  return undefined;
+}
+
 export function nativeMinimaTokens(walletStatus: WalletStatus | null) {
   return (walletStatus?.tokens ?? []).filter(
     (token) => token.isNative || token.tokenId.toLowerCase() === "0x00",

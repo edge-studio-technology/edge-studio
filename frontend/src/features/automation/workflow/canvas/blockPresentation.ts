@@ -38,8 +38,8 @@ export function blockPresentation(
       alert: true,
     });
   for (const label of capabilityBadges(block)) badges.push({ label });
-  if (typeof block.enabled === "boolean")
-    badges.push({ label: block.enabled ? "Enabled" : "Disabled" });
+  // Only surface Disabled — Enabled is the default and would noise every card.
+  if (block.enabled === false) badges.push({ label: "Disabled", tone: "neutral", alert: true });
   if (block.lastRunAt) badges.push({ label: `Ran ${new Date(block.lastRunAt).toLocaleString()}` });
   if (block.lastError) badges.push({ label: "Error", tone: "error", alert: true });
   if (runtime)
@@ -56,7 +56,13 @@ export function blockPresentation(
     description: draftBlockDescription(block, sources),
     badges,
     // Neutral shell for all types; category color moved to the canvas icon badge.
-    className: [blockShellClass, runtimeClass(runtime)].filter(Boolean).join(" "),
+    className: [
+      blockShellClass,
+      runtimeClass(runtime),
+      block.enabled === false ? "opacity-60" : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
   };
 }
 

@@ -44,6 +44,7 @@ import {
   validationIssuesByBlockId,
   withSoftenedInsufficientBalance,
   workflowIntervalSeconds,
+  missingDeviceLibraryReason,
 } from "./workflowHelpers";
 import {
   BlockHelpDisclosure,
@@ -218,6 +219,8 @@ export function WorkflowWorkspace({
       setSelectedBlockId(draft.id);
       return;
     }
+    // Avoid API toast when the toolkit card should already be disabled for missing devices.
+    if (missingDeviceLibraryReason(type, sources)) return;
     setDraftRevealErrors(false);
     setDraftBlock(null);
     const result = await onAddBlock({
@@ -419,6 +422,7 @@ export function WorkflowWorkspace({
                   selectedStartType={startBlock?.type}
                   canAddRecordTriggerEvent={canAddRecordTriggerEvent}
                   canAddSendPayment={canAddSendPayment}
+                  sources={sources}
                   onSelectStartBlock={() => undefined}
                   onAddBlock={addBlockFromLibrary}
                 />

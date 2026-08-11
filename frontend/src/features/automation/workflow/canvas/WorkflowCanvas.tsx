@@ -300,8 +300,15 @@ function AttachedBlockCard({
   const presentation = blockPresentation(block, sources, [], undefined);
   const BlockIcon = blockTypeIcon[block.type];
   return (
-    <div className="border-stroke-secondary bg-surface-secondary mt-detail-close gap-detail-next rounded-soft p-margin-close grid border">
-      <span className="type-meta text-text-secondary uppercase">Attached</span>
+    <div
+      className={cx(
+        "border-stroke-secondary bg-surface-secondary mt-detail-close gap-detail-next rounded-soft p-margin-close grid border",
+        block.enabled === false && "opacity-60",
+      )}
+    >
+      <span className="type-meta text-text-secondary uppercase">
+        {block.enabled === false ? "Attached · Disabled" : "Attached"}
+      </span>
       <div className="gap-detail-next flex items-start">
         <span
           className={cx(blockIconTileBaseClass, "mt-detail-fine", blockIconToneClass(block.type))}
@@ -340,6 +347,14 @@ function WorkflowBadges({ badges }: { badges: WorkflowCanvasBadge[] }) {
                 ) : null}
                 <span className="min-w-0 truncate">{badge.label}</span>
               </span>
+            </Pill>
+          );
+        }
+        // Disabled / other status: Pill with status dot so it reads as state, not plain meta.
+        if (badge.alert) {
+          return (
+            <Pill key={badge.label} tone={badge.tone ?? "neutral"} indicator className="max-w-full">
+              <span className="min-w-0 truncate">{badge.label}</span>
             </Pill>
           );
         }
