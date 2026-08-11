@@ -1,6 +1,6 @@
-import { Coins, Download, Send } from "lucide-react";
+import { Coins, Download, Info, Send } from "lucide-react";
 import { ButtonRow } from "../../components/patterns/ButtonRow";
-import { Button } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { MinimaIcon } from "../../components/MinimaIcon";
 import { formatMinimaAmount } from "../../lib/format";
@@ -9,12 +9,22 @@ import { formatMinimaAmount } from "../../lib/format";
 const receiveOnDarkButtonClass =
   "!border-stroke-always-white !bg-overlay-light !text-text-inverse hover:enabled:!border-white hover:enabled:!bg-surface-inverse-hover disabled:!bg-overlay-light disabled:!text-text-disabled disabled:hover:!bg-overlay-light disabled:hover:!border-stroke-always-white";
 
+/**
+ * Overrides shared IconButton colors for the dark wallet hero (cx does not merge Tailwind), and
+ * forces a fixed 44px square to match the Send/Receive button height, overriding both the
+ * default IconButton size and ButtonRow's `[&_button]:w-full` mobile stretch. No visible border —
+ * just the icon, with a subtle hover background for feedback.
+ */
+const infoOnDarkButtonClass =
+  "!size-11 shrink-0 !border-transparent !bg-transparent !text-text-inverse hover:enabled:!bg-overlay-light disabled:!text-text-disabled disabled:hover:!bg-transparent [&>span]:size-7";
+
 export function WalletHero({
   loading,
   totalMinima,
   disabled,
   onSend,
   onReceive,
+  onInfo,
   // onCreateToken,
 }: {
   loading: boolean;
@@ -22,6 +32,7 @@ export function WalletHero({
   disabled: boolean;
   onSend: () => void;
   onReceive: () => void;
+  onInfo: () => void;
   // onCreateToken: () => void;
 }) {
   const balanceBusy = loading || disabled;
@@ -72,6 +83,15 @@ export function WalletHero({
           >
             Receive
           </Button>
+          <IconButton
+            aria-label="Wallet balance details"
+            variant="ghost"
+            onClick={onInfo}
+            disabled={disabled}
+            className={infoOnDarkButtonClass}
+          >
+            <Info aria-hidden="true" />
+          </IconButton>
           {/* <Button
             type="button"
             variant="accent"

@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { db } from "../../db/database.js";
 import type { UserRecord } from "./auth.types.js";
+import type { AdminCredentialType } from "./password.service.js";
 
 export function countUsers() {
   const row = db.prepare("SELECT COUNT(*) AS count FROM users").get() as { count: number };
@@ -19,14 +20,23 @@ export function createUser(input: {
   username: string;
   passwordHash: string;
   totpSecretEncrypted: string;
+  credentialType: AdminCredentialType;
   role?: string;
 }) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   db.prepare(
-    `INSERT INTO users (id, username, password, totp_secret, role, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(id, input.username, input.passwordHash, input.totpSecretEncrypted, input.role ?? "admin", now);
+    `INSERT INTO users (id, username, password, totp_secret, role, created_at, credential_type)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    input.username,
+    input.passwordHash,
+    input.totpSecretEncrypted,
+    input.role ?? "admin",
+    now,
+    input.credentialType
+  );
   return id;
 }
 
@@ -115,8 +125,12 @@ export function getLatestSetupPending() {
     | undefined;
 }
 
-export function updateUserPassword(userId: string, passwordHash: string) {
-  db.prepare("UPDATE users SET password = ? WHERE id = ?").run(passwordHash, userId);
+export function updateUserPassword(userId: string, passwordHash: string, credentialType: AdminCredentialType) {
+  db.prepare("UPDATE users SET password = ?, credential_type = ? WHERE id = ?").run(
+    passwordHash,
+    credentialType,
+    userId
+  );
 }
 
 export function updateUserTotpSecret(userId: string, totpSecretEncrypted: string) {

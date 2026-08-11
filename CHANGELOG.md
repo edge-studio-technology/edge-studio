@@ -4,6 +4,30 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ui/pre-release-improvements
+
+### Added
+
+- Feedback submissions now record the connected Integritas Connect account ID (`null` if not connected).
+- Wallet balance info button/modal showing native token details.
+- Dark and light variants for the shared `Tooltip` component.
+- Instructions tooltip on the Minima RPC console.
+
+### Fixed
+
+- Feedback app version now reads from `update-agent`'s last-applied-manifest record instead of the unused, stale `INTEGRITAS_PI_VERSION` env var (removed). Falls back to "Unknown version" if no manifest has been applied yet, instead of a possibly-stale package.json version.
+- Local admin account now tracks PIN vs password (`credentialType`, returned from `GET /api/auth/me` and login). No UI change yet.
+- Automation run rows: kebab menu no longer disappears when the run's workflow was deleted; "Show on canvas" is disabled instead.
+
+### Changed
+
+- Automation "Workflows" table restyled onto shared ESDS list patterns (filter bar, pagination, loading/empty states, overflow menu with Run now/Open/Watch/Duplicate/Archive/Delete). Delete now uses the confirm-then-progress modal pattern.
+- Automation inbox rebuilt as a table on the same patterns, in a collapsible section (collapsed by default). Row details open in a modal instead of an inline preview; viewing a preview marks it read automatically.
+- "Change PIN or password" panel uses the segmented `PinField` for the new PIN, matching onboarding.
+- `update-agent`'s static update page matches the login page's brand gradient and logo placement.
+- Minima RPC console widened to full page width.
+- StatusBar is now sticky with a border/shadow while scrolling.
+
 ## [0.33.0] 2026-08-11
 
 ### Added

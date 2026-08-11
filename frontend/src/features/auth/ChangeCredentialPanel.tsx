@@ -5,9 +5,14 @@ import { ButtonRow } from "../../components/ButtonRow";
 import { SubSection } from "../../components/patterns/SubSection";
 import { ErrorText } from "../../components/Text";
 import { InputField } from "../../components/ui/InputField";
+import { PinField } from "../../components/ui/PinField";
 import { ToggleTabs } from "../../components/ui/ToggleTabs";
 import { changePassword } from "./api";
-import { isValidAdminCredential, sanitizePinInput, type AdminCredentialType } from "./adminCredentials";
+import {
+  ADMIN_PIN_LENGTH,
+  isValidAdminCredential,
+  type AdminCredentialType,
+} from "./adminCredentials";
 import { PasswordRequirements } from "./PasswordRequirements";
 import { TOTP_ENABLED } from "./totpEnabled";
 
@@ -100,44 +105,64 @@ export function ChangeCredentialPanel() {
             setPwSuccess(false);
           }}
         />
-        <InputField
-          label={`New ${newCredentialLabel}`}
-          type="password"
-          inputMode={newCredentialIsPin ? "numeric" : "text"}
-          pattern={newCredentialIsPin ? "[0-9]*" : undefined}
-          maxLength={newCredentialIsPin ? 6 : undefined}
-          value={newPassword}
-          onChange={(e) => {
-            setNewPassword(newCredentialIsPin ? sanitizePinInput(e.target.value) : e.target.value);
-            setPwError(null);
-            setPwSuccess(false);
-          }}
-          placeholder={newCredentialIsPin ? "000000" : "Create a strong password"}
-          autoComplete="new-password"
-        />
-        {!newCredentialIsPin && <PasswordRequirements password={newPassword} />}
-        <InputField
-          label={`Confirm new ${newCredentialLabel}`}
-          type="password"
-          inputMode={newCredentialIsPin ? "numeric" : "text"}
-          pattern={newCredentialIsPin ? "[0-9]*" : undefined}
-          maxLength={newCredentialIsPin ? 6 : undefined}
-          value={confirmNewPassword}
-          onChange={(e) => {
-            setConfirmNewPassword(
-              newCredentialIsPin ? sanitizePinInput(e.target.value) : e.target.value,
-            );
-            setPwError(null);
-            setPwSuccess(false);
-          }}
-          placeholder={`Repeat new ${newCredentialLabel}`}
-          autoComplete="new-password"
-          error={
-            !newCredentialsMatch
-              ? `${newCredentialIsPin ? "PINs" : "Passwords"} do not match`
-              : undefined
-          }
-        />
+        {newCredentialIsPin ? (
+          <>
+            <PinField
+              className="max-w-md"
+              label="New PIN"
+              value={newPassword}
+              length={ADMIN_PIN_LENGTH}
+              onChange={(value) => {
+                setNewPassword(value);
+                setPwError(null);
+                setPwSuccess(false);
+              }}
+              autoComplete="new-password"
+            />
+            <PinField
+              className="max-w-md"
+              label="Confirm new PIN"
+              value={confirmNewPassword}
+              length={ADMIN_PIN_LENGTH}
+              onChange={(value) => {
+                setConfirmNewPassword(value);
+                setPwError(null);
+                setPwSuccess(false);
+              }}
+              error={!newCredentialsMatch ? "PINs do not match" : undefined}
+              autoComplete="new-password"
+            />
+          </>
+        ) : (
+          <>
+            <InputField
+              label="New password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                setPwError(null);
+                setPwSuccess(false);
+              }}
+              placeholder="Create a strong password"
+              autoComplete="new-password"
+            />
+            <PasswordRequirements password={newPassword} />
+            <InputField
+              label="Confirm new password"
+              type="password"
+              value={confirmNewPassword}
+              onChange={(e) => {
+                setConfirmNewPassword(e.target.value);
+                setPwError(null);
+                setPwSuccess(false);
+              }}
+              placeholder="Repeat new password"
+              autoComplete="new-password"
+              error={!newCredentialsMatch ? "Passwords do not match" : undefined}
+            />
+          </>
+        )}
         {TOTP_ENABLED ? (
           <InputField
             label="2FA code"

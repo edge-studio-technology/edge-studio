@@ -1,19 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Archive, Copy, Eye, Pencil, Play, RotateCcw, Trash2 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Button } from "../components/Button";
-import {
-  DataTable,
-  RowActions,
-  TableWrap,
-  tableCellClass,
-  tableHeaderCellClass,
-  tableHeadRowClass,
-  tableRowClass,
-} from "../components/DataTable";
+import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import { ErrorAlert } from "../components/ErrorAlert";
+import { LoadingState } from "../components/patterns/LoadingState";
 import { Page } from "../components/Page";
-import { ProgressModal } from "../components/ProgressModal";
 import { useToast } from "../components/ToastProvider";
 import {
   addAutomationBlock,
@@ -34,23 +25,10 @@ import {
 } from "../features/automation/automationApi";
 import {
   defaultCreateWorkflowName,
-  formatInterval,
-  summarizeBlocks,
-  workflowIntervalSeconds,
-  workflowMatchesFilter,
   workflowPrimarySourceId,
 } from "../features/automation/workflow/workflowHelpers";
-import {
-  IconAction,
-  StatusPill,
-  WorkflowStatusPill,
-  cardClass,
-  errorText,
-  formGridClass,
-  mutedText,
-  statusRowClass,
-} from "../features/automation/workflow/workflowWorkspaceUi";
-import { AutomationInboxPanel } from "../features/automation/AutomationInboxPanel";
+import { AutomationInboxTable } from "../features/automation/AutomationInboxTable";
+import { AutomationWorkflowsList } from "../features/automation/AutomationWorkflowsList";
 import { CreateWorkflowWorkspace } from "../features/automation/workflow/CreateWorkflowWorkspace";
 import { WorkflowWorkspace } from "../features/automation/workflow/WorkflowWorkspace";
 import type {
@@ -67,8 +45,6 @@ import { listDataSources } from "../features/data-sources/dataSourcesApi";
 import type { DataSource } from "../features/data-sources/dataSourceTypes";
 import { getWalletStatus } from "../features/wallet/walletApi";
 import type { WalletStatus } from "../features/wallet/walletTypes";
-import { cx } from "../lib/cx";
-import { formatLocalTime } from "../lib/time";
 
 type AutomationPageFlow =
   | { mode: "list" }
@@ -102,10 +78,6 @@ export function AutomationPage() {
   const [name, setName] = useState("");
   const [createInitialName, setCreateInitialName] = useState("");
   const [enabled, setEnabled] = useState(true);
-  const [workflowSearch, setWorkflowSearch] = useState("");
-  const [workflowFilter, setWorkflowFilter] = useState<
-    "active" | "all" | "enabled" | "paused" | "error" | "archived"
-  >("active");
   const flow = useMemo(
     () =>
       automationFlowFromRoute(location.pathname, {
@@ -123,9 +95,19 @@ export function AutomationPage() {
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingWorkflow, setDeletingWorkflow] = useState<AutomationWorkflow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AutomationWorkflow | null>(null);
+  const [workflowsLoading, setWorkflowsLoading] = useState(true);
+  const [deletingInboxItem, setDeletingInboxItem] = useState<AutomationInboxItem | null>(null);
+  const [deleteInboxTarget, setDeleteInboxTarget] = useState<AutomationInboxItem | null>(null);
+  const [inboxLoading, setInboxLoading] = useState(true);
 
   useEffect(() => {
-    refresh().catch((err: Error) => setLoadError(err.message));
+    refresh()
+      .catch((err: Error) => setLoadError(err.message))
+      .finally(() => {
+        setWorkflowsLoading(false);
+        setInboxLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -163,10 +145,10 @@ export function AutomationPage() {
       await Promise.all([
         listDataSources(),
         listAutomationWorkflows(),
-        listAutomationInbox({ status: "all", limit: 10 }).catch(() => ({
+        listAutomationInbox({ status: "all", limit: 500 }).catch(() => ({
           items: [] as AutomationInboxItem[],
           total: 0,
-          limit: 10,
+          limit: 500,
           offset: 0,
         })),
         listAddressBookEntries().catch(() => [] as AddressBookEntry[]),
@@ -251,6 +233,29 @@ export function AutomationPage() {
     }
   }
 
+  async function confirmDeleteWorkflow() {
+    if (!deleteTarget) return;
+    const workflow = deleteTarget;
+    setDeleteTarget(null);
+    await deleteWorkflow(workflow);
+  }
+
+  async function deleteInboxItem(item: AutomationInboxItem) {
+    setDeletingInboxItem(item);
+    try {
+      await run(() => deleteAutomationInboxItem(item.id), "Could not delete preview");
+    } finally {
+      setDeletingInboxItem(null);
+    }
+  }
+
+  async function confirmDeleteInboxItem() {
+    if (!deleteInboxTarget) return;
+    const item = deleteInboxTarget;
+    setDeleteInboxTarget(null);
+    await deleteInboxItem(item);
+  }
+
   async function submitWorkflow(
     blocks: {
       type: AutomationBlockType;
@@ -278,19 +283,10 @@ export function AutomationPage() {
   }
 
   const sourceById = (id: string) => sources.find((source) => source.id === id);
-  const sourceName = (id: string) => sourceById(id)?.name ?? "Unknown source";
   const activeWorkflowId = flowWorkflowId;
   const workspaceWorkflow = activeWorkflowId
     ? (workflows.find((workflow) => workflow.id === activeWorkflowId) ?? null)
     : null;
-  const filteredWorkflows = workflows.filter((workflow) =>
-    workflowMatchesFilter(
-      workflow,
-      workflowSearch,
-      workflowFilter,
-      sourceName(workflowPrimarySourceId(workflow)),
-    ),
-  );
   const workspaceMode = flow.mode === "edit" || flow.mode === "watch" ? flow.mode : null;
 
   if (flow.mode === "build") {
@@ -391,9 +387,10 @@ export function AutomationPage() {
             }
           />
         ) : (
-          <section className={cardClass}>
-            <p className={mutedText}>Loading workflow...</p>
-          </section>
+          <LoadingState
+            title="Fetching your workflow"
+            description="This should take a few seconds."
+          />
         )}
         {loadError && (
           <ErrorAlert
@@ -422,20 +419,6 @@ export function AutomationPage() {
       title="Automation"
       desc="Build workflows from small start, data, logic, and Integritas blocks."
     >
-      <section className={cardClass}>
-        <div className={statusRowClass}>
-          <div>
-            <strong>Workflow builders</strong>
-            <p className={mutedText}>
-              Create a workflow from a start block, then connect action blocks in the workspace.
-            </p>
-          </div>
-          <Button type="button" size="sm" onClick={() => navigateFlow({ mode: "build" })}>
-            Create new workflow
-          </Button>
-        </div>
-      </section>
-
       {loadError && (
         <ErrorAlert
           title="Automation data could not be loaded"
@@ -456,210 +439,79 @@ export function AutomationPage() {
       )}
 
       {deletingWorkflow && (
-        <ProgressModal
+        <DeleteProgressModal
           title="Deleting workflow"
-          headline="Deleting in progress"
-          message={`Removing ${deletingWorkflow.name}. Large workflow logs can take a few seconds while saved run history is detached from this workflow.`}
+          description={`Removing ${deletingWorkflow.name}. Large workflow logs can take a few seconds while saved run history is detached from this workflow.`}
         />
       )}
 
-      <section className={cx(cardClass, "grid gap-4")}>
-        <div className={statusRowClass}>
-          <div>
-            <strong>Workflows</strong>
-            <p className={mutedText}>
-              Search, filter, duplicate, and archive workflows as your test list grows.
-            </p>
-          </div>
-          <StatusPill status="neutral">
-            {filteredWorkflows.length}/{workflows.length} shown
-          </StatusPill>
-        </div>
-        <div className={cx(formGridClass, "md:grid-cols-2")}>
-          <label>
-            Search workflows
-            <input
-              value={workflowSearch}
-              onChange={(event) => setWorkflowSearch(event.target.value)}
-              placeholder="Name, block type, device, hash..."
-            />
-          </label>
-          <label>
-            Status filter
-            <select
-              value={workflowFilter}
-              onChange={(event) => setWorkflowFilter(event.target.value as typeof workflowFilter)}
-            >
-              <option value="active">Active list (not archived)</option>
-              <option value="all">All workflows</option>
-              <option value="enabled">Enabled</option>
-              <option value="paused">Paused</option>
-              <option value="error">With errors</option>
-              <option value="archived">Archived</option>
-            </select>
-          </label>
-        </div>
-        <TableWrap>
-          <DataTable className="min-w-[920px]">
-            <thead>
-              <tr className={tableHeadRowClass}>
-                <th className={tableHeaderCellClass}>Name</th>
-                <th className={tableHeaderCellClass}>Status</th>
-                <th className={tableHeaderCellClass}>Trigger / source</th>
-                <th className={tableHeaderCellClass}>Blocks</th>
-                <th className={tableHeaderCellClass}>Last run</th>
-                <th className={tableHeaderCellClass}>Last hash</th>
-                <th className={tableHeaderCellClass}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredWorkflows.map((workflow) => (
-                <tr key={workflow.id} className={tableRowClass}>
-                  <td className={tableCellClass}>
-                    <strong>{workflow.name}</strong>
-                    {workflow.lastError && <p className={errorText}>{workflow.lastError}</p>}
-                    {workflow.archived && (
-                      <p className={mutedText}>Archived workflows do not run until restored.</p>
-                    )}
-                  </td>
-                  <td className={tableCellClass}>
-                    <WorkflowStatusPill workflow={workflow} />
-                  </td>
-                  <td className={tableCellClass}>
-                    {sourceName(workflowPrimarySourceId(workflow))}
-                    <p className={mutedText}>
-                      {workflowIntervalSeconds(workflow) > 0
-                        ? formatInterval(workflowIntervalSeconds(workflow))
-                        : "Event driven"}
-                    </p>
-                  </td>
-                  <td className={tableCellClass}>
-                    <span>{workflow.blocks.length}</span>
-                    <p className={mutedText}>{summarizeBlocks(workflow)}</p>
-                  </td>
-                  <td className={tableCellClass}>
-                    {workflow.lastRunAt ? (
-                      formatLocalTime(workflow.lastRunAt)
-                    ) : (
-                      <span className={mutedText}>Never</span>
-                    )}
-                  </td>
-                  <td className={tableCellClass}>
-                    {workflow.lastHash ? (
-                      <code>{workflow.lastHash}</code>
-                    ) : (
-                      <span className={mutedText}>No hash yet</span>
-                    )}
-                  </td>
-                  <td className={tableCellClass}>
-                    <RowActions>
-                      <IconAction
-                        disabled={busy}
-                        title="Open and edit"
-                        label={`Open and edit ${workflow.name}`}
-                        onClick={() => navigateFlow({ mode: "edit", workflowId: workflow.id })}
-                      >
-                        <Pencil size={16} />
-                      </IconAction>
-                      <IconAction
-                        disabled={busy}
-                        title="Watch workflow"
-                        label={`Watch ${workflow.name}`}
-                        onClick={() => navigateFlow({ mode: "watch", workflowId: workflow.id })}
-                      >
-                        <Eye size={16} />
-                      </IconAction>
-                      <IconAction
-                        disabled={busy || workflow.archived}
-                        title="Run now"
-                        label={`Run ${workflow.name} now`}
-                        onClick={() =>
-                          run(() => runAutomationWorkflow(workflow.id), "Could not run workflow")
-                        }
-                      >
-                        <Play size={16} />
-                      </IconAction>
-                      <IconAction
-                        disabled={busy || workflow.archived}
-                        title={workflow.enabled ? "Pause workflow" : "Enable workflow"}
-                        label={`${workflow.enabled ? "Pause" : "Enable"} ${workflow.name}`}
-                        onClick={() =>
-                          run(
-                            () =>
-                              updateAutomationWorkflow(workflow.id, { enabled: !workflow.enabled }),
-                            workflow.enabled
-                              ? "Could not pause workflow"
-                              : "Could not enable workflow",
-                          )
-                        }
-                      >
-                        <RotateCcw size={16} />
-                      </IconAction>
-                      <IconAction
-                        disabled={busy}
-                        title="Duplicate workflow"
-                        label={`Duplicate ${workflow.name}`}
-                        onClick={() =>
-                          run(
-                            () => duplicateAutomationWorkflow(workflow.id),
-                            "Could not duplicate workflow",
-                          )
-                        }
-                      >
-                        <Copy size={16} />
-                      </IconAction>
-                      <IconAction
-                        disabled={busy}
-                        title={workflow.archived ? "Restore workflow" : "Archive workflow"}
-                        label={`${workflow.archived ? "Restore" : "Archive"} ${workflow.name}`}
-                        onClick={() =>
-                          run(
-                            () =>
-                              updateAutomationWorkflow(workflow.id, {
-                                archived: !workflow.archived,
-                              }),
-                            workflow.archived
-                              ? "Could not restore workflow"
-                              : "Could not archive workflow",
-                          )
-                        }
-                      >
-                        <Archive size={16} />
-                      </IconAction>
-                      <IconAction
-                        danger
-                        disabled={busy}
-                        title="Delete workflow"
-                        label={`Delete workflow ${workflow.name}`}
-                        onClick={() => deleteWorkflow(workflow)}
-                      >
-                        <Trash2 size={16} />
-                      </IconAction>
-                    </RowActions>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </DataTable>
-        </TableWrap>
-        {workflows.length === 0 && <p className={mutedText}>No automation workflows yet.</p>}
-        {workflows.length > 0 && filteredWorkflows.length === 0 && (
-          <p className={mutedText}>No workflows match this filter.</p>
-        )}
-      </section>
+      {deleteTarget && (
+        <DeleteConfirmModal
+          title="Delete workflow"
+          itemLabel={deleteTarget.name}
+          confirmLabel="Delete workflow"
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => void confirmDeleteWorkflow()}
+        />
+      )}
 
-      <AutomationInboxPanel
+      {deletingInboxItem && (
+        <DeleteProgressModal
+          title="Deleting preview"
+          description={`Removing ${deletingInboxItem.title}.`}
+        />
+      )}
+
+      {deleteInboxTarget && (
+        <DeleteConfirmModal
+          title="Delete preview"
+          itemLabel={deleteInboxTarget.title}
+          confirmLabel="Delete preview"
+          onCancel={() => setDeleteInboxTarget(null)}
+          onConfirm={() => void confirmDeleteInboxItem()}
+        />
+      )}
+
+      <AutomationWorkflowsList
+        workflows={workflows}
+        sources={sources}
+        busy={busy}
+        loading={workflowsLoading}
+        onCreate={() => navigateFlow({ mode: "build" })}
+        onEdit={(workflow) => navigateFlow({ mode: "edit", workflowId: workflow.id })}
+        onWatch={(workflow) => navigateFlow({ mode: "watch", workflowId: workflow.id })}
+        onRunNow={(workflow) =>
+          run(() => runAutomationWorkflow(workflow.id), "Could not run workflow")
+        }
+        onToggleEnabled={(workflow) =>
+          run(
+            () => updateAutomationWorkflow(workflow.id, { enabled: !workflow.enabled }),
+            workflow.enabled ? "Could not pause workflow" : "Could not enable workflow",
+          )
+        }
+        onDuplicate={(workflow) =>
+          run(() => duplicateAutomationWorkflow(workflow.id), "Could not duplicate workflow")
+        }
+        onToggleArchive={(workflow) =>
+          run(
+            () => updateAutomationWorkflow(workflow.id, { archived: !workflow.archived }),
+            workflow.archived ? "Could not restore workflow" : "Could not archive workflow",
+          )
+        }
+        onDelete={setDeleteTarget}
+      />
+
+      <AutomationInboxTable
         items={inboxItems}
         busy={busy}
+        loading={inboxLoading}
         onMarkRead={(item, read) =>
           run(
             () => updateAutomationInboxItem(item.id, { read }),
             read ? "Could not mark preview read" : "Could not mark preview unread",
           )
         }
-        onDelete={(item) =>
-          run(() => deleteAutomationInboxItem(item.id), "Could not delete preview")
-        }
+        onDelete={setDeleteInboxTarget}
       />
     </Page>
   );

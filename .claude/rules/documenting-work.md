@@ -29,5 +29,9 @@ Keep `CHANGELOG.md` up to date as part of finishing work, not as a follow-up tas
 - On a `CHANGELOG.md` merge conflict, keep each branch's `## [Unreleased] <branch-name>` section separate. Never merge two branches' entries into one section or fold either into a dated section.
 - Write entries for operators and users: what changed, not which files were touched.
 - Include auth, API, UI, config/env, Docker/install, CLI, and security-impacting changes.
-- A one-line entry is fine for small fixes; larger features deserve a short bullet group.
+- A one-line entry is fine for small fixes; larger features deserve a short bullet group, each bullet still one line.
 - If a change is already described in `README.md` or `SECURITY.md`, the changelog should still note it briefly and point to those docs when helpful.
+- Style: dry and direct, not a narrative. State the change, not the reasoning, backstory, or motivation behind it — that belongs in an ADR (see `.claude/rules/adr.md`), not the changelog.
+- One sentence per bullet. Don't stack multiple sentences, parentheticals, or "instead of ..., which ..." justification clauses onto one entry.
+- Skip implementation detail operators don't act on: internal component/file names, exact class names, prop names, before/after code shape. Name the user-visible thing, not how it's built.
+- If a change is superseded or reverted before it releases, keep the `Unreleased` entry describing the final behavior, not both the add and the follow-up fix.

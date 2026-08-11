@@ -1,4 +1,3 @@
-import { CopyableCode } from "../../components/patterns/CopyableCode";
 import { Modal } from "../../components/ui/Modal";
 import { cx } from "../../lib/cx";
 import { formatMinimaAmount } from "../../lib/format";
@@ -82,12 +81,12 @@ export function AssetDetailModal({ token, onClose }: { token: TokenBalance; onCl
           />
         </div>
 
-        <section className="gap-detail-next flex flex-col" aria-labelledby="asset-token-id-label">
+        {/* <section className="gap-detail-next flex flex-col" aria-labelledby="asset-token-id-label">
           <p className="type-meta text-text-secondary m-0" id="asset-token-id-label">
             Token ID
           </p>
           <CopyableCode value={token.tokenId} />
-        </section>
+        </section> */}
       </div>
     </Modal>
   );

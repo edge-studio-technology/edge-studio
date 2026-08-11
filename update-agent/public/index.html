@@ -18,6 +18,8 @@
     --color-grey-03: #c7ccd1;
     --color-grey-05: #6a7581;
     --color-feedback-error: #dc0428;
+    --color-surface-inverse: #000000;
+    --color-surface-accent: #6d48dc;
   }
 
   * {
@@ -27,22 +29,39 @@
   body {
     margin: 0;
     min-height: 100vh;
-    display: grid;
-    place-items: center;
-    background: var(--color-grey-02);
+    display: flex;
     color: var(--color-core-black);
     font-family: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: linear-gradient(180deg, var(--color-surface-inverse) 30%, var(--color-surface-accent) 100%);
   }
 
   .page {
-    display: grid;
-    justify-items: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 40px 16px;
     gap: 24px;
   }
 
+  .spacer {
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  .content {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
   .logo {
-    height: 48px;
+    height: 40px;
     width: auto;
+    flex-shrink: 0;
   }
 
   .card {
@@ -117,41 +136,45 @@
 </head>
 <body>
   <div class="page">
-    <img class="logo" src="/update/es-lockup.svg" alt="Edge Studio" />
+    <div class="spacer"></div>
 
-    <div class="card">
-      <div id="view-updating">
-        <svg class="spinner" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2v4" style="animation-delay: -0.7s" />
-          <path d="m16.2 7.8 2.9-2.9" style="animation-delay: -0.6s" />
-          <path d="M18 12h4" style="animation-delay: -0.5s" />
-          <path d="m16.2 16.2 2.9 2.9" style="animation-delay: -0.4s" />
-          <path d="M12 18v4" style="animation-delay: -0.3s" />
-          <path d="m4.9 19.1 2.9-2.9" style="animation-delay: -0.2s" />
-          <path d="M2 12h4" style="animation-delay: -0.1s" />
-          <path d="m4.9 4.9 2.9 2.9" style="animation-delay: 0s" />
-        </svg>
-        <h1>Updating…</h1>
-        <p>Please wait, this may take a few minutes. Do not close this page.</p>
-      </div>
+    <div class="content">
+      <div class="card">
+        <div id="view-updating">
+          <svg class="spinner" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4" style="animation-delay: -0.7s" />
+            <path d="m16.2 7.8 2.9-2.9" style="animation-delay: -0.6s" />
+            <path d="M18 12h4" style="animation-delay: -0.5s" />
+            <path d="m16.2 16.2 2.9 2.9" style="animation-delay: -0.4s" />
+            <path d="M12 18v4" style="animation-delay: -0.3s" />
+            <path d="m4.9 19.1 2.9-2.9" style="animation-delay: -0.2s" />
+            <path d="M2 12h4" style="animation-delay: -0.1s" />
+            <path d="m4.9 4.9 2.9 2.9" style="animation-delay: 0s" />
+          </svg>
+          <h1>Updating…</h1>
+          <p>Please wait, this may take a few minutes. Do not close this page.</p>
+        </div>
 
-      <div id="view-success" class="hidden">
-        <h1>Update complete</h1>
-        <p>Redirecting…</p>
-      </div>
+        <div id="view-success" class="hidden">
+          <h1>Update complete</h1>
+          <p>Redirecting…</p>
+        </div>
 
-      <div id="view-failure" class="hidden">
-        <h1 class="error-text">Update failed</h1>
-        <p id="failure-message">The update did not complete. Affected services were rolled back to their previous version.</p>
-        <p>Redirecting…</p>
-      </div>
+        <div id="view-failure" class="hidden">
+          <h1 class="error-text">Update failed</h1>
+          <p id="failure-message">The update did not complete. Affected services were rolled back to their previous version.</p>
+          <p>Redirecting…</p>
+        </div>
 
-      <div id="view-idle" class="hidden">
-        <h1>Nothing to update right now</h1>
-        <p>No update is currently in progress.</p>
-        <a class="button-link" href="/update">Back to Update</a>
+        <div id="view-idle" class="hidden">
+          <h1>Nothing to update right now</h1>
+          <p>No update is currently in progress.</p>
+          <a class="button-link" href="/update">Back to Update</a>
+        </div>
       </div>
     </div>
+
+    <img class="logo" src="/update/es-lockup-white.svg" alt="Edge Studio" />
   </div>
 
   <script src="/update/app.js"></script>
