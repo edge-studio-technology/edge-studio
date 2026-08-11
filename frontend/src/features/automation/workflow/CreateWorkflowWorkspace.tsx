@@ -25,8 +25,8 @@ import {
   canPersistSendTransactionConfig,
   createDraftBlock,
   flattenDraftBlocks,
-  nativeMinimaTokens,
   validationIssuesByBlockId,
+  withSoftenedInsufficientBalance,
 } from "./workflowHelpers";
 import {
   BlockHelpDisclosure,
@@ -83,10 +83,11 @@ export function CreateWorkflowWorkspace({
     ? draftBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
   const localErrors = name.trim() ? [] : ["Workflow name is required."];
-  const canCreate = localErrors.length === 0 && Boolean(backendValidation?.ok);
+  const uiValidation = withSoftenedInsufficientBalance(backendValidation);
+  const canCreate = localErrors.length === 0 && Boolean(uiValidation?.ok);
   const createBlockedReason = !name.trim()
     ? "Workflow name is required."
-    : backendValidation && !backendValidation.ok
+    : uiValidation && !uiValidation.ok
       ? "Fix validation errors before creating."
       : backendValidationError
         ? "Validation is unavailable."
@@ -102,7 +103,7 @@ export function CreateWorkflowWorkspace({
       selectedStartType === "mqtt_event_start") &&
     !draftBlocks.some((block) => block.type === "record_trigger_event"),
   );
-  const draftValidationByBlockId = validationIssuesByBlockId(backendValidation);
+  const draftValidationByBlockId = validationIssuesByBlockId(uiValidation);
 
   useEffect(() => {
     let cancelled = false;
@@ -281,9 +282,9 @@ export function CreateWorkflowWorkspace({
         rail={
           <aside className="gap-detail-close flex h-full min-h-0 flex-col">
             {draftBlocks.length > 0 &&
-            isWorkflowValidationVisible(backendValidation, [], backendValidationError) ? (
+            isWorkflowValidationVisible(uiValidation, [], backendValidationError) ? (
               <WorkflowValidationPanel
-                validation={backendValidation}
+                validation={uiValidation}
                 fetchError={backendValidationError}
                 description="Fix errors before creating. Review any warnings before creating."
               />
@@ -335,9 +336,7 @@ export function CreateWorkflowWorkspace({
                   onClick={() => {
                     if (
                       selectedBlock.type === "send_transaction" &&
-                      !canPersistSendTransactionConfig(selectedBlock.config, {
-                        sendableMinima: nativeMinimaTokens(walletStatus)[0]?.sendable,
-                      })
+                      !canPersistSendTransactionConfig(selectedBlock.config)
                     ) {
                       setRevealSendPaymentErrors(true);
                       return;

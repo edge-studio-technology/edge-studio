@@ -40,9 +40,9 @@ import {
   defaultEditBlockConfig,
   examplePayload,
   moveBlock,
-  nativeMinimaTokens,
   runtimeByBlockIdFromRun,
   validationIssuesByBlockId,
+  withSoftenedInsufficientBalance,
   workflowIntervalSeconds,
 } from "./workflowHelpers";
 import {
@@ -140,8 +140,9 @@ export function WorkflowWorkspace({
     !mainBlocks.some((block) => block.type === "record_trigger_event"),
   );
   const canAddSendPayment = addressBook.length > 0;
-  const hasValidationErrors = Boolean(validation && validation.errors.length > 0);
-  const validationByBlockId = validationIssuesByBlockId(validation);
+  const uiValidation = withSoftenedInsufficientBalance(validation);
+  const hasValidationErrors = Boolean(uiValidation && uiValidation.errors.length > 0);
+  const validationByBlockId = validationIssuesByBlockId(uiValidation);
   const selectedRun =
     mode === "watch" ? (runs.find((run) => run.id === selectedRunId) ?? runs[0]) : undefined;
   const runtimeByBlockId = mode === "watch" ? runtimeByBlockIdFromRun(selectedRun) : {};
@@ -229,11 +230,7 @@ export function WorkflowWorkspace({
 
   async function saveDraftBlock() {
     if (!draftBlock) return;
-    if (
-      !canPersistSendTransactionConfig(draftBlock.config, {
-        sendableMinima: nativeMinimaTokens(walletStatus)[0]?.sendable,
-      })
-    ) {
+    if (!canPersistSendTransactionConfig(draftBlock.config)) {
       setDraftRevealErrors(true);
       return;
     }
@@ -375,9 +372,9 @@ export function WorkflowWorkspace({
         <aside className="gap-detail-close flex h-full min-h-0 flex-col">
           {mode === "edit" ? (
             <>
-              {isWorkflowValidationVisible(validation) ? (
+              {isWorkflowValidationVisible(uiValidation) ? (
                 <WorkflowValidationPanel
-                  validation={validation}
+                  validation={uiValidation}
                   description="Fix errors before running. Warnings are allowed, but should be reviewed before enabling hardware or wallet actions."
                 />
               ) : null}
@@ -412,8 +409,8 @@ export function WorkflowWorkspace({
             </>
           ) : (
             <>
-              {isWorkflowValidationVisible(validation) ? (
-                <WorkflowValidationPanel validation={validation} />
+              {isWorkflowValidationVisible(uiValidation) ? (
+                <WorkflowValidationPanel validation={uiValidation} />
               ) : null}
               <WatchRunControls
                 workflow={workflow}

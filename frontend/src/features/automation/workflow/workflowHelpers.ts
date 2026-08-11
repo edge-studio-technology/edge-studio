@@ -1,7 +1,6 @@
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { WalletStatus } from "../../wallet/walletTypes";
-import { compareDecimalStrings } from "../../wallet/walletUtils";
 import { formatRunDuration } from "../automationRunDisplay";
 import type {
   AutomationBlock,
@@ -130,26 +129,19 @@ export function defaultEditBlockConfig(
 }
 
 /** True when send payment config can be persisted (API requires recipient + positive amount). */
-export function canPersistSendTransactionConfig(
-  config: AutomationBlock["config"],
-  options: { sendableMinima?: string | null } = {},
-) {
-  const errors = sendPaymentFieldErrors(config, {
-    revealRequired: true,
-    sendableMinima: options.sendableMinima,
-  });
+export function canPersistSendTransactionConfig(config: AutomationBlock["config"]) {
+  const errors = sendPaymentFieldErrors(config, { revealRequired: true });
   return !errors.recipient && !errors.amount;
 }
 
 /** Field errors for Send payment. Pass revealRequired after the user tries Done. */
 export function sendPaymentFieldErrors(
   config: AutomationBlock["config"],
-  options: { revealRequired?: boolean; sendableMinima?: string | null } = {},
+  options: { revealRequired?: boolean } = {},
 ) {
   const recipient = String(config.recipientAddressBookId ?? "").trim();
   const amount = String(config.amount ?? "").trim();
   const revealRequired = options.revealRequired === true;
-  const sendable = options.sendableMinima?.trim() || null;
 
   let recipientError: string | undefined;
   let amountError: string | undefined;
@@ -161,8 +153,6 @@ export function sendPaymentFieldErrors(
   if (amount) {
     if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) {
       amountError = "Enter a positive amount (for example 1 or 0.5).";
-    } else if (sendable != null && compareDecimalStrings(amount, sendable) > 0) {
-      amountError = `Amount exceeds available balance (${sendable} Minima).`;
     }
   } else if (revealRequired) {
     amountError = "Enter a positive amount.";
@@ -200,6 +190,32 @@ export function validationIssuesByBlockId(
     ];
   }
   return result;
+}
+
+/**
+ * Frontend-only: treat insufficient wallet balance as a warning so operators can
+ * save/enable/create before funding. Backend still returns it as an error and
+ * run-time send still fails until funded.
+ */
+export function withSoftenedInsufficientBalance(
+  validation: AutomationValidationResult | null,
+): AutomationValidationResult | null {
+  if (!validation) return null;
+  const demoted = validation.errors.filter(
+    (issue) => issue.code === "send_transaction.insufficient_balance",
+  );
+  if (demoted.length === 0) return validation;
+  const errors = validation.errors.filter(
+    (issue) => issue.code !== "send_transaction.insufficient_balance",
+  );
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings: [
+      ...validation.warnings,
+      ...demoted.map((issue) => ({ ...issue, level: "warning" as const })),
+    ],
+  };
 }
 
 export function runtimeByBlockIdFromRun(
