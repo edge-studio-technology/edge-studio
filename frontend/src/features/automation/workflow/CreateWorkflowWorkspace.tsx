@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
 import { InputField } from "../../../components/ui/InputField";
@@ -25,10 +26,12 @@ import {
   canPersistSendTransactionConfig,
   createDraftBlock,
   flattenDraftBlocks,
-  nativeMinimaTokens,
+  missingDeviceLibraryReason,
   validationIssuesByBlockId,
+  withSoftenedInsufficientBalance,
 } from "./workflowHelpers";
 import {
+  BlockHelpDisclosure,
   formGridClass,
   InspectorSection,
   SelectedBlockSheet,
@@ -82,10 +85,11 @@ export function CreateWorkflowWorkspace({
     ? draftBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
   const localErrors = name.trim() ? [] : ["Workflow name is required."];
-  const canCreate = localErrors.length === 0 && Boolean(backendValidation?.ok);
+  const uiValidation = withSoftenedInsufficientBalance(backendValidation);
+  const canCreate = localErrors.length === 0 && Boolean(uiValidation?.ok);
   const createBlockedReason = !name.trim()
     ? "Workflow name is required."
-    : backendValidation && !backendValidation.ok
+    : uiValidation && !uiValidation.ok
       ? "Fix validation errors before creating."
       : backendValidationError
         ? "Validation is unavailable."
@@ -101,7 +105,7 @@ export function CreateWorkflowWorkspace({
       selectedStartType === "mqtt_event_start") &&
     !draftBlocks.some((block) => block.type === "record_trigger_event"),
   );
-  const draftValidationByBlockId = validationIssuesByBlockId(backendValidation);
+  const draftValidationByBlockId = validationIssuesByBlockId(uiValidation);
 
   useEffect(() => {
     let cancelled = false;
@@ -182,6 +186,8 @@ export function CreateWorkflowWorkspace({
 
   function addDraftBlock(type: AutomationBlockType) {
     if (!hasStartBlock && !type.endsWith("_start")) return;
+    if (type === "send_transaction" && addressBook.length === 0) return;
+    if (missingDeviceLibraryReason(type, sources)) return;
     const block = createDraftBlock(type, sources);
     setDraftBlocks((blocks) => [...blocks, block]);
     setSelectedBlockId(block.id);
@@ -209,6 +215,7 @@ export function CreateWorkflowWorkspace({
   }
 
   function selectStartBlock(type: AutomationBlockType) {
+    if (missingDeviceLibraryReason(type, sources)) return;
     const start = createDraftBlock(type, sources);
     const startIndex = draftBlocks.findIndex((block) => block.type.endsWith("_start"));
     if (startIndex < 0) {
@@ -256,7 +263,13 @@ export function CreateWorkflowWorkspace({
         }
         actions={
           <>
-            <Button type="button" variant="ghost" disabled={busy} onClick={requestCancel}>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={busy}
+              onClick={requestCancel}
+              iconStart={<ArrowLeft aria-hidden />}
+            >
               Back
             </Button>
             <Button
@@ -280,9 +293,9 @@ export function CreateWorkflowWorkspace({
         rail={
           <aside className="gap-detail-close flex h-full min-h-0 flex-col">
             {draftBlocks.length > 0 &&
-            isWorkflowValidationVisible(backendValidation, [], backendValidationError) ? (
+            isWorkflowValidationVisible(uiValidation, [], backendValidationError) ? (
               <WorkflowValidationPanel
-                validation={backendValidation}
+                validation={uiValidation}
                 fetchError={backendValidationError}
                 description="Fix errors before creating. Review any warnings before creating."
               />
@@ -292,6 +305,8 @@ export function CreateWorkflowWorkspace({
                 hasStartBlock={hasStartBlock}
                 selectedStartType={selectedStartType}
                 canAddRecordTriggerEvent={canAddRecordTriggerEvent}
+                canAddSendPayment={addressBook.length > 0}
+                sources={sources}
                 enabled={enabled}
                 onEnabledChange={onEnabledChange}
                 onSelectStartBlock={selectStartBlock}
@@ -334,9 +349,7 @@ export function CreateWorkflowWorkspace({
                   onClick={() => {
                     if (
                       selectedBlock.type === "send_transaction" &&
-                      !canPersistSendTransactionConfig(selectedBlock.config, {
-                        sendableMinima: nativeMinimaTokens(walletStatus)[0]?.sendable,
-                      })
+                      !canPersistSendTransactionConfig(selectedBlock.config)
                     ) {
                       setRevealSendPaymentErrors(true);
                       return;
@@ -350,6 +363,7 @@ export function CreateWorkflowWorkspace({
               }
             >
               <div className={formGridClass}>
+                <BlockHelpDisclosure type={selectedBlock.type} />
                 <DraftBlockInspector
                   block={selectedBlock}
                   sources={sources}

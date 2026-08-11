@@ -418,6 +418,11 @@ export function AutomationPage() {
     <Page
       title="Automation"
       desc="Build workflows from small start, data, logic, and Integritas blocks."
+      action={
+        <LinkButton href="/automation/help" size="sm" variant="secondary">
+          Workflow guide
+        </LinkButton>
+      }
     >
       {loadError && (
         <ErrorAlert

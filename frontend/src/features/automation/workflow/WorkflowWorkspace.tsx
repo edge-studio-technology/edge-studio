@@ -40,12 +40,14 @@ import {
   defaultEditBlockConfig,
   examplePayload,
   moveBlock,
-  nativeMinimaTokens,
   runtimeByBlockIdFromRun,
   validationIssuesByBlockId,
+  withSoftenedInsufficientBalance,
   workflowIntervalSeconds,
+  missingDeviceLibraryReason,
 } from "./workflowHelpers";
 import {
+  BlockHelpDisclosure,
   SelectedBlockSheet,
   StatusPill,
   WorkflowStatusPill,
@@ -56,6 +58,7 @@ import {
   mutedText,
 } from "./workflowWorkspaceUi";
 import { formatLocalTime } from "../../../lib/time";
+import { ArrowLeftIcon } from "lucide-react";
 
 /** Edit/watch workspace for a persisted automation workflow. */
 export function WorkflowWorkspace({
@@ -116,6 +119,7 @@ export function WorkflowWorkspace({
   const [draftBlock, setDraftBlock] = useState<DraftWorkflowBlock | null>(null);
   const [draftRevealErrors, setDraftRevealErrors] = useState(false);
   const inspectorRef = useRef<PersistedBlockInspectorHandle>(null);
+  const nameSaveTimerRef = useRef<number | null>(null);
   /** Edit-session pause: pause once per workflow while editing. */
   const editPauseSessionRef = useRef<{
     workflowId: string;
@@ -139,8 +143,9 @@ export function WorkflowWorkspace({
     !mainBlocks.some((block) => block.type === "record_trigger_event"),
   );
   const canAddSendPayment = addressBook.length > 0;
-  const hasValidationErrors = Boolean(validation && validation.errors.length > 0);
-  const validationByBlockId = validationIssuesByBlockId(validation);
+  const uiValidation = withSoftenedInsufficientBalance(validation);
+  const hasValidationErrors = Boolean(uiValidation && uiValidation.errors.length > 0);
+  const validationByBlockId = validationIssuesByBlockId(uiValidation);
   const selectedRun =
     mode === "watch" ? (runs.find((run) => run.id === selectedRunId) ?? runs[0]) : undefined;
   const runtimeByBlockId = mode === "watch" ? runtimeByBlockIdFromRun(selectedRun) : {};
@@ -157,9 +162,16 @@ export function WorkflowWorkspace({
     if (!mainBlocks.some((block) => block.id === selectedBlockId)) setSelectedBlockId("");
   }, [mainBlocks, draftBlock, selectedBlockId]);
 
+  // Sync local name when switching workflows only — avoid clobbering in-progress typing after auto-save.
   useEffect(() => {
     setWorkflowName(workflow.name);
-  }, [workflow.id, workflow.name]);
+  }, [workflow.id]); // eslint-disable-line react-hooks/exhaustive-deps -- workflow.name intentionally omitted
+
+  useEffect(() => {
+    return () => {
+      if (nameSaveTimerRef.current != null) window.clearTimeout(nameSaveTimerRef.current);
+    };
+  }, []);
 
   // Auto-pause while editing so schedule/event triggers cannot run mid-change.
   useEffect(() => {
@@ -207,6 +219,8 @@ export function WorkflowWorkspace({
       setSelectedBlockId(draft.id);
       return;
     }
+    // Avoid API toast when the toolkit card should already be disabled for missing devices.
+    if (missingDeviceLibraryReason(type, sources)) return;
     setDraftRevealErrors(false);
     setDraftBlock(null);
     const result = await onAddBlock({
@@ -228,11 +242,7 @@ export function WorkflowWorkspace({
 
   async function saveDraftBlock() {
     if (!draftBlock) return;
-    if (
-      !canPersistSendTransactionConfig(draftBlock.config, {
-        sendableMinima: nativeMinimaTokens(walletStatus)[0]?.sendable,
-      })
-    ) {
+    if (!canPersistSendTransactionConfig(draftBlock.config)) {
       setDraftRevealErrors(true);
       return;
     }
@@ -272,8 +282,30 @@ export function WorkflowWorkspace({
     setSelectedBlockId(id);
   }
 
-  const workflowNameDirty = workflowName.trim() !== workflow.name;
   const workflowNameError = !workflowName.trim() ? "Workflow name is required." : undefined;
+
+  function clearNameSaveTimer() {
+    if (nameSaveTimerRef.current == null) return;
+    window.clearTimeout(nameSaveTimerRef.current);
+    nameSaveTimerRef.current = null;
+  }
+
+  function saveWorkflowNameIfNeeded(nextName = workflowName) {
+    clearNameSaveTimer();
+    const trimmed = nextName.trim();
+    if (!trimmed || trimmed === workflow.name) return;
+    onUpdateWorkflow({ name: trimmed });
+  }
+
+  function scheduleWorkflowNameSave(nextName: string) {
+    clearNameSaveTimer();
+    const trimmed = nextName.trim();
+    if (!trimmed || trimmed === workflow.name) return;
+    nameSaveTimerRef.current = window.setTimeout(() => {
+      nameSaveTimerRef.current = null;
+      onUpdateWorkflow({ name: trimmed });
+    }, 500);
+  }
 
   return (
     <WorkflowWorkspaceShell
@@ -283,7 +315,12 @@ export function WorkflowWorkspace({
           <InputField
             aria-label="Workflow name"
             value={workflowName}
-            onChange={(event) => setWorkflowName(event.target.value)}
+            onChange={(event) => {
+              const next = event.target.value;
+              setWorkflowName(next);
+              scheduleWorkflowNameSave(next);
+            }}
+            onBlur={() => saveWorkflowNameIfNeeded()}
             placeholder="Workflow name"
             error={workflowNameError}
           />
@@ -293,10 +330,16 @@ export function WorkflowWorkspace({
       }
       actions={
         <>
-          <Button type="button" variant="ghost" disabled={busy} onClick={onBack}>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={busy}
+            onClick={onBack}
+            iconStart={<ArrowLeftIcon />}
+          >
             Back
           </Button>
-          <Button
+          {/* <Button
             type="button"
             variant="secondary"
             disabled={busy}
@@ -311,16 +354,7 @@ export function WorkflowWorkspace({
             onClick={onRunNow}
           >
             Run now
-          </Button>
-          {mode === "edit" ? (
-            <Button
-              type="button"
-              disabled={busy || Boolean(workflowNameError) || !workflowNameDirty}
-              onClick={() => onUpdateWorkflow({ name: workflowName.trim() })}
-            >
-              Save workflow name
-            </Button>
-          ) : null}
+          </Button> */}
         </>
       }
       statusStrip={
@@ -348,15 +382,16 @@ export function WorkflowWorkspace({
         </WorkflowStatusStrip>
       }
       notices={
-        (mode === "edit" && pausedForEditNotice) || workflow.archived || workflow.lastError ? (
+        mode === "edit" || workflow.archived || workflow.lastError ? (
           <>
-            {mode === "edit" && pausedForEditNotice && (
+            {mode === "edit" ? (
               <Text.Body className={mutedText}>
-                Paused while editing to prevent it from running with unfinished changes. Turn on{" "}
-                <strong className="text-text-primary">Run automatically</strong> in the toolkit when
-                you want it live again.
+                Changes are saved automatically.
+                {pausedForEditNotice
+                  ? " Workflow is paused while editing, enable it again from the workflow list."
+                  : null}
               </Text.Body>
-            )}
+            ) : null}
             {workflow.archived && (
               <p className={mutedText}>
                 Archived workflows do not run automatically or manually until restored.
@@ -374,9 +409,9 @@ export function WorkflowWorkspace({
         <aside className="gap-detail-close flex h-full min-h-0 flex-col">
           {mode === "edit" ? (
             <>
-              {isWorkflowValidationVisible(validation) ? (
+              {isWorkflowValidationVisible(uiValidation) ? (
                 <WorkflowValidationPanel
-                  validation={validation}
+                  validation={uiValidation}
                   description="Fix errors before running. Warnings are allowed, but should be reviewed before enabling hardware or wallet actions."
                 />
               ) : null}
@@ -387,23 +422,7 @@ export function WorkflowWorkspace({
                   selectedStartType={startBlock?.type}
                   canAddRecordTriggerEvent={canAddRecordTriggerEvent}
                   canAddSendPayment={canAddSendPayment}
-                  enabled={workflow.enabled}
-                  enabledDisabled={
-                    busy ||
-                    workflow.archived ||
-                    (hasValidationErrors && !workflow.enabled)
-                  }
-                  enabledDisabledReason={
-                    workflow.archived
-                      ? "Archived workflows cannot run until restored."
-                      : hasValidationErrors && !workflow.enabled
-                        ? "Fix validation errors before enabling."
-                        : undefined
-                  }
-                  onEnabledChange={(value) => {
-                    if (value && hasValidationErrors) return;
-                    onUpdateWorkflow({ enabled: value });
-                  }}
+                  sources={sources}
                   onSelectStartBlock={() => undefined}
                   onAddBlock={addBlockFromLibrary}
                 />
@@ -411,8 +430,8 @@ export function WorkflowWorkspace({
             </>
           ) : (
             <>
-              {isWorkflowValidationVisible(validation) ? (
-                <WorkflowValidationPanel validation={validation} />
+              {isWorkflowValidationVisible(uiValidation) ? (
+                <WorkflowValidationPanel validation={uiValidation} />
               ) : null}
               <WatchRunControls
                 workflow={workflow}
@@ -488,6 +507,7 @@ export function WorkflowWorkspace({
             }
           >
             <div className="gap-detail-close grid">
+              <BlockHelpDisclosure type={draftSelected.type} />
               <DraftBlockInspector
                 block={draftSelected}
                 sources={sources}
@@ -529,33 +549,36 @@ export function WorkflowWorkspace({
             }
           >
             {mode === "edit" ? (
-              <PersistedBlockInspector
-                key={selectedBlock.id}
-                ref={inspectorRef}
-                block={selectedBlock}
-                attachedBlocks={workflow.blocks.filter(
-                  (item) => item.parentBlockId === selectedBlock.id,
-                )}
-                sources={sources}
-                addressBook={addressBook}
-                walletStatus={walletStatus}
-                busy={busy}
-                onAttachStamp={() =>
-                  onAddBlock({
-                    type: "stamp_integritas",
-                    config: {},
-                    parentBlockId: selectedBlock.id,
-                  })
-                }
-                onUpdate={(input) => onUpdateBlock(selectedBlock.id, input)}
-                onUpdateAttached={(blockId, input) => onUpdateBlock(blockId, input)}
-                onDelete={() =>
-                  selectedBlock.type.endsWith("_start")
-                    ? undefined
-                    : onDeleteBlock(selectedBlock.id)
-                }
-                onDeleteAttached={onDeleteBlock}
-              />
+              <div className="gap-detail-close grid">
+                <BlockHelpDisclosure type={selectedBlock.type} />
+                <PersistedBlockInspector
+                  key={selectedBlock.id}
+                  ref={inspectorRef}
+                  block={selectedBlock}
+                  attachedBlocks={workflow.blocks.filter(
+                    (item) => item.parentBlockId === selectedBlock.id,
+                  )}
+                  sources={sources}
+                  addressBook={addressBook}
+                  walletStatus={walletStatus}
+                  busy={busy}
+                  onAttachStamp={() =>
+                    onAddBlock({
+                      type: "stamp_integritas",
+                      config: {},
+                      parentBlockId: selectedBlock.id,
+                    })
+                  }
+                  onUpdate={(input) => onUpdateBlock(selectedBlock.id, input)}
+                  onUpdateAttached={(blockId, input) => onUpdateBlock(blockId, input)}
+                  onDelete={() =>
+                    selectedBlock.type.endsWith("_start")
+                      ? undefined
+                      : onDeleteBlock(selectedBlock.id)
+                  }
+                  onDeleteAttached={onDeleteBlock}
+                />
+              </div>
             ) : (
               <WatchRuntimeInspector
                 selectedBlock={selectedBlock}

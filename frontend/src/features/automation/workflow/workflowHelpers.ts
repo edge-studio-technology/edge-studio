@@ -1,7 +1,6 @@
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { WalletStatus } from "../../wallet/walletTypes";
-import { compareDecimalStrings } from "../../wallet/walletUtils";
 import { formatRunDuration } from "../automationRunDisplay";
 import type {
   AutomationBlock,
@@ -17,6 +16,7 @@ import type {
   WorkflowCanvasRuntimeState,
   WorkflowCanvasValidationIssue,
 } from "./canvas";
+import { blockHelp } from "./workflowBlockHelp";
 
 /** Pure workflow draft/config/label helpers (no React). Graph visuals stay in `workflow/canvas/`. */
 export const WORKFLOW_INTERVAL_OPTIONS = [10, 30, 60, 300, 900, 3600] as const;
@@ -129,26 +129,19 @@ export function defaultEditBlockConfig(
 }
 
 /** True when send payment config can be persisted (API requires recipient + positive amount). */
-export function canPersistSendTransactionConfig(
-  config: AutomationBlock["config"],
-  options: { sendableMinima?: string | null } = {},
-) {
-  const errors = sendPaymentFieldErrors(config, {
-    revealRequired: true,
-    sendableMinima: options.sendableMinima,
-  });
+export function canPersistSendTransactionConfig(config: AutomationBlock["config"]) {
+  const errors = sendPaymentFieldErrors(config, { revealRequired: true });
   return !errors.recipient && !errors.amount;
 }
 
 /** Field errors for Send payment. Pass revealRequired after the user tries Done. */
 export function sendPaymentFieldErrors(
   config: AutomationBlock["config"],
-  options: { revealRequired?: boolean; sendableMinima?: string | null } = {},
+  options: { revealRequired?: boolean } = {},
 ) {
   const recipient = String(config.recipientAddressBookId ?? "").trim();
   const amount = String(config.amount ?? "").trim();
   const revealRequired = options.revealRequired === true;
-  const sendable = options.sendableMinima?.trim() || null;
 
   let recipientError: string | undefined;
   let amountError: string | undefined;
@@ -160,8 +153,6 @@ export function sendPaymentFieldErrors(
   if (amount) {
     if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) {
       amountError = "Enter a positive amount (for example 1 or 0.5).";
-    } else if (sendable != null && compareDecimalStrings(amount, sendable) > 0) {
-      amountError = `Amount exceeds available balance (${sendable} Minima).`;
     }
   } else if (revealRequired) {
     amountError = "Enter a positive amount.";
@@ -199,6 +190,32 @@ export function validationIssuesByBlockId(
     ];
   }
   return result;
+}
+
+/**
+ * Frontend-only: treat insufficient wallet balance as a warning so operators can
+ * save/enable/create before funding. Backend still returns it as an error and
+ * run-time send still fails until funded.
+ */
+export function withSoftenedInsufficientBalance(
+  validation: AutomationValidationResult | null,
+): AutomationValidationResult | null {
+  if (!validation) return null;
+  const demoted = validation.errors.filter(
+    (issue) => issue.code === "send_transaction.insufficient_balance",
+  );
+  if (demoted.length === 0) return validation;
+  const errors = validation.errors.filter(
+    (issue) => issue.code !== "send_transaction.insufficient_balance",
+  );
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings: [
+      ...validation.warnings,
+      ...demoted.map((issue) => ({ ...issue, level: "warning" as const })),
+    ],
+  };
 }
 
 export function runtimeByBlockIdFromRun(
@@ -292,39 +309,16 @@ export function summarizeBlocks(workflow: AutomationWorkflow) {
 }
 
 export function blockLabel(block: AutomationBlock) {
-  if (block.type === "schedule_start") return "Start on schedule";
-  if (block.type === "gpio_event_start") return "Start on GPIO event";
-  if (block.type === "webhook_event_start") return "Start on webhook";
-  if (block.type === "mqtt_event_start") return "Start on MQTT message";
-  if (block.type === "manual_start") return "Start manually";
-  if (block.type === "record_trigger_event") return "Record trigger event";
-  if (block.type === "fetch_data_source") return "Fetch data source";
-  if (block.type === "capture_camera") return "Capture camera";
-  if (block.type === "set_variable") return "Set variable";
+  if (block.type !== "if_payload_field_equals") return blockHelp(block.type).shortTitle;
   if (block.type === "if_payload_field_equals") {
     return `If ${conditionSourceLabel(block.config.source ?? "trigger")} field matches`;
   }
-  if (block.type === "wait") return "Wait";
-  if (block.type === "show_preview") return "Show preview";
-  if (block.type === "stamp_integritas") return "Stamp data";
-  if (block.type === "control_output") return "Control device";
-  if (block.type === "send_transaction") return "Send payment";
   return block.type;
 }
 
 export function blockShortLabel(block: AutomationBlock) {
   if (block.type.endsWith("_start")) return "Start";
-  if (block.type === "record_trigger_event") return "Record event";
-  if (block.type === "fetch_data_source") return "Fetch source";
-  if (block.type === "capture_camera") return "Capture camera";
-  if (block.type === "set_variable") return "Set variable";
-  if (block.type === "if_payload_field_equals") return "If field matches";
-  if (block.type === "show_preview") return "Show preview";
-  if (block.type === "stamp_integritas") return "Stamp";
-  if (block.type === "control_output") return "Control device";
-  if (block.type === "send_transaction") return "Send payment";
-  if (block.type === "wait") return "Wait";
-  return block.type;
+  return blockHelp(block.type).shortTitle;
 }
 
 export function conditionSourceLabel(source: "trigger" | "variable") {
@@ -385,6 +379,32 @@ export function firstReadableSource(sources: DataSource[]) {
 
 export function firstCameraSource(sources: DataSource[]) {
   return sources.find((source) => source.type === "pi-camera") ?? null;
+}
+
+/** Why a toolkit card can't be added yet — missing Devices prerequisite. */
+export function missingDeviceLibraryReason(
+  type: AutomationBlockType,
+  sources: DataSource[],
+): string | undefined {
+  if (type === "gpio_event_start" && sourcesForStart(type, sources).length === 0) {
+    return "Add a GPIO input on Devices first.";
+  }
+  if (type === "webhook_event_start" && sourcesForStart(type, sources).length === 0) {
+    return "Add a webhook source on Devices first.";
+  }
+  if (type === "mqtt_event_start" && sourcesForStart(type, sources).length === 0) {
+    return "Add an MQTT source on Devices first.";
+  }
+  if (type === "fetch_data_source" && !firstReadableSource(sources)) {
+    return "Add a readable input device on Devices first.";
+  }
+  if (type === "capture_camera" && !firstCameraSource(sources)) {
+    return "Add a Pi Camera on Devices first.";
+  }
+  if (type === "control_output" && !sources.some(isOutputTarget)) {
+    return "Add an output target on Devices first.";
+  }
+  return undefined;
 }
 
 export function nativeMinimaTokens(walletStatus: WalletStatus | null) {

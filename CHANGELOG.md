@@ -4,6 +4,19 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ui/workflow-full
+
+### Changed
+
+- Automation edit workspace autosaves the workflow name (debounced while typing, and on blur); the separate "Save workflow name" button is removed.
+- Automation edit workspace always shows that changes save automatically; if the workflow was auto-paused for editing, the same notice also explains how to re-enable it from the list.
+- Automation edit toolkit no longer shows an enable/disable switch; workflows still auto-pause while editing, and operators re-enable from the workflow list.
+- Automation toolkit cards that need a missing device or wallet contact are disabled with a tooltip pointing to Devices or Wallet, instead of failing with a "Could not add block" toast.
+- Automation edit canvas shows disabled blocks dimmed with a **Disabled** status pill, and the block options panel explains they are skipped when the workflow runs.
+- Automation Send payment: insufficient wallet balance is shown as a **warning** in create/edit validation (not a blocking error), so operators can save, enable, or create a workflow before the wallet is funded. Run-time send still fails until there is enough Minima.
+- Automation Send payment inspector no longer blocks configuring an amount above the current wallet balance; recipient/amount required-field checks are unchanged.
+- Automation Send payment shows a note and disables the recipient field when the address book has no contacts.
+
 ## [0.34.0] 2026-08-11
 
 ### Added
