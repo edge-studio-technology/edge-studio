@@ -1,12 +1,14 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { CheckCircle2, Download } from "lucide-react";
+import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { Button, LinkButton } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
+import { Disclosure } from "../../components/ui/Disclosure";
 import { InputField } from "../../components/ui/InputField";
 import { Modal } from "../../components/ui/Modal";
 import { SelectField } from "../../components/ui/SelectField";
 import { TextareaField } from "../../components/ui/TextareaField";
-import { postJson } from "../../lib/api";
+import { getJson, postJson } from "../../lib/api";
 import { useToast } from "../../components/ToastProvider";
 
 const FEEDBACK_FORM_ID = "feedback-form";
@@ -59,6 +61,28 @@ type FeedbackSubmitResponse = {
   exportUrl: string;
 };
 
+type FeedbackExportDoc = {
+  metadata: {
+    app: { version: string };
+    user: { id: string; displayName: string; role: string };
+    device: {
+      id: string;
+      hostname: string;
+      platform: string;
+      arch: string;
+      cpuCount: number;
+      memory: { totalBytes: number };
+      disk: { totalBytes: number } | null;
+    };
+  };
+};
+
+function formatBytes(bytes: number) {
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${bytes} B`;
+}
+
 export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: string; pageLabel: string; onClose: () => void }) {
   const { showToast } = useToast();
   const [type, setType] = useState("bug");
@@ -73,6 +97,22 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState<FeedbackSubmitResponse | null>(null);
+  const [exportDoc, setExportDoc] = useState<FeedbackExportDoc | null>(null);
+  const browser = useState(getBrowserContext)[0];
+
+  useEffect(() => {
+    let cancelled = false;
+    getJson<FeedbackExportDoc>("/api/feedback/export")
+      .then((result) => {
+        if (!cancelled) setExportDoc(result);
+      })
+      .catch(() => {
+        // Leave exportDoc null; the disclosure rows fall back to "—".
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function submitFeedback(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -104,7 +144,7 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
             desiredOutcome
           }
         } : {}),
-        browser: getBrowserContext()
+        browser
       });
       setSaved(result);
       showToast({ tone: "success", title: "Feedback saved locally", message: "Download the JSON file when you are ready to share it." });
@@ -163,6 +203,33 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
         </div>
       ) : (
         <form className="gap-detail-close grid" id={FEEDBACK_FORM_ID} onSubmit={submitFeedback}>
+          <Disclosure title="What we save with this feedback" defaultOpen={false}>
+            <DetailList>
+              <DetailRow label="User agent" value={browser.userAgent} />
+              <DetailRow label="Language" value={browser.language} />
+              <DetailRow label="Timezone" value={browser.timezone ?? "Unknown"} />
+              <DetailRow
+                label="Viewport"
+                value={`${browser.viewport.width} × ${browser.viewport.height} @ ${browser.viewport.devicePixelRatio}x`}
+              />
+              <DetailRow label="App version" value={exportDoc?.metadata.app.version ?? "—"} />
+              <DetailRow label="Account" value={exportDoc ? `${exportDoc.metadata.user.displayName} (${exportDoc.metadata.user.role})` : "—"} />
+              <DetailRow label="Device ID" value={exportDoc?.metadata.device.id ?? "—"} mono />
+              <DetailRow label="Hostname" value={exportDoc?.metadata.device.hostname ?? "—"} />
+              <DetailRow
+                label="Platform / arch"
+                value={exportDoc ? `${exportDoc.metadata.device.platform} / ${exportDoc.metadata.device.arch}` : "—"}
+              />
+              <DetailRow label="CPU cores" value={exportDoc?.metadata.device.cpuCount ?? "—"} />
+              <DetailRow label="Memory" value={exportDoc ? formatBytes(exportDoc.metadata.device.memory.totalBytes) : "—"} />
+              <DetailRow
+                label="Disk"
+                value={exportDoc ? (exportDoc.metadata.device.disk ? formatBytes(exportDoc.metadata.device.disk.totalBytes) : "Unknown") : "—"}
+              />
+              <DetailRow label="Not included" value="Passwords, TOTP secrets, session cookies, Integritas API keys, or wallet seed phrases." />
+            </DetailList>
+          </Disclosure>
+
           <Card size="Compact" className="border-stroke-secondary gap-detail-tight grid border">
             <p className="type-meta text-text-secondary m-0">Current page</p>
             <p className="type-body-em text-text-primary m-0">{pageLabel}</p>
@@ -245,10 +312,6 @@ export function FeedbackModal({ pagePath, pageLabel, onClose }: { pagePath: stri
             error={error ?? undefined}
           />
 
-          <p className="type-meta text-text-secondary m-0">
-            The local JSON export includes app/device metadata and a small stats snapshot. It does not include
-            passwords, TOTP secrets, session cookies, Integritas API keys, or wallet seed phrases.
-          </p>
         </form>
       )}
     </Modal>
