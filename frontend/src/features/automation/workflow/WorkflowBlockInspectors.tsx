@@ -883,7 +883,7 @@ export const PersistedBlockInspector = forwardRef<
           className={formGridClass}
         >
           <SwitchField
-            label="Enabled"
+            label={enabled ? "Enabled" : "Disabled"}
             description="Disabled blocks are skipped when the workflow runs."
             checked={enabled}
             onChange={(event) => {

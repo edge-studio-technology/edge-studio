@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
 import { InputField } from "../../../components/ui/InputField";
@@ -262,7 +263,13 @@ export function CreateWorkflowWorkspace({
         }
         actions={
           <>
-            <Button type="button" variant="ghost" disabled={busy} onClick={requestCancel}>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={busy}
+              onClick={requestCancel}
+              iconStart={<ArrowLeft aria-hidden />}
+            >
               Back
             </Button>
             <Button
