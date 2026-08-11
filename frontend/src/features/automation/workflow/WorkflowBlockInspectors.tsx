@@ -4,6 +4,7 @@ import { CheckboxField } from "../../../components/ui/CheckboxField";
 import { InputField } from "../../../components/ui/InputField";
 import { SelectField } from "../../../components/ui/SelectField";
 import { SwitchField } from "../../../components/ui/SwitchField";
+import { Text } from "../../../components/ui/Text";
 import { TextareaField } from "../../../components/ui/TextareaField";
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
@@ -69,10 +70,8 @@ export function DraftBlockInspector({
   const cameraSources = sources.filter((source) => source.type === "pi-camera");
   const outputTargets = sources.filter((source) => isOutputTarget(source));
   const nativeTokens = nativeMinimaTokens(walletStatus);
-  const sendableMinima = nativeTokens[0]?.sendable ?? null;
   const paymentErrors = sendPaymentFieldErrors(block.config, {
     revealRequired: revealSendPaymentErrors,
-    sendableMinima,
   });
 
   if (block.type.endsWith("_start")) {
@@ -616,12 +615,16 @@ export function DraftBlockInspector({
         description="This spends wallet funds automatically when the workflow runs."
         className={formGridClass}
       >
+        {addressBook.length === 0 ? (
+          <p className={mutedText}>You need to create an address book contact first. </p>
+        ) : null}
         <SelectField
           label="Address book recipient"
           value={block.config.recipientAddressBookId ?? ""}
           placeholder="Select address book recipient..."
           options={addressBook.map((entry) => ({ value: entry.id, label: entry.label }))}
           error={paymentErrors.recipient}
+          disabled={addressBook.length === 0}
           onChange={(event) =>
             onChange({
               ...block.config,
