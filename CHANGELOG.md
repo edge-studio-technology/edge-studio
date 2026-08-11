@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Wallet balance info button/modal showing native token details.
 - Dark and light variants for the shared `Tooltip` component.
 - Instructions tooltip on the Minima RPC console.
+- "Download ZIP" action on Integritas history rows, alongside the existing "Download".
 
 ### Fixed
 
