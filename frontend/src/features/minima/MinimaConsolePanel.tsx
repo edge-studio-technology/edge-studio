@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Maximize2, Minimize2, Trash2 } from "lucide-react";
+import { Info, Maximize2, Minimize2, Settings, Trash2 } from "lucide-react";
+import { LoadingDots } from "../../components/ui/LoadingDots";
+import { IconButton } from "../../components/ui/Button";
+import { ScrollArea } from "../../components/ui/ScrollArea";
+import { Tooltip } from "../../components/ui/Tooltip";
+import { cx } from "../../lib/cx";
 import { runConsoleCommand } from "./minimaConsoleApi";
 
 type ScrollbackEntry = {
@@ -12,8 +17,8 @@ type ScrollbackEntry = {
   timestamp: string;
 };
 
-const scrollbarClass =
-  "[scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb:hover]:bg-slate-400";
+const shellClass =
+  "border-surface-inverse-hover bg-surface-inverse type-mono text-text-inverse flex flex-col rounded-soft border";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -42,7 +47,11 @@ function ConsoleResult({ payload }: { payload: unknown }) {
   const { response, envelope } = extractResponse(payload);
 
   if (response === undefined) {
-    return <pre className="m-0 whitespace-pre-wrap break-words text-slate-800">{prettyJson(payload)}</pre>;
+    return (
+      <pre className="text-text-inverse m-0 break-words whitespace-pre-wrap">
+        {prettyJson(payload)}
+      </pre>
+    );
   }
 
   return (
@@ -50,17 +59,29 @@ function ConsoleResult({ payload }: { payload: unknown }) {
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
-        className="border-0 bg-transparent p-0 text-slate-500 hover:text-slate-700"
+        className="text-text-secondary hover:text-text-inverse cursor-pointer border-0 bg-transparent p-0"
       >
         {expanded ? "▾" : "▸"} Payload (response shown below)
       </button>
-      {expanded && <pre className="m-0 mt-1 whitespace-pre-wrap break-words text-slate-500">{prettyJson(envelope)}</pre>}
-      <pre className="m-0 mt-1 whitespace-pre-wrap break-words text-slate-800">{prettyJson(response)}</pre>
+      {expanded && (
+        <pre className="text-text-secondary mt-detail-tight m-0 break-words whitespace-pre-wrap">
+          {prettyJson(envelope)}
+        </pre>
+      )}
+      <pre className="text-text-inverse mt-detail-tight m-0 break-words whitespace-pre-wrap">
+        {prettyJson(response)}
+      </pre>
     </div>
   );
 }
 
-export function MinimaConsolePanel({ disabled }: { disabled?: boolean }) {
+export function MinimaConsolePanel({
+  disabled,
+  onEditWhitelist,
+}: {
+  disabled?: boolean;
+  onEditWhitelist: () => void;
+}) {
   const [command, setCommand] = useState("");
   const [entries, setEntries] = useState<ScrollbackEntry[]>([]);
   const [fullscreen, setFullscreen] = useState(false);
@@ -94,21 +115,37 @@ export function MinimaConsolePanel({ disabled }: { disabled?: boolean }) {
     // anything ran.
     if (!trimmed) {
       setEntries((current) => [
-        { id: crypto.randomUUID(), command: "", status: "empty", timestamp: new Date().toISOString() },
-        ...current
+        {
+          id: crypto.randomUUID(),
+          command: "",
+          status: "empty",
+          timestamp: new Date().toISOString(),
+        },
+        ...current,
       ]);
       return;
     }
 
     const id = crypto.randomUUID();
-    setEntries((current) => [{ id, command: trimmed, status: "pending", timestamp: new Date().toISOString() }, ...current]);
+    setEntries((current) => [
+      { id, command: trimmed, status: "pending", timestamp: new Date().toISOString() },
+      ...current,
+    ]);
 
     try {
       const result = await runConsoleCommand(trimmed);
-      setEntries((current) => current.map((entry) => (entry.id === id ? { ...entry, status: "ok", payload: result } : entry)));
+      setEntries((current) =>
+        current.map((entry) =>
+          entry.id === id ? { ...entry, status: "ok", payload: result } : entry,
+        ),
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Command failed";
-      setEntries((current) => current.map((entry) => (entry.id === id ? { ...entry, status: "error", error: message } : entry)));
+      setEntries((current) =>
+        current.map((entry) =>
+          entry.id === id ? { ...entry, status: "error", error: message } : entry,
+        ),
+      );
     }
   }
 
@@ -121,27 +158,38 @@ export function MinimaConsolePanel({ disabled }: { disabled?: boolean }) {
     if (selection && selection.toString().length > 0) return;
     inputRef.current?.focus();
   }
-
+  console.log(entries);
   const scrollback = (
-    <div className={`flex-1 overflow-auto p-3 ${scrollbarClass}`} onClick={focusInputUnlessSelecting}>
+    <ScrollArea className="p-pad-close flex-1" onClick={focusInputUnlessSelecting}>
       {entries.length === 0 ? (
-        <p className="m-0 text-slate-500">No commands run yet.</p>
+        <p className="text-text-secondary m-0">No commands run yet.</p>
       ) : (
         entries.map((entry) => (
-          <div key={entry.id} className="mb-3 last:mb-0">
-            <div className="text-emerald-700">$ {entry.command}</div>
-            {entry.status === "pending" && <div className="text-slate-500">Running…</div>}
-            {entry.status === "error" && <pre className="m-0 whitespace-pre-wrap break-words text-red-600">{entry.error}</pre>}
+          <div key={entry.id} className="mb-detail-close last:mb-0">
+            <div className="text-text-success">$ {entry.command}</div>
+            {entry.status === "pending" && (
+              <div className="text-text-secondary mt-2">
+                <LoadingDots />
+              </div>
+            )}
+            {entry.status === "error" && (
+              <pre className="text-text-error m-0 break-words whitespace-pre-wrap">
+                {entry.error}
+              </pre>
+            )}
             {entry.status === "ok" && <ConsoleResult payload={entry.payload} />}
           </div>
         ))
       )}
-    </div>
+    </ScrollArea>
   );
 
   const promptRow = (
-    <form onSubmit={(e) => void runCommand(e)} className="flex items-center gap-2 border-b border-slate-300 px-3 py-2.5">
-      <span className="text-emerald-600">$</span>
+    <form
+      onSubmit={(e) => void runCommand(e)}
+      className="border-surface-inverse-hover gap-detail-next px-pad-close py-detail-next flex items-center border-b"
+    >
+      <span className="text-text-success">$</span>
       <input
         ref={inputRef}
         value={command}
@@ -150,44 +198,77 @@ export function MinimaConsolePanel({ disabled }: { disabled?: boolean }) {
         autoComplete="off"
         spellCheck={false}
         placeholder={disabled ? "Unavailable" : "status"}
-        className="flex-1 bg-transparent text-slate-900 outline-none placeholder:text-slate-400 disabled:opacity-55"
+        className="text-text-inverse placeholder:text-text-tertiary flex-1 bg-transparent outline-none disabled:opacity-55"
       />
-      <button
-        type="button"
+      <Tooltip
+        title="RPC console"
+        body="Type a Minima RPC command and press Enter, e.g. status. Only commands enabled in the whitelist (gear icon) will run."
+        placement="bottom"
+      >
+        <IconButton aria-label="RPC console instructions" size="compact" variant="secondary">
+          <Info />
+        </IconButton>
+      </Tooltip>
+      <IconButton
         aria-label="Clear scrollback"
+        size="compact"
+        variant="secondary"
         disabled={entries.length === 0 || running}
         onClick={() => setEntries([])}
-        className="shrink-0 rounded-lg border-0 bg-transparent p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:pointer-events-none disabled:opacity-40"
       >
-        <Trash2 size={15} />
-      </button>
-      <button
-        type="button"
+        <Trash2 />
+      </IconButton>
+      <IconButton
         aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+        size="compact"
+        variant="secondary"
         onClick={() => setFullscreen((value) => !value)}
-        className="shrink-0 rounded-lg border-0 bg-transparent p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
       >
-        {fullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-      </button>
+        {fullscreen ? <Minimize2 /> : <Maximize2 />}
+      </IconButton>
+      <IconButton
+        aria-label="Edit console command whitelist"
+        size="compact"
+        variant="secondary"
+        onClick={onEditWhitelist}
+      >
+        <Settings />
+      </IconButton>
     </form>
   );
 
-  if (fullscreen) {
-    return createPortal(
-      <div className="fixed inset-0 z-50 bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-label="RPC console, fullscreen">
-        <div className="mx-auto flex h-full max-w-5xl flex-col rounded-xl border border-slate-300 bg-slate-50 font-mono text-sm text-slate-800 shadow-[0_28px_80px_rgba(15,23,42,0.28)]">
-          {promptRow}
-          {scrollback}
-        </div>
-      </div>,
-      document.body
-    );
-  }
-
   return (
-    <div className="flex h-[28rem] flex-col rounded-xl border border-slate-300 bg-slate-50 font-mono text-sm text-slate-800">
-      {promptRow}
-      {scrollback}
-    </div>
+    <>
+      {/* Keeps the in-flow layout occupying its usual height while fullscreen is
+          portaled out — otherwise the page reflows/jumps when toggling fullscreen. */}
+      <div className={cx(shellClass, "h-[28rem]")}>
+        {fullscreen ? null : (
+          <>
+            {promptRow}
+            {scrollback}
+          </>
+        )}
+      </div>
+      {fullscreen &&
+        createPortal(
+          <div
+            className="bg-overlay-heavy p-pad-tight fixed inset-0 z-50"
+            role="dialog"
+            aria-modal="true"
+            aria-label="RPC console, fullscreen"
+          >
+            <div
+              className={cx(
+                shellClass,
+                "h-full w-full shadow-[0_28px_80px_rgba(0,0,0,0.28)]",
+              )}
+            >
+              {promptRow}
+              {scrollback}
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }

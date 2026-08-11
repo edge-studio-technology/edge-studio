@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { TablePager } from './TablePager';
+import { useEffect, useState } from "react";
+import { TablePager } from "./TablePager";
 
 type ListPagerFilterStatusOption = {
   value: string;
@@ -23,6 +23,7 @@ type ListPagerFilterBarProps = {
   onRefresh?: () => void;
   refreshing?: boolean;
   disabled?: boolean;
+  showPager?: boolean;
 };
 
 export function ListPagerFilterBar({
@@ -33,8 +34,8 @@ export function ListPagerFilterBar({
   status,
   q,
   statusOptions,
-  statusLabel = 'Status',
-  searchPlaceholder = 'Hash, UID, or source name',
+  statusLabel = "Status",
+  searchPlaceholder = "Hash, UID, or source name",
   onPageChange,
   onPageSizeChange,
   onStatusChange,
@@ -42,6 +43,7 @@ export function ListPagerFilterBar({
   onRefresh,
   refreshing = false,
   disabled = false,
+  showPager = true,
 }: ListPagerFilterBarProps) {
   const [searchInput, setSearchInput] = useState(q);
 
@@ -57,30 +59,30 @@ export function ListPagerFilterBar({
   }, [searchInput, q, onQueryChange]);
 
   return (
-    <div className='mb-4 space-y-3'>
-      <div className='flex flex-wrap items-end gap-3'>
+    <div className="mb-4 space-y-3">
+      <div className="flex flex-wrap items-end gap-3">
         {statusOptions && onStatusChange && (
-          <label className='flex min-w-40 flex-col gap-1 text-sm'>
-            <span className='font-medium text-slate-700'>{statusLabel}</span>
+          <label className="flex min-w-40 flex-col gap-1 text-sm">
+            <span className="font-medium text-slate-700">{statusLabel}</span>
             <select
-              className='rounded-md border border-slate-200 bg-white px-3 py-2'
-              value={status ?? ''}
+              className="rounded-md border border-slate-200 bg-white px-3 py-2"
+              value={status ?? ""}
               disabled={disabled}
               onChange={(event) => onStatusChange(event.target.value)}
             >
               {statusOptions.map((option) => (
-                <option key={option.value || 'all'} value={option.value}>
+                <option key={option.value || "all"} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </select>
           </label>
         )}
-        <label className='flex min-w-56 flex-1 flex-col gap-1 text-sm'>
-          <span className='font-medium text-slate-700'>Search</span>
+        <label className="flex min-w-56 flex-1 flex-col gap-1 text-sm">
+          <span className="font-medium text-slate-700">Search</span>
           <input
-            className='rounded-md border border-slate-200 bg-white px-3 py-2'
-            type='search'
+            className="rounded-md border border-slate-200 bg-white px-3 py-2"
+            type="search"
             placeholder={searchPlaceholder}
             value={searchInput}
             disabled={disabled}
@@ -88,17 +90,19 @@ export function ListPagerFilterBar({
           />
         </label>
       </div>
-      <TablePager
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        totalPages={totalPages}
-        onPageChange={onPageChange}
-        onPageSizeChange={onPageSizeChange}
-        onRefresh={onRefresh}
-        refreshing={refreshing}
-        disabled={disabled}
-      />
+      {showPager ? (
+        <TablePager
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+          disabled={disabled}
+        />
+      ) : null}
     </div>
   );
 }

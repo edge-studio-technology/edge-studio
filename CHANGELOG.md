@@ -4,7 +4,430 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased]
+## [0.34.0] 2026-08-11
+
+### Added
+
+- Feedback submissions now record the connected Integritas Connect account ID (`null` if not connected).
+- Wallet balance info button/modal showing native token details.
+- Dark and light variants for the shared `Tooltip` component.
+- Instructions tooltip on the Minima RPC console.
+- "Download ZIP" action on Integritas history rows, alongside the existing "Download".
+
+### Fixed
+
+- Feedback app version now reads from `update-agent`'s last-applied-manifest record instead of the unused, stale `INTEGRITAS_PI_VERSION` env var (removed). Falls back to "Unknown version" if no manifest has been applied yet, instead of a possibly-stale package.json version.
+- Local admin account now tracks PIN vs password (`credentialType`, returned from `GET /api/auth/me` and login). No UI change yet.
+- Automation run rows: kebab menu no longer disappears when the run's workflow was deleted; "Show on canvas" is disabled instead.
+
+### Changed
+
+- Automation "Workflows" table restyled onto shared ESDS list patterns (filter bar, pagination, loading/empty states, overflow menu with Run now/Open/Watch/Duplicate/Archive/Delete). Delete now uses the confirm-then-progress modal pattern.
+- Automation inbox rebuilt as a table on the same patterns, in a collapsible section (collapsed by default). Row details open in a modal instead of an inline preview; viewing a preview marks it read automatically.
+- "Change PIN or password" panel uses the segmented `PinField` for the new PIN, matching onboarding.
+- `update-agent`'s static update page matches the login page's brand gradient and logo placement.
+- Minima RPC console widened to full page width.
+- StatusBar is now sticky with a border/shadow while scrolling.
+
+## [0.33.0] 2026-08-11
+
+### Added
+
+- New 404 "Page not found" page, now shown for any unmatched app route (previously silently redirected to the dashboard) — icon, title, description, and a "Back to dashboard" action, via a new shared `StatusPage` layout (`components/patterns/`) for whole-page icon/title/description/action states.
+- New `/marketplace` page ("Coming soon"), reached from the existing sidebar "Marketplace" nav item, which previously had no route and fell through to the dashboard. Built on the same new `StatusPage` layout as the 404 page.
+- New "Something went wrong" fallback, shown in place of a crashed page's content (sidebar/header stay up) instead of a blank white screen, via a new `ErrorBoundary` (`components/ErrorBoundary.tsx`) wrapping routed page content — resets automatically on navigation, with a "Reload page" action for anything it can't recover from on its own.
+- New "Behaviour settings" section on the Account settings page with a "Close modal when clicking outside it" toggle (on by default, stored in the browser via a small reusable local-preference helper (`lib/localSettings.ts`), not on the backend) and a "Start sidebar collapsed" toggle (off by default) fixing the sidebar always starting expanded at desktop widths on every refresh regardless of how it was last left.
+- New shared `EmptyContentState` and `LoadingState` components (`components/patterns/`) for table/list empty and fetching states — a bordered panel with a bare icon, bold title, description, and an optional action button, or the new `SpinnerAlt` with a title/description while loading. Both render in place of the table/list they replace (not as a row inside it). Applied to the Devices, Diagnostics (Integritas/Devices tabs), wallet send history, and address book tables, replacing bespoke inline empty-state markup and adding first-load fetching feedback where none existed before (Devices list, Diagnostics tables).
+- New `SpinnerAlt` (`components/ui/SpinnerAlt.tsx`), a static pin-dial loading indicator (each pin fades in/out in sequence so the lit pin travels clockwise, no rotation) as the new default spinner going forward. The previous rotating-ring `Spinner` is deprecated (kept for now) and all its call sites (progress/delete modals, changelog preview, Connect setup step) now use `SpinnerAlt`.
+
+### Changed
+
+- Remaining user-facing "Integritas Pi" product-name references (TOTP issuer/account labels, device setup copy, ESP32/MQTT/GPIO/BME guides, onboarding wizard brand mark) renamed to "Edge Studio", matching the earlier in-app rebrand. Also caught leftover pre-"Edge Studio" brand names still live in the app: "Edge Workbench" (TOTP account label, setup page, Integritas Connect panel, onboarding wizard's "Enter" button) and "Minima Edge Stack" (setup page). The repository name (`integritas-pi`, package names, Docker network/service names, file paths) is unchanged and will be renamed separately with the full repo rename.
+- Login page restyled to match the onboarding wizard: full-screen black → purple brand backdrop with the Edge Studio logo lockup at the bottom of the screen (previously a small lockup image inside the card on a flat grey background), and a centered "Welcome back" card built from shared ESDS components (`Card`, `InputField`, `Button`) instead of bespoke raw-Tailwind markup. Log in failures now show as an inline field error under the password input (red input border + message) rather than loose text above the button, and the action reads "Log In". Password/PIN sign-in is unchanged.
+- Pressing Enter in the login password (or two-factor code) field now submits the form instead of doing nothing.
+- Onboarding wizard header now renders the actual `BrandMark` logo instead of a generic `Layers3` placeholder icon.
+- Account page's backup delete confirmation now reuses the same delete confirm/progress modal pattern as the Devices page, extracted into a shared `DeleteConfirmModal`/`DeleteProgressModal` component (`components/patterns/`).
+- "Send feedback" modal restyled onto shared ESDS components (`Modal`, `SelectField`, `InputField`, `TextareaField`, `Card`, `Button`, `ButtonRow`) and design-system colour/type/spacing tokens, replacing bespoke raw-Tailwind (`slate-*`, `rounded-2xl`, ad hoc borders) markup. No behavior change.
+- Account page's Integritas/Minima status pills now show the same status dot indicator as the header status bar (`Pill`'s `indicator` prop was set on the header's pills but not these), so both use identical chrome for the same status concept instead of drifting apart visually.
+- Account page's "Check updates" action moved out of the page header into a new "Software update" subsection (User settings), and a new "Feedback" subsection was added next to it with a direct "Export feedback JSON" download — so operators can get the local feedback export file without having to submit a new feedback entry first. Renamed the in-app Update page's title from "Update" to "Software update" to match.
+- Update page's "Update now" action moved out of the page header into the body, next to the "Update available"/version copy it acts on; the header now only shows "Check again" once already up to date.
+- `update-agent`'s own static update-progress page (`/update/`, shown during an in-progress apply) now shows the Edge Studio logo lockup above the status card, matching the login page.
+- `update-agent`'s static update-progress page's "Updating…" spinner replaced with the same pin-dial animation as the app's `SpinnerAlt` (hand-copied inline SVG/CSS, since the page has no build step to import the React component), replacing the old rotating-ring spinner that had drifted from the rest of the app.
+- Added `LinkButton` (`components/ui/Button.tsx`): `Button` chrome rendered on a real `<a>`, for actions that must be a link (e.g. file downloads) rather than a click handler. Used by the new "Export feedback JSON" action and the "Send feedback" modal's existing download link (previously a one-off locally-styled anchor).
+- Shared `DeleteConfirmModal`'s icon retoned from the red "error" icon color to the same neutral/secondary icon color as the new `StatusPage` states, so icon color no longer duplicates what the red "Delete" button already conveys. The "Delete" button itself is unchanged (still `danger`/red).
+- Sidebar "Marketplace" nav item now actually links to `/marketplace` — it had hardcoded a redirect to `/dashboard` while the route didn't exist yet; that hardcode was never removed once the page landed.
+- `StatusPage` (404/coming-soon/error states) now centers within the actual remaining page height below the header instead of a fixed `70vh` guess, which under- or over-shot depending on viewport height. `AppShell`'s content area is now a proper flex column so page content can size against it precisely.
+- Account settings page's "User settings", "Integritas settings", and "Minima settings" sections now start collapsed instead of expanded.
+- Account settings page's "Integritas settings" status badge now shows a neutral "Checking…" state while loading instead of popping in once resolved, matching the "Minima settings" badge's existing behavior.
+- Shared `Modal` closes on an outside press again (previously disabled entirely after it closed unexpectedly): it now only reacts to `mousedown` landing directly on the backdrop, not `click`/release, so a text selection or drag that starts inside the dialog and ends outside it can no longer trigger an accidental close. A small padding buffer around the dialog edge also absorbs near-edge presses so they don't count as "outside". Gated by the new Account page "Close modal when clicking outside it" setting.
+- Minima settings "Restore from backup" modal's `.bak` file picker now uses the same drop box as the Integritas stamp/verify pages (`components/patterns/FileDropBox.tsx`, moved there from the Integritas feature folder since it's now shared) instead of the older compact `FileDropZone`, matching its larger drag target, reject toast for non-`.bak` files, and disabled-while-restoring state. `FileDropZone` is removed as it had no remaining callers.
+- Minima settings "Backups" and "Peers" lists (Account page) now render as a height-limited, scrollable `DataTable` instead of a collapsible `ListDisclosure`, so the list is visible without an extra expand click. `ListDisclosure` (`components/patterns/`) is left in place, marked as an unused/possible-deprecation candidate, since it has no remaining callers after this change. The Backups table now splits "Size" and "Created" into separate columns (previously one combined cell) and shows "Created" via the same shared local-timestamp formatting used by other history tables (Integritas proofs, wallet history, automation runs), instead of a one-off local+UTC string. Both tables also no longer reserve empty scrollbar space when their content doesn't overflow (`ui/ScrollArea`'s new `stableGutter` prop, off for these two, on elsewhere).
+- Minima page's RPC console refactored to use the shared `Disclosure` component; whitelist button moved into the console toolbar and console styling improved for dark-terminal contrast.
+- Shared `ListFilterBar`'s dropdown is now always labelled "Filter" (was "Status"/"Kind" depending on the table), and its search/filter fields now use the same normal field height as other form inputs instead of a smaller compact size, removing a size mismatch between search bars and regular inputs. Devices, wallet assets/history, address book, and Diagnostics search/filter bars and pagination footers (`ListPaginationFooter`, `ui/Pagination`) now stay visible and disabled — rather than being hidden — while their table is loading or shows an empty state; `Pagination`'s numbered page buttons also now visually disable, not just no-op. Wallet assets (`WalletAssetsPanel`) moved onto the shared `LoadingState`/`EmptyContentState` panel used by the other tables, replacing its own inline loading-dots/empty-row markup.
+- `ListFilterBar`'s search and filter fields now also disable once a table's (filtered) result list is empty, not just while loading, on the address book, wallet assets/history, and Diagnostics tables.
+- The small secondary/compact buttons next to a table's search bar (address book "New contact", Diagnostics "Refresh") are now full-size primary (black) buttons with a leading icon, matching the weight of other primary actions instead of looking like a minor/secondary control.
+- Diagnostics' "Automation" tab (workflow run logs) brought in line with its "Integritas" and "Devices" sibling tabs: it now shows the shared fetching spinner while the tab loads (previously showed nothing) and the shared empty-state panel with a "Clear filters" action when filtered to no results (previously an inline "No workflow runs recorded yet." table row with no clear-filters action).
+- Wallet page's "Assets" tab is disabled for v1 (commented out, not deleted) — with a single native token, a separate assets list is redundant; Wallet now opens straight to "History".
+- Devices page's separate "Add devices" card (with its own "Add input source"/"Add output target" buttons) is disabled for v1 (commented out, not deleted) — those actions moved next to the device list's new filter/search bar.
+- Devices list now has a working filter (by direction: All/Input/Output/Capture) and search (name, type, or endpoint) bar, replacing the top numbered-page `Pagination` control. "New input" and "New output" buttons sit to its right (bottom pagination footer is unchanged), and the empty state gained a matching second "New output" action alongside "New input" (`EmptyContentState` now supports an optional secondary action button).
+- Sidebar icons for Minima, Wallet, Integritas, and Automation updated to match the current design reference (`Radio`, `CreditCard`, `Shield`, and `FastForward`, replacing `RadioTower`, `Wallet`, `ShieldCheck`, and `Workflow`).
+- Sidebar's collapsed-state "expand sidebar" button now uses the plain `PanelLeft` icon instead of `PanelLeftOpen` (which had an arrow baked in), matching the design reference.
+- Tightened vague/narrative page and section descriptions into direct, one-line summaries: Dashboard, Devices, Integritas, Minima, and Account settings page headers; the Devices list's "Configured devices" table description (also fixed a stray comma); the onboarding wizard's welcome step intro; and the Marketplace "Coming soon" copy.
+- Device details modal's "No health data"/"No preview" states now use the shared `EmptyContentState` panel instead of the removed bare `EmptyState`.
+- Diagnostics' "view details" modals (Integritas proof payload, device read preview/error, workflow run inspect) now share the same layout as the Devices "View details" modal: a `DetailList` of key facts up top, then `Disclosure` sections for expandable content, using the shared `ErrorDetailPanel`/`EmptyContentState`/`JsonPreviewContent` bodies instead of each tab's own one-off dialog. Device reads no longer show separate "View"/"View error" actions — one "View details" action covers preview, error, and no-data cases the same way the other tabs do.
+- Dropped the small "Raw" caption that sat above the JSON block in error sections (`ErrorDetailPanel`, device health errors): every other JSON block in these modals (payload, preview, run data) is already labeled only by its surrounding `Disclosure` title, so the extra label on error sections was the odd one out.
+- Workflow run "view details" modal's "Block errors" section no longer repeats the failing block's type (e.g. "Fetch data source" — a generic block-type name, not the specific device/source) as its own unlabeled heading; that now shows once, as a "Failed block" row in the top `DetailList`, alongside Started/Trigger/Status/Duration/Blocks.
+- Diagnostics' Integritas ("Data hash") and Devices ("Hash") tables now use the shared `TruncatedHash` component (shortened value, full hash on hover) instead of plain CSS-truncated `<code>` text, matching the Devices "Configured devices" table's own hash column.
+- Diagnostics' per-row actions are now consistent across all three tabs: a dedicated "View details" (eye icon) button, then a kebab (⋮) menu for everything else. Integritas' "Verify" and "Download" moved from standalone buttons into that kebab menu; Automation's existing "View run" button is relabelled "View details" to match.
+- All modals with operational buttons (Save/Cancel/Delete/Confirm/wizard Back) now render them in the shared `Modal`'s `footer` instead of inline in the scrollable body: delete confirm, send feedback, create token, send payment, address book add/edit contact, classic add-device flow, edit device, and all five Minima backup modals (download/restore confirms, set/remove backup password, upload restore). Button order and variant are now consistent everywhere: Cancel (`secondary`) first, primary/destructive action last, `danger` reserved for destructive actions, wizard Back is `ghost` with a leading arrow icon. "Create custom token" and "Send payment" modals also gained a `Cancel` button (previously only the modal's `X` could dismiss them). Content-level actions embedded in body text (copy-to-clipboard, device setup-guide step actions) are unaffected — they act on a specific piece of displayed content, not the modal as a whole.
+- Diagnostics' "workflow run" details modal (`AutomationRunInspectModal`) no longer shows a footer "Close" button, matching every other pure view/read-only modal in the app (proof details, read details, device details, wallet asset/history/receive, automation inbox preview), which all rely on the modal's `X`/Escape/outside-click only. It had been the one outlier with both.
+- Progress spinner, edit-contact, create-token, send-payment, and Minima console whitelist-confirm modals now drop the boxed/bordered scroll-pane styling (`Modal`'s `bodyClassName` override) the same way their sibling short-form/confirm modals already did (delete confirm/progress, add-contact, Minima backup password/restore confirms), since their content is a fixed handful of fields or a spinner that never scrolls on desktop. Detail/view modals (asset, history, receive address, proof/read/device details, workflow run, inbox preview) and genuinely variable-length content (device add/edit forms, send-feedback form, console command whitelist editor) keep the bordered scroll pane, since that content can legitimately grow tall enough to scroll.
+- Address book's "View contact" modal no longer offers Edit/Delete actions of its own (and no longer transitions into the edit form or an inline delete-confirm state) — it's now a pure read-only detail view like every other "view details" modal in the app, closed only via `X`/Escape/outside-click. Edit and Remove are still available, exactly as before, from the row's kebab menu; the modal previously duplicated both, which was redundant and inconsistent with the rest of the app. Removing a contact now goes through the same shared `DeleteConfirmModal`/`DeleteProgressModal` pair (confirm closes immediately, then a progress modal shows until the delete call finishes) already used for device and Minima backup deletes, replacing a one-off inline confirm state.
+
+### Removed
+
+- `EmptyState` shared component (`components/patterns/`), superseded by `EmptyContentState` at its one remaining call site (device details modal).
+- `ErrorDetails` and `JsonBlock` shared components (`components/patterns/`), superseded by `ErrorDetailPanel` and `JsonPreviewContent` now that the Diagnostics modals use the same embeddable pattern as the Devices modal instead of their own standalone dialogs.
+
+### Fixed
+
+- Fixed shared search/filter bars (Devices, Diagnostics, wallet history/assets, address book) locking themselves once a search or filter matched nothing: the search/filter fields were disabling on the _filtered_ result being empty, so typing a query with no matches disabled the very field needed to fix or clear it. They now only disable when the underlying (unfiltered) list itself has no rows at all.
+- Fixed a brief blank flash whenever one `Modal` is swapped for another in the same action (e.g. backup/device delete confirm → progress modal): the shared `Modal` gated its first paint behind a post-commit effect for no visual purpose (no mount transition used it), so a modal-to-modal swap always had one frame with neither visible. Removed the gate.
+- Address book's "Edit contact" form now lets the Mx/0x address itself be changed, not just label/notes — it previously showed the address read-only. Same format/uniqueness validation as adding a new contact applies (`PATCH /api/wallet/address-book/:id`).
+
+## [0.32.1] 2026-08-11
+
+### Added
+
+- Shared `Text` family and `Divider` leaf controls.
+- Toolkit: tooltip on disabled blocks explaining why they can’t be added.
+
+### Fixed
+
+- **Send payment**: opens the options sheet first; **Done** saves when recipient and amount are set (backdrop/Escape discards). Field errors show on those fields; disabled in the toolkit with no address-book recipient.
+- Edit/watch: last-run failure (`lastError`) shows in the notices strip; meta status pills sit under the top bar.
+
+### Changed
+
+- Workflow editor layout: create/edit chrome, toolkit rail, and canvas block cards; enable/run-automatically switches live in the toolkit.
+- Opening an enabled workflow for edit pauses it automatically so schedule/event triggers cannot run mid-edit.
+- Create: change the start block without resetting later blocks; edit keeps start type fixed (configure from the options sheet).
+- Stamp attaches from the selected-block options sheet on stampable data blocks (not the toolkit).
+- Block options sheet saves on leave (Done, backdrop, Escape, or switching blocks); no separate Save changes.
+- Edit: **Run automatically** cannot turn on while there are validation errors (pause still allowed); tooltip explains why.
+
+## [0.32.0] 2026-08-08
+
+### Added
+
+- `NoticeCard` shared component (`components/patterns/`): standalone call-to-action card (title, body, action, optional dismiss) for chrome outside page layout. Used in the sidebar, above Feedback, to surface an "Update available" notice driven by the existing update-status poller, with a per-version dismiss.
+- New in-app Update page (`/update`, not yet linked from the sidebar nav): shows the live up-to-date/available check and starts an update, styled with the same shared components as the rest of the app. See [docs/adr/0002-update-page-split.md](docs/adr/0002-update-page-split.md).
+- `UPDATE_DRY_RUN` env var for `update-agent` (dev only, defaults off, never set by `install.sh`): simulates a successful update apply — same running/succeeded flow, no manifest recorded as applied — without pulling or swapping any container, so the Update flow can be exercised repeatedly in dev. See [docs/adr/0003-update-dry-run.md](docs/adr/0003-update-dry-run.md) and `SECURITY.md`.
+- `Spinner` shared component (`components/ui/`): rotating ring loading indicator matching `update-agent`'s waitroom page style, replacing ad hoc `lucide-react` `Loader2`/`animate-spin` usage in `ProgressModal`, `DeleteDeviceProgressModal`, and the Connect Integritas setup step so all spinner-style loaders share one style.
+- Update page now shows a "What's new" changelog preview (most recent entries of `CHANGELOG.md`, fetched directly from GitHub, rendered client-side — no server proxy), replacing the per-service update-available row list. Each version is a collapsible `Disclosure` (most recent expanded by default). Heading sizes reuse the app's existing two-tier convention: "Up to date"/"Update available" and "What's new" (sibling section headers) at `type-title`, version names at `Disclosure`'s own `type-body-em`, category labels at `type-meta`. Experimental: see [docs/adr/0004-update-page-changelog.md](docs/adr/0004-update-page-changelog.md) for the security/architecture tradeoffs (client-side third-party fetch, no HTML injection).
+
+### Fixed
+
+- `CredentialInput` no longer breaks `tsc`/the frontend build: its props type didn't exclude the native HTML `size` (`number`) attribute the way `Input` (which it wraps) requires, so any change touching the frontend build tripped a pre-existing type error even though the component has no live call sites yet.
+
+### Changed
+
+- Native frontend dev (`npm run dev:frontend` against an otherwise-Dockerized stack) can now reach `update-agent`: Vite's dev proxy forwards `/update/...` (trailing slash and deeper) to `http://localhost:8081`, alongside the existing `/api` → `backend` proxy. Requires publishing `update-agent`'s port via a local (gitignored) `docker-compose.override.yml`, documented in the README — dev-only, and `install.sh` regenerates its own copy of that file on every install, so it never affects a deployed Pi.
+- The Update page is now split: the in-app `/update` page (above) handles checking for updates and starting one; `update-agent`'s own static page, at `/update/` (trailing slash), is trimmed down to only the apply-in-progress/success/failure view, and no longer starts a job on its own — visiting it directly with nothing running now shows a neutral "nothing to update right now" state instead of the old checking/available screens.
+- "Check for updates" (Account settings) and the sidebar update notice now navigate to `/update` in-app instead of a full page reload.
+- `update-agent`'s own waitroom page (`/update/`, plain static HTML/CSS — no build step) now uses the same ESDS token values (colors, radius, type scale) as the in-app Update page instead of ad hoc hex colors, so the two pages read as one continuous flow.
+- In-app Update page: "Update now"/"Check again" moved into the page title row (`Page`'s `action` slot) instead of sitting in the card body; it renders disabled from first paint instead of popping in once the status check resolves. The card is now full width instead of capped at `max-w-xl`.
+- `Page`'s `action` prop is no longer marked deprecated — it's an active, intentional right-aligned header-action slot (used by Account settings and now Update), not dead API surface.
+
+### Fixed
+
+- Sidebar nav item and feedback-modal page label no longer default to "Dashboard" on routes with no matching nav entry (e.g. `/update`, which is intentionally not in the sidebar nav) — nothing is now highlighted instead of incorrectly highlighting Dashboard.
+
+## [0.31.0] 2026-08-07
+
+### Added
+
+- Alternative add-device modal flow on the Devices page, now the default: two steps (Input source / Output target → Add device) instead of three, with Back and the add action in the modal footer. It offers manual device setup only — guided template presets (ESP32 MQTT Board, GPIO Button, PIR Motion Sensor) are not listed while guided setup is reworked. Wiring notes and hardware-not-enabled warnings are not shown in this flow yet; per-device setup guides still open after saving.
+- `AltOptionCard` shared component: quieter choice card with a bare glyph, title, short description, and an explicit action button (the card surface is not pressable).
+- Device setup guides now open in a reusable modal with collapsible sections (wiring, testing, troubleshooting, code examples) and optional action blocks to create Automation workflows.
+- `EmptyState` shared component (`components/patterns/`) for icon + title + description empty states.
+- `DeleteDeviceConfirmModal` and `DeleteDeviceProgressModal` components to show confirmation and progress during device deletion.
+- Devices list now supports pagination with configurable page size (25, 50, 100 rows per page).
+
+### Changed
+
+- The previous three-step add-device flow is kept intact for comparison under `features/data-sources/add-device-classic/`; the new flow lives in `features/data-sources/add-device-alt/`. Which one renders is a single constant in the Devices page until the old flow is removed.
+
+- Devices page now offers **Add input source** and **Add output target** as two direct buttons, removing the extra "Add device or source" choice step that previously sat in front of them. The template/manual step and its Back control are unchanged.
+- Local services card lists the LAN and internal MQTT broker URLs as labelled fields with per-field Copy buttons (with copied confirmation), and shows the broker Enabled/Disabled state as a status pill.
+- Table cards (Configured devices, Integritas history, data reads history) use the shared design-system card heading style.
+- Device details modal now shows health and last-preview sections as collapsible `Disclosure` components with timestamps and structured error panels.
+- DataTable card titles now use ESDS `type-title` and `type-body` typography instead of legacy `<strong>` / `MutedText`.
+- Device setup guide section titles now include "Guide" suffix (e.g., "ESP32 MQTT Board Setup Guide") for clarity.
+- Device setup guide sections are now organized with `Disclosure` components for collapsible subsections and guide actions, with `CommandBlock` components supporting copy-to-clipboard for command examples.
+- Data source health check errors now include the checked-at timestamp and source URL in the backend response, shown in the details panel.
+- Devices list rows show truncated data-source hashes extracted as a reusable `TruncatedHash` component.
+
+## [0.30.3] 2026-08-07
+
+### Added
+
+- Shared `Text` family (`components/ui/`): `Text.Link` for in-app text links with accent hover (more roles planned). Flat `components/Text.tsx` re-exports; legacy `MutedText` stays there for now.
+- Text colour token `text-accent-hover` (`brand-02`) for accent link hover, paired with `text-accent`.
+- Shared `ErrorDetails` in `components/patterns/`: Dialog with Type / Message / Native / Context / optional Additional context / Raw, and Close action. Flat `components/ErrorDetails.tsx` kept for older call sites.
+- Shared `JsonBlock` in `components/patterns/`: inverse mono pretty-printed JSON in a scroll area for embedding in modals and disclosures.
+
+### Changed
+
+- Diagnostics page uses a card shell (`TabList` + content) with `ListFilterBar`, Refresh, and `ListPaginationFooter` instead of `ListPagerFilterBar`.
+- Diagnostics load/refresh failures use `ErrorAlert` instead of inline `ErrorText`.
+- Diagnostics shows a per-tab description under `TabList` for proofs, reads, and workflow logs.
+- Integritas proof history table on Diagnostics uses ESDS table primitives, `formatLocalDateTime`, status pills, and bulk actions without a nested `TableCard`.
+- Diagnostics read history table uses the same ESDS table primitives, `formatLocalDateTime`, and status pills, without a nested `TableCard`.
+- Diagnostics workflow logs table uses ESDS table primitives, `formatLocalDateTime`, status/trigger pills; Eye opens a run inspect modal and `TableIconMenu` offers Show on canvas. The modal shows a plain summary (failed block, type, message) plus disclosures for workflow error JSON, per-block error JSON, and full run data (`JsonBlock`; no nested error dialogs).
+- `JsonPreview` modal body uses shared `JsonBlock`.
+- Read history uses patterns `ErrorDetails` for row error inspection.
+- Read history Integritas proof IDs link to Diagnostics proof history filtered by that proof ID (`Text.Link` “Open proof”).
+- Read history preview uses an Eye `TableIconButton` (same pattern as proof payload / workflow-log inspect).
+- Proof verify on Diagnostics toasts Full match / No match from the verify response; the active row shows “Verifying…”.
+- Proof history selection bar shows count + Clear, icon Download/Delete actions, delete confirmation, and success toasts; download stays available while verifying.
+- Proof history header checkbox selects or clears all proofs on the current page (indeterminate when partially selected).
+- Proof history “View” payload control is an Eye `TableIconButton` (same pattern as workflow-log inspect), opening the proof payload modal.
+- Proof history Eye (view payload) and Download sit in the Actions column with Verify; separate Payload/Download columns removed.
+- `JsonPreview` accepts an optional `title` for the modal (proof history uses “Proof payload”).
+- `CheckboxField` `label` defaults to `"Label"`; pass `label={null}` with `aria-label` for control-only use (e.g. tables).
+
+## [0.30.2] 2026-08-05
+
+### Added
+
+- Shared native table row primitives on `DataTable`: `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell` (wallet assets and history lists migrated).
+- `formatLocalDateTime` in `frontend/src/lib/time.ts` for compact local date+time in tables and detail fields.
+
+### Changed
+
+- Wallet history tab matches assets: `ListFilterBar`, `ListPaginationFooter`, table primitives, `LoadingDots`, status `Pill`, and clear-filters empty state.
+- Wallet history UX: amount/token hierarchy, status pills, semantic `<time>`, fuller empty state, `ErrorAlert` on load failure, and descriptive row action labels; send detail modal aligned with asset detail layout.
+- Address book tab matches assets/history ESDS: `ListFilterBar`, `ListPaginationFooter`, table primitives, `LoadingDots`, `InputField` forms, `ErrorAlert`, and contact detail modal; Add contact lives in the panel.
+- Wallet send history table and detail modal use `formatLocalDateTime` instead of raw `toLocaleString()`.
+- `DataTable` no longer forces `min-w-190`; tables fill the container, and wide lists still opt in (e.g. `min-w-[920px]`). `TableWrap` keeps horizontal scroll when content overflows.
+- Wallet asset detail modal: sendable hero, side-by-side confirmed/unconfirmed tiles (warning when pending), token type pill, copyable ID last.
+- Moved `CopyableCode` into `components/patterns/` and restyled with design-system tokens / `IconButton`; flat re-export kept. Copy shows a success toast (error toast if clipboard fails).
+- Wallet hero focuses on balance with Send + Receive actions; receive opens a modal with copyable address. Receive on the dark hero uses local button styles with hover; shared Button `onDark` variant removed.
+- Wallet sections use `TabList` in a card; node-unavailable warning uses `ErrorAlert` (`status="warning"`).
+- Wallet hero inlines dark surface styles (`DarkHeroCard` removed).
+- Send payment modal uses `ToggleTabs`, `ErrorAlert`, and design-system Button/Modal.
+- `ToggleTabs` adds optional `size="sm"`.
+- `Input` / `InputField` add optional `size` (`md` \| `sm`), matching `SelectField`.
+- Moved `DataTable` into `components/patterns/`; flat re-export kept.
+- `TableIconMenu` adds a ⋮ overflow menu for secondary row actions (primary icon stays visible).
+- Wallet asset list pagination now uses shared `ListPaginationFooter` with compact rows/page-size controls (`SelectField` `size="sm"`) and `ListPagerFilterBar` can hide its pager via `showPager`.
+
+## [0.30.1] 2026-08-05
+
+### Added
+
+- New ESDS logo/brand assets (`frontend/public/es_logo/`), replacing the old favicon SVGs; `BrandMark` renders the new lockup.
+- Sidebar nav shows scroll up/down arrows when its items overflow the available height.
+
+### Changed
+
+- Moved the app version indicator from account settings into the sidebar.
+
+## [0.30.0] 2026-08-05
+
+### Added
+
+- Shared `DetailList`/`DetailRow` (`components/patterns/`) for label/value detail rows, replacing hand-rolled `<dl>` markup duplicated across the Megammr host config and Integritas Connect profile panels.
+
+### Changed
+
+- Account settings page and its Minima backup/Integritas Connect panels: replaced hand-rolled icon buttons and inline-hex-styled text with the shared `Button`/`IconButton` components and ESDS text-color tokens, for visual consistency with the rest of the design system.
+- Backups/peers list inside `ListDisclosure` now scrolls within a fixed max height instead of growing the page unbounded.
+
+## [0.29.1] 2026-08-04
+
+### Added
+
+- Integritas verify shows an in-panel loading result shell (with bouncing dots) while a proof file upload is in progress; the selected-file remove control is disabled while stamp/verify is busy.
+
+- Moved `ButtonRow` into `components/patterns/` with design-system spacing (`gap-detail-next`); flat re-export kept.
+- Integritas stamp and verify failures that return HTTP 402 (plan/API limit) are now classified as `payment_required` and show an upgrade toast (and a clear automation stamp error) instead of a generic stamp/verify failure.
+- Integritas “Prove local data” now switches stamp and verify with tabs in one card instead of side-by-side panels
+- File drop zones on Integritas stamp/verify use the shared upload pattern (clear selected file, design-system styling). Verify accepts JSON only and shows an error toast when another type is dropped.
+- Stamp and verify success stay in-panel (status badge, file/hash, next steps) instead of resetting to an empty drop zone and showing a card below the grid.
+- Integritas stamp/verify receipts: status pill + stamp fields (file/UID/hash) and a Diagnostics link; verify shows Full match / No match only. Stamp result actions use matching compact secondary controls (`JsonPreview` button variant).
+- `JsonPreview` button variant no longer forces full width; pass `className="w-full"` when needed.
+
+### Removed
+
+- Runtime configuration modal on the Integritas Prove page (Connect link status, `baseUrl`, `requestId`, and related debug fields).
+
+## [0.29.0] 2026-08-04
+
+### Changed
+
+- Automatic Minima node backups now run at a fixed nightly time (00:30 on the backend container's clock) instead of a rolling 24-hour interval from container start, so they land overnight instead of at whatever hour the container happened to boot. A new `TZ` environment variable (default `UTC`) sets the backend container's timezone so "nightly" can mean the Pi's actual local night.
+- Restarting the Minima node now shuts it down gracefully first: it sends the node a `quit`-with-compaction command and waits (up to 5 minutes, since the node can take a while to actually stop even after reporting shutdown complete) for it to actually stop before starting it back up, instead of immediately force-stopping the container. If the node still hasn't stopped after that, it falls back to the previous forceful restart so the action still always completes.
+
+## [0.28.3] 2026-08-03
+
+### Added
+
+- Shared `Disclosure` (`components/ui/`) for native collapse/expand sections with lucide chevron styling; the workflow toolkit now uses it for block categories.
+- Shared `ScrollArea` (`components/ui/`) for panels and rails that need thin ESDS-token scrollbar styling; the workflow toolkit now uses it.
+
+### Changed
+
+- Moved `LoadingDots` into `components/ui/` (flat re-export kept).
+- Moved `ErrorText` into `components/ui/` (flat `Text` re-export kept).
+- Moved `JsonPreview` into `components/patterns/` (flat re-export kept).
+- Removed legacy `Eyebrow` text helper; section labels use `type-meta` + text colour tokens.
+- Shared `Modal` Dialog layout: scrollable body, footer actions, nesting-safe scroll lock when stacked.
+- Minima RPC console UI aligned with the design system (actions, scrollback, loading state).
+- Minima console whitelist: clearer command list, select-all per group, PIN/password confirm on save.
+- Minima container restart uses a confirm Modal instead of the browser confirm dialog.
+- Minima in-progress feedback uses short warn Pills on the Sync/Container cards; detailed RPC/Megammr copy moved to toasts (page banner removed).
+- Automation workflow create/edit/watch canvases now use the new ESDS/Figma-inspired workflow frame, explicit workflow routes, full-bleed shell layout, right-side toolkit, flat category block cards, selected-block treatment, and create-workflow leave confirmation.
+- Automation selected-block inspector now opens as a full-height viewport side sheet above the workspace chrome, with cleaner section cards and shared form controls.
+- Automation watch-mode runtime inspector now uses the same section-card hierarchy for run summary, block status, output JSON, and Diagnostics links.
+- Automation watch-mode Run controls now share the same rail panel shell and header typography as the workflow toolkit.
+
+### Fixed
+
+- Closing stacked modals no longer leaves page scrolling stuck (e.g. after saving the Minima whitelist).
+
+## [0.28.2] 2026-07-30
+
+### Added
+
+- Shared `MetricCard` (`components/patterns/`) for standalone compact metric tiles (label, optional icon + value, description; `loading` / `status`). Shared `Status` is `neutral` \| `success` \| `warning` \| `error` (separate from Pill `Tone`). Dashboard live-status grid uses it. See `docs/frontend-design-system.md`.
+- Frontend spacing: `pad-*` tokens (same values as Figma `esds.spacing.margin.*`) for container edge padding. Prefer `pad` for new / migrated UI; legacy `margin-*` kept until remaining call sites migrate.
+
+### Fixed
+
+- Dashboard getting-started card now also checks for workflows and hides once at least one non-archived workflow exists (it previously only looked at devices, so “Create your first workflow” stayed visible after setup).
+
+### Changed
+
+- Migrated Dashboard shared UI into design-system homes: `Button` / `IconButton`, `Card`, `Pill`, and `Text` → `components/ui/`; Dashboard (and next-action) import from `ui/` / `patterns/Page`. Flat paths re-export for other call sites. See `docs/frontend-design-system.md`.
+- Dashboard matches ESDS layout:, next-action card (accent CTA, numbered 1→2 steps with connector), single metric grid, and restyled live activity. Sidebar/status bar already come from the shell.
+- Refactor Dashboard
+- Shared `Page` is the content frame (`p-pad-distant`, title + optional description / action) in `components/patterns/`; `components/Page.tsx` re-exports. Content padding moved from `AppShell` onto `Page`. Removed `Section` (folded into `Page`). `eyebrow` still accepted but unused — Dashboard migrated; other pages later.
+- Shared `Card` is a surface only (white fill, `rounded-soft`, padding via `size="Default" | "Compact"` using `p-pad-*`, overflow clip). Layout (`flex` / `grid` / `gap`) belongs on the caller.
+- Renamed container-edge spacing utilities from `inset-*` to `pad-*` (`p-pad-tight`, etc.); removed `--spacing-inset-*`.
+
+## [0.28.1] 2026-07-30
+
+### Added
+
+- Devices now include a `BME680 Environmental Sensor` input template that reuses the opt-in I2C sensor helper and readable BME sensor automation path.
+- The sensor helper installer now creates and preserves a dedicated Python virtualenv for the PyPI `bme680` module, avoiding repeated installs and unavailable distro packages such as `python3-bme680`.
+
+## [0.28.0] 2026-07-30
+
+### Added
+
+- Devices now include a `BME280 Environmental Sensor` input template backed by an opt-in host-side I2C sensor helper (`ENABLE_SENSORS=true`). Manual reads and Automation `Fetch data source` blocks can hash temperature, humidity, and pressure JSON for Integritas stamping.
+- Devices now expose reusable setup guides from the configured-device list for every supported source/target type, and newly added devices automatically open their guide after saving.
+- BME280 and HTTP JSON setup guides now include a `Create basic workflow for this device` action that creates a disabled manual workflow with `Fetch data source` and `Show preview` blocks.
+- Hardware-backed device templates such as GPIO, Pi Camera, and BME280 are now selectable even before their required `ENABLE_*` install flag is enabled, so users can save the device and read its setup guide first.
+- Hardware wiring guide sections now include a `Wiring schematic` popup with a Raspberry Pi 40-pin GPIO header pinout.
+
+## [0.27.1] 2026-07-30
+
+### Added
+
+- Shared `StatusBar` (`components/`) for the ESDS app status bar (status Tags + Local/UTC clocks). Shell chrome used by `AppShell` in place of the previous header status/clock chrome. See `docs/frontend-design-system.md`.
+- Shared `Tooltip` (`components/ui/`) for ESDS tooltip / toggletip (trigger + portal positioning, hover/focus or click, Escape / outside dismiss, basic flip). See `docs/frontend-design-system.md`.
+- Toast system now supports `tone: "warning"`.
+- Shared `SelectField` (`components/ui/`) for ESDS select fields (label / description / control / error; optional placeholder; default / disabled / error). See `docs/frontend-design-system.md`.
+- Shared `SwitchField` (`components/ui/`) for ESDS switch fields (on / off × default / disabled; optional label / description). See `docs/frontend-design-system.md`.
+- Shared `RadioField` (`components/ui/`) for ESDS radio fields (selected / unselected × default / disabled; optional description; group via shared `name`). See `docs/frontend-design-system.md`.
+- Shared `CheckboxField` (`components/ui/`) for ESDS checkbox fields (checked / unchecked / indeterminate × default / disabled; optional description). See `docs/frontend-design-system.md`.
+- Shared `ProgressBar` (`components/ui/`) for ESDS step progress (optional back IconButton, accent track, step count Tag). See `docs/frontend-design-system.md`.
+- Shared `TabList` (`components/ui/`) for ESDS underline tabs (active / hover / inactive; optional icons). `TabItem` is internal. Prefer this over `SubTabs` for page-level tab strips. See `docs/frontend-design-system.md`.
+- Shared `ToggleTabs` (`components/ui/`) for ESDS segmented toggles (selected inverse / idle ghost on a secondary track). Prefer this for compact binary/segmented controls. See `docs/frontend-design-system.md`.
+- Shared `Menu` (`components/ui/`) for ESDS menu lists (rows via `items`; built-in Plus icon; default / hover / disabled). `MenuItem` is internal to the component. See `docs/frontend-design-system.md`.
+- Shared `InputField` for ESDS labeled text fields (label / description / control / error). Prefer this over bare `Input` for login and other forms. See `docs/frontend-design-system.md`.
+- Shared `Input` matches the ESDS Input Field control look; `InputField` composes it.
+- Shared `PinField` (`components/ui/`) for ESDS segmented 6-digit code entry. See `docs/frontend-design-system.md`.
+- Shared `TextareaField` (`components/ui/`) for ESDS labeled multiline text fields (label / description / control / error). See `docs/frontend-design-system.md`.
+- Shared `Pagination` (`frontend/src/components/ui/Pagination.tsx`) with prev/next controls and a condensed page-number list (ellipsis gaps). Includes a stable full-width layout so prev/next don’t shift when the visible page window changes.
+
+### Changed
+
+- First-run setup wizard restyled to the ESDS onboarding layout: centered card, shared `ProgressBar` / accent Continue, brand mark in the footer, and a dark-to-accent gradient on the final Integritas Connect step (replacing the old header/footer chrome and line-grid background).
+- Setup account step uses shared `ToggleTabs`, `PinField`, and `InputField`; password requirements checklist and labels are shortened to match the design system.
+- Shared `PinField` shows filled digits as dots (placeholder dashes when empty) and highlights only the active slot while focused.
+- Shared `Tooltip` bubble uses a `stroke-secondary` border (including beak edges) so it remains visible on white / light surfaces.
+- `Clock` now renders as ESDS Tag pills (`Local …` / `UTC …`) to match the Status Bar design.
+- Shared `ErrorAlert` moved to `components/patterns/` and restyled to ESDS feedback chrome (white surface, `stroke-error` border, `feedback-error` wash; optional title / recovery action). Flat `components/ErrorAlert.tsx` re-exports. See `docs/frontend-design-system.md`.
+- Shared toasts restyled to ESDS Notification visuals (Light / Dark / Error / Warning) inside `ToastProvider`; `useToast` API unchanged.
+- Shared `Modal` now matches ESDS Dialog Type=Modal (`components/ui/`; max-width 600, close IconButton, optional description/footer). Flat `components/Modal.tsx` re-exports. Sheet variant not yet implemented. See `docs/frontend-design-system.md`.
+- Moved `Menu`, `PinField`, `TabList`, `TextareaField`, and `ToggleTabs` into `components/ui/`. See `docs/frontend-design-system.md`.
+- Frontend shared components: new ESDS primitives go in `components/ui/`, new composed layouts in `components/patterns/`; existing flat files migrate later. See `docs/frontend-design-system.md` and the `frontend-design-system` skill.
+- Shared `Pill` matches the ESDS Tag design (Default secondary fill; Success / Warning / Error white + tinted stroke/wash; optional indicator dot). `tone` is `neutral` / `good` / `warn` / `error` (removed unused `future`). See `docs/frontend-design-system.md`.
+- Desktop app navigation now uses an Edge Studio-style collapsible dark sidebar with icon-only collapsed state (always on screen; collapses below `lg`), shared `nav` including Account and Marketplace (Coming soon), and sidebar-hosted feedback / sign out when expanded.
+- Shared `Input` uses a 1px border (`stroke-primary` / focus `stroke-active` / error `stroke-error`) on the control box.
+- Frontend colour tokens now follow ESDS foundations only (primitives + surface/text/icon/stroke/overlay semantics). Shared components use those utilities; legacy `brand-*`, `on-dark*`, and non-Figma status/hover/info aliases were removed.
+- Frontend typography follows ESDS foundations: Hanken Grotesk + Azeret Mono, with complete named type utilities (`type-meta`, `type-body`, `type-body-em`, `type-link`, `type-callout`, `type-title`, `type-heading`, `type-display`, `type-mono`). Shared `Text` helpers use those styles.
+- Frontend corner-radius tokens follow ESDS foundations (`rounded-sharp`, `rounded-tight`, `rounded-loose`, `rounded-interior`, `rounded-exterior`, `rounded-full`). Components and pages are not migrated yet.
+- Frontend spacing tokens follow ESDS foundations (detail / separator / margin scales). Components and pages are not migrated yet.
+- Shared `Button` / `IconButton` follow the ESDS button matrices (text button + circular icon button, tokens, focus ring). Call-site migration and aria notes are in `docs/frontend-design-system.md`.
+- Shared workflow/history table helpers now use ESDS table visuals (grey header row, `stroke-primary` borders, and `type-body-em` headers / `type-meta` cells). See `frontend/src/components/DataTable.tsx`.
+- Added a migration-ready ESDS `components/patterns/Table` shell (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`) for future replacement of legacy native `<table>` markup.
+
+## [0.27.0] 2026-07-29
+
+### Added
+
+- Devices now use a step-based add flow that first asks for input source vs output target, then template/example vs manual setup before showing the relevant options.
+
+### Changed
+
+- Device/source naming conventions are now documented for physical devices, generic integrations, and low-level hardware interfaces.
+- Device picker labels now follow the naming convention, including `HTTP JSON Source`, `HTTP JSON Target`, `MQTT Subscriber`, `MQTT Publisher`, `Webhook Receiver`, `GPIO Input Pin`, `GPIO LED`, and `Raspberry Pi Camera`.
+- Devices referenced by non-archived workflows can no longer be deleted until they are removed from those workflows.
+- ESP32 starter firmware now uses the MQTT broker URL saved on the ESP32 MQTT Board source, only asking for an ESP32-reachable override when that URL is Docker-internal or localhost-only.
+- GPIO input/output forms no longer expose profile selectors; profiles are fixed by the selected manual option or template, with GPIO LED kept as the only supported GPIO output template.
+- Scheduled automation workflows now keep their next run anchored to the prior due time instead of drifting from the actual execution time.
+- Devices now include a `GPIO Button` input template for a push button wired between GPIO17 and GND.
+- Automation action failures now appear as toast notifications, while load/refresh failures use a dedicated in-page alert with a retry action.
+
+### Added
+
+- Account Settings now includes a Minima node backup & restore panel: create, download, upload, and restore full node backups (`.bak` files — seed phrase, private keys, coin proofs, and transaction history, not just wallet keys). One admin-chosen backup password (re-auth required, stored encrypted) is used for every backup — manual (`Backup now`) or automatic — and can be changed or removed at any time (removing it also turns off automatic backups). A new backend-owned scheduler creates automatic backups every 24 hours, replacing Minima's own built-in auto-backup (which could never be given a custom password or a visible/manageable location). Backups are tracked in a single collapsible list capped at 20, oldest auto-deleted, since every backup now shares the same real password. Setting up the backup password and restoring from an uploaded file are icon buttons that open modals. Deleting a backup or restoring from the list or an uploaded file always asks for confirmation first. Restore always re-syncs from the configured Megammr host. Backups live in a new, narrow read-write volume shared between `backend` and `minima` (`${MINIMA_DATA_DIR}/backups`); downloading, restoring, or changing/removing the backup password all require re-entering the admin PIN/password. See `docs/plans/minima-node-backup-restore.md`.
+
+### Deprecated
+
+- The Wallet settings panel (seed-phrase-only wallet import) is hidden from Account Settings, superseded by the new Node backup & restore panel for the common case. Seed-phrase-only restore (useful when only the words, not a backup file, are available) is deferred to post-v1; the underlying import API/UI code is untouched and not deleted.
+
+## [0.26.1] 2026-07-29
+
+### Fixed
+
+- Dashboard "Update available" badge no longer lingers after a successful update due to lagging on `update-agent`'s own background self-update status; it now only reacts to frontend/backend being out of date.
+- Settings page Version field no longer stays stuck on "Unknown" on devices with no recorded `last-applied-manifest.json`; `update-agent` now self-heals by recording the manifest as applied once frontend/backend match it.
+- Added a "Back" button to the update-agent UI so it can be dismissed to the dashboard without a redirect or URL edit.
+
+## [0.26.0] 2026-07-28
+
+### Added
+
+- Devices now include an ESP32 MQTT Board onboarding option that saves a normal MQTT input source and generates copyable Arduino ESP32 starter firmware.
+
+### Changed
+
+- ESP32 MQTT Board onboarding now links to a step-by-step flashing and workflow setup guide.
+- ESP32 starter firmware now publishes a simple `Ping!` JSON payload instead of fake sensor readings, making first MQTT verification clearer.
+
+## [0.25.5] 2026-07-28
+
+### Fixed
+
+- Every checkbox in the app (Minima RPC console whitelist, Automation block config, Integritas history table row selection) inherited the global text-input styling — a plain, unlayered `input, textarea, select {...}` CSS rule in `styles.css` was overriding any Tailwind utility class applied to an `<input>` regardless of specificity, because Tailwind v4's utilities live inside `@layer utilities` and unlayered rules always win. Scoped that rule off `type="checkbox"`/`type="radio"` so checkboxes render and size correctly everywhere.
+- The Minima RPC console's whitelist modal additionally gets explicit checkbox sizing and collapsible Read/Write command-list sections instead of static lists.
 
 ### Security
 
@@ -47,6 +470,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Main workflow `If field matches` blocks now choose between Trigger event and Variable sources; Latest data is no longer a direct condition source, so workflows should use Set variable before condition checks on recorded or fetched data.
+- Automation action failures now appear as toast notifications, while load/refresh failures use a dedicated in-page alert with a retry action.
 
 ## [0.23.0] - 2026-07-27
 

@@ -75,10 +75,12 @@ export async function patchJson<T>(url: string, body: unknown): Promise<T> {
   return parseResponse<T>(response);
 }
 
-export async function deleteJson<T>(url: string): Promise<T> {
+export async function deleteJson<T>(url: string, body?: unknown): Promise<T> {
   const response = await fetch(url, {
     ...defaultInit,
-    method: "DELETE"
+    method: "DELETE",
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body)
   });
   return parseResponse<T>(response);
 }

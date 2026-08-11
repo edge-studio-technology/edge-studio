@@ -1,6 +1,6 @@
 # GPIO Device Settings
 
-This guide lists Raspberry Pi GPIO device settings for Integritas Pi Devices. It uses BCM pin numbering, matching the app UI and `gpiomon`/`gpioset` commands.
+This guide lists Raspberry Pi GPIO device settings for Edge Studio Devices. It uses BCM pin numbering, matching the app UI and `gpiomon`/`gpioset` commands.
 
 GPIO is 3.3V only. Do not connect GPIO pins directly to 5V, motors, relays, mains voltage, or unknown modules. For output LEDs, always use a resistor in series.
 
@@ -12,6 +12,8 @@ These setups have been tested on the Raspberry Pi prototype.
 
 Use this for a simple push button wired between GPIO17 and GND.
 
+In Devices, choose `GPIO Button` from the input templates to start with these settings.
+
 Wiring:
 
 ```txt
@@ -22,7 +24,7 @@ Device settings:
 
 | Field         | Value       |
 | ------------- | ----------- |
-| Device type   | GPIO Input  |
+| Device type   | GPIO Input Pin |
 | Chip          | `gpiochip0` |
 | BCM pin       | `17`        |
 | Pull resistor | `up`        |
@@ -62,7 +64,7 @@ Device settings:
 
 | Field         | Value       |
 | ------------- | ----------- |
-| Device type   | GPIO Output |
+| Device type   | GPIO LED    |
 | Chip          | `gpiochip0` |
 | BCM pin       | `18`        |
 | Profile       | `LED`       |
@@ -174,7 +176,7 @@ Use this only when the button connects GPIO to 3.3V when pressed.
 
 | Field         | Suggested value |
 | ------------- | --------------- |
-| Device type   | GPIO Input      |
+| Device type   | GPIO Input Pin  |
 | Pull resistor | `down`          |
 | Edge          | `rising`        |
 | Debounce      | `100 ms`        |
@@ -193,7 +195,7 @@ Use this for a magnetic reed switch or other dry contact that closes to GND.
 
 | Field         | Suggested value     |
 | ------------- | ------------------- |
-| Device type   | GPIO Input          |
+| Device type   | GPIO Input Pin      |
 | Pull resistor | `up`                |
 | Edge          | `falling` or `both` |
 | Debounce      | `100-250 ms`        |
@@ -207,7 +209,7 @@ Some industrial-style or sensor outputs pull the signal low but do not drive it 
 
 | Field         | Suggested value     |
 | ------------- | ------------------- |
-| Device type   | GPIO Input          |
+| Device type   | GPIO Input Pin      |
 | Pull resistor | `up`                |
 | Edge          | `falling` or `both` |
 | Debounce      | Device-specific     |
@@ -217,7 +219,7 @@ Some industrial-style or sensor outputs pull the signal low but do not drive it 
 
 Do not connect these directly to a GPIO pin.
 
-Current V1 GPIO Output support is only intended for a low-current LED profile with a pulse action. Use a proper transistor/MOSFET/driver board, flyback protection where needed, and external power before considering these devices. They are not supported as direct GPIO Output targets in this prototype.
+Current V1 GPIO LED support is only intended for a low-current LED profile with a pulse action. Use a proper transistor/MOSFET/driver board, flyback protection where needed, and external power before considering these devices. They are not supported as direct GPIO LED targets in this prototype.
 
 ### Active-Low LED Module
 
@@ -225,7 +227,7 @@ Some LED modules turn on when the GPIO is driven low. Confirm the module is 3.3V
 
 | Field         | Suggested value |
 | ------------- | --------------- |
-| Device type   | GPIO Output     |
+| Device type   | GPIO LED        |
 | Profile       | `LED`           |
 | Active state  | `low`           |
 | Initial state | `inactive`      |

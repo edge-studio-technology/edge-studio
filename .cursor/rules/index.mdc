@@ -106,6 +106,7 @@ For auth work, also read `docs/plans/auth-implementation.md` and `docs/plans/aut
 | [.cursor/rules/update-agent.mdc](.cursor/rules/update-agent.mdc) | Update Agent service rules | Auto Attached: `update-agent/**` |
 | [.cursor/rules/verification.mdc](.cursor/rules/verification.mdc) | Commands to run before finishing changes | Agent Requested |
 | [.cursor/rules/documenting-work.mdc](.cursor/rules/documenting-work.mdc) | Task summaries, doc updates, changelog policy | Agent Requested |
+| [.cursor/rules/adr.mdc](.cursor/rules/adr.mdc) | Where decision rationale goes (not changelog/comments/commits) | Agent Requested |
 
 Also see `docs/PROJECT.md` (goals/constraints), `docs/TASKS.md` (current work), and `SECURITY.md` (security policy).
 

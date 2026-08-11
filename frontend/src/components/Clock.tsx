@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
-import { formatLocalTime, formatUtcTime } from "../lib/time";
+import { formatLocalTime } from "../lib/time";
+import { Pill } from "./Pill";
+
+function formatUtcClock(value: Date) {
+  return [
+    value.getUTCHours().toString().padStart(2, "0"),
+    value.getUTCMinutes().toString().padStart(2, "0"),
+    value.getUTCSeconds().toString().padStart(2, "0"),
+  ].join(":");
+}
 
 export function Clock() {
   const [now, setNow] = useState(() => new Date());
@@ -10,9 +19,9 @@ export function Clock() {
   }, []);
 
   return (
-    <div className="grid grid-cols-2 gap-3" aria-label="Current local and UTC time">
-      <div className="grid gap-1"><span className="text-[0.68rem] font-extrabold uppercase tracking-[0.12em] text-slate-400">Local</span><strong className="font-mono text-sm text-slate-950">{formatLocalTime(now)}</strong></div>
-      <div className="grid gap-1 border-l border-slate-200 pl-3"><span className="text-[0.68rem] font-extrabold uppercase tracking-[0.12em] text-slate-400">UTC</span><strong className="font-mono text-sm text-slate-950">{formatUtcTime(now)}</strong></div>
+    <div className="gap-detail-tight flex shrink-0 items-center" aria-label="Current local and UTC time">
+      <Pill>Local {formatLocalTime(now)}</Pill>
+      <Pill>UTC {formatUtcClock(now)}</Pill>
     </div>
   );
 }

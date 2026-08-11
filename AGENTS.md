@@ -92,5 +92,6 @@ Read the rules relevant to the area you're working in before editing:
 | [.agents/rules/update-agent.md](.agents/rules/update-agent.md) | Update Agent service rules |
 | [.agents/rules/verification.md](.agents/rules/verification.md) | Commands to run before finishing changes |
 | [.agents/rules/documenting-work.md](.agents/rules/documenting-work.md) | Task summaries, doc updates, changelog policy |
+| [.agents/rules/adr.md](.agents/rules/adr.md) | Where decision rationale goes (not changelog/comments/commits) |
 
 Also see `docs/PROJECT.md` (goals/constraints), `docs/TASKS.md` (current work), and `SECURITY.md` (security policy).

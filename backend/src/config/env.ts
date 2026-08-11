@@ -86,5 +86,9 @@ export const env = {
   cameraPhotoCommand: process.env.CAMERA_PHOTO_COMMAND ?? "rpicam-still",
   cameraVideoCommand: process.env.CAMERA_VIDEO_COMMAND ?? "rpicam-vid",
   cameraHelperUrl: process.env.CAMERA_HELPER_URL ?? "http://host.docker.internal:38180",
-  cameraHelperToken: process.env.CAMERA_HELPER_TOKEN ?? ""
+  cameraHelperToken: process.env.CAMERA_HELPER_TOKEN ?? "",
+  sensorsEnabled: process.env.ENABLE_SENSORS === "true",
+  sensorHelperUrl: process.env.SENSOR_HELPER_URL ?? "http://host.docker.internal:38181",
+  sensorHelperToken: process.env.SENSOR_HELPER_TOKEN ?? "",
+  sensorReadTimeoutMs: Number(process.env.SENSOR_READ_TIMEOUT_MS ?? 5000)
 };

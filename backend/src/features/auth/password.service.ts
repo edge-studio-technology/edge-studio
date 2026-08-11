@@ -29,6 +29,12 @@ export function isValidAdminCredential(credential: string) {
   return isValidAdminPin(credential) || isValidAdminPassword(credential);
 }
 
+export type AdminCredentialType = "pin" | "password";
+
+export function getAdminCredentialType(credential: string): AdminCredentialType {
+  return isValidAdminPin(credential) ? "pin" : "password";
+}
+
 export function adminCredentialValidationError() {
   return `PIN must be exactly ${ADMIN_PIN_LENGTH} digits or password must be at least ${ADMIN_PASSWORD_MIN_LENGTH} characters with uppercase, lowercase, number, and symbol`;
 }

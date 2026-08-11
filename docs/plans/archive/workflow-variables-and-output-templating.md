@@ -123,7 +123,7 @@ The user enters a literal JSON value.
 Examples:
 
 ```json
-"Button pressed on Integritas Pi"
+"Button pressed on Edge Studio"
 ```
 
 ```json

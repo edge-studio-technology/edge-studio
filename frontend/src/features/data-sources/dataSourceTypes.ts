@@ -3,7 +3,7 @@ export type DataSource = {
   createdAt: string;
   updatedAt: string;
   name: string;
-  type: "json-api" | "internal-json-api" | "webhook" | "mqtt" | "gpio-input" | "gpio-output" | "pi-camera" | "http-output" | "mqtt-output";
+  type: "json-api" | "internal-json-api" | "webhook" | "mqtt" | "gpio-input" | "gpio-output" | "pi-camera" | "bme-sensor" | "http-output" | "mqtt-output";
   status: string;
   description: string | null;
   config: {
@@ -20,7 +20,7 @@ export type DataSource = {
     edge?: "rising" | "falling" | "both";
     debounceMs?: number;
     activeState?: "high" | "low";
-    profile?: "led" | "pir-motion" | "generic";
+    profile?: "led" | "pir-motion" | "generic" | "esp32-mqtt-board";
     initialState?: "inactive";
     body?: unknown;
     timeoutMs?: number;
@@ -32,12 +32,16 @@ export type DataSource = {
     durationMs?: number;
     fps?: number;
     outputFormat?: "jpg" | "h264";
+    sensor?: "bme280" | "bme680";
+    bus?: number;
+    address?: "0x76" | "0x77";
   };
   lastReadAt: string | null;
   lastError: string | null;
   lastErrorDetails?: unknown;
   lastPreview: unknown;
   lastHash: string | null;
+  usedByWorkflows?: { id: string; name: string }[];
 };
 
 export type DataSourceTemplate = {
@@ -54,6 +58,7 @@ export type DataSourceHealthStatus = {
   body?: unknown;
   checkedAt?: string;
   error?: string;
+  errorDetails?: unknown;
 };
 
 export type DataSourceCapabilities = {
@@ -76,5 +81,11 @@ export type DataSourceCapabilities = {
     photoCommand?: string;
     videoCommand?: string;
     cameras?: string;
+  };
+  sensors?: {
+    enabled: boolean;
+    available: boolean;
+    reason: string | null;
+    supportedSensors?: string[];
   };
 };

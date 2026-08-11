@@ -1,97 +1,158 @@
-import { Fragment, useState } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "../../components/Button";
-import { DataTable, RowActions, TableWrap, tableCellClass, tableHeaderCellClass, tableHeadRowClass, tableRowClass } from "../../components/DataTable";
-import { ErrorDetails } from "../../components/ErrorDetails";
-import { JsonPreview } from "../../components/JsonPreview";
-import { cx } from "../../lib/cx";
-import { formatLocalTime } from "../../lib/time";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Eye, Inbox } from "lucide-react";
+import {
+  DataTable,
+  RowActions,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableIconButton,
+  TableIconMenu,
+  TableRow,
+  TableWrap,
+} from "../../components/patterns/DataTable";
+import { EmptyContentState } from "../../components/patterns/EmptyContentState";
+import { LoadingState } from "../../components/patterns/LoadingState";
+import { Pill } from "../../components/ui/Pill";
+import { formatLocalDateTime } from "../../lib/time";
+import { AutomationRunInspectModal } from "./AutomationRunInspectModal";
+import { formatRunDuration, RUN_STATUS } from "./automationRunDisplay";
 import type { AutomationRun } from "./automationTypes";
 
-const mutedText = "text-sm text-slate-500";
-const softCardClass = "rounded-[22px] border border-slate-200 bg-slate-50/80 p-4 shadow-sm";
-const statusRowClass = "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between";
+export function AutomationRunsTable({
+  runs,
+  compact = false,
+  filtered = false,
+  loading = false,
+  onClearFilters,
+}: {
+  runs: AutomationRun[];
+  compact?: boolean;
+  filtered?: boolean;
+  loading?: boolean;
+  onClearFilters?: () => void;
+}) {
+  const [inspectRunId, setInspectRunId] = useState<string | null>(null);
+  const inspectRun = inspectRunId ? (runs.find((run) => run.id === inspectRunId) ?? null) : null;
 
-export function AutomationRunsTable({ runs, compact = false }: { runs: AutomationRun[]; compact?: boolean }) {
-  const [rawRunId, setRawRunId] = useState<string | null>(null);
+  if (loading)
+    return (
+      <LoadingState
+        title="Fetching your workflow runs"
+        description="This should take a few seconds."
+      />
+    );
 
-  if (runs.length === 0) return <p className={mutedText}>No workflow runs recorded yet.</p>;
+  if (runs.length === 0)
+    return (
+      <EmptyContentState
+        icon={Inbox}
+        title={filtered ? "No matching workflow runs" : "No workflow runs yet"}
+        description={
+          filtered
+            ? "Try another status or search, or clear filters."
+            : "Runs from your automation workflows will be added to your history here."
+        }
+        actionLabel={filtered && onClearFilters ? "Clear filters" : undefined}
+        actionVariant="secondary"
+        onAction={filtered ? onClearFilters : undefined}
+      />
+    );
 
   return (
-    <TableWrap>
-      <DataTable>
-        <thead>
-          <tr className={tableHeadRowClass}>
-            <th className={tableHeaderCellClass}>Started</th>
-            {!compact && <th className={tableHeaderCellClass}>Workflow</th>}
-            <th className={tableHeaderCellClass}>Trigger</th>
-            <th className={tableHeaderCellClass}>Status</th>
-            <th className={tableHeaderCellClass}>Duration</th>
-            <th className={tableHeaderCellClass}>Blocks</th>
-            <th className={tableHeaderCellClass}>Details</th>
-          </tr>
-        </thead>
-        <tbody>
-          {runs.map((run) => (
-            <Fragment key={run.id}>
-              <tr className={tableRowClass}>
-                <td className={tableCellClass}>{formatLocalTime(run.startedAt)}</td>
-                {!compact && <td className={tableCellClass}>{run.workflowName}</td>}
-                <td className={tableCellClass}>{run.triggerType}</td>
-                <td className={tableCellClass}><div className="grid gap-2"><StatusPill status={run.status} />{run.error && <ErrorDetails error={run.errorDetails ?? run.error} label="View error" />}</div></td>
-                <td className={tableCellClass}>{formatDuration(run.durationMs)}</td>
-                <td className={tableCellClass}>{run.blocks.filter((block) => block.status === "success").length}/{run.blockCount}</td>
-                <td className={tableCellClass}><RowActions>{run.workflowId ? <Link className="font-bold text-blue-700 hover:text-blue-900" to={`/automation?flow=watch&id=${encodeURIComponent(run.workflowId)}&run=${encodeURIComponent(run.id)}`}>Show on canvas</Link> : <span className={mutedText}>Workflow deleted</span>}<Button type="button" variant="secondary" className="rounded-full px-3 py-1.5" onClick={() => setRawRunId(rawRunId === run.id ? null : run.id)}>{rawRunId === run.id ? "Hide raw" : "Raw details"}</Button></RowActions></td>
-              </tr>
-              {rawRunId === run.id && (
-                <tr className={tableRowClass}>
-                  <td className={tableCellClass} colSpan={compact ? 6 : 7}>
-                    <RawRunDetails run={run} />
-                  </td>
-                </tr>
-              )}
-            </Fragment>
-          ))}
-        </tbody>
-      </DataTable>
-    </TableWrap>
+    <>
+      <TableWrap>
+        <DataTable aria-label="Workflow logs" className="min-w-[1020px]">
+          <TableHead>
+            <TableHeaderCell className="whitespace-nowrap">Started</TableHeaderCell>
+            {!compact && <TableHeaderCell>Workflow</TableHeaderCell>}
+            <TableHeaderCell>Trigger</TableHeaderCell>
+            <TableHeaderCell>Status</TableHeaderCell>
+            <TableHeaderCell>Duration</TableHeaderCell>
+            <TableHeaderCell>Blocks</TableHeaderCell>
+            <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+          </TableHead>
+          <TableBody>
+            {runs.map((run) => {
+              const status = RUN_STATUS[run.status];
+              const successBlocks = run.blocks.filter((block) => block.status === "success").length;
+              return (
+                <TableRow key={run.id}>
+                  <TableCell className="whitespace-nowrap">
+                    <time className="type-meta text-text-secondary" dateTime={run.startedAt}>
+                      {formatLocalDateTime(run.startedAt)}
+                    </time>
+                  </TableCell>
+                  {!compact && (
+                    <TableCell className="max-w-56 min-w-0">
+                      <span className="type-body-em text-text-primary block truncate">
+                        {run.workflowName}
+                      </span>
+                    </TableCell>
+                  )}
+                  <TableCell>
+                    <Pill>{run.triggerType}</Pill>
+                  </TableCell>
+                  <TableCell>
+                    <Pill tone={status.tone} indicator>
+                      {status.label}
+                    </Pill>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {formatRunDuration(run.durationMs)}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {successBlocks}/{run.blockCount}
+                  </TableCell>
+                  <TableCell className="w-px whitespace-nowrap">
+                    <RunRowActions run={run} onView={() => setInspectRunId(run.id)} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </DataTable>
+      </TableWrap>
+
+      {inspectRun ? (
+        <AutomationRunInspectModal run={inspectRun} onClose={() => setInspectRunId(null)} />
+      ) : null}
+    </>
   );
 }
 
-function RawRunDetails({ run }: { run: AutomationRun }) {
-  return (
-    <section className={softCardClass}>
-      <div className={statusRowClass}>
-        <div><strong>Raw workflow run JSON</strong><p className={mutedText}>Full stored run payload for diagnostics.</p></div>
-        <StatusPill status={run.status} />
-      </div>
-      {run.error && <div className="mt-4"><ErrorDetails error={run.errorDetails ?? run.error} label="View run error" /></div>}
-      {run.blocks.some((block) => block.error) && (
-        <div className="mt-4 grid gap-2">
-          <strong>Failed blocks</strong>
-          {run.blocks.filter((block) => block.error).map((block) => (
-            <div key={block.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white p-3">
-              <span><strong>{block.blockLabel}</strong> <span className={mutedText}>({block.blockType})</span></span>
-              <ErrorDetails error={block.errorDetails ?? block.error} label="View block error" />
-            </div>
-          ))}
-        </div>
-      )}
-      <JsonPreview value={run} />
-    </section>
-  );
-}
+function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void }) {
+  const navigate = useNavigate();
+  const label = run.workflowName;
 
-function StatusPill({ status }: { status: string }) {
   return (
-    <span className={cx("inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide", status === "success" ? "bg-emerald-100 text-emerald-700" : status === "failed" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600")}>
-      {status}
-    </span>
+    <RowActions>
+      <TableIconButton
+        type="button"
+        title="View details"
+        aria-label={`View details for ${label}`}
+        onClick={onView}
+      >
+        <Eye size={16} aria-hidden />
+      </TableIconButton>
+      <TableIconMenu
+        aria-label={`More actions for ${label}`}
+        items={[
+          {
+            label: "Show on canvas",
+            disabled: !run.workflowId,
+            title: run.workflowId ? undefined : "Workflow was deleted",
+            onClick: () => {
+              if (!run.workflowId) return;
+              navigate(
+                `/automation/${encodeURIComponent(run.workflowId)}/watch/${encodeURIComponent(run.id)}`,
+              );
+            },
+          },
+        ]}
+      />
+    </RowActions>
   );
-}
-
-function formatDuration(ms: number | null) {
-  if (ms === null) return "Running";
-  if (ms < 1000) return `${ms} ms`;
-  return `${(ms / 1000).toFixed(1)} s`;
 }

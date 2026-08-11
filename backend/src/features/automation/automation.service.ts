@@ -1,19 +1,45 @@
 import fs from "node:fs/promises";
-import { getDataSource, updateDataSourceReadResult } from "../data-sources/dataSources.repository.js";
+import {
+  getDataSource,
+  updateDataSourceReadResult,
+} from "../data-sources/dataSources.repository.js";
 import { getAddressBookEntryById } from "../address-book/address-book.repository.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { pulseGpioOutput } from "../data-sources/gpioOutput.service.js";
 import { publishMqttOutput } from "../data-sources/mqttOutput.service.js";
 import { capturePiCamera } from "../data-sources/cameraCapture.service.js";
-import { parseHttpOutputConfig, parseJsonApiConfig, readJsonApiSource, sendHttpOutput, sendMultipartMediaOutput, serializeDataSource } from "../data-sources/dataSources.service.js";
-import { createDataSourceRead, linkDataSourceReadProof } from "../data-reads/dataReads.repository.js";
+import {
+  parseBmeSensorConfig,
+  parseHttpOutputConfig,
+  parseJsonApiConfig,
+  readJsonApiSource,
+  sendHttpOutput,
+  sendMultipartMediaOutput,
+  serializeDataSource,
+} from "../data-sources/dataSources.service.js";
+import { readBmeSensorSource } from "../data-sources/sensorHelper.service.js";
+import {
+  createDataSourceRead,
+  linkDataSourceReadProof,
+} from "../data-reads/dataReads.repository.js";
 import { createProofRecord } from "../integritas/integritas.repository.js";
-import { isIntegritasUnauthorizedErrorCode, isTransientIntegritasErrorCode, requestProofUid } from "../integritas/integritas.service.js";
+import {
+  isIntegritasUnauthorizedErrorCode,
+  isTransientIntegritasErrorCode,
+  requestProofUid,
+} from "../integritas/integritas.service.js";
 import type { IntegritasApiFailure } from "../integritas/integritas.types.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
 import { getWalletStatus, recordWalletSendHistory, sendPayment } from "../wallet/wallet.service.js";
 import { sha3HashHex } from "../../shared/crypto.js";
-import { blockError, errorFromUnknown, errorMessage, parseStoredError, workflowError, type StructuredError } from "../../shared/structured-error.js";
+import {
+  blockError,
+  errorFromUnknown,
+  errorMessage,
+  parseStoredError,
+  workflowError,
+  type StructuredError,
+} from "../../shared/structured-error.js";
 import {
   getAutomationWorkflow,
   listAutomationBlocks,
@@ -22,9 +48,21 @@ import {
   updateAutomationRunError,
   updateAutomationRunSuccess,
   type AutomationBlockRecord,
-  type AutomationWorkflowRecord
+  type AutomationWorkflowRecord,
 } from "./automation.repository.js";
-import { createAutomationBlockRun, createAutomationRun, finishAutomationBlockRun, finishAutomationRun, getAutomationRun, listAutomationBlockRuns, listAutomationRuns, listAutomationRunsForWorkflow, type AutomationBlockRunRecord, type AutomationRunListQuery, type AutomationRunRecord } from "./automationRuns.repository.js";
+import {
+  createAutomationBlockRun,
+  createAutomationRun,
+  finishAutomationBlockRun,
+  finishAutomationRun,
+  getAutomationRun,
+  listAutomationBlockRuns,
+  listAutomationRuns,
+  listAutomationRunsForWorkflow,
+  type AutomationBlockRunRecord,
+  type AutomationRunListQuery,
+  type AutomationRunRecord,
+} from "./automationRuns.repository.js";
 import { createAutomationInboxItem } from "./automationInbox.repository.js";
 
 type WorkflowTriggerType = "manual" | "schedule" | "webhook" | "mqtt" | "gpio";
@@ -60,7 +98,15 @@ type WorkflowContext = {
 type FieldCondition = {
   source?: "trigger" | "data";
   fieldPath: string;
-  operator: "equals" | "not_equals" | "greater_than" | "greater_than_or_equals" | "less_than" | "less_than_or_equals" | "exists" | "does_not_exist";
+  operator:
+    | "equals"
+    | "not_equals"
+    | "greater_than"
+    | "greater_than_or_equals"
+    | "less_than"
+    | "less_than_or_equals"
+    | "exists"
+    | "does_not_exist";
   value?: unknown;
 };
 
@@ -72,7 +118,14 @@ type WorkflowCondition = {
   value?: unknown;
 };
 
-type OutputBodyMode = "custom" | "workflow_context" | "trigger_payload" | "latest_data" | "latest_data_with_media" | "multipart_media" | "none";
+type OutputBodyMode =
+  | "custom"
+  | "workflow_context"
+  | "trigger_payload"
+  | "latest_data"
+  | "latest_data_with_media"
+  | "multipart_media"
+  | "none";
 type VariableSource = "custom_json" | "trigger_field" | "latest_data_field" | "context_field";
 type PreviewFormat = "text" | "json" | "link" | "image";
 type PreviewContentMode = "custom" | "workflow_context" | "trigger_payload" | "latest_data";
@@ -98,7 +151,7 @@ export function serializeAutomationWorkflow(record: AutomationWorkflowRecord) {
     lastProofId: record.last_proof_id,
     lastError: errorMessage(record.last_error),
     lastErrorDetails,
-    blocks
+    blocks,
   };
 }
 
@@ -116,7 +169,7 @@ export function serializeAutomationBlock(record: AutomationBlockRecord) {
     config: JSON.parse(record.config_json) as unknown,
     lastRunAt: record.last_run_at,
     lastError: errorMessage(record.last_error),
-    lastErrorDetails
+    lastErrorDetails,
   };
 }
 
@@ -131,12 +184,14 @@ export function serializeAutomationRun(record: AutomationRunRecord) {
     status: record.status,
     triggerType: record.trigger_type,
     triggerSourceId: record.trigger_source_id,
-    triggerPayload: record.trigger_payload_json ? JSON.parse(record.trigger_payload_json) as unknown : null,
+    triggerPayload: record.trigger_payload_json
+      ? (JSON.parse(record.trigger_payload_json) as unknown)
+      : null,
     durationMs: record.duration_ms,
     blockCount: record.block_count,
     error: errorMessage(record.error),
     errorDetails,
-    blocks: listAutomationBlockRuns(record.id).map(serializeAutomationBlockRun)
+    blocks: listAutomationBlockRuns(record.id).map(serializeAutomationBlockRun),
   };
 }
 
@@ -154,10 +209,10 @@ export function serializeAutomationBlockRun(record: AutomationBlockRunRecord) {
     finishedAt: record.finished_at,
     status: record.status,
     durationMs: record.duration_ms,
-    input: record.input_json ? JSON.parse(record.input_json) as unknown : null,
-    output: record.output_json ? JSON.parse(record.output_json) as unknown : null,
+    input: record.input_json ? (JSON.parse(record.input_json) as unknown) : null,
+    output: record.output_json ? (JSON.parse(record.output_json) as unknown) : null,
     error: errorMessage(record.error),
-    errorDetails
+    errorDetails,
   };
 }
 
@@ -174,17 +229,27 @@ export function getSerializedAutomationRun(id: string) {
   return run ? serializeAutomationRun(run) : null;
 }
 
-export async function runAutomationWorkflow(id: string, trigger: WorkflowContext["trigger"] = { type: "manual" }) {
+export async function runAutomationWorkflow(
+  id: string,
+  trigger: WorkflowContext["trigger"] = { type: "manual" },
+) {
   const workflow = getAutomationWorkflow(id);
   if (!workflow) throw new Error("Automation workflow not found");
   return executeWorkflow(workflow, trigger);
 }
 
-export async function executeWorkflow(workflow: AutomationWorkflowRecord, trigger: WorkflowContext["trigger"]) {
+export async function executeWorkflow(
+  workflow: AutomationWorkflowRecord,
+  trigger: WorkflowContext["trigger"],
+) {
   const latestWorkflow = getAutomationWorkflow(workflow.id) ?? workflow;
-  if (runningWorkflowIds.has(latestWorkflow.id)) throw Object.assign(new Error("Automation workflow is already running"), { code: "WORKFLOW_ALREADY_RUNNING" });
+  if (runningWorkflowIds.has(latestWorkflow.id))
+    throw Object.assign(new Error("Automation workflow is already running"), {
+      code: "WORKFLOW_ALREADY_RUNNING",
+    });
   if (latestWorkflow.archived) throw new Error("Automation workflow is archived");
-  if (!latestWorkflow.enabled && trigger.type !== "manual") throw new Error("Automation workflow is disabled");
+  if (!latestWorkflow.enabled && trigger.type !== "manual")
+    throw new Error("Automation workflow is disabled");
 
   const blocks = listAutomationBlocks(latestWorkflow.id).filter((block) => block.enabled);
   const mainBlocks = blocks.filter((block) => !block.parent_block_id);
@@ -199,25 +264,54 @@ export async function executeWorkflow(workflow: AutomationWorkflowRecord, trigge
   let run = null as ReturnType<typeof createAutomationRun> | null;
 
   try {
-    run = createAutomationRun({ workflowId: latestWorkflow.id, workflowName: latestWorkflow.name, triggerType: trigger.type, triggerSourceId: trigger.sourceId ?? null, triggerPayload: trigger.payload, blockCount: blocks.length });
+    run = createAutomationRun({
+      workflowId: latestWorkflow.id,
+      workflowName: latestWorkflow.name,
+      triggerType: trigger.type,
+      triggerSourceId: trigger.sourceId ?? null,
+      triggerPayload: trigger.payload,
+      blockCount: blocks.length,
+    });
 
     for (const block of mainBlocks) {
       await executeBlock(latestWorkflow, block, context, run.id);
       for (const attachedBlock of blocks.filter((item) => item.parent_block_id === block.id)) {
         await executeBlock(latestWorkflow, attachedBlock, context, run.id);
       }
-      if (block.type === "schedule_start") nextRunAt = nextScheduleRunAt(block);
+      if (block.type === "schedule_start")
+        nextRunAt = nextScheduleRunAt(block, latestWorkflow.next_run_at);
       if (context.stopped) break;
     }
 
-    const updatedWorkflow = updateAutomationRunSuccess(latestWorkflow.id, { hash: context.hash ?? null, proofId: context.proofId ?? null, nextRunAt });
+    const updatedWorkflow = updateAutomationRunSuccess(latestWorkflow.id, {
+      hash: context.hash ?? null,
+      proofId: context.proofId ?? null,
+      nextRunAt,
+    });
     finishAutomationRun(run.id, { status: "success" });
-    return { workflow: serializeAutomationWorkflow(updatedWorkflow), dataSource: context.data?.sourceId ? serializeDataSource(getDataSource(context.data.sourceId)!) : null, proofId: context.proofId ?? null };
+    return {
+      workflow: serializeAutomationWorkflow(updatedWorkflow),
+      dataSource: context.data?.sourceId
+        ? serializeDataSource(getDataSource(context.data.sourceId)!)
+        : null,
+      proofId: context.proofId ?? null,
+    };
   } catch (error) {
-    const details = workflowError({ type: "block_failed", ...errorFromUnknown(error, "Automation workflow failed", { workflowId: latestWorkflow.id }), message: error instanceof Error ? error.message : "Automation workflow failed" });
-    const updatedWorkflow = updateAutomationRunError(latestWorkflow.id, details, { hash: context.hash ?? null, proofId: context.proofId ?? null, nextRunAt });
+    const details = workflowError({
+      type: "block_failed",
+      ...errorFromUnknown(error, "Automation workflow failed", { workflowId: latestWorkflow.id }),
+      message: error instanceof Error ? error.message : "Automation workflow failed",
+    });
+    const updatedWorkflow = updateAutomationRunError(latestWorkflow.id, details, {
+      hash: context.hash ?? null,
+      proofId: context.proofId ?? null,
+      nextRunAt,
+    });
     if (run) finishAutomationRun(run.id, { status: "failed", error: details });
-    throw Object.assign(error instanceof Error ? error : new Error(details.message), { workflow: serializeAutomationWorkflow(updatedWorkflow), errorDetails: details });
+    throw Object.assign(error instanceof Error ? error : new Error(details.message), {
+      workflow: serializeAutomationWorkflow(updatedWorkflow),
+      errorDetails: details,
+    });
   } finally {
     runningWorkflowIds.delete(latestWorkflow.id);
   }
@@ -233,24 +327,55 @@ export async function recordPushAutomationPayload(input: {
   return executeWorkflow(input.workflow, {
     type: input.triggerType,
     sourceId: input.dataSource.id,
-    payload: input.result.preview
+    payload: input.result.preview,
   });
 }
 
 function validateStartBlock(block: AutomationBlockRecord, trigger: WorkflowContext["trigger"]) {
   const config = JSON.parse(block.config_json) as { sourceId?: string };
-  const expectedType = trigger.type === "schedule" ? "schedule_start" : trigger.type === "gpio" ? "gpio_event_start" : trigger.type === "webhook" ? "webhook_event_start" : trigger.type === "mqtt" ? "mqtt_event_start" : "manual_start";
+  const expectedType =
+    trigger.type === "schedule"
+      ? "schedule_start"
+      : trigger.type === "gpio"
+        ? "gpio_event_start"
+        : trigger.type === "webhook"
+          ? "webhook_event_start"
+          : trigger.type === "mqtt"
+            ? "mqtt_event_start"
+            : "manual_start";
   if (trigger.type === "manual") return;
-  if (block.type !== expectedType) throw new Error(`Workflow starts with ${block.type}, not ${expectedType}`);
-  if (trigger.sourceId && config.sourceId !== trigger.sourceId) throw new Error("Workflow trigger source did not match the incoming event");
+  if (block.type !== expectedType)
+    throw new Error(`Workflow starts with ${block.type}, not ${expectedType}`);
+  if (trigger.sourceId && config.sourceId !== trigger.sourceId)
+    throw new Error("Workflow trigger source did not match the incoming event");
 }
 
-function enforceEventStartLimits(workflow: AutomationWorkflowRecord, block: AutomationBlockRecord, trigger: WorkflowContext["trigger"]) {
-  if (trigger.type === "manual" || trigger.type === "schedule" || !block.type.endsWith("_event_start")) return;
-  const config = JSON.parse(block.config_json) as { activeOnly?: boolean; cooldownSeconds?: number };
+function enforceEventStartLimits(
+  workflow: AutomationWorkflowRecord,
+  block: AutomationBlockRecord,
+  trigger: WorkflowContext["trigger"],
+) {
+  if (
+    trigger.type === "manual" ||
+    trigger.type === "schedule" ||
+    !block.type.endsWith("_event_start")
+  )
+    return;
+  const config = JSON.parse(block.config_json) as {
+    activeOnly?: boolean;
+    cooldownSeconds?: number;
+  };
 
-  if (config.activeOnly && trigger.payload && typeof trigger.payload === "object" && "active" in trigger.payload && (trigger.payload as { active?: unknown }).active === false) {
-    throw Object.assign(new Error("Workflow trigger ignored because the event is inactive"), { code: "WORKFLOW_EVENT_INACTIVE" });
+  if (
+    config.activeOnly &&
+    trigger.payload &&
+    typeof trigger.payload === "object" &&
+    "active" in trigger.payload &&
+    (trigger.payload as { active?: unknown }).active === false
+  ) {
+    throw Object.assign(new Error("Workflow trigger ignored because the event is inactive"), {
+      code: "WORKFLOW_EVENT_INACTIVE",
+    });
   }
 
   const cooldownSeconds = Number(config.cooldownSeconds ?? 0);
@@ -258,18 +383,72 @@ function enforceEventStartLimits(workflow: AutomationWorkflowRecord, block: Auto
   if (!Number.isFinite(cooldownSeconds) || cooldownSeconds <= 0 || !lastAcceptedAt) return;
   const nextAllowedAt = new Date(lastAcceptedAt + cooldownSeconds * 1000);
   if (Date.now() < nextAllowedAt.getTime()) {
-    throw Object.assign(new Error(`Workflow trigger ignored because cooldown is active until ${nextAllowedAt.toISOString()}`), { code: "WORKFLOW_COOLDOWN_ACTIVE", cooldownUntil: nextAllowedAt.toISOString() });
+    throw Object.assign(
+      new Error(
+        `Workflow trigger ignored because cooldown is active until ${nextAllowedAt.toISOString()}`,
+      ),
+      { code: "WORKFLOW_COOLDOWN_ACTIVE", cooldownUntil: nextAllowedAt.toISOString() },
+    );
   }
 }
 
-function markEventWorkflowAccepted(workflowId: string, block: AutomationBlockRecord, trigger: WorkflowContext["trigger"]) {
-  if (trigger.type === "manual" || trigger.type === "schedule" || !block.type.endsWith("_event_start")) return;
+function markEventWorkflowAccepted(
+  workflowId: string,
+  block: AutomationBlockRecord,
+  trigger: WorkflowContext["trigger"],
+) {
+  if (
+    trigger.type === "manual" ||
+    trigger.type === "schedule" ||
+    !block.type.endsWith("_event_start")
+  )
+    return;
   eventWorkflowLastAcceptedAt.set(workflowId, Date.now());
 }
 
-async function executeBlock(workflow: AutomationWorkflowRecord, block: AutomationBlockRecord, context: WorkflowContext, runId: string) {
-  const config = JSON.parse(block.config_json) as { sourceId?: string; targetId?: string; action?: string; durationMs?: number; bodyMode?: OutputBodyMode; bodyTemplate?: unknown; bodyTemplateText?: string; multipartFileField?: string; multipartJsonField?: string; multipartJsonText?: string; variableName?: string; variableSource?: VariableSource; valueJsonText?: string; source?: "trigger" | "variable"; fieldPath?: string; operator?: FieldCondition["operator"]; value?: unknown; condition?: FieldCondition | null; recipientAddressBookId?: string; tokenId?: string; amount?: string; title?: string; previewFormat?: PreviewFormat; contentMode?: PreviewContentMode; contentTemplateText?: string; imageSource?: PreviewImageSource };
-  const blockRun = createAutomationBlockRun({ runId, workflowId: workflow.id, blockId: block.id, orderIndex: block.order_index, blockType: block.type, blockLabel: blockLabel(block.type), input: contextSummary(context) });
+async function executeBlock(
+  workflow: AutomationWorkflowRecord,
+  block: AutomationBlockRecord,
+  context: WorkflowContext,
+  runId: string,
+) {
+  const config = JSON.parse(block.config_json) as {
+    sourceId?: string;
+    targetId?: string;
+    action?: string;
+    durationMs?: number;
+    bodyMode?: OutputBodyMode;
+    bodyTemplate?: unknown;
+    bodyTemplateText?: string;
+    multipartFileField?: string;
+    multipartJsonField?: string;
+    multipartJsonText?: string;
+    variableName?: string;
+    variableSource?: VariableSource;
+    valueJsonText?: string;
+    source?: "trigger" | "variable";
+    fieldPath?: string;
+    operator?: FieldCondition["operator"];
+    value?: unknown;
+    condition?: FieldCondition | null;
+    recipientAddressBookId?: string;
+    tokenId?: string;
+    amount?: string;
+    title?: string;
+    previewFormat?: PreviewFormat;
+    contentMode?: PreviewContentMode;
+    contentTemplateText?: string;
+    imageSource?: PreviewImageSource;
+  };
+  const blockRun = createAutomationBlockRun({
+    runId,
+    workflowId: workflow.id,
+    blockId: block.id,
+    orderIndex: block.order_index,
+    blockType: block.type,
+    blockLabel: blockLabel(block.type),
+    input: contextSummary(context),
+  });
 
   try {
     let status: "success" | "skipped" = "success";
@@ -279,13 +458,15 @@ async function executeBlock(workflow: AutomationWorkflowRecord, block: Automatio
       return;
     }
     if (block.type === "record_trigger_event") await recordTriggerEvent(workflow, block, context);
-    else if (block.type === "fetch_data_source") await fetchDataSource(workflow, block, context, String(config.sourceId ?? ""));
+    else if (block.type === "fetch_data_source")
+      await fetchDataSource(workflow, block, context, String(config.sourceId ?? ""));
     else if (block.type === "capture_camera") await captureCamera(workflow, block, context, config);
     else if (block.type === "set_variable") setVariable(config, context);
     else if (block.type === "if_payload_field_equals") checkPayloadFieldEquals(config, context);
     else if (block.type === "wait") await wait(Number(config.durationMs ?? 0));
     else if (block.type === "show_preview") showPreview(workflow, block, runId, config, context);
-    else if (block.type === "stamp_integritas") status = await stampLatestHash(workflow, context, config.condition ?? null);
+    else if (block.type === "stamp_integritas")
+      status = await stampLatestHash(workflow, context, config.condition ?? null);
     else if (block.type === "control_output") await controlOutput(config, context);
     else if (block.type === "send_transaction") await sendTransaction(config, context, workflow);
     else throw new Error(`Unsupported automation block: ${block.type}`);
@@ -293,80 +474,225 @@ async function executeBlock(workflow: AutomationWorkflowRecord, block: Automatio
     finishAutomationBlockRun(blockRun.id, { status, output: contextSummary(context) });
     return;
   } catch (error) {
-    const details = blockError({ type: blockErrorType(block.type, error), ...errorFromUnknown(error, "Block failed", { workflowId: workflow.id, blockId: block.id, blockType: block.type, blockLabel: blockLabel(block.type) }), message: friendlyBlockErrorMessage(block.type, error) });
+    const details = blockError({
+      type: blockErrorType(block.type, error),
+      ...errorFromUnknown(error, "Block failed", {
+        workflowId: workflow.id,
+        blockId: block.id,
+        blockType: block.type,
+        blockLabel: blockLabel(block.type),
+      }),
+      message: friendlyBlockErrorMessage(block.type, error),
+    });
     updateAutomationBlockRun(block.id, { error: details });
-    finishAutomationBlockRun(blockRun.id, { status: "failed", output: contextSummary(context), error: details });
+    finishAutomationBlockRun(blockRun.id, {
+      status: "failed",
+      output: contextSummary(context),
+      error: details,
+    });
     throw error;
   }
 }
 
 function blockErrorType(blockType: string, error: unknown) {
-  const code = error && typeof error === "object" && "code" in error ? (error as { code?: unknown }).code : undefined;
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? (error as { code?: unknown }).code
+      : undefined;
   if (code === "ENOENT") return "command_unavailable";
   if (blockType === "stamp_integritas") return "stamp_failed";
   if (blockType === "if_payload_field_equals") return "condition_failed";
-  if (blockType === "capture_camera" || blockType === "show_preview" || blockType === "control_output" || blockType === "send_transaction") return "action_failed";
+  if (
+    blockType === "capture_camera" ||
+    blockType === "show_preview" ||
+    blockType === "control_output" ||
+    blockType === "send_transaction"
+  )
+    return "action_failed";
   return "block_failed";
 }
 
 function friendlyBlockErrorMessage(blockType: string, error: unknown) {
-  const code = error && typeof error === "object" && "code" in error ? (error as { code?: unknown }).code : undefined;
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? (error as { code?: unknown }).code
+      : undefined;
   if (blockType === "capture_camera" && code === "ENOENT") return "Camera command is not available";
   return error instanceof Error ? error.message : "Block failed";
 }
 
-function recordTriggerEvent(workflow: AutomationWorkflowRecord, block: AutomationBlockRecord, context: WorkflowContext) {
-  if (!context.trigger.sourceId) throw new Error("Trigger source is required to record event payload");
+function recordTriggerEvent(
+  workflow: AutomationWorkflowRecord,
+  block: AutomationBlockRecord,
+  context: WorkflowContext,
+) {
+  if (!context.trigger.sourceId)
+    throw new Error("Trigger source is required to record event payload");
   const source = getDataSource(context.trigger.sourceId);
   if (!source) throw new Error("Trigger data source not found");
   const payload = context.trigger.payload ?? {};
   const result = hashPayload(payload);
-  const read = createDataSourceRead({ dataSourceId: source.id, workflowId: workflow.id, sourceName: source.name, sourceUrl: sourceUrlForRecord(source), triggerType: context.trigger.type, status: "success", hash: result.bytesHash, preview: result.preview, triggerSourceId: source.id, triggerPayload: payload, blockId: block.id });
+  const read = createDataSourceRead({
+    dataSourceId: source.id,
+    workflowId: workflow.id,
+    sourceName: source.name,
+    sourceUrl: sourceUrlForRecord(source),
+    triggerType: context.trigger.type,
+    status: "success",
+    hash: result.bytesHash,
+    preview: result.preview,
+    triggerSourceId: source.id,
+    triggerPayload: payload,
+    blockId: block.id,
+  });
   updateDataSourceReadResult(source.id, { hash: result.bytesHash, preview: result.preview });
-  context.data = { sourceId: source.id, sourceName: source.name, sourceUrl: sourceUrlForRecord(source), result, readId: read.id };
+  context.data = {
+    sourceId: source.id,
+    sourceName: source.name,
+    sourceUrl: sourceUrlForRecord(source),
+    result,
+    readId: read.id,
+  };
   context.hash = result.bytesHash;
 }
 
-async function fetchDataSource(workflow: AutomationWorkflowRecord, block: AutomationBlockRecord, context: WorkflowContext, sourceId: string) {
+async function fetchDataSource(
+  workflow: AutomationWorkflowRecord,
+  block: AutomationBlockRecord,
+  context: WorkflowContext,
+  sourceId: string,
+) {
   const source = getDataSource(sourceId);
   if (!source) throw new Error("Data source not found");
-  if (source.type === "webhook" || source.type === "mqtt" || source.type === "gpio-input" || source.type === "gpio-output" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output") throw new Error("Fetch data source block requires an HTTP JSON data source");
-  const config = parseJsonApiConfig(JSON.parse(source.config) as unknown);
+  if (!isReadableDataSource(source.type))
+    throw new Error("Fetch data source block requires a readable data source");
+  const sourceUrl = sourceUrlForRecord(source);
   try {
-    const result = await readJsonApiSource(config);
-    const read = createDataSourceRead({ dataSourceId: source.id, workflowId: workflow.id, sourceName: source.name, sourceUrl: config.url, triggerType: context.trigger.type === "manual" ? "manual" : context.trigger.type === "schedule" ? "schedule" : context.trigger.type, status: "success", hash: result.bytesHash, preview: result.preview, triggerSourceId: context.trigger.sourceId ?? null, triggerPayload: context.trigger.payload, blockId: block.id });
+    const result =
+      source.type === "bme-sensor"
+        ? await readBmeSensorSource(parseBmeSensorConfig(JSON.parse(source.config) as unknown))
+        : await readJsonApiSource(parseJsonApiConfig(JSON.parse(source.config) as unknown));
+    const read = createDataSourceRead({
+      dataSourceId: source.id,
+      workflowId: workflow.id,
+      sourceName: source.name,
+      sourceUrl,
+      triggerType:
+        context.trigger.type === "manual"
+          ? "manual"
+          : context.trigger.type === "schedule"
+            ? "schedule"
+            : context.trigger.type,
+      status: "success",
+      hash: result.bytesHash,
+      preview: result.preview,
+      triggerSourceId: context.trigger.sourceId ?? null,
+      triggerPayload: context.trigger.payload,
+      blockId: block.id,
+    });
     updateDataSourceReadResult(source.id, { hash: result.bytesHash, preview: result.preview });
-    context.data = { sourceId: source.id, sourceName: source.name, sourceUrl: config.url, result, readId: read.id };
+    context.data = {
+      sourceId: source.id,
+      sourceName: source.name,
+      sourceUrl,
+      result,
+      readId: read.id,
+    };
     context.hash = result.bytesHash;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch data source";
     updateDataSourceReadResult(source.id, { error: message });
-    createDataSourceRead({ dataSourceId: source.id, workflowId: workflow.id, sourceName: source.name, sourceUrl: config.url, triggerType: context.trigger.type === "manual" ? "manual" : context.trigger.type === "schedule" ? "schedule" : context.trigger.type, status: "failed", error: message, triggerSourceId: context.trigger.sourceId ?? null, triggerPayload: context.trigger.payload, blockId: block.id });
+    createDataSourceRead({
+      dataSourceId: source.id,
+      workflowId: workflow.id,
+      sourceName: source.name,
+      sourceUrl,
+      triggerType:
+        context.trigger.type === "manual"
+          ? "manual"
+          : context.trigger.type === "schedule"
+            ? "schedule"
+            : context.trigger.type,
+      status: "failed",
+      error: message,
+      triggerSourceId: context.trigger.sourceId ?? null,
+      triggerPayload: context.trigger.payload,
+      blockId: block.id,
+    });
     throw error;
   }
 }
 
-async function captureCamera(workflow: AutomationWorkflowRecord, block: AutomationBlockRecord, context: WorkflowContext, config: { sourceId?: string; durationMs?: number }) {
+async function captureCamera(
+  workflow: AutomationWorkflowRecord,
+  block: AutomationBlockRecord,
+  context: WorkflowContext,
+  config: { sourceId?: string; durationMs?: number },
+) {
   const sourceId = String(config.sourceId ?? "");
   const source = getDataSource(sourceId);
   if (!source) throw new Error("Camera device not found");
-  if (source.type !== "pi-camera") throw new Error("Capture camera block requires a Pi Camera device");
+  if (source.type !== "pi-camera")
+    throw new Error("Capture camera block requires a Pi Camera device");
 
   try {
     const result = await capturePiCamera({ sourceId, durationMs: config.durationMs });
-    const read = createDataSourceRead({ dataSourceId: source.id, workflowId: workflow.id, sourceName: source.name, sourceUrl: sourceUrlForRecord(source), triggerType: context.trigger.type === "manual" ? "manual" : context.trigger.type === "schedule" ? "schedule" : context.trigger.type, status: "success", hash: result.bytesHash, preview: result.preview, triggerSourceId: context.trigger.sourceId ?? null, triggerPayload: context.trigger.payload, blockId: block.id });
+    const read = createDataSourceRead({
+      dataSourceId: source.id,
+      workflowId: workflow.id,
+      sourceName: source.name,
+      sourceUrl: sourceUrlForRecord(source),
+      triggerType:
+        context.trigger.type === "manual"
+          ? "manual"
+          : context.trigger.type === "schedule"
+            ? "schedule"
+            : context.trigger.type,
+      status: "success",
+      hash: result.bytesHash,
+      preview: result.preview,
+      triggerSourceId: context.trigger.sourceId ?? null,
+      triggerPayload: context.trigger.payload,
+      blockId: block.id,
+    });
     updateDataSourceReadResult(source.id, { hash: result.bytesHash, preview: result.preview });
-    context.data = { sourceId: source.id, sourceName: source.name, sourceUrl: sourceUrlForRecord(source), result, readId: read.id };
+    context.data = {
+      sourceId: source.id,
+      sourceName: source.name,
+      sourceUrl: sourceUrlForRecord(source),
+      result,
+      readId: read.id,
+    };
     context.hash = result.bytesHash;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to capture camera";
     updateDataSourceReadResult(source.id, { error: message });
-    createDataSourceRead({ dataSourceId: source.id, workflowId: workflow.id, sourceName: source.name, sourceUrl: sourceUrlForRecord(source), triggerType: context.trigger.type === "manual" ? "manual" : context.trigger.type === "schedule" ? "schedule" : context.trigger.type, status: "failed", error: message, triggerSourceId: context.trigger.sourceId ?? null, triggerPayload: context.trigger.payload, blockId: block.id });
+    createDataSourceRead({
+      dataSourceId: source.id,
+      workflowId: workflow.id,
+      sourceName: source.name,
+      sourceUrl: sourceUrlForRecord(source),
+      triggerType:
+        context.trigger.type === "manual"
+          ? "manual"
+          : context.trigger.type === "schedule"
+            ? "schedule"
+            : context.trigger.type,
+      status: "failed",
+      error: message,
+      triggerSourceId: context.trigger.sourceId ?? null,
+      triggerPayload: context.trigger.payload,
+      blockId: block.id,
+    });
     throw error;
   }
 }
 
-async function stampLatestHash(workflow: AutomationWorkflowRecord, context: WorkflowContext, condition: FieldCondition | null): Promise<"success" | "skipped"> {
+async function stampLatestHash(
+  workflow: AutomationWorkflowRecord,
+  context: WorkflowContext,
+  condition: FieldCondition | null,
+): Promise<"success" | "skipped"> {
   if (!context.hash || !context.data) throw new Error("No collected hash is available to stamp");
   if (condition) {
     const result = evaluateCondition(context, { ...condition, source: condition.source ?? "data" });
@@ -380,10 +706,25 @@ async function stampLatestHash(workflow: AutomationWorkflowRecord, context: Work
   const stamp = await requestProofUid({ apiKey, hash: context.hash });
   if (!stamp.ok) throw new Error(formatIntegritasStampError(stamp));
 
-  const proof = createProofRecord({ fileName: `Automation: ${context.data.sourceName}`, fileSize: context.data.result.sizeBytes ?? Buffer.byteLength(context.data.result.canonicalBytes, "utf8"), hash: context.hash, proofUid: stamp.proofUid, proofStatus: "pending" });
+  const proof = createProofRecord({
+    fileName: `Automation: ${context.data.sourceName}`,
+    fileSize:
+      context.data.result.sizeBytes ??
+      Buffer.byteLength(context.data.result.canonicalBytes, "utf8"),
+    hash: context.hash,
+    proofUid: stamp.proofUid,
+    proofStatus: "pending",
+  });
   context.proofId = proof.id;
   if (context.data.readId) linkDataSourceReadProof(context.data.readId, proof.id);
-  context.output = { condition: condition ? evaluateCondition(context, { ...condition, source: condition.source ?? "data" }) : null, action: "stamped", proofId: proof.id, proofUid: stamp.proofUid };
+  context.output = {
+    condition: condition
+      ? evaluateCondition(context, { ...condition, source: condition.source ?? "data" })
+      : null,
+    action: "stamped",
+    proofId: proof.id,
+    proofUid: stamp.proofUid,
+  };
   return "success";
 }
 
@@ -393,30 +734,68 @@ function hashPayload(payload: unknown): ReadResult {
 }
 
 function wait(durationMs: number) {
-  if (!Number.isFinite(durationMs) || durationMs < 0 || durationMs > 60000) throw new Error("Wait duration must be between 0 and 60000 ms");
+  if (!Number.isFinite(durationMs) || durationMs < 0 || durationMs > 60000)
+    throw new Error("Wait duration must be between 0 and 60000 ms");
   return new Promise((resolve) => setTimeout(resolve, durationMs));
 }
 
-function showPreview(workflow: AutomationWorkflowRecord, block: AutomationBlockRecord, runId: string, config: { title?: string; previewFormat?: PreviewFormat; contentMode?: PreviewContentMode; contentTemplateText?: string; imageSource?: PreviewImageSource }, context: WorkflowContext) {
+function showPreview(
+  workflow: AutomationWorkflowRecord,
+  block: AutomationBlockRecord,
+  runId: string,
+  config: {
+    title?: string;
+    previewFormat?: PreviewFormat;
+    contentMode?: PreviewContentMode;
+    contentTemplateText?: string;
+    imageSource?: PreviewImageSource;
+  },
+  context: WorkflowContext,
+) {
   const format = config.previewFormat ?? "text";
-  const title = truncateText(interpolatePreviewText(config.title || "Workflow preview", context.variables), 120);
+  const title = truncateText(
+    interpolatePreviewText(config.title || "Workflow preview", context.variables),
+    120,
+  );
   const content = resolvePreviewContent(config, context, format);
   const renderedText = previewRenderedText(format, content);
-  const item = createAutomationInboxItem({ workflowId: workflow.id, workflowName: workflow.name, runId, blockId: block.id, title, format, content, renderedText });
+  const item = createAutomationInboxItem({
+    workflowId: workflow.id,
+    workflowName: workflow.name,
+    runId,
+    blockId: block.id,
+    title,
+    format,
+    content,
+    renderedText,
+  });
   context.output = { action: "show_preview", inboxItemId: item.id, title, format };
 }
 
-function resolvePreviewContent(config: { previewFormat?: PreviewFormat; contentMode?: PreviewContentMode; contentTemplateText?: string; imageSource?: PreviewImageSource }, context: WorkflowContext, format: PreviewFormat) {
+function resolvePreviewContent(
+  config: {
+    previewFormat?: PreviewFormat;
+    contentMode?: PreviewContentMode;
+    contentTemplateText?: string;
+    imageSource?: PreviewImageSource;
+  },
+  context: WorkflowContext,
+  format: PreviewFormat,
+) {
   const mode = config.contentMode ?? "custom";
   if (mode === "workflow_context") return contextSummary(context);
   if (mode === "trigger_payload") return context.trigger.payload ?? null;
   if (mode === "latest_data") {
-    if (!context.data) throw new Error("Show preview latest data mode requires a prior record/fetch block");
+    if (!context.data)
+      throw new Error("Show preview latest data mode requires a prior record/fetch block");
     if (format === "image") return imageContentFromLatestData(context.data.result.preview);
     return context.data.result.preview;
   }
 
-  const text = interpolatePreviewText(config.contentTemplateText ?? defaultPreviewContent(format), context.variables);
+  const text = interpolatePreviewText(
+    config.contentTemplateText ?? defaultPreviewContent(format),
+    context.variables,
+  );
   if (format === "json") return JSON.parse(text) as unknown;
   if (format === "link") return validateHttpUrl(text, "Link preview");
   if (format === "image") return validateImageContent(text, config.imageSource ?? "url");
@@ -431,10 +810,13 @@ function validateImageContent(value: string, source: PreviewImageSource) {
 }
 
 function imageContentFromLatestData(value: unknown) {
-  if (!value || typeof value !== "object") throw new Error("Latest data does not include image preview metadata");
+  if (!value || typeof value !== "object")
+    throw new Error("Latest data does not include image preview metadata");
   const record = value as { source?: unknown; path?: unknown; mediaType?: unknown };
-  if (record.source !== "pi-camera-helper" || typeof record.path !== "string") throw new Error("Latest data is not a Pi Camera image capture");
-  if (typeof record.mediaType === "string" && !record.mediaType.startsWith("image/")) throw new Error("Latest camera capture is not an image");
+  if (record.source !== "pi-camera-helper" || typeof record.path !== "string")
+    throw new Error("Latest data is not a Pi Camera image capture");
+  if (typeof record.mediaType === "string" && !record.mediaType.startsWith("image/"))
+    throw new Error("Latest camera capture is not an image");
   return { source: "local_path" as const, value: record.path };
 }
 
@@ -451,7 +833,8 @@ function validateHttpUrl(value: string, label: string) {
   } catch {
     throw new Error(`${label} requires an http:// or https:// URL`);
   }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error(`${label} requires an http:// or https:// URL`);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+    throw new Error(`${label} requires an http:// or https:// URL`);
   return trimmed;
 }
 
@@ -463,12 +846,22 @@ function defaultPreviewContent(format: PreviewFormat) {
 }
 
 function previewRenderedText(format: PreviewFormat, content: unknown) {
-  if (format === "text" || format === "link") return truncateText(String(content ?? ""), 240);
-  if (format === "image" && isImagePreviewContent(content)) return truncateText(`${content.source}: ${content.value}`, 240);
+  if (format === "text") return truncateText(previewTextContent(content), 240);
+  if (format === "link") return truncateText(String(content ?? ""), 240);
+  if (format === "image" && isImagePreviewContent(content))
+    return truncateText(`${content.source}: ${content.value}`, 240);
   return truncateText(JSON.stringify(content), 240);
 }
 
-function isImagePreviewContent(value: unknown): value is { source: PreviewImageSource; value: string } {
+function previewTextContent(content: unknown) {
+  if (typeof content === "string") return content;
+  if (content == null) return "";
+  return JSON.stringify(content, null, 2);
+}
+
+function isImagePreviewContent(
+  value: unknown,
+): value is { source: PreviewImageSource; value: string } {
   return Boolean(value && typeof value === "object" && "source" in value && "value" in value);
 }
 
@@ -476,19 +869,37 @@ function truncateText(value: string, maxLength: number) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
 }
 
-function nextScheduleRunAt(block: AutomationBlockRecord) {
+function nextScheduleRunAt(block: AutomationBlockRecord, previousNextRunAt: string | null) {
   const config = JSON.parse(block.config_json) as { intervalSeconds?: number };
   const intervalSeconds = Number(config.intervalSeconds ?? 0);
-  return intervalSeconds > 0 ? new Date(Date.now() + intervalSeconds * 1000).toISOString() : null;
+  if (intervalSeconds <= 0) return null;
+
+  const intervalMs = intervalSeconds * 1000;
+  const now = Date.now();
+  let next = previousNextRunAt
+    ? new Date(previousNextRunAt).getTime() + intervalMs
+    : now + intervalMs;
+  if (!Number.isFinite(next)) next = now + intervalMs;
+  while (next <= now) next += intervalMs;
+  return new Date(next).toISOString();
 }
 
 function sourceUrlForRecord(source: { type: string; config: string }) {
   const config = JSON.parse(source.config) as Record<string, unknown>;
-  if (source.type === "gpio-input") return config.profile === "pir-motion" ? `PIR motion ${config.chip ?? "gpiochip0"} GPIO${config.pin ?? "?"}` : `${config.chip ?? "gpiochip0"} GPIO${config.pin ?? "?"}`;
+  if (source.type === "gpio-input")
+    return config.profile === "pir-motion"
+      ? `PIR motion ${config.chip ?? "gpiochip0"} GPIO${config.pin ?? "?"}`
+      : `${config.chip ?? "gpiochip0"} GPIO${config.pin ?? "?"}`;
   if (source.type === "mqtt") return `${config.brokerUrl ?? "MQTT"} ${config.topic ?? ""}`;
   if (source.type === "webhook") return `/api/data-source-webhooks/${config.webhookToken ?? ""}`;
   if (source.type === "pi-camera") return `pi-camera:${config.mode ?? "photo"}`;
+  if (source.type === "bme-sensor")
+    return `${config.sensor ?? "bme280"}:i2c-${config.bus ?? 1}:${config.address ?? "0x76"}`;
   return String(config.url ?? "data source");
+}
+
+function isReadableDataSource(type: string) {
+  return type === "json-api" || type === "internal-json-api" || type === "bme-sensor";
 }
 
 function blockLabel(type: string) {
@@ -513,19 +924,45 @@ function checkPayloadFieldEquals(config: WorkflowCondition, context: WorkflowCon
 
 function evaluateWorkflowCondition(context: WorkflowContext, condition: WorkflowCondition) {
   const source = condition.source ?? "trigger";
-  const actual = source === "variable" ? context.variables[String(condition.variableName ?? "")] : getPathValue(context.trigger.payload, String(condition.fieldPath ?? ""));
+  const actual =
+    source === "variable"
+      ? context.variables[String(condition.variableName ?? "")]
+      : getPathValue(context.trigger.payload, String(condition.fieldPath ?? ""));
   const matched = evaluateOperator(actual, condition.operator!, condition.value);
-  return { source, fieldPath: condition.fieldPath, variableName: condition.variableName, operator: condition.operator, expected: condition.value, actual, matched };
+  return {
+    source,
+    fieldPath: condition.fieldPath,
+    variableName: condition.variableName,
+    operator: condition.operator,
+    expected: condition.value,
+    actual,
+    matched,
+  };
 }
 
-function evaluateCondition(context: WorkflowContext, condition: FieldCondition & { source: "trigger" | "data" }) {
-  const source = condition.source === "data" ? context.data?.result.preview : context.trigger.payload;
+function evaluateCondition(
+  context: WorkflowContext,
+  condition: FieldCondition & { source: "trigger" | "data" },
+) {
+  const source =
+    condition.source === "data" ? context.data?.result.preview : context.trigger.payload;
   const actual = getPathValue(source, condition.fieldPath);
   const matched = evaluateOperator(actual, condition.operator, condition.value);
-  return { source: condition.source, fieldPath: condition.fieldPath, operator: condition.operator, expected: condition.value, actual, matched };
+  return {
+    source: condition.source,
+    fieldPath: condition.fieldPath,
+    operator: condition.operator,
+    expected: condition.value,
+    actual,
+    matched,
+  };
 }
 
-function evaluateOperator(actual: unknown, operator: FieldCondition["operator"], expected: unknown) {
+function evaluateOperator(
+  actual: unknown,
+  operator: FieldCondition["operator"],
+  expected: unknown,
+) {
   if (operator === "exists") return actual !== undefined;
   if (operator === "does_not_exist") return actual === undefined;
   if (operator === "equals") return deepEqualJson(actual, expected);
@@ -542,7 +979,12 @@ function evaluateOperator(actual: unknown, operator: FieldCondition["operator"],
 function getPathValue(value: unknown, path: string) {
   let current = value;
   for (const part of path.split(".")) {
-    if (current === null || typeof current !== "object" || !Object.prototype.hasOwnProperty.call(current, part)) return undefined;
+    if (
+      current === null ||
+      typeof current !== "object" ||
+      !Object.prototype.hasOwnProperty.call(current, part)
+    )
+      return undefined;
     current = (current as Record<string, unknown>)[part];
   }
   return current;
@@ -552,17 +994,38 @@ function deepEqualJson(left: unknown, right: unknown) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function setVariable(config: { variableName?: string; variableSource?: VariableSource; valueJsonText?: string; fieldPath?: string }, context: WorkflowContext) {
+function setVariable(
+  config: {
+    variableName?: string;
+    variableSource?: VariableSource;
+    valueJsonText?: string;
+    fieldPath?: string;
+  },
+  context: WorkflowContext,
+) {
   const name = String(config.variableName ?? "").trim();
   if (!isVariableName(name)) throw new Error("Set variable requires a valid variable name");
   const source = config.variableSource ?? "custom_json";
-  const value = source === "custom_json"
-    ? parseVariableJson(config.valueJsonText ?? "null")
-    : source === "trigger_field"
-      ? getRequiredPathValue(context.trigger.payload, String(config.fieldPath ?? ""), "Trigger field")
-      : source === "latest_data_field"
-        ? getRequiredPathValue(context.data?.result.preview, String(config.fieldPath ?? ""), "Latest data field")
-        : getRequiredPathValue(contextSummary(context), String(config.fieldPath ?? ""), "Workflow context field");
+  const value =
+    source === "custom_json"
+      ? parseVariableJson(config.valueJsonText ?? "null")
+      : source === "trigger_field"
+        ? getRequiredPathValue(
+            context.trigger.payload,
+            String(config.fieldPath ?? ""),
+            "Trigger field",
+          )
+        : source === "latest_data_field"
+          ? getRequiredPathValue(
+              context.data?.result.preview,
+              String(config.fieldPath ?? ""),
+              "Latest data field",
+            )
+          : getRequiredPathValue(
+              contextSummary(context),
+              String(config.fieldPath ?? ""),
+              "Workflow context field",
+            );
   context.variables[name] = value;
   context.output = { action: "set_variable", name, value };
 }
@@ -582,17 +1045,37 @@ function getRequiredPathValue(value: unknown, path: string, label: string) {
   return result;
 }
 
-async function controlOutput(config: { targetId?: string; action?: string; durationMs?: number; bodyMode?: OutputBodyMode; bodyTemplate?: unknown; bodyTemplateText?: string; multipartFileField?: string; multipartJsonField?: string; multipartJsonText?: string }, context: WorkflowContext) {
+async function controlOutput(
+  config: {
+    targetId?: string;
+    action?: string;
+    durationMs?: number;
+    bodyMode?: OutputBodyMode;
+    bodyTemplate?: unknown;
+    bodyTemplateText?: string;
+    multipartFileField?: string;
+    multipartJsonField?: string;
+    multipartJsonText?: string;
+  },
+  context: WorkflowContext,
+) {
   if (!config.targetId) throw new Error("Control output block requires a targetId");
   const target = getDataSource(config.targetId);
   if (!target) throw new Error("Control output target was not found");
 
   let result: unknown = null;
   if (target.type === "gpio-output") {
-    result = await pulseGpioOutput({ targetId: config.targetId, durationMs: Number(config.durationMs ?? 0) });
+    result = await pulseGpioOutput({
+      targetId: config.targetId,
+      durationMs: Number(config.durationMs ?? 0),
+    });
   } else if (target.type === "http-output") {
     const httpConfig = parseHttpOutputConfig(JSON.parse(target.config) as unknown);
-    if (config.bodyMode === "multipart_media") result = await sendMultipartMediaOutput(httpConfig, await multipartMediaPayload(config, context));
+    if (config.bodyMode === "multipart_media")
+      result = await sendMultipartMediaOutput(
+        httpConfig,
+        await multipartMediaPayload(config, context),
+      );
     else {
       const payload = await outputPayload(config, context);
       result = await sendHttpOutput(httpConfig, payload.body, payload.hasBody);
@@ -607,26 +1090,43 @@ async function controlOutput(config: { targetId?: string; action?: string; durat
   return result;
 }
 
-async function outputPayload(config: { bodyMode?: OutputBodyMode; bodyTemplate?: unknown; bodyTemplateText?: string }, context: WorkflowContext) {
+async function outputPayload(
+  config: { bodyMode?: OutputBodyMode; bodyTemplate?: unknown; bodyTemplateText?: string },
+  context: WorkflowContext,
+) {
   const mode = config.bodyMode ?? "workflow_context";
   if (mode === "none") return { body: undefined, hasBody: false };
-  if (mode === "custom") return { body: interpolateValue(parseCustomBody(config), context.variables), hasBody: true };
+  if (mode === "custom")
+    return { body: interpolateValue(parseCustomBody(config), context.variables), hasBody: true };
   if (mode === "trigger_payload") return { body: context.trigger.payload ?? {}, hasBody: true };
   if (mode === "latest_data") {
-    if (!context.data) throw new Error("No recorded or fetched data is available for this output body");
+    if (!context.data)
+      throw new Error("No recorded or fetched data is available for this output body");
     return { body: context.data.result.preview, hasBody: true };
   }
   if (mode === "latest_data_with_media") {
-    if (!context.data) throw new Error("No recorded or fetched data is available for this output body");
+    if (!context.data)
+      throw new Error("No recorded or fetched data is available for this output body");
     return { body: await mediaPayload(context.data.result), hasBody: true };
   }
   return { body: contextSummary(context), hasBody: true };
 }
 
-async function multipartMediaPayload(config: { multipartFileField?: string; multipartJsonField?: string; multipartJsonText?: string }, context: WorkflowContext) {
+async function multipartMediaPayload(
+  config: { multipartFileField?: string; multipartJsonField?: string; multipartJsonText?: string },
+  context: WorkflowContext,
+) {
   if (!context.data) throw new Error("No camera capture is available for multipart media upload");
   const media = await capturedMedia(context.data.result);
-  const templateValues = { ...context.variables, hash: media.sha3, readId: context.data.readId, sourceName: context.data.sourceName, fileName: media.fileName, mediaType: media.mediaType, sizeBytes: media.sizeBytes };
+  const templateValues = {
+    ...context.variables,
+    hash: media.sha3,
+    readId: context.data.readId,
+    sourceName: context.data.sourceName,
+    fileName: media.fileName,
+    mediaType: media.mediaType,
+    sizeBytes: media.sizeBytes,
+  };
   const jsonFieldName = String(config.multipartJsonField ?? "").trim() || undefined;
   return {
     fileFieldName: String(config.multipartFileField ?? "file").trim() || "file",
@@ -634,12 +1134,30 @@ async function multipartMediaPayload(config: { multipartFileField?: string; mult
     mediaType: media.mediaType,
     bytes: media.bytes,
     jsonFieldName,
-    jsonPayload: jsonFieldName ? interpolateValue(parseMultipartJson(config.multipartJsonText, context, media), templateValues) : undefined
+    jsonPayload: jsonFieldName
+      ? interpolateValue(
+          parseMultipartJson(config.multipartJsonText, context, media),
+          templateValues,
+        )
+      : undefined,
   };
 }
 
-function parseMultipartJson(text: string | undefined, context: WorkflowContext, media: { fileName: string; mediaType: string; sizeBytes: number; sha3: string }) {
-  if (!text?.trim()) return { data: contextSummary(context), media: { fileName: media.fileName, mediaType: media.mediaType, sizeBytes: media.sizeBytes, sha3: media.sha3 } };
+function parseMultipartJson(
+  text: string | undefined,
+  context: WorkflowContext,
+  media: { fileName: string; mediaType: string; sizeBytes: number; sha3: string },
+) {
+  if (!text?.trim())
+    return {
+      data: contextSummary(context),
+      media: {
+        fileName: media.fileName,
+        mediaType: media.mediaType,
+        sizeBytes: media.sizeBytes,
+        sha3: media.sha3,
+      },
+    };
   try {
     return JSON.parse(text) as unknown;
   } catch {
@@ -656,51 +1174,70 @@ async function mediaPayload(result: ReadResult) {
       mediaType: media.mediaType,
       sizeBytes: media.sizeBytes,
       sha3: media.sha3,
-      base64: media.bytes.toString("base64")
+      base64: media.bytes.toString("base64"),
     },
-    capture: result.preview
+    capture: result.preview,
   };
 }
 
 async function capturedMedia(result: ReadResult) {
   const preview = result.preview;
-  if (!preview || typeof preview !== "object") throw new Error("Latest data does not include captured media metadata");
-  const record = preview as { source?: unknown; path?: unknown; mediaType?: unknown; fileName?: unknown; sizeBytes?: unknown; sha3?: unknown };
-  if (record.source !== "pi-camera-helper" || typeof record.path !== "string") throw new Error("Latest data is not a Pi Camera capture");
+  if (!preview || typeof preview !== "object")
+    throw new Error("Latest data does not include captured media metadata");
+  const record = preview as {
+    source?: unknown;
+    path?: unknown;
+    mediaType?: unknown;
+    fileName?: unknown;
+    sizeBytes?: unknown;
+    sha3?: unknown;
+  };
+  if (record.source !== "pi-camera-helper" || typeof record.path !== "string")
+    throw new Error("Latest data is not a Pi Camera capture");
 
   const bytes = await fs.readFile(record.path);
   return {
     fileName: typeof record.fileName === "string" ? record.fileName : "camera-capture",
     path: record.path,
-    mediaType: typeof record.mediaType === "string" ? record.mediaType : result.contentType ?? "application/octet-stream",
+    mediaType:
+      typeof record.mediaType === "string"
+        ? record.mediaType
+        : (result.contentType ?? "application/octet-stream"),
     sizeBytes: typeof record.sizeBytes === "number" ? record.sizeBytes : bytes.length,
     sha3: typeof record.sha3 === "string" ? record.sha3 : result.bytesHash,
-    bytes
+    bytes,
   };
 }
 
 function interpolateValue(value: unknown, variables: Record<string, unknown>): unknown {
   if (typeof value === "string") return interpolateString(value, variables);
   if (Array.isArray(value)) return value.map((item) => interpolateValue(item, variables));
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, interpolateValue(item, variables)]));
+  if (value && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, interpolateValue(item, variables)]),
+    );
   return value;
 }
 
 function interpolateString(value: string, variables: Record<string, unknown>) {
   const exact = value.match(/^\s*\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}\s*$/);
   if (exact) return variableValue(exact[1], variables);
-  return value.replace(/\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g, (_match, name: string) => stringifyTemplateValue(variableValue(name, variables)));
+  return value.replace(/\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g, (_match, name: string) =>
+    stringifyTemplateValue(variableValue(name, variables)),
+  );
 }
 
 function variableValue(name: string, variables: Record<string, unknown>) {
-  if (!Object.prototype.hasOwnProperty.call(variables, name)) throw new Error(`Output template references unknown variable: ${name}`);
+  if (!Object.prototype.hasOwnProperty.call(variables, name))
+    throw new Error(`Output template references unknown variable: ${name}`);
   return variables[name];
 }
 
 function stringifyTemplateValue(value: unknown) {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") return String(value);
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint")
+    return String(value);
   return JSON.stringify(value);
 }
 
@@ -719,19 +1256,30 @@ function parseCustomBody(config: { bodyTemplate?: unknown; bodyTemplateText?: st
   return config.bodyTemplate ?? {};
 }
 
-async function sendTransaction(config: { recipientAddressBookId?: string; tokenId?: string; amount?: string }, context: WorkflowContext, workflow: AutomationWorkflowRecord) {
-  const recipient = config.recipientAddressBookId ? getAddressBookEntryById(config.recipientAddressBookId) : null;
+async function sendTransaction(
+  config: { recipientAddressBookId?: string; tokenId?: string; amount?: string },
+  context: WorkflowContext,
+  workflow: AutomationWorkflowRecord,
+) {
+  const recipient = config.recipientAddressBookId
+    ? getAddressBookEntryById(config.recipientAddressBookId)
+    : null;
   if (!recipient) throw new Error("Send transaction recipient was not found in the address book");
 
   const tokenId = String(config.tokenId ?? "0x00").trim();
-  if (tokenId.toLowerCase() !== "0x00") throw new Error("Send transaction currently supports only native MINIMA tokenid 0x00");
+  if (tokenId.toLowerCase() !== "0x00")
+    throw new Error("Send transaction currently supports only native MINIMA tokenid 0x00");
   const amount = String(config.amount ?? "").trim();
-  if (!isPositiveDecimal(amount)) throw new Error("Send transaction amount must be a positive decimal");
+  if (!isPositiveDecimal(amount))
+    throw new Error("Send transaction amount must be a positive decimal");
 
   const wallet = await getWalletStatus();
-  const nativeToken = wallet.tokens.find((token) => token.tokenId.toLowerCase() === "0x00" || token.isNative);
+  const nativeToken = wallet.tokens.find(
+    (token) => token.tokenId.toLowerCase() === "0x00" || token.isNative,
+  );
   if (!nativeToken) throw new Error("Wallet does not report a native MINIMA balance");
-  if (compareDecimalStrings(amount, nativeToken.sendable) > 0) throw new Error(`Amount exceeds available balance (${nativeToken.sendable} MINIMA)`);
+  if (compareDecimalStrings(amount, nativeToken.sendable) > 0)
+    throw new Error(`Amount exceeds available balance (${nativeToken.sendable} MINIMA)`);
 
   const result = await sendPayment({ address: recipient.address, amount, tokenId: "0x00" });
   recordWalletSendHistory({
@@ -740,14 +1288,33 @@ async function sendTransaction(config: { recipientAddressBookId?: string; tokenI
     tokenName: "Minima",
     amount,
     txpowId: result.txpowId,
-    status: result.ok ? "submitted" : "failed"
+    status: result.ok ? "submitted" : "failed",
   });
   recordAuditEvent("automation.wallet.send", {
-    detail: JSON.stringify({ workflowId: workflow.id, workflowName: workflow.name, recipientId: recipient.id, recipientLabel: recipient.label, amount, tokenId: "0x00", txpowId: result.txpowId })
+    detail: JSON.stringify({
+      workflowId: workflow.id,
+      workflowName: workflow.name,
+      recipientId: recipient.id,
+      recipientLabel: recipient.label,
+      amount,
+      tokenId: "0x00",
+      txpowId: result.txpowId,
+    }),
   });
 
-  if (!result.ok || result.status === "failed") throw new Error(result.message ?? "Send transaction failed");
-  context.output = { action: "sent_transaction", recipientId: recipient.id, recipientLabel: recipient.label, address: recipient.address, tokenId: "0x00", tokenName: "Minima", amount, txpowId: result.txpowId, status: result.status };
+  if (!result.ok || result.status === "failed")
+    throw new Error(result.message ?? "Send transaction failed");
+  context.output = {
+    action: "sent_transaction",
+    recipientId: recipient.id,
+    recipientLabel: recipient.label,
+    address: recipient.address,
+    tokenId: "0x00",
+    tokenName: "Minima",
+    amount,
+    txpowId: result.txpowId,
+    status: result.status,
+  };
   return result;
 }
 
@@ -762,7 +1329,7 @@ function compareDecimalStrings(a: string, b: string) {
     const [intPart = "0", fracPart = ""] = trimmed.split(".");
     return {
       int: intPart.replace(/^0+(?=\d)/, "") || "0",
-      frac: fracPart
+      frac: fracPart,
     };
   };
   const aNorm = normalize(a);
@@ -777,29 +1344,46 @@ function compareDecimalStrings(a: string, b: string) {
 function contextSummary(context: WorkflowContext) {
   return {
     trigger: context.trigger,
-    data: context.data ? { sourceId: context.data.sourceId, sourceName: context.data.sourceName, sourceUrl: context.data.sourceUrl, hash: context.data.result.bytesHash, readId: context.data.readId } : null,
+    data: context.data
+      ? {
+          sourceId: context.data.sourceId,
+          sourceName: context.data.sourceName,
+          sourceUrl: context.data.sourceUrl,
+          hash: context.data.result.bytesHash,
+          readId: context.data.readId,
+        }
+      : null,
     output: context.output ?? null,
     hash: context.hash ?? null,
     proofId: context.proofId ?? null,
     stopped: context.stopped ?? false,
-    variables: context.variables
+    variables: context.variables,
   };
 }
 
 function formatIntegritasStampError(stamp: IntegritasApiFailure) {
-  if (isTransientIntegritasErrorCode(stamp.errorCode)) return `${stamp.error} (${stamp.errorCode}): HTTP ${stamp.status}. Stamp will retry on the next run.`;
-  if (isIntegritasUnauthorizedErrorCode(stamp.errorCode)) return "Integritas API key rejected. Update the API key before stamping can succeed.";
+  if (isTransientIntegritasErrorCode(stamp.errorCode))
+    return `${stamp.error} (${stamp.errorCode}): HTTP ${stamp.status}. Stamp will retry on the next run.`;
+  if (isIntegritasUnauthorizedErrorCode(stamp.errorCode))
+    return "Integritas API key rejected. Update the API key before stamping can succeed.";
+  if (stamp.errorCode === "payment_required") {
+    return "Integritas plan limit reached. Upgrade the Integritas plan before stamping can succeed.";
+  }
   return `${stamp.error} (${stamp.errorCode}): HTTP ${stamp.status} ${JSON.stringify(stamp.responseBody)}`;
 }
 
 export function startAutomationScheduler() {
   if (scheduler) return;
   scheduler = setInterval(() => {
-    const due = listDueScheduleWorkflows(new Date().toISOString()).filter((workflow) => !runningWorkflowIds.has(workflow.id));
+    const due = listDueScheduleWorkflows(new Date().toISOString()).filter(
+      (workflow) => !runningWorkflowIds.has(workflow.id),
+    );
     for (const workflow of due) {
-      executeWorkflow(workflow, { type: "schedule" }).catch((error: Error) => console.error(`Automation workflow ${workflow.id} failed: ${error.message}`));
+      executeWorkflow(workflow, { type: "schedule" }).catch((error: Error) =>
+        console.error(`Automation workflow ${workflow.id} failed: ${error.message}`),
+      );
     }
-  }, 5000);
+  }, 1000);
 }
 
 export function stopAutomationScheduler() {

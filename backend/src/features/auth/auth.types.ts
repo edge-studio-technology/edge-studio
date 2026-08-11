@@ -1,4 +1,5 @@
 import type { Request } from "express";
+import type { AdminCredentialType } from "./password.service.js";
 
 export type UserRole = "admin";
 
@@ -10,6 +11,7 @@ export type UserRecord = {
   role: UserRole;
   created_at: string;
   last_login: string | null;
+  credential_type: AdminCredentialType;
 };
 
 export type SessionUser = {
@@ -17,6 +19,7 @@ export type SessionUser = {
   displayName: string;
   role: UserRole;
   lastLogin: string | null;
+  credentialType: AdminCredentialType;
 };
 
 export type AuthenticatedRequest = Request & {

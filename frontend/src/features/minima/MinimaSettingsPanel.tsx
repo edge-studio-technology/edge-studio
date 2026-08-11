@@ -3,17 +3,25 @@ import type { MinimaConfig, MinimaNodeState, MinimaPeersResponse } from "../../a
 import { Card } from "../../components/Card";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
-import { addMinimaPeers, getMinimaConfig, getMinimaPeers, saveMinimaConfig } from "./minimaApi";
-import { MinimaRuntimeConfig } from "./MinimaRuntimeConfig";
-import { useMinimaStatusRefresh } from "./useMinimaStatusRefresh";
+import {
+  addMinimaPeers,
+  getAutoRestartEnabled,
+  getMinimaConfig,
+  getMinimaPeers,
+  saveMinimaConfig,
+  setAutoRestartEnabled
+} from "./minimaApi";
+import { MinimaMegammrHostSection } from "./MinimaMegammrHostSection";
+import { MinimaPeerConnectionsSection } from "./MinimaPeerConnectionsSection";
 
-export function MinimaSettingsPanel() {
+export function MinimaSettingsPanel({
+  bare = false,
+  minimaState,
+}: {
+  bare?: boolean;
+  minimaState: MinimaNodeState | null;
+}) {
   const { showToast } = useToast();
-  const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
-  useMinimaStatusRefresh(
-    (status) => setMinimaState(status.state),
-    () => {}
-  );
   // Same "confirmed running" gate used on the Wallet settings panel and the Minima
   // Core page's own Resync/Restart buttons — config/peer RPC calls would just fail
   // while the node isn't up.
@@ -26,9 +34,14 @@ export function MinimaSettingsPanel() {
   const [peersLoading, setPeersLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [autoRestartEnabled, setAutoRestartEnabledState] = useState<boolean | null>(null);
+  const [togglingAutoRestart, setTogglingAutoRestart] = useState(false);
 
   useEffect(() => {
     refreshConfig().catch((err: Error) => setConfigError(err.message));
+    getAutoRestartEnabled()
+      .then((res) => setAutoRestartEnabledState(res.autoRestartEnabled))
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -99,36 +112,72 @@ export function MinimaSettingsPanel() {
     }
   }
 
-  return (
-    <Card>
-      <div className="grid gap-1" style={{ marginBottom: 16 }}>
-        <h3 style={{ margin: 0 }}>Minima node settings</h3>
-        <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
-          Configure the megammr sync host and manage peer connections.
-        </p>
-      </div>
+  async function handleToggleAutoRestart() {
+    if (autoRestartEnabled === null) return;
+    setTogglingAutoRestart(true);
+    try {
+      const res = await setAutoRestartEnabled(!autoRestartEnabled);
+      setAutoRestartEnabledState(res.autoRestartEnabled);
+    } catch (error) {
+      showToast({
+        tone: "error",
+        title: "Failed to update auto-restart",
+        message: error instanceof Error ? error.message : "Unknown error",
+        timeoutMs: 9000
+      });
+    } finally {
+      setTogglingAutoRestart(false);
+    }
+  }
 
-      {actionsBlocked && (
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3" style={{ marginBottom: 16 }}>
-          <p className="text-sm text-amber-800" style={{ margin: 0 }}>
-            Unavailable until Minima is running.
+  const content = (
+    <>
+      {!bare && (
+        <div className="mb-4 grid gap-1">
+          <h3 style={{ margin: 0 }}>Minima node settings</h3>
+          <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
+            Configure the megammr sync host and manage peer connections.
           </p>
         </div>
       )}
 
-      <MinimaRuntimeConfig
+      <MinimaMegammrHostSection
         config={config}
         megammrHostInput={megammrHostInput}
         setMegammrHostInput={setMegammrHostInput}
+        busy={busy || actionsBlocked}
+        onSave={saveConfig}
+      />
+      <MinimaPeerConnectionsSection
         peers={peers}
         peersLoading={peersLoading}
         peerslistInput={peerslistInput}
         setPeerslistInput={setPeerslistInput}
         busy={busy || actionsBlocked}
-        onSave={saveConfig}
         onAddPeers={runAddPeers}
       />
       {configError && <ErrorText>{configError}</ErrorText>}
-    </Card>
+
+      {/* Auto restart is disabled for now — deferred until automations get graceful
+          handling around node restarts. See docs/TASKS.md. */}
+      {/* <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2" style={{ marginTop: 16 }}>
+        <input
+          type="checkbox"
+          className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
+          checked={autoRestartEnabled ?? false}
+          disabled={autoRestartEnabled === null || togglingAutoRestart || actionsBlocked}
+          onChange={() => void handleToggleAutoRestart()}
+        />
+        <span className="grid gap-0.5">
+          <span className="text-sm font-semibold text-slate-700">Auto restart (every 48h)</span>
+          <span className="text-xs text-slate-500">
+            Restarts the Minima container on the same nightly schedule as auto backups, but only every other
+            night, as a preventive node health measure.
+          </span>
+        </span>
+      </label> */}
+    </>
   );
+
+  return bare ? content : <Card>{content}</Card>;
 }

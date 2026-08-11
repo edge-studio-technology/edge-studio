@@ -20,11 +20,27 @@ export function isValidAdminPin(pin: string) {
 
 export function getAdminPasswordRequirements(password: string): AdminPasswordRequirement[] {
   return [
-    { id: "length", label: `${ADMIN_PASSWORD_MIN_LENGTH} or more characters`, met: password.length >= ADMIN_PASSWORD_MIN_LENGTH },
-    { id: "uppercase", label: "One uppercase letter", met: ADMIN_PASSWORD_UPPERCASE_PATTERN.test(password) },
-    { id: "lowercase", label: "One lowercase letter", met: ADMIN_PASSWORD_LOWERCASE_PATTERN.test(password) },
-    { id: "number", label: "One number", met: ADMIN_PASSWORD_NUMBER_PATTERN.test(password) },
-    { id: "symbol", label: "One symbol, such as ! or @", met: ADMIN_PASSWORD_SYMBOL_PATTERN.test(password) }
+    {
+      id: "length",
+      label: `${ADMIN_PASSWORD_MIN_LENGTH} + characters`,
+      met: password.length >= ADMIN_PASSWORD_MIN_LENGTH,
+    },
+    {
+      id: "uppercase",
+      label: "Uppercase",
+      met: ADMIN_PASSWORD_UPPERCASE_PATTERN.test(password),
+    },
+    {
+      id: "lowercase",
+      label: "Lowercase",
+      met: ADMIN_PASSWORD_LOWERCASE_PATTERN.test(password),
+    },
+    { id: "number", label: "Number", met: ADMIN_PASSWORD_NUMBER_PATTERN.test(password) },
+    {
+      id: "symbol",
+      label: "Symbol",
+      met: ADMIN_PASSWORD_SYMBOL_PATTERN.test(password),
+    },
   ];
 }
 

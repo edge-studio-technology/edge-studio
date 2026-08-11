@@ -6,7 +6,7 @@ import { badRequest, notFound, sendApiError, unexpected, dependencyUnavailable }
 import { appError, systemError } from "../../shared/structured-error.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
 import { createProofRecord, deleteProofRecords, getProofRecord, listProofRecords, countProofRecords, countPollablePendingProofRecords, PROOF_LIST_STATUSES, updateVerifyResponse } from "./integritas.repository.js";
-import { getIntegritasConfig, hashCanonicalBytes, parseProofPayload, pollProofStatus, refreshProofRecord, requestProofUid, sha3HashFile, verifyProof, writeProofExport } from "./integritas.service.js";
+import { getIntegritasConfig, hashCanonicalBytes, parseProofPayload, pollProofStatus, refreshProofRecord, requestProofUid, sha3HashFile, verifyProof, writeProofExport, writeProofSourceZip } from "./integritas.service.js";
 import type { IntegritasApiFailure } from "./integritas.types.js";
 import { parseListQuery, toPaginatedResult } from "../../shared/list-query.js";
 import { upload } from "./upload.middleware.js";
@@ -177,6 +177,18 @@ integritasRouter.post("/history/export-selected", async (req, res) => {
     return res.download(filePath);
   } catch (error) {
     return unexpected(res, error instanceof Error ? error.message : "Proof export failed", error);
+  }
+});
+
+integritasRouter.get("/history/:id/download-zip", async (req, res) => {
+  const record = getProofRecord(req.params.id);
+  if (!record) return notFound(res, "Proof record not found");
+
+  try {
+    const filePath = await writeProofSourceZip(record);
+    return res.download(filePath, `integritas-proof-${record.id}.zip`);
+  } catch (error) {
+    return badRequest(res, "Proof ZIP is unavailable for this record");
   }
 });
 
