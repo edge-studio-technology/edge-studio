@@ -8,7 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Frontend Docker image now includes the `es_logo`/brand SVG assets — the build stage previously omitted the `public/` directory, so logos 404'd on Pi installs while working in native dev.
+- Brand/logo assets no longer 404 on Docker installs.
+
+### Security
+
+- `install.sh` now always verifies the update manifest signature before installing, using a disposable Docker container instead of the host's `openssl` CLI.
 
 ## [0.35.0] 2026-08-11
 
@@ -447,10 +451,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Every checkbox in the app (Minima RPC console whitelist, Automation block config, Integritas history table row selection) inherited the global text-input styling — a plain, unlayered `input, textarea, select {...}` CSS rule in `styles.css` was overriding any Tailwind utility class applied to an `<input>` regardless of specificity, because Tailwind v4's utilities live inside `@layer utilities` and unlayered rules always win. Scoped that rule off `type="checkbox"`/`type="radio"` so checkboxes render and size correctly everywhere.
 - The Minima RPC console's whitelist modal additionally gets explicit checkbox sizing and collapsible Read/Write command-list sections instead of static lists.
-
-### Security
-
-- `install.sh` no longer verifies update manifest signatures with the host's `openssl` CLI, which required OpenSSL 3.x for Ed25519 and silently skipped verification (installing images unverified) on older OpenSSL versions. Verification now always runs, inside a disposable `node:20-bookworm-slim` Docker container, regardless of the host's OpenSSL version.
 
 ## [0.25.0] 2026-07-27
 
