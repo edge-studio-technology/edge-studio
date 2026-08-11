@@ -19,6 +19,7 @@ Follow these when deploying, operating, or contributing to this project:
 - Integritas core calls prefer the Connect account API key decrypted in backend memory. Manually saved and environment API keys remain backend-only fallbacks and are never returned to the browser.
 - Treat Docker socket access, GPIO device access, camera device access, I2C sensor helper access, local MQTT broker exposure, and host file mounts as high-privilege capabilities — keep them opt-in, admin-gated, and off by default wherever possible.
 - Pin dependency and image versions before any production-like deployment; avoid mutable tags such as `:dev`.
+- Never set `UPDATE_DRY_RUN=true` outside local development — it makes `update-agent` report every apply as successful without pulling or swapping any container, silently masking a broken or misconfigured update path. It defaults off and is never written by `install.sh`.
 
 The detailed risk register — specific risks, current controls, and mitigation plans by area — is maintained separately and kept current as the system changes.
 

@@ -113,13 +113,16 @@ dataSourcesRouter.get("/:id/health", async (req, res) => {
   if (!record) return notFound(res, "Data source not found");
   if (record.type === "webhook" || record.type === "mqtt" || record.type === "gpio-input" || record.type === "gpio-output" || record.type === "pi-camera" || record.type === "bme-sensor" || record.type === "http-output" || record.type === "mqtt-output") return badRequest(res, "This device does not have a health URL", { sourceId: record.id, type: record.type });
 
+  let source: string | undefined;
+
   try {
     const config = parseJsonApiConfig(JSON.parse(record.config) as unknown);
+    source = config.healthStatusUrl;
     const result = await checkDataSourceHealth(config);
     if (!result.ok) return dependencyUnavailable(res, "Failed to check data source health", undefined, { sourceId: record.id }, result);
     return res.json(result);
   } catch (error) {
-    return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to check data source health", error instanceof Error ? error.message : undefined, { sourceId: record.id });
+    return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to check data source health", error instanceof Error ? error.message : undefined, { sourceId: record.id }, { ok: false, source, checkedAt: new Date().toISOString() });
   }
 });
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
   Copy,
@@ -122,18 +123,20 @@ export function AuthSettingsPage() {
   };
 
   const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <Page
       eyebrow="Admin account"
       title="Account settings"
+      desc="Manage your admin credentials, Integritas Connect, and Minima node settings and backups."
       action={
         <ButtonRow>
           <Button type="button" variant="ghost" onClick={() => void signOut()}>
             <LogOut size={16} /> Sign out
           </Button>
-          <Button type="button" onClick={() => window.location.assign("/update")}>
-            Check for updates
+          <Button type="button" onClick={() => navigate("/update")}>
+            Check updates
           </Button>
         </ButtonRow>
       }
@@ -221,7 +224,7 @@ export function AuthSettingsPage() {
                       {totpSecret && (
                         <div className="grid min-w-0 flex-1 gap-3">
                           <div className="flex items-center justify-between gap-3">
-                            <span className="text-xs font-bold tracking-wide text-text-secondary uppercase">
+                            <span className="text-text-secondary text-xs font-bold tracking-wide uppercase">
                               Manual setup key
                             </span>
                             <Button

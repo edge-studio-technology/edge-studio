@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { nav } from "../app/nav";
 import type { StatusOverview, Tone } from "../app/types";
+import { Button } from "./ui/Button";
+import { NoticeCard } from "./patterns/NoticeCard";
 import { getDebugPing } from "../features/debug/debugApi";
 import { FeedbackModal } from "../features/feedback/FeedbackModal";
 import { AppShellSidebar } from "./AppShellSidebar";
@@ -77,9 +79,10 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const { pathname, search } = useLocation();
+  const navigate = useNavigate();
 
   const activeItem = useMemo(
-    () => nav.find((navItem) => pathname === `/${navItem.id}`) ?? nav[0],
+    () => nav.find((navItem) => pathname === `/${navItem.id}`),
     [pathname],
   );
 
@@ -91,6 +94,8 @@ export function AppShell({
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [appVersion, setAppVersion] = useState<string | null>(null);
+  const [availableVersion, setAvailableVersion] = useState<string | null>(null);
+  const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
   useUpdateStatusRefresh((status) => {
     // update-agent's own self-update runs automatically in the background after
     // a frontend/backend update and isn't something the user needs to act on —
@@ -102,7 +107,11 @@ export function AppShell({
       ),
     );
     setAppVersion(status?.currentVersion ?? null);
+    setAvailableVersion(status?.availableVersion ?? null);
   });
+
+  const showUpdateNotice =
+    updateAvailable && availableVersion !== null && availableVersion !== dismissedUpdateVersion;
 
   const [debugPinging, setDebugPinging] = useState(false);
   const [debugMessage, setDebugMessage] = useState<string | null>(null);
@@ -145,6 +154,26 @@ export function AppShell({
           onFeedback={() => setFeedbackOpen(true)}
           onSignOut={onSignOut}
           version={appVersion}
+          updateNotice={
+            showUpdateNotice ? (
+              <NoticeCard
+                title="Update available"
+                action={
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => navigate("/update")}
+                  >
+                    View update
+                  </Button>
+                }
+                onDismiss={() => setDismissedUpdateVersion(availableVersion)}
+              >
+                {`Version ${availableVersion} is ready to install.`}
+              </NoticeCard>
+            ) : null
+          }
         />
 
         <main className="relative z-0 min-w-0 flex-1">
@@ -155,7 +184,7 @@ export function AppShell({
       {feedbackOpen && (
         <FeedbackModal
           pagePath={`${pathname}${search}`}
-          pageLabel={activeItem.label}
+          pageLabel={activeItem?.label ?? pathname.slice(1)}
           onClose={() => setFeedbackOpen(false)}
         />
       )}

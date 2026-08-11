@@ -52,13 +52,20 @@ export function JsonPreview({
           {label}
         </button>
       )}
-      {open ? (
-        <Modal title={title} onClose={() => setOpen(false)}>
-          <div className="px-detail-next py-pad-close">
-            <JsonBlock value={value} />
-          </div>
+      {open && (
+        <Modal title="JSON preview" onClose={() => setOpen(false)}>
+          <JsonPreviewContent value={value} />
         </Modal>
-      ) : null}
+      )}
     </>
+  );
+}
+
+/** Bare `<pre>` block, for callers composing their own modal/section around it. */
+export function JsonPreviewContent({ value }: { value: unknown }) {
+  return (
+    <pre className="type-mono text-text-inverse bg-surface-inverse border-stroke-secondary rounded-soft p-pad-tight m-0 overflow-x-auto border leading-[1.5] whitespace-pre [tab-size:2]">
+      {JSON.stringify(value, null, 2)}
+    </pre>
   );
 }

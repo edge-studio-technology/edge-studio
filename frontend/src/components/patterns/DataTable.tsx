@@ -20,10 +20,11 @@ import { IconButton } from "../ui/Button";
 
 /** Shared visual tokens — prefer `TableHead` / `TableRow` / `TableCell` components in new code. Remove this comment when migrated */
 export const tableHeadRowClass = "bg-surface-secondary type-body-em text-text-primary";
-export const tableHeaderCellClass = "px-margin-tight py-margin-tight text-left align-middle";
+export const tableHeaderCellClass =
+  "px-margin-tight py-margin-tight text-left align-middle whitespace-nowrap";
 export const tableRowClass = "border-t border-stroke-primary bg-surface-always-white";
 export const tableCellClass =
-  "px-margin-tight py-margin-tight type-body text-text-primary align-middle";
+  "px-margin-tight py-margin-tight type-body text-text-primary align-middle whitespace-nowrap";
 
 /** Bordered scroll shell for list tables. Includes a modest min-height (~4 rows). */
 export function TableWrap({ children, className }: { children: ReactNode; className?: string }) {
@@ -45,10 +46,7 @@ export function DataTable({
   ...props
 }: TableHTMLAttributes<HTMLTableElement> & { children: ReactNode }) {
   return (
-    <table
-      className={cx("type-meta w-full border-collapse text-left", className)}
-      {...props}
-    >
+    <table className={cx("type-meta w-full border-collapse text-left", className)} {...props}>
       {children}
     </table>
   );
@@ -132,8 +130,10 @@ export function TableCard({
     <Card className={cx("gap-detail-close grid", className)}>
       <StatusRow className="sm:items-start">
         <div>
-          <strong>{title}</strong>
-          {description && <MutedText className="mt-detail-tight m-0">{description}</MutedText>}
+          <h2 className="type-title text-text-primary m-0">{title}</h2>
+          {description && (
+            <p className="type-body text-text-secondary mt-detail-next m-0">{description}</p>
+          )}
         </div>
         {actions}
       </StatusRow>
@@ -201,6 +201,7 @@ export function TableIconButton({
 }
 export type RowOverflowMenuItem = {
   label: ReactNode;
+  title?: string;
   danger?: boolean;
   disabled?: boolean;
   onClick: () => void;
@@ -284,6 +285,7 @@ export function TableIconMenu({
                   key={`table-more-${index}`}
                   type="button"
                   role="menuitem"
+                  title={item.title}
                   disabled={item.disabled}
                   className={cx(
                     "type-body enabled:hover:bg-surface-secondary focus-visible:bg-surface-secondary focus-visible:ring-stroke-active p-margin-tight disabled:text-text-disabled [&:not(:first-child)]:border-stroke-secondary w-full cursor-pointer border-0 bg-transparent text-left transition-colors duration-200 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset disabled:cursor-not-allowed [&:not(:first-child)]:border-t",
