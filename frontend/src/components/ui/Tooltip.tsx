@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { cx } from "../../lib/cx";
 
 export type TooltipPlacement = "top" | "bottom" | "left" | "right";
+export type TooltipVariant = "dark" | "light";
 
 const GAP_PX = 8;
 const OPEN_DELAY_MS = 150;
@@ -107,11 +108,27 @@ function resolvePosition(
   return { ...coords, placement: preferred };
 }
 
+const bubbleVariantClass: Record<TooltipVariant, string> = {
+  dark: "border-surface-inverse-hover bg-surface-inverse",
+  light: "border-stroke-secondary bg-surface-always-white",
+};
+
+const titleVariantClass: Record<TooltipVariant, string> = {
+  dark: "text-text-inverse",
+  light: "text-text-primary",
+};
+
+const bodyVariantClass: Record<TooltipVariant, string> = {
+  dark: "text-grey-03",
+  light: "text-text-secondary",
+};
+
 type TooltipBubbleProps = Omit<HTMLAttributes<HTMLDivElement>, "title"> & {
   title: ReactNode;
   body?: ReactNode;
   actions?: ReactNode;
   placement?: TooltipPlacement;
+  variant?: TooltipVariant;
   titleId?: string;
 };
 
@@ -120,6 +137,7 @@ function TooltipBubble({
   body,
   actions,
   placement = "top",
+  variant = "dark",
   className,
   role,
   titleId,
@@ -130,7 +148,8 @@ function TooltipBubble({
       {...props}
       role={role ?? (actions ? "dialog" : "tooltip")}
       className={cx(
-        "border-stroke-secondary bg-surface-always-white gap-detail-close rounded-soft p-margin-tight relative flex max-w-[400px] flex-col border",
+        "gap-detail-close rounded-soft p-margin-tight relative flex max-w-[400px] flex-col border",
+        bubbleVariantClass[variant],
         placement === "left" || placement === "right" ? "items-start" : "items-center",
         className,
       )}
@@ -138,16 +157,19 @@ function TooltipBubble({
       <span
         aria-hidden
         className={cx(
-          "border-stroke-secondary bg-surface-always-white pointer-events-none absolute size-2 rotate-45",
+          "pointer-events-none absolute size-2 rotate-45",
+          bubbleVariantClass[variant],
           beakPositionClass[placement],
           beakBorderClass[placement],
         )}
       />
       <div className="relative flex w-full flex-col items-start break-words">
-        <div id={titleId} className="type-body-em text-text-primary w-full">
+        <div id={titleId} className={cx("type-body-em w-full", titleVariantClass[variant])}>
           {title}
         </div>
-        {body != null ? <div className="type-body text-text-secondary w-full">{body}</div> : null}
+        {body != null ? (
+          <div className={cx("type-body w-full", bodyVariantClass[variant])}>{body}</div>
+        ) : null}
       </div>
       {actions ? (
         <div className="gap-detail-next relative flex w-full items-center justify-end">
@@ -164,6 +186,7 @@ export type TooltipProps = {
   body?: ReactNode;
   actions?: ReactNode;
   placement?: TooltipPlacement;
+  variant?: TooltipVariant;
   className?: string;
   open?: boolean;
   defaultOpen?: boolean;
@@ -181,6 +204,7 @@ export function Tooltip({
   body,
   actions,
   placement = "top",
+  variant = "dark",
   className,
   open: openProp,
   defaultOpen = false,
@@ -366,6 +390,7 @@ export function Tooltip({
                 body={body}
                 actions={actions}
                 placement={resolvedPlacement}
+                variant={variant}
                 className={className}
                 titleId={titleId}
                 aria-labelledby={isToggletip ? titleId : undefined}
