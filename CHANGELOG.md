@@ -8,20 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Feedback submissions now also record the connected Integritas Connect account ID (`null` if not connected) alongside the existing local device info, shown in the "Send feedback" modal's "What we save with this feedback" disclosure.
+- Feedback submissions now record the connected Integritas Connect account ID (`null` if not connected).
+- Wallet balance info button/modal showing native token details.
+- Dark and light variants for the shared `Tooltip` component.
+- Instructions tooltip on the Minima RPC console.
 
 ### Fixed
 
-- Feedback submissions' recorded app version now reads from `update-agent`'s own last-applied-manifest record (mounted read-only into the backend container) instead of a separate `INTEGRITAS_PI_VERSION` env var that was never kept in sync and had drifted stale. Removed the unused env var. If that record isn't present (native dev, a from-source build, or `update-agent` has never applied an update), reports "Unknown version" instead of silently falling back to a package.json version, which could misrepresent an unverified build as a real release.
-- Local admin account now tracks whether its credential is a PIN or a password (`credentialType`, set at setup and whenever it's changed, returned from `GET /api/auth/me` and login), so the UI can distinguish PIN vs password sign-in later. No UI change yet.
+- Feedback app version now reads from `update-agent`'s last-applied-manifest record instead of the unused, stale `INTEGRITAS_PI_VERSION` env var (removed). Falls back to "Unknown version" if no manifest has been applied yet, instead of a possibly-stale package.json version.
+- Local admin account now tracks PIN vs password (`credentialType`, returned from `GET /api/auth/me` and login). No UI change yet.
+- Automation run rows: kebab menu no longer disappears when the run's workflow was deleted; "Show on canvas" is disabled instead.
 
 ### Changed
 
-- Automation page's "Workflows" table restyled onto shared ESDS list patterns (`TableCard`, `ListFilterBar`, `ListPaginationFooter`, `EmptyContentState`, `LoadingState`, `TableIconMenu`, `Pill`, `TruncatedHash`), matching the Devices list. The separate "Workflow builders" card is gone — "Create new workflow" now lives next to the table's filter bar. Row actions collapsed to a primary pause/play button plus an overflow menu (Run now, Open and edit, Watch, Duplicate, Archive/Restore, Delete). Deleting a workflow now shows the same confirm-then-progress modal pattern as device/backup deletion instead of deleting immediately. The table adds pagination and a first-load loading state; "Last run" now shows local date+time instead of time only. Extracted into a new `features/automation/AutomationWorkflowsList.tsx`.
-- Automation inbox rebuilt as a table (`features/automation/AutomationInboxTable.tsx`, replacing the old stacked-card `AutomationInboxPanel.tsx`) on the same shared ESDS list patterns as the Workflows table above it: filter (All/Unread/Read) + search, `TableWrap`, pagination, and a first-load loading state. Each row shows Title/Workflow/Format/Created/Status, with a primary view action opening a details modal (key facts + an expandable "Preview" section, matching the Diagnostics history modals) instead of the previous always-expanded inline preview, and a "Mark read/unread"/"Delete" overflow menu. Deleting a preview now goes through the same confirm-then-progress modal pattern as workflow/device deletion instead of deleting immediately. Both the Workflows and inbox tables (and the workspace's "Loading workflow…" state) now consistently fill the page width and use the shared `LoadingState`, closing out the remaining ESDS drift on the Automation page.
-- Automation inbox now sits inside a collapsible section (collapsed by default; the unread count stays visible in the header either way), so it no longer competes for space with the Workflows table above it. Viewing a preview now marks it read automatically (no separate "Mark read" press needed); the row's primary action icon reflects that state directly (closed-envelope `Mail` for unread, open-envelope `MailOpen` for read) instead of a generic "view" eye icon. The overflow menu's manual "Mark read"/"Mark unread" toggle is unchanged, for reverting or marking read without opening an item. The preview modal no longer shows a redundant "Status" row, since opening it always marks the item read.
-- Account settings' "Change PIN or password" panel now uses the same segmented digit-box `PinField` for the new PIN (and its confirmation) that the onboarding wizard already uses, replacing a plain masked text input constrained to 6 digits.
-- `update-agent`'s static update-progress page (updating/success/failure/idle states) now matches the product frontend's login page: the same black-to-purple brand gradient background and the white Edge Studio lockup positioned below the centered card, instead of a flat grey background with the logo above.
+- Automation "Workflows" table restyled onto shared ESDS list patterns (filter bar, pagination, loading/empty states, overflow menu with Run now/Open/Watch/Duplicate/Archive/Delete). Delete now uses the confirm-then-progress modal pattern.
+- Automation inbox rebuilt as a table on the same patterns, in a collapsible section (collapsed by default). Row details open in a modal instead of an inline preview; viewing a preview marks it read automatically.
+- "Change PIN or password" panel uses the segmented `PinField` for the new PIN, matching onboarding.
+- `update-agent`'s static update page matches the login page's brand gradient and logo placement.
+- Minima RPC console widened to full page width.
+- StatusBar is now sticky with a border/shadow while scrolling.
 
 ## [0.33.0] 2026-08-11
 
