@@ -64,7 +64,7 @@ export function AutomationRunsTable({
   return (
     <>
       <TableWrap>
-        <DataTable aria-label="Workflow logs" className="min-w-[1020px]">
+        <DataTable aria-label="Workflow logs" className="min-w-245">
           <TableHead>
             <TableHeaderCell className="whitespace-nowrap">Started</TableHeaderCell>
             {!compact && <TableHeaderCell>Workflow</TableHeaderCell>}
@@ -81,7 +81,7 @@ export function AutomationRunsTable({
               return (
                 <TableRow key={run.id}>
                   <TableCell className="whitespace-nowrap">
-                    <time className="type-meta text-text-secondary" dateTime={run.startedAt}>
+                    <time className="text-text-secondary type-meta" dateTime={run.startedAt}>
                       {formatLocalDateTime(run.startedAt)}
                     </time>
                   </TableCell>

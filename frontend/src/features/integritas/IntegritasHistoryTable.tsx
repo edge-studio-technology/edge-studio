@@ -193,7 +193,7 @@ export function IntegritasHistoryTable({
         />
       ) : (
         <TableWrap>
-          <DataTable aria-label="Proof history" className="min-w-255">
+          <DataTable aria-label="Proof history" className="min-w-245">
             <TableHead>
               <TableHeaderCell className="w-px whitespace-nowrap">
                 <CheckboxField
@@ -302,7 +302,10 @@ function ProofDetailsModal({
       <div className="gap-detail-near grid">
         <DetailList>
           <DetailRow label="Timestamp" value={formatLocalDateTime(record.created_at)} />
-          <DetailRow label="UID" value={record.proof_uid ? <CopyableCode value={record.proof_uid} /> : "—"} />
+          <DetailRow
+            label="UID"
+            value={record.proof_uid ? <CopyableCode value={record.proof_uid} /> : "—"}
+          />
           <DetailRow label="Status" value={<ProofStatusPill status={record.proof_status} />} />
           <DetailRow label="Data hash" value={<CopyableCode value={record.hash} />} />
         </DetailList>
