@@ -9,11 +9,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Release workflow now deploys manifests to the manifest repo under `edge-studio/`, replacing the deprecated `integritas-pi/` base folder.
-
-## [Unreleased] rename/edge-studio
-
-### Changed
-
 - Default `MANIFEST_URL` now points at the `release` channel path (`/edge-studio/release/manifest.json`).
 - Host camera/sensor helper scripts renamed to `edge_studio_camera_helper.py` and `edge_studio_sensor_helper.py`.
 - Repository and product identifiers renamed from `integritas-pi` / Integritas Pi to `edge-studio` / Edge Studio (install path, CLI, packages, Compose project/network, GHCR images, release manifest paths). Not backwards compatible with previous installs.
