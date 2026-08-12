@@ -248,7 +248,7 @@ Impact: Captures can contain private images/video. The helper expands app contro
 Current Controls:
 
 - Raspberry Pi Camera device creation/editing requires admin role.
-- Camera access is opt-in through `ENABLE_CAMERA=true`; the installer creates a localhost-only `integritas-pi-camera-helper` systemd service.
+- Camera access is opt-in through `ENABLE_CAMERA=true`; the installer creates a localhost-only `edge-studio-camera-helper` systemd service.
 - The helper requires a generated bearer token shared with the backend through `.env`.
 - Camera capability reporting checks that host camera commands exist and that the helper can list at least one detected camera before enabling Raspberry Pi Camera device creation.
 - Camera capture is a narrow workflow data block, not arbitrary shell execution or a generic output target.

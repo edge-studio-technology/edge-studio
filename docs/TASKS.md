@@ -64,6 +64,7 @@
 
 ## Done
 
+- [x] Renamed repository/product identifiers from `integritas-pi` / Integritas Pi to `edge-studio` / Edge Studio across install, CLI, packages, Compose, app code, release CI, and docs (not backwards compatible) — branch `rename/edge-studio`.
 - [x] Fixed brand logo assets (`es_logo/`) 404ing on Pi/Docker installs (worked fine in native dev): `frontend/Dockerfile`'s build stage never copied `public/` into the build context. Added `COPY public ./public`; verified via a real `docker build`/`docker compose build` that the assets land in the built image — branch `refactor/repalce-openssl-with-node`, `npm run check`/backend+frontend build/`docker compose config`/`docker compose build` verified.
 - [x] Replaced `install.sh`'s host-`openssl`-dependent Ed25519 manifest signature verification with a check run inside a disposable `node:20-bookworm-slim` container (`scripts/verify-manifest.mjs`), removing the previous silent "verification disabled" fallback on OpenSSL < 3 (plan archived: `docs/plans/replace-openssl-manifest-verification.md`).
 - [x] Restyled `update-agent`'s static update-progress page (`update-agent/public/index.html`) to match the product frontend's login page: same black-to-purple brand gradient background (in place of flat grey) and the white Edge Studio lockup positioned below the centered card instead of above it — branch `ui/pre-release-improvements`, typecheck/backend+frontend build/`docker compose config` verified, no manual browser check yet (see Next).
