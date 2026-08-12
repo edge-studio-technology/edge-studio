@@ -8,7 +8,7 @@ mkdirSync(outDir, { recursive: true });
 
 const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
 
-const dockerCompose = `# Official integritas-pi Docker Compose — ${channel} channel
+const dockerCompose = `# Official edge-studio Docker Compose — ${channel} channel
 # Digest-pinned images (no repo checkout, no \`build:\` context needed) — just
 # this file plus the matching .env. Works with Docker Desktop's GUI:
 # open this folder in Docker Desktop's "Compose" view (or run
@@ -17,10 +17,10 @@ const dockerCompose = `# Official integritas-pi Docker Compose — ${channel} ch
 # browser and accept the self-signed certificate warning (expected).
 
 # Pinned regardless of folder name: update-agent hardcodes its container
-# lookup to the "integritas-pi" Compose project (matches every real install,
-# which always lives in a folder literally named integritas-pi). Without
+# lookup to the "edge-studio" Compose project (matches every real install,
+# which always lives in a folder literally named edge-studio). Without
 # this, update-agent can't find the frontend/backend containers to swap.
-name: integritas-pi
+name: edge-studio
 
 services:
   # One-shot: generates the self-signed HTTPS cert the frontend needs, since
@@ -38,8 +38,8 @@ services:
         apk add --no-cache openssl >/dev/null
         openssl req -x509 -nodes -days 825 -newkey rsa:2048 \\
           -keyout /certs/server.key -out /certs/server.crt \\
-          -subj "/CN=integritas-pi" \\
-          -addext "subjectAltName=DNS:localhost,DNS:integritas-pi,IP:127.0.0.1"
+          -subj "/CN=edge-studio" \\
+          -addext "subjectAltName=DNS:localhost,DNS:edge-studio,IP:127.0.0.1"
         chmod 600 /certs/server.key
         chmod 644 /certs/server.crt
         echo "TLS certificate generated"
@@ -57,7 +57,7 @@ services:
       INTEGRITAS_CONNECT_BASE_URL: \${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}
       INTEGRITAS_BASE_URL: \${INTEGRITAS_BASE_URL:-https://integritas.technology/core}
       INTEGRITAS_API_KEY: \${INTEGRITAS_API_KEY:-}
-      INTEGRITAS_REQUEST_ID: \${INTEGRITAS_REQUEST_ID:-integritas-pi}
+      INTEGRITAS_REQUEST_ID: \${INTEGRITAS_REQUEST_ID:-edge-studio}
       INTEGRITAS_REQUEST_TIMEOUT_MS: \${INTEGRITAS_REQUEST_TIMEOUT_MS:-15000}
       INTEGRITAS_POLL_INTERVAL_SECONDS: \${INTEGRITAS_POLL_INTERVAL_SECONDS:-30}
       INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES: \${INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES:-5}
@@ -67,8 +67,7 @@ services:
       MINIMA_STALL_BLOCK_AGE_SECONDS: \${MINIMA_STALL_BLOCK_AGE_SECONDS:-300}
       MINIMA_AUTO_RESYNC: \${MINIMA_AUTO_RESYNC:-false}
       MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES: \${MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES:-30}
-      DATABASE_PATH: /data/integritas-pi.db
-      INTEGRITAS_PI_VERSION: \${INTEGRITAS_PI_VERSION:-${manifest.version}}
+      DATABASE_PATH: /data/edge-studio.db
       ENABLE_MQTT_BROKER: "false"
       ENABLE_CAMERA: "false"
       APP_SECRET: \${APP_SECRET:-dev-change-me}
@@ -152,10 +151,10 @@ services:
 
 networks:
   integritas:
-    name: integritas-pi
+    name: edge-studio
 `;
 
-const envExample = `# integritas-pi ${channel} channel
+const envExample = `# edge-studio ${channel} channel
 # Copy this to .env and customize as needed
 
 # Data persistence
@@ -180,7 +179,7 @@ DOCKER_GID=0
 INTEGRITAS_CONNECT_BASE_URL=https://integritas.technology
 INTEGRITAS_BASE_URL=https://integritas.technology/core
 INTEGRITAS_API_KEY=
-INTEGRITAS_REQUEST_ID=integritas-pi
+INTEGRITAS_REQUEST_ID=edge-studio
 INTEGRITAS_REQUEST_TIMEOUT_MS=15000
 INTEGRITAS_POLL_INTERVAL_SECONDS=30
 INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES=5
