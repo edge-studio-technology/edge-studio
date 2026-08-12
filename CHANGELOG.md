@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## [0.36.3] 2026-08-12
+
 - Automation now includes an in-app workflow guide with block reference content sourced from the same typed block help catalog used by the configure-panel "About this block" section.
 - Automation block help now documents each configurable input field, including required fields, conditional visibility, and examples; the guide and configure panel render the same field reference content.
 
