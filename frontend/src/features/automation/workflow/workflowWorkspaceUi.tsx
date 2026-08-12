@@ -17,7 +17,7 @@ import type {
 } from "../automationTypes";
 import { groupValidationIssues } from "./workflowHelpers";
 import { Text } from "../../../components/ui/Text";
-import { blockHelp } from "./workflowBlockHelp";
+import { blockHelp, type WorkflowBlockHelpField } from "./workflowBlockHelp";
 
 /** Workspace chrome for Automation page screens (list/create/edit/watch). Not the graph — that lives in `workflow/canvas/`. */
 export const mutedText = "type-body text-text-secondary";
@@ -337,6 +337,7 @@ export function BlockHelpDisclosure({ type }: { type: AutomationBlockType }) {
           <Text.Body className="text-text-secondary">{help.tooltip}</Text.Body>
           <BlockHelpList title="What it does" items={[help.whatItDoes]} />
           <BlockHelpList title="When to use it" items={[help.whenToUse]} />
+          {help.fields.length > 0 ? <BlockFieldReference fields={help.fields} /> : null}
           <BlockHelpList title="Outputs" items={help.outputs} />
           <Link className="type-meta text-text-accent hover:underline" to={`/automation/help#${type}`}>
             Open full guide
@@ -344,6 +345,31 @@ export function BlockHelpDisclosure({ type }: { type: AutomationBlockType }) {
         </div>
       </Disclosure>
     </Card>
+  );
+}
+
+function BlockFieldReference({ fields }: { fields: WorkflowBlockHelpField[] }) {
+  return (
+    <section className="grid gap-detail-tight">
+      <h4 className="type-meta text-text-secondary m-0 uppercase">Fields</h4>
+      <div className="grid gap-detail-tight">
+        {fields.map((field) => (
+          <div key={field.label} className="grid gap-detail-fine">
+            <Text.Body className="text-text-primary">
+              {field.label}
+              {field.required ? " (required)" : ""}
+            </Text.Body>
+            <Text.Body className="text-text-secondary">{field.description}</Text.Body>
+            {field.shownWhen ? (
+              <Text.Body className="text-text-secondary">Shown when: {field.shownWhen}.</Text.Body>
+            ) : null}
+            {field.example ? (
+              <Text.Body className="text-text-secondary">Example: {field.example}</Text.Body>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

@@ -84,10 +84,34 @@ function BlockReference({ type, help }: { type: AutomationBlockType; help: Workf
       </header>
       <HelpSection title="What it does" items={[help.whatItDoes]} />
       <HelpSection title="When to use it" items={[help.whenToUse]} />
+      {help.fields.length > 0 ? <FieldReference fields={help.fields} /> : null}
       <HelpSection title="Configuration" items={help.configuration} />
       <HelpSection title="Outputs" items={help.outputs} />
       <HelpSection title="Examples" items={help.examples} />
     </article>
+  );
+}
+
+function FieldReference({ fields }: { fields: WorkflowBlockHelp["fields"] }) {
+  return (
+    <section className="grid gap-detail-tight">
+      <h4 className="type-meta text-text-secondary m-0 uppercase">Fields</h4>
+      <div className="grid gap-detail-tight">
+        {fields.map((field) => (
+          <div key={field.label} className="border-stroke-secondary grid gap-detail-fine border-t pt-detail-tight">
+            <p className="type-body-em text-text-primary m-0">
+              {field.label}
+              {field.required ? " (required)" : ""}
+            </p>
+            <p className={cx(mutedText, "m-0")}>{field.description}</p>
+            {field.shownWhen ? (
+              <p className={cx(mutedText, "m-0")}>Shown when: {field.shownWhen}.</p>
+            ) : null}
+            {field.example ? <p className={cx(mutedText, "m-0")}>Example: {field.example}</p> : null}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
