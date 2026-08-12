@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { useBlocker } from "react-router-dom";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
 import { InputField } from "../../../components/ui/InputField";
@@ -39,6 +40,14 @@ import {
   isWorkflowValidationVisible,
 } from "./workflowWorkspaceUi";
 
+type CreateWorkflowBlocks = {
+  type: AutomationBlockType;
+  config: AutomationBlock["config"];
+  enabled?: boolean;
+  parentBlockId?: string | null;
+  clientId?: string | null;
+}[];
+
 /** Create-mode workflow editor (draft blocks + leave confirmation). */
 export function CreateWorkflowWorkspace({
   name,
@@ -63,15 +72,8 @@ export function CreateWorkflowWorkspace({
   onNameChange: (value: string) => void;
   onEnabledChange: (value: boolean) => void;
   onCancel: () => void;
-  onCreate: (
-    blocks: {
-      type: AutomationBlockType;
-      config: AutomationBlock["config"];
-      enabled?: boolean;
-      parentBlockId?: string | null;
-      clientId?: string | null;
-    }[],
-  ) => void;
+  /** Return `false` when create fails so leave-blocking stays on. */
+  onCreate: (blocks: CreateWorkflowBlocks) => void | boolean | Promise<void | boolean>;
 }) {
   const [draftBlocks, setDraftBlocks] = useState<DraftWorkflowBlock[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState("");
@@ -81,6 +83,15 @@ export function CreateWorkflowWorkspace({
   );
   const [backendValidationError, setBackendValidationError] = useState<string | null>(null);
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
+  const allowLeaveRef = useRef(false);
+  const isDirty = draftBlocks.length > 0 || name.trim() !== initialName.trim();
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      !allowLeaveRef.current &&
+      isDirty &&
+      (currentLocation.pathname !== nextLocation.pathname ||
+        currentLocation.search !== nextLocation.search),
+  );
   const selectedBlock = selectedBlockId
     ? draftBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
@@ -124,6 +135,40 @@ export function CreateWorkflowWorkspace({
       cancelled = true;
     };
   }, [draftBlocks]);
+
+  useEffect(() => {
+    if (blocker.state === "blocked") setConfirmLeaveOpen(true);
+  }, [blocker.state]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    function onBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
+  function dismissLeaveConfirm() {
+    setConfirmLeaveOpen(false);
+    if (blocker.state === "blocked") blocker.reset();
+  }
+
+  function confirmLeave() {
+    setConfirmLeaveOpen(false);
+    if (blocker.state === "blocked") {
+      blocker.proceed();
+      return;
+    }
+    allowLeaveRef.current = true;
+    onCancel();
+  }
+
+  async function handleCreate() {
+    allowLeaveRef.current = true;
+    const result = await Promise.resolve(onCreate(flattenDraftBlocks(draftBlocks)));
+    if (result === false) allowLeaveRef.current = false;
+  }
 
   function updateBlock(id: string, patch: Partial<DraftWorkflowBlock>) {
     setDraftBlocks((blocks) =>
@@ -240,8 +285,7 @@ export function CreateWorkflowWorkspace({
   }
 
   function requestCancel() {
-    const nameDirty = name.trim() !== initialName.trim();
-    if (draftBlocks.length > 0 || nameDirty) {
+    if (isDirty) {
       setConfirmLeaveOpen(true);
       return;
     }
@@ -284,7 +328,7 @@ export function CreateWorkflowWorkspace({
               type="button"
               disabled={busy || !canCreate}
               title={createBlockedReason}
-              onClick={() => onCreate(flattenDraftBlocks(draftBlocks))}
+              onClick={() => void handleCreate()}
             >
               Create workflow
             </Button>
@@ -405,20 +449,15 @@ export function CreateWorkflowWorkspace({
       {confirmLeaveOpen && (
         <Modal
           title="Are you sure?"
-          description="If you leave without publishing, your progress won't be saved."
-          onClose={() => setConfirmLeaveOpen(false)}
+          description="If you leave without creating this workflow, your progress won't be saved."
+          onClose={dismissLeaveConfirm}
           footer={
             <>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setConfirmLeaveOpen(false)}
-              >
+              <Button type="button" variant="secondary" size="sm" onClick={dismissLeaveConfirm}>
                 Cancel
               </Button>
-              <Button type="button" size="sm" onClick={onCancel}>
-                Go to my library
+              <Button type="button" size="sm" onClick={confirmLeave}>
+                Leave
               </Button>
             </>
           }
