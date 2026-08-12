@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Set update-agent's manifest poll interval on an installed integritas-pi app.
+# Set update-agent's manifest poll interval on an installed edge-studio app.
 #
 # Replaces the STATUS_POLL_INTERVAL_MS line in the app's .env in place
 # (leaving every other value untouched), then recreates the update-agent
@@ -8,15 +8,15 @@
 # it off (e.g. DEV_MODE).
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/integritas-pi}"
+APP_DIR="${APP_DIR:-/opt/edge-studio}"
 STATUS_POLL_INTERVAL_MS="${STATUS_POLL_INTERVAL_MS:-}"
 
 usage() {
   cat <<EOF
 Usage: STATUS_POLL_INTERVAL_MS=<milliseconds> $(basename "$0")
 
-Sets STATUS_POLL_INTERVAL_MS in the .env of an integritas-pi app installed
-at APP_DIR (default: /opt/integritas-pi, override with the APP_DIR env
+Sets STATUS_POLL_INTERVAL_MS in the .env of an edge-studio app installed
+at APP_DIR (default: /opt/edge-studio, override with the APP_DIR env
 var). Value is how often update-agent checks the update manifest in the
 background (default 43200000 = 12h; e.g. 300000 = 5 min for QA/testing).
 EOF

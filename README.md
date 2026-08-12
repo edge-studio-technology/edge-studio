@@ -1,6 +1,6 @@
-# Integritas Pi
+# Edge Studio
 
-Integritas Pi is a learning prototype for a Raspberry Pi application that can be installed with one command, started with Docker Compose, and opened from a browser on the local network.
+Edge Studio is a learning prototype for a Raspberry Pi application that can be installed with one command, started with Docker Compose, and opened from a browser on the local network.
 
 The current prototype contains:
 
@@ -20,45 +20,45 @@ The current prototype contains:
 Run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo bash
 ```
 
 To install from a branch before it is merged to `main`, pass `APP_BRANCH`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo env APP_BRANCH=<branch-name> bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env APP_BRANCH=<branch-name> bash
 ```
 
 To enable Raspberry Pi GPIO input sources during install, pass `ENABLE_GPIO=true`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo env ENABLE_GPIO=true bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env ENABLE_GPIO=true bash
 ```
 
-`ENABLE_GPIO=true` writes `/opt/integritas-pi/docker-compose.override.yml` with `/dev/gpiochip0` mounted into the backend container and detects the host GPIO group id. Leave it disabled unless this deployment needs GPIO hardware ingestion.
+`ENABLE_GPIO=true` writes `/opt/edge-studio/docker-compose.override.yml` with `/dev/gpiochip0` mounted into the backend container and detects the host GPIO group id. Leave it disabled unless this deployment needs GPIO hardware ingestion.
 
 To enable Raspberry Pi camera capture devices during install, pass `ENABLE_CAMERA=true`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo env ENABLE_CAMERA=true bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env ENABLE_CAMERA=true bash
 ```
 
-`ENABLE_CAMERA=true` installs and starts a host-side `integritas-pi-camera-helper` systemd service, generates a `CAMERA_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Integritas Pi Compose gateway. Leave it disabled unless this deployment needs camera capture workflows.
+`ENABLE_CAMERA=true` installs and starts a host-side `edge-studio-camera-helper` systemd service, generates a `CAMERA_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Edge Studio Compose gateway. Leave it disabled unless this deployment needs camera capture workflows.
 
 `ENABLE_CAMERA=true` does not install host camera drivers or enable the Raspberry Pi camera stack. Before using camera workflows, verify the Pi host can see the camera with `libcamera-still --list-cameras` or `rpicam-still --list-cameras`. Camera Module 3 (`imx708`) requires a host OS/kernel/libcamera stack that supports it. The helper uses the host camera tools, not camera binaries inside the backend container.
 
 To enable BME280/BME680 I2C environmental sensor devices during install, pass `ENABLE_SENSORS=true`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo env ENABLE_SENSORS=true bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env ENABLE_SENSORS=true bash
 ```
 
-`ENABLE_SENSORS=true` installs and starts a host-side `integritas-pi-sensor-helper` systemd service, generates a `SENSOR_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Integritas Pi Compose gateway. Leave it disabled unless this deployment needs direct I2C sensor reads. The Pi's I2C interface must also be enabled on the host. BME680 reads require the Python `bme680` module; the installer creates a dedicated sensor-helper virtualenv and installs the module there when sensor support is enabled.
+`ENABLE_SENSORS=true` installs and starts a host-side `edge-studio-sensor-helper` systemd service, generates a `SENSOR_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Edge Studio Compose gateway. Leave it disabled unless this deployment needs direct I2C sensor reads. The Pi's I2C interface must also be enabled on the host. BME680 reads require the Python `bme680` module; the installer creates a dedicated sensor-helper virtualenv and installs the module there when sensor support is enabled.
 
 To enable the optional local MQTT broker during install, pass `ENABLE_MQTT_BROKER=true`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo env ENABLE_MQTT_BROKER=true bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env ENABLE_MQTT_BROKER=true bash
 ```
 
 The broker is exposed on `${MQTT_PUBLIC_PORT:-1883}` for trusted LAN devices and is available to backend containers as `mqtt://mqtt:1883`. It is disabled by default.
@@ -71,8 +71,8 @@ The installer will:
 - Install required host packages
 - Install Docker if Docker is missing
 - Verify Docker Compose
-- Clone this repository to `/opt/integritas-pi`
-- Write `/opt/integritas-pi/.env`
+- Clone this repository to `/opt/edge-studio`
+- Write `/opt/edge-studio/.env`
 - Generate a self-signed TLS certificate in `DATA_DIR/certs`
 - Start the app with `docker compose up -d --build`
 
@@ -135,7 +135,7 @@ MINIMA_AUTO_RESYNC=false
 MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES=30
 INTEGRITAS_CONNECT_BASE_URL=https://integritas.technology
 INTEGRITAS_BASE_URL=https://integritas.technology/core
-INTEGRITAS_REQUEST_ID=integritas-pi
+INTEGRITAS_REQUEST_ID=edge-studio
 INTEGRITAS_REQUEST_TIMEOUT_MS=15000
 INTEGRITAS_POLL_INTERVAL_SECONDS=30
 INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES=5
@@ -235,7 +235,7 @@ http://minima:9005/megammrsync%20action%3Aresync%20host%3Amegammr.minima.global%
 TLS certificates are stored in `DATA_DIR/certs` (`server.crt`, `server.key`). The installer generates them automatically. To regenerate after a Pi IP change:
 
 ```bash
-cd /opt/integritas-pi
+cd /opt/edge-studio
 INTEGRITAS_TLS_FORCE=1 bash scripts/generate-tls-cert.sh
 docker compose up -d --build frontend
 ```
@@ -251,7 +251,7 @@ Future versions may support custom certificates or an external reverse proxy.
 To install with another file root or port:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo HOST_FILES_DIR=/home/pi/Documents FRONTEND_PORT=8081 bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo HOST_FILES_DIR=/home/pi/Documents FRONTEND_PORT=8081 bash
 ```
 
 ## Local Development
@@ -399,22 +399,22 @@ The browser UI and CLI both call the same backend API. The backend does not run 
 After installation, the CLI is available on the Pi as:
 
 ```bash
-integritas-pi --help
+edge-studio --help
 ```
 
 Operational V1 commands:
 
 ```bash
-integritas-pi status
-integritas-pi doctor
-integritas-pi logs backend
-integritas-pi data-sources list
-integritas-pi data-sources read <id>
-integritas-pi automation list
-integritas-pi automation run <id>
-integritas-pi automation pause <id>
-integritas-pi automation enable <id>
-integritas-pi integritas history
+edge-studio status
+edge-studio doctor
+edge-studio logs backend
+edge-studio data-sources list
+edge-studio data-sources read <id>
+edge-studio automation list
+edge-studio automation run <id>
+edge-studio automation pause <id>
+edge-studio automation enable <id>
+edge-studio integritas history
 ```
 
 By default the CLI calls:
@@ -426,7 +426,7 @@ https://localhost:8080/api
 Override it when calling a remote Pi:
 
 ```bash
-INTEGRITAS_PI_API_URL=https://<pi-ip>:8080/api integritas-pi status
+EDGE_STUDIO_API_URL=https://<pi-ip>:8080/api edge-studio status
 ```
 
 The CLI uses `curl -k` because the default deploy uses a self-signed certificate.
@@ -445,16 +445,16 @@ docker compose build --no-cache
 If the UI shows `Backend health error: HTTP 502`, check backend logs:
 
 ```bash
-sudo docker compose -f /opt/integritas-pi/docker-compose.yml --project-directory /opt/integritas-pi logs --tail=100 backend
+sudo docker compose -f /opt/edge-studio/docker-compose.yml --project-directory /opt/edge-studio logs --tail=100 backend
 ```
 
 If logs contain `SqliteError: unable to open database file`, fix the SQLite data directory permissions:
 
 ```bash
-sudo mkdir -p /opt/integritas-pi/data
-sudo chown -R 1000:1000 /opt/integritas-pi/data
-sudo chmod 700 /opt/integritas-pi/data
-sudo docker compose -f /opt/integritas-pi/docker-compose.yml --project-directory /opt/integritas-pi restart backend
+sudo mkdir -p /opt/edge-studio/data
+sudo chown -R 1000:1000 /opt/edge-studio/data
+sudo chmod 700 /opt/edge-studio/data
+sudo docker compose -f /opt/edge-studio/docker-compose.yml --project-directory /opt/edge-studio restart backend
 ```
 
 The backend container runs as the non-root `node` user, which uses uid `1000`. That user must be able to write to the mounted SQLite data directory.
@@ -464,7 +464,7 @@ The backend container runs as the non-root `node` user, which uses uid `1000`. T
 On the Pi:
 
 ```bash
-cd /opt/integritas-pi
+cd /opt/edge-studio
 docker compose down
 ```
 
@@ -473,33 +473,33 @@ docker compose down
 To wipe an installed app's entire SQLite database (all users, sessions, Integritas history, data sources, and automation workflows), run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/scripts/dev/clear-db.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo bash
 ```
 
-It stops the `backend` container, deletes `integritas-pi.db` from the app's data directory, then restarts `backend` so migrations recreate a fresh schema. You'll be prompted to confirm before anything is deleted.
+It stops the `backend` container, deletes `edge-studio.db` from the app's data directory, then restarts `backend` so migrations recreate a fresh schema. You'll be prompted to confirm before anything is deleted.
 
 To clear only part of the database instead, set `TARGET`:
 
 ```bash
 # Local accounts, sessions, setup wizard state, and Integritas Connect pairing.
 # Forces redoing the setup wizard and Integritas Connect.
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/scripts/dev/clear-db.sh | sudo TARGET=users bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo TARGET=users bash
 
 # Integritas proof history, data source read history, and automation workflow
 # run logs (the Diagnostics tabs). Leaves accounts, data sources, and workflow
 # definitions untouched.
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/scripts/dev/clear-db.sh | sudo TARGET=history bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo TARGET=history bash
 
 # Data sources and automation workflows/blocks. Leaves accounts and history untouched.
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/scripts/dev/clear-db.sh | sudo TARGET=automation bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo TARGET=automation bash
 ```
 
 `TARGET` defaults to `all` (the full database-file wipe above); the scoped targets run SQL deletes against just those tables using the already-built `backend` image, instead of deleting the whole file.
 
-If the app is installed somewhere other than the default `/opt/integritas-pi`, set `APP_DIR`:
+If the app is installed somewhere other than the default `/opt/edge-studio`, set `APP_DIR`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/scripts/dev/clear-db.sh | sudo APP_DIR=/opt/integritas-pi bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo APP_DIR=/opt/edge-studio bash
 ```
 
 ## Tune Update Agent Poll Interval
@@ -507,17 +507,17 @@ curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi
 `update-agent` checks the update manifest in the background every 30 minutes by default (`STATUS_POLL_INTERVAL_MS=1800000`). To lower this on an installed app, for example for QA/testing:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/scripts/dev/set-status-poll-interval.sh | sudo STATUS_POLL_INTERVAL_MS=300000 bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/set-status-poll-interval.sh | sudo STATUS_POLL_INTERVAL_MS=300000 bash
 ```
 
-It updates only that one line in the app's `.env`, leaving every other value untouched, then recreates the `update-agent` container to apply it -- only if `update-agent` is already running, so this never starts it on installs that leave it off (e.g. `DEV_MODE`). Set `APP_DIR` the same way as above if the app isn't installed at `/opt/integritas-pi`.
+It updates only that one line in the app's `.env`, leaving every other value untouched, then recreates the `update-agent` container to apply it -- only if `update-agent` is already running, so this never starts it on installs that leave it off (e.g. `DEV_MODE`). Set `APP_DIR` the same way as above if the app isn't installed at `/opt/edge-studio`.
 
 ## Update The App
 
 Run the installer again:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo bash
 ```
 
 The installer preserves the existing `.env` file, SQLite data directory, and Minima data directory, then pulls the latest repository contents and recreates the containers.
@@ -525,7 +525,7 @@ The installer preserves the existing `.env` file, SQLite data directory, and Min
 You can override the branch:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo APP_BRANCH=main bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo APP_BRANCH=main bash
 ```
 
 ## Architecture
@@ -544,7 +544,7 @@ frontend container
   v
 backend container
   - Express + TypeScript
-  - SQLite database at /data/integritas-pi.db
+  - SQLite database at /data/edge-studio.db
   - GET /api/health
   - GET /api/status/overview
   - GET /api/files
@@ -743,7 +743,7 @@ The frontend sends canonical bytes and proof payloads to the backend. The backen
 The backend uses the first available source in that order. Install with a fallback Integritas API key:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo INTEGRITAS_API_KEY=your-api-key bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo INTEGRITAS_API_KEY=your-api-key bash
 ```
 
 For the preferred prototype UX, install without a key and then enter it in the Integritas page in the browser.
@@ -762,7 +762,7 @@ See [`SECURITY.md`](./SECURITY.md) for the current risk register, known vulnerab
 - Integritas Connect tokens and API key are backend-only and encrypted at rest in SQLite
 - Backend mounts `/var/run/docker.sock:ro` to read container status and resource usage for the App status page. This is useful for the prototype, but Docker socket access is sensitive and should be replaced with a narrower monitoring approach before production.
 - GPIO input sources use the `gpiomon` tool inside the backend container and GPIO LED output targets use `gpioset`; both require explicit GPIO device access on Raspberry Pi deployments. Add an override such as `devices: ["/dev/gpiochip0:/dev/gpiochip0"]` and a suitable GPIO group when enabling GPIO hardware ingestion/control.
-- BME280/BME680 sensor reads use the opt-in host-side `integritas-pi-sensor-helper` service with I2C access instead of exposing generic I2C operations through the backend API.
+- BME280/BME680 sensor reads use the opt-in host-side `edge-studio-sensor-helper` service with I2C access instead of exposing generic I2C operations through the backend API.
 - Admin authentication with a 6-digit PIN or an 8+ character password containing uppercase, lowercase, a number, and a symbol, plus HttpOnly session cookies (see [Authentication](#authentication))
 - HTTPS with a self-signed certificate on the default Docker deploy (`COOKIE_SECURE=true`)
 
