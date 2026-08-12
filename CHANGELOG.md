@@ -4,6 +4,12 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ci/manifest-issues
+
+### Changed
+
+- Release workflow now deploys manifests to the manifest repo under `edge-studio/`, replacing the deprecated `integritas-pi/` base folder.
+
 ## [Unreleased] rename/edge-studio
 
 ### Changed
@@ -23,12 +29,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Automation now includes an in-app workflow guide with block reference content sourced from the same typed block help catalog used by the configure-panel "About this block" section.
 - Automation block help now documents each configurable input field, including required fields, conditional visibility, and examples; the guide and configure panel render the same field reference content.
-
-## [Unreleased] ci/manifest-issues
-
-### Changed
-
-- Release workflow now deploys manifests to the manifest repo under `edge-studio/`, replacing the deprecated `integritas-pi/` base folder.
 
 ## [0.36.2] 2026-08-12
 
