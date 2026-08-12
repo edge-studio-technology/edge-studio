@@ -264,13 +264,14 @@ export function AutomationPage() {
       enabled?: boolean;
       parentBlockId?: string | null;
     }[],
-  ) {
+  ): Promise<boolean> {
     setBusy(true);
     try {
       const response = await createAutomationWorkflow({ name, enabled, blocks });
       setName("");
       await refresh();
       navigateFlow({ mode: "edit", workflowId: response.item.id });
+      return true;
     } catch (err) {
       showToast({
         tone: "error",
@@ -278,6 +279,7 @@ export function AutomationPage() {
         message: err instanceof Error ? err.message : "Unknown error",
         timeoutMs: 9000,
       });
+      return false;
     } finally {
       setBusy(false);
     }

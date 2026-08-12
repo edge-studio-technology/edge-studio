@@ -4,7 +4,12 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## Unreleased
+## [Unreleased] 2026-08-12
+
+### Changed
+
+- Create workflow asks for confirmation before leaving with unsaved progress (Back, breadcrumb, sidebar, browser back), and warns on tab close/refresh.
+- Block "Open full guide" opens the workflow guide in a new tab so create/edit is not interrupted.
 
 ## [0.36.3] 2026-08-12
 
