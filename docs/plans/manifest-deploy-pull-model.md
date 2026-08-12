@@ -41,7 +41,7 @@ All of the below are external/infra steps — nothing here is committed code, an
 - On the QA VPS: clone `integritas-manifests` to `/srv/update-manifests/repo/` (outside the Next.js app's project directory — not `next build`/PM2-managed, so redeploys can't wipe it) using a **read-only** credential (e.g. a fine-grained PAT scoped to just that repo, or a second GitHub App install with read-only permission), separate from CI's write access.
 - Add a small pull script (`git -C /srv/update-manifests/repo pull --ff-only`), logged (journald/syslog or a logfile) so pull failures are locally visible — mitigates the pull model's silent-failure trade-off.
 - Add a cron job under `qa-manifest-deploy` running that script every 5–15 minutes.
-- Add an nginx `location /update-manifest/` block aliasing to `/srv/update-manifests/repo/edge-studio/<channel>/` (the leaf subfolder — never the repo root, so `.git/` stays unreachable over HTTP; both `location` and `alias` paths end in `/`, same rule verified previously).
+- Add an nginx `location /edge-studio/` block aliasing to `/srv/update-manifests/repo/edge-studio/` (the leaf subfolder — never the repo root, so `.git/` stays unreachable over HTTP; both `location` and `alias` paths end in `/`, same rule verified previously).
 - Confirm the `release.yml` deploy step runs clean against real secrets (code is written, untested against real infra).
 - Set QA `update-agent`'s `MANIFEST_URL` to the QA manifest endpoint.
 - Verify via a disposable-tag dry run: manifest lands in `integritas-manifests` (commit shows up), VPS cron pulls it, nginx serves it, and a traversal attempt (e.g. `.git/config`) fails.
@@ -63,6 +63,6 @@ All of the below are external/infra steps — nothing here is committed code, an
 - `release.yml` YAML is valid (no syntax errors) — sanity-check via `gh workflow view` or a local YAML lint.
 - Disposable-tag dry run (same pattern as the existing "Branch testing strategy" in `update-service-launch.md`): cut a test tag, confirm the new "Deploy manifest" step pushes `edge-studio/<channel>/manifest.json`+`.sig` into `integritas-manifests` (check the repo's commit history).
 - On the VPS: manually run the pull script once, confirm it fast-forwards and the files land in `/srv/update-manifests/repo/edge-studio/<channel>/`; confirm cron is actually scheduled (`crontab -l` under `qa-manifest-deploy`).
-- `curl` the nginx endpoint (`https://<qa-host>/update-manifest/manifest.json`) and confirm it returns the pushed manifest; confirm a traversal attempt (e.g. `.git/config`) does not return repo internals.
+- `curl` the nginx endpoint (`https://<qa-host>/edge-studio/release/manifest.json`) and confirm it returns the pushed manifest; confirm a traversal attempt (e.g. `.git/config`) does not return repo internals.
 - Clean up the test tag/images per the existing cleanup note once verified.
 - Docs updated and completed items reflect reality.

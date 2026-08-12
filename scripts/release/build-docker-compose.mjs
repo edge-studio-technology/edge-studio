@@ -194,7 +194,7 @@ MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES=30
 
 # Update manifest (required for updates)
 # Point to the ${channel} channel manifest
-MANIFEST_URL=https://integritas.technology/update-manifest/${channel}/manifest.json
+MANIFEST_URL=https://integritas.technology/edge-studio/${channel}/manifest.json
 RELEASE_CHANNEL=${channel}
 
 # Update Agent configuration

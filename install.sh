@@ -71,7 +71,7 @@ MINIMA_RPC_PORT="${MINIMA_RPC_PORT:-9005}"
 INTEGRITAS_CONNECT_BASE_URL="${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}"
 INTEGRITAS_BASE_URL="${INTEGRITAS_BASE_URL:-https://integritas.technology/core}"
 INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID:-edge-studio}"
-MANIFEST_URL="${MANIFEST_URL:-https://integritas.technology/update-manifest/release/manifest.json}"
+MANIFEST_URL="${MANIFEST_URL:-https://integritas.technology/edge-studio/release/manifest.json}"
 DEV_MODE="${DEV_MODE:-false}"
 
 APT_PACKAGES=(
@@ -233,7 +233,7 @@ load_existing_config() {
   INTEGRITAS_CONNECT_BASE_URL="${INTEGRITAS_CONNECT_BASE_URL_INPUT:-${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}}"
   INTEGRITAS_BASE_URL="${INTEGRITAS_BASE_URL_INPUT:-${INTEGRITAS_BASE_URL:-https://integritas.technology/core}}"
   INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID_INPUT:-${INTEGRITAS_REQUEST_ID:-edge-studio}}"
-  MANIFEST_URL="${MANIFEST_URL_INPUT:-${MANIFEST_URL:-https://integritas.technology/update-manifest/release/manifest.json}}"
+  MANIFEST_URL="${MANIFEST_URL_INPUT:-${MANIFEST_URL:-https://integritas.technology/edge-studio/release/manifest.json}}"
   DEV_MODE="${DEV_MODE_INPUT:-${DEV_MODE:-false}}"
 }
 
