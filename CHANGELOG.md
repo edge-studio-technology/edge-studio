@@ -4,11 +4,17 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## Unreleased
+
+- Automation now includes an in-app workflow guide with block reference content sourced from the same typed block help catalog used by the configure-panel "About this block" section.
+- Automation block help now documents each configurable input field, including required fields, conditional visibility, and examples; the guide and configure panel render the same field reference content.
+
 ## [0.36.1] 2026-08-11
 
 ### Changed
 
-- Autmation workflow blocks had their description changed to show key : value pairs of their configured values.
+- Automation workflow blocks now show key/value summaries of their configured values on the canvas instead of generic help copy.
+
 
 ## [0.36.0] 2026-08-11
 
