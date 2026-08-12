@@ -4,6 +4,22 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] fix/update-page
+
+### Changed
+
+- `update-agent`'s default manifest poll interval is now 30 minutes instead of 12 hours.
+- Update page "Check again" button moved into the action button row with "Update now" for consistent placement and styling.
+- Release workflow now publishes manifests to `development`/`canary`/`release` channels, selected by tag suffix, instead of a single `qa` manifest branch.
+
+### Added
+
+- Release workflow now generates and publishes a per-channel `docker-compose.yml` and `.env.example`.
+
+### Fixed
+
+- Update page no longer shows "Unknown version" after an update completes; `update-agent` now awaits the status poller's first check before accepting requests.
+
 ## [0.36.1] 2026-08-11
 
 ### Changed
