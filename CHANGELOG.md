@@ -4,6 +4,12 @@ All notable changes to `integritas-pi` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] fix/update-page
+
+### Changed
+
+- `update-agent`'s default manifest poll interval is now 30 minutes instead of 12 hours.
+
 ## [0.36.1] 2026-08-11
 
 ### Changed
