@@ -10,10 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - App status bar stays put when navigating between pages that do or don't need a scrollbar.
 - Opening a modal no longer shifts the page when a scrollbar is hidden.
+- Shortened hashes always show the start and end (CSS ellipsis no longer clips the ending).
 
 ### Changed
 
 - Page content scrolls under a fixed status bar instead of scrolling the whole app shell.
+- Shared list tables apply header and body text styles on the cells themselves instead of a table-wide fallback size.
+- Devices list column widths are tuned so direction, type, health, and preview labels fit, while long names and endpoints truncate.
+- Dashboard next-step guide shows Cable and Workflow icons on Connect devices / Create workflow, and drops the awkward trailing setup line.
+- Sidebar Devices and Automation icons use Cable and Workflow to match the dashboard guide.
 
 ## [0.38.0] 2026-08-12
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Cable, Check, Workflow } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { APP_NAME } from "../../app/names";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -43,13 +44,14 @@ export function DashboardNextAction() {
         </h2>
         <p className="type-body text-text-secondary m-0">
           {APP_NAME} connects device data, proves it with Integritas, runs automations, and settles
-          value on Minima. Do this in order:
+          value on Minima.
         </p>
       </header>
 
       <ol className="m-0 grid max-w-xl list-none gap-0 p-0">
         <Step
           number={1}
+          icon={Cable}
           title="Connect devices"
           detail="Add a sensor, API, webhook, MQTT, or GPIO source."
           state={hasDevices ? "done" : "current"}
@@ -57,6 +59,7 @@ export function DashboardNextAction() {
         />
         <Step
           number={2}
+          icon={Workflow}
           title="Create a workflow"
           detail="Automate what happens when device data or proofs arrive."
           state={hasDevices ? "current" : "upcoming"}
@@ -68,6 +71,7 @@ export function DashboardNextAction() {
           <Button
             type="button"
             variant="accent"
+            iconStart={<Cable aria-hidden="true" />}
             iconEnd={<ArrowRight aria-hidden="true" />}
             onClick={() => navigate("/data")}
           >
@@ -78,6 +82,7 @@ export function DashboardNextAction() {
             <Button
               type="button"
               variant="accent"
+              iconStart={<Workflow aria-hidden="true" />}
               iconEnd={<ArrowRight aria-hidden="true" />}
               onClick={() => navigate("/automation")}
             >
@@ -95,12 +100,14 @@ export function DashboardNextAction() {
 
 function Step({
   number,
+  icon: Icon,
   title,
   detail,
   state,
   showConnector = false,
 }: {
   number: number;
+  icon: LucideIcon;
   title: string;
   detail: string;
   state: "done" | "current" | "upcoming";
@@ -133,17 +140,26 @@ function Step({
       <div className={cx("min-w-0 pt-0.5", showConnector && "pb-detail-close")}>
         <p
           className={cx(
-            "type-body-em m-0",
+            "type-body-em gap-detail-tight m-0 flex items-center",
             state === "upcoming" ? "text-text-secondary" : "text-text-primary",
           )}
         >
-          {title}
-          {state === "done" ? <span className="sr-only"> (done)</span> : null}
-          {state === "current" ? <span className="sr-only"> (current)</span> : null}
+          <Icon
+            className={cx(
+              "size-4 shrink-0",
+              state === "upcoming" ? "text-icon-tertiary" : "text-icon-primary",
+            )}
+            aria-hidden="true"
+          />
+          <span>
+            {title}
+            {state === "done" ? <span className="sr-only"> (done)</span> : null}
+            {state === "current" ? <span className="sr-only"> (current)</span> : null}
+          </span>
         </p>
         <p
           className={cx(
-            "type-meta m-0 mt-detail-tight",
+            "type-meta mt-detail-tight m-0 ml-5",
             state === "upcoming" ? "text-text-tertiary" : "text-text-secondary",
           )}
         >
