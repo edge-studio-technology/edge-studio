@@ -53,18 +53,6 @@ export function UpdatePage() {
     <Page
       title="Software update"
       desc="Check for and apply software updates."
-      action={
-        status && upToDate ? (
-          <Button
-            variant="secondary"
-            size="sm"
-            iconStart={<RefreshCw aria-hidden />}
-            onClick={load}
-          >
-            Check again
-          </Button>
-        ) : undefined
-      }
     >
       <Card className="gap-detail-close flex w-full flex-col">
         {loading ? (
@@ -101,13 +89,22 @@ export function UpdatePage() {
                     ? `${status.currentVersion} → ${status.manifest.version}`
                     : `Version ${status.manifest.version} is available.`}
               </p>
-              {!upToDate ? (
-                <ButtonRow>
+              <ButtonRow>
+                {!upToDate ? (
                   <Button variant="primary" onClick={() => void startUpdate()} disabled={starting}>
                     {starting ? "Starting…" : "Update now"}
                   </Button>
-                </ButtonRow>
-              ) : null}
+                ) : (
+                  <Button
+                    variant="secondary"
+                    iconStart={<RefreshCw aria-hidden />}
+                    onClick={load}
+                    disabled={loading}
+                  >
+                    Check again
+                  </Button>
+                )}
+              </ButtonRow>
               {startError ? <ErrorText>{startError}</ErrorText> : null}
             </div>
 

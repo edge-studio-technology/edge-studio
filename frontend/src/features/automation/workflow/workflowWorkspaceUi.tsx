@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { X } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 import { IconButton } from "../../../components/Button";
 import { TableIconButton } from "../../../components/DataTable";
 import { Card } from "../../../components/ui/Card";
@@ -17,7 +17,7 @@ import type {
 } from "../automationTypes";
 import { groupValidationIssues } from "./workflowHelpers";
 import { Text } from "../../../components/ui/Text";
-import { blockHelp } from "./workflowBlockHelp";
+import { blockHelp, type WorkflowBlockHelpField } from "./workflowBlockHelp";
 
 /** Workspace chrome for Automation page screens (list/create/edit/watch). Not the graph — that lives in `workflow/canvas/`. */
 export const mutedText = "type-body text-text-secondary";
@@ -331,14 +331,19 @@ export function InspectorSection({
 export function BlockHelpDisclosure({ type }: { type: AutomationBlockType }) {
   const help = blockHelp(type);
   return (
-    <Card size="Compact" className="border-stroke-secondary border">
+    <Card size="Compact" className="border-stroke-secondary bg-surface-primary border">
       <Disclosure title="About this block" summaryClassName="type-callout" defaultOpen={false}>
         <div className="gap-detail-close grid">
-          <Text.Body className="text-text-secondary">{help.tooltip}</Text.Body>
-          <BlockHelpList title="What it does" items={[help.whatItDoes]} />
-          <BlockHelpList title="When to use it" items={[help.whenToUse]} />
+          <div className="border-stroke-secondary bg-surface-always-white grid gap-detail-tight rounded-soft border p-margin-close">
+            <Text.Body className="text-text-secondary">{help.tooltip}</Text.Body>
+          </div>
+          <div className="grid gap-detail-next">
+            <BlockHelpPanel title="What it does">{help.whatItDoes}</BlockHelpPanel>
+            <BlockHelpPanel title="When to use it">{help.whenToUse}</BlockHelpPanel>
+          </div>
+          {help.fields.length > 0 ? <BlockFieldReference fields={help.fields} /> : null}
           <BlockHelpList title="Outputs" items={help.outputs} />
-          <Link className="type-meta text-text-accent hover:underline" to={`/automation/help#${type}`}>
+          <Link className="type-link text-text-accent hover:text-text-accent-hover" to={`/automation/help#${type}`}>
             Open full guide
           </Link>
         </div>
@@ -347,13 +352,55 @@ export function BlockHelpDisclosure({ type }: { type: AutomationBlockType }) {
   );
 }
 
+function BlockHelpPanel({ title, children }: { title: string; children: string }) {
+  return (
+    <section className="border-stroke-secondary bg-surface-always-white grid gap-detail-tight rounded-soft border p-margin-close">
+      <h4 className="type-meta text-text-secondary m-0 uppercase">{title}</h4>
+      <Text.Body className="text-text-secondary">{children}</Text.Body>
+    </section>
+  );
+}
+
+function BlockFieldReference({ fields }: { fields: WorkflowBlockHelpField[] }) {
+  return (
+    <section className="grid gap-detail-tight">
+      <h4 className="type-meta text-text-secondary m-0 uppercase">Fields</h4>
+      <div className="grid gap-detail-tight">
+        {fields.map((field) => (
+          <div
+            key={field.label}
+            className="border-stroke-secondary bg-surface-always-white grid gap-detail-tight rounded-soft border p-margin-close"
+          >
+            <div className="gap-detail-tight flex flex-wrap items-center">
+              <Text.BodyEm>{field.label}</Text.BodyEm>
+              {field.required ? <Pill tone="warn">Required</Pill> : null}
+            </div>
+            <Text.Body className="text-text-secondary">{field.description}</Text.Body>
+            {field.shownWhen ? (
+              <Text.Muted>Shown when: {field.shownWhen}.</Text.Muted>
+            ) : null}
+            {field.example ? (
+              <Text.Muted>
+                Example: <code>{field.example}</code>
+              </Text.Muted>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function BlockHelpList({ title, items }: { title: string; items: string[] }) {
   return (
     <section className="grid gap-detail-tight">
       <h4 className="type-meta text-text-secondary m-0 uppercase">{title}</h4>
-      <ul className="type-body text-text-secondary m-0 grid gap-detail-tight pl-margin-tight">
+      <ul className="m-0 grid list-none gap-detail-tight p-0">
         {items.map((item) => (
-          <li key={item}>{item}</li>
+          <li key={item} className="gap-detail-tight flex items-start">
+            <CheckCircle2 aria-hidden className="text-icon-success mt-[2px] size-4 shrink-0" />
+            <Text.Body className="text-text-secondary">{item}</Text.Body>
+          </li>
         ))}
       </ul>
     </section>

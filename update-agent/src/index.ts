@@ -4,11 +4,11 @@ import { startStatusPoller } from "./status/status-poller.js";
 
 const app = createApp();
 
-app.listen(env.port, "0.0.0.0", () => {
+const server = app.listen(env.port, "0.0.0.0", () => {
   console.log(`integritas-pi update-agent listening on port ${env.port}`);
   if (env.dryRun) {
     console.warn("[update-agent] UPDATE_DRY_RUN=true — applies will be simulated, not applied. Dev only, never set this in production.");
   }
 });
 
-startStatusPoller();
+await startStatusPoller();

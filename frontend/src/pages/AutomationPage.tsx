@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { BookOpen } from "lucide-react";
 import { Button, LinkButton } from "../components/Button";
 import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import { ErrorAlert } from "../components/ErrorAlert";
@@ -421,7 +422,7 @@ export function AutomationPage() {
       title="Automation"
       desc="Build workflows from small start, data, logic, and Integritas blocks."
       action={
-        <LinkButton href="/automation/help" size="sm" variant="secondary">
+        <LinkButton href="/automation/help" variant="ghost" iconStart={<BookOpen size={16} />}>
           Workflow guide
         </LinkButton>
       }

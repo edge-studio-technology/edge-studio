@@ -504,7 +504,7 @@ curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi
 
 ## Tune Update Agent Poll Interval
 
-`update-agent` checks the update manifest in the background every 12 hours by default (`STATUS_POLL_INTERVAL_MS=43200000`). To lower this on an installed app, for example for QA/testing:
+`update-agent` checks the update manifest in the background every 30 minutes by default (`STATUS_POLL_INTERVAL_MS=1800000`). To lower this on an installed app, for example for QA/testing:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/scripts/dev/set-status-poll-interval.sh | sudo STATUS_POLL_INTERVAL_MS=300000 bash
