@@ -8,7 +8,7 @@ mkdirSync(outDir, { recursive: true });
 
 const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
 
-const dockerCompose = `# Official integritas-pi Docker Compose — ${channel} channel
+const dockerCompose = `# Official edge-studio Docker Compose — ${channel} channel
 # Digest-pinned images (no repo checkout, no \`build:\` context needed) — just
 # this file plus the matching .env. Works with Docker Desktop's GUI:
 # open this folder in Docker Desktop's "Compose" view (or run
@@ -155,7 +155,7 @@ networks:
     name: integritas-pi
 `;
 
-const envExample = `# integritas-pi ${channel} channel
+const envExample = `# edge-studio ${channel} channel
 # Copy this to .env and customize as needed
 
 # Data persistence

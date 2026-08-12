@@ -218,12 +218,12 @@ jobs:
 
       - name: Deploy docker-compose (push to private manifest repo)
         run: |
-          mkdir -p manifest-repo/docker/${{ steps.channel.outputs.channel }}
-          cp docker-compose-output/docker-compose.yml docker-compose-output/.env.example manifest-repo/docker/${{ steps.channel.outputs.channel }}/
+          mkdir -p manifest-repo/edge-studio/docker/${{ steps.channel.outputs.channel }}
+          cp docker-compose-output/docker-compose.yml docker-compose-output/.env.example manifest-repo/edge-studio/docker/${{ steps.channel.outputs.channel }}/
           cd manifest-repo
-          git add docker/${{ steps.channel.outputs.channel }}/docker-compose.yml docker/${{ steps.channel.outputs.channel }}/.env.example
+          git add edge-studio/docker/${{ steps.channel.outputs.channel }}/docker-compose.yml edge-studio/docker/${{ steps.channel.outputs.channel }}/.env.example
           git diff --staged --quiet && exit 0
-          git commit -m "docker/${{ steps.channel.outputs.channel }}: update compose files (${{ github.ref_name }})"
+          git commit -m "edge-studio/docker/${{ steps.channel.outputs.channel }}: update compose files (${{ github.ref_name }})"
           git push origin HEAD:main
 
       - name: Upload manifest artifact
