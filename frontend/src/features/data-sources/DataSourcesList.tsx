@@ -185,13 +185,13 @@ export function DataSourcesList({
                 return (
                   <TableRow key={source.id}>
                     <TableCell className="min-w-0">
-                      <span className="block truncate" title={source.name}>
+                      <span className="type-body-em block truncate" title={source.name}>
                         {source.name}
                       </span>
                     </TableCell>
-                    <TableCell>{sourceDirection(source)}</TableCell>
+                    <TableCell className="text-text-secondary">{sourceDirection(source)}</TableCell>
                     <TableCell className="min-w-0">
-                      <span className="block truncate" title={typeLabel}>
+                      <span className="text-text-secondary block truncate" title={typeLabel}>
                         {typeLabel}
                       </span>
                     </TableCell>
@@ -205,7 +205,7 @@ export function DataSourcesList({
                     </TableCell>
                     <TableCell>
                       {source.lastHash ? (
-                        <TruncatedHash className="!text-text-primary" value={source.lastHash} />
+                        <TruncatedHash value={source.lastHash} />
                       ) : (
                         <span className="text-text-secondary">Not read yet</span>
                       )}

@@ -153,20 +153,20 @@ export function AutomationWorkflowsList({
           <DataTable>
             <TableHead>
               <TableHeaderCell>Name</TableHeaderCell>
-              <TableHeaderCell>Status</TableHeaderCell>
+              <TableHeaderCell className="w-40">Status</TableHeaderCell>
               {/* <TableHeaderCell className="w-56">Source</TableHeaderCell> */}
               {/* <TableHeaderCell className="w-48">Blocks</TableHeaderCell> */}
-              <TableHeaderCell>Last run</TableHeaderCell>
+              <TableHeaderCell className="w-40">Last run</TableHeaderCell>
               {/* <TableHeaderCell className="w-40">Last hash</TableHeaderCell> */}
-              <TableHeaderCell className="whitespace-nowrap">Actions</TableHeaderCell>
+              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
             </TableHead>
             <TableBody>
               {pagedWorkflows.map((workflow) => (
                 <TableRow key={workflow.id}>
                   <TableCell className="min-w-0">
-                    <strong className="block truncate" title={workflow.name}>
+                    <span className="type-body-em block truncate" title={workflow.name}>
                       {workflow.name}
-                    </strong>
+                    </span>
                     {workflow.lastError && (
                       <p
                         className="type-meta text-text-error mt-detail-next m-0 truncate"
@@ -202,11 +202,11 @@ export function AutomationWorkflowsList({
                   </TableCell> */}
                   <TableCell className="whitespace-nowrap">
                     {workflow.lastRunAt ? (
-                      <time className="type-meta text-text-secondary" dateTime={workflow.lastRunAt}>
+                      <time className="text-text-secondary type-meta" dateTime={workflow.lastRunAt}>
                         {formatLocalDateTime(workflow.lastRunAt)}
                       </time>
                     ) : (
-                      <span className="type-meta text-text-secondary">Never</span>
+                      <span className="text-text-secondary">Never</span>
                     )}
                   </TableCell>
                   {/* <TableCell>
@@ -216,7 +216,7 @@ export function AutomationWorkflowsList({
                       <span className="text-text-secondary">Not read yet</span>
                     )}
                   </TableCell> */}
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="w-px whitespace-nowrap">
                     <RowActions>
                       <TableIconButton
                         type="button"
