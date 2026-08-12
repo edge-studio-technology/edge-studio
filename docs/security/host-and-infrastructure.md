@@ -94,7 +94,7 @@ Status: Accepted risk, documented. See `.agents/rules/update-agent.md`.
 
 ## I2C Sensor Helper
 
-Risk: `ENABLE_SENSORS=true` installs a host-side `integritas-pi-sensor-helper` service that can read supported I2C sensors such as BME280 and BME680 through the Pi's I2C bus.
+Risk: `ENABLE_SENSORS=true` installs a host-side `edge-studio-sensor-helper` service that can read supported I2C sensors such as BME280 and BME680 through the Pi's I2C bus.
 
 Impact: If abused, helper access could disclose local environmental sensor readings or interact with attached I2C devices. A generic I2C proxy would be much higher risk because arbitrary reads/writes could affect unrelated hardware on the bus.
 

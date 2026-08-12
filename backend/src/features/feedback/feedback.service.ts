@@ -74,7 +74,7 @@ type FeedbackDocument = {
     createdAt: string;
     updatedAt: string;
     app: {
-      name: "integritas-pi";
+      name: "edge-studio";
       version: string;
     };
     user: {
@@ -300,7 +300,7 @@ function buildMetadata(user: SessionUser, createdAt: string, updatedAt: string):
     createdAt,
     updatedAt,
     app: {
-      name: "integritas-pi",
+      name: "edge-studio",
       version: getAppVersion()
     },
     user: {

@@ -6,7 +6,7 @@ import { SpinnerAlt } from "../../components/ui/SpinnerAlt";
 import { fetchChangelog, parseChangelog } from "./changelog";
 import type { ChangelogEntry } from "./changelog";
 
-const REPO_URL = "https://github.com/integritas-technology/integritas-pi";
+const REPO_URL = "https://github.com/integritas-technology/edge-studio";
 const linkClass = "type-link text-text-accent hover:text-text-accent-hover transition-colors duration-200";
 
 const INLINE_PATTERN = /`([^`]+)`|\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)]+)\)/g;

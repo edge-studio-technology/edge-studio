@@ -692,11 +692,11 @@ export function bodyModeDescription(
 }
 
 export function defaultCustomBodyText() {
-  return '{\n  "content": "Integritas Pi workflow triggered."\n}';
+  return '{\n  "content": "Edge Studio workflow triggered."\n}';
 }
 
 export function defaultMultipartJsonText() {
-  return '{\n  "message": "Integritas Pi camera capture",\n  "hash": "{{hash}}",\n  "readId": "{{readId}}",\n  "sourceName": "{{sourceName}}",\n  "fileName": "{{fileName}}"\n}';
+  return '{\n  "message": "Edge Studio camera capture",\n  "hash": "{{hash}}",\n  "readId": "{{readId}}",\n  "sourceName": "{{sourceName}}",\n  "fileName": "{{fileName}}"\n}';
 }
 
 export function formatInterval(seconds: number) {

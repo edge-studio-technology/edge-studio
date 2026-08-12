@@ -60,7 +60,7 @@ Impact: Loss of access to saved secrets or compromise when both `.env` and SQLit
 Plan:
 
 - Preserve `APP_SECRET` during updates.
-- Restrict permissions on `/opt/integritas-pi/.env`.
+- Restrict permissions on `/opt/edge-studio/.env`.
 - Add backup/restore documentation.
 - Consider integrating OS keyring, TPM, age/sops, or user-provided passphrase for stronger production secret handling.
 

@@ -47,7 +47,7 @@ startGpioIngestion();
 const app = createApp();
 
 app.listen(env.port, "0.0.0.0", () => {
-  console.log(`integritas-pi backend listening on port ${env.port}`);
+  console.log(`edge-studio backend listening on port ${env.port}`);
   console.log(`File access root: ${env.hostFilesRoot}`);
   console.log(`Minima status URL: ${env.minimaStatusUrl}`);
   console.log(`Integritas connect base URL: ${env.integritasConnectBaseUrl}`);

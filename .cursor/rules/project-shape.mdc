@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Project Shape
 
-`integritas-pi` is a Raspberry Pi Docker Compose prototype with a React frontend, TypeScript/Express backend, SQLite persistence, Minima, Integritas stamping, data sources, automation workflows, and a small operational CLI.
+`edge-studio` is a Raspberry Pi Docker Compose prototype with a React frontend, TypeScript/Express backend, SQLite persistence, Minima, Integritas stamping, data sources, automation workflows, and a small operational CLI.
 
 The primary architecture is API-first:
 
@@ -26,7 +26,7 @@ Do not implement business logic separately in the frontend or CLI. Put shared be
 - Backend must not expose arbitrary shell command execution.
 - Host file access must stay read-only and path-safe.
 - Backend should continue running as non-root in Docker.
-- Persist runtime state in SQLite under `/data/integritas-pi.db`.
+- Persist runtime state in SQLite under `/data/edge-studio.db`.
 - Do not add mock data/functions to production paths.
 - Document security-sensitive tradeoffs in `SECURITY.md` when adding risk.
 

@@ -7,7 +7,7 @@ Use this guide for a 4-pin BME280 or BME680 I2C environmental sensor module with
 Install or update Edge Studio with sensor support enabled:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/install.sh | sudo env ENABLE_SENSORS=true bash
+curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env ENABLE_SENSORS=true bash
 ```
 
 Also enable I2C on the Raspberry Pi host, then reboot if prompted:
@@ -40,7 +40,7 @@ Some BME680 breakouts expose six pins because the chip also supports SPI. For I2
 
 If a BME680 module is configured as `0x76` but not found, check whether `SDO` is floating or tied high. If the module is not detected at either address, check whether `CS`/`CSB` must be tied high for I2C mode on that breakout.
 
-For BME680 modules, the helper also needs the Python `bme680` module. The installer creates a dedicated sensor-helper virtualenv at `/opt/integritas-pi/.venv-sensor-helper` and installs `bme680` there when `ENABLE_SENSORS=true`.
+For BME680 modules, the helper also needs the Python `bme680` module. The installer creates a dedicated sensor-helper virtualenv at `/opt/edge-studio/.venv-sensor-helper` and installs `bme680` there when `ENABLE_SENSORS=true`.
 
 ## Device Settings
 

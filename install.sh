@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="integritas-pi"
-APP_REPO_URL="${APP_REPO_URL:-https://github.com/integritas-technology/integritas-pi.git}"
+APP_NAME="edge-studio"
+APP_REPO_URL="${APP_REPO_URL:-https://github.com/integritas-technology/edge-studio.git}"
 APP_BRANCH="${APP_BRANCH:-main}"
-APP_DIR="${APP_DIR:-/opt/integritas-pi}"
+APP_DIR="${APP_DIR:-/opt/edge-studio}"
 HOST_FILES_DIR_INPUT="${HOST_FILES_DIR-}"
 FRONTEND_PORT_INPUT="${FRONTEND_PORT-}"
 DATA_DIR_INPUT="${DATA_DIR-}"
@@ -70,8 +70,8 @@ MINIMA_RPC_BIND="${MINIMA_RPC_BIND:-127.0.0.1}"
 MINIMA_RPC_PORT="${MINIMA_RPC_PORT:-9005}"
 INTEGRITAS_CONNECT_BASE_URL="${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}"
 INTEGRITAS_BASE_URL="${INTEGRITAS_BASE_URL:-https://integritas.technology/core}"
-INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID:-integritas-pi}"
-MANIFEST_URL="${MANIFEST_URL:-https://integritas.technology/update-manifest/manifest.json}"
+INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID:-edge-studio}"
+MANIFEST_URL="${MANIFEST_URL:-https://integritas.technology/edge-studio/release/manifest.json}"
 DEV_MODE="${DEV_MODE:-false}"
 
 APT_PACKAGES=(
@@ -232,8 +232,8 @@ load_existing_config() {
   MINIMA_RPC_PORT="${MINIMA_RPC_PORT_INPUT:-${MINIMA_RPC_PORT:-9005}}"
   INTEGRITAS_CONNECT_BASE_URL="${INTEGRITAS_CONNECT_BASE_URL_INPUT:-${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}}"
   INTEGRITAS_BASE_URL="${INTEGRITAS_BASE_URL_INPUT:-${INTEGRITAS_BASE_URL:-https://integritas.technology/core}}"
-  INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID_INPUT:-${INTEGRITAS_REQUEST_ID:-integritas-pi}}"
-  MANIFEST_URL="${MANIFEST_URL_INPUT:-${MANIFEST_URL:-https://integritas.technology/update-manifest/manifest.json}}"
+  INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID_INPUT:-${INTEGRITAS_REQUEST_ID:-edge-studio}}"
+  MANIFEST_URL="${MANIFEST_URL_INPUT:-${MANIFEST_URL:-https://integritas.technology/edge-studio/release/manifest.json}}"
   DEV_MODE="${DEV_MODE_INPUT:-${DEV_MODE:-false}}"
 }
 
@@ -396,9 +396,9 @@ fetch_manifest_field() {
 resolve_images() {
   if is_truthy "$DEV_MODE"; then
     log "DEV_MODE enabled: skipping manifest fetch/signature verification and update agent; building frontend/backend from source"
-    FRONTEND_IMAGE="integritas-pi-frontend:dev"
-    BACKEND_IMAGE="integritas-pi-backend:dev"
-    UPDATE_AGENT_IMAGE="integritas-pi-update-agent:dev"
+    FRONTEND_IMAGE="edge-studio-frontend:dev"
+    BACKEND_IMAGE="edge-studio-backend:dev"
+    UPDATE_AGENT_IMAGE="edge-studio-update-agent:dev"
     MANIFEST_VERSION=""
     MANIFEST_CREATED_AT=""
     return
@@ -574,7 +574,7 @@ EOF
 }
 
 install_camera_helper() {
-  local service_file="/etc/systemd/system/integritas-pi-camera-helper.service"
+  local service_file="/etc/systemd/system/edge-studio-camera-helper.service"
   local helper_user
   local supplementary_groups=""
   local capture_dir
@@ -582,7 +582,7 @@ install_camera_helper() {
   if ! is_truthy "$ENABLE_CAMERA"; then
     if [ -f "$service_file" ]; then
       log "Disabling camera helper service"
-      systemctl disable --now integritas-pi-camera-helper.service >/dev/null 2>&1 || true
+      systemctl disable --now edge-studio-camera-helper.service >/dev/null 2>&1 || true
       rm -f "$service_file"
       systemctl daemon-reload
     fi
@@ -635,7 +635,7 @@ Environment=CAMERA_VIDEO_COMMAND=$CAMERA_VIDEO_COMMAND
 Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
 Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
 ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT; fi'
-ExecStart=/usr/bin/python3 $APP_DIR/camera-helper/integritas_camera_helper.py
+ExecStart=/usr/bin/python3 $APP_DIR/camera-helper/edge_studio_camera_helper.py
 Restart=on-failure
 RestartSec=2
 
@@ -645,11 +645,11 @@ EOF
 
   chmod 600 "$service_file"
   systemctl daemon-reload
-  systemctl enable --now integritas-pi-camera-helper.service
+  systemctl enable --now edge-studio-camera-helper.service
 }
 
 install_sensor_helper() {
-  local service_file="/etc/systemd/system/integritas-pi-sensor-helper.service"
+  local service_file="/etc/systemd/system/edge-studio-sensor-helper.service"
   local sensor_venv="$APP_DIR/.venv-sensor-helper"
   local sensor_python="$sensor_venv/bin/python"
   local helper_user
@@ -658,7 +658,7 @@ install_sensor_helper() {
   if ! is_truthy "$ENABLE_SENSORS"; then
     if [ -f "$service_file" ]; then
       log "Disabling sensor helper service"
-      systemctl disable --now integritas-pi-sensor-helper.service >/dev/null 2>&1 || true
+      systemctl disable --now edge-studio-sensor-helper.service >/dev/null 2>&1 || true
       rm -f "$service_file"
       systemctl daemon-reload
     fi
@@ -724,7 +724,7 @@ Environment=SENSOR_HELPER_TOKEN=$SENSOR_HELPER_TOKEN
 Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
 Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
 ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT; fi'
-ExecStart=$sensor_python $APP_DIR/sensor-helper/integritas_sensor_helper.py
+ExecStart=$sensor_python $APP_DIR/sensor-helper/edge_studio_sensor_helper.py
 Restart=on-failure
 RestartSec=2
 
@@ -734,8 +734,8 @@ EOF
 
   chmod 600 "$service_file"
   systemctl daemon-reload
-  systemctl enable integritas-pi-sensor-helper.service
-  systemctl restart integritas-pi-sensor-helper.service
+  systemctl enable edge-studio-sensor-helper.service
+  systemctl restart edge-studio-sensor-helper.service
 }
 
 generate_tls_cert() {
@@ -761,24 +761,24 @@ start_app() {
 ensure_compose_network() {
   local current_gateway
 
-  if ! docker network inspect integritas-pi >/dev/null 2>&1; then
+  if ! docker network inspect edge-studio >/dev/null 2>&1; then
     return
   fi
 
-  current_gateway="$(docker network inspect integritas-pi --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || true)"
+  current_gateway="$(docker network inspect edge-studio --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || true)"
   if [ "$current_gateway" = "$INTEGRITAS_DOCKER_GATEWAY" ]; then
     return
   fi
 
-  log "Recreating Docker network integritas-pi with gateway $INTEGRITAS_DOCKER_GATEWAY"
+  log "Recreating Docker network edge-studio with gateway $INTEGRITAS_DOCKER_GATEWAY"
   docker compose down
-  docker network rm integritas-pi >/dev/null 2>&1 || true
+  docker network rm edge-studio >/dev/null 2>&1 || true
 }
 
 install_cli() {
-  if [ -f "$APP_DIR/bin/integritas-pi" ]; then
+  if [ -f "$APP_DIR/bin/edge-studio" ]; then
     log "Installing CLI command"
-    install -m 755 "$APP_DIR/bin/integritas-pi" /usr/local/bin/integritas-pi
+    install -m 755 "$APP_DIR/bin/edge-studio" /usr/local/bin/edge-studio
   fi
 }
 

@@ -1,6 +1,6 @@
 {
-  "name": "integritas-pi-frontend",
-  "version": "0.1.1",
+  "name": "edge-studio-frontend",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "scripts": {

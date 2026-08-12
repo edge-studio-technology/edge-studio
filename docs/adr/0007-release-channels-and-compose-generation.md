@@ -27,7 +27,7 @@ matching `docker-compose.yml`/`.env.example` a tester could drop into a folder a
   (finding the previous release tag to diff changed service folders against, for build skipping).
 - The manifest repo (`integritas-manifests`) is now always checked out and pushed to `main`
   (`ref: main`, `git push origin HEAD:main`) instead of branch-per-channel. Channel identity now
-  lives entirely in the folder path — `integritas-pi/<channel>/manifest.json(.sig)` — so `main`
+  lives entirely in the folder path — `edge-studio/<channel>/manifest.json(.sig)` — so `main`
   stays the single source of truth for every channel's current manifest, and adding a channel is a
   new folder, not a new git branch with its own protection rules/history to manage.
 - Added `scripts/release/build-docker-compose.mjs`, run after signing, taking the freshly built
@@ -37,10 +37,10 @@ matching `docker-compose.yml`/`.env.example` a tester could drop into a folder a
   `MANIFEST_URL`/`RELEASE_CHANNEL` pre-filled to that channel's manifest URL — both published to
   `docker/<channel>/` in the same manifest repo, same `main`-branch/push-if-changed pattern as the
   manifest itself.
-- The generated compose file hardcodes `name: integritas-pi` (the Compose project name) regardless
+- The generated compose file hardcodes `name: edge-studio` (the Compose project name) regardless
   of the folder a tester unzips it into, because `update-agent`'s container discovery is pinned to
   that project name (see `.claude/rules/update-agent.md`) — every real install already lives in a
-  folder literally named `integritas-pi`, but a channel-distribution artifact can land anywhere, so
+  folder literally named `edge-studio`, but a channel-distribution artifact can land anywhere, so
   the project name has to be forced rather than left to Compose's folder-name default.
 - The generated compose file also adds a one-shot `cert-init` service (Alpine + `openssl`) that
   generates the self-signed HTTPS cert on first run. The checked-in `docker-compose.yml` used by
@@ -67,10 +67,10 @@ matching `docker-compose.yml`/`.env.example` a tester could drop into a folder a
 ## Consequences
 
 - Adding a fourth channel is a one-line change to the `channel` step's `case` statement plus new
-  folders appearing under `integritas-pi/<channel>/` and `docker/<channel>/` on first push — no new
+  folders appearing under `edge-studio/<channel>/` and `docker/<channel>/` on first push — no new
   manifest-repo branch or workflow duplication needed.
 - The manifest repo's `main` branch now receives commits from every channel interleaved
-  (`integritas-pi/development/...`, `integritas-pi/canary/...`, `integritas-pi/release/...`, plus
+  (`edge-studio/development/...`, `edge-studio/canary/...`, `edge-studio/release/...`, plus
   the matching `docker/<channel>/...` compose commits), rather than each channel having its own
   branch history — channel history is now separated by path, not by branch/ref.
 - `docker/<channel>/docker-compose.yml` is a generated, distribution-only artifact that duplicates

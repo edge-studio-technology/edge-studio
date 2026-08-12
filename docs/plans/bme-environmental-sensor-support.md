@@ -19,10 +19,10 @@ Chosen direction: add a narrow host-side Python sensor helper, then integrate BM
 
 ## Sensor Helper
 
-Add a host-side helper service similar in spirit to `camera-helper/integritas_camera_helper.py`:
+Add a host-side helper service similar in spirit to `camera-helper/edge_studio_camera_helper.py`:
 
 - New helper directory, likely `sensor-helper/`.
-- New service name: `integritas-pi-sensor-helper`.
+- New service name: `edge-studio-sensor-helper`.
 - Token-protected local HTTP API reachable by the backend through the fixed Compose gateway.
 - Use Python sensor libraries suitable for Raspberry Pi I2C hardware. Prefer a library path that can support both BME280 and BME680 without large custom register implementations, unless packaging constraints require a small in-repo BME280 reader.
 

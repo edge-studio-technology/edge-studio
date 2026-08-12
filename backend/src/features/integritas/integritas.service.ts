@@ -44,7 +44,7 @@ export function getIntegritasConfig() {
 }
 
 export function hashCanonicalBytes(canonicalBytes: string) {
-  return { hash: sha3HashHex(canonicalBytes), canonicalization: "integritas-pi-text-utf8-v1" };
+  return { hash: sha3HashHex(canonicalBytes), canonicalization: "edge-studio-text-utf8-v1" };
 }
 
 export function sha3HashFile(filePath: string) {
@@ -356,7 +356,7 @@ async function stampedSourceFile(record: IntegritasProofRecord) {
       bytes,
       readId: read.id,
       sourceName: read.source_name,
-      canonicalization: "integritas-pi-file-bytes-v1",
+      canonicalization: "edge-studio-file-bytes-v1",
     };
   }
 
@@ -365,7 +365,7 @@ async function stampedSourceFile(record: IntegritasProofRecord) {
     bytes: Buffer.from(`${JSON.stringify(preview, null, 2)}\n`, "utf8"),
     readId: read.id,
     sourceName: read.source_name,
-    canonicalization: "integritas-pi-json-pretty-v1",
+    canonicalization: "edge-studio-json-pretty-v1",
   };
 }
 
