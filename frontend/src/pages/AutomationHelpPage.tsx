@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import { LinkButton } from "../components/Button";
 import { Page } from "../components/Page";
 import { Card } from "../components/ui/Card";
@@ -20,8 +21,8 @@ export function AutomationHelpPage() {
       title="Workflow automation guide"
       desc="Learn how to build workflows on the canvas and what each block does."
       action={
-        <LinkButton href="/automation" size="sm" variant="secondary">
-          Back to Automation
+        <LinkButton href="/automation" variant="ghost" iconStart={<ArrowLeft size={16} />}>
+          Back to automation
         </LinkButton>
       }
     >
