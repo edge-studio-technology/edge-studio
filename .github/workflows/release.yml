@@ -150,18 +150,18 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: integritas-manifests
 
-      - name: Pick manifest repo branch
-        id: manifest-repo-branch
+      - name: Detect release channel from tag
+        id: channel
         run: |
           case "${{ github.ref_name }}" in
-            *-test.*)
-              echo "branch=test" >> "$GITHUB_OUTPUT"
-              ;;
             *-dev.*)
-              echo "branch=dev" >> "$GITHUB_OUTPUT"
+              echo "channel=development" >> "$GITHUB_OUTPUT"
+              ;;
+            *-canary.*)
+              echo "channel=canary" >> "$GITHUB_OUTPUT"
               ;;
             *)
-              echo "branch=main" >> "$GITHUB_OUTPUT"
+              echo "channel=release" >> "$GITHUB_OUTPUT"
               ;;
           esac
 
@@ -169,14 +169,14 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: ${{ github.repository_owner }}/integritas-manifests
-          ref: ${{ steps.manifest-repo-branch.outputs.branch }}
+          ref: main
           token: ${{ steps.manifest-repo-token.outputs.token }}
           path: manifest-repo
 
       - name: Read previously deployed digests as fallback
         id: previous-manifest
         run: |
-          prev_manifest="manifest-repo/integritas-pi/qa/manifest.json"
+          prev_manifest="manifest-repo/integritas-pi/${{ steps.channel.outputs.channel }}/manifest.json"
           if [ -f "$prev_manifest" ]; then
             echo "frontend=$(node -pe "require('./$prev_manifest').frontend ?? ''")" >> "$GITHUB_OUTPUT"
             echo "backend=$(node -pe "require('./$prev_manifest').backend ?? ''")" >> "$GITHUB_OUTPUT"
@@ -202,14 +202,29 @@ jobs:
 
       - name: Deploy manifest (push to private manifest repo)
         run: |
-          cp manifest.json manifest.json.sig manifest-repo/integritas-pi/qa/
+          mkdir -p manifest-repo/integritas-pi/${{ steps.channel.outputs.channel }}
+          cp manifest.json manifest.json.sig manifest-repo/integritas-pi/${{ steps.channel.outputs.channel }}/
           cd manifest-repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add integritas-pi/qa/manifest.json integritas-pi/qa/manifest.json.sig
+          git add integritas-pi/${{ steps.channel.outputs.channel }}/manifest.json integritas-pi/${{ steps.channel.outputs.channel }}/manifest.json.sig
           git diff --staged --quiet && exit 0
-          git commit -m "integritas-pi/qa: update manifest (${{ github.ref_name }})"
-          git push origin HEAD:${{ steps.manifest-repo-branch.outputs.branch }}
+          git commit -m "integritas-pi/${{ steps.channel.outputs.channel }}: update manifest (${{ github.ref_name }})"
+          git push origin HEAD:main
+
+      - name: Generate docker-compose files
+        run: |
+          node scripts/release/build-docker-compose.mjs manifest.json ${{ steps.channel.outputs.channel }} docker-compose-output
+
+      - name: Deploy docker-compose (push to private manifest repo)
+        run: |
+          mkdir -p manifest-repo/docker/${{ steps.channel.outputs.channel }}
+          cp docker-compose-output/docker-compose.yml docker-compose-output/.env.example manifest-repo/docker/${{ steps.channel.outputs.channel }}/
+          cd manifest-repo
+          git add docker/${{ steps.channel.outputs.channel }}/docker-compose.yml docker/${{ steps.channel.outputs.channel }}/.env.example
+          git diff --staged --quiet && exit 0
+          git commit -m "docker/${{ steps.channel.outputs.channel }}: update compose files (${{ github.ref_name }})"
+          git push origin HEAD:main
 
       - name: Upload manifest artifact
         uses: actions/upload-artifact@v7

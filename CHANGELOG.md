@@ -9,6 +9,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automation now includes an in-app workflow guide with block reference content sourced from the same typed block help catalog used by the configure-panel "About this block" section.
 - Automation block help now documents each configurable input field, including required fields, conditional visibility, and examples; the guide and configure panel render the same field reference content.
 
+## [0.36.2] 2026-08-12
+
+### Changed
+
+- `update-agent`'s default manifest poll interval is now 30 minutes instead of 12 hours.
+- Update page "Check again" button moved into the action button row with "Update now" for consistent placement and styling.
+- Release workflow now publishes manifests to `development`/`canary`/`release` channels, selected by tag suffix, instead of a single `qa` manifest branch.
+
+### Added
+
+- Release workflow now generates and publishes a per-channel `docker-compose.yml` and `.env.example`.
+
+### Fixed
+
+- Update page no longer shows "Unknown version" after an update completes; `update-agent` now awaits the status poller's first check before accepting requests.
+
 ## [0.36.1] 2026-08-11
 
 ### Changed
