@@ -95,7 +95,7 @@ export const workflowBlockHelp = {
     shortDescription: "Start when JSON arrives at a webhook URL.",
     tooltip: "Runs when the configured webhook receiver accepts a JSON payload.",
     whatItDoes: "Waits for HTTP JSON sent to a configured webhook device, then starts the workflow.",
-    whenToUse: "Use it when another system should push events into Integritas Pi.",
+    whenToUse: "Use it when another system should push events into Edge Studio.",
     fields: [
       {
         label: "Start source",
@@ -400,7 +400,7 @@ export const workflowBlockHelp = {
         label: "Custom JSON body",
         description: "The JSON payload to send when Body mode is Custom JSON. Variables can be inserted with template syntax.",
         shownWhen: "Body mode is Custom JSON",
-        example: '{ "content": "Integritas Pi workflow triggered." }',
+        example: '{ "content": "Edge Studio workflow triggered." }',
       },
       {
         label: "Multipart fields",

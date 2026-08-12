@@ -1,4 +1,4 @@
-const STORAGE_PREFIX = "integritas-pi:";
+const STORAGE_PREFIX = "edge-studio:";
 
 /** Reactive boolean preference backed by localStorage, safe to read via useSyncExternalStore. */
 export function createLocalBooleanSetting(key: string, defaultValue: boolean) {

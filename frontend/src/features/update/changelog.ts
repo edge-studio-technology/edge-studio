@@ -2,7 +2,7 @@ export type ChangelogCategory = { name: string; items: string[] };
 export type ChangelogEntry = { version: string; categories: ChangelogCategory[] };
 
 const CHANGELOG_URL =
-  "https://raw.githubusercontent.com/integritas-technology/integritas-pi/main/CHANGELOG.md";
+  "https://raw.githubusercontent.com/integritas-technology/edge-studio/main/CHANGELOG.md";
 
 /**
  * Fetches CHANGELOG.md directly from GitHub. See docs/adr/0004-update-page-changelog.md.

@@ -21,7 +21,7 @@ import {
 import { createSession } from "./session.service.js";
 import { decryptTotpSecret, encryptTotpSecret, generateSecret, getOtpAuthUrl, renderQrPngBase64, verifyToken } from "./totp.service.js";
 
-const DUMMY_HASH = bcrypt.hashSync("integritas-pi-dummy-login-path", 12);
+const DUMMY_HASH = bcrypt.hashSync("edge-studio-dummy-login-path", 12);
 const TOTP_RESET_PENDING_TTL_MS = 15 * 60 * 1000;
 
 export class AuthSettingsError extends Error {

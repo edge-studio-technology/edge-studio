@@ -174,7 +174,7 @@ def main():
     parser = argparse.ArgumentParser(description="Edge Studio camera helper")
     parser.add_argument("--host", default=os.environ.get("CAMERA_HELPER_HOST", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.environ.get("CAMERA_HELPER_PORT", "38180")))
-    parser.add_argument("--capture-dir", default=os.environ.get("CAMERA_CAPTURE_DIR", "/opt/integritas-pi/data/captures"))
+    parser.add_argument("--capture-dir", default=os.environ.get("CAMERA_CAPTURE_DIR", "/opt/edge-studio/data/captures"))
     parser.add_argument("--container-capture-dir", default=os.environ.get("CAMERA_CONTAINER_CAPTURE_DIR", "/data/captures"))
     parser.add_argument("--token", default=os.environ.get("CAMERA_HELPER_TOKEN", ""))
     parser.add_argument("--max-duration-seconds", type=int, default=int(os.environ.get("CAMERA_MAX_DURATION_SECONDS", "30")))

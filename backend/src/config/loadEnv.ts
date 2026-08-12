@@ -29,4 +29,4 @@ if (process.env.NODE_ENV !== "production" && fs.existsSync(envFilePath)) {
   applyEnvFile(fs.readFileSync(envFilePath, "utf8"));
 }
 
-process.env.INTEGRITAS_PI_ROOT ??= repoRoot;
+process.env.EDGE_STUDIO_ROOT ??= repoRoot;

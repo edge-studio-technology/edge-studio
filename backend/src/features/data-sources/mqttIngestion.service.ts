@@ -54,7 +54,7 @@ export function syncMqttDataSources() {
 
 function connectMqttSource(source: DataSourceRecord, workflow: AutomationWorkflowRecord, config: { brokerUrl: string; topic: string }) {
   const client = mqtt.connect(config.brokerUrl, {
-    clientId: `integritas-pi-${source.id}`,
+    clientId: `edge-studio-${source.id}`,
     reconnectPeriod: 5000
   });
 
