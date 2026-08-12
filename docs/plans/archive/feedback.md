@@ -64,7 +64,7 @@ The backend should create the `feedback` directory when needed.
     "createdAt": "2026-07-14T12:00:00.000Z",
     "updatedAt": "2026-07-14T12:15:00.000Z",
     "app": {
-      "name": "integritas-pi",
+      "name": "edge-studio",
       "version": "0.15.0"
     },
     "user": {
@@ -74,7 +74,7 @@ The backend should create the `feedback` directory when needed.
     },
     "device": {
       "id": "device-id",
-      "hostname": "integritas-pi",
+      "hostname": "edge-studio",
       "platform": "linux",
       "arch": "arm64"
     }
@@ -474,7 +474,7 @@ V2 minimum should include manual retry. Automatic interval retry can be added la
 
 #### Step 8: Integritas Hosted Endpoint Implementation Guidance
 
-The hosted endpoint implementation lives in the Integritas API repository, not in `integritas-pi`. Before implementing it, review and follow the existing Integritas API repo conventions for:
+The hosted endpoint implementation lives in the Integritas API repository, not in `edge-studio`. Before implementing it, review and follow the existing Integritas API repo conventions for:
 
 - Route/module layout.
 - Authentication middleware.

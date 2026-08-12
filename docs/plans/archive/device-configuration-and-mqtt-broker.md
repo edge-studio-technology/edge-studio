@@ -322,7 +322,7 @@ For installer changes, also run:
 
 ```bash
 bash -n install.sh
-bash -n bin/integritas-pi
+bash -n bin/edge-studio
 ```
 
 Manual checks for the completed feature:

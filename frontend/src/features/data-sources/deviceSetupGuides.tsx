@@ -249,7 +249,7 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
 }
 
 function openExternalDoc(path: string) {
-  const url = `https://github.com/integritas-technology/integritas-pi/blob/main/${path}`;
+  const url = `https://github.com/integritas-technology/edge-studio/blob/main/${path}`;
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
@@ -354,7 +354,7 @@ function bmeSensorGuide(source: DataSource) {
           "Enable I2C on the Raspberry Pi host and reboot if needed.",
           ...(source.config.sensor === "bme680"
             ? [
-                "The installer installs the PyPI bme680 module in /opt/integritas-pi/.venv-sensor-helper for BME680 reads.",
+                "The installer installs the PyPI bme680 module in /opt/edge-studio/.venv-sensor-helper for BME680 reads.",
               ]
             : []),
           "Use address 0x76 first, then try 0x77 if reads fail.",

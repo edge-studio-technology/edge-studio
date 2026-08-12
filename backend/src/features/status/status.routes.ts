@@ -73,7 +73,7 @@ statusRouter.get("/overview", async (_req, res) => {
       ok: true,
       status: "ok",
       details: {
-        service: "integritas-pi-backend",
+        service: "edge-studio-backend",
         databasePath: env.databasePath,
         integritasApiKeyConfigured: Boolean(getIntegritasApiKey())
       }

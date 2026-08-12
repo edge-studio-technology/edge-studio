@@ -53,7 +53,7 @@ function cpuPercent(stats: DockerStats) {
   return Number(((cpuDelta / systemDelta) * onlineCpus * 100).toFixed(2));
 }
 
-const composeProject = "integritas-pi";
+const composeProject = "edge-studio";
 
 function isComposeContainer(container: DockerContainer) {
   return container.Labels?.["com.docker.compose.project"] === composeProject;

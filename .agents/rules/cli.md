@@ -2,7 +2,7 @@
 
 Read these first:
 
-- `bin/integritas-pi`
+- `bin/edge-studio`
 - `install.sh`
 - README CLI section.
 
@@ -12,4 +12,4 @@ CLI rules:
 - Do not duplicate business logic in shell.
 - Start with operational commands only.
 - Keep dependencies minimal: POSIX shell, `curl`, optional `python3` for JSON formatting.
-- Installer should keep installing the CLI to `/usr/local/bin/integritas-pi`.
+- Installer should keep installing the CLI to `/usr/local/bin/edge-studio`.

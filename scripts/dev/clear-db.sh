@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Clear the SQLite database of an installed integritas-pi app.
+# Clear the SQLite database of an installed edge-studio app.
 #
-# TARGET=all (default) stops the backend container, deletes integritas-pi.db
+# TARGET=all (default) stops the backend container, deletes edge-studio.db
 # (and any -wal/-shm journal files), then restarts the backend so migrations
 # recreate a fresh schema. This deletes ALL app data.
 #
@@ -10,7 +10,7 @@
 # has better-sqlite3 compiled in, so no extra host dependencies are needed).
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/integritas-pi}"
+APP_DIR="${APP_DIR:-/opt/edge-studio}"
 TARGET="${TARGET:-all}"
 FORCE=0
 
@@ -18,8 +18,8 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [-y|--yes]
 
-Clears the SQLite database of an integritas-pi app installed at APP_DIR
-(default: /opt/integritas-pi, override with the APP_DIR env var).
+Clears the SQLite database of an edge-studio app installed at APP_DIR
+(default: /opt/edge-studio, override with the APP_DIR env var).
 
 Environment:
   TARGET   What to clear (default: all)
@@ -92,7 +92,7 @@ case "$DATA_DIR" in
   *) resolved_data_dir="$APP_DIR/$DATA_DIR" ;;
 esac
 
-DB_PATH="$resolved_data_dir/integritas-pi.db"
+DB_PATH="$resolved_data_dir/edge-studio.db"
 
 if [ ! -f "$DB_PATH" ]; then
   echo "No database found at $DB_PATH; nothing to clear."

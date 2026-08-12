@@ -17,10 +17,10 @@ const dockerCompose = `# Official edge-studio Docker Compose — ${channel} chan
 # browser and accept the self-signed certificate warning (expected).
 
 # Pinned regardless of folder name: update-agent hardcodes its container
-# lookup to the "integritas-pi" Compose project (matches every real install,
-# which always lives in a folder literally named integritas-pi). Without
+# lookup to the "edge-studio" Compose project (matches every real install,
+# which always lives in a folder literally named edge-studio). Without
 # this, update-agent can't find the frontend/backend containers to swap.
-name: integritas-pi
+name: edge-studio
 
 services:
   # One-shot: generates the self-signed HTTPS cert the frontend needs, since
@@ -67,8 +67,7 @@ services:
       MINIMA_STALL_BLOCK_AGE_SECONDS: \${MINIMA_STALL_BLOCK_AGE_SECONDS:-300}
       MINIMA_AUTO_RESYNC: \${MINIMA_AUTO_RESYNC:-false}
       MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES: \${MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES:-30}
-      DATABASE_PATH: /data/integritas-pi.db
-      INTEGRITAS_PI_VERSION: \${INTEGRITAS_PI_VERSION:-${manifest.version}}
+      DATABASE_PATH: /data/edge-studio.db
       ENABLE_MQTT_BROKER: "false"
       ENABLE_CAMERA: "false"
       APP_SECRET: \${APP_SECRET:-dev-change-me}
@@ -152,7 +151,7 @@ services:
 
 networks:
   integritas:
-    name: integritas-pi
+    name: edge-studio
 `;
 
 const envExample = `# edge-studio ${channel} channel

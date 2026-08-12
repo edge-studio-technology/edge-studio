@@ -2,7 +2,7 @@
 
 ## Supported Use
 
-Integritas Pi is a prototype intended to run on a trusted local network. It is not hardened for public internet exposure or multi-tenant production use. Only the version on `main` is supported.
+Edge Studio is a prototype intended to run on a trusted local network. It is not hardened for public internet exposure or multi-tenant production use. Only the version on `main` is supported.
 
 ## Guidelines
 

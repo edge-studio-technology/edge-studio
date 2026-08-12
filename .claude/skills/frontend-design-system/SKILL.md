@@ -1,7 +1,7 @@
 ---
 name: frontend-design-system
 description: >-
-  Place and author frontend shared UI for integritas-pi. Use when adding or
+  Place and author frontend shared UI for edge-studio. Use when adding or
   moving React components, implementing ESDS/Figma controls, deciding between
   components/ui vs components/patterns, or updating frontend design-system docs.
 ---

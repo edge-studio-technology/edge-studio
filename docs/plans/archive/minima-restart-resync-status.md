@@ -97,7 +97,7 @@ No other frontend files need changes — confirmed via grep that `MinimaHealthCa
 ## Explicitly out of scope
 
 - `MinimaSyncStatus`/`deriveSyncStatus` — unrelated to this complaint (the Dashboard doesn't show sync status; the Minima page's sync card is already covered by the local `refreshing` mechanism).
-- CLI (`bin/integritas-pi`).
+- CLI (`bin/edge-studio`).
 - No new polling — Dashboard's existing 30s `/api/status` interval is sufficient once the backend reports the right state.
 
 ## Verification

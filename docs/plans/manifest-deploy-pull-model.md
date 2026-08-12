@@ -15,7 +15,7 @@ Decision: switch to a **pull-based** model. CI pushes the signed manifest to a s
 
 While editing `release.yml` for this, the "find previous release tag" bug was also fixed: it previously picked the previous tag by raw version-sort with no filter for test/pre-release tags, so a leftover test tag could get picked as "previous release" and silently cause real changes to be missed by the `changes` diff.
 
-**App-namespaced folder layout:** `integritas-manifests` is structured as `<app>/<env>/manifest.json`+`.sig` (e.g. `integritas-pi/qa/manifest.json`), not `<env>/manifest.json`, on the chance this update-agent mechanism gets reused by another app later. This costs one extra path segment in the CI push step and the nginx alias now, and avoids a folder-restructure/migration if a second app ever needs the same repo. Nothing beyond the path changes — `update-agent` has no concept of a manifest filename or repo layout; it only ever fetches whatever full URL is in its own `MANIFEST_URL`, so this is purely a CI/nginx-side decision, not a design constraint on `update-agent` itself. No further generalization (shared tooling, per-app manifest schema, multi-app awareness in `update-agent`) is being done now — YAGNI beyond this one cheap structural hedge.
+**App-namespaced folder layout:** `integritas-manifests` is structured as `<app>/<env>/manifest.json`+`.sig` (e.g. `edge-studio/release/manifest.json`), not `<env>/manifest.json`, on the chance this update-agent mechanism gets reused by another app later. This costs one extra path segment in the CI push step and the nginx alias now, and avoids a folder-restructure/migration if a second app ever needs the same repo. Nothing beyond the path changes — `update-agent` has no concept of a manifest filename or repo layout; it only ever fetches whatever full URL is in its own `MANIFEST_URL`, so this is purely a CI/nginx-side decision, not a design constraint on `update-agent` itself. No further generalization (shared tooling, per-app manifest schema, multi-app awareness in `update-agent`) is being done now — YAGNI beyond this one cheap structural hedge.
 
 **CI → `integritas-manifests` auth is a GitHub App, not a deploy key or PAT.** The original plan (Step 2 below, as originally written) called for a write-access SSH deploy key on `integritas-manifests`. The `integritas-technology` org disables write-access deploy keys org-wide (confirmed directly in the GitHub UI, and matches GitHub's own published guidance steering orgs toward Apps — deploy keys have no expiry and can't be passphrase-protected, so a compromised CI secret grants standing, hard-to-revoke write access). Switched to a GitHub App (`integritas-pi-manifest-deploy`) instead: installed only on `integritas-manifests` with `Contents: Read and write`, CI generates a short-lived (1 hour) installation token per run via the official `actions/create-github-app-token` action, rather than using any long-lived static secret.
 
@@ -26,12 +26,12 @@ While editing `release.yml` for this, the "find previous release tag" bug was al
 - QA VPS: dedicated low-privilege deploy user (`qa-manifest-deploy`) + SSH access set up.
 - GH repo secrets for the old SSH-push path registered (`QA_VPS_DEPLOY_HOST/USER/KEY/PATH`, `MANIFEST_SIGNING_KEY`). These need to be re-scoped/replaced for the new pull model — see below.
 - `release.yml`: tag-sort bug fixed (excludes pre-release-shaped tags from "previous release" lookup).
-- `release.yml`: deploy step rewritten — checks out the private `integritas-manifests` repo and pushes the manifest into `integritas-pi/qa/` over HTTPS instead of `scp`-ing over SSH.
+- `release.yml`: deploy step rewritten — checks out the private `integritas-manifests` repo and pushes the manifest into `edge-studio/<channel>/` over HTTPS instead of `scp`-ing over SSH.
 - GitHub App `integritas-pi-manifest-deploy` created (org-level), `Contents: Read and write` permission, installed on `integritas-manifests` only. App ID and private key (`.pem`) obtained.
-- `MANIFEST_APP_ID` and `MANIFEST_APP_PRIVATE_KEY` GH secrets registered on `integritas-pi`.
+- `MANIFEST_APP_ID` and `MANIFEST_APP_PRIVATE_KEY` GH secrets registered on `edge-studio`.
 - `release.yml`: manifest deploy step updated to generate a short-lived installation token via `actions/create-github-app-token@v2` and use it for the `integritas-manifests` checkout, instead of an SSH deploy key.
 - Docs updated (`update-service-launch.md` §1, `update-service.md`, `CHANGELOG.md`) to describe the new design.
-- Private GitHub repo `integritas-manifests` created on the org, with `integritas-pi/qa/` and `integritas-pi/prod/` subfolders (`.gitkeep` placeholders — no manifest files needed yet, the first real CI push creates them).
+- Private GitHub repo `integritas-manifests` created on the org, with `edge-studio/<channel>/` subfolders (`.gitkeep` placeholders — no manifest files needed yet, the first real CI push creates them).
 
 ## Not yet done
 
@@ -41,13 +41,13 @@ All of the below are external/infra steps — nothing here is committed code, an
 - On the QA VPS: clone `integritas-manifests` to `/srv/update-manifests/repo/` (outside the Next.js app's project directory — not `next build`/PM2-managed, so redeploys can't wipe it) using a **read-only** credential (e.g. a fine-grained PAT scoped to just that repo, or a second GitHub App install with read-only permission), separate from CI's write access.
 - Add a small pull script (`git -C /srv/update-manifests/repo pull --ff-only`), logged (journald/syslog or a logfile) so pull failures are locally visible — mitigates the pull model's silent-failure trade-off.
 - Add a cron job under `qa-manifest-deploy` running that script every 5–15 minutes.
-- Add an nginx `location /update-manifest/` block aliasing to `/srv/update-manifests/repo/integritas-pi/qa/` (the leaf subfolder — never the repo root, so `.git/` stays unreachable over HTTP; both `location` and `alias` paths end in `/`, same rule verified previously).
+- Add an nginx `location /update-manifest/` block aliasing to `/srv/update-manifests/repo/edge-studio/<channel>/` (the leaf subfolder — never the repo root, so `.git/` stays unreachable over HTTP; both `location` and `alias` paths end in `/`, same rule verified previously).
 - Confirm the `release.yml` deploy step runs clean against real secrets (code is written, untested against real infra).
 - Set QA `update-agent`'s `MANIFEST_URL` to the QA manifest endpoint.
 - Verify via a disposable-tag dry run: manifest lands in `integritas-manifests` (commit shows up), VPS cron pulls it, nginx serves it, and a traversal attempt (e.g. `.git/config`) fails.
-- Repeat for prod once QA is verified end-to-end: `integritas-pi/prod/` folder in the manifest repo, prod-scoped VPS clone/cron/nginx, confirm the production `MANIFEST_URL`.
+- Repeat for prod once QA is verified end-to-end: `edge-studio/<channel>/` folder in the manifest repo, prod-scoped VPS clone/cron/nginx, confirm the production `MANIFEST_URL`.
 
-**Already done, not pending:** the old `QA_VPS_DEPLOY_HOST`/`QA_VPS_DEPLOY_USER`/`QA_VPS_DEPLOY_KEY`/`QA_VPS_DEPLOY_PATH` GH secrets have already been deleted from `integritas-pi` — they were unused dead weight left over from the original SSH-push design.
+**Already done, not pending:** the old `QA_VPS_DEPLOY_HOST`/`QA_VPS_DEPLOY_USER`/`QA_VPS_DEPLOY_KEY`/`QA_VPS_DEPLOY_PATH` GH secrets have already been deleted from `edge-studio` — they were unused dead weight left over from the original SSH-push design.
 
 ## Files touched (code)
 
@@ -61,8 +61,8 @@ All of the below are external/infra steps — nothing here is committed code, an
 ## Verification plan
 
 - `release.yml` YAML is valid (no syntax errors) — sanity-check via `gh workflow view` or a local YAML lint.
-- Disposable-tag dry run (same pattern as the existing "Branch testing strategy" in `update-service-launch.md`): cut a test tag, confirm the new "Deploy manifest" step pushes `integritas-pi/qa/manifest.json`+`.sig` into `integritas-manifests` (check the repo's commit history).
-- On the VPS: manually run the pull script once, confirm it fast-forwards and the files land in `/srv/update-manifests/repo/integritas-pi/qa/`; confirm cron is actually scheduled (`crontab -l` under `qa-manifest-deploy`).
+- Disposable-tag dry run (same pattern as the existing "Branch testing strategy" in `update-service-launch.md`): cut a test tag, confirm the new "Deploy manifest" step pushes `edge-studio/<channel>/manifest.json`+`.sig` into `integritas-manifests` (check the repo's commit history).
+- On the VPS: manually run the pull script once, confirm it fast-forwards and the files land in `/srv/update-manifests/repo/edge-studio/<channel>/`; confirm cron is actually scheduled (`crontab -l` under `qa-manifest-deploy`).
 - `curl` the nginx endpoint (`https://<qa-host>/update-manifest/manifest.json`) and confirm it returns the pushed manifest; confirm a traversal attempt (e.g. `.git/config`) does not return repo internals.
 - Clean up the test tag/images per the existing cleanup note once verified.
 - Docs updated and completed items reflect reality.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate a self-signed TLS certificate for the integritas-pi frontend (nginx).
+# Generate a self-signed TLS certificate for the edge-studio frontend (nginx).
 # Used by install.sh and manually before `docker compose up` when not using the installer.
 set -euo pipefail
 
@@ -35,14 +35,14 @@ req_extensions = req_ext
 x509_extensions = req_ext
 
 [dn]
-CN = integritas-pi
+CN = edge-studio
 
 [req_ext]
 subjectAltName = @alt_names
 
 [alt_names]
 DNS.1 = localhost
-DNS.2 = integritas-pi
+DNS.2 = edge-studio
 IP.1 = 127.0.0.1
 EOF
 

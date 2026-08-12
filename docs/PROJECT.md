@@ -1,4 +1,4 @@
-# Project: Integritas Pi
+# Project: Edge Studio
 
 ## Goal
 
@@ -36,7 +36,7 @@ A Raspberry Pi Docker Compose prototype that lets an operator run a Minima node,
 - Backend must not expose arbitrary shell command execution.
 - Host file access must stay read-only and path-safe.
 - Backend runs as non-root in Docker.
-- Runtime state persists in SQLite under `/data/integritas-pi.db`.
+- Runtime state persists in SQLite under `/data/edge-studio.db`.
 
 ## Success Criteria
 

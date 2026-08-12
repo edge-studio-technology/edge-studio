@@ -2,7 +2,7 @@ import { env } from "../config/env.js";
 import { dockerRequest, dockerRequestStream, type DockerProgressLine } from "./docker.client.js";
 import type { DockerContainerInspect, DockerContainerSummary, DockerImageSummary } from "./docker.types.js";
 
-const composeProject = "integritas-pi";
+const composeProject = "edge-studio";
 
 function isComposeContainer(container: DockerContainerSummary) {
   return container.Labels?.["com.docker.compose.project"] === composeProject;
