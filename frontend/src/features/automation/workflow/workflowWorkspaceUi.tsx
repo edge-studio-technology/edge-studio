@@ -334,18 +334,18 @@ export function BlockHelpDisclosure({ type }: { type: AutomationBlockType }) {
     <Card size="Compact" className="border-stroke-secondary bg-surface-primary border">
       <Disclosure title="About this block" summaryClassName="type-callout" defaultOpen={false}>
         <div className="gap-detail-close grid">
-          <div className="border-stroke-secondary bg-surface-always-white grid gap-detail-tight rounded-soft border p-margin-close">
+          <div className="border-stroke-secondary bg-surface-always-white gap-detail-tight rounded-soft p-margin-close grid border">
             <Text.Body className="text-text-secondary">{help.tooltip}</Text.Body>
           </div>
-          <div className="grid gap-detail-next">
+          <div className="gap-detail-next grid">
             <BlockHelpPanel title="What it does">{help.whatItDoes}</BlockHelpPanel>
             <BlockHelpPanel title="When to use it">{help.whenToUse}</BlockHelpPanel>
           </div>
           {help.fields.length > 0 ? <BlockFieldReference fields={help.fields} /> : null}
           <BlockHelpList title="Outputs" items={help.outputs} />
-          <Link className="type-link text-text-accent hover:text-text-accent-hover" to={`/automation/help#${type}`}>
+          <Text.Link to={`/automation/help#${type}`} target="_blank" rel="noopener noreferrer">
             Open full guide
-          </Link>
+          </Text.Link>
         </div>
       </Disclosure>
     </Card>
@@ -354,7 +354,7 @@ export function BlockHelpDisclosure({ type }: { type: AutomationBlockType }) {
 
 function BlockHelpPanel({ title, children }: { title: string; children: string }) {
   return (
-    <section className="border-stroke-secondary bg-surface-always-white grid gap-detail-tight rounded-soft border p-margin-close">
+    <section className="border-stroke-secondary bg-surface-always-white gap-detail-tight rounded-soft p-margin-close grid border">
       <h4 className="type-meta text-text-secondary m-0 uppercase">{title}</h4>
       <Text.Body className="text-text-secondary">{children}</Text.Body>
     </section>
@@ -363,22 +363,20 @@ function BlockHelpPanel({ title, children }: { title: string; children: string }
 
 function BlockFieldReference({ fields }: { fields: WorkflowBlockHelpField[] }) {
   return (
-    <section className="grid gap-detail-tight">
+    <section className="gap-detail-tight grid">
       <h4 className="type-meta text-text-secondary m-0 uppercase">Fields</h4>
-      <div className="grid gap-detail-tight">
+      <div className="gap-detail-tight grid">
         {fields.map((field) => (
           <div
             key={field.label}
-            className="border-stroke-secondary bg-surface-always-white grid gap-detail-tight rounded-soft border p-margin-close"
+            className="border-stroke-secondary bg-surface-always-white gap-detail-tight rounded-soft p-margin-close grid border"
           >
             <div className="gap-detail-tight flex flex-wrap items-center">
               <Text.BodyEm>{field.label}</Text.BodyEm>
               {field.required ? <Pill tone="warn">Required</Pill> : null}
             </div>
             <Text.Body className="text-text-secondary">{field.description}</Text.Body>
-            {field.shownWhen ? (
-              <Text.Muted>Shown when: {field.shownWhen}.</Text.Muted>
-            ) : null}
+            {field.shownWhen ? <Text.Muted>Shown when: {field.shownWhen}.</Text.Muted> : null}
             {field.example ? (
               <Text.Muted>
                 Example: <code>{field.example}</code>
@@ -393,9 +391,9 @@ function BlockFieldReference({ fields }: { fields: WorkflowBlockHelpField[] }) {
 
 function BlockHelpList({ title, items }: { title: string; items: string[] }) {
   return (
-    <section className="grid gap-detail-tight">
+    <section className="gap-detail-tight grid">
       <h4 className="type-meta text-text-secondary m-0 uppercase">{title}</h4>
-      <ul className="m-0 grid list-none gap-detail-tight p-0">
+      <ul className="gap-detail-tight m-0 grid list-none p-0">
         {items.map((item) => (
           <li key={item} className="gap-detail-tight flex items-start">
             <CheckCircle2 aria-hidden className="text-icon-success mt-[2px] size-4 shrink-0" />
