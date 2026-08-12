@@ -6,14 +6,36 @@ import { cx } from "../../lib/cx";
 import { IconButton } from "./Button";
 import { ScrollArea } from "./ScrollArea";
 
-// Nesting-safe body scroll lock (keeps overflow locked until the last open Modal unmounts).
+// Nesting-safe scroll lock (keeps overflow locked until the last open Modal unmounts).
+// AppShell scrolls inside `.app-shell-main-scroll` (StatusBar stays outside that pane).
+// Pad that pane only when it currently has a classic scrollbar — no global gutter.
+const APP_SHELL_MAIN_SCROLL_SELECTOR = ".app-shell-main-scroll";
+
 let bodyScrollLockCount = 0;
+let savedHtmlOverflow: string | null = null;
 let savedBodyOverflow: string | null = null;
+let savedMainOverflow: string | null = null;
+let savedMainPaddingRight: string | null = null;
+let lockedMainScroll: HTMLElement | null = null;
 
 function lockBodyScroll() {
   if (bodyScrollLockCount === 0) {
+    const mainScroll = document.querySelector(APP_SHELL_MAIN_SCROLL_SELECTOR);
+    savedHtmlOverflow = document.documentElement.style.overflow;
     savedBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
+
+    if (mainScroll instanceof HTMLElement) {
+      const scrollbarWidth = mainScroll.offsetWidth - mainScroll.clientWidth;
+      lockedMainScroll = mainScroll;
+      savedMainOverflow = mainScroll.style.overflow;
+      savedMainPaddingRight = mainScroll.style.paddingRight;
+      mainScroll.style.overflow = "hidden";
+      if (scrollbarWidth > 0) {
+        mainScroll.style.paddingRight = `${scrollbarWidth}px`;
+      }
+    }
   }
   bodyScrollLockCount += 1;
 }
@@ -21,8 +43,17 @@ function lockBodyScroll() {
 function unlockBodyScroll() {
   bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1);
   if (bodyScrollLockCount === 0) {
+    document.documentElement.style.overflow = savedHtmlOverflow ?? "";
     document.body.style.overflow = savedBodyOverflow ?? "";
+    if (lockedMainScroll) {
+      lockedMainScroll.style.overflow = savedMainOverflow ?? "";
+      lockedMainScroll.style.paddingRight = savedMainPaddingRight ?? "";
+    }
+    savedHtmlOverflow = null;
     savedBodyOverflow = null;
+    savedMainOverflow = null;
+    savedMainPaddingRight = null;
+    lockedMainScroll = null;
   }
 }
 

@@ -4,6 +4,17 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ui/cleanup
+
+### Fixed
+
+- App status bar stays put when navigating between pages that do or don't need a scrollbar.
+- Opening a modal no longer shifts the page when a scrollbar is hidden.
+
+### Changed
+
+- Page content scrolls under a fixed status bar instead of scrolling the whole app shell.
+
 ## [0.38.0] 2026-08-12
 
 ### Changed
