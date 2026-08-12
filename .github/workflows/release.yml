@@ -176,7 +176,7 @@ jobs:
       - name: Read previously deployed digests as fallback
         id: previous-manifest
         run: |
-          prev_manifest="manifest-repo/integritas-pi/${{ steps.channel.outputs.channel }}/manifest.json"
+          prev_manifest="manifest-repo/edge-studio/${{ steps.channel.outputs.channel }}/manifest.json"
           if [ -f "$prev_manifest" ]; then
             echo "frontend=$(node -pe "require('./$prev_manifest').frontend ?? ''")" >> "$GITHUB_OUTPUT"
             echo "backend=$(node -pe "require('./$prev_manifest').backend ?? ''")" >> "$GITHUB_OUTPUT"
@@ -202,14 +202,14 @@ jobs:
 
       - name: Deploy manifest (push to private manifest repo)
         run: |
-          mkdir -p manifest-repo/integritas-pi/${{ steps.channel.outputs.channel }}
-          cp manifest.json manifest.json.sig manifest-repo/integritas-pi/${{ steps.channel.outputs.channel }}/
+          mkdir -p manifest-repo/edge-studio/${{ steps.channel.outputs.channel }}
+          cp manifest.json manifest.json.sig manifest-repo/edge-studio/${{ steps.channel.outputs.channel }}/
           cd manifest-repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add integritas-pi/${{ steps.channel.outputs.channel }}/manifest.json integritas-pi/${{ steps.channel.outputs.channel }}/manifest.json.sig
+          git add edge-studio/${{ steps.channel.outputs.channel }}/manifest.json edge-studio/${{ steps.channel.outputs.channel }}/manifest.json.sig
           git diff --staged --quiet && exit 0
-          git commit -m "integritas-pi/${{ steps.channel.outputs.channel }}: update manifest (${{ github.ref_name }})"
+          git commit -m "edge-studio/${{ steps.channel.outputs.channel }}: update manifest (${{ github.ref_name }})"
           git push origin HEAD:main
 
       - name: Generate docker-compose files
