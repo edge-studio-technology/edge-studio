@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `update-agent`'s default manifest poll interval is now 30 minutes instead of 12 hours.
 - Update page "Check again" button moved into the action button row with "Update now" for consistent placement and styling.
+- Release workflow now publishes manifests to `development`/`canary`/`release` channels, selected by tag suffix, instead of a single `qa` manifest branch.
+
+### Added
+
+- Release workflow now generates and publishes a per-channel `docker-compose.yml` and `.env.example`.
 
 ### Fixed
 
