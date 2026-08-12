@@ -64,7 +64,7 @@ The backend should create the `feedback` directory when needed.
     "createdAt": "2026-07-14T12:00:00.000Z",
     "updatedAt": "2026-07-14T12:15:00.000Z",
     "app": {
-      "name": "integritas-pi",
+      "name": "edge-studio",
       "version": "0.15.0"
     },
     "user": {
@@ -74,7 +74,7 @@ The backend should create the `feedback` directory when needed.
     },
     "device": {
       "id": "device-id",
-      "hostname": "integritas-pi",
+      "hostname": "edge-studio",
       "platform": "linux",
       "arch": "arm64"
     }

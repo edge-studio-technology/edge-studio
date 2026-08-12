@@ -19,7 +19,7 @@ Chosen direction: add a narrow host-side Python sensor helper, then integrate BM
 
 ## Sensor Helper
 
-Add a host-side helper service similar in spirit to `camera-helper/integritas_camera_helper.py`:
+Add a host-side helper service similar in spirit to `camera-helper/edge_studio_camera_helper.py`:
 
 - New helper directory, likely `sensor-helper/`.
 - New service name: `edge-studio-sensor-helper`.

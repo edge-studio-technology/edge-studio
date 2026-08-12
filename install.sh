@@ -71,7 +71,7 @@ MINIMA_RPC_PORT="${MINIMA_RPC_PORT:-9005}"
 INTEGRITAS_CONNECT_BASE_URL="${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}"
 INTEGRITAS_BASE_URL="${INTEGRITAS_BASE_URL:-https://integritas.technology/core}"
 INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID:-edge-studio}"
-MANIFEST_URL="${MANIFEST_URL:-https://integritas.technology/update-manifest/manifest.json}"
+MANIFEST_URL="${MANIFEST_URL:-https://integritas.technology/update-manifest/release/manifest.json}"
 DEV_MODE="${DEV_MODE:-false}"
 
 APT_PACKAGES=(
@@ -233,7 +233,7 @@ load_existing_config() {
   INTEGRITAS_CONNECT_BASE_URL="${INTEGRITAS_CONNECT_BASE_URL_INPUT:-${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}}"
   INTEGRITAS_BASE_URL="${INTEGRITAS_BASE_URL_INPUT:-${INTEGRITAS_BASE_URL:-https://integritas.technology/core}}"
   INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID_INPUT:-${INTEGRITAS_REQUEST_ID:-edge-studio}}"
-  MANIFEST_URL="${MANIFEST_URL_INPUT:-${MANIFEST_URL:-https://integritas.technology/update-manifest/manifest.json}}"
+  MANIFEST_URL="${MANIFEST_URL_INPUT:-${MANIFEST_URL:-https://integritas.technology/update-manifest/release/manifest.json}}"
   DEV_MODE="${DEV_MODE_INPUT:-${DEV_MODE:-false}}"
 }
 
@@ -635,7 +635,7 @@ Environment=CAMERA_VIDEO_COMMAND=$CAMERA_VIDEO_COMMAND
 Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
 Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
 ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT; fi'
-ExecStart=/usr/bin/python3 $APP_DIR/camera-helper/integritas_camera_helper.py
+ExecStart=/usr/bin/python3 $APP_DIR/camera-helper/edge_studio_camera_helper.py
 Restart=on-failure
 RestartSec=2
 
@@ -724,7 +724,7 @@ Environment=SENSOR_HELPER_TOKEN=$SENSOR_HELPER_TOKEN
 Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
 Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
 ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT; fi'
-ExecStart=$sensor_python $APP_DIR/sensor-helper/integritas_sensor_helper.py
+ExecStart=$sensor_python $APP_DIR/sensor-helper/edge_studio_sensor_helper.py
 Restart=on-failure
 RestartSec=2
 

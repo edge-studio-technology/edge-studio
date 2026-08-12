@@ -1,8 +1,16 @@
 # Changelog
 
-All notable changes to `integritas-pi` are documented in this file.
+All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
+
+## [Unreleased] rename/edge-studio
+
+### Changed
+
+- Default `MANIFEST_URL` now points at the `release` channel path (`/update-manifest/release/manifest.json`).
+- Host camera/sensor helper scripts renamed to `edge_studio_camera_helper.py` and `edge_studio_sensor_helper.py`.
+- Repository and product identifiers renamed from `integritas-pi` / Integritas Pi to `edge-studio` / Edge Studio (install path, CLI, packages, Compose project/network, GHCR images, release manifest paths). Not backwards compatible with previous installs.
 
 ## [0.36.4] 2026-08-12
 
