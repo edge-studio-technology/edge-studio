@@ -38,8 +38,8 @@ services:
         apk add --no-cache openssl >/dev/null
         openssl req -x509 -nodes -days 825 -newkey rsa:2048 \\
           -keyout /certs/server.key -out /certs/server.crt \\
-          -subj "/CN=integritas-pi" \\
-          -addext "subjectAltName=DNS:localhost,DNS:integritas-pi,IP:127.0.0.1"
+          -subj "/CN=edge-studio" \\
+          -addext "subjectAltName=DNS:localhost,DNS:edge-studio,IP:127.0.0.1"
         chmod 600 /certs/server.key
         chmod 644 /certs/server.crt
         echo "TLS certificate generated"
@@ -57,7 +57,7 @@ services:
       INTEGRITAS_CONNECT_BASE_URL: \${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}
       INTEGRITAS_BASE_URL: \${INTEGRITAS_BASE_URL:-https://integritas.technology/core}
       INTEGRITAS_API_KEY: \${INTEGRITAS_API_KEY:-}
-      INTEGRITAS_REQUEST_ID: \${INTEGRITAS_REQUEST_ID:-integritas-pi}
+      INTEGRITAS_REQUEST_ID: \${INTEGRITAS_REQUEST_ID:-edge-studio}
       INTEGRITAS_REQUEST_TIMEOUT_MS: \${INTEGRITAS_REQUEST_TIMEOUT_MS:-15000}
       INTEGRITAS_POLL_INTERVAL_SECONDS: \${INTEGRITAS_POLL_INTERVAL_SECONDS:-30}
       INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES: \${INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES:-5}
@@ -180,7 +180,7 @@ DOCKER_GID=0
 INTEGRITAS_CONNECT_BASE_URL=https://integritas.technology
 INTEGRITAS_BASE_URL=https://integritas.technology/core
 INTEGRITAS_API_KEY=
-INTEGRITAS_REQUEST_ID=integritas-pi
+INTEGRITAS_REQUEST_ID=edge-studio
 INTEGRITAS_REQUEST_TIMEOUT_MS=15000
 INTEGRITAS_POLL_INTERVAL_SECONDS=30
 INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES=5
