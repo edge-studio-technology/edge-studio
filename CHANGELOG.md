@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - `update-agent`'s default manifest poll interval is now 30 minutes instead of 12 hours.
+- Update page "Check again" button moved into the action button row with "Update now" for consistent placement and styling.
+
+### Fixed
+
+- Update page no longer shows "Unknown version" after an update completes; `update-agent` now awaits the status poller's first check before accepting requests.
 
 ## [0.36.1] 2026-08-11
 
