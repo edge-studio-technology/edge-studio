@@ -144,7 +144,14 @@ export type IntegritasConfig = {
 };
 export type StatusOverview = {
   generatedAt: string;
-  services: Array<{ name: string; ok: boolean; status: string; details?: unknown; error?: string }>;
+  services: Array<{
+    name: string;
+    ok: boolean;
+    status: string;
+    details?: unknown;
+    error?: string;
+    checkedAt?: string;
+  }>;
   resources?: {
     containers?: Array<{
       service: string;

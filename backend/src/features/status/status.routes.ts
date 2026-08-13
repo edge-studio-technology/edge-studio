@@ -13,6 +13,8 @@ type ServiceStatus = {
   status: string;
   details?: unknown;
   error?: string;
+  /** When this service was last checked upstream (may be older than overview `generatedAt` when cached). */
+  checkedAt?: string;
 };
 
 export const statusRouter = Router();
@@ -105,7 +107,8 @@ statusRouter.get("/overview", async (_req, res) => {
       name: "minima",
       ok: nodeStatus.state === "running",
       status: nodeStatus.state === "running" ? "ok" : nodeStatus.state,
-      details: { sync: nodeStatus.sync, health: nodeStatus.health, container: nodeStatus.container }
+      details: { sync: nodeStatus.sync, health: nodeStatus.health, container: nodeStatus.container },
+      checkedAt: nodeStatus.checkedAt
     });
   } catch (error) {
     services.push({ name: "minima", ok: false, status: "error", error: error instanceof Error ? error.message : "Unknown error" });
@@ -121,7 +124,8 @@ statusRouter.get("/overview", async (_req, res) => {
       ok: check.connected,
       status: check.status,
       details: check.details,
-      error: check.error
+      error: check.error,
+      checkedAt: new Date(check.checkedAt).toISOString()
     });
   }
 

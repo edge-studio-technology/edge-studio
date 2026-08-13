@@ -54,15 +54,16 @@ function statusBarItem({
 }): StatusBarItem {
   const tone: Tone = !service ? "neutral" : service.ok ? "good" : "warn";
   const label = !service ? pendingLabel : service.ok ? okLabel : badLabel;
+  const lastUpdatedAt = service?.checkedAt ?? generatedAt;
 
   const detailBody = (
     <div className="flex flex-col gap-1">
       <p className="m-0">{serviceDetailMessage(service, id)}</p>
-      {generatedAt ? (
-        <p className="m-0">Checked {new Date(generatedAt).toLocaleTimeString()}</p>
+      {lastUpdatedAt ? (
+        <p className="m-0">Last updated {new Date(lastUpdatedAt).toLocaleTimeString()}</p>
       ) : null}
       {refreshError ? (
-        <p className="text-text-warning m-0">Could not refresh — showing last known status.</p>
+        <p className="m-0 text-text-warning">Could not refresh — showing last known status.</p>
       ) : null}
     </div>
   );
