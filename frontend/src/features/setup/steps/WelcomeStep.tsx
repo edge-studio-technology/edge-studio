@@ -5,7 +5,7 @@ import { TOTP_ENABLED } from "../../auth/totpEnabled";
 import { onboardingWorkSteps } from "../steps";
 
 const stepMeta: Record<string, { icon: typeof LockKeyhole; detail: string }> = {
-  account: {
+  credentials: {
     icon: Shield,
     detail: TOTP_ENABLED
       ? "Setup a local admin PIN or password, then two-factor auth."

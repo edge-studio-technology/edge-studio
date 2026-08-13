@@ -4,6 +4,33 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ui/polish
+
+### Added
+
+- Waiting for on-chain stamp confirmation uses a slower pin-dial spinner.
+
+### Changed
+
+- Integritas Connect settings are on the Integritas page.
+- Minima node settings and backups are on the Minima page.
+- Settings subsections use a bordered panel.
+- Sidebar Account is now Settings, at `/settings`.
+- Settings sections are Credentials, Behaviour, and App.
+- App holds Software update and Feedback, and starts open.
+- Settings and Minima input fields are capped at a medium width.
+- Minima peers table header stays put while the rows scroll.
+- Workflow guide canvas steps use numbered 1–5 rows.
+- Workflow guide block reference is grouped by category tabs.
+- Workflow guide block details are collapsed until opened.
+- Workflow guide block cards no longer nest extra panels or category tags.
+- Workflow guide uses a three-step type scale and no uppercase labels.
+- Moved `Clock.tsx`to `/ui`
+
+### Removed
+
+- Unsued legacy files in `/components`.
+
 ## [0.38.2] 2026-08-13
 
 ### Fixed

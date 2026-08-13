@@ -54,8 +54,8 @@ Migration is **incremental**, not a big-bang move:
 
 | Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ui/`          | `Button` / `IconButton`, `Pill`, `Divider`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots`, `CredentialInput` (or retire into `InputField`) |
-| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `StatusBadge`, `ListPagerFilterBar`, `ErrorAlert`, `JsonPreview`, `CopyableCode`, `EmptyPage`, `ProgressModal`, `BrandLineGrid`, `BrandLockup`, `MetricCard`                                                                                                         |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Divider`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots` |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `ListFilterBar`, `ListPaginationFooter`, `ErrorAlert`, `JsonPreview`, `CopyableCode`, `StatusPage`, `EmptyContentState`, `LoadingState`, `BrandLockup`, `MetricCard` |
 | Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
 ## Styling Rules
@@ -104,23 +104,49 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [TabList](#tablist): underline page tabs
 - [ToggleTabs](#toggletabs): segmented toggle
 - `PinField`: segmented PIN / code field
-- `CredentialInput`: PIN or password field
 - `DataTable`: native table shell and row primitives (`TableWrap`, `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`, `TableIconMenu`)
 - `StatusRow`: label / value / status row
 - [DetailList](#detaillist): label / value detail rows
 - [StatusBar](#statusbar): app shell status chrome
-- `ListPagerFilterBar`: list filter and pager
+- `ListFilterBar`: list search and status filter
+- `ListPaginationFooter`: list pager and page-size controls
 - `Pagination`: prev/next page strip
+- `StatusPage`: centered whole-page empty / not-found state
 - [Tooltip](#tooltip): hover / click tip
 - [Disclosure](#disclosure): native collapse / expand section
 - [ScrollArea](#scrollarea): thin ESDS-token scrollbar container
 - [JsonPreview](#jsonpreview): trigger that opens a modal with pretty-printed JSON
 - [CopyableCode](#copyablecode): mono value with copy control
 - [EmptyContentState](#emptycontentstate): empty table/content state with icon, title, description, and optional action
-- [LoadingState](#loadingstate): fetching state with spinner, optional title and description
-- `FileDropBox`: large drag/drop or click file picker with reject toast, selected-file row, and busy/disabled state (`components/patterns/FileDropBox.tsx`)
+- [LoadingState](#loadingstate): fetching state with spinner (default or slow pace), optional title and description
+- `FileDropBox`: large drag/drop or click file picker with reject toast, selected-file row, and busy/disabled state
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
+
+### Unused
+
+These files exist under `frontend/src/components/` with no app call sites. Do not import them for new work. Removal is tracked in `docs/TASKS.md`.
+
+**Superseded** — use the replacement instead:
+
+| File | Use instead |
+| --- | --- |
+| `CredentialInput.tsx` | `PinField` / `InputField` |
+| `EmptyPage.tsx` | `StatusPage` |
+| `ErrorDetails.tsx` | `ErrorDetailPanel` |
+| `ListPagerFilterBar.tsx` | `ListFilterBar` + `ListPaginationFooter` |
+| `TablePager.tsx` | `Pagination` (via `ListPaginationFooter`) |
+| `ProgressModal.tsx` | `DeleteConfirmModal` / `DeleteProgressModal` |
+| `StatusBadge.tsx` | `Pill` |
+| `StatusDot.tsx` | status bar chrome (no shared replacement) |
+| `patterns/ListDisclosure.tsx` | `DataTable` |
+| `patterns/Table.tsx` | `DataTable` |
+| `ui/Spinner.tsx` | [SpinnerAlt](#spinneralt) |
+
+**No call sites yet** — still the right control when needed:
+
+- [RadioField](#radiofield)
+- [Menu](#menu) (table row actions use `TableIconMenu`)
 
 ### ButtonRow
 
@@ -226,12 +252,11 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Prefer `SelectField` for labeled single-choice dropdowns with optional description / error.
 - Prefer `TextareaField` when multiline text needs a label, description, or inline error.
 - Prefer `CheckboxField` for labeled boolean / tri-state choices with optional helper text.
-- Prefer `RadioField` for mutually exclusive options in a named group with optional helper text.
+- Prefer `RadioField` for mutually exclusive options in a named group with optional helper text (no current call sites).
 - Prefer `SwitchField` for labeled on/off settings with optional helper text.
 - Extract `Textarea` when needing no field wrapper around it.
 - Use `PinField` for segmented numeric verification / approval codes.
 - Use bare `Input` only when there is no label stack (rare toolbars / search).
-- Use `CredentialInput` for PIN/password chrome until those call sites move onto `InputField`.
 - Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
 - Use `ErrorAlert` for persistent in-page / form-level failures that stay in layout (optional Retry action).
 - Use toast errors for transient action failures that should not occupy page layout.
@@ -265,7 +290,7 @@ Default checked / indeterminate: `icon-primary` fill with inverse glyph. Uncheck
 
 ### RadioField
 
-Labeled radio (`frontend/src/components/ui/RadioField.tsx`): 16px circular control beside a body label, optional description indented under the label (16px spacer aligns with the control). Group options with a shared `name`; the selected value is the field state.
+Labeled radio (`frontend/src/components/ui/RadioField.tsx`): 16px circular control beside a body label, optional description indented under the label (16px spacer aligns with the control). Group options with a shared `name`; the selected value is the field state. No current call sites.
 
 | Prop          | Values / notes                                                              |
 | ------------- | --------------------------------------------------------------------------- |
@@ -326,7 +351,7 @@ Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, 
 | `children`      | Optional body slot (forms, lists, custom content)        |
 | `footer`        | Optional right-aligned action row (use shared `Button`s) |
 | `onClose`       | Close handler (X button + Escape unless `closeDisabled`) |
-| `closeDisabled` | Disables close control and Escape (e.g. `ProgressModal`) |
+| `closeDisabled` | Disables close control and Escape (e.g. `DeleteProgressModal`) |
 | `className`     | Merged onto the dialog panel                             |
 
 ```tsx
@@ -671,31 +696,40 @@ Empty content state (`frontend/src/components/patterns/EmptyContentState.tsx`): 
 
 Fetching content state (`frontend/src/components/patterns/LoadingState.tsx`): centered `SpinnerAlt` with an optional bold title and description, on the same panel as `EmptyContentState`. Prefer this over a bare inline spinner wherever a table or list is waiting on its first load, not just a busy row/button. Same placement rule: render it **in place of** the table, not inside it.
 
-| Prop          | Notes                                                |
-| ------------- | ---------------------------------------------------- |
-| `title`       | Optional bold heading (e.g. "Fetching your devices") |
-| `description` | Optional copy under the title                        |
-| `className`   | Merged onto the panel                                |
+| Prop          | Notes                                                                 |
+| ------------- | --------------------------------------------------------------------- |
+| `title`       | Optional bold heading (e.g. "Fetching your devices")                  |
+| `description` | Optional copy under the title                                         |
+| `pace`        | `default` (0.8s cycle) or `slow` (1.6s). Same dial; use `slow` for waits that routinely take longer than a few seconds |
+| `children`    | Optional extra content under the description (actions, dismiss control) |
+| `className`   | Merged onto the panel                                                 |
 
 ```tsx
 <LoadingState title="Fetching your devices" description="This should take a few seconds." />
+<LoadingState
+  pace="slow"
+  title="Preparing your backup"
+  description="This can take a minute."
+/>
 ```
 
 ### SpinnerAlt
 
 Loading indicator (`frontend/src/components/ui/SpinnerAlt.tsx`): eight pins around a dial that light and fade in sequence so the lit pin travels clockwise. It does **not** rotate — the animation is per-pin opacity (`spinner-pin` keyframes in `styles.css`), staggered by index, and respects `prefers-reduced-motion`. Prefer this for any new loading indicator; the older rotating-ring `Spinner` is deprecated.
 
-| Prop        | Values                                    | Notes                    |
-| ----------- | ----------------------------------------- | ------------------------ |
-| `size`      | `sm` (20px) \| `md` (32px) \| `lg` (64px) | Default `md`             |
-| `tone`      | `primary` \| `secondary`                  | Default `primary`        |
-| `className` | optional                                  | Merged onto the `<svg>`  |
+| Prop        | Values                                    | Notes                                      |
+| ----------- | ----------------------------------------- | ------------------------------------------ |
+| `size`      | `sm` (20px) \| `md` (32px) \| `lg` (64px) | Default `md`                               |
+| `tone`      | `primary` \| `secondary`                  | Default `primary`                          |
+| `pace`      | `default` (0.8s) \| `slow` (1.6s)         | Same pin-dial; slower cycle for long waits |
+| `className` | optional                                  | Merged onto the `<svg>`                    |
 
 Decorative (`aria-hidden`) by design — always pair it with adjacent text describing what's loading, as `LoadingState` does.
 
 ```tsx
 <SpinnerAlt />
 <SpinnerAlt size="sm" tone="secondary" />
+<SpinnerAlt pace="slow" />
 ```
 
 ### DetailList
@@ -863,7 +897,7 @@ Control matches `Input` chrome: `rounded-loose`, `border-stroke-primary`, white 
 
 ### Menu
 
-Menu: vertical list of rows with a built-in Plus icon and label. No outer border; `stroke-secondary` dividers only between rows. `MenuItem` is not exported — pass rows through `items`.
+Menu: vertical list of rows with a built-in Plus icon and label. No outer border; `stroke-secondary` dividers only between rows. `MenuItem` is not exported — pass rows through `items`. No current call sites; table row actions use `TableIconMenu`.
 
 | Prop        | Notes                                                              |
 | ----------- | ------------------------------------------------------------------ |

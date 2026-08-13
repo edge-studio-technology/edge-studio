@@ -3,11 +3,9 @@ import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
   Copy,
-  Database,
   Download,
   Eye,
   EyeOff,
-  Link2,
   LogOut,
   MessageSquare,
   MousePointerClick,
@@ -17,13 +15,11 @@ import {
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
-import type { MinimaNodeState } from "../app/types";
 import { Button, LinkButton } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
 import { Page } from "../components/Page";
-import { Pill } from "../components/Pill";
 import { SubSection } from "../components/patterns/SubSection";
 import { ErrorText } from "../components/Text";
 import { Disclosure } from "../components/ui/Disclosure";
@@ -38,21 +34,10 @@ import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
 import { useAuth } from "../features/auth/hooks";
 import { FeedbackAuditButton } from "../features/feedback/FeedbackAuditButton";
-import {
-  IntegritasConnectPanel,
-  statusLabel as integritasStatusLabel,
-  statusTone as integritasStatusTone,
-} from "../features/integritas-auth/IntegritasConnectPanel";
-import { useIntegritasAuth } from "../features/integritas-auth/useIntegritasAuth";
-import { MinimaBackupPanel } from "../features/minima/MinimaBackupPanel";
-import { formatNodeState, nodeStateTone } from "../features/minima/minimaFormat";
-import { MinimaSettingsPanel } from "../features/minima/MinimaSettingsPanel";
-import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
-import { WalletSettingsPanel } from "../features/wallet/WalletSettingsPanel";
 
 type TotpResetPhase = "idle" | "scan" | "done";
 
-const formClass = "grid gap-3";
+const formClass = "grid max-w-md gap-3";
 
 export function AuthSettingsPage() {
   const [totpPhase, setTotpPhase] = useState<TotpResetPhase>("idle");
@@ -67,15 +52,6 @@ export function AuthSettingsPage() {
   const [verifyCode, setVerifyCode] = useState("");
   const [verifySubmitting, setVerifySubmitting] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
-
-  const integritasAuth = useIntegritasAuth({ refreshProfileOnConnected: true });
-  const integritasKind = integritasAuth.status?.status;
-
-  const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
-  useMinimaStatusRefresh(
-    (status) => setMinimaState(status.state),
-    () => {},
-  );
 
   const handleInitTotpReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,8 +123,8 @@ export function AuthSettingsPage() {
 
   return (
     <Page
-      title="Account settings"
-      desc="Manage your admin credentials, Integritas Connect, Minima node settings and backups, and interface preferences."
+      title="Settings"
+      desc="Manage your admin credentials, interface preferences, and software updates."
       action={
         <Button type="button" iconStart={<LogOut aria-hidden />} onClick={() => void signOut()}>
           Log out
@@ -159,38 +135,13 @@ export function AuthSettingsPage() {
         <Disclosure
           title={
             <span className="flex items-center gap-2">
-              <h2 className="type-title text-text-primary m-0">User settings</h2>
+              <h2 className="type-title text-text-primary m-0">Credentials</h2>
             </span>
           }
           className="pt-4 pb-6"
           defaultOpen={false}
         >
-          <div className="mt-2 grid gap-10">
-            <SubSection
-              icon={<RefreshCw size={13} aria-hidden />}
-              title="Software update"
-              description="Check for and install the latest Edge Studio update."
-            >
-              <ButtonRow>
-                <Button type="button" onClick={() => navigate("/update")}>
-                  Check for updates
-                </Button>
-              </ButtonRow>
-            </SubSection>
-
-            <SubSection
-              icon={<MessageSquare size={13} />}
-              title="Feedback"
-              description="Download the local feedback export file to share with the Integritas team, or view exactly what's stored."
-            >
-              <ButtonRow>
-                <LinkButton href="/api/feedback/export" iconStart={<Download aria-hidden />}>
-                  Export feedback JSON
-                </LinkButton>
-                <FeedbackAuditButton />
-              </ButtonRow>
-            </SubSection>
-
+          <div className="gap-detail-close my-detail-close grid">
             <ChangeCredentialPanel />
 
             {TOTP_ENABLED ? (
@@ -363,71 +314,13 @@ export function AuthSettingsPage() {
         <Disclosure
           title={
             <span className="flex items-center gap-2">
-              <h2 className="type-title text-text-primary m-0">Integritas settings</h2>
-              <Pill
-                tone={integritasKind ? integritasStatusTone[integritasKind] : "neutral"}
-                indicator
-              >
-                {integritasKind ? integritasStatusLabel[integritasKind] : "Checking…"}
-              </Pill>
+              <h2 className="type-title text-text-primary m-0">Behaviour</h2>
             </span>
           }
           className="pt-4 pb-6"
           defaultOpen={false}
         >
-          <div className="mt-2 grid gap-10">
-            <SubSection
-              icon={<Link2 size={13} />}
-              title="Integritas Connect"
-              description="Stamp proofs and sync plan usage with your Integritas Connect account."
-            >
-              <IntegritasConnectPanel bare auth={integritasAuth} />
-            </SubSection>
-          </div>
-        </Disclosure>
-
-        <Disclosure
-          title={
-            <span className="flex items-center gap-2">
-              <h2 className="type-title text-text-primary m-0">Minima settings</h2>
-              <Pill tone={minimaState ? nodeStateTone(minimaState) : "neutral"} indicator>
-                {minimaState ? formatNodeState(minimaState) : "Checking…"}
-              </Pill>
-            </span>
-          }
-          className="pt-4 pb-6"
-          defaultOpen={false}
-        >
-          <div className="mt-2 grid gap-10">
-            <MinimaSettingsPanel bare minimaState={minimaState} />
-
-            <SubSection
-              icon={<Database size={13} />}
-              title="Node backup & restore"
-              description="Full node backups include the seed phrase, private keys, coin proofs, and transaction history — a superset of a plain seed-phrase wallet import."
-            >
-              <MinimaBackupPanel bare minimaState={minimaState} />
-            </SubSection>
-
-            {/* Deprecated in favor of Node backup & restore above (superset: full node backup
-                vs. wallet-keys-only). Seed-phrase-only restore is still a distinct recovery path
-                (no backup file needed) and is planned as a "coming soon" option in
-                MinimaBackupPanel for v1.5 — see docs/TASKS.md. Left commented, not deleted, for
-                an easy revert. */}
-            {/* <WalletSettingsPanel /> */}
-          </div>
-        </Disclosure>
-
-        <Disclosure
-          title={
-            <span className="flex items-center gap-2">
-              <h2 className="type-title text-text-primary m-0">Behaviour settings</h2>
-            </span>
-          }
-          className="pt-4 pb-6"
-          defaultOpen={false}
-        >
-          <div className="mt-2 grid gap-10">
+          <div className="gap-detail-close mt-2 grid">
             <SubSection
               icon={<MousePointerClick size={13} />}
               title="Modals"
@@ -452,6 +345,43 @@ export function AuthSettingsPage() {
                 checked={sidebarStartCollapsed}
                 onChange={(e) => sidebarStartCollapsedSetting.set(e.target.checked)}
               />
+            </SubSection>
+          </div>
+        </Disclosure>
+
+        <Disclosure
+          title={
+            <span className="flex items-center gap-2">
+              <h2 className="type-title text-text-primary m-0">App</h2>
+            </span>
+          }
+          className="pt-4 pb-6"
+          defaultOpen
+        >
+          <div className="gap-detail-close mt-2 grid">
+            <SubSection
+              icon={<MessageSquare size={13} />}
+              title="Feedback"
+              description="Download the local feedback export file to share with the Integritas team, or view exactly what's stored."
+            >
+              <ButtonRow>
+                <LinkButton href="/api/feedback/export" iconStart={<Download aria-hidden />}>
+                  Export feedback JSON
+                </LinkButton>
+                <FeedbackAuditButton />
+              </ButtonRow>
+            </SubSection>
+
+            <SubSection
+              icon={<RefreshCw size={13} aria-hidden />}
+              title="Software update"
+              description="Check for and install the latest Edge Studio update."
+            >
+              <ButtonRow>
+                <Button type="button" onClick={() => navigate("/update")}>
+                  Check for updates
+                </Button>
+              </ButtonRow>
             </SubSection>
           </div>
         </Disclosure>

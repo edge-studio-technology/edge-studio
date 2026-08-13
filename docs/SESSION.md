@@ -4,16 +4,15 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
-Branch `refactor/repalce-openssl-with-node`. (Previous log entries here were for earlier merged branches; reset below per this file's own reset-when-merged rule.)
+Branch `ui/polish`.
 
-- Replaced `install.sh`'s host-`openssl`-dependent Ed25519 manifest signature verification with a check run inside a disposable `node:20-bookworm-slim` container (`scripts/verify-manifest.mjs`), removing the previous silent "verification disabled" fallback on OpenSSL < 3.
-- Merged `main` into this branch to pick up everything released as `0.33.0`/`0.34.0` since this branch diverged.
-- Fixed brand logo assets (`es_logo/`) 404ing on Pi/Docker installs: `frontend/Dockerfile`'s build stage never `COPY`'d the `public/` directory into the build context, so Vite's build output (`dist/`) was missing it in the container image even though it worked in native dev. Added `COPY public ./public`; verified with a real `docker build`/`docker compose build` that `es-logo-white.svg` and siblings now land in `/usr/share/nginx/html/es_logo/`.
+- Audited `frontend/src/components/` for unused files: 12 with no importers, plus `TablePager` only reached via unused `ListPagerFilterBar`.
+- Updated `docs/frontend-design-system.md` (unused/superseded inventory, live list replacements), frontend agent rules (`ErrorDetails` → `ErrorDetailPanel`), and `docs/TASKS.md` removal-decision item.
 
 ## Next Steps
 
-- See `docs/TASKS.md` for outstanding manual-check items.
+- Decide whether to delete the superseded unused component files listed in `docs/TASKS.md`.
 
 ## Notes / Open Questions
 
-- `frontend/src/app/brand.ts` and `frontend/src/app/names.ts` both export an identical `APP_NAME = "Edge Studio"` constant and are imported from different call sites — pre-existing duplication, not touched this session (out of scope; flagged here for whoever consolidates it).
+- `RadioField` and `Menu` have no call sites but remain the right controls when needed (table row actions use `TableIconMenu`, not `Menu`).

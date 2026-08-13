@@ -2,6 +2,7 @@ import { cx } from "../../lib/cx";
 
 type SpinnerAltSize = "sm" | "md" | "lg";
 type SpinnerAltTone = "primary" | "secondary";
+type SpinnerAltPace = "default" | "slow";
 
 const sizeClass: Record<SpinnerAltSize, string> = {
   sm: "size-5",
@@ -26,18 +27,29 @@ const PINS = [
   "m4.9 4.9 2.9 2.9",
 ];
 
-const CYCLE_SECONDS = 0.8;
+const PACE_SECONDS: Record<SpinnerAltPace, number> = {
+  default: 0.8,
+  slow: 1.6,
+};
+
+const paceClass: Record<SpinnerAltPace, string> = {
+  default: "animate-[spinner-pin_0.8s_linear_infinite] motion-reduce:animate-none",
+  slow: "animate-[spinner-pin_1.6s_linear_infinite] motion-reduce:animate-none",
+};
 
 /** Decorative by design — always pair with adjacent text describing what's loading. */
 export function SpinnerAlt({
   className,
   size = "md",
   tone = "primary",
+  pace = "default",
 }: {
   className?: string;
   size?: SpinnerAltSize;
   tone?: SpinnerAltTone;
+  pace?: SpinnerAltPace;
 }) {
+  const cycleSeconds = PACE_SECONDS[pace];
   return (
     <svg
       aria-hidden
@@ -53,9 +65,9 @@ export function SpinnerAlt({
         <path
           key={d}
           d={d}
-          className="animate-[spinner-pin_0.8s_linear_infinite] motion-reduce:animate-none"
+          className={paceClass[pace]}
           style={{
-            animationDelay: `${-(CYCLE_SECONDS / PINS.length) * (PINS.length - 1 - index)}s`,
+            animationDelay: `${-(cycleSeconds / PINS.length) * (PINS.length - 1 - index)}s`,
           }}
         />
       ))}

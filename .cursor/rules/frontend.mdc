@@ -42,7 +42,7 @@ Frontend rules:
 Error handling rules:
 
 - Backend API failures are normalized in `frontend/src/lib/api.ts`; use `ApiError.details` instead of parsing response strings in feature code.
-- Normalize operational/domain errors with `frontend/src/lib/errors.ts` and show details through `frontend/src/components/ErrorDetails.tsx` when row-level or persisted errors need inspection.
+- Normalize operational/domain errors with `frontend/src/lib/errors.ts` and show details through `frontend/src/components/patterns/ErrorDetailPanel.tsx` when row-level or persisted errors need inspection.
 - Prefer friendly summary text in rows/toasts and make native details/context/raw JSON secondary in the details view.
 - Use `lastErrorDetails`/`errorDetails` fields when available, falling back to legacy string errors for old records.
 - Do not show workflow/block failures as data-source/device errors; Devices should show source health and source failures only, while automation failures belong in workflow run/block UI.

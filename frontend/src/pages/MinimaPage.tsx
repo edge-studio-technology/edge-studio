@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { Database } from "lucide-react";
 import type { MinimaNodeStatus } from "../app/types";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -6,18 +7,22 @@ import { Disclosure } from "../components/ui/Disclosure";
 import { Modal } from "../components/ui/Modal";
 import { Pill } from "../components/ui/Pill";
 import { Page } from "../components/patterns/Page";
+import { SubSection } from "../components/patterns/SubSection";
 import { useToast } from "../components/ToastProvider";
 import {
   getMinimaNodeStatus,
   resyncMegammr,
   restartMinimaContainer,
 } from "../features/minima/minimaApi";
+import { MinimaBackupPanel } from "../features/minima/MinimaBackupPanel";
 import { MinimaConsolePanel } from "../features/minima/MinimaConsolePanel";
 import { MinimaConsoleWhitelistModal } from "../features/minima/MinimaConsoleWhitelistModal";
 import { MinimaContainerCard } from "../features/minima/MinimaContainerCard";
 import { MinimaHealthCard } from "../features/minima/MinimaHealthCard";
 import { mergeMinimaStatus } from "../features/minima/mergeMinimaStatus";
+import { formatNodeState, nodeStateTone } from "../features/minima/minimaFormat";
 import { parseMegammrResyncResult, resyncToastForResult } from "../features/minima/minimaResync";
+import { MinimaSettingsPanel } from "../features/minima/MinimaSettingsPanel";
 import { MinimaSummaryGrid } from "../features/minima/MinimaSummaryGrid";
 import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
 
@@ -186,10 +191,34 @@ export function MinimaPage() {
   const nodeRestarting = restarting || nodeStatus?.state === "restarting";
 
   return (
-    <Page
-      title="Minima"
-      desc="Start, monitor, and manage the Minima node running on this device."
-    >
+    <Page title="Minima" desc="Start, monitor, and manage the Minima node running on this device.">
+      <Card className="gap-detail-close grid w-full">
+        <Disclosure
+          title={
+            <span className="gap-detail-close flex flex-wrap items-center">
+              <h2 className="type-title text-text-primary m-0">Minima settings</h2>
+            </span>
+          }
+          defaultOpen={false}
+          contentClassName="gap-detail-close grid"
+        >
+          <MinimaSettingsPanel bare minimaState={nodeStatus?.state ?? null} />
+          <SubSection
+            icon={<Database size={13} />}
+            title="Node backup & restore"
+            description="Full node backups include the seed phrase, private keys, coin proofs, and transaction history — a superset of a plain seed-phrase wallet import."
+          >
+            <MinimaBackupPanel bare minimaState={nodeStatus?.state ?? null} />
+          </SubSection>
+          {/* Deprecated in favor of Node backup & restore above (superset: full node backup
+              vs. wallet-keys-only). Seed-phrase-only restore is still a distinct recovery path
+              (no backup file needed) and is planned as a "coming soon" option in
+              MinimaBackupPanel for v1.5 — see docs/TASKS.md. Left commented, not deleted, for
+              an easy revert. */}
+          {/* <WalletSettingsPanel /> */}
+        </Disclosure>
+      </Card>
+
       <section className="gap-detail-close grid w-full items-stretch lg:grid-cols-2">
         <MinimaHealthCard
           status={nodeStatus}

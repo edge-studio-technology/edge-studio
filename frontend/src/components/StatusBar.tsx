@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Tone } from "../app/types";
 import { cx } from "../lib/cx";
-import { Clock } from "./Clock";
+import { Clock } from "./ui/Clock";
 import { Pill } from "./Pill";
 import { Tooltip } from "./ui/Tooltip";
 

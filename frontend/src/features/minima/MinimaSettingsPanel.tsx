@@ -9,7 +9,7 @@ import {
   getMinimaConfig,
   getMinimaPeers,
   saveMinimaConfig,
-  setAutoRestartEnabled
+  setAutoRestartEnabled,
 } from "./minimaApi";
 import { MinimaMegammrHostSection } from "./MinimaMegammrHostSection";
 import { MinimaPeerConnectionsSection } from "./MinimaPeerConnectionsSection";
@@ -68,7 +68,7 @@ export function MinimaSettingsPanel({
         tone: "error",
         title: "Failed to load peers",
         message: error instanceof Error ? error.message : "Unknown error",
-        timeoutMs: 8000
+        timeoutMs: 8000,
       });
     } finally {
       setPeersLoading(false);
@@ -100,7 +100,7 @@ export function MinimaSettingsPanel({
         tone: "success",
         title: "Peers added",
         message: "Minima accepted the add-peers request.",
-        timeoutMs: 8000
+        timeoutMs: 8000,
       });
       await refreshPeers();
     } catch (error) {
@@ -123,7 +123,7 @@ export function MinimaSettingsPanel({
         tone: "error",
         title: "Failed to update auto-restart",
         message: error instanceof Error ? error.message : "Unknown error",
-        timeoutMs: 9000
+        timeoutMs: 9000,
       });
     } finally {
       setTogglingAutoRestart(false);
@@ -131,7 +131,7 @@ export function MinimaSettingsPanel({
   }
 
   const content = (
-    <>
+    <div className="my-detail-close gap-detail-close grid">
       {!bare && (
         <div className="mb-4 grid gap-1">
           <h3 style={{ margin: 0 }}>Minima node settings</h3>
@@ -176,7 +176,7 @@ export function MinimaSettingsPanel({
           </span>
         </span>
       </label> */}
-    </>
+    </div>
   );
 
   return bare ? content : <Card>{content}</Card>;

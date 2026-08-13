@@ -5,9 +5,9 @@ import {
   House,
   Radio,
   // Settings, // unused while the Setup nav item is commented out above
+  Settings,
   Shield,
   ShoppingCart,
-  UserRound,
   Workflow,
 } from "lucide-react";
 import type { NavItem } from "./types";
@@ -24,5 +24,5 @@ export const nav: NavItem[] = [
   { id: "workflows", label: "Workflows", icon: Workflow },
   { id: "diagnostics", label: "Diagnostics", icon: Activity },
   { id: "marketplace", label: "Marketplace", icon: ShoppingCart, badge: "Coming soon" },
-  { id: "settings", label: "Account", icon: UserRound },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
