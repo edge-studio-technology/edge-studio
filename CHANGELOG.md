@@ -28,6 +28,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Dashboard next-step guide shows Cable and Workflow icons on Connect devices / Create workflow, and drops the awkward trailing setup line.
 - Sidebar Devices and Workflows icons use Cable and Workflow to match the dashboard guide.
 - Device setup guide Go to workflow opens the workflow editor.
+## [0.38.1] 2026-08-13
+
+### Fixed
+
+- CI/release-generated `.env.example` default for `HOST_FILES_DIR` changed from `/home/pi` to `./host-files`.
+- CI/release-generated `docker-compose.yml` now chowns data, Minima backups, and update-agent state directories to the app user before `backend`/`update-agent` start.
 
 ## [0.38.0] 2026-08-12
 
