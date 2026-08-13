@@ -47,6 +47,21 @@ matching `docker-compose.yml`/`.env.example` a tester could drop into a folder a
   `install.sh` doesn't need this because `install.sh` generates the cert itself before ever running
   `docker compose up`; a channel tester pulling only `docker-compose.yml` + `.env.example` (no repo
   checkout, no `install.sh`) has nothing else to generate it.
+- `cert-init` also chowns the `DATA_DIR`, `MINIMA_DATA_DIR/backups`, and `UPDATE_AGENT_STATE_DIR`
+  bind mounts to uid 1000 (the `node` user `backend`/`update-agent` run as) before those services
+  start, mirroring the same three directories `install.sh` itself chowns to 1000:1000
+  (`.claude/rules/docker.md`, `install.sh`). Verified against a real standalone run: without this,
+  Docker auto-creates a missing bind-mount directory root-owned, and the backend crash-loops on
+  startup with `SqliteError: unable to open database file` (`SQLITE_CANTOPEN`) because uid 1000
+  can't create `edge-studio.db` under a root-owned `/data` — `install.sh` masks this for the
+  source-checkout install path since it chowns those dirs before `docker compose up` ever runs, but
+  the channel-tester path (`docker-compose.yml` + `.env.example` alone) had no equivalent step.
+  Reused `cert-init`'s existing Alpine container instead of adding a second one-shot service, since
+  both jobs are "prep a host dir before anything else starts" and don't need separate images.
+  `HOST_FILES_DIR` is untouched (read-only mount, no write needed) and the rest of `MINIMA_DATA_DIR`
+  is untouched (`install.sh` doesn't chown it either — the `minima` image manages its own data dir).
+  `backend` and `update-agent` now depend on `cert-init` with `condition: service_completed_successfully`
+  (previously only `frontend` did), so they don't start against not-yet-chowned directories.
 
 ## Alternatives considered
 
@@ -80,7 +95,8 @@ matching `docker-compose.yml`/`.env.example` a tester could drop into a folder a
   installs.
 - Channel testers installing from `docker/<channel>/` never run `install.sh`, so they get the
   `cert-init` service instead of a host-generated cert — a second, parallel way the HTTPS cert can
-  come into existence, scoped only to this distribution path.
+  come into existence, scoped only to this distribution path. The same applies to host-directory
+  ownership: `cert-init` is now the channel-tester path's parallel to `install.sh`'s own chown step.
 
 ## Where this lives in code
 

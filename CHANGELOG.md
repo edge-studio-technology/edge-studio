@@ -4,6 +4,13 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] fix/ci-compose-fix
+
+### Fixed
+
+- CI/release-generated `.env.example` default for `HOST_FILES_DIR` changed from `/home/pi` to `./host-files`.
+- CI/release-generated `docker-compose.yml` now chowns data, Minima backups, and update-agent state directories to the app user before `backend`/`update-agent` start.
+
 ## [0.38.0] 2026-08-12
 
 ### Changed
