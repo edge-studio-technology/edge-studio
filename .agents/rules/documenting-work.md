@@ -32,6 +32,6 @@ Keep `CHANGELOG.md` up to date as part of finishing work, not as a follow-up tas
 - A one-line entry is fine for small fixes; larger features deserve a short bullet group, each bullet still one line.
 - If a change is already described in `README.md` or `SECURITY.md`, the changelog should still note it briefly and point to those docs when helpful.
 - Style: dry and direct, not a narrative. State the change, not the reasoning, backstory, or motivation behind it — that belongs in an ADR (see `.claude/rules/adr.md`), not the changelog.
-- One sentence per bullet. Don't stack multiple sentences, parentheticals, or "instead of ..., which ..." justification clauses onto one entry.
+- One sentence per bullet. Don't stack multiple sentences, parentheticals, or justification clauses onto one entry — watch for `so`, `because`, `since`, `which`, and `instead of ..., which ...` as signs a reasoning clause crept in. Example: not "X now defaults to Y, so Z no longer breaks in case W" — just "X default changed from Y-old to Y-new."
 - Skip implementation detail operators don't act on: internal component/file names, exact class names, prop names, before/after code shape. Name the user-visible thing, not how it's built.
 - If a change is superseded or reverted before it releases, keep the `Unreleased` entry describing the final behavior, not both the add and the follow-up fix.
