@@ -248,6 +248,8 @@ Future versions may support custom certificates or an external reverse proxy.
 
 Default installs use `docker-compose.yml` plus `docker-compose.release.yml`, which removes source build contexts and uses the signed manifest's image digests. `DEV_MODE=true` installs use only `docker-compose.yml` so frontend/backend can be built from source.
 
+The default-install runtime bundle is intentionally limited to the files listed in `scripts/release/runtime-bundle-files.json`; source-build directories such as `frontend/`, `backend/`, and `update-agent/` are only required for `DEV_MODE=true` installs.
+
 To install with another file root or port:
 
 ```bash
