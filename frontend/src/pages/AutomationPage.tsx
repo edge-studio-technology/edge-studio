@@ -420,7 +420,7 @@ export function AutomationPage() {
   return (
     <Page
       title="Automation"
-      desc="Build workflows from small start, data, logic, and Integritas blocks."
+      desc="Build workflows connecting data, logic, and secure data automatically with Integritas."
       action={
         <LinkButton href="/automation/help" iconStart={<BookOpen size={16} aria-hidden />}>
           Workflow guide

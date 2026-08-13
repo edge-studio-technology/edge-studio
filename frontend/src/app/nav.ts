@@ -21,7 +21,7 @@ export const nav: NavItem[] = [
   { id: "wallet", label: "Wallet", icon: CreditCard },
   { id: "integritas", label: "Integritas", icon: Shield },
   { id: "data", label: "Devices", icon: Cable },
-  { id: "automation", label: "Automation", icon: Workflow },
+  { id: "automation", label: "Workflows", icon: Workflow },
   { id: "diagnostics", label: "Diagnostics", icon: Activity },
   { id: "marketplace", label: "Marketplace", icon: ShoppingCart, badge: "Coming soon" },
   { id: "settings", label: "Account", icon: UserRound },

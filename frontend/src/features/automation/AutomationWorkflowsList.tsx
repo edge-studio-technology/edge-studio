@@ -4,7 +4,6 @@ import {
   DataTable,
   RowActions,
   TableBody,
-  TableCard,
   TableCell,
   TableHead,
   TableHeaderCell,
@@ -18,6 +17,7 @@ import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import { Button } from "../../components/ui/Button";
+import { Card } from "../../components/ui/Card";
 import { SwitchField } from "../../components/ui/SwitchField";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import type { DataSource } from "../data-sources/dataSourceTypes";
@@ -102,11 +102,7 @@ export function AutomationWorkflowsList({
   }
 
   return (
-    <TableCard
-      className="w-full"
-      title="Workflows"
-      description="Search, filter, duplicate, and archive workflows as your test list grows."
-    >
+    <Card className="gap-detail-close grid w-full">
       <div className="gap-detail-close flex flex-wrap items-end justify-between">
         <div className="min-w-0 flex-1 [&>div]:mb-0">
           <ListFilterBar
@@ -291,6 +287,6 @@ export function AutomationWorkflowsList({
         }}
         pageSizeOptions={PAGE_SIZE_OPTIONS}
       />
-    </TableCard>
+    </Card>
   );
 }

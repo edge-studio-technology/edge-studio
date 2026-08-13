@@ -33,8 +33,8 @@ export function AutomationHelpPage() {
       title="Workflow automation guide"
       desc="Learn how to build workflows on the canvas and what each block does."
       action={
-        <LinkButton href="/automation" variant="ghost" iconStart={<ArrowLeft size={16} />}>
-          Back to automation
+        <LinkButton href="/automation" iconStart={<ArrowLeft size={16} />}>
+          Back to workflows
         </LinkButton>
       }
     >
@@ -43,7 +43,7 @@ export function AutomationHelpPage() {
           <span className="bg-surface-always-white border-stroke-secondary grid size-10 shrink-0 place-items-center rounded-full border">
             <Layers3 aria-hidden className="text-icon-primary size-5" />
           </span>
-          <div className="grid gap-detail-tight">
+          <div className="gap-detail-tight grid">
             <Text.Title>How the canvas works</Text.Title>
             <Text.Body className="text-text-secondary">
               Workflows are ordered block pipelines. The canvas is for scanning configured behavior;
@@ -51,13 +51,13 @@ export function AutomationHelpPage() {
             </Text.Body>
           </div>
         </div>
-        <ol className="m-0 grid list-none gap-detail-next p-0 md:grid-cols-2 xl:grid-cols-5">
+        <ol className="gap-detail-next m-0 grid list-none p-0 md:grid-cols-2 xl:grid-cols-5">
           {workflowSteps.map((step, index) => (
             <li
               key={step}
-              className="border-stroke-secondary bg-surface-always-white grid gap-detail-tight rounded-soft border p-margin-close"
+              className="border-stroke-secondary bg-surface-always-white gap-detail-tight rounded-soft p-margin-close grid border"
             >
-              <span className="bg-surface-secondary text-text-primary grid size-7 place-items-center rounded-full type-meta">
+              <span className="bg-surface-secondary text-text-primary type-meta grid size-7 place-items-center rounded-full">
                 {index + 1}
               </span>
               <Text.Body className="text-text-secondary">{step}</Text.Body>
@@ -66,17 +66,17 @@ export function AutomationHelpPage() {
         </ol>
       </Card>
 
-      <div className="grid w-full gap-detail-close">
+      <div className="gap-detail-close grid w-full">
         {workflowBlockCategoryOrder.map((category) => (
           <Card key={category} className={guideCardClass}>
             <div className="gap-detail-next flex flex-wrap items-center justify-between">
-              <div className="grid gap-detail-tight">
+              <div className="gap-detail-tight grid">
                 <h2 className="type-title text-text-primary m-0">{category} blocks</h2>
                 <p className={cx(mutedText, "m-0")}>{categoryDescription(category)}</p>
               </div>
               <Pill tone="neutral">{workflowBlockLibraryTypes[category].length} blocks</Pill>
             </div>
-            <div className="grid gap-detail-close xl:grid-cols-2">
+            <div className="gap-detail-close grid xl:grid-cols-2">
               {workflowBlockLibraryTypes[category].map((type) => (
                 <BlockReference key={type} type={type} help={workflowBlockHelp[type]} />
               ))}
@@ -91,19 +91,19 @@ export function AutomationHelpPage() {
 function BlockReference({ type, help }: { type: AutomationBlockType; help: WorkflowBlockHelp }) {
   return (
     <article id={type} className={blockCardClass}>
-      <header className="grid gap-detail-tight">
+      <header className="gap-detail-tight grid">
         <div className="gap-detail-next flex flex-wrap items-center justify-between">
           <h3 className="type-callout text-text-primary m-0">{help.title}</h3>
           <Pill tone="neutral">{help.category}</Pill>
         </div>
         <Text.Body className="text-text-secondary">{help.shortDescription}</Text.Body>
       </header>
-      <div className="grid gap-detail-next sm:grid-cols-2">
+      <div className="gap-detail-next grid sm:grid-cols-2">
         <InfoPanel title="What it does">{help.whatItDoes}</InfoPanel>
         <InfoPanel title="When to use it">{help.whenToUse}</InfoPanel>
       </div>
       {help.fields.length > 0 ? <FieldReference fields={help.fields} /> : null}
-      <div className="grid gap-detail-next sm:grid-cols-2">
+      <div className="gap-detail-next grid sm:grid-cols-2">
         <HelpSection title="Outputs" items={help.outputs} />
         <HelpSection title="Examples" items={help.examples} />
       </div>
@@ -121,7 +121,7 @@ function categoryDescription(category: string) {
 
 function InfoPanel({ title, children }: { title: string; children: string }) {
   return (
-    <section className="bg-surface-secondary grid gap-detail-tight rounded-soft p-margin-close">
+    <section className="bg-surface-secondary gap-detail-tight rounded-soft p-margin-close grid">
       <h4 className={sectionTitleClass}>{title}</h4>
       <Text.Body className="text-text-secondary">{children}</Text.Body>
     </section>
@@ -130,13 +130,13 @@ function InfoPanel({ title, children }: { title: string; children: string }) {
 
 function FieldReference({ fields }: { fields: WorkflowBlockHelp["fields"] }) {
   return (
-    <section className="grid gap-detail-tight">
+    <section className="gap-detail-tight grid">
       <h4 className={sectionTitleClass}>Fields</h4>
-      <div className="grid gap-detail-tight sm:grid-cols-2">
+      <div className="gap-detail-tight grid sm:grid-cols-2">
         {fields.map((field) => (
           <div
             key={field.label}
-            className="border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-soft border p-margin-close"
+            className="border-stroke-secondary bg-surface-primary gap-detail-tight rounded-soft p-margin-close grid border"
           >
             <div className="gap-detail-tight flex flex-wrap items-center">
               <p className="type-body-em text-text-primary m-0">{field.label}</p>
@@ -160,9 +160,9 @@ function FieldReference({ fields }: { fields: WorkflowBlockHelp["fields"] }) {
 
 function HelpSection({ title, items }: { title: string; items: string[] }) {
   return (
-    <section className="grid gap-detail-tight">
+    <section className="gap-detail-tight grid">
       <h4 className={sectionTitleClass}>{title}</h4>
-      <ul className="m-0 grid list-none gap-detail-tight p-0">
+      <ul className="gap-detail-tight m-0 grid list-none p-0">
         {items.map((item) => (
           <li key={item} className="gap-detail-tight flex items-start">
             <CheckCircle2 aria-hidden className="text-icon-success mt-[2px] size-4 shrink-0" />
