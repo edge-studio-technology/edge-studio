@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { formatLocalTime } from "../lib/time";
-import { Pill } from "./Pill";
+import { formatLocalTime } from "../../lib/time";
+import { Pill } from "../Pill";
 
 function formatUtcClock(value: Date) {
   return [
@@ -19,7 +19,10 @@ export function Clock() {
   }, []);
 
   return (
-    <div className="gap-detail-tight flex shrink-0 items-center" aria-label="Current local and UTC time">
+    <div
+      className="gap-detail-tight flex shrink-0 items-center"
+      aria-label="Current local and UTC time"
+    >
       <Pill>Local {formatLocalTime(now)}</Pill>
       <Pill>UTC {formatUtcClock(now)}</Pill>
     </div>

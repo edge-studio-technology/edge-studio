@@ -25,6 +25,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Workflow guide block details are collapsed until opened.
 - Workflow guide block cards no longer nest extra panels or category tags.
 - Workflow guide uses a three-step type scale and no uppercase labels.
+- Moved `Clock.tsx`to `/ui`
+
+### Removed
+
+- Unsued legacy files in `/components`.
 
 ## [0.38.2] 2026-08-13
 
