@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Default installs now use a release Compose override so production deployments do not depend on frontend/backend source build contexts.
 - Runtime bundle contents are now defined by an explicit release allowlist for future repo-light default installs.
+- Release tooling can now build the allowlisted default-install runtime archive.
 
 ### Changed
 

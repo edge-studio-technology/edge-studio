@@ -250,6 +250,8 @@ Default installs use `docker-compose.yml` plus `docker-compose.release.yml`, whi
 
 The default-install runtime bundle is intentionally limited to the files listed in `scripts/release/runtime-bundle-files.json`; source-build directories such as `frontend/`, `backend/`, and `update-agent/` are only required for `DEV_MODE=true` installs.
 
+Build the default-install runtime archive with `npm run release:build-runtime-bundle`; it writes `edge-studio-runtime.tar.gz` from the allowlisted files.
+
 To install with another file root or port:
 
 ```bash
