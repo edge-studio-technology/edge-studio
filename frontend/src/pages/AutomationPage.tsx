@@ -422,7 +422,7 @@ export function AutomationPage() {
       title="Automation"
       desc="Build workflows from small start, data, logic, and Integritas blocks."
       action={
-        <LinkButton href="/automation/help" variant="ghost" iconStart={<BookOpen size={16} />}>
+        <LinkButton href="/automation/help" iconStart={<BookOpen size={16} aria-hidden />}>
           Workflow guide
         </LinkButton>
       }

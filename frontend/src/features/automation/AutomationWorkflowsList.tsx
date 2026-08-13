@@ -1,4 +1,4 @@
-import { Inbox, Pause, Play, Plus, Workflow } from "lucide-react";
+import { Inbox, Pencil, Plus, Workflow } from "lucide-react";
 import { useState } from "react";
 import {
   DataTable,
@@ -18,6 +18,7 @@ import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import { Button } from "../../components/ui/Button";
+import { SwitchField } from "../../components/ui/SwitchField";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import type { DataSource } from "../data-sources/dataSourceTypes";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
@@ -125,7 +126,7 @@ export function AutomationWorkflowsList({
           />
         </div>
         <Button type="button" iconStart={<Plus aria-hidden />} onClick={onCreate}>
-          Create new workflow
+          New workflow
         </Button>
       </div>
 
@@ -143,7 +144,7 @@ export function AutomationWorkflowsList({
               ? "Try another search or filter, or clear filters."
               : "Start from a trigger block, then chain data, logic, and Integritas stamping blocks."
           }
-          actionLabel={filtersActive ? "Clear filters" : "Create new workflow"}
+          actionLabel={filtersActive ? "Clear filters" : "New workflow"}
           actionIcon={filtersActive ? undefined : <Plus aria-hidden />}
           actionVariant={filtersActive ? "secondary" : "primary"}
           onAction={filtersActive ? clearFilters : onCreate}
@@ -153,6 +154,7 @@ export function AutomationWorkflowsList({
           <DataTable>
             <TableHead>
               <TableHeaderCell>Name</TableHeaderCell>
+              <TableHeaderCell className="w-28">Enabled</TableHeaderCell>
               <TableHeaderCell className="w-40">Status</TableHeaderCell>
               {/* <TableHeaderCell className="w-56">Source</TableHeaderCell> */}
               {/* <TableHeaderCell className="w-48">Blocks</TableHeaderCell> */}
@@ -180,6 +182,15 @@ export function AutomationWorkflowsList({
                         Archived, does not run until restored.
                       </p>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <SwitchField
+                      aria-label={`${workflow.enabled ? "Disable" : "Enable"} ${workflow.name}`}
+                      checked={workflow.enabled}
+                      disabled={busy || workflow.archived}
+                      className="min-w-0"
+                      onChange={() => onToggleEnabled(workflow)}
+                    />
                   </TableCell>
                   <TableCell>
                     <WorkflowStatusPill workflow={workflow} />
@@ -220,12 +231,12 @@ export function AutomationWorkflowsList({
                     <RowActions>
                       <TableIconButton
                         type="button"
-                        disabled={busy || workflow.archived}
-                        title={workflow.enabled ? "Pause workflow" : "Enable workflow"}
-                        aria-label={`${workflow.enabled ? "Pause" : "Enable"} ${workflow.name}`}
-                        onClick={() => onToggleEnabled(workflow)}
+                        disabled={busy}
+                        title="Edit workflow"
+                        aria-label={`Edit ${workflow.name}`}
+                        onClick={() => onEdit(workflow)}
                       >
-                        {workflow.enabled ? <Pause size={16} /> : <Play size={16} />}
+                        <Pencil size={16} aria-hidden />
                       </TableIconButton>
                       <TableIconMenu
                         aria-label={`More actions for ${workflow.name}`}
@@ -234,11 +245,6 @@ export function AutomationWorkflowsList({
                             label: "Run now",
                             disabled: busy || workflow.archived,
                             onClick: () => onRunNow(workflow),
-                          },
-                          {
-                            label: "Open and edit",
-                            disabled: busy,
-                            onClick: () => onEdit(workflow),
                           },
                           // {
                           //   label: "Watch workflow",
