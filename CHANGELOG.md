@@ -4,7 +4,7 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] ui/cleanup
+## [0.38.2] 2026-08-13
 
 ### Fixed
 
@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Dashboard next-step guide shows Cable and Workflow icons on Connect devices / Create workflow, and drops the awkward trailing setup line.
 - Sidebar Devices and Workflows icons use Cable and Workflow to match the dashboard guide.
 - Device setup guide Go to workflow opens the workflow editor.
+
 ## [0.38.1] 2026-08-13
 
 ### Fixed
