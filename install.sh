@@ -38,6 +38,7 @@ INTEGRITAS_CONNECT_BASE_URL_INPUT="${INTEGRITAS_CONNECT_BASE_URL-}"
 INTEGRITAS_BASE_URL_INPUT="${INTEGRITAS_BASE_URL-}"
 INTEGRITAS_REQUEST_ID_INPUT="${INTEGRITAS_REQUEST_ID-}"
 MANIFEST_URL_INPUT="${MANIFEST_URL-}"
+RUNTIME_BUNDLE_URL_INPUT="${RUNTIME_BUNDLE_URL-}"
 DEV_MODE_INPUT="${DEV_MODE-}"
 HOST_FILES_DIR="${HOST_FILES_DIR:-/home/pi}"
 FRONTEND_PORT="${FRONTEND_PORT:-8080}"
@@ -72,6 +73,7 @@ INTEGRITAS_CONNECT_BASE_URL="${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.t
 INTEGRITAS_BASE_URL="${INTEGRITAS_BASE_URL:-https://integritas.technology/core}"
 INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID:-edge-studio}"
 MANIFEST_URL="${MANIFEST_URL:-https://integritas.technology/edge-studio/release/manifest.json}"
+RUNTIME_BUNDLE_URL="${RUNTIME_BUNDLE_URL:-}"
 DEV_MODE="${DEV_MODE:-false}"
 COMPOSE_FILE_NAME="docker-compose.yml"
 
@@ -235,6 +237,7 @@ load_existing_config() {
   INTEGRITAS_BASE_URL="${INTEGRITAS_BASE_URL_INPUT:-${INTEGRITAS_BASE_URL:-https://integritas.technology/core}}"
   INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID_INPUT:-${INTEGRITAS_REQUEST_ID:-edge-studio}}"
   MANIFEST_URL="${MANIFEST_URL_INPUT:-${MANIFEST_URL:-https://integritas.technology/edge-studio/release/manifest.json}}"
+  RUNTIME_BUNDLE_URL="${RUNTIME_BUNDLE_URL_INPUT:-${RUNTIME_BUNDLE_URL:-}}"
   DEV_MODE="${DEV_MODE_INPUT:-${DEV_MODE:-false}}"
 }
 
@@ -385,35 +388,84 @@ relative_top_level_dir() {
   esac
 }
 
-download_app() {
-  local tmp_dir
+derive_runtime_bundle_url() {
+  if [ -n "$RUNTIME_BUNDLE_URL" ]; then
+    return
+  fi
+
+  case "$MANIFEST_URL" in
+    */manifest.json) RUNTIME_BUNDLE_URL="${MANIFEST_URL%/manifest.json}/edge-studio-runtime.tar.gz" ;;
+    *)
+      echo "RUNTIME_BUNDLE_URL is not set and could not be derived from MANIFEST_URL=$MANIFEST_URL"
+      exit 1
+      ;;
+  esac
+}
+
+clean_app_directory() {
   local protected_minima_dir
   local protected_sqlite_dir
   local protected_sensor_helper_venv
   local protected_update_agent_state_dir
   local find_args=("$APP_DIR" -mindepth 1 -maxdepth 1 ! -name ".env")
-  tmp_dir="$(mktemp -d)"
+
   protected_minima_dir="$(relative_top_level_dir "$MINIMA_DATA_DIR")"
   protected_sqlite_dir="$(relative_top_level_dir "$DATA_DIR")"
   protected_sensor_helper_venv=".venv-sensor-helper"
   protected_update_agent_state_dir="$(relative_top_level_dir "$UPDATE_AGENT_STATE_DIR")"
 
-  log "Downloading $APP_REPO_URL ($APP_BRANCH)"
-  git clone --depth 1 --branch "$APP_BRANCH" "$APP_REPO_URL" "$tmp_dir"
-
-  rm -rf "$APP_DIR/.git" "$APP_DIR/backend" "$APP_DIR/frontend"
+  rm -rf "$APP_DIR/.git" "$APP_DIR/backend" "$APP_DIR/frontend" "$APP_DIR/update-agent"
   [ -n "$protected_minima_dir" ] && find_args+=(! -name "$protected_minima_dir")
   [ -n "$protected_sqlite_dir" ] && find_args+=(! -name "$protected_sqlite_dir")
   find_args+=(! -name "$protected_sensor_helper_venv")
   [ -n "$protected_update_agent_state_dir" ] && find_args+=(! -name "$protected_update_agent_state_dir")
   find_args+=(-exec rm -rf {} +)
   find "${find_args[@]}"
+}
 
+download_full_repo() {
+  local tmp_dir
+
+  tmp_dir="$(mktemp -d)"
+
+  log "Downloading $APP_REPO_URL ($APP_BRANCH)"
+  git clone --depth 1 --branch "$APP_BRANCH" "$APP_REPO_URL" "$tmp_dir"
+
+  clean_app_directory
   cp -a "$tmp_dir/." "$APP_DIR/"
   chmod 755 "$APP_DIR"
   rm -rf "$tmp_dir"
 
   log "install.sh version: $(fetch_manifest_field "$APP_DIR/package.json" version)"
+}
+
+download_runtime_bundle() {
+  local tmp_dir
+  local bundle_file
+
+  derive_runtime_bundle_url
+  tmp_dir="$(mktemp -d)"
+  bundle_file="$tmp_dir/edge-studio-runtime.tar.gz"
+
+  log "Downloading runtime bundle from $RUNTIME_BUNDLE_URL"
+  curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file"
+  tar -xzf "$bundle_file" -C "$tmp_dir"
+
+  clean_app_directory
+  rm -f "$bundle_file"
+  cp -a "$tmp_dir/." "$APP_DIR/"
+  chmod 755 "$APP_DIR"
+  rm -rf "$tmp_dir"
+
+  log "install.sh version: $(fetch_manifest_field "$APP_DIR/package.json" version)"
+}
+
+download_app() {
+  if is_truthy "$DEV_MODE"; then
+    download_full_repo
+  else
+    download_runtime_bundle
+  fi
 }
 
 fetch_manifest_field() {
@@ -558,6 +610,7 @@ INTEGRITAS_BASE_URL=$INTEGRITAS_BASE_URL
 INTEGRITAS_REQUEST_ID=$INTEGRITAS_REQUEST_ID
 COOKIE_SECURE=true
 MANIFEST_URL=$MANIFEST_URL
+RUNTIME_BUNDLE_URL=$RUNTIME_BUNDLE_URL
 FRONTEND_IMAGE=$FRONTEND_IMAGE
 BACKEND_IMAGE=$BACKEND_IMAGE
 UPDATE_AGENT_IMAGE=$UPDATE_AGENT_IMAGE

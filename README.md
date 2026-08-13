@@ -71,7 +71,7 @@ The installer will:
 - Install required host packages
 - Install Docker if Docker is missing
 - Verify Docker Compose
-- Clone this repository to `/opt/edge-studio`
+- Download the default runtime bundle to `/opt/edge-studio` or clone the repository when `DEV_MODE=true`
 - Write `/opt/edge-studio/.env`
 - Generate a self-signed TLS certificate in `DATA_DIR/certs`
 - Start the app with `docker compose up -d --build`
@@ -250,7 +250,7 @@ Default installs use `docker-compose.yml` plus `docker-compose.release.yml`, whi
 
 The default-install runtime bundle is intentionally limited to the files listed in `scripts/release/runtime-bundle-files.json`; source-build directories such as `frontend/`, `backend/`, and `update-agent/` are only required for `DEV_MODE=true` installs.
 
-Build the default-install runtime archive with `npm run release:build-runtime-bundle`; it writes `edge-studio-runtime.tar.gz` from the allowlisted files.
+Build the default-install runtime archive with `npm run release:build-runtime-bundle`; it writes `edge-studio-runtime.tar.gz` from the allowlisted files. The installer derives `RUNTIME_BUNDLE_URL` from `MANIFEST_URL` unless explicitly overridden.
 
 To install with another file root or port:
 
