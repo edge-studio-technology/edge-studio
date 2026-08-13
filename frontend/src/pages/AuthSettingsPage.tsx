@@ -37,7 +37,7 @@ import { FeedbackAuditButton } from "../features/feedback/FeedbackAuditButton";
 
 type TotpResetPhase = "idle" | "scan" | "done";
 
-const formClass = "grid gap-3";
+const formClass = "grid max-w-md gap-3";
 
 export function AuthSettingsPage() {
   const [totpPhase, setTotpPhase] = useState<TotpResetPhase>("idle");
@@ -135,7 +135,7 @@ export function AuthSettingsPage() {
         <Disclosure
           title={
             <span className="flex items-center gap-2">
-              <h2 className="type-title text-text-primary m-0">User settings</h2>
+              <h2 className="type-title text-text-primary m-0">Credentials</h2>
             </span>
           }
           className="pt-4 pb-6"
@@ -314,7 +314,7 @@ export function AuthSettingsPage() {
         <Disclosure
           title={
             <span className="flex items-center gap-2">
-              <h2 className="type-title text-text-primary m-0">Behaviour settings</h2>
+              <h2 className="type-title text-text-primary m-0">Behaviour</h2>
             </span>
           }
           className="pt-4 pb-6"
@@ -352,7 +352,7 @@ export function AuthSettingsPage() {
         <Disclosure
           title={
             <span className="flex items-center gap-2">
-              <h2 className="type-title text-text-primary m-0">App settings</h2>
+              <h2 className="type-title text-text-primary m-0">App</h2>
             </span>
           }
           className="pt-4 pb-6"

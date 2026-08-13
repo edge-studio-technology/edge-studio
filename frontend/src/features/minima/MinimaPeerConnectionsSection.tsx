@@ -7,8 +7,6 @@ import {
   EmptyTableState,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeaderCell,
   TableRow,
 } from "../../components/DataTable";
 import { SubSection } from "../../components/patterns/SubSection";
@@ -39,7 +37,7 @@ export function MinimaPeerConnectionsSection({
       description="Manage the peers this node connects to."
     >
       <div className="grid gap-4">
-        <div className="grid min-w-[min(100%,360px)] gap-2.5">
+        <div className="grid max-w-md gap-2.5">
           <InputField
             label="Peer address"
             value={peerslistInput}
@@ -59,37 +57,36 @@ export function MinimaPeerConnectionsSection({
 
         <div className="grid gap-2">
           <p className="m-0 text-sm font-medium text-slate-500">Peers ({peerItems.length})</p>
-          <ScrollArea
-            stableGutter={false}
-            className="rounded-loose border-stroke-primary bg-surface-always-white max-h-80 border"
-          >
-            <DataTable aria-label="Peers">
-              <TableHead>
-                <TableHeaderCell>Address</TableHeaderCell>
-              </TableHead>
-              <TableBody>
-                {peerItems.length > 0 ? (
-                  peerItems.map((peer) => (
-                    <TableRow key={peer}>
-                      <TableCell className="min-w-0">
-                        <code className="text-text-primary truncate">{peer}</code>
+          <div className="rounded-loose border-stroke-primary bg-surface-always-white overflow-hidden border">
+            <div className="bg-surface-secondary px-margin-tight py-margin-tight type-body-em text-text-primary">
+              Address
+            </div>
+            <ScrollArea stableGutter={false} className="max-h-80">
+              <DataTable aria-label="Peers">
+                <TableBody>
+                  {peerItems.length > 0 ? (
+                    peerItems.map((peer) => (
+                      <TableRow key={peer}>
+                        <TableCell className="min-w-0">
+                          <code className="text-text-primary truncate">{peer}</code>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell>
+                        <EmptyTableState>
+                          {peersLoading
+                            ? "Loading peer list…"
+                            : "No configured peers returned from Minima RPC."}
+                        </EmptyTableState>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell>
-                      <EmptyTableState>
-                        {peersLoading
-                          ? "Loading peer list…"
-                          : "No configured peers returned from Minima RPC."}
-                      </EmptyTableState>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </DataTable>
-          </ScrollArea>
+                  )}
+                </TableBody>
+              </DataTable>
+            </ScrollArea>
+          </div>
         </div>
       </div>
     </SubSection>

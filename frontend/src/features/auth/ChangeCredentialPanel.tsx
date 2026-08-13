@@ -76,7 +76,7 @@ export function ChangeCredentialPanel() {
         </div>
       )}
 
-      <form onSubmit={(e) => void handleChangePassword(e)} className="grid gap-3">
+      <form onSubmit={(e) => void handleChangePassword(e)} className="grid max-w-md gap-3">
         <InputField
           label="Current PIN or password"
           type="password"

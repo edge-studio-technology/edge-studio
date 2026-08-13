@@ -28,7 +28,7 @@ export function MinimaMegammrHostSection({
       description="Runtime sync host configuration used by this node."
     >
       <div className="grid gap-4">
-        <div className="grid min-w-[min(100%,360px)] gap-2.5">
+        <div className="grid max-w-md gap-2.5">
           <InputField
             label="Host"
             value={megammrHostInput}
