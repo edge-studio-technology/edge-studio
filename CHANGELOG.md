@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Account settings shows Connect account under Integritas Connect, and Open Integritas portal only when connected.
 - Integritas connection status for the app status bar and dashboard is cached for one hour so UI refreshes do not call Integritas health on every poll.
 - Status bar tooltips show when each service was last updated (Integritas uses the cached health-check time, not the UI poll time).
 - Page content scrolls under a fixed status bar instead of scrolling the whole app shell.

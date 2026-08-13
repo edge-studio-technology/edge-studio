@@ -147,12 +147,11 @@ export function AuthSettingsPage() {
 
   return (
     <Page
-      eyebrow="Admin account"
       title="Account settings"
       desc="Manage your admin credentials, Integritas Connect, Minima node settings and backups, and interface preferences."
       action={
-        <Button type="button" variant="ghost" onClick={() => void signOut()}>
-          <LogOut size={16} /> Log out
+        <Button type="button" iconStart={<LogOut aria-hidden />} onClick={() => void signOut()}>
+          Log out
         </Button>
       }
     >
@@ -168,7 +167,7 @@ export function AuthSettingsPage() {
         >
           <div className="mt-2 grid gap-10">
             <SubSection
-              icon={<RefreshCw size={13} />}
+              icon={<RefreshCw size={13} aria-hidden />}
               title="Software update"
               description="Check for and install the latest Edge Studio update."
             >
