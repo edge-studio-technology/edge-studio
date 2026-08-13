@@ -137,7 +137,7 @@ function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void
       >
         <Eye size={16} aria-hidden />
       </TableIconButton>
-      <TableIconMenu
+      {/* <TableIconMenu
         aria-label={`More actions for ${label}`}
         items={[
           {
@@ -152,7 +152,7 @@ function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void
             },
           },
         ]}
-      />
+      /> */}
     </RowActions>
   );
 }
