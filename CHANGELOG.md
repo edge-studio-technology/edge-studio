@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Automation workflows list shows Edit as the row action, enable/disable as a table switch.
 - Automation create action is labeled New workflow.
+- Integritas stamp and verify results use the same centered panel. Verify includes a Download report action when the API returns a PDF link.
 - Account settings shows Connect account under Integritas Connect, and Open Integritas portal only when connected.
 - Integritas connection status for the app status bar and dashboard is cached for one hour so UI refreshes do not call Integritas health on every poll.
 - Status bar tooltips show when each service was last updated (Integritas uses the cached health-check time, not the UI poll time).

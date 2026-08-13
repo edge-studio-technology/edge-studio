@@ -1,7 +1,7 @@
 import { ButtonRow } from "../../components/ButtonRow";
 import { Button } from "../../components/ui/Button";
 import { FileDropBox } from "../../components/patterns/FileDropBox";
-import { ResultLoadingShell } from "./ResultLoadingShell";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { VerifyResult } from "./VerifyResult";
 
 export function VerifyProofPanel({
@@ -36,10 +36,10 @@ export function VerifyProofPanel({
         </Button>
       </ButtonRow>
       {loading ? (
-        <ResultLoadingShell
-          title="Verifying proof"
-          description="Uploading the proof file and checking the result."
-          ariaLabel="Verify result loading"
+        <LoadingState
+          title="Verifying your proof"
+          description="This should take a few seconds."
+          className="min-h-64"
         />
       ) : result ? (
         <VerifyResult response={result.response} onClose={onClearResult} />
