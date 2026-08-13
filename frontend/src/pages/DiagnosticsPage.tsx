@@ -310,7 +310,7 @@ export function DiagnosticsPage() {
             // { value: "workflow-runs", label: "Workflow logs" },
             { value: "proofs", label: "Integritas" },
             { value: "reads", label: "Devices" },
-            { value: "workflow-runs", label: "Automation" },
+            { value: "workflow-runs", label: "Workflow Logs" },
           ]}
           onChange={selectTab}
         />
@@ -324,7 +324,9 @@ export function DiagnosticsPage() {
               q={listQuery.q}
               filterOptions={statusOptions}
               searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
-              disabled={refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)}
+              disabled={
+                refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)
+              }
               onFilterChange={(status) => updateListQuery({ status })}
               onQueryChange={(q) => updateListQuery({ q })}
             />

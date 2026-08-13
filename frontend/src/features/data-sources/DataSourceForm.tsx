@@ -180,7 +180,7 @@ export function DataSourceForm({
             onChange={(event) => setTopic(event.target.value)}
             placeholder="devices/example/set"
           />
-          <MutedText>Automation workflows publish JSON payloads to this broker topic.</MutedText>
+          <MutedText>Workflows publish JSON payloads to this broker topic.</MutedText>
         </>
       ) : type === "gpio-input" ? (
         <>
@@ -237,7 +237,7 @@ export function DataSourceForm({
             {gpioProfile === "pir-motion"
               ? "PIR Motion Sensor profile is fixed by the selected template."
               : "GPIO Input Pin uses the generic input profile."}{" "}
-            GPIO input sources use BCM numbering and record edge events only while an Automation
+            GPIO input sources use BCM numbering and record edge events only while a
             workflow is enabled.
           </MutedText>
           {gpioProfile === "pir-motion" && (
@@ -273,7 +273,7 @@ export function DataSourceForm({
           />
           <MutedText>
             GPIO LED profile is fixed by the selected template. LED output targets can be pulsed
-            from Automation. For the documented GPIO18 LED wiring, choose High. Wire the LED with a
+            from Workflows. For the documented GPIO18 LED wiring, choose High. Wire the LED with a
             220-330 ohm resistor and never connect GPIO directly to 5V, motors, or relays.
           </MutedText>
         </>
@@ -319,7 +319,7 @@ export function DataSourceForm({
             />
           )}
           <MutedText>
-            Camera capture is triggered by Automation's Capture camera block. Captured media stays
+            Camera capture is triggered by the Capture camera block in Workflows. Captured media stays
             on the Pi; Integritas stamps the media file hash.
           </MutedText>
         </>

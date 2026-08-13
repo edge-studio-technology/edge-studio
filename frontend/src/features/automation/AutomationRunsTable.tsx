@@ -53,7 +53,7 @@ export function AutomationRunsTable({
         description={
           filtered
             ? "Try another status or search, or clear filters."
-            : "Runs from your automation workflows will be added to your history here."
+            : "Runs from your workflows will be added to your history here."
         }
         actionLabel={filtered && onClearFilters ? "Clear filters" : undefined}
         actionVariant="secondary"
@@ -147,7 +147,7 @@ function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void
             onClick: () => {
               if (!run.workflowId) return;
               navigate(
-                `/automation/${encodeURIComponent(run.workflowId)}/watch/${encodeURIComponent(run.id)}`,
+                `/workflows/${encodeURIComponent(run.workflowId)}/watch/${encodeURIComponent(run.id)}`,
               );
             },
           },

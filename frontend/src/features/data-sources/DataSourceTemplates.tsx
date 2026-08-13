@@ -97,7 +97,7 @@ export const inputTemplates: DataSourceTemplate[] = [
   },
   {
     title: "Raspberry Pi Camera",
-    description: "Capture photos or short video clips from automation workflows",
+    description: "Capture photos or short video clips from workflows",
     type: "pi-camera",
     config: {
       mode: "photo",
@@ -113,7 +113,7 @@ export const inputTemplates: DataSourceTemplate[] = [
 export const outputTemplates: DataSourceTemplate[] = [
   {
     title: "GPIO LED",
-    description: "Low-current LED output target controlled by automation workflows",
+    description: "Low-current LED output target controlled by workflows",
     type: "gpio-output",
     config: {
       chip: "gpiochip0",
@@ -125,7 +125,7 @@ export const outputTemplates: DataSourceTemplate[] = [
   },
   {
     title: "HTTP JSON Target",
-    description: "Send JSON commands to an HTTP endpoint from automation workflows",
+    description: "Send JSON commands to an HTTP endpoint from workflows",
     type: "http-output",
     config: {
       url: "https://example.com/device/command",
@@ -136,7 +136,7 @@ export const outputTemplates: DataSourceTemplate[] = [
   },
   {
     title: "MQTT Publisher",
-    description: "Publish JSON commands to a broker topic from automation workflows",
+    description: "Publish JSON commands to a broker topic from workflows",
     type: "mqtt-output",
     config: {
       brokerUrl: "mqtt://localhost:1883",

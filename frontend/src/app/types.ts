@@ -9,7 +9,7 @@ export type NavId =
   | "wallet"
   | "integritas"
   | "data"
-  | "automation"
+  | "workflows"
   | "diagnostics"
   | "marketplace"
   | "settings";

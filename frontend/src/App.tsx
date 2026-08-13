@@ -27,7 +27,7 @@ function LoginRoute() {
 function AppContent() {
   const { signOut } = useAuth();
   const { pathname } = useLocation();
-  const fullBleed = /^\/automation\/(new|[^/]+\/(edit|watch)(\/[^/]+)?)$/.test(pathname);
+  const fullBleed = /^\/workflows\/(new|[^/]+\/(edit|watch)(\/[^/]+)?)$/.test(pathname);
 
   return (
     <AppShell fullBleed={fullBleed} onSignOut={() => void signOut()}>
@@ -39,12 +39,12 @@ function AppContent() {
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/integritas" element={<IntegritasPage />} />
         <Route path="/data" element={<DataSourcesPage />} />
-        <Route path="/automation" element={<AutomationPage />} />
-        <Route path="/automation/help" element={<AutomationHelpPage />} />
-        <Route path="/automation/new" element={<AutomationPage />} />
-        <Route path="/automation/:workflowId/edit" element={<AutomationPage />} />
-        <Route path="/automation/:workflowId/watch" element={<AutomationPage />} />
-        <Route path="/automation/:workflowId/watch/:runId" element={<AutomationPage />} />
+        <Route path="/workflows" element={<AutomationPage />} />
+        <Route path="/workflows/help" element={<AutomationHelpPage />} />
+        <Route path="/workflows/new" element={<AutomationPage />} />
+        <Route path="/workflows/:workflowId/edit" element={<AutomationPage />} />
+        <Route path="/workflows/:workflowId/watch" element={<AutomationPage />} />
+        <Route path="/workflows/:workflowId/watch/:runId" element={<AutomationPage />} />
         <Route path="/diagnostics" element={<DiagnosticsPage />} />
         <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/settings" element={<AuthSettingsPage />} />

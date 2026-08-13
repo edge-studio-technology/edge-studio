@@ -191,7 +191,7 @@ export function DataSourcesPage() {
   return (
     <Page
       title="Devices"
-      desc="Add input sources for data and events, and output targets for automation workflows."
+      desc="Add input sources for data and events, and output targets for workflows."
     >
       {/* "Add devices" card disabled for v1 — its actions moved next to the device list's
       filter bar (New input / New output), making this separate card redundant.
@@ -293,7 +293,9 @@ export function DataSourcesPage() {
               runningActionKey={runningGuideActionKey}
               onAction={(action) => runGuideAction(setupGuideSource, action)}
               onGoToWorkflow={(workflowId) =>
-                navigate(`/automation/${encodeURIComponent(workflowId)}/watch`)
+                // Restore watch once the canvas watch view is ready:
+                // navigate(`/workflows/${encodeURIComponent(workflowId)}/watch`)
+                navigate(`/workflows/${encodeURIComponent(workflowId)}/edit`)
               }
             />
           )}

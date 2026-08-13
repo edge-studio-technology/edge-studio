@@ -314,7 +314,7 @@ function readableSourcePreviewAction(): DeviceGuideAction {
     key: "create-readable-preview-workflow",
     label: "Create basic workflow for this device",
     description:
-      "Adds a disabled manual workflow that reads this device and writes the latest JSON to the Automation inbox.",
+      "Adds a disabled manual workflow that reads this device and writes the latest JSON to the Workflow Inbox.",
     kind: "create_workflow",
     workflow: readableSourcePreviewWorkflow,
   };
@@ -397,7 +397,7 @@ function bmeSensorGuide(source: DataSource) {
         title: "Verify",
         items: [
           "Click manual read in Devices and confirm a JSON preview appears.",
-          "Use the source in an Automation Fetch data source block, then attach Stamp data if you want Integritas proofs.",
+          "Use the source in a Workflows Fetch data source block, then attach Stamp data if you want Integritas proofs.",
         ],
       },
     ],
@@ -521,7 +521,7 @@ function gpioLedGuide(source: DataSource) {
   return guide(
     source,
     "GPIO LED Output Setup Guide",
-    "Pulse a low-current LED from Automation control-output blocks.",
+    "Pulse a low-current LED from Workflows control-output blocks.",
     [
       {
         title: "Requirements",
@@ -544,7 +544,7 @@ function gpioLedGuide(source: DataSource) {
         title: "Verify",
         items: [
           "Use the Test pulse action in Devices before adding it to a workflow.",
-          "Use Automation Control device with Pulse once the LED behaves correctly.",
+          "Use Workflows Control device with Pulse once the LED behaves correctly.",
         ],
       },
     ],
@@ -556,7 +556,7 @@ function piCameraGuide(source: DataSource) {
   return guide(
     source,
     "Raspberry Pi Camera Setup Guide",
-    "Capture photos or short video clips from Automation workflows and hash captured media bytes.",
+    "Capture photos or short video clips from workflows and hash captured media bytes.",
     [
       {
         title: "Requirements",
@@ -576,7 +576,7 @@ function piCameraGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Automation",
+        title: "Use in Workflows",
         items: [
           "Add a Capture camera block and select this camera device.",
           "Attach Stamp data to create an Integritas proof for the captured media hash.",
@@ -591,7 +591,7 @@ function httpJsonSourceGuide(source: DataSource) {
   return guide(
     source,
     "HTTP JSON Source Setup Guide",
-    "Fetch JSON from an HTTP endpoint manually or from Automation workflows.",
+    "Fetch JSON from an HTTP endpoint manually or from workflows.",
     [
       {
         title: "Endpoint",
@@ -613,7 +613,7 @@ function httpJsonSourceGuide(source: DataSource) {
         title: "Verify",
         items: [
           "Click manual read in Devices and confirm a preview/hash appears.",
-          "Use Fetch data source in Automation for scheduled or manual workflow reads.",
+          "Use Fetch data source in Workflows for scheduled or manual workflow reads.",
         ],
       },
     ],
@@ -638,7 +638,7 @@ function webhookGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Automation",
+        title: "Use in Workflows",
         items: [
           "Create or enable a workflow with Webhook received as the start block.",
           "POST JSON to the webhook URL.",
@@ -671,7 +671,7 @@ function mqttSubscriberGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Automation",
+        title: "Use in Workflows",
         items: [
           "Create or enable a workflow with MQTT message received as the start block.",
           "Publish valid JSON to the configured topic.",
@@ -690,7 +690,7 @@ function httpJsonTargetGuide(source: DataSource) {
   return guide(
     source,
     "HTTP JSON Target Setup Guide",
-    "Send JSON commands to an HTTP endpoint from Automation Control device blocks.",
+    "Send JSON commands to an HTTP endpoint from Workflows Control device blocks.",
     [
       {
         title: "Endpoint",
@@ -701,7 +701,7 @@ function httpJsonTargetGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Automation",
+        title: "Use in Workflows",
         items: [
           "Add Control device to a workflow and select this target.",
           "Set the JSON body in the workflow block so this target can be reused.",
@@ -716,7 +716,7 @@ function mqttPublisherGuide(source: DataSource) {
   return guide(
     source,
     "MQTT Publisher Setup Guide",
-    "Publish JSON commands to a broker topic from Automation Control device blocks.",
+    "Publish JSON commands to a broker topic from Workflows Control device blocks.",
     [
       {
         title: "Topic",
@@ -728,7 +728,7 @@ function mqttPublisherGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Automation",
+        title: "Use in Workflows",
         items: [
           "Add Control device to a workflow and select this target.",
           "Set the JSON payload in the workflow block.",

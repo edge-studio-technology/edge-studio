@@ -113,7 +113,7 @@ function buildActivity(proofs: IntegritasProofRecord[], reads: DataSourceRead[])
             : read.triggerType === "gpio"
               ? "GPIO event"
               : "Data read log",
-    message: `${read.sourceName} ${read.triggerType === "automation" ? "automation poll" : read.triggerType === "mqtt" ? "MQTT message received" : read.triggerType === "webhook" ? "webhook payload received" : read.triggerType === "gpio" ? "GPIO edge detected" : "manual read"}`,
+    message: `${read.sourceName} ${read.triggerType === "automation" ? "workflow poll" : read.triggerType === "mqtt" ? "MQTT message received" : read.triggerType === "webhook" ? "webhook payload received" : read.triggerType === "gpio" ? "GPIO edge detected" : "manual read"}`,
     status: read.status === "success" ? "Success" : "Failed",
     tone: read.status === "success" ? "good" : "error",
   }));

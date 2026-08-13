@@ -41,8 +41,8 @@ export function WorkflowWorkspaceShell({
       <div className={topbarClass}>
         <div className="gap-detail-close grid min-w-0 flex-1">
           <nav aria-label="Breadcrumb" className="type-body text-text-secondary">
-            <Link to="/automation" className="hover:text-text-primary">
-              Automation
+            <Link to="/workflows" className="hover:text-text-primary">
+              Workflows
             </Link>
             {" > "}
             <strong className="text-text-primary">{breadcrumbLabel}</strong>

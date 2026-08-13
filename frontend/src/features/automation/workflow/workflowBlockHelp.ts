@@ -32,20 +32,25 @@ export const workflowBlockHelp = {
     shortDescription: "Run only when an operator starts it.",
     tooltip: "Use this when a workflow should never run automatically.",
     whatItDoes: "Starts the workflow only from the UI or an explicit run action.",
-    whenToUse: "Use it for tests, one-off captures, setup checks, or workflows that require operator control.",
+    whenToUse:
+      "Use it for tests, one-off captures, setup checks, or workflows that require operator control.",
     fields: [],
     configuration: ["No setup is required."],
     outputs: ["Starts the workflow with an empty trigger context."],
-    examples: ["Manually fetch a device reading and show a preview before enabling automatic runs."],
+    examples: [
+      "Manually fetch a device reading and show a preview before enabling automatic runs.",
+    ],
   },
   schedule_start: {
     category: "Start",
     title: "Schedule",
     shortTitle: "Start on schedule",
     shortDescription: "Run repeatedly on an interval.",
-    tooltip: "Runs the workflow automatically every configured interval while the workflow is enabled.",
+    tooltip:
+      "Runs the workflow automatically every configured interval while the workflow is enabled.",
     whatItDoes: "Starts the workflow from the backend scheduler at a fixed interval.",
-    whenToUse: "Use it for regular sensor reads, periodic API polling, or recurring proof creation.",
+    whenToUse:
+      "Use it for regular sensor reads, periodic API polling, or recurring proof creation.",
     fields: [
       {
         label: "Interval",
@@ -63,9 +68,12 @@ export const workflowBlockHelp = {
     title: "GPIO input event",
     shortTitle: "Start on GPIO event",
     shortDescription: "Start from a configured GPIO input device.",
-    tooltip: "Runs when a GPIO input source reports an event, such as a button press or PIR motion edge.",
-    whatItDoes: "Listens to an enabled GPIO input device and starts the workflow when matching events arrive.",
-    whenToUse: "Use it for physical buttons, PIR motion sensors, door contacts, or other local GPIO inputs.",
+    tooltip:
+      "Runs when a GPIO input source reports an event, such as a button press or PIR motion edge.",
+    whatItDoes:
+      "Listens to an enabled GPIO input device and starts the workflow when matching events arrive.",
+    whenToUse:
+      "Use it for physical buttons, PIR motion sensors, door contacts, or other local GPIO inputs.",
     fields: [
       {
         label: "Start source",
@@ -75,7 +83,8 @@ export const workflowBlockHelp = {
       },
       {
         label: "Cooldown between runs, seconds",
-        description: "How long to ignore extra events after this workflow starts. This helps avoid repeated runs from noisy inputs.",
+        description:
+          "How long to ignore extra events after this workflow starts. This helps avoid repeated runs from noisy inputs.",
         example: "60",
       },
       {
@@ -84,9 +93,14 @@ export const workflowBlockHelp = {
         example: "Enabled",
       },
     ],
-    configuration: ["Choose the GPIO input device.", "Optionally ignore inactive events and set a cooldown."],
+    configuration: [
+      "Choose the GPIO input device.",
+      "Optionally ignore inactive events and set a cooldown.",
+    ],
     outputs: ["Provides the GPIO event payload to later blocks as the trigger event."],
-    examples: ["When motion is detected, capture a camera image and show it in the Automation inbox."],
+    examples: [
+      "When motion is detected, capture a camera image and show it in the Workflow Inbox.",
+    ],
   },
   webhook_event_start: {
     category: "Start",
@@ -94,7 +108,8 @@ export const workflowBlockHelp = {
     shortTitle: "Start on webhook",
     shortDescription: "Start when JSON arrives at a webhook URL.",
     tooltip: "Runs when the configured webhook receiver accepts a JSON payload.",
-    whatItDoes: "Waits for HTTP JSON sent to a configured webhook device, then starts the workflow.",
+    whatItDoes:
+      "Waits for HTTP JSON sent to a configured webhook device, then starts the workflow.",
     whenToUse: "Use it when another system should push events into Edge Studio.",
     fields: [
       {
@@ -109,7 +124,10 @@ export const workflowBlockHelp = {
         example: "30",
       },
     ],
-    configuration: ["Choose the webhook receiver device.", "Optionally set a cooldown between runs."],
+    configuration: [
+      "Choose the webhook receiver device.",
+      "Optionally set a cooldown between runs.",
+    ],
     outputs: ["Provides the received JSON to later blocks as the trigger event."],
     examples: ["Receive a production event, record it, and create an Integritas proof."],
   },
@@ -119,7 +137,8 @@ export const workflowBlockHelp = {
     shortTitle: "Start on MQTT message",
     shortDescription: "Start when JSON arrives on an MQTT topic.",
     tooltip: "Runs when the configured MQTT subscriber receives a message.",
-    whatItDoes: "Listens to a configured MQTT input device and starts the workflow for incoming messages.",
+    whatItDoes:
+      "Listens to a configured MQTT input device and starts the workflow for incoming messages.",
     whenToUse: "Use it for IoT boards, brokers, and sensor networks that publish MQTT events.",
     fields: [
       {
@@ -134,7 +153,10 @@ export const workflowBlockHelp = {
         example: "30",
       },
     ],
-    configuration: ["Choose the MQTT subscriber device.", "Optionally set a cooldown between runs."],
+    configuration: [
+      "Choose the MQTT subscriber device.",
+      "Optionally set a cooldown between runs.",
+    ],
     outputs: ["Provides the MQTT message payload to later blocks as the trigger event."],
     examples: ["React to an ESP32 MQTT message and pulse a GPIO LED output."],
   },
@@ -157,7 +179,8 @@ export const workflowBlockHelp = {
     shortTitle: "Fetch source",
     shortDescription: "Read a configured source such as HTTP JSON or BME sensor.",
     tooltip: "Reads the selected source on demand and hashes the returned data.",
-    whatItDoes: "Fetches current JSON data from a readable device or source and records the result.",
+    whatItDoes:
+      "Fetches current JSON data from a readable device or source and records the result.",
     whenToUse: "Use it when the workflow should pull current data during the run.",
     fields: [
       {
@@ -176,8 +199,10 @@ export const workflowBlockHelp = {
     title: "Capture camera",
     shortTitle: "Capture camera",
     shortDescription: "Capture media from a configured Raspberry Pi Camera.",
-    tooltip: "Captures a camera image or clip, hashes the media bytes, and stores capture metadata.",
-    whatItDoes: "Asks the configured camera helper to capture media and records both metadata and the media hash.",
+    tooltip:
+      "Captures a camera image or clip, hashes the media bytes, and stores capture metadata.",
+    whatItDoes:
+      "Asks the configured camera helper to capture media and records both metadata and the media hash.",
     whenToUse: "Use it when visual evidence should be captured during a workflow run.",
     fields: [
       {
@@ -188,13 +213,17 @@ export const workflowBlockHelp = {
       },
       {
         label: "Capture duration ms",
-        description: "How long to record video for when the selected camera is configured for video mode.",
+        description:
+          "How long to record video for when the selected camera is configured for video mode.",
         shownWhen: "Camera mode is video",
         example: "5000",
       },
     ],
     configuration: ["Choose a Raspberry Pi Camera device."],
-    outputs: ["Provides latest capture metadata for later blocks.", "Creates a read id and media hash."],
+    outputs: [
+      "Provides latest capture metadata for later blocks.",
+      "Creates a read id and media hash.",
+    ],
     examples: ["When PIR motion is detected, capture an image and show it in the inbox."],
   },
   set_variable: {
@@ -204,7 +233,8 @@ export const workflowBlockHelp = {
     shortDescription: "Save a value for later blocks.",
     tooltip: "Stores a per-run value that later conditions and output templates can read.",
     whatItDoes: "Creates or updates a workflow variable for the current run only.",
-    whenToUse: "Use it to reuse values from trigger data, latest data, context fields, or custom JSON.",
+    whenToUse:
+      "Use it to reuse values from trigger data, latest data, context fields, or custom JSON.",
     fields: [
       {
         label: "Variable name",
@@ -214,13 +244,15 @@ export const workflowBlockHelp = {
       },
       {
         label: "Value source",
-        description: "Where the variable value comes from: custom JSON, trigger data, latest data, or workflow context.",
+        description:
+          "Where the variable value comes from: custom JSON, trigger data, latest data, or workflow context.",
         required: true,
         example: "Trigger field",
       },
       {
         label: "Field path",
-        description: "The JSON field to copy into the variable when the value source reads from trigger data, latest data, or context.",
+        description:
+          "The JSON field to copy into the variable when the value source reads from trigger data, latest data, or context.",
         shownWhen: "Value source is not Custom JSON",
         example: "payload.message",
       },
@@ -240,38 +272,51 @@ export const workflowBlockHelp = {
     title: "If field matches",
     shortTitle: "If field matches",
     shortDescription: "Stop unless a trigger field or variable matches.",
-    tooltip: "Checks a trigger field or variable and skips the rest of the workflow when it does not match.",
+    tooltip:
+      "Checks a trigger field or variable and skips the rest of the workflow when it does not match.",
     whatItDoes: "Compares a selected value against a condition before later blocks run.",
-    whenToUse: "Use it to filter events, ignore inactive sensor edges, or branch simple yes/no workflows.",
+    whenToUse:
+      "Use it to filter events, ignore inactive sensor edges, or branch simple yes/no workflows.",
     fields: [
       {
         label: "Condition source",
-        description: "Where to read the value from. Trigger event reads the event that started the workflow. Variable reads a value saved earlier by Set variable.",
+        description:
+          "Where to read the value from. Trigger event reads the event that started the workflow. Variable reads a value saved earlier by Set variable.",
         required: true,
         example: "Trigger event",
       },
       {
         label: "Field path",
-        description: "The JSON field to check inside the selected source. Use dot notation for nested fields.",
+        description:
+          "The JSON field to check inside the selected source. Use dot notation for nested fields.",
         required: true,
         shownWhen: "Condition source is Trigger event",
         example: "active or payload.temperature",
       },
       {
         label: "Operator",
-        description: "The comparison to run. Exists and does not exist only check whether the field is present; other operators compare against the value below.",
+        description:
+          "The comparison to run. Exists and does not exist only check whether the field is present; other operators compare against the value below.",
         required: true,
         example: "equals",
       },
       {
         label: "Compare value",
-        description: "The value to compare against. Values are parsed as JSON when possible, so true, 25, and \"ready\" are different values.",
+        description:
+          'The value to compare against. Values are parsed as JSON when possible, so true, 25, and "ready" are different values.',
         shownWhen: "Operator is not exists or does not exist",
         example: "true",
       },
     ],
-    configuration: ["Choose trigger or variable source.", "Enter the field path and comparison operator.", "Enter a comparison value when the operator needs one."],
-    outputs: ["Allows later blocks to continue when the condition passes.", "Skips later blocks when the condition fails."],
+    configuration: [
+      "Choose trigger or variable source.",
+      "Enter the field path and comparison operator.",
+      "Enter a comparison value when the operator needs one.",
+    ],
+    outputs: [
+      "Allows later blocks to continue when the condition passes.",
+      "Skips later blocks when the condition fails.",
+    ],
     examples: ["Continue only when trigger field active equals true."],
   },
   wait: {
@@ -299,13 +344,14 @@ export const workflowBlockHelp = {
     title: "Show preview",
     shortTitle: "Show preview",
     shortDescription: "Display a message, JSON, link, or image in the Pi UI.",
-    tooltip: "Writes a local Automation inbox item for an operator to review.",
-    whatItDoes: "Creates a durable local preview item from custom text, workflow context, trigger data, or latest data.",
+    tooltip: "Writes a local Workflow Inbox item for an operator to review.",
+    whatItDoes:
+      "Creates a durable local preview item from custom text, workflow context, trigger data, or latest data.",
     whenToUse: "Use it when a workflow should leave a human-readable result in the app.",
     fields: [
       {
         label: "Preview title",
-        description: "The title shown for the item in the Automation inbox.",
+        description: "The title shown for the item in the Workflow Inbox.",
         required: true,
         example: "Workflow preview",
       },
@@ -323,19 +369,25 @@ export const workflowBlockHelp = {
       },
       {
         label: "Content source",
-        description: "Where the preview content comes from: custom content, workflow context, trigger payload, or latest data.",
+        description:
+          "Where the preview content comes from: custom content, workflow context, trigger payload, or latest data.",
         required: true,
         example: "Custom content",
       },
       {
         label: "Custom content",
-        description: "The text, JSON, link, or image reference to render when Content source is Custom content.",
+        description:
+          "The text, JSON, link, or image reference to render when Content source is Custom content.",
         shownWhen: "Content source is Custom content",
         example: "Workflow preview",
       },
     ],
-    configuration: ["Choose a preview title.", "Choose text, JSON, link, or image format.", "Choose the content source or template."],
-    outputs: ["Creates an Automation inbox item."],
+    configuration: [
+      "Choose a preview title.",
+      "Choose text, JSON, link, or image format.",
+      "Choose the content source or template.",
+    ],
+    outputs: ["Creates a Workflow Inbox item."],
     examples: ["Show the latest camera image after a motion-triggered capture."],
   },
   stamp_integritas: {
@@ -349,17 +401,22 @@ export const workflowBlockHelp = {
     fields: [
       {
         label: "Enable stamp",
-        description: "Whether this attached stamp block should run when its parent data block runs.",
+        description:
+          "Whether this attached stamp block should run when its parent data block runs.",
         example: "Enabled",
       },
       {
         label: "Stamp condition",
-        description: "Optional comparison against the parent data block output before creating the proof.",
+        description:
+          "Optional comparison against the parent data block output before creating the proof.",
         shownWhen: "A stamp condition is enabled",
         example: "active equals true",
       },
     ],
-    configuration: ["Attach it from a stampable data block's setup sheet.", "Optionally add a condition."],
+    configuration: [
+      "Attach it from a stampable data block's setup sheet.",
+      "Optionally add a condition.",
+    ],
     outputs: ["Creates an Integritas proof id when stamping succeeds."],
     examples: ["Fetch a sensor reading, then stamp the resulting hash."],
   },
@@ -370,7 +427,8 @@ export const workflowBlockHelp = {
     shortDescription: "Send a command to a configured output target.",
     tooltip: "Controls a GPIO, HTTP, or MQTT output target from the workflow.",
     whatItDoes: "Sends the configured action or payload to an output device.",
-    whenToUse: "Use it to pulse LEDs, publish MQTT messages, or send HTTP requests from a workflow.",
+    whenToUse:
+      "Use it to pulse LEDs, publish MQTT messages, or send HTTP requests from a workflow.",
     fields: [
       {
         label: "Output target",
@@ -380,7 +438,8 @@ export const workflowBlockHelp = {
       },
       {
         label: "Action",
-        description: "What to do with the target. GPIO targets pulse; HTTP targets send requests; MQTT targets publish messages.",
+        description:
+          "What to do with the target. GPIO targets pulse; HTTP targets send requests; MQTT targets publish messages.",
         required: true,
         example: "Pulse",
       },
@@ -398,13 +457,15 @@ export const workflowBlockHelp = {
       },
       {
         label: "Custom JSON body",
-        description: "The JSON payload to send when Body mode is Custom JSON. Variables can be inserted with template syntax.",
+        description:
+          "The JSON payload to send when Body mode is Custom JSON. Variables can be inserted with template syntax.",
         shownWhen: "Body mode is Custom JSON",
         example: '{ "content": "Edge Studio workflow triggered." }',
       },
       {
         label: "Multipart fields",
-        description: "The form field names used when uploading captured media to an HTTP output target.",
+        description:
+          "The form field names used when uploading captured media to an HTTP output target.",
         shownWhen: "Body mode is Multipart media upload",
         example: "file and metadata",
       },
@@ -418,9 +479,12 @@ export const workflowBlockHelp = {
     title: "Send payment",
     shortTitle: "Send payment",
     shortDescription: "Send funds to a saved recipient.",
-    tooltip: "Sends a Minima payment to an address book recipient when the workflow reaches this block.",
-    whatItDoes: "Submits a wallet transaction using the configured saved recipient, token, and amount.",
-    whenToUse: "Use it only when a workflow should automatically make a payment after validation passes.",
+    tooltip:
+      "Sends a Minima payment to an address book recipient when the workflow reaches this block.",
+    whatItDoes:
+      "Submits a wallet transaction using the configured saved recipient, token, and amount.",
+    whenToUse:
+      "Use it only when a workflow should automatically make a payment after validation passes.",
     fields: [
       {
         label: "Recipient",
@@ -430,13 +494,14 @@ export const workflowBlockHelp = {
       },
       {
         label: "Token",
-        description: "The wallet token to send. Automation payments currently use native Minima.",
+        description: "The wallet token to send. Workflow payments currently use native Minima.",
         required: true,
         example: "Minima (native)",
       },
       {
         label: "Amount",
-        description: "The amount of Minima to send. It must be a positive number and within the available balance.",
+        description:
+          "The amount of Minima to send. It must be a positive number and within the available balance.",
         required: true,
         example: "0.5",
       },

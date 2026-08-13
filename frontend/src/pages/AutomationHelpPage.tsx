@@ -30,10 +30,10 @@ const workflowSteps = [
 export function AutomationHelpPage() {
   return (
     <Page
-      title="Workflow automation guide"
+      title="Workflow guide"
       desc="Learn how to build workflows on the canvas and what each block does."
       action={
-        <LinkButton href="/automation" iconStart={<ArrowLeft size={16} />}>
+        <LinkButton href="/workflows" iconStart={<ArrowLeft size={16} />}>
           Back to workflows
         </LinkButton>
       }

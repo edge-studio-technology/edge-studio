@@ -14,8 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Automation workflows list shows Edit as the row action, enable/disable as a table switch.
-- Automation create action is labeled New workflow.
+- Workflows is moved from `/automation` to `/workflows`.
+- Workflows list shows Edit as the row action, enable/disable as a table switch.
+- Workflows list no longer shows a heading or description above the table.
+- Workflows create action is labeled New workflow.
 - Integritas stamp and verify results use the same centered panel. Verify includes a Download report action when the API returns a PDF link.
 - Account settings shows Connect account under Integritas Connect, and Open Integritas portal only when connected.
 - Integritas connection status for the app status bar and dashboard is cached for one hour so UI refreshes do not call Integritas health on every poll.
@@ -24,7 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Shared list tables apply header and body text styles on the cells themselves instead of a table-wide fallback size.
 - Devices list column widths are tuned so direction, type, health, and preview labels fit, while long names and endpoints truncate.
 - Dashboard next-step guide shows Cable and Workflow icons on Connect devices / Create workflow, and drops the awkward trailing setup line.
-- Sidebar Devices and Automation icons use Cable and Workflow to match the dashboard guide.
+- Sidebar Devices and Workflows icons use Cable and Workflow to match the dashboard guide.
+- Device setup guide Go to workflow opens the workflow editor.
 
 ## [0.38.0] 2026-08-12
 

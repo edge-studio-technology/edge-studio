@@ -56,7 +56,7 @@ function automationFlowFromRoute(
   pathname: string,
   params: Readonly<Record<string, string | undefined>>,
 ): AutomationPageFlow {
-  if (!params.workflowId && pathname.endsWith("/automation/new")) return { mode: "build" };
+  if (!params.workflowId && pathname.endsWith("/workflows/new")) return { mode: "build" };
   if (params.workflowId && pathname.includes("/edit"))
     return { mode: "edit", workflowId: params.workflowId };
   if (params.workflowId && pathname.includes("/watch"))
@@ -186,7 +186,7 @@ export function AutomationPage() {
 
   function navigateFlow(nextFlow: AutomationPageFlow) {
     if (nextFlow.mode === "list") {
-      navigate("/automation");
+      navigate("/workflows");
       return;
     }
     if (nextFlow.mode === "build") {
@@ -194,12 +194,12 @@ export function AutomationPage() {
       setCreateInitialName(nextName);
       setName(nextName);
       setEnabled(true);
-      navigate("/automation/new");
+      navigate("/workflows/new");
     } else if (nextFlow.mode === "edit")
-      navigate(`/automation/${encodeURIComponent(nextFlow.workflowId)}/edit`);
+      navigate(`/workflows/${encodeURIComponent(nextFlow.workflowId)}/edit`);
     else
       navigate(
-        `/automation/${encodeURIComponent(nextFlow.workflowId)}/watch${nextFlow.runId ? `/${encodeURIComponent(nextFlow.runId)}` : ""}`,
+        `/workflows/${encodeURIComponent(nextFlow.workflowId)}/watch${nextFlow.runId ? `/${encodeURIComponent(nextFlow.runId)}` : ""}`,
       );
   }
 
@@ -310,7 +310,7 @@ export function AutomationPage() {
         />
         {loadError && (
           <ErrorAlert
-            title="Automation data could not be loaded"
+            title="Workflow data could not be loaded"
             className="max-w-none"
             action={
               <Button
@@ -397,7 +397,7 @@ export function AutomationPage() {
         )}
         {loadError && (
           <ErrorAlert
-            title="Automation data could not be loaded"
+            title="Workflow data could not be loaded"
             className="max-w-none"
             action={
               <Button
@@ -419,17 +419,17 @@ export function AutomationPage() {
 
   return (
     <Page
-      title="Automation"
+      title="Workflows"
       desc="Build workflows connecting data, logic, and secure data automatically with Integritas."
       action={
-        <LinkButton href="/automation/help" iconStart={<BookOpen size={16} aria-hidden />}>
+        <LinkButton href="/workflows/help" iconStart={<BookOpen size={16} aria-hidden />}>
           Workflow guide
         </LinkButton>
       }
     >
       {loadError && (
         <ErrorAlert
-          title="Automation data could not be loaded"
+          title="Workflows data could not be loaded"
           className="max-w-none"
           action={
             <Button

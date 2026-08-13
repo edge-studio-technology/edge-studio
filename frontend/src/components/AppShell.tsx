@@ -16,6 +16,7 @@ import { StatusBar, type StatusBarItem } from "./StatusBar";
 // modal's "Current page" card doesn't fall back to a raw path segment.
 const EXTRA_PAGE_LABELS: Record<string, string> = {
   update: "Software update",
+  "workflows/help": "Workflows guide",
 };
 
 function findService(overview: StatusOverview | null, name: string) {

@@ -43,7 +43,7 @@ export function DashboardNextAction() {
           {step === 1 ? "Connect a device to get started" : "Create your first workflow"}
         </h2>
         <p className="type-body text-text-secondary m-0">
-          {APP_NAME} connects device data, proves it with Integritas, runs automations, and settles
+          {APP_NAME} connects device data, proves it with Integritas, runs workflows, and settles
           value on Minima.
         </p>
       </header>
@@ -84,7 +84,7 @@ export function DashboardNextAction() {
               variant="accent"
               iconStart={<Workflow aria-hidden="true" />}
               iconEnd={<ArrowRight aria-hidden="true" />}
-              onClick={() => navigate("/automation")}
+              onClick={() => navigate("/workflows")}
             >
               Create workflow
             </Button>

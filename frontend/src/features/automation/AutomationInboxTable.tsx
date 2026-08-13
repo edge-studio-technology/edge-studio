@@ -92,7 +92,7 @@ export function AutomationInboxTable({
       <Disclosure
         title={
           <span className="gap-detail-close flex flex-wrap items-center">
-            <h2 className="type-title text-text-primary m-0">Automation inbox</h2>
+            <h2 className="type-title text-text-primary m-0">Workflow Inbox</h2>
             <Pill tone={unreadCount > 0 ? "warn" : "neutral"} indicator>
               {unreadCount} unread
             </Pill>
