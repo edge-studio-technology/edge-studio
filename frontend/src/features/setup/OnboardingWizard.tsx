@@ -107,7 +107,7 @@ export function OnboardingWizard({
     switch (currentStep.id) {
       case "welcome":
         return true;
-      case "account":
+      case "credentials":
         return (
           isValidAdminCredential(form.credentialType, form.password) &&
           form.password === form.confirmPassword
@@ -124,7 +124,7 @@ export function OnboardingWizard({
   const shouldCreateLocalAdmin = (stepId: OnboardingStepId) => {
     if (localAdminReady) return false;
     if (TOTP_ENABLED) return stepId === "twofa";
-    return stepId === "account";
+    return stepId === "credentials";
   };
 
   const goNext = async () => {
@@ -203,7 +203,7 @@ export function OnboardingWizard({
 
         <div className="flex min-h-0 w-full flex-1 [scrollbar-width:thin] flex-col items-center justify-center overflow-y-auto">
           <div className="gap-detail-close flex w-full max-w-[480px] flex-col py-4">
-            {isWorkStep && currentStep.id !== "account" && currentStep.id !== "connectAccount" ? (
+            {isWorkStep && currentStep.id !== "credentials" && currentStep.id !== "connectAccount" ? (
               <ProgressBar
                 current={progressCurrent}
                 total={onboardingWorkSteps.length}
@@ -213,7 +213,7 @@ export function OnboardingWizard({
             ) : null}
 
             {currentStep.id === "welcome" && <WelcomeStep onContinue={() => void goNext()} />}
-            {currentStep.id === "account" && (
+            {currentStep.id === "credentials" && (
               <AccountStep
                 form={form}
                 setForm={setForm}
@@ -256,7 +256,7 @@ export function OnboardingWizard({
               />
             )}
 
-            {isWorkStep && currentStep.id !== "account" && !hideContinue ? (
+            {isWorkStep && currentStep.id !== "credentials" && !hideContinue ? (
               <Button
                 type="button"
                 variant="accent"

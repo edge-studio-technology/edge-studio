@@ -21,7 +21,7 @@ export function MinimaPeerConnectionsSection({
   peerslistInput,
   setPeerslistInput,
   busy,
-  onAddPeers
+  onAddPeers,
 }: {
   peers: MinimaPeersResponse | null;
   peersLoading: boolean;
@@ -61,7 +61,7 @@ export function MinimaPeerConnectionsSection({
           <p className="m-0 text-sm font-medium text-slate-500">Peers ({peerItems.length})</p>
           <ScrollArea
             stableGutter={false}
-            className="max-h-80 rounded-loose border border-stroke-primary bg-surface-always-white"
+            className="rounded-loose border-stroke-primary bg-surface-always-white max-h-80 border"
           >
             <DataTable aria-label="Peers">
               <TableHead>
@@ -80,7 +80,9 @@ export function MinimaPeerConnectionsSection({
                   <TableRow>
                     <TableCell>
                       <EmptyTableState>
-                        {peersLoading ? "Loading peer list…" : "No configured peers returned from Minima RPC."}
+                        {peersLoading
+                          ? "Loading peer list…"
+                          : "No configured peers returned from Minima RPC."}
                       </EmptyTableState>
                     </TableCell>
                   </TableRow>

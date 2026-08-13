@@ -13,7 +13,7 @@ export function MinimaMegammrHostSection({
   megammrHostInput,
   setMegammrHostInput,
   busy,
-  onSave
+  onSave,
 }: {
   config: MinimaConfig | null;
   megammrHostInput: string;

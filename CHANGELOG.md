@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Integritas Connect settings are on the Integritas page.
+- Minima node settings and backups are on the Minima page.
+- Settings subsections use a bordered panel.
+- Sidebar Account is now Settings, at `/settings`.
+- Settings groups Software update and Feedback under App settings, below Behaviour settings, open by default.
 
 ## [0.38.2] 2026-08-13
 
