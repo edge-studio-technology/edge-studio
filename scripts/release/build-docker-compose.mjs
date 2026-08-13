@@ -158,7 +158,7 @@ const envExample = `# edge-studio ${channel} channel
 # Copy this to .env and customize as needed
 
 # Data persistence
-HOST_FILES_DIR=/home/pi
+HOST_FILES_DIR=./host-files
 DATA_DIR=./data
 MINIMA_DATA_DIR=./minima
 UPDATE_AGENT_STATE_DIR=./update-agent-state
