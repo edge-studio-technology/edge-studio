@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [0.38.0] 2026-08-12
 
+### Added
+
+- Default installs now use a release Compose override so production deployments do not depend on frontend/backend source build contexts.
+
 ### Changed
 
 - Release workflow now deploys manifests to the manifest repo under `edge-studio/`, replacing the deprecated `integritas-pi/` base folder.

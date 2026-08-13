@@ -73,6 +73,7 @@ INTEGRITAS_BASE_URL="${INTEGRITAS_BASE_URL:-https://integritas.technology/core}"
 INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID:-edge-studio}"
 MANIFEST_URL="${MANIFEST_URL:-https://integritas.technology/edge-studio/release/manifest.json}"
 DEV_MODE="${DEV_MODE:-false}"
+COMPOSE_FILE_NAME="docker-compose.yml"
 
 APT_PACKAGES=(
   curl
@@ -340,9 +341,39 @@ normalize_sensor_config() {
 normalize_dev_mode() {
   if is_truthy "$DEV_MODE"; then
     DEV_MODE="true"
+    COMPOSE_FILE_NAME="docker-compose.yml"
   else
     DEV_MODE="false"
+    COMPOSE_FILE_NAME="docker-compose.yml:docker-compose.release.yml"
   fi
+}
+
+compose_args() {
+  local args=()
+  local compose_file
+  local remaining_files="$COMPOSE_FILE_NAME"
+
+  while [ -n "$remaining_files" ]; do
+    compose_file="${remaining_files%%:*}"
+    args+=(-f "$compose_file")
+    if [ "$remaining_files" = "$compose_file" ]; then
+      break
+    fi
+    remaining_files="${remaining_files#*:}"
+  done
+
+  if [ -f "$APP_DIR/docker-compose.override.yml" ]; then
+    args+=(-f docker-compose.override.yml)
+  fi
+  printf '%s\n' "${args[@]}"
+}
+
+compose() {
+  local args=()
+  while IFS= read -r arg; do
+    args+=("$arg")
+  done < <(compose_args)
+  docker compose "${args[@]}" "$@"
 }
 
 relative_top_level_dir() {
@@ -750,12 +781,12 @@ start_app() {
   log "Starting Docker services"
   cd "$APP_DIR"
   if is_truthy "$DEV_MODE"; then
-    docker compose build frontend backend
+    compose build frontend backend
   else
-    docker compose pull frontend backend
+    compose pull frontend backend
   fi
   ensure_compose_network
-  docker compose up -d
+  compose up -d
 }
 
 ensure_compose_network() {
@@ -771,7 +802,7 @@ ensure_compose_network() {
   fi
 
   log "Recreating Docker network edge-studio with gateway $INTEGRITAS_DOCKER_GATEWAY"
-  docker compose down
+  compose down
   docker network rm edge-studio >/dev/null 2>&1 || true
 }
 
