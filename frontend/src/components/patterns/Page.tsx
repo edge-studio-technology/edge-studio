@@ -16,7 +16,7 @@ export function Page({
   children: ReactNode;
 }) {
   return (
-    <div className="gap-detail-close p-pad-distant flex w-full flex-col items-start">
+    <div className="gap-detail-close p-pad-relaxed flex w-full flex-col items-start">
       <header className="gap-detail-next grid w-full sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <h1 className="type-title text-text-primary m-0 min-w-0 sm:col-start-1">{title}</h1>
         {desc ? (

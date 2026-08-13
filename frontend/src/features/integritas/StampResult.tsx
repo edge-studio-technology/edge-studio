@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { CheckCircle2, CircleX, Clock, X } from "lucide-react";
 import { useToast } from "../../components/ToastProvider";
-import { ButtonRow } from "../../components/ButtonRow";
+import { contentStatePanelClass } from "../../components/patterns/EmptyContentState";
 import { JsonPreview } from "../../components/patterns/JsonPreview";
-import { Pill } from "../../components/ui/Pill";
-import { ResultShell } from "./ResultShell";
+import { IconButton, LinkButton } from "../../components/ui/Button";
+import { cx } from "../../lib/cx";
 import { getHistoryRecord } from "./integritasApi";
 import { integritasErrorToast } from "./integritasErrors";
 import type { IntegritasProofRecord } from "./integritasTypes";
@@ -12,55 +12,29 @@ import type { IntegritasProofRecord } from "./integritasTypes";
 const REFRESH_INTERVAL_MS = 15_000;
 const REFRESH_TIMEOUT_MS = 5 * 60_000;
 
-function ResultField({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="gap-detail-tight border-stroke-secondary py-detail-close flex min-w-0 flex-col border-t first:border-t-0 first:pt-0 last:pb-0">
-      <dt className="type-meta text-text-secondary m-0 leading-none">{label}</dt>
-      <dd className="m-0 min-w-0">
-        {mono ? (
-          <code className="type-mono text-text-primary break-all">{value}</code>
-        ) : (
-          <span className="type-body text-text-primary break-all">{value}</span>
-        )}
-      </dd>
-    </div>
-  );
-}
-
-function statusTone(record: IntegritasProofRecord): "good" | "warn" | "error" {
-  if (record.proof_status === "ready") return "good";
-  if (record.proof_status === "failed") return "error";
-  return "warn";
-}
-
-function statusBadge(record: IntegritasProofRecord) {
+function stampStatus(record: IntegritasProofRecord) {
   if (record.proof_status === "ready") {
-    return (
-      <Pill tone="good" indicator>
-        Confirmed on-chain
-      </Pill>
-    );
+    return {
+      Icon: CheckCircle2,
+      iconClass: "text-icon-success",
+      title: "Confirmed on-chain",
+      description: "Your file has been stamped.",
+    };
   }
   if (record.proof_status === "failed") {
-    return (
-      <Pill tone="error" indicator>
-        Proof failed
-      </Pill>
-    );
+    return {
+      Icon: CircleX,
+      iconClass: "text-icon-error",
+      title: "Proof failed",
+      description: record.proof_error || "The proof could not be confirmed.",
+    };
   }
-  return (
-    <Pill tone="warn" indicator>
-      Waiting for on-chain confirmation
-    </Pill>
-  );
+  return {
+    Icon: Clock,
+    iconClass: "text-icon-warning",
+    title: "Waiting for confirmation",
+    description: "Proof is pending on-chain. It will be confirmed in a few minutes.",
+  };
 }
 
 export function StampResult({
@@ -115,40 +89,32 @@ export function StampResult({
     };
   }, [record.id, record.proof_status, showToast]);
 
+  const { Icon, iconClass, title, description } = stampStatus(record);
+
   return (
-    <ResultShell
-      title="Timestamp proof submitted"
-      description={
-        record.proof_status === "pending"
-          ? "Proof is pending on-chain. It will be confirmed in a few minutes."
-          : undefined
-      }
-      ariaLabel="Stamp result"
-      tone={statusTone(record)}
-      badge={statusBadge(record)}
-      onClose={onClose}
-      actions={
-        <ButtonRow>
-          <Link
-            className="type-meta rounded-loose bg-surface-secondary px-detail-close text-text-primary hover:border-stroke-primary inline-flex h-8 w-fit items-center border border-transparent no-underline transition-colors duration-200"
-            to="/diagnostics?tab=proofs"
-          >
-            Open in Diagnostics
-          </Link>
-          {technicalDetails !== undefined ? (
-            <JsonPreview value={technicalDetails} label="View technical details" variant="button" />
-          ) : null}
-        </ButtonRow>
-      }
-    >
-      <dl className="m-0 flex flex-col">
-        {record.file_name ? <ResultField label="File" value={record.file_name} /> : null}
-        {record.proof_uid ? <ResultField label="Proof UID" value={record.proof_uid} mono /> : null}
-        <ResultField label="Data hash" value={record.hash} mono />
-        {record.proof_status === "failed" && record.proof_error ? (
-          <ResultField label="Error" value={record.proof_error} />
+    <div className={cx(contentStatePanelClass, "relative min-h-64")} aria-label="Stamp result">
+      <IconButton
+        variant="ghost"
+        size="compact"
+        aria-label="Dismiss stamp result"
+        onClick={onClose}
+        className="top-detail-next right-detail-next enabled:hover:border-stroke-primary absolute border-transparent"
+      >
+        <X aria-hidden />
+      </IconButton>
+      <Icon aria-hidden className={cx("size-8 shrink-0", iconClass)} />
+      <div className="gap-detail-tight flex flex-col">
+        <p className="type-body-em text-text-primary m-0">{title}</p>
+        <p className="type-body text-text-primary m-0">{description}</p>
+      </div>
+      <div className="gap-detail-next flex flex-wrap items-center justify-center">
+        <LinkButton href="/diagnostics?tab=proofs" size="sm">
+          Open in Diagnostics
+        </LinkButton>
+        {technicalDetails !== undefined ? (
+          <JsonPreview value={technicalDetails} label="View technical details" variant="button" />
         ) : null}
-      </dl>
-    </ResultShell>
+      </div>
+    </div>
   );
 }

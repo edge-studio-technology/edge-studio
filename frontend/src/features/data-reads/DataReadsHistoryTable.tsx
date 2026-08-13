@@ -74,7 +74,7 @@ export function DataReadsHistoryTable({
 
   return (
     <TableWrap>
-      <DataTable aria-label="Read history" className="min-w-255">
+      <DataTable aria-label="Read history" className="min-w-245">
         <TableHead>
           <TableHeaderCell>Read time</TableHeaderCell>
           <TableHeaderCell>Source</TableHeaderCell>

@@ -135,7 +135,7 @@ export function DataSourceTemplates({
               ? "Configure the protocol, endpoint, topic, or GPIO settings yourself."
               : mode === "input"
                 ? "Inputs produce JSON, messages, or hardware events that workflows can record or use as triggers."
-                : "Outputs are devices or endpoints the app can control from automation action blocks."}
+                : "Outputs are devices or endpoints the app can control from workflow action blocks."}
         </MutedText>
       </div>
       <div className="flex flex-wrap gap-4">

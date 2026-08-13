@@ -4,6 +4,30 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] ui/cleanup
+
+### Fixed
+
+- App status bar stays put when navigating between pages that do or don't need a scrollbar.
+- Opening a modal no longer shifts the page when a scrollbar is hidden.
+- Shortened hashes always show the start and end (CSS ellipsis no longer clips the ending).
+
+### Changed
+
+- Workflows is moved from `/automation` to `/workflows`.
+- Workflows list shows Edit as the row action, enable/disable as a table switch.
+- Workflows list no longer shows a heading or description above the table.
+- Workflows create action is labeled New workflow.
+- Integritas stamp and verify results use the same centered panel. Verify includes a Download report action when the API returns a PDF link.
+- Account settings shows Connect account under Integritas Connect, and Open Integritas portal only when connected.
+- Integritas connection status for the app status bar and dashboard is cached for one hour so UI refreshes do not call Integritas health on every poll.
+- Status bar tooltips show when each service was last updated (Integritas uses the cached health-check time, not the UI poll time).
+- Page content scrolls under a fixed status bar instead of scrolling the whole app shell.
+- Shared list tables apply header and body text styles on the cells themselves instead of a table-wide fallback size.
+- Devices list column widths are tuned so direction, type, health, and preview labels fit, while long names and endpoints truncate.
+- Dashboard next-step guide shows Cable and Workflow icons on Connect devices / Create workflow, and drops the awkward trailing setup line.
+- Sidebar Devices and Workflows icons use Cable and Workflow to match the dashboard guide.
+- Device setup guide Go to workflow opens the workflow editor.
 ## [0.38.1] 2026-08-13
 
 ### Fixed

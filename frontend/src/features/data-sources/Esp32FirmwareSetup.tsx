@@ -185,7 +185,7 @@ function ArduinoIdeSteps({
         baud and look for Wi-Fi, MQTT, and Publishing messages.
       </SetupStep>
       <SetupStep index={9} title="Create Or Enable Workflow">
-        Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode>{" "}
+        Create or enable a workflow with <InlineCode>MQTT message received</InlineCode>{" "}
         as the start block and this source selected.
       </SetupStep>
     </div>
@@ -350,7 +350,7 @@ function ArduinoCliSteps({
         </div>
       </SetupStep>
       <SetupStep index={10} title="Create Or Enable Workflow">
-        Create or enable an Automation workflow with <InlineCode>MQTT message received</InlineCode>{" "}
+        Create or enable a workflow with <InlineCode>MQTT message received</InlineCode>{" "}
         as the start block and this source selected.
       </SetupStep>
     </div>

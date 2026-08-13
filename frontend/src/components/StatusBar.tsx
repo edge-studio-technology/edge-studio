@@ -17,7 +17,7 @@ export function StatusBar({ items, className }: { items: StatusBarItem[]; classN
   return (
     <div
       className={cx(
-        "bg-surface-primary border-stroke-secondary p-margin-tight gap-detail-close sticky top-0 z-20 flex w-full items-start justify-between border-b shadow-[0_8px_16px_rgba(15,23,42,0.06)]",
+        "bg-surface-primary border-stroke-secondary p-margin-tight gap-detail-close z-20 flex w-full shrink-0 items-start justify-between border-b shadow-[0_8px_16px_rgba(15,23,42,0.06)]",
         className,
       )}
       role="status"

@@ -375,7 +375,7 @@ export function DraftBlockInspector({
     return (
       <InspectorSection
         title="Preview content"
-        description="Write a durable preview item into the Automation inbox."
+        description="Write a durable preview item into the Workflow inbox."
         className={formGridClass}
       >
         <InputField

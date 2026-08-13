@@ -16,6 +16,7 @@ import { StatusBar, type StatusBarItem } from "./StatusBar";
 // modal's "Current page" card doesn't fall back to a raw path segment.
 const EXTRA_PAGE_LABELS: Record<string, string> = {
   update: "Software update",
+  "workflows/help": "Workflows guide",
 };
 
 function findService(overview: StatusOverview | null, name: string) {
@@ -54,15 +55,16 @@ function statusBarItem({
 }): StatusBarItem {
   const tone: Tone = !service ? "neutral" : service.ok ? "good" : "warn";
   const label = !service ? pendingLabel : service.ok ? okLabel : badLabel;
+  const lastUpdatedAt = service?.checkedAt ?? generatedAt;
 
   const detailBody = (
     <div className="flex flex-col gap-1">
       <p className="m-0">{serviceDetailMessage(service, id)}</p>
-      {generatedAt ? (
-        <p className="m-0">Checked {new Date(generatedAt).toLocaleTimeString()}</p>
+      {lastUpdatedAt ? (
+        <p className="m-0">Last updated {new Date(lastUpdatedAt).toLocaleTimeString()}</p>
       ) : null}
       {refreshError ? (
-        <p className="text-text-warning m-0">Could not refresh — showing last known status.</p>
+        <p className="m-0 text-text-warning">Could not refresh — showing last known status.</p>
       ) : null}
     </div>
   );
@@ -153,43 +155,49 @@ export function AppShell({
     }),
   ];
 
+  // Shell is viewport-locked; page content scrolls in `app-shell-main-scroll` so the
+  // StatusBar stays outside the scrollbar and doesn't shift when pages gain/lose overflow.
   return (
-    <div className="min-h-screen">
-      <div className="flex min-h-screen">
-        <AppShellSidebar
-          pathname={pathname}
-          onFeedback={() => setFeedbackOpen(true)}
-          onSignOut={onSignOut}
-          version={appVersion}
-          updateNotice={
-            showUpdateNotice ? (
-              <NoticeCard
-                title="Update available"
-                action={
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => navigate("/update")}
-                  >
-                    View update
-                  </Button>
-                }
-                onDismiss={() => setDismissedUpdateVersion(availableVersion)}
-              >
-                {`Version ${availableVersion} is ready to install.`}
-              </NoticeCard>
-            ) : null
-          }
-        />
+    <div className="flex h-screen overflow-hidden">
+      <AppShellSidebar
+        pathname={pathname}
+        onFeedback={() => setFeedbackOpen(true)}
+        onSignOut={onSignOut}
+        version={appVersion}
+        updateNotice={
+          showUpdateNotice ? (
+            <NoticeCard
+              title="Update available"
+              action={
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => navigate("/update")}
+                >
+                  View update
+                </Button>
+              }
+              onDismiss={() => setDismissedUpdateVersion(availableVersion)}
+            >
+              {`Version ${availableVersion} is ready to install.`}
+            </NoticeCard>
+          ) : null
+        }
+      />
 
-        <main className="relative z-0 flex min-w-0 flex-1 flex-col">
-          {!fullBleed && <StatusBar items={statusItems} />}
-          <div className="min-h-0 flex-1">
-            <ErrorBoundary key={pathname}>{children}</ErrorBoundary>
-          </div>
-        </main>
-      </div>
+      <main className="relative z-0 flex min-h-0 min-w-0 flex-1 flex-col">
+        {!fullBleed && <StatusBar items={statusItems} />}
+        <div
+          className={
+            fullBleed
+              ? "app-shell-main-scroll min-h-0 flex-1 overflow-hidden"
+              : "app-shell-main-scroll min-h-0 flex-1 overflow-y-auto"
+          }
+        >
+          <ErrorBoundary key={pathname}>{children}</ErrorBoundary>
+        </div>
+      </main>
       {feedbackOpen && (
         <FeedbackModal
           pagePath={`${pathname}${search}`}

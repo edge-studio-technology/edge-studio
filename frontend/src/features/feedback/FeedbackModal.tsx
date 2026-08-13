@@ -28,7 +28,7 @@ const feedbackAreas = [
   { value: "wallet", label: "Wallet" },
   { value: "integritas", label: "Integritas" },
   { value: "data", label: "Devices" },
-  { value: "automation", label: "Automation" },
+  { value: "automation", label: "Workflows" },
   { value: "diagnostics", label: "Diagnostics" },
   { value: "setup_login", label: "Setup / Login" },
   { value: "install_update", label: "Install / Update" },

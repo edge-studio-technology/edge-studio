@@ -53,7 +53,7 @@ export function AutomationRunsTable({
         description={
           filtered
             ? "Try another status or search, or clear filters."
-            : "Runs from your automation workflows will be added to your history here."
+            : "Runs from your workflows will be added to your history here."
         }
         actionLabel={filtered && onClearFilters ? "Clear filters" : undefined}
         actionVariant="secondary"
@@ -64,7 +64,7 @@ export function AutomationRunsTable({
   return (
     <>
       <TableWrap>
-        <DataTable aria-label="Workflow logs" className="min-w-[1020px]">
+        <DataTable aria-label="Workflow logs" className="min-w-245">
           <TableHead>
             <TableHeaderCell className="whitespace-nowrap">Started</TableHeaderCell>
             {!compact && <TableHeaderCell>Workflow</TableHeaderCell>}
@@ -81,7 +81,7 @@ export function AutomationRunsTable({
               return (
                 <TableRow key={run.id}>
                   <TableCell className="whitespace-nowrap">
-                    <time className="type-meta text-text-secondary" dateTime={run.startedAt}>
+                    <time className="text-text-secondary type-meta" dateTime={run.startedAt}>
                       {formatLocalDateTime(run.startedAt)}
                     </time>
                   </TableCell>
@@ -137,7 +137,7 @@ function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void
       >
         <Eye size={16} aria-hidden />
       </TableIconButton>
-      <TableIconMenu
+      {/* <TableIconMenu
         aria-label={`More actions for ${label}`}
         items={[
           {
@@ -147,12 +147,12 @@ function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void
             onClick: () => {
               if (!run.workflowId) return;
               navigate(
-                `/automation/${encodeURIComponent(run.workflowId)}/watch/${encodeURIComponent(run.id)}`,
+                `/workflows/${encodeURIComponent(run.workflowId)}/watch/${encodeURIComponent(run.id)}`,
               );
             },
           },
         ]}
-      />
+      /> */}
     </RowActions>
   );
 }

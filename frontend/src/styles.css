@@ -188,7 +188,6 @@
   background: var(--color-surface-secondary);
   font-family: var(--font-sans);
   font-weight: var(--font-weight-base);
-  scrollbar-gutter: stable;
 }
 
 @keyframes onboarding-fade-up {

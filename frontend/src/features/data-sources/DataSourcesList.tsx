@@ -164,14 +164,14 @@ export function DataSourcesList({
         <TableWrap>
           <DataTable className="table-fixed">
             <TableHead>
-              <TableHeaderCell className="w-72">Name</TableHeaderCell>
-              <TableHeaderCell className="w-24">Direction</TableHeaderCell>
+              <TableHeaderCell className="w-52">Name</TableHeaderCell>
+              <TableHeaderCell className="w-28">Direction</TableHeaderCell>
               <TableHeaderCell className="w-56">Type</TableHeaderCell>
-              <TableHeaderCell className="w-lg">Endpoint</TableHeaderCell>
-              <TableHeaderCell className="w-36">Health</TableHeaderCell>
+              <TableHeaderCell className="w-72">Endpoint</TableHeaderCell>
+              <TableHeaderCell className="w-40">Health</TableHeaderCell>
               <TableHeaderCell className="w-40">Last hash</TableHeaderCell>
-              <TableHeaderCell className="w-32">Last preview</TableHeaderCell>
-              <TableHeaderCell className="w-28 whitespace-nowrap">Actions</TableHeaderCell>
+              <TableHeaderCell className="w-36">Last preview</TableHeaderCell>
+              <TableHeaderCell className="w-28">Actions</TableHeaderCell>
             </TableHead>
             <TableBody>
               {pagedItems.map((source) => {
@@ -180,18 +180,24 @@ export function DataSourcesList({
                   usedByWorkflows.length > 0
                     ? `Used by workflow: ${usedByWorkflows.map((workflow) => workflow.name).join(", ")}`
                     : "Delete device";
+                const typeLabel = sourceTypeLabel(source);
+                const endpoint = sourceEndpoint(source);
                 return (
                   <TableRow key={source.id}>
-                    <TableCell>
-                      <strong className="block truncate" title={source.name}>
+                    <TableCell className="min-w-0">
+                      <span className="type-body-em block truncate" title={source.name}>
                         {source.name}
-                      </strong>
+                      </span>
                     </TableCell>
-                    <TableCell>{sourceDirection(source)}</TableCell>
-                    <TableCell>{sourceTypeLabel(source)}</TableCell>
-                    <TableCell>
-                      <code className="block truncate" title={sourceEndpoint(source)}>
-                        {sourceEndpoint(source)}
+                    <TableCell className="text-text-secondary">{sourceDirection(source)}</TableCell>
+                    <TableCell className="min-w-0">
+                      <span className="text-text-secondary block truncate" title={typeLabel}>
+                        {typeLabel}
+                      </span>
+                    </TableCell>
+                    <TableCell className="min-w-0">
+                      <code className="type-mono block truncate" title={endpoint}>
+                        {endpoint}
                       </code>
                     </TableCell>
                     <TableCell>
@@ -201,13 +207,13 @@ export function DataSourcesList({
                       {source.lastHash ? (
                         <TruncatedHash value={source.lastHash} />
                       ) : (
-                        <span className="text-slate-500">Not read yet</span>
+                        <span className="text-text-secondary">Not read yet</span>
                       )}
                     </TableCell>
                     <TableCell>
                       <LastPreviewCell source={source} />
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
+                    <TableCell>
                       <RowActions>
                         <TableIconButton
                           type="button"
@@ -225,7 +231,7 @@ export function DataSourcesList({
                           aria-label={`Trigger ${source.name} manually`}
                           onClick={() => onRead(source)}
                         >
-                          <Play size={16} />
+                          <Play size={16} aria-hidden />
                         </TableIconButton>
                         <TableIconMenu
                           aria-label={`More actions for ${source.name}`}
@@ -450,7 +456,7 @@ function DeviceDetailsModal({
               source.lastHash ? (
                 <CopyableCode value={source.lastHash} />
               ) : (
-                <span className="text-slate-500">Not read yet</span>
+                <span className="text-text-secondary">Not read yet</span>
               )
             }
           />

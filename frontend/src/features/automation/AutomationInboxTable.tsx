@@ -92,7 +92,7 @@ export function AutomationInboxTable({
       <Disclosure
         title={
           <span className="gap-detail-close flex flex-wrap items-center">
-            <h2 className="type-title text-text-primary m-0">Automation inbox</h2>
+            <h2 className="type-title text-text-primary m-0">Workflow Inbox</h2>
             <Pill tone={unreadCount > 0 ? "warn" : "neutral"} indicator>
               {unreadCount} unread
             </Pill>
@@ -142,29 +142,34 @@ export function AutomationInboxTable({
           <TableWrap>
             <DataTable className="table-fixed">
               <TableHead>
-                <TableHeaderCell className="w-64">Title</TableHeaderCell>
+                <TableHeaderCell className="w-52">Title</TableHeaderCell>
                 <TableHeaderCell className="w-56">Workflow</TableHeaderCell>
                 <TableHeaderCell className="w-28">Format</TableHeaderCell>
                 <TableHeaderCell className="w-40">Created</TableHeaderCell>
-                <TableHeaderCell className="w-28">Status</TableHeaderCell>
+                <TableHeaderCell className="w-32">Status</TableHeaderCell>
                 <TableHeaderCell className="w-28 whitespace-nowrap">Actions</TableHeaderCell>
               </TableHead>
               <TableBody>
                 {pagedItems.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="min-w-0">
-                      <strong className="block truncate" title={item.title}>
+                      <span className="type-body-em block truncate" title={item.title}>
                         {item.title}
-                      </strong>
+                      </span>
                     </TableCell>
                     <TableCell className="min-w-0">
-                      <span className="block truncate">{item.workflowName}</span>
+                      <span
+                        className="text-text-secondary block truncate"
+                        title={item.workflowName}
+                      >
+                        {item.workflowName}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <Pill>{item.format}</Pill>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <time className="type-meta text-text-secondary" dateTime={item.createdAt}>
+                    <TableCell>
+                      <time className="text-text-secondary type-meta" dateTime={item.createdAt}>
                         {formatLocalDateTime(item.createdAt)}
                       </time>
                     </TableCell>
@@ -187,7 +192,11 @@ export function AutomationInboxTable({
                           aria-label={`View preview for ${item.title}`}
                           onClick={() => viewItem(item)}
                         >
-                          {item.readAt ? <MailOpen size={16} /> : <Mail size={16} />}
+                          {item.readAt ? (
+                            <MailOpen size={16} aria-hidden />
+                          ) : (
+                            <Mail size={16} aria-hidden />
+                          )}
                         </TableIconButton>
                         <TableIconMenu
                           aria-label={`More actions for ${item.title}`}

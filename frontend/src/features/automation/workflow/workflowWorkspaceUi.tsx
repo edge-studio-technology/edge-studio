@@ -343,7 +343,7 @@ export function BlockHelpDisclosure({ type }: { type: AutomationBlockType }) {
           </div>
           {help.fields.length > 0 ? <BlockFieldReference fields={help.fields} /> : null}
           <BlockHelpList title="Outputs" items={help.outputs} />
-          <Text.Link to={`/automation/help#${type}`} target="_blank" rel="noopener noreferrer">
+          <Text.Link to={`/workflows/help#${type}`} target="_blank" rel="noopener noreferrer">
             Open full guide
           </Text.Link>
         </div>
