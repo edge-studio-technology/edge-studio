@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] ui/polish
 
+### Added
+
+- Waiting for on-chain stamp confirmation uses a slower pin-dial spinner.
+
 ### Changed
 
 - Integritas Connect settings are on the Integritas page.
@@ -16,6 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - App holds Software update and Feedback, and starts open.
 - Settings and Minima input fields are capped at a medium width.
 - Minima peers table header stays put while the rows scroll.
+- Workflow guide canvas steps use numbered 1–5 rows.
+- Workflow guide block reference is grouped by category tabs.
+- Workflow guide block details are collapsed until opened.
+- Workflow guide block cards no longer nest extra panels or category tags.
+- Workflow guide uses a three-step type scale and no uppercase labels.
 
 ## [0.38.2] 2026-08-13
 

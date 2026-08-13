@@ -117,7 +117,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [JsonPreview](#jsonpreview): trigger that opens a modal with pretty-printed JSON
 - [CopyableCode](#copyablecode): mono value with copy control
 - [EmptyContentState](#emptycontentstate): empty table/content state with icon, title, description, and optional action
-- [LoadingState](#loadingstate): fetching state with spinner, optional title and description
+- [LoadingState](#loadingstate): fetching state with spinner (default or slow pace), optional title and description
 - `FileDropBox`: large drag/drop or click file picker with reject toast, selected-file row, and busy/disabled state (`components/patterns/FileDropBox.tsx`)
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
@@ -671,31 +671,40 @@ Empty content state (`frontend/src/components/patterns/EmptyContentState.tsx`): 
 
 Fetching content state (`frontend/src/components/patterns/LoadingState.tsx`): centered `SpinnerAlt` with an optional bold title and description, on the same panel as `EmptyContentState`. Prefer this over a bare inline spinner wherever a table or list is waiting on its first load, not just a busy row/button. Same placement rule: render it **in place of** the table, not inside it.
 
-| Prop          | Notes                                                |
-| ------------- | ---------------------------------------------------- |
-| `title`       | Optional bold heading (e.g. "Fetching your devices") |
-| `description` | Optional copy under the title                        |
-| `className`   | Merged onto the panel                                |
+| Prop          | Notes                                                                 |
+| ------------- | --------------------------------------------------------------------- |
+| `title`       | Optional bold heading (e.g. "Fetching your devices")                  |
+| `description` | Optional copy under the title                                         |
+| `pace`        | `default` (0.8s cycle) or `slow` (1.6s). Same dial; use `slow` for waits that routinely take longer than a few seconds |
+| `children`    | Optional extra content under the description (actions, dismiss control) |
+| `className`   | Merged onto the panel                                                 |
 
 ```tsx
 <LoadingState title="Fetching your devices" description="This should take a few seconds." />
+<LoadingState
+  pace="slow"
+  title="Preparing your backup"
+  description="This can take a minute."
+/>
 ```
 
 ### SpinnerAlt
 
 Loading indicator (`frontend/src/components/ui/SpinnerAlt.tsx`): eight pins around a dial that light and fade in sequence so the lit pin travels clockwise. It does **not** rotate — the animation is per-pin opacity (`spinner-pin` keyframes in `styles.css`), staggered by index, and respects `prefers-reduced-motion`. Prefer this for any new loading indicator; the older rotating-ring `Spinner` is deprecated.
 
-| Prop        | Values                                    | Notes                    |
-| ----------- | ----------------------------------------- | ------------------------ |
-| `size`      | `sm` (20px) \| `md` (32px) \| `lg` (64px) | Default `md`             |
-| `tone`      | `primary` \| `secondary`                  | Default `primary`        |
-| `className` | optional                                  | Merged onto the `<svg>`  |
+| Prop        | Values                                    | Notes                                      |
+| ----------- | ----------------------------------------- | ------------------------------------------ |
+| `size`      | `sm` (20px) \| `md` (32px) \| `lg` (64px) | Default `md`                               |
+| `tone`      | `primary` \| `secondary`                  | Default `primary`                          |
+| `pace`      | `default` (0.8s) \| `slow` (1.6s)         | Same pin-dial; slower cycle for long waits |
+| `className` | optional                                  | Merged onto the `<svg>`                    |
 
 Decorative (`aria-hidden`) by design — always pair it with adjacent text describing what's loading, as `LoadingState` does.
 
 ```tsx
 <SpinnerAlt />
 <SpinnerAlt size="sm" tone="secondary" />
+<SpinnerAlt pace="slow" />
 ```
 
 ### DetailList

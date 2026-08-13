@@ -1,26 +1,46 @@
-import { ArrowLeft, CheckCircle2, Layers3 } from "lucide-react";
+import { useLayoutEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { LinkButton } from "../components/Button";
 import { Page } from "../components/Page";
 import { Card } from "../components/ui/Card";
+import { Disclosure } from "../components/ui/Disclosure";
+import { Divider } from "../components/ui/Divider";
 import { Pill } from "../components/ui/Pill";
-import { Text } from "../components/ui/Text";
+import { TabList } from "../components/ui/TabList";
 import { cx } from "../lib/cx";
 import {
   workflowBlockCategoryOrder,
   workflowBlockHelp,
   workflowBlockLibraryTypes,
+  type WorkflowBlockCategory,
   type WorkflowBlockHelp,
 } from "../features/automation/workflow/workflowBlockHelp";
 import type { AutomationBlockType } from "../features/automation/automationTypes";
 
-const mutedText = "type-body text-text-secondary";
+const body = "type-body text-text-primary m-0 [line-height:1.5]";
+const bodyMuted = "type-body text-text-secondary m-0 [line-height:1.5]";
+const heading = "type-callout text-text-primary m-0";
+const label = "type-body-em text-text-primary m-0";
 const guideCardClass = "border-stroke-secondary grid w-full gap-detail-close border";
-const blockCardClass =
-  "border-stroke-secondary scroll-mt-pad-distant grid gap-detail-close rounded-soft border bg-surface-always-white p-margin-tight shadow-sm";
-const sectionTitleClass = "type-meta text-text-secondary m-0 uppercase";
+
+const categoryTabOptions = workflowBlockCategoryOrder.map((value) => ({
+  value,
+  label: value,
+}));
+
+function isBlockType(value: string): value is AutomationBlockType {
+  return value in workflowBlockHelp;
+}
+
+function categoryFromHash(hash: string): WorkflowBlockCategory | null {
+  const id = hash.startsWith("#") ? hash.slice(1) : hash;
+  if (!isBlockType(id)) return null;
+  return workflowBlockHelp[id].category;
+}
 
 const workflowSteps = [
-  "Choose one start block first. It decides whether the workflow runs manually, on a schedule, or from an incoming event.",
+  "Choose one start block to decide how the workflow runs.",
   "Add data blocks to record, fetch, capture, or prepare values for later steps.",
   "Add logic blocks when the workflow should wait or continue only when a value matches.",
   "Add action blocks to show a preview, control an output device, send a payment, or stamp data.",
@@ -28,6 +48,31 @@ const workflowSteps = [
 ];
 
 export function AutomationHelpPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [category, setCategory] = useState<WorkflowBlockCategory>(
+    () => categoryFromHash(window.location.hash) ?? "Start",
+  );
+
+  useLayoutEffect(() => {
+    const fromHash = categoryFromHash(location.hash);
+    if (fromHash) setCategory(fromHash);
+  }, [location.hash]);
+
+  useLayoutEffect(() => {
+    const id = location.hash.slice(1);
+    if (!isBlockType(id) || workflowBlockHelp[id].category !== category) return;
+    document.getElementById(id)?.scrollIntoView({ block: "start" });
+  }, [category, location.hash]);
+
+  function handleCategoryChange(next: WorkflowBlockCategory) {
+    setCategory(next);
+    const id = location.hash.slice(1);
+    if (isBlockType(id) && workflowBlockHelp[id].category !== next) {
+      navigate({ pathname: location.pathname, search: location.search }, { replace: true });
+    }
+  }
+
   return (
     <Page
       title="Workflow guide"
@@ -38,75 +83,87 @@ export function AutomationHelpPage() {
         </LinkButton>
       }
     >
-      <Card className={cx(guideCardClass, "bg-surface-primary")}>
-        <div className="gap-detail-next flex items-start">
-          <span className="bg-surface-always-white border-stroke-secondary grid size-10 shrink-0 place-items-center rounded-full border">
-            <Layers3 aria-hidden className="text-icon-primary size-5" />
-          </span>
-          <div className="gap-detail-tight grid">
-            <Text.Title>How the canvas works</Text.Title>
-            <Text.Body className="text-text-secondary">
-              Workflows are ordered block pipelines. The canvas is for scanning configured behavior;
-              the configure panel is for editing and block-specific help.
-            </Text.Body>
-          </div>
+      <Card className={guideCardClass}>
+        <div className="gap-detail-tight grid">
+          <h2 className={heading}>How to use the canvas</h2>
+          <p className={bodyMuted}>
+            Blocks run in order from start to finish. Use the canvas to see the whole workflow, then
+            select a block to edit it and read its help in the configure panel.
+          </p>
         </div>
-        <ol className="gap-detail-next m-0 grid list-none p-0 md:grid-cols-2 xl:grid-cols-5">
+        <Divider />
+        <ol className="gap-detail-close m-0 grid list-none p-0">
           {workflowSteps.map((step, index) => (
-            <li
-              key={step}
-              className="border-stroke-secondary bg-surface-always-white gap-detail-tight rounded-soft p-margin-close grid border"
-            >
-              <span className="bg-surface-secondary text-text-primary type-meta grid size-7 place-items-center rounded-full">
-                {index + 1}
-              </span>
-              <Text.Body className="text-text-secondary">{step}</Text.Body>
+            <li key={step} className="gap-detail-close grid grid-cols-[1.25rem_minmax(0,1fr)]">
+              <span className={cx(label, "text-text-tertiary tabular-nums")}>{index + 1}</span>
+              <p className={body}>{step}</p>
             </li>
           ))}
         </ol>
       </Card>
 
-      <div className="gap-detail-close grid w-full">
-        {workflowBlockCategoryOrder.map((category) => (
-          <Card key={category} className={guideCardClass}>
-            <div className="gap-detail-next flex flex-wrap items-center justify-between">
-              <div className="gap-detail-tight grid">
-                <h2 className="type-title text-text-primary m-0">{category} blocks</h2>
-                <p className={cx(mutedText, "m-0")}>{categoryDescription(category)}</p>
-              </div>
-              <Pill tone="neutral">{workflowBlockLibraryTypes[category].length} blocks</Pill>
-            </div>
-            <div className="gap-detail-close grid xl:grid-cols-2">
-              {workflowBlockLibraryTypes[category].map((type) => (
-                <BlockReference key={type} type={type} help={workflowBlockHelp[type]} />
-              ))}
-            </div>
-          </Card>
-        ))}
-      </div>
+      <Card className={guideCardClass}>
+        <TabList
+          label="Block categories"
+          value={category}
+          options={categoryTabOptions}
+          onChange={handleCategoryChange}
+          className="flex flex-wrap"
+        />
+        <div className="gap-detail-tight grid">
+          <h2 className={heading}>{category} blocks</h2>
+          <p className={bodyMuted}>{categoryDescription(category)}</p>
+        </div>
+        <div className="border-stroke-secondary rounded-soft divide-y divide-stroke-secondary border">
+          {workflowBlockLibraryTypes[category].map((type) => (
+            <BlockReference
+              key={type}
+              type={type}
+              help={workflowBlockHelp[type]}
+              openFromHash={location.hash.slice(1) === type}
+            />
+          ))}
+        </div>
+      </Card>
     </Page>
   );
 }
 
-function BlockReference({ type, help }: { type: AutomationBlockType; help: WorkflowBlockHelp }) {
+function BlockReference({
+  type,
+  help,
+  openFromHash,
+}: {
+  type: AutomationBlockType;
+  help: WorkflowBlockHelp;
+  openFromHash: boolean;
+}) {
+  const [open, setOpen] = useState(openFromHash);
+
+  useLayoutEffect(() => {
+    if (openFromHash) setOpen(true);
+  }, [openFromHash]);
+
   return (
-    <article id={type} className={blockCardClass}>
-      <header className="gap-detail-tight grid">
-        <div className="gap-detail-next flex flex-wrap items-center justify-between">
-          <h3 className="type-callout text-text-primary m-0">{help.title}</h3>
-          <Pill tone="neutral">{help.category}</Pill>
-        </div>
-        <Text.Body className="text-text-secondary">{help.shortDescription}</Text.Body>
-      </header>
-      <div className="gap-detail-next grid sm:grid-cols-2">
-        <InfoPanel title="What it does">{help.whatItDoes}</InfoPanel>
-        <InfoPanel title="When to use it">{help.whenToUse}</InfoPanel>
-      </div>
-      {help.fields.length > 0 ? <FieldReference fields={help.fields} /> : null}
-      <div className="gap-detail-next grid sm:grid-cols-2">
-        <HelpSection title="Outputs" items={help.outputs} />
-        <HelpSection title="Examples" items={help.examples} />
-      </div>
+    <article id={type} className="scroll-mt-pad-distant p-pad-tight">
+      <Disclosure
+        open={open}
+        onToggle={(event) => setOpen(event.currentTarget.open)}
+        summaryClassName="items-start [&>span:first-child]:min-w-0 [&>span:first-child]:flex-1"
+        contentClassName="gap-detail-close pt-detail-close"
+        title={
+          <span className="gap-detail-tight grid min-w-0 flex-1 text-left">
+            <h3 className={heading}>{help.title}</h3>
+            <p className={bodyMuted}>{help.shortDescription}</p>
+          </span>
+        }
+      >
+        <HelpBlock title="What it does">{help.whatItDoes}</HelpBlock>
+        <HelpBlock title="When to use it">{help.whenToUse}</HelpBlock>
+        {help.fields.length > 0 ? <FieldReference fields={help.fields} /> : null}
+        <HelpList title="Outputs" items={help.outputs} />
+        <HelpList title="Examples" items={help.examples} />
+      </Disclosure>
     </article>
   );
 }
@@ -119,35 +176,30 @@ function categoryDescription(category: string) {
   return "Optional blocks attached to data-producing blocks.";
 }
 
-function InfoPanel({ title, children }: { title: string; children: string }) {
+function HelpBlock({ title, children }: { title: string; children: string }) {
   return (
-    <section className="bg-surface-secondary gap-detail-tight rounded-soft p-margin-close grid">
-      <h4 className={sectionTitleClass}>{title}</h4>
-      <Text.Body className="text-text-secondary">{children}</Text.Body>
+    <section className="gap-detail-tight grid">
+      <h4 className={label}>{title}</h4>
+      <p className={body}>{children}</p>
     </section>
   );
 }
 
 function FieldReference({ fields }: { fields: WorkflowBlockHelp["fields"] }) {
   return (
-    <section className="gap-detail-tight grid">
-      <h4 className={sectionTitleClass}>Fields</h4>
-      <div className="gap-detail-tight grid sm:grid-cols-2">
+    <section className="gap-detail-close grid">
+      <h4 className={label}>Fields</h4>
+      <div className="gap-detail-close grid">
         {fields.map((field) => (
-          <div
-            key={field.label}
-            className="border-stroke-secondary bg-surface-primary gap-detail-tight rounded-soft p-margin-close grid border"
-          >
+          <div key={field.label} className="gap-detail-tight grid">
             <div className="gap-detail-tight flex flex-wrap items-center">
-              <p className="type-body-em text-text-primary m-0">{field.label}</p>
+              <p className={label}>{field.label}</p>
               {field.required ? <Pill tone="warn">Required</Pill> : null}
             </div>
-            <p className={cx(mutedText, "m-0")}>{field.description}</p>
-            {field.shownWhen ? (
-              <p className="type-meta text-text-secondary m-0">Shown when: {field.shownWhen}.</p>
-            ) : null}
+            <p className={bodyMuted}>{field.description}</p>
+            {field.shownWhen ? <p className={bodyMuted}>Shown when: {field.shownWhen}.</p> : null}
             {field.example ? (
-              <p className="type-meta text-text-secondary m-0">
+              <p className={bodyMuted}>
                 Example: <code>{field.example}</code>
               </p>
             ) : null}
@@ -158,15 +210,14 @@ function FieldReference({ fields }: { fields: WorkflowBlockHelp["fields"] }) {
   );
 }
 
-function HelpSection({ title, items }: { title: string; items: string[] }) {
+function HelpList({ title, items }: { title: string; items: string[] }) {
   return (
     <section className="gap-detail-tight grid">
-      <h4 className={sectionTitleClass}>{title}</h4>
-      <ul className="gap-detail-tight m-0 grid list-none p-0">
+      <h4 className={label}>{title}</h4>
+      <ul className="gap-detail-next m-0 grid list-none p-0">
         {items.map((item) => (
-          <li key={item} className="gap-detail-tight flex items-start">
-            <CheckCircle2 aria-hidden className="text-icon-success mt-[2px] size-4 shrink-0" />
-            <span className={mutedText}>{item}</span>
+          <li key={item} className={body}>
+            {item}
           </li>
         ))}
       </ul>
