@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Integritas connection status for the app status bar and dashboard is cached for one hour so UI refreshes do not call Integritas health on every poll.
 - Page content scrolls under a fixed status bar instead of scrolling the whole app shell.
 - Shared list tables apply header and body text styles on the cells themselves instead of a table-wide fallback size.
 - Devices list column widths are tuned so direction, type, health, and preview labels fit, while long names and endpoints truncate.
