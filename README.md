@@ -186,7 +186,7 @@ Pi Camera devices are capture/input devices, not generic output targets. Automat
 
 `INTEGRITAS_BASE_URL` is the Integritas core host used for proof stamping (default `https://integritas.technology/core`).
 
-Proof stamping uses the Integritas Connect account API key stored encrypted in `integritas_auth.api_key_enc` after device linking. Link Integritas Connect from Auth Settings or during first-run setup. API keys are never exposed in the frontend bundle.
+Proof stamping uses the Integritas Connect account API key stored encrypted in `integritas_auth.api_key_enc` after device linking. Link Integritas Connect from the Integritas page or during first-run setup. API keys are never exposed in the frontend bundle.
 
 `INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS` is how often the Pi polls Connect while device activation is pending (default `5`).
 `ENABLE_MQTT_BROKER=true` enables the optional local Mosquitto broker when `COMPOSE_PROFILES=mqtt` is also set. The installer sets both values when launched with `ENABLE_MQTT_BROKER=true`. The Devices page shows the LAN broker URL for external devices and the internal Docker URL for Edge Studio MQTT input/output configs.

@@ -29,7 +29,7 @@ function serviceDetailMessage(service: OverviewService | undefined, id: string):
   if (!service) return "Status has not been checked yet.";
   if (service.ok) return "Last check succeeded.";
   if (id === "integritas") {
-    return "Reconnect Integritas in Account to restore the connection.";
+    return "Reconnect on the Integritas page to restore the connection.";
   }
   if (service.error) return service.error;
   if (service.status === "error") return "Something went wrong during the last check.";
@@ -64,7 +64,7 @@ function statusBarItem({
         <p className="m-0">Last updated {new Date(lastUpdatedAt).toLocaleTimeString()}</p>
       ) : null}
       {refreshError ? (
-        <p className="m-0 text-text-warning">Could not refresh — showing last known status.</p>
+        <p className="text-text-warning m-0">Could not refresh — showing last known status.</p>
       ) : null}
     </div>
   );

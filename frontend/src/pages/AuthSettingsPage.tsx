@@ -7,7 +7,6 @@ import {
   Download,
   Eye,
   EyeOff,
-  Link2,
   LogOut,
   MessageSquare,
   MousePointerClick,
@@ -38,12 +37,6 @@ import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
 import { useAuth } from "../features/auth/hooks";
 import { FeedbackAuditButton } from "../features/feedback/FeedbackAuditButton";
-import {
-  IntegritasConnectPanel,
-  statusLabel as integritasStatusLabel,
-  statusTone as integritasStatusTone,
-} from "../features/integritas-auth/IntegritasConnectPanel";
-import { useIntegritasAuth } from "../features/integritas-auth/useIntegritasAuth";
 import { MinimaBackupPanel } from "../features/minima/MinimaBackupPanel";
 import { formatNodeState, nodeStateTone } from "../features/minima/minimaFormat";
 import { MinimaSettingsPanel } from "../features/minima/MinimaSettingsPanel";
@@ -67,9 +60,6 @@ export function AuthSettingsPage() {
   const [verifyCode, setVerifyCode] = useState("");
   const [verifySubmitting, setVerifySubmitting] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
-
-  const integritasAuth = useIntegritasAuth({ refreshProfileOnConnected: true });
-  const integritasKind = integritasAuth.status?.status;
 
   const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
   useMinimaStatusRefresh(
@@ -148,7 +138,7 @@ export function AuthSettingsPage() {
   return (
     <Page
       title="Account settings"
-      desc="Manage your admin credentials, Integritas Connect, Minima node settings and backups, and interface preferences."
+      desc="Manage your admin credentials, Minima node settings and backups, and interface preferences."
       action={
         <Button type="button" iconStart={<LogOut aria-hidden />} onClick={() => void signOut()}>
           Log out
@@ -357,32 +347,6 @@ export function AuthSettingsPage() {
                 )}
               </SubSection>
             ) : null}
-          </div>
-        </Disclosure>
-
-        <Disclosure
-          title={
-            <span className="flex items-center gap-2">
-              <h2 className="type-title text-text-primary m-0">Integritas settings</h2>
-              <Pill
-                tone={integritasKind ? integritasStatusTone[integritasKind] : "neutral"}
-                indicator
-              >
-                {integritasKind ? integritasStatusLabel[integritasKind] : "Checking…"}
-              </Pill>
-            </span>
-          }
-          className="pt-4 pb-6"
-          defaultOpen={false}
-        >
-          <div className="mt-2 grid gap-10">
-            <SubSection
-              icon={<Link2 size={13} />}
-              title="Integritas Connect"
-              description="Stamp proofs and sync plan usage with your Integritas Connect account."
-            >
-              <IntegritasConnectPanel bare auth={integritasAuth} />
-            </SubSection>
           </div>
         </Disclosure>
 
