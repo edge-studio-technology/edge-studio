@@ -4,17 +4,19 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [0.38.5] 2026-08-14
+## [0.38.6] 2026-08-14
 
 ### Fixed
 
 - Re-running the default installer no longer preserves a previous development/canary manifest URL unless `MANIFEST_URL` is explicitly provided.
 
-## [0.38.4] 2026-08-14
+## [0.38.5] 2026-08-14
 
 ### Fixed
 
 - Installer channel switches now derive the runtime bundle from an explicitly overridden manifest URL unless a runtime bundle URL is also provided.
+
+## [0.38.4] 2026-08-14
 
 ### Added
 
