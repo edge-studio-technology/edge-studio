@@ -733,7 +733,8 @@ EOF
 
   chmod 600 "$service_file"
   systemctl daemon-reload
-  systemctl enable --now edge-studio-camera-helper.service
+  systemctl enable edge-studio-camera-helper.service
+  systemctl restart edge-studio-camera-helper.service
 }
 
 install_sensor_helper() {
