@@ -4,6 +4,19 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [0.38.4] 2026-08-14
+
+### Added
+
+- Default installs now use a release Compose override so production deployments do not depend on frontend/backend source build contexts.
+- Runtime bundle contents are now defined by an explicit release allowlist for future repo-light default installs.
+- Release tooling can now build the allowlisted default-install runtime archive.
+- Release workflow now publishes the default-install runtime archive beside each channel manifest.
+
+### Changed
+
+- Default installer now downloads the channel runtime archive instead of cloning the full repository unless `DEV_MODE=true` is set.
+
 ## [0.38.3] 2026-08-13
 
 ### Added
