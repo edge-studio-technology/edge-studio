@@ -238,6 +238,9 @@ load_existing_config() {
   INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID_INPUT:-${INTEGRITAS_REQUEST_ID:-edge-studio}}"
   MANIFEST_URL="${MANIFEST_URL_INPUT:-${MANIFEST_URL:-https://integritas.technology/edge-studio/release/manifest.json}}"
   RUNTIME_BUNDLE_URL="${RUNTIME_BUNDLE_URL_INPUT:-${RUNTIME_BUNDLE_URL:-}}"
+  if [ -n "$MANIFEST_URL_INPUT" ] && [ -z "$RUNTIME_BUNDLE_URL_INPUT" ]; then
+    RUNTIME_BUNDLE_URL=""
+  fi
   DEV_MODE="${DEV_MODE_INPUT:-${DEV_MODE:-false}}"
 }
 

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [0.38.4] 2026-08-14
 
+### Fixed
+
+- Installer channel switches now derive the runtime bundle from an explicitly overridden manifest URL unless a runtime bundle URL is also provided.
+
 ### Added
 
 - Default installs now use a release Compose override so production deployments do not depend on frontend/backend source build contexts.
