@@ -1,6 +1,6 @@
 {
   "name": "edge-studio",
-  "version": "0.38.4",
+  "version": "0.38.5",
   "private": true,
   "scripts": {
     "dev:frontend": "npm --prefix frontend run dev",
