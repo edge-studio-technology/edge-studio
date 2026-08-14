@@ -158,7 +158,7 @@ export function MinimaConsolePanel({
     if (selection && selection.toString().length > 0) return;
     inputRef.current?.focus();
   }
-  console.log(entries);
+
   const scrollback = (
     <ScrollArea className="p-pad-close flex-1" onClick={focusInputUnlessSelecting}>
       {entries.length === 0 ? (

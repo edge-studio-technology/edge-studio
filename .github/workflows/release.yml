@@ -200,14 +200,17 @@ jobs:
           MANIFEST_SIGNING_KEY: ${{ secrets.MANIFEST_SIGNING_KEY }}
         run: node scripts/release/sign-manifest.mjs manifest.json manifest.json.sig
 
+      - name: Build runtime bundle
+        run: npm run release:build-runtime-bundle
+
       - name: Deploy manifest (push to private manifest repo)
         run: |
           mkdir -p manifest-repo/edge-studio/${{ steps.channel.outputs.channel }}
-          cp manifest.json manifest.json.sig manifest-repo/edge-studio/${{ steps.channel.outputs.channel }}/
+          cp manifest.json manifest.json.sig edge-studio-runtime.tar.gz manifest-repo/edge-studio/${{ steps.channel.outputs.channel }}/
           cd manifest-repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add edge-studio/${{ steps.channel.outputs.channel }}/manifest.json edge-studio/${{ steps.channel.outputs.channel }}/manifest.json.sig
+          git add edge-studio/${{ steps.channel.outputs.channel }}/manifest.json edge-studio/${{ steps.channel.outputs.channel }}/manifest.json.sig edge-studio/${{ steps.channel.outputs.channel }}/edge-studio-runtime.tar.gz
           git diff --staged --quiet && exit 0
           git commit -m "edge-studio/${{ steps.channel.outputs.channel }}: update manifest (${{ github.ref_name }})"
           git push origin HEAD:main
@@ -233,3 +236,4 @@ jobs:
           path: |
             manifest.json
             manifest.json.sig
+            edge-studio-runtime.tar.gz

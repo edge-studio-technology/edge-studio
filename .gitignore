@@ -9,6 +9,7 @@ npm-debug.log*
 .DS_Store
 .claude/settings.local.json
 docker-compose.override.yml
+edge-studio-runtime.tar.gz
 __pycache__/
 *.pyc
 .vscode/*

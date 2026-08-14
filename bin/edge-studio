@@ -3,6 +3,7 @@ set -eu
 
 API_URL="${EDGE_STUDIO_API_URL:-https://localhost:8080/api}"
 APP_DIR="${EDGE_STUDIO_APP_DIR:-/opt/edge-studio}"
+COMPOSE_FILE="${EDGE_STUDIO_COMPOSE_FILE:-docker-compose.yml:docker-compose.release.yml}"
 
 usage() {
   cat <<'EOF'
@@ -116,10 +117,20 @@ case "$command" in
     ;;
   logs)
     service="${2-}"
+    remaining_files="$COMPOSE_FILE"
+    set --
+    while [ -n "$remaining_files" ]; do
+      compose_file="${remaining_files%%:*}"
+      set -- "$@" -f "$APP_DIR/$compose_file"
+      if [ "$remaining_files" = "$compose_file" ]; then
+        break
+      fi
+      remaining_files="${remaining_files#*:}"
+    done
     if [ -n "$service" ]; then
-      docker compose -f "$APP_DIR/docker-compose.yml" --project-directory "$APP_DIR" logs --tail=100 "$service"
+      docker compose "$@" --project-directory "$APP_DIR" logs --tail=100 "$service"
     else
-      docker compose -f "$APP_DIR/docker-compose.yml" --project-directory "$APP_DIR" logs --tail=100
+      docker compose "$@" --project-directory "$APP_DIR" logs --tail=100
     fi
     ;;
   -h|--help|help|"")

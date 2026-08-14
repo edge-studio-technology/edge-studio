@@ -71,7 +71,7 @@ The installer will:
 - Install required host packages
 - Install Docker if Docker is missing
 - Verify Docker Compose
-- Clone this repository to `/opt/edge-studio`
+- Download the default runtime bundle to `/opt/edge-studio` or clone the repository when `DEV_MODE=true`
 - Write `/opt/edge-studio/.env`
 - Generate a self-signed TLS certificate in `DATA_DIR/certs`
 - Start the app with `docker compose up -d --build`
@@ -237,7 +237,7 @@ TLS certificates are stored in `DATA_DIR/certs` (`server.crt`, `server.key`). Th
 ```bash
 cd /opt/edge-studio
 INTEGRITAS_TLS_FORCE=1 bash scripts/generate-tls-cert.sh
-docker compose up -d --build frontend
+docker compose -f docker-compose.yml -f docker-compose.release.yml up -d frontend
 ```
 
 Future versions may support custom certificates or an external reverse proxy.
@@ -246,7 +246,11 @@ Future versions may support custom certificates or an external reverse proxy.
 
 `MANIFEST_URL` configures the `update-agent` service: the signed update manifest URL hosted on the VPS. The Ed25519 public key used to verify its signature is baked into the `update-agent` image at build time from the committed `update-agent/manifest-public-key.pem`, not an env var. Leave `MANIFEST_URL` empty to disable update checks. The update flow is split across two origins-in-one: `https://<pi-ip>:8080/update` (no trailing slash) is the product frontend's own page — checks for updates and starts one; `https://<pi-ip>:8080/update/` (trailing slash) is `update-agent`'s own static page — shows apply progress and survives a frontend container swap mid-update. Both are the same TLS cert/origin, proxied through `frontend`'s nginx (no extra browser approval). See [.agents/rules/update-agent.md](.agents/rules/update-agent.md) for the full design.
 
-`frontend`/`backend` are `build:`-based in `docker-compose.yml`, not pinned to a digest — re-running `install.sh` (or a bare `docker compose up -d --build`) rebuilds them from this checkout's source and silently reverts any updates applied via the Update page since. `git pull` the matching release tag first if you want to keep an update, or just use the Update page instead of re-running the installer on an already-updated device.
+Default installs use `docker-compose.yml` plus `docker-compose.release.yml`, which removes source build contexts and uses the signed manifest's image digests. `DEV_MODE=true` installs use only `docker-compose.yml` so frontend/backend can be built from source.
+
+The default-install runtime bundle is intentionally limited to the files listed in `scripts/release/runtime-bundle-files.json`; source-build directories such as `frontend/`, `backend/`, and `update-agent/` are only required for `DEV_MODE=true` installs.
+
+Build the default-install runtime archive with `npm run release:build-runtime-bundle`; it writes `edge-studio-runtime.tar.gz` from the allowlisted files. The installer derives `RUNTIME_BUNDLE_URL` from `MANIFEST_URL` unless explicitly overridden.
 
 To install with another file root or port:
 
@@ -445,7 +449,7 @@ docker compose build --no-cache
 If the UI shows `Backend health error: HTTP 502`, check backend logs:
 
 ```bash
-sudo docker compose -f /opt/edge-studio/docker-compose.yml --project-directory /opt/edge-studio logs --tail=100 backend
+sudo docker compose -f /opt/edge-studio/docker-compose.yml -f /opt/edge-studio/docker-compose.release.yml --project-directory /opt/edge-studio logs --tail=100 backend
 ```
 
 If logs contain `SqliteError: unable to open database file`, fix the SQLite data directory permissions:
@@ -454,7 +458,7 @@ If logs contain `SqliteError: unable to open database file`, fix the SQLite data
 sudo mkdir -p /opt/edge-studio/data
 sudo chown -R 1000:1000 /opt/edge-studio/data
 sudo chmod 700 /opt/edge-studio/data
-sudo docker compose -f /opt/edge-studio/docker-compose.yml --project-directory /opt/edge-studio restart backend
+sudo docker compose -f /opt/edge-studio/docker-compose.yml -f /opt/edge-studio/docker-compose.release.yml --project-directory /opt/edge-studio restart backend
 ```
 
 The backend container runs as the non-root `node` user, which uses uid `1000`. That user must be able to write to the mounted SQLite data directory.

@@ -1,0 +1,13 @@
+[
+  ".env.example",
+  "package.json",
+  "docker-compose.yml",
+  "docker-compose.release.yml",
+  "bin/edge-studio",
+  "scripts/generate-tls-cert.sh",
+  "scripts/verify-manifest.mjs",
+  "update-agent/manifest-public-key.pem",
+  "camera-helper/edge_studio_camera_helper.py",
+  "sensor-helper/edge_studio_sensor_helper.py",
+  "docker/mosquitto/mosquitto.conf"
+]
