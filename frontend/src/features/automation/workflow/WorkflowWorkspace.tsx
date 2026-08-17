@@ -363,6 +363,7 @@ export function WorkflowWorkspace({
               title={workflowStateTitle}
               onClick={() => {
                 setPausedForEditNotice(false);
+                editPauseSessionRef.current = { workflowId: workflow.id, didPause: false };
                 onUpdateWorkflow({ enabled: true });
               }}
             >
