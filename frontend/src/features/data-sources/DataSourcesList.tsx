@@ -340,6 +340,7 @@ function sourceTypeLabel(source: DataSource) {
     return source.config.sensor === "bme680"
       ? "BME680 Environmental Sensor"
       : "BME280 Environmental Sensor";
+  if (source.type === "device-system-data") return "Device System Data";
   if (source.type === "http-output") return "HTTP JSON Target";
   if (source.type === "mqtt-output") return "MQTT Publisher";
   return source.type;
@@ -364,7 +365,8 @@ function isInputSource(source: DataSource) {
     source.type === "mqtt" ||
     source.type === "gpio-input" ||
     source.type === "pi-camera" ||
-    source.type === "bme-sensor"
+    source.type === "bme-sensor" ||
+    source.type === "device-system-data"
   );
 }
 
@@ -379,6 +381,7 @@ function sourceEndpoint(source: DataSource) {
   if (source.type === "gpio-output") return gpioOutputEndpoint(source);
   if (source.type === "pi-camera") return cameraEndpoint(source);
   if (source.type === "bme-sensor") return bmeEndpoint(source);
+  if (source.type === "device-system-data") return "device-system-data:local";
   return source.config.url;
 }
 
@@ -390,6 +393,7 @@ function supportsHealthCheck(source: DataSource) {
     source.type !== "gpio-input" &&
     source.type !== "gpio-output" &&
     source.type !== "pi-camera" &&
+    source.type !== "device-system-data" &&
     source.type !== "http-output" &&
     source.type !== "mqtt-output" &&
     Boolean(source.config.healthStatusUrl)

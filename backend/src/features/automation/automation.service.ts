@@ -10,8 +10,10 @@ import { publishMqttOutput } from "../data-sources/mqttOutput.service.js";
 import { capturePiCamera } from "../data-sources/cameraCapture.service.js";
 import {
   parseBmeSensorConfig,
+  parseDeviceSystemDataConfig,
   parseHttpOutputConfig,
   parseJsonApiConfig,
+  readDeviceSystemDataSource,
   readJsonApiSource,
   sendHttpOutput,
   sendMultipartMediaOutput,
@@ -571,6 +573,8 @@ async function fetchDataSource(
     const result =
       source.type === "bme-sensor"
         ? await readBmeSensorSource(parseBmeSensorConfig(JSON.parse(source.config) as unknown))
+        : source.type === "device-system-data"
+          ? await readDeviceSystemDataSource(parseDeviceSystemDataConfig(JSON.parse(source.config) as unknown))
         : await readJsonApiSource(parseJsonApiConfig(JSON.parse(source.config) as unknown));
     const read = createDataSourceRead({
       dataSourceId: source.id,
@@ -895,11 +899,12 @@ function sourceUrlForRecord(source: { type: string; config: string }) {
   if (source.type === "pi-camera") return `pi-camera:${config.mode ?? "photo"}`;
   if (source.type === "bme-sensor")
     return `${config.sensor ?? "bme280"}:i2c-${config.bus ?? 1}:${config.address ?? "0x76"}`;
+  if (source.type === "device-system-data") return "device-system-data:local";
   return String(config.url ?? "data source");
 }
 
 function isReadableDataSource(type: string) {
-  return type === "json-api" || type === "bme-sensor";
+  return type === "json-api" || type === "bme-sensor" || type === "device-system-data";
 }
 
 function blockLabel(type: string) {

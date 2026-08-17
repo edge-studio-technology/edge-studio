@@ -3,7 +3,7 @@ export type DataSource = {
   createdAt: string;
   updatedAt: string;
   name: string;
-  type: "json-api" | "webhook" | "mqtt" | "gpio-input" | "gpio-output" | "pi-camera" | "bme-sensor" | "http-output" | "mqtt-output";
+  type: "json-api" | "webhook" | "mqtt" | "gpio-input" | "gpio-output" | "pi-camera" | "bme-sensor" | "device-system-data" | "http-output" | "mqtt-output";
   status: string;
   description: string | null;
   config: {
@@ -35,6 +35,10 @@ export type DataSource = {
     sensor?: "bme280" | "bme680";
     bus?: number;
     address?: "0x76" | "0x77";
+    includeSpecs?: boolean;
+    includePerformance?: boolean;
+    includeNetwork?: boolean;
+    includeLocation?: boolean;
   };
   lastReadAt: string | null;
   lastError: string | null;

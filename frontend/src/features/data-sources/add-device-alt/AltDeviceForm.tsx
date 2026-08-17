@@ -13,6 +13,7 @@ export function isAltDeviceFormValid(fields: DeviceFormFields) {
   if (type === "pi-camera")
     return Boolean(fields.cameraWidth && fields.cameraHeight && fields.cameraDurationMs);
   if (type === "bme-sensor") return Boolean(fields.bmeBus);
+  if (type === "device-system-data") return true;
   if (type === "webhook") return true;
   return Boolean(url);
 }

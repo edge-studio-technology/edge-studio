@@ -96,6 +96,17 @@ export const inputTemplates: DataSourceTemplate[] = [
     config: { sensor: "bme680", bus: 1, address: "0x76" },
   },
   {
+    title: "Device System Data",
+    description: "Read local device specs, performance, network status, and coarse locale data",
+    type: "device-system-data",
+    config: {
+      includeSpecs: true,
+      includePerformance: true,
+      includeNetwork: true,
+      includeLocation: true,
+    },
+  },
+  {
     title: "Raspberry Pi Camera",
     description: "Capture photos or short video clips from workflows",
     type: "pi-camera",
@@ -156,6 +167,7 @@ export function templateIcon(template: DataSourceTemplate) {
   if (template.type === "gpio-output") return Lightbulb;
   if (template.type === "pi-camera") return Camera;
   if (template.type === "bme-sensor") return ThermometerSun;
+  if (template.type === "device-system-data") return Cpu;
   return Cpu;
 }
 

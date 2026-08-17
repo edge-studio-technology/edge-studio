@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] main
 
+### Added
+
+- Added Device System Data as a readable input source for local device specs, performance, network interface status, and timezone/locale snapshots.
+
+### Removed
+
+- Removed the unused `internal-json-api` data-source type.
+
 ## [0.38.7] 2026-08-14
 
 ### Fixed
