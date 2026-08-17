@@ -808,6 +808,7 @@ export const PersistedBlockInspector = forwardRef<
   const [config, setConfig] = useState(block.config);
   const [enabled, setEnabled] = useState(block.enabled);
   const configRef = useRef(config);
+  const blockIdRef = useRef(block.id);
   const draftBlock: DraftWorkflowBlock = {
     id: block.id,
     type: block.type,
@@ -826,6 +827,12 @@ export const PersistedBlockInspector = forwardRef<
     !attachedBlocks.some((attached) => attached.type === "stamp_integritas");
 
   useEffect(() => {
+    if (blockIdRef.current !== block.id) {
+      blockIdRef.current = block.id;
+      setConfig(block.config);
+      return;
+    }
+    if (dirtyRef.current) return;
     setConfig(block.config);
   }, [block.id, block.config]);
 
