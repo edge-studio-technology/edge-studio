@@ -4,6 +4,13 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] migrate/new-org
+
+### Changed
+
+- Default `MANIFEST_URL` now points at `raw.githubusercontent.com` on the public `edge-studio-manifests` repo instead of a VPS, since the VPS-side delivery was never built.
+- Project org/repo references (install.sh clone URL, changelog/doc raw links) updated from `integritas-technology` to `edge-studio-technology`.
+
 ## [Unreleased] main
 
 ### Added
