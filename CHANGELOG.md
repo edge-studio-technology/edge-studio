@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] main
 
+### Changed
+
+- Workflow editor status moved from the canvas to a header control that can activate paused workflows.
+
 ### Fixed
 
 - Opening a workflow editor no longer pauses an enabled workflow until the workflow is changed.

@@ -155,6 +155,18 @@ export function WorkflowWorkspace({
       : selectedRun
         ? "Viewing historic run"
         : "No run selected";
+  const workflowStateLabel = workflow.archived
+    ? "Archived"
+    : workflow.enabled
+      ? "Workflow active"
+      : "Workflow paused";
+  const workflowStateTitle = workflow.archived
+    ? "Archived workflows cannot run."
+    : workflow.enabled
+      ? "Workflow is active."
+      : hasValidationErrors
+        ? "Fix validation errors before activating."
+        : "Activate workflow";
 
   useEffect(() => {
     if (!selectedBlockId) return;
@@ -343,6 +355,20 @@ export function WorkflowWorkspace({
           >
             Back
           </Button>
+          {mode === "edit" ? (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy || workflow.archived || workflow.enabled || hasValidationErrors}
+              title={workflowStateTitle}
+              onClick={() => {
+                setPausedForEditNotice(false);
+                onUpdateWorkflow({ enabled: true });
+              }}
+            >
+              {workflowStateLabel}
+            </Button>
+          ) : null}
           {/* <Button
             type="button"
             variant="secondary"
@@ -465,8 +491,6 @@ export function WorkflowWorkspace({
           blocks={canvasBlocks}
           sources={sources}
           addressBook={addressBook}
-          statusLabel={workflow.archived ? "Archived" : workflow.enabled ? "Enabled" : "Paused"}
-          statusGood={!workflow.archived && workflow.enabled}
           bottomOverlay={mode === "watch"}
           selectedBlockId={selectedBlock?.id ?? ""}
           validationByBlockId={validationByBlockId}
