@@ -86,7 +86,7 @@ export function WorkflowCanvas({
   addressBook,
   selectedBlockId,
   statusLabel,
-  statusGood,
+  statusGood = false,
   bottomOverlay = false,
   validationByBlockId = {},
   runtimeByBlockId = {},
@@ -99,8 +99,8 @@ export function WorkflowCanvas({
   sources: DataSource[];
   addressBook: AddressBookEntry[];
   selectedBlockId: string;
-  statusLabel: string;
-  statusGood: boolean;
+  statusLabel?: string;
+  statusGood?: boolean;
   bottomOverlay?: boolean;
   validationByBlockId?: Record<string, WorkflowCanvasValidationIssue[]>;
   runtimeByBlockId?: Record<string, WorkflowCanvasRuntimeState>;
@@ -123,9 +123,11 @@ export function WorkflowCanvas({
         </p>
       </div>
       <ScrollArea className={canvasLaneClass}>
-        <div className="top-pad-tight absolute right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] z-10">
-          <Pill tone={statusPillClass(statusGood)}>{statusLabel}</Pill>
-        </div>
+        {statusLabel ? (
+          <div className="top-pad-tight absolute right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] z-10">
+            <Pill tone={statusPillClass(statusGood)}>{statusLabel}</Pill>
+          </div>
+        ) : null}
         <div className={cx(canvasContentClass, bottomOverlay && "pb-[240px]")}>
           {blocks.length === 0 && (
             <div className={emptyCanvasClass}>
