@@ -236,7 +236,7 @@ function isOutputTarget(type: string) {
 }
 
 function isReadableDataSource(type: string) {
-  return type === "json-api" || type === "internal-json-api" || type === "bme-sensor";
+  return type === "json-api" || type === "bme-sensor";
 }
 
 function validateOutputBodyConfig(block: ValidationBlock, config: BlockConfig, targetType: string, issues: AutomationValidationIssue[]) {

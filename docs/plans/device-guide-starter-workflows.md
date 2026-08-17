@@ -45,7 +45,7 @@ This should be implemented as a reusable guide-action pipeline, not as BME-speci
   - `readableSourcePreviewWorkflow(source)` for `manual_start -> fetch_data_source -> show_preview`.
   - Later: `cameraCapturePreviewWorkflow(source)`, `gpioEventPreviewWorkflow(source)`, `webhookPreviewWorkflow(source)`, `mqttPreviewWorkflow(source)`, and output-target test/control workflows.
 - In `bme280Guide()` and `httpJsonSourceGuide()`, add the first guide action: `Create basic workflow for this device`.
-- Optionally add it for any existing readable source type accepted by `fetch_data_source`: `json-api`, `internal-json-api`, `bme-sensor`.
+- Optionally add it for any existing readable source type accepted by `fetch_data_source`: `json-api`, `bme-sensor`.
 
 **`frontend/src/pages/DataSourcesPage.tsx`**:
 

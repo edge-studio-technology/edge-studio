@@ -428,7 +428,7 @@ function isAutomationBlockType(type: string): type is AutomationBlockType {
 }
 
 function isReadableDataSource(type: string) {
-  return type === "json-api" || type === "internal-json-api" || type === "bme-sensor";
+  return type === "json-api" || type === "bme-sensor";
 }
 
 function serializeAutomationInboxItem(item: { id: string; workflow_id: string | null; workflow_name: string; run_id: string | null; block_id: string | null; title: string; format: string; content_json: string; rendered_text: string | null; created_at: string; read_at: string | null }) {

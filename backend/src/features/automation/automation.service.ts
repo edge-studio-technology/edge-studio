@@ -899,7 +899,7 @@ function sourceUrlForRecord(source: { type: string; config: string }) {
 }
 
 function isReadableDataSource(type: string) {
-  return type === "json-api" || type === "internal-json-api" || type === "bme-sensor";
+  return type === "json-api" || type === "bme-sensor";
 }
 
 function blockLabel(type: string) {

@@ -330,7 +330,7 @@ function sourceTypeLabel(source: DataSource) {
     return "PIR Motion Sensor";
   if (source.type === "mqtt" && source.config.profile === "esp32-mqtt-board")
     return "ESP32 MQTT Board";
-  if (source.type === "json-api" || source.type === "internal-json-api") return "HTTP JSON Source";
+  if (source.type === "json-api") return "HTTP JSON Source";
   if (source.type === "webhook") return "Webhook Receiver";
   if (source.type === "mqtt") return "MQTT Subscriber";
   if (source.type === "gpio-input") return "GPIO Input Pin";
@@ -360,7 +360,6 @@ function bmeEndpoint(source: DataSource) {
 function isInputSource(source: DataSource) {
   return (
     source.type === "json-api" ||
-    source.type === "internal-json-api" ||
     source.type === "webhook" ||
     source.type === "mqtt" ||
     source.type === "gpio-input" ||

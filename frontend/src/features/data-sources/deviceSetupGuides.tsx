@@ -66,7 +66,7 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
   if (source.type === "gpio-output") return gpioLedGuide(source);
   if (source.type === "bme-sensor") return bmeSensorGuide(source);
   if (source.type === "pi-camera") return piCameraGuide(source);
-  if (source.type === "json-api" || source.type === "internal-json-api")
+  if (source.type === "json-api")
     return httpJsonSourceGuide(source);
   if (source.type === "webhook") return webhookGuide(source);
   if (source.type === "mqtt") return mqttSubscriberGuide(source);

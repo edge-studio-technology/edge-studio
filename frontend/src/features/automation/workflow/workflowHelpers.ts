@@ -493,7 +493,6 @@ export function sourceLabel(source: DataSource) {
 export function isReadableSource(source: DataSource) {
   return (
     source.type === "json-api" ||
-    source.type === "internal-json-api" ||
     source.type === "bme-sensor"
   );
 }

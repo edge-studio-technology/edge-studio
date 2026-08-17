@@ -3,7 +3,7 @@ export type DataSource = {
   createdAt: string;
   updatedAt: string;
   name: string;
-  type: "json-api" | "internal-json-api" | "webhook" | "mqtt" | "gpio-input" | "gpio-output" | "pi-camera" | "bme-sensor" | "http-output" | "mqtt-output";
+  type: "json-api" | "webhook" | "mqtt" | "gpio-input" | "gpio-output" | "pi-camera" | "bme-sensor" | "http-output" | "mqtt-output";
   status: string;
   description: string | null;
   config: {

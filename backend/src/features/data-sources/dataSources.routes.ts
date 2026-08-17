@@ -175,7 +175,7 @@ dataSourcesRouter.post("/:id/test-output", requireRole("admin"), async (req, res
 });
 
 function isSupportedDeviceType(type: string) {
-  return type === "json-api" || type === "internal-json-api" || type === "webhook" || type === "mqtt" || type === "gpio-input" || type === "gpio-output" || type === "pi-camera" || type === "bme-sensor" || type === "http-output" || type === "mqtt-output";
+  return type === "json-api" || type === "webhook" || type === "mqtt" || type === "gpio-input" || type === "gpio-output" || type === "pi-camera" || type === "bme-sensor" || type === "http-output" || type === "mqtt-output";
 }
 
 function bmeSensorUrl(config: { sensor: string; bus: number; address: string }) {
