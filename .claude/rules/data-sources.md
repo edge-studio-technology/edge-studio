@@ -1,6 +1,6 @@
 # Data Source Rules
 
-- Supported V1 input/capture source types are HTTP JSON Source fetches, BME280/BME680 Environmental Sensor reads, Webhook Receiver JSON receives, MQTT Subscriber JSON subscriptions, Raspberry Pi GPIO Input Pin events, and Raspberry Pi Camera captures.
+- Supported V1 input/capture source types are HTTP JSON Source fetches, Device System Data reads, BME280/BME680 Environmental Sensor reads, Webhook Receiver JSON receives, MQTT Subscriber JSON subscriptions, Raspberry Pi GPIO Input Pin events, and Raspberry Pi Camera captures.
 - Supported V1 output target types are GPIO LED pulses, HTTP JSON Target requests, and MQTT Publisher JSON publishes.
 - Skip file-source and manual-upload source types unless explicitly requested.
 - Store the latest JSON preview and latest hash on the data source.
@@ -10,6 +10,7 @@
 - MQTT sources define a broker URL/topic and expect JSON payloads. The backend only subscribes while an enabled Automation workflow exists for the MQTT source.
 - GPIO input sources define a BCM pin, edge, pull resistor, debounce, and active state. They are input-only and only watch pins while an enabled Automation workflow exists for the source.
 - BME sensor sources define sensor model, I2C bus, and I2C address. They are readable fetch sources, not event sources, and require the opt-in host-side sensor helper.
+- Device System Data sources read local OS/device facts from the backend container only. Do not collect public-IP geolocation, GPS coordinates, Wi-Fi SSIDs/BSSIDs, MAC addresses, CPU serial numbers, or other stable hardware identifiers by default.
 - Raspberry Pi Camera capture requires explicit camera device access and must stay opt-in because it grants host camera access and can record private images/video.
 - The optional local MQTT broker is a local service, not a configured device. Keep it off by default and document LAN exposure when enabling it.
 

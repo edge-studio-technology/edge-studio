@@ -65,8 +65,9 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
   if (source.type === "gpio-input") return gpioInputGuide(source);
   if (source.type === "gpio-output") return gpioLedGuide(source);
   if (source.type === "bme-sensor") return bmeSensorGuide(source);
+  if (source.type === "device-system-data") return deviceSystemDataGuide(source);
   if (source.type === "pi-camera") return piCameraGuide(source);
-  if (source.type === "json-api" || source.type === "internal-json-api")
+  if (source.type === "json-api")
     return httpJsonSourceGuide(source);
   if (source.type === "webhook") return webhookGuide(source);
   if (source.type === "mqtt") return mqttSubscriberGuide(source);
@@ -402,6 +403,51 @@ function bmeSensorGuide(source: DataSource) {
       },
     ],
     "docs/guides/bme280-sensor.md",
+    [readableSourcePreviewAction()],
+  );
+}
+
+function deviceSystemDataGuide(source: DataSource) {
+  return guide(
+    source,
+    "Device System Data Setup Guide",
+    "Read local system facts from this Raspberry Pi without wiring an external sensor or calling an external API.",
+    [
+      {
+        title: "What gets read",
+        items: [
+          "Device specs: hostname, OS platform, kernel release, CPU model/count, architecture, and total memory.",
+          "Performance: uptime, load average, free memory, total memory, and CPU temperature when the Pi exposes it.",
+          "Network: local interface names, IP addresses, address family, CIDR, and whether the address is internal.",
+          "Location context: timezone and locale only.",
+        ],
+      },
+      {
+        title: "Privacy boundaries",
+        items: [
+          "This source does not collect public-IP geolocation, GPS coordinates, Wi-Fi SSIDs, Wi-Fi BSSIDs, MAC addresses, or CPU serial numbers.",
+          "Network interface IP addresses can still identify the device on your LAN. Review previews before stamping data publicly.",
+          "No URL, API key, wiring, helper service, or external endpoint is required.",
+        ],
+      },
+      {
+        title: "Saved settings",
+        table: [
+          ["Specs", source.config.includeSpecs === false ? "Disabled" : "Enabled"],
+          ["Performance", source.config.includePerformance === false ? "Disabled" : "Enabled"],
+          ["Network", source.config.includeNetwork === false ? "Disabled" : "Enabled"],
+          ["Timezone/locale", source.config.includeLocation === false ? "Disabled" : "Enabled"],
+        ],
+      },
+      {
+        title: "Verify",
+        items: [
+          "Click manual read in Devices and confirm a JSON preview/hash appears.",
+          "Use Fetch data source in Workflows for manual or scheduled snapshots, then attach Stamp data if you want Integritas proofs.",
+        ],
+      },
+    ],
+    undefined,
     [readableSourcePreviewAction()],
   );
 }

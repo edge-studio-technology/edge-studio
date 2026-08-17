@@ -15,6 +15,7 @@ export function isDataSourceFormValid(fields: DeviceFormFields) {
   if (type === "pi-camera")
     return Boolean(fields.cameraWidth && fields.cameraHeight && fields.cameraDurationMs);
   if (type === "bme-sensor") return Boolean(fields.bmeBus);
+  if (type === "device-system-data") return true;
   if (type === "webhook") return true;
   return Boolean(url);
 }
@@ -347,6 +348,12 @@ export function DataSourceForm({
             GPIO2.
           </MutedText>
         </>
+      ) : type === "device-system-data" ? (
+        <MutedText>
+          Device System Data reads local OS facts from this Pi: device specs, performance counters,
+          network interface status, and coarse timezone/locale context. It does not use an external
+          endpoint or require wiring.
+        </MutedText>
       ) : type === "http-output" ? (
         <>
           <InputField

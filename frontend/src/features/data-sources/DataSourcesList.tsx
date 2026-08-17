@@ -330,7 +330,7 @@ function sourceTypeLabel(source: DataSource) {
     return "PIR Motion Sensor";
   if (source.type === "mqtt" && source.config.profile === "esp32-mqtt-board")
     return "ESP32 MQTT Board";
-  if (source.type === "json-api" || source.type === "internal-json-api") return "HTTP JSON Source";
+  if (source.type === "json-api") return "HTTP JSON Source";
   if (source.type === "webhook") return "Webhook Receiver";
   if (source.type === "mqtt") return "MQTT Subscriber";
   if (source.type === "gpio-input") return "GPIO Input Pin";
@@ -340,6 +340,7 @@ function sourceTypeLabel(source: DataSource) {
     return source.config.sensor === "bme680"
       ? "BME680 Environmental Sensor"
       : "BME280 Environmental Sensor";
+  if (source.type === "device-system-data") return "Device System Data";
   if (source.type === "http-output") return "HTTP JSON Target";
   if (source.type === "mqtt-output") return "MQTT Publisher";
   return source.type;
@@ -360,12 +361,12 @@ function bmeEndpoint(source: DataSource) {
 function isInputSource(source: DataSource) {
   return (
     source.type === "json-api" ||
-    source.type === "internal-json-api" ||
     source.type === "webhook" ||
     source.type === "mqtt" ||
     source.type === "gpio-input" ||
     source.type === "pi-camera" ||
-    source.type === "bme-sensor"
+    source.type === "bme-sensor" ||
+    source.type === "device-system-data"
   );
 }
 
@@ -380,6 +381,7 @@ function sourceEndpoint(source: DataSource) {
   if (source.type === "gpio-output") return gpioOutputEndpoint(source);
   if (source.type === "pi-camera") return cameraEndpoint(source);
   if (source.type === "bme-sensor") return bmeEndpoint(source);
+  if (source.type === "device-system-data") return "device-system-data:local";
   return source.config.url;
 }
 
@@ -391,6 +393,7 @@ function supportsHealthCheck(source: DataSource) {
     source.type !== "gpio-input" &&
     source.type !== "gpio-output" &&
     source.type !== "pi-camera" &&
+    source.type !== "device-system-data" &&
     source.type !== "http-output" &&
     source.type !== "mqtt-output" &&
     Boolean(source.config.healthStatusUrl)

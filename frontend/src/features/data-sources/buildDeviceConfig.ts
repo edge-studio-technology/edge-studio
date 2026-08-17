@@ -87,6 +87,13 @@ export function buildDeviceConfigInput(
       bus: Number(bmeBus),
       address: bmeAddress,
     };
+  if (type === "device-system-data")
+    return {
+      includeSpecs: true,
+      includePerformance: true,
+      includeNetwork: true,
+      includeLocation: true,
+    };
   return {
     url,
     method: method === "PUT" || method === "PATCH" ? ("POST" as const) : method,
