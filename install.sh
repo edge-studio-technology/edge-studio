@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="edge-studio"
-APP_REPO_URL="${APP_REPO_URL:-https://github.com/integritas-technology/edge-studio.git}"
+APP_REPO_URL="${APP_REPO_URL:-https://github.com/edge-studio-technology/edge-studio.git}"
 APP_BRANCH="${APP_BRANCH:-main}"
 APP_DIR="${APP_DIR:-/opt/edge-studio}"
 DEFAULT_MANIFEST_URL="https://integritas.technology/edge-studio/release/manifest.json"

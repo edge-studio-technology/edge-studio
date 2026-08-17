@@ -148,7 +148,7 @@ jobs:
           app-id: ${{ secrets.MANIFEST_APP_ID }}
           private-key: ${{ secrets.MANIFEST_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
-          repositories: integritas-manifests
+          repositories: edge-studio-manifests
 
       - name: Detect release channel from tag
         id: channel
@@ -168,7 +168,7 @@ jobs:
       - name: Checkout manifest repo
         uses: actions/checkout@v7
         with:
-          repository: ${{ github.repository_owner }}/integritas-manifests
+          repository: ${{ github.repository_owner }}/edge-studio-manifests
           ref: main
           token: ${{ steps.manifest-repo-token.outputs.token }}
           path: manifest-repo
