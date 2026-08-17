@@ -120,7 +120,7 @@ export function WorkflowWorkspace({
   const [draftRevealErrors, setDraftRevealErrors] = useState(false);
   const inspectorRef = useRef<PersistedBlockInspectorHandle>(null);
   const nameSaveTimerRef = useRef<number | null>(null);
-  /** Edit-session pause: pause once per workflow while editing. */
+  /** Edit-session pause: pause once per workflow after the first real edit. */
   const editPauseSessionRef = useRef<{
     workflowId: string;
     didPause: boolean;
@@ -173,26 +173,10 @@ export function WorkflowWorkspace({
     };
   }, []);
 
-  // Auto-pause while editing so schedule/event triggers cannot run mid-change.
   useEffect(() => {
-    if (mode !== "edit" || workflow.archived) return;
-
-    let session = editPauseSessionRef.current;
-    if (!session || session.workflowId !== workflow.id) {
-      session = {
-        workflowId: workflow.id,
-        didPause: false,
-      };
-      editPauseSessionRef.current = session;
-    }
-    if (session.didPause) return;
-
-    session.didPause = true;
-    if (workflow.enabled) {
-      setPausedForEditNotice(true);
-      onUpdateWorkflow({ enabled: false });
-    }
-  }, [mode, workflow.archived, workflow.enabled, workflow.id, onUpdateWorkflow]);
+    setPausedForEditNotice(false);
+    editPauseSessionRef.current = { workflowId: workflow.id, didPause: false };
+  }, [workflow.id]);
 
   useEffect(() => {
     if (mode !== "watch") return;
@@ -213,6 +197,7 @@ export function WorkflowWorkspace({
     // Send payment must be configured before the API will accept it — open a local draft sheet.
     if (type === "send_transaction") {
       if (!canAddSendPayment) return;
+      pauseForEditIfNeeded();
       const draft = createDraftBlock(type, sources);
       setDraftRevealErrors(false);
       setDraftBlock(draft);
@@ -223,6 +208,7 @@ export function WorkflowWorkspace({
     if (missingDeviceLibraryReason(type, sources)) return;
     setDraftRevealErrors(false);
     setDraftBlock(null);
+    pauseForEditIfNeeded();
     const result = await onAddBlock({
       type,
       config: defaultEditBlockConfig(type, sources, addressBook),
@@ -247,6 +233,7 @@ export function WorkflowWorkspace({
       return;
     }
     const draft = draftBlock;
+    pauseForEditIfNeeded();
     await onAddBlock({ type: draft.type, config: draft.config });
     setDraftRevealErrors(false);
     setDraftBlock(null);
@@ -294,6 +281,7 @@ export function WorkflowWorkspace({
     clearNameSaveTimer();
     const trimmed = nextName.trim();
     if (!trimmed || trimmed === workflow.name) return;
+    pauseForEditIfNeeded();
     onUpdateWorkflow({ name: trimmed });
   }
 
@@ -303,8 +291,23 @@ export function WorkflowWorkspace({
     if (!trimmed || trimmed === workflow.name) return;
     nameSaveTimerRef.current = window.setTimeout(() => {
       nameSaveTimerRef.current = null;
+      pauseForEditIfNeeded();
       onUpdateWorkflow({ name: trimmed });
     }, 500);
+  }
+
+  function pauseForEditIfNeeded() {
+    if (mode !== "edit" || workflow.archived) return;
+    let session = editPauseSessionRef.current;
+    if (!session || session.workflowId !== workflow.id) {
+      session = { workflowId: workflow.id, didPause: false };
+      editPauseSessionRef.current = session;
+    }
+    if (session.didPause) return;
+    session.didPause = true;
+    if (!workflow.enabled) return;
+    setPausedForEditNotice(true);
+    onUpdateWorkflow({ enabled: false });
   }
 
   return (
@@ -318,6 +321,7 @@ export function WorkflowWorkspace({
             onChange={(event) => {
               const next = event.target.value;
               setWorkflowName(next);
+              if (next.trim() && next.trim() !== workflow.name) pauseForEditIfNeeded();
               scheduleWorkflowNameSave(next);
             }}
             onBlur={() => saveWorkflowNameIfNeeded()}
@@ -470,7 +474,10 @@ export function WorkflowWorkspace({
           onSelectBlock={selectCanvasBlock}
           onMoveBlock={(blockId, direction) => {
             const index = mainBlocks.findIndex((block) => block.id === blockId);
-            if (index > 0) onReorderBlocks(moveBlock(mainBlocks, index, index + direction));
+            if (index > 0) {
+              pauseForEditIfNeeded();
+              onReorderBlocks(moveBlock(mainBlocks, index, index + direction));
+            }
           }}
           onRemoveBlock={(blockId) => {
             if (draftBlock?.id === blockId) {
@@ -480,6 +487,7 @@ export function WorkflowWorkspace({
             const block = mainBlocks.find((item) => item.id === blockId);
             if (block && !block.type.endsWith("_start")) {
               if (blockId === selectedBlockId) flushSelectedInspector();
+              pauseForEditIfNeeded();
               onDeleteBlock(block.id);
             }
           }}
@@ -563,21 +571,32 @@ export function WorkflowWorkspace({
                   addressBook={addressBook}
                   walletStatus={walletStatus}
                   busy={busy}
-                  onAttachStamp={() =>
+                  onDirty={pauseForEditIfNeeded}
+                  onAttachStamp={() => {
+                    pauseForEditIfNeeded();
                     onAddBlock({
                       type: "stamp_integritas",
                       config: {},
                       parentBlockId: selectedBlock.id,
                     })
-                  }
-                  onUpdate={(input) => onUpdateBlock(selectedBlock.id, input)}
-                  onUpdateAttached={(blockId, input) => onUpdateBlock(blockId, input)}
-                  onDelete={() =>
-                    selectedBlock.type.endsWith("_start")
-                      ? undefined
-                      : onDeleteBlock(selectedBlock.id)
-                  }
-                  onDeleteAttached={onDeleteBlock}
+                  }}
+                  onUpdate={(input) => {
+                    pauseForEditIfNeeded();
+                    onUpdateBlock(selectedBlock.id, input);
+                  }}
+                  onUpdateAttached={(blockId, input) => {
+                    pauseForEditIfNeeded();
+                    onUpdateBlock(blockId, input);
+                  }}
+                  onDelete={() => {
+                    if (selectedBlock.type.endsWith("_start")) return;
+                    pauseForEditIfNeeded();
+                    onDeleteBlock(selectedBlock.id);
+                  }}
+                  onDeleteAttached={(blockId) => {
+                    pauseForEditIfNeeded();
+                    onDeleteBlock(blockId);
+                  }}
                 />
               </div>
             ) : (

@@ -781,6 +781,7 @@ export const PersistedBlockInspector = forwardRef<
     addressBook: AddressBookEntry[];
     walletStatus: WalletStatus | null;
     busy: boolean;
+    onDirty: () => void;
     onAttachStamp: () => void;
     onUpdate: (input: Parameters<typeof updateAutomationBlock>[2]) => void;
     onUpdateAttached: (blockId: string, input: Parameters<typeof updateAutomationBlock>[2]) => void;
@@ -795,6 +796,7 @@ export const PersistedBlockInspector = forwardRef<
     addressBook,
     walletStatus,
     busy,
+    onDirty,
     onAttachStamp,
     onUpdate,
     onUpdateAttached,
@@ -856,7 +858,10 @@ export const PersistedBlockInspector = forwardRef<
         addressBook={addressBook}
         walletStatus={walletStatus}
         revealSendPaymentErrors
-        onChange={setConfig}
+        onChange={(nextConfig) => {
+          if (JSON.stringify(nextConfig) !== JSON.stringify(block.config)) onDirty();
+          setConfig(nextConfig);
+        }}
         onAttachedChange={(attachedId, nextConfig) =>
           onUpdateAttached(attachedId, { config: nextConfig })
         }

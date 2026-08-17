@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] main
 
+### Fixed
+
+- Opening a workflow editor no longer pauses an enabled workflow until the workflow is changed.
+
 ## [0.38.7] 2026-08-14
 
 ### Fixed
