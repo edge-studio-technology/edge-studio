@@ -4,6 +4,20 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [0.38.11] 2026-08-18
+
+### Added
+
+- Added hosted feedback submission to `https://integritas.technology/api/feedback` with local save-first fallback and per-submission consent.
+
+### Changed
+
+- Feedback now presents a submit-only browser flow while keeping the local JSON export as a hidden operational fallback.
+
+### Removed
+
+- Removed the Settings feedback export, audit view, hosted toggle, and retry controls from the browser UI.
+
 ## [0.38.10] 2026-08-18
 
 ### Changed
@@ -17,7 +31,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Added Device System Data as a readable input source for local device specs, performance, network interface status, and timezone/locale snapshots.
-- Added hosted feedback submission with local save-first fallback and per-submission consent.
 
 ### Removed
 
