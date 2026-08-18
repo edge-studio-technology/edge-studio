@@ -2,7 +2,7 @@ import { env } from "../../config/env.js";
 import { parseResponseBody } from "../../shared/http.js";
 import type { FeedbackDocument, FeedbackSubmission } from "./feedback.service.js";
 
-export const HOSTED_FEEDBACK_ENDPOINT = "https://qa.integritas.technology/api/feedback";
+export const HOSTED_FEEDBACK_ENDPOINT = "https://integritas.technology/api/feedback";
 
 export type FeedbackRemoteResult =
   | { ok: true; remoteId: string | null; receivedAt: string | null }
