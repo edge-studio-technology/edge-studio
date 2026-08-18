@@ -7,7 +7,7 @@ Use this guide for a 4-pin BME280 or BME680 I2C environmental sensor module with
 Install or update Edge Studio with sensor support enabled:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env ENABLE_SENSORS=true bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_SENSORS=true bash
 ```
 
 Also enable I2C on the Raspberry Pi host, then reboot if prompted:

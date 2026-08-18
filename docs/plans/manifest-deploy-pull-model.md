@@ -1,6 +1,6 @@
 # Manifest Deploy: Private-Repo Pull Model
 
-**Status:** In progress — code changes landed, `integritas-manifests` repo + GitHub App auth set up, VPS-side setup not started.
+**Status:** Superseded — VPS-side pull/cron/nginx work was never started; the manifest repo is public, so the default `MANIFEST_URL` now points directly at `raw.githubusercontent.com` instead. See [0008-manifest-served-from-github-raw.md](../adr/0008-manifest-served-from-github-raw.md).
 **Created:** 2026-07-09
 
 **Related:** [update-service-launch.md](./update-service-launch.md) §1, [update-service.md](./update-service.md)

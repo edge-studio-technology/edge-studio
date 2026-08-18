@@ -20,19 +20,19 @@ The current prototype contains:
 Run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo bash
 ```
 
 To install from a branch before it is merged to `main`, pass `APP_BRANCH`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env APP_BRANCH=<branch-name> bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env APP_BRANCH=<branch-name> bash
 ```
 
 To enable Raspberry Pi GPIO input sources during install, pass `ENABLE_GPIO=true`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env ENABLE_GPIO=true bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_GPIO=true bash
 ```
 
 `ENABLE_GPIO=true` writes `/opt/edge-studio/docker-compose.override.yml` with `/dev/gpiochip0` mounted into the backend container and detects the host GPIO group id. Leave it disabled unless this deployment needs GPIO hardware ingestion.
@@ -40,7 +40,7 @@ curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/m
 To enable Raspberry Pi camera capture devices during install, pass `ENABLE_CAMERA=true`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env ENABLE_CAMERA=true bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_CAMERA=true bash
 ```
 
 `ENABLE_CAMERA=true` installs and starts a host-side `edge-studio-camera-helper` systemd service, generates a `CAMERA_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Edge Studio Compose gateway. Leave it disabled unless this deployment needs camera capture workflows.
@@ -50,7 +50,7 @@ curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/m
 To enable BME280/BME680 I2C environmental sensor devices during install, pass `ENABLE_SENSORS=true`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env ENABLE_SENSORS=true bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_SENSORS=true bash
 ```
 
 `ENABLE_SENSORS=true` installs and starts a host-side `edge-studio-sensor-helper` systemd service, generates a `SENSOR_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Edge Studio Compose gateway. Leave it disabled unless this deployment needs direct I2C sensor reads. The Pi's I2C interface must also be enabled on the host. BME680 reads require the Python `bme680` module; the installer creates a dedicated sensor-helper virtualenv and installs the module there when sensor support is enabled.
@@ -58,7 +58,7 @@ curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/m
 To enable the optional local MQTT broker during install, pass `ENABLE_MQTT_BROKER=true`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo env ENABLE_MQTT_BROKER=true bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_MQTT_BROKER=true bash
 ```
 
 The broker is exposed on `${MQTT_PUBLIC_PORT:-1883}` for trusted LAN devices and is available to backend containers as `mqtt://mqtt:1883`. It is disabled by default.
@@ -244,7 +244,7 @@ Future versions may support custom certificates or an external reverse proxy.
 
 `SESSION_MAX_AGE_DAYS` and `SESSION_IDLE_HOURS` control session lifetime (default 7 days max, 24 hours idle).
 
-`MANIFEST_URL` configures the `update-agent` service: the signed update manifest URL hosted on the VPS. The Ed25519 public key used to verify its signature is baked into the `update-agent` image at build time from the committed `update-agent/manifest-public-key.pem`, not an env var. Leave `MANIFEST_URL` empty to disable update checks. The update flow is split across two origins-in-one: `https://<pi-ip>:8080/update` (no trailing slash) is the product frontend's own page — checks for updates and starts one; `https://<pi-ip>:8080/update/` (trailing slash) is `update-agent`'s own static page — shows apply progress and survives a frontend container swap mid-update. Both are the same TLS cert/origin, proxied through `frontend`'s nginx (no extra browser approval). See [.agents/rules/update-agent.md](.agents/rules/update-agent.md) for the full design.
+`MANIFEST_URL` configures the `update-agent` service: the signed update manifest URL, served from `edgestudio.technology` by default. If that fetch fails, `update-agent` automatically falls back to the public [edge-studio-manifests](https://github.com/edge-studio-technology/edge-studio-manifests) GitHub repo via `raw.githubusercontent.com` (not configurable). The Ed25519 public key used to verify its signature is baked into the `update-agent` image at build time from the committed `update-agent/manifest-public-key.pem`, not an env var. Leave `MANIFEST_URL` empty to disable update checks. The update flow is split across two origins-in-one: `https://<pi-ip>:8080/update` (no trailing slash) is the product frontend's own page — checks for updates and starts one; `https://<pi-ip>:8080/update/` (trailing slash) is `update-agent`'s own static page — shows apply progress and survives a frontend container swap mid-update. Both are the same TLS cert/origin, proxied through `frontend`'s nginx (no extra browser approval). See [.agents/rules/update-agent.md](.agents/rules/update-agent.md) for the full design.
 
 Default installs use `docker-compose.yml` plus `docker-compose.release.yml`, which removes source build contexts and uses the signed manifest's image digests. `DEV_MODE=true` installs use only `docker-compose.yml` so frontend/backend can be built from source.
 
@@ -255,7 +255,7 @@ Build the default-install runtime archive with `npm run release:build-runtime-bu
 To install with another file root or port:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo HOST_FILES_DIR=/home/pi/Documents FRONTEND_PORT=8081 bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo HOST_FILES_DIR=/home/pi/Documents FRONTEND_PORT=8081 bash
 ```
 
 ## Local Development
@@ -477,7 +477,7 @@ docker compose down
 To wipe an installed app's entire SQLite database (all users, sessions, Integritas history, data sources, and automation workflows), run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo bash
 ```
 
 It stops the `backend` container, deletes `edge-studio.db` from the app's data directory, then restarts `backend` so migrations recreate a fresh schema. You'll be prompted to confirm before anything is deleted.
@@ -487,15 +487,15 @@ To clear only part of the database instead, set `TARGET`:
 ```bash
 # Local accounts, sessions, setup wizard state, and Integritas Connect pairing.
 # Forces redoing the setup wizard and Integritas Connect.
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo TARGET=users bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo TARGET=users bash
 
 # Integritas proof history, data source read history, and automation workflow
 # run logs (the Diagnostics tabs). Leaves accounts, data sources, and workflow
 # definitions untouched.
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo TARGET=history bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo TARGET=history bash
 
 # Data sources and automation workflows/blocks. Leaves accounts and history untouched.
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo TARGET=automation bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo TARGET=automation bash
 ```
 
 `TARGET` defaults to `all` (the full database-file wipe above); the scoped targets run SQL deletes against just those tables using the already-built `backend` image, instead of deleting the whole file.
@@ -503,7 +503,7 @@ curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/m
 If the app is installed somewhere other than the default `/opt/edge-studio`, set `APP_DIR`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo APP_DIR=/opt/edge-studio bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/scripts/dev/clear-db.sh | sudo APP_DIR=/opt/edge-studio bash
 ```
 
 ## Tune Update Agent Poll Interval
@@ -511,7 +511,7 @@ curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/m
 `update-agent` checks the update manifest in the background every 30 minutes by default (`STATUS_POLL_INTERVAL_MS=1800000`). To lower this on an installed app, for example for QA/testing:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/scripts/dev/set-status-poll-interval.sh | sudo STATUS_POLL_INTERVAL_MS=300000 bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/scripts/dev/set-status-poll-interval.sh | sudo STATUS_POLL_INTERVAL_MS=300000 bash
 ```
 
 It updates only that one line in the app's `.env`, leaving every other value untouched, then recreates the `update-agent` container to apply it -- only if `update-agent` is already running, so this never starts it on installs that leave it off (e.g. `DEV_MODE`). Set `APP_DIR` the same way as above if the app isn't installed at `/opt/edge-studio`.
@@ -521,7 +521,7 @@ It updates only that one line in the app's `.env`, leaving every other value unt
 Run the installer again:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo bash
 ```
 
 The installer preserves the existing `.env` file, SQLite data directory, and Minima data directory, then pulls the latest repository contents and recreates the containers.
@@ -529,7 +529,7 @@ The installer preserves the existing `.env` file, SQLite data directory, and Min
 You can override the branch:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo APP_BRANCH=main bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo APP_BRANCH=main bash
 ```
 
 ## Architecture
@@ -747,7 +747,7 @@ The frontend sends canonical bytes and proof payloads to the backend. The backen
 The backend uses the first available source in that order. Install with a fallback Integritas API key:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/integritas-technology/edge-studio/main/install.sh | sudo INTEGRITAS_API_KEY=your-api-key bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo INTEGRITAS_API_KEY=your-api-key bash
 ```
 
 For the preferred prototype UX, install without a key and then enter it in the Integritas page in the browser.

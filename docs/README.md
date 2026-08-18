@@ -90,6 +90,8 @@ of carrying the full rationale inline.
 | [adr/0005-modal-mount-gate-removal.md](./adr/0005-modal-mount-gate-removal.md)           | Removed `Modal`'s SSR-pattern `mounted` render gate: unneeded in this client-only SPA, was causing a blank-frame flicker on modal-to-modal swaps |
 | [adr/0006-app-version-single-source-of-truth.md](./adr/0006-app-version-single-source-of-truth.md) | Feedback's app version now reads `update-agent`'s last-applied-manifest file (read-only mount) instead of a separate, drifted `INTEGRITAS_PI_VERSION` env var |
 | [adr/0007-release-channels-and-compose-generation.md](./adr/0007-release-channels-and-compose-generation.md) | Release workflow: branch-per-channel replaced with folder-per-channel on `main`, plus generated per-channel `docker-compose.yml`/`.env.example` |
+| [adr/0008-manifest-served-from-github-raw.md](./adr/0008-manifest-served-from-github-raw.md) | Default manifest delivery: `raw.githubusercontent.com` on the public manifest repo, replacing the never-finished VPS pull-based plan |
+| [adr/0009-manifest-fallback-to-github-raw.md](./adr/0009-manifest-fallback-to-github-raw.md) | Default manifest delivery switched to our own domain, with `update-agent` falling back to `raw.githubusercontent.com` on fetch failure |
 
 ---
 

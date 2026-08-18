@@ -17,7 +17,7 @@ purely to re-serve a static public file over another network hop wouldn't pay fo
 ## Decision
 
 - `frontend/src/features/update/changelog.ts` fetches `CHANGELOG.md` directly from GitHub's raw
-  content CDN client-side: `https://raw.githubusercontent.com/integritas-technology/edge-studio/main/CHANGELOG.md`.
+  content CDN client-side: `https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/CHANGELOG.md`.
   Plain `fetch()`, not `lib/api.ts`'s `getJson` — this must never attach session cookies to a
   third-party host, unlike every other frontend network call in this app.
 - This is a deliberate, narrow exception to "frontend calls backend API only"
@@ -35,7 +35,7 @@ purely to re-serve a static public file over another network hop wouldn't pay fo
   compromised. Rendering to React elements is safe by construction regardless of content, since
   React escapes text nodes.
 - Relative doc links (e.g. `docs/adr/0002-....md`) are rewritten to
-  `https://github.com/integritas-technology/edge-studio/blob/main/...` so they resolve outside
+  `https://github.com/edge-studio-technology/edge-studio/blob/main/...` so they resolve outside
   the repo; links already starting with `http` pass through unchanged.
 - This fetches `main`'s `CHANGELOG.md`, not the currently running build's version — on a feature
   branch (like the one that introduced this), the page shows what's on `main`, not the branch's own

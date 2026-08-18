@@ -2,10 +2,11 @@
 set -euo pipefail
 
 APP_NAME="edge-studio"
-APP_REPO_URL="${APP_REPO_URL:-https://github.com/integritas-technology/edge-studio.git}"
+APP_REPO_URL="${APP_REPO_URL:-https://github.com/edge-studio-technology/edge-studio.git}"
 APP_BRANCH="${APP_BRANCH:-main}"
 APP_DIR="${APP_DIR:-/opt/edge-studio}"
-DEFAULT_MANIFEST_URL="https://integritas.technology/edge-studio/release/manifest.json"
+DEFAULT_MANIFEST_URL="https://edgestudio.technology/manifest/release/manifest.json"
+MANIFEST_FALLBACK_URL="https://raw.githubusercontent.com/edge-studio-technology/edge-studio-manifests/main/edge-studio/release/manifest.json"
 HOST_FILES_DIR_INPUT="${HOST_FILES_DIR-}"
 FRONTEND_PORT_INPUT="${FRONTEND_PORT-}"
 DATA_DIR_INPUT="${DATA_DIR-}"
@@ -452,7 +453,15 @@ download_runtime_bundle() {
   bundle_file="$tmp_dir/edge-studio-runtime.tar.gz"
 
   log "Downloading runtime bundle from $RUNTIME_BUNDLE_URL"
-  curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file"
+  if ! curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file"; then
+    if [ -n "$RUNTIME_BUNDLE_URL_INPUT" ] || [ "$MANIFEST_URL" = "$MANIFEST_FALLBACK_URL" ]; then
+      echo "Failed to download runtime bundle from $RUNTIME_BUNDLE_URL"
+      exit 1
+    fi
+    RUNTIME_BUNDLE_URL="${MANIFEST_FALLBACK_URL%/manifest.json}/edge-studio-runtime.tar.gz"
+    log "Retrying runtime bundle download from fallback $RUNTIME_BUNDLE_URL"
+    curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file"
+  fi
   tar -xzf "$bundle_file" -C "$tmp_dir"
 
   clean_app_directory
@@ -510,9 +519,18 @@ fetch_and_verify_manifest() {
 
   local manifest_file="$APP_DIR/.manifest.json"
   local signature_file="$APP_DIR/.manifest.json.sig"
+  local fetch_url="$MANIFEST_URL"
 
-  curl -fsSL "$MANIFEST_URL" -o "$manifest_file"
-  curl -fsSL "${MANIFEST_URL}.sig" -o "$signature_file"
+  if ! curl -fsSL "$fetch_url" -o "$manifest_file" || ! curl -fsSL "${fetch_url}.sig" -o "$signature_file"; then
+    if [ "$MANIFEST_URL" = "$MANIFEST_FALLBACK_URL" ]; then
+      echo "Failed to fetch manifest from $fetch_url"
+      exit 1
+    fi
+    fetch_url="$MANIFEST_FALLBACK_URL"
+    log "Failed to fetch manifest from $MANIFEST_URL, retrying from fallback $fetch_url"
+    curl -fsSL "$fetch_url" -o "$manifest_file"
+    curl -fsSL "${fetch_url}.sig" -o "$signature_file"
+  fi
 
   if ! docker run --rm --network none \
     -v "$APP_DIR/scripts/verify-manifest.mjs:/verify-manifest.mjs:ro" \
