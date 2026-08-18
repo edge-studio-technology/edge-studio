@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { CheckCircle2, Download, Info } from "lucide-react";
+import { CheckCircle2, Info } from "lucide-react";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
-import { Button, LinkButton } from "../../components/ui/Button";
+import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { Disclosure } from "../../components/ui/Disclosure";
@@ -58,8 +58,6 @@ const featurePriorities = [
 
 type FeedbackSubmitResponse = {
   id: string;
-  fileName: string;
-  exportUrl: string;
   remoteDelivery: RemoteDelivery;
 };
 
@@ -217,21 +215,28 @@ export function FeedbackModal({
       onClose={onClose}
       footer={
         saved ? (
-          <>
-            <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
               Close
-            </Button>
-            <LinkButton href={saved.exportUrl} iconStart={<Download aria-hidden />}>
-              Download feedback JSON
-            </LinkButton>
-          </>
+          </Button>
         ) : (
           <>
+            <div className="basis-full">
+              <CheckboxField
+                label="I agree to send this feedback, device metadata, browser context, and non-secret usage stats to Integritas."
+                checked={hostedConsent}
+                disabled={!config?.hostedFeedbackAvailable || submitting}
+                onChange={(event) => {
+                  setHostedConsent(event.target.checked);
+                  if (event.target.checked) setConsentError(null);
+                }}
+              />
+              {consentError ? <p className="type-body text-text-error mt-detail-fine mb-0">{consentError}</p> : null}
+            </div>
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" form={FEEDBACK_FORM_ID} disabled={submitting}>
-              {submitting ? "Saving..." : config?.hostedFeedbackAvailable ? "Submit" : "Save feedback"}
+            <Button type="submit" form={FEEDBACK_FORM_ID} disabled={submitting || !config?.hostedFeedbackAvailable}>
+              {submitting ? "Submitting..." : "Submit"}
             </Button>
           </>
         )
@@ -251,7 +256,7 @@ export function FeedbackModal({
               <div className="gap-detail-tight grid min-w-0 flex-1">
                 <strong className="type-body-em text-text-primary">{outcomeFor(saved.remoteDelivery).title}</strong>
                 <p className="type-body text-text-secondary m-0">
-                  {outcomeFor(saved.remoteDelivery).message} Your feedback was appended to <code className="type-mono">{saved.fileName}</code>.
+                  {outcomeFor(saved.remoteDelivery).message}
                 </p>
               </div>
             </div>
@@ -326,20 +331,6 @@ export function FeedbackModal({
           <Card size="Compact" className="border-stroke-secondary gap-detail-tight grid border">
             <p className="type-body text-text-secondary m-0">{preSubmitMessage(config)}</p>
           </Card>
-
-          {config?.hostedFeedbackAvailable && (
-            <Card size="Compact" className="border-stroke-secondary gap-detail-tight grid border">
-              <CheckboxField
-                label="I agree to send this feedback, device metadata, browser context, and non-secret usage stats to Integritas."
-                checked={hostedConsent}
-                onChange={(event) => {
-                  setHostedConsent(event.target.checked);
-                  if (event.target.checked) setConsentError(null);
-                }}
-              />
-              {consentError ? <p className="type-body text-text-error m-0">{consentError}</p> : null}
-            </Card>
-          )}
 
           <Card size="Compact" className="border-stroke-secondary gap-detail-tight grid border">
             <p className="type-meta text-text-secondary m-0">Current page</p>
@@ -429,19 +420,19 @@ export function FeedbackModal({
 }
 
 function preSubmitMessage(config: FeedbackConfig | null) {
-  if (config?.hostedFeedbackAvailable) return "Feedback will be saved locally and sent to Integritas.";
-  if (config?.hostedFeedbackEnabled && !config.integritasApiKeyConfigured) return "Hosted feedback requires an Integritas API key. Feedback will be saved locally.";
-  return "Feedback will be saved locally.";
+  if (config?.hostedFeedbackAvailable) return "Feedback will be sent to Integritas.";
+  if (config?.hostedFeedbackEnabled && !config.integritasApiKeyConfigured) return "Feedback requires an Integritas API key before it can be submitted.";
+  return "Feedback delivery is unavailable.";
 }
 
 function outcomeFor(remoteDelivery: RemoteDelivery): { tone: "success" | "warning"; title: string; message: string } {
   if (remoteDelivery.status === "sent") {
-    return { tone: "success", title: "Feedback saved locally and sent to Integritas", message: "Feedback was uploaded successfully." };
+    return { tone: "success", title: "Feedback submitted", message: "Feedback was sent to Integritas." };
   }
   if (remoteDelivery.status === "pending" || remoteDelivery.status === "failed") {
-    return { tone: "warning", title: "Feedback saved locally, upload failed", message: "You can retry later or download the JSON file manually." };
+    return { tone: "warning", title: "Feedback not submitted", message: "Feedback could not reach Integritas. Try again later." };
   }
-  return { tone: "success", title: "Feedback saved locally", message: "Download the JSON file when you are ready to share it." };
+  return { tone: "warning", title: "Feedback not submitted", message: "Feedback requires an Integritas API key before it can be submitted." };
 }
 
 function getBrowserContext() {

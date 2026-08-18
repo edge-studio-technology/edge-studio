@@ -232,6 +232,8 @@ Manual checks:
 
 **Edge Studio sender status:** Implemented. The Integritas-hosted receiver endpoint still needs to be implemented in the Integritas API repository using the guidance below.
 
+Implementation note: the final Edge Studio V2 UI is submit-only. It no longer exposes a feedback settings panel, local JSON download action, or manual retry action in the browser. The backend still saves the local JSON fallback and keeps export/retry endpoints for operational recovery.
+
 V2 changes the primary sharing path from manual JSON download to direct submission to an Integritas-hosted API. Local JSON persistence remains the durable fallback and manual export path.
 
 Hosted endpoint:

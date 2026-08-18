@@ -2,22 +2,12 @@ import { Router } from "express";
 import { requireRole } from "../auth/auth.middleware.js";
 import { badRequest, unauthorized, unexpected } from "../../shared/api-error.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
-import { appendFeedbackSubmission, FeedbackValidationError, getFeedbackConfig, getFeedbackExport, retryPendingFeedback, saveFeedbackConfig } from "./feedback.service.js";
+import { appendFeedbackSubmission, FeedbackValidationError, getFeedbackConfig, getFeedbackExport, retryPendingFeedback } from "./feedback.service.js";
 
 export const feedbackRouter = Router();
 
 feedbackRouter.get("/config", (_req, res) => {
   return res.json(getFeedbackConfig());
-});
-
-feedbackRouter.patch("/config", requireRole("admin"), (req, res) => {
-  try {
-    return res.json(saveFeedbackConfig(req.body));
-  } catch (error) {
-    if (error instanceof FeedbackValidationError) return badRequest(res, error.message);
-    console.error("Failed to save feedback config", error);
-    return unexpected(res, "Failed to save feedback config", error);
-  }
 });
 
 feedbackRouter.post("/retry-pending", requireRole("admin"), async (req, res) => {

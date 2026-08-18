@@ -6,7 +6,6 @@ import { db } from "../../db/database.js";
 import type { SessionUser } from "../auth/auth.types.js";
 import { getIntegritasAuth } from "../integritas-auth/integritas-auth.repository.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
-import { getSetting, saveSetting } from "../settings/settings.repository.js";
 import { getDeviceInfo } from "../status/device.service.js";
 import { HOSTED_FEEDBACK_ENDPOINT, sendHostedFeedback } from "./feedback.remote.js";
 
@@ -22,7 +21,6 @@ const feedbackAreas = new Set(["current_page", "dashboard", "node", "wallet", "i
 const bugSeverities = new Set(["low", "medium", "high", "blocking"]);
 const bugReproducibilities = new Set(["always", "sometimes", "once", "not_sure"]);
 const featurePriorities = new Set(["nice_to_have", "important", "blocking_workflow"]);
-const HOSTED_FEEDBACK_SETTING = "feedback.hosted.enabled";
 
 type FeedbackType = "bug" | "ux_issue" | "feature_request" | "question" | "other";
 type FeedbackArea = "current_page" | "dashboard" | "node" | "wallet" | "integritas" | "data" | "automation" | "diagnostics" | "setup_login" | "install_update" | "other";
@@ -160,22 +158,13 @@ export function getFeedbackExportPath() {
 }
 
 export function getFeedbackConfig(): FeedbackConfig {
-  const hostedFeedbackEnabled = getSetting(HOSTED_FEEDBACK_SETTING) === "true";
   const integritasApiKeyConfigured = Boolean(getIntegritasApiKey());
   return {
-    hostedFeedbackEnabled,
-    hostedFeedbackAvailable: hostedFeedbackEnabled && integritasApiKeyConfigured,
+    hostedFeedbackEnabled: true,
+    hostedFeedbackAvailable: integritasApiKeyConfigured,
     integritasApiKeyConfigured,
     endpoint: HOSTED_FEEDBACK_ENDPOINT,
   };
-}
-
-export function saveFeedbackConfig(input: { hostedFeedbackEnabled?: unknown }) {
-  if (typeof input.hostedFeedbackEnabled !== "boolean") {
-    throw new FeedbackValidationError("hostedFeedbackEnabled must be a boolean.");
-  }
-  saveSetting(HOSTED_FEEDBACK_SETTING, input.hostedFeedbackEnabled ? "true" : "false");
-  return getFeedbackConfig();
 }
 
 export function getEmptyFeedbackDocument(user: SessionUser, now = new Date().toISOString()): FeedbackDocument {
@@ -226,13 +215,6 @@ export async function appendFeedbackSubmission(input: FeedbackInput, user: Sessi
 
   const remoteDelivery = await deliverSubmission(document.metadata, submission, apiKey);
   const updatedSubmission = updateSubmissionRemoteDelivery(filePath, user, submission.id, remoteDelivery);
-  console.info("Hosted feedback delivery recorded", {
-    submissionId: submission.id,
-    status: remoteDelivery.status,
-    remoteId: remoteDelivery.remoteId,
-    attemptCount: remoteDelivery.attemptCount,
-    lastError: remoteDelivery.lastError,
-  });
   return { submission: updatedSubmission ?? { ...submission, remoteDelivery }, fileName: FEEDBACK_FILE, exportUrl: "/api/feedback/export" };
 }
 
@@ -258,13 +240,6 @@ export async function retryPendingFeedback(user: SessionUser) {
     }
     const remoteDelivery = await deliverSubmission(document.metadata, submission, apiKey);
     updateSubmissionRemoteDelivery(filePath, user, submission.id, remoteDelivery);
-    console.info("Hosted feedback retry recorded", {
-      submissionId: submission.id,
-      status: remoteDelivery.status,
-      remoteId: remoteDelivery.remoteId,
-      attemptCount: remoteDelivery.attemptCount,
-      lastError: remoteDelivery.lastError,
-    });
     if (remoteDelivery.status === "sent") sent += 1;
     else failed += 1;
   }
