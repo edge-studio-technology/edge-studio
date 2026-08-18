@@ -19,8 +19,17 @@ export async function sendHostedFeedback({
 }): Promise<FeedbackRemoteResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), env.integritasRequestTimeoutMs);
+  const startedAt = Date.now();
+  const logContext = {
+    endpoint: HOSTED_FEEDBACK_ENDPOINT,
+    submissionId: submission.id,
+    feedbackType: submission.type,
+    feedbackArea: submission.area.id,
+    integritasAccountId: metadata.integritasAccount.userId,
+  };
 
   try {
+    console.info("Sending hosted feedback", logContext);
     const response = await fetch(HOSTED_FEEDBACK_ENDPOINT, {
       method: "POST",
       headers: {
@@ -34,6 +43,12 @@ export async function sendHostedFeedback({
 
     const responseText = await response.text();
     const parsed = parseResponseBody(responseText);
+    console.info("Hosted feedback response received", {
+      ...logContext,
+      status: response.status,
+      ok: response.ok,
+      durationMs: Date.now() - startedAt,
+    });
     if (response.ok) {
       const body = typeof parsed === "object" && parsed ? parsed as { ok?: unknown; remoteId?: unknown; receivedAt?: unknown } : {};
       if (body.ok === false) {
@@ -56,6 +71,11 @@ export async function sendHostedFeedback({
       error: hostedErrorMessage(parsed, `Hosted feedback rejected the submission with HTTP ${response.status}.`),
     };
   } catch (error) {
+    console.warn("Hosted feedback request failed", {
+      ...logContext,
+      durationMs: Date.now() - startedAt,
+      error: error instanceof Error ? error.message : "Hosted feedback request failed.",
+    });
     return {
       ok: false,
       retryable: true,

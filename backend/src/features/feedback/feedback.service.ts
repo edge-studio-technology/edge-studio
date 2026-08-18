@@ -226,6 +226,13 @@ export async function appendFeedbackSubmission(input: FeedbackInput, user: Sessi
 
   const remoteDelivery = await deliverSubmission(document.metadata, submission, apiKey);
   const updatedSubmission = updateSubmissionRemoteDelivery(filePath, user, submission.id, remoteDelivery);
+  console.info("Hosted feedback delivery recorded", {
+    submissionId: submission.id,
+    status: remoteDelivery.status,
+    remoteId: remoteDelivery.remoteId,
+    attemptCount: remoteDelivery.attemptCount,
+    lastError: remoteDelivery.lastError,
+  });
   return { submission: updatedSubmission ?? { ...submission, remoteDelivery }, fileName: FEEDBACK_FILE, exportUrl: "/api/feedback/export" };
 }
 
@@ -251,6 +258,13 @@ export async function retryPendingFeedback(user: SessionUser) {
     }
     const remoteDelivery = await deliverSubmission(document.metadata, submission, apiKey);
     updateSubmissionRemoteDelivery(filePath, user, submission.id, remoteDelivery);
+    console.info("Hosted feedback retry recorded", {
+      submissionId: submission.id,
+      status: remoteDelivery.status,
+      remoteId: remoteDelivery.remoteId,
+      attemptCount: remoteDelivery.attemptCount,
+      lastError: remoteDelivery.lastError,
+    });
     if (remoteDelivery.status === "sent") sent += 1;
     else failed += 1;
   }
