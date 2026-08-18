@@ -7,7 +7,6 @@ import {
   Eye,
   EyeOff,
   LogOut,
-  MessageSquare,
   MousePointerClick,
   PanelLeft,
   RefreshCw,
@@ -33,8 +32,6 @@ import { initTotpReset, verifyTotpReset } from "../features/auth/api";
 import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
 import { useAuth } from "../features/auth/hooks";
-import { FeedbackAuditButton } from "../features/feedback/FeedbackAuditButton";
-import { HostedFeedbackSettings } from "../features/feedback/HostedFeedbackSettings";
 
 type TotpResetPhase = "idle" | "scan" | "done";
 
@@ -360,20 +357,6 @@ export function AuthSettingsPage() {
           defaultOpen
         >
           <div className="gap-detail-close mt-2 grid">
-            <SubSection
-              icon={<MessageSquare size={13} />}
-              title="Feedback"
-              description="Download the local feedback export file to share with the Integritas team, or view exactly what's stored."
-            >
-              <HostedFeedbackSettings />
-              <ButtonRow>
-                <LinkButton href="/api/feedback/export" iconStart={<Download aria-hidden />}>
-                  Export feedback JSON
-                </LinkButton>
-                <FeedbackAuditButton />
-              </ButtonRow>
-            </SubSection>
-
             <SubSection
               icon={<RefreshCw size={13} aria-hidden />}
               title="Software update"
