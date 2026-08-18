@@ -1,6 +1,6 @@
 # Feedback Feature Plan
 
-**Status:** V1 implemented; V2 hosted API planned  
+**Status:** V1 implemented; V2 Edge Studio sender implemented; hosted receiver required  
 **Created:** 2026-07-14  
 **Goal:** Let authenticated operators send structured app feedback from anywhere in the browser UI, save it locally as AI-ingestible JSON, and make it easy to manually share with the Integritas team.
 
@@ -10,7 +10,7 @@ V1 adds a small Feedback entry point in the app shell sidebar. It opens a modal 
 
 Submissions are saved by the backend into one aggregate JSON file under the existing writable data directory. The same aggregate file can be downloaded from the browser and sent manually by the user.
 
-V2 replaces manual sharing with direct submission to a hosted Integritas API, with explicit care not to transmit secrets or raw credentials.
+V2 adds optional direct submission to a hosted Integritas API, with local JSON persistence kept as the durable fallback and explicit care not to transmit secrets or raw credentials.
 
 ## Assumptions
 
@@ -229,6 +229,8 @@ Manual checks:
 ## Later Releases
 
 ### V2: Hosted Feedback API
+
+**Edge Studio sender status:** Implemented. The Integritas-hosted receiver endpoint still needs to be implemented in the Integritas API repository using the guidance below.
 
 V2 changes the primary sharing path from manual JSON download to direct submission to an Integritas-hosted API. Local JSON persistence remains the durable fallback and manual export path.
 

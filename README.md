@@ -394,6 +394,10 @@ In the default Docker deploy this is inside the backend container at `/data/feed
 
 After submitting feedback, the modal offers a download action for the same aggregate JSON file so the user can send it manually. The export includes the current page, feedback area, feedback type, optional bug/feature details, description, browser context, non-secret app/user/device metadata, and lightweight app stats. It must not include passwords, TOTP secrets, session cookies, Integritas API keys, wallet seed phrases, or raw encrypted secret values.
 
+Admins can enable **Send feedback directly to Integritas** from Settings → App → Feedback. When enabled, Edge Studio still saves feedback locally first, then sends the single new submission to `https://integritas.technology/core/v2/web/feedback` using the existing backend-only Integritas API key. The modal requires per-submission consent before sending device metadata, browser context, and non-secret usage stats off the Pi.
+
+If hosted feedback is disabled, the Integritas API key is missing, or the hosted endpoint is unavailable, the local JSON file remains the durable fallback. Pending or failed hosted uploads can be retried from Settings → App → Feedback, and retries are safe because each submission keeps its Pi-generated id.
+
 The CLI does not send session cookies in V1. Operational CLI commands that call protected APIs return `401 Unauthorized` until a future CLI auth story is added. Use the browser UI for authenticated operations.
 
 ## CLI
@@ -593,10 +597,13 @@ Feedback:
 
 ```http
 POST /api/feedback
+GET /api/feedback/config
+PATCH /api/feedback/config
+POST /api/feedback/retry-pending
 GET /api/feedback/export
 ```
 
-`POST /api/feedback` appends a submission to the local aggregate JSON feedback export. `GET /api/feedback/export` downloads that file as `feedback-submissions.json`. Both routes require an authenticated browser session.
+`POST /api/feedback` appends a submission to the local aggregate JSON feedback export and, when enabled, sends that single submission to the hosted Integritas feedback endpoint. `GET /api/feedback/config` returns non-secret hosted feedback state, `PATCH /api/feedback/config` toggles hosted delivery for admins, `POST /api/feedback/retry-pending` retries pending or failed hosted uploads for admins, and `GET /api/feedback/export` downloads `feedback-submissions.json`.
 
 `/api/status/overview` returns status for the frontend, backend, Minima node, and Integritas API, plus Docker container CPU/memory/image-size data when the Docker socket is available.
 
