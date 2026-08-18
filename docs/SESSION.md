@@ -9,7 +9,7 @@ Branch `ui/polish`.
 - Audited `frontend/src/components/` for unused files: 12 with no importers, plus `TablePager` only reached via unused `ListPagerFilterBar`.
 - Updated `docs/frontend-design-system.md` (unused/superseded inventory, live list replacements), frontend agent rules (`ErrorDetails` → `ErrorDetailPanel`), and `docs/TASKS.md` removal-decision item.
 - Implemented Feedback V2 sender-side hosted delivery: local save first, optional Integritas upload, per-submission consent, delivery status in the local JSON, and manual retry from Settings.
-- Added feedback config/retry backend endpoints and fixed hosted endpoint client `POST https://integritas.technology/core/v2/web/feedback` with existing `x-api-key`/`x-request-id` headers.
+- Added feedback config/retry backend endpoints and fixed hosted endpoint client `POST https://integritas.technology/api/feedback` with existing `x-api-key`/`x-request-id` headers.
 - Updated `README.md`, `SECURITY.md`, `CHANGELOG.md`, and `docs/plans/feedback.md` for hosted feedback behavior and receiver requirements.
 - Verified with `npm run check`, `npm --prefix backend run build`, `npm --prefix frontend run build`, and `docker compose config`.
 

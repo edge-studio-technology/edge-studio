@@ -237,7 +237,7 @@ V2 changes the primary sharing path from manual JSON download to direct submissi
 Hosted endpoint:
 
 ```txt
-https://integritas.technology/core/v2/web/feedback
+https://integritas.technology/api/feedback
 ```
 
 Authentication uses the existing Integritas API key from the current encrypted DB-backed settings/secrets flow. Do not add a new feedback API key, and avoid new `.env` variables for V2 feedback configuration.
@@ -281,7 +281,7 @@ PATCH /api/feedback/config
   "hostedFeedbackEnabled": false,
   "hostedFeedbackAvailable": false,
   "integritasApiKeyConfigured": true,
-  "endpoint": "https://integritas.technology/core/v2/web/feedback"
+  "endpoint": "https://integritas.technology/api/feedback"
 }
 ```
 
@@ -366,7 +366,7 @@ Extend each submission with `remoteDelivery`:
   "remoteDelivery": {
     "status": "sent",
     "remoteId": "integritas-feedback-id",
-    "endpoint": "https://integritas.technology/core/v2/web/feedback",
+    "endpoint": "https://integritas.technology/api/feedback",
     "lastAttemptAt": "2026-07-14T12:00:00.000Z",
     "lastSuccessAt": "2026-07-14T12:00:01.000Z",
     "attemptCount": 1,
@@ -403,7 +403,7 @@ backend/src/features/feedback/feedback.remote.ts
 
 Responsibilities:
 
-- POST to `https://integritas.technology/core/v2/web/feedback`.
+- POST to `https://integritas.technology/api/feedback`.
 - Use the existing Integritas API key header convention.
 - Apply a timeout.
 - Parse hosted API success/failure responses.
@@ -493,7 +493,7 @@ Do not introduce a parallel validation, auth, logging, queue, or persistence sty
 Endpoint:
 
 ```http
-POST /core/v2/web/feedback
+POST /api/feedback
 ```
 
 Expected authentication:

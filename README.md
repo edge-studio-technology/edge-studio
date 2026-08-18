@@ -394,7 +394,7 @@ In the default Docker deploy this is inside the backend container at `/data/feed
 
 After submitting feedback, the modal offers a download action for the same aggregate JSON file so the user can send it manually. The export includes the current page, feedback area, feedback type, optional bug/feature details, description, browser context, non-secret app/user/device metadata, and lightweight app stats. It must not include passwords, TOTP secrets, session cookies, Integritas API keys, wallet seed phrases, or raw encrypted secret values.
 
-Admins can enable **Send feedback directly to Integritas** from Settings → App → Feedback. When enabled, Edge Studio still saves feedback locally first, then sends the single new submission to `https://integritas.technology/core/v2/web/feedback` using the existing backend-only Integritas API key. The modal requires per-submission consent before sending device metadata, browser context, and non-secret usage stats off the Pi.
+Admins can enable **Send feedback directly to Integritas** from Settings → App → Feedback. When enabled, Edge Studio still saves feedback locally first, then sends the single new submission to `https://integritas.technology/api/feedback` using the existing backend-only Integritas API key. The modal requires per-submission consent before sending device metadata, browser context, and non-secret usage stats off the Pi.
 
 If hosted feedback is disabled, the Integritas API key is missing, or the hosted endpoint is unavailable, the local JSON file remains the durable fallback. Pending or failed hosted uploads can be retried from Settings → App → Feedback, and retries are safe because each submission keeps its Pi-generated id.
 
