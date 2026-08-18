@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Default `MANIFEST_URL` now points at `raw.githubusercontent.com` on the public `edge-studio-manifests` repo instead of a VPS, since the VPS-side delivery was never built.
 - Project org/repo references (install.sh clone URL, changelog/doc raw links) updated from `integritas-technology` to `edge-studio-technology`.
+- Default `MANIFEST_URL` now points at `edgestudio.technology` instead of `raw.githubusercontent.com`; `update-agent` and the installer both fall back to `raw.githubusercontent.com` automatically if that fetch fails.
 
 ## [Unreleased] main
 
