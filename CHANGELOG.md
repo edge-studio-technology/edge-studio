@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Added Device System Data as a readable input source for local device specs, performance, network interface status, and timezone/locale snapshots.
+- Added optional hosted feedback delivery with local save-first behavior, per-submission consent, and manual retry from Settings.
 
 ### Removed
 

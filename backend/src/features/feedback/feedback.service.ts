@@ -5,7 +5,10 @@ import { env } from "../../config/env.js";
 import { db } from "../../db/database.js";
 import type { SessionUser } from "../auth/auth.types.js";
 import { getIntegritasAuth } from "../integritas-auth/integritas-auth.repository.js";
+import { getIntegritasApiKey } from "../settings/secrets.service.js";
+import { getSetting, saveSetting } from "../settings/settings.repository.js";
 import { getDeviceInfo } from "../status/device.service.js";
+import { HOSTED_FEEDBACK_ENDPOINT, sendHostedFeedback } from "./feedback.remote.js";
 
 const FEEDBACK_DIR = "feedback";
 const FEEDBACK_FILE = "feedback-submissions.json";
@@ -19,14 +22,26 @@ const feedbackAreas = new Set(["current_page", "dashboard", "node", "wallet", "i
 const bugSeverities = new Set(["low", "medium", "high", "blocking"]);
 const bugReproducibilities = new Set(["always", "sometimes", "once", "not_sure"]);
 const featurePriorities = new Set(["nice_to_have", "important", "blocking_workflow"]);
+const HOSTED_FEEDBACK_SETTING = "feedback.hosted.enabled";
 
 type FeedbackType = "bug" | "ux_issue" | "feature_request" | "question" | "other";
 type FeedbackArea = "current_page" | "dashboard" | "node" | "wallet" | "integritas" | "data" | "automation" | "diagnostics" | "setup_login" | "install_update" | "other";
 type BugSeverity = "low" | "medium" | "high" | "blocking";
 type BugReproducibility = "always" | "sometimes" | "once" | "not_sure";
 type FeaturePriority = "nice_to_have" | "important" | "blocking_workflow";
+type RemoteDeliveryStatus = "not_enabled" | "not_configured" | "pending" | "sent" | "failed";
 
-type FeedbackSubmission = {
+export type RemoteDelivery = {
+  status: RemoteDeliveryStatus;
+  remoteId: string | null;
+  endpoint: string;
+  lastAttemptAt: string | null;
+  lastSuccessAt: string | null;
+  attemptCount: number;
+  lastError: string | null;
+};
+
+export type FeedbackSubmission = {
   id: string;
   submittedAt: string;
   page: {
@@ -66,9 +81,10 @@ type FeedbackSubmission = {
     integritasProofs: number;
     automationWorkflows: number;
   };
+  remoteDelivery: RemoteDelivery;
 };
 
-type FeedbackDocument = {
+export type FeedbackDocument = {
   schemaVersion: 1;
   metadata: {
     createdAt: string;
@@ -122,6 +138,14 @@ export type FeedbackInput = {
       devicePixelRatio?: unknown;
     };
   };
+  hostedConsent?: unknown;
+};
+
+export type FeedbackConfig = {
+  hostedFeedbackEnabled: boolean;
+  hostedFeedbackAvailable: boolean;
+  integritasApiKeyConfigured: boolean;
+  endpoint: string;
 };
 
 export class FeedbackValidationError extends Error {
@@ -135,6 +159,25 @@ export function getFeedbackExportPath() {
   return path.join(env.dataDir, FEEDBACK_DIR, FEEDBACK_FILE);
 }
 
+export function getFeedbackConfig(): FeedbackConfig {
+  const hostedFeedbackEnabled = getSetting(HOSTED_FEEDBACK_SETTING) === "true";
+  const integritasApiKeyConfigured = Boolean(getIntegritasApiKey());
+  return {
+    hostedFeedbackEnabled,
+    hostedFeedbackAvailable: hostedFeedbackEnabled && integritasApiKeyConfigured,
+    integritasApiKeyConfigured,
+    endpoint: HOSTED_FEEDBACK_ENDPOINT,
+  };
+}
+
+export function saveFeedbackConfig(input: { hostedFeedbackEnabled?: unknown }) {
+  if (typeof input.hostedFeedbackEnabled !== "boolean") {
+    throw new FeedbackValidationError("hostedFeedbackEnabled must be a boolean.");
+  }
+  saveSetting(HOSTED_FEEDBACK_SETTING, input.hostedFeedbackEnabled ? "true" : "false");
+  return getFeedbackConfig();
+}
+
 export function getEmptyFeedbackDocument(user: SessionUser, now = new Date().toISOString()): FeedbackDocument {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -143,11 +186,16 @@ export function getEmptyFeedbackDocument(user: SessionUser, now = new Date().toI
   };
 }
 
-export function appendFeedbackSubmission(input: FeedbackInput, user: SessionUser) {
+export async function appendFeedbackSubmission(input: FeedbackInput, user: SessionUser) {
   const parsed = parseFeedbackInput(input);
   const now = new Date().toISOString();
   const filePath = getFeedbackExportPath();
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const config = getFeedbackConfig();
+  const apiKey = getIntegritasApiKey();
+  if (config.hostedFeedbackAvailable && input.hostedConsent !== true) {
+    throw new FeedbackValidationError("Confirm consent before sending feedback to Integritas.");
+  }
 
   const existing = readFeedbackDocument(filePath, user, now);
   const submission: FeedbackSubmission = {
@@ -160,7 +208,8 @@ export function appendFeedbackSubmission(input: FeedbackInput, user: SessionUser
     ...(parsed.bug ? { bug: parsed.bug } : {}),
     ...(parsed.featureRequest ? { featureRequest: parsed.featureRequest } : {}),
     browser: parsed.browser,
-    stats: getFeedbackStats()
+    stats: getFeedbackStats(),
+    remoteDelivery: buildInitialRemoteDelivery(config),
   };
 
   const createdAt = existing.metadata.createdAt || now;
@@ -171,7 +220,56 @@ export function appendFeedbackSubmission(input: FeedbackInput, user: SessionUser
   };
 
   writeJsonAtomically(filePath, document);
-  return { submission, fileName: FEEDBACK_FILE, exportUrl: "/api/feedback/export" };
+  if (!config.hostedFeedbackAvailable || !apiKey) {
+    return { submission, fileName: FEEDBACK_FILE, exportUrl: "/api/feedback/export" };
+  }
+
+  const remoteDelivery = await deliverSubmission(document.metadata, submission, apiKey);
+  const updatedSubmission = updateSubmissionRemoteDelivery(filePath, user, submission.id, remoteDelivery);
+  console.info("Hosted feedback delivery recorded", {
+    submissionId: submission.id,
+    status: remoteDelivery.status,
+    remoteId: remoteDelivery.remoteId,
+    attemptCount: remoteDelivery.attemptCount,
+    lastError: remoteDelivery.lastError,
+  });
+  return { submission: updatedSubmission ?? { ...submission, remoteDelivery }, fileName: FEEDBACK_FILE, exportUrl: "/api/feedback/export" };
+}
+
+export async function retryPendingFeedback(user: SessionUser) {
+  const config = getFeedbackConfig();
+  const apiKey = getIntegritasApiKey();
+  if (!config.hostedFeedbackEnabled || !apiKey) {
+    const document = readFeedbackDocument(getFeedbackExportPath(), user, new Date().toISOString());
+    return { sent: 0, failed: 0, skipped: countRetryableSubmissions(document) };
+  }
+
+  const filePath = getFeedbackExportPath();
+  const now = new Date().toISOString();
+  const document = readFeedbackDocument(filePath, user, now);
+  let sent = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const submission of document.submissions) {
+    if (!isRetryableSubmission(submission)) {
+      skipped += 1;
+      continue;
+    }
+    const remoteDelivery = await deliverSubmission(document.metadata, submission, apiKey);
+    updateSubmissionRemoteDelivery(filePath, user, submission.id, remoteDelivery);
+    console.info("Hosted feedback retry recorded", {
+      submissionId: submission.id,
+      status: remoteDelivery.status,
+      remoteId: remoteDelivery.remoteId,
+      attemptCount: remoteDelivery.attemptCount,
+      lastError: remoteDelivery.lastError,
+    });
+    if (remoteDelivery.status === "sent") sent += 1;
+    else failed += 1;
+  }
+
+  return { sent, failed, skipped };
 }
 
 export function getFeedbackExport(user: SessionUser) {
@@ -293,6 +391,66 @@ function writeJsonAtomically(filePath: string, document: FeedbackDocument) {
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
   fs.writeFileSync(tempPath, JSON.stringify(document, null, 2) + "\n", { encoding: "utf8", mode: 0o600 });
   fs.renameSync(tempPath, filePath);
+}
+
+async function deliverSubmission(metadata: FeedbackDocument["metadata"], submission: FeedbackSubmission, apiKey: string): Promise<RemoteDelivery> {
+  const attemptedAt = new Date().toISOString();
+  const result = await sendHostedFeedback({ apiKey, metadata, submission });
+  if (result.ok) {
+    return {
+      status: "sent",
+      remoteId: result.remoteId,
+      endpoint: HOSTED_FEEDBACK_ENDPOINT,
+      lastAttemptAt: attemptedAt,
+      lastSuccessAt: result.receivedAt ?? new Date().toISOString(),
+      attemptCount: submission.remoteDelivery.attemptCount + 1,
+      lastError: null,
+    };
+  }
+
+  return {
+    status: result.retryable ? "pending" : "failed",
+    remoteId: submission.remoteDelivery.remoteId,
+    endpoint: HOSTED_FEEDBACK_ENDPOINT,
+    lastAttemptAt: attemptedAt,
+    lastSuccessAt: submission.remoteDelivery.lastSuccessAt,
+    attemptCount: submission.remoteDelivery.attemptCount + 1,
+    lastError: result.error,
+  };
+}
+
+function buildInitialRemoteDelivery(config: FeedbackConfig): RemoteDelivery {
+  return {
+    status: config.hostedFeedbackEnabled ? (config.integritasApiKeyConfigured ? "pending" : "not_configured") : "not_enabled",
+    remoteId: null,
+    endpoint: HOSTED_FEEDBACK_ENDPOINT,
+    lastAttemptAt: null,
+    lastSuccessAt: null,
+    attemptCount: 0,
+    lastError: null,
+  };
+}
+
+function updateSubmissionRemoteDelivery(filePath: string, user: SessionUser, submissionId: string, remoteDelivery: RemoteDelivery) {
+  const now = new Date().toISOString();
+  const existing = readFeedbackDocument(filePath, user, now);
+  let updatedSubmission: FeedbackSubmission | null = null;
+  const submissions = existing.submissions.map((submission) => {
+    if (submission.id !== submissionId) return submission;
+    updatedSubmission = { ...submission, remoteDelivery };
+    return updatedSubmission;
+  });
+  if (!updatedSubmission) return null;
+  writeJsonAtomically(filePath, { ...existing, metadata: buildMetadata(user, existing.metadata.createdAt || now, now), submissions });
+  return updatedSubmission;
+}
+
+function isRetryableSubmission(submission: FeedbackSubmission) {
+  return submission.remoteDelivery?.status === "pending" || submission.remoteDelivery?.status === "failed";
+}
+
+function countRetryableSubmissions(document: FeedbackDocument) {
+  return document.submissions.filter(isRetryableSubmission).length;
 }
 
 function buildMetadata(user: SessionUser, createdAt: string, updatedAt: string): FeedbackDocument["metadata"] {

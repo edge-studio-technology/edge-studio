@@ -24,6 +24,7 @@
 ## Next
 
 - [ ] On a real device or a local `install.sh` run, confirm end-to-end that `last-applied-manifest.json` gets written and a Feedback submission's `app.version` reflects it (see `docs/adr/0006-app-version-single-source-of-truth.md`).
+- [ ] Implement the hosted feedback receiver endpoint in the Integritas API repo — see `docs/plans/feedback.md` Step 8.
 - [ ] Manual browser check of the rebuilt Automation "Workflows" table (`AutomationWorkflowsList.tsx`): filter/search, pagination, pause/play, the overflow menu's six actions, and the delete flow now going through confirm → progress modal instead of deleting immediately.
 - [ ] Manual browser check of the rebuilt Automation inbox table (`AutomationInboxTable.tsx`): now full width (previously a bare `<section>` missing `w-full`); filter (All/Unread/Read) + search; the "View preview" modal for each of the four preview formats (text/json/link/image); "Mark read/unread"; and Delete now going through confirm → progress modal instead of deleting immediately.
 - [ ] Manual browser check of the "Send feedback" modal's new "Integritas account ID" disclosure row (`FeedbackModal.tsx`): "Not connected" when unlinked, real account ID once linked via Integritas Connect.
@@ -41,6 +42,7 @@
 - [ ] Manual browser check of the onboarding wizard's brand mark (first-run setup) after swapping its placeholder `Layers3` icon for the real `BrandMark` component.
 - [ ] Manual browser check of the Account page's "Delete backup" flow after switching it to the shared `DeleteConfirmModal`/`DeleteProgressModal` component, and confirm the modal-swap flicker fix (removed `Modal`'s `mounted` render gate) actually resolves it in-browser.
 - [ ] Manual browser check of the restyled "Send feedback" modal (`FeedbackModal.tsx`) — all form states (bug / feature request / other), the description validation error, and the saved/download state.
+- [ ] Manual browser check of Feedback V2 hosted delivery: setting toggle, no-key fallback, consent block, local save, hosted success/failure status, and retry pending uploads.
 - [ ] Manual browser check of Account settings' new "Software update"/"Feedback" subsections and the Update page's relocated "Update now"/"Check again" actions.
 - [ ] Manual browser check of `update-agent`'s static update-progress page (`/update/` during an in-progress apply) to confirm the logo renders correctly and reads as the right size (superseded by the newer gradient-background/logo-position item above; the original 404 this covered is long fixed).
 - [ ] Manual browser check of the new `/marketplace` "Coming soon" page and the `NotFoundPage` catch-all (visit an unmatched path) against the Figma reference, the retoned `DeleteConfirmModal` icon (backup/device delete), and the new `ErrorBoundary` "Something went wrong" fallback (needs a manually-thrown error to trigger).
