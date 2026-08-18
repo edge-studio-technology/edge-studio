@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Project org/repo references (install.sh clone URL, changelog/doc raw links) updated from `integritas-technology` to `edge-studio-technology`.
 - Default `MANIFEST_URL` now points at `edgestudio.technology` instead of `raw.githubusercontent.com`; `update-agent` and the installer both fall back to `raw.githubusercontent.com` automatically if that fetch fails.
 
-## [Unreleased] main
+## [0.38.9] 2026-08-18
 
 ### Added
 
