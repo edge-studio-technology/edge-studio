@@ -6,7 +6,14 @@ export function integritasErrorToast(error: unknown): { title: string; message: 
   if (err.errorCode === "unauthorized") {
     return {
       title: "Integritas API key rejected",
-      message: "Integritas rejected this device’s API key. Reconnect under Settings → Integritas Connect.",
+      message: "Integritas rejected this device’s API key. Reconnect on the Integritas page.",
+    };
+  }
+
+  if (err.errorCode === "payment_required") {
+    return {
+      title: "Integritas plan limit reached",
+      message: "Upgrade your Integritas plan to continue stamping or verifying.",
     };
   }
 

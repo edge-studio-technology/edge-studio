@@ -26,7 +26,8 @@ beforeAll(async () => {
   userId = createUser({
     username: "admin",
     passwordHash: "irrelevant-hash",
-    totpSecretEncrypted: "irrelevant-secret"
+    totpSecretEncrypted: "irrelevant-secret",
+    credentialType: "password"
   });
 });
 

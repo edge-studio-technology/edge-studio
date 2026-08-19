@@ -463,7 +463,7 @@ Validation rules:
 First block must be a start block.
 Only one start block per workflow.
 Stamp block requires a previous block that creates a hash.
-Fetch block requires an HTTP/internal JSON data source.
+Fetch block requires an HTTP JSON or BME sensor data source.
 Record trigger event requires an event trigger.
 GPIO output blocks require explicit output config and hardware safety validation.
 ```

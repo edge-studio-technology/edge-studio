@@ -7,13 +7,21 @@ const {
   runMinimaPathCommandMock,
   getMinimaContainerStatsMock,
   getMinimaStorageInfoMock,
-  restartComposeServiceMock
+  restartComposeServiceMock,
+  startComposeServiceMock,
+  getContainerRestartBaselineMock,
+  waitForContainerRestartMock,
+  getComposeServiceContainerMock
 } = vi.hoisted(() => ({
   fetchMinimaStatusMock: vi.fn(),
   runMinimaPathCommandMock: vi.fn(),
   getMinimaContainerStatsMock: vi.fn(),
   getMinimaStorageInfoMock: vi.fn(),
-  restartComposeServiceMock: vi.fn()
+  restartComposeServiceMock: vi.fn(),
+  startComposeServiceMock: vi.fn(),
+  getContainerRestartBaselineMock: vi.fn(),
+  waitForContainerRestartMock: vi.fn(),
+  getComposeServiceContainerMock: vi.fn()
 }));
 
 vi.mock("../../../src/features/minima/minima.rpc.js", () => ({
@@ -27,7 +35,14 @@ vi.mock("../../../src/features/minima/minima.docker.js", () => ({
 }));
 
 vi.mock("../../../src/features/status/docker.control.js", () => ({
-  restartComposeService: restartComposeServiceMock
+  restartComposeService: restartComposeServiceMock,
+  startComposeService: startComposeServiceMock,
+  getContainerRestartBaseline: getContainerRestartBaselineMock,
+  waitForContainerRestart: waitForContainerRestartMock
+}));
+
+vi.mock("../../../src/features/status/docker.service.js", () => ({
+  getComposeServiceContainer: getComposeServiceContainerMock
 }));
 
 let teardown: () => void;
@@ -53,6 +68,10 @@ beforeEach(() => {
     chainDataDisk: null
   });
   restartComposeServiceMock.mockReset();
+  startComposeServiceMock.mockReset();
+  getContainerRestartBaselineMock.mockReset().mockResolvedValue({ restartCount: 0, startedAt: "2026-01-01T00:00:00.000Z" });
+  waitForContainerRestartMock.mockReset().mockResolvedValue(false);
+  getComposeServiceContainerMock.mockReset().mockResolvedValue({ Id: "abc123fullcontainerid" });
 });
 
 function rpcOk(body: unknown) {
@@ -250,10 +269,24 @@ describe("addMinimaPeers", () => {
 
 describe("restartMinimaContainer", () => {
   it("restarts the minima compose service", async () => {
+    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, source: "s", command: "quit", body: {} });
     restartComposeServiceMock.mockResolvedValue({ ok: true, state: "restarting", service: "minima", containerId: "abc123" });
+
     const result = await minimaService.restartMinimaContainer();
 
-    assert.equal(restartComposeServiceMock.mock.calls[0][0], "minima");
     assert.equal(result.service, "minima");
+    assert.equal(result.state, "restarting");
+
+    // performGracefulRestart runs in the background (not awaited by restartMinimaContainer) —
+    // wait for it to reach the docker-restart fallback (waitForContainerRestart resolves false above).
+    await vi.waitFor(() => {
+      assert.equal(restartComposeServiceMock.mock.calls.length, 1);
+    });
+    assert.equal(restartComposeServiceMock.mock.calls[0][0], "minima");
+  });
+
+  it("throws when the container can't be found", async () => {
+    getComposeServiceContainerMock.mockResolvedValue(null);
+    await assert.rejects(() => minimaService.restartMinimaContainer(), /Docker container not found/);
   });
 });

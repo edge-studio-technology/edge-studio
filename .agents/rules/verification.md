@@ -19,7 +19,7 @@ For shell changes:
 
 ```bash
 bash -n install.sh
-bash -n bin/integritas-pi
+bash -n bin/edge-studio
 ```
 
 Before committing or asking someone to push, check untracked files explicitly:

@@ -49,6 +49,7 @@ authProtectedRouter.get("/me", (req, res) => {
     displayName: req.user.displayName,
     role: req.user.role,
     lastLogin: req.user.lastLogin,
+    credentialType: req.user.credentialType,
   });
 });
 

@@ -14,5 +14,6 @@ export type CreateAddressBookEntryInput = {
 
 export type UpdateAddressBookEntryInput = {
   label?: string;
+  address?: string;
   notes?: string | null;
 };

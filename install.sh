@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="integritas-pi"
-APP_REPO_URL="${APP_REPO_URL:-https://github.com/integritas-technology/integritas-pi.git}"
+APP_NAME="edge-studio"
+APP_REPO_URL="${APP_REPO_URL:-https://github.com/edge-studio-technology/edge-studio.git}"
 APP_BRANCH="${APP_BRANCH:-main}"
-APP_DIR="${APP_DIR:-/opt/integritas-pi}"
+APP_DIR="${APP_DIR:-/opt/edge-studio}"
+DEFAULT_MANIFEST_URL="https://edgestudio.technology/manifest/release/manifest.json"
+MANIFEST_FALLBACK_URL="https://raw.githubusercontent.com/edge-studio-technology/edge-studio-manifests/main/edge-studio/release/manifest.json"
 HOST_FILES_DIR_INPUT="${HOST_FILES_DIR-}"
 FRONTEND_PORT_INPUT="${FRONTEND_PORT-}"
 DATA_DIR_INPUT="${DATA_DIR-}"
@@ -23,6 +25,10 @@ CAMERA_MAX_DURATION_SECONDS_INPUT="${CAMERA_MAX_DURATION_SECONDS-}"
 CAMERA_RETENTION_DAYS_INPUT="${CAMERA_RETENTION_DAYS-}"
 CAMERA_PHOTO_COMMAND_INPUT="${CAMERA_PHOTO_COMMAND-}"
 CAMERA_VIDEO_COMMAND_INPUT="${CAMERA_VIDEO_COMMAND-}"
+ENABLE_SENSORS_INPUT="${ENABLE_SENSORS-}"
+SENSOR_HELPER_TOKEN_INPUT="${SENSOR_HELPER_TOKEN-}"
+SENSOR_HELPER_PORT_INPUT="${SENSOR_HELPER_PORT-}"
+SENSOR_READ_TIMEOUT_MS_INPUT="${SENSOR_READ_TIMEOUT_MS-}"
 INTEGRITAS_DOCKER_SUBNET_INPUT="${INTEGRITAS_DOCKER_SUBNET-}"
 INTEGRITAS_DOCKER_GATEWAY_INPUT="${INTEGRITAS_DOCKER_GATEWAY-}"
 MINIMA_DATA_DIR_INPUT="${MINIMA_DATA_DIR-}"
@@ -34,6 +40,7 @@ INTEGRITAS_CONNECT_BASE_URL_INPUT="${INTEGRITAS_CONNECT_BASE_URL-}"
 INTEGRITAS_BASE_URL_INPUT="${INTEGRITAS_BASE_URL-}"
 INTEGRITAS_REQUEST_ID_INPUT="${INTEGRITAS_REQUEST_ID-}"
 MANIFEST_URL_INPUT="${MANIFEST_URL-}"
+RUNTIME_BUNDLE_URL_INPUT="${RUNTIME_BUNDLE_URL-}"
 DEV_MODE_INPUT="${DEV_MODE-}"
 HOST_FILES_DIR="${HOST_FILES_DIR:-/home/pi}"
 FRONTEND_PORT="${FRONTEND_PORT:-8080}"
@@ -53,6 +60,10 @@ CAMERA_MAX_DURATION_SECONDS="${CAMERA_MAX_DURATION_SECONDS:-30}"
 CAMERA_RETENTION_DAYS="${CAMERA_RETENTION_DAYS:-7}"
 CAMERA_PHOTO_COMMAND="${CAMERA_PHOTO_COMMAND:-rpicam-still}"
 CAMERA_VIDEO_COMMAND="${CAMERA_VIDEO_COMMAND:-rpicam-vid}"
+ENABLE_SENSORS="${ENABLE_SENSORS:-false}"
+SENSOR_HELPER_TOKEN="${SENSOR_HELPER_TOKEN:-}"
+SENSOR_HELPER_PORT="${SENSOR_HELPER_PORT:-38181}"
+SENSOR_READ_TIMEOUT_MS="${SENSOR_READ_TIMEOUT_MS:-5000}"
 INTEGRITAS_DOCKER_SUBNET="${INTEGRITAS_DOCKER_SUBNET:-172.30.0.0/24}"
 INTEGRITAS_DOCKER_GATEWAY="${INTEGRITAS_DOCKER_GATEWAY:-172.30.0.1}"
 MINIMA_DATA_DIR="${MINIMA_DATA_DIR:-./minima}"
@@ -62,9 +73,11 @@ MINIMA_RPC_BIND="${MINIMA_RPC_BIND:-127.0.0.1}"
 MINIMA_RPC_PORT="${MINIMA_RPC_PORT:-9005}"
 INTEGRITAS_CONNECT_BASE_URL="${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}"
 INTEGRITAS_BASE_URL="${INTEGRITAS_BASE_URL:-https://integritas.technology/core}"
-INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID:-integritas-pi}"
-MANIFEST_URL="${MANIFEST_URL:-https://integritas.technology/update-manifest/manifest.json}"
+INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID:-edge-studio}"
+MANIFEST_URL="${MANIFEST_URL:-$DEFAULT_MANIFEST_URL}"
+RUNTIME_BUNDLE_URL="${RUNTIME_BUNDLE_URL:-}"
 DEV_MODE="${DEV_MODE:-false}"
+COMPOSE_FILE_NAME="docker-compose.yml"
 
 APT_PACKAGES=(
   curl
@@ -158,11 +171,19 @@ prepare_runtime_directories() {
     chmod 700 "$(resolved_camera_capture_dir)"
   fi
 
+  local resolved_minima_data_dir
   case "$MINIMA_DATA_DIR" in
-    /*) mkdir -p "$MINIMA_DATA_DIR" ;;
-    ./*) mkdir -p "$APP_DIR/${MINIMA_DATA_DIR#./}" ;;
-    *) mkdir -p "$APP_DIR/$MINIMA_DATA_DIR" ;;
+    /*) resolved_minima_data_dir="$MINIMA_DATA_DIR" ;;
+    ./*) resolved_minima_data_dir="$APP_DIR/${MINIMA_DATA_DIR#./}" ;;
+    *) resolved_minima_data_dir="$APP_DIR/$MINIMA_DATA_DIR" ;;
   esac
+  mkdir -p "$resolved_minima_data_dir"
+
+  # Backend (non-root, uid 1000) mounts only this subdirectory read-write for node
+  # backup/restore; Minima itself keeps running as root, so it can still write .bak
+  # files here regardless of this chown.
+  mkdir -p "$resolved_minima_data_dir/backups"
+  chown -R 1000:1000 "$resolved_minima_data_dir/backups"
 
   local resolved_update_agent_state_dir
   case "$UPDATE_AGENT_STATE_DIR" in
@@ -203,6 +224,10 @@ load_existing_config() {
   CAMERA_RETENTION_DAYS="${CAMERA_RETENTION_DAYS_INPUT:-${CAMERA_RETENTION_DAYS:-7}}"
   CAMERA_PHOTO_COMMAND="${CAMERA_PHOTO_COMMAND_INPUT:-${CAMERA_PHOTO_COMMAND:-rpicam-still}}"
   CAMERA_VIDEO_COMMAND="${CAMERA_VIDEO_COMMAND_INPUT:-${CAMERA_VIDEO_COMMAND:-rpicam-vid}}"
+  ENABLE_SENSORS="${ENABLE_SENSORS_INPUT:-${ENABLE_SENSORS:-false}}"
+  SENSOR_HELPER_TOKEN="${SENSOR_HELPER_TOKEN_INPUT:-${SENSOR_HELPER_TOKEN:-}}"
+  SENSOR_HELPER_PORT="${SENSOR_HELPER_PORT_INPUT:-${SENSOR_HELPER_PORT:-38181}}"
+  SENSOR_READ_TIMEOUT_MS="${SENSOR_READ_TIMEOUT_MS_INPUT:-${SENSOR_READ_TIMEOUT_MS:-5000}}"
   INTEGRITAS_DOCKER_SUBNET="${INTEGRITAS_DOCKER_SUBNET_INPUT:-${INTEGRITAS_DOCKER_SUBNET:-172.30.0.0/24}}"
   INTEGRITAS_DOCKER_GATEWAY="${INTEGRITAS_DOCKER_GATEWAY_INPUT:-${INTEGRITAS_DOCKER_GATEWAY:-172.30.0.1}}"
   MINIMA_DATA_DIR="${MINIMA_DATA_DIR_INPUT:-${MINIMA_DATA_DIR:-./minima}}"
@@ -212,8 +237,12 @@ load_existing_config() {
   MINIMA_RPC_PORT="${MINIMA_RPC_PORT_INPUT:-${MINIMA_RPC_PORT:-9005}}"
   INTEGRITAS_CONNECT_BASE_URL="${INTEGRITAS_CONNECT_BASE_URL_INPUT:-${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}}"
   INTEGRITAS_BASE_URL="${INTEGRITAS_BASE_URL_INPUT:-${INTEGRITAS_BASE_URL:-https://integritas.technology/core}}"
-  INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID_INPUT:-${INTEGRITAS_REQUEST_ID:-integritas-pi}}"
-  MANIFEST_URL="${MANIFEST_URL_INPUT:-${MANIFEST_URL:-https://integritas.technology/update-manifest/manifest.json}}"
+  INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID_INPUT:-${INTEGRITAS_REQUEST_ID:-edge-studio}}"
+  MANIFEST_URL="${MANIFEST_URL_INPUT:-$DEFAULT_MANIFEST_URL}"
+  RUNTIME_BUNDLE_URL="${RUNTIME_BUNDLE_URL_INPUT:-${RUNTIME_BUNDLE_URL:-}}"
+  if [ -z "$RUNTIME_BUNDLE_URL_INPUT" ]; then
+    RUNTIME_BUNDLE_URL=""
+  fi
   DEV_MODE="${DEV_MODE_INPUT:-${DEV_MODE:-false}}"
 }
 
@@ -233,6 +262,15 @@ ensure_camera_helper_token() {
 
   log "Generating CAMERA_HELPER_TOKEN for local camera helper"
   CAMERA_HELPER_TOKEN="$(openssl rand -hex 32)"
+}
+
+ensure_sensor_helper_token() {
+  if ! is_truthy "$ENABLE_SENSORS" || [ -n "$SENSOR_HELPER_TOKEN" ]; then
+    return
+  fi
+
+  log "Generating SENSOR_HELPER_TOKEN for local sensor helper"
+  SENSOR_HELPER_TOKEN="$(openssl rand -hex 32)"
 }
 
 resolved_data_dir() {
@@ -300,12 +338,50 @@ normalize_mqtt_broker_config() {
   fi
 }
 
+normalize_sensor_config() {
+  if is_truthy "$ENABLE_SENSORS"; then
+    ENABLE_SENSORS="true"
+  else
+    ENABLE_SENSORS="false"
+  fi
+}
+
 normalize_dev_mode() {
   if is_truthy "$DEV_MODE"; then
     DEV_MODE="true"
+    COMPOSE_FILE_NAME="docker-compose.yml"
   else
     DEV_MODE="false"
+    COMPOSE_FILE_NAME="docker-compose.yml:docker-compose.release.yml"
   fi
+}
+
+compose_args() {
+  local args=()
+  local compose_file
+  local remaining_files="$COMPOSE_FILE_NAME"
+
+  while [ -n "$remaining_files" ]; do
+    compose_file="${remaining_files%%:*}"
+    args+=(-f "$compose_file")
+    if [ "$remaining_files" = "$compose_file" ]; then
+      break
+    fi
+    remaining_files="${remaining_files#*:}"
+  done
+
+  if [ -f "$APP_DIR/docker-compose.override.yml" ]; then
+    args+=(-f docker-compose.override.yml)
+  fi
+  printf '%s\n' "${args[@]}"
+}
+
+compose() {
+  local args=()
+  while IFS= read -r arg; do
+    args+=("$arg")
+  done < <(compose_args)
+  docker compose "${args[@]}" "$@"
 }
 
 relative_top_level_dir() {
@@ -317,32 +393,92 @@ relative_top_level_dir() {
   esac
 }
 
-download_app() {
-  local tmp_dir
+derive_runtime_bundle_url() {
+  if [ -n "$RUNTIME_BUNDLE_URL" ]; then
+    return
+  fi
+
+  case "$MANIFEST_URL" in
+    */manifest.json) RUNTIME_BUNDLE_URL="${MANIFEST_URL%/manifest.json}/edge-studio-runtime.tar.gz" ;;
+    *)
+      echo "RUNTIME_BUNDLE_URL is not set and could not be derived from MANIFEST_URL=$MANIFEST_URL"
+      exit 1
+      ;;
+  esac
+}
+
+clean_app_directory() {
   local protected_minima_dir
   local protected_sqlite_dir
+  local protected_sensor_helper_venv
   local protected_update_agent_state_dir
   local find_args=("$APP_DIR" -mindepth 1 -maxdepth 1 ! -name ".env")
-  tmp_dir="$(mktemp -d)"
+
   protected_minima_dir="$(relative_top_level_dir "$MINIMA_DATA_DIR")"
   protected_sqlite_dir="$(relative_top_level_dir "$DATA_DIR")"
+  protected_sensor_helper_venv=".venv-sensor-helper"
   protected_update_agent_state_dir="$(relative_top_level_dir "$UPDATE_AGENT_STATE_DIR")"
+
+  rm -rf "$APP_DIR/.git" "$APP_DIR/backend" "$APP_DIR/frontend" "$APP_DIR/update-agent"
+  [ -n "$protected_minima_dir" ] && find_args+=(! -name "$protected_minima_dir")
+  [ -n "$protected_sqlite_dir" ] && find_args+=(! -name "$protected_sqlite_dir")
+  find_args+=(! -name "$protected_sensor_helper_venv")
+  [ -n "$protected_update_agent_state_dir" ] && find_args+=(! -name "$protected_update_agent_state_dir")
+  find_args+=(-exec rm -rf {} +)
+  find "${find_args[@]}"
+}
+
+download_full_repo() {
+  local tmp_dir
+
+  tmp_dir="$(mktemp -d)"
 
   log "Downloading $APP_REPO_URL ($APP_BRANCH)"
   git clone --depth 1 --branch "$APP_BRANCH" "$APP_REPO_URL" "$tmp_dir"
 
-  rm -rf "$APP_DIR/.git" "$APP_DIR/backend" "$APP_DIR/frontend"
-  [ -n "$protected_minima_dir" ] && find_args+=(! -name "$protected_minima_dir")
-  [ -n "$protected_sqlite_dir" ] && find_args+=(! -name "$protected_sqlite_dir")
-  [ -n "$protected_update_agent_state_dir" ] && find_args+=(! -name "$protected_update_agent_state_dir")
-  find_args+=(-exec rm -rf {} +)
-  find "${find_args[@]}"
-
+  clean_app_directory
   cp -a "$tmp_dir/." "$APP_DIR/"
   chmod 755 "$APP_DIR"
   rm -rf "$tmp_dir"
 
   log "install.sh version: $(fetch_manifest_field "$APP_DIR/package.json" version)"
+}
+
+download_runtime_bundle() {
+  local tmp_dir
+  local bundle_file
+
+  derive_runtime_bundle_url
+  tmp_dir="$(mktemp -d)"
+  bundle_file="$tmp_dir/edge-studio-runtime.tar.gz"
+
+  log "Downloading runtime bundle from $RUNTIME_BUNDLE_URL"
+  if ! curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file"; then
+    if [ -n "$RUNTIME_BUNDLE_URL_INPUT" ] || [ "$MANIFEST_URL" = "$MANIFEST_FALLBACK_URL" ]; then
+      echo "Failed to download runtime bundle from $RUNTIME_BUNDLE_URL"
+      exit 1
+    fi
+    RUNTIME_BUNDLE_URL="${MANIFEST_FALLBACK_URL%/manifest.json}/edge-studio-runtime.tar.gz"
+    log "Retrying runtime bundle download from fallback $RUNTIME_BUNDLE_URL"
+    curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file"
+  fi
+  tar -xzf "$bundle_file" -C "$tmp_dir"
+
+  clean_app_directory
+  rm -f "$bundle_file"
+  cp -a "$tmp_dir/." "$APP_DIR/"
+  chmod 755 "$APP_DIR"
+  rm -rf "$tmp_dir"
+
+  log "install.sh version: $(fetch_manifest_field "$APP_DIR/package.json" version)"
+}
+
+download_app() {
+  if is_truthy "$DEV_MODE"; then
+    download_full_repo
+  else
+    download_runtime_bundle
+  fi
 }
 
 fetch_manifest_field() {
@@ -356,9 +492,9 @@ fetch_manifest_field() {
 resolve_images() {
   if is_truthy "$DEV_MODE"; then
     log "DEV_MODE enabled: skipping manifest fetch/signature verification and update agent; building frontend/backend from source"
-    FRONTEND_IMAGE="integritas-pi-frontend:dev"
-    BACKEND_IMAGE="integritas-pi-backend:dev"
-    UPDATE_AGENT_IMAGE="integritas-pi-update-agent:dev"
+    FRONTEND_IMAGE="edge-studio-frontend:dev"
+    BACKEND_IMAGE="edge-studio-backend:dev"
+    UPDATE_AGENT_IMAGE="edge-studio-update-agent:dev"
     MANIFEST_VERSION=""
     MANIFEST_CREATED_AT=""
     return
@@ -383,33 +519,27 @@ fetch_and_verify_manifest() {
 
   local manifest_file="$APP_DIR/.manifest.json"
   local signature_file="$APP_DIR/.manifest.json.sig"
-  local signature_bin="$APP_DIR/.manifest.json.sig.bin"
+  local fetch_url="$MANIFEST_URL"
 
-  curl -fsSL "$MANIFEST_URL" -o "$manifest_file"
-  curl -fsSL "${MANIFEST_URL}.sig" -o "$signature_file"
+  if ! curl -fsSL "$fetch_url" -o "$manifest_file" || ! curl -fsSL "${fetch_url}.sig" -o "$signature_file"; then
+    if [ "$MANIFEST_URL" = "$MANIFEST_FALLBACK_URL" ]; then
+      echo "Failed to fetch manifest from $fetch_url"
+      exit 1
+    fi
+    fetch_url="$MANIFEST_FALLBACK_URL"
+    log "Failed to fetch manifest from $MANIFEST_URL, retrying from fallback $fetch_url"
+    curl -fsSL "$fetch_url" -o "$manifest_file"
+    curl -fsSL "${fetch_url}.sig" -o "$signature_file"
+  fi
 
-  base64 -d "$signature_file" > "$signature_bin"
-
-  local openssl_major
-  openssl_major="$(openssl version | sed -E 's/^OpenSSL ([0-9]+).*/\1/')"
-
-  if [ "$openssl_major" -lt 3 ] 2>/dev/null; then
-    echo
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    echo "! WARNING: SIGNATURE VERIFICATION IS DISABLED                              !"
-    echo "!                                                                          !"
-    echo "! Detected OpenSSL $(openssl version) which cannot verify Ed25519          !"
-    echo "! signatures via pkeyutl (needs OpenSSL 3.x). Manifest signature checking  !"
-    echo "! is being SKIPPED so testing can continue on this host. Images will be    !"
-    echo "! installed WITHOUT verifying they were signed by a trusted publisher.     !"
-    echo "!                                                                          !"
-    echo "! THIS IS TEMPORARY. Remove this bypass once a real fix ships             !"
-    echo "! (see install.sh fetch_and_verify_manifest).                             !"
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    echo
-  elif ! openssl pkeyutl -verify -pubin -inkey "$public_key_file" -in "$manifest_file" -sigfile "$signature_bin"; then
+  if ! docker run --rm --network none \
+    -v "$APP_DIR/scripts/verify-manifest.mjs:/verify-manifest.mjs:ro" \
+    -v "$manifest_file:/manifest.json:ro" \
+    -v "$signature_file:/manifest.json.sig:ro" \
+    -v "$public_key_file:/manifest-public-key.pem:ro" \
+    node:20-bookworm-slim node /verify-manifest.mjs /manifest.json /manifest.json.sig /manifest-public-key.pem; then
     echo "Manifest signature verification failed. Refusing to install untrusted images."
-    rm -f "$manifest_file" "$signature_file" "$signature_bin"
+    rm -f "$manifest_file" "$signature_file"
     exit 1
   fi
 
@@ -419,7 +549,7 @@ fetch_and_verify_manifest() {
   MANIFEST_VERSION="$(fetch_manifest_field "$manifest_file" version)"
   MANIFEST_CREATED_AT="$(fetch_manifest_field "$manifest_file" createdAt)"
 
-  rm -f "$manifest_file" "$signature_file" "$signature_bin"
+  rm -f "$manifest_file" "$signature_file"
 
   if [ -z "$FRONTEND_IMAGE" ] || [ -z "$BACKEND_IMAGE" ] || [ -z "$UPDATE_AGENT_IMAGE" ]; then
     echo "Manifest is missing frontend, backend, or update-agent image digest."
@@ -479,6 +609,11 @@ CAMERA_MAX_DURATION_SECONDS=$CAMERA_MAX_DURATION_SECONDS
 CAMERA_RETENTION_DAYS=$CAMERA_RETENTION_DAYS
 CAMERA_PHOTO_COMMAND=$CAMERA_PHOTO_COMMAND
 CAMERA_VIDEO_COMMAND=$CAMERA_VIDEO_COMMAND
+ENABLE_SENSORS=$ENABLE_SENSORS
+SENSOR_HELPER_URL=http://$INTEGRITAS_DOCKER_GATEWAY:$SENSOR_HELPER_PORT
+SENSOR_HELPER_TOKEN=$SENSOR_HELPER_TOKEN
+SENSOR_HELPER_PORT=$SENSOR_HELPER_PORT
+SENSOR_READ_TIMEOUT_MS=$SENSOR_READ_TIMEOUT_MS
 INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
 INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
 ENABLE_MQTT_BROKER=$ENABLE_MQTT_BROKER
@@ -497,6 +632,7 @@ INTEGRITAS_BASE_URL=$INTEGRITAS_BASE_URL
 INTEGRITAS_REQUEST_ID=$INTEGRITAS_REQUEST_ID
 COOKIE_SECURE=true
 MANIFEST_URL=$MANIFEST_URL
+RUNTIME_BUNDLE_URL=$RUNTIME_BUNDLE_URL
 FRONTEND_IMAGE=$FRONTEND_IMAGE
 BACKEND_IMAGE=$BACKEND_IMAGE
 UPDATE_AGENT_IMAGE=$UPDATE_AGENT_IMAGE
@@ -544,7 +680,7 @@ EOF
 }
 
 install_camera_helper() {
-  local service_file="/etc/systemd/system/integritas-pi-camera-helper.service"
+  local service_file="/etc/systemd/system/edge-studio-camera-helper.service"
   local helper_user
   local supplementary_groups=""
   local capture_dir
@@ -552,7 +688,7 @@ install_camera_helper() {
   if ! is_truthy "$ENABLE_CAMERA"; then
     if [ -f "$service_file" ]; then
       log "Disabling camera helper service"
-      systemctl disable --now integritas-pi-camera-helper.service >/dev/null 2>&1 || true
+      systemctl disable --now edge-studio-camera-helper.service >/dev/null 2>&1 || true
       rm -f "$service_file"
       systemctl daemon-reload
     fi
@@ -586,7 +722,7 @@ install_camera_helper() {
   log "Installing camera helper service"
   cat > "$service_file" <<EOF
 [Unit]
-Description=Integritas Pi Camera Helper
+Description=Edge Studio Camera Helper
 After=network.target
 
 [Service]
@@ -605,7 +741,7 @@ Environment=CAMERA_VIDEO_COMMAND=$CAMERA_VIDEO_COMMAND
 Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
 Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
 ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT; fi'
-ExecStart=/usr/bin/python3 $APP_DIR/camera-helper/integritas_camera_helper.py
+ExecStart=/usr/bin/python3 $APP_DIR/camera-helper/edge_studio_camera_helper.py
 Restart=on-failure
 RestartSec=2
 
@@ -615,7 +751,98 @@ EOF
 
   chmod 600 "$service_file"
   systemctl daemon-reload
-  systemctl enable --now integritas-pi-camera-helper.service
+  systemctl enable edge-studio-camera-helper.service
+  systemctl restart edge-studio-camera-helper.service
+}
+
+install_sensor_helper() {
+  local service_file="/etc/systemd/system/edge-studio-sensor-helper.service"
+  local sensor_venv="$APP_DIR/.venv-sensor-helper"
+  local sensor_python="$sensor_venv/bin/python"
+  local helper_user
+  local supplementary_groups=""
+
+  if ! is_truthy "$ENABLE_SENSORS"; then
+    if [ -f "$service_file" ]; then
+      log "Disabling sensor helper service"
+      systemctl disable --now edge-studio-sensor-helper.service >/dev/null 2>&1 || true
+      rm -f "$service_file"
+      systemctl daemon-reload
+    fi
+    return
+  fi
+
+  helper_user="${SUDO_USER:-pi}"
+  if ! id "$helper_user" >/dev/null 2>&1; then
+    helper_user="root"
+  fi
+  if getent group i2c >/dev/null 2>&1; then
+    supplementary_groups="SupplementaryGroups=i2c"
+  fi
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required for the sensor helper but was not found."
+    exit 1
+  fi
+
+  if ! python3 - <<'PY' >/dev/null 2>&1
+try:
+    import smbus2
+except Exception:
+    import smbus
+PY
+  then
+    log "Installing Python SMBus support for I2C sensors"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y python3-smbus i2c-tools
+  fi
+
+  if [ ! -x "$sensor_python" ]; then
+    log "Creating sensor helper Python environment"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv
+    python3 -m venv --system-site-packages "$sensor_venv"
+  fi
+
+  if ! "$sensor_python" - <<'PY' >/dev/null 2>&1
+import bme680
+PY
+  then
+    log "Installing optional Python BME680 support for I2C sensors"
+    "$sensor_python" -m pip install bme680 || log "Warning: Python bme680 could not be installed automatically. BME680 reads require the Python bme680 module in $sensor_venv."
+  fi
+
+  if [ ! -e /dev/i2c-1 ]; then
+    log "Warning: /dev/i2c-1 was not found. Enable I2C on the Raspberry Pi before using BME280/BME680 sensor devices."
+  fi
+
+  log "Installing sensor helper service"
+  cat > "$service_file" <<EOF
+[Unit]
+Description=Edge Studio Sensor Helper
+After=network.target
+
+[Service]
+Type=simple
+User=$helper_user
+$supplementary_groups
+WorkingDirectory=$APP_DIR
+Environment=SENSOR_HELPER_HOST=0.0.0.0
+Environment=SENSOR_HELPER_PORT=$SENSOR_HELPER_PORT
+Environment=SENSOR_HELPER_TOKEN=$SENSOR_HELPER_TOKEN
+Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
+Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
+ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT; fi'
+ExecStart=$sensor_python $APP_DIR/sensor-helper/edge_studio_sensor_helper.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  chmod 600 "$service_file"
+  systemctl daemon-reload
+  systemctl enable edge-studio-sensor-helper.service
+  systemctl restart edge-studio-sensor-helper.service
 }
 
 generate_tls_cert() {
@@ -630,35 +857,35 @@ start_app() {
   log "Starting Docker services"
   cd "$APP_DIR"
   if is_truthy "$DEV_MODE"; then
-    docker compose build frontend backend
+    compose build frontend backend
   else
-    docker compose pull frontend backend
+    compose pull frontend backend
   fi
   ensure_compose_network
-  docker compose up -d
+  compose up -d
 }
 
 ensure_compose_network() {
   local current_gateway
 
-  if ! docker network inspect integritas-pi >/dev/null 2>&1; then
+  if ! docker network inspect edge-studio >/dev/null 2>&1; then
     return
   fi
 
-  current_gateway="$(docker network inspect integritas-pi --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || true)"
+  current_gateway="$(docker network inspect edge-studio --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || true)"
   if [ "$current_gateway" = "$INTEGRITAS_DOCKER_GATEWAY" ]; then
     return
   fi
 
-  log "Recreating Docker network integritas-pi with gateway $INTEGRITAS_DOCKER_GATEWAY"
-  docker compose down
-  docker network rm integritas-pi >/dev/null 2>&1 || true
+  log "Recreating Docker network edge-studio with gateway $INTEGRITAS_DOCKER_GATEWAY"
+  compose down
+  docker network rm edge-studio >/dev/null 2>&1 || true
 }
 
 install_cli() {
-  if [ -f "$APP_DIR/bin/integritas-pi" ]; then
+  if [ -f "$APP_DIR/bin/edge-studio" ]; then
     log "Installing CLI command"
-    install -m 755 "$APP_DIR/bin/integritas-pi" /usr/local/bin/integritas-pi
+    install -m 755 "$APP_DIR/bin/edge-studio" /usr/local/bin/edge-studio
   fi
 }
 
@@ -698,9 +925,11 @@ main() {
   load_existing_config
   ensure_app_secret
   ensure_camera_helper_token
+  ensure_sensor_helper_token
   detect_docker_gid
   detect_gpio_gid
   normalize_mqtt_broker_config
+  normalize_sensor_config
   normalize_dev_mode
   download_app
   resolve_images
@@ -709,6 +938,7 @@ main() {
   write_env_file
   write_compose_override
   install_camera_helper
+  install_sensor_helper
   generate_tls_cert
   install_cli
   start_app

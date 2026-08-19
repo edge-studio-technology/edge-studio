@@ -1,4 +1,5 @@
 import type {
+  MinimaAutoRestartResponse,
   MinimaCommandResult,
   MinimaConfig,
   MinimaNodeStatus,
@@ -33,4 +34,12 @@ export function addMinimaPeers(peerslist: string) {
 
 export function restartMinimaContainer() {
   return postJson<MinimaRestartResult>("/api/minima/restart");
+}
+
+export function getAutoRestartEnabled() {
+  return getJson<MinimaAutoRestartResponse>("/api/minima/restart/auto");
+}
+
+export function setAutoRestartEnabled(enabled: boolean) {
+  return postJson<MinimaAutoRestartResponse>("/api/minima/restart/auto", { enabled });
 }

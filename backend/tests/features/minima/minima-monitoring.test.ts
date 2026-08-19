@@ -44,10 +44,9 @@ describe("snapshot recording", () => {
 
   it("recordPollerCheck updates the poller check time and state", () => {
     monitoring.recordPollerCheck("2026-01-01T00:00:00.000Z", "running");
-    assert.deepEqual(monitoring.getLastMinimaPollerState(), {
-      state: "running",
-      lastCheckedAt: "2026-01-01T00:00:00.000Z"
-    });
+    const snapshot = monitoring.getMinimaMonitoringSnapshot();
+    assert.equal(snapshot.lastPollerCheckAt, "2026-01-01T00:00:00.000Z");
+    assert.equal(snapshot.lastNodeState, "running");
   });
 
   it("recordStallDetected sets lastStallDetectedAt", () => {

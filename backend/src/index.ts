@@ -15,6 +15,10 @@ import {
   stopMinimaHealthPoller,
 } from "./features/minima/minima-poll.service.js";
 import {
+  startMinimaAutoBackupScheduler,
+  stopMinimaAutoBackupScheduler,
+} from "./features/minima/minima-backup-scheduler.service.js";
+import {
   startMqttIngestion,
   stopMqttIngestion,
 } from "./features/data-sources/mqttIngestion.service.js";
@@ -36,13 +40,14 @@ await ensureDeviceId();
 startAutomationScheduler();
 startIntegritasProofPoller();
 startMinimaHealthPoller();
+startMinimaAutoBackupScheduler();
 startMqttIngestion();
 startGpioIngestion();
 
 const app = createApp();
 
 app.listen(env.port, "0.0.0.0", () => {
-  console.log(`integritas-pi backend listening on port ${env.port}`);
+  console.log(`edge-studio backend listening on port ${env.port}`);
   console.log(`File access root: ${env.hostFilesRoot}`);
   console.log(`Minima status URL: ${env.minimaStatusUrl}`);
   console.log(`Integritas connect base URL: ${env.integritasConnectBaseUrl}`);
@@ -54,6 +59,7 @@ function shutdown() {
   stopAutomationScheduler();
   stopIntegritasProofPoller();
   stopMinimaHealthPoller();
+  stopMinimaAutoBackupScheduler();
   stopMqttIngestion();
   stopGpioIngestion();
   stopGpioOutputHolders();

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 980" role="img" aria-labelledby="title desc">
+  <title id="title">Raspberry Pi GPIO 40-pin header pinout</title>
+  <desc id="desc">Raspberry Pi board with expanded 40-pin header labels for power, ground, I2C, and GPIO pins.</desc>
+  <rect width="1600" height="980" fill="#fff"/>
+  <g transform="translate(95 160)">
+    <rect x="0" y="0" width="430" height="560" rx="34" fill="#2f8f5a" stroke="#1d5f3e" stroke-width="4"/>
+    <circle cx="42" cy="42" r="18" fill="#fff" stroke="#f5c21b" stroke-width="14"/>
+    <circle cx="388" cy="42" r="18" fill="#fff" stroke="#f5c21b" stroke-width="14"/>
+    <circle cx="42" cy="518" r="18" fill="#fff" stroke="#f5c21b" stroke-width="14"/>
+    <circle cx="388" cy="518" r="18" fill="#fff" stroke="#f5c21b" stroke-width="14"/>
+    <rect x="78" y="470" width="95" height="85" fill="#e8e8e8" stroke="#aaa"/>
+    <rect x="195" y="470" width="95" height="85" fill="#e8e8e8" stroke="#aaa"/>
+    <rect x="315" y="430" width="80" height="125" fill="#e8e8e8" stroke="#aaa"/>
+    <rect x="-20" y="90" width="70" height="60" fill="#e8e8e8" stroke="#aaa"/>
+    <rect x="-20" y="210" width="70" height="60" fill="#e8e8e8" stroke="#aaa"/>
+    <rect x="-20" y="315" width="70" height="60" fill="#e8e8e8" stroke="#aaa"/>
+    <rect x="168" y="40" width="160" height="24" fill="#ddd" stroke="#888"/>
+    <rect x="145" y="330" width="165" height="80" fill="#333"/>
+    <rect x="206" y="145" width="105" height="105" rx="6" fill="#e8e8e8" stroke="#666"/>
+    <rect x="342" y="80" width="65" height="360" rx="12" fill="#444"/>
+    <g fill="#d8d8d8" stroke="#222" stroke-width="1">
+      <circle cx="360" cy="100" r="7"/><circle cx="390" cy="100" r="7"/><circle cx="360" cy="122" r="7"/><circle cx="390" cy="122" r="7"/><circle cx="360" cy="144" r="7"/><circle cx="390" cy="144" r="7"/><circle cx="360" cy="166" r="7"/><circle cx="390" cy="166" r="7"/><circle cx="360" cy="188" r="7"/><circle cx="390" cy="188" r="7"/><circle cx="360" cy="210" r="7"/><circle cx="390" cy="210" r="7"/><circle cx="360" cy="232" r="7"/><circle cx="390" cy="232" r="7"/><circle cx="360" cy="254" r="7"/><circle cx="390" cy="254" r="7"/><circle cx="360" cy="276" r="7"/><circle cx="390" cy="276" r="7"/><circle cx="360" cy="298" r="7"/><circle cx="390" cy="298" r="7"/><circle cx="360" cy="320" r="7"/><circle cx="390" cy="320" r="7"/><circle cx="360" cy="342" r="7"/><circle cx="390" cy="342" r="7"/><circle cx="360" cy="364" r="7"/><circle cx="390" cy="364" r="7"/><circle cx="360" cy="386" r="7"/><circle cx="390" cy="386" r="7"/><circle cx="360" cy="408" r="7"/><circle cx="390" cy="408" r="7"/>
+    </g>
+    <text x="215" y="148" font-family="Arial,sans-serif" font-size="54" fill="#fff">☘</text>
+  </g>
+  <g transform="translate(650 85)">
+    <rect x="0" y="0" width="865" height="840" rx="28" fill="none" stroke="#c81d4f" stroke-width="4"/>
+    <rect x="410" y="70" width="88" height="748" rx="12" fill="#333" stroke="#111" stroke-width="5"/>
+    <g font-family="Arial,sans-serif" font-size="24" font-weight="700" fill="#111">
+      <text x="160" y="95" text-anchor="end">3V3 power</text><text x="160" y="132" text-anchor="end">GPIO 2 (SDA)</text><text x="160" y="169" text-anchor="end">GPIO 3 (SCL)</text><text x="160" y="206" text-anchor="end">GPIO 4 (GPCLK0)</text><text x="160" y="243" text-anchor="end">Ground</text><text x="160" y="280" text-anchor="end">GPIO 17</text><text x="160" y="317" text-anchor="end">GPIO 27</text><text x="160" y="354" text-anchor="end">GPIO 22</text><text x="160" y="391" text-anchor="end">3V3 power</text><text x="160" y="428" text-anchor="end">GPIO 10 (MOSI)</text><text x="160" y="465" text-anchor="end">GPIO 9 (MISO)</text><text x="160" y="502" text-anchor="end">GPIO 11 (SCLK)</text><text x="160" y="539" text-anchor="end">Ground</text><text x="160" y="576" text-anchor="end">GPIO 0 (ID_SD)</text><text x="160" y="613" text-anchor="end">GPIO 5</text><text x="160" y="650" text-anchor="end">GPIO 6</text><text x="160" y="687" text-anchor="end">GPIO 13 (PWM1)</text><text x="160" y="724" text-anchor="end">GPIO 19 (PCM_FS)</text><text x="160" y="761" text-anchor="end">GPIO 26</text><text x="160" y="798" text-anchor="end">Ground</text>
+      <text x="745" y="95">5V power</text><text x="745" y="132">5V power</text><text x="745" y="169">Ground</text><text x="745" y="206">GPIO 14 (TXD)</text><text x="745" y="243">GPIO 15 (RXD)</text><text x="745" y="280">GPIO 18 (PCM_CLK)</text><text x="745" y="317">Ground</text><text x="745" y="354">GPIO 23</text><text x="745" y="391">GPIO 24</text><text x="745" y="428">Ground</text><text x="745" y="465">GPIO 25</text><text x="745" y="502">GPIO 8 (CE0)</text><text x="745" y="539">GPIO 7 (CE1)</text><text x="745" y="576">GPIO 1 (ID_SC)</text><text x="745" y="613">Ground</text><text x="745" y="650">GPIO 12 (PWM0)</text><text x="745" y="687">Ground</text><text x="745" y="724">GPIO 16</text><text x="745" y="761">GPIO 20 (PCM_DIN)</text><text x="745" y="798">GPIO 21 (PCM_DOUT)</text>
+    </g>
+    <g stroke="#c81d4f" stroke-width="2" fill="none">
+      <path d="M172 87H410M172 124H410M172 161H410M172 198H410M172 235H410M172 272H410M172 309H410M172 346H410M172 383H410M172 420H410M172 457H410M172 494H410M172 531H410M172 568H410M172 605H410M172 642H410M172 679H410M172 716H410M172 753H410M172 790H410"/>
+      <path d="M498 87H732M498 124H732M498 161H732M498 198H732M498 235H732M498 272H732M498 309H732M498 346H732M498 383H732M498 420H732M498 457H732M498 494H732M498 531H732M498 568H732M498 605H732M498 642H732M498 679H732M498 716H732M498 753H732M498 790H732"/>
+    </g>
+    <g fill="#f8f8f8" stroke="#111" stroke-width="3" font-family="Arial,sans-serif" font-size="16" font-weight="700" text-anchor="middle">
+      <circle cx="435" cy="87" r="16"/><text x="435" y="93">1</text><circle cx="473" cy="87" r="16"/><text x="473" y="93">2</text>
+      <circle cx="435" cy="124" r="16"/><text x="435" y="130">3</text><circle cx="473" cy="124" r="16"/><text x="473" y="130">4</text>
+      <circle cx="435" cy="161" r="16"/><text x="435" y="167">5</text><circle cx="473" cy="161" r="16"/><text x="473" y="167">6</text>
+      <circle cx="435" cy="198" r="16"/><text x="435" y="204">7</text><circle cx="473" cy="198" r="16"/><text x="473" y="204">8</text>
+      <circle cx="435" cy="235" r="16"/><text x="435" y="241">9</text><circle cx="473" cy="235" r="16"/><text x="473" y="241">10</text>
+      <circle cx="435" cy="272" r="16"/><text x="435" y="278">11</text><circle cx="473" cy="272" r="16"/><text x="473" y="278">12</text>
+      <circle cx="435" cy="309" r="16"/><text x="435" y="315">13</text><circle cx="473" cy="309" r="16"/><text x="473" y="315">14</text>
+      <circle cx="435" cy="346" r="16"/><text x="435" y="352">15</text><circle cx="473" cy="346" r="16"/><text x="473" y="352">16</text>
+      <circle cx="435" cy="383" r="16"/><text x="435" y="389">17</text><circle cx="473" cy="383" r="16"/><text x="473" y="389">18</text>
+      <circle cx="435" cy="420" r="16"/><text x="435" y="426">19</text><circle cx="473" cy="420" r="16"/><text x="473" y="426">20</text>
+      <circle cx="435" cy="457" r="16"/><text x="435" y="463">21</text><circle cx="473" cy="457" r="16"/><text x="473" y="463">22</text>
+      <circle cx="435" cy="494" r="16"/><text x="435" y="500">23</text><circle cx="473" cy="494" r="16"/><text x="473" y="500">24</text>
+      <circle cx="435" cy="531" r="16"/><text x="435" y="537">25</text><circle cx="473" cy="531" r="16"/><text x="473" y="537">26</text>
+      <circle cx="435" cy="568" r="16"/><text x="435" y="574">27</text><circle cx="473" cy="568" r="16"/><text x="473" y="574">28</text>
+      <circle cx="435" cy="605" r="16"/><text x="435" y="611">29</text><circle cx="473" cy="605" r="16"/><text x="473" y="611">30</text>
+      <circle cx="435" cy="642" r="16"/><text x="435" y="648">31</text><circle cx="473" cy="642" r="16"/><text x="473" y="648">32</text>
+      <circle cx="435" cy="679" r="16"/><text x="435" y="685">33</text><circle cx="473" cy="679" r="16"/><text x="473" y="685">34</text>
+      <circle cx="435" cy="716" r="16"/><text x="435" y="722">35</text><circle cx="473" cy="716" r="16"/><text x="473" y="722">36</text>
+      <circle cx="435" cy="753" r="16"/><text x="435" y="759">37</text><circle cx="473" cy="753" r="16"/><text x="473" y="759">38</text>
+      <circle cx="435" cy="790" r="16"/><text x="435" y="796">39</text><circle cx="473" cy="790" r="16"/><text x="473" y="796">40</text>
+    </g>
+  </g>
+</svg>

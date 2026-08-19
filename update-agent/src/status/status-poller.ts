@@ -36,13 +36,15 @@ export function refreshCachedStatus(): Promise<void> {
  * cached "is an update available" snapshot without triggering a live
  * fetch+verify on every navbar check. Skipped if manifest config is missing —
  * matches fetchVerifiedManifest's own guard, avoids a crash-looping timer.
+ * Waits for the first poll to complete before returning so callers can rely
+ * on a populated cache.
  */
-export function startStatusPoller(): void {
+export async function startStatusPoller(): Promise<void> {
   if (!env.manifestUrl || !env.manifestPublicKey) {
     console.log("[update-agent] manifest not configured, background status polling disabled");
     return;
   }
 
-  void poll();
+  await poll();
   setInterval(() => void poll(), env.statusPollIntervalMs);
 }

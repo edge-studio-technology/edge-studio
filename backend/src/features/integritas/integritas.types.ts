@@ -13,6 +13,7 @@ export type IntegritasErrorCode =
   | "upstream_unavailable"
   | "rate_limited"
   | "unauthorized"
+  | "payment_required"
   | "stamp_failed"
   | "status_failed"
   | "verify_failed";

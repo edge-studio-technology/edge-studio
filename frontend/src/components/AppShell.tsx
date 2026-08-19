@@ -1,103 +1,99 @@
 import { useMemo, useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Bug, LogOut, MessageSquare, Settings, ShieldCheck, Sparkles } from "lucide-react";
-import { APP_NAME, APP_TAGLINE } from "../app/brand";
+import { useLocation, useNavigate } from "react-router-dom";
 import { nav } from "../app/nav";
-import type { StatusOverview } from "../app/types";
-import { SidebarUserBox } from "../features/auth/SidebarUserBox";
-import type { AuthUser } from "../features/auth/types";
+import type { StatusOverview, Tone } from "../app/types";
+import { Button } from "./ui/Button";
+import { NoticeCard } from "./patterns/NoticeCard";
 import { getDebugPing } from "../features/debug/debugApi";
 import { FeedbackModal } from "../features/feedback/FeedbackModal";
+import { AppShellSidebar } from "./AppShellSidebar";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { useStatusOverviewRefresh } from "../features/status/useStatusOverviewRefresh";
 import { useUpdateStatusRefresh } from "../features/update/useUpdateStatusRefresh";
-import { cx } from "../lib/cx";
-import { BrandMark } from "./BrandMark";
-import { Button } from "./Button";
-import { Card } from "./Card";
-import { Clock } from "./Clock";
-import { StatusDot, type StatusDotTone } from "./StatusDot";
+import { StatusBar, type StatusBarItem } from "./StatusBar";
+
+// Route labels for pages reachable outside the sidebar (`nav`), so the feedback
+// modal's "Current page" card doesn't fall back to a raw path segment.
+const EXTRA_PAGE_LABELS: Record<string, string> = {
+  update: "Software update",
+  "workflows/help": "Workflows guide",
+};
 
 function findService(overview: StatusOverview | null, name: string) {
   return overview?.services.find((service) => service.name === name);
 }
 
-function serviceTone(service: ReturnType<typeof findService>): StatusDotTone {
-  if (!service) return "unknown";
-  return service.ok ? "good" : "warn";
+type OverviewService = NonNullable<ReturnType<typeof findService>>;
+
+function serviceDetailMessage(service: OverviewService | undefined, id: string): string {
+  if (!service) return "Status has not been checked yet.";
+  if (service.ok) return "Last check succeeded.";
+  if (id === "integritas") {
+    return "Reconnect on the Integritas page to restore the connection.";
+  }
+  if (service.error) return service.error;
+  if (service.status === "error") return "Something went wrong during the last check.";
+  return `Current state: ${service.status.replace(/_/g, " ")}.`;
 }
 
-function ServiceDetail({
+function statusBarItem({
+  id,
+  okLabel,
+  badLabel,
+  pendingLabel,
   service,
   generatedAt,
   refreshError,
 }: {
-  service: ReturnType<typeof findService>;
+  id: string;
+  okLabel: string;
+  badLabel: string;
+  pendingLabel: string;
+  service: OverviewService | undefined;
   generatedAt: string | undefined;
   refreshError: string | null;
-}) {
-  return (
+}): StatusBarItem {
+  const tone: Tone = !service ? "neutral" : service.ok ? "good" : "warn";
+  const label = !service ? pendingLabel : service.ok ? okLabel : badLabel;
+  const lastUpdatedAt = service?.checkedAt ?? generatedAt;
+
+  const detailBody = (
     <div className="flex flex-col gap-1">
-      <p className="m-0 font-bold text-slate-900">{service ? service.status : "Not checked yet"}</p>
-      {service?.error && <p className="m-0 text-red-600">{service.error}</p>}
-      {generatedAt && (
-        <p className="m-0 text-slate-400">Checked {new Date(generatedAt).toLocaleTimeString()}</p>
-      )}
-      {refreshError && (
-        <p className="m-0 text-amber-600">Could not refresh — showing last known status.</p>
-      )}
+      <p className="m-0">{serviceDetailMessage(service, id)}</p>
+      {lastUpdatedAt ? (
+        <p className="m-0">Last updated {new Date(lastUpdatedAt).toLocaleTimeString()}</p>
+      ) : null}
+      {refreshError ? (
+        <p className="text-text-warning m-0">Could not refresh — showing last known status.</p>
+      ) : null}
     </div>
   );
-}
 
-function StatusDots({
-  minimaService,
-  integritasService,
-  generatedAt,
-  refreshError,
-}: {
-  minimaService: ReturnType<typeof findService>;
-  integritasService: ReturnType<typeof findService>;
-  generatedAt: string | undefined;
-  refreshError: string | null;
-}) {
-  return (
-    <>
-      <StatusDot label="Node" tone={serviceTone(minimaService)}>
-        <ServiceDetail
-          service={minimaService}
-          generatedAt={generatedAt}
-          refreshError={refreshError}
-        />
-      </StatusDot>
-      <StatusDot label="Integritas" tone={serviceTone(integritasService)}>
-        <ServiceDetail
-          service={integritasService}
-          generatedAt={generatedAt}
-          refreshError={refreshError}
-        />
-      </StatusDot>
-    </>
-  );
+  return {
+    id,
+    label,
+    tone,
+    detailTitle: label,
+    detailBody,
+  };
 }
 
 export function AppShell({
-  user,
+  fullBleed = false,
   onSignOut,
   children,
 }: {
-  user: AuthUser;
+  fullBleed?: boolean;
   onSignOut: () => void;
   children: React.ReactNode;
 }) {
-  const navigate = useNavigate();
   const { pathname, search } = useLocation();
+  const navigate = useNavigate();
 
-  const activeItem = useMemo(() => {
-    const item = nav.find((navItem) => pathname === `/${navItem.id}`);
-    if (item) return item;
-    if (pathname === "/settings") return { ...nav[0], id: "settings" as const, label: "Settings" };
-    return nav[0];
-  }, [pathname]);
+  const activeItem = useMemo(
+    () => nav.find((navItem) => pathname === `/${navItem.id}`),
+    [pathname],
+  );
 
   const { overview, error: statusRefreshError } = useStatusOverviewRefresh();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -106,9 +102,25 @@ export function AppShell({
   const integritasService = findService(overview, "integritas");
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+  const [availableVersion, setAvailableVersion] = useState<string | null>(null);
+  const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
   useUpdateStatusRefresh((status) => {
-    setUpdateAvailable(Boolean(status?.services.some((service) => !service.upToDate)));
+    // update-agent's own self-update runs automatically in the background after
+    // a frontend/backend update and isn't something the user needs to act on —
+    // counting it here would leave the badge lingering after a successful
+    // update while the self-swap is still catching up.
+    setUpdateAvailable(
+      Boolean(
+        status?.services.some((service) => service.service !== "update-agent" && !service.upToDate),
+      ),
+    );
+    setAppVersion(status?.currentVersion ?? null);
+    setAvailableVersion(status?.availableVersion ?? null);
   });
+
+  const showUpdateNotice =
+    updateAvailable && availableVersion !== null && availableVersion !== dismissedUpdateVersion;
 
   const [debugPinging, setDebugPinging] = useState(false);
   const [debugMessage, setDebugMessage] = useState<string | null>(null);
@@ -122,224 +134,74 @@ export function AppShell({
       .finally(() => setDebugPinging(false));
   }
 
+  const statusItems: StatusBarItem[] = [
+    statusBarItem({
+      id: "node",
+      okLabel: "Node online",
+      badLabel: "Node offline",
+      pendingLabel: "Node",
+      service: minimaService,
+      generatedAt: overview?.generatedAt,
+      refreshError: statusRefreshError,
+    }),
+    statusBarItem({
+      id: "integritas",
+      okLabel: "Integritas connected",
+      badLabel: "Integritas disconnected",
+      pendingLabel: "Integritas",
+      service: integritasService,
+      generatedAt: overview?.generatedAt,
+      refreshError: statusRefreshError,
+    }),
+  ];
+
+  // Shell is viewport-locked; page content scrolls in `app-shell-main-scroll` so the
+  // StatusBar stays outside the scrollbar and doesn't shift when pages gain/lose overflow.
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="flex min-h-screen">
-        <aside className="hidden w-72 shrink-0 border-r border-slate-200 bg-white p-2 lg:block">
-          <div className="flex items-center gap-3 rounded bg-slate-950 p-4 text-white">
-            <div className="flex size-11 items-center justify-center rounded bg-white/10">
-              <BrandMark size={32} />
-            </div>
-            <div>
-              <p className="m-0 text-[0.86rem] text-slate-400">{APP_TAGLINE}</p>
-              <h1 className="m-0 mt-0.5 text-base font-bold">{APP_NAME}</h1>
-            </div>
-          </div>
-
-          {/*
-          <SidebarUserBox
-            user={user}
-            onSignOut={onSignOut}
-            onSettings={() => navigate("/settings")}
-          />
-          */}
-
-          {/*
-          <div className="mt-4 rounded border border-slate-200 bg-slate-50 p-3">
-            <Clock />
-          </div>
-
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
-            <StatusDots
-              minimaService={minimaService}
-              integritasService={integritasService}
-              generatedAt={overview?.generatedAt}
-              refreshError={statusRefreshError}
-            />
-          </div>
-          */}
-
-          <nav className="mt-3 grid gap-1">
-            <div className="grid gap-1 border-t border-slate-200 pt-2">
-              {nav.map(({ id, label, icon: Icon, badge }) => (
-                <NavLink
-                  key={id}
-                  to={`/${id}`}
-                  className={({ isActive }) =>
-                    cx(
-                      "flex w-full items-center justify-between rounded px-3 py-3 text-left text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950",
-                      isActive && "bg-slate-950 text-white hover:bg-slate-950 hover:text-white",
-                    )
-                  }
+    <div className="flex h-screen overflow-hidden">
+      <AppShellSidebar
+        pathname={pathname}
+        onFeedback={() => setFeedbackOpen(true)}
+        onSignOut={onSignOut}
+        version={appVersion}
+        updateNotice={
+          showUpdateNotice ? (
+            <NoticeCard
+              title="Update available"
+              action={
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => navigate("/update")}
                 >
-                  {({ isActive }) => (
-                    <>
-                      <span className="flex items-center gap-3 text-[0.92rem] font-semibold">
-                        <Icon size={19} />
-                        {label}
-                      </span>
-                      {badge && (
-                        <span
-                          className={cx(
-                            "rounded bg-violet-100 px-2 py-0.5 text-[0.63rem] font-extrabold text-violet-700",
-                            isActive && "bg-white/15 text-white",
-                          )}
-                        >
-                          {badge}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </div>
-
-            <div className="mt-2 grid gap-1 border-t border-slate-200 pt-2">
-              <NavLink
-                to="/settings"
-                className={({ isActive }) =>
-                  cx(
-                    "flex w-full items-center justify-between rounded px-3 py-3 text-left text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950",
-                    isActive && "bg-slate-950 text-white hover:bg-slate-950 hover:text-white",
-                  )
-                }
-              >
-                <span className="flex items-center gap-3 text-[0.92rem] font-semibold">
-                  <Settings size={19} />
-                  Account settings
-                </span>
-              </NavLink>
-              <button
-                type="button"
-                onClick={onSignOut}
-                className="flex w-full items-center justify-between rounded px-3 py-3 text-left text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
-              >
-                <span className="flex items-center gap-3 text-[0.92rem] font-semibold">
-                  <LogOut size={19} />
-                  Sign out
-                </span>
-              </button>
-            </div>
-          </nav>
-
-          {updateAvailable && (
-            <a
-              href="/update"
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded border border-transparent bg-violet-700 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-800"
+                  View update
+                </Button>
+              }
+              onDismiss={() => setDismissedUpdateVersion(availableVersion)}
             >
-              <Sparkles size={16} /> Update available
-            </a>
-          )}
+              {`Version ${availableVersion} is ready to install.`}
+            </NoticeCard>
+          ) : null
+        }
+      />
 
-          <Button
-            className="mt-4 w-full"
-            size="sm"
-            variant="secondary"
-            onClick={() => setFeedbackOpen(true)}
-          >
-            <MessageSquare size={16} /> Feedback
-          </Button>
-
-          <Card className="mt-6 bg-slate-50">
-            <div className="flex items-center gap-2 font-bold">
-              <ShieldCheck size={18} /> Edge gateway prototype
-            </div>
-            <p className="mt-3 text-slate-500">
-              A browser-first workbench for node, wallet, verified data, and automation workflows at
-              the edge.
-            </p>
-          </Card>
-
-          <Card className="mt-4 bg-slate-50">
-            <div className="flex items-center gap-2 font-bold">
-              <Bug size={18} /> debug v1
-            </div>
-            <p className="mt-3 text-slate-500">
-              Checks that the frontend and backend you&apos;re looking at were both built from this
-              change.
-            </p>
-            <Button
-              className="mt-3 w-full"
-              size="sm"
-              variant="secondary"
-              onClick={pingDebugEndpoint}
-              disabled={debugPinging}
-            >
-              {debugPinging ? "Pinging…" : "Ping backend"}
-            </Button>
-            {debugMessage && (
-              <p className="mt-2 text-sm wrap-break-word text-slate-500">{debugMessage}</p>
-            )}
-          </Card>
-        </aside>
-
-        <main className="min-w-0 flex-1 p-2 lg:p-2">
-          <header className="mb-4 flex flex-col gap-4 rounded border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="m-0 text-[0.86rem] text-slate-400">Current section</p>
-                  <h2 className="m-0 mt-0.5 text-xl font-extrabold tracking-[-0.03em] text-slate-950">
-                    {activeItem.label}
-                  </h2>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <StatusDots
-                  minimaService={minimaService}
-                  integritasService={integritasService}
-                  generatedAt={overview?.generatedAt}
-                  refreshError={statusRefreshError}
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="lg:hidden"
-                onClick={() => setFeedbackOpen(true)}
-              >
-                <MessageSquare size={16} /> Feedback
-              </Button>
-              <div className="min-w-52.5 rounded-[20px] border border-slate-200 bg-white p-3 shadow-[0_12px_26px_rgba(15,23,42,0.05)]">
-                <Clock />
-              </div>
-            </div>
-          </header>
-
-          <div className="my-4 flex gap-2 overflow-x-auto pb-2 lg:hidden">
-            {nav.map(({ id, label }) => (
-              <NavLink
-                key={id}
-                to={`/${id}`}
-                className={({ isActive }) =>
-                  cx(
-                    "rounded bg-white px-3 py-2 text-sm font-bold whitespace-nowrap text-slate-600",
-                    isActive && "bg-slate-950 text-white",
-                  )
-                }
-              >
-                {label}
-              </NavLink>
-            ))}
-            {updateAvailable && (
-              <a
-                href="/update"
-                className="rounded bg-violet-700 px-3 py-2 text-sm font-bold whitespace-nowrap text-white"
-              >
-                Update
-              </a>
-            )}
-          </div>
-
-          {children}
-        </main>
-      </div>
+      <main className="relative z-0 flex min-h-0 min-w-0 flex-1 flex-col">
+        {!fullBleed && <StatusBar items={statusItems} />}
+        <div
+          className={
+            fullBleed
+              ? "app-shell-main-scroll min-h-0 flex-1 overflow-hidden"
+              : "app-shell-main-scroll min-h-0 flex-1 overflow-y-auto"
+          }
+        >
+          <ErrorBoundary key={pathname}>{children}</ErrorBoundary>
+        </div>
+      </main>
       {feedbackOpen && (
         <FeedbackModal
           pagePath={`${pathname}${search}`}
-          pageLabel={activeItem.label}
+          pageLabel={activeItem?.label ?? EXTRA_PAGE_LABELS[pathname.slice(1)] ?? pathname.slice(1)}
           onClose={() => setFeedbackOpen(false)}
         />
       )}

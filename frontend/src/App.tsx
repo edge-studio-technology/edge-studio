@@ -1,18 +1,22 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ToastProvider } from "./components/ToastProvider";
 import { AuthProvider, useAuth } from "./features/auth";
-import { LoginPage } from "./features/auth/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DataSourcesPage } from "./pages/DataSourcesPage";
 import { DiagnosticsPage } from "./pages/DiagnosticsPage";
 import { IntegritasPage } from "./pages/IntegritasPage";
+import { LoginPage } from "./pages/LoginPage";
+import { MarketplacePage } from "./pages/MarketplacePage";
 import { MinimaPage } from "./pages/MinimaPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { AutomationPage } from "./pages/AutomationPage";
+import { AutomationHelpPage } from "./pages/AutomationHelpPage";
 import { SetupPage } from "./pages/SetupPage";
 import { WalletPage } from "./pages/WalletPage";
 import { AuthSettingsPage } from "./pages/AuthSettingsPage";
+import { UpdatePage } from "./pages/UpdatePage";
 
 function LoginRoute() {
   const { user, refreshSession } = useAuth();
@@ -21,10 +25,12 @@ function LoginRoute() {
 }
 
 function AppContent() {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
+  const { pathname } = useLocation();
+  const fullBleed = /^\/workflows\/(new|[^/]+\/(edit|watch)(\/[^/]+)?)$/.test(pathname);
 
   return (
-    <AppShell user={user!} onSignOut={() => void signOut()}>
+    <AppShell fullBleed={fullBleed} onSignOut={() => void signOut()}>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
@@ -33,10 +39,17 @@ function AppContent() {
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/integritas" element={<IntegritasPage />} />
         <Route path="/data" element={<DataSourcesPage />} />
-        <Route path="/automation" element={<AutomationPage />} />
+        <Route path="/workflows" element={<AutomationPage />} />
+        <Route path="/workflows/help" element={<AutomationHelpPage />} />
+        <Route path="/workflows/new" element={<AutomationPage />} />
+        <Route path="/workflows/:workflowId/edit" element={<AutomationPage />} />
+        <Route path="/workflows/:workflowId/watch" element={<AutomationPage />} />
+        <Route path="/workflows/:workflowId/watch/:runId" element={<AutomationPage />} />
         <Route path="/diagnostics" element={<DiagnosticsPage />} />
+        <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/settings" element={<AuthSettingsPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/update" element={<UpdatePage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AppShell>
   );

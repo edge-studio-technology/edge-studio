@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { readFile } from "node:fs/promises";
+import * as os from "node:os";
 import { sha3HashHex } from "../../shared/crypto.js";
 import { fetchJsonWithTimeout } from "../../shared/http.js";
 import { errorMessage, parseStoredError } from "../../shared/structured-error.js";
@@ -19,6 +21,7 @@ export type WebhookConfig = {
 export type MqttConfig = {
   brokerUrl: string;
   topic: string;
+  profile?: "esp32-mqtt-board";
 };
 
 export type HttpOutputConfig = {
@@ -62,6 +65,19 @@ export type PiCameraConfig = {
   outputFormat: "jpg" | "h264";
 };
 
+export type BmeSensorConfig = {
+  sensor: "bme280" | "bme680";
+  bus: number;
+  address: "0x76" | "0x77";
+};
+
+export type DeviceSystemDataConfig = {
+  includeSpecs: boolean;
+  includePerformance: boolean;
+  includeNetwork: boolean;
+  includeLocation: boolean;
+};
+
 export function serializeDataSource(record: DataSourceRecord) {
   const lastErrorDetails = parseStoredError(record.last_error);
   return {
@@ -101,6 +117,8 @@ export function parseDataSourceConfig(type: string, value: unknown, existingConf
   if (type === "gpio-input") return parseGpioInputConfig(value);
   if (type === "gpio-output") return parseGpioOutputConfig(value);
   if (type === "pi-camera") return parsePiCameraConfig(value);
+  if (type === "bme-sensor") return parseBmeSensorConfig(value);
+  if (type === "device-system-data") return parseDeviceSystemDataConfig(value);
   return parseJsonApiConfig(value);
 }
 
@@ -115,9 +133,10 @@ export function parseMqttConfig(value: unknown): MqttConfig {
   const config = value as Partial<MqttConfig> | undefined;
   const brokerUrl = typeof config?.brokerUrl === "string" ? config.brokerUrl.trim() : "";
   const topic = typeof config?.topic === "string" ? config.topic.trim() : "";
+  const profile = config?.profile === "esp32-mqtt-board" ? config.profile : undefined;
   if (!brokerUrl) throw new Error("config.brokerUrl is required");
   if (!topic) throw new Error("config.topic is required");
-  return { brokerUrl, topic };
+  return { brokerUrl, topic, profile };
 }
 
 export function parseHttpOutputConfig(value: unknown): HttpOutputConfig {
@@ -194,6 +213,28 @@ export function parsePiCameraConfig(value: unknown): PiCameraConfig {
   return { mode, width, height, durationMs, fps, outputFormat };
 }
 
+export function parseBmeSensorConfig(value: unknown): BmeSensorConfig {
+  const config = value as Partial<BmeSensorConfig> | undefined;
+  const sensor = config?.sensor ?? "bme280";
+  const bus = Number(config?.bus ?? 1);
+  const address = config?.address === "0x77" ? "0x77" : "0x76";
+
+  if (sensor !== "bme280" && sensor !== "bme680") throw new Error("config.sensor must be bme280 or bme680");
+  if (!Number.isInteger(bus) || bus < 0 || bus > 10) throw new Error("config.bus must be an I2C bus number from 0 to 10");
+
+  return { sensor, bus, address };
+}
+
+export function parseDeviceSystemDataConfig(value: unknown): DeviceSystemDataConfig {
+  const config = value as Partial<DeviceSystemDataConfig> | undefined;
+  return {
+    includeSpecs: config?.includeSpecs !== false,
+    includePerformance: config?.includePerformance !== false,
+    includeNetwork: config?.includeNetwork !== false,
+    includeLocation: config?.includeLocation !== false
+  };
+}
+
 export async function checkDataSourceHealth(config: JsonApiConfig) {
   if (!config.healthStatusUrl) throw new Error("Data source has no health status URL configured");
   const { response, body } = await fetchJsonWithTimeout(config.healthStatusUrl);
@@ -226,6 +267,19 @@ export async function readJsonApiSource(config: JsonApiConfig) {
 
   const canonical = `${JSON.stringify(json, null, 2)}\n`;
   return { contentType: "application/json", bytesHash: sha3HashHex(canonical), canonicalBytes: canonical, preview: json, fetchedAt: new Date().toISOString() };
+}
+
+export async function readDeviceSystemDataSource(config: DeviceSystemDataConfig) {
+  const capturedAt = new Date().toISOString();
+  const preview = {
+    capturedAt,
+    ...(config.includeSpecs ? { specs: systemSpecs() } : {}),
+    ...(config.includePerformance ? { performance: await systemPerformance() } : {}),
+    ...(config.includeNetwork ? { network: systemNetwork() } : {}),
+    ...(config.includeLocation ? { location: systemLocation() } : {})
+  };
+  const canonical = `${JSON.stringify(preview, null, 2)}\n`;
+  return { contentType: "application/json", bytesHash: sha3HashHex(canonical), canonicalBytes: canonical, preview, fetchedAt: capturedAt };
 }
 
 export async function sendHttpOutput(config: HttpOutputConfig, payload: unknown, hasBody = true) {
@@ -273,6 +327,62 @@ export function processMqttPayload(payload: unknown) {
 export function processGpioPayload(payload: unknown) {
   const canonical = `${JSON.stringify(payload, null, 2)}\n`;
   return { contentType: "application/json", bytesHash: sha3HashHex(canonical), canonicalBytes: canonical, preview: payload, receivedAt: new Date().toISOString() };
+}
+
+function systemSpecs() {
+  return {
+    hostname: os.hostname(),
+    platform: os.platform(),
+    release: os.release(),
+    arch: os.arch(),
+    machine: typeof os.machine === "function" ? os.machine() : null,
+    cpuCount: os.cpus().length,
+    cpuModel: os.cpus()[0]?.model ?? null,
+    totalMemoryBytes: os.totalmem()
+  };
+}
+
+async function systemPerformance() {
+  return {
+    uptimeSeconds: os.uptime(),
+    loadAverage: os.loadavg(),
+    freeMemoryBytes: os.freemem(),
+    totalMemoryBytes: os.totalmem(),
+    cpuTemperatureC: await readCpuTemperatureC()
+  };
+}
+
+function systemNetwork() {
+  return {
+    interfaces: Object.entries(os.networkInterfaces()).map(([name, addresses]) => ({
+      name,
+      addresses: (addresses ?? []).map((address) => ({
+        family: address.family,
+        address: address.address,
+        internal: address.internal,
+        cidr: address.cidr ?? null
+      }))
+    }))
+  };
+}
+
+function systemLocation() {
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return {
+    timeZone,
+    locale: Intl.DateTimeFormat().resolvedOptions().locale,
+    note: "Coarse local context only; no public-IP geolocation, GPS, Wi-Fi SSID, or BSSID is collected."
+  };
+}
+
+async function readCpuTemperatureC() {
+  try {
+    const raw = await readFile("/sys/class/thermal/thermal_zone0/temp", "utf8");
+    const milliC = Number(raw.trim());
+    return Number.isFinite(milliC) ? milliC / 1000 : null;
+  } catch {
+    return null;
+  }
 }
 
 function describeFetchError(error: unknown) {

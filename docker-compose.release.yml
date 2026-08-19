@@ -1,0 +1,9 @@
+services:
+  backend:
+    build: !reset null
+
+  frontend:
+    build: !reset null
+
+  update-agent:
+    build: !reset null

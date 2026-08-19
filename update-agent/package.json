@@ -1,6 +1,6 @@
 {
-  "name": "integritas-pi-update-agent",
-  "version": "0.1.0",
+  "name": "edge-studio-update-agent",
+  "version": "0.1.6",
   "private": true,
   "type": "module",
   "scripts": {

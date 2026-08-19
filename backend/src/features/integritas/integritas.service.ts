@@ -5,6 +5,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { sha3HashHex } from "../../shared/crypto.js";
 import { parseResponseBody } from "../../shared/http.js";
+import { getDataSourceReadByProofId } from "../data-reads/dataReads.repository.js";
 import { getIntegritasApiKey, integritasApiKeySource } from "../settings/secrets.service.js";
 import { getProofRecord, updateProofStatus, type IntegritasProofRecord } from "./integritas.repository.js";
 import type { IntegritasApiFailure, IntegritasErrorCode, IntegritasOperation, IntegritasStatusItem } from "./integritas.types.js";
@@ -17,6 +18,12 @@ export type IntegritasPollSuccess = {
 
 const TRANSIENT_RETRY_DELAYS_MS = [1000, 3000];
 const MAX_INTEGRITAS_ATTEMPTS = 3;
+const ZIP_SOURCE_UNAVAILABLE = "Proof ZIP is unavailable for this record";
+
+type ZipEntryInput = {
+  name: string;
+  bytes: Buffer;
+};
 
 const OPERATION_ERRORS: Record<IntegritasOperation, string> = {
   stamp: "Integritas stamp failed",
@@ -37,7 +44,7 @@ export function getIntegritasConfig() {
 }
 
 export function hashCanonicalBytes(canonicalBytes: string) {
-  return { hash: sha3HashHex(canonicalBytes), canonicalization: "integritas-pi-text-utf8-v1" };
+  return { hash: sha3HashHex(canonicalBytes), canonicalization: "edge-studio-text-utf8-v1" };
 }
 
 export function sha3HashFile(filePath: string) {
@@ -109,6 +116,7 @@ function sleep(ms: number) {
 
 function classifyErrorCode(status: number, operation: IntegritasOperation): IntegritasErrorCode {
   if (status === 401 || status === 403) return "unauthorized";
+  if (status === 402) return "payment_required";
   if (status === 429) return "rate_limited";
   if (status === 502 || status === 503) return "upstream_unavailable";
   if (operation === "stamp") return "stamp_failed";
@@ -301,3 +309,158 @@ export async function writeProofExport(proofPayloads: unknown[]) {
   await fs.writeFile(filePath, `${JSON.stringify(proofPayloads, null, 2)}\n`, "utf8");
   return filePath;
 }
+
+export async function writeProofSourceZip(record: IntegritasProofRecord) {
+  const proofPayload = parseProofPayload(record.proof_payload);
+  if (!proofPayload) throw new Error(ZIP_SOURCE_UNAVAILABLE);
+
+  const source = await stampedSourceFile(record);
+  const computedHash = sha3HashHex(source.bytes);
+  if (computedHash !== record.hash) throw new Error(ZIP_SOURCE_UNAVAILABLE);
+
+  const manifest = {
+    proofId: record.id,
+    proofUid: record.proof_uid,
+    createdAt: record.created_at,
+    sourceReadId: source.readId,
+    sourceName: source.sourceName,
+    stampedHash: record.hash,
+    sourceHash: computedHash,
+    sourceFile: source.name,
+    proofFile: "proof.json",
+    canonicalization: source.canonicalization,
+  };
+
+  const exportsDir = path.join(env.dataDir, "exports");
+  await fs.mkdir(exportsDir, { recursive: true });
+  const safeTimestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const filePath = path.join(exportsDir, `integritas-proof-${record.id}-${safeTimestamp}.zip`);
+  await fs.writeFile(filePath, createZipBuffer([
+    { name: "proof.json", bytes: Buffer.from(`${JSON.stringify(proofPayload, null, 2)}\n`, "utf8") },
+    { name: source.name, bytes: source.bytes },
+    { name: "manifest.json", bytes: Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, "utf8") },
+  ]));
+  return filePath;
+}
+
+async function stampedSourceFile(record: IntegritasProofRecord) {
+  const read = getDataSourceReadByProofId(record.id);
+  if (!read || read.status !== "success" || !read.preview_json) throw new Error(ZIP_SOURCE_UNAVAILABLE);
+
+  const preview = JSON.parse(read.preview_json) as unknown;
+  if (isCameraPreview(preview)) {
+    const bytes = await fs.readFile(preview.path).catch(() => null);
+    if (!bytes) throw new Error(ZIP_SOURCE_UNAVAILABLE);
+    return {
+      name: safeZipName(preview.fileName || `source${extensionForMediaType(preview.mediaType)}`),
+      bytes,
+      readId: read.id,
+      sourceName: read.source_name,
+      canonicalization: "edge-studio-file-bytes-v1",
+    };
+  }
+
+  return {
+    name: "source.json",
+    bytes: Buffer.from(`${JSON.stringify(preview, null, 2)}\n`, "utf8"),
+    readId: read.id,
+    sourceName: read.source_name,
+    canonicalization: "edge-studio-json-pretty-v1",
+  };
+}
+
+function isCameraPreview(value: unknown): value is { source: "pi-camera-helper"; path: string; fileName?: string; mediaType?: string } {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    (value as { source?: unknown }).source === "pi-camera-helper" &&
+    typeof (value as { path?: unknown }).path === "string"
+  );
+}
+
+function extensionForMediaType(mediaType: string | undefined) {
+  if (mediaType === "image/jpeg") return ".jpg";
+  if (mediaType === "video/h264") return ".h264";
+  return ".bin";
+}
+
+function safeZipName(value: string) {
+  const baseName = path.basename(value).replace(/[^A-Za-z0-9._-]/g, "_");
+  return baseName || "source.bin";
+}
+
+function createZipBuffer(entries: ZipEntryInput[]) {
+  const localParts: Buffer[] = [];
+  const centralParts: Buffer[] = [];
+  let offset = 0;
+
+  for (const entry of entries) {
+    const name = Buffer.from(entry.name, "utf8");
+    const crc = crc32(entry.bytes);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0x0800, 6);
+    local.writeUInt16LE(0, 8);
+    local.writeUInt16LE(0, 10);
+    local.writeUInt16LE(0, 12);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(entry.bytes.length, 18);
+    local.writeUInt32LE(entry.bytes.length, 22);
+    local.writeUInt16LE(name.length, 26);
+    local.writeUInt16LE(0, 28);
+    localParts.push(local, name, entry.bytes);
+
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(0x0800, 8);
+    central.writeUInt16LE(0, 10);
+    central.writeUInt16LE(0, 12);
+    central.writeUInt16LE(0, 14);
+    central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(entry.bytes.length, 20);
+    central.writeUInt32LE(entry.bytes.length, 24);
+    central.writeUInt16LE(name.length, 28);
+    central.writeUInt16LE(0, 30);
+    central.writeUInt16LE(0, 32);
+    central.writeUInt16LE(0, 34);
+    central.writeUInt16LE(0, 36);
+    central.writeUInt32LE(0, 38);
+    central.writeUInt32LE(offset, 42);
+    centralParts.push(central, name);
+
+    offset += local.length + name.length + entry.bytes.length;
+  }
+
+  const centralOffset = offset;
+  const centralDirectory = Buffer.concat(centralParts);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(0, 4);
+  end.writeUInt16LE(0, 6);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(centralDirectory.length, 12);
+  end.writeUInt32LE(centralOffset, 16);
+  end.writeUInt16LE(0, 20);
+
+  return Buffer.concat([...localParts, centralDirectory, end]);
+}
+
+function crc32(bytes: Buffer) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ byte) & 0xff];
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+const CRC32_TABLE = Array.from({ length: 256 }, (_value, index) => {
+  let current = index;
+  for (let bit = 0; bit < 8; bit++) {
+    current = current & 1 ? 0xedb88320 ^ (current >>> 1) : current >>> 1;
+  }
+  return current >>> 0;
+});

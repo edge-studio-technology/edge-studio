@@ -1,16 +1,49 @@
-import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
-import { Card } from "../../components/Card";
-import { FileDropBox } from "./FileDropBox";
+import { Button } from "../../components/ui/Button";
+import { FileDropBox } from "../../components/patterns/FileDropBox";
+import { LoadingState } from "../../components/patterns/LoadingState";
+import { VerifyResult } from "./VerifyResult";
 
-export function VerifyProofPanel({ file, setFile, busy, result, onVerifyFile }: { file: File | null; setFile: (file: File) => void; busy: boolean; result: unknown; onVerifyFile: () => void }) {
+export function VerifyProofPanel({
+  file,
+  setFile,
+  busy,
+  loading,
+  onVerifyFile,
+  result,
+  onClearResult,
+}: {
+  file: File | null;
+  setFile: (file: File | null) => void;
+  busy: boolean;
+  loading: boolean;
+  onVerifyFile: () => void;
+  result: { response: unknown } | null;
+  onClearResult: () => void;
+}) {
   return (
-    <Card className="grid gap-4">
-      <h3 className="m-0">Verify data</h3>
-      <FileDropBox title="Drop proof JSON file" text="Verify a JSON proof payload file" file={file} onFile={setFile} result={result} resultText="or drop a new file to verify again." />
+    <div className="gap-detail-close flex flex-col">
+      <FileDropBox
+        title="Upload a JSON proof file"
+        file={file}
+        onFile={setFile}
+        accept=".json,application/json"
+        busy={busy}
+      />
       <ButtonRow>
-        <Button type="button" disabled={busy || !file} onClick={onVerifyFile}>Verify data</Button>
+        <Button type="button" disabled={busy || !file} onClick={onVerifyFile}>
+          Verify proof
+        </Button>
       </ButtonRow>
-    </Card>
+      {loading ? (
+        <LoadingState
+          title="Verifying your proof"
+          description="This should take a few seconds."
+          className="min-h-64"
+        />
+      ) : result ? (
+        <VerifyResult response={result.response} onClose={onClearResult} />
+      ) : null}
+    </div>
   );
 }

@@ -194,7 +194,7 @@ function validateBlockReference(block: ValidationBlock, config: BlockConfig, iss
     if (block.type === "gpio_event_start" && source.type !== "gpio-input") addIssue(issues, "error", "gpio_event_start.invalid_source", "GPIO start requires a GPIO input source.", block);
     if (block.type === "webhook_event_start" && source.type !== "webhook") addIssue(issues, "error", "webhook_event_start.invalid_source", "Webhook start requires a webhook source.", block);
     if (block.type === "mqtt_event_start" && source.type !== "mqtt") addIssue(issues, "error", "mqtt_event_start.invalid_source", "MQTT start requires an MQTT source.", block);
-    if (block.type === "fetch_data_source" && (source.type === "gpio-input" || source.type === "gpio-output" || source.type === "webhook" || source.type === "mqtt" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output")) addIssue(issues, "error", "fetch_data_source.invalid_source", "Fetch block requires an HTTP JSON source.", block);
+    if (block.type === "fetch_data_source" && !isReadableDataSource(source.type)) addIssue(issues, "error", "fetch_data_source.invalid_source", "Fetch block requires a readable data source.", block);
     if (block.type === "capture_camera" && source.type !== "pi-camera") addIssue(issues, "error", "capture_camera.invalid_source", "Capture camera requires a Pi Camera device.", block);
     if (block.type === "capture_camera") addIssue(issues, "warning", "capture_camera.privacy", "Camera capture can record private images or video. Verify consent, placement, and retention before enabling this workflow.", block);
   }
@@ -233,6 +233,10 @@ function validateEventStartConfig(block: ValidationBlock, config: BlockConfig, i
 
 function isOutputTarget(type: string) {
   return type === "gpio-output" || type === "http-output" || type === "mqtt-output";
+}
+
+function isReadableDataSource(type: string) {
+  return type === "json-api" || type === "bme-sensor" || type === "device-system-data";
 }
 
 function validateOutputBodyConfig(block: ValidationBlock, config: BlockConfig, targetType: string, issues: AutomationValidationIssue[]) {

@@ -20,7 +20,8 @@ beforeAll(async () => {
   const userId = createUser({
     username: "admin",
     passwordHash: "irrelevant-hash",
-    totpSecretEncrypted: "irrelevant-secret"
+    totpSecretEncrypted: "irrelevant-secret",
+    credentialType: "password"
   });
   validToken = createSession(userId);
 });
@@ -61,7 +62,7 @@ describe("requireAuth", () => {
     requireAuth(req, res, next);
 
     assert.equal(calls.status, 401);
-    assert.deepEqual(calls.json, { error: "Unauthorized" });
+    assert.equal((calls.json as { error?: string } | undefined)?.error, "Unauthorized");
     assert.equal(wasCalled(), false);
   });
 

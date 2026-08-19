@@ -2,7 +2,7 @@ import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
 import { decryptSecret, encryptSecret, type EncryptedSecret } from "../../shared/crypto.js";
 
-const ISSUER = "Integritas Pi";
+const ISSUER = "Edge Studio";
 
 export function generateSecret() {
   const secret = new OTPAuth.Secret({ size: 20 });

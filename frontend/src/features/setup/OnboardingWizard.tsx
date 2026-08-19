@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Layers3 } from "lucide-react";
-import { BrandLineGrid } from "../../components/BrandLineGrid";
+import { BRAND_GRADIENT } from "../../app/brand";
 import { Button } from "../../components/Button";
+import { BrandLockup } from "../../components/patterns/BrandLockup";
 import { ErrorText } from "../../components/Text";
-import { cx } from "../../lib/cx";
+import { ProgressBar } from "../../components/ui/ProgressBar";
 import { isValidAdminCredential } from "../auth/adminCredentials";
 import { TOTP_ENABLED } from "../auth/totpEnabled";
 import { useIntegritasAuth } from "../integritas-auth/useIntegritasAuth";
 import { completeSetup, initTotp, verifyTotp } from "./api";
-import { mutedClass } from "./onboardingStyles";
 import { onboardingSteps, onboardingWorkSteps } from "./steps";
 import { AccountStep } from "./steps/AccountStep";
 import { ConnectIntegritasStep } from "./steps/ConnectIntegritasStep";
@@ -71,12 +70,6 @@ export function OnboardingWizard({
   const workStepIndex = onboardingWorkSteps.findIndex((step) => step.id === currentStep.id);
   const isWorkStep = workStepIndex >= 0;
   const connectReady = currentStep.id === "connectAccount" && status?.status === "connected";
-  const progress =
-    currentStep.id === "welcome"
-      ? 0
-      : connectReady
-        ? 100
-        : ((workStepIndex + 1) / onboardingWorkSteps.length) * 100;
 
   const setForm = (patch: Partial<OnboardingFormState>) => {
     setFormState((prev) => ({ ...prev, ...patch }));
@@ -114,7 +107,7 @@ export function OnboardingWizard({
     switch (currentStep.id) {
       case "welcome":
         return true;
-      case "account":
+      case "credentials":
         return (
           isValidAdminCredential(form.credentialType, form.password) &&
           form.password === form.confirmPassword
@@ -131,7 +124,7 @@ export function OnboardingWizard({
   const shouldCreateLocalAdmin = (stepId: OnboardingStepId) => {
     if (localAdminReady) return false;
     if (TOTP_ENABLED) return stepId === "twofa";
-    return stepId === "account";
+    return stepId === "credentials";
   };
 
   const goNext = async () => {
@@ -180,157 +173,107 @@ export function OnboardingWizard({
     void start({ openPopup: true });
   };
 
-  const hideFooterContinue = currentStep.id === "connectAccount" && status?.status !== "connected";
+  const hideContinue = currentStep.id === "connectAccount" && status?.status !== "connected";
   const canGoBack = stepIndex > 0 && !localAdminReady;
-  const connectWaitingLabel =
-    status?.status === "pending"
-      ? "Open Integritas Connect to continue"
-      : "Preparing Integritas Connect…";
+  const isFinalOnboardingView = currentStep.id === "connectAccount";
   const continueLabel = submitting
     ? "Securing device…"
     : connectReady
-      ? "Enter Edge Workbench"
-      : currentStep.id === "welcome"
-        ? "Get started"
-        : "Continue";
-  const headerStatus = connectReady
-    ? "Ready"
-    : isWorkStep
-      ? `Step ${workStepIndex + 1} of ${onboardingWorkSteps.length}`
-      : "Getting started";
+      ? "Enter Edge Studio"
+      : "Continue";
+  const progressCurrent = connectReady
+    ? onboardingWorkSteps.length
+    : Math.max(workStepIndex + 1, 1);
 
   return (
-    <div className="fixed inset-0 z-50 flex min-h-0 flex-col overflow-hidden overscroll-contain bg-[#f5f3ed] text-[#1a1a1a]">
-      <BrandLineGrid />
+    <div
+      className="text-text-primary fixed inset-0 z-50 flex min-h-0 flex-col overflow-hidden overscroll-contain"
+      style={
+        isFinalOnboardingView
+          ? { background: BRAND_GRADIENT }
+          : { background: "var(--color-surface-secondary)" }
+      }
+    >
       <div
-        className="relative z-10 flex h-full min-h-0 w-full flex-col overflow-hidden"
+        className="px-margin-tight py-margin-relaxed relative z-10 flex h-full min-h-0 w-full flex-col items-center overflow-hidden"
         role="main"
         aria-label="Setup Wizard"
       >
-        <header className="bg-brand-white shrink-0 border-b border-slate-200/80">
-          <div className="flex min-h-20 items-center justify-between gap-4 px-6 lg:px-10">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-slate-950 text-white">
-                <Layers3 size={20} aria-hidden="true" strokeWidth={2.25} />
-              </div>
-              <h1 className="m-0 truncate text-lg font-bold tracking-[-0.02em] text-slate-950">
-                Edge Studio
-              </h1>
-            </div>
-            <p className={cx(mutedClass, "m-0 shrink-0 text-xs sm:text-sm")}>{headerStatus}</p>
-          </div>
-          <div
-            className="h-0.5 bg-slate-200"
-            role="progressbar"
-            aria-label="Setup progress"
-            aria-valuemin={0}
-            aria-valuemax={onboardingWorkSteps.length}
-            aria-valuenow={
-              currentStep.id === "welcome"
-                ? 0
-                : connectReady
-                  ? onboardingWorkSteps.length
-                  : workStepIndex + 1
-            }
-            aria-valuetext={
-              connectReady
-                ? "Setup complete"
-                : isWorkStep
-                  ? `Step ${workStepIndex + 1} of ${onboardingWorkSteps.length}`
-                  : "Getting started"
-            }
-          >
-            <span
-              className="bg-brand-accent block h-full transition-[width] duration-200 ease-out motion-reduce:transition-none"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </header>
+        <div className="size-6 shrink-0" aria-hidden="true" />
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] overflow-y-auto px-6 py-8 max-[700px]:py-5 lg:px-10 lg:py-10">
-            <div className="mx-auto w-full max-w-2xl">
-              {currentStep.id === "welcome" && <WelcomeStep />}
-              {currentStep.id === "account" && (
-                <AccountStep
-                  form={form}
-                  setForm={setForm}
-                  onSubmit={() => {
-                    if (canContinue && !submitting) void goNext();
-                  }}
-                />
-              )}
-              {currentStep.id === "twofa" && (
-                <TwoFactorStep
-                  form={form}
-                  setForm={setForm}
-                  qrCode={qrCode}
-                  totpSecret={totpSecret}
-                  loadingQr={loadingQr}
-                  qrError={qrError}
-                  checkState={totpCheck}
-                  onVerifyCode={() => void verifyTotpCode()}
-                />
-              )}
-              {currentStep.id === "connectAccount" && (
-                <ConnectIntegritasStep
-                  status={status}
-                  starting={starting || connectLoading}
-                  error={connectError}
-                  onVerify={openVerification}
-                  onRetry={retryConnect}
-                  credentialType={resumeAtConnect ? null : form.credentialType}
-                />
-              )}
-            </div>
+        <div className="flex min-h-0 w-full flex-1 [scrollbar-width:thin] flex-col items-center justify-center overflow-y-auto">
+          <div className="gap-detail-close flex w-full max-w-[480px] flex-col py-4">
+            {isWorkStep && currentStep.id !== "credentials" && currentStep.id !== "connectAccount" ? (
+              <ProgressBar
+                current={progressCurrent}
+                total={onboardingWorkSteps.length}
+                showBack={canGoBack}
+                onBack={canGoBack ? goBack : undefined}
+              />
+            ) : null}
+
+            {currentStep.id === "welcome" && <WelcomeStep onContinue={() => void goNext()} />}
+            {currentStep.id === "credentials" && (
+              <AccountStep
+                form={form}
+                setForm={setForm}
+                onSubmit={() => {
+                  if (canContinue && !submitting) void goNext();
+                }}
+                progressCurrent={progressCurrent}
+                progressTotal={onboardingWorkSteps.length}
+                canGoBack={canGoBack}
+                onBack={goBack}
+                canContinue={canContinue}
+                continueLabel={continueLabel}
+                submitting={submitting}
+              />
+            )}
+            {currentStep.id === "twofa" && (
+              <TwoFactorStep
+                form={form}
+                setForm={setForm}
+                qrCode={qrCode}
+                totpSecret={totpSecret}
+                loadingQr={loadingQr}
+                qrError={qrError}
+                checkState={totpCheck}
+                onVerifyCode={() => void verifyTotpCode()}
+              />
+            )}
+            {currentStep.id === "connectAccount" && (
+              <ConnectIntegritasStep
+                status={status}
+                starting={starting || connectLoading}
+                error={connectError}
+                onVerify={openVerification}
+                onRetry={retryConnect}
+                credentialType={resumeAtConnect ? null : form.credentialType}
+                progressCurrent={progressCurrent}
+                progressTotal={onboardingWorkSteps.length}
+                canGoBack={canGoBack}
+                onBack={goBack}
+              />
+            )}
+
+            {isWorkStep && currentStep.id !== "credentials" && !hideContinue ? (
+              <Button
+                type="button"
+                variant="accent"
+                size="md"
+                className="w-full"
+                disabled={!canContinue || submitting}
+                onClick={() => void goNext()}
+              >
+                {continueLabel}
+              </Button>
+            ) : null}
+
+            {submitError ? <ErrorText role="alert">{submitError}</ErrorText> : null}
           </div>
-
-          {submitError ? (
-            <ErrorText className="px-6" role="alert">
-              {submitError}
-            </ErrorText>
-          ) : null}
-
-          <footer className="bg-brand-white shrink-0 border-t border-slate-200/80">
-            <div className="flex min-h-20 items-center justify-between gap-4 px-6 lg:px-10">
-              <div className="flex min-w-0 flex-1 items-center">
-                {canGoBack ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={goBack}
-                    disabled={submitting}
-                  >
-                    <ArrowLeft size={16} /> Back
-                  </Button>
-                ) : null}
-              </div>
-              <div className="flex shrink-0 items-center justify-end">
-                {hideFooterContinue ? (
-                  <span
-                    className={cx(mutedClass, "text-right text-xs sm:text-sm")}
-                    aria-live="polite"
-                    aria-atomic="true"
-                  >
-                    {connectWaitingLabel}
-                  </span>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    disabled={!canContinue || submitting}
-                    onClick={() => void goNext()}
-                  >
-                    {continueLabel}
-                    {!connectReady && !submitting ? <ArrowRight size={16} /> : null}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </footer>
         </div>
+
+        <BrandLockup tone={isFinalOnboardingView ? "on-dark" : "on-light"} className="shrink-0" />
       </div>
     </div>
   );

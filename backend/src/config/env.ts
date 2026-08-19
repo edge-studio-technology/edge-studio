@@ -1,6 +1,6 @@
 import path from "node:path";
 
-const repoRoot = process.env.INTEGRITAS_PI_ROOT ?? process.cwd();
+const repoRoot = process.env.EDGE_STUDIO_ROOT ?? process.cwd();
 
 function resolveConfigPath(value: string) {
   return path.isAbsolute(value) ? value : path.resolve(repoRoot, value);
@@ -12,10 +12,10 @@ function resolveDatabasePath() {
   }
 
   if (process.env.DATA_DIR) {
-    return resolveConfigPath(path.join(process.env.DATA_DIR, "integritas-pi.db"));
+    return resolveConfigPath(path.join(process.env.DATA_DIR, "edge-studio.db"));
   }
 
-  return "/data/integritas-pi.db";
+  return "/data/edge-studio.db";
 }
 
 function resolveDataDir(databasePath: string) {
@@ -56,7 +56,7 @@ export const env = {
   minimaStatusUrl: resolveMinimaStatusUrl(),
   integritasConnectBaseUrl: process.env.INTEGRITAS_CONNECT_BASE_URL ?? "https://integritas.technology",
   integritasBaseUrl: process.env.INTEGRITAS_BASE_URL ?? "https://integritas.technology/core",
-  integritasRequestId: process.env.INTEGRITAS_REQUEST_ID ?? "integritas-pi",
+  integritasRequestId: process.env.INTEGRITAS_REQUEST_ID ?? "edge-studio",
   integritasRequestTimeoutMs: Number(process.env.INTEGRITAS_REQUEST_TIMEOUT_MS ?? 15000),
   integritasPollIntervalSeconds: Number(process.env.INTEGRITAS_POLL_INTERVAL_SECONDS ?? 30),
   integritasProofPollTimeoutMinutes: Number(process.env.INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES ?? 5),
@@ -86,5 +86,9 @@ export const env = {
   cameraPhotoCommand: process.env.CAMERA_PHOTO_COMMAND ?? "rpicam-still",
   cameraVideoCommand: process.env.CAMERA_VIDEO_COMMAND ?? "rpicam-vid",
   cameraHelperUrl: process.env.CAMERA_HELPER_URL ?? "http://host.docker.internal:38180",
-  cameraHelperToken: process.env.CAMERA_HELPER_TOKEN ?? ""
+  cameraHelperToken: process.env.CAMERA_HELPER_TOKEN ?? "",
+  sensorsEnabled: process.env.ENABLE_SENSORS === "true",
+  sensorHelperUrl: process.env.SENSOR_HELPER_URL ?? "http://host.docker.internal:38181",
+  sensorHelperToken: process.env.SENSOR_HELPER_TOKEN ?? "",
+  sensorReadTimeoutMs: Number(process.env.SENSOR_READ_TIMEOUT_MS ?? 5000)
 };

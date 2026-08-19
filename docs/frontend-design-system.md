@@ -11,16 +11,52 @@ This project uses Tailwind utilities plus small internal React components. Plain
 
 ## Structure
 
-| Layer                 | Location                   | Use                                                               |
-| --------------------- | -------------------------- | ----------------------------------------------------------------- |
-| Base globals          | `frontend/src/styles.css`  | Tailwind import, root/body defaults, base form/code element rules |
-| Shared primitives     | `frontend/src/components/` | Buttons, cards, pills, modal, text helpers, copied code           |
-| Shared patterns       | `frontend/src/components/` | Page shells, sections, tables, status rows, filter/pager bars     |
-| Feature UI            | `frontend/src/features/**` | Feature-specific forms, panels, modals, and page sections         |
-| Route pages           | `frontend/src/pages/`      | Page composition and route-owned layout                           |
-| Local class constants | Same component file        | One-off repeated class strings or conditional class maps          |
+| Layer                 | Location                            | Use                                                                   |
+| --------------------- | ----------------------------------- | --------------------------------------------------------------------- |
+| Base globals          | `frontend/src/styles.css`           | Tailwind import, root/body defaults, base form/code element rules     |
+| Leaf controls         | `frontend/src/components/ui/`       | Leaf controls (buttons, fields, tags, dialogs)                        |
+| Shared patterns       | `frontend/src/components/patterns/` | Composed layouts built from ui (page chrome, tables, filter bars)     |
+| Legacy shared (flat)  | `frontend/src/components/*.tsx`     | Existing files — import as-is until migrated into `ui/` / `patterns/` |
+| App / infra           | `frontend/src/components/` (select) | Shell wiring, providers, route guards — not design-system leaves      |
+| Feature UI            | `frontend/src/features/**`          | Feature-specific forms, panels, modals, and page sections             |
+| Route pages           | `frontend/src/pages/`               | Page composition and route-owned layout                               |
+| Local class constants | Same component file                 | One-off repeated class strings or conditional class maps              |
 
-The project currently keeps shared primitives and patterns in a flat `frontend/src/components/` folder. Do not introduce `components/ui/` or `components/patterns/` unless the component list becomes hard to navigate.
+### Placement (`ui/` vs `patterns/`)
+
+**Boundary test**
+
+- Removing border / fill / radius still leaves a useful **control** → `ui/`
+- Mostly **layout + several controls together** → `patterns/`
+- Route, auth, or app wiring → keep out of `ui/` / `patterns/` (e.g. `ProtectedRoute`, `ToastProvider`, `AppShell`)
+
+**New shared components**
+
+- New leaf controls → `frontend/src/components/ui/`
+- New composed shared UI → `frontend/src/components/patterns/`
+- Do **not** add new design-system components to the flat `frontend/src/components/` root
+
+**Import paths**
+
+- Prefer `../components/ui/ProgressBar` (or `@/` equivalent if introduced) for new code
+- Existing flat imports (`../components/Pill`) stay valid until those files move
+
+### Migration policy
+
+Migration is **incremental**, not a big-bang move:
+
+1. Leave existing flat files where they are until a deliberate move.
+2. When touching a cluster (e.g. form controls), move that cluster into `ui/` or `patterns/`, update call-site imports, and document the new path here.
+3. Optional thin re-exports from the old path are allowed only if an external import would otherwise break; prefer updating call sites in the same change.
+4. Do not invent parallel copies (no `ui/Button` while `Button.tsx` still exists with different behavior).
+
+**Target homes (when migrated)**
+
+| Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ui/`          | `Button` / `IconButton`, `Pill`, `Divider`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots` |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `ListFilterBar`, `ListPaginationFooter`, `ErrorAlert`, `JsonPreview`, `CopyableCode`, `StatusPage`, `EmptyContentState`, `LoadingState`, `BrandLockup`, `MetricCard` |
+| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
 
 ## Styling Rules
 
@@ -35,25 +71,166 @@ The project currently keeps shared primitives and patterns in a flat `frontend/s
 
 ## Shared Components
 
-Use these before writing bespoke markup:
+Use these before writing bespoke markup. Paths: most still live flat under `frontend/src/components/` until migrated; new design-system work goes in `ui/` / `patterns/` (see Placement above).
 
-- `Page`: route-level header, title, eyebrow, and optional action.
-- `Card`: primary white card surface.
-- `Section`: grouped content block inside a page.
-- `Button` / `IconButton`: button variants and icon-only actions.
-- `ButtonRow`: wrapping button groups.
-- `Pill`: compact status/category label.
-- `Text`: shared muted, error, and eyebrow text helpers.
-- `ErrorAlert`: in-page error alert with optional title and recovery action.
-- `Modal`: portal-backed dialog shell.
-- `Input`: ordinary text field (brand surface, soft shadow, focus ring).
-- `CredentialInput`: PIN or password field (`mode="pin" | "password"`); wraps `Input`.
-- `DataTable`: workflow-style table shell, wrapper, rows, and action cells.
-- `StatusRow`: compact label/value/status presentation.
-- `ListPagerFilterBar`: list filtering and pagination controls.
-- `JsonPreview`: formatted JSON/code preview surface.
+**Inventory style:** name + short description only. Link to a `###` detail section when one exists. No paths or migration arrows. Props, explain, and usage live under that heading.
+
+- [Page](#page): route content frame
+- [Card](#card): white card surface
+- [MetricCard](#metriccard): compact metric / status card
+- `OptionCard`: pressable choice card (whole card is the click target)
+- [AltOptionCard](#altoptioncard): quieter choice card with an explicit action button
+- [Button / IconButton](#button): text and icon-only buttons
+- [ButtonRow](#buttonrow): wrapping button group
+- [Pill](#pill): status / tag pill
+- [Divider](#divider): horizontal or vertical rule
+- [ProgressBar](#progressbar): step progress bar
+- [CheckboxField](#checkboxfield): labeled checkbox
+- [RadioField](#radiofield): labeled radio option
+- [SwitchField](#switchfield): labeled on/off switch
+- [Text](#text): text roles (`Text.Title`, `Text.Subtitle`, `Text.Body`, `Text.BodyEm`, `Text.Muted`, `Text.Link`)
+- `ErrorText`: inline error copy
+- [ErrorAlert](#erroralert): in-page error / warning alert
+- [ErrorDetailPanel](#errordetailpanel): embeddable message + raw-JSON breakdown for an operational error
+- [Modal](#modal): dialog overlay
+- `LoadingDots`: bouncing loading indicator
+- `Spinner`: rotating ring loading indicator (deprecated — use [SpinnerAlt](#spinneralt))
+- [SpinnerAlt](#spinneralt): pin-dial loading indicator
+- `Input`: bare text control
+- [InputField](#inputfield): labeled text field
+- [SelectField](#selectfield): labeled select
+- `TextareaField`: labeled multiline field
+- [Menu](#menu): action menu list
+- [TabList](#tablist): underline page tabs
+- [ToggleTabs](#toggletabs): segmented toggle
+- `PinField`: segmented PIN / code field
+- `DataTable`: native table shell and row primitives (`TableWrap`, `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`, `TableIconMenu`)
+- `StatusRow`: label / value / status row
+- [DetailList](#detaillist): label / value detail rows
+- [StatusBar](#statusbar): app shell status chrome
+- `ListFilterBar`: list search and status filter
+- `ListPaginationFooter`: list pager and page-size controls
+- `Pagination`: prev/next page strip
+- `StatusPage`: centered whole-page empty / not-found state
+- [Tooltip](#tooltip): hover / click tip
+- [Disclosure](#disclosure): native collapse / expand section
+- [ScrollArea](#scrollarea): thin ESDS-token scrollbar container
+- [JsonPreview](#jsonpreview): trigger that opens a modal with pretty-printed JSON
+- [CopyableCode](#copyablecode): mono value with copy control
+- [EmptyContentState](#emptycontentstate): empty table/content state with icon, title, description, and optional action
+- [LoadingState](#loadingstate): fetching state with spinner (default or slow pace), optional title and description
+- `FileDropBox`: large drag/drop or click file picker with reject toast, selected-file row, and busy/disabled state
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
+
+### Unused
+
+These files exist under `frontend/src/components/` with no app call sites. Do not import them for new work. Removal is tracked in `docs/TASKS.md`.
+
+**Superseded** — use the replacement instead:
+
+| File | Use instead |
+| --- | --- |
+| `CredentialInput.tsx` | `PinField` / `InputField` |
+| `EmptyPage.tsx` | `StatusPage` |
+| `ErrorDetails.tsx` | `ErrorDetailPanel` |
+| `ListPagerFilterBar.tsx` | `ListFilterBar` + `ListPaginationFooter` |
+| `TablePager.tsx` | `Pagination` (via `ListPaginationFooter`) |
+| `ProgressModal.tsx` | `DeleteConfirmModal` / `DeleteProgressModal` |
+| `StatusBadge.tsx` | `Pill` |
+| `StatusDot.tsx` | status bar chrome (no shared replacement) |
+| `patterns/ListDisclosure.tsx` | `DataTable` |
+| `patterns/Table.tsx` | `DataTable` |
+| `ui/Spinner.tsx` | [SpinnerAlt](#spinneralt) |
+
+**No call sites yet** — still the right control when needed:
+
+- [RadioField](#radiofield)
+- [Menu](#menu) (table row actions use `TableIconMenu`)
+
+### ButtonRow
+
+Wrapping horizontal group for buttons and button-like actions (`frontend/src/components/patterns/ButtonRow.tsx`): flex wrap, `gap-detail-next`, centered on the cross axis. Pass actions as `children` (`Button`, links, etc.). Flat `components/ButtonRow.tsx` re-exports for now.
+
+| Prop        | Notes                          |
+| ----------- | ------------------------------ |
+| `children`  | Action controls to lay out     |
+| `className` | Merged onto the outer flex row |
+
+```tsx
+<ButtonRow>
+  <Button type="button">Save</Button>
+  <Button type="button" variant="secondary">
+    Cancel
+  </Button>
+</ButtonRow>
+```
+
+### Button
+
+Text and icon buttons (`frontend/src/components/ui/Button.tsx`). Flat `components/Button.tsx` re-exports for now.
+
+#### Text `Button`
+
+Variant matrix: Primary, Secondary, Tertiary (`ghost`), Accent × Default (`md` 44px) / Compact (`sm` 32px). App-only variant: `danger`.
+
+| Prop                    | Values                                                      | Notes                                                                                 |
+| ----------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `variant`               | `primary` \| `secondary` \| `ghost` \| `accent` \| `danger` | Prefer primary / secondary / ghost / accent for new UI                                |
+| `size`                  | `md` (44px) \| `sm` / `xs` (32px)                           | `xs` matches `sm` today; prefer `sm` for compact                                      |
+| `iconStart` / `iconEnd` | optional `ReactNode`                                        | Leading/trailing icon slots (16px). Prefer these over stuffing icons into `children`. |
+
+Icons in `iconStart` / `iconEnd` are layout-only; keep the visible label in `children` so the accessible name stays clear. Mark decorative SVGs with `aria-hidden` when they add no meaning beyond the label.
+
+```tsx
+<Button variant="primary" iconEnd={<ArrowRightIcon aria-hidden />}>
+  Continue
+</Button>
+```
+
+#### Circular `IconButton`
+
+Circular icon-only button: Primary / Secondary / Tertiary (`ghost`) × Default / Compact. Fully circular (`rounded-full`). No accent / danger.
+
+| Prop      | Values                                                                     | Notes                                          |
+| --------- | -------------------------------------------------------------------------- | ---------------------------------------------- |
+| `variant` | `primary` \| `secondary` \| `ghost`                                        | primary / secondary / ghost only               |
+| `size`    | `default` (40px circle, 20px glyph) \| `compact` (32px circle, 16px glyph) | Component sizes the glyph — omit lucide `size` |
+
+```tsx
+<IconButton variant="primary" size="default" aria-label="Open Integritas config" onClick={...}>
+  <SettingsIcon aria-hidden />
+</IconButton>
+```
+
+#### Accessibility (aria)
+
+- **`Button` with visible text:** the label in `children` is the accessible name. Do not add a redundant `aria-label` unless the visible text is incomplete (e.g. icon + ambiguous text).
+- **`IconButton` (icon-only):** always pass `aria-label` (or `aria-labelledby`) describing the action. `title` alone is not enough for screen readers.
+- Prefer `aria-label="Configure Minima"` over generic labels like `"Settings"` when the control is page-specific.
+- Keep `type="button"` unless the control submits a form (`type="submit"`).
+- Disabled actions use the native `disabled` attribute (component styles handle the look).
+
+```tsx
+<IconButton variant="primary" aria-label="Open Integritas config" onClick={...}>
+  <SettingsIcon aria-hidden />
+</IconButton>
+```
+
+#### When migrating call sites (TODO)
+
+When restyling a page or feature to shared buttons:
+
+1. Replace local button class constants (`primaryButtonClass`, etc.) with `<Button>` / `<IconButton>`.
+2. Remove `className` overrides that fight the component (`rounded-full`, custom `bg-*` / `px-*` / `py-*`). Use `variant` + `size` instead.
+3. Map old sizes: default actions → `md`; dense table/toolbars → `sm`. Replace `size="xs"` with `sm` when touching those files.
+4. Map old variants: tertiary/ghost stay `ghost`; brand purple CTAs → `accent` when appropriate.
+5. Prefer `iconStart` / `iconEnd` for leading/trailing icons instead of mixing icons into `children`.
+6. For `IconButton`, drop lucide `size={…}` (component owns 20/16px glyphs) and always set `aria-label` (known gap: Integritas page config).
+7. Prefer `md` for primary CTAs on touch / Pi UI; reserve `sm` for dense desktop rows.
+8. Do not restyle focus rings per page — shared `focus-visible` ring is intentional.
+9. After call sites stop needing `xs`, remove the `xs` size alias from `Button.tsx`.
+10. Consider dropping global `button:disabled { opacity }` in `styles.css` once all buttons use this component (disabled look is colour-based).
 
 ## Page-Specific Layout
 
@@ -71,32 +248,876 @@ Avoid exporting these constants or moving them into shared files unless more tha
 
 ## Forms
 
-- Use `Input` for ordinary text fields; use `CredentialInput` for PIN/password.
-- Add Tailwind classes locally when a form needs a special layout or visual treatment.
-- Keep inline validation near the field or form when the user needs to compare the error with entered values.
+- Prefer `InputField` for labeled text fields (login, settings, device forms).
+- Prefer `SelectField` for labeled single-choice dropdowns with optional description / error.
+- Prefer `TextareaField` when multiline text needs a label, description, or inline error.
+- Prefer `CheckboxField` for labeled boolean / tri-state choices with optional helper text.
+- Prefer `RadioField` for mutually exclusive options in a named group with optional helper text (no current call sites).
+- Prefer `SwitchField` for labeled on/off settings with optional helper text.
+- Extract `Textarea` when needing no field wrapper around it.
+- Use `PinField` for segmented numeric verification / approval codes.
+- Use bare `Input` only when there is no label stack (rare toolbars / search).
+- Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
+- Use `ErrorAlert` for persistent in-page / form-level failures that stay in layout (optional Retry action).
 - Use toast errors for transient action failures that should not occupy page layout.
+
+### CheckboxField
+
+Labeled checkbox (`frontend/src/components/ui/CheckboxField.tsx`): 16px control beside a body label, optional description indented under the label (16px spacer aligns with the control).
+
+| Prop            | Values / notes                                                              |
+| --------------- | --------------------------------------------------------------------------- |
+| `label`         | Optional; defaults to `"Label"`. Pass `null` to hide (use `aria-label`)     |
+| `description`   | Optional helper under the row (`text-secondary` / disabled `text-disabled`) |
+| `checked`       | Controlled checked state                                                    |
+| `indeterminate` | Shows minus mark; sets native `indeterminate` + `aria-checked="mixed"`      |
+| `disabled`      | Secondary surface box + tertiary/disabled text                              |
+| `className`     | Outer stack                                                                 |
+| …input props    | Standard checkbox `onChange`, `name`, `defaultChecked`, `aria-label`, etc.  |
+
+Default checked / indeterminate: `icon-primary` fill with inverse glyph. Unchecked: white fill + `stroke-primary` border. Disabled: `surface-secondary` fill + `stroke-primary` border (glyph `icon-disabled` when present).
+
+```tsx
+<CheckboxField
+  label="Enabled"
+  description="Description"
+  checked={enabled}
+  onChange={(event) => setEnabled(event.target.checked)}
+/>
+<CheckboxField label="Partial" indeterminate checked={false} readOnly />
+<CheckboxField label={null} aria-label="Select row" checked={selected} onChange={onToggle} />
+```
+
+### RadioField
+
+Labeled radio (`frontend/src/components/ui/RadioField.tsx`): 16px circular control beside a body label, optional description indented under the label (16px spacer aligns with the control). Group options with a shared `name`; the selected value is the field state. No current call sites.
+
+| Prop          | Values / notes                                                              |
+| ------------- | --------------------------------------------------------------------------- |
+| `label`       | Required; `type-body` beside the control                                    |
+| `description` | Optional helper under the row (`text-secondary` / disabled `text-disabled`) |
+| `checked`     | Controlled selected state                                                   |
+| `name`        | Shared group name for mutually exclusive options                            |
+| `value`       | Option value within the group                                               |
+| `disabled`    | Secondary surface ring + tertiary/disabled text                             |
+| `className`   | Outer stack                                                                 |
+| …input props  | Standard radio `onChange`, `defaultChecked`, etc.                           |
+
+Default selected: `icon-primary` ring + inverse fill + primary center dot. Unselected: white fill + `stroke-primary` border. Disabled: `surface-secondary` fill + `stroke-primary` border (center `icon-disabled` when selected).
+
+```tsx
+<RadioField
+  name="plan"
+  value="pro"
+  label="Pro"
+  description="Multiple devices and automation."
+  checked={plan === "pro"}
+  onChange={() => setPlan("pro")}
+/>
+```
+
+### SwitchField
+
+Labeled switch (`frontend/src/components/ui/SwitchField.tsx`): optional body label with a 40×24 switch on the right, optional full-width description under the row.
+
+| Prop          | Values / notes                                                                 |
+| ------------- | ------------------------------------------------------------------------------ |
+| `label`       | Optional; `type-body` on the left (`text-primary` / disabled `text-disabled`)  |
+| `description` | Optional helper under the row (`text-secondary` / disabled `text-disabled`)    |
+| `checked`     | Controlled on/off state                                                        |
+| `disabled`    | Secondary track + disabled text                                                |
+| `className`   | Outer stack                                                                    |
+| …input props  | Standard checkbox `onChange`, `name`, `defaultChecked`, etc. (`role="switch"`) |
+
+Default on: `icon-primary` track + inverse knob. Off: inverse track + `stroke-primary` border + `icon-tertiary` knob. Disabled: `surface-secondary` track + `stroke-primary` border + `icon-disabled` knob.
+
+```tsx
+<SwitchField
+  label="Email notifications"
+  description="Get alerts when a proof completes or fails."
+  checked={enabled}
+  onChange={(event) => setEnabled(event.target.checked)}
+/>
+```
+
+### Modal
+
+Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, white panel (`max-w-[600px]`, `rounded-soft`, `p-pad-relaxed`), title, optional description, children in a bordered `surface-primary` scroll body, optional footer action row, close `IconButton`. Prefer this for confirmations and focused forms. Sheet variant is not implemented yet.
+
+| Prop            | Notes                                                    |
+| --------------- | -------------------------------------------------------- |
+| `title`         | Required; `type-title` heading                           |
+| `description`   | Optional body copy under the title (`type-body`)         |
+| `children`      | Optional body slot (forms, lists, custom content)        |
+| `footer`        | Optional right-aligned action row (use shared `Button`s) |
+| `onClose`       | Close handler (X button + Escape unless `closeDisabled`) |
+| `closeDisabled` | Disables close control and Escape (e.g. `DeleteProgressModal`) |
+| `className`     | Merged onto the dialog panel                             |
+
+```tsx
+<Modal
+  title="Text Heading"
+  description="Body text"
+  onClose={() => setOpen(false)}
+  footer={
+    <>
+      <Button variant="primary" size="sm" onClick={onConfirm}>
+        Confirm
+      </Button>
+      <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>
+        Cancel
+      </Button>
+    </>
+  }
+/>
+```
+
+### Tooltip
+
+Tooltip (`frontend/src/components/ui/Tooltip.tsx`): dark (default, `surface-inverse-hover` border like the RPC console) or light (`stroke-secondary` border) bubble with matching beak edges so it stays visible on either surface; placement beak (top / bottom / left / right); title, optional body, optional action row.
+
+Pass `children` as the trigger. Without `actions`, opens on hover/focus (tooltip). With `actions`, opens on click and closes on Escape / outside click (toggletip). Positions via portal with basic flip when the preferred side would clip.
+
+| Prop           | Values / notes                                                                                  |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| `children`     | Required trigger                                                                                |
+| `title`        | Required; `type-body-em` primary                                                                |
+| `body`         | Optional secondary copy under the title (`type-body`)                                           |
+| `actions`      | Optional right-aligned action row (use compact `Button`s, `size="sm"`) — enables toggletip mode |
+| `placement`    | `top` (default) \| `bottom` \| `left` \| `right` — preferred side; may flip to stay on-screen   |
+| `variant`      | `dark` (default) \| `light`                                                                     |
+| `className`    | Merged onto the bubble                                                                          |
+| `open`         | Optional controlled open state                                                                  |
+| `defaultOpen`  | Uncontrolled initial open (default `false`)                                                     |
+| `onOpenChange` | Open state callback                                                                             |
+
+```tsx
+<Tooltip title="Title" body="Body text" placement="top">
+  <Button variant="secondary" size="sm">
+    Hover me
+  </Button>
+</Tooltip>;
+
+<Tooltip
+  title="Title"
+  body="Body text"
+  placement="bottom"
+  actions={
+    <>
+      <Button variant="primary" size="sm">
+        Confirm
+      </Button>
+      <Button variant="secondary" size="sm">
+        Cancel
+      </Button>
+    </>
+  }
+>
+  <Button variant="primary" size="sm">
+    Open
+  </Button>
+</Tooltip>;
+```
+
+### Disclosure
+
+Disclosure (`frontend/src/components/ui/Disclosure.tsx`): native `<details>` / `<summary>` collapse-expand section with ESDS text, focus ring, and a lucide chevron that rotates when open.
+
+Use it for reusable collapsible sections such as toolkit groups, settings groups, diagnostics details, and setup-guide sections. It intentionally does not coordinate with sibling disclosures; add that later only if a true accordion behavior is needed.
+
+| Prop               | Notes                                      |
+| ------------------ | ------------------------------------------ |
+| `title`            | Required summary label/content             |
+| `children`         | Required collapsed/expanded body           |
+| `defaultOpen`      | Initial native open state, default `true`  |
+| `open`             | Optional controlled native `details` state |
+| `className`        | Merged onto `<details>`                    |
+| `summaryClassName` | Merged onto `<summary>`                    |
+| `contentClassName` | Merged onto the content wrapper            |
+| ...props           | Standard `HTMLDetailsElement` attributes   |
+
+```tsx
+<Disclosure title="Group title" defaultOpen>
+  <Menu items={items} />
+</Disclosure>
+```
+
+### ScrollArea
+
+Scroll container (`frontend/src/components/ui/ScrollArea.tsx`): reusable overflow container with a stable scrollbar gutter, thin Firefox scrollbar styling, and WebKit scrollbar thumb styling using ESDS stroke tokens.
+
+Use it when a panel, modal body, console, or rail needs visible internal scrolling. Keep sizing (`max-h-*`, sticky positioning, padding, grid/flex layout) at the call site.
+
+| Prop        | Notes                                |
+| ----------- | ------------------------------------ |
+| `children`  | Required scrollable content          |
+| `className` | Merged onto the scroll container     |
+| ...props    | Standard `HTMLDivElement` attributes |
+
+```tsx
+<ScrollArea className="rounded-soft border-stroke-secondary p-margin-tight max-h-80 border">
+  {items.map((item) => (
+    <Item key={item.id} item={item} />
+  ))}
+</ScrollArea>
+```
+
+### ProgressBar
+
+Progress bar (`frontend/src/components/ui/ProgressBar.tsx`): optional back control, accent fill track, step count Tag. Prefer this for multi-step / wizard progress.
+
+| Prop        | Values / notes                                          |
+| ----------- | ------------------------------------------------------- |
+| `current`   | Current step (clamped 0…`total`)                        |
+| `total`     | Total steps (minimum 1)                                 |
+| `showBack`  | boolean (default `true`) — show the back control        |
+| `onBack`    | optional click handler; button disabled if omitted      |
+| `backLabel` | `aria-label` for the IconButton (default `"Back"`)      |
+| `label`     | `aria-label` for the progressbar (default `"Progress"`) |
+| `className` | merged onto the row                                     |
+
+Back control is `IconButton` ghost compact with ChevronLeft. Count uses `Pill`. Track fill is `surface-accent` at `(current / total) * 100%`.
+
+```tsx
+<ProgressBar current={1} total={2} onBack={() => goBack()} />
+<ProgressBar current={2} total={2} showBack={false} />
+```
+
+### ErrorAlert
+
+In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): white surface, status stroke, 20% feedback wash (same chrome as matching toast tones). Prefer field `error` for per-control validation; prefer toast for transient action failures.
+
+| Prop        | Notes                                                                  |
+| ----------- | ---------------------------------------------------------------------- |
+| `status`    | `error` (default) or `warning`                                         |
+| `title`     | Optional; `type-body-em` primary                                       |
+| `children`  | Body; primary when alone, secondary under a title                      |
+| `action`    | Optional recovery control (e.g. Retry)                                 |
+| `className` | Merged onto the outer alert shell (e.g. `max-w-none w-full` for pages) |
+
+`error` uses `role="alert"` + `AlertCircle` (`icon-error`). `warning` uses `role="status"` + `TriangleAlert` (`icon-warning`). Flat `components/ErrorAlert.tsx` re-exports.
+
+```tsx
+<ErrorAlert title="Couldn't start Connect" action={<RetryButton />}>
+  {error}
+</ErrorAlert>
+<ErrorAlert status="warning" title="Minima isn't running" className="w-full max-w-none">
+  Wallet actions are unavailable until the node is running again.
+</ErrorAlert>
+```
+
+### ErrorDetailPanel
+
+Minimal, embeddable error breakdown (`frontend/src/components/patterns/ErrorDetailPanel.tsx`): a `DetailList` "Message" row (plus any caller-supplied `extraRows`, e.g. a "Checked at" timestamp), followed by an unlabeled `JsonPreviewContent` block with the raw error. No "Raw" caption above the JSON — the surrounding `Disclosure` title (e.g. "Preview", "Error") already labels the whole section, matching every other JSON block embedded in these modals (payload, run data), so error sections don't get an extra label the non-error ones don't have. Error shapes differ across source types, so everything beyond the message falls back into that raw JSON instead of being guessed at as separate fields. It has no trigger or dialog of its own — compose it inside a caller's own `Modal`/`Disclosure`. This is the shared error body used by the Devices, Integritas, Data reads, and Automation "view details" modals (paired with `DetailList` for the top-level facts and `Disclosure` for the expandable section around it), so a source's error and its raw response render the same way everywhere instead of drifting per feature.
+
+| Prop        | Notes                                                   |
+| ----------- | -------------------------------------------------------- |
+| `error`     | Unknown value; normalized via `normalizeError`            |
+| `extraRows` | Optional additional `DetailRow`s rendered after Message   |
+
+```tsx
+<Disclosure title="Preview">
+  <ErrorDetailPanel error={item.errorDetails ?? item.error} />
+</Disclosure>
+```
+
+### JsonPreview
+
+Trigger that opens a dialog with pretty-printed JSON (`frontend/src/components/patterns/JsonPreview.tsx`): link or secondary button; modal body uses the same bare-`<pre>` `JsonPreviewContent`, also exported for callers embedding JSON directly inside their own modal/disclosure without a second trigger (e.g. the "view details" modals' payload/data sections). Flat `components/JsonPreview.tsx` re-exports both for now.
+
+| Prop        | Notes                                      |
+| ----------- | ------------------------------------------ |
+| `value`     | JSON-serializable payload                  |
+| `label`     | Trigger copy (default `View JSON`)         |
+| `title`     | Modal title (default `JSON preview`)       |
+| `variant`   | `link` (default) \| `button`               |
+| `icon`      | Optional leading icon when `variant=button`|
+| `disabled`  | Disables the trigger                       |
+| `className` | Merged onto the trigger                    |
+
+```tsx
+<JsonPreview label="View" title="Read preview" value={item.preview} />
+```
+
+### Page
+
+Route content frame: distant pad padding (`p-pad-distant`), title + optional description, optional action, then children. Owns content padding so `AppShell` stays full-bleed (status bar chrome). Header is a two-column grid on `sm+` (title/desc | action). Implementation: `components/patterns/Page.tsx`; flat `components/Page.tsx` re-exports for now.
+
+| Prop       | Notes                                                                 |
+| ---------- | --------------------------------------------------------------------- |
+| `title`    | Page heading (`type-title`)                                           |
+| `desc`     | Optional supporting copy (`type-body`)                                |
+| `action`   | Optional header action (e.g. settings)                                |
+| `eyebrow`  | Deprecated / unused — still accepted so unmigrated call sites compile |
+| `children` | Page body                                                             |
+
+```tsx
+<Page title="Your dashboard" desc="Your workspace for trusted data at the edge.">
+  {/* page body */}
+</Page>
+```
+
+Cleanup later: drop `eyebrow` from remaining page call sites, then remove the prop and the flat `components/Page.tsx` re-export (import from `patterns/Page` instead).
+
+### BrandLockup
+
+Brand mark + wordmark (`frontend/src/components/patterns/BrandLockup.tsx`): 32px rounded mark box with the white `BrandMark` glyph, then `APP_NAME` in `type-title`. Prefer this on full-screen brand surfaces (login, onboarding wizard) instead of re-assembling the mark box and wordmark inline. Pair with `BRAND_GRADIENT` (`app/brand.ts`) for the shared black → accent backdrop.
+
+| Prop        | Notes                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `tone`      | `on-light` (default: black mark box, black wordmark) \| `on-dark` (translucent bordered mark box, inverse wordmark) |
+| `className` | Merged onto the lockup row                                                                                                |
+
+```tsx
+<div style={{ background: BRAND_GRADIENT }}>
+  …
+  <BrandLockup tone="on-dark" className="shrink-0" />
+</div>
+```
+
+### Card
+
+White card surface (`frontend/src/components/ui/Card.tsx`): fill, radius, padding, overflow clip only. Layout (`flex` / `grid` / `gap`) belongs on the caller. Flat `components/Card.tsx` re-exports for now.
+
+| Prop        | Notes                                                    |
+| ----------- | -------------------------------------------------------- |
+| `size`      | `Default` (`p-pad-relaxed`) \| `Compact` (`p-pad-tight`) |
+| `className` | Merged onto the surface                                  |
+| `children`  | Card body                                                |
+
+```tsx
+<Card className="gap-detail-close flex flex-col">…</Card>
+<Card size="Compact">…</Card>
+```
+
+### MetricCard
+
+Standalone compact metric tile (`frontend/src/components/patterns/MetricCard.tsx`): white Compact `Card` with label (`type-meta` primary), optional leading icon + value (`type-title`), optional description (`type-meta` tertiary). Prefer this for dashboard / summary grids.
+
+| Prop          | Notes                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------- |
+| `label`       | Metric title                                                                            |
+| `value`       | Primary value (`ReactNode`; truncates). Ignored while `loading`                         |
+| `description` | Optional caption under the value (e.g. "Primary Pi Wallet")                             |
+| `icon`        | Optional 20px leading glyph in the value row                                            |
+| `loading`     | Shows `LoadingDots` and tertiary value colour                                           |
+| `status`      | Shared `Status`: `neutral` \| `success` \| `warning` \| `error`. Ignored while loading. |
+| `children`    | Optional footer slot (e.g. an action button)                                            |
+| `className`   | Merged onto the Compact `Card` shell                                                    |
+
+```tsx
+<MetricCard
+  label="Wallet balance"
+  icon={<MinimaIcon size={20} />}
+  value="0.0001"
+  description="Primary Pi Wallet"
+/>
+<MetricCard label="Node status" loading={loading} value="Running" status="success" />
+```
+
+### AltOptionCard
+
+Quieter choice card (`frontend/src/components/patterns/AltOptionCard.tsx`): `surface-primary` fill, `stroke-secondary` border, bare 24px glyph, `type-body-em` title, `type-body` secondary description, then a shared `Button` pinned to the bottom.
+
+Same slots as `OptionCard`, two differences: the glyph has no filled circle, and the card surface is **not** pressable — only the button is. Prefer this for dense grids of options where each option needs one explicit, labelled action; prefer `OptionCard` when the whole card should be one large target.
+
+| Prop          | Notes                                          |
+| ------------- | ---------------------------------------------- |
+| `icon`        | Optional `LucideIcon`, rendered bare at 24px   |
+| `title`       | Required card heading                          |
+| `description` | Optional supporting copy                       |
+| `actionLabel` | Button label                                   |
+| `onClick`     | Button click handler                           |
+| `disabled`    | Disables the action button                     |
+| `children`    | Optional extra content above the button        |
+| `className`   | Merged onto the card shell                     |
+
+```tsx
+<div className="gap-detail-close grid sm:grid-cols-2 lg:grid-cols-3">
+  <AltOptionCard
+    icon={Globe2}
+    title="HTTP JSON Source"
+    description="Fetch JSON from an external API or Pi service"
+    actionLabel="Add input"
+    onClick={() => select(template)}
+  />
+</div>
+```
+
+### CopyableCode
+
+Mono value chip with a compact copy control (`frontend/src/components/patterns/CopyableCode.tsx`): secondary surface, `type-mono` value, `IconButton` copy/check. Copy success and failure use the shared toast. Prefer this for addresses, token IDs, and hashes. Flat `components/CopyableCode.tsx` re-exports for now.
+
+| Prop        | Notes                          |
+| ----------- | ------------------------------ |
+| `value`     | String shown and copied        |
+| `className` | Optional; merged onto the chip |
+
+```tsx
+<CopyableCode value={token.tokenId} />
+```
+
+### EmptyContentState
+
+Empty content state (`frontend/src/components/patterns/EmptyContentState.tsx`): centered bare glyph, bold title, description, and an optional `Button` action, on a bordered `surface-primary` panel. Prefer this over a bare "No X yet." string wherever a table or list can be genuinely empty — no rows, no filter matches, nothing saved yet.
+
+**Render it in place of the table/list, not as a row inside it.** Putting it in a `<td colSpan>` leaves empty header chrome above it, which is not the intended state. Pair it with `LoadingState`, which uses the same panel shell (`contentStatePanelClass`, exported here) so the two swap cleanly.
+
+| Prop             | Notes                                                                     |
+| ---------------- | ------------------------------------------------------------------------- |
+| `icon`           | Optional `LucideIcon`, rendered bare at 24px                              |
+| `title`          | Required bold heading                                                     |
+| `description`    | Optional copy under the title                                             |
+| `actionLabel`    | Optional action button label (omit to hide the button)                    |
+| `actionIcon`     | Optional leading icon for the action button (e.g. `Plus` on a create CTA) |
+| `actionVariant`  | `primary` (default) or `secondary` — use `secondary` for "Clear filters"  |
+| `actionDisabled` | Disables the action button                                                |
+| `onAction`       | Action button click handler                                               |
+| `className`      | Merged onto the panel                                                     |
+
+```tsx
+{loading ? (
+  <LoadingState title="Fetching your devices" description="This should take a few seconds." />
+) : items.length === 0 ? (
+  <EmptyContentState
+    icon={Cable}
+    title="Connect your first device"
+    description="Your input sources and output targets will be added to your library here."
+    actionLabel="New device"
+    actionIcon={<Plus aria-hidden />}
+    onAction={onAddDevice}
+  />
+) : (
+  <TableWrap>…</TableWrap>
+)}
+```
+
+### LoadingState
+
+Fetching content state (`frontend/src/components/patterns/LoadingState.tsx`): centered `SpinnerAlt` with an optional bold title and description, on the same panel as `EmptyContentState`. Prefer this over a bare inline spinner wherever a table or list is waiting on its first load, not just a busy row/button. Same placement rule: render it **in place of** the table, not inside it.
+
+| Prop          | Notes                                                                 |
+| ------------- | --------------------------------------------------------------------- |
+| `title`       | Optional bold heading (e.g. "Fetching your devices")                  |
+| `description` | Optional copy under the title                                         |
+| `pace`        | `default` (0.8s cycle) or `slow` (1.6s). Same dial; use `slow` for waits that routinely take longer than a few seconds |
+| `children`    | Optional extra content under the description (actions, dismiss control) |
+| `className`   | Merged onto the panel                                                 |
+
+```tsx
+<LoadingState title="Fetching your devices" description="This should take a few seconds." />
+<LoadingState
+  pace="slow"
+  title="Preparing your backup"
+  description="This can take a minute."
+/>
+```
+
+### SpinnerAlt
+
+Loading indicator (`frontend/src/components/ui/SpinnerAlt.tsx`): eight pins around a dial that light and fade in sequence so the lit pin travels clockwise. It does **not** rotate — the animation is per-pin opacity (`spinner-pin` keyframes in `styles.css`), staggered by index, and respects `prefers-reduced-motion`. Prefer this for any new loading indicator; the older rotating-ring `Spinner` is deprecated.
+
+| Prop        | Values                                    | Notes                                      |
+| ----------- | ----------------------------------------- | ------------------------------------------ |
+| `size`      | `sm` (20px) \| `md` (32px) \| `lg` (64px) | Default `md`                               |
+| `tone`      | `primary` \| `secondary`                  | Default `primary`                          |
+| `pace`      | `default` (0.8s) \| `slow` (1.6s)         | Same pin-dial; slower cycle for long waits |
+| `className` | optional                                  | Merged onto the `<svg>`                    |
+
+Decorative (`aria-hidden`) by design — always pair it with adjacent text describing what's loading, as `LoadingState` does.
+
+```tsx
+<SpinnerAlt />
+<SpinnerAlt size="sm" tone="secondary" />
+<SpinnerAlt pace="slow" />
+```
+
+### DetailList
+
+Label/value detail rows (`frontend/src/components/patterns/DetailList.tsx`): `DetailList` is the `<dl>` wrapper, `DetailRow` is one label/value pair. Prefer this for read-only config/profile detail blocks instead of hand-rolled `<dl>`/`<dt>`/`<dd>` markup.
+
+| Prop (`DetailRow`) | Notes                                                              |
+| ------------------- | ------------------------------------------------------------------- |
+| `label`             | Row label (`ReactNode`)                                             |
+| `value`             | Row value (`ReactNode`)                                             |
+| `mono`              | Monospace value, for technical strings like hosts/IDs (default off) |
+| `className`         | Merged onto the row grid — override to widen the label column       |
+
+```tsx
+<DetailList className="border-t border-stroke-secondary pt-4">
+  <DetailRow label="Name" value={user.name} />
+  <DetailRow label="baseUrl" value={config.baseUrl} mono />
+</DetailList>
+```
+
+### StatusBar
+
+Status bar (`frontend/src/components/StatusBar.tsx`): shell chrome with status Tags on the left and Local/UTC clock Tags on the right (`surface-primary`, `p-margin-tight`). Composes `Pill`, `Clock`, and optional `Tooltip` detail on each status item.
+
+| Prop        | Notes                                                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `items`     | `{ id, label, tone, detailTitle?, detailBody?, actions?, trigger? }[]` — use `trigger: "hover"` with `actions` for hover CTAs |
+| `className` | Optional; merged onto the bar shell                                                                                           |
+
+`tone` / indicator follow `Pill`. Prefer this over ad-hoc status rows in `AppShell`.
+
+```tsx
+<StatusBar
+  items={[
+    { id: "node", label: "Node online", tone: "good", detailTitle: "Node online" },
+    {
+      id: "integritas",
+      label: "Integritas disconnected",
+      tone: "warn",
+      detailTitle: "Integritas disconnected",
+    },
+  ]}
+/>
+```
+
+### Divider
+
+Hairline rule (`frontend/src/components/ui/Divider.tsx`): 1px `stroke-secondary` separator for splitting content from actions or adjacent sections.
+
+| Prop          | Values                         | Notes                                      |
+| ------------- | ------------------------------ | ------------------------------------------ |
+| `orientation` | `horizontal` \| `vertical`     | Default `horizontal` (`h-px w-full`)       |
+| `className`   | optional                       | Spacing / inset overrides on the separator |
+
+Vertical uses `w-px self-stretch` (needs a stretched flex/grid parent). Decorative: `role="separator"` with matching `aria-orientation`.
+
+```tsx
+<Divider />
+<Divider orientation="vertical" className="mx-detail-next" />
+```
+
+### Pill
+
+Tag / pill (`frontend/src/components/ui/Pill.tsx`): 24px-tall rounded pill (`type-meta`, `px-detail-next`). Prefer this for compact status/category labels. Flat `components/Pill.tsx` re-exports for now.
+
+| Prop        | Values                                   | Notes                                       |
+| ----------- | ---------------------------------------- | ------------------------------------------- |
+| `tone`      | `neutral` \| `good` \| `warn` \| `error` | Maps to Default / Success / Warning / Error |
+| `indicator` | boolean (default `false`)                | Optional 4px status dot                     |
+| `className` | optional                                 | Merged onto the pill                        |
+
+Default (`neutral`): `surface-secondary` fill. Success / Warning / Error: white fill, matching stroke, 20% feedback wash. Label is always `text-primary`.
+
+```tsx
+<Pill>Default</Pill>
+<Pill tone="good" indicator>
+  Success
+</Pill>
+<Pill tone="error">Failed</Pill>
+```
+
+### Text
+
+Text roles (`frontend/src/components/ui/Text.tsx`): wraps type tokens so call sites pick a role instead of assembling `type-*` + colour classes. Flat `components/Text.tsx` re-exports; legacy `MutedText` stays there for older call sites.
+
+| Member          | Token / look                           | Default element | Notes                                      |
+| --------------- | -------------------------------------- | --------------- | ------------------------------------------ |
+| `Text.Title`    | `type-title` + `text-text-primary`     | `h2`            | Section / page title                       |
+| `Text.Subtitle` | `type-callout` + `text-text-secondary` | `p`             | Supporting line under a title (callout)    |
+| `Text.Body`     | `type-body` + `text-text-primary`      | `p`             | Body copy; override colour via `className` |
+| `Text.BodyEm`   | `type-body-em` + `text-text-primary`   | `p`             | Emphasized / bold body                     |
+| `Text.Muted`    | `type-meta` + `text-text-secondary`    | `p`             | Helper / secondary meta copy               |
+| `Text.Link`     | `type-link` + `text-text-accent`       | router `Link`   | Hover uses `text-accent-hover`             |
+
+```tsx
+<Text.Title>Automation</Text.Title>
+<Text.Subtitle>Build and run block workflows</Text.Subtitle>
+<Text.Body>Optional supporting detail.</Text.Body>
+<Text.BodyEm>Important label</Text.BodyEm>
+<Text.Muted>Last updated just now</Text.Muted>
+<Text.Link to="/diagnostics?tab=proofs">Open proof</Text.Link>
+```
+
+### InputField
+
+Labeled text field: label → optional description → control → optional error.
+
+| Prop          | Notes                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------ |
+| `label`       | Optional; `type-meta` (tertiary when `disabled`)                                                 |
+| `description` | Optional helper under the label                                                                  |
+| `error`       | Optional; red alert text + `aria-invalid` on the control                                         |
+| `size`        | `md` (default, 44px / `type-body`) or `sm` (32px / `type-meta`); same as `Input` / `SelectField` |
+| `disabled`    | Dims label/description; disables the control                                                     |
+| `className`   | Outer stack                                                                                      |
+| …input props  | Standard `value`, `onChange`, `type`, `placeholder`, etc.                                        |
+
+Control states live on `Input` (used by `InputField`): inset 1px outline `stroke-primary`, disabled fill `surface-primary`, error outline `stroke-error`, focus outline `stroke-active`. Native HTML `size` is omitted so this prop is the visual size.
+
+```tsx
+<InputField
+  label="Password"
+  type="password"
+  value={credential}
+  onChange={(event) => setCredential(event.target.value)}
+  placeholder="Enter your credential"
+  autoComplete="current-password"
+  error={error ?? undefined}
+/>
+```
+
+Do not use placeholder as the only label.
+
+### SelectField
+
+Labeled select (`frontend/src/components/ui/SelectField.tsx`): label → optional description → control → optional error. Prefer this for single-choice dropdowns.
+
+| Prop          | Notes                                                              |
+| ------------- | ------------------------------------------------------------------ |
+| `label`       | Optional; `type-meta` (tertiary when `disabled`)                   |
+| `description` | Optional helper under the label                                    |
+| `error`       | Optional; red alert text + `aria-invalid` on the control           |
+| `options`     | `{ value, label, disabled? }[]` — rendered as native `<option>`s   |
+| `placeholder` | Optional empty-value option (`value=""`); shown in `text-disabled` |
+| `size`        | `md` (default, 44px / `type-body`) or `sm` (32px / `type-meta`)    |
+| `disabled`    | Dims label/description; disables the control                       |
+| `className`   | Outer stack                                                        |
+| …select props | Standard `value`, `onChange`, `name`, `defaultValue`, etc.         |
+
+Control matches `Input` chrome: `rounded-loose`, `border-stroke-primary`, white fill, focus `stroke-active`, error `stroke-error`, disabled `surface-primary` + `text-disabled`. Height/type follow `size`. ChevronDown sits at the trailing edge (`icon-primary` / disabled `icon-disabled`).
+
+```tsx
+<SelectField
+  label="Profile"
+  description="Choose how this GPIO input is labeled."
+  options={[
+    { value: "generic", label: "Generic GPIO input" },
+    { value: "pir-motion", label: "PIR motion sensor" },
+  ]}
+  value={profile}
+  onChange={(event) => setProfile(event.target.value)}
+  error={error ?? undefined}
+/>
+```
+
+### Menu
+
+Menu: vertical list of rows with a built-in Plus icon and label. No outer border; `stroke-secondary` dividers only between rows. `MenuItem` is not exported — pass rows through `items`. No current call sites; table row actions use `TableIconMenu`.
+
+| Prop        | Notes                                                              |
+| ----------- | ------------------------------------------------------------------ |
+| `items`     | `{ label, disabled?, className?, onClick? }[]` — one row per entry |
+| `className` | Merged onto the menu container (`min-w-40`, stretch column)        |
+
+States per row: default (`surface-always-white`) → hover / focus (`surface-secondary`) → disabled (`text-disabled`, icon inherits). Padding `p-margin-tight`, gap `gap-detail-next`. Focus uses an inset ring (no offset) so it stays clear of row dividers.
+
+```tsx
+<Menu
+  className="w-40"
+  items={[
+    { label: "Menu item", onClick: ... },
+    { label: "Unavailable", disabled: true },
+  ]}
+/>
+```
+
+### TabList
+
+Underline tabs in a horizontal row. `TabItem` is not exported — pass rows through `options`.
+
+| Prop        | Notes                                                 |
+| ----------- | ----------------------------------------------------- |
+| `label`     | Accessible name for the `tablist`                     |
+| `value`     | Currently selected option value                       |
+| `options`   | `{ value, label, disabled?, iconStart?, iconEnd? }[]` |
+| `onChange`  | Called with the selected value                        |
+| `className` | Merged onto the list container                        |
+
+States per tab: active (`stroke-active` / `text-primary`) → hover (`stroke-primary`) → inactive (`stroke-secondary` / `text-tertiary`) → disabled (`text-disabled`, no underline). Padding `p-detail-next`, optional 16px icon slots, `type-body`.
+
+```tsx
+<TabList
+  label="Section"
+  value={tab}
+  options={[
+    { value: "one", label: "Overview" },
+    { value: "two", label: "Details" },
+    { value: "three", label: "Unavailable", disabled: true },
+  ]}
+  onChange={setTab}
+/>
+```
+
+### ToggleTabs
+
+Equal-width segments on a `surface-secondary` track (`rounded-loose`). Prefer this for compact binary/segmented controls. `ToggleTabItem` is not exported — pass segments through `options`.
+
+| Prop        | Notes                                                                 |
+| ----------- | --------------------------------------------------------------------- |
+| `label`     | Accessible name for the `tablist`                                     |
+| `value`     | Currently selected option value                                       |
+| `options`   | `{ value, label, disabled? }[]` — typically two segments              |
+| `onChange`  | Called with the selected value                                        |
+| `size`      | `md` (default, 44px / `type-body`) or `sm` (32px / `type-meta`)       |
+| `className` | Merged onto the track (set width when equal flex segments need a box) |
+
+Selected: `surface-inverse` / `text-inverse`. Idle: transparent with `stroke-secondary` border / `text-primary` (border blends into the track). Labels stay on one line (`whitespace-nowrap`).
+
+```tsx
+<ToggleTabs
+  className="w-[170px]"
+  label="View"
+  value={view}
+  options={[
+    { value: "left", label: "List" },
+    { value: "right", label: "Grid" },
+  ]}
+  onChange={setView}
+/>
+<ToggleTabs size="sm" label="Recipient source" value={mode} options={…} onChange={setMode} />
+```
 
 ## Tables And Lists
 
-- Use `DataTable` for tabular workflow/history/list surfaces.
+- Use `DataTable` for tabular workflow/history/list surfaces (native `<table>` + helpers in `frontend/src/components/patterns/DataTable.tsx`; flat `components/DataTable.tsx` re-exports for now).
+- Prefer the row primitives (`TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`) over applying the exported class constants by hand. Class constants remain for older call sites.
+- Wrap list tables in `TableWrap` from that module: bordered scroll shell with a modest min-height (~4 rows).
+- Prefer one primary `TableIconButton` in the Actions column; put secondary actions in `TableIconMenu` (⋮).
 - Use compact cards/lists instead of tables when the content is entity-detail oriented, narrow, or action-heavy.
-- Preserve the shared table visual style: rounded bordered wrapper, uppercase slate header row, `border-t` body rows, and `px-4 py-3` cells.
+- When migrating off native `<table>` markup, prefer the shared table shell pattern in `frontend/src/components/patterns/Table.tsx` (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`).
+
+```tsx
+<TableWrap>
+  <DataTable>
+    <TableHead>
+      <TableHeaderCell>Name</TableHeaderCell>
+      <TableHeaderCell>Amount</TableHeaderCell>
+    </TableHead>
+    <TableBody>
+      <TableRow>
+        <TableCell>…</TableCell>
+        <TableCell>…</TableCell>
+      </TableRow>
+    </TableBody>
+  </DataTable>
+</TableWrap>
+```
 
 ## Tokens
 
-Edge Studio primary palette is **White**, **Graphite**, and **Accent** (one complementary colour used sparingly). Tokens are defined in `@theme` in `frontend/src/styles.css` and used as Tailwind utilities (e.g. `bg-brand-white`, `text-brand-accent`):
+Colour, typography, corner-radius, and spacing tokens follow Edge Studio Design System (ESDS) foundations. They are defined in `frontend/src/styles.css` (`@theme` for colour/font/radius/spacing primitives; `@utility type-*` for named text styles).
 
-| Brief name | Utility / token  | Role                                             |
-| ---------- | ---------------- | ------------------------------------------------ |
-| White      | `brand-white`    | Near-white surfaces / panels (not raw `#ffffff`) |
-| Graphite   | `brand-graphite` | Text and strong UI                               |
-| Accent     | `brand-accent`   | Sparse highlights (CTA accents, progress)        |
+Prefer **semantic** colour tokens, **named type styles**, and **ESDS radius/spacing utilities** in UI. Change hex / type metrics / radius / spacing values only in `styles.css`, not in component classes.
 
-Supporting shades of those primaries: `brand-bg` (off-white page ground), `brand-graphite-muted`, `brand-graphite-hover`, `brand-graphite-soft`, `brand-border`. For dark surfaces: `brand-on-dark`, `brand-on-dark-hover`, `brand-on-dark-border`.
+### Colour primitives (hex source of truth)
 
-Semantic status: `error` / `error-hover`, `warning` / `warning-hover`, `success` / `success-hover`, `info` / `info-hover`. Use these instead of raw Tailwind red/amber/emerald/blue for status UI.
+| Token                                                       | Role                         |
+| ----------------------------------------------------------- | ---------------------------- |
+| `core-white` / `core-black`                                 | Absolute white and black     |
+| `grey-01` … `grey-06`                                       | Neutral scale (light → dark) |
+| `brand-01`                                                  | Brand accent purple          |
+| `feedback-error` / `feedback-warning` / `feedback-positive` | Status base colours          |
 
-Do not use Tailwind opacity modifiers (e.g. `brand-white/25`) — add a named token instead. Values are placeholders until design delivers — change hex in `@theme`, not component classes. Use Tailwind defaults for everything else until a repeated need appears.
+### Colour semantics (prefer these)
+
+| Group   | Examples                                                                                                                                        | Role                              |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Surface | `surface-primary`, `surface-secondary`, `surface-tertiary`, `surface-inverse`, `surface-always-white`, `surface-always-black`, `surface-accent` | Backgrounds and fills             |
+| Text    | `text-primary`, `text-secondary`, `text-tertiary`, `text-disabled`, `text-inverse`, `text-accent`, `text-accent-hover`, `text-error`, `text-warning`, `text-success` | Foreground colour (not type size) |
+| Icon    | `icon-primary`, `icon-secondary`, `icon-tertiary`, `icon-disabled`, `icon-inverse`, `icon-error`, `icon-warning`, `icon-success`                | Icon colour                       |
+| Stroke  | `stroke-primary`, `stroke-secondary`, `stroke-active`, `stroke-error`, `stroke-warning`, `stroke-success`, `stroke-always-white`                | Borders and dividers              |
+| Overlay | `overlay-light`, `overlay-heavy`                                                                                                                | Scrims / dimmers                  |
+
+Do not use Tailwind opacity modifiers on colour tokens (e.g. `surface-always-white/25`) — add a named token instead.
+
+### Typography
+
+| Primitive        | Value          | Utility                               |
+| ---------------- | -------------- | ------------------------------------- |
+| Font family/Core | Hanken Grotesk | `font-sans` (also default on `:root`) |
+| Font family/Mono | Azeret Mono    | `font-mono`                           |
+| Weight/Base      | 400            | `font-base`                           |
+| Weight/Emphasis  | 600            | `font-emphasis`                       |
+
+Named styles are **complete recipes** (family + size + line-height + letter-spacing + weight). Prefer these over ad-hoc `text-sm` / `font-bold` / `tracking-*`:
+
+| Token (`esds.type.*`) | Utility        | Notes                                         |
+| --------------------- | -------------- | --------------------------------------------- |
+| Meta                  | `type-meta`    | 12 / 400 / lh 1.2 / tracking 0                |
+| Mono                  | `type-mono`    | Azeret Mono, 12 / 400 / lh 1.2 / tracking −2% |
+| Body                  | `type-body`    | 14 / 400 / lh 1.2 / tracking −1%              |
+| Body Emphasis         | `type-body-em` | 14 / 600 / lh 1.2 / tracking −1%              |
+| Link                  | `type-link`    | Same as Body + underline                      |
+| Callout               | `type-callout` | 18 / 400 / lh 1.2 / tracking −2%              |
+| Title                 | `type-title`   | 24 / 600 / lh 1.2 / tracking −2%              |
+| Heading               | `type-heading` | 32 / 600 / lh 0.95 / tracking −2%             |
+| Display               | `type-display` | 48 / 600 / lh 0.95 / tracking −2%             |
+
+Pair type utilities with colour utilities (e.g. `type-body text-text-secondary`). Heading/Display use tight leading — prefer short single-line titles; loosen only with design approval.
+
+### Corner radius
+
+| Token (`esds.radius.*`) | Utility         | Value |
+| ----------------------- | --------------- | ----- |
+| sharp                   | `rounded-sharp` | 0     |
+| tight                   | `rounded-tight` | 2px   |
+| loose                   | `rounded-loose` | 4px   |
+| soft                    | `rounded-soft`  | 8px   |
+| full                    | `rounded-full`  | 999px |
+
+Prefer these over ad-hoc `rounded-xl` / `rounded-[14px]` when restyling UI. Tokens live in `@theme` in `styles.css`.
+
+### Spacing
+
+Named spacing tokens map to Tailwind spacing utilities (`p-*`, `m-*`, `gap-*`, `space-*`, sizing where spacing is used). Prefer named spacing tokens over ad-hoc `p-4` / `gap-6` when restyling UI. Some values repeat across groups on purpose (semantic roles).
+
+**Roles:** `detail` = gaps inside a component; `separator` = space between major sections; `pad` = padding from a container edge (page / card / modal). Prefer `pad-*` for new work. Figma still labels this scale `esds.spacing.margin.*` — same values as code `pad` / legacy `margin`.
+
+#### Detail (`esds.spacing.detail.*`)
+
+| Token | Utility suffix | Value |
+| ----- | -------------- | ----- |
+| fine  | `detail-fine`  | 2px   |
+| tight | `detail-tight` | 4px   |
+| next  | `detail-next`  | 8px   |
+| close | `detail-close` | 16px  |
+| near  | `detail-near`  | 24px  |
+
+Example: `gap-detail-next`, `p-detail-close`.
+
+#### Separator (`esds.spacing.separator.*`)
+
+| Token   | Utility suffix      | Value |
+| ------- | ------------------- | ----- |
+| related | `separator-related` | 40px  |
+| relaxed | `separator-relaxed` | 64px  |
+| distant | `separator-distant` | 80px  |
+| removed | `separator-removed` | 120px |
+
+Example: `gap-separator-related`, `mt-separator-removed`.
+
+#### Pad (code; Figma `esds.spacing.margin.*`)
+
+Container edge padding. Prefer these for new / migrated UI.
+
+| Token   | Utility suffix | Value |
+| ------- | -------------- | ----- |
+| close   | `pad-close`    | 8px   |
+| tight   | `pad-tight`    | 16px  |
+| relaxed | `pad-relaxed`  | 40px  |
+| distant | `pad-distant`  | 80px  |
+| removed | `pad-removed`  | 120px |
+
+Example: `p-pad-tight`, `p-pad-distant` (`Page`, `Card`).
+
+#### Margin (legacy alias of pad)
+
+Same values as `pad-*`. Still used by unmigrated call sites (`p-margin-*`, etc.). Prefer `pad-*` when touching a file; remove `margin-*` once migration is complete.
+
+| Token   | Utility suffix   | Value |
+| ------- | ---------------- | ----- |
+| close   | `margin-close`   | 8px   |
+| tight   | `margin-tight`   | 16px  |
+| relaxed | `margin-relaxed` | 40px  |
+| distant | `margin-distant` | 80px  |
+| removed | `margin-removed` | 120px |
+
+Example: `p-margin-tight` (legacy).
 
 ## Do Not Add Yet
 

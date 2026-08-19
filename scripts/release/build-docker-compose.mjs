@@ -1,0 +1,258 @@
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+
+const manifestPath = process.argv[2] ?? "manifest.json";
+const channel = process.argv[3] ?? "release";
+const outDir = process.argv[4] ?? ".";
+
+mkdirSync(outDir, { recursive: true });
+
+const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
+
+const dockerCompose = `# Official edge-studio Docker Compose — ${channel} channel
+# Digest-pinned images (no repo checkout, no \`build:\` context needed) — just
+# this file plus the matching .env. Works with Docker Desktop's GUI:
+# open this folder in Docker Desktop's "Compose" view (or run
+# \`docker compose up -d\` from a terminal in this folder), wait for all
+# services to go green/healthy, then open https://localhost:8080 in a
+# browser and accept the self-signed certificate warning (expected).
+
+# Pinned regardless of folder name: update-agent hardcodes its container
+# lookup to the "edge-studio" Compose project (matches every real install,
+# which always lives in a folder literally named edge-studio). Without
+# this, update-agent can't find the frontend/backend containers to swap.
+name: edge-studio
+
+services:
+  # One-shot: generates the self-signed HTTPS cert the frontend needs and chowns
+  # bind-mounted data dirs to uid 1000 (the "node" user backend/update-agent run
+  # as), since runners won't have \`openssl\` or a pre-chowned host dir like a real
+  # install.sh run does.
+  cert-init:
+    image: alpine:3.20
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        mkdir -p /data/certs /minima-backups
+        if [ -f /data/certs/server.crt ] && [ -f /data/certs/server.key ]; then
+          echo "TLS certificate already exists, skipping"
+        else
+          apk add --no-cache openssl >/dev/null
+          openssl req -x509 -nodes -days 825 -newkey rsa:2048 \\
+            -keyout /data/certs/server.key -out /data/certs/server.crt \\
+            -subj "/CN=edge-studio" \\
+            -addext "subjectAltName=DNS:localhost,DNS:edge-studio,IP:127.0.0.1"
+          chmod 600 /data/certs/server.key
+          chmod 644 /data/certs/server.crt
+          echo "TLS certificate generated"
+        fi
+        chown -R 1000:1000 /data /minima-backups /update-agent-state \\
+          && echo "Host directories prepared" \\
+          || echo "Warning: chown skipped (not supported on this filesystem), continuing"
+    volumes:
+      - \${DATA_DIR:-./data}:/data
+      - \${MINIMA_DATA_DIR:-./minima}/backups:/minima-backups
+      - \${UPDATE_AGENT_STATE_DIR:-./update-agent-state}:/update-agent-state
+    networks:
+      - integritas
+
+  backend:
+    image: ${manifest.backend}
+    environment:
+      PORT: 3000
+      HOST_FILES_ROOT: /host-files
+      MINIMA_STATUS_URL: http://minima:9005/status
+      INTEGRITAS_CONNECT_BASE_URL: \${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}
+      INTEGRITAS_BASE_URL: \${INTEGRITAS_BASE_URL:-https://integritas.technology/core}
+      INTEGRITAS_API_KEY: \${INTEGRITAS_API_KEY:-}
+      INTEGRITAS_REQUEST_ID: \${INTEGRITAS_REQUEST_ID:-edge-studio}
+      INTEGRITAS_REQUEST_TIMEOUT_MS: \${INTEGRITAS_REQUEST_TIMEOUT_MS:-15000}
+      INTEGRITAS_POLL_INTERVAL_SECONDS: \${INTEGRITAS_POLL_INTERVAL_SECONDS:-30}
+      INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES: \${INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES:-5}
+      INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS: \${INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS:-5}
+      INTEGRITAS_PORTAL_URL: \${INTEGRITAS_PORTAL_URL:-}
+      MINIMA_HEALTH_POLL_INTERVAL_SECONDS: \${MINIMA_HEALTH_POLL_INTERVAL_SECONDS:-60}
+      MINIMA_STALL_BLOCK_AGE_SECONDS: \${MINIMA_STALL_BLOCK_AGE_SECONDS:-300}
+      MINIMA_AUTO_RESYNC: \${MINIMA_AUTO_RESYNC:-false}
+      MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES: \${MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES:-30}
+      DATABASE_PATH: /data/edge-studio.db
+      ENABLE_MQTT_BROKER: "false"
+      ENABLE_CAMERA: "false"
+      APP_SECRET: \${APP_SECRET:-dev-change-me}
+      COOKIE_SECURE: \${COOKIE_SECURE:-true}
+      SESSION_MAX_AGE_DAYS: \${SESSION_MAX_AGE_DAYS:-7}
+      SESSION_IDLE_HOURS: \${SESSION_IDLE_HOURS:-24}
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
+    volumes:
+      - \${HOST_FILES_DIR:-./host-files}:/host-files:ro
+      - \${DATA_DIR:-./data}:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - "\${DOCKER_GID:-0}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    expose:
+      - "3000"
+    restart: unless-stopped
+    depends_on:
+      cert-init:
+        condition: service_completed_successfully
+      minima:
+        condition: service_started
+    networks:
+      - integritas
+
+  frontend:
+    image: ${manifest.frontend}
+    ports:
+      - "\${FRONTEND_PORT:-8080}:443"
+    volumes:
+      - \${DATA_DIR:-./data}/certs:/etc/nginx/certs:ro
+    depends_on:
+      cert-init:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - integritas
+
+  update-agent:
+    image: ${manifest.updateAgent}
+    environment:
+      PORT: 8081
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
+      MANIFEST_URL: \${MANIFEST_URL}
+      RELEASE_CHANNEL: \${RELEASE_CHANNEL:-${channel}}
+      BACKEND_INTERNAL_URL: http://backend:3000
+      STATE_DIR_IN_CONTAINER: /state
+      HEALTH_CHECK_TIMEOUT_MS: \${UPDATE_HEALTH_CHECK_TIMEOUT_MS:-60000}
+      HEALTH_CHECK_INTERVAL_MS: \${UPDATE_HEALTH_CHECK_INTERVAL_MS:-2000}
+      PULL_TIMEOUT_MS: \${UPDATE_PULL_TIMEOUT_MS:-300000}
+      STATUS_POLL_INTERVAL_MS: \${STATUS_POLL_INTERVAL_MS:-60000}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - \${UPDATE_AGENT_STATE_DIR:-./update-agent-state}:/state
+    group_add:
+      - "\${DOCKER_GID:-0}"
+    expose:
+      - "8081"
+    restart: unless-stopped
+    depends_on:
+      cert-init:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+    networks:
+      - integritas
+
+  minima:
+    image: minimaglobal/minima:dev
+    stop_grace_period: 60s
+    environment:
+      minima_mdsenable: "false"
+      minima_rpcenable: "true"
+      minima_rpccrlf: "true"
+      minima_p2pnodes: "https://spartacusrex.com/minimapeers.txt"
+    ports:
+      - "\${MINIMA_P2P_PORT:-9003}:9003"
+      - "\${MINIMA_RPC_BIND:-127.0.0.1}:\${MINIMA_RPC_PORT:-9005}:9005"
+    volumes:
+      - \${MINIMA_DATA_DIR:-./minima}:/home/minima/data
+    restart: unless-stopped
+    networks:
+      - integritas
+
+networks:
+  integritas:
+    name: edge-studio
+`;
+
+const envExample = `# edge-studio ${channel} channel
+# Copy this to .env and customize as needed
+
+# Data persistence
+HOST_FILES_DIR=./host-files
+DATA_DIR=./data
+MINIMA_DATA_DIR=./minima
+UPDATE_AGENT_STATE_DIR=./update-agent-state
+
+# Ports
+FRONTEND_PORT=8080
+MINIMA_P2P_PORT=9003
+MINIMA_RPC_BIND=127.0.0.1
+MINIMA_RPC_PORT=9005
+
+# Timezone for backend/scheduler operations
+TZ=UTC
+
+# Docker integration
+DOCKER_GID=0
+
+# Integritas Connect
+INTEGRITAS_CONNECT_BASE_URL=https://integritas.technology
+INTEGRITAS_BASE_URL=https://integritas.technology/core
+INTEGRITAS_API_KEY=
+INTEGRITAS_REQUEST_ID=edge-studio
+INTEGRITAS_REQUEST_TIMEOUT_MS=15000
+INTEGRITAS_POLL_INTERVAL_SECONDS=30
+INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES=5
+INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS=5
+INTEGRITAS_PORTAL_URL=
+
+# Minima configuration
+MINIMA_HEALTH_POLL_INTERVAL_SECONDS=60
+MINIMA_STALL_BLOCK_AGE_SECONDS=300
+MINIMA_AUTO_RESYNC=false
+MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES=30
+
+# Update manifest (required for updates)
+# Point to the ${channel} channel manifest
+MANIFEST_URL=https://integritas.technology/edge-studio/${channel}/manifest.json
+RELEASE_CHANNEL=${channel}
+
+# Update Agent configuration
+UPDATE_HEALTH_CHECK_TIMEOUT_MS=60000
+UPDATE_HEALTH_CHECK_INTERVAL_MS=2000
+UPDATE_PULL_TIMEOUT_MS=300000
+STATUS_POLL_INTERVAL_MS=1800000
+
+# Security (set to true for production HTTPS)
+APP_SECRET=dev-change-me
+COOKIE_SECURE=true
+SESSION_MAX_AGE_DAYS=7
+SESSION_IDLE_HOURS=24
+
+# Optional: Raspberry Pi Camera support (enable on Pi with camera)
+ENABLE_CAMERA=false
+CAMERA_HELPER_URL=http://host.docker.internal:38180
+CAMERA_HELPER_TOKEN=
+CAMERA_HELPER_PORT=38180
+CAMERA_MAX_DURATION_SECONDS=30
+CAMERA_RETENTION_DAYS=7
+CAMERA_PHOTO_COMMAND=rpicam-still
+CAMERA_VIDEO_COMMAND=rpicam-vid
+
+# Optional: Environmental sensor support (BME280/BME680)
+ENABLE_SENSORS=false
+SENSOR_HELPER_URL=http://host.docker.internal:38181
+SENSOR_HELPER_TOKEN=
+SENSOR_HELPER_PORT=38181
+SENSOR_READ_TIMEOUT_MS=5000
+
+# Optional: GPIO input pin support
+ENABLE_GPIO=false
+GPIO_GID=0
+
+# Optional: Local MQTT broker (enable with COMPOSE_PROFILES=mqtt)
+ENABLE_MQTT_BROKER=false
+COMPOSE_PROFILES=
+MQTT_PUBLIC_HOST=
+MQTT_PUBLIC_PORT=1883
+`;
+
+writeFileSync(`${outDir}/docker-compose.yml`, dockerCompose);
+writeFileSync(`${outDir}/.env.example`, envExample);
+
+console.log(`Wrote ${outDir}/docker-compose.yml`);
+console.log(`Wrote ${outDir}/.env.example`);

@@ -62,7 +62,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 ### P2
 
-- [ ] **DS-06 Health integration test** — `GET /api/health` returns `{ status: "ok", service: "integritas-pi-backend" }` without auth.
+- [ ] **DS-06 Health integration test** — `GET /api/health` returns `{ status: "ok", service: "edge-studio-backend" }` without auth.
 - [ ] **DS-07 `integritasConnected` live check** — 30 s cache, 3 s timeout; unreachable upstream returns `false` with HTTP 200 (not 500). Verify latency ≤ ~3.5 s when upstream is down.
 
 ### Manual — dashboard
@@ -155,7 +155,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 - [ ] **DEVICE-IO-01 Pi/LAN E2E** — Verify HTTP/API output, MQTT output, MQTT input through the optional local broker, and GPIO output on a Raspberry Pi or representative LAN setup.
 - [ ] **DEVICE-IO-02 Dependency audit** — `npm run check` currently reaches audit and reports backend advisories for `multer`, transitive `tar` via `@mapbox/node-pre-gyp`, and frontend/dev `esbuild`; decide update vs accepted prototype risk.
-- [ ] **DEVICE-IO-03 CLI shell syntax** — `bash -n bin/integritas-pi` fails on this workspace because the file has CRLF line endings; normalize before relying on shell verification.
+- [ ] **DEVICE-IO-03 CLI shell syntax** — `bash -n bin/edge-studio` fails on this workspace because the file has CRLF line endings; normalize before relying on shell verification.
 
 ### P1
 

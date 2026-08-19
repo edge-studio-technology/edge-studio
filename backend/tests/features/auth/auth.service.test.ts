@@ -21,7 +21,12 @@ beforeAll(async () => {
   authService = await import("../../../src/features/auth/auth.service.js");
 
   const passwordHash = await hashPassword(PASSWORD);
-  userId = createUser({ username: "admin", passwordHash, totpSecretEncrypted: "irrelevant-secret" });
+  userId = createUser({
+    username: "admin",
+    passwordHash,
+    totpSecretEncrypted: "irrelevant-secret",
+    credentialType: "password"
+  });
 });
 
 afterAll(() => {

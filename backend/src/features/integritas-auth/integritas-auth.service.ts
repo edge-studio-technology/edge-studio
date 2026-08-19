@@ -112,6 +112,10 @@ function connectedFromStoredAuth(): IntegritasAuthStatus | null {
   return { status: "connected" };
 }
 
+function isMissingRemoteActivation(error: IntegritasConnectError): boolean {
+  return error.status === 404 && /activation not found/i.test(error.message);
+}
+
 /**
  * Complete the approved activation.
  * @param input access token, refresh token, expires in, and connected device ID.
@@ -238,6 +242,10 @@ export async function getIntegritasAuthStatus(): Promise<IntegritasAuthStatus> {
     });
   } catch (error) {
     if (error instanceof IntegritasConnectError) {
+      if (isMissingRemoteActivation(error)) {
+        updateActivationStatus("expired");
+        return { status: "expired" };
+      }
       throw new IntegritasAuthServiceError(error.message, error.status, error.code);
     }
     throw error;

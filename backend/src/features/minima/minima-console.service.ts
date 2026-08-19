@@ -3,6 +3,7 @@ import { findUserById } from "../auth/auth.repository.js";
 import { verifyPassword } from "../auth/password.service.js";
 import { getSetting, saveSetting } from "../settings/settings.repository.js";
 import { excludedConsoleCommandVerbs, minimaConsoleCatalog, type ConsoleCommandEntry } from "./minima-console.catalog.js";
+import { createBackup, restoreBackup } from "./minima-backup.service.js";
 import { addMinimaPeers, resyncMegammr } from "./minima.service.js";
 import { runMinimaPathCommand } from "./minima.rpc.js";
 
@@ -102,6 +103,13 @@ export async function runConsoleCommand(userId: string | undefined, rawInput: st
   } else if (entry.dispatch === "peers-add") {
     const match = /peerslist:(\S+)/i.exec(command);
     result = await addMinimaPeers(match?.[1] ?? "");
+  } else if (entry.dispatch === "backup") {
+    result = await createBackup({ auto: false });
+  } else if (entry.dispatch === "restoresync") {
+    const fileMatch = /file:(\S+)/i.exec(command);
+    const passwordMatch = /password:"?([^"\s]+)"?/i.exec(command);
+    const fileName = (fileMatch?.[1] ?? "").replace(/^backups\//, "");
+    result = await restoreBackup({ fileName, password: passwordMatch?.[1] });
   } else {
     result = await runMinimaPathCommand(command);
   }

@@ -4,13 +4,14 @@ services:
       context: ./backend
     image: ${BACKEND_IMAGE}
     environment:
+      TZ: ${TZ:-UTC}
       PORT: 3000
       HOST_FILES_ROOT: /host-files
       MINIMA_STATUS_URL: http://minima:9005/status
       INTEGRITAS_CONNECT_BASE_URL: ${INTEGRITAS_CONNECT_BASE_URL:-https://integritas.technology}
       INTEGRITAS_BASE_URL: ${INTEGRITAS_BASE_URL:-https://integritas.technology/core}
       INTEGRITAS_API_KEY: ${INTEGRITAS_API_KEY:-}
-      INTEGRITAS_REQUEST_ID: ${INTEGRITAS_REQUEST_ID:-integritas-pi}
+      INTEGRITAS_REQUEST_ID: ${INTEGRITAS_REQUEST_ID:-edge-studio}
       INTEGRITAS_REQUEST_TIMEOUT_MS: ${INTEGRITAS_REQUEST_TIMEOUT_MS:-15000}
       INTEGRITAS_POLL_INTERVAL_SECONDS: ${INTEGRITAS_POLL_INTERVAL_SECONDS:-30}
       INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES: ${INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES:-5}
@@ -20,8 +21,7 @@ services:
       MINIMA_STALL_BLOCK_AGE_SECONDS: ${MINIMA_STALL_BLOCK_AGE_SECONDS:-300}
       MINIMA_AUTO_RESYNC: ${MINIMA_AUTO_RESYNC:-false}
       MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES: ${MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES:-30}
-      DATABASE_PATH: /data/integritas-pi.db
-      INTEGRITAS_PI_VERSION: ${INTEGRITAS_PI_VERSION:-0.15.0}
+      DATABASE_PATH: /data/edge-studio.db
       ENABLE_MQTT_BROKER: ${ENABLE_MQTT_BROKER:-false}
       MQTT_PUBLIC_HOST: ${MQTT_PUBLIC_HOST:-}
       MQTT_PUBLIC_PORT: ${MQTT_PUBLIC_PORT:-1883}
@@ -34,6 +34,10 @@ services:
       CAMERA_RETENTION_DAYS: ${CAMERA_RETENTION_DAYS:-7}
       CAMERA_PHOTO_COMMAND: ${CAMERA_PHOTO_COMMAND:-rpicam-still}
       CAMERA_VIDEO_COMMAND: ${CAMERA_VIDEO_COMMAND:-rpicam-vid}
+      ENABLE_SENSORS: ${ENABLE_SENSORS:-false}
+      SENSOR_HELPER_URL: ${SENSOR_HELPER_URL:-http://${INTEGRITAS_DOCKER_GATEWAY:-172.30.0.1}:38181}
+      SENSOR_HELPER_TOKEN: ${SENSOR_HELPER_TOKEN:-}
+      SENSOR_READ_TIMEOUT_MS: ${SENSOR_READ_TIMEOUT_MS:-5000}
       APP_SECRET: ${APP_SECRET:-dev-change-me}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       SESSION_MAX_AGE_DAYS: ${SESSION_MAX_AGE_DAYS:-7}
@@ -42,6 +46,8 @@ services:
     volumes:
       - ${HOST_FILES_DIR:-/home/pi}:/host-files:ro
       - ${DATA_DIR:-./data}:/data
+      - ${MINIMA_DATA_DIR:-./minima}/backups:/minima-backups
+      - ${UPDATE_AGENT_STATE_DIR:-./update-agent-state}:/update-agent-state:ro
       - /var/run/docker.sock:/var/run/docker.sock
     group_add:
       - "${DOCKER_GID:-0}"
@@ -70,18 +76,20 @@ services:
       - integritas
 
   minima:
-    image: minimaglobal/minima:dev
+    image: minimaglobal/minimacore
     stop_grace_period: 60s
     environment:
-      minima_mdsenable: "false"
+      # minima_mdsenable: "false"
       minima_rpcenable: "true"
       minima_rpccrlf: "true"
       minima_p2pnodes: "https://spartacusrex.com/minimapeers.txt"
+      minima_rescuenode: "megammr.minima.global:9001"
     ports:
       - "${MINIMA_P2P_PORT:-9003}:9003"
       - "${MINIMA_RPC_BIND:-127.0.0.1}:${MINIMA_RPC_PORT:-9005}:9005"
     volumes:
       - ${MINIMA_DATA_DIR:-./minima}:/home/minima/data
+      - ${MINIMA_DATA_DIR:-./minima}/backups:/home/minima/backups
     restart: unless-stopped
     networks:
       - integritas
@@ -114,6 +122,8 @@ services:
       HEALTH_CHECK_INTERVAL_MS: ${UPDATE_HEALTH_CHECK_INTERVAL_MS:-2000}
       PULL_TIMEOUT_MS: ${UPDATE_PULL_TIMEOUT_MS:-300000}
       STATUS_POLL_INTERVAL_MS: ${STATUS_POLL_INTERVAL_MS:-43200000}
+      # Dev only — never set true in production. See docs/adr/0003-update-dry-run.md.
+      UPDATE_DRY_RUN: ${UPDATE_DRY_RUN:-false}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${UPDATE_AGENT_STATE_DIR:-./update-agent-state}:/state
@@ -129,7 +139,7 @@ services:
 
 networks:
   integritas:
-    name: integritas-pi
+    name: edge-studio
     ipam:
       config:
         - subnet: ${INTEGRITAS_DOCKER_SUBNET:-172.30.0.0/24}

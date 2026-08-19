@@ -320,7 +320,7 @@ function validateBlockConfig(type: AutomationBlockType, config: Record<string, u
     if (type === "gpio_event_start" && source.type !== "gpio-input") throw new Error("GPIO start requires a GPIO input source");
     if (type === "webhook_event_start" && source.type !== "webhook") throw new Error("Webhook start requires a webhook source");
     if (type === "mqtt_event_start" && source.type !== "mqtt") throw new Error("MQTT start requires an MQTT source");
-    if (type === "fetch_data_source" && (source.type === "gpio-input" || source.type === "gpio-output" || source.type === "webhook" || source.type === "mqtt" || source.type === "pi-camera" || source.type === "http-output" || source.type === "mqtt-output")) throw new Error("Fetch block requires an HTTP JSON source");
+    if (type === "fetch_data_source" && !isReadableDataSource(source.type)) throw new Error("Fetch block requires a readable data source");
     if (type === "capture_camera" && source.type !== "pi-camera") throw new Error("Capture camera block requires a Pi Camera device");
     if (type === "capture_camera") {
       const durationMs = config.durationMs === undefined ? undefined : Number(config.durationMs);
@@ -425,6 +425,10 @@ function isAutomationBlockType(type: string): type is AutomationBlockType {
     || type === "stamp_integritas"
     || type === "control_output"
     || type === "send_transaction";
+}
+
+function isReadableDataSource(type: string) {
+  return type === "json-api" || type === "bme-sensor" || type === "device-system-data";
 }
 
 function serializeAutomationInboxItem(item: { id: string; workflow_id: string | null; workflow_name: string; run_id: string | null; block_id: string | null; title: string; format: string; content_json: string; rendered_text: string | null; created_at: string; read_at: string | null }) {

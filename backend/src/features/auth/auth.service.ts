@@ -11,11 +11,17 @@ import {
   updateUserPassword,
   updateUserTotpSecret
 } from "./auth.repository.js";
-import { adminCredentialValidationError, hashPassword, isValidAdminCredential, verifyPassword } from "./password.service.js";
+import {
+  adminCredentialValidationError,
+  getAdminCredentialType,
+  hashPassword,
+  isValidAdminCredential,
+  verifyPassword
+} from "./password.service.js";
 import { createSession } from "./session.service.js";
 import { decryptTotpSecret, encryptTotpSecret, generateSecret, getOtpAuthUrl, renderQrPngBase64, verifyToken } from "./totp.service.js";
 
-const DUMMY_HASH = bcrypt.hashSync("integritas-pi-dummy-login-path", 12);
+const DUMMY_HASH = bcrypt.hashSync("edge-studio-dummy-login-path", 12);
 const TOTP_RESET_PENDING_TTL_MS = 15 * 60 * 1000;
 
 export class AuthSettingsError extends Error {
@@ -60,7 +66,7 @@ export async function login(input: { password: string; totpToken?: string }) {
   return {
     ok: true as const,
     sessionToken,
-    user: { displayName: LOCAL_ADMIN_DISPLAY_NAME, role: user.role }
+    user: { displayName: LOCAL_ADMIN_DISPLAY_NAME, role: user.role, credentialType: user.credential_type }
   };
 }
 
@@ -95,7 +101,7 @@ export async function changePassword(
   if (!isValidAdminCredential(input.newPassword)) throw new AuthSettingsError(adminCredentialValidationError(), 400);
 
   const newHash = await hashPassword(input.newPassword);
-  updateUserPassword(userId, newHash);
+  updateUserPassword(userId, newHash, getAdminCredentialType(input.newPassword));
   recordAuditEvent("settings.password_changed", { userId, detail: LOCAL_ADMIN_DISPLAY_NAME });
 }
 

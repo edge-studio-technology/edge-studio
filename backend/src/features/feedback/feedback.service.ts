@@ -3,8 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { env } from "../../config/env.js";
 import { db } from "../../db/database.js";
+import { fetchJsonWithTimeout } from "../../shared/http.js";
 import type { SessionUser } from "../auth/auth.types.js";
+import { getIntegritasAuth } from "../integritas-auth/integritas-auth.repository.js";
+import { getMinimaNodeStatus } from "../minima/minima.service.js";
+import { getIntegritasApiKey } from "../settings/secrets.service.js";
 import { getDeviceInfo } from "../status/device.service.js";
+import { HOSTED_FEEDBACK_ENDPOINT, sendHostedFeedback } from "./feedback.remote.js";
 
 const FEEDBACK_DIR = "feedback";
 const FEEDBACK_FILE = "feedback-submissions.json";
@@ -13,6 +18,7 @@ const MAX_DESCRIPTION_LENGTH = 10_000;
 const MAX_SHORT_TEXT_LENGTH = 1_000;
 const MAX_PAGE_PATH_LENGTH = 500;
 const MAX_PAGE_LABEL_LENGTH = 120;
+const INTEGRITAS_CHECK_TIMEOUT_MS = 3_000;
 const feedbackTypes = new Set(["bug", "ux_issue", "feature_request", "question", "other"]);
 const feedbackAreas = new Set(["current_page", "dashboard", "node", "wallet", "integritas", "data", "automation", "diagnostics", "setup_login", "install_update", "other"]);
 const bugSeverities = new Set(["low", "medium", "high", "blocking"]);
@@ -24,8 +30,19 @@ type FeedbackArea = "current_page" | "dashboard" | "node" | "wallet" | "integrit
 type BugSeverity = "low" | "medium" | "high" | "blocking";
 type BugReproducibility = "always" | "sometimes" | "once" | "not_sure";
 type FeaturePriority = "nice_to_have" | "important" | "blocking_workflow";
+type RemoteDeliveryStatus = "not_enabled" | "not_configured" | "pending" | "sent" | "failed";
 
-type FeedbackSubmission = {
+export type RemoteDelivery = {
+  status: RemoteDeliveryStatus;
+  remoteId: string | null;
+  endpoint: string;
+  lastAttemptAt: string | null;
+  lastSuccessAt: string | null;
+  attemptCount: number;
+  lastError: string | null;
+};
+
+export type FeedbackSubmission = {
   id: string;
   submittedAt: string;
   page: {
@@ -65,15 +82,32 @@ type FeedbackSubmission = {
     integritasProofs: number;
     automationWorkflows: number;
   };
+  operationalStatus: {
+    node: {
+      label: string;
+      ok: boolean | null;
+      status: string;
+      checkedAt: string | null;
+      error: string | null;
+    };
+    integritas: {
+      label: string;
+      ok: boolean | null;
+      status: string;
+      checkedAt: string | null;
+      error: string | null;
+    };
+  };
+  remoteDelivery: RemoteDelivery;
 };
 
-type FeedbackDocument = {
+export type FeedbackDocument = {
   schemaVersion: 1;
   metadata: {
     createdAt: string;
     updatedAt: string;
     app: {
-      name: "integritas-pi";
+      name: "edge-studio";
       version: string;
     };
     user: {
@@ -82,6 +116,9 @@ type FeedbackDocument = {
       role: string;
     };
     device: ReturnType<typeof getDeviceInfo>;
+    integritasAccount: {
+      userId: string | null;
+    };
   };
   submissions: FeedbackSubmission[];
 };
@@ -118,6 +155,14 @@ export type FeedbackInput = {
       devicePixelRatio?: unknown;
     };
   };
+  hostedConsent?: unknown;
+};
+
+export type FeedbackConfig = {
+  hostedFeedbackEnabled: boolean;
+  hostedFeedbackAvailable: boolean;
+  integritasApiKeyConfigured: boolean;
+  endpoint: string;
 };
 
 export class FeedbackValidationError extends Error {
@@ -131,6 +176,16 @@ export function getFeedbackExportPath() {
   return path.join(env.dataDir, FEEDBACK_DIR, FEEDBACK_FILE);
 }
 
+export function getFeedbackConfig(): FeedbackConfig {
+  const integritasApiKeyConfigured = Boolean(getIntegritasApiKey());
+  return {
+    hostedFeedbackEnabled: true,
+    hostedFeedbackAvailable: integritasApiKeyConfigured,
+    integritasApiKeyConfigured,
+    endpoint: HOSTED_FEEDBACK_ENDPOINT,
+  };
+}
+
 export function getEmptyFeedbackDocument(user: SessionUser, now = new Date().toISOString()): FeedbackDocument {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -139,11 +194,16 @@ export function getEmptyFeedbackDocument(user: SessionUser, now = new Date().toI
   };
 }
 
-export function appendFeedbackSubmission(input: FeedbackInput, user: SessionUser) {
+export async function appendFeedbackSubmission(input: FeedbackInput, user: SessionUser) {
   const parsed = parseFeedbackInput(input);
   const now = new Date().toISOString();
   const filePath = getFeedbackExportPath();
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const config = getFeedbackConfig();
+  const apiKey = getIntegritasApiKey();
+  if (config.hostedFeedbackAvailable && input.hostedConsent !== true) {
+    throw new FeedbackValidationError("Confirm consent before sending feedback to Integritas.");
+  }
 
   const existing = readFeedbackDocument(filePath, user, now);
   const submission: FeedbackSubmission = {
@@ -156,7 +216,9 @@ export function appendFeedbackSubmission(input: FeedbackInput, user: SessionUser
     ...(parsed.bug ? { bug: parsed.bug } : {}),
     ...(parsed.featureRequest ? { featureRequest: parsed.featureRequest } : {}),
     browser: parsed.browser,
-    stats: getFeedbackStats()
+    stats: getFeedbackStats(),
+    operationalStatus: await getFeedbackOperationalStatus(apiKey),
+    remoteDelivery: buildInitialRemoteDelivery(config),
   };
 
   const createdAt = existing.metadata.createdAt || now;
@@ -167,7 +229,42 @@ export function appendFeedbackSubmission(input: FeedbackInput, user: SessionUser
   };
 
   writeJsonAtomically(filePath, document);
-  return { submission, fileName: FEEDBACK_FILE, exportUrl: "/api/feedback/export" };
+  if (!config.hostedFeedbackAvailable || !apiKey) {
+    return { submission, fileName: FEEDBACK_FILE, exportUrl: "/api/feedback/export" };
+  }
+
+  const remoteDelivery = await deliverSubmission(document.metadata, submission, apiKey);
+  const updatedSubmission = updateSubmissionRemoteDelivery(filePath, user, submission.id, remoteDelivery);
+  return { submission: updatedSubmission ?? { ...submission, remoteDelivery }, fileName: FEEDBACK_FILE, exportUrl: "/api/feedback/export" };
+}
+
+export async function retryPendingFeedback(user: SessionUser) {
+  const config = getFeedbackConfig();
+  const apiKey = getIntegritasApiKey();
+  if (!config.hostedFeedbackEnabled || !apiKey) {
+    const document = readFeedbackDocument(getFeedbackExportPath(), user, new Date().toISOString());
+    return { sent: 0, failed: 0, skipped: countRetryableSubmissions(document) };
+  }
+
+  const filePath = getFeedbackExportPath();
+  const now = new Date().toISOString();
+  const document = readFeedbackDocument(filePath, user, now);
+  let sent = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const submission of document.submissions) {
+    if (!isRetryableSubmission(submission)) {
+      skipped += 1;
+      continue;
+    }
+    const remoteDelivery = await deliverSubmission(document.metadata, submission, apiKey);
+    updateSubmissionRemoteDelivery(filePath, user, submission.id, remoteDelivery);
+    if (remoteDelivery.status === "sent") sent += 1;
+    else failed += 1;
+  }
+
+  return { sent, failed, skipped };
 }
 
 export function getFeedbackExport(user: SessionUser) {
@@ -291,12 +388,72 @@ function writeJsonAtomically(filePath: string, document: FeedbackDocument) {
   fs.renameSync(tempPath, filePath);
 }
 
+async function deliverSubmission(metadata: FeedbackDocument["metadata"], submission: FeedbackSubmission, apiKey: string): Promise<RemoteDelivery> {
+  const attemptedAt = new Date().toISOString();
+  const result = await sendHostedFeedback({ apiKey, metadata, submission });
+  if (result.ok) {
+    return {
+      status: "sent",
+      remoteId: result.remoteId,
+      endpoint: HOSTED_FEEDBACK_ENDPOINT,
+      lastAttemptAt: attemptedAt,
+      lastSuccessAt: result.receivedAt ?? new Date().toISOString(),
+      attemptCount: submission.remoteDelivery.attemptCount + 1,
+      lastError: null,
+    };
+  }
+
+  return {
+    status: result.retryable ? "pending" : "failed",
+    remoteId: submission.remoteDelivery.remoteId,
+    endpoint: HOSTED_FEEDBACK_ENDPOINT,
+    lastAttemptAt: attemptedAt,
+    lastSuccessAt: submission.remoteDelivery.lastSuccessAt,
+    attemptCount: submission.remoteDelivery.attemptCount + 1,
+    lastError: result.error,
+  };
+}
+
+function buildInitialRemoteDelivery(config: FeedbackConfig): RemoteDelivery {
+  return {
+    status: config.hostedFeedbackEnabled ? (config.integritasApiKeyConfigured ? "pending" : "not_configured") : "not_enabled",
+    remoteId: null,
+    endpoint: HOSTED_FEEDBACK_ENDPOINT,
+    lastAttemptAt: null,
+    lastSuccessAt: null,
+    attemptCount: 0,
+    lastError: null,
+  };
+}
+
+function updateSubmissionRemoteDelivery(filePath: string, user: SessionUser, submissionId: string, remoteDelivery: RemoteDelivery) {
+  const now = new Date().toISOString();
+  const existing = readFeedbackDocument(filePath, user, now);
+  let updatedSubmission: FeedbackSubmission | null = null;
+  const submissions = existing.submissions.map((submission) => {
+    if (submission.id !== submissionId) return submission;
+    updatedSubmission = { ...submission, remoteDelivery };
+    return updatedSubmission;
+  });
+  if (!updatedSubmission) return null;
+  writeJsonAtomically(filePath, { ...existing, metadata: buildMetadata(user, existing.metadata.createdAt || now, now), submissions });
+  return updatedSubmission;
+}
+
+function isRetryableSubmission(submission: FeedbackSubmission) {
+  return submission.remoteDelivery?.status === "pending" || submission.remoteDelivery?.status === "failed";
+}
+
+function countRetryableSubmissions(document: FeedbackDocument) {
+  return document.submissions.filter(isRetryableSubmission).length;
+}
+
 function buildMetadata(user: SessionUser, createdAt: string, updatedAt: string): FeedbackDocument["metadata"] {
   return {
     createdAt,
     updatedAt,
     app: {
-      name: "integritas-pi",
+      name: "edge-studio",
       version: getAppVersion()
     },
     user: {
@@ -304,24 +461,31 @@ function buildMetadata(user: SessionUser, createdAt: string, updatedAt: string):
       displayName: user.displayName,
       role: user.role
     },
-    device: getDeviceInfo()
+    device: getDeviceInfo(),
+    integritasAccount: {
+      userId: getIntegritasAuth()?.integritas_user_id ?? null
+    }
   };
 }
 
-function getAppVersion() {
-  if (process.env.INTEGRITAS_PI_VERSION) return process.env.INTEGRITAS_PI_VERSION;
+// update-agent is the single source of truth for the installed app version:
+// install.sh writes this file at install time from the signed manifest, and
+// update-agent keeps it current after every applied update. Read-only mount,
+// see docker-compose.yml (`UPDATE_AGENT_STATE_DIR` -> `/update-agent-state`).
+const UPDATE_AGENT_STATE_DIR = "/update-agent-state";
 
-  for (const packagePath of [path.resolve(process.cwd(), "package.json"), path.resolve(process.cwd(), "..", "package.json")]) {
-    try {
-      const parsed = JSON.parse(fs.readFileSync(packagePath, "utf8")) as { name?: string; version?: string };
-      if (parsed.name === "integritas-pi" && parsed.version) return parsed.version;
-      if (parsed.version) return parsed.version;
-    } catch {
-      // Keep searching fallback locations.
-    }
+function getAppVersion() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(path.join(UPDATE_AGENT_STATE_DIR, "last-applied-manifest.json"), "utf8")) as { version?: string };
+    if (parsed.version) return parsed.version;
+  } catch {
+    // Not recorded yet — native dev, a from-source build, or update-agent has never
+    // applied/recorded a manifest. Report this plainly rather than falling back to a
+    // package.json version, which would misrepresent an unverified build as a real release
+    // version (backend/package.json's own version, unrelated to the app release version).
   }
 
-  return "unknown";
+  return "Unknown version";
 }
 
 function getFeedbackStats(): FeedbackSubmission["stats"] {
@@ -336,4 +500,66 @@ function getFeedbackStats(): FeedbackSubmission["stats"] {
 function countRows(table: string) {
   const row = db.prepare(`SELECT COUNT(*) as count FROM ${table}`).get() as { count: number };
   return row.count;
+}
+
+async function getFeedbackOperationalStatus(apiKey: string): Promise<FeedbackSubmission["operationalStatus"]> {
+  const [node, integritas] = await Promise.all([getFeedbackNodeStatus(), getFeedbackIntegritasStatus(apiKey)]);
+  return { node, integritas };
+}
+
+async function getFeedbackNodeStatus(): Promise<FeedbackSubmission["operationalStatus"]["node"]> {
+  try {
+    const status = await getMinimaNodeStatus();
+    const ok = status.state === "running";
+    return {
+      label: ok ? "Node online" : "Node offline",
+      ok,
+      status: ok ? "ok" : status.state,
+      checkedAt: status.checkedAt,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      label: "Node offline",
+      ok: false,
+      status: "error",
+      checkedAt: new Date().toISOString(),
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+async function getFeedbackIntegritasStatus(apiKey: string): Promise<FeedbackSubmission["operationalStatus"]["integritas"]> {
+  if (!apiKey) {
+    return {
+      label: "Integritas disconnected",
+      ok: false,
+      status: "missing_api_key",
+      checkedAt: new Date().toISOString(),
+      error: "Integritas API key is not configured",
+    };
+  }
+
+  try {
+    const { response } = await fetchJsonWithTimeout(
+      `${env.integritasBaseUrl}/v1/web/check/health`,
+      { headers: { "x-request-id": env.integritasRequestId, "x-api-key": apiKey } },
+      INTEGRITAS_CHECK_TIMEOUT_MS,
+    );
+    return {
+      label: response.ok ? "Integritas connected" : "Integritas disconnected",
+      ok: response.ok,
+      status: response.ok ? "ok" : `HTTP ${response.status}`,
+      checkedAt: new Date().toISOString(),
+      error: null,
+    };
+  } catch (error) {
+    return {
+      label: "Integritas disconnected",
+      ok: false,
+      status: "error",
+      checkedAt: new Date().toISOString(),
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 }

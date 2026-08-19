@@ -13,29 +13,50 @@ type ServiceStatus = {
   status: string;
   details?: unknown;
   error?: string;
+  /** When this service was last checked upstream (may be older than overview `generatedAt` when cached). */
+  checkedAt?: string;
 };
 
 export const statusRouter = Router();
 
-let integritasConnectionCache: { connected: boolean; checkedAt: number } | null = null;
-const INTEGRITAS_CACHE_TTL_MS = 30_000;
+type IntegritasConnectionCheck = {
+  connected: boolean;
+  status: string;
+  details?: unknown;
+  error?: string;
+  checkedAt: number;
+};
+
+let integritasConnectionCache: IntegritasConnectionCheck | null = null;
+/** Shared by `/api/status` and `/api/status/overview` so UI polls do not hammer Integritas health. */
+const INTEGRITAS_CACHE_TTL_MS = 3_600_000;
 const INTEGRITAS_CHECK_TIMEOUT_MS = 3_000;
 
-async function getIntegritasConnected(apiKey: string): Promise<boolean> {
+async function getIntegritasConnectionCheck(apiKey: string): Promise<IntegritasConnectionCheck> {
   if (integritasConnectionCache && Date.now() - integritasConnectionCache.checkedAt < INTEGRITAS_CACHE_TTL_MS) {
-    return integritasConnectionCache.connected;
+    return integritasConnectionCache;
   }
   try {
-    const { response } = await fetchJsonWithTimeout(
+    const { response, body } = await fetchJsonWithTimeout(
       `${env.integritasBaseUrl}/v1/web/check/health`,
       { headers: { "x-request-id": env.integritasRequestId, "x-api-key": apiKey } },
       INTEGRITAS_CHECK_TIMEOUT_MS
     );
-    integritasConnectionCache = { connected: response.ok, checkedAt: Date.now() };
-    return response.ok;
-  } catch {
-    integritasConnectionCache = { connected: false, checkedAt: Date.now() };
-    return false;
+    integritasConnectionCache = {
+      connected: response.ok,
+      status: response.ok ? "ok" : `HTTP ${response.status}`,
+      details: body,
+      checkedAt: Date.now()
+    };
+    return integritasConnectionCache;
+  } catch (error) {
+    integritasConnectionCache = {
+      connected: false,
+      status: "error",
+      error: error instanceof Error ? error.message : "Unknown error",
+      checkedAt: Date.now()
+    };
+    return integritasConnectionCache;
   }
 }
 
@@ -50,7 +71,7 @@ statusRouter.get("/", async (_req, res) => {
 
   let integritasConnected: boolean | null = null;
   if (integritasApiKey) {
-    integritasConnected = await getIntegritasConnected(integritasApiKey);
+    integritasConnected = (await getIntegritasConnectionCheck(integritasApiKey)).connected;
   }
 
   res.json({
@@ -73,7 +94,7 @@ statusRouter.get("/overview", async (_req, res) => {
       ok: true,
       status: "ok",
       details: {
-        service: "integritas-pi-backend",
+        service: "edge-studio-backend",
         databasePath: env.databasePath,
         integritasApiKeyConfigured: Boolean(getIntegritasApiKey())
       }
@@ -86,7 +107,8 @@ statusRouter.get("/overview", async (_req, res) => {
       name: "minima",
       ok: nodeStatus.state === "running",
       status: nodeStatus.state === "running" ? "ok" : nodeStatus.state,
-      details: { sync: nodeStatus.sync, health: nodeStatus.health, container: nodeStatus.container }
+      details: { sync: nodeStatus.sync, health: nodeStatus.health, container: nodeStatus.container },
+      checkedAt: nodeStatus.checkedAt
     });
   } catch (error) {
     services.push({ name: "minima", ok: false, status: "error", error: error instanceof Error ? error.message : "Unknown error" });
@@ -96,14 +118,15 @@ statusRouter.get("/overview", async (_req, res) => {
   if (!integritasApiKey) {
     services.push({ name: "integritas", ok: false, status: "missing_api_key", error: "Integritas API key is not configured" });
   } else {
-    try {
-      const { response, body } = await fetchJsonWithTimeout(`${env.integritasBaseUrl}/v1/web/check/health`, {
-        headers: { "x-request-id": env.integritasRequestId, "x-api-key": integritasApiKey }
-      });
-      services.push({ name: "integritas", ok: response.ok, status: response.ok ? "ok" : `HTTP ${response.status}`, details: body });
-    } catch (error) {
-      services.push({ name: "integritas", ok: false, status: "error", error: error instanceof Error ? error.message : "Unknown error" });
-    }
+    const check = await getIntegritasConnectionCheck(integritasApiKey);
+    services.push({
+      name: "integritas",
+      ok: check.connected,
+      status: check.status,
+      details: check.details,
+      error: check.error,
+      checkedAt: new Date(check.checkedAt).toISOString()
+    });
   }
 
   let resources: unknown = null;

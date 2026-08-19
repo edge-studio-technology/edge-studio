@@ -1,13 +1,28 @@
-import { Activity, BellRing, Database, Gauge, RadioTower, Settings, ShieldCheck, Wallet } from "lucide-react";
+import {
+  Activity,
+  Cable,
+  CreditCard,
+  House,
+  Radio,
+  // Settings, // unused while the Setup nav item is commented out above
+  Settings,
+  Shield,
+  ShoppingCart,
+  Workflow,
+} from "lucide-react";
 import type { NavItem } from "./types";
 
 export const nav: NavItem[] = [
-  { id: "dashboard", label: "Dashboard", icon: Gauge },
+  { id: "dashboard", label: "Dashboard", icon: House },
+  // Setup nav item hidden pending relocation of its actions. Left commented, not
+  // deleted, for an easy revert.
   // { id: "setup", label: "Setup", icon: Settings },
-  { id: "node", label: "Minima Core", icon: RadioTower },
-  { id: "wallet", label: "Wallet", icon: Wallet },
-  { id: "integritas", label: "Integritas", icon: ShieldCheck },
-  { id: "data", label: "Devices", icon: Database },
-  { id: "automation", label: "Automation", icon: BellRing },
-  { id: "diagnostics", label: "Diagnostics", icon: Activity }
+  { id: "node", label: "Minima", icon: Radio },
+  { id: "wallet", label: "Wallet", icon: CreditCard },
+  { id: "integritas", label: "Integritas", icon: Shield },
+  { id: "data", label: "Devices", icon: Cable },
+  { id: "workflows", label: "Workflows", icon: Workflow },
+  { id: "diagnostics", label: "Diagnostics", icon: Activity },
+  { id: "marketplace", label: "Marketplace", icon: ShoppingCart, badge: "Coming soon" },
+  { id: "settings", label: "Settings", icon: Settings },
 ];

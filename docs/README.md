@@ -3,11 +3,12 @@
 ```
 docs/
 ├── PROJECT.md   goal, audience, constraints, success criteria
-├── frontend-design-system.md   frontend styling/component conventions
+├── frontend-design-system.md   frontend styling; ui/ vs patterns/ placement
 ├── TASKS.md     current work items (read every session)
 ├── SESSION.md   scratch log for the session in progress
 ├── security/    detailed security risk register (see SECURITY.md for the policy)
 ├── plans/       active or upcoming work
+├── adr/         architecture decision records — why, not what; code comments point here
 ├── qa/          open gaps and hardening backlog
 └── reports/     point-in-time audits (not maintained after creation)
 ```
@@ -21,7 +22,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | Doc                                                      | Purpose                                                       |
 | -------------------------------------------------------- | ------------------------------------------------------------- |
 | [PROJECT.md](./PROJECT.md)                               | Goals, audience, non-goals, constraints, success criteria     |
-| [frontend-design-system.md](./frontend-design-system.md) | Frontend styling/component conventions                        |
+| [frontend-design-system.md](./frontend-design-system.md) | Frontend styling; `components/ui/` vs `patterns/` placement   |
 | [TASKS.md](./TASKS.md)                                   | Current focus / in progress / next / done                     |
 | [SESSION.md](./SESSION.md)                               | Scratch notes for the session in progress — reset per session |
 
@@ -32,6 +33,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | [../.agents/rules/project-shape.md](../.agents/rules/project-shape.md)       | Architecture, core principles, what to read before editing    |
 | [../.agents/rules/backend.md](../.agents/rules/backend.md)                   | Backend feature folders, route/schema conventions, auth rules |
 | [../.agents/rules/frontend.md](../.agents/rules/frontend.md)                 | Frontend feature folders, API usage, styling conventions      |
+| [../.agents/skills/frontend-design-system/SKILL.md](../.agents/skills/frontend-design-system/SKILL.md) | Place new shared UI in `ui/` vs `patterns/` (migrate later) |
 | [../.agents/rules/cli.md](../.agents/rules/cli.md)                           | CLI conventions and constraints                               |
 | [../.agents/rules/minima.md](../.agents/rules/minima.md)                     | Minima RPC command rules                                      |
 | [../.agents/rules/integritas.md](../.agents/rules/integritas.md)             | Integritas stamping/proof rules                               |
@@ -51,7 +53,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | [security/auth-and-transport.md](./security/auth-and-transport.md)                   | LAN access, TLS trust, API keys, `APP_SECRET`                                             |
 | [security/host-and-infrastructure.md](./security/host-and-infrastructure.md)         | Docker socket, file browser, path traversal, SQLite permissions, supply chain, installer  |
 | [security/wallet-and-tokens.md](./security/wallet-and-tokens.md)                     | Seed phrase import, automated transactions, debug clears, token creation                  |
-| [security/data-sources-and-automation.md](./security/data-sources-and-automation.md) | Minima RPC/resync/restart/peers, data source URLs, webhooks, MQTT, GPIO, Pi Camera, Integritas proxy |
+| [security/data-sources-and-automation.md](./security/data-sources-and-automation.md) | Minima RPC/resync/restart/peers, data source URLs, webhooks, MQTT, GPIO, Raspberry Pi Camera, Integritas proxy |
 | [security/low-priority-and-future.md](./security/low-priority-and-future.md)         | Rate limiting, error detail, logging hygiene, missing security tests                      |
 
 ---
@@ -69,6 +71,27 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | [plans/manifest-deploy-pull-model.md](./plans/manifest-deploy-pull-model.md)                             | In progress                |
 | [plans/workflow-runs-pagination.md](./plans/workflow-runs-pagination.md)                                 | Implemented                |
 | [plans/pir-motion-sensor-workflows.md](./plans/pir-motion-sensor-workflows.md)                           | Planned                    |
+| [plans/esp32-mqtt-sensor-onboarding.md](./plans/esp32-mqtt-sensor-onboarding.md)                         | Planned                    |
+
+---
+
+## Architecture decisions
+
+Non-obvious "why" behind a specific implementation — timing constants, rejected alternatives,
+things verified empirically rather than documented upstream. Source comments point here instead
+of carrying the full rationale inline.
+
+| ADR                                                                                     | Decision                          |
+| ---------------------------------------------------------------------------------------- | ---------------------------------- |
+| [adr/0001-minima-graceful-node-restart.md](./adr/0001-minima-graceful-node-restart.md)   | Minima restart: `quit` + Docker `RestartCount` baseline detection + 5-min forceful fallback |
+| [adr/0002-update-page-split.md](./adr/0002-update-page-split.md)                         | Update page split: frontend owns `/update` (status/check/start), `update-agent` owns `/update/` (apply progress) |
+| [adr/0003-update-dry-run.md](./adr/0003-update-dry-run.md)                               | Dev-only `UPDATE_DRY_RUN`: simulates a successful apply without touching any container |
+| [adr/0004-update-page-changelog.md](./adr/0004-update-page-changelog.md)                 | Update page changelog preview: direct client-side GitHub raw fetch, rendered as React elements (no HTML injection) |
+| [adr/0005-modal-mount-gate-removal.md](./adr/0005-modal-mount-gate-removal.md)           | Removed `Modal`'s SSR-pattern `mounted` render gate: unneeded in this client-only SPA, was causing a blank-frame flicker on modal-to-modal swaps |
+| [adr/0006-app-version-single-source-of-truth.md](./adr/0006-app-version-single-source-of-truth.md) | Feedback's app version now reads `update-agent`'s last-applied-manifest file (read-only mount) instead of a separate, drifted `INTEGRITAS_PI_VERSION` env var |
+| [adr/0007-release-channels-and-compose-generation.md](./adr/0007-release-channels-and-compose-generation.md) | Release workflow: branch-per-channel replaced with folder-per-channel on `main`, plus generated per-channel `docker-compose.yml`/`.env.example` |
+| [adr/0008-manifest-served-from-github-raw.md](./adr/0008-manifest-served-from-github-raw.md) | Default manifest delivery: `raw.githubusercontent.com` on the public manifest repo, replacing the never-finished VPS pull-based plan |
+| [adr/0009-manifest-fallback-to-github-raw.md](./adr/0009-manifest-fallback-to-github-raw.md) | Default manifest delivery switched to our own domain, with `update-agent` falling back to `raw.githubusercontent.com` on fetch failure |
 
 ---
 
@@ -85,3 +108,6 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | Doc                                                  | Purpose                                                        |
 | ---------------------------------------------------- | -------------------------------------------------------------- |
 | [guides/gpio-device-settings.md](./guides/gpio-device-settings.md) | Tested and suggested GPIO input/output settings by device type |
+| [guides/esp32-mqtt-sensors.md](./guides/esp32-mqtt-sensors.md) | Flashing and testing ESP32 MQTT board firmware |
+| [guides/bme280-sensor.md](./guides/bme280-sensor.md) | BME280/BME680 I2C sensor setup |
+| [guides/tester-device-workflows.md](./guides/tester-device-workflows.md) | Short tester matrix for Pi and PC device/workflow tests |
