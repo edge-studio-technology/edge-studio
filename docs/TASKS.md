@@ -19,7 +19,7 @@
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.
-- [ ] Backend unit test coverage, one feature folder at a time — see `docs/plans/backend-unit-tests.md`. `auth`/`minima`/`tokens`/`automation`/`wallet`/`data-reads`/`integritas`/`integritas-auth`/`settings`/`status`/`address-book`/`feedback`/`files` are Done; `data-sources` is Partial (service/repository covered, hardware-mocked ingestion services remain); `shared` next.
+- [ ] Backend unit test coverage, one feature folder at a time — see `docs/plans/backend-unit-tests.md`. `auth`/`minima`/`tokens`/`automation`/`wallet`/`data-reads`/`integritas`/`integritas-auth`/`settings`/`status`/`address-book`/`feedback`/`files`/`shared` are Done; `data-sources` is Partial (service/repository covered, hardware-mocked ingestion services remain, lower priority); `debug`/`health` Skipped (single no-branching route handlers, nothing to unit test without full `supertest` coverage, which is out of scope).
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
