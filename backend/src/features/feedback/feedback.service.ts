@@ -3,8 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { env } from "../../config/env.js";
 import { db } from "../../db/database.js";
+import { fetchJsonWithTimeout } from "../../shared/http.js";
 import type { SessionUser } from "../auth/auth.types.js";
 import { getIntegritasAuth } from "../integritas-auth/integritas-auth.repository.js";
+import { getMinimaNodeStatus } from "../minima/minima.service.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
 import { getDeviceInfo } from "../status/device.service.js";
 import { HOSTED_FEEDBACK_ENDPOINT, sendHostedFeedback } from "./feedback.remote.js";
@@ -16,6 +18,7 @@ const MAX_DESCRIPTION_LENGTH = 10_000;
 const MAX_SHORT_TEXT_LENGTH = 1_000;
 const MAX_PAGE_PATH_LENGTH = 500;
 const MAX_PAGE_LABEL_LENGTH = 120;
+const INTEGRITAS_CHECK_TIMEOUT_MS = 3_000;
 const feedbackTypes = new Set(["bug", "ux_issue", "feature_request", "question", "other"]);
 const feedbackAreas = new Set(["current_page", "dashboard", "node", "wallet", "integritas", "data", "automation", "diagnostics", "setup_login", "install_update", "other"]);
 const bugSeverities = new Set(["low", "medium", "high", "blocking"]);
@@ -78,6 +81,22 @@ export type FeedbackSubmission = {
     dataReads: number;
     integritasProofs: number;
     automationWorkflows: number;
+  };
+  operationalStatus: {
+    node: {
+      label: string;
+      ok: boolean | null;
+      status: string;
+      checkedAt: string | null;
+      error: string | null;
+    };
+    integritas: {
+      label: string;
+      ok: boolean | null;
+      status: string;
+      checkedAt: string | null;
+      error: string | null;
+    };
   };
   remoteDelivery: RemoteDelivery;
 };
@@ -198,6 +217,7 @@ export async function appendFeedbackSubmission(input: FeedbackInput, user: Sessi
     ...(parsed.featureRequest ? { featureRequest: parsed.featureRequest } : {}),
     browser: parsed.browser,
     stats: getFeedbackStats(),
+    operationalStatus: await getFeedbackOperationalStatus(apiKey),
     remoteDelivery: buildInitialRemoteDelivery(config),
   };
 
@@ -480,4 +500,66 @@ function getFeedbackStats(): FeedbackSubmission["stats"] {
 function countRows(table: string) {
   const row = db.prepare(`SELECT COUNT(*) as count FROM ${table}`).get() as { count: number };
   return row.count;
+}
+
+async function getFeedbackOperationalStatus(apiKey: string): Promise<FeedbackSubmission["operationalStatus"]> {
+  const [node, integritas] = await Promise.all([getFeedbackNodeStatus(), getFeedbackIntegritasStatus(apiKey)]);
+  return { node, integritas };
+}
+
+async function getFeedbackNodeStatus(): Promise<FeedbackSubmission["operationalStatus"]["node"]> {
+  try {
+    const status = await getMinimaNodeStatus();
+    const ok = status.state === "running";
+    return {
+      label: ok ? "Node online" : "Node offline",
+      ok,
+      status: ok ? "ok" : status.state,
+      checkedAt: status.checkedAt,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      label: "Node offline",
+      ok: false,
+      status: "error",
+      checkedAt: new Date().toISOString(),
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+async function getFeedbackIntegritasStatus(apiKey: string): Promise<FeedbackSubmission["operationalStatus"]["integritas"]> {
+  if (!apiKey) {
+    return {
+      label: "Integritas disconnected",
+      ok: false,
+      status: "missing_api_key",
+      checkedAt: new Date().toISOString(),
+      error: "Integritas API key is not configured",
+    };
+  }
+
+  try {
+    const { response } = await fetchJsonWithTimeout(
+      `${env.integritasBaseUrl}/v1/web/check/health`,
+      { headers: { "x-request-id": env.integritasRequestId, "x-api-key": apiKey } },
+      INTEGRITAS_CHECK_TIMEOUT_MS,
+    );
+    return {
+      label: response.ok ? "Integritas connected" : "Integritas disconnected",
+      ok: response.ok,
+      status: response.ok ? "ok" : `HTTP ${response.status}`,
+      checkedAt: new Date().toISOString(),
+      error: null,
+    };
+  } catch (error) {
+    return {
+      label: "Integritas disconnected",
+      ok: false,
+      status: "error",
+      checkedAt: new Date().toISOString(),
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 }
