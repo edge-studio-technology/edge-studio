@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Disabled host-backed hardware templates are hidden from the default New input and New output flows.
+- Hardware install flags are now documented as advanced shortcuts while the app UI is the normal enablement path.
 
 ### Security
 

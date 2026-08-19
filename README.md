@@ -29,7 +29,9 @@ To install from a branch before it is merged to `main`, pass `APP_BRANCH`:
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env APP_BRANCH=<branch-name> bash
 ```
 
-To enable Raspberry Pi GPIO input sources during install, pass `ENABLE_GPIO=true`:
+Optional hardware support is disabled by default on first install. After install, enable supported hardware from Devices -> Hardware support in the app UI. The installer still accepts `ENABLE_*` flags as advanced shortcuts for developers, testing, and headless installs.
+
+Advanced: to enable Raspberry Pi GPIO input sources during install, pass `ENABLE_GPIO=true`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_GPIO=true bash
@@ -37,7 +39,7 @@ curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/
 
 `ENABLE_GPIO=true` writes `/opt/edge-studio/docker-compose.override.yml` with `/dev/gpiochip0` mounted into the backend container and detects the host GPIO group id. Leave it disabled unless this deployment needs GPIO hardware ingestion.
 
-To enable Raspberry Pi camera capture devices during install, pass `ENABLE_CAMERA=true`:
+Advanced: to enable Raspberry Pi camera capture devices during install, pass `ENABLE_CAMERA=true`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_CAMERA=true bash
@@ -45,11 +47,11 @@ curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/
 
 `ENABLE_CAMERA=true` installs and starts a host-side `edge-studio-camera-helper` systemd service, generates a `CAMERA_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Edge Studio Compose gateway. Leave it disabled unless this deployment needs camera capture workflows.
 
-After install, an admin can enable or disable camera support from Devices → Hardware support. The installer always installs a narrow root-owned `edge-studio-host-agent` service for this app-managed hardware setup path.
+After install, an admin can enable or disable camera support from Devices -> Hardware support. The installer always installs a narrow root-owned `edge-studio-host-agent` service for this app-managed hardware setup path.
 
 `ENABLE_CAMERA=true` does not install host camera drivers or enable the Raspberry Pi camera stack. Before using camera workflows, verify the Pi host can see the camera with `libcamera-still --list-cameras` or `rpicam-still --list-cameras`. Camera Module 3 (`imx708`) requires a host OS/kernel/libcamera stack that supports it. The helper uses the host camera tools, not camera binaries inside the backend container.
 
-To enable BME280/BME680 I2C environmental sensor devices during install, pass `ENABLE_SENSORS=true`:
+Advanced: to enable BME280/BME680 I2C environmental sensor devices during install, pass `ENABLE_SENSORS=true`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_SENSORS=true bash
@@ -57,7 +59,7 @@ curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/
 
 `ENABLE_SENSORS=true` installs and starts a host-side `edge-studio-sensor-helper` systemd service, generates a `SENSOR_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Edge Studio Compose gateway. Leave it disabled unless this deployment needs direct I2C sensor reads. The Pi's I2C interface must also be enabled on the host. BME680 reads require the Python `bme680` module; the installer creates a dedicated sensor-helper virtualenv and installs the module there when sensor support is enabled.
 
-To enable the optional local MQTT broker during install, pass `ENABLE_MQTT_BROKER=true`:
+Advanced: to enable the optional local MQTT broker during install, pass `ENABLE_MQTT_BROKER=true`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_MQTT_BROKER=true bash
@@ -76,6 +78,7 @@ The installer will:
 - Download the default runtime bundle to `/opt/edge-studio` or clone the repository when `DEV_MODE=true`
 - Write `/opt/edge-studio/.env`
 - Install the host agent used for admin-triggered hardware support changes from the app
+- Leave optional hardware and local services disabled unless advanced `ENABLE_*` flags were provided
 - Generate a self-signed TLS certificate in `DATA_DIR/certs`
 - Start the app with `docker compose up -d --build`
 
@@ -173,17 +176,17 @@ The backend runs a Minima health poller on `MINIMA_HEALTH_POLL_INTERVAL_SECONDS`
 
 `DOCKER_GID` lets the non-root backend user read Docker status through `/var/run/docker.sock`. The installer detects this automatically from the socket group id.
 
-`ENABLE_GPIO=true` lets the installer create a Docker Compose override that mounts `/dev/gpiochip0` for GPIO input sources. `GPIO_GID` is detected from `/dev/gpiochip0` or the host `gpio` group when possible. GPIO stays disabled by default because it grants the backend container host hardware access.
+`ENABLE_GPIO=true` is an advanced install shortcut that lets the installer create a Docker Compose override that mounts `/dev/gpiochip0` for GPIO input sources. `GPIO_GID` is detected from `/dev/gpiochip0` or the host `gpio` group when possible. GPIO stays disabled by default because it grants the backend container host hardware access.
 
 When GPIO is not enabled or `/dev/gpiochip0` is unavailable in the backend container, the GPIO Input and PIR Motion Sensor cards are disabled in the Data Sources page.
 
 GPIO input/output settings for tested button, LED, and HC-SR501 PIR motion sensor wiring, plus suggested untested device profiles, are documented in [`docs/guides/gpio-device-settings.md`](./docs/guides/gpio-device-settings.md).
 
-`ENABLE_CAMERA=true` lets the installer create a host-side Python camera helper service. The Devices page enables the Pi Camera capture device type only when the helper reports usable host camera commands and at least one detected camera. Camera support stays disabled by default because it grants the app a way to trigger host camera capture and captured images/video may contain private data.
+`ENABLE_CAMERA=true` is an advanced install shortcut that lets the installer create a host-side Python camera helper service. Normal installs should leave camera disabled and let an admin enable it later from Devices -> Hardware support. The Devices page enables the Pi Camera capture device type only when camera support is enabled. Camera support stays disabled by default because it grants the app a way to trigger host camera capture and captured images/video may contain private data.
 
 Pi Camera devices are capture/input devices, not generic output targets. Automation workflows use a `Capture camera` data block to capture a photo or short video clip, hash the captured media bytes, store capture metadata in read history, and optionally attach `Stamp data` to create an Integritas proof for the media hash. Captured media is stored locally under `CAMERA_CAPTURE_DIR` (`/data/captures` in Docker, mapped to the host data directory for the helper). `CAMERA_MAX_DURATION_SECONDS` limits per-capture video duration. `CAMERA_PHOTO_COMMAND` and `CAMERA_VIDEO_COMMAND` default to `rpicam-still` and `rpicam-vid`; the Python helper also falls back to `libcamera-still` and `libcamera-vid`. `INTEGRITAS_DOCKER_SUBNET` and `INTEGRITAS_DOCKER_GATEWAY` pin the Compose network so the backend has a stable route to the host helper after reboot/redeploy. The helper uses only Python's standard library and is intended as the extension point for future USB/RTSP/HTTP camera backends.
 
-`ENABLE_SENSORS=true` lets the installer create a host-side Python sensor helper service for direct I2C sensor reads. The Devices page includes `BME280 Environmental Sensor` and `BME680 Environmental Sensor` templates. BME sensor devices are readable input sources: manual reads and Automation `Fetch data source` blocks produce JSON with `temperatureC`, `humidityPercent`, `pressureHpa`, I2C bus/address, and `readAt`, then hash that JSON for Integritas stamping. Wire the module's `VIN` to 3.3V or 5V, `GND` to ground, `SCL` to physical pin 5 / GPIO3, and `SDA` to physical pin 3 / GPIO2. Enable I2C on the Pi host first, and use address `0x76` or `0x77` depending on the module. BME680 reads require the Python `bme680` module in the sensor-helper virtualenv. See [`docs/guides/bme280-sensor.md`](./docs/guides/bme280-sensor.md) for setup details.
+`ENABLE_SENSORS=true` is an advanced install shortcut that lets the installer create a host-side Python sensor helper service for direct I2C sensor reads. Sensor support stays disabled by default. The Devices page includes `BME280 Environmental Sensor` and `BME680 Environmental Sensor` templates only when sensor support is enabled. BME sensor devices are readable input sources: manual reads and Automation `Fetch data source` blocks produce JSON with `temperatureC`, `humidityPercent`, `pressureHpa`, I2C bus/address, and `readAt`, then hash that JSON for Integritas stamping. Wire the module's `VIN` to 3.3V or 5V, `GND` to ground, `SCL` to physical pin 5 / GPIO3, and `SDA` to physical pin 3 / GPIO2. Enable I2C on the Pi host first, and use address `0x76` or `0x77` depending on the module. BME680 reads require the Python `bme680` module in the sensor-helper virtualenv. See [`docs/guides/bme280-sensor.md`](./docs/guides/bme280-sensor.md) for setup details.
 
 `INTEGRITAS_CONNECT_BASE_URL` is the Integritas Connect host used for device activation and account linking (default `https://integritas.technology`).
 

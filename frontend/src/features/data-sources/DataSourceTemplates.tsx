@@ -296,7 +296,7 @@ export function LocalServicesCard({
       </div>
       {!broker?.enabled && (
         <div>
-          <p className="type-meta text-text-tertiary m-0">Enable with</p>
+          <p className="type-meta text-text-tertiary m-0">Advanced install shortcut</p>
           <p className="type-body text-text-secondary mt-detail-tight m-0">
             <code>ENABLE_MQTT_BROKER=true</code> and the Docker Compose MQTT profile.
           </p>
@@ -314,8 +314,9 @@ export function LocalServicesCard({
               onDisable={onDisableCamera}
             />
             <ErrorAlert status="warning" className="max-w-none">
-              Sensor, GPIO, and local broker toggles will use this same host-agent path later. For now,
-              only camera support can be changed from the app.
+              Optional hardware starts disabled by default. For now, only camera support can be
+              changed from the app; sensor, GPIO, and local broker toggles will use this same
+              host-agent path later.
             </ErrorAlert>
           </div>
         </Modal>
