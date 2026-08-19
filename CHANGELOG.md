@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Backend unit test coverage for `wallet`.
 - Backend unit test coverage for `data-reads`.
 - Backend unit test coverage for `data-sources` (repository and service logic).
+- Backend unit test coverage for `integritas`.
 
 ## [0.38.11] 2026-08-18
 
