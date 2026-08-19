@@ -93,3 +93,14 @@ export type DataSourceCapabilities = {
     supportedSensors?: string[];
   };
 };
+
+export type HostCapability = {
+  name: "camera";
+  enabled: boolean;
+  installed: boolean;
+  available: boolean;
+  state: "disabled" | "applying" | "enabled" | "failed" | "needs_reboot";
+  reason: string | null;
+  captureDir?: string;
+  helperPort?: number;
+};

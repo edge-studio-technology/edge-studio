@@ -1,5 +1,5 @@
 import { deleteJson, getJson, patchJson, postJson } from "../../lib/api";
-import type { DataSource, DataSourceCapabilities, DataSourceHealthStatus } from "./dataSourceTypes";
+import type { DataSource, DataSourceCapabilities, DataSourceHealthStatus, HostCapability } from "./dataSourceTypes";
 
 export async function listDataSources() {
   return getJson<{ items: DataSource[] }>("/api/data-sources");
@@ -7,6 +7,18 @@ export async function listDataSources() {
 
 export async function getDataSourceCapabilities() {
   return getJson<DataSourceCapabilities>("/api/data-sources/capabilities");
+}
+
+export async function getHostCapabilities() {
+  return getJson<{ items: HostCapability[] }>("/api/host-capabilities");
+}
+
+export async function enableCameraSupport() {
+  return postJson<{ capability: HostCapability; warning?: string | null }>("/api/host-capabilities/camera/enable");
+}
+
+export async function disableCameraSupport() {
+  return postJson<{ capability: HostCapability }>("/api/host-capabilities/camera/disable");
 }
 
 export async function createDataSource(input: { name: string; type: DataSource["type"]; description: string; config: DataSource["config"] }) {

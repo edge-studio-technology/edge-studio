@@ -17,6 +17,8 @@ GPIO_GID_INPUT="${GPIO_GID-}"
 ENABLE_MQTT_BROKER_INPUT="${ENABLE_MQTT_BROKER-}"
 MQTT_PUBLIC_HOST_INPUT="${MQTT_PUBLIC_HOST-}"
 MQTT_PUBLIC_PORT_INPUT="${MQTT_PUBLIC_PORT-}"
+HOST_AGENT_TOKEN_INPUT="${HOST_AGENT_TOKEN-}"
+HOST_AGENT_PORT_INPUT="${HOST_AGENT_PORT-}"
 ENABLE_CAMERA_INPUT="${ENABLE_CAMERA-}"
 CAMERA_CAPTURE_DIR_INPUT="${CAMERA_CAPTURE_DIR-}"
 CAMERA_HELPER_TOKEN_INPUT="${CAMERA_HELPER_TOKEN-}"
@@ -52,6 +54,8 @@ GPIO_GID="${GPIO_GID:-}"
 ENABLE_MQTT_BROKER="${ENABLE_MQTT_BROKER:-false}"
 MQTT_PUBLIC_HOST="${MQTT_PUBLIC_HOST:-}"
 MQTT_PUBLIC_PORT="${MQTT_PUBLIC_PORT:-1883}"
+HOST_AGENT_TOKEN="${HOST_AGENT_TOKEN:-}"
+HOST_AGENT_PORT="${HOST_AGENT_PORT:-38182}"
 ENABLE_CAMERA="${ENABLE_CAMERA:-false}"
 CAMERA_CAPTURE_DIR="${CAMERA_CAPTURE_DIR:-/data/captures}"
 CAMERA_HELPER_TOKEN="${CAMERA_HELPER_TOKEN:-}"
@@ -216,6 +220,8 @@ load_existing_config() {
   ENABLE_MQTT_BROKER="${ENABLE_MQTT_BROKER_INPUT:-${ENABLE_MQTT_BROKER:-false}}"
   MQTT_PUBLIC_HOST="${MQTT_PUBLIC_HOST_INPUT:-${MQTT_PUBLIC_HOST:-}}"
   MQTT_PUBLIC_PORT="${MQTT_PUBLIC_PORT_INPUT:-${MQTT_PUBLIC_PORT:-1883}}"
+  HOST_AGENT_TOKEN="${HOST_AGENT_TOKEN_INPUT:-${HOST_AGENT_TOKEN:-}}"
+  HOST_AGENT_PORT="${HOST_AGENT_PORT_INPUT:-${HOST_AGENT_PORT:-38182}}"
   ENABLE_CAMERA="${ENABLE_CAMERA_INPUT:-${ENABLE_CAMERA:-false}}"
   CAMERA_CAPTURE_DIR="${CAMERA_CAPTURE_DIR_INPUT:-${CAMERA_CAPTURE_DIR:-/data/captures}}"
   CAMERA_HELPER_TOKEN="${CAMERA_HELPER_TOKEN_INPUT:-${CAMERA_HELPER_TOKEN:-}}"
@@ -253,6 +259,15 @@ ensure_app_secret() {
 
   log "Generating APP_SECRET for encrypted local settings"
   APP_SECRET="$(openssl rand -hex 32)"
+}
+
+ensure_host_agent_token() {
+  if [ -n "$HOST_AGENT_TOKEN" ]; then
+    return
+  fi
+
+  log "Generating HOST_AGENT_TOKEN for host capability management"
+  HOST_AGENT_TOKEN="$(openssl rand -hex 32)"
 }
 
 ensure_camera_helper_token() {
@@ -622,6 +637,9 @@ COMPOSE_PROFILES=$compose_profiles_joined
 MQTT_PUBLIC_HOST=$MQTT_PUBLIC_HOST
 MQTT_PUBLIC_PORT=$MQTT_PUBLIC_PORT
 MQTT_INTERNAL_URL=mqtt://mqtt:1883
+HOST_AGENT_URL=http://$INTEGRITAS_DOCKER_GATEWAY:$HOST_AGENT_PORT
+HOST_AGENT_TOKEN=$HOST_AGENT_TOKEN
+HOST_AGENT_PORT=$HOST_AGENT_PORT
 MINIMA_DATA_DIR=$MINIMA_DATA_DIR
 UPDATE_AGENT_STATE_DIR=$UPDATE_AGENT_STATE_DIR
 MINIMA_P2P_PORT=$MINIMA_P2P_PORT
@@ -753,6 +771,57 @@ EOF
   systemctl daemon-reload
   systemctl enable edge-studio-camera-helper.service
   systemctl restart edge-studio-camera-helper.service
+}
+
+install_host_agent() {
+  local service_file="/etc/systemd/system/edge-studio-host-agent.service"
+  local helper_user
+
+  helper_user="${SUDO_USER:-pi}"
+  if ! id "$helper_user" >/dev/null 2>&1; then
+    helper_user="root"
+  fi
+
+  if [ ! -f "$APP_DIR/host-agent/edge_studio_host_agent.py" ]; then
+    log "Warning: host-agent script was not found; hardware support changes from the app will be unavailable."
+    return
+  fi
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required for the host agent but was not found."
+    exit 1
+  fi
+
+  log "Installing host capability agent"
+  cat > "$service_file" <<EOF
+[Unit]
+Description=Edge Studio Host Agent
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$APP_DIR
+Environment=APP_DIR=$APP_DIR
+Environment=HOST_AGENT_HOST=0.0.0.0
+Environment=HOST_AGENT_PORT=$HOST_AGENT_PORT
+Environment=HOST_AGENT_TOKEN=$HOST_AGENT_TOKEN
+Environment=HOST_HELPER_USER=$helper_user
+Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
+Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
+ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $HOST_AGENT_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $HOST_AGENT_PORT -j ACCEPT; fi'
+ExecStart=/usr/bin/python3 $APP_DIR/host-agent/edge_studio_host_agent.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  chmod 600 "$service_file"
+  systemctl daemon-reload
+  systemctl enable edge-studio-host-agent.service
+  systemctl restart edge-studio-host-agent.service
 }
 
 install_sensor_helper() {
@@ -924,6 +993,7 @@ main() {
   prepare_app_directory
   load_existing_config
   ensure_app_secret
+  ensure_host_agent_token
   ensure_camera_helper_token
   ensure_sensor_helper_token
   detect_docker_gid
@@ -937,6 +1007,7 @@ main() {
   record_applied_manifest
   write_env_file
   write_compose_override
+  install_host_agent
   install_camera_helper
   install_sensor_helper
   generate_tls_cert

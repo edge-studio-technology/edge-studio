@@ -4,6 +4,21 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] host-agent-capability-management
+
+### Added
+
+- Added a root-owned host agent for app-managed, allowlisted host hardware capability actions.
+- Added admin-only camera support enable and disable actions from the Devices page Hardware support area.
+
+### Changed
+
+- Disabled host-backed hardware templates are hidden from the default New input and New output flows.
+
+### Security
+
+- Documented the host-agent privilege boundary and token-protected backend-only access path.
+
 ## [0.38.11] 2026-08-18
 
 ### Added

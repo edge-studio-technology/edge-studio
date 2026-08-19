@@ -1,21 +1,26 @@
 import { AltOptionCard } from "../../../components/patterns/AltOptionCard";
-import { resolveTemplateConfig, templateIcon } from "../DataSourceTemplates";
-import type { DataSourceCapabilities, DataSourceTemplate } from "../dataSourceTypes";
+import { activeInputTemplates, activeOutputTemplates, resolveTemplateConfig, templateIcon } from "../DataSourceTemplates";
+import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../dataSourceTypes";
 import { altDeviceOptions } from "./altDeviceOptions";
 
 /** Step 1 of the alt add-device flow: one card per manually configurable device type. */
 export function AltDevicePicker({
   mode,
   capabilities,
+  hostCapabilities,
   onSelect,
 }: {
   mode: "input" | "output";
   capabilities: DataSourceCapabilities | null;
+  hostCapabilities?: HostCapability[];
   onSelect: (template: DataSourceTemplate) => void;
 }) {
+  const templates = mode === "input"
+    ? activeInputTemplates(capabilities, hostCapabilities)
+    : activeOutputTemplates(capabilities, hostCapabilities);
   return (
     <div className="gap-detail-close grid auto-rows-fr sm:grid-cols-2 lg:grid-cols-3">
-      {altDeviceOptions(mode).map((template) => (
+      {altDeviceOptions(mode, templates).map((template) => (
         <AltOptionCard
           key={template.title}
           icon={templateIcon(template)}

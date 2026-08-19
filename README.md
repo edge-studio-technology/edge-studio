@@ -45,6 +45,8 @@ curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/
 
 `ENABLE_CAMERA=true` installs and starts a host-side `edge-studio-camera-helper` systemd service, generates a `CAMERA_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Edge Studio Compose gateway. Leave it disabled unless this deployment needs camera capture workflows.
 
+After install, an admin can enable or disable camera support from Devices → Hardware support. The installer always installs a narrow root-owned `edge-studio-host-agent` service for this app-managed hardware setup path.
+
 `ENABLE_CAMERA=true` does not install host camera drivers or enable the Raspberry Pi camera stack. Before using camera workflows, verify the Pi host can see the camera with `libcamera-still --list-cameras` or `rpicam-still --list-cameras`. Camera Module 3 (`imx708`) requires a host OS/kernel/libcamera stack that supports it. The helper uses the host camera tools, not camera binaries inside the backend container.
 
 To enable BME280/BME680 I2C environmental sensor devices during install, pass `ENABLE_SENSORS=true`:
@@ -73,6 +75,7 @@ The installer will:
 - Verify Docker Compose
 - Download the default runtime bundle to `/opt/edge-studio` or clone the repository when `DEV_MODE=true`
 - Write `/opt/edge-studio/.env`
+- Install the host agent used for admin-triggered hardware support changes from the app
 - Generate a self-signed TLS certificate in `DATA_DIR/certs`
 - Start the app with `docker compose up -d --build`
 

@@ -19,8 +19,8 @@ const environmentalSensorOption: DataSourceTemplate = {
   config: { sensor: "bme280", bus: 1, address: "0x76" },
 };
 
-export function altDeviceOptions(mode: "input" | "output") {
-  const templates = (mode === "input" ? inputTemplates : outputTemplates).filter(
+export function altDeviceOptions(mode: "input" | "output", sourceTemplates?: DataSourceTemplate[]) {
+  const templates = (sourceTemplates ?? (mode === "input" ? inputTemplates : outputTemplates)).filter(
     (template) => !guidedOnlyTitles.includes(template.title),
   );
   if (mode !== "input") return templates;

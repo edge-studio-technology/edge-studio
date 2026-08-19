@@ -4,10 +4,12 @@ import { MutedText } from "../../../components/Text";
 import {
   inputTemplates,
   outputTemplates,
+  activeInputTemplates,
+  activeOutputTemplates,
   resolveTemplateConfig,
   templateIcon,
 } from "../DataSourceTemplates";
-import type { DataSourceCapabilities, DataSourceTemplate } from "../dataSourceTypes";
+import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../dataSourceTypes";
 
 /** Wiring/capability notes shown alongside a template's form. */
 export function TemplateNotes({
@@ -105,14 +107,19 @@ export function DataSourceTemplates({
   mode,
   category,
   capabilities,
+  hostCapabilities,
   onSelect,
 }: {
   mode: "input" | "output";
   category?: "template" | "manual";
   capabilities: DataSourceCapabilities | null;
+  hostCapabilities?: HostCapability[];
   onSelect: (template: DataSourceTemplate) => void;
 }) {
-  const templates = (mode === "input" ? inputTemplates : outputTemplates).filter(
+  const sourceTemplates = mode === "input"
+    ? activeInputTemplates(capabilities, hostCapabilities)
+    : activeOutputTemplates(capabilities, hostCapabilities);
+  const templates = sourceTemplates.filter(
     (template) => !category || templateKind(template) === category,
   );
 

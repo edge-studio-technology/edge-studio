@@ -10,7 +10,10 @@ import { createAutomationWorkflow } from "../features/automation/automationApi";
 import {
   checkDataSourceHealth,
   deleteDataSource,
+  disableCameraSupport,
+  enableCameraSupport,
   getDataSourceCapabilities,
+  getHostCapabilities,
   listDataSources,
   readDataSource,
   testDataSourceOutput,
@@ -27,6 +30,7 @@ import type {
   DataSource,
   DataSourceCapabilities,
   DataSourceHealthStatus,
+  HostCapability,
 } from "../features/data-sources/dataSourceTypes";
 import {
   getDeviceSetupGuide,
@@ -44,6 +48,7 @@ export function DataSourcesPage() {
   const navigate = useNavigate();
   const [items, setItems] = useState<DataSource[]>([]);
   const [capabilities, setCapabilities] = useState<DataSourceCapabilities | null>(null);
+  const [hostCapabilities, setHostCapabilities] = useState<HostCapability[]>([]);
   const [addDeviceMode, setAddDeviceMode] = useState<"input" | "output" | null>(null);
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -71,12 +76,14 @@ export function DataSourcesPage() {
   }, [items]);
 
   async function refresh() {
-    const [response, capabilityResponse] = await Promise.all([
+    const [response, capabilityResponse, hostCapabilityResponse] = await Promise.all([
       listDataSources(),
       getDataSourceCapabilities(),
+      getHostCapabilities().catch(() => ({ items: [] })),
     ]);
     setItems(response.items);
     setCapabilities(capabilityResponse);
+    setHostCapabilities(hostCapabilityResponse.items);
   }
 
   function refreshHealthStatuses() {
@@ -184,6 +191,38 @@ export function DataSourcesPage() {
     }, "Device updated");
   }
 
+  async function enableCameraHardware() {
+    setBusy(true);
+    try {
+      const response = await enableCameraSupport();
+      if (response.warning) {
+        showToast({ tone: "warning", title: "Camera support enabled with warning", message: response.warning });
+      } else {
+        showToast({ tone: "success", title: "Camera support enabled" });
+      }
+      window.setTimeout(() => void refresh().catch(() => undefined), 2500);
+    } catch (err) {
+      showToast({ tone: "error", title: "Hardware action failed", message: err instanceof Error ? err.message : "Unknown error" });
+      await refresh().catch(() => undefined);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function disableCameraHardware() {
+    setBusy(true);
+    try {
+      await disableCameraSupport();
+      showToast({ tone: "success", title: "Camera support disabled" });
+      window.setTimeout(() => void refresh().catch(() => undefined), 2500);
+    } catch (err) {
+      showToast({ tone: "error", title: "Hardware action failed", message: err instanceof Error ? err.message : "Unknown error" });
+      await refresh().catch(() => undefined);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const setupGuideBme680SupportWarning = setupGuideSource
     ? bme680SupportWarning(setupGuideSource, capabilities)
     : null;
@@ -211,12 +250,19 @@ export function DataSourcesPage() {
         </ButtonRow>
       </Card> */}
 
-      <LocalServicesCard capabilities={capabilities} />
+      <LocalServicesCard
+        capabilities={capabilities}
+        hostCapabilities={hostCapabilities}
+        busy={busy}
+        onEnableCamera={enableCameraHardware}
+        onDisableCamera={disableCameraHardware}
+      />
 
       {ADD_DEVICE_FLOW === "alt" ? (
         <AltAddDeviceFlow
           mode={addDeviceMode}
           capabilities={capabilities}
+          hostCapabilities={hostCapabilities}
           onClose={() => setAddDeviceMode(null)}
           onCreated={handleDeviceCreated}
         />
@@ -224,6 +270,7 @@ export function DataSourcesPage() {
         <ClassicAddDeviceFlow
           mode={addDeviceMode}
           capabilities={capabilities}
+          hostCapabilities={hostCapabilities}
           onClose={() => setAddDeviceMode(null)}
           onCreated={handleDeviceCreated}
         />

@@ -92,6 +92,28 @@ Plan:
 
 Status: Accepted risk, documented. See `.agents/rules/update-agent.md`.
 
+## Host Agent Capability Management
+
+Risk: `install.sh` installs a root-owned `edge-studio-host-agent` service that lets the backend request narrow host hardware setup actions, starting with enabling or disabling Raspberry Pi Camera support after the app is already installed.
+
+Impact: If the host agent or its bearer token is compromised, an attacker could perform the specific host actions implemented by the agent, including changing camera-helper systemd state and restarting the backend container.
+
+Current Controls:
+
+- The browser never talks to the host agent directly; it calls backend routes under `/api/host-capabilities`.
+- Backend host-capability mutations require an authenticated admin session.
+- The host agent requires an installer-generated bearer token that is written to `.env` and passed only to the backend container.
+- The host agent exposes fixed camera capability endpoints only; it has no generic shell, package install, file write, or service-management proxy.
+- The installer adds the same Docker-subnet firewall pattern used by other host helpers where `iptables` is available.
+
+Plan:
+
+- Keep future capabilities allowlisted and capability-specific.
+- Add asynchronous job history if hardware setup actions become long-running.
+- Revisit binding/firewall behavior during real Pi verification.
+
+Status: Accepted risk for app-managed hardware enablement. See `docs/plans/host-agent-capability-management.md`.
+
 ## I2C Sensor Helper
 
 Risk: `ENABLE_SENSORS=true` installs a host-side `edge-studio-sensor-helper` service that can read supported I2C sensors such as BME280 and BME680 through the Pi's I2C bus.

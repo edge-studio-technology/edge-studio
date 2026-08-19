@@ -1,6 +1,6 @@
 # Host Agent Capability Management Plan
 
-**Status:** Not started  
+**Status:** In progress
 **Created:** 2026-08-19  
 **Goal:** Let an admin enable optional host hardware support from the web app after first install, without rerunning `install.sh` manually.
 
