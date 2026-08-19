@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterAll, beforeAll, describe, it } from "vitest";
+import { afterAll, beforeAll, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
 let teardown: () => void;
@@ -63,13 +63,20 @@ describe("automation.repository — workflow CRUD", () => {
   });
 
   it("listAutomationWorkflows orders by created_at descending", () => {
-    const first = repo.createAutomationWorkflow({ name: "ListOrderFirst", enabled: true });
-    const second = repo.createAutomationWorkflow({ name: "ListOrderSecond", enabled: true });
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+      const first = repo.createAutomationWorkflow({ name: "ListOrderFirst", enabled: true });
+      vi.setSystemTime(new Date("2026-01-01T00:00:01.000Z"));
+      const second = repo.createAutomationWorkflow({ name: "ListOrderSecond", enabled: true });
 
-    const workflows = repo.listAutomationWorkflows();
-    const firstIndex = workflows.findIndex((w) => w.id === first.id);
-    const secondIndex = workflows.findIndex((w) => w.id === second.id);
-    assert.ok(secondIndex < firstIndex);
+      const workflows = repo.listAutomationWorkflows();
+      const firstIndex = workflows.findIndex((w) => w.id === first.id);
+      const secondIndex = workflows.findIndex((w) => w.id === second.id);
+      assert.ok(secondIndex < firstIndex);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("updateAutomationWorkflow updates only the provided fields and returns undefined for a missing id", () => {
