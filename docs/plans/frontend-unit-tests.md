@@ -1,0 +1,64 @@
+# Frontend Unit Tests Plan
+
+**Status:** In Progress
+**Created:** 2026-08-19
+**Goal:** Build vitest unit test coverage across `frontend/src/*`, one area at a time. Same priority order as the backend plan (`docs/plans/backend-unit-tests.md`): pure-logic modules first, then rendering/behavior of shared and feature components, thin page-level wiring last (or skipped where it's just composition).
+
+**Scope:** `frontend/src/lib/*`, `frontend/src/features/*/*` (non-component logic first, then components), `frontend/src/components/ui/*`, `frontend/src/components/patterns/*`, `frontend/src/components/*` (flat legacy). Out of scope for now: `frontend/src/pages/*` (mostly composition of already-tested feature components plus routing/context — revisit only if a page grows real logic of its own), `frontend/src/App.tsx`/`main.tsx`/`vite-env.d.ts` (routing bootstrap, no branching logic worth testing standalone).
+
+## Setup
+
+Already in place before this plan started: `vitest` + `happy-dom` devDependencies, `npm run test` script (`frontend/package.json`), and a `test` block in `frontend/vite.config.ts` (`environment: "happy-dom"`, `include: ["tests/**/*.test.{ts,tsx}"]`).
+
+Added to start this plan:
+
+- `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event` devDependencies.
+- `frontend/tests/setup.ts` (imports `@testing-library/jest-dom/vitest`), wired via `test.setupFiles` in `vite.config.ts`.
+- Root `npm run test` now runs backend then frontend (`package.json`); `npm run check` picks this up automatically.
+
+## Conventions
+
+- Test files live in `frontend/tests/<mirror-of-src-path>.test.ts(x)`, mirroring `frontend/src/<path>.ts(x)` (e.g. `src/lib/cx.ts` → `tests/lib/cx.test.ts`, `src/components/ui/Pill.tsx` → `tests/components/ui/Pill.test.tsx`).
+- Use vitest's own `describe`/`it`/`expect` (not `node:assert`) — unlike the backend plan, jest-dom's matchers (`toBeInTheDocument`, `toHaveClass`, etc.) only extend vitest's `expect`, so staying on one assertion style avoids mixing conventions within the same suite.
+- Pure-function/logic modules (`lib/*`, `features/*/  *Types.ts` transforms, `*Format.ts`, `*Helpers.ts`, `*Display.ts`, non-component `.ts` files generally) need no rendering setup — plain `describe`/`it`/`expect`.
+- Component tests use `@testing-library/react`'s `render`/`screen`; prefer `screen.getByRole`/`getByText` queries over container/class selectors, falling back to `container.querySelector`/`toHaveClass` only for presentational details (tone classes, indicator dots) with no accessible role/text.
+- User interaction (clicks, typing, form submission) uses `@testing-library/user-event`, not `fireEvent`, for realistic event sequencing.
+- `frontend/src/lib/api.ts` (the shared fetch wrapper) and any `features/*/  *Api.ts` client module: mock at the boundary the module owns — stub `global.fetch` with `vi.stubGlobal("fetch", vi.fn())` in `beforeEach`/`afterEach` (`vi.unstubAllGlobals()` after), same pattern as the backend's network-mocking convention. Modules that call into `lib/api.ts` rather than `fetch` directly should mock `lib/api.ts` itself via `vi.mock`.
+- Components that depend on context providers (`AuthProvider`, `ToastProvider`) need a small test-local wrapper providing the context, not a re-implementation of the provider's internals — prefer rendering the real provider with minimal/mocked inputs over hand-rolling a fake context value, unless the provider itself does network calls that need mocking first.
+- Hooks (`use*.ts`) are tested through the components that use them where practical; reach for `@testing-library/react`'s `renderHook` only when a hook has meaningful standalone branching logic not otherwise exercised.
+- Page components (`pages/*`) are out of scope for the same reason backend routes are: thin wiring over already-tested pieces. Revisit a specific page only if it grows real logic beyond composition + routing.
+
+## Progress
+
+| Area | Status | Notes |
+|---|---|---|
+| `lib` | Partial | Covered: `cx.ts` (class joining/filtering), `format.ts` (`shortHash`, `formatSize`, `formatMinimaAmount`). Not yet covered: `api.ts`, `behaviourSettings.ts`, `errors.ts`, `localSettings.ts`, `paginated.ts`, `paths.ts`, `time.ts`. |
+| `components/ui` | Partial | Covered: `Pill.tsx` (children render, indicator dot, custom className). Not yet covered: `Button.tsx`, `Card.tsx`, `CheckboxField.tsx`, `Clock.tsx`, `Disclosure.tsx`, `Divider.tsx`, `ErrorText.tsx`, `InputField.tsx`, `Label.tsx`, `LoadingDots.tsx`, `Menu.tsx`, `Modal.tsx`, `Pagination.tsx`, `PinField.tsx`, `ProgressBar.tsx`, `RadioField.tsx`, `ScrollArea.tsx`, `SelectField.tsx`, `SpinnerAlt.tsx`, `SwitchField.tsx`, `TabList.tsx`, `TextareaField.tsx`, `Text.tsx`, `ToggleTabs.tsx`, `Tooltip.tsx`, `TruncatedHash.tsx`. |
+| `components/patterns` | Not Started | `AltOptionCard.tsx`, `BrandLockup.tsx`, `ButtonRow.tsx`, `CopyableCode.tsx`, `CopyField.tsx`, `DataTable.tsx`, `DeleteConfirmModal.tsx`, `DetailList.tsx`, `EmptyContentState.tsx`, `ErrorAlert.tsx`, `ErrorDetailPanel.tsx`, `FileDropBox.tsx`, `JsonPreview.tsx`, `ListDisclosure.tsx`, `ListFilterBar.tsx`, `ListPaginationFooter.tsx`, `LoadingState.tsx`, `MetricCard.tsx`, `NoticeCard.tsx`, `OptionCard.tsx`, `Page.tsx`, `StatusPage.tsx`, `SubSection.tsx`. |
+| `components` (flat legacy) | Not Started | `AppShell.tsx`, `AppShellSidebar.tsx`, `BrandMark.tsx`, `ButtonRow.tsx`, `Button.tsx`, `Card.tsx`, `DataTable.tsx`, `ErrorAlert.tsx`, `ErrorBoundary.tsx`, `Input.tsx`, `JsonPreview.tsx`, `LoadingDots.tsx`, `MinimaIcon.tsx`, `Modal.tsx`, `Page.tsx`, `Pill.tsx`, `ProtectedRoute.tsx`, `StatusBar.tsx`, `StatusRow.tsx`, `Text.tsx`, `ToastProvider.tsx`. Several of these are thin re-exports of `components/ui`/`components/patterns` equivalents (e.g. `Pill.tsx`) — skip re-export-only files once confirmed, note here instead of adding a redundant test. |
+| `app` | Not Started | `app/nav.ts`, `app/names.ts`, `app/brand.ts`, `app/types.ts` (types only, likely skip). |
+| `features/address-book` | Not Started | `addressBookApi.ts`, `addressBookTypes.ts`, `AddressBookPanel.tsx`. |
+| `features/auth` | Not Started | `adminCredentials.ts`, `api.ts`, `AuthProvider.tsx`, `ChangeCredentialPanel.tsx`, `hooks.ts`, `PasswordRequirements.tsx`, `SidebarUserBox.tsx`, `totpEnabled.ts`, `types.ts`. |
+| `features/automation` | Not Started | `automationApi.ts`, `automationRunDisplay.ts`, `automationTypes.ts`, `AutomationInboxTable.tsx`, `AutomationRunInspectModal.tsx`, `AutomationRunsTable.tsx`, `AutomationWorkflowsList.tsx`, plus `workflow/*` (canvas, chrome, toolkit, `workflowHelpers.ts`, `workflowBlockHelp.ts`, `workflowBlockSummaries.ts`, `workflowWorkspaceUi.tsx`, `WorkflowCanvas.tsx`, `WorkflowBlockInspectors.tsx`, `WorkflowWatchUi.tsx`, `WorkflowWorkspace.tsx`, `CreateWorkflowWorkspace.tsx`) — largest feature folder, prioritize `workflowHelpers.ts`/`workflowBlockSummaries.ts`/`workflowBlockHelp.ts`/`blockPresentation.ts` (pure logic) before canvas/workspace components. |
+| `features/dashboard` | Not Started | `DashboardDevices.tsx`, `DashboardNextAction.tsx`. |
+| `features/data-reads` | Not Started | `dataReadsApi.ts`, `dataReadTypes.ts`, `DataReadsHistoryTable.tsx`. |
+| `features/data-sources` | Not Started | `buildDeviceConfig.ts`, `dataSourcesApi.ts`, `dataSourceTypes.ts`, `useDeviceFormFields.ts`, plus form/list/template components (`DataSourceForm.tsx`, `DataSourcesList.tsx`, `DataSourceTemplates.tsx`, `deviceSetupGuides.tsx`, `Esp32FirmwareSetup.tsx`, `HealthErrorPanel.tsx`) and `add-device-alt/`/`add-device-classic/` subflows. Prioritize `buildDeviceConfig.ts` (pure config-building/validation) first. |
+| `features/debug` | Not Started | `debugApi.ts` — likely low priority, thin dev-only client. |
+| `features/feedback` | Not Started | `FeedbackModal.tsx`. |
+| `features/integritas-auth` | Not Started | `integritasAuthApi.ts`, `IntegritasConnectPanel.tsx`, `useIntegritasAuth.ts`. |
+| `features/integritas` | Not Started | `integritasApi.ts`, `integritasErrors.ts`, `integritasTypes.ts`, `IntegritasHistoryTable.tsx`, `StampFilePanel.tsx`, `StampResult.tsx`, `useIntegritasHistoryAutoRefresh.ts`, `VerifyProofPanel.tsx`, `VerifyResult.tsx`. Prioritize `integritasErrors.ts` (pure error classification) first. |
+| `features/minima` | Not Started | `mergeMinimaStatus.ts`, `minimaFormat.ts`, `minimaResync.ts`, `minimaStatusDisplay.ts` (pure logic, prioritize first), plus `minimaApi.ts`, `minimaBackupApi.ts`, `minimaConsoleApi.ts`, `useMinimaStatusRefresh.ts`, and panel/card/section components. |
+| `features/setup` | Not Started | `api.ts`, `steps.ts`, `types.ts`, `OnboardingWizard.tsx`, `components/*`, `steps/*`. |
+| `features/status` | Not Started | `statusApi.ts`, `statusTypes.ts`, `useStatusOverviewRefresh.ts`. |
+| `features/tokens` | Not Started | `tokensApi.ts`, `tokensTypes.ts`. |
+| `features/update` | Not Started | `changelog.ts` (pure, prioritize first), `updateApi.ts`, `ChangelogPreview.tsx`, `useUpdateStatusRefresh.ts`. |
+| `features/wallet` | Not Started | `walletUtils.ts` (pure, prioritize first), `walletApi.ts`, `walletTypes.ts`, plus modal/panel components (`AssetDetailModal.tsx`, `CreateTokenModal.tsx`, `HistoryDetailModal.tsx`, `ReceiveAddressModal.tsx`, `ReceiveQrPanel.tsx`, `SendPaymentModal.tsx`, `TokenGlyph.tsx`, `WalletAssetsPanel.tsx`, `WalletHero.tsx`, `WalletHistoryPanel.tsx`, `WalletSettingsPanel.tsx`). |
+| `pages` | Out of Scope | Thin composition + routing wiring over already-tested feature components, same rationale as backend routes. Revisit a specific page only if it grows standalone logic. |
+
+## Verification
+
+- `npm --prefix frontend run test` (vitest)
+- `npm --prefix frontend run typecheck`
+- `npm run test` (root — runs backend then frontend)
+
+Keep this file updated as work progresses — flip rows to Partial/Done and add newly-covered files to the Notes as they land.
