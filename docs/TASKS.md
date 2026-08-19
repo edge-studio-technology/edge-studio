@@ -23,6 +23,7 @@
 
 ## Next
 
+- [ ] Add privileged host-agent capability management so camera support can be enabled from the app after install — see `docs/plans/host-agent-capability-management.md`.
 - [ ] On a real device or a local `install.sh` run, confirm end-to-end that `last-applied-manifest.json` gets written and a Feedback submission's `app.version` reflects it (see `docs/adr/0006-app-version-single-source-of-truth.md`).
 - [ ] Implement the hosted feedback receiver endpoint in the Integritas API repo — see `docs/plans/feedback.md` Step 8.
 - [ ] Manual browser check of the rebuilt Automation "Workflows" table (`AutomationWorkflowsList.tsx`): filter/search, pagination, pause/play, the overflow menu's six actions, and the delete flow now going through confirm → progress modal instead of deleting immediately.
