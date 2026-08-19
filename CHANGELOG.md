@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Backend unit test coverage for `feedback`.
 - Backend unit test coverage for `files`.
 - Backend unit test coverage for `shared`.
+- Backend unit test coverage for `health`.
 
 ## [0.38.11] 2026-08-18
 
