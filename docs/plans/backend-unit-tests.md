@@ -4,6 +4,8 @@
 **Created:** 2026-07-22
 **Goal:** Build vitest unit test coverage across `backend/src/features/*`, one feature folder at a time. Prioritize security-critical and business-critical logic over exhaustive coverage — pure-logic and DB-backed service/repository behavior first, thin route wiring last (or skipped where it's just glue).
 
+**Scope:** `backend/src/features/*` (see Progress table) plus `backend/src/shared/*` (cross-cutting, tracked as its own row below). Out of scope: `config/` (`env.ts`/`loadEnv.ts` — env parsing with no branching logic worth testing), `middleware/requestLogger.ts` (thin logging glue), `db/database.ts`/`db/ensureDatabaseDirectory.ts` (schema/migrations exercised indirectly by every DB-harness test; a dedicated migration test can be added later if migrations grow more complex than additive `CREATE TABLE IF NOT EXISTS`/`ALTER TABLE`).
+
 ## Conventions
 
 - Test files live in `backend/tests/features/<feature>/<module>.test.ts`, mirroring `backend/src/features/<feature>/<module>.ts`.
@@ -28,15 +30,16 @@
 | `automation` | Not started | `automation.validation.ts` (323 lines, pure When/Condition/Then rule validation) is the highest-value/lowest-friction next target — no DB/network. `automation.service.ts`/`automation.repository.ts`/`automationRuns.repository.ts` need the DB harness. |
 | `wallet` | Not started | `wallet.parse.ts` is a pure-function module, same shape as `minima.parse.ts`/`tokens.parse.ts` — cheap next target. `wallet.service.ts` likely needs Minima RPC mocking. |
 | `data-reads` | Not started | `dataReads.repository.ts`/`dataReads.service.ts` — DB harness, similar shape to `automationRuns.repository.ts`. |
-| `data-sources` | Not started | `dataSources.service.ts`/`dataSources.repository.ts` need the DB harness; `gpioIngestion.service.ts`/`gpioOutput.service.ts`/`mqttIngestion.service.ts`/`mqttOutput.service.ts` need hardware/MQTT mocking — lower priority. |
+| `data-sources` | Not started | `dataSources.service.ts`/`dataSources.repository.ts` need the DB harness; `gpioIngestion.service.ts`/`gpioOutput.service.ts`/`mqttIngestion.service.ts`/`mqttOutput.service.ts`/`cameraCapture.service.ts`/`sensorHelper.service.ts` need hardware/MQTT/host-helper mocking — lower priority. |
 | `integritas` | Not started | `integritas.service.ts`/`integritas.repository.ts` need DB harness + HTTP client mocking; `integritas-poll.service.ts` similar. |
 | `integritas-auth` | Not started | `integritas-auth-crypto.service.ts` is small and pure — cheap target. Rest needs HTTP/device-identity mocking. |
 | `settings` | Not started | `secrets.service.ts`/`settings.repository.ts` — DB harness. |
 | `status` | Not started | `docker.control.ts`/`docker.service.ts` need Docker-socket mocking; `device.service.ts` may be simpler — check before scoping. |
 | `address-book` | Not started | `address-book.repository.ts` — DB harness. |
-| `feedback` | Not started | `feedback.service.ts` (339 lines) — check for DB/network dependencies before scoping. |
+| `feedback` | Not started | `feedback.service.ts` (339 lines) — check for DB/network dependencies before scoping. `feedback.remote.ts` (hosted-delivery HTTP client) needs `fetch` mocking, same pattern as `minima.rpc.ts`. |
 | `files` | Not started | `files.service.ts` — host filesystem access, needs a fixture/sandbox strategy. |
 | `debug`, `health` | Not started | Thin route wiring — likely low priority, may skip. |
+| `shared` | Not started | Cross-cutting, not feature-scoped, but in scope for this plan. `crypto.ts` (`encryptSecret`/`decryptSecret`, `APP_SECRET`-keyed — security-critical, used by Integritas token storage and Minima backup password) is the highest-priority target. `list-query.ts`, `minima-address.ts`, `format.ts` are pure-function modules, cheap to cover. `api-error.ts`/`structured-error.ts` are mostly shape/mapping helpers — check for real branching logic before scoping. `http.ts` needs `fetch` mocking if it owns request logic. |
 
 ## Future Hardening
 
