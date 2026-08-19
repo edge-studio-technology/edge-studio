@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Feedback now presents a submit-only browser flow while keeping the local JSON export as a hidden operational fallback.
+- Feedback submissions now include the current Node and Integritas connection status.
 
 ### Removed
 
