@@ -642,6 +642,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Backend unit test coverage for `auth`, now complete: password/PIN validation and hashing, session create/validate/expiry/idle-timeout, login/change-password flows, setup-pending lifecycle, audit event logging, auth middleware (`requireAuth`/`requireRole`), and the first-run setup service (admin creation, setup-complete state, guarded re-run errors) — plus a reusable temp-SQLite test database harness (`backend/tests/helpers/testDatabase.ts`).
 - Backend unit test coverage for `minima`, now complete: RPC error normalization, status-URL/command RPC calls, node health monitoring (stall detection, auto-resync cooldown), Docker container stats/storage info, the full node-status orchestration (state derivation, block/peer fallback and failure handling, config, peers/wallet/resync/restart), and the health poller (concurrency guard, stall handling, auto-resync gating).
+- Backend unit test coverage for `data-sources` repository/service logic: data source CRUD, webhook-token lookup, read-result persistence, config parsing/validation for every source/target type, payload hashing, device-system-data reads, and health-check/JSON-fetch/HTTP-output/multipart-output requests.
 
 ## [0.25.0] 2026-07-27
 

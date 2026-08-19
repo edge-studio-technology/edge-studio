@@ -4,21 +4,17 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
-Branch `ui/polish`.
+Branch `test/unit-tests-and-ci`.
 
-- Audited `frontend/src/components/` for unused files: 12 with no importers, plus `TablePager` only reached via unused `ListPagerFilterBar`.
-- Updated `docs/frontend-design-system.md` (unused/superseded inventory, live list replacements), frontend agent rules (`ErrorDetails` → `ErrorDetailPanel`), and `docs/TASKS.md` removal-decision item.
-- Implemented Feedback V2 sender-side hosted delivery: local save first, Integritas upload when an API key is configured, per-submission consent, and delivery status in the local JSON.
-- Added feedback config/retry backend endpoints and fixed hosted endpoint client `POST https://integritas.technology/api/feedback` with existing `x-api-key`/`x-request-id` headers.
-- Updated `README.md`, `SECURITY.md`, `CHANGELOG.md`, and `docs/plans/feedback.md` for hosted feedback behavior and receiver requirements.
-- Verified with `npm run check`, `npm --prefix backend run build`, `npm --prefix frontend run build`, and `docker compose config`.
+- Added backend unit tests for the `data-sources` feature per `docs/plans/backend-unit-tests.md`: `backend/tests/features/data-sources/dataSources.repository.test.ts` (DB harness — create/get/list ordering, `findWebhookDataSource` incl. malformed-config JSON, update/delete, `updateDataSourceReadResult`) and `dataSources.service.test.ts` (`serializeDataSource`, every `parse*Config` function, `parseDataSourceConfig` dispatch, `process*Payload` helpers, `readDeviceSystemDataSource`, and fetch-mocked `checkDataSourceHealth`/`readJsonApiSource`/`sendHttpOutput`/`sendMultipartMediaOutput`).
+- Flipped the `data-sources` row in `docs/plans/backend-unit-tests.md` from Not started to Partial.
+- Verified with `npm run check` (425 backend tests across 28 files), `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config`.
 
 ## Next Steps
 
-- Decide whether to delete the superseded unused component files listed in `docs/TASKS.md`.
-- Implement the Integritas API receiver endpoint described in `docs/plans/feedback.md` before enabling hosted delivery in production.
+- Continue the backend unit test checklist: `integritas`, `integritas-auth`, `settings`, `status`, `address-book`, `feedback`, `files`, `shared` are all still Not started per `docs/plans/backend-unit-tests.md`.
+- `data-sources` still has `gpioIngestion.service.ts`/`gpioOutput.service.ts`/`mqttIngestion.service.ts`/`mqttOutput.service.ts`/`cameraCapture.service.ts`/`sensorHelper.service.ts` uncovered (hardware/MQTT/host-helper mocking, lower priority per the plan).
 
 ## Notes / Open Questions
 
-- `RadioField` and `Menu` have no call sites but remain the right controls when needed (table row actions use `TableIconMenu`, not `Menu`).
-- Hosted feedback sender is implemented in Edge Studio only; the receiving Integritas API must append/idempotently store submissions by account plus Pi submission id.
+- None.
