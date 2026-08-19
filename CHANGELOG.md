@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Backend unit test coverage for `status`.
 - Backend unit test coverage for `address-book`.
 - Backend unit test coverage for `feedback`.
+- Backend unit test coverage for `files`.
 
 ## [0.38.11] 2026-08-18
 
