@@ -99,7 +99,7 @@ export type HostCapability = {
   enabled: boolean;
   installed: boolean;
   available: boolean;
-  state: "disabled" | "applying" | "enabled" | "failed" | "needs_reboot";
+  state: "disabled" | "applying" | "enabled" | "failed" | "needs_reboot" | "missing_prerequisites";
   reason: string | null;
   captureDir?: string;
   helperPort?: number;

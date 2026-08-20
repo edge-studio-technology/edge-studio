@@ -98,10 +98,10 @@ def ensure_camera_token(config):
     return secrets.token_hex(32)
 
 
-def command_warning():
+def missing_camera_tools_message():
     if shutil.which("rpicam-still") or shutil.which("libcamera-still"):
         return None
-    return "Neither rpicam-still nor libcamera-still was found on the host. Install Raspberry Pi camera apps before using camera workflows."
+    return "Neither rpicam-still nor libcamera-still was found on the host. Install or enable the Raspberry Pi camera stack on the host, then refresh Hardware support."
 
 
 def helper_user():
@@ -118,23 +118,25 @@ def camera_status():
     service_exists = CAMERA_SERVICE_FILE.exists()
     service_active = run(["systemctl", "is-active", "edge-studio-camera-helper.service"], check=False).stdout.strip() == "active" if shutil.which("systemctl") else False
     enabled = is_truthy(config.get("ENABLE_CAMERA"))
-    available = enabled and service_exists and service_active and command_warning() is None
+    missing_tools = missing_camera_tools_message()
+    available = enabled and service_exists and service_active and missing_tools is None
     reason = None
-    warning = command_warning()
-    if not enabled:
+    state = "enabled" if available else "disabled" if not enabled else "failed"
+    if missing_tools:
+        reason = missing_tools
+        state = "missing_prerequisites"
+    elif not enabled:
         reason = "Camera support is disabled."
     elif not service_exists:
         reason = "Camera helper service is not installed."
     elif not service_active:
         reason = "Camera helper service is not active."
-    elif warning:
-        reason = warning
     return {
         "name": "camera",
         "enabled": enabled,
         "installed": service_exists,
         "available": available,
-        "state": "enabled" if available else "disabled" if not enabled else "failed",
+        "state": state,
         "reason": reason,
         "captureDir": config.get("CAMERA_CAPTURE_DIR", "/data/captures"),
         "helperPort": int(config.get("CAMERA_HELPER_PORT", "38180")),
@@ -142,6 +144,10 @@ def camera_status():
 
 
 def apply_camera():
+    missing_tools = missing_camera_tools_message()
+    if missing_tools:
+        raise ValueError(missing_tools)
+
     config = read_env()
     token = ensure_camera_token(config)
     port = config.get("CAMERA_HELPER_PORT", "38180")
@@ -197,7 +203,7 @@ WantedBy=multi-user.target
     })
     updated = read_env()
     restart = restart_backend(updated)
-    return {"capability": camera_status(), "restart": restart, "warning": command_warning()}
+    return {"capability": camera_status(), "restart": restart, "warning": None}
 
 
 def disable_camera():
@@ -242,6 +248,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/capabilities/camera":
                 return self.send_json(200, {"item": camera_status()})
             return self.send_json(404, {"error": "Not found"})
+        except ValueError as error:
+            return self.send_json(400, {"error": str(error), "capability": camera_status()})
         except Exception as error:
             return self.send_json(500, {"error": str(error)})
 

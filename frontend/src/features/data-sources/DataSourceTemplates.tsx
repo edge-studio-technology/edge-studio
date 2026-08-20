@@ -347,7 +347,13 @@ function HardwareStatus({
       <div className="gap-detail-close flex items-center justify-between">
         <p className="type-body-em text-text-primary m-0">{label}</p>
         <Pill tone={isAvailable ? "good" : isEnabled ? "warn" : "neutral"} indicator>
-          {isAvailable ? "Available" : isEnabled ? "Needs attention" : "Disabled"}
+          {capability?.state === "missing_prerequisites"
+            ? "Missing prerequisites"
+            : isAvailable
+              ? "Available"
+              : isEnabled
+                ? "Needs attention"
+                : "Disabled"}
         </Pill>
       </div>
       <p className="type-meta text-text-tertiary m-0">
@@ -373,6 +379,7 @@ function HardwareActionRow({
   onDisable?: () => Promise<void>;
 }) {
   const enabled = capability?.enabled ?? false;
+  const missingPrerequisites = capability?.state === "missing_prerequisites";
   return (
     <div className="border-border-subtle rounded-card-inner gap-detail-close grid border p-pad-tight">
       <div className="gap-detail-close flex flex-wrap items-center justify-between">
@@ -383,13 +390,18 @@ function HardwareActionRow({
         <Button
           type="button"
           variant={enabled ? "secondary" : "primary"}
-          disabled={busy || (!onEnable && !onDisable)}
+          disabled={busy || missingPrerequisites || (!onEnable && !onDisable)}
           onClick={() => void (enabled ? onDisable?.() : onEnable?.())}
         >
           {enabled ? "Disable" : "Enable"}
         </Button>
       </div>
       {capability?.reason && <p className="type-meta text-text-tertiary m-0">{capability.reason}</p>}
+      {missingPrerequisites && (
+        <p className="type-meta text-text-tertiary m-0">
+          Enable is unavailable until the host OS camera tools are installed and visible to the Pi.
+        </p>
+      )}
     </div>
   );
 }

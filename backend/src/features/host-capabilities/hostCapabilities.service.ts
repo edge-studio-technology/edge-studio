@@ -1,6 +1,6 @@
 import { env } from "../../config/env.js";
 
-export type HostCapabilityState = "disabled" | "applying" | "enabled" | "failed" | "needs_reboot";
+export type HostCapabilityState = "disabled" | "applying" | "enabled" | "failed" | "needs_reboot" | "missing_prerequisites";
 
 export type HostCapability = {
   name: "camera";
