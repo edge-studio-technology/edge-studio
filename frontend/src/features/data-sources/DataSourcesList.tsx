@@ -164,11 +164,11 @@ export function DataSourcesList({
         <TableWrap>
           <DataTable className="table-fixed">
             <TableHead>
-              <TableHeaderCell>Name</TableHeaderCell>
-              <TableHeaderCell className="w-[28rem]">Details</TableHeaderCell>
-              <TableHeaderCell className="w-40">Status</TableHeaderCell>
-              <TableHeaderCell className="w-36">Last activity</TableHeaderCell>
-              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+              <TableHeaderCell className="w-[34%]">Name</TableHeaderCell>
+              <TableHeaderCell className="w-[38%]">Details</TableHeaderCell>
+              <TableHeaderCell className="w-32">Status</TableHeaderCell>
+              <TableHeaderCell className="w-32">Last activity</TableHeaderCell>
+              <TableHeaderCell className="w-24 whitespace-nowrap">Actions</TableHeaderCell>
             </TableHead>
             <TableBody>
               {pagedItems.map((source) => {
@@ -181,7 +181,7 @@ export function DataSourcesList({
                 const endpoint = sourceEndpoint(source);
                 return (
                   <TableRow key={source.id}>
-                    <TableCell className="min-w-0">
+                    <TableCell className="min-w-0 whitespace-normal">
                       <span className="type-body-em block truncate" title={source.name}>
                         {source.name}
                       </span>
@@ -191,7 +191,7 @@ export function DataSourcesList({
                         </p>
                       )}
                     </TableCell>
-                    <TableCell className="min-w-0">
+                    <TableCell className="min-w-0 whitespace-normal">
                       <span className="type-body-em text-text-primary block truncate" title={typeLabel}>
                         {typeLabel}
                       </span>
@@ -209,7 +209,7 @@ export function DataSourcesList({
                     <TableCell>
                       <LastActivityCell source={source} />
                     </TableCell>
-                    <TableCell className="w-px whitespace-nowrap">
+                    <TableCell className="w-24 whitespace-nowrap">
                       <RowActions>
                         <TableIconButton
                           type="button"
