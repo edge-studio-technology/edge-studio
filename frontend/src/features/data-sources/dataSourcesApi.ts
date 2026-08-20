@@ -1,5 +1,5 @@
 import { deleteJson, getJson, patchJson, postJson } from "../../lib/api";
-import type { DataSource, DataSourceCapabilities, DataSourceHealthStatus, HostCapability } from "./dataSourceTypes";
+import type { DataSource, DataSourceCapabilities, HostCapability } from "./dataSourceTypes";
 
 export async function listDataSources() {
   return getJson<{ items: DataSource[] }>("/api/data-sources");
@@ -14,18 +14,33 @@ export async function getHostCapabilities() {
 }
 
 export async function enableCameraSupport() {
-  return postJson<{ capability: HostCapability; warning?: string | null }>("/api/host-capabilities/camera/enable");
+  return postJson<{ capability: HostCapability; warning?: string | null }>(
+    "/api/host-capabilities/camera/enable",
+  );
 }
 
 export async function disableCameraSupport() {
   return postJson<{ capability: HostCapability }>("/api/host-capabilities/camera/disable");
 }
 
-export async function createDataSource(input: { name: string; type: DataSource["type"]; description: string; config: DataSource["config"] }) {
+export async function createDataSource(input: {
+  name: string;
+  type: DataSource["type"];
+  description: string;
+  config: DataSource["config"];
+}) {
   return postJson<{ item: DataSource }>("/api/data-sources", input);
 }
 
-export async function updateDataSource(id: string, input: { name: string; type: DataSource["type"]; description: string; config: DataSource["config"] }) {
+export async function updateDataSource(
+  id: string,
+  input: {
+    name: string;
+    type: DataSource["type"];
+    description: string;
+    config: DataSource["config"];
+  },
+) {
   return patchJson<{ item: DataSource }>(`/api/data-sources/${id}`, input);
 }
 
@@ -38,10 +53,8 @@ export async function readDataSource(id: string) {
 }
 
 export async function testDataSourceOutput(id: string, durationMs = 500) {
-  return postJson<{ item: DataSource; result: unknown }>(`/api/data-sources/${id}/test-output`, { durationMs });
-}
-
-export async function checkDataSourceHealth(id: string) {
-  const response = await fetch(`/api/data-sources/${id}/health`, { credentials: "include" });
-  return await response.json() as DataSourceHealthStatus;
+  return postJson<{ item: DataSource; result: unknown }>(
+    `/api/data-sources/${id}/test-output`,
+    { durationMs },
+  );
 }

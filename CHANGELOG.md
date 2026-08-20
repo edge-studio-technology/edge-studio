@@ -19,6 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Camera enablement from Hardware support is blocked when host camera tools are missing.
 - Configured camera devices now show disabled or attention-needed status when camera hardware support is unavailable.
 - Workflow list status now shows Error when workflow validation has errors, including disabled hardware dependencies.
+- Devices list Status now reflects current usability and last failures instead of HTTP health-check configuration.
+- Removed the HTTP health status URL field and device health-check endpoint from data-source management.
+- Devices list now uses compact Name, Details, Status, Last activity, and Actions columns.
 
 ### Security
 

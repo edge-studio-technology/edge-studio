@@ -644,7 +644,6 @@ function httpJsonSourceGuide(source: DataSource) {
         table: [
           ["Method", source.config.method ?? "GET"],
           ["URL", source.config.url ?? ""],
-          ["Health URL", source.config.healthStatusUrl ?? "Not configured"],
         ],
       },
       {

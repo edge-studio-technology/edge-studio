@@ -10,7 +10,6 @@ export type DataSource = {
     url?: string;
     method?: "GET" | "POST" | "PUT" | "PATCH";
     headers?: Record<string, string>;
-    healthStatusUrl?: string;
     webhookToken?: string;
     brokerUrl?: string;
     topic?: string;
@@ -53,16 +52,6 @@ export type DataSourceTemplate = {
   description: string;
   type: DataSource["type"];
   config: Partial<DataSource["config"]>;
-};
-
-export type DataSourceHealthStatus = {
-  ok: boolean;
-  status?: number;
-  source?: string;
-  body?: unknown;
-  checkedAt?: string;
-  error?: string;
-  errorDetails?: unknown;
 };
 
 export type DataSourceCapabilities = {

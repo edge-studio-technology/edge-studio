@@ -30,8 +30,6 @@ export function DataSourceForm({
   setType,
   url,
   setUrl,
-  healthStatusUrl,
-  setHealthStatusUrl,
   brokerUrl,
   setBrokerUrl,
   topic,
@@ -77,8 +75,6 @@ export function DataSourceForm({
   setType: (value: DataSource["type"]) => void;
   url: string;
   setUrl: (value: string) => void;
-  healthStatusUrl: string;
-  setHealthStatusUrl: (value: string) => void;
   brokerUrl: string;
   setBrokerUrl: (value: string) => void;
   topic: string;
@@ -384,12 +380,6 @@ export function DataSourceForm({
             value={url}
             onChange={(event) => setUrl(event.target.value)}
             placeholder="https://example.com/data.json"
-          />
-          <InputField
-            label="Health status URL"
-            value={healthStatusUrl}
-            onChange={(event) => setHealthStatusUrl(event.target.value)}
-            placeholder="https://example.com/health"
           />
           <SelectField
             label="Method"

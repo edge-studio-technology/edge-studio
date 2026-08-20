@@ -10,7 +10,6 @@ export type JsonApiConfig = {
   url: string;
   method: "GET" | "POST";
   headers?: Record<string, string>;
-  healthStatusUrl?: string;
   body?: unknown;
 };
 
@@ -102,11 +101,10 @@ export function parseJsonApiConfig(value: unknown): JsonApiConfig {
   const url = typeof config?.url === "string" ? config.url.trim() : "";
   const method = config?.method === "POST" ? "POST" : "GET";
   const headers = config?.headers && typeof config.headers === "object" && !Array.isArray(config.headers) ? config.headers as Record<string, string> : {};
-  const healthStatusUrl = typeof config?.healthStatusUrl === "string" ? config.healthStatusUrl.trim() : "";
 
   if (!url) throw new Error("config.url is required");
 
-  return { url, method, headers, healthStatusUrl: healthStatusUrl || undefined, body: config?.body };
+  return { url, method, headers, body: config?.body };
 }
 
 export function parseDataSourceConfig(type: string, value: unknown, existingConfig?: unknown) {
@@ -233,12 +231,6 @@ export function parseDeviceSystemDataConfig(value: unknown): DeviceSystemDataCon
     includeNetwork: config?.includeNetwork !== false,
     includeLocation: config?.includeLocation !== false
   };
-}
-
-export async function checkDataSourceHealth(config: JsonApiConfig) {
-  if (!config.healthStatusUrl) throw new Error("Data source has no health status URL configured");
-  const { response, body } = await fetchJsonWithTimeout(config.healthStatusUrl);
-  return { ok: response.ok, status: response.status, source: config.healthStatusUrl, body, checkedAt: new Date().toISOString() };
 }
 
 export async function readJsonApiSource(config: JsonApiConfig) {

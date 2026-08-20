@@ -8,7 +8,6 @@ import { Page } from "../components/Page";
 import { useToast } from "../components/ToastProvider";
 import { createAutomationWorkflow } from "../features/automation/automationApi";
 import {
-  checkDataSourceHealth,
   deleteDataSource,
   disableCameraSupport,
   enableCameraSupport,
@@ -29,7 +28,6 @@ import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/
 import type {
   DataSource,
   DataSourceCapabilities,
-  DataSourceHealthStatus,
   HostCapability,
 } from "../features/data-sources/dataSourceTypes";
 import {
@@ -53,7 +51,6 @@ export function DataSourcesPage() {
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const editForm = useDeviceFormFields();
-  const [healthStatuses, setHealthStatuses] = useState<Record<string, DataSourceHealthStatus>>({});
   const [busy, setBusy] = useState(false);
   const [deletingSource, setDeletingSource] = useState<DataSource | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DataSource | null>(null);
@@ -69,12 +66,6 @@ export function DataSourcesPage() {
     );
   }, []);
 
-  useEffect(() => {
-    refreshHealthStatuses();
-    const interval = window.setInterval(refreshHealthStatuses, 60000);
-    return () => window.clearInterval(interval);
-  }, [items]);
-
   async function refresh() {
     const [response, capabilityResponse, hostCapabilityResponse] = await Promise.all([
       listDataSources(),
@@ -84,22 +75,6 @@ export function DataSourcesPage() {
     setItems(response.items);
     setCapabilities(capabilityResponse);
     setHostCapabilities(hostCapabilityResponse.items);
-  }
-
-  function refreshHealthStatuses() {
-    const sourcesWithHealth = items.filter((source) => source.config.healthStatusUrl);
-    if (sourcesWithHealth.length === 0) return;
-
-    sourcesWithHealth.forEach((source) => {
-      checkDataSourceHealth(source.id)
-        .then((status) => setHealthStatuses((current) => ({ ...current, [source.id]: status })))
-        .catch((err: Error) =>
-          setHealthStatuses((current) => ({
-            ...current,
-            [source.id]: { ok: false, error: err.message },
-          })),
-        );
-    });
   }
 
   function handleDeviceCreated(source: DataSource) {
@@ -353,7 +328,6 @@ export function DataSourcesPage() {
         items={items}
         capabilities={capabilities}
         hostCapabilities={hostCapabilities}
-        healthStatuses={healthStatuses}
         busy={busy}
         loading={capabilities === null}
         onRead={(source) => run(() => readDataSource(source.id), "Manual read completed")}

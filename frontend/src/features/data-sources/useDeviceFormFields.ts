@@ -11,7 +11,6 @@ export function useDeviceFormFields() {
   const [description, setDescription] = useState("");
   const [type, setType] = useState<DataSource["type"]>("json-api");
   const [url, setUrl] = useState("");
-  const [healthStatusUrl, setHealthStatusUrl] = useState("");
   const [brokerUrl, setBrokerUrl] = useState("");
   const [topic, setTopic] = useState("");
   const [gpioChip, setGpioChip] = useState("gpiochip0");
@@ -41,7 +40,6 @@ export function useDeviceFormFields() {
     setDescription(nextDescription);
     setType(nextType);
     setUrl(config.url ?? "");
-    setHealthStatusUrl(config.healthStatusUrl ?? "");
     setBrokerUrl(config.brokerUrl ?? "");
     setTopic(config.topic ?? "");
     setGpioChip(config.chip ?? "gpiochip0");
@@ -75,7 +73,6 @@ export function useDeviceFormFields() {
     setDescription("");
     setType("json-api");
     setUrl("");
-    setHealthStatusUrl("");
     setBrokerUrl("");
     setTopic("");
     setGpioChip("gpiochip0");
@@ -106,8 +103,6 @@ export function useDeviceFormFields() {
       setType,
       url,
       setUrl,
-      healthStatusUrl,
-      setHealthStatusUrl,
       brokerUrl,
       setBrokerUrl,
       topic,
