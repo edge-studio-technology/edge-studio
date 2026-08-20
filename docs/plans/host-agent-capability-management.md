@@ -19,6 +19,8 @@ Rejected approaches for the first implementation:
 
 The first capability should be camera enable/disable, because it is the current user pain point and already has host helper logic in `install.sh`.
 
+V1 explicitly separates Edge Studio hardware support from host OS driver/package management. The host agent should detect missing OS prerequisites and report them clearly, but it should not install OS packages, edit boot config, or enable kernel/device-tree features automatically in the first version.
+
 ## Target Architecture
 
 ```txt
@@ -29,6 +31,12 @@ Browser UI
 ```
 
 The host agent is installed once by `install.sh`, even when optional capabilities start disabled. It exposes only fixed capability actions and reports status/progress back to the backend.
+
+Layer responsibilities:
+
+- `host-agent`: root-owned service that detects capability state, installs/enables/disables Edge Studio helper services, updates app runtime config, and restarts/reloads app services when needed.
+- Edge Studio app: Docker frontend/backend that shows hardware state, hides unavailable templates, and requests allowlisted actions through backend APIs.
+- Host OS: owns low-level drivers, packages, firmware, boot config, and kernel/device-tree enablement in V1.
 
 Suggested host-side layout:
 
@@ -68,6 +76,7 @@ Rules:
 - Accept only allowlisted capability names and actions.
 - Reject unknown request fields instead of silently accepting future behavior.
 - Never accept command strings, package names, file paths, or service names from the app.
+- Do not install OS packages, drivers, or tools automatically in V1.
 - Log actions and results, but never log tokens or secrets.
 
 Backend routes that call the host agent must require a logged-in admin. Use existing auth middleware and `requireRole("admin")` for mutations.
@@ -93,9 +102,12 @@ applying
 enabled
 failed
 needs_reboot
+missing_prerequisites
 ```
 
 The job endpoint should be included if camera setup can take long enough that a frontend request may time out. If implementation stays fast and synchronous at first, preserve the response shape so async jobs can be added without redesigning the frontend.
+
+If OS prerequisites are missing, return `missing_prerequisites` or `failed` with safe, specific diagnostics. The UI should explain what is missing and should not offer a normal enable action until the prerequisite is present.
 
 ## Installer Plan
 
@@ -138,6 +150,8 @@ Camera disable should perform fixed, idempotent steps:
 6. Return final status and any safe diagnostic details.
 
 Warnings such as missing `rpicam-still` or `libcamera-still` should be reported as capability diagnostics rather than hidden in install logs.
+
+Camera apply should not install Raspberry Pi camera packages in V1. If neither `rpicam-still` nor `libcamera-still` is available, the host agent should report missing host camera tools and the UI should guide the operator to fix the host OS first.
 
 ## Runtime Configuration Plan
 
@@ -224,6 +238,10 @@ Button: Disable / Reinstall
 
 Camera support: Failed
 Details disclosure + Retry
+
+Camera support: Missing host camera tools
+Button: disabled or replaced by guidance
+Details: install/enable the Raspberry Pi camera stack on the host, then refresh
 ```
 
 Frontend notes:
@@ -232,7 +250,8 @@ Frontend notes:
 2. Show user intent, not env flags.
 3. Use existing shared UI components and toast/error-detail patterns.
 4. Poll job/status while an apply or disable action is running.
-5. If a reboot is required, show a clear `needs_reboot` state.
+5. If a reboot is required for a future capability, show a clear `needs_reboot` state.
+6. If host OS prerequisites are missing, explain the missing prerequisite and do not hide it as a generic enable failure.
 
 Device creation should respect capability state. Hardware templates that require disabled or unavailable host support should not appear in the default `New input` or `New output` flows. Keep them in an internal inactive/disabled template list for now, but do not expose that list until there is a dedicated `Show inactive/disabled devices` UI.
 
@@ -247,6 +266,10 @@ Likely future capabilities:
 - `mqtt` for local broker profile/config toggling if host-level work is needed.
 
 Each capability should remain its own allowlisted action set. Do not add generic service-management endpoints as a shortcut.
+
+Automatic OS package/driver installation is deferred. If it is added later, it should be an explicit per-capability action with OS/model-specific checks, signed/updateable agent logic, reboot handling, and clear user consent. It should not be hidden inside the normal `Enable` action.
+
+Host-agent update delivery also needs a future design. New hardware support may require host-agent changes in addition to frontend/backend Docker image updates, and users should not have to rerun `install.sh` for every host-agent update.
 
 ## Documentation Plan
 

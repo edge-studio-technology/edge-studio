@@ -94,7 +94,7 @@ Status: Accepted risk, documented. See `.agents/rules/update-agent.md`.
 
 ## Host Agent Capability Management
 
-Risk: `install.sh` installs a root-owned `edge-studio-host-agent` service that lets the backend request narrow host hardware setup actions, starting with enabling or disabling Raspberry Pi Camera support after the app is already installed.
+Risk: `install.sh` installs a root-owned `edge-studio-host-agent` service that lets the backend request narrow host hardware support actions, starting with enabling or disabling Raspberry Pi Camera support after the app is already installed.
 
 Impact: If the host agent or its bearer token is compromised, an attacker could perform the specific host actions implemented by the agent, including changing camera-helper systemd state and restarting the backend container.
 
@@ -103,13 +103,16 @@ Current Controls:
 - The browser never talks to the host agent directly; it calls backend routes under `/api/host-capabilities`.
 - Backend host-capability mutations require an authenticated admin session.
 - The host agent requires an installer-generated bearer token that is written to `.env` and passed only to the backend container.
-- The host agent exposes fixed camera capability endpoints only; it has no generic shell, package install, file write, or service-management proxy.
+- The host agent exposes fixed camera capability endpoints only; it has no generic shell, package install, driver install, file write, or service-management proxy.
+- V1 host-agent actions manage Edge Studio helper/config state and report missing OS prerequisites; they do not install Raspberry Pi OS packages, drivers, firmware, or boot config automatically.
 - The installer adds the same Docker-subnet firewall pattern used by other host helpers where `iptables` is available.
 
 Plan:
 
 - Keep future capabilities allowlisted and capability-specific.
+- Keep OS package/driver installation out of the normal enable path unless a later explicit, per-capability design is approved.
 - Add asynchronous job history if hardware setup actions become long-running.
+- Design host-agent update delivery so new helper/capability logic can ship through the app update path without asking users to rerun `install.sh`.
 - Revisit binding/firewall behavior during real Pi verification.
 
 Status: Accepted risk for app-managed hardware enablement. See `docs/plans/host-agent-capability-management.md`.
