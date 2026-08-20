@@ -351,6 +351,8 @@ export function DataSourcesPage() {
 
       <DataSourcesList
         items={items}
+        capabilities={capabilities}
+        hostCapabilities={hostCapabilities}
         healthStatuses={healthStatuses}
         busy={busy}
         loading={capabilities === null}

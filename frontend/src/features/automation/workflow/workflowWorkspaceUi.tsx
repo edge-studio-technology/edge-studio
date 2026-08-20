@@ -48,15 +48,15 @@ export function StatusPill({
 export function WorkflowStatusPill({ workflow }: { workflow: AutomationWorkflow }) {
   const label = workflow.archived
     ? "Archived"
-    : workflow.lastError
+    : workflow.lastError || (workflow.validation && workflow.validation.errorCount > 0)
       ? "Error"
       : workflow.enabled
         ? "Enabled"
         : "Paused";
   const tone = workflow.archived
     ? "neutral"
-    : workflow.lastError
-      ? "warn"
+    : workflow.lastError || (workflow.validation && workflow.validation.errorCount > 0)
+      ? "error"
       : workflow.enabled
         ? "good"
         : "neutral";

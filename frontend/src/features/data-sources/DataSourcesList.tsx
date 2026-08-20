@@ -28,7 +28,7 @@ import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatLocalDateTime } from "../../lib/time";
-import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
+import type { DataSource, DataSourceCapabilities, DataSourceHealthStatus, HostCapability } from "./dataSourceTypes";
 import { hasDeviceSetupGuide } from "./deviceSetupGuides";
 import { HealthErrorPanel } from "./HealthErrorPanel";
 
@@ -46,6 +46,8 @@ const DIRECTION_FILTER_OPTIONS = [
 
 export function DataSourcesList({
   items,
+  capabilities,
+  hostCapabilities = [],
   healthStatuses,
   busy,
   loading = false,
@@ -58,6 +60,8 @@ export function DataSourcesList({
   onAddOutput,
 }: {
   items: DataSource[];
+  capabilities: DataSourceCapabilities | null;
+  hostCapabilities?: HostCapability[];
   healthStatuses: Record<string, DataSourceHealthStatus>;
   busy: boolean;
   loading?: boolean;
@@ -168,7 +172,7 @@ export function DataSourcesList({
               <TableHeaderCell className="w-28">Direction</TableHeaderCell>
               <TableHeaderCell className="w-56">Type</TableHeaderCell>
               <TableHeaderCell className="w-72">Endpoint</TableHeaderCell>
-              <TableHeaderCell className="w-40">Health</TableHeaderCell>
+              <TableHeaderCell className="w-40">Status</TableHeaderCell>
               <TableHeaderCell className="w-40">Last hash</TableHeaderCell>
               <TableHeaderCell className="w-36">Last preview</TableHeaderCell>
               <TableHeaderCell className="w-28">Actions</TableHeaderCell>
@@ -201,7 +205,12 @@ export function DataSourcesList({
                       </code>
                     </TableCell>
                     <TableCell>
-                      <HealthCell source={source} status={healthStatuses[source.id]} />
+                      <StatusCell
+                        source={source}
+                        capabilities={capabilities}
+                        hostCapabilities={hostCapabilities}
+                        status={healthStatuses[source.id]}
+                      />
                     </TableCell>
                     <TableCell>
                       {source.lastHash ? (
@@ -303,6 +312,8 @@ export function DataSourcesList({
       {detailsSource && (
         <DeviceDetailsModal
           source={detailsSource}
+          capabilities={capabilities}
+          hostCapabilities={hostCapabilities}
           status={healthStatuses[detailsSource.id]}
           onClose={() => setDetailsSource(null)}
         />
@@ -400,7 +411,33 @@ function supportsHealthCheck(source: DataSource) {
   );
 }
 
-function HealthCell({ source, status }: { source: DataSource; status?: DataSourceHealthStatus }) {
+function StatusCell({
+  source,
+  capabilities,
+  hostCapabilities,
+  status,
+}: {
+  source: DataSource;
+  capabilities: DataSourceCapabilities | null;
+  hostCapabilities: HostCapability[];
+  status?: DataSourceHealthStatus;
+}) {
+  const camera = hostCapabilities.find((capability) => capability.name === "camera");
+  const cameraEnabled = camera?.enabled ?? capabilities?.camera?.enabled;
+  const cameraAvailable = camera?.available ?? capabilities?.camera?.available;
+  if (source.type === "pi-camera" && !cameraEnabled)
+    return (
+      <Pill tone="neutral" indicator>
+        Disabled
+      </Pill>
+    );
+  if (source.type === "pi-camera" && !cameraAvailable)
+    return (
+      <Pill tone="warn" indicator>
+        Needs attention
+      </Pill>
+    );
+
   if (!supportsHealthCheck(source) || !status)
     return (
       <Pill tone="neutral" indicator>
@@ -437,10 +474,14 @@ function LastPreviewCell({ source }: { source: DataSource }) {
 
 function DeviceDetailsModal({
   source,
+  capabilities,
+  hostCapabilities,
   status,
   onClose,
 }: {
   source: DataSource;
+  capabilities: DataSourceCapabilities | null;
+  hostCapabilities: HostCapability[];
   status?: DataSourceHealthStatus;
   onClose: () => void;
 }) {
@@ -469,8 +510,13 @@ function DeviceDetailsModal({
           <Disclosure
             title={
               <span className="flex items-center gap-2">
-                Health
-                <HealthCell source={source} status={status} />
+                Status
+                <StatusCell
+                  source={source}
+                  capabilities={capabilities}
+                  hostCapabilities={hostCapabilities}
+                  status={status}
+                />
               </span>
             }
           >

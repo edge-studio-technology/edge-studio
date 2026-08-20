@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Hardware install flags are now documented as advanced shortcuts while the app UI is the normal enablement path.
 - Host-agent V1 scope now explicitly reports missing OS prerequisites without installing host drivers or packages automatically.
 - Camera enablement from Hardware support is blocked when host camera tools are missing.
+- Configured camera devices now show disabled or attention-needed status when camera hardware support is unavailable.
+- Workflow list status now shows Error when workflow validation has errors, including disabled hardware dependencies.
 
 ### Security
 

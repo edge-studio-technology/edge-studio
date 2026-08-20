@@ -11,6 +11,11 @@ export type AutomationWorkflow = {
   lastProofId: string | null;
   lastError: string | null;
   lastErrorDetails?: unknown;
+  validation?: {
+    ok: boolean;
+    errorCount: number;
+    warningCount: number;
+  };
   blocks: AutomationBlock[];
 };
 
