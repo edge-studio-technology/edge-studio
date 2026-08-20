@@ -54,11 +54,29 @@ export function DeleteProgressModal({
   description: ReactNode;
 }) {
   return (
+    <BlockingProgressModal
+      title={title}
+      progressTitle="Deleting in progress"
+      description={description}
+    />
+  );
+}
+
+export function BlockingProgressModal({
+  title,
+  progressTitle,
+  description,
+}: {
+  title: string;
+  progressTitle: ReactNode;
+  description: ReactNode;
+}) {
+  return (
     <Modal title={title} closeDisabled onClose={() => undefined} bodyClassName="min-h-0 flex-1">
       <div className="gap-detail-near grid min-h-56 place-items-center text-center">
         <SpinnerAlt size="lg" />
         <div className="gap-detail-tight grid">
-          <p className="type-title text-text-primary m-0">Deleting in progress</p>
+          <p className="type-title text-text-primary m-0">{progressTitle}</p>
           <p className="type-body text-text-secondary m-0 mt-4">{description}</p>
         </div>
       </div>

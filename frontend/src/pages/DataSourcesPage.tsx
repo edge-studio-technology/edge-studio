@@ -28,7 +28,7 @@ import { ClassicAddDeviceFlow } from "../features/data-sources/add-device-classi
 import { DataSourceForm, isDataSourceFormValid } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
 import { LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
-import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
+import { BlockingProgressModal, DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import type {
   DataSource,
   DataSourceCapabilities,
@@ -44,6 +44,14 @@ import { useDeviceFormFields } from "../features/data-sources/useDeviceFormField
 
 /** Flip to "classic" to compare against the previous add-device flow before it is removed. */
 const ADD_DEVICE_FLOW: "alt" | "classic" = "alt";
+const HARDWARE_REFRESH_TIMEOUT_MS = 30000;
+const HARDWARE_REFRESH_INTERVAL_MS = 1000;
+
+type HardwareOperation = {
+  modalTitle: string;
+  progressTitle: string;
+  description: string;
+};
 
 export function DataSourcesPage() {
   const { showToast } = useToast();
@@ -57,6 +65,7 @@ export function DataSourcesPage() {
   const editForm = useDeviceFormFields();
   const [busy, setBusy] = useState(false);
   const [deletingSource, setDeletingSource] = useState<DataSource | null>(null);
+  const [hardwareOperation, setHardwareOperation] = useState<HardwareOperation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DataSource | null>(null);
   const [setupGuideSource, setSetupGuideSource] = useState<DataSource | null>(null);
   const [runningGuideActionKey, setRunningGuideActionKey] = useState<string | null>(null);
@@ -79,6 +88,7 @@ export function DataSourcesPage() {
     setItems(response.items);
     setCapabilities(capabilityResponse);
     setHostCapabilities(hostCapabilityResponse.items);
+    return { items: response.items, capabilities: capabilityResponse, hostCapabilities: hostCapabilityResponse.items };
   }
 
   function handleDeviceCreated(source: DataSource) {
@@ -171,65 +181,137 @@ export function DataSourcesPage() {
   }
 
   async function enableCameraHardware() {
-    setBusy(true);
-    try {
-      const response = await enableCameraSupport();
-      if (response.warning) {
-        showToast({ tone: "warning", title: "Camera support enabled with warning", message: response.warning });
-      } else {
-        showToast({ tone: "success", title: "Camera support enabled" });
-      }
-      window.setTimeout(() => void refresh().catch(() => undefined), 2500);
-    } catch (err) {
-      showToast({ tone: "error", title: "Hardware action failed", message: err instanceof Error ? err.message : "Unknown error" });
-      await refresh().catch(() => undefined);
-    } finally {
-      setBusy(false);
+    const result = await runHardwareAction(
+      () => enableCameraSupport(),
+      {
+        modalTitle: "Updating camera support",
+        progressTitle: "Applying hardware changes",
+        description: "Edge Studio is enabling the camera helper and restarting services. This can take a few seconds.",
+      },
+      { name: "camera", enabled: true },
+    );
+    if (!result) return;
+    if (result.response?.warning) {
+      showToast({ tone: "warning", title: "Camera support enabled with warning", message: result.response.warning });
+    } else {
+      showToast({ tone: "success", title: "Camera support enabled" });
     }
   }
 
   async function disableCameraHardware() {
-    setBusy(true);
-    try {
-      await disableCameraSupport();
-      showToast({ tone: "success", title: "Camera support disabled" });
-      window.setTimeout(() => void refresh().catch(() => undefined), 2500);
-    } catch (err) {
-      showToast({ tone: "error", title: "Hardware action failed", message: err instanceof Error ? err.message : "Unknown error" });
-      await refresh().catch(() => undefined);
-    } finally {
-      setBusy(false);
-    }
+    const result = await runHardwareAction(
+      () => disableCameraSupport(),
+      {
+        modalTitle: "Updating camera support",
+        progressTitle: "Applying hardware changes",
+        description: "Edge Studio is disabling the camera helper and restarting services. This can take a few seconds.",
+      },
+      { name: "camera", enabled: false },
+    );
+    if (!result) return;
+    showToast({ tone: "success", title: "Camera support disabled" });
   }
 
   async function enableGpioHardware() {
-    await runHardwareAction(() => enableGpioSupport(), "GPIO support enabled");
+    const result = await runHardwareAction(
+      () => enableGpioSupport(),
+      {
+        modalTitle: "Updating GPIO support",
+        progressTitle: "Applying hardware changes",
+        description: "Edge Studio is updating GPIO device access and restarting services. This can take a few seconds.",
+      },
+      { name: "gpio", enabled: true },
+    );
+    if (!result) return;
+    showToast({ tone: "success", title: "GPIO support enabled" });
   }
 
   async function disableGpioHardware() {
-    await runHardwareAction(() => disableGpioSupport(), "GPIO support disabled");
+    const result = await runHardwareAction(
+      () => disableGpioSupport(),
+      {
+        modalTitle: "Updating GPIO support",
+        progressTitle: "Applying hardware changes",
+        description: "Edge Studio is removing GPIO device access and restarting services. This can take a few seconds.",
+      },
+      { name: "gpio", enabled: false },
+    );
+    if (!result) return;
+    showToast({ tone: "success", title: "GPIO support disabled" });
   }
 
   async function enableMqttHardware() {
-    await runHardwareAction(() => enableMqttBroker(), "Local MQTT broker enabled");
+    const result = await runHardwareAction(
+      () => enableMqttBroker(),
+      {
+        modalTitle: "Updating local MQTT broker",
+        progressTitle: "Applying hardware changes",
+        description: "Edge Studio is enabling the local MQTT broker and restarting services. This can take a few seconds.",
+      },
+      { name: "mqtt", enabled: true },
+    );
+    if (!result) return;
+    showToast({ tone: "success", title: "Local MQTT broker enabled" });
   }
 
   async function disableMqttHardware() {
-    await runHardwareAction(() => disableMqttBroker(), "Local MQTT broker disabled");
+    const result = await runHardwareAction(
+      () => disableMqttBroker(),
+      {
+        modalTitle: "Updating local MQTT broker",
+        progressTitle: "Applying hardware changes",
+        description: "Edge Studio is disabling the local MQTT broker and restarting services. This can take a few seconds.",
+      },
+      { name: "mqtt", enabled: false },
+    );
+    if (!result) return;
+    showToast({ tone: "success", title: "Local MQTT broker disabled" });
   }
 
-  async function runHardwareAction(action: () => Promise<unknown>, successTitle: string) {
+  async function runHardwareAction<T>(
+    action: () => Promise<T>,
+    operation: HardwareOperation,
+    expected: Pick<HostCapability, "name" | "enabled">,
+  ) {
     setBusy(true);
+    setHardwareOperation(operation);
     try {
-      await action();
-      showToast({ tone: "success", title: successTitle });
-      window.setTimeout(() => void refresh().catch(() => undefined), 2500);
+      const response = await action();
+      await waitForHardwareState(expected);
+      return { response };
     } catch (err) {
-      showToast({ tone: "error", title: "Hardware action failed", message: err instanceof Error ? err.message : "Unknown error" });
+      const transient = isTransientRestartError(err);
+      if (transient) {
+        const recovered = await waitForHardwareState(expected).then(() => true).catch(() => false);
+        if (recovered) return {};
+      }
+      showToast({ tone: "error", title: "Hardware action failed", message: hardwareActionErrorMessage(err) });
       await refresh().catch(() => undefined);
+      return null;
     } finally {
+      setHardwareOperation(null);
       setBusy(false);
     }
+  }
+
+  async function waitForHardwareState(expected: Pick<HostCapability, "name" | "enabled">) {
+    const deadline = Date.now() + HARDWARE_REFRESH_TIMEOUT_MS;
+    let lastError: unknown = null;
+    while (Date.now() < deadline) {
+      await delay(HARDWARE_REFRESH_INTERVAL_MS);
+      try {
+        const response = await refresh();
+        const capability = response.hostCapabilities.find((item) => item.name === expected.name);
+        if (capability?.enabled === expected.enabled) return;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw new Error(
+      lastError
+        ? "Edge Studio is still restarting. Wait a few seconds, then refresh Hardware support."
+        : "Hardware support did not report the expected state before the timeout.",
+    );
   }
 
   const setupGuideBme680SupportWarning = setupGuideSource
@@ -319,6 +401,14 @@ export function DataSourcesPage() {
         />
       )}
 
+      {hardwareOperation && (
+        <BlockingProgressModal
+          title={hardwareOperation.modalTitle}
+          progressTitle={hardwareOperation.progressTitle}
+          description={hardwareOperation.description}
+        />
+      )}
+
       {deleteTarget && (
         <DeleteConfirmModal
           title="Delete device"
@@ -399,4 +489,28 @@ function bme680SupportWarning(source: DataSource, capabilities: DataSourceCapabi
   const supportedSensors = capabilities.sensors.supportedSensors;
   if (!supportedSensors || supportedSensors.includes("bme680")) return null;
   return "The sensor helper is not reporting BME680 support yet. Re-run the installer with ENABLE_SENSORS=true or install the PyPI bme680 module in /opt/edge-studio/.venv-sensor-helper, then restart the sensor helper.";
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function isTransientRestartError(error: unknown) {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return (
+    error.name === "TypeError" ||
+    message.includes("failed to fetch") ||
+    message.includes("networkerror") ||
+    message.includes("load failed")
+  );
+}
+
+function hardwareActionErrorMessage(error: unknown) {
+  if (isTransientRestartError(error)) {
+    return "Edge Studio is restarting services. Wait a few seconds, then try again.";
+  }
+  return error instanceof Error && error.message
+    ? error.message
+    : "Edge Studio could not apply the hardware change. Try again after services finish restarting.";
 }
