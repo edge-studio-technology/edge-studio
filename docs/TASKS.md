@@ -20,7 +20,7 @@
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.
 - [ ] Backend unit test coverage, one feature folder at a time — see `docs/plans/backend-unit-tests.md`. `auth`/`minima`/`tokens`/`automation`/`wallet`/`data-reads`/`integritas`/`integritas-auth`/`settings`/`status`/`address-book`/`feedback`/`files`/`shared`/`health` are Done; `data-sources` is Partial (service/repository covered, hardware-mocked ingestion services remain, lower priority); `debug` Skipped (dev-only single-handler ping, not worth extracting a service function for).
-- [ ] Frontend unit test coverage, one area at a time — see `docs/plans/frontend-unit-tests.md`. `lib` (9 files), `components/ui` (26 files), and `components/patterns` (23 files) are Done; flat legacy `components/`, `app/`, and every `features/*` folder are Not Started.
+- [ ] Frontend unit test coverage, one area at a time — see `docs/plans/frontend-unit-tests.md`. `lib` (9 files), `components/ui` (26 files), `components/patterns` (23 files), and flat legacy `components/` (20 files, 10 skipped as re-exports) are Done; `app/` and every `features/*` folder are Not Started.
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
