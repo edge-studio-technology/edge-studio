@@ -84,7 +84,7 @@ export type DataSourceCapabilities = {
 };
 
 export type HostCapability = {
-  name: "camera";
+  name: "camera" | "gpio" | "sensors" | "mqtt";
   enabled: boolean;
   installed: boolean;
   available: boolean;
@@ -92,4 +92,7 @@ export type HostCapability = {
   reason: string | null;
   captureDir?: string;
   helperPort?: number;
+  devicePath?: string;
+  publicPort?: number;
+  internalUrl?: string;
 };

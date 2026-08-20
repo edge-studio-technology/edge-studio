@@ -10,10 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Added a root-owned host agent for app-managed, allowlisted host hardware capability actions.
 - Added admin-only camera support enable and disable actions from the Devices page Hardware support area.
+- Added admin-only GPIO and local MQTT broker enable/disable actions from Hardware support, plus I2C sensor status reporting.
 
 ### Changed
 
 - Disabled host-backed hardware templates are hidden from the default New input and New output flows.
+- GPIO and I2C sensor templates now follow host-agent capability state when available.
 - Hardware install flags are now documented as advanced shortcuts while the app UI is the normal enablement path.
 - Host-agent V1 scope now explicitly reports missing OS prerequisites without installing host drivers or packages automatically.
 - Camera enablement from Hardware support is blocked when host camera tools are missing.

@@ -208,10 +208,12 @@ function isTemplateActive(
   hostCapabilities: HostCapability[],
 ) {
   const camera = hostCapabilities.find((capability) => capability.name === "camera");
+  const gpio = hostCapabilities.find((capability) => capability.name === "gpio");
+  const sensors = hostCapabilities.find((capability) => capability.name === "sensors");
   if (template.type === "pi-camera") return Boolean(camera?.enabled ?? capabilities?.camera?.enabled);
-  if (template.type === "bme-sensor") return Boolean(capabilities?.sensors?.enabled);
+  if (template.type === "bme-sensor") return Boolean(sensors?.enabled ?? capabilities?.sensors?.enabled);
   if (template.type === "gpio-input" || template.type === "gpio-output") {
-    return Boolean(capabilities?.gpioInput.available);
+    return Boolean(gpio?.enabled ?? capabilities?.gpioInput.available);
   }
   return true;
 }
@@ -222,21 +224,33 @@ export function LocalServicesCard({
   busy = false,
   onEnableCamera,
   onDisableCamera,
+  onEnableGpio,
+  onDisableGpio,
+  onEnableMqtt,
+  onDisableMqtt,
 }: {
   capabilities: DataSourceCapabilities | null;
   hostCapabilities?: HostCapability[];
   busy?: boolean;
   onEnableCamera?: () => Promise<void>;
   onDisableCamera?: () => Promise<void>;
+  onEnableGpio?: () => Promise<void>;
+  onDisableGpio?: () => Promise<void>;
+  onEnableMqtt?: () => Promise<void>;
+  onDisableMqtt?: () => Promise<void>;
 }) {
   const [managerOpen, setManagerOpen] = useState(false);
   const broker = capabilities?.mqttBroker;
   const camera = hostCapabilities.find((capability) => capability.name === "camera");
+  const gpio = hostCapabilities.find((capability) => capability.name === "gpio");
+  const sensors = hostCapabilities.find((capability) => capability.name === "sensors");
+  const mqtt = hostCapabilities.find((capability) => capability.name === "mqtt");
   const browserHost = typeof window === "undefined" ? "<pi-host-or-ip>" : window.location.hostname;
   const publicHost = broker?.publicHost || browserHost || "<pi-host-or-ip>";
-  const publicPort = broker?.publicPort ?? 1883;
+  const publicPort = mqtt?.publicPort ?? broker?.publicPort ?? 1883;
   const lanUrl = `mqtt://${publicHost}:${publicPort}`;
-  const internalUrl = broker?.internalUrl ?? "mqtt://mqtt:1883";
+  const internalUrl = mqtt?.internalUrl ?? broker?.internalUrl ?? "mqtt://mqtt:1883";
+  const anyEnabled = Boolean(camera?.enabled || gpio?.enabled || sensors?.enabled || mqtt?.enabled || broker?.enabled);
 
   return (
     <Card className="gap-detail-near grid w-full">
@@ -244,8 +258,8 @@ export function LocalServicesCard({
         <div className="gap-detail-close flex flex-wrap items-center justify-between">
           <div className="gap-detail-close flex flex-wrap items-center">
             <h2 className="type-title text-text-primary m-0">Hardware support</h2>
-            <Pill tone={camera?.enabled || broker?.enabled ? "good" : "neutral"} indicator>
-              {camera?.enabled || broker?.enabled ? "Some enabled" : "Disabled"}
+            <Pill tone={anyEnabled ? "good" : "neutral"} indicator>
+              {anyEnabled ? "Some enabled" : "Disabled"}
             </Pill>
           </div>
           <Button
@@ -263,24 +277,9 @@ export function LocalServicesCard({
       </div>
       <div className="gap-detail-close grid md:grid-cols-2">
         <HardwareStatus label="Camera" capability={camera} fallback="Camera support is disabled." />
-        <HardwareStatus
-          label="I2C sensors"
-          enabled={capabilities?.sensors?.enabled}
-          available={capabilities?.sensors?.available}
-          reason={capabilities?.sensors?.reason ?? "Sensor support is disabled."}
-        />
-        <HardwareStatus
-          label="GPIO"
-          enabled={capabilities?.gpioInput.available}
-          available={capabilities?.gpioInput.available}
-          reason={capabilities?.gpioInput.reason ?? null}
-        />
-        <HardwareStatus
-          label="Local MQTT broker"
-          enabled={broker?.enabled}
-          available={broker?.enabled}
-          reason={broker?.enabled ? null : "Local broker is disabled."}
-        />
+        <HardwareStatus label="I2C sensors" capability={sensors} fallback="Sensor support is disabled." />
+        <HardwareStatus label="GPIO" capability={gpio} fallback="GPIO support is disabled." />
+        <HardwareStatus label="Local MQTT broker" capability={mqtt} fallback="Local broker is disabled." />
       </div>
       <div className="gap-detail-close grid md:grid-cols-2">
         <CopyField
@@ -313,10 +312,32 @@ export function LocalServicesCard({
               onEnable={onEnableCamera}
               onDisable={onDisableCamera}
             />
+            <HardwareActionRow
+              title="GPIO"
+              description="Grant the backend container access to /dev/gpiochip0 for GPIO input and output workflows."
+              capability={gpio}
+              busy={busy}
+              onEnable={onEnableGpio}
+              onDisable={onDisableGpio}
+            />
+            <HardwareActionRow
+              title="Local MQTT broker"
+              description="Enable or stop the app-managed Mosquitto broker for local MQTT devices."
+              capability={mqtt}
+              busy={busy}
+              onEnable={onEnableMqtt}
+              onDisable={onDisableMqtt}
+            />
+            <HardwareActionRow
+              title="I2C sensors"
+              description="Status for the sensor helper and /dev/i2c-1. Enablement still uses the installer because it provisions a host Python helper environment."
+              capability={sensors}
+              busy={busy}
+            />
             <ErrorAlert status="warning" className="max-w-none">
-              Optional hardware starts disabled by default. For now, only camera support can be
-              changed from the app; sensor, GPIO, and local broker toggles will use this same
-              host-agent path later.
+              Optional hardware starts disabled by default. Host-agent actions update Edge Studio
+              service configuration only; missing host OS drivers or interfaces must be installed
+              or enabled on the Pi first.
             </ErrorAlert>
           </div>
         </Modal>

@@ -3,7 +3,7 @@ import { env } from "../../config/env.js";
 export type HostCapabilityState = "disabled" | "applying" | "enabled" | "failed" | "needs_reboot" | "missing_prerequisites";
 
 export type HostCapability = {
-  name: "camera";
+  name: "camera" | "gpio" | "sensors" | "mqtt";
   enabled: boolean;
   installed: boolean;
   available: boolean;
@@ -11,6 +11,9 @@ export type HostCapability = {
   reason: string | null;
   captureDir?: string;
   helperPort?: number;
+  devicePath?: string;
+  publicPort?: number;
+  internalUrl?: string;
 };
 
 type HostAgentListResponse = { items: HostCapability[] };
@@ -35,6 +38,37 @@ export async function disableHostCameraCapability() {
   return hostAgentRequest<HostAgentActionResponse>("/capabilities/camera/disable", { method: "POST" });
 }
 
+export async function getHostGpioCapability() {
+  if (!env.hostAgentUrl || !env.hostAgentToken) return { item: fallbackCapability("gpio", "Host agent is not configured") };
+  return hostAgentRequest<HostAgentItemResponse>("/capabilities/gpio");
+}
+
+export async function enableHostGpioCapability() {
+  return hostAgentRequest<HostAgentActionResponse>("/capabilities/gpio/apply", { method: "POST" });
+}
+
+export async function disableHostGpioCapability() {
+  return hostAgentRequest<HostAgentActionResponse>("/capabilities/gpio/disable", { method: "POST" });
+}
+
+export async function getHostSensorCapability() {
+  if (!env.hostAgentUrl || !env.hostAgentToken) return { item: fallbackCapability("sensors", "Host agent is not configured") };
+  return hostAgentRequest<HostAgentItemResponse>("/capabilities/sensors");
+}
+
+export async function getHostMqttCapability() {
+  if (!env.hostAgentUrl || !env.hostAgentToken) return { item: fallbackCapability("mqtt", "Host agent is not configured") };
+  return hostAgentRequest<HostAgentItemResponse>("/capabilities/mqtt");
+}
+
+export async function enableHostMqttCapability() {
+  return hostAgentRequest<HostAgentActionResponse>("/capabilities/mqtt/apply", { method: "POST" });
+}
+
+export async function disableHostMqttCapability() {
+  return hostAgentRequest<HostAgentActionResponse>("/capabilities/mqtt/disable", { method: "POST" });
+}
+
 async function hostAgentRequest<T>(pathname: string, init: RequestInit = {}): Promise<T> {
   if (!env.hostAgentUrl || !env.hostAgentToken) throw new Error("Host agent is not configured");
   const controller = new AbortController();
@@ -57,9 +91,13 @@ async function hostAgentRequest<T>(pathname: string, init: RequestInit = {}): Pr
 }
 
 function fallbackCapabilities(reason: string): HostAgentListResponse {
-  return { items: [fallbackCameraCapability(reason)] };
+  return { items: [fallbackCameraCapability(reason), fallbackCapability("gpio", reason), fallbackCapability("sensors", reason), fallbackCapability("mqtt", reason)] };
 }
 
 function fallbackCameraCapability(reason: string): HostCapability {
   return { name: "camera", enabled: false, installed: false, available: false, state: "disabled", reason };
+}
+
+function fallbackCapability(name: HostCapability["name"], reason: string): HostCapability {
+  return { name, enabled: false, installed: false, available: false, state: "disabled", reason };
 }

@@ -23,6 +23,22 @@ export async function disableCameraSupport() {
   return postJson<{ capability: HostCapability }>("/api/host-capabilities/camera/disable");
 }
 
+export async function enableGpioSupport() {
+  return postJson<{ capability: HostCapability }>("/api/host-capabilities/gpio/enable");
+}
+
+export async function disableGpioSupport() {
+  return postJson<{ capability: HostCapability }>("/api/host-capabilities/gpio/disable");
+}
+
+export async function enableMqttBroker() {
+  return postJson<{ capability: HostCapability }>("/api/host-capabilities/mqtt/enable");
+}
+
+export async function disableMqttBroker() {
+  return postJson<{ capability: HostCapability }>("/api/host-capabilities/mqtt/disable");
+}
+
 export async function createDataSource(input: {
   name: string;
   type: DataSource["type"];

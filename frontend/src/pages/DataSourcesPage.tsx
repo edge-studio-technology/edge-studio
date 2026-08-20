@@ -10,7 +10,11 @@ import { createAutomationWorkflow } from "../features/automation/automationApi";
 import {
   deleteDataSource,
   disableCameraSupport,
+  disableGpioSupport,
+  disableMqttBroker,
   enableCameraSupport,
+  enableGpioSupport,
+  enableMqttBroker,
   getDataSourceCapabilities,
   getHostCapabilities,
   listDataSources,
@@ -198,6 +202,36 @@ export function DataSourcesPage() {
     }
   }
 
+  async function enableGpioHardware() {
+    await runHardwareAction(() => enableGpioSupport(), "GPIO support enabled");
+  }
+
+  async function disableGpioHardware() {
+    await runHardwareAction(() => disableGpioSupport(), "GPIO support disabled");
+  }
+
+  async function enableMqttHardware() {
+    await runHardwareAction(() => enableMqttBroker(), "Local MQTT broker enabled");
+  }
+
+  async function disableMqttHardware() {
+    await runHardwareAction(() => disableMqttBroker(), "Local MQTT broker disabled");
+  }
+
+  async function runHardwareAction(action: () => Promise<unknown>, successTitle: string) {
+    setBusy(true);
+    try {
+      await action();
+      showToast({ tone: "success", title: successTitle });
+      window.setTimeout(() => void refresh().catch(() => undefined), 2500);
+    } catch (err) {
+      showToast({ tone: "error", title: "Hardware action failed", message: err instanceof Error ? err.message : "Unknown error" });
+      await refresh().catch(() => undefined);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const setupGuideBme680SupportWarning = setupGuideSource
     ? bme680SupportWarning(setupGuideSource, capabilities)
     : null;
@@ -231,6 +265,10 @@ export function DataSourcesPage() {
         busy={busy}
         onEnableCamera={enableCameraHardware}
         onDisableCamera={disableCameraHardware}
+        onEnableGpio={enableGpioHardware}
+        onDisableGpio={disableGpioHardware}
+        onEnableMqtt={enableMqttHardware}
+        onDisableMqtt={disableMqttHardware}
       />
 
       {ADD_DEVICE_FLOW === "alt" ? (

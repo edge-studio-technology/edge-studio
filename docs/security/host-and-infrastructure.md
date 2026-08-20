@@ -94,16 +94,17 @@ Status: Accepted risk, documented. See `.agents/rules/update-agent.md`.
 
 ## Host Agent Capability Management
 
-Risk: `install.sh` installs a root-owned `edge-studio-host-agent` service that lets the backend request narrow host hardware support actions, starting with enabling or disabling Raspberry Pi Camera support after the app is already installed.
+Risk: `install.sh` installs a root-owned `edge-studio-host-agent` service that lets the backend request narrow host hardware support actions, including enabling or disabling Raspberry Pi Camera support, GPIO container access, and the local MQTT broker after the app is already installed.
 
-Impact: If the host agent or its bearer token is compromised, an attacker could perform the specific host actions implemented by the agent, including changing camera-helper systemd state and restarting the backend container.
+Impact: If the host agent or its bearer token is compromised, an attacker could perform the specific host actions implemented by the agent, including changing camera-helper systemd state, changing GPIO Compose device access, toggling the MQTT Compose profile, and restarting backend/MQTT containers.
 
 Current Controls:
 
 - The browser never talks to the host agent directly; it calls backend routes under `/api/host-capabilities`.
 - Backend host-capability mutations require an authenticated admin session.
 - The host agent requires an installer-generated bearer token that is written to `.env` and passed only to the backend container.
-- The host agent exposes fixed camera capability endpoints only; it has no generic shell, package install, driver install, file write, or service-management proxy.
+- The host agent exposes fixed capability endpoints only; it has no generic shell, package install, driver install, file write, or service-management proxy.
+- I2C sensor support is status-only in the host agent for now; installing the Python sensor helper environment still uses the installer path.
 - V1 host-agent actions manage Edge Studio helper/config state and report missing OS prerequisites; they do not install Raspberry Pi OS packages, drivers, firmware, or boot config automatically.
 - The installer adds the same Docker-subnet firewall pattern used by other host helpers where `iptables` is available.
 

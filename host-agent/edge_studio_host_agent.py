@@ -15,6 +15,9 @@ HOST = os.environ.get("HOST_AGENT_HOST", "0.0.0.0")
 PORT = int(os.environ.get("HOST_AGENT_PORT", "38182"))
 TOKEN = os.environ.get("HOST_AGENT_TOKEN", "")
 CAMERA_SERVICE_FILE = Path("/etc/systemd/system/edge-studio-camera-helper.service")
+SENSOR_SERVICE_FILE = Path("/etc/systemd/system/edge-studio-sensor-helper.service")
+COMPOSE_OVERRIDE_FILE = APP_DIR / "docker-compose.override.yml"
+GPIO_OVERRIDE_MARKER = "# Managed by Edge Studio host-agent for GPIO support."
 
 
 def read_env():
@@ -46,6 +49,15 @@ def write_env(updates):
             lines.append(f"{key}={value}")
     ENV_FILE.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     os.chmod(ENV_FILE, 0o600)
+
+
+def update_compose_profiles(config, profile, enabled):
+    profiles = [item for item in config.get("COMPOSE_PROFILES", "").split(",") if item]
+    if enabled and profile not in profiles:
+        profiles.append(profile)
+    if not enabled:
+        profiles = [item for item in profiles if item != profile]
+    return ",".join(profiles)
 
 
 def is_truthy(value):
@@ -87,6 +99,14 @@ def restart_backend(config):
     if not shutil.which("docker"):
         return {"ok": False, "message": "docker was not found on the host"}
     command = " ".join(compose_args(config) + ["up", "-d", "--no-deps", "backend"])
+    subprocess.Popen(["/bin/sh", "-c", f"sleep 1; {command}"], cwd=str(APP_DIR))
+    return {"ok": True, "scheduled": True}
+
+
+def schedule_compose(config, args):
+    if not shutil.which("docker"):
+        return {"ok": False, "message": "docker was not found on the host"}
+    command = " ".join(compose_args(config) + args)
     subprocess.Popen(["/bin/sh", "-c", f"sleep 1; {command}"], cwd=str(APP_DIR))
     return {"ok": True, "scheduled": True}
 
@@ -141,6 +161,162 @@ def camera_status():
         "captureDir": config.get("CAMERA_CAPTURE_DIR", "/data/captures"),
         "helperPort": int(config.get("CAMERA_HELPER_PORT", "38180")),
     }
+
+
+def detect_gpio_gid():
+    if Path("/dev/gpiochip0").exists():
+        return str(Path("/dev/gpiochip0").stat().st_gid)
+    completed = run(["getent", "group", "gpio"], check=False)
+    if completed.returncode == 0 and completed.stdout.strip():
+        parts = completed.stdout.strip().split(":")
+        if len(parts) > 2:
+            return parts[2]
+    return "0"
+
+
+def write_gpio_override(config):
+    if not is_truthy(config.get("ENABLE_GPIO")):
+        if is_managed_gpio_override():
+            COMPOSE_OVERRIDE_FILE.unlink()
+        return
+
+    docker_gid = config.get("DOCKER_GID", "0")
+    gpio_gid = config.get("GPIO_GID", "0")
+    lines = [GPIO_OVERRIDE_MARKER, "services:", "  backend:", "    devices:", "      - /dev/gpiochip0:/dev/gpiochip0"]
+    if gpio_gid != docker_gid:
+        lines.extend(["    group_add:", "      - \"${GPIO_GID:-0}\""])
+    COMPOSE_OVERRIDE_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def is_managed_gpio_override():
+    if not COMPOSE_OVERRIDE_FILE.exists():
+        return False
+    content = COMPOSE_OVERRIDE_FILE.read_text(encoding="utf-8")
+    if content.startswith(GPIO_OVERRIDE_MARKER):
+        return True
+    installer_without_group = "services:\n  backend:\n    devices:\n      - /dev/gpiochip0:/dev/gpiochip0\n"
+    installer_with_group = installer_without_group + "    group_add:\n      - \"${GPIO_GID:-0}\"\n"
+    return content in {installer_without_group, installer_with_group}
+
+
+def gpio_status():
+    config = read_env()
+    enabled = is_truthy(config.get("ENABLE_GPIO"))
+    device_exists = Path("/dev/gpiochip0").exists()
+    override_exists = COMPOSE_OVERRIDE_FILE.exists()
+    available = enabled and device_exists and override_exists
+    state = "enabled" if available else "disabled" if not enabled else "missing_prerequisites" if not device_exists else "failed"
+    reason = None
+    if not device_exists:
+        reason = "/dev/gpiochip0 was not found on the host. GPIO support requires Raspberry Pi GPIO support to be present."
+    elif not enabled:
+        reason = "GPIO support is disabled."
+    elif not override_exists:
+        reason = "GPIO Compose device access is not configured."
+    return {
+        "name": "gpio",
+        "enabled": enabled,
+        "installed": override_exists,
+        "available": available,
+        "state": state,
+        "reason": reason,
+        "devicePath": "/dev/gpiochip0",
+    }
+
+
+def apply_gpio():
+    status = gpio_status()
+    if status["state"] == "missing_prerequisites":
+        raise ValueError(status["reason"])
+    config = read_env()
+    gpio_gid = config.get("GPIO_GID") or detect_gpio_gid()
+    write_env({"ENABLE_GPIO": "true", "GPIO_GID": gpio_gid})
+    updated = read_env()
+    write_gpio_override(updated)
+    restart = restart_backend(updated)
+    return {"capability": gpio_status(), "restart": restart}
+
+
+def disable_gpio():
+    write_env({"ENABLE_GPIO": "false"})
+    config = read_env()
+    write_gpio_override(config)
+    restart = restart_backend(config)
+    return {"capability": gpio_status(), "restart": restart}
+
+
+def sensor_status():
+    config = read_env()
+    enabled = is_truthy(config.get("ENABLE_SENSORS"))
+    service_exists = SENSOR_SERVICE_FILE.exists()
+    service_active = run(["systemctl", "is-active", "edge-studio-sensor-helper.service"], check=False).stdout.strip() == "active" if shutil.which("systemctl") else False
+    i2c_exists = Path("/dev/i2c-1").exists()
+    available = enabled and service_exists and service_active and i2c_exists
+    state = "enabled" if available else "disabled" if not enabled else "missing_prerequisites" if not i2c_exists else "failed"
+    reason = None
+    if not i2c_exists:
+        reason = "/dev/i2c-1 was not found on the host. Enable I2C on the Raspberry Pi host, then refresh Hardware support."
+    elif not enabled:
+        reason = "I2C sensor support is disabled."
+    elif not service_exists:
+        reason = "Sensor helper service is not installed."
+    elif not service_active:
+        reason = "Sensor helper service is not active."
+    return {
+        "name": "sensors",
+        "enabled": enabled,
+        "installed": service_exists,
+        "available": available,
+        "state": state,
+        "reason": reason,
+        "devicePath": "/dev/i2c-1",
+    }
+
+
+def mqtt_status():
+    config = read_env()
+    enabled = is_truthy(config.get("ENABLE_MQTT_BROKER"))
+    profiles = [item for item in config.get("COMPOSE_PROFILES", "").split(",") if item]
+    profile_enabled = "mqtt" in profiles
+    available = enabled and profile_enabled
+    reason = None
+    if not enabled:
+        reason = "Local MQTT broker is disabled."
+    elif not profile_enabled:
+        reason = "Docker Compose mqtt profile is not enabled."
+    return {
+        "name": "mqtt",
+        "enabled": enabled,
+        "installed": profile_enabled,
+        "available": available,
+        "state": "enabled" if available else "disabled" if not enabled else "failed",
+        "reason": reason,
+        "publicPort": int(config.get("MQTT_PUBLIC_PORT", "1883")),
+        "internalUrl": config.get("MQTT_INTERNAL_URL", "mqtt://mqtt:1883"),
+    }
+
+
+def apply_mqtt():
+    config = read_env()
+    profiles = update_compose_profiles(config, "mqtt", True)
+    write_env({"ENABLE_MQTT_BROKER": "true", "COMPOSE_PROFILES": profiles, "MQTT_INTERNAL_URL": "mqtt://mqtt:1883"})
+    updated = read_env()
+    restart = schedule_compose(updated, ["up", "-d", "mqtt", "backend"])
+    return {"capability": mqtt_status(), "restart": restart}
+
+
+def disable_mqtt():
+    config = read_env()
+    profiles = update_compose_profiles(config, "mqtt", False)
+    write_env({"ENABLE_MQTT_BROKER": "false", "COMPOSE_PROFILES": profiles})
+    updated = read_env()
+    restart = schedule_compose(updated, ["stop", "mqtt"])
+    backend_restart = restart_backend(updated)
+    return {"capability": mqtt_status(), "restart": backend_restart, "service": restart}
+
+
+def all_capabilities():
+    return [camera_status(), gpio_status(), sensor_status(), mqtt_status()]
 
 
 def apply_camera():
@@ -244,9 +420,15 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/health":
                 return self.send_json(200, {"status": "ok", "service": "edge-studio-host-agent"})
             if path == "/capabilities":
-                return self.send_json(200, {"items": [camera_status()]})
+                return self.send_json(200, {"items": all_capabilities()})
             if path == "/capabilities/camera":
                 return self.send_json(200, {"item": camera_status()})
+            if path == "/capabilities/gpio":
+                return self.send_json(200, {"item": gpio_status()})
+            if path == "/capabilities/sensors":
+                return self.send_json(200, {"item": sensor_status()})
+            if path == "/capabilities/mqtt":
+                return self.send_json(200, {"item": mqtt_status()})
             return self.send_json(404, {"error": "Not found"})
         except ValueError as error:
             return self.send_json(400, {"error": str(error), "capability": camera_status()})
@@ -262,7 +444,17 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200, apply_camera())
             if path == "/capabilities/camera/disable":
                 return self.send_json(200, disable_camera())
+            if path == "/capabilities/gpio/apply":
+                return self.send_json(200, apply_gpio())
+            if path == "/capabilities/gpio/disable":
+                return self.send_json(200, disable_gpio())
+            if path == "/capabilities/mqtt/apply":
+                return self.send_json(200, apply_mqtt())
+            if path == "/capabilities/mqtt/disable":
+                return self.send_json(200, disable_mqtt())
             return self.send_json(404, {"error": "Not found"})
+        except ValueError as error:
+            return self.send_json(400, {"error": str(error), "items": all_capabilities()})
         except Exception as error:
             return self.send_json(500, {"error": str(error)})
 
