@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Backend unit test coverage for `files`.
 - Backend unit test coverage for `shared`.
 - Backend unit test coverage for `health`.
-- Frontend unit test tooling (`@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`) and initial unit test coverage for `lib/cx.ts`, `lib/format.ts`, and the `Pill` component.
+- Frontend unit test tooling (`@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`) and unit test coverage for `frontend/src/lib` and `frontend/src/components/ui`.
 
 ## [0.38.11] 2026-08-18
 
