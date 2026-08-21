@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Frontend unit test tooling (`@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`) and unit test coverage for `frontend/src/lib`, `frontend/src/components/ui`, and `frontend/src/components/patterns`.
 - Frontend unit test coverage for the legacy shared components in `frontend/src/components`.
 - Frontend unit test coverage for `address-book`, `auth`, `automation` (including its 4 workflow-editor orchestrator components), `dashboard`, `data-reads`, `data-sources`, `debug`, `feedback`, `integritas`, `integritas-auth`, `minima`, `setup`, `status`, `tokens`, `update`, and `wallet` — full `frontend/src/*` unit test coverage complete.
-- Update Agent unit test coverage for `docker/docker.client.ts` and `docker/pull-progress.ts`.
+- Update Agent unit test coverage for `docker/docker.client.ts`, `docker/pull-progress.ts`, and `docker/docker.service.ts`.
 
 ## [0.38.11] 2026-08-18
 
