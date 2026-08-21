@@ -424,11 +424,56 @@ function HardwareActionRow({
         </Button>
       </div>
       {capability?.reason && <p className="type-meta text-text-tertiary m-0">{capability.reason}</p>}
-      {missingPrerequisites && (
-        <p className="type-meta text-text-tertiary m-0">
-          Enable is unavailable until the host OS camera tools are installed and visible to the Pi.
-        </p>
-      )}
+      <HardwarePrerequisites capability={capability} />
     </div>
   );
 }
+
+function HardwarePrerequisites({ capability }: { capability?: HostCapability }) {
+  if (!capability) return null;
+  const guidance = capability ? prerequisiteGuidance[capability.name] : null;
+  if (!guidance) return null;
+  const isBlocking = capability.state === "missing_prerequisites";
+  return (
+    <div className="border-border-subtle bg-surface-subtle rounded-card-inner gap-detail-tight grid border p-pad-tight">
+      <div className="gap-detail-close flex flex-wrap items-center justify-between">
+        <p className="type-body-em text-text-primary m-0">Prerequisites for Raspberry Pi OS</p>
+        <Pill tone={isBlocking ? "warn" : "neutral"}>{isBlocking ? "Action needed" : "Host setup"}</Pill>
+      </div>
+      <p className="type-meta text-text-tertiary m-0">
+        Edge Studio manages its own helper services and app configuration in this version. Raspberry Pi OS interfaces and packages must be enabled on the host first.
+      </p>
+      <p className="type-meta text-text-tertiary m-0">
+        These steps assume Raspberry Pi OS or another Debian-based Pi image. Other Linux distributions may use different package names or setup tools.
+      </p>
+      <div className="gap-detail-tight grid">
+        {guidance.map((item) => (
+          <p key={item} className="type-meta text-text-secondary m-0">
+            {item}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const prerequisiteGuidance: Partial<Record<HostCapability["name"], string[]>> = {
+  camera: [
+    "Install the Raspberry Pi camera stack if camera tools are missing: sudo apt-get update && sudo apt-get install -y rpicam-apps",
+    "Test from the Pi host: rpicam-still --list-cameras",
+    "Connect and enable the camera hardware before enabling camera support here.",
+  ],
+  gpio: [
+    "GPIO requires /dev/gpiochip0 on the Pi host. This is normally present on Raspberry Pi OS.",
+    "If it is missing, verify this is a Raspberry Pi and that GPIO/kernel support is enabled before returning here.",
+  ],
+  sensors: [
+    "Enable I2C on the Pi host: sudo raspi-config, then Interface Options -> I2C -> Enable.",
+    "Reboot after enabling I2C, then verify /dev/i2c-1 exists.",
+    "Install SMBus tools if missing: sudo apt-get update && sudo apt-get install -y python3-smbus i2c-tools",
+  ],
+  mqtt: [
+    "The local broker requires Docker Compose to be healthy and port 1883 to be available on the Pi host.",
+    "Use external MQTT brokers without enabling this row by entering their broker URL in MQTT device settings.",
+  ],
+};
