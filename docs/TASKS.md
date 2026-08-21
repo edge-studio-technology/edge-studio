@@ -20,7 +20,6 @@
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.
 - [ ] Backend unit test coverage, one feature folder at a time — see `docs/plans/backend-unit-tests.md`. `auth`/`minima`/`tokens`/`automation`/`wallet`/`data-reads`/`integritas`/`integritas-auth`/`settings`/`status`/`address-book`/`feedback`/`files`/`shared`/`health` are Done; `data-sources` is Partial (service/repository covered, hardware-mocked ingestion services remain, lower priority); `debug` Skipped (dev-only single-handler ping, not worth extracting a service function for).
-- [ ] Frontend unit test coverage, one area at a time — see `docs/plans/frontend-unit-tests.md`. Done: `lib`, `components/ui`, `components/patterns`, flat legacy `components/`, `app/` (skipped, no logic), and `features/address-book`/`auth`/`dashboard`/`data-reads`/`data-sources`/`debug`/`feedback`/`integritas-auth`/`integritas`/`minima`/`setup`/`status`/`tokens`. `features/automation` is Partial (4 large stateful orchestrator components uncovered). Remaining: `features/update`, `features/wallet` (largest folder left).
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
@@ -69,6 +68,7 @@
 
 ## Done
 
+- [x] Frontend unit test coverage, one area at a time — see `docs/plans/frontend-unit-tests.md`. All folders covered: `lib`, `components/ui`, `components/patterns`, flat legacy `components/`, `app/` (skipped, no logic), and every `features/*` folder (`address-book`/`auth`/`dashboard`/`data-reads`/`data-sources`/`debug`/`feedback`/`integritas-auth`/`integritas`/`minima`/`setup`/`status`/`tokens`/`update`/`wallet`). `features/automation` is Partial (4 large stateful orchestrator components uncovered, optional follow-up). Frontend suite: 175 files / 1329 tests.
 - [x] Renamed repository/product identifiers from `integritas-pi` / Integritas Pi to `edge-studio` / Edge Studio across install, CLI, packages, Compose, app code, release CI, and docs (not backwards compatible) — branch `rename/edge-studio`.
 - [x] Fixed brand logo assets (`es_logo/`) 404ing on Pi/Docker installs (worked fine in native dev): `frontend/Dockerfile`'s build stage never copied `public/` into the build context. Added `COPY public ./public`; verified via a real `docker build`/`docker compose build` that the assets land in the built image — branch `refactor/repalce-openssl-with-node`, `npm run check`/backend+frontend build/`docker compose config`/`docker compose build` verified.
 - [x] Replaced `install.sh`'s host-`openssl`-dependent Ed25519 manifest signature verification with a check run inside a disposable `node:20-bookworm-slim` container (`scripts/verify-manifest.mjs`), removing the previous silent "verification disabled" fallback on OpenSSL < 3 (plan archived: `docs/plans/replace-openssl-manifest-verification.md`).

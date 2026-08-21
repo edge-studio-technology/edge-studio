@@ -28,12 +28,19 @@ Later same branch, next session:
 - Full suite grew from 292 frontend tests (start of this stretch) to 1220 (158 files); backend stayed at 773. `npm --prefix frontend run typecheck` clean throughout; `data-sources` folder additionally verified `npm run check`, both builds, and `docker compose config`.
 - Audited the rest of `docs/TASKS.md`'s "In Progress" section for the same one-line-hides-a-huge-plan problem this frontend-unit-tests item turned out to have: `backend-unit-tests.md` is fully done; `security-checklist.md`, `workflow-redesign.md`, `minima-node-backup-restore.md` are all reasonably bounded (manual-check-heavy, not large unbuilt feature lists); `block-automation-workflows.md` (844 lines, 8 milestones) is the other real offender — several unchecked items are substantial unbuilt code features (configure-block modal, workflow templates, full draft workspace save model, branching/else flow, run-log filters), not just manual verification, sitting behind one TASKS.md bullet. Recommended splitting that line into one bullet per milestone/improvement when it's next picked up — not done yet, awaiting the user's call.
 
+Later same branch, next session:
+
+- Completed the last two folders: `features/update` (23 tests — `changelog.ts`, `updateApi.ts`, `ChangelogPreview.tsx`, `useUpdateStatusRefresh.ts`) and `features/wallet` (86 tests, full Done — no component was large/stateful enough to warrant deferral like the `automation` orchestrators; `walletTypes.ts` skipped as types-only). `docs/plans/frontend-unit-tests.md` Status header now Done — every folder addressed (`features/automation` remains the one Partial row, 4 orchestrators deferred).
+- `frontend/tests/features/wallet/CreateTokenModal.test.tsx`: investigated a suspected bug in the decimal-validation branch, confirmed via temporary (reverted) debug instrumentation that it's unreachable in practice — the input's native `min={0}`/`step={1}` blocks browser/jsdom form submission before the JS check runs — so the test asserts the native attributes instead; documented inline and in the plan doc. No `frontend/src/` file was touched.
+- Frontend suite grew from 1220 tests (158 files) to 1329 tests (175 files). Backend stayed at 773. `npm --prefix frontend run typecheck` and `npm run check` both clean.
+- Moved the "Frontend unit test coverage" line from `docs/TASKS.md`'s `## In Progress` to `## Done`.
+
 ## Next Steps
 
-- Continue `docs/plans/frontend-unit-tests.md` with the two remaining folders: `features/update` (`changelog.ts` pure logic first, then `updateApi.ts`, `ChangelogPreview.tsx`, `useUpdateStatusRefresh.ts`) and `features/wallet` (largest remaining — `walletUtils.ts` pure logic first, then `walletApi.ts`/`walletTypes.ts` and the modal/panel components: `AssetDetailModal.tsx`, `CreateTokenModal.tsx`, `HistoryDetailModal.tsx`, `ReceiveAddressModal.tsx`, `ReceiveQrPanel.tsx`, `SendPaymentModal.tsx`, `TokenGlyph.tsx`, `WalletAssetsPanel.tsx`, `WalletHero.tsx`, `WalletHistoryPanel.tsx`, `WalletSettingsPanel.tsx`). Once both land, the whole plan is done except the optional automation orchestrator follow-up below.
-- Optional follow-up, not blocking: revisit `features/automation`'s 4 uncovered orchestrator components if full coverage is wanted later.
-- ~45+ new test files from this session are still uncommitted — worth a commit checkpoint before starting the next folder.
+- Frontend unit test coverage plan is complete. Optional follow-up, not blocking: revisit `features/automation`'s 4 uncovered orchestrator components (`WorkflowBlockInspectors.tsx`/`WorkflowWorkspace.tsx`/`CreateWorkflowWorkspace.tsx`/`WorkflowWatchUi.tsx`) if full coverage is wanted later.
+- ~17 new test files (`features/update` + `features/wallet`) plus the plan-doc edit are still uncommitted — worth a commit checkpoint now that the whole plan is done.
 - Consider refreshing `backend/package-lock.json` (plain `npm install`, no `package.json` changes needed) to pick up the already-allowed patched `nanoid`/`postcss` versions and clear the `npm audit` warning for real — separate from test-writing work, so not done in this session.
+- Still open from prior sessions: decide whether to split `docs/TASKS.md`'s `block-automation-workflows` line into per-milestone bullets (see Notes below); fix stale `integritasAuth`/`integritas-auth` doc reference; fix/investigate `StampResult.tsx` double-toast bug.
 
 ## Notes / Open Questions
 
