@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added a root-owned host agent for app-managed, allowlisted host hardware capability actions.
 - Added admin-only camera support enable and disable actions from the Devices page Hardware support area.
 - Added admin-only GPIO and local MQTT broker enable/disable actions from Hardware support, plus I2C sensor status reporting.
+- Added `HOST_CAPABILITY_DEBUG=true` for secret-safe Hardware support diagnostics in backend and host-agent logs.
 
 ### Changed
 

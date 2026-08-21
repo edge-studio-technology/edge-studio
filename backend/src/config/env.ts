@@ -79,6 +79,7 @@ export const env = {
   mqttPublicHost: process.env.MQTT_PUBLIC_HOST ?? "",
   mqttPublicPort: Number(process.env.MQTT_PUBLIC_PORT ?? 1883),
   mqttInternalUrl: process.env.MQTT_INTERNAL_URL ?? "mqtt://mqtt:1883",
+  hostCapabilityDebug: process.env.HOST_CAPABILITY_DEBUG === "true",
   hostAgentUrl: process.env.HOST_AGENT_URL ?? "",
   hostAgentToken: process.env.HOST_AGENT_TOKEN ?? "",
   cameraEnabled: process.env.ENABLE_CAMERA === "true",

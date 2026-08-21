@@ -14,6 +14,7 @@ ENV_FILE = APP_DIR / ".env"
 HOST = os.environ.get("HOST_AGENT_HOST", "0.0.0.0")
 PORT = int(os.environ.get("HOST_AGENT_PORT", "38182"))
 TOKEN = os.environ.get("HOST_AGENT_TOKEN", "")
+HOST_CAPABILITY_DEBUG = os.environ.get("HOST_CAPABILITY_DEBUG", "false")
 CAMERA_SERVICE_FILE = Path("/etc/systemd/system/edge-studio-camera-helper.service")
 SENSOR_SERVICE_FILE = Path("/etc/systemd/system/edge-studio-sensor-helper.service")
 COMPOSE_OVERRIDE_FILE = APP_DIR / "docker-compose.override.yml"
@@ -64,6 +65,19 @@ def is_truthy(value):
     return str(value or "").lower() in {"1", "true", "yes", "on"}
 
 
+def debug_enabled(config=None):
+    if is_truthy(HOST_CAPABILITY_DEBUG):
+        return True
+    return is_truthy((config or read_env()).get("HOST_CAPABILITY_DEBUG"))
+
+
+def debug_log(message, details=None, config=None):
+    if not debug_enabled(config):
+        return
+    suffix = f" {json.dumps(details, sort_keys=True)}" if details is not None else ""
+    print(f"[host-agent] {message}{suffix}", flush=True)
+
+
 def resolved_data_dir(config):
     value = config.get("DATA_DIR", "./data")
     return Path(value) if value.startswith("/") else APP_DIR / value.removeprefix("./")
@@ -99,6 +113,7 @@ def restart_backend(config):
     if not shutil.which("docker"):
         return {"ok": False, "message": "docker was not found on the host"}
     command = " ".join(compose_args(config) + ["up", "-d", "--no-deps", "backend"])
+    debug_log("schedule backend restart", {"command": command}, config)
     subprocess.Popen(["/bin/sh", "-c", f"sleep 1; {command}"], cwd=str(APP_DIR))
     return {"ok": True, "scheduled": True}
 
@@ -107,6 +122,7 @@ def schedule_compose(config, args):
     if not shutil.which("docker"):
         return {"ok": False, "message": "docker was not found on the host"}
     command = " ".join(compose_args(config) + args)
+    debug_log("schedule compose command", {"command": command}, config)
     subprocess.Popen(["/bin/sh", "-c", f"sleep 1; {command}"], cwd=str(APP_DIR))
     return {"ok": True, "scheduled": True}
 
@@ -225,6 +241,7 @@ def gpio_status():
 
 
 def apply_gpio():
+    debug_log("apply gpio requested")
     status = gpio_status()
     if status["state"] == "missing_prerequisites":
         raise ValueError(status["reason"])
@@ -234,14 +251,17 @@ def apply_gpio():
     updated = read_env()
     write_gpio_override(updated)
     restart = restart_backend(updated)
+    debug_log("apply gpio completed", {"capability": gpio_status(), "restart": restart}, updated)
     return {"capability": gpio_status(), "restart": restart}
 
 
 def disable_gpio():
+    debug_log("disable gpio requested")
     write_env({"ENABLE_GPIO": "false"})
     config = read_env()
     write_gpio_override(config)
     restart = restart_backend(config)
+    debug_log("disable gpio completed", {"capability": gpio_status(), "restart": restart}, config)
     return {"capability": gpio_status(), "restart": restart}
 
 
@@ -297,21 +317,25 @@ def mqtt_status():
 
 
 def apply_mqtt():
+    debug_log("apply mqtt requested")
     config = read_env()
     profiles = update_compose_profiles(config, "mqtt", True)
     write_env({"ENABLE_MQTT_BROKER": "true", "COMPOSE_PROFILES": profiles, "MQTT_INTERNAL_URL": "mqtt://mqtt:1883"})
     updated = read_env()
     restart = schedule_compose(updated, ["up", "-d", "mqtt", "backend"])
+    debug_log("apply mqtt completed", {"capability": mqtt_status(), "restart": restart}, updated)
     return {"capability": mqtt_status(), "restart": restart}
 
 
 def disable_mqtt():
+    debug_log("disable mqtt requested")
     config = read_env()
     profiles = update_compose_profiles(config, "mqtt", False)
     write_env({"ENABLE_MQTT_BROKER": "false", "COMPOSE_PROFILES": profiles})
     updated = read_env()
     restart = schedule_compose(updated, ["stop", "mqtt"])
     backend_restart = restart_backend(updated)
+    debug_log("disable mqtt completed", {"capability": mqtt_status(), "restart": backend_restart, "service": restart}, updated)
     return {"capability": mqtt_status(), "restart": backend_restart, "service": restart}
 
 
@@ -320,6 +344,7 @@ def all_capabilities():
 
 
 def apply_camera():
+    debug_log("apply camera requested")
     missing_tools = missing_camera_tools_message()
     if missing_tools:
         raise ValueError(missing_tools)
@@ -379,10 +404,12 @@ WantedBy=multi-user.target
     })
     updated = read_env()
     restart = restart_backend(updated)
+    debug_log("apply camera completed", {"capability": camera_status(), "restart": restart}, updated)
     return {"capability": camera_status(), "restart": restart, "warning": None}
 
 
 def disable_camera():
+    debug_log("disable camera requested")
     if shutil.which("systemctl"):
         run(["systemctl", "disable", "--now", "edge-studio-camera-helper.service"], check=False)
         if CAMERA_SERVICE_FILE.exists():
@@ -391,6 +418,7 @@ def disable_camera():
     write_env({"ENABLE_CAMERA": "false"})
     config = read_env()
     restart = restart_backend(config)
+    debug_log("disable camera completed", {"capability": camera_status(), "restart": restart}, config)
     return {"capability": camera_status(), "restart": restart}
 
 
@@ -416,6 +444,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.authorized():
             return self.send_json(401, {"error": "Unauthorized"})
         path = urlparse(self.path).path
+        debug_log("get request", {"path": path})
         try:
             if path == "/health":
                 return self.send_json(200, {"status": "ok", "service": "edge-studio-host-agent"})
@@ -433,12 +462,14 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as error:
             return self.send_json(400, {"error": str(error), "capability": camera_status()})
         except Exception as error:
+            debug_log("get error", {"path": path, "error": str(error)})
             return self.send_json(500, {"error": str(error)})
 
     def do_POST(self):
         if not self.authorized():
             return self.send_json(401, {"error": "Unauthorized"})
         path = urlparse(self.path).path
+        debug_log("post request", {"path": path})
         try:
             if path == "/capabilities/camera/apply":
                 return self.send_json(200, apply_camera())
@@ -454,8 +485,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200, disable_mqtt())
             return self.send_json(404, {"error": "Not found"})
         except ValueError as error:
+            debug_log("post validation error", {"path": path, "error": str(error)})
             return self.send_json(400, {"error": str(error), "items": all_capabilities()})
         except Exception as error:
+            debug_log("post error", {"path": path, "error": str(error)})
             return self.send_json(500, {"error": str(error)})
 
 
