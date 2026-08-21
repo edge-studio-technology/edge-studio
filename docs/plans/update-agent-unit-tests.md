@@ -35,7 +35,7 @@ Add to start this plan:
 |---|---|---|
 | `docker/docker.types.ts` | Out of Scope | Types only, no runtime logic. |
 | `docker/docker.client.ts` | Done | HTTP socket client for Docker Engine API. Comprehensive test coverage for `dockerRequest` (GET/POST/DELETE, success/error/timeout paths) and `dockerRequestStream` (chunked JSON, error handling, progress callbacks). 25 tests total. |
-| `docker/pull-progress.ts` | Not Started | Pure parser for Docker pull stream events. Parse chunked JSON (pull progress, layer status) and convert to progress objects. Cover complete/partial/malformed JSON frames. |
+| `docker/pull-progress.ts` | Done | In-memory pull progress state machine. `vi.resetModules()` per test per plan convention. Covers start/clear/record, multi-layer summing, layer replace-not-double-count, missing id/progressDetail/non-numeric guards. 13 tests. |
 | `docker/docker.service.ts` | Not Started | Orchestrates Docker API calls via `docker.client.ts`. Mock `docker.client.ts` at the module boundary. Cover service discovery (find containers by label), inspect (get container state/resources), status checks, error-message mapping. |
 | `manifest/manifest-state.ts` | Not Started | Pure state machine for manifest application (pending → applying → succeeded/failed). Cover state transitions, timing fields, error persistence. |
 | `manifest/manifest.service.ts` | Not Started | Fetches and verifies manifests; persists state. Stub `global.fetch` for manifest download; mock `fs` for state file I/O. Cover signature verification (Ed25519), digest pinning, manifest timestamps, replay/downgrade guards, state persistence. |
