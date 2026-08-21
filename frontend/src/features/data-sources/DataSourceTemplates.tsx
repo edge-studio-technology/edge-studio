@@ -226,6 +226,8 @@ export function LocalServicesCard({
   onDisableCamera,
   onEnableGpio,
   onDisableGpio,
+  onEnableSensors,
+  onDisableSensors,
   onEnableMqtt,
   onDisableMqtt,
 }: {
@@ -236,6 +238,8 @@ export function LocalServicesCard({
   onDisableCamera?: () => Promise<void>;
   onEnableGpio?: () => Promise<void>;
   onDisableGpio?: () => Promise<void>;
+  onEnableSensors?: () => Promise<void>;
+  onDisableSensors?: () => Promise<void>;
   onEnableMqtt?: () => Promise<void>;
   onDisableMqtt?: () => Promise<void>;
 }) {
@@ -330,9 +334,11 @@ export function LocalServicesCard({
             />
             <HardwareActionRow
               title="I2C sensors"
-              description="Status for the sensor helper and /dev/i2c-1. Enablement still uses the installer because it provisions a host Python helper environment."
+              description="Install or disable the host sensor helper used by BME280/BME680 I2C sensor reads."
               capability={sensors}
               busy={busy}
+              onEnable={onEnableSensors}
+              onDisable={onDisableSensors}
             />
             <ErrorAlert status="warning" className="max-w-none">
               Optional hardware starts disabled by default. Host-agent actions update Edge Studio

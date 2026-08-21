@@ -134,10 +134,28 @@ def ensure_camera_token(config):
     return secrets.token_hex(32)
 
 
+def ensure_sensor_token(config):
+    token = config.get("SENSOR_HELPER_TOKEN", "")
+    if token:
+        return token
+    return secrets.token_hex(32)
+
+
 def missing_camera_tools_message():
     if shutil.which("rpicam-still") or shutil.which("libcamera-still"):
         return None
     return "Neither rpicam-still nor libcamera-still was found on the host. Install or enable the Raspberry Pi camera stack on the host, then refresh Hardware support."
+
+
+def missing_sensor_prerequisites_message():
+    if not shutil.which("python3"):
+        return "python3 was not found on the host. Install Python 3 before enabling I2C sensor support."
+    if not Path("/dev/i2c-1").exists():
+        return "/dev/i2c-1 was not found on the host. Enable I2C on the Raspberry Pi host, then refresh Hardware support."
+    completed = run(["python3", "-c", "try:\n import smbus2\nexcept Exception:\n import smbus"], check=False)
+    if completed.returncode != 0:
+        return "Python SMBus support was not found. Install python3-smbus or python3-smbus2 on the host before enabling I2C sensor support."
+    return None
 
 
 def helper_user():
@@ -291,6 +309,78 @@ def sensor_status():
         "reason": reason,
         "devicePath": "/dev/i2c-1",
     }
+
+
+def apply_sensors():
+    debug_log("apply sensors requested")
+    missing = missing_sensor_prerequisites_message()
+    if missing:
+        raise ValueError(missing)
+
+    config = read_env()
+    token = ensure_sensor_token(config)
+    port = config.get("SENSOR_HELPER_PORT", "38181")
+    sensor_venv = APP_DIR / ".venv-sensor-helper"
+    sensor_python = sensor_venv / "bin" / "python"
+    if not sensor_python.exists():
+        run(["python3", "-m", "venv", "--system-site-packages", str(sensor_venv)])
+    run([str(sensor_python), "-m", "pip", "install", "bme680"], check=False)
+
+    user = helper_user()
+    supplementary_groups = "SupplementaryGroups=i2c" if run(["getent", "group", "i2c"], check=False).returncode == 0 else ""
+    service = f"""[Unit]
+Description=Edge Studio Sensor Helper
+After=network.target
+
+[Service]
+Type=simple
+User={user}
+{supplementary_groups}
+WorkingDirectory={APP_DIR}
+Environment=SENSOR_HELPER_HOST=0.0.0.0
+Environment=SENSOR_HELPER_PORT={port}
+Environment=SENSOR_HELPER_TOKEN={token}
+Environment=INTEGRITAS_DOCKER_SUBNET={config.get('INTEGRITAS_DOCKER_SUBNET', '172.30.0.0/24')}
+Environment=INTEGRITAS_DOCKER_GATEWAY={config.get('INTEGRITAS_DOCKER_GATEWAY', '172.30.0.1')}
+ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT; fi'
+ExecStart={sensor_python} {APP_DIR}/sensor-helper/edge_studio_sensor_helper.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+"""
+    SENSOR_SERVICE_FILE.write_text(service, encoding="utf-8")
+    os.chmod(SENSOR_SERVICE_FILE, 0o600)
+    run(["systemctl", "daemon-reload"])
+    run(["systemctl", "enable", "edge-studio-sensor-helper.service"])
+    run(["systemctl", "restart", "edge-studio-sensor-helper.service"])
+
+    gateway = config.get("INTEGRITAS_DOCKER_GATEWAY", "172.30.0.1")
+    write_env({
+        "ENABLE_SENSORS": "true",
+        "SENSOR_HELPER_URL": f"http://{gateway}:{port}",
+        "SENSOR_HELPER_TOKEN": token,
+        "SENSOR_HELPER_PORT": port,
+    })
+    updated = read_env()
+    restart = restart_backend(updated)
+    debug_log("apply sensors completed", {"capability": sensor_status(), "restart": restart}, updated)
+    return {"capability": sensor_status(), "restart": restart}
+
+
+def disable_sensors():
+    debug_log("disable sensors requested")
+    if shutil.which("systemctl"):
+        run(["systemctl", "disable", "--now", "edge-studio-sensor-helper.service"], check=False)
+        if SENSOR_SERVICE_FILE.exists():
+            SENSOR_SERVICE_FILE.unlink()
+        run(["systemctl", "daemon-reload"], check=False)
+    write_env({"ENABLE_SENSORS": "false"})
+    config = read_env()
+    restart = restart_backend(config)
+    debug_log("disable sensors completed", {"capability": sensor_status(), "restart": restart}, config)
+    return {"capability": sensor_status(), "restart": restart}
 
 
 def mqtt_status():
@@ -483,6 +573,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200, apply_mqtt())
             if path == "/capabilities/mqtt/disable":
                 return self.send_json(200, disable_mqtt())
+            if path == "/capabilities/sensors/apply":
+                return self.send_json(200, apply_sensors())
+            if path == "/capabilities/sensors/disable":
+                return self.send_json(200, disable_sensors())
             return self.send_json(404, {"error": "Not found"})
         except ValueError as error:
             debug_log("post validation error", {"path": path, "error": str(error)})

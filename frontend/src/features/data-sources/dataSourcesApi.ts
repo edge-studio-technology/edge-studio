@@ -31,6 +31,14 @@ export async function disableGpioSupport() {
   return postJson<{ capability: HostCapability }>("/api/host-capabilities/gpio/disable");
 }
 
+export async function enableSensorSupport() {
+  return postJson<{ capability: HostCapability }>("/api/host-capabilities/sensors/enable");
+}
+
+export async function disableSensorSupport() {
+  return postJson<{ capability: HostCapability }>("/api/host-capabilities/sensors/disable");
+}
+
 export async function enableMqttBroker() {
   return postJson<{ capability: HostCapability }>("/api/host-capabilities/mqtt/enable");
 }

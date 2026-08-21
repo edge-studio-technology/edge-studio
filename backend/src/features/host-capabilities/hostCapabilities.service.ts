@@ -64,6 +64,16 @@ export async function getHostSensorCapability() {
   return hostAgentRequest<HostAgentItemResponse>("/capabilities/sensors");
 }
 
+export async function enableHostSensorCapability() {
+  debugHostCapability("post", "/capabilities/sensors/apply");
+  return hostAgentRequest<HostAgentActionResponse>("/capabilities/sensors/apply", { method: "POST" });
+}
+
+export async function disableHostSensorCapability() {
+  debugHostCapability("post", "/capabilities/sensors/disable");
+  return hostAgentRequest<HostAgentActionResponse>("/capabilities/sensors/disable", { method: "POST" });
+}
+
 export async function getHostMqttCapability() {
   if (!env.hostAgentUrl || !env.hostAgentToken) return { item: fallbackCapability("mqtt", "Host agent is not configured") };
   debugHostCapability("get", "/capabilities/mqtt");

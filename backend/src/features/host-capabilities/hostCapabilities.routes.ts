@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { dependencyUnavailable } from "../../shared/api-error.js";
 import { requireRole } from "../auth/auth.middleware.js";
-import { disableHostCameraCapability, disableHostGpioCapability, disableHostMqttCapability, enableHostCameraCapability, enableHostGpioCapability, enableHostMqttCapability, getHostCameraCapability, getHostGpioCapability, getHostMqttCapability, getHostSensorCapability, listHostCapabilities } from "./hostCapabilities.service.js";
+import { disableHostCameraCapability, disableHostGpioCapability, disableHostMqttCapability, disableHostSensorCapability, enableHostCameraCapability, enableHostGpioCapability, enableHostMqttCapability, enableHostSensorCapability, getHostCameraCapability, getHostGpioCapability, getHostMqttCapability, getHostSensorCapability, listHostCapabilities } from "./hostCapabilities.service.js";
 
 export const hostCapabilitiesRouter = Router();
 
@@ -90,5 +90,21 @@ hostCapabilitiesRouter.post("/mqtt/disable", requireRole("admin"), async (_req, 
     return res.json(await disableHostMqttCapability());
   } catch (error) {
     return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to disable local MQTT broker");
+  }
+});
+
+hostCapabilitiesRouter.post("/sensors/enable", requireRole("admin"), async (_req, res) => {
+  try {
+    return res.json(await enableHostSensorCapability());
+  } catch (error) {
+    return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to enable I2C sensor support");
+  }
+});
+
+hostCapabilitiesRouter.post("/sensors/disable", requireRole("admin"), async (_req, res) => {
+  try {
+    return res.json(await disableHostSensorCapability());
+  } catch (error) {
+    return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to disable I2C sensor support");
   }
 });

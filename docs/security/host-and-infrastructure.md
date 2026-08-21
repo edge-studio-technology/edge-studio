@@ -104,7 +104,7 @@ Current Controls:
 - Backend host-capability mutations require an authenticated admin session.
 - The host agent requires an installer-generated bearer token that is written to `.env` and passed only to the backend container.
 - The host agent exposes fixed capability endpoints only; it has no generic shell, package install, driver install, file write, or service-management proxy.
-- I2C sensor support is status-only in the host agent for now; installing the Python sensor helper environment still uses the installer path.
+- I2C sensor support can be enabled/disabled through the host agent, but host OS prerequisites such as I2C enablement and SMBus packages are still reported rather than installed automatically.
 - V1 host-agent actions manage Edge Studio helper/config state and report missing OS prerequisites; they do not install Raspberry Pi OS packages, drivers, firmware, or boot config automatically.
 - The installer adds the same Docker-subnet firewall pattern used by other host helpers where `iptables` is available.
 

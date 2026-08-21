@@ -12,9 +12,11 @@ import {
   disableCameraSupport,
   disableGpioSupport,
   disableMqttBroker,
+  disableSensorSupport,
   enableCameraSupport,
   enableGpioSupport,
   enableMqttBroker,
+  enableSensorSupport,
   getDataSourceCapabilities,
   getHostCapabilities,
   listDataSources,
@@ -242,6 +244,34 @@ export function DataSourcesPage() {
     showToast({ tone: "success", title: "GPIO support disabled" });
   }
 
+  async function enableSensorHardware() {
+    const result = await runHardwareAction(
+      () => enableSensorSupport(),
+      {
+        modalTitle: "Updating I2C sensor support",
+        progressTitle: "Applying hardware changes",
+        description: "Edge Studio is enabling the sensor helper and restarting services. This can take a few seconds.",
+      },
+      { name: "sensors", enabled: true },
+    );
+    if (!result) return;
+    showToast({ tone: "success", title: "I2C sensor support enabled" });
+  }
+
+  async function disableSensorHardware() {
+    const result = await runHardwareAction(
+      () => disableSensorSupport(),
+      {
+        modalTitle: "Updating I2C sensor support",
+        progressTitle: "Applying hardware changes",
+        description: "Edge Studio is disabling the sensor helper and restarting services. This can take a few seconds.",
+      },
+      { name: "sensors", enabled: false },
+    );
+    if (!result) return;
+    showToast({ tone: "success", title: "I2C sensor support disabled" });
+  }
+
   async function enableMqttHardware() {
     const result = await runHardwareAction(
       () => enableMqttBroker(),
@@ -360,6 +390,8 @@ export function DataSourcesPage() {
         onDisableCamera={disableCameraHardware}
         onEnableGpio={enableGpioHardware}
         onDisableGpio={disableGpioHardware}
+        onEnableSensors={enableSensorHardware}
+        onDisableSensors={disableSensorHardware}
         onEnableMqtt={enableMqttHardware}
         onDisableMqtt={disableMqttHardware}
       />
