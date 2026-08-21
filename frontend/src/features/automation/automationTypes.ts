@@ -15,6 +15,7 @@ export type AutomationWorkflow = {
     ok: boolean;
     errorCount: number;
     warningCount: number;
+    firstErrorMessage?: string | null;
   };
   blocks: AutomationBlock[];
 };

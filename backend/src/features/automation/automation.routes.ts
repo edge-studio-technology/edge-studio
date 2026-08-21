@@ -73,6 +73,7 @@ automationRouter.get("/workflows", async (_req, res) => {
         ok: validations[index].ok,
         errorCount: validations[index].errors.length,
         warningCount: validations[index].warnings.length,
+        firstErrorMessage: validations[index].errors[0]?.message ?? null,
       },
     })),
   });
