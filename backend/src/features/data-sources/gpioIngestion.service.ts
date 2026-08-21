@@ -1,5 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
+import { env } from "../../config/env.js";
 import { dataSourceError, errorFromUnknown } from "../../shared/structured-error.js";
 import { listEnabledEventWorkflows, type AutomationWorkflowRecord } from "../automation/automation.repository.js";
 import { recordPushAutomationPayload } from "../automation/automation.service.js";
@@ -18,9 +19,12 @@ export function getGpioInputCapability() {
   const devicePath = "/dev/gpiochip0";
   const deviceAvailable = existsSync(devicePath);
   return {
+    enabled: env.gpioEnabled,
     available: deviceAvailable,
     devicePath,
-    reason: deviceAvailable ? null : `${devicePath} is not mounted in the backend container. Reinstall with ENABLE_GPIO=true or add a Docker Compose override.`
+    reason: env.gpioEnabled
+      ? deviceAvailable ? null : `${devicePath} is not mounted in the backend container. Enable GPIO from Hardware support or add a Docker Compose override.`
+      : "GPIO support is disabled."
   };
 }
 

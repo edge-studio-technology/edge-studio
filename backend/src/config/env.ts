@@ -82,6 +82,7 @@ export const env = {
   hostCapabilityDebug: process.env.HOST_CAPABILITY_DEBUG === "true",
   hostAgentUrl: process.env.HOST_AGENT_URL ?? "",
   hostAgentToken: process.env.HOST_AGENT_TOKEN ?? "",
+  gpioEnabled: process.env.ENABLE_GPIO === "true",
   cameraEnabled: process.env.ENABLE_CAMERA === "true",
   cameraCaptureDir: process.env.CAMERA_CAPTURE_DIR ?? path.join(resolveDataDir(databasePath), "captures"),
   cameraMaxDurationSeconds: Number(process.env.CAMERA_MAX_DURATION_SECONDS ?? 30),

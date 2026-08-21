@@ -17,6 +17,7 @@ import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { CopyField } from "../../components/patterns/CopyField";
 import { Pill } from "../../components/Pill";
 import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "./dataSourceTypes";
+import { isTemplateActiveByCapability } from "./hardwareCapabilities";
 
 export const inputTemplates: DataSourceTemplate[] = [
   {
@@ -207,15 +208,7 @@ function isTemplateActive(
   capabilities: DataSourceCapabilities | null,
   hostCapabilities: HostCapability[],
 ) {
-  const camera = hostCapabilities.find((capability) => capability.name === "camera");
-  const gpio = hostCapabilities.find((capability) => capability.name === "gpio");
-  const sensors = hostCapabilities.find((capability) => capability.name === "sensors");
-  if (template.type === "pi-camera") return Boolean(camera?.enabled ?? capabilities?.camera?.enabled);
-  if (template.type === "bme-sensor") return Boolean(sensors?.enabled ?? capabilities?.sensors?.enabled);
-  if (template.type === "gpio-input" || template.type === "gpio-output") {
-    return Boolean(gpio?.enabled ?? capabilities?.gpioInput.available);
-  }
-  return true;
+  return isTemplateActiveByCapability(template, capabilities, hostCapabilities);
 }
 
 export function LocalServicesCard({

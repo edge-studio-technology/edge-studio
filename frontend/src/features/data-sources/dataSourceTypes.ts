@@ -56,6 +56,7 @@ export type DataSourceTemplate = {
 
 export type DataSourceCapabilities = {
   gpioInput: {
+    enabled?: boolean;
     available: boolean;
     devicePath: string;
     reason: string | null;

@@ -16,12 +16,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Disabled host-backed hardware templates are hidden from the default New input and New output flows.
-- GPIO and I2C sensor templates now follow host-agent capability state when available.
+- Host-backed templates and configured device status/actions now use a shared hardware capability mapping for Camera, GPIO, I2C sensors, and app-managed local MQTT broker devices.
 - Hardware install flags are now documented as advanced shortcuts while the app UI is the normal enablement path.
 - Host-agent V1 scope now explicitly reports missing OS prerequisites without installing host drivers or packages automatically.
 - Camera enablement from Hardware support is blocked when host camera tools are missing.
-- Configured camera devices now show disabled or attention-needed status when camera hardware support is unavailable.
-- Workflow list status now shows Error when workflow validation has errors, including disabled hardware dependencies.
+- Configured host-backed devices now show disabled or attention-needed status when required hardware support is unavailable.
+- Workflow list status now shows Error when workflow validation has errors, including disabled hardware dependencies for Camera, GPIO, I2C sensors, and app-managed local MQTT broker devices.
 - Devices list Status now reflects current usability and last failures instead of HTTP health-check configuration.
 - Removed the HTTP health status URL field and device health-check endpoint from data-source management.
 - Devices list now uses compact Name, Details, Status, Last activity, and Actions columns.

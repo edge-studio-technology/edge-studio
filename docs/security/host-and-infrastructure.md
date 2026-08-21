@@ -94,9 +94,9 @@ Status: Accepted risk, documented. See `.agents/rules/update-agent.md`.
 
 ## Host Agent Capability Management
 
-Risk: `install.sh` installs a root-owned `edge-studio-host-agent` service that lets the backend request narrow host hardware support actions, including enabling or disabling Raspberry Pi Camera support, GPIO container access, and the local MQTT broker after the app is already installed.
+Risk: `install.sh` installs a root-owned `edge-studio-host-agent` service that lets the backend request narrow host hardware support actions, including enabling or disabling Raspberry Pi Camera support, GPIO container access, I2C sensor helper support, and the local MQTT broker after the app is already installed.
 
-Impact: If the host agent or its bearer token is compromised, an attacker could perform the specific host actions implemented by the agent, including changing camera-helper systemd state, changing GPIO Compose device access, toggling the MQTT Compose profile, and restarting backend/MQTT containers.
+Impact: If the host agent or its bearer token is compromised, an attacker could perform the specific host actions implemented by the agent, including changing camera-helper/sensor-helper systemd state, changing GPIO Compose device access, toggling the MQTT Compose profile, and restarting backend/MQTT containers.
 
 Current Controls:
 
@@ -120,16 +120,16 @@ Status: Accepted risk for app-managed hardware enablement. See `docs/plans/host-
 
 ## I2C Sensor Helper
 
-Risk: `ENABLE_SENSORS=true` installs a host-side `edge-studio-sensor-helper` service that can read supported I2C sensors such as BME280 and BME680 through the Pi's I2C bus.
+Risk: Enabling I2C sensor support from Devices -> Hardware support, or through the advanced `ENABLE_SENSORS=true` install shortcut, installs a host-side `edge-studio-sensor-helper` service that can read supported I2C sensors such as BME280 and BME680 through the Pi's I2C bus.
 
 Impact: If abused, helper access could disclose local environmental sensor readings or interact with attached I2C devices. A generic I2C proxy would be much higher risk because arbitrary reads/writes could affect unrelated hardware on the bus.
 
 Current Controls:
 
-- Sensor support is off by default and requires `ENABLE_SENSORS=true`.
+- Sensor support is off by default and requires explicit admin enablement from Hardware support or the advanced `ENABLE_SENSORS=true` installer shortcut.
 - The backend calls the helper with a generated bearer token; the token is not exposed to the browser.
 - The helper API is narrow: `/read` only accepts allowlisted sensor types and validated bus/address values, and does not expose arbitrary I2C operations.
-- The helper is intended for trusted local Raspberry Pi deployments and is only reachable from the configured Compose subnet firewall rule when installed by `install.sh`.
+- The helper is intended for trusted local Raspberry Pi deployments and is only reachable from the configured Compose subnet firewall rule when installed by `install.sh` or the host agent.
 
 Plan:
 

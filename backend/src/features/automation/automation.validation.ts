@@ -1,6 +1,9 @@
+import { env } from "../../config/env.js";
 import { getAddressBookEntryById } from "../address-book/address-book.repository.js";
 import { getCameraCapability } from "../data-sources/cameraCapture.service.js";
 import { getDataSource } from "../data-sources/dataSources.repository.js";
+import { getGpioInputCapability } from "../data-sources/gpioIngestion.service.js";
+import { getSensorHelperCapability } from "../data-sources/sensorHelper.service.js";
 import { parseGpioOutputConfig } from "../data-sources/dataSources.service.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
 import { getWalletStatus } from "../wallet/wallet.service.js";
@@ -115,13 +118,25 @@ async function validateAutomationBlockGraph(blocks: ValidationBlock[]): Promise<
   const variables = new Set<string>();
   const startType = startBlock?.type;
   const startConfig = startBlock?.config ?? {};
-  const cameraCapability = blocks.some((block) => block.enabled && block.type === "capture_camera") ? await getCameraCapability() : null;
+  const hostBackedSourceTypes = new Set<string>();
+  for (const block of blocks.filter((item) => item.enabled)) {
+    const source = block.config.sourceId ? getDataSource(block.config.sourceId) : undefined;
+    const target = block.config.targetId ? getDataSource(block.config.targetId) : undefined;
+    if (source?.type) hostBackedSourceTypes.add(source.type);
+    if (target?.type) hostBackedSourceTypes.add(target.type);
+  }
+  const hardwareCapabilities: HardwareCapabilities = {
+    camera: blocks.some((block) => block.enabled && block.type === "capture_camera") || hostBackedSourceTypes.has("pi-camera") ? normalizeRuntimeCapability(await getCameraCapability()) : null,
+    gpio: hostBackedSourceTypes.has("gpio-input") || hostBackedSourceTypes.has("gpio-output") ? getGpioInputCapability() : null,
+    sensors: hostBackedSourceTypes.has("bme-sensor") ? await getSensorHelperCapability() : null,
+    mqtt: hostBackedSourceTypes.has("mqtt") || hostBackedSourceTypes.has("mqtt-output") ? { enabled: env.mqttBrokerEnabled, available: env.mqttBrokerEnabled, reason: env.mqttBrokerEnabled ? null : "Local MQTT broker is disabled." } : null,
+  };
 
   for (const block of mainBlocks) {
     if (!block.enabled) continue;
     const config = block.config;
 
-    validateBlockReference(block, config, issues);
+    validateBlockReference(block, config, issues, hardwareCapabilities);
     if (block.type === "gpio_event_start" || block.type === "webhook_event_start" || block.type === "mqtt_event_start") validateEventStartConfig(block, config, issues);
 
     if (block.type === "record_trigger_event") {
@@ -137,8 +152,6 @@ async function validateAutomationBlockGraph(blocks: ValidationBlock[]): Promise<
     }
 
     if (block.type === "capture_camera") {
-      if (cameraCapability && !cameraCapability.enabled) addIssue(issues, "error", "capture_camera.disabled", cameraCapability.reason ?? "Pi Camera support is disabled.", block);
-      else if (cameraCapability && !cameraCapability.available) addIssue(issues, "warning", "capture_camera.unavailable", cameraCapability.reason ?? "Pi Camera capture is not ready.", block);
       hasData = true;
     }
 
@@ -184,7 +197,7 @@ async function validateAutomationBlockGraph(blocks: ValidationBlock[]): Promise<
   return { ok: errors.length === 0, errors, warnings };
 }
 
-function validateBlockReference(block: ValidationBlock, config: BlockConfig, issues: AutomationValidationIssue[]) {
+function validateBlockReference(block: ValidationBlock, config: BlockConfig, issues: AutomationValidationIssue[], hardwareCapabilities: HardwareCapabilities) {
   if (block.type === "gpio_event_start" || block.type === "webhook_event_start" || block.type === "mqtt_event_start" || block.type === "fetch_data_source" || block.type === "capture_camera") {
     const source = config.sourceId ? getDataSource(config.sourceId) : undefined;
     if (!source) {
@@ -197,6 +210,7 @@ function validateBlockReference(block: ValidationBlock, config: BlockConfig, iss
     if (block.type === "fetch_data_source" && !isReadableDataSource(source.type)) addIssue(issues, "error", "fetch_data_source.invalid_source", "Fetch block requires a readable data source.", block);
     if (block.type === "capture_camera" && source.type !== "pi-camera") addIssue(issues, "error", "capture_camera.invalid_source", "Capture camera requires a Pi Camera device.", block);
     if (block.type === "capture_camera") addIssue(issues, "warning", "capture_camera.privacy", "Camera capture can record private images or video. Verify consent, placement, and retention before enabling this workflow.", block);
+    validateSourceHardware(block, source, hardwareCapabilities, issues);
   }
 
   if (block.type === "control_output") {
@@ -212,6 +226,7 @@ function validateBlockReference(block: ValidationBlock, config: BlockConfig, iss
     }
     if (target.type === "http-output") addIssue(issues, "warning", "control_output.http", "Control output sends an HTTP request to the configured target when this workflow runs.", block);
     if (target.type === "mqtt-output") addIssue(issues, "warning", "control_output.mqtt", "Control output publishes an MQTT message to the configured broker/topic when this workflow runs.", block);
+    validateSourceHardware(block, target, hardwareCapabilities, issues);
     validateOutputBodyConfig(block, config, target.type, issues);
   }
 
@@ -221,6 +236,58 @@ function validateBlockReference(block: ValidationBlock, config: BlockConfig, iss
     if (String(config.tokenId ?? "0x00").toLowerCase() !== "0x00") addIssue(issues, "error", "send_transaction.unsupported_token", "Send transaction currently supports only native MINIMA tokenid 0x00.", block);
     if (!isPositiveDecimal(String(config.amount ?? ""))) addIssue(issues, "error", "send_transaction.invalid_amount", "Send transaction requires a positive amount.", block);
     addIssue(issues, "warning", "send_transaction.moves_funds", "This block sends wallet funds automatically when the workflow runs.", block);
+  }
+}
+
+type RuntimeCapability = { enabled?: boolean; available: boolean; reason?: string | null } | null;
+type HardwareCapabilities = {
+  camera: RuntimeCapability;
+  gpio: RuntimeCapability;
+  sensors: RuntimeCapability;
+  mqtt: RuntimeCapability;
+};
+
+function validateSourceHardware(
+  block: ValidationBlock,
+  source: { type: string; config: string },
+  hardwareCapabilities: HardwareCapabilities,
+  issues: AutomationValidationIssue[],
+) {
+  if (source.type === "pi-camera") validateHardwareCapability(block, "camera", hardwareCapabilities.camera, issues);
+  if (source.type === "bme-sensor") validateHardwareCapability(block, "sensors", hardwareCapabilities.sensors, issues);
+  if (source.type === "gpio-input" || source.type === "gpio-output") validateHardwareCapability(block, "gpio", hardwareCapabilities.gpio, issues);
+  if ((source.type === "mqtt" || source.type === "mqtt-output") && usesLocalMqttBroker(source.config)) validateHardwareCapability(block, "mqtt", hardwareCapabilities.mqtt, issues);
+}
+
+function normalizeRuntimeCapability(capability: { enabled?: boolean; available?: boolean; reason?: string | null }): RuntimeCapability {
+  return { enabled: capability.enabled, available: Boolean(capability.available), reason: capability.reason ?? null };
+}
+
+function validateHardwareCapability(
+  block: ValidationBlock,
+  capabilityName: keyof HardwareCapabilities,
+  capability: RuntimeCapability,
+  issues: AutomationValidationIssue[],
+) {
+  if (!capability) return;
+  if (capability.enabled === false) addIssue(issues, "error", `${capabilityName}.disabled`, capability.reason ?? `${capabilityLabel(capabilityName)} support is disabled.`, block);
+  else if (!capability.available) addIssue(issues, "warning", `${capabilityName}.unavailable`, capability.reason ?? `${capabilityLabel(capabilityName)} support is not ready.`, block);
+}
+
+function capabilityLabel(name: keyof HardwareCapabilities) {
+  if (name === "camera") return "Pi Camera";
+  if (name === "gpio") return "GPIO";
+  if (name === "sensors") return "I2C sensor";
+  return "Local MQTT broker";
+}
+
+function usesLocalMqttBroker(configJson: string) {
+  try {
+    const config = JSON.parse(configJson) as { brokerUrl?: string };
+    const brokerUrl = config.brokerUrl?.trim().toLowerCase() ?? "";
+    return brokerUrl === "mqtt://mqtt:1883" || brokerUrl === "mqtt://localhost:1883" || brokerUrl === "mqtt://127.0.0.1:1883";
+  } catch {
+    return false;
   }
 }
 

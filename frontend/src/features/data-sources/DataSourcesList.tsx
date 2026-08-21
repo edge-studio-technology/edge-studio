@@ -29,6 +29,7 @@ import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatLocalDateTime } from "../../lib/time";
 import type { DataSource, DataSourceCapabilities, HostCapability } from "./dataSourceTypes";
 import { hasDeviceSetupGuide } from "./deviceSetupGuides";
+import { fallbackCapabilityState, hostCapabilityForDevice } from "./hardwareCapabilities";
 
 const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
   value: String(size),
@@ -177,6 +178,7 @@ export function DataSourcesList({
                   usedByWorkflows.length > 0
                     ? `Used by workflow: ${usedByWorkflows.map((workflow) => workflow.name).join(", ")}`
                     : "Delete device";
+                const disabledHardwareReason = unavailableHardwareReason(source, capabilities, hostCapabilities);
                 const typeLabel = sourceTypeLabel(source);
                 const endpoint = sourceEndpoint(source);
                 return (
@@ -215,6 +217,7 @@ export function DataSourcesList({
                           type="button"
                           disabled={
                             busy ||
+                            Boolean(disabledHardwareReason) ||
                             source.type === "webhook" ||
                             source.type === "mqtt" ||
                             source.type === "gpio-input" ||
@@ -223,7 +226,7 @@ export function DataSourcesList({
                             source.type === "http-output" ||
                             source.type === "mqtt-output"
                           }
-                          title="Trigger manually"
+                          title={disabledHardwareReason ?? "Trigger manually"}
                           aria-label={`Trigger ${source.name} manually`}
                           onClick={() => onRead(source)}
                         >
@@ -239,7 +242,8 @@ export function DataSourcesList({
                                   {
                                     label:
                                       source.type === "gpio-output" ? "Test pulse" : "Test output",
-                                    disabled: busy,
+                                    disabled: busy || Boolean(disabledHardwareReason),
+                                    title: disabledHardwareReason ?? undefined,
                                     onClick: () => onTestOutput(source),
                                   },
                                 ]
@@ -391,16 +395,19 @@ function StatusCell({
   capabilities: DataSourceCapabilities | null;
   hostCapabilities: HostCapability[];
 }) {
-  const camera = hostCapabilities.find((capability) => capability.name === "camera");
-  const cameraEnabled = camera?.enabled ?? capabilities?.camera?.enabled;
-  const cameraAvailable = camera?.available ?? capabilities?.camera?.available;
-  if (source.type === "pi-camera" && !cameraEnabled)
+  const hostCapability = hostCapabilityForDevice(source, hostCapabilities);
+  const fallback = fallbackCapabilityState(source, capabilities);
+  const capabilityState = hostCapability
+    ? { enabled: hostCapability.enabled, available: hostCapability.available, reason: hostCapability.reason }
+    : fallback;
+
+  if (capabilityState && !capabilityState.enabled)
     return (
       <Pill tone="neutral" indicator>
         Disabled
       </Pill>
     );
-  if (source.type === "pi-camera" && !cameraAvailable)
+  if (capabilityState && !capabilityState.available)
     return (
       <Pill tone="warn" indicator>
         Needs attention
@@ -419,6 +426,22 @@ function StatusCell({
       Enabled
     </Pill>
   );
+}
+
+function unavailableHardwareReason(
+  source: DataSource,
+  capabilities: DataSourceCapabilities | null,
+  hostCapabilities: HostCapability[],
+) {
+  const hostCapability = hostCapabilityForDevice(source, hostCapabilities);
+  const fallback = fallbackCapabilityState(source, capabilities);
+  const capabilityState = hostCapability
+    ? { enabled: hostCapability.enabled, available: hostCapability.available, reason: hostCapability.reason }
+    : fallback;
+  if (!capabilityState) return null;
+  if (!capabilityState.enabled) return capabilityState.reason ?? "Required hardware support is disabled.";
+  if (!capabilityState.available) return capabilityState.reason ?? "Required hardware support needs attention.";
+  return null;
 }
 
 function LastActivityCell({ source }: { source: DataSource }) {
