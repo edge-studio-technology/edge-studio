@@ -24,10 +24,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Backend unit test coverage for `files`.
 - Backend unit test coverage for `shared`.
 - Backend unit test coverage for `health`.
-- Frontend unit test tooling (`@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`) and unit test coverage for `frontend/src/lib`, `frontend/src/components/ui`, and `frontend/src/components/patterns`.
+- Frontend unit test tooling (`@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`).
+- Frontend unit test coverage for `frontend/src/lib`.
+- Frontend unit test coverage for `frontend/src/components/ui`.
+- Frontend unit test coverage for `frontend/src/components/patterns`.
 - Frontend unit test coverage for the legacy shared components in `frontend/src/components`.
-- Frontend unit test coverage for `address-book`, `auth`, `automation` (including its 4 workflow-editor orchestrator components), `dashboard`, `data-reads`, `data-sources`, `debug`, `feedback`, `integritas`, `integritas-auth`, `minima`, `setup`, `status`, `tokens`, `update`, and `wallet` — full `frontend/src/*` unit test coverage complete.
-- Update Agent unit test coverage for `docker/docker.client.ts`, `docker/pull-progress.ts`, and `docker/docker.service.ts`.
+- Frontend unit test coverage for `address-book`.
+- Frontend unit test coverage for `auth`.
+- Frontend unit test coverage for `automation` (including its 4 workflow-editor orchestrator components).
+- Frontend unit test coverage for `dashboard`.
+- Frontend unit test coverage for `data-reads`.
+- Frontend unit test coverage for `data-sources`.
+- Frontend unit test coverage for `debug`.
+- Frontend unit test coverage for `feedback`.
+- Frontend unit test coverage for `integritas`.
+- Frontend unit test coverage for `integritas-auth`.
+- Frontend unit test coverage for `minima`.
+- Frontend unit test coverage for `setup`.
+- Frontend unit test coverage for `status`.
+- Frontend unit test coverage for `tokens`.
+- Frontend unit test coverage for `update`.
+- Frontend unit test coverage for `wallet` — full `frontend/src/*` unit test coverage complete.
+- Update Agent unit test coverage for `docker/docker.client.ts`.
+- Update Agent unit test coverage for `docker/pull-progress.ts`.
+- Update Agent unit test coverage for `docker/docker.service.ts`.
+- Update Agent unit test coverage for `manifest/manifest-state.ts`.
+- Update Agent unit test coverage for `manifest/manifest.service.ts`.
+- Update Agent unit test coverage for `update/service-update.ts`.
+- Update Agent unit test coverage for `update/apply.service.ts`.
+- Update Agent unit test coverage for `update/apply.job.ts`.
+- Update Agent unit test coverage for `status/status.service.ts`.
+- Update Agent unit test coverage for `status/status-poller.ts`.
+- Update Agent unit test coverage for `self-update/self-update.service.ts`.
+- Update Agent unit test coverage for `self-update/orchestrator.ts` — full Update Agent unit test coverage complete.
 
 ## [0.38.11] 2026-08-18
 
