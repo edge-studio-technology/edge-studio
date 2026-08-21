@@ -1,6 +1,6 @@
 # Update Agent Unit Tests Plan
 
-**Status:** Not Started
+**Status:** In Progress (first module completed)
 **Created:** 2026-08-21
 **Goal:** Build vitest unit test coverage across `update-agent/src/*`, one module at a time. Prioritize core business logic (manifest verification, service updates, state management) over exhaustive coverage — pure-logic and state-management functions first, thin route wiring last (or skipped where it's just composition).
 
@@ -34,7 +34,7 @@ Add to start this plan:
 | Module | Status | Notes |
 |---|---|---|
 | `docker/docker.types.ts` | Out of Scope | Types only, no runtime logic. |
-| `docker/docker.client.ts` | Not Started | HTTP socket client for Docker Engine API. Pure request/response handling over `node:http`. Mock `node:http`'s `request` function to stub Docker responses. Cover success/error paths for `GET` (inspect), `POST` (create/start/stop), socket-connect/read errors. |
+| `docker/docker.client.ts` | Done | HTTP socket client for Docker Engine API. Comprehensive test coverage for `dockerRequest` (GET/POST/DELETE, success/error/timeout paths) and `dockerRequestStream` (chunked JSON, error handling, progress callbacks). 25 tests total. |
 | `docker/pull-progress.ts` | Not Started | Pure parser for Docker pull stream events. Parse chunked JSON (pull progress, layer status) and convert to progress objects. Cover complete/partial/malformed JSON frames. |
 | `docker/docker.service.ts` | Not Started | Orchestrates Docker API calls via `docker.client.ts`. Mock `docker.client.ts` at the module boundary. Cover service discovery (find containers by label), inspect (get container state/resources), status checks, error-message mapping. |
 | `manifest/manifest-state.ts` | Not Started | Pure state machine for manifest application (pending → applying → succeeded/failed). Cover state transitions, timing fields, error persistence. |
