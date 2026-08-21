@@ -35,10 +35,18 @@ Later same branch, next session:
 - Frontend suite grew from 1220 tests (158 files) to 1329 tests (175 files). Backend stayed at 773. `npm --prefix frontend run typecheck` and `npm run check` both clean.
 - Moved the "Frontend unit test coverage" line from `docs/TASKS.md`'s `## In Progress` to `## Done`.
 
+Later same branch, next session:
+
+- Closed out `features/automation`'s last Partial gap: added unit tests for all 4 previously-uncovered orchestrator components. `WorkflowWatchUi.tsx` (24 tests, no mocking needed — all three exports are prop-driven). `CreateWorkflowWorkspace.tsx` (16 tests — sibling modules `automationApi`, `WorkflowBlockInspectors`, `canvas`'s `WorkflowCanvas`, `toolkit/WorkflowBlockLibrary` mocked at the boundary, plus `react-router-dom`'s `useBlocker` mocked to a controllable ref since it needs a data router the test tree doesn't have). `WorkflowWorkspace.tsx` (20 tests — same sibling-mocking pattern, real `WorkflowWatchUi` components used unmocked since already covered; covers edit-mode debounce/pause-on-edit/add-block/draft-payment-sheet/move/remove/persisted-inspector-wiring and watch-mode run selection). `WorkflowBlockInspectors.tsx` (39 tests — no mocking needed, purely prop-driven; one test group per block-type config-form branch plus `AttachedStampSettings` and the `PersistedBlockInspector` wrapper's dirty-tracking/`flush()`/enable-disable/remove/attach-stamp behavior).
+- Added one new Conventions entry to the plan doc: mocking `react-router-dom`'s `useBlocker` via `vi.mock` + `importOriginal`, keeping the rest of the module (`Link`, etc.) real under a plain `MemoryRouter`.
+- `docs/plans/frontend-unit-tests.md`: `features/automation` row flipped from Partial to Done; Status header updated to reflect no Partial rows remain anywhere in the plan.
+- Frontend suite grew from 1329 tests (175 files) to 1428 tests (179 files). Backend stayed at 773.
+- Verified: `npm run check` (typecheck+test+audit, backend 773/55 + frontend 1428/179, both clean), `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config` — all clean. `npm audit` still flags the same pre-existing `nanoid`/`postcss` lockfile staleness noted two sessions ago (unrelated, not touched). No `frontend/src/` file was modified — test-only session, no bugs found in the components under test.
+- Updated `docs/TASKS.md`'s Done entry and `CHANGELOG.md`'s `[Unreleased] test/unit-tests-and-ci` line to say `features/automation` (and `update`/`wallet`, previously missing from that changelog line) are now fully covered — `frontend/src/*` unit test coverage is complete.
+
 ## Next Steps
 
-- Frontend unit test coverage plan is complete. Optional follow-up, not blocking: revisit `features/automation`'s 4 uncovered orchestrator components (`WorkflowBlockInspectors.tsx`/`WorkflowWorkspace.tsx`/`CreateWorkflowWorkspace.tsx`/`WorkflowWatchUi.tsx`) if full coverage is wanted later.
-- ~17 new test files (`features/update` + `features/wallet`) plus the plan-doc edit are still uncommitted — worth a commit checkpoint now that the whole plan is done.
+- Frontend and backend unit test coverage plans are both fully Done. New test files from this session and the prior one are still uncommitted — worth a commit checkpoint.
 - Consider refreshing `backend/package-lock.json` (plain `npm install`, no `package.json` changes needed) to pick up the already-allowed patched `nanoid`/`postcss` versions and clear the `npm audit` warning for real — separate from test-writing work, so not done in this session.
 - Still open from prior sessions: decide whether to split `docs/TASKS.md`'s `block-automation-workflows` line into per-milestone bullets (see Notes below); fix stale `integritasAuth`/`integritas-auth` doc reference; fix/investigate `StampResult.tsx` double-toast bug.
 

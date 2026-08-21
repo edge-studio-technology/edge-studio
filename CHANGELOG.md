@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Backend unit test coverage for `health`.
 - Frontend unit test tooling (`@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`) and unit test coverage for `frontend/src/lib`, `frontend/src/components/ui`, and `frontend/src/components/patterns`.
 - Frontend unit test coverage for the legacy shared components in `frontend/src/components`.
-- Frontend unit test coverage for `address-book`, `auth`, `automation` (partial — 4 orchestrator components uncovered), `dashboard`, `data-reads`, `data-sources`, `debug`, `feedback`, `integritas`, `integritas-auth`, `minima`, `setup`, `status`, and `tokens`.
+- Frontend unit test coverage for `address-book`, `auth`, `automation` (including its 4 workflow-editor orchestrator components), `dashboard`, `data-reads`, `data-sources`, `debug`, `feedback`, `integritas`, `integritas-auth`, `minima`, `setup`, `status`, `tokens`, `update`, and `wallet` — full `frontend/src/*` unit test coverage complete.
 
 ## [0.38.11] 2026-08-18
 
