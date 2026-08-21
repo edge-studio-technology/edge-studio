@@ -1,6 +1,6 @@
 # Update Agent Unit Tests Plan
 
-**Status:** In Progress (first module completed)
+**Status:** Complete — all in-scope modules covered
 **Created:** 2026-08-21
 **Goal:** Build vitest unit test coverage across `update-agent/src/*`, one module at a time. Prioritize core business logic (manifest verification, service updates, state management) over exhaustive coverage — pure-logic and state-management functions first, thin route wiring last (or skipped where it's just composition).
 
@@ -47,7 +47,7 @@ Add to start this plan:
 | `status/status-poller.ts` | Done | Caches a background-polled status snapshot. `config/env.ts` and `status.service.ts` mocked via `vi.mock()`; `vi.resetModules()` + dynamic import per test since the cache is module-level state. Covers the initial null cache, a successful refresh populating `checkedAt`/services/versions (fake system time), a failed refresh logging and leaving the cache unchanged, overwriting a previous snapshot, `startStatusPoller` skipping (and logging) when `MANIFEST_URL`/public key is unconfigured, awaiting the first poll before returning, and interval re-polling via fake timers. 8 tests. |
 | `status/status.routes.ts` | Out of Scope | Thin route wiring; `GET /status` returns `statusService.getStatus()`. Service itself tested above. |
 | `self-update/self-update.service.ts` | Done | Launches update-agent's own self-update as a one-shot orchestrator container. `docker.service.ts` mocked via `vi.mock()`. Covers no-running-container error, no-op when already on the target image, the full pull → clear-stale-orchestrator → create → start happy path (asserting exact `createBodyFromInspect` args including `OLD_CONTAINER_ID`/`SELF_UPDATE_TARGET_IMAGE` env and one-shot/label-strip options), pull failure propagation, and container-create failure propagation. 5 tests. |
-| `self-update/orchestrator.ts` | Not Started | Orchestrates self-update as part of the overall apply flow. Mock `self-update.service.ts`, `apply.service.ts`. Cover decision logic (should self-update?), sequencing, state preservation. |
+| `self-update/orchestrator.ts` | Done | One-shot CLI entry point run from the *new* image; swaps a running update-agent for a health-checked candidate of itself. `config/env.ts` and `docker/docker.service.ts` mocked via `vi.mock()`; `vi.resetModules()` + dynamic import per test since `main()` self-invokes at import time with a top-level `process.exit`, so `process.exit`/`console.error`/`console.log` are spied per test and assertions poll via `vi.waitFor` for the exit call. Covers missing `SELF_UPDATE_TARGET_IMAGE`/`OLD_CONTAINER_ID` (exit 1), already-up-to-date no-op (exit 0), the full clear-stale-candidate → create → start → health-check → swap happy path (exit 0), the old container being left completely untouched with only the candidate cleaned up on a failed health check (exit 1), and best-effort candidate cleanup + rethrow on an unexpected failure (exit 1). 6 tests. |
 | `auth/auth.middleware.ts` | Out of Scope | Route-level auth validation (forward to `backend`'s `GET /api/auth/me`, check role). Thin request guard, not worth unit testing standalone. |
 | `apply.routes.ts` | Out of Scope | Route wiring; `POST /apply` calls `apply.job.start()` and returns `{ status }`. Job/service logic tested above. |
 
