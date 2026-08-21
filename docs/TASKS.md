@@ -20,7 +20,7 @@
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.
 - [ ] Backend unit test coverage, one feature folder at a time — see `docs/plans/backend-unit-tests.md`. `auth`/`minima`/`tokens`/`automation`/`wallet`/`data-reads`/`integritas`/`integritas-auth`/`settings`/`status`/`address-book`/`feedback`/`files`/`shared`/`health` are Done; `data-sources` is Partial (service/repository covered, hardware-mocked ingestion services remain, lower priority); `debug` Skipped (dev-only single-handler ping, not worth extracting a service function for).
-- [ ] Frontend unit test coverage, one area at a time — see `docs/plans/frontend-unit-tests.md`. `lib` (9 files), `components/ui` (26 files), `components/patterns` (23 files), and flat legacy `components/` (20 files, 10 skipped as re-exports) are Done; `app/` and every `features/*` folder are Not Started.
+- [ ] Frontend unit test coverage, one area at a time — see `docs/plans/frontend-unit-tests.md`. Done: `lib`, `components/ui`, `components/patterns`, flat legacy `components/`, `app/` (skipped, no logic), and `features/address-book`/`auth`/`dashboard`/`data-reads`/`data-sources`/`debug`/`feedback`/`integritas-auth`/`integritas`/`minima`/`setup`/`status`/`tokens`. `features/automation` is Partial (4 large stateful orchestrator components uncovered). Remaining: `features/update`, `features/wallet` (largest folder left).
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
@@ -145,6 +145,9 @@
 
 ## Ideas
 
+- [ ] Split the `docs/TASKS.md` "Block automation workflows" line into one bullet per milestone/improvement in `docs/plans/block-automation-workflows.md` (844 lines, 8 milestones) — several unchecked items are substantial unbuilt code features (configure-block modal, workflow templates, full draft workspace save model, branching/else flow, run-log filters), not just manual checks, currently hidden behind one line the way the frontend-unit-tests line used to hide ~20 folders.
+- [ ] Fix stale folder-name reference in `.claude/rules/frontend.md`/`.agents/rules/frontend.md`/`.cursor/rules/frontend.mdc`: says the Integritas Connect auth folder is `integritasAuth`, it's actually `integritas-auth` on disk.
+- [ ] Non-blocking bug in `StampResult.tsx` (`features/integritas/`): the pending-refresh `useEffect` depends on `ToastProvider`'s `showToast`, which isn't memoized, so a sustained unauthorized-refresh failure can re-run the effect on every toast add and surface more than one toast instead of one.
 - [ ] Sync mechanism (script or CI check) to keep `.claude/`/`.agents/` (rules and skills) from drifting — still unbuilt; this session hit a real, if small, instance of the drift it's meant to prevent, caught manually rather than by tooling.
 - [ ] Supertest-based smoke test asserting every non-public `/api/*` route 401s without a session cookie — catches a route missing `requireAuth` without full per-route HTTP test coverage. See "Future Hardening" in `docs/plans/backend-unit-tests.md`.
 - [ ] Graceful automation handling around Minima node restarts (avoid interrupting an in-progress workflow run's HTTP poll/MQTT publish/wallet tx) — prerequisite for re-enabling the 48h auto-restart toggle, which is currently disabled for this reason.
