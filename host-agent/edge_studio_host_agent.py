@@ -518,11 +518,16 @@ class Handler(BaseHTTPRequestHandler):
 
     def send_json(self, status, payload):
         body = json.dumps(payload).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return True
+        except (BrokenPipeError, ConnectionResetError):
+            debug_log("client disconnected before response", {"path": urlparse(self.path).path, "status": status})
+            return False
 
     def authorized(self):
         if self.path == "/health":
@@ -552,6 +557,9 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as error:
             return self.send_json(400, {"error": str(error), "capability": camera_status()})
         except Exception as error:
+            if isinstance(error, (BrokenPipeError, ConnectionResetError)):
+                debug_log("get client disconnected", {"path": path})
+                return None
             debug_log("get error", {"path": path, "error": str(error)})
             return self.send_json(500, {"error": str(error)})
 
@@ -582,6 +590,9 @@ class Handler(BaseHTTPRequestHandler):
             debug_log("post validation error", {"path": path, "error": str(error)})
             return self.send_json(400, {"error": str(error), "items": all_capabilities()})
         except Exception as error:
+            if isinstance(error, (BrokenPipeError, ConnectionResetError)):
+                debug_log("post client disconnected", {"path": path})
+                return None
             debug_log("post error", {"path": path, "error": str(error)})
             return self.send_json(500, {"error": str(error)})
 

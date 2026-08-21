@@ -19,6 +19,8 @@ export type HostCapability = {
 type HostAgentListResponse = { items: HostCapability[] };
 type HostAgentItemResponse = { item: HostCapability };
 type HostAgentActionResponse = { capability: HostCapability; restart?: { ok: boolean; scheduled?: boolean; message?: string }; warning?: string | null };
+const HOST_AGENT_READ_TIMEOUT_MS = 5000;
+const HOST_AGENT_ACTION_TIMEOUT_MS = 60000;
 
 export async function listHostCapabilities() {
   if (!env.hostAgentUrl || !env.hostAgentToken) return fallbackCapabilities("Host agent is not configured");
@@ -34,12 +36,12 @@ export async function getHostCameraCapability() {
 
 export async function enableHostCameraCapability() {
   debugHostCapability("post", "/capabilities/camera/apply");
-  return hostAgentRequest<HostAgentActionResponse>("/capabilities/camera/apply", { method: "POST" });
+  return hostAgentActionRequest("/capabilities/camera/apply");
 }
 
 export async function disableHostCameraCapability() {
   debugHostCapability("post", "/capabilities/camera/disable");
-  return hostAgentRequest<HostAgentActionResponse>("/capabilities/camera/disable", { method: "POST" });
+  return hostAgentActionRequest("/capabilities/camera/disable");
 }
 
 export async function getHostGpioCapability() {
@@ -50,12 +52,12 @@ export async function getHostGpioCapability() {
 
 export async function enableHostGpioCapability() {
   debugHostCapability("post", "/capabilities/gpio/apply");
-  return hostAgentRequest<HostAgentActionResponse>("/capabilities/gpio/apply", { method: "POST" });
+  return hostAgentActionRequest("/capabilities/gpio/apply");
 }
 
 export async function disableHostGpioCapability() {
   debugHostCapability("post", "/capabilities/gpio/disable");
-  return hostAgentRequest<HostAgentActionResponse>("/capabilities/gpio/disable", { method: "POST" });
+  return hostAgentActionRequest("/capabilities/gpio/disable");
 }
 
 export async function getHostSensorCapability() {
@@ -66,12 +68,12 @@ export async function getHostSensorCapability() {
 
 export async function enableHostSensorCapability() {
   debugHostCapability("post", "/capabilities/sensors/apply");
-  return hostAgentRequest<HostAgentActionResponse>("/capabilities/sensors/apply", { method: "POST" });
+  return hostAgentActionRequest("/capabilities/sensors/apply");
 }
 
 export async function disableHostSensorCapability() {
   debugHostCapability("post", "/capabilities/sensors/disable");
-  return hostAgentRequest<HostAgentActionResponse>("/capabilities/sensors/disable", { method: "POST" });
+  return hostAgentActionRequest("/capabilities/sensors/disable");
 }
 
 export async function getHostMqttCapability() {
@@ -82,18 +84,22 @@ export async function getHostMqttCapability() {
 
 export async function enableHostMqttCapability() {
   debugHostCapability("post", "/capabilities/mqtt/apply");
-  return hostAgentRequest<HostAgentActionResponse>("/capabilities/mqtt/apply", { method: "POST" });
+  return hostAgentActionRequest("/capabilities/mqtt/apply");
 }
 
 export async function disableHostMqttCapability() {
   debugHostCapability("post", "/capabilities/mqtt/disable");
-  return hostAgentRequest<HostAgentActionResponse>("/capabilities/mqtt/disable", { method: "POST" });
+  return hostAgentActionRequest("/capabilities/mqtt/disable");
 }
 
-async function hostAgentRequest<T>(pathname: string, init: RequestInit = {}): Promise<T> {
+function hostAgentActionRequest(pathname: string) {
+  return hostAgentRequest<HostAgentActionResponse>(pathname, { method: "POST" }, HOST_AGENT_ACTION_TIMEOUT_MS);
+}
+
+async function hostAgentRequest<T>(pathname: string, init: RequestInit = {}, timeoutMs = HOST_AGENT_READ_TIMEOUT_MS): Promise<T> {
   if (!env.hostAgentUrl || !env.hostAgentToken) throw new Error("Host agent is not configured");
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`${env.hostAgentUrl.replace(/\/$/, "")}${pathname}`, {
       ...init,
