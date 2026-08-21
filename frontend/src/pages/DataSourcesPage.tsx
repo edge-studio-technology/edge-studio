@@ -46,6 +46,8 @@ import { useDeviceFormFields } from "../features/data-sources/useDeviceFormField
 const ADD_DEVICE_FLOW: "alt" | "classic" = "alt";
 const HARDWARE_REFRESH_TIMEOUT_MS = 30000;
 const HARDWARE_REFRESH_INTERVAL_MS = 1000;
+const HARDWARE_RESTART_SETTLE_MS = 7000;
+const HARDWARE_STABLE_REFRESH_COUNT = 2;
 
 type HardwareOperation = {
   modalTitle: string;
@@ -277,11 +279,13 @@ export function DataSourcesPage() {
     setHardwareOperation(operation);
     try {
       const response = await action();
+      await delay(HARDWARE_RESTART_SETTLE_MS);
       await waitForHardwareState(expected);
       return { response };
     } catch (err) {
       const transient = isTransientRestartError(err);
       if (transient) {
+        await delay(HARDWARE_RESTART_SETTLE_MS);
         const recovered = await waitForHardwareState(expected).then(() => true).catch(() => false);
         if (recovered) return {};
       }
@@ -297,13 +301,20 @@ export function DataSourcesPage() {
   async function waitForHardwareState(expected: Pick<HostCapability, "name" | "enabled">) {
     const deadline = Date.now() + HARDWARE_REFRESH_TIMEOUT_MS;
     let lastError: unknown = null;
+    let stableRefreshes = 0;
     while (Date.now() < deadline) {
       await delay(HARDWARE_REFRESH_INTERVAL_MS);
       try {
         const response = await refresh();
         const capability = response.hostCapabilities.find((item) => item.name === expected.name);
-        if (capability?.enabled === expected.enabled) return;
+        if (capability?.enabled === expected.enabled) {
+          stableRefreshes += 1;
+          if (stableRefreshes >= HARDWARE_STABLE_REFRESH_COUNT) return;
+        } else {
+          stableRefreshes = 0;
+        }
       } catch (err) {
+        stableRefreshes = 0;
         lastError = err;
       }
     }
