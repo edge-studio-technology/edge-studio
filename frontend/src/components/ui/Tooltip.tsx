@@ -378,7 +378,7 @@ export function Tooltip({
               ref={tipRef}
               style={{ top: coords.top, left: coords.left }}
               className={cx(
-                "fixed z-50 transition-opacity duration-200 motion-reduce:transition-none",
+                "fixed z-[9999] transition-opacity duration-200 motion-reduce:transition-none",
                 entered ? "opacity-100" : "opacity-0",
               )}
               onMouseEnter={isToggletip ? undefined : openNow}

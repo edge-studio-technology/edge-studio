@@ -9,6 +9,7 @@ import { InputField } from "../../components/ui/InputField";
 import { Modal } from "../../components/ui/Modal";
 import { SelectField } from "../../components/ui/SelectField";
 import { TextareaField } from "../../components/ui/TextareaField";
+import { Tooltip } from "../../components/ui/Tooltip";
 import { getJson, postJson } from "../../lib/api";
 import { useToast } from "../../components/ToastProvider";
 
@@ -72,19 +73,15 @@ function FieldLabel({ children, help }: { children: ReactNode; help: string }) {
   return (
     <span className="gap-detail-fine inline-flex items-center">
       {children}
-      <span
-        aria-label={help}
-        className="group relative inline-grid size-4 place-items-center rounded-full text-icon-secondary outline-none focus-visible:ring-2 focus-visible:ring-stroke-active focus-visible:ring-offset-2"
-        tabIndex={0}
-      >
-        <Info aria-hidden className="size-3.5" />
+      <Tooltip title={help} placement="top" variant="light" className="w-64">
         <span
-          role="tooltip"
-          className="type-meta pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden w-64 -translate-x-1/2 rounded-loose border border-stroke-secondary bg-surface-always-white px-detail-next py-detail-tight text-text-primary shadow-elevation-2 group-hover:block group-focus-visible:block"
+          aria-label={help}
+          className="inline-grid size-4 place-items-center rounded-full text-icon-secondary outline-none focus-visible:ring-2 focus-visible:ring-stroke-active focus-visible:ring-offset-2"
+          tabIndex={0}
         >
-          {help}
+          <Info aria-hidden className="size-3.5" />
         </span>
-      </span>
+      </Tooltip>
     </span>
   );
 }
