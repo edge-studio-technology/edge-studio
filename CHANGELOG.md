@@ -4,6 +4,12 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [0.38.12] 2026-08-24
+
+### Added
+
+- Added explinations to aria feedback labels.
+
 ## [0.38.11] 2026-08-18
 
 ### Added
