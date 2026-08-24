@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Host-backed templates and configured device status/actions now use a shared hardware capability mapping for Camera, GPIO, I2C sensors, and app-managed local MQTT broker devices.
 - Hardware install flags are now documented as advanced shortcuts while the app UI is the normal enablement path.
 - Host-agent V1 scope now explicitly reports missing OS prerequisites without installing host drivers or packages automatically.
+- Installer `ENABLE_*` hardware shortcuts now call the host-agent CLI in install mode so host-agent capability logic is the source of truth for hardware activation.
 - Camera enablement from Hardware support is blocked when host camera tools are missing.
 - Configured host-backed devices now show disabled or attention-needed status when required hardware support is unavailable.
 - Workflow list status now shows Error when workflow validation has errors, including disabled hardware dependencies for Camera, GPIO, I2C sensors, and app-managed local MQTT broker devices.

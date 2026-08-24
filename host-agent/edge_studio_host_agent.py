@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import json
 import os
 import secrets
@@ -19,6 +20,7 @@ CAMERA_SERVICE_FILE = Path("/etc/systemd/system/edge-studio-camera-helper.servic
 SENSOR_SERVICE_FILE = Path("/etc/systemd/system/edge-studio-sensor-helper.service")
 COMPOSE_OVERRIDE_FILE = APP_DIR / "docker-compose.override.yml"
 GPIO_OVERRIDE_MARKER = "# Managed by Edge Studio host-agent for GPIO support."
+SUPPRESS_RESTARTS = False
 
 
 def read_env():
@@ -110,6 +112,9 @@ def compose_args(config):
 
 
 def restart_backend(config):
+    if SUPPRESS_RESTARTS:
+        debug_log("backend restart skipped", {"reason": "install-mode"}, config)
+        return {"ok": True, "scheduled": False, "skipped": True}
     if not shutil.which("docker"):
         return {"ok": False, "message": "docker was not found on the host"}
     command = " ".join(compose_args(config) + ["up", "-d", "--no-deps", "backend"])
@@ -119,6 +124,9 @@ def restart_backend(config):
 
 
 def schedule_compose(config, args):
+    if SUPPRESS_RESTARTS:
+        debug_log("compose command skipped", {"reason": "install-mode", "args": args}, config)
+        return {"ok": True, "scheduled": False, "skipped": True}
     if not shutil.which("docker"):
         return {"ok": False, "message": "docker was not found on the host"}
     command = " ".join(compose_args(config) + args)
@@ -597,7 +605,46 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(500, {"error": str(error)})
 
 
+def cli_action(action, capability):
+    if action == "apply":
+        if capability == "camera":
+            return apply_camera()
+        if capability == "gpio":
+            return apply_gpio()
+        if capability == "sensors":
+            return apply_sensors()
+        if capability == "mqtt":
+            return apply_mqtt()
+    if action == "disable":
+        if capability == "camera":
+            return disable_camera()
+        if capability == "gpio":
+            return disable_gpio()
+        if capability == "sensors":
+            return disable_sensors()
+        if capability == "mqtt":
+            return disable_mqtt()
+    raise ValueError(f"Unsupported capability action: {action} {capability}")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Edge Studio host-agent")
+    subparsers = parser.add_subparsers(dest="command")
+    action_parser = subparsers.add_parser("capability", help="Apply or disable a hardware capability")
+    action_parser.add_argument("action", choices=["apply", "disable"])
+    action_parser.add_argument("capability", choices=["camera", "gpio", "sensors", "mqtt"])
+    action_parser.add_argument("--install-mode", action="store_true", help="Skip backend/Compose restarts; installer will start services later")
+    return parser.parse_args()
+
+
 def main():
+    global SUPPRESS_RESTARTS
+    args = parse_args()
+    if args.command == "capability":
+        SUPPRESS_RESTARTS = args.install_mode
+        print(json.dumps(cli_action(args.action, args.capability), sort_keys=True))
+        return
+
     if not TOKEN:
         raise SystemExit("HOST_AGENT_TOKEN is required")
     server = ThreadingHTTPServer((HOST, PORT), Handler)
