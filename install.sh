@@ -758,25 +758,25 @@ run_host_agent_capability() {
 }
 
 apply_hardware_shortcuts_via_host_agent() {
-  if is_truthy "$ENABLE_CAMERA_INPUT"; then
+  if is_truthy "$ENABLE_CAMERA"; then
     run_host_agent_capability apply camera
   elif [ -n "$ENABLE_CAMERA_INPUT" ]; then
     run_host_agent_capability disable camera
   fi
 
-  if is_truthy "$ENABLE_GPIO_INPUT"; then
+  if is_truthy "$ENABLE_GPIO"; then
     run_host_agent_capability apply gpio
   elif [ -n "$ENABLE_GPIO_INPUT" ]; then
     run_host_agent_capability disable gpio
   fi
 
-  if is_truthy "$ENABLE_SENSORS_INPUT"; then
+  if is_truthy "$ENABLE_SENSORS"; then
     run_host_agent_capability apply sensors
   elif [ -n "$ENABLE_SENSORS_INPUT" ]; then
     run_host_agent_capability disable sensors
   fi
 
-  if is_truthy "$ENABLE_MQTT_BROKER_INPUT"; then
+  if is_truthy "$ENABLE_MQTT_BROKER"; then
     run_host_agent_capability apply mqtt
   elif [ -n "$ENABLE_MQTT_BROKER_INPUT" ]; then
     run_host_agent_capability disable mqtt
