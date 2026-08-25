@@ -27,6 +27,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Removed the HTTP health status URL field and device health-check endpoint from data-source management.
 - Devices list now uses compact Name, Details, Status, Last activity, and Actions columns.
 
+### Fixed
+
+- GPIO watcher startup is skipped while GPIO support is disabled or unavailable, avoiding false device failures when toggling GPIO hardware support.
+
 ### Security
 
 - Documented the host-agent privilege boundary and token-protected backend-only access path.

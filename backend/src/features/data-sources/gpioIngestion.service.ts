@@ -1,10 +1,10 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
 import { env } from "../../config/env.js";
-import { dataSourceError, errorFromUnknown } from "../../shared/structured-error.js";
+import { dataSourceError, errorFromUnknown, parseStoredError } from "../../shared/structured-error.js";
 import { listEnabledEventWorkflows, type AutomationWorkflowRecord } from "../automation/automation.repository.js";
 import { recordPushAutomationPayload } from "../automation/automation.service.js";
-import { listDataSources, updateDataSourceReadResult, type DataSourceRecord } from "./dataSources.repository.js";
+import { clearDataSourceLastError, listDataSources, updateDataSourceReadResult, type DataSourceRecord } from "./dataSources.repository.js";
 import { parseGpioInputConfig, processGpioPayload, type GpioInputConfig } from "./dataSources.service.js";
 
 type Watcher = {
@@ -41,6 +41,12 @@ export function stopGpioIngestion() {
 
 export function syncGpioDataSources() {
   const gpioSources = new Map(listDataSources().filter((source) => source.type === "gpio-input").map((source) => [source.id, source]));
+  const capability = getGpioInputCapability();
+  if (!capability.enabled || !capability.available) {
+    stopGpioIngestion();
+    return;
+  }
+
   const gpioWorkflows = new Map([...gpioSources.keys()].map((sourceId) => [sourceId, listEnabledEventWorkflows("gpio_event_start", sourceId)[0]]).filter((entry): entry is [string, AutomationWorkflowRecord] => Boolean(entry[1])));
   const activeIds = new Set(gpioWorkflows.keys());
 
@@ -61,9 +67,17 @@ export function syncGpioDataSources() {
 
       existing?.process.kill("SIGTERM");
       watchers.set(source.id, { key, process: watchGpioSource(source, workflow, config), lastEventAt: 0 });
+      clearTransientGpioWatcherError(source);
     } catch (error) {
       updateDataSourceReadResult(source.id, { error: dataSourceError({ type: "configuration_invalid", ...errorFromUnknown(error, "Invalid GPIO input source configuration", { sourceId: source.id }), message: error instanceof Error ? error.message : "Invalid GPIO input source configuration" }) });
     }
+  }
+}
+
+function clearTransientGpioWatcherError(source: DataSourceRecord) {
+  const error = parseStoredError(source.last_error);
+  if (error?.domain === "data_source" && (error.type === "hardware_unavailable" || error.type === "source_unavailable")) {
+    clearDataSourceLastError(source.id);
   }
 }
 
