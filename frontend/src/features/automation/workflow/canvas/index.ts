@@ -13,4 +13,5 @@ export {
   isDataBlock,
 } from "./blockPresentation";
 
+export { WorkflowBlockTypeIcon } from "./blockIcons";
 export { WorkflowCanvas } from "./WorkflowCanvas";
