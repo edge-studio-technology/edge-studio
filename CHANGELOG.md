@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [0.38.12] 2026-08-24
 
+### Fixed
+
+- Fixed aria labels visability issue.
+
+## [0.38.12] 2026-08-24
+
 ### Added
 
 - Added explinations to aria feedback labels.
