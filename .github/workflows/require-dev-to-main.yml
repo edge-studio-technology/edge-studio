@@ -1,4 +1,4 @@
-name: require dev to main
+name: Require dev to main
 
 on:
   pull_request:
