@@ -1,4 +1,4 @@
-name: Only dev can merge to main
+name: Require dev to main
 
 on:
   pull_request:
