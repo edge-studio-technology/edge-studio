@@ -59,6 +59,12 @@ export default defineConfig(({ mode }) => {
       environment: "happy-dom",
       include: ["tests/**/*.test.{ts,tsx}"],
       setupFiles: ["tests/setup.ts"],
+      coverage: {
+        provider: "v8",
+        reporter: ["text", "json-summary", "html"],
+        include: ["src/**/*.{ts,tsx}"],
+        exclude: ["src/**/*.d.ts"],
+      },
     },
   };
 });

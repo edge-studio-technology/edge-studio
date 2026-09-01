@@ -17,6 +17,7 @@
     "release:generate-signing-key": "node scripts/release/generate-signing-key.mjs",
     "docker:rebuild": "docker compose up -d --build backend frontend update-agent",
     "test": "npm --prefix backend run test && npm --prefix frontend run test",
+    "test:coverage": "npm --prefix backend run test:coverage && npm --prefix frontend run test:coverage && npm --prefix update-agent run test:coverage",
     "check": "npm run typecheck && npm run test && npm run audit:moderate",
     "postinstall": "npm i --prefix backend && npm i --prefix frontend"
   },

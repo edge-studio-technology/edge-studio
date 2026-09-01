@@ -8,6 +8,7 @@
     "dev:https": "vite --host 0.0.0.0 --mode https",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "build": "tsc && vite build",
     "preview": "vite preview --host 0.0.0.0"
   },
@@ -27,6 +28,7 @@
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/coverage-v8": "^4.1.10",
     "happy-dom": "^20.10.6",
     "tailwindcss": "^4.3.0",
     "typescript": "^5.4.2",
