@@ -20,7 +20,7 @@
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.
 - [ ] Backend unit test coverage, one feature folder at a time — see `docs/plans/backend-unit-tests.md`. `auth`/`minima`/`tokens`/`automation`/`wallet`/`data-reads`/`integritas`/`integritas-auth`/`settings`/`status`/`address-book`/`feedback`/`files`/`shared`/`health` are Done; `data-sources` is Partial (service/repository covered, hardware-mocked ingestion services remain, lower priority); `debug` Skipped (dev-only single-handler ping, not worth extracting a service function for).
-- [ ] Coverage criteria: enforced numeric floor now wired up via `@vitest/coverage-v8` (`npm run check` fails below threshold); still need Progress rows + tests for `minima-backup*`/`minima-console*` (security-sensitive, untracked gap found this session) — see `docs/plans/coverage-criteria.md`.
+- [ ] Coverage criteria: enforced numeric floor now wired up via `@vitest/coverage-v8` (`npm run check` fails below threshold). `minima-backup*`/`minima-console*` now have Progress rows + tests (backend lines 78.09% → 84.21%); still open: revisit the backend threshold floor upward to lock in the gain, and decide on the supertest 401-smoke-test — see `docs/plans/coverage-criteria.md`.
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next

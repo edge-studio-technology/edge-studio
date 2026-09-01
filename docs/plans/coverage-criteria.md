@@ -23,9 +23,11 @@ Rejected alternative: a single global % target (e.g. "80% everywhere"). Rejected
 
 | Package | In-scope lines (2026-09-01) | Threshold floor (lines) |
 |---|---|---|
-| backend | 78.09% | 75% |
+| backend | 84.21% | 75% |
 | frontend | 90.91% | 88% |
 | update-agent | 99.09% | 96% |
+
+Backend rose from 78.09% after `minima-backup*`/`minima-console*` (see Known Gaps below) got test coverage; the floor itself is unchanged — see Follow-up.
 
 Statements/branches/functions floors are set the same way (a few points below measured); see each `coverage.thresholds` block.
 
@@ -40,7 +42,6 @@ Statements/branches/functions floors are set the same way (a few points below me
 ## Known gaps (why backend's floor is lower, and what closes them)
 
 - `data-sources`: `gpioIngestion`/`gpioOutput`/`mqttIngestion`/`mqttOutput`/`cameraCapture`/`sensorHelper` services are untested (hardware/MQTT/host-helper boundaries) — already flagged `Partial` in `backend-unit-tests.md`.
-- `minima-backup.service.ts`, `minima-backup-scheduler.service.ts`, `minima-console.service.ts`, `minima-console.catalog.ts` are untested and **not yet tracked** in `backend-unit-tests.md`'s Progress table at all (added after that plan's last update) — these are security-sensitive per `.claude/rules/minima.md` (backup password encryption, console whitelist hard-exclusions) and should be prioritized ahead of the hardware services above.
 - `totp.service.ts` is partial (64%) — already a documented, deliberate skip (dead code, `TOTP_ENABLED = false`).
 - Routes stay permanently excluded from coverage (thin wiring, per the routes decision) rather than closed. The cheap alternative already proposed in `backend-unit-tests.md`'s "Future Hardening" — one supertest smoke test asserting every non-public route 401s without a session — is still the right way to catch the one failure mode that matters (`requireAuth` missing from a route) without turning every route into a test target. Not built yet.
 
@@ -51,15 +52,13 @@ Statements/branches/functions floors are set the same way (a few points below me
 
 ## Follow-up (not done yet)
 
-- Add Progress rows for `minima-backup*`/`minima-console*` to `backend-unit-tests.md` and write their tests; this is real, prioritized work, not just documentation.
-- Once those land, revisit the backend threshold floor upward to lock in the gain.
+- `minima-backup*`/`minima-console*` now have Progress rows and tests in `backend-unit-tests.md` (backend rose 78.09% → 84.21% lines) — revisit the backend threshold floor upward to lock in the gain.
 - Decide whether to build the supertest 401-smoke-test from `backend-unit-tests.md`'s "Future Hardening".
 - `.claude/rules/verification.md` (and `.agents/`/`.cursor/` counterparts) still list `npm --prefix backend run build`/`npm --prefix frontend run build` without an `update-agent` build step — separate pre-existing gap, out of scope here, flagged for a future pass.
 
 ## Docs
 
 - `docs/TASKS.md` — add an In Progress line pointing here.
-- `backend-unit-tests.md` — add the missing `minima-backup*`/`minima-console*` rows next time that plan is picked up.
 
 ## Verification
 

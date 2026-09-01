@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Backend unit test coverage for `auth`.
 - Backend unit test coverage for `minima`.
+- Backend unit test coverage for `minima` backup/restore and console whitelist (`minima-backup*`, `minima-console*`).
 - Backend unit test coverage for `tokens`.
 - Backend unit test coverage for `automation`.
 - Backend unit test coverage for `wallet`.
