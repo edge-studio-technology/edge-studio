@@ -4,6 +4,8 @@
 **Created:** 2026-09-01
 **Goal:** Define a concrete, enforced way to know when backend/frontend/update-agent unit test coverage is "enough," now that `@vitest/coverage-v8` is wired into all three packages.
 
+The durable policy this plan rolls out — target tiers (60% floor / 70-80% general / 90% high-risk) and the "useful test" quality bar — now lives in `.claude/rules/testing.md` (synced to `.agents/rules/testing.md`/`.cursor/rules/testing.mdc`). This doc tracks the current per-package numbers, exclude lists, and open gaps against that policy; once the gaps below are closed it can be archived like `backend-unit-tests.md`'s siblings.
+
 ## Context
 
 `backend-unit-tests.md`/`frontend-unit-tests.md`/`update-agent-unit-tests.md` already track completeness per feature/module via a Progress table (Done/Partial/Skipped + notes on what's covered and why anything is excluded). That stays the primary signal for "is this module tested" — it's qualitative and already forces a written reason for every gap.

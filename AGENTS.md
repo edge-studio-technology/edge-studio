@@ -90,6 +90,7 @@ Read the rules relevant to the area you're working in before editing:
 | [.agents/rules/automation.md](.agents/rules/automation.md) | Automation workflow rules |
 | [.agents/rules/docker.md](.agents/rules/docker.md) | Docker / Raspberry Pi deployment rules |
 | [.agents/rules/update-agent.md](.agents/rules/update-agent.md) | Update Agent service rules |
+| [.agents/rules/testing.md](.agents/rules/testing.md) | Coverage criteria and unit test conventions |
 | [.agents/rules/verification.md](.agents/rules/verification.md) | Commands to run before finishing changes |
 | [.agents/rules/documenting-work.md](.agents/rules/documenting-work.md) | Task summaries, doc updates, changelog policy |
 | [.agents/rules/adr.md](.agents/rules/adr.md) | Where decision rationale goes (not changelog/comments/commits) |
