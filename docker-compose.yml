@@ -108,6 +108,8 @@ services:
       - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - ${DATA_DIR:-./data}/mosquitto:/mosquitto/data
     restart: unless-stopped
+    networks:
+      - integritas
 
   update-agent:
     build:
