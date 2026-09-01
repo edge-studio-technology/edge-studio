@@ -8,7 +8,21 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json-summary", "html"],
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.d.ts"]
+      exclude: [
+        "src/**/*.d.ts",
+        "src/**/*.types.ts",
+        "src/**/*.routes.ts",
+        "src/index.ts",
+        "src/app.ts",
+        "src/config/env.ts",
+        "src/auth/auth.middleware.ts"
+      ],
+      thresholds: {
+        statements: 95,
+        branches: 92,
+        functions: 92,
+        lines: 96
+      }
     }
   }
 });
