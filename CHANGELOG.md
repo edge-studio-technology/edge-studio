@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - GPIO watcher startup is skipped while GPIO support is disabled or unavailable, avoiding false device failures when toggling GPIO hardware support.
+- Disabled hardware workflow/device messages now point operators to Devices -> Hardware support instead of legacy `ENABLE_*` restart instructions.
 
 ### Security
 

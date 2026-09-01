@@ -273,10 +273,10 @@ export function LocalServicesCard({
         </p>
       </div>
       <div className="gap-detail-close grid md:grid-cols-2">
-        <HardwareStatus label="Camera" capability={camera} fallback="Camera support is disabled." />
-        <HardwareStatus label="I2C sensors" capability={sensors} fallback="Sensor support is disabled." />
-        <HardwareStatus label="GPIO" capability={gpio} fallback="GPIO support is disabled." />
-        <HardwareStatus label="Local MQTT broker" capability={mqtt} fallback="Local broker is disabled." />
+        <HardwareStatus label="Camera" capability={camera} fallback="Camera support is disabled. Enable it from Devices -> Hardware support." />
+        <HardwareStatus label="I2C sensors" capability={sensors} fallback="I2C sensor support is disabled. Enable it from Devices -> Hardware support." />
+        <HardwareStatus label="GPIO" capability={gpio} fallback="GPIO support is disabled. Enable it from Devices -> Hardware support." />
+        <HardwareStatus label="Local MQTT broker" capability={mqtt} fallback="Local MQTT broker is disabled. Enable it from Devices -> Hardware support." />
       </div>
       <div className="gap-detail-close grid md:grid-cols-2">
         <CopyField

@@ -24,7 +24,7 @@ export function getGpioInputCapability() {
     devicePath,
     reason: env.gpioEnabled
       ? deviceAvailable ? null : `${devicePath} is not mounted in the backend container. Enable GPIO from Hardware support or add a Docker Compose override.`
-      : "GPIO support is disabled."
+      : "GPIO support is disabled. Enable it from Devices -> Hardware support."
   };
 }
 

@@ -34,7 +34,7 @@ export function fallbackCapabilityState(source: DataSource, capabilities: DataSo
   if (source.type === "gpio-input" || source.type === "gpio-output") return { enabled: Boolean(capabilities?.gpioInput.enabled ?? capabilities?.gpioInput.available), available: Boolean(capabilities?.gpioInput.available), reason: capabilities?.gpioInput.reason ?? null };
   if (usesLocalMqttBroker(source)) {
     const enabled = Boolean(capabilities?.mqttBroker?.enabled);
-    return { enabled, available: enabled, reason: enabled ? null : "Local broker is disabled." };
+    return { enabled, available: enabled, reason: enabled ? null : "Local MQTT broker is disabled. Enable it from Devices -> Hardware support." };
   }
   return null;
 }

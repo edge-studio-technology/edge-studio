@@ -129,7 +129,7 @@ async function validateAutomationBlockGraph(blocks: ValidationBlock[]): Promise<
     camera: blocks.some((block) => block.enabled && block.type === "capture_camera") || hostBackedSourceTypes.has("pi-camera") ? normalizeRuntimeCapability(await getCameraCapability()) : null,
     gpio: hostBackedSourceTypes.has("gpio-input") || hostBackedSourceTypes.has("gpio-output") ? getGpioInputCapability() : null,
     sensors: hostBackedSourceTypes.has("bme-sensor") ? await getSensorHelperCapability() : null,
-    mqtt: hostBackedSourceTypes.has("mqtt") || hostBackedSourceTypes.has("mqtt-output") ? { enabled: env.mqttBrokerEnabled, available: env.mqttBrokerEnabled, reason: env.mqttBrokerEnabled ? null : "Local MQTT broker is disabled." } : null,
+    mqtt: hostBackedSourceTypes.has("mqtt") || hostBackedSourceTypes.has("mqtt-output") ? { enabled: env.mqttBrokerEnabled, available: env.mqttBrokerEnabled, reason: env.mqttBrokerEnabled ? null : "Local MQTT broker is disabled. Enable it from Devices -> Hardware support." } : null,
   };
 
   for (const block of mainBlocks) {
