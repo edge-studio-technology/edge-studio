@@ -244,8 +244,7 @@ export function WorkflowWorkspace({
       type,
       config: defaultEditBlockConfig(type, sources, addressBook),
     });
-    if (result?.item && result.item.type !== "manual_start") setSelectedBlockId(result.item.id);
-    else setSelectedBlockId("");
+    setSelectedBlockId(result?.item.id ?? "");
   }
 
   function flushSelectedInspector() {
@@ -292,11 +291,6 @@ export function WorkflowWorkspace({
 
   function selectCanvasBlock(id: string) {
     if (draftBlock && id !== draftBlock.id) discardDraftBlock();
-    const block = mainBlocks.find((item) => item.id === id);
-    if (mode !== "watch" && block?.type === "manual_start") {
-      closeSelectedSheet();
-      return;
-    }
     if (id !== selectedBlockId && !draftBlock) flushSelectedInspector();
     setSelectedBlockId(id);
   }
@@ -576,7 +570,7 @@ export function WorkflowWorkspace({
               />
             </div>
           </SelectedBlockSheet>
-        ) : selectedBlock && (mode === "watch" || selectedBlock.type !== "manual_start") ? (
+        ) : selectedBlock ? (
           <SelectedBlockSheet
             title={
               mode === "watch" ? `${blockLabel(selectedBlock)} runtime` : blockLabel(selectedBlock)
