@@ -69,9 +69,18 @@ Later same branch, next session:
 - Closed the plan's last open Follow-up item: raised the backend threshold floor again (statements/branches/functions/lines: 78/71/81/81 → 87/77/90/89) now that lines sit at 92%, keeping the same ~3pt regression margin. Flipped the plan's `**Status:**` to Done and archived it to `docs/plans/archive/coverage-criteria.md` (same precedent as the other unit-test plans); moved the one item it surfaced but didn't own (`verification.md`'s missing `update-agent` build step) to `docs/TASKS.md`'s Ideas section so it isn't lost with the archive, and moved the coverage-criteria line itself from `## In Progress` to `## Done`.
 - Verified: `npm run test:coverage`/`npm run check` clean at the new floor, no other files touched.
 
+Later same branch, next session:
+
+- Audited the high-risk spot-checks from `.temp/reviews/README.md` against the tests and production code, then kept this branch test-only: no `src/`, package, or lock files were changed.
+- Strengthened backend coverage for persisted-secret compatibility and APP_SECRET key dependence; Minima's six-minute operation expiry, compact-quit sequencing, autonomous Docker cycle, RPC-close handling, and background-failure cleanup; and non-native wallet token propagation.
+- Strengthened frontend wallet coverage for non-native token submission at the exact sendable balance, address-book recipient submission, selected-token balance gating, and the blocked-actions state.
+- Replaced the Update Agent Docker client's tautological assertions with exact body-write, timeout-registration, timeout-rejection, request-destruction, and request-end assertions.
+- Recorded production changes that cannot be solved with tests alone in `docs/plans/high-risk-business-logic-hardening.md` and linked it from `docs/TASKS.md`: credential-change session invalidation, outward-error sanitization, Minima pre-background operation cleanup, authoritative Minima address validation, and Update Agent stream-timeout promise settlement.
+- Verified focused suites (backend 56, frontend 16, Update Agent 26), full typecheck and coverage (backend 910, frontend 1432, Update Agent 144), backend/frontend builds, and `docker compose config`. `npm run check` reaches and passes all typecheck/coverage stages but still exits at the same pre-existing `nanoid`/`postcss` audit advisories; no dependency files were changed.
+
 ## Next Steps
 
-- Both test-coverage plans (`backend-unit-tests.md`, `coverage-criteria.md`) are now archived and Done, alongside their already-archived `frontend`/`update-agent` siblings — no coverage-plan work queued.
+- Implement `docs/plans/high-risk-business-logic-hardening.md` on a separate production-behavior branch; this test branch should not absorb those changes.
 - The `verification.md` update-agent-build-step gap moved to `docs/TASKS.md`'s Ideas section is still unactioned.
 - Consider refreshing `backend/package-lock.json` (plain `npm install`, no `package.json` changes needed) to pick up the already-allowed patched `nanoid`/`postcss` versions and clear the `npm audit` warning for real — separate from test-writing work, so not done in this session.
 - Still open from prior sessions: decide whether to split `docs/TASKS.md`'s `block-automation-workflows` line into per-milestone bullets (see Notes below); fix stale `integritasAuth`/`integritas-auth` doc reference; fix/investigate `StampResult.tsx` double-toast bug.
@@ -81,3 +90,4 @@ Later same branch, next session:
 - `docs/TASKS.md`'s `block-automation-workflows` line hides an 844-line plan with several substantial unbuilt code features — recommend splitting it into per-milestone bullets next time it's picked up (see audit above). Not acted on yet; flagged for the user to decide.
 - `.claude/rules/frontend.md` says the Integritas Connect auth folder is `integritasAuth`; it's actually `integritas-auth` on disk. Small doc-drift fix, not made yet.
 - Non-blocking bug noted in `StampResult.tsx` (double-toast on sustained unauthorized-refresh failure) — not fixed, out of scope for test-writing.
+- `dockerRequestStream()`'s timeout handler sets `settled = true` before `request.destroy(error)` emits the request error, so the guarded error handler cannot reject the promise. The test-only branch now verifies timeout registration but deliberately does not encode the hanging promise as accepted behavior; the fix and rejection test are in the deferred hardening plan.

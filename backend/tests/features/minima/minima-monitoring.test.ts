@@ -82,6 +82,22 @@ describe("canAutoResync", () => {
   });
 });
 
+describe("Minima operation tracking", () => {
+  it("expires an in-progress operation after the six-minute recovery window", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+
+    monitoring.beginMinimaOperation("restart");
+    assert.equal(monitoring.isMinimaOperationInProgress(), true);
+
+    vi.setSystemTime(new Date("2026-01-01T00:06:00.000Z"));
+    assert.equal(monitoring.isMinimaOperationInProgress(), true);
+
+    vi.setSystemTime(new Date("2026-01-01T00:06:00.001Z"));
+    assert.equal(monitoring.isMinimaOperationInProgress(), false);
+  });
+});
+
 describe("buildMinimaMonitoring", () => {
   it("combines stall detection, env thresholds, and the current snapshot", () => {
     const result = monitoring.buildMinimaMonitoring({ state: "running", sync: { blockAgeSeconds: 301 } as never });

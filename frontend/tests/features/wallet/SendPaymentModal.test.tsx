@@ -136,6 +136,71 @@ describe("SendPaymentModal", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("submits the selected non-native token at its exact sendable balance", async () => {
+    sendPayment.mockResolvedValue({ ok: true, txpowId: "0xwidget", status: "sent" });
+    renderModal();
+
+    await userEvent.type(screen.getByLabelText("Recipient address"), "MxWidgetRecipient");
+    await userEvent.selectOptions(screen.getByLabelText("Token"), "0x01");
+    await userEvent.type(screen.getByLabelText("Amount"), "3");
+
+    expect(screen.getByRole("button", { name: "Send payment" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "Send payment" }));
+
+    await waitFor(() => {
+      expect(sendPayment).toHaveBeenCalledWith({
+        address: "MxWidgetRecipient",
+        amount: "3",
+        tokenId: "0x01",
+        tokenName: "Widget",
+      });
+    });
+  });
+
+  it("submits the address selected from the address book", async () => {
+    listAddressBookEntries.mockResolvedValue([
+      { id: "1", label: "Alice", address: "MxAlice", notes: null, created_at: "2026-08-01T00:00:00.000Z" },
+    ]);
+    sendPayment.mockResolvedValue({ ok: true, txpowId: "0xcontact", status: "sent" });
+    renderModal();
+    await waitFor(() => expect(listAddressBookEntries).toHaveBeenCalled());
+
+    await userEvent.click(screen.getByRole("tab", { name: "Address book" }));
+    await userEvent.selectOptions(screen.getByLabelText("Recipient address"), "MxAlice");
+    await userEvent.type(screen.getByLabelText("Amount"), "1");
+    await userEvent.click(screen.getByRole("button", { name: "Send payment" }));
+
+    await waitFor(() => {
+      expect(sendPayment).toHaveBeenCalledWith({
+        address: "MxAlice",
+        amount: "1",
+        tokenId: "0x00",
+        tokenName: "Minima",
+      });
+    });
+  });
+
+  it("uses the selected token's sendable balance", async () => {
+    renderModal();
+
+    await userEvent.type(screen.getByLabelText("Recipient address"), "MxRecipient");
+    await userEvent.type(screen.getByLabelText("Amount"), "4");
+    expect(screen.getByRole("button", { name: "Send payment" })).toBeEnabled();
+
+    await userEvent.selectOptions(screen.getByLabelText("Token"), "0x01");
+    expect(screen.getByRole("button", { name: "Send payment" })).toBeDisabled();
+    expect(screen.getByText("Amount exceeds available balance (3 Widget).")).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText("Token"), "0x00");
+    expect(screen.getByRole("button", { name: "Send payment" })).toBeEnabled();
+  });
+
+  it("disables sending while wallet actions are blocked", () => {
+    renderModal({ actionsBlocked: true });
+
+    expect(screen.getByRole("button", { name: "Send payment" })).toBeDisabled();
+  });
+
   it("shows a form error and keeps the modal open when the result reports failure", async () => {
     sendPayment.mockResolvedValue({ ok: true, txpowId: null, status: "failed", message: "Node rejected transaction" });
     const onClose = vi.fn();

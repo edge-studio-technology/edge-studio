@@ -23,6 +23,7 @@
 
 ## Next
 
+- [ ] Address the production-behavior gaps from the high-risk unit-test audit on a separate branch — see `docs/plans/high-risk-business-logic-hardening.md`.
 - [ ] Add privileged host-agent capability management so camera support can be enabled from the app after install — see `docs/plans/host-agent-capability-management.md`.
 - [ ] On a real device or a local `install.sh` run, confirm end-to-end that `last-applied-manifest.json` gets written and a Feedback submission's `app.version` reflects it (see `docs/adr/0006-app-version-single-source-of-truth.md`).
 - [ ] Implement the hosted feedback receiver endpoint in the Integritas API repo — see `docs/plans/feedback.md` Step 8.
@@ -67,6 +68,7 @@
 
 ## Done
 
+- [x] Strengthened the high-risk unit-test spot-checks for crypto, Minima restart/operation tracking, wallet asset/recipient boundaries, and Update Agent Docker requests; production-behavior findings are deferred to `docs/plans/high-risk-business-logic-hardening.md`.
 - [x] Backend unit test coverage, one feature folder at a time — see `docs/plans/archive/backend-unit-tests.md`. All folders Done (`data-sources` now includes the GPIO/MQTT/camera/sensor hardware services); `debug` Skipped (dev-only single-handler ping, not worth extracting a service function for).
 - [x] Coverage criteria: numeric floor (regression guard) enforced via `@vitest/coverage-v8` across all three packages, `npm run check` fails below threshold — see `docs/plans/archive/coverage-criteria.md`. Backend floor raised twice as real gaps closed (75%→81%→89% lines), a supertest smoke test now asserts every non-public API route requires a session (`backend/tests/app.401-smoke.test.ts`).
 - [x] Frontend unit test coverage, one area at a time — see `docs/plans/archive/frontend-unit-tests.md`. All folders covered, including `features/automation`'s 4 large stateful orchestrator components (`WorkflowWatchUi.tsx`/`CreateWorkflowWorkspace.tsx`/`WorkflowWorkspace.tsx`/`WorkflowBlockInspectors.tsx`). Frontend suite: 179 files / 1428 tests.

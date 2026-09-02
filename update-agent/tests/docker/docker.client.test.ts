@@ -68,6 +68,7 @@ describe("docker.client", () => {
       assert.deepEqual(result, response);
       assert.equal(mockRequest.method, "POST");
       assert.equal(mockRequest.path, "/containers/create");
+      assert.deepEqual(mockRequest.write.mock.calls, [[JSON.stringify(body)]]);
     });
 
     it("should send a DELETE request", async () => {
@@ -194,8 +195,20 @@ describe("docker.client", () => {
 
       await dockerRequest("GET", "/test", undefined, 1000);
 
-      // Verify that setTimeout was called (we can't easily check the exact value due to the way mocks work)
-      assert.ok(mockRequest.setTimeout.mock.calls.length >= 0);
+      assert.equal(mockRequest.setTimeout.mock.calls.length, 1);
+      assert.equal(mockRequest.setTimeout.mock.calls[0]?.[0], 1000);
+      assert.equal(typeof mockRequest.setTimeout.mock.calls[0]?.[1], "function");
+    });
+
+    it("should destroy the request and reject when the timeout fires", async () => {
+      const promise = dockerRequest("GET", "/test", undefined, 1000);
+      const timeoutHandler = mockRequest.setTimeout.mock.calls[0]?.[1] as () => void;
+
+      timeoutHandler();
+
+      await assert.rejects(promise, /Docker API GET \/test timed out/);
+      assert.equal(mockRequest.destroy.mock.calls.length, 1);
+      assert.match((mockRequest.destroy.mock.calls[0]?.[0] as Error).message, /GET \/test timed out/);
     });
 
     it("should call request.end()", async () => {
@@ -204,9 +217,9 @@ describe("docker.client", () => {
         mockResponse.emitEnd();
       });
 
-      const result = await dockerRequest("GET", "/test");
+      await dockerRequest("GET", "/test");
 
-      assert.ok(result !== undefined || result === undefined); // Successfully completed
+      assert.equal(mockRequest.end.mock.calls.length, 1);
     });
 
     it("should handle multi-chunk response", async () => {
@@ -467,8 +480,10 @@ describe("docker.client", () => {
 
       await promise;
 
-      // Verify stream completed successfully with custom timeout
-      assert.ok(true);
+      assert.equal(mockRequest.setTimeout.mock.calls.length, 1);
+      assert.equal(mockRequest.setTimeout.mock.calls[0]?.[0], 10000);
+      assert.equal(typeof mockRequest.setTimeout.mock.calls[0]?.[1], "function");
+      assert.equal(mockRequest.end.mock.calls.length, 1);
     });
   });
 });

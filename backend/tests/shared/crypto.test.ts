@@ -1,6 +1,7 @@
 import nodeCrypto from "node:crypto";
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
+import { env } from "../../src/config/env.js";
 import { decryptSecret, encryptSecret, sha256Hex, sha3HashHex } from "../../src/shared/crypto.js";
 
 describe("sha3HashHex", () => {
@@ -50,5 +51,34 @@ describe("encryptSecret / decryptSecret", () => {
     const encrypted = encryptSecret("tamper-test");
     const tampered = { ...encrypted, value: encryptSecret("other").value };
     assert.throws(() => decryptSecret(tampered));
+  });
+
+  it("decrypts a persisted ciphertext fixture", () => {
+    const originalAppSecret = env.appSecret;
+    env.appSecret = "compatibility-test-app-secret";
+    try {
+      assert.equal(
+        decryptSecret({
+          iv: "AAECAwQFBgcICQoL",
+          tag: "bK15t5esxtCRJ2t8jcuAvQ==",
+          value: "hRIL21H5RgES+gHsYLTVg6mZuaxpZQ=="
+        }),
+        "persisted-secret-value"
+      );
+    } finally {
+      env.appSecret = originalAppSecret;
+    }
+  });
+
+  it("cannot decrypt ciphertext after the app secret changes", () => {
+    const originalAppSecret = env.appSecret;
+    env.appSecret = "encryption-secret";
+    try {
+      const encrypted = encryptSecret("key-dependence-test");
+      env.appSecret = "different-secret";
+      assert.throws(() => decryptSecret(encrypted));
+    } finally {
+      env.appSecret = originalAppSecret;
+    }
   });
 });

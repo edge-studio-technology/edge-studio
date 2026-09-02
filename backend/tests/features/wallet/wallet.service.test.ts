@@ -75,8 +75,8 @@ describe("sendPayment", () => {
 
   it("sends the amount/address/tokenid in the RPC command and parses the response", async () => {
     runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, body: { response: { txpowid: "tx-1" } } });
-    const result = await walletService.sendPayment({ address: "0xabc", amount: "5", tokenId: "0x00" });
-    assert.equal(runMinimaPathCommandMock.mock.calls[0][0], "send amount:5 address:0xabc tokenid:0x00");
+    const result = await walletService.sendPayment({ address: "0xabc", amount: "5", tokenId: "0x01" });
+    assert.equal(runMinimaPathCommandMock.mock.calls[0][0], "send amount:5 address:0xabc tokenid:0x01");
     assert.equal(runMinimaPathCommandMock.mock.calls[0][1], 10_000);
     assert.equal(result.ok, true);
     assert.equal(result.txpowId, "tx-1");
