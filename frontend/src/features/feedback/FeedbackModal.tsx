@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { CheckCircle2, Info } from "lucide-react";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { Button } from "../../components/ui/Button";
@@ -9,6 +9,7 @@ import { InputField } from "../../components/ui/InputField";
 import { Modal } from "../../components/ui/Modal";
 import { SelectField } from "../../components/ui/SelectField";
 import { TextareaField } from "../../components/ui/TextareaField";
+import { Tooltip } from "../../components/ui/Tooltip";
 import { getJson, postJson } from "../../lib/api";
 import { useToast } from "../../components/ToastProvider";
 
@@ -55,6 +56,35 @@ const featurePriorities = [
   { value: "important", label: "Important" },
   { value: "blocking_workflow", label: "Blocking workflow" },
 ];
+
+const fieldHelp = {
+  type: "Choose the kind of feedback you are sending so we can route and review it correctly.",
+  area: "Choose the part of Edge Studio your feedback is about. Use Current page if you are not sure.",
+  severity: "For bugs, choose how much this issue affects your ability to keep working.",
+  reproducibility: "Tell us whether the issue happens every time, sometimes, only once, or if you are not sure.",
+  expectedBehavior: "Describe what you thought Edge Studio should do before the issue happened.",
+  actualBehavior: "Describe what Edge Studio actually did instead.",
+  priority: "For feature requests, choose how important this would be for your workflow.",
+  desiredOutcome: "Describe the result you want, even if you are not sure how it should be built.",
+  description: "Add the main details we need to understand the feedback. Include steps, context, or examples when useful.",
+};
+
+function FieldLabel({ children, help }: { children: ReactNode; help: string }) {
+  return (
+    <span className="gap-detail-fine inline-flex items-center">
+      {children}
+      <Tooltip title={help} placement="top" variant="light" className="w-64">
+        <span
+          aria-label={help}
+          className="inline-grid size-4 place-items-center rounded-full text-icon-secondary outline-none focus-visible:ring-2 focus-visible:ring-stroke-active focus-visible:ring-offset-2"
+          tabIndex={0}
+        >
+          <Info aria-hidden className="size-3.5" />
+        </span>
+      </Tooltip>
+    </span>
+  );
+}
 
 type FeedbackSubmitResponse = {
   id: string;
@@ -341,14 +371,14 @@ export function FeedbackModal({
           </Card>
 
           <SelectField
-            label="Feedback type"
+            label={<FieldLabel help={fieldHelp.type}>Feedback type</FieldLabel>}
             value={type}
             onChange={(event) => setType(event.target.value)}
             options={feedbackTypes}
           />
 
           <SelectField
-            label="What is this about?"
+            label={<FieldLabel help={fieldHelp.area}>What is this about?</FieldLabel>}
             value={area}
             onChange={(event) => setArea(event.target.value)}
             options={feedbackAreas}
@@ -358,27 +388,27 @@ export function FeedbackModal({
             <Card size="Compact" className="border-stroke-secondary gap-detail-close grid border">
               <div className="gap-detail-close grid sm:grid-cols-2">
                 <SelectField
-                  label="Severity"
+                  label={<FieldLabel help={fieldHelp.severity}>Severity</FieldLabel>}
                   value={bugSeverity}
                   onChange={(event) => setBugSeverity(event.target.value)}
                   options={bugSeverities}
                 />
                 <SelectField
-                  label="Reproducibility"
+                  label={<FieldLabel help={fieldHelp.reproducibility}>Reproducibility</FieldLabel>}
                   value={bugReproducibility}
                   onChange={(event) => setBugReproducibility(event.target.value)}
                   options={bugReproducibilities}
                 />
               </div>
               <InputField
-                label="Expected behavior"
+                label={<FieldLabel help={fieldHelp.expectedBehavior}>Expected behavior</FieldLabel>}
                 maxLength={1000}
                 value={expectedBehavior}
                 onChange={(event) => setExpectedBehavior(event.target.value)}
                 placeholder="What did you expect to happen?"
               />
               <InputField
-                label="Actual behavior"
+                label={<FieldLabel help={fieldHelp.actualBehavior}>Actual behavior</FieldLabel>}
                 maxLength={1000}
                 value={actualBehavior}
                 onChange={(event) => setActualBehavior(event.target.value)}
@@ -390,13 +420,13 @@ export function FeedbackModal({
           {type === "feature_request" && (
             <Card size="Compact" className="border-stroke-secondary gap-detail-close grid border">
               <SelectField
-                label="Priority"
+                label={<FieldLabel help={fieldHelp.priority}>Priority</FieldLabel>}
                 value={featurePriority}
                 onChange={(event) => setFeaturePriority(event.target.value)}
                 options={featurePriorities}
               />
               <InputField
-                label="Desired outcome"
+                label={<FieldLabel help={fieldHelp.desiredOutcome}>Desired outcome</FieldLabel>}
                 maxLength={1000}
                 value={desiredOutcome}
                 onChange={(event) => setDesiredOutcome(event.target.value)}
@@ -406,7 +436,7 @@ export function FeedbackModal({
           )}
 
           <TextareaField
-            label="Description"
+            label={<FieldLabel help={fieldHelp.description}>Description</FieldLabel>}
             maxLength={10000}
             placeholder="What happened, what did you expect, or what would you like to improve?"
             value={description}

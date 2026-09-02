@@ -60,6 +60,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Update Agent unit test coverage for `self-update/self-update.service.ts`.
 - Update Agent unit test coverage for `self-update/orchestrator.ts` — full Update Agent unit test coverage complete.
 
+## [0.38.12] 2026-08-24
+
+### Fixed
+
+- Fixed aria labels visability issue.
+
+## [0.38.12] 2026-08-24
+
+### Added
+
+- Added explinations to aria feedback labels.
+
 ## [0.38.11] 2026-08-18
 
 ### Added
