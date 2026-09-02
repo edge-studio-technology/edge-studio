@@ -8,7 +8,7 @@ import { getDataSource } from "../data-sources/dataSources.repository.js";
 import { parseGpioOutputConfig } from "../data-sources/dataSources.service.js";
 import { syncGpioDataSources } from "../data-sources/gpioIngestion.service.js";
 import { syncMqttDataSources } from "../data-sources/mqttIngestion.service.js";
-import { createAutomationBlock, createAutomationWorkflow, deleteAutomationBlock, deleteAutomationWorkflow, duplicateAutomationWorkflow, getAutomationWorkflow, listAutomationBlocks, listAutomationWorkflows, reorderAutomationBlocks, updateAutomationBlock, updateAutomationWorkflow, type AutomationBlockType } from "./automation.repository.js";
+import { createAutomationBlock, createAutomationWorkflow, deleteAutomationBlock, deleteAutomationWorkflow, duplicateAutomationWorkflow, getAutomationWorkflow, listAutomationBlocks, listAutomationWorkflows, reorderAutomationBlocks, replaceAutomationStartBlock, updateAutomationBlock, updateAutomationWorkflow, type AutomationBlockType } from "./automation.repository.js";
 import { getSerializedAutomationRun, listSerializedAutomationRuns, listSerializedAutomationRunsForWorkflow, runAutomationWorkflow, serializeAutomationBlock, serializeAutomationWorkflow } from "./automation.service.js";
 import { AUTOMATION_RUN_LIST_STATUSES, countAutomationRuns } from "./automationRuns.repository.js";
 import { countAutomationInboxItems, deleteAutomationInboxItem, getAutomationInboxItem, listAutomationInboxItems, setAutomationInboxItemRead, type AutomationInboxFormat } from "./automationInbox.repository.js";
@@ -147,6 +147,25 @@ automationRouter.post("/workflows/:id/duplicate", requireRole("admin"), (req, re
   syncMqttDataSources();
   syncGpioDataSources();
   return res.json({ item: serializeAutomationWorkflow(workflow) });
+});
+
+automationRouter.patch("/workflows/:id/start-block", requireRole("admin"), (req, res) => {
+  const workflow = getAutomationWorkflow(req.params.id);
+  if (!workflow) return notFound(res, "Automation workflow not found");
+  const type = typeof req.body?.type === "string" ? req.body.type as AutomationBlockType : "" as AutomationBlockType;
+  if (!isAutomationBlockType(type) || !type.endsWith("_start")) return badRequest(res, "Invalid start block type");
+  try {
+    const config = req.body?.config && typeof req.body.config === "object" && !Array.isArray(req.body.config) ? req.body.config as Record<string, unknown> : {};
+    validateBlockConfig(type, config);
+    const block = replaceAutomationStartBlock(workflow.id, { type, config });
+    if (!block) return badRequest(res, "The first workflow block must be a start block");
+    updateAutomationWorkflow(workflow.id, { enabled: false, nextRunAt: null });
+    syncMqttDataSources();
+    syncGpioDataSources();
+    return res.json({ item: serializeAutomationBlock(block), workflow: serializeAutomationWorkflow(getAutomationWorkflow(workflow.id)!) });
+  } catch (error) {
+    return badRequest(res, error instanceof Error ? error.message : "Invalid start block");
+  }
 });
 
 automationRouter.post("/workflows/:id/blocks", requireRole("admin"), (req, res) => {
