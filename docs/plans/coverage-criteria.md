@@ -23,11 +23,11 @@ Rejected alternative: a single global % target (e.g. "80% everywhere"). Rejected
 
 | Package | In-scope lines (2026-09-01) | Threshold floor (lines) |
 |---|---|---|
-| backend | 84.21% | 75% |
+| backend | 84.21% | 81% |
 | frontend | 90.91% | 88% |
 | update-agent | 99.09% | 96% |
 
-Backend rose from 78.09% after `minima-backup*`/`minima-console*` (see Known Gaps below) got test coverage; the floor itself is unchanged — see Follow-up.
+Backend rose from 78.09% after `minima-backup*`/`minima-console*` (see Known Gaps below) got test coverage; the floor was raised from 75%→81% (lines) to lock in the gain, keeping the same ~3pt regression margin as the other packages.
 
 Statements/branches/functions floors are set the same way (a few points below measured); see each `coverage.thresholds` block.
 
@@ -52,7 +52,6 @@ Statements/branches/functions floors are set the same way (a few points below me
 
 ## Follow-up (not done yet)
 
-- `minima-backup*`/`minima-console*` now have Progress rows and tests in `backend-unit-tests.md` (backend rose 78.09% → 84.21% lines) — revisit the backend threshold floor upward to lock in the gain.
 - Decide whether to build the supertest 401-smoke-test from `backend-unit-tests.md`'s "Future Hardening".
 - `.claude/rules/verification.md` (and `.agents/`/`.cursor/` counterparts) still list `npm --prefix backend run build`/`npm --prefix frontend run build` without an `update-agent` build step — separate pre-existing gap, out of scope here, flagged for a future pass.
 

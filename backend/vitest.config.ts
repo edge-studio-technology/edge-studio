@@ -24,10 +24,10 @@ export default defineConfig({
         "src/features/minima/minima-upload.middleware.ts"
       ],
       thresholds: {
-        statements: 73,
-        branches: 68,
-        functions: 74,
-        lines: 75
+        statements: 78,
+        branches: 71,
+        functions: 81,
+        lines: 81
       }
     }
   }
