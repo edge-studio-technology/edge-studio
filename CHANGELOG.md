@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Devices list Status now reflects current usability and last failures instead of HTTP health-check configuration.
 - Removed the HTTP health status URL field and device health-check endpoint from data-source management.
 - Devices list now uses compact Name, Details, Status, Last activity, and Actions columns.
+- Hardware support status now reports more precise diagnostics for helper services, host devices, Compose state, and container readiness.
 
 ### Fixed
 

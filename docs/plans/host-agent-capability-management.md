@@ -288,6 +288,8 @@ Implemented so far:
 - Workflow list rows show a validation error message when there is no persisted runtime `lastError`.
 - Hardware enable/disable uses a blocking modal with polling/settle time so the UI does not accept more hardware actions while backend/services are restarting.
 - `HOST_CAPABILITY_DEBUG=true` enables secret-safe backend and host-agent diagnostics for hardware support flows.
+- Real Pi regression confirmed enable/disable for Camera, GPIO, I2C sensors, and Local MQTT, including state after backend/container restart, disabled device status, workflow validation errors, and template hiding.
+- Host-agent capability status now includes per-capability `checks` diagnostics and distinguishes missing tools/devices, helper service state, Compose profile/service/container state, generated GPIO override state, and backend container GPIO readiness.
 
 Known V1 boundaries:
 
@@ -296,36 +298,32 @@ Known V1 boundaries:
 - Edge Studio does not install OS-level prerequisites automatically yet.
 - Raspberry Pi OS/Debian prerequisite guidance is shown in the UI; other Linux distributions may work but are not the primary supported guidance path.
 
+Completed implementation checkpoints:
+
+- Real Pi regression pass for app-managed hardware enable/disable, backend/container restart behavior, disabled device status, workflow validation errors, and template hiding.
+- Installer/host-agent ownership boundary moved into final V1 shape: installer owns initial setup and host-agent installation, host-agent owns app-managed hardware changes after install, and installer advanced `ENABLE_*` shortcuts call the same host-agent capability logic through CLI install mode.
+
 ## Remaining Implementation Steps
 
-1. Real Pi regression pass.
-   Verify enable/disable for Camera, GPIO, I2C sensors, and Local MQTT on the Pi. Confirm state after backend/container restart, disabled device status, workflow validation errors, template hiding, and external MQTT devices remaining independent from Local MQTT broker state.
-
-2. Host-agent status hardening.
-   Make capability status checks more precise: camera should distinguish missing tools/helper inactive/no detected camera where practical; GPIO should distinguish missing `/dev/gpiochip0`, missing/generated override state, and backend not recreated yet; I2C should distinguish `/dev/i2c-1` missing, SMBus missing, helper inactive; MQTT should ideally check Compose service/container state, not only `.env`/profile state.
-
-3. Host-agent action safety.
+1. Host-agent action safety.
    Keep every action idempotent and retry-safe. Continue protecting user-managed Compose overrides. Improve `.env` write preservation where needed. Ensure partial failures leave a useful reported state and can be retried without manual cleanup.
 
-4. Finalize installer/host-agent ownership boundaries.
-   Keep installer-owned initial setup and host-agent-owned app-managed hardware changes. Ensure advanced `ENABLE_*` shortcuts and host-agent actions produce identical runtime state where possible. Avoid duplicating behavior in ways that drift.
-
-5. Improve hardware operation model.
+2. Improve hardware operation model.
    The blocking modal plus polling is acceptable for V1. Longer-term, implement host-agent jobs: `POST /capabilities/:name/apply` returns a job id, and the UI polls job/capability state. This avoids request timeout issues for longer actions.
 
-6. Add automated tests around capability logic.
+3. Add automated tests around capability logic.
    Add frontend tests for device type to capability mapping, backend workflow validation tests for disabled Camera/GPIO/I2C/local MQTT, and host-agent tests for `.env` updates, Compose profile updates, and safe GPIO override detection. Mock `systemctl`/`docker` where practical.
 
-7. Finalize prerequisite UX.
+4. Finalize prerequisite UX.
    Add an explicit `Refresh hardware status` action in the modal, copyable Raspberry Pi OS prerequisite commands, and an `I have completed this, refresh now` style affordance. Keep the Debian/Raspberry Pi OS disclaimer visible but not noisy.
 
-8. Host-agent update delivery.
+5. Host-agent update delivery.
    Ensure host-agent and helper updates are delivered through the normal signed/update flow, not only by rerunning `install.sh`. Confirm runtime bundle contents and service reload/restart behavior when host-agent/helper code changes.
 
-9. Security and audit trail.
+6. Security and audit trail.
    Add audit events for hardware enable/disable actions, including capability name and resulting state. Do not log tokens or full `.env`. Consider re-auth for hardware actions later if these are treated like other privileged host mutations.
 
-10. Documentation final pass.
+7. Documentation final pass.
     Keep README, security docs, troubleshooting guidance, changelog, and this plan aligned after the Pi regression pass and any status/job model changes.
 
 ## Documentation Plan

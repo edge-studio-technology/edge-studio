@@ -16,7 +16,7 @@
 
 ## In Progress
 
-- [ ] Add privileged host-agent capability management so camera support can be enabled from the app after install — code implemented, needs real Pi/systemd verification — see `docs/plans/host-agent-capability-management.md`.
+- [ ] Add privileged host-agent capability management so hardware support can be enabled from the app after install — real Pi regression complete; remaining status hardening, tests, update delivery, and audit trail work are tracked in `docs/plans/host-agent-capability-management.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.

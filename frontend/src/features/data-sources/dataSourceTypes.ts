@@ -96,4 +96,5 @@ export type HostCapability = {
   devicePath?: string;
   publicPort?: number;
   internalUrl?: string;
+  checks?: Record<string, boolean | string | number | null>;
 };

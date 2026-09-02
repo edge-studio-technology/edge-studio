@@ -94,12 +94,60 @@ def resolved_camera_capture_dir(config):
     return APP_DIR / value.removeprefix("./")
 
 
-def run(command, check=True):
-    completed = subprocess.run(command, cwd=str(APP_DIR), text=True, capture_output=True, check=False)
+def run(command, check=True, timeout=None):
+    try:
+        completed = subprocess.run(command, cwd=str(APP_DIR), text=True, capture_output=True, check=False, timeout=timeout)
+    except subprocess.TimeoutExpired as error:
+        completed = subprocess.CompletedProcess(command, 124, error.stdout or "", error.stderr or "timed out")
     if check and completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip() or f"exit code {completed.returncode}"
         raise RuntimeError(detail)
     return completed
+
+
+def service_checks(service_name, service_file):
+    has_systemctl = shutil.which("systemctl") is not None
+    enabled_result = run(["systemctl", "is-enabled", service_name], check=False, timeout=5) if has_systemctl else None
+    active_result = run(["systemctl", "is-active", service_name], check=False, timeout=5) if has_systemctl else None
+    return {
+        "serviceFileExists": service_file.exists(),
+        "systemctlAvailable": has_systemctl,
+        "serviceEnabled": enabled_result.stdout.strip() == "enabled" if enabled_result else False,
+        "serviceEnabledState": enabled_result.stdout.strip() or enabled_result.stderr.strip() if enabled_result else None,
+        "serviceActive": active_result.stdout.strip() == "active" if active_result else False,
+        "serviceActiveState": active_result.stdout.strip() or active_result.stderr.strip() if active_result else None,
+    }
+
+
+def compose_available(config):
+    return shutil.which("docker") is not None and (APP_DIR / "docker-compose.yml").exists()
+
+
+def compose_services(config):
+    if not compose_available(config):
+        return []
+    completed = run(compose_args(config) + ["config", "--services"], check=False, timeout=10)
+    if completed.returncode != 0:
+        return []
+    return [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+
+
+def compose_service_exists(config, service_name):
+    return service_name in compose_services(config)
+
+
+def compose_service_running(config, service_name):
+    if not compose_available(config):
+        return False
+    completed = run(compose_args(config) + ["ps", "--status", "running", "--services", service_name], check=False, timeout=10)
+    return completed.returncode == 0 and service_name in [line.strip() for line in completed.stdout.splitlines()]
+
+
+def backend_container_sees_path(config, path):
+    if not compose_available(config):
+        return False
+    completed = run(compose_args(config) + ["exec", "-T", "backend", "test", "-e", path], check=False, timeout=10)
+    return completed.returncode == 0
 
 
 def compose_args(config):
@@ -177,29 +225,47 @@ def helper_user():
 
 def camera_status():
     config = read_env()
-    service_exists = CAMERA_SERVICE_FILE.exists()
-    service_active = run(["systemctl", "is-active", "edge-studio-camera-helper.service"], check=False).stdout.strip() == "active" if shutil.which("systemctl") else False
     enabled = is_truthy(config.get("ENABLE_CAMERA"))
-    missing_tools = missing_camera_tools_message()
-    available = enabled and service_exists and service_active and missing_tools is None
+    checks = service_checks("edge-studio-camera-helper.service", CAMERA_SERVICE_FILE)
+    camera_tool = shutil.which("rpicam-still") or shutil.which("libcamera-still")
+    checks["envEnabled"] = enabled
+    checks["cameraToolAvailable"] = camera_tool is not None
+    checks["cameraTool"] = Path(camera_tool).name if camera_tool else None
+    checks["cameraDetected"] = None
+    checks["cameraDetectionAvailable"] = False
+    if camera_tool:
+        completed = run([camera_tool, "--list-cameras"], check=False, timeout=5)
+        output = f"{completed.stdout}\n{completed.stderr}"
+        checks["cameraDetectionAvailable"] = completed.returncode != 124
+        if "No cameras available" in output:
+            checks["cameraDetected"] = False
+        elif "Available cameras" in output:
+            checks["cameraDetected"] = True
+    available = enabled and checks["serviceFileExists"] and checks["serviceEnabled"] and checks["serviceActive"] and checks["cameraToolAvailable"] and checks["cameraDetected"] is not False
     reason = None
     state = "enabled" if available else "disabled" if not enabled else "failed"
-    if missing_tools:
-        reason = missing_tools
+    if not enabled:
+        reason = "Camera support is disabled. Enable it from Devices -> Hardware support."
+    elif not checks["cameraToolAvailable"]:
+        reason = missing_camera_tools_message()
         state = "missing_prerequisites"
-    elif not enabled:
-        reason = "Camera support is disabled."
-    elif not service_exists:
+    elif not checks["serviceFileExists"]:
         reason = "Camera helper service is not installed."
-    elif not service_active:
+    elif not checks["serviceEnabled"]:
+        reason = "Camera helper service is not enabled."
+    elif not checks["serviceActive"]:
         reason = "Camera helper service is not active."
+    elif checks["cameraDetected"] is False:
+        reason = "No camera was detected by the Raspberry Pi camera stack."
+        state = "missing_prerequisites"
     return {
         "name": "camera",
         "enabled": enabled,
-        "installed": service_exists,
+        "installed": checks["serviceFileExists"],
         "available": available,
         "state": state,
         "reason": reason,
+        "checks": checks,
         "captureDir": config.get("CAMERA_CAPTURE_DIR", "/data/captures"),
         "helperPort": int(config.get("CAMERA_HELPER_PORT", "38180")),
     }
@@ -246,22 +312,46 @@ def gpio_status():
     enabled = is_truthy(config.get("ENABLE_GPIO"))
     device_exists = Path("/dev/gpiochip0").exists()
     override_exists = COMPOSE_OVERRIDE_FILE.exists()
-    available = enabled and device_exists and override_exists
+    override_content = COMPOSE_OVERRIDE_FILE.read_text(encoding="utf-8") if override_exists else ""
+    override_mounts_gpio = "/dev/gpiochip0:/dev/gpiochip0" in override_content
+    override_managed = is_managed_gpio_override()
+    expected_group_add = config.get("GPIO_GID", "0") != config.get("DOCKER_GID", "0")
+    override_has_group_add = "group_add:" in override_content and "${GPIO_GID:-0}" in override_content
+    backend_sees_device = backend_container_sees_path(config, "/dev/gpiochip0") if enabled and device_exists and override_mounts_gpio else False
+    checks = {
+        "envEnabled": enabled,
+        "hostDeviceExists": device_exists,
+        "overrideExists": override_exists,
+        "overrideManagedByHostAgent": override_managed,
+        "overrideMountsGpio": override_mounts_gpio,
+        "expectedGroupAdd": expected_group_add,
+        "overrideHasGroupAdd": override_has_group_add,
+        "composeAvailable": compose_available(config),
+        "backendContainerSeesDevice": backend_sees_device,
+    }
+    available = enabled and device_exists and override_mounts_gpio and backend_sees_device
     state = "enabled" if available else "disabled" if not enabled else "missing_prerequisites" if not device_exists else "failed"
     reason = None
-    if not device_exists:
+    if not enabled:
+        reason = "GPIO support is disabled. Enable it from Devices -> Hardware support."
+    elif not device_exists:
         reason = "/dev/gpiochip0 was not found on the host. GPIO support requires Raspberry Pi GPIO support to be present."
-    elif not enabled:
-        reason = "GPIO support is disabled."
     elif not override_exists:
         reason = "GPIO Compose device access is not configured."
+    elif not override_mounts_gpio:
+        reason = "GPIO Compose override does not mount /dev/gpiochip0 into the backend container."
+    elif expected_group_add and not override_has_group_add:
+        reason = "GPIO Compose override does not add the backend container to the GPIO group."
+    elif not backend_sees_device:
+        reason = "Backend container does not see /dev/gpiochip0 yet. Recreate the backend container or wait for the hardware action to finish."
     return {
         "name": "gpio",
         "enabled": enabled,
-        "installed": override_exists,
+        "installed": override_mounts_gpio,
         "available": available,
         "state": state,
         "reason": reason,
+        "checks": checks,
         "devicePath": "/dev/gpiochip0",
     }
 
@@ -294,27 +384,43 @@ def disable_gpio():
 def sensor_status():
     config = read_env()
     enabled = is_truthy(config.get("ENABLE_SENSORS"))
-    service_exists = SENSOR_SERVICE_FILE.exists()
-    service_active = run(["systemctl", "is-active", "edge-studio-sensor-helper.service"], check=False).stdout.strip() == "active" if shutil.which("systemctl") else False
+    checks = service_checks("edge-studio-sensor-helper.service", SENSOR_SERVICE_FILE)
     i2c_exists = Path("/dev/i2c-1").exists()
-    available = enabled and service_exists and service_active and i2c_exists
-    state = "enabled" if available else "disabled" if not enabled else "missing_prerequisites" if not i2c_exists else "failed"
+    python_exists = shutil.which("python3") is not None
+    smbus_available = False
+    if python_exists:
+        smbus_available = run(["python3", "-c", "try:\n import smbus2\nexcept Exception:\n import smbus"], check=False, timeout=5).returncode == 0
+    checks.update({
+        "envEnabled": enabled,
+        "hostDeviceExists": i2c_exists,
+        "pythonAvailable": python_exists,
+        "smbusAvailable": smbus_available,
+    })
+    available = enabled and i2c_exists and python_exists and smbus_available and checks["serviceFileExists"] and checks["serviceEnabled"] and checks["serviceActive"]
+    state = "enabled" if available else "disabled" if not enabled else "missing_prerequisites" if not i2c_exists or not python_exists or not smbus_available else "failed"
     reason = None
-    if not i2c_exists:
+    if not enabled:
+        reason = "I2C sensor support is disabled. Enable it from Devices -> Hardware support."
+    elif not i2c_exists:
         reason = "/dev/i2c-1 was not found on the host. Enable I2C on the Raspberry Pi host, then refresh Hardware support."
-    elif not enabled:
-        reason = "I2C sensor support is disabled."
-    elif not service_exists:
+    elif not python_exists:
+        reason = "python3 was not found on the host. Install Python 3 before enabling I2C sensor support."
+    elif not smbus_available:
+        reason = "Python SMBus support was not found. Install python3-smbus or python3-smbus2 on the host before enabling I2C sensor support."
+    elif not checks["serviceFileExists"]:
         reason = "Sensor helper service is not installed."
-    elif not service_active:
+    elif not checks["serviceEnabled"]:
+        reason = "Sensor helper service is not enabled."
+    elif not checks["serviceActive"]:
         reason = "Sensor helper service is not active."
     return {
         "name": "sensors",
         "enabled": enabled,
-        "installed": service_exists,
+        "installed": checks["serviceFileExists"],
         "available": available,
         "state": state,
         "reason": reason,
+        "checks": checks,
         "devicePath": "/dev/i2c-1",
     }
 
@@ -396,19 +502,35 @@ def mqtt_status():
     enabled = is_truthy(config.get("ENABLE_MQTT_BROKER"))
     profiles = [item for item in config.get("COMPOSE_PROFILES", "").split(",") if item]
     profile_enabled = "mqtt" in profiles
-    available = enabled and profile_enabled
+    service_exists = compose_service_exists(config, "mqtt") if profile_enabled else False
+    service_running = compose_service_running(config, "mqtt") if service_exists else False
+    checks = {
+        "envEnabled": enabled,
+        "composeProfileEnabled": profile_enabled,
+        "composeAvailable": compose_available(config),
+        "composeServiceExists": service_exists,
+        "composeServiceRunning": service_running,
+    }
+    available = enabled and profile_enabled and service_exists and service_running
     reason = None
     if not enabled:
-        reason = "Local MQTT broker is disabled."
+        reason = "Local MQTT broker is disabled. Enable it from Devices -> Hardware support."
     elif not profile_enabled:
         reason = "Docker Compose mqtt profile is not enabled."
+    elif not checks["composeAvailable"]:
+        reason = "Docker Compose is not available for checking the local MQTT broker."
+    elif not service_exists:
+        reason = "Docker Compose mqtt service is not configured."
+    elif not service_running:
+        reason = "Local MQTT broker container is not running."
     return {
         "name": "mqtt",
         "enabled": enabled,
-        "installed": profile_enabled,
+        "installed": service_exists,
         "available": available,
         "state": "enabled" if available else "disabled" if not enabled else "failed",
         "reason": reason,
+        "checks": checks,
         "publicPort": int(config.get("MQTT_PUBLIC_PORT", "1883")),
         "internalUrl": config.get("MQTT_INTERNAL_URL", "mqtt://mqtt:1883"),
     }
