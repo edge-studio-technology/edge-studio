@@ -235,6 +235,17 @@ export function updateAutomationBlock(workflowId: string, blockId: string, input
   return getAutomationBlock(blockId)!;
 }
 
+export function replaceAutomationStartBlock(workflowId: string, input: { type: AutomationBlockType; config: unknown }) {
+  const current = listAutomationBlocks(workflowId).find((block) => !block.parent_block_id && block.order_index === 1);
+  if (!current || !current.type.endsWith("_start")) return undefined;
+  db.prepare(`
+    UPDATE automation_blocks
+    SET updated_at = ?, type = ?, config_json = ?, last_error = NULL
+    WHERE id = ? AND workflow_id = ?
+  `).run(new Date().toISOString(), input.type, JSON.stringify(input.config), current.id, workflowId);
+  return getAutomationBlock(current.id)!;
+}
+
 export function reorderAutomationBlocks(workflowId: string, blockIds: string[]) {
   const currentBlocks = listAutomationBlocks(workflowId).filter((block) => !block.parent_block_id);
   const currentIds = currentBlocks.map((block) => block.id);

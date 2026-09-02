@@ -19,6 +19,7 @@ import {
   listAutomationWorkflowRuns,
   listAutomationWorkflows,
   reorderAutomationBlocks,
+  replaceAutomationStartBlock,
   runAutomationWorkflow,
   updateAutomationBlock,
   updateAutomationInboxItem,
@@ -354,6 +355,12 @@ export function AutomationPage() {
             }
             onAddBlock={(input) =>
               run(() => addAutomationBlock(workspaceWorkflow.id, input), "Could not add block")
+            }
+            onReplaceStartBlock={(input) =>
+              run(
+                () => replaceAutomationStartBlock(workspaceWorkflow.id, input),
+                "Could not change start block",
+              )
             }
             onDeleteBlock={(blockId) =>
               run(
