@@ -1,20 +1,25 @@
 import assert from "node:assert/strict";
-import os from "node:os";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 
 type Handler = (arg?: unknown) => void;
 
 type Scenario =
   | { kind: "response"; statusCode: number; body: string }
-  | { kind: "error"; error: Error };
+  | { kind: "error"; error: Error }
+  | { kind: "timeout" };
 
 let scenario: Scenario = { kind: "response", statusCode: 200, body: "[]" };
+let queuedScenarios: Scenario[] = [];
 const requestedPaths: string[] = [];
 
-const { requestMock } = vi.hoisted(() => ({ requestMock: vi.fn() }));
+const { requestMock, statfsMock } = vi.hoisted(() => ({ requestMock: vi.fn(), statfsMock: vi.fn() }));
 
 vi.mock("node:http", () => ({
   default: { request: requestMock }
+}));
+
+vi.mock("node:fs/promises", () => ({
+  default: { statfs: statfsMock }
 }));
 
 requestMock.mockImplementation((options: { path: string }, callback: (res: unknown) => void) => {
@@ -30,9 +35,13 @@ requestMock.mockImplementation((options: { path: string }, callback: (res: unkno
       return req;
     },
     end() {
-      const current = scenario;
+      const current = queuedScenarios.shift() ?? scenario;
       if (current.kind === "error") {
         handlers.error?.(current.error);
+        return;
+      }
+      if (current.kind === "timeout") {
+        handlers.timeout?.();
         return;
       }
       const res = {
@@ -59,7 +68,9 @@ const { getComposeServiceContainer, inspectContainer, dockerServiceResources, di
 
 beforeEach(() => {
   requestedPaths.length = 0;
+  queuedScenarios = [];
   scenario = { kind: "response", statusCode: 200, body: "[]" };
+  statfsMock.mockReset();
 });
 
 afterEach(() => {
@@ -110,6 +121,16 @@ describe("getComposeServiceContainer", () => {
     scenario = { kind: "error", error: new Error("socket hang up") };
     await assert.rejects(() => getComposeServiceContainer("backend"), /socket hang up/);
   });
+
+  it("rejects malformed Docker API JSON", async () => {
+    scenario = { kind: "response", statusCode: 200, body: "not-json" };
+    await assert.rejects(() => getComposeServiceContainer("backend"), SyntaxError);
+  });
+
+  it("destroys and rejects a timed-out Docker API request", async () => {
+    scenario = { kind: "timeout" };
+    await assert.rejects(() => getComposeServiceContainer("backend"), /Docker API request timed out/);
+  });
 });
 
 describe("inspectContainer", () => {
@@ -126,6 +147,56 @@ describe("inspectContainer", () => {
 });
 
 describe("dockerServiceResources", () => {
+  it("reports CPU, working-set memory, and disk usage for a running container", async () => {
+    queuedScenarios = [
+      { kind: "response", statusCode: 200, body: JSON.stringify([container({ SizeRootFs: 4096 })]) },
+      {
+        kind: "response",
+        statusCode: 200,
+        body: JSON.stringify({
+          cpu_stats: { cpu_usage: { total_usage: 300 }, system_cpu_usage: 1000, online_cpus: 2 },
+          precpu_stats: { cpu_usage: { total_usage: 100 }, system_cpu_usage: 500 },
+          memory_stats: { usage: 1024, limit: 4096, stats: { cache: 256 } }
+        })
+      }
+    ];
+
+    const result = await dockerServiceResources();
+
+    assert.equal(result[0]?.cpuPercent, 80);
+    assert.deepEqual(result[0]?.memory, {
+      usageBytes: 768,
+      usage: "768 B",
+      limitBytes: 4096,
+      limit: "4.0 KB"
+    });
+    assert.deepEqual(result[0]?.disk, { rootFsBytes: 4096, rootFs: "4.0 KB" });
+    assert.deepEqual(requestedPaths, [
+      "/containers/json?all=1&size=1",
+      "/containers/abc123def456/stats?stream=false"
+    ]);
+  });
+
+  it("uses CPU and service-name fallbacks when Docker omits optional fields", async () => {
+    queuedScenarios = [
+      { kind: "response", statusCode: 200, body: JSON.stringify([container({ Names: [], Labels: { "com.docker.compose.project": "edge-studio" } })]) },
+      {
+        kind: "response",
+        statusCode: 200,
+        body: JSON.stringify({
+          cpu_stats: { cpu_usage: { total_usage: 10, percpu_usage: [1, 2, 3, 4] }, system_cpu_usage: 100 },
+          precpu_stats: { cpu_usage: { total_usage: 10 }, system_cpu_usage: 50 },
+          memory_stats: { usage: 10, stats: { cache: 20 } }
+        })
+      }
+    ];
+
+    const result = await dockerServiceResources();
+    assert.equal(result[0]?.service, "abc123def456");
+    assert.equal(result[0]?.cpuPercent, 0);
+    assert.equal(result[0]?.memory?.usageBytes, 0);
+  });
+
   it("skips stats requests for non-running containers and reports null memory/cpu", async () => {
     scenario = {
       kind: "response",
@@ -151,13 +222,18 @@ describe("dockerServiceResources", () => {
 });
 
 describe("diskUsage", () => {
-  it("returns byte and formatted usage for a real path", async () => {
-    const result = await diskUsage(os.tmpdir());
-    assert.equal(result.path, os.tmpdir());
-    assert.equal(typeof result.totalBytes, "number");
+  it("returns byte and formatted usage", async () => {
+    statfsMock.mockResolvedValue({ blocks: 100, bsize: 1024, bavail: 25 });
+    const result = await diskUsage("/data");
+    assert.equal(result.path, "/data");
+    assert.equal(result.totalBytes, 102400);
     assert.equal(result.usedBytes, result.totalBytes - result.freeBytes);
-    assert.ok(result.used);
-    assert.match(result.used, /[KMGT]?B$/);
-    assert.ok(result.usedPercent >= 0 && result.usedPercent <= 100);
+    assert.equal(result.usedPercent, 75);
+  });
+
+  it("reports zero percent when the filesystem reports zero total bytes", async () => {
+    statfsMock.mockResolvedValue({ blocks: 0, bsize: 4096, bavail: 0 });
+    const result = await diskUsage("/empty");
+    assert.equal(result.usedPercent, 0);
   });
 });

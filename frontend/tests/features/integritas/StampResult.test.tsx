@@ -36,7 +36,7 @@ describe("StampResult", () => {
     vi.useRealTimers();
   });
 
-  it("shows a pending state and does not poll", () => {
+  it("shows a pending state and starts polling immediately", async () => {
     getHistoryRecord.mockResolvedValue({ record: record({ proof_status: "pending" }) });
     render(<StampResult record={record({ proof_status: "pending" })} onClose={vi.fn()} />, {
       wrapper: ToastProvider,
@@ -46,6 +46,7 @@ describe("StampResult", () => {
     expect(
       screen.getByText("Proof is pending on-chain. It will be confirmed in a few minutes."),
     ).toBeInTheDocument();
+    await waitFor(() => expect(getHistoryRecord).toHaveBeenCalledOnce());
   });
 
   it("shows a confirmed state for a non-pending, non-failed status", () => {
@@ -55,6 +56,7 @@ describe("StampResult", () => {
 
     expect(screen.getByText("Confirmed on-chain")).toBeInTheDocument();
     expect(screen.getByText("Your file has been stamped.")).toBeInTheDocument();
+    expect(getHistoryRecord).not.toHaveBeenCalled();
   });
 
   it("shows a failed state with the proof error message", () => {
@@ -127,11 +129,8 @@ describe("StampResult", () => {
       wrapper: ToastProvider,
     });
 
-    await waitFor(() => expect(getHistoryRecord).toHaveBeenCalled());
-    // `showToast` isn't a stable reference in `ToastProvider`, so each toast add re-runs the
-    // polling effect and can surface more than one toast here — assert at least one landed.
-    await waitFor(() =>
-      expect(screen.getAllByText("Integritas API key rejected").length).toBeGreaterThan(0),
-    );
+    await waitFor(() => expect(getHistoryRecord).toHaveBeenCalledOnce());
+    expect(await screen.findByText("Integritas API key rejected")).toBeInTheDocument();
+    expect(screen.getAllByText("Integritas API key rejected")).toHaveLength(1);
   });
 });

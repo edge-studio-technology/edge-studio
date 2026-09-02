@@ -860,8 +860,11 @@ describe("automation.service — scheduler", () => {
   });
 
   it("does not start a second interval when already running", () => {
+    vi.useFakeTimers();
+    const setIntervalSpy = vi.spyOn(globalThis, "setInterval");
     service.startAutomationScheduler();
     service.startAutomationScheduler();
+    assert.equal(setIntervalSpy.mock.calls.length, 1);
     service.stopAutomationScheduler();
   });
 

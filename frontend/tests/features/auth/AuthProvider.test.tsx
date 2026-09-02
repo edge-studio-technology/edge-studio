@@ -147,6 +147,35 @@ describe("AuthProvider", () => {
     expect(screen.getByText("showSetup:false")).toBeInTheDocument();
   });
 
+  it("shows login instead of resuming onboarding when the incomplete-setup session lookup fails", async () => {
+    getSetupStatus.mockResolvedValue({ localAdminCreated: true, setupComplete: false });
+    getMe.mockRejectedValue(new Error("unauthorized"));
+    render(<AuthProvider><Consumer /></AuthProvider>);
+    expect(await screen.findByText("showLogin:true")).toBeInTheDocument();
+    expect(screen.queryByText(/OnboardingWizard/)).not.toBeInTheDocument();
+  });
+
+  it("shows login when the setup status request fails", async () => {
+    getSetupStatus.mockRejectedValue(new Error("network down"));
+    render(<AuthProvider><Consumer /></AuthProvider>);
+    expect(await screen.findByText("showLogin:true")).toBeInTheDocument();
+    expect(screen.getByText("user:none")).toBeInTheDocument();
+    expect(getMe).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the session after resumed onboarding completes", async () => {
+    getSetupStatus
+      .mockResolvedValueOnce({ localAdminCreated: true, setupComplete: false })
+      .mockResolvedValueOnce({ localAdminCreated: true, setupComplete: true });
+    getMe.mockResolvedValue({ displayName: "Admin", role: "admin", credentialType: "pin" });
+    render(<AuthProvider><Consumer /></AuthProvider>);
+    await screen.findByText("OnboardingWizard resumeAtConnect:true");
+    await userEvent.click(screen.getByRole("button", { name: "Complete setup" }));
+    expect(await screen.findByText("user:Admin")).toBeInTheDocument();
+    expect(getSetupStatus).toHaveBeenCalledTimes(2);
+    expect(getMe).toHaveBeenCalledTimes(2);
+  });
+
   it("signOut clears the session and shows login even if the logout request fails", async () => {
     getSetupStatus.mockResolvedValue({ localAdminCreated: true, setupComplete: true });
     getMe.mockResolvedValue({ displayName: "Admin", role: "admin", credentialType: "pin" });

@@ -196,6 +196,21 @@ describe("MinimaBackupPanel", () => {
     expect(await screen.findByText("Invalid credential")).toBeInTheDocument();
   });
 
+  it("requires a download credential and locks the modal while confirming", async () => {
+    const user = userEvent.setup();
+    downloadMinimaBackup.mockReturnValue(new Promise(() => {}));
+    renderPanel();
+    await screen.findByText("minima-manual-1.bak");
+    await user.click(screen.getByRole("button", { name: "Download minima-manual-1.bak" }));
+    expect(screen.getByRole("button", { name: /^confirm$/i })).toBeDisabled();
+    await user.type(screen.getByLabelText(/current pin or password/i), "pin1234");
+    await user.click(screen.getByRole("button", { name: /^confirm$/i }));
+    expect(screen.getByRole("button", { name: "Confirming…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(downloadMinimaBackup).toHaveBeenCalledOnce();
+  });
+
   it("restores a backup from a row's menu after confirming with the current password", async () => {
     const user = userEvent.setup();
     restoreMinimaBackup.mockResolvedValue({ ok: true, source: "minima" });
@@ -224,6 +239,22 @@ describe("MinimaBackupPanel", () => {
       screen.getByRole("button", { name: /more actions for minima-manual-1.bak/i }),
     );
     expect(screen.getByRole("menuitem", { name: /restore/i })).toBeDisabled();
+  });
+
+  it("requires a row-restore credential and locks the modal while restoring", async () => {
+    const user = userEvent.setup();
+    restoreMinimaBackup.mockReturnValue(new Promise(() => {}));
+    renderPanel();
+    await screen.findByText("minima-manual-1.bak");
+    await user.click(screen.getByRole("button", { name: /more actions for minima-manual-1.bak/i }));
+    await user.click(screen.getByRole("menuitem", { name: /restore/i }));
+    expect(screen.getByRole("button", { name: /confirm restore/i })).toBeDisabled();
+    await user.type(screen.getByLabelText(/current pin or password/i), "pin1234");
+    await user.click(screen.getByRole("button", { name: /confirm restore/i }));
+    expect(screen.getByRole("button", { name: "Restoring…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(restoreMinimaBackup).toHaveBeenCalledOnce();
   });
 
   it("uploads a .bak file and restores from it", async () => {
@@ -264,6 +295,23 @@ describe("MinimaBackupPanel", () => {
     expect(await screen.findByText("bad file")).toBeInTheDocument();
   });
 
+  it("requires an upload and credential and locks the modal while restoring", async () => {
+    const user = userEvent.setup();
+    restoreMinimaBackupFromUpload.mockReturnValue(new Promise(() => {}));
+    renderPanel();
+    await screen.findByText("minima-manual-1.bak");
+    await user.click(screen.getByRole("button", { name: /restore from backup/i }));
+    expect(screen.getByRole("button", { name: /^restore$/i })).toBeDisabled();
+    await user.upload(getFileInput(), new File(["x"], "restore.bak"));
+    expect(screen.getByRole("button", { name: /^restore$/i })).toBeDisabled();
+    await user.type(screen.getByLabelText(/current pin or password/i), "pin1234");
+    await user.click(screen.getByRole("button", { name: /^restore$/i }));
+    expect(screen.getByRole("button", { name: "Restoring…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(restoreMinimaBackupFromUpload).toHaveBeenCalledOnce();
+  });
+
   it("sets a backup password via the key icon modal", async () => {
     const user = userEvent.setup();
     getBackupPasswordStatus.mockResolvedValue({ hasPassword: false });
@@ -300,6 +348,22 @@ describe("MinimaBackupPanel", () => {
 
     await waitFor(() => expect(clearBackupPassword).toHaveBeenCalledWith("pin1234"));
     expect(await screen.findByText("Backup password removed")).toBeInTheDocument();
+  });
+
+  it("requires the current credential and locks the modal while removing the password", async () => {
+    const user = userEvent.setup();
+    clearBackupPassword.mockReturnValue(new Promise(() => {}));
+    renderPanel();
+    await screen.findByText("Backups (2/20)");
+    await user.click(screen.getByRole("button", { name: /manage backup password/i }));
+    await user.click(screen.getByRole("button", { name: /remove backup password/i }));
+    expect(screen.getByRole("button", { name: /^remove password$/i })).toBeDisabled();
+    await user.type(screen.getByLabelText(/current pin or password/i), "pin1234");
+    await user.click(screen.getByRole("button", { name: /^remove password$/i }));
+    expect(screen.getByRole("button", { name: "Removing…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(clearBackupPassword).toHaveBeenCalledOnce();
   });
 
   it("renders bare content without the panel heading when bare is set", async () => {

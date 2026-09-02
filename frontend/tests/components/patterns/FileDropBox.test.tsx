@@ -10,6 +10,10 @@ function getFileInput(container: HTMLElement) {
   return input as HTMLInputElement;
 }
 
+function asFileList(...files: File[]) {
+  return Object.assign(files, { item: (index: number) => files[index] ?? null }) as unknown as FileList;
+}
+
 describe("FileDropBox", () => {
   it("renders the title and upload instructions when no file is selected", () => {
     render(<FileDropBox title="Upload backup" file={null} onFile={vi.fn()} />, {
@@ -42,7 +46,7 @@ describe("FileDropBox", () => {
 
     const file = new File(["binary"], "backup.zip", { type: "application/zip" });
     const input = getFileInput(container);
-    const fileList = Object.assign([file], { item: (index: number) => [file][index] ?? null });
+    const fileList = asFileList(file);
     Object.defineProperty(input, "files", { value: fileList, configurable: true });
     fireEvent.change(input);
 
@@ -62,5 +66,63 @@ describe("FileDropBox", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Remove backup.json" }));
     expect(onFile).toHaveBeenCalledWith(null);
+  });
+
+  it("tracks drag enter, drag over, nested drag leave, and drop", () => {
+    const onFile = vi.fn();
+    const { container } = render(<FileDropBox title="Upload backup" file={null} onFile={onFile} accept=".bak" />, { wrapper: ToastProvider });
+    const input = getFileInput(container);
+    const surface = input.closest("label");
+    if (!surface) throw new Error("drop surface not found");
+    const dataTransfer = { files: asFileList(new File(["x"], "backup.bak")), dropEffect: "none" };
+    fireEvent.dragEnter(surface, { dataTransfer });
+    expect(surface).toHaveAttribute("data-dragging", "true");
+    fireEvent.dragLeave(surface, { relatedTarget: document.body });
+    expect(surface).not.toHaveAttribute("data-dragging");
+    fireEvent.dragOver(surface, { dataTransfer });
+    expect(surface).toHaveAttribute("data-dragging", "true");
+    const nestedLeave = new Event("dragleave", { bubbles: true, cancelable: true });
+    Object.defineProperty(nestedLeave, "relatedTarget", { value: screen.getByText("Upload backup") });
+    fireEvent(surface, nestedLeave);
+    expect(surface).toHaveAttribute("data-dragging", "true");
+    fireEvent.dragLeave(surface, { relatedTarget: document.body });
+    expect(surface).not.toHaveAttribute("data-dragging");
+    fireEvent.drop(surface, { dataTransfer });
+    expect(onFile).toHaveBeenCalledWith(dataTransfer.files.item(0));
+  });
+
+  it.each([
+    ["an exact MIME type", "application/json", new File(["{}"], "backup.data", { type: "application/json" })],
+    ["a wildcard MIME type", "image/*", new File(["x"], "photo.png", { type: "image/png" })],
+  ])("accepts %s", (_label, accept, file) => {
+    const onFile = vi.fn();
+    const { container } = render(<FileDropBox title="Upload" file={null} onFile={onFile} accept={accept} />, { wrapper: ToastProvider });
+    const input = getFileInput(container);
+    Object.defineProperty(input, "files", { value: asFileList(file), configurable: true });
+    fireEvent.change(input);
+    expect(onFile).toHaveBeenCalledWith(file);
+  });
+
+  it("accepts any file when no accept pattern is provided", () => {
+    const onFile = vi.fn();
+    const { container } = render(<FileDropBox title="Upload" file={null} onFile={onFile} />, { wrapper: ToastProvider });
+    const file = new File(["x"], "archive.bin", { type: "application/octet-stream" });
+    const input = getFileInput(container);
+    Object.defineProperty(input, "files", { value: asFileList(file), configurable: true });
+    fireEvent.change(input);
+    expect(onFile).toHaveBeenCalledWith(file);
+  });
+
+  it("uses the generic rejection message for non-JSON accept patterns", async () => {
+    const { container } = render(<FileDropBox title="Upload image" file={null} onFile={vi.fn()} accept="image/*" />, { wrapper: ToastProvider });
+    const input = getFileInput(container);
+    Object.defineProperty(input, "files", { value: asFileList(new File(["x"], "notes.txt", { type: "text/plain" })), configurable: true });
+    fireEvent.change(input);
+    expect(await screen.findAllByText("This file type is not accepted.")).not.toHaveLength(0);
+  });
+
+  it("disables removing a selected file while busy", () => {
+    render(<FileDropBox title="Upload" file={new File([""], "backup.bak")} onFile={vi.fn()} busy />, { wrapper: ToastProvider });
+    expect(screen.getByRole("button", { name: "Remove backup.bak" })).toBeDisabled();
   });
 });

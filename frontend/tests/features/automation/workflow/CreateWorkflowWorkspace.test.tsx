@@ -9,12 +9,16 @@ import type { DataSource } from "../../../../src/features/data-sources/dataSourc
 const blockerRef: { current: { state: "unblocked" | "blocked"; proceed: ReturnType<typeof vi.fn>; reset: ReturnType<typeof vi.fn> } } = {
   current: { state: "unblocked", proceed: vi.fn(), reset: vi.fn() },
 };
+let blockerPredicate: ((args: { currentLocation: { pathname: string; search: string }; nextLocation: { pathname: string; search: string } }) => boolean) | null = null;
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
   return {
     ...actual,
-    useBlocker: () => blockerRef.current,
+    useBlocker: (predicate: typeof blockerPredicate) => {
+      blockerPredicate = predicate;
+      return blockerRef.current;
+    },
   };
 });
 
@@ -24,11 +28,21 @@ vi.mock("../../../../src/features/automation/automationApi", () => ({
 }));
 
 vi.mock("../../../../src/features/automation/workflow/WorkflowBlockInspectors", () => ({
-  DraftBlockInspector: (props: { onChange: (config: Record<string, unknown>) => void }) => (
+  DraftBlockInspector: (props: {
+    block: { attachedBlocks?: { id: string }[] };
+    onChange: (config: Record<string, unknown>) => void;
+    onAttachedChange: (id: string, config: Record<string, unknown>) => void;
+    onAttachedRemove: (id: string) => void;
+  }) => (
     <div>
       <button type="button" onClick={() => props.onChange({ changed: true })}>
         change-config
       </button>
+      <span>attached-count:{props.block.attachedBlocks?.length ?? 0}</span>
+      {props.block.attachedBlocks?.[0] ? <>
+        <button type="button" onClick={() => props.onAttachedChange(props.block.attachedBlocks![0].id, { attachedChanged: true })}>change-attached</button>
+        <button type="button" onClick={() => props.onAttachedRemove(props.block.attachedBlocks![0].id)}>remove-attached</button>
+      </> : null}
     </div>
   ),
 }));
@@ -79,6 +93,8 @@ vi.mock("../../../../src/features/automation/workflow/toolkit/WorkflowBlockLibra
       <button type="button" onClick={() => props.onAddBlock("fetch_data_source")}>
         add-fetch-data-source
       </button>
+      <button type="button" onClick={() => props.onAddBlock("show_preview")}>add-show-preview</button>
+      <button type="button" onClick={() => props.onAddBlock("send_transaction")}>add-send-transaction</button>
     </div>
   ),
 }));
@@ -124,6 +140,7 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof CreateWorkfl
 
 beforeEach(() => {
   blockerRef.current = { state: "unblocked", proceed: vi.fn(), reset: vi.fn() };
+  blockerPredicate = null;
   validateAutomationDraft.mockReset();
   validateAutomationDraft.mockResolvedValue({ item: okValidation() });
 });
@@ -213,6 +230,21 @@ describe("CreateWorkflowWorkspace", () => {
     expect(screen.queryByRole("button", { name: "change-config" })).not.toBeInTheDocument();
   });
 
+  it("persists inspector configuration changes into the create payload", async () => {
+    const onCreate = vi.fn().mockResolvedValue(true);
+    renderWorkspace({ onCreate });
+    await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
+    await userEvent.click(screen.getByRole("button", { name: "add-fetch-data-source" }));
+    await userEvent.click(screen.getByRole("button", { name: "change-config" }));
+    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Create workflow" })).not.toBeDisabled());
+    await userEvent.click(screen.getByRole("button", { name: "Create workflow" }));
+    expect(onCreate).toHaveBeenCalledWith([
+      expect.objectContaining({ type: "manual_start" }),
+      expect.objectContaining({ type: "fetch_data_source", config: { changed: true } }),
+    ]);
+  });
+
   it("shows an Attach stamp action for a data block with no stamp attached yet", async () => {
     renderWorkspace();
     await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
@@ -223,6 +255,24 @@ describe("CreateWorkflowWorkspace", () => {
     expect(screen.queryByRole("button", { name: "Attach stamp" })).not.toBeInTheDocument();
   });
 
+  it("updates and removes an attached stamp block", async () => {
+    const onCreate = vi.fn().mockResolvedValue(true);
+    renderWorkspace({ onCreate });
+    await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
+    await userEvent.click(screen.getByRole("button", { name: "add-fetch-data-source" }));
+    await userEvent.click(screen.getByRole("button", { name: "Attach stamp" }));
+    expect(screen.getByText("attached-count:1")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "change-attached" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Create workflow" })).not.toBeDisabled());
+    await userEvent.click(screen.getByRole("button", { name: "Create workflow" }));
+    expect(onCreate).toHaveBeenCalledWith(expect.arrayContaining([
+      expect.objectContaining({ type: "stamp_integritas", config: { attachedChanged: true } }),
+    ]));
+    await userEvent.click(screen.getByRole("button", { name: "remove-attached" }));
+    expect(screen.getByText("attached-count:0")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Attach stamp" })).toBeInTheDocument();
+  });
+
   it("removes a block via the canvas remove action", async () => {
     renderWorkspace();
     await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
@@ -231,6 +281,38 @@ describe("CreateWorkflowWorkspace", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "remove-fetch_data_source" }));
     expect(screen.queryByRole("button", { name: "select-fetch_data_source" })).not.toBeInTheDocument();
+  });
+
+  it("reorders non-start blocks without moving them ahead of the start block", async () => {
+    const onCreate = vi.fn().mockResolvedValue(true);
+    renderWorkspace({ onCreate });
+    await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
+    await userEvent.click(screen.getByRole("button", { name: "add-fetch-data-source" }));
+    await userEvent.click(screen.getByRole("button", { name: "add-show-preview" }));
+    await userEvent.click(screen.getByRole("button", { name: "move-up-show_preview" }));
+    await userEvent.click(screen.getByRole("button", { name: "move-up-show_preview" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Create workflow" })).not.toBeDisabled());
+    await userEvent.click(screen.getByRole("button", { name: "Create workflow" }));
+    expect(onCreate.mock.calls[0][0].map((block: { type: string }) => block.type)).toEqual(["manual_start", "show_preview", "fetch_data_source"]);
+  });
+
+  it("reopens a configurable start and replaces it with a different start type", async () => {
+    renderWorkspace();
+    await userEvent.click(screen.getByRole("button", { name: "pick-schedule-start" }));
+    expect(screen.getByRole("button", { name: "change-config" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    await userEvent.click(screen.getByRole("button", { name: "pick-schedule-start" }));
+    expect(screen.getByRole("button", { name: "change-config" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
+    expect(screen.queryByRole("button", { name: "select-schedule_start" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "select-manual_start" })).toBeInTheDocument();
+  });
+
+  it("does not add a payment block when the address book is empty", async () => {
+    renderWorkspace();
+    await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
+    await userEvent.click(screen.getByRole("button", { name: "add-send-transaction" }));
+    expect(screen.queryByRole("button", { name: "select-send_transaction" })).not.toBeInTheDocument();
   });
 
   it("disables Reset canvas until a block is added, then clears blocks", async () => {
@@ -276,6 +358,33 @@ describe("CreateWorkflowWorkspace", () => {
     expect(onCancel).toHaveBeenCalled();
   });
 
+  it("resets a blocked router transition when leave confirmation is cancelled", async () => {
+    blockerRef.current = { state: "blocked", proceed: vi.fn(), reset: vi.fn() };
+    renderWorkspace();
+    const dialog = await screen.findByRole("dialog", { name: "Are you sure?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(blockerRef.current.reset).toHaveBeenCalledOnce();
+    expect(blockerRef.current.proceed).not.toHaveBeenCalled();
+  });
+
+  it("proceeds with a blocked router transition when leaving is confirmed", async () => {
+    const onCancel = vi.fn();
+    blockerRef.current = { state: "blocked", proceed: vi.fn(), reset: vi.fn() };
+    renderWorkspace({ onCancel });
+    const dialog = await screen.findByRole("dialog", { name: "Are you sure?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Leave" }));
+    expect(blockerRef.current.proceed).toHaveBeenCalledOnce();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("prevents browser unload while the workspace is dirty", () => {
+    renderWorkspace();
+    const event = new Event("beforeunload", { cancelable: true });
+    const dispatched = window.dispatchEvent(event);
+    expect(dispatched).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it("calls onCreate with flattened blocks when Create workflow is clicked", async () => {
     const onCreate = vi.fn().mockResolvedValue(true);
     renderWorkspace({ onCreate });
@@ -288,6 +397,22 @@ describe("CreateWorkflowWorkspace", () => {
     expect(onCreate).toHaveBeenCalledWith([
       expect.objectContaining({ type: "manual_start" }),
     ]);
+  });
+
+  it("re-enables navigation blocking when create returns false", async () => {
+    let resolveCreate!: (result: boolean) => void;
+    const onCreate = vi.fn(() => new Promise<boolean>((resolve) => { resolveCreate = resolve; }));
+    renderWorkspace({ onCreate });
+    await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Create workflow" })).not.toBeDisabled());
+    await userEvent.click(screen.getByRole("button", { name: "Create workflow" }));
+    const navigation = {
+      currentLocation: { pathname: "/automation/new", search: "" },
+      nextLocation: { pathname: "/automation", search: "" },
+    };
+    expect(blockerPredicate?.(navigation)).toBe(false);
+    await act(async () => resolveCreate(false));
+    expect(blockerPredicate?.(navigation)).toBe(true);
   });
 
   it("disables all actions while busy", () => {

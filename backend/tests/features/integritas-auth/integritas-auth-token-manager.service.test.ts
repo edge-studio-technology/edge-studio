@@ -94,6 +94,15 @@ describe("getValidAccessToken", () => {
     assert.equal(refreshTokenMock.mock.calls.length, 0);
   });
 
+  it("clears connect state when the current access token cannot be decrypted", async () => {
+    seedAuth({ accessTokenEnc: "not-valid-ciphertext", tokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() });
+    await assert.rejects(
+      () => tokenManager.getValidAccessToken(),
+      (error: unknown) => error instanceof tokenManager.IntegritasTokenManagerError && error.code === tokenManager.TOKEN_DECRYPT_FAILED
+    );
+    assert.equal(repo.getIntegritasAuth(), undefined);
+  });
+
   it("refreshes when within the skew window of expiry and stores the rotated tokens", async () => {
     seedAuth({ tokenExpiresAt: new Date(Date.now() + 60 * 1000).toISOString() });
     refreshTokenMock.mockResolvedValue({ accessToken: "new-access", refreshToken: "new-refresh", expiresIn: 3600, tokenType: "Bearer" });
@@ -120,6 +129,16 @@ describe("getValidAccessToken", () => {
     assert.equal(refreshTokenMock.mock.calls.length, 1);
   });
 
+  it("clears connect state when the refresh token cannot be decrypted", async () => {
+    seedAuth({ refreshTokenEnc: "not-valid-ciphertext", tokenExpiresAt: new Date(Date.now() + 60 * 1000).toISOString() });
+    await assert.rejects(
+      () => tokenManager.getValidAccessToken(),
+      (error: unknown) => error instanceof tokenManager.IntegritasTokenManagerError && error.code === tokenManager.TOKEN_DECRYPT_FAILED
+    );
+    assert.equal(refreshTokenMock.mock.calls.length, 0);
+    assert.equal(repo.getIntegritasAuth(), undefined);
+  });
+
   it("marks the device revoked and returns a revoked result when refresh reports DEVICE_REVOKED", async () => {
     seedAuth({ tokenExpiresAt: new Date(Date.now() + 60 * 1000).toISOString() });
     refreshTokenMock.mockRejectedValue(new clientService.IntegritasConnectError("Device revoked", 401, "DEVICE_REVOKED"));
@@ -143,6 +162,44 @@ describe("getValidAccessToken", () => {
         return true;
       }
     );
+  });
+
+  it("preserves a non-Connect refresh error", async () => {
+    seedAuth({ tokenExpiresAt: new Date(Date.now() + 60 * 1000).toISOString() });
+    const upstreamError = new TypeError("connection reset");
+    refreshTokenMock.mockRejectedValue(upstreamError);
+    await assert.rejects(() => tokenManager.getValidAccessToken(), (error: unknown) => error === upstreamError);
+  });
+
+  it("marks the device revoked when the post-refresh account lookup reports DEVICE_REVOKED", async () => {
+    seedAuth({ tokenExpiresAt: new Date(Date.now() + 60 * 1000).toISOString() });
+    refreshTokenMock.mockResolvedValue({ accessToken: "new-access", refreshToken: "new-refresh", expiresIn: 3600, tokenType: "Bearer" });
+    getMeMock.mockRejectedValue(new clientService.IntegritasConnectError("Device revoked", 401, "DEVICE_REVOKED"));
+
+    const result = await tokenManager.getValidAccessToken();
+    assert.deepEqual(result, { ok: false, status: "revoked" });
+    assert.equal(repo.getIntegritasAuth(), undefined);
+    assert.equal(repo.getActivation()?.status, "revoked");
+  });
+
+  it("preserves stored account identifiers when the post-refresh response omits them", async () => {
+    const storedApiKey = crypto_.encryptIntegritasToken("existing-api-key");
+    seedAuth({ apiKeyEnc: storedApiKey, tokenExpiresAt: new Date(Date.now() + 60 * 1000).toISOString() });
+    refreshTokenMock.mockResolvedValue({ accessToken: "new-access", refreshToken: "new-refresh", expiresIn: 3600, tokenType: "Bearer" });
+    getMeMock.mockResolvedValue({
+      user: { id: undefined, name: "Ada", email: "a@x.com", role: "owner", status: "active" },
+      plan: { name: "Pro", status: "active", endDate: null, autoRenew: true },
+      usage: { apiKeyUsage: 0, apiKeyLimit: 100, apiKeyBonus: 0, apiKeyExpiresAt: null, remaining: 100 },
+      devices: [],
+      apiKey: undefined,
+      edge: { maxDevices: 5, connectedCount: 1 }
+    });
+
+    const result = await tokenManager.getValidAccessToken();
+    const stored = repo.getIntegritasAuth()!;
+    assert.deepEqual(result, { ok: true, accessToken: "new-access" });
+    assert.equal(stored.integritas_user_id, "u1");
+    assert.equal(crypto_.decryptIntegritasToken(stored.api_key_enc!), "existing-api-key");
   });
 
   it("shares one in-flight refresh across concurrent callers", async () => {

@@ -107,6 +107,20 @@ describe("pulseGpioOutput", () => {
     assert.deepEqual(holderArgs, ["--mode=signal", "gpiochip0", "17=0"]);
   });
 
+  it("inverts active and inactive values for an active-low output", async () => {
+    const { pulseGpioOutput } = await import("../../../src/features/data-sources/gpioOutput.service.js");
+    repoMock.getDataSource.mockReturnValue(makeRecord({
+      config: JSON.stringify({ chip: "gpiochip0", pin: 17, profile: "led", activeState: "low" })
+    }));
+
+    const result = await pulseGpioOutput({ targetId: "src-1", durationMs: 200 });
+
+    assert.equal(result.activeValue, 0);
+    assert.equal(result.inactiveValue, 1);
+    assert.deepEqual(spawnMock.mock.calls[1]?.[1], ["--mode=time", "--usec=200000", "gpiochip0", "17=0"]);
+    assert.deepEqual(spawnMock.mock.calls[3]?.[1], ["--mode=signal", "gpiochip0", "17=1"]);
+  });
+
   it("still drives the inactive holder and rejects when a gpioset call exits non-zero", async () => {
     const { pulseGpioOutput } = await import("../../../src/features/data-sources/gpioOutput.service.js");
     repoMock.getDataSource.mockReturnValue(makeRecord());
@@ -125,6 +139,40 @@ describe("pulseGpioOutput", () => {
 
     await assert.rejects(pulseGpioOutput({ targetId: "src-1", durationMs: 200 }), /GPIO output failed/);
     assert.equal(spawnMock.mock.calls.length, 4);
+  });
+
+  it("includes gpioset stderr in a non-zero exit error", async () => {
+    const { pulseGpioOutput } = await import("../../../src/features/data-sources/gpioOutput.service.js");
+    repoMock.getDataSource.mockReturnValue(makeRecord());
+    spawnMock.mockImplementationOnce(() => {
+      const child = makeFakeChild();
+      children.push(child);
+      void Promise.resolve().then(() => {
+        child.emit("data", "permission denied\n");
+        child.emit("exit", 1);
+      });
+      return child;
+    });
+
+    await assert.rejects(pulseGpioOutput({ targetId: "src-1", durationMs: 200 }), /GPIO output failed: permission denied/);
+  });
+
+  it("logs an inactive-drive failure and still starts the holder", async () => {
+    const { pulseGpioOutput } = await import("../../../src/features/data-sources/gpioOutput.service.js");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    repoMock.getDataSource.mockReturnValue(makeRecord());
+    let call = 0;
+    spawnMock.mockImplementation((_cmd: string, args: string[]) => {
+      const child = makeFakeChild();
+      children.push(child);
+      call += 1;
+      if (!args.includes("--mode=signal")) void Promise.resolve().then(() => child.emit("exit", call === 3 ? 1 : 0));
+      return child;
+    });
+
+    await pulseGpioOutput({ targetId: "src-1", durationMs: 200 });
+    assert.equal(spawnMock.mock.calls.length, 4);
+    assert.ok(consoleError.mock.calls.some(([message]) => String(message).includes("could not drive inactive state")));
   });
 
   it("rejects when gpioset cannot start", async () => {
@@ -150,5 +198,20 @@ describe("stopGpioOutputHolders", () => {
     const holder = children[3];
     stopGpioOutputHolders();
     assert.equal(holder.kill.mock.calls[0][0], "SIGTERM");
+  });
+
+  it("logs stderr and startup errors from an inactive holder", async () => {
+    const { pulseGpioOutput, stopGpioOutputHolders } = await import("../../../src/features/data-sources/gpioOutput.service.js");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    repoMock.getDataSource.mockReturnValue(makeRecord());
+    await pulseGpioOutput({ targetId: "src-1", durationMs: 200 });
+
+    const holder = children[3];
+    holder.emit("data", "holder failed\n");
+    holder.emit("error", new Error("ENOENT"));
+
+    assert.ok(consoleError.mock.calls.some(([message]) => String(message).includes("inactive holder error: holder failed")));
+    assert.ok(consoleError.mock.calls.some(([message]) => String(message).includes("inactive holder could not start: ENOENT")));
+    stopGpioOutputHolders();
   });
 });
