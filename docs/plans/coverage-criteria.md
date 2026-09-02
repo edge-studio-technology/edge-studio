@@ -42,7 +42,7 @@ Statements/branches/functions floors are set the same way (a few points below me
 ## Known gaps (why backend's floor is lower, and what closes them)
 
 - `totp.service.ts` is partial (64%) — already a documented, deliberate skip (dead code, `TOTP_ENABLED = false`).
-- Routes stay permanently excluded from coverage (thin wiring, per the routes decision) rather than closed. The cheap alternative already proposed in `backend-unit-tests.md`'s "Future Hardening" — one supertest smoke test asserting every non-public route 401s without a session — is still the right way to catch the one failure mode that matters (`requireAuth` missing from a route) without turning every route into a test target. Not built yet.
+- Routes stay permanently excluded from coverage (thin wiring, per the routes decision) rather than closed. The cheap alternative proposed in `archive/backend-unit-tests.md`'s "Future Hardening" — a supertest smoke test asserting every non-public route 401s without a session — is now built: `backend/tests/app.401-smoke.test.ts`.
 
 ## Changes made this session
 
@@ -52,7 +52,6 @@ Statements/branches/functions floors are set the same way (a few points below me
 ## Follow-up (not done yet)
 
 - `data-sources` hardware services now have tests (backend rose 84.21% → 92% lines) — revisit the backend threshold floor upward again (currently 81%) to lock in this gain too.
-- Decide whether to build the supertest 401-smoke-test from `backend-unit-tests.md`'s "Future Hardening".
 - `.claude/rules/verification.md` (and `.agents/`/`.cursor/` counterparts) still list `npm --prefix backend run build`/`npm --prefix frontend run build` without an `update-agent` build step — separate pre-existing gap, out of scope here, flagged for a future pass.
 
 ## Docs

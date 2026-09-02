@@ -30,7 +30,9 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^20.11.28",
     "@types/qrcode": "^1.5.5",
+    "@types/supertest": "^7.2.1",
     "@vitest/coverage-v8": "^4.1.10",
+    "supertest": "^7.2.2",
     "tsx": "^4.7.1",
     "typescript": "^5.4.2",
     "vitest": "^4.1.10"
