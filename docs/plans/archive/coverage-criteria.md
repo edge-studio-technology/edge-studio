@@ -1,6 +1,6 @@
 # Coverage Criteria Plan
 
-**Status:** In Progress
+**Status:** Done
 **Created:** 2026-09-01
 **Goal:** Define a concrete, enforced way to know when backend/frontend/update-agent unit test coverage is "enough," now that `@vitest/coverage-v8` is wired into all three packages.
 
@@ -23,11 +23,11 @@ Rejected alternative: a single global % target (e.g. "80% everywhere"). Rejected
 
 | Package | In-scope lines (2026-09-02) | Threshold floor (lines) |
 |---|---|---|
-| backend | 92% | 81% |
+| backend | 92% | 89% |
 | frontend | 90.91% | 88% |
 | update-agent | 99.09% | 96% |
 
-Backend rose 78.09% → 84.21% after `minima-backup*`/`minima-console*` got test coverage (floor raised 75%→81% to lock that in), then 84.21% → 92% after the `data-sources` hardware services below got covered too. Floor is still 81% — see Follow-up.
+Backend rose 78.09% → 84.21% after `minima-backup*`/`minima-console*` got test coverage (floor raised 75%→81%), then 84.21% → 92% after the `data-sources` hardware services below got covered too (floor raised again 81%→89% to lock that gain in — statements/branches/functions floors moved 78/71/81 → 87/77/90 the same way).
 
 Statements/branches/functions floors are set the same way (a few points below measured); see each `coverage.thresholds` block.
 
@@ -49,14 +49,9 @@ Statements/branches/functions floors are set the same way (a few points below me
 - Added `coverage.exclude` (matching each plan's documented out-of-scope files) and `coverage.thresholds` to `backend/vitest.config.ts`, `frontend/vite.config.ts`, `update-agent/vitest.config.ts`.
 - Root `package.json`: `check` now runs `test:coverage` (threshold-enforced) instead of plain `test`; `typecheck`/`test`/`audit:moderate` now include `update-agent` (previously silently skipped by root `test`/`check`, so its suite/typecheck/audit were never actually gated by `npm run check`).
 
-## Follow-up (not done yet)
+## Follow-up
 
-- `data-sources` hardware services now have tests (backend rose 84.21% → 92% lines) — revisit the backend threshold floor upward again (currently 81%) to lock in this gain too.
-- `.claude/rules/verification.md` (and `.agents/`/`.cursor/` counterparts) still list `npm --prefix backend run build`/`npm --prefix frontend run build` without an `update-agent` build step — separate pre-existing gap, out of scope here, flagged for a future pass.
-
-## Docs
-
-- `docs/TASKS.md` — add an In Progress line pointing here.
+All done — see `docs/TASKS.md` for the one remaining item this plan surfaced but didn't own (the `verification.md` update-agent build-step gap, moved there since it's unrelated to coverage criteria).
 
 ## Verification
 

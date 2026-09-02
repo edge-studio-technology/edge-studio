@@ -19,7 +19,6 @@
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.
-- [ ] Coverage criteria: enforced numeric floor now wired up via `@vitest/coverage-v8` (`npm run check` fails below threshold). `minima-backup*`/`minima-console*` and `data-sources` hardware services (`gpioIngestion`/`gpioOutput`/`mqttIngestion`/`mqttOutput`/`cameraCapture`/`sensorHelper`) now have Progress rows + tests (backend lines 78.09% → 92%; floor raised 75%→81% to lock in the first jump); the supertest 401-smoke-test (`backend/tests/app.401-smoke.test.ts`) is built; still open: revisit the floor upward again for the 92% number — see `docs/plans/coverage-criteria.md`.
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
@@ -69,6 +68,7 @@
 ## Done
 
 - [x] Backend unit test coverage, one feature folder at a time — see `docs/plans/archive/backend-unit-tests.md`. All folders Done (`data-sources` now includes the GPIO/MQTT/camera/sensor hardware services); `debug` Skipped (dev-only single-handler ping, not worth extracting a service function for).
+- [x] Coverage criteria: numeric floor (regression guard) enforced via `@vitest/coverage-v8` across all three packages, `npm run check` fails below threshold — see `docs/plans/archive/coverage-criteria.md`. Backend floor raised twice as real gaps closed (75%→81%→89% lines), a supertest smoke test now asserts every non-public API route requires a session (`backend/tests/app.401-smoke.test.ts`).
 - [x] Frontend unit test coverage, one area at a time — see `docs/plans/archive/frontend-unit-tests.md`. All folders covered, including `features/automation`'s 4 large stateful orchestrator components (`WorkflowWatchUi.tsx`/`CreateWorkflowWorkspace.tsx`/`WorkflowWorkspace.tsx`/`WorkflowBlockInspectors.tsx`). Frontend suite: 179 files / 1428 tests.
 - [x] Update Agent unit test coverage, one module at a time — see `docs/plans/archive/update-agent-unit-tests.md`. Docker/Manifest/Update/Status/Self-update modules covered; routes/config/auth-middleware/bootstrap intentionally out of scope.
 - [x] Renamed repository/product identifiers from `integritas-pi` / Integritas Pi to `edge-studio` / Edge Studio across install, CLI, packages, Compose, app code, release CI, and docs (not backwards compatible) — branch `rename/edge-studio`.
@@ -147,6 +147,7 @@
 
 ## Ideas
 
+- [ ] `.claude/rules/verification.md` (and `.agents/`/`.cursor/` counterparts) still list `npm --prefix backend run build`/`npm --prefix frontend run build` without an `update-agent` build step — pre-existing gap noticed while working on `docs/plans/archive/coverage-criteria.md`, unrelated to it, not yet actioned.
 - [ ] Split the `docs/TASKS.md` "Block automation workflows" line into one bullet per milestone/improvement in `docs/plans/block-automation-workflows.md` (844 lines, 8 milestones) — several unchecked items are substantial unbuilt code features (configure-block modal, workflow templates, full draft workspace save model, branching/else flow, run-log filters), not just manual checks, currently hidden behind one line the way the frontend-unit-tests line used to hide ~20 folders.
 - [ ] Fix stale folder-name reference in `.claude/rules/frontend.md`/`.agents/rules/frontend.md`/`.cursor/rules/frontend.mdc`: says the Integritas Connect auth folder is `integritasAuth`, it's actually `integritas-auth` on disk.
 - [ ] Non-blocking bug in `StampResult.tsx` (`features/integritas/`): the pending-refresh `useEffect` depends on `ToastProvider`'s `showToast`, which isn't memoized, so a sustained unauthorized-refresh failure can re-run the effect on every toast add and surface more than one toast instead of one.
