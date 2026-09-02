@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Backend unit test coverage for `automation`.
 - Backend unit test coverage for `wallet`.
 - Backend unit test coverage for `data-reads`.
-- Backend unit test coverage for `data-sources` (repository and service logic).
+- Backend unit test coverage for `data-sources`, including the GPIO/MQTT/camera/sensor hardware services (`gpioIngestion`, `gpioOutput`, `mqttIngestion`, `mqttOutput`, `cameraCapture`, `sensorHelper`).
 - Backend unit test coverage for `integritas`.
 - Backend unit test coverage for `integritas-auth`.
 - Backend unit test coverage for `settings`.

@@ -19,8 +19,7 @@
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.
-- [ ] Backend unit test coverage, one feature folder at a time — see `docs/plans/backend-unit-tests.md`. `auth`/`minima`/`tokens`/`automation`/`wallet`/`data-reads`/`integritas`/`integritas-auth`/`settings`/`status`/`address-book`/`feedback`/`files`/`shared`/`health` are Done; `data-sources` is Partial (service/repository covered, hardware-mocked ingestion services remain, lower priority); `debug` Skipped (dev-only single-handler ping, not worth extracting a service function for).
-- [ ] Coverage criteria: enforced numeric floor now wired up via `@vitest/coverage-v8` (`npm run check` fails below threshold). `minima-backup*`/`minima-console*` now have Progress rows + tests (backend lines 78.09% → 84.21%); still open: revisit the backend threshold floor upward to lock in the gain, and decide on the supertest 401-smoke-test — see `docs/plans/coverage-criteria.md`.
+- [ ] Coverage criteria: enforced numeric floor now wired up via `@vitest/coverage-v8` (`npm run check` fails below threshold). `minima-backup*`/`minima-console*` and `data-sources` hardware services (`gpioIngestion`/`gpioOutput`/`mqttIngestion`/`mqttOutput`/`cameraCapture`/`sensorHelper`) now have Progress rows + tests (backend lines 78.09% → 92%; floor raised 75%→81% to lock in the first jump); still open: revisit the floor upward again for the 92% number, and decide on the supertest 401-smoke-test — see `docs/plans/coverage-criteria.md`.
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
@@ -69,6 +68,7 @@
 
 ## Done
 
+- [x] Backend unit test coverage, one feature folder at a time — see `docs/plans/archive/backend-unit-tests.md`. All folders Done (`data-sources` now includes the GPIO/MQTT/camera/sensor hardware services); `debug` Skipped (dev-only single-handler ping, not worth extracting a service function for).
 - [x] Frontend unit test coverage, one area at a time — see `docs/plans/archive/frontend-unit-tests.md`. All folders covered, including `features/automation`'s 4 large stateful orchestrator components (`WorkflowWatchUi.tsx`/`CreateWorkflowWorkspace.tsx`/`WorkflowWorkspace.tsx`/`WorkflowBlockInspectors.tsx`). Frontend suite: 179 files / 1428 tests.
 - [x] Update Agent unit test coverage, one module at a time — see `docs/plans/archive/update-agent-unit-tests.md`. Docker/Manifest/Update/Status/Self-update modules covered; routes/config/auth-middleware/bootstrap intentionally out of scope.
 - [x] Renamed repository/product identifiers from `integritas-pi` / Integritas Pi to `edge-studio` / Edge Studio across install, CLI, packages, Compose, app code, release CI, and docs (not backwards compatible) — branch `rename/edge-studio`.
@@ -151,7 +151,7 @@
 - [ ] Fix stale folder-name reference in `.claude/rules/frontend.md`/`.agents/rules/frontend.md`/`.cursor/rules/frontend.mdc`: says the Integritas Connect auth folder is `integritasAuth`, it's actually `integritas-auth` on disk.
 - [ ] Non-blocking bug in `StampResult.tsx` (`features/integritas/`): the pending-refresh `useEffect` depends on `ToastProvider`'s `showToast`, which isn't memoized, so a sustained unauthorized-refresh failure can re-run the effect on every toast add and surface more than one toast instead of one.
 - [ ] Sync mechanism (script or CI check) to keep `.claude/`/`.agents/` (rules and skills) from drifting — still unbuilt; this session hit a real, if small, instance of the drift it's meant to prevent, caught manually rather than by tooling.
-- [ ] Supertest-based smoke test asserting every non-public `/api/*` route 401s without a session cookie — catches a route missing `requireAuth` without full per-route HTTP test coverage. See "Future Hardening" in `docs/plans/backend-unit-tests.md`.
+- [ ] Supertest-based smoke test asserting every non-public `/api/*` route 401s without a session cookie — catches a route missing `requireAuth` without full per-route HTTP test coverage. See "Future Hardening" in `docs/plans/archive/backend-unit-tests.md`.
 - [ ] Graceful automation handling around Minima node restarts (avoid interrupting an in-progress workflow run's HTTP poll/MQTT publish/wallet tx) — prerequisite for re-enabling the 48h auto-restart toggle, which is currently disabled for this reason.
 - [ ] One-source-of-truth Minima status/operation-lock redesign (single backend lock across all mutating paths incl. wallet/console writes, single shared frontend polling store instead of five independent `useMinimaStatusRefresh` subscribers) — attempted and shelved this session after the redesign regressed reported UX in an unconfirmed way; see `docs/SESSION.md` for the leading (unconfirmed) hypothesis before restarting this.
 

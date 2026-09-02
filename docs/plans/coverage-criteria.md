@@ -21,13 +21,13 @@ Rejected alternative: a single global % target (e.g. "80% everywhere"). Rejected
 
 ### Current in-scope numbers vs. floor
 
-| Package | In-scope lines (2026-09-01) | Threshold floor (lines) |
+| Package | In-scope lines (2026-09-02) | Threshold floor (lines) |
 |---|---|---|
-| backend | 84.21% | 81% |
+| backend | 92% | 81% |
 | frontend | 90.91% | 88% |
 | update-agent | 99.09% | 96% |
 
-Backend rose from 78.09% after `minima-backup*`/`minima-console*` (see Known Gaps below) got test coverage; the floor was raised from 75%→81% (lines) to lock in the gain, keeping the same ~3pt regression margin as the other packages.
+Backend rose 78.09% → 84.21% after `minima-backup*`/`minima-console*` got test coverage (floor raised 75%→81% to lock that in), then 84.21% → 92% after the `data-sources` hardware services below got covered too. Floor is still 81% — see Follow-up.
 
 Statements/branches/functions floors are set the same way (a few points below measured); see each `coverage.thresholds` block.
 
@@ -41,7 +41,6 @@ Statements/branches/functions floors are set the same way (a few points below me
 
 ## Known gaps (why backend's floor is lower, and what closes them)
 
-- `data-sources`: `gpioIngestion`/`gpioOutput`/`mqttIngestion`/`mqttOutput`/`cameraCapture`/`sensorHelper` services are untested (hardware/MQTT/host-helper boundaries) — already flagged `Partial` in `backend-unit-tests.md`.
 - `totp.service.ts` is partial (64%) — already a documented, deliberate skip (dead code, `TOTP_ENABLED = false`).
 - Routes stay permanently excluded from coverage (thin wiring, per the routes decision) rather than closed. The cheap alternative already proposed in `backend-unit-tests.md`'s "Future Hardening" — one supertest smoke test asserting every non-public route 401s without a session — is still the right way to catch the one failure mode that matters (`requireAuth` missing from a route) without turning every route into a test target. Not built yet.
 
@@ -52,6 +51,7 @@ Statements/branches/functions floors are set the same way (a few points below me
 
 ## Follow-up (not done yet)
 
+- `data-sources` hardware services now have tests (backend rose 84.21% → 92% lines) — revisit the backend threshold floor upward again (currently 81%) to lock in this gain too.
 - Decide whether to build the supertest 401-smoke-test from `backend-unit-tests.md`'s "Future Hardening".
 - `.claude/rules/verification.md` (and `.agents/`/`.cursor/` counterparts) still list `npm --prefix backend run build`/`npm --prefix frontend run build` without an `update-agent` build step — separate pre-existing gap, out of scope here, flagged for a future pass.
 
