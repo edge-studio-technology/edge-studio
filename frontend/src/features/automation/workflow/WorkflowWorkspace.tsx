@@ -562,6 +562,7 @@ export function WorkflowWorkspace({
                 addressBook={addressBook}
                 walletStatus={walletStatus}
                 revealSendPaymentErrors={draftRevealErrors}
+                onReplaceStartBlock={undefined}
                 onChange={(config) => {
                   setDraftBlock((current) => (current ? { ...current, config } : current));
                 }}
@@ -611,6 +612,14 @@ export function WorkflowWorkspace({
                   walletStatus={walletStatus}
                   busy={busy}
                   onDirty={pauseForEditIfNeeded}
+                  onReplaceStartBlock={
+                    selectedBlock.type.endsWith("_start")
+                      ? (type) => void replaceStartBlockFromLibrary(type)
+                      : undefined
+                  }
+                  hasRecordTriggerEvent={mainBlocks.some(
+                    (block) => block.type === "record_trigger_event"
+                  )}
                   onAttachStamp={() => {
                     pauseForEditIfNeeded();
                     onAddBlock({

@@ -329,7 +329,7 @@ export function CreateWorkflowWorkspace({
               title={createBlockedReason}
               onClick={() => void handleCreate()}
             >
-              Create workflow
+              Save workflow
             </Button>
           </>
         }
@@ -412,6 +412,12 @@ export function CreateWorkflowWorkspace({
                   addressBook={addressBook}
                   walletStatus={walletStatus}
                   revealSendPaymentErrors={revealSendPaymentErrors}
+                  onReplaceStartBlock={
+                    selectedBlock.type.endsWith("_start") ? selectStartBlock : undefined
+                  }
+                  hasRecordTriggerEvent={draftBlocks.some(
+                    (b) => b.type === "record_trigger_event"
+                  )}
                   onChange={(config) => updateBlock(selectedBlock.id, { config })}
                   onAttachedChange={(attachedId, config) =>
                     updateAttachedBlock(selectedBlock.id, attachedId, config)

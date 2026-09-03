@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { CheckCircle2, X } from "lucide-react";
+import { Check, CheckCircle2, X } from "lucide-react";
 import { IconButton } from "../../../components/Button";
 import { TableIconButton } from "../../../components/DataTable";
 import { Card } from "../../../components/ui/Card";
 import { Disclosure } from "../../../components/ui/Disclosure";
 import { Pill } from "../../../components/ui/Pill";
 import { ScrollArea } from "../../../components/ui/ScrollArea";
+import { Tooltip } from "../../../components/ui/Tooltip";
 import { cx } from "../../../lib/cx";
 import type {
   AutomationBlockType,
@@ -470,5 +471,65 @@ export function RulePart({ title, value }: { title: string; value: string }) {
       <span className={mutedText}>{title}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+/** Shared clickable card component for selecting block types (used in toolkit and inspector). */
+export function BlockTypeCard({
+  type,
+  selected,
+  disabled,
+  disabledReason,
+  onClick,
+}: {
+  type: AutomationBlockType;
+  selected?: boolean;
+  disabled?: boolean;
+  disabledReason?: string;
+  onClick: () => void;
+}) {
+  const help = blockHelp(type);
+  const card = (
+    <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      className={cx(
+        "rounded-loose p-detail-close border text-left transition-colors",
+        "focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none",
+        selected && "border-stroke-active bg-surface-always-white",
+        disabled
+          ? "text-text-disabled cursor-not-allowed opacity-60"
+          : !selected &&
+              "border-stroke-secondary bg-surface-primary hover:border-stroke-primary hover:bg-surface-always-white cursor-pointer",
+      )}
+      aria-disabled={disabled || undefined}
+      aria-pressed={selected || undefined}
+      onClick={() => {
+        if (disabled) return;
+        onClick();
+      }}
+      onKeyDown={(event) => {
+        if (disabled) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+    >
+      <span className="gap-detail-close flex items-center justify-between">
+        <span className="type-body-em text-text-primary">{help.title}</span>
+        {selected && (
+          <Check aria-hidden className="text-icon-primary size-4 shrink-0" strokeWidth={2.5} />
+        )}
+      </span>
+    </div>
+  );
+
+  if (!disabled || !disabledReason) return card;
+
+  return (
+    <Tooltip title={disabledReason} placement="left">
+      <span className="block w-full">{card}</span>
+    </Tooltip>
   );
 }

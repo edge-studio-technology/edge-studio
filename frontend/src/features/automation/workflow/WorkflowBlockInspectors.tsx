@@ -6,6 +6,7 @@ import { SelectField } from "../../../components/ui/SelectField";
 import { SwitchField } from "../../../components/ui/SwitchField";
 import { Text } from "../../../components/ui/Text";
 import { TextareaField } from "../../../components/ui/TextareaField";
+import { cx } from "../../../lib/cx";
 import type { AddressBookEntry } from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { WalletStatus } from "../../wallet/walletTypes";
@@ -25,6 +26,7 @@ import {
   formatInterval,
   isOutputTarget,
   isReadableSource,
+  missingDeviceLibraryReason,
   nativeMinimaTokens,
   operatorHasNoValue,
   outputBodyModeConfig,
@@ -36,7 +38,13 @@ import {
   sourceLabel,
   sourcesForStart,
 } from "./workflowHelpers";
-import { InspectorSection, errorText, formGridClass, mutedText } from "./workflowWorkspaceUi";
+import {
+  BlockTypeCard,
+  InspectorSection,
+  errorText,
+  formGridClass,
+  mutedText,
+} from "./workflowWorkspaceUi";
 import { draftBlockDescription, isDataBlock, type DraftWorkflowBlock } from "./canvas";
 
 export type PersistedBlockInspectorHandle = {
@@ -53,6 +61,8 @@ export function DraftBlockInspector({
   onChange,
   onAttachedChange,
   onAttachedRemove,
+  onReplaceStartBlock,
+  hasRecordTriggerEvent = false,
   revealSendPaymentErrors = false,
 }: {
   block: DraftWorkflowBlock;
@@ -62,6 +72,8 @@ export function DraftBlockInspector({
   onChange: (config: AutomationBlock["config"]) => void;
   onAttachedChange: (attachedId: string, config: AutomationBlock["config"]) => void;
   onAttachedRemove: (attachedId: string) => void;
+  onReplaceStartBlock?: (type: AutomationBlock["type"]) => void;
+  hasRecordTriggerEvent?: boolean;
   /** After Done on incomplete Send payment, show required-field errors. */
   revealSendPaymentErrors?: boolean;
 }) {
@@ -80,72 +92,125 @@ export function DraftBlockInspector({
       block.type === "gpio_event_start" ||
       block.type === "webhook_event_start" ||
       block.type === "mqtt_event_start";
+    
+    const triggerTypes: AutomationBlock["type"][] = [
+      "manual_start",
+      "schedule_start",
+      "gpio_event_start",
+      "webhook_event_start",
+      "mqtt_event_start",
+    ];
+    
     return (
-      <InspectorSection title="Configuration" className={formGridClass}>
-        {block.type === "schedule_start" ? (
-          <SelectField
-            label="Interval"
-            value={String(block.config.intervalSeconds ?? 60)}
-            options={WORKFLOW_INTERVAL_OPTIONS.map((interval) => ({
-              value: String(interval),
-              label: formatInterval(interval),
-            }))}
-            onChange={(event) => onChange({ intervalSeconds: Number(event.target.value) })}
-          />
-        ) : block.type === "manual_start" ? (
-          <p className={mutedText}>Manual workflows run only when you click Run now.</p>
-        ) : (
-          <SelectField
-            label="Start source"
-            value={block.config.sourceId ?? ""}
-            placeholder="Select source..."
-            options={startSources.map((source) => ({
-              value: source.id,
-              label: `${source.name} - ${sourceLabel(source)}`,
-            }))}
-            onChange={(event) => {
-              const source = startSources.find((item) => item.id === event.target.value);
-              onChange({
-                ...block.config,
-                sourceId: event.target.value,
-                activeOnly:
-                  source?.config.profile === "pir-motion" ? true : block.config.activeOnly,
-                cooldownSeconds:
-                  source?.config.profile === "pir-motion" && !block.config.cooldownSeconds
-                    ? 60
-                    : (block.config.cooldownSeconds ?? 0),
-              });
-            }}
-          />
+      <>
+        {onReplaceStartBlock && (
+          <InspectorSection
+            title="Trigger type"
+            description="How this workflow starts. Click a trigger type to change it."
+            className={cx(formGridClass, "border-stroke-active shadow-sm")}
+          >
+            <div className="gap-detail-tight grid">
+              {triggerTypes.map((triggerType) => {
+                const isSelected = block.type === triggerType;
+                const deviceReason = missingDeviceLibraryReason(triggerType, sources);
+                
+                // Check if Record trigger event block requires event-based start
+                const requiresEventStart =
+                  hasRecordTriggerEvent &&
+                  (triggerType === "manual_start" || triggerType === "schedule_start");
+                const eventStartReason = requiresEventStart
+                  ? "This workflow has a Record trigger event block which requires an event-based start (GPIO/Webhook/MQTT)"
+                  : undefined;
+                
+                const disabledReason = deviceReason || eventStartReason;
+                const isDisabled = Boolean(disabledReason) && !isSelected;
+                
+                return (
+                  <BlockTypeCard
+                    key={triggerType}
+                    type={triggerType}
+                    selected={isSelected}
+                    disabled={isDisabled}
+                    disabledReason={disabledReason}
+                    onClick={() => {
+                      if (triggerType !== block.type && !isDisabled) {
+                        onReplaceStartBlock(triggerType);
+                      }
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </InspectorSection>
         )}
-        {isEventStart && (
-          <>
-            <InputField
-              label="Cooldown between runs, seconds"
-              value={String(block.config.cooldownSeconds ?? 0)}
-              inputMode="numeric"
-              description="Cooldown ignores extra events for this workflow without creating run-log rows. Use 30-60 seconds for noisy motion sensors or notification outputs."
-              onChange={(event) =>
-                onChange({ ...block.config, cooldownSeconds: Number(event.target.value) })
-              }
+        <InspectorSection title="Configuration" className={formGridClass}>
+          {block.type === "schedule_start" ? (
+            <SelectField
+              label="Interval"
+              value={String(block.config.intervalSeconds ?? 60)}
+              options={WORKFLOW_INTERVAL_OPTIONS.map((interval) => ({
+                value: String(interval),
+                label: formatInterval(interval),
+              }))}
+              onChange={(event) => onChange({ intervalSeconds: Number(event.target.value) })}
             />
-          </>
-        )}
-        {block.type === "gpio_event_start" && (
-          <>
-            <CheckboxField
-              label="Only run when the GPIO event is active"
-              checked={Boolean(block.config.activeOnly)}
-              description={
-                selectedStartSource?.config.profile === "pir-motion"
-                  ? "Useful when this PIR watches both rising and falling edges: ignore motion_cleared and run only on motion_detected."
-                  : "Use this when inactive GPIO edges should not trigger the workflow."
-              }
-              onChange={(event) => onChange({ ...block.config, activeOnly: event.target.checked })}
+          ) : block.type === "manual_start" ? (
+            <p className={mutedText}>Manual workflows run only when you click Run now.</p>
+          ) : (
+            <SelectField
+              label="Start source"
+              value={block.config.sourceId ?? ""}
+              placeholder="Select source..."
+              options={startSources.map((source) => ({
+                value: source.id,
+                label: `${source.name} - ${sourceLabel(source)}`,
+              }))}
+              onChange={(event) => {
+                const source = startSources.find((item) => item.id === event.target.value);
+                onChange({
+                  ...block.config,
+                  sourceId: event.target.value,
+                  activeOnly:
+                    source?.config.profile === "pir-motion" ? true : block.config.activeOnly,
+                  cooldownSeconds:
+                    source?.config.profile === "pir-motion" && !block.config.cooldownSeconds
+                      ? 60
+                      : (block.config.cooldownSeconds ?? 0),
+                });
+              }}
             />
-          </>
-        )}
-      </InspectorSection>
+          )}
+          {isEventStart && (
+            <>
+              <InputField
+                label="Cooldown between runs, seconds"
+                value={String(block.config.cooldownSeconds ?? 0)}
+                inputMode="numeric"
+                description="Cooldown ignores extra events for this workflow without creating run-log rows. Use 30-60 seconds for noisy motion sensors or notification outputs."
+                onChange={(event) =>
+                  onChange({ ...block.config, cooldownSeconds: Number(event.target.value) })
+                }
+              />
+            </>
+          )}
+          {block.type === "gpio_event_start" && (
+            <>
+              <CheckboxField
+                label="Only run when the GPIO event is active"
+                checked={Boolean(block.config.activeOnly)}
+                description={
+                  selectedStartSource?.config.profile === "pir-motion"
+                    ? "Useful when this PIR watches both rising and falling edges: ignore motion_cleared and run only on motion_detected."
+                    : "Use this when inactive GPIO edges should not trigger the workflow."
+                }
+                onChange={(event) =>
+                  onChange({ ...block.config, activeOnly: event.target.checked })
+                }
+              />
+            </>
+          )}
+        </InspectorSection>
+      </>
     );
   }
 
@@ -783,6 +848,8 @@ export const PersistedBlockInspector = forwardRef<
     busy: boolean;
     onDirty: () => void;
     onAttachStamp: () => void;
+    onReplaceStartBlock?: (type: AutomationBlock["type"]) => void;
+    hasRecordTriggerEvent?: boolean;
     onUpdate: (input: Parameters<typeof updateAutomationBlock>[2]) => void;
     onUpdateAttached: (blockId: string, input: Parameters<typeof updateAutomationBlock>[2]) => void;
     onDelete: () => void;
@@ -798,6 +865,8 @@ export const PersistedBlockInspector = forwardRef<
     busy,
     onDirty,
     onAttachStamp,
+    onReplaceStartBlock,
+    hasRecordTriggerEvent,
     onUpdate,
     onUpdateAttached,
     onDelete,
@@ -865,6 +934,8 @@ export const PersistedBlockInspector = forwardRef<
         addressBook={addressBook}
         walletStatus={walletStatus}
         revealSendPaymentErrors
+        onReplaceStartBlock={onReplaceStartBlock}
+        hasRecordTriggerEvent={hasRecordTriggerEvent}
         onChange={(nextConfig) => {
           if (JSON.stringify(nextConfig) !== JSON.stringify(block.config)) onDirty();
           setConfig(nextConfig);

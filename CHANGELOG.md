@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Unit test coverage for Update Agent's `auth/auth.middleware.ts` request guard, now included in its coverage threshold.
 - Unit tests for the release manifest scripts (`scripts/release/sign-manifest.mjs`, `scripts/release/build-manifest.mjs`), run via a new root-level test command wired into `npm run check`.
 - Pull requests to `main` are now rejected unless they come from `dev`.
+- Workflow start blocks can now be changed directly from the inspector using a visual card-based selector, with smart filtering that prevents incompatible changes and shows helpful tooltips for unavailable trigger types.
 
 ### Fixed
 

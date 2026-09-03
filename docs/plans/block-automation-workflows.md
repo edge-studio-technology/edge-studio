@@ -492,7 +492,7 @@ Current implementation:
 - The block library is split into Start, Data, Logic, Action, and Attached actions sections.
 - The draft canvas starts empty and prompts the operator to choose one start block first.
 - Start blocks hide after selection; Reset canvas clears the draft and shows start blocks again.
-- The selected start block inspector configures source/interval only and does not change start type.
+- The selected start block inspector includes a "Trigger type" dropdown that allows changing between all start block types (Manual run, Schedule, GPIO event, Webhook event, MQTT event) plus type-specific configuration (source/interval/cooldown). This allows operators to switch triggers without recreating the workflow.
 - Data and Logic blocks append after the start block.
 - Action blocks currently include Pulse output and Send transaction.
 - Integritas stamping attaches as a side block on Record/Fetch data blocks and is created with `parentBlockId` mapping from draft IDs.

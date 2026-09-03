@@ -1,21 +1,13 @@
 import type { ReactNode } from "react";
-import { Check } from "lucide-react";
 import { Disclosure } from "../../../../components/ui/Disclosure";
 import { SwitchField } from "../../../../components/ui/SwitchField";
 import { Tooltip } from "../../../../components/ui/Tooltip";
-import { cx } from "../../../../lib/cx";
 import type { DataSource } from "../../../data-sources/dataSourceTypes";
 import type { AutomationBlockType } from "../../automationTypes";
 import { WorkflowRailHeader, WorkflowRailPanel } from "../chrome/WorkflowRail";
-import { blockHelp, workflowBlockLibraryTypes } from "../workflowBlockHelp";
+import { workflowBlockLibraryTypes } from "../workflowBlockHelp";
 import { missingDeviceLibraryReason } from "../workflowHelpers";
-
-const libraryCardClass =
-  "border-stroke-secondary bg-surface-primary grid gap-detail-tight rounded-loose border p-detail-close text-left transition-colors focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none";
-const libraryCardSelectedClass = "border-stroke-active bg-surface-always-white";
-const libraryCardInteractiveClass =
-  "hover:border-stroke-primary hover:bg-surface-always-white cursor-pointer";
-const libraryCardDisabledClass = "text-text-disabled cursor-not-allowed opacity-60";
+import { BlockTypeCard } from "../workflowWorkspaceUi";
 
 const NEEDS_START_REASON = "Choose a start block first.";
 
@@ -102,7 +94,7 @@ export function WorkflowBlockLibrary({
           {workflowBlockLibraryTypes.Start.map((type) => {
             const disabledReason = cardDisabledReason(type);
             return (
-              <LibraryCard
+              <BlockTypeCard
                 key={type}
                 type={type}
                 selected={selectedStartType === type}
@@ -118,7 +110,7 @@ export function WorkflowBlockLibrary({
         {workflowBlockLibraryTypes.Data.map((type) => {
           const disabledReason = cardDisabledReason(type);
           return (
-            <LibraryCard
+            <BlockTypeCard
               key={type}
               type={type}
               disabled={Boolean(disabledReason)}
@@ -132,7 +124,7 @@ export function WorkflowBlockLibrary({
         {workflowBlockLibraryTypes.Logic.map((type) => {
           const disabledReason = cardDisabledReason(type);
           return (
-            <LibraryCard
+            <BlockTypeCard
               key={type}
               type={type}
               disabled={Boolean(disabledReason)}
@@ -146,7 +138,7 @@ export function WorkflowBlockLibrary({
         {workflowBlockLibraryTypes.Action.map((type) => {
           const disabledReason = cardDisabledReason(type);
           return (
-            <LibraryCard
+            <BlockTypeCard
               key={type}
               type={type}
               disabled={Boolean(disabledReason)}
@@ -212,63 +204,5 @@ function ToolkitGroup({
     >
       {children}
     </Disclosure>
-  );
-}
-
-function LibraryCard({
-  type,
-  disabled,
-  disabledReason,
-  selected,
-  onClick,
-}: {
-  type: AutomationBlockType;
-  disabled?: boolean;
-  disabledReason?: string;
-  selected?: boolean;
-  onClick: () => void;
-}) {
-  const help = blockHelp(type);
-  const card = (
-    <div
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      className={cx(
-        libraryCardClass,
-        "w-full",
-        selected && libraryCardSelectedClass,
-        disabled ? libraryCardDisabledClass : libraryCardInteractiveClass,
-      )}
-      aria-disabled={disabled || undefined}
-      aria-pressed={selected || undefined}
-      onClick={() => {
-        if (disabled) return;
-        onClick();
-      }}
-      onKeyDown={(event) => {
-        if (disabled) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onClick();
-        }
-      }}
-    >
-      <span className="gap-detail-close flex items-center justify-between">
-        <span className="type-body-em text-text-primary">{help.title}</span>
-        <span className="gap-detail-tight flex shrink-0 items-center">
-          {selected ? (
-            <Check aria-hidden className="text-icon-primary size-4 shrink-0" strokeWidth={2.5} />
-          ) : null}
-        </span>
-      </span>
-    </div>
-  );
-
-  if (!disabled || !disabledReason) return card;
-
-  return (
-    <Tooltip title={disabledReason} placement="left">
-      <span className="block w-full">{card}</span>
-    </Tooltip>
   );
 }
