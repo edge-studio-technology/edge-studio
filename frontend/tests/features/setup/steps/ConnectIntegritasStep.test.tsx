@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { IntegritasAuthStatus } from "../../../../src/features/integritas-auth/integritasAuthApi";
 import { ConnectIntegritasStep } from "../../../../src/features/setup/steps/ConnectIntegritasStep";
 
@@ -195,5 +195,38 @@ describe("ConnectIntegritasStep", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+});
+
+/** `TOTP_ENABLED` ships as `false`, so the two-factor summary row only renders with the module mocked. */
+describe("ConnectIntegritasStep with TOTP enabled", () => {
+  let TotpConnectIntegritasStep: typeof ConnectIntegritasStep;
+
+  beforeAll(async () => {
+    vi.resetModules();
+    vi.doMock("../../../../src/features/auth/totpEnabled", () => ({ TOTP_ENABLED: true }));
+    ({ ConnectIntegritasStep: TotpConnectIntegritasStep } = await import(
+      "../../../../src/features/setup/steps/ConnectIntegritasStep"
+    ));
+  });
+
+  afterAll(() => {
+    vi.doUnmock("../../../../src/features/auth/totpEnabled");
+    vi.resetModules();
+  });
+
+  it("lists two-factor auth in the ready-state summary", () => {
+    const status: IntegritasAuthStatus = {
+      status: "connected",
+      user: { name: "Ada", email: "ada@example.com" },
+      plan: { name: "Pro", status: "active" },
+      usage: { remaining: 10 },
+      fetchedAt: "2026-01-01T00:00:00Z",
+    };
+
+    render(<TotpConnectIntegritasStep {...baseProps} status={status} credentialType="pin" />);
+
+    expect(screen.getByText("Two-factor auth")).toBeInTheDocument();
+    expect(screen.getByText("Authenticator ready for sign-in")).toBeInTheDocument();
   });
 });

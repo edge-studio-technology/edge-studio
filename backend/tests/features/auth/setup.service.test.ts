@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { afterAll, beforeAll, describe, it } from "vitest";
+import { afterAll, beforeAll, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
+import { currentToken, wrongToken } from "../../helpers/totp.js";
 
 let teardown: () => void;
 let authRepository: typeof import("../../../src/features/auth/auth.repository.js");
@@ -53,6 +54,24 @@ describe("before the local admin is created", () => {
       () => setupService.verifySetupTotp("abc"),
       (error: unknown) => error instanceof setupService.SetupError && error.status === 400
     );
+  });
+
+  it("verifySetupTotp rejects a token that does not match the pending secret", async () => {
+    const { secret } = await setupService.initSetupTotp();
+    await assert.rejects(
+      () => setupService.verifySetupTotp(wrongToken(secret)),
+      (error: unknown) => error instanceof setupService.SetupError && error.status === 400
+    );
+  });
+
+  it("verifySetupTotp marks the pending setup verified for a valid token", async () => {
+    const { secret } = await setupService.initSetupTotp();
+
+    const result = await setupService.verifySetupTotp(currentToken(secret));
+
+    assert.deepEqual(result, { valid: true });
+    const pending = authRepository.getLatestSetupPending();
+    assert.ok(pending?.verified_at);
   });
 
   it("verifySetupTotp rejects when no pending setup exists", async () => {
@@ -127,5 +146,67 @@ describe("after the local admin is created", () => {
 
     assert.equal(setupService.isSetupComplete(), true);
     assert.ok(settingsRepository.getSetting("setup.completed_at"));
+  });
+});
+
+/**
+ * `TOTP_ENABLED` is a compile-time constant that ships as `false` (password-only auth), so the
+ * TOTP branch of `completeSetup` is only reachable with the constants module mocked. Runs against
+ * its own database because the flow under test creates the local admin.
+ */
+describe("completeSetup with TOTP enforcement enabled", () => {
+  let totpTeardown: () => void;
+  let totpSetupService: typeof import("../../../src/features/auth/setup.service.js");
+  let totpAuthRepository: typeof import("../../../src/features/auth/auth.repository.js");
+  let totpService: typeof import("../../../src/features/auth/totp.service.js");
+  const previousDatabasePath = process.env.DATABASE_PATH;
+
+  beforeAll(async () => {
+    vi.resetModules();
+    vi.doMock("../../../src/features/auth/auth.constants.js", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("../../../src/features/auth/auth.constants.js")>()),
+      TOTP_ENABLED: true
+    }));
+
+    ({ teardown: totpTeardown } = await setupTestDatabase());
+    totpSetupService = await import("../../../src/features/auth/setup.service.js");
+    totpAuthRepository = await import("../../../src/features/auth/auth.repository.js");
+    totpService = await import("../../../src/features/auth/totp.service.js");
+  });
+
+  afterAll(() => {
+    totpTeardown();
+    vi.doUnmock("../../../src/features/auth/auth.constants.js");
+    vi.resetModules();
+    process.env.DATABASE_PATH = previousDatabasePath;
+  });
+
+  it("rejects completing setup when no TOTP setup was initialized", async () => {
+    await assert.rejects(
+      () => totpSetupService.completeSetup({ password: VALID_PASSWORD }),
+      (error: unknown) => error instanceof totpSetupService.SetupError && error.status === 400
+    );
+  });
+
+  it("rejects completing setup while the pending TOTP secret is unverified", async () => {
+    await totpSetupService.initSetupTotp();
+
+    await assert.rejects(
+      () => totpSetupService.completeSetup({ password: VALID_PASSWORD }),
+      (error: unknown) => error instanceof totpSetupService.SetupError && error.status === 400
+    );
+    assert.equal(totpSetupService.isLocalAdminCreated(), false);
+  });
+
+  it("stores the verified TOTP secret on the admin user once setup completes", async () => {
+    const { secret } = await totpSetupService.initSetupTotp();
+    await totpSetupService.verifySetupTotp(currentToken(secret));
+
+    const result = await totpSetupService.completeSetup({ password: VALID_PASSWORD });
+
+    assert.ok(result.sessionToken);
+    const user = totpAuthRepository.findTheUser();
+    assert.equal(totpService.decryptTotpSecret(user!.totp_secret), secret);
+    assert.equal(totpAuthRepository.getLatestSetupPending(), undefined);
   });
 });

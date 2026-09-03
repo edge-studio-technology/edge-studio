@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { SidebarUserBox } from "../../../src/features/auth/SidebarUserBox";
 import type { AuthUser } from "../../../src/features/auth/types";
 
@@ -38,5 +38,29 @@ describe("SidebarUserBox", () => {
     render(<SidebarUserBox user={user()} onSignOut={vi.fn()} onSettings={vi.fn()} />);
 
     expect(screen.queryByText("2FA protected")).not.toBeInTheDocument();
+  });
+});
+
+/** `TOTP_ENABLED` ships as `false`, so the 2FA badge only renders with the module mocked. */
+describe("SidebarUserBox with TOTP enabled", () => {
+  let TotpSidebarUserBox: typeof SidebarUserBox;
+
+  beforeAll(async () => {
+    vi.resetModules();
+    vi.doMock("../../../src/features/auth/totpEnabled", () => ({ TOTP_ENABLED: true }));
+    ({ SidebarUserBox: TotpSidebarUserBox } = await import(
+      "../../../src/features/auth/SidebarUserBox"
+    ));
+  });
+
+  afterAll(() => {
+    vi.doUnmock("../../../src/features/auth/totpEnabled");
+    vi.resetModules();
+  });
+
+  it("shows the 2FA protected badge", () => {
+    render(<TotpSidebarUserBox user={user()} onSignOut={vi.fn()} onSettings={vi.fn()} />);
+
+    expect(screen.getByText("2FA protected")).toBeInTheDocument();
   });
 });

@@ -8,57 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Backend unit test coverage for `auth`.
-- Backend unit test coverage for `minima`.
-- Backend unit test coverage for `minima` backup/restore and console whitelist (`minima-backup*`, `minima-console*`).
-- Backend unit test coverage for `tokens`.
-- Backend unit test coverage for `automation`.
-- Backend unit test coverage for `wallet`.
-- Backend unit test coverage for `data-reads`.
-- Backend unit test coverage for `data-sources`, including the GPIO/MQTT/camera/sensor hardware services (`gpioIngestion`, `gpioOutput`, `mqttIngestion`, `mqttOutput`, `cameraCapture`, `sensorHelper`).
-- A supertest-based smoke test asserting every non-public backend API route requires a session.
-- Backend unit test coverage for `integritas`.
-- Backend unit test coverage for `integritas-auth`.
-- Backend unit test coverage for `settings`.
-- Backend unit test coverage for `status`.
-- Backend unit test coverage for `address-book`.
-- Backend unit test coverage for `feedback`.
-- Backend unit test coverage for `files`.
-- Backend unit test coverage for `shared`.
-- Backend unit test coverage for `health`.
-- Frontend unit test tooling (`@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`).
-- Frontend unit test coverage for `frontend/src/lib`.
-- Frontend unit test coverage for `frontend/src/components/ui`.
-- Frontend unit test coverage for `frontend/src/components/patterns`.
-- Frontend unit test coverage for the legacy shared components in `frontend/src/components`.
-- Frontend unit test coverage for `address-book`.
-- Frontend unit test coverage for `auth`.
-- Frontend unit test coverage for `automation` (including its 4 workflow-editor orchestrator components).
-- Frontend unit test coverage for `dashboard`.
-- Frontend unit test coverage for `data-reads`.
-- Frontend unit test coverage for `data-sources`.
-- Frontend unit test coverage for `debug`.
-- Frontend unit test coverage for `feedback`.
-- Frontend unit test coverage for `integritas`.
-- Frontend unit test coverage for `integritas-auth`.
-- Frontend unit test coverage for `minima`.
-- Frontend unit test coverage for `setup`.
-- Frontend unit test coverage for `status`.
-- Frontend unit test coverage for `tokens`.
-- Frontend unit test coverage for `update`.
-- Frontend unit test coverage for `wallet` — full `frontend/src/*` unit test coverage complete.
-- Update Agent unit test coverage for `docker/docker.client.ts`.
-- Update Agent unit test coverage for `docker/pull-progress.ts`.
-- Update Agent unit test coverage for `docker/docker.service.ts`.
-- Update Agent unit test coverage for `manifest/manifest-state.ts`.
-- Update Agent unit test coverage for `manifest/manifest.service.ts`.
-- Update Agent unit test coverage for `update/service-update.ts`.
-- Update Agent unit test coverage for `update/apply.service.ts`.
-- Update Agent unit test coverage for `update/apply.job.ts`.
-- Update Agent unit test coverage for `status/status.service.ts`.
-- Update Agent unit test coverage for `status/status-poller.ts`.
-- Update Agent unit test coverage for `self-update/self-update.service.ts`.
-- Update Agent unit test coverage for `self-update/orchestrator.ts` — full Update Agent unit test coverage complete.
+- Unit test suites for the backend, frontend, and Update Agent, covering every feature area of each, including the currently disabled two-factor sign-in paths.
+- Smoke test asserting every non-public backend API route requires a session.
+- Test coverage reporting for all three packages, with per-package minimum thresholds enforced by `npm run check` and CI.
+- Pull requests to `main` are now rejected unless they come from `dev`.
+
+### Fixed
+
+- The app no longer stays on the loading screen when the startup session check fails; it falls back to the login screen.
+- Repeated background refresh failures no longer stack duplicate error toasts.
 
 ## [0.38.12] 2026-08-24
 

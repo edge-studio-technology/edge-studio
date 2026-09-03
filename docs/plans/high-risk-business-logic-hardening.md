@@ -36,6 +36,12 @@ Test-only work may characterize behavior that already exists. It must not encode
 - Once confirmed, replace prefix-only acceptance with validation that rejects malformed `Mx` addresses while preserving any supported `0x` token/address forms at their actual call sites.
 - Apply the same validator consistently to wallet payment and address-book boundaries, then add service/route tests for valid, truncated, malformed, and mixed-format inputs.
 
+## Onboarding TOTP QR Retry Loop
+
+- `frontend/src/features/setup/OnboardingWizard.tsx`'s QR-code effect guards on `qrCode`/`loadingQr` but not `qrError`, so a failing `initTotp()` clears the error and re-requests on every render — an unbounded retry loop against the setup endpoint, with the error message never staying on screen.
+- Only reachable while `TOTP_ENABLED` is `true`, so it is currently dead code; fix before re-enabling TOTP.
+- Add an attempt guard (or a retry control) and assert both the surfaced error message and a single request in `frontend/tests/features/setup/OnboardingWizard.test.tsx`, replacing the deliberately narrow assertion left there.
+
 ## Update Agent Stream Timeout Settlement
 
 - Update `update-agent/src/docker/docker.client.ts` so `dockerRequestStream()` explicitly rejects when its timeout fires.

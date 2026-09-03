@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { UseIntegritasAuthResult } from "../../../src/features/integritas-auth/useIntegritasAuth";
 import { OnboardingWizard } from "../../../src/features/setup/OnboardingWizard";
 
@@ -161,5 +161,130 @@ describe("OnboardingWizard", () => {
 
     unmount();
     expect(document.body.style.overflow).toBe("auto");
+  });
+});
+
+/**
+ * `TOTP_ENABLED` ships as `false`, so the wizard's two-factor step — and with it the deferred
+ * local-admin creation, which moves from the credentials step to the two-factor step — is only
+ * reachable with the module mocked.
+ */
+describe("OnboardingWizard with TOTP enabled", () => {
+  let TotpOnboardingWizard: typeof OnboardingWizard;
+
+  beforeAll(async () => {
+    vi.resetModules();
+    vi.doMock("../../../src/features/auth/totpEnabled", () => ({ TOTP_ENABLED: true }));
+    ({ OnboardingWizard: TotpOnboardingWizard } = await import(
+      "../../../src/features/setup/OnboardingWizard"
+    ));
+  });
+
+  beforeEach(() => {
+    initTotp.mockReset();
+    verifyTotp.mockReset();
+    completeSetup.mockReset();
+    start.mockReset();
+    openVerification.mockReset().mockReturnValue(true);
+    useIntegritasAuthMock.mockReset();
+    mockHook();
+  });
+
+  afterAll(() => {
+    vi.doUnmock("../../../src/features/auth/totpEnabled");
+    vi.resetModules();
+  });
+
+  async function advanceToTwoFactorStep() {
+    render(<TotpOnboardingWizard onComplete={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Get started" }));
+    await fillMatchingPin();
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+  }
+
+  it("requests a QR code on the two-factor step without creating the local admin yet", async () => {
+    initTotp.mockResolvedValue({ qrCodePngBase64: "data:image/png;base64,QR", secret: "SECRET123" });
+
+    await advanceToTwoFactorStep();
+
+    expect(await screen.findByText("Set up two-factor authentication")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(initTotp).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByAltText("TOTP QR code")).toHaveAttribute("src", "data:image/png;base64,QR");
+    expect(completeSetup).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Show key" }));
+    expect(screen.getByLabelText("Authenticator setup key")).toHaveValue("SECRET123");
+  });
+
+  // A failing `initTotp` also retries without a backoff or attempt limit — the effect's guard
+  // reads `qrCode`/`loadingQr` but not `qrError`, so the error it sets is cleared by the next
+  // run. Deliberately not asserted here; recorded in `docs/plans/high-risk-business-logic-hardening.md`.
+  it("keeps continue disabled when the QR code cannot be generated", async () => {
+    initTotp.mockRejectedValue(new Error("Could not reach the setup service"));
+
+    await advanceToTwoFactorStep();
+
+    expect(await screen.findByText("Set up two-factor authentication")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(initTotp).toHaveBeenCalled();
+    });
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+  });
+
+  it("keeps continue disabled until the entered code is verified", async () => {
+    initTotp.mockResolvedValue({ qrCodePngBase64: "data:image/png;base64,QR", secret: "SECRET123" });
+    verifyTotp.mockResolvedValue({ valid: true });
+
+    await advanceToTwoFactorStep();
+    await screen.findByAltText("TOTP QR code");
+
+    expect(screen.getByText("Not verified")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+
+    await userEvent.type(screen.getByLabelText("Confirmation code"), "123456");
+    await userEvent.click(screen.getByRole("button", { name: "Verify code" }));
+
+    await waitFor(() => {
+      expect(verifyTotp).toHaveBeenCalledWith("123456");
+    });
+    expect(await screen.findByText("Authenticator linked")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+  });
+
+  it("reports an invalid code when verification is rejected", async () => {
+    initTotp.mockResolvedValue({ qrCodePngBase64: "data:image/png;base64,QR", secret: "SECRET123" });
+    verifyTotp.mockRejectedValue(new Error("Invalid TOTP code"));
+
+    await advanceToTwoFactorStep();
+    await screen.findByAltText("TOTP QR code");
+
+    await userEvent.type(screen.getByLabelText("Confirmation code"), "111111");
+    await userEvent.click(screen.getByRole("button", { name: "Verify code" }));
+
+    expect(await screen.findByText("Invalid code")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+  });
+
+  it("creates the local admin from the two-factor step and advances to Integritas Connect", async () => {
+    initTotp.mockResolvedValue({ qrCodePngBase64: "data:image/png;base64,QR", secret: "SECRET123" });
+    verifyTotp.mockResolvedValue({ valid: true });
+    completeSetup.mockResolvedValue({ success: true, user: {} });
+    mockHook({ status: { status: "unauthenticated" } });
+
+    await advanceToTwoFactorStep();
+    await screen.findByAltText("TOTP QR code");
+
+    await userEvent.type(screen.getByLabelText("Confirmation code"), "123456");
+    await userEvent.click(screen.getByRole("button", { name: "Verify code" }));
+    await screen.findByText("Authenticator linked");
+
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => {
+      expect(completeSetup).toHaveBeenCalledWith({ password: "123456" });
+    });
+    expect(await screen.findByText("Connect your Integritas account")).toBeInTheDocument();
   });
 });
