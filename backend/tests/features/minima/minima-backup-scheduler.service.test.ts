@@ -23,6 +23,16 @@ vi.mock("../../../src/features/minima/minima.service.js", () => ({
   restartMinimaContainer: restartMinimaContainerMock
 }));
 
+const { getSettingMock, saveSettingMock } = vi.hoisted(() => ({
+  getSettingMock: vi.fn(),
+  saveSettingMock: vi.fn()
+}));
+
+vi.mock("../../../src/features/settings/settings.repository.js", () => ({
+  getSetting: getSettingMock,
+  saveSetting: saveSettingMock
+}));
+
 let scheduler: typeof import("../../../src/features/minima/minima-backup-scheduler.service.js");
 
 async function loadModule() {
@@ -38,6 +48,8 @@ beforeEach(async () => {
   hasBackupPasswordMock.mockReset();
   getAutoRestartEnabledMock.mockReset();
   restartMinimaContainerMock.mockReset();
+  getSettingMock.mockReset();
+  saveSettingMock.mockReset();
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-01-01T10:00:00.000Z"));
   await loadModule();
