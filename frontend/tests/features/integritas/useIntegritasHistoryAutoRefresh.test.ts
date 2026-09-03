@@ -28,6 +28,7 @@ function record(overrides: Partial<IntegritasProofRecord> = {}): IntegritasProof
     verify_response: null,
     proof_error: null,
     ...overrides,
+    verification_report_file: overrides.verification_report_file ?? null,
   };
 }
 

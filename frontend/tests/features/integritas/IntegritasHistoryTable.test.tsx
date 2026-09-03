@@ -20,6 +20,7 @@ function record(overrides: Partial<IntegritasProofRecord> = {}): IntegritasProof
     verify_response: null,
     proof_error: null,
     ...overrides,
+    verification_report_file: overrides.verification_report_file ?? null,
   };
 }
 
@@ -34,6 +35,7 @@ function renderTable(props: Partial<React.ComponentProps<typeof IntegritasHistor
         onVerify={vi.fn()}
         onDownload={vi.fn()}
         onDownloadZip={vi.fn()}
+        onOpenVerificationReport={vi.fn()}
         onClearSelection={vi.fn()}
         onDeleteSelected={vi.fn()}
         onDownloadSelected={vi.fn()}
