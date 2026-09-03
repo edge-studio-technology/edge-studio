@@ -1,6 +1,6 @@
 {
   "name": "edge-studio",
-  "version": "0.38.14",
+  "version": "0.40.0",
   "private": true,
   "scripts": {
     "dev:frontend": "npm --prefix frontend run dev",
@@ -10,21 +10,23 @@
     "dev:https:prepare": "bash scripts/generate-tls-cert.sh",
     "dev": "concurrently -n backend,frontend -c magenta,cyan \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:https": "npm run dev:https:prepare && concurrently -n backend,frontend -c magenta,cyan \"npm run dev:backend:https\" \"npm run dev:frontend:https\"",
-    "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck",
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck && npm --prefix update-agent run typecheck",
     "build": "npm --prefix backend run build && npm --prefix frontend run build",
-    "audit:moderate": "npm --prefix backend audit --audit-level=moderate && npm --prefix frontend audit --audit-level=moderate",
+    "audit:moderate": "npm --prefix backend audit --audit-level=moderate && npm --prefix frontend audit --audit-level=moderate && npm --prefix update-agent audit --audit-level=moderate",
     "release:build-runtime-bundle": "node scripts/release/build-runtime-bundle.mjs",
     "release:generate-signing-key": "node scripts/release/generate-signing-key.mjs",
     "docker:rebuild": "docker compose up -d --build backend frontend update-agent",
-    "test": "npm --prefix backend run test",
-    "check": "npm run typecheck && npm run test && npm run audit:moderate",
-    "postinstall": "npm i --prefix backend && npm i --prefix frontend"
+    "test": "npm --prefix backend run test && npm --prefix frontend run test && npm --prefix update-agent run test && vitest run --config vitest.scripts.config.mts",
+    "test:coverage": "npm --prefix backend run test:coverage && npm --prefix frontend run test:coverage && npm --prefix update-agent run test:coverage && vitest run --config vitest.scripts.config.mts",
+    "check": "npm run typecheck && npm run test:coverage && npm run audit:moderate",
+    "postinstall": "npm i --prefix backend && npm i --prefix frontend && npm i --prefix update-agent"
   },
   "devDependencies": {
     "concurrently": "^9.2.4",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.6",
-    "prettier-plugin-tailwindcss": "^0.8.1"
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "vitest": "^4.1.10"
   },
   "packageManager": "pnpm@11.9.0+sha512.bd682d5d03fe525ef7c9fd6780c6884d1e756ac4c9c9fe00c538782824310dcf90e3ddc4f53835f06dfaebd5085e41855e0bcbb3b60de2ac5bbab89e5036f03b",
   "dependencies": {

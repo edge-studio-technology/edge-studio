@@ -34,6 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setShowLogin(true);
         setSetupMode(null);
       }
+    } catch {
+      setUser(null);
+      setShowLogin(true);
+      setSetupMode(null);
     } finally {
       setLoading(false);
     }
