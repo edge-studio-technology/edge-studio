@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CheckCircle2, Info, X } from "lucide-react";
 import { cx } from "../lib/cx";
@@ -80,21 +80,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  function dismissToast(id: string) {
+  const dismissToast = useCallback((id: string) => {
     const timer = timers.current.get(id);
     if (timer) window.clearTimeout(timer);
     timers.current.delete(id);
     setToasts((current) => current.filter((toast) => toast.id !== id));
-  }
+  }, []);
 
-  function scheduleDismiss(id: string, timeoutMs: number) {
+  const scheduleDismiss = useCallback((id: string, timeoutMs: number) => {
     const existing = timers.current.get(id);
     if (existing) window.clearTimeout(existing);
     timers.current.set(
       id,
       window.setTimeout(() => dismissToast(id), timeoutMs),
     );
-  }
+  }, [dismissToast]);
 
   function pauseDismiss(id: string) {
     const timer = timers.current.get(id);
@@ -110,14 +110,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     scheduleDismiss(id, toast.timeoutMs);
   }
 
-  function showToast({ title, message, action, tone = "info", timeoutMs = 6000 }: ToastInput) {
+
+const showToast = useCallback(
+  ({ title, message, action, tone = "info", timeoutMs = 6000 }: ToastInput) => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     setToasts((current) => [...current, { id, title, message, action, tone, timeoutMs }]);
     scheduleDismiss(id, timeoutMs);
-  }
+  },
+  [scheduleDismiss],
+);
+
+const contextValue = useMemo(() => ({ showToast }), [showToast]);
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       {mounted &&
         createPortal(
