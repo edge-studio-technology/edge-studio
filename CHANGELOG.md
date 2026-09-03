@@ -4,6 +4,17 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] swap-start-block
+
+### Added
+
+- Workflow edit mode can change an existing workflow's start block while preserving the remaining blocks.
+
+### Changed
+
+- Changing a workflow start block now pauses the workflow until it is reviewed and re-enabled.
+- Manual start blocks now open their details panel from the canvas.
+
 ## [0.38.12] 2026-08-24
 
 ### Fixed
