@@ -329,7 +329,7 @@ export function CreateWorkflowWorkspace({
               title={createBlockedReason}
               onClick={() => void handleCreate()}
             >
-              Create workflow
+              Save workflow
             </Button>
           </>
         }
