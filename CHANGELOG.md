@@ -4,6 +4,13 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [0.40.0] 2026-09-03
+
+### Added
+
+- Diagnostics verification saves available PDF reports locally on the Pi and offers an Open report link from the result toast.
+- Integritas proof history rows now include an Open verification report action when a locally saved report is available.
+
 ## [0.39.0] 2026-09-03
 
 ### Added

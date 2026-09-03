@@ -21,7 +21,11 @@ export async function stampFile(file: File) {
 }
 
 export async function verifyRecord(id: string) {
-  return postJson<{ record: IntegritasProofRecord; response: unknown }>(`/api/integritas/history/${id}/verify`);
+  return postJson<{ record: IntegritasProofRecord; response: unknown; verificationReportUrl: string | null }>(`/api/integritas/history/${id}/verify`);
+}
+
+export function verificationReportUrl(record: Pick<IntegritasProofRecord, "id" | "verification_report_file">) {
+  return record.verification_report_file ? `/api/integritas/history/${record.id}/verification-report` : null;
 }
 
 export async function verifyProofFile(file: File) {
