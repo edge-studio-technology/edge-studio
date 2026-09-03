@@ -229,10 +229,12 @@ afterEach(() => {
 });
 
 function mockResponse(status: number, bodyText: string, headers: Record<string, string> = {}) {
+  const bytes = Buffer.from(bodyText);
   return {
     ok: status >= 200 && status < 300,
     status,
     text: async () => bodyText,
+    arrayBuffer: async () => Uint8Array.from(bytes).buffer,
     headers: { get: (name: string) => headers[name] ?? null }
   };
 }
@@ -349,6 +351,46 @@ describe("verifyProof", () => {
     fetchMock.mockResolvedValue(mockResponse(500, "server error"));
     const result = await service.verifyProof({ apiKey: "key", proofPayload: [] });
     assert.equal(result.ok, false);
+  });
+});
+
+describe("verification reports", () => {
+  it("extracts the PDF download URL from the verify envelope", () => {
+    const response = { data: { file: { download_url: "https://example.com/report.pdf" } } };
+
+    assert.equal(service.verificationReportDownloadUrl(response), "https://example.com/report.pdf");
+    assert.equal(service.verificationReportDownloadUrl([{ data: { file: { download_url: "https://example.com/a.pdf" } } }]), "https://example.com/a.pdf");
+  });
+
+  it("ignores missing and non-http report URLs", () => {
+    assert.equal(service.verificationReportDownloadUrl({}), null);
+    assert.equal(service.verificationReportDownloadUrl({ data: { file: { download_url: "file:///tmp/report.pdf" } } }), null);
+  });
+
+  it("saves a verification report under the reports directory", async () => {
+    fetchMock.mockResolvedValue(mockResponse(200, "pdf-bytes"));
+
+    const fileName = await service.saveVerificationReport("proof-1", { data: { file: { download_url: "https://example.com/report.pdf" } } });
+
+    assert.equal(fileName, "proof-1.pdf");
+    assert.equal(fetchMock.mock.calls[0][0], "https://example.com/report.pdf");
+    assert.equal(fs.readFileSync(service.verificationReportFilePath(fileName!), "utf8"), "pdf-bytes");
+  });
+
+  it("does not save a report when the verify response has no PDF link", async () => {
+    const fileName = await service.saveVerificationReport("proof-2", { data: {} });
+
+    assert.equal(fileName, null);
+    assert.equal(fetchMock.mock.calls.length, 0);
+  });
+
+  it("throws when the report download fails", async () => {
+    fetchMock.mockResolvedValue(mockResponse(404, "not found"));
+
+    await assert.rejects(
+      () => service.saveVerificationReport("proof-3", { data: { file: { download_url: "https://example.com/missing.pdf" } } }),
+      /Verification report download failed with HTTP 404/,
+    );
   });
 });
 

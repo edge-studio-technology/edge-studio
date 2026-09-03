@@ -1,11 +1,13 @@
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
 import { ToastProvider, useToast } from "../../src/components/ToastProvider";
 
 function ShowToastButton(props: {
   title: string;
   message?: string;
+  action?: ReactNode;
   tone?: "error" | "success" | "info" | "warning";
   timeoutMs?: number;
 }) {
@@ -35,6 +37,18 @@ describe("ToastProvider / useToast", () => {
 
     expect(screen.getByText("Saved")).toBeInTheDocument();
     expect(screen.getByText("Your changes were saved.")).toBeInTheDocument();
+  });
+
+  it("shows an optional toast action", async () => {
+    render(
+      <ToastProvider>
+        <ShowToastButton title="Verified" action={<a href="/report.pdf">Open report</a>} />
+      </ToastProvider>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Trigger" }));
+
+    expect(screen.getByRole("link", { name: "Open report" })).toHaveAttribute("href", "/report.pdf");
   });
 
   it("dismisses a toast when its close button is clicked", async () => {
