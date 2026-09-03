@@ -4,8 +4,8 @@ import { CheckCircle2, Info, X } from "lucide-react";
 import { cx } from "../lib/cx";
 
 type ToastTone = "error" | "success" | "info" | "warning";
-type Toast = { id: string; tone: ToastTone; title: string; message?: string; timeoutMs: number };
-type ToastInput = { title: string; message?: string; tone?: ToastTone; timeoutMs?: number };
+type Toast = { id: string; tone: ToastTone; title: string; message?: string; action?: ReactNode; timeoutMs: number };
+type ToastInput = { title: string; message?: string; action?: ReactNode; tone?: ToastTone; timeoutMs?: number };
 
 const ToastContext = createContext<{ showToast: (toast: ToastInput) => void } | null>(null);
 
@@ -110,9 +110,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     scheduleDismiss(id, toast.timeoutMs);
   }
 
-  function showToast({ title, message, tone = "info", timeoutMs = 6000 }: ToastInput) {
+  function showToast({ title, message, action, tone = "info", timeoutMs = 6000 }: ToastInput) {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    setToasts((current) => [...current, { id, title, message, tone, timeoutMs }]);
+    setToasts((current) => [...current, { id, title, message, action, tone, timeoutMs }]);
     scheduleDismiss(id, timeoutMs);
   }
 
@@ -183,6 +183,7 @@ function ToastViewport({
                 {toast.message && (
                   <p className={cx("m-0 break-words", style.messageClassName)}>{toast.message}</p>
                 )}
+                {toast.action ? <div className="mt-1">{toast.action}</div> : null}
               </div>
             </div>
 

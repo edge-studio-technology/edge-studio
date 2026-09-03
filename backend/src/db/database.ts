@@ -32,9 +32,12 @@ export function runMigrations() {
       proof_payload TEXT,
       status_response TEXT,
       verify_response TEXT,
+      verification_report_file TEXT,
       proof_error TEXT
     )
   `);
+
+  ensureColumn("integritas_proofs", "verification_report_file", "TEXT");
 
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_integritas_proofs_status_created
