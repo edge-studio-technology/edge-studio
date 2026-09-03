@@ -213,11 +213,10 @@ describe("CreateWorkflowWorkspace", () => {
     expect(screen.getByRole("button", { name: "select-manual_start" })).toBeInTheDocument();
   });
 
-  it("does not open the selected-block sheet for a manual start block", async () => {
+  it("opens the selected-block sheet for a manual start block", async () => {
     renderWorkspace();
     await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
-    await userEvent.click(screen.getByRole("button", { name: "select-manual_start" }));
-    expect(screen.queryByRole("button", { name: "change-config" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "change-config" })).toBeInTheDocument();
   });
 
   it("opens the selected-block sheet for a non-manual block and closes it with Done", async () => {
@@ -344,7 +343,7 @@ describe("CreateWorkflowWorkspace", () => {
     const dialog = screen.getByRole("dialog", { name: "Are you sure?" });
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Are you sure?" })).not.toBeInTheDocument();
     expect(onCancel).not.toHaveBeenCalled();
   });
 

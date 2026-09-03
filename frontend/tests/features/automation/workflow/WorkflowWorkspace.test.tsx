@@ -181,6 +181,7 @@ function renderWorkspace(
         onNavigateMode={vi.fn()}
         onSelectWatchRun={vi.fn()}
         onAddBlock={vi.fn()}
+        onReplaceStartBlock={vi.fn()}
         onDeleteBlock={vi.fn()}
         onUpdateBlock={vi.fn()}
         onUpdateWorkflow={vi.fn()}
@@ -338,11 +339,11 @@ describe("WorkflowWorkspace edit mode", () => {
     );
   });
 
-  it("does not open the sheet when selecting the manual start block", async () => {
+  it("opens the sheet when selecting the manual start block", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace();
     await user.click(screen.getByRole("button", { name: "select-manual_start-b-start" }));
-    expect(screen.queryByText("editing-manual_start")).not.toBeInTheDocument();
+    expect(screen.getByText("editing-manual_start")).toBeInTheDocument();
   });
 
   it("moves a block up via the canvas move action", async () => {
