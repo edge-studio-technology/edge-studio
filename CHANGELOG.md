@@ -18,7 +18,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The app no longer stays on the loading screen when the startup session check fails; it falls back to the login screen.
 - Repeated background refresh failures no longer stack duplicate error toasts.
 
-## [0.38.12] 2026-08-24
+## [0.38.14] 2026-09-03
+
+### Added
+
+- Workflow edit mode can change an existing workflow's start block while preserving the remaining blocks.
+
+### Changed
+
+- Changing a workflow start block now pauses the workflow until it is reviewed and re-enabled.
+- Manual start blocks now open their details panel from the canvas.
+
+## [0.38.13] 2026-08-24
 
 ### Fixed
 

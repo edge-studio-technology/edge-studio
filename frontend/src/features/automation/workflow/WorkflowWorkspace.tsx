@@ -7,6 +7,7 @@ import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { WalletStatus } from "../../wallet/walletTypes";
 import {
   addAutomationBlock,
+  replaceAutomationStartBlock,
   updateAutomationBlock,
   updateAutomationWorkflow,
 } from "../automationApi";
@@ -76,6 +77,7 @@ export function WorkflowWorkspace({
   onNavigateMode,
   onSelectWatchRun,
   onAddBlock,
+  onReplaceStartBlock,
   onDeleteBlock,
   onUpdateBlock,
   onUpdateWorkflow,
@@ -98,6 +100,9 @@ export function WorkflowWorkspace({
   onSelectWatchRun: (runId: string) => void;
   onAddBlock: (
     input: Parameters<typeof addAutomationBlock>[1],
+  ) => void | Promise<{ item: AutomationBlock } | undefined>;
+  onReplaceStartBlock: (
+    input: Parameters<typeof replaceAutomationStartBlock>[1],
   ) => void | Promise<{ item: AutomationBlock } | undefined>;
   onDeleteBlock: (blockId: string) => void;
   onUpdateBlock: (blockId: string, input: Parameters<typeof updateAutomationBlock>[2]) => void;
@@ -228,6 +233,20 @@ export function WorkflowWorkspace({
     if (result?.item && !result.item.parentBlockId) setSelectedBlockId(result.item.id);
   }
 
+  async function replaceStartBlockFromLibrary(type: AutomationBlockType) {
+    if (type === startBlock?.type) return;
+    if (missingDeviceLibraryReason(type, sources)) return;
+    flushSelectedInspector();
+    setDraftRevealErrors(false);
+    setDraftBlock(null);
+    pauseForEditIfNeeded();
+    const result = await onReplaceStartBlock({
+      type,
+      config: defaultEditBlockConfig(type, sources, addressBook),
+    });
+    setSelectedBlockId(result?.item.id ?? "");
+  }
+
   function flushSelectedInspector() {
     if (mode === "edit") inspectorRef.current?.flush();
   }
@@ -272,11 +291,6 @@ export function WorkflowWorkspace({
 
   function selectCanvasBlock(id: string) {
     if (draftBlock && id !== draftBlock.id) discardDraftBlock();
-    const block = mainBlocks.find((item) => item.id === id);
-    if (mode !== "watch" && block?.type === "manual_start") {
-      closeSelectedSheet();
-      return;
-    }
     if (id !== selectedBlockId && !draftBlock) flushSelectedInspector();
     setSelectedBlockId(id);
   }
@@ -454,7 +468,7 @@ export function WorkflowWorkspace({
                   canAddRecordTriggerEvent={canAddRecordTriggerEvent}
                   canAddSendPayment={canAddSendPayment}
                   sources={sources}
-                  onSelectStartBlock={() => undefined}
+                  onSelectStartBlock={(type) => void replaceStartBlockFromLibrary(type)}
                   onAddBlock={addBlockFromLibrary}
                 />
               </div>
@@ -556,7 +570,7 @@ export function WorkflowWorkspace({
               />
             </div>
           </SelectedBlockSheet>
-        ) : selectedBlock && (mode === "watch" || selectedBlock.type !== "manual_start") ? (
+        ) : selectedBlock ? (
           <SelectedBlockSheet
             title={
               mode === "watch" ? `${blockLabel(selectedBlock)} runtime` : blockLabel(selectedBlock)

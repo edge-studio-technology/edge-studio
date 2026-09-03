@@ -82,7 +82,7 @@ export function WorkflowBlockLibrary({
         description={
           mode === "build"
             ? "Choose a sequence of blocks from the toolkit, then add logic to build your workflow."
-            : "Add blocks to this workflow. Select a block on the canvas to configure it."
+            : "Change the start block or add blocks to this workflow. Select a block on the canvas to configure it."
         }
       />
       {enableSwitch &&
@@ -93,11 +93,11 @@ export function WorkflowBlockLibrary({
         ) : (
           enableSwitch
         ))}
-      {mode === "build" && (
+      {(mode === "build" || mode === "edit") && (
         <ToolkitGroup
           key={`start-${hasStartBlock}`}
-          title="Start blocks"
-          defaultOpen={!hasStartBlock}
+          title={mode === "edit" ? "Start block" : "Start blocks"}
+          defaultOpen={mode === "build" && !hasStartBlock}
         >
           {workflowBlockLibraryTypes.Start.map((type) => {
             const disabledReason = cardDisabledReason(type);
