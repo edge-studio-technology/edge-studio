@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Unit test suites for the backend, frontend, and Update Agent, covering every feature area of each, including the currently disabled two-factor sign-in paths.
 - Smoke test asserting every non-public backend API route requires a session.
 - Test coverage reporting for all three packages, with per-package minimum thresholds enforced by `npm run check` and CI.
+- Unit test coverage for Update Agent's `auth/auth.middleware.ts` request guard, now included in its coverage threshold.
+- Unit tests for the release manifest scripts (`scripts/release/sign-manifest.mjs`, `scripts/release/build-manifest.mjs`), run via a new root-level test command wired into `npm run check`.
 - Pull requests to `main` are now rejected unless they come from `dev`.
 
 ### Fixed

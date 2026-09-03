@@ -14,8 +14,7 @@ export default defineConfig({
         "src/**/*.routes.ts",
         "src/index.ts",
         "src/app.ts",
-        "src/config/env.ts",
-        "src/auth/auth.middleware.ts"
+        "src/config/env.ts"
       ],
       thresholds: {
         statements: 95,
