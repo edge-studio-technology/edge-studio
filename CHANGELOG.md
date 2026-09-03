@@ -4,6 +4,22 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [0.39.0] 2026-09-03
+
+### Added
+
+- Unit test suites for the backend, frontend, and Update Agent, covering every feature area of each, including the currently disabled two-factor sign-in paths.
+- Smoke test asserting every non-public backend API route requires a session.
+- Test coverage reporting for all three packages, with per-package minimum thresholds enforced by `npm run check` and CI.
+- Unit test coverage for Update Agent's `auth/auth.middleware.ts` request guard, now included in its coverage threshold.
+- Unit tests for the release manifest scripts (`scripts/release/sign-manifest.mjs`, `scripts/release/build-manifest.mjs`), run via a new root-level test command wired into `npm run check`.
+- Pull requests to `main` are now rejected unless they come from `dev`.
+
+### Fixed
+
+- The app no longer stays on the loading screen when the startup session check fails; it falls back to the login screen.
+- Repeated background refresh failures no longer stack duplicate error toasts.
+
 ## [0.38.14] 2026-09-03
 
 ### Added
