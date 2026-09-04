@@ -61,6 +61,30 @@ class HostAgentWriteTests(unittest.TestCase):
             "GPIO_GID=997\n",
         )
 
+    def test_write_env_collapses_duplicate_updated_keys(self):
+        self.agent.ENV_FILE.write_text(
+            "ENABLE_CAMERA=false\n"
+            "KEEP_ME=true\n"
+            "ENABLE_CAMERA=old-duplicate\n",
+            encoding="utf-8",
+        )
+
+        self.agent.write_env({"ENABLE_CAMERA": "true"})
+
+        content = self.agent.ENV_FILE.read_text(encoding="utf-8")
+        self.assertEqual(content.count("ENABLE_CAMERA="), 1)
+        self.assertIn("ENABLE_CAMERA=true", content)
+        self.assertIn("KEEP_ME=true", content)
+
+    def test_update_compose_profiles_is_idempotent(self):
+        config = {"COMPOSE_PROFILES": "mqtt,other,mqtt,, other"}
+
+        enabled = self.agent.update_compose_profiles(config, "mqtt", True)
+        disabled = self.agent.update_compose_profiles({"COMPOSE_PROFILES": enabled}, "mqtt", False)
+
+        self.assertEqual(enabled, "mqtt,other")
+        self.assertEqual(disabled, "other")
+
     def test_gpio_override_does_not_replace_user_managed_file(self):
         self.agent.COMPOSE_OVERRIDE_FILE.write_text(
             "services:\n"

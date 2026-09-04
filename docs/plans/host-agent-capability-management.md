@@ -305,6 +305,7 @@ Completed implementation checkpoints:
 - Host-agent status hardening is implemented for Camera, GPIO, I2C sensors, and local MQTT: checks distinguish missing host tools/devices, helper service states, generated GPIO override readiness, backend container device visibility, Compose profile/service availability, and MQTT container running state.
 - Host-agent file-write hardening started: `.env`, generated GPIO override, and camera/sensor systemd unit writes now use atomic replacement; service-file deletes tolerate repeated disable/race conditions; GPIO override writes refuse to replace user-managed override files.
 - GPIO action safety now reports user-managed override blockage in capability status and rejects automatic repair before changing `.env`, avoiding partial enablement when `docker-compose.override.yml` cannot be edited safely.
+- `.env` and Compose profile updates are now more retry-safe: repeated updates collapse duplicate edited keys and repeated MQTT apply/disable does not duplicate profile entries.
 
 ## Remaining Implementation Steps
 
@@ -315,7 +316,7 @@ Completed implementation checkpoints:
 
    - Audit each `apply_*` and `disable_*` path for repeated-click behavior and make each step safe when the target state already exists.
    - Replace or guard remaining file/directory operations so helper tokens and capture directories are updated only when needed and never leave empty/truncated files after an exception.
-   - Review `.env` read/write behavior for comments, ordering, unknown keys, duplicate keys, missing trailing newline, and file permissions; preserve unrelated content while updating only allowlisted keys.
+   - Review whether `.env` writes should reject non-allowlisted keys at the helper boundary, even though callers currently pass fixed internal updates only.
    - Make partial failures observable through `status()` by checking the concrete artifacts each action creates, not by trusting that an earlier command completed.
    - Add broader retry-focused tests for Compose profile updates and repeated Camera/GPIO/I2C/MQTT apply/disable calls with mocked `systemctl`/`docker`/filesystem state.
    - Verify failed prerequisites and failed partial actions can be corrected and retried without manual cleanup beyond the prerequisite fix.

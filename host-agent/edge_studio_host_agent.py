@@ -63,6 +63,8 @@ def write_env(updates):
             if line and not line.startswith("#") and "=" in line:
                 key = line.split("=", 1)[0]
                 if key in updates:
+                    if key in seen:
+                        continue
                     lines.append(f"{key}={updates[key]}")
                     seen.add(key)
                     continue
@@ -74,7 +76,11 @@ def write_env(updates):
 
 
 def update_compose_profiles(config, profile, enabled):
-    profiles = [item for item in config.get("COMPOSE_PROFILES", "").split(",") if item]
+    profiles = []
+    for item in config.get("COMPOSE_PROFILES", "").split(","):
+        item = item.strip()
+        if item and item not in profiles:
+            profiles.append(item)
     if enabled and profile not in profiles:
         profiles.append(profile)
     if not enabled:
