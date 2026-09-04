@@ -16,7 +16,7 @@ Verified during the audit, against source rather than against the report's own c
 
 - **All 14 findings are factually accurate.** Every affected line reference resolves to the code
   the report describes. No fabricated findings, no stale line numbers. The report is grounded.
-- **Three findings are understated by the report itself.** They are real as written, but the
+- **Two findings are understated by the report itself.** They are real as written, but the
   write-up misses part of their own reach:
   - The backup password leaks on *three* paths, not one. `createBackup()` returns
     `runMinimaPathCommand`'s result verbatim, and that object carries both `command`
@@ -25,32 +25,42 @@ Verified during the audit, against source rather than against the report's own c
     returns it, because `dependencyUnavailable(res, ..., result)` spreads `extra` into the error
     body via `sendApiError`; and `POST /api/minima/console/run` with a whitelisted `backup`
     returns the same object again.
-  - The webhook token reaches the database, not only the request log. Ingest writes
-    `sourceUrl: "/api/data-source-webhooks/<token>"` into `data_source_reads`.
-  - The runtime-bundle finding is not a duplicate of the `curl | sudo bash` finding, and the
-    distinction matters — see below.
-- **Two findings are overrated.**
-  - The wallet-drain finding assumes an attacker can move funds. They cannot choose the
-    destination: the recipient is a pre-existing address-book entry and the amount is fixed in
-    block config. Repeated triggering is denial-of-funds to an address the admin already
-    trusted, not theft.
-  - The `APP_SECRET` fallback is rated likelihood medium. `install.sh` generates
-    `openssl rand -hex 32` on every supported install path, so real exposure is confined to
+  - The webhook token can reach the database, not only the request log — but conditionally. Only
+    `recordTriggerEvent` persists it, via `sourceUrlForRecord` reading `config.webhookToken` into
+    `data_source_reads.sourceUrl`, so it requires a workflow containing a record-trigger-event
+    block. A webhook source without one leaks the token to `requestLogger` only. (The `sourceUrl`
+    argument threaded through `recordPushAutomationPayload` is never read — `executeWorkflow`
+    re-derives it from the source config.)
+- **One finding's likelihood is overrated; one needs a scope clarification rather than a
+  downgrade.**
+  - The `APP_SECRET` fallback is rated likelihood medium. `ensure_app_secret` generates
+    `openssl rand -hex 32`, so a default install is safe — but it early-returns on any non-empty
+    value, so a supplied or pre-existing `.env` carrying `dev-change-me` is preserved rather than
+    replaced. Real exposure is narrower than medium suggests, but it is not confined to
     hand-rolled `docker compose up`.
-- **One issue the review missed outranks most of its mediums.** `parseJsonApiConfig` applies no
+  - The wallet-action finding does not let an attacker move funds to a destination of their
+    choosing: the recipient is a pre-existing address-book entry and the amount is fixed in block
+    config. Repeated triggering is denial-of-funds to an address the admin already trusted, not
+    theft. The report never claimed otherwise, and the finding also covers GPIO and network
+    actions — medium stands.
+- **One issue the review missed outranks every medium in it.** `parseJsonApiConfig` applies no
   scheme, host, or private-range validation to `config.url` — it accepts any string.
   `POST /api/data-sources/:id/read` fetches that URL and returns the parsed response body as
   `result.preview`. `minima` sits on the shared `integritas` Compose network with
   `minima_rpcenable: "true"` and no RPC password. An HTTP JSON Source pointed at
-  `http://minima:9005/vault` or `http://minima:9005/keys` therefore returns wallet key material
-  in the API response and persists it to read history. This defeats the console catalog's
-  hard-exclusion of `vault`/`keys`/`sendfrom` and the whitelist re-auth requirement — the exact
-  controls `.claude/rules/minima.md` cites as the reason no generic Minima proxy is allowed.
-  The same primitive is reachable through `http-output` targets, whose response body is also
-  returned. It is not exploitable to `file://`; undici's `fetch` does not implement that scheme.
-  Minima's RPC port is bound to `127.0.0.1` on the host, which is precisely why a
+  `http://minima:9005/vault` therefore returns seed-phrase/private-key material in the API
+  response and persists it to read history. `http://minima:9005/keys` is the same bypass, though
+  whether its response can contain private key material is still an open question in
+  `docs/security/host-and-infrastructure.md` and should stay qualified. This defeats the console
+  catalog's hard-exclusion of `vault`/`keys`/`sendfrom` and the whitelist re-auth requirement —
+  the exact controls `.claude/rules/minima.md` cites as the reason no generic Minima proxy is
+  allowed. The same primitive is reachable through `http-output` targets, whose response body is
+  also returned. It is not exploitable to `file://`; undici's `fetch` does not implement that
+  scheme. Minima's RPC port is bound to `127.0.0.1` on the host, which is precisely why a
   container-network-internal bypass is the interesting path.
-- **The bundle-trust finding is worse than the report's own "medium".** `install.sh` downloads
+- **The bundle-trust finding is correctly rated high, and is not a duplicate of the
+  `curl | sudo bash` finding.** The two are distinct trust failures with distinct fixes, and
+  collapsing them loses the more persistent one. `install.sh` downloads
   `edge-studio-runtime.tar.gz` from a URL derived from `MANIFEST_URL` and extracts it with no
   signature or digest check. That archive supplies both `scripts/verify-manifest.mjs` and
   `update-agent/manifest-public-key.pem` — the verifier and the trust anchor — and the same
@@ -61,15 +71,24 @@ Verified during the audit, against source rather than against the report's own c
   validates the attacker's manifest, which pins the attacker's `update-agent` image, which ships
   the attacker's key. The compromise is persistent, and GitHub compromise is not required.
 
+This ADR was returned to Daybreak Blue for reconciliation. It accepted the audit, the SSRF
+finding, and the fix ordering, and corrected four statements in the first draft: the report's own
+rating of the bundle finding (high, not medium), the installer's `APP_SECRET` preservation path,
+the condition under which the webhook token reaches the database, and the `vault`/`keys`
+distinction. Each was re-verified against source and folded in above.
+
 ## Decision
 
 - Accept the review as a valid basis for hardening work. Do not re-audit it further.
 - Record the audit's re-rating rather than the report's original severity mix as the ordering we
   act on. The report is committed verbatim, its own severity field left as-is; this ADR is the
   reconciliation.
-- Treat the missed SSRF as a first-class finding alongside the report's 14, at a severity above
-  every medium in the original set. It shares the report's own threat model (stolen or misused
-  admin session) and produces the worst outcome of any finding in it.
+- Treat the missed SSRF as a first-class finding alongside the report's 14, ranked above every
+  medium in the original set but below its two highs. It shares the report's own threat model
+  (stolen or misused admin session), and what makes it serious is not that its outcome is
+  unmatched — runtime-bundle compromise yields root, and a stolen admin session can already send
+  payments — but that it silently bypasses controls this project explicitly documents as its
+  reason for not exposing a generic Minima proxy.
 - Fix in this order, highest value per unit of work first:
   1. Backup password in API responses — active secret disclosure, and the fix is a purpose-built
      response DTO rather than returning the RPC result object.
