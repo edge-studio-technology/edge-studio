@@ -307,6 +307,7 @@ Completed implementation checkpoints:
 - GPIO action safety now reports user-managed override blockage in capability status and rejects automatic repair before changing `.env`, avoiding partial enablement when `docker-compose.override.yml` cannot be edited safely.
 - `.env` and Compose profile updates are now more retry-safe: repeated updates collapse duplicate edited keys and repeated MQTT apply/disable does not duplicate profile entries.
 - Host-agent retry tests now cover repeated GPIO apply, repeated MQTT apply/disable, and repeated Camera/I2C helper disable actions with mocked external service boundaries.
+- Host-agent retry tests now also cover repeated Camera/I2C apply actions and systemd restart failures before `.env` is flipped to enabled.
 
 ## Remaining Implementation Steps
 
@@ -319,7 +320,7 @@ Completed implementation checkpoints:
    - Replace or guard remaining file/directory operations so helper tokens and capture directories are updated only when needed and never leave empty/truncated files after an exception.
    - Review whether `.env` writes should reject non-allowlisted keys at the helper boundary, even though callers currently pass fixed internal updates only.
    - Make partial failures observable through `status()` by checking the concrete artifacts each action creates, not by trusting that an earlier command completed.
-   - Add remaining retry-focused tests for Camera/I2C apply paths and partial command failures with mocked `systemctl`/`docker`/filesystem state.
+   - Add any remaining partial-failure tests for Docker/Compose restart scheduling and backend recreation failures.
    - Verify failed prerequisites and failed partial actions can be corrected and retried without manual cleanup beyond the prerequisite fix.
 
 2. Improve hardware operation model.

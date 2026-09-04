@@ -192,6 +192,95 @@ class HostAgentWriteTests(unittest.TestCase):
         self.assertFalse(self.agent.CAMERA_SERVICE_FILE.exists())
         self.assertFalse(self.agent.SENSOR_SERVICE_FILE.exists())
 
+    def test_apply_camera_is_safe_to_repeat(self):
+        self.agent.ENV_FILE.write_text(
+            "ENABLE_CAMERA=false\n"
+            "CAMERA_HELPER_TOKEN=existing-camera-token\n"
+            "CAMERA_HELPER_PORT=38180\n"
+            "CAMERA_CAPTURE_DIR=/data/captures\n",
+            encoding="utf-8",
+        )
+
+        with patch.object(self.agent, "missing_camera_tools_message", return_value=None):
+            with patch.object(self.agent, "helper_user", return_value="root"):
+                with patch.object(self.agent, "run", return_value=self.agent.subprocess.CompletedProcess([], 0, "", "")):
+                    with patch.object(self.agent, "restart_backend", return_value={"ok": True, "scheduled": True}):
+                        with patch.object(self.agent, "camera_status", return_value={"state": "enabled"}):
+                            self.agent.apply_camera()
+                            self.agent.apply_camera()
+
+        env_content = self.agent.ENV_FILE.read_text(encoding="utf-8")
+        service_content = self.agent.CAMERA_SERVICE_FILE.read_text(encoding="utf-8")
+        self.assertEqual(env_content.count("ENABLE_CAMERA="), 1)
+        self.assertEqual(env_content.count("CAMERA_HELPER_TOKEN="), 1)
+        self.assertIn("ENABLE_CAMERA=true", env_content)
+        self.assertIn("CAMERA_HELPER_TOKEN=existing-camera-token", env_content)
+        self.assertIn("Environment=CAMERA_HELPER_TOKEN=existing-camera-token", service_content)
+
+    def test_apply_sensors_is_safe_to_repeat(self):
+        self.agent.ENV_FILE.write_text(
+            "ENABLE_SENSORS=false\n"
+            "SENSOR_HELPER_TOKEN=existing-sensor-token\n"
+            "SENSOR_HELPER_PORT=38181\n",
+            encoding="utf-8",
+        )
+        sensor_python = self.root / ".venv-sensor-helper" / "bin" / "python"
+        sensor_python.parent.mkdir(parents=True)
+        sensor_python.write_text("", encoding="utf-8")
+
+        with patch.object(self.agent, "missing_sensor_prerequisites_message", return_value=None):
+            with patch.object(self.agent, "helper_user", return_value="root"):
+                with patch.object(self.agent, "run", return_value=self.agent.subprocess.CompletedProcess([], 0, "", "")):
+                    with patch.object(self.agent, "restart_backend", return_value={"ok": True, "scheduled": True}):
+                        with patch.object(self.agent, "sensor_status", return_value={"state": "enabled"}):
+                            self.agent.apply_sensors()
+                            self.agent.apply_sensors()
+
+        env_content = self.agent.ENV_FILE.read_text(encoding="utf-8")
+        service_content = self.agent.SENSOR_SERVICE_FILE.read_text(encoding="utf-8")
+        self.assertEqual(env_content.count("ENABLE_SENSORS="), 1)
+        self.assertEqual(env_content.count("SENSOR_HELPER_TOKEN="), 1)
+        self.assertIn("ENABLE_SENSORS=true", env_content)
+        self.assertIn("SENSOR_HELPER_TOKEN=existing-sensor-token", env_content)
+        self.assertIn("Environment=SENSOR_HELPER_TOKEN=existing-sensor-token", service_content)
+
+    def test_apply_camera_systemd_failure_does_not_enable_env(self):
+        self.agent.ENV_FILE.write_text("ENABLE_CAMERA=false\nCAMERA_HELPER_TOKEN=token\n", encoding="utf-8")
+
+        def fail_on_restart(command, check=True, timeout=None):
+            if command[:2] == ["systemctl", "restart"]:
+                raise RuntimeError("restart failed")
+            return self.agent.subprocess.CompletedProcess(command, 0, "", "")
+
+        with patch.object(self.agent, "missing_camera_tools_message", return_value=None):
+            with patch.object(self.agent, "helper_user", return_value="root"):
+                with patch.object(self.agent, "run", side_effect=fail_on_restart):
+                    with self.assertRaisesRegex(RuntimeError, "restart failed"):
+                        self.agent.apply_camera()
+
+        self.assertIn("ENABLE_CAMERA=false", self.agent.ENV_FILE.read_text(encoding="utf-8"))
+        self.assertTrue(self.agent.CAMERA_SERVICE_FILE.exists())
+
+    def test_apply_sensors_systemd_failure_does_not_enable_env(self):
+        self.agent.ENV_FILE.write_text("ENABLE_SENSORS=false\nSENSOR_HELPER_TOKEN=token\n", encoding="utf-8")
+        sensor_python = self.root / ".venv-sensor-helper" / "bin" / "python"
+        sensor_python.parent.mkdir(parents=True)
+        sensor_python.write_text("", encoding="utf-8")
+
+        def fail_on_restart(command, check=True, timeout=None):
+            if command[:2] == ["systemctl", "restart"]:
+                raise RuntimeError("restart failed")
+            return self.agent.subprocess.CompletedProcess(command, 0, "", "")
+
+        with patch.object(self.agent, "missing_sensor_prerequisites_message", return_value=None):
+            with patch.object(self.agent, "helper_user", return_value="root"):
+                with patch.object(self.agent, "run", side_effect=fail_on_restart):
+                    with self.assertRaisesRegex(RuntimeError, "restart failed"):
+                        self.agent.apply_sensors()
+
+        self.assertIn("ENABLE_SENSORS=false", self.agent.ENV_FILE.read_text(encoding="utf-8"))
+        self.assertTrue(self.agent.SENSOR_SERVICE_FILE.exists())
+
     def test_unlink_if_exists_is_safe_when_file_is_already_missing(self):
         missing = self.root / "missing.service"
 
