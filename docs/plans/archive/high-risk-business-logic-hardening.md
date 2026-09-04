@@ -1,6 +1,11 @@
 # High-Risk Business Logic Hardening Plan
 
-**Status:** Not started  
+> **Archived 2026-09-04 — superseded by [security-hardening-v1-5.md](../security-hardening-v1-5.md).**
+> Session revocation became that plan's Phase 3, outward error sanitization its Phase 1, and the
+> four remaining items its Phase 9. Kept for the audit context that produced them. Do not add new
+> work here.
+
+**Status:** Archived (superseded)  
 **Created:** 2026-09-02  
 **Goal:** Address production-behavior gaps identified by the high-risk unit-test audit without mixing those changes into the unit-test branch.
 

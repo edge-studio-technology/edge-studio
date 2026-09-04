@@ -44,7 +44,13 @@ Plan:
 - Revisit `keys` (whether its response can ever include private key material) and `decryptbackup`/`vault`/the `*from` family before ever considering them for the catalog.
 - If any excluded command is ever added later, add response redaction before persisting or displaying it — not just gate it behind the whitelist.
 
-Status: Mitigated via closed-world catalog + re-auth-gated whitelist + hard exclusions. See `.agents/rules/minima.md`.
+Status: **Partially mitigated — two gaps, scheduled Phase 2.** The closed-world catalog,
+re-auth-gated whitelist, and hard exclusions work as described (see `.agents/rules/minima.md`), but
+(a) `parseVerb` matches the first token only, so read-enabled `tokens`/`cointrack`/`maxcontacts`
+entries still accept their mutating subcommand forms, and (b) the catalog's exclusions can be
+sidestepped entirely via the data-source SSRF path, which never goes through the console — see
+*Data Source URL Fetching* in `data-sources-and-automation.md`.
+See [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-2--close-the-minima-rpc-bypass).
 
 ## Minima Node Backup & Restore
 
@@ -69,7 +75,14 @@ Plan:
 
 - Consider allowing the backup password to be changed (re-encrypting nothing retroactively — existing backups keep their original password) with a clear UI warning that old backups won't decrypt with a new password.
 
-Status: Mitigated via a narrow scoped volume, path containment, admin-only + re-auth-gated routes (including for the password itself), capped/auto-pruned lists, and audit logging. Third revision this session — see `docs/plans/minima-node-backup-restore.md`.
+Status: **Partially mitigated — one open disclosure, scheduled Phase 1.** Storage and route
+controls are as described (narrow scoped volume, path containment, admin-only + re-auth-gated
+routes, capped/auto-pruned lists, audit logging — see `docs/plans/minima-node-backup-restore.md`).
+But the stored backup password is returned to the client in plaintext on three paths, because
+`createBackup()` returns the raw RPC result and that object carries the full
+`backup file:... password:"..."` command string: the `POST /backups` success body, its failure body
+via `dependencyUnavailable`'s `extra` spreading, and `POST /console/run` for a whitelisted `backup`.
+See [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-1--stop-returning-the-backup-password).
 
 ## Update Agent Docker Socket Mount
 
@@ -128,8 +141,15 @@ Current Controls:
 Plan:
 
 - If the key is ever suspected compromised, rotate it (generate a new keypair, update the GH secret, ship the new public key in a `update-agent` release) and document the rotation in this file.
+- Stop `install.sh` taking its verifier and public key from the unsigned bundle (Phase 4).
 
-Status: Accepted risk, documented. See `.agents/rules/update-agent.md`.
+Status: **Partially mitigated — install-time gap open, scheduled Phase 4.** The key-handling
+controls above hold, and `update-agent`'s runtime trust boundary is sound because its public key is
+baked into its own image. `install.sh` is the gap: it takes both `scripts/verify-manifest.mjs` and
+`manifest-public-key.pem` from the unsigned runtime bundle served by the same origin as the manifest
+they are meant to authenticate. At install time, compromise of that one origin is sufficient, and it
+persists across updates; GitHub compromise is not required. Rated high by the external review — see
+[adr/0010](../adr/0010-security-review-audit-verdict.md) and `.agents/rules/update-agent.md`.
 
 ## File Browser Metadata Exposure
 
@@ -144,7 +164,7 @@ Plan:
 - Add per-user allowlists or explicit directory selection later.
 - Avoid mounting `/home/pi` in production unless required.
 
-Status: Partially mitigated by read-only mount and path traversal checks. Auth gates `/api/files/*` (see `docs/plans/auth-security.md`).
+Status: Partially mitigated by read-only mount and path traversal checks. `/api/files/*` is auth-gated, with admin role on mutations.
 
 ## Path Traversal And Symlink Escape
 
@@ -163,7 +183,7 @@ Plan:
 - Add tests for traversal, symlink escape, encoded paths, and permission errors.
 - Consider hiding symlinks entirely.
 
-Status: Mitigated for prototype, needs tests.
+Status: Mitigated. Containment double-checks via `realpath` in `files.service.ts` and is covered by `backend/tests/features/files/files.service.test.ts`. The external review examined this surface and found no issue.
 
 ## SQLite File Permissions
 
@@ -196,7 +216,10 @@ Plan:
 - Add automated `npm audit` and image vulnerability scanning.
 - Review native dependency `better-sqlite3` updates.
 
-Status: Open.
+Status: **Open — scheduled, Phase 6.** `minimaglobal/minimacore` is untagged and
+`eclipse-mosquitto:2` is a mutable tag; both sit outside the signed manifest, so digest pinning is
+the only available control. See
+[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-6--fail-closed-on-weak-config).
 
 ## One-Line Curl Installer
 
@@ -211,4 +234,8 @@ Plan:
 - Consider package repository, deb package, or signed install bundle.
 - Keep installer minimal and auditable.
 
-Status: Open. Accepted for prototype UX exploration.
+Status: **Open — scheduled, Phase 4.** Two distinct failures, not one: the `curl | sudo bash`
+pattern itself (mitigate with a published checksum and a documented download-inspect-run path), and
+the separate, more persistent problem that the unverified runtime bundle supplies both the manifest
+verifier and its public key — see *Update Manifest Signing Key* above and
+[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-4--fix-the-install-time-trust-chain).

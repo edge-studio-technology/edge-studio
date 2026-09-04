@@ -39,7 +39,14 @@ Current Controls:
 - The block uses the existing narrow wallet send service, not a generic Minima command proxy.
 - Sends are recorded in wallet send history and audit events with workflow/recipient/amount metadata.
 
-Status: Accepted prototype risk. Use only on trusted local workflows and treat enabled event-triggered transaction workflows as funds-moving automation.
+Status: **Accepted, with one scheduled mitigation (Phase 7).** Use only on trusted local workflows
+and treat enabled event-triggered transaction workflows as funds-moving automation. The external
+review rated repeated event-driven execution medium; note the bound on it, which the review did not
+state: the recipient is a pre-existing address-book entry and the amount is fixed in block config,
+so an attacker who can drive the trigger cannot choose a destination or amount. The exposure is
+repeated payment to an already-trusted address, plus repeated GPIO/network actions — denial of funds
+and device abuse, not theft. Workflow cooldown defaults to `0` (disabled); Phase 7 requires a
+non-zero cooldown or an execution budget for `send_transaction` blocks.
 
 ## Wallet Debug Clears (admin, non-production)
 

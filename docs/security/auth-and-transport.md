@@ -1,6 +1,6 @@
 # Auth And Transport Risks
 
-Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md#auth) · [plans/security-checklist.md](../plans/security-checklist.md)
+Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md#auth) · [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md)
 
 ## Unauthenticated LAN Access (mitigated, residual TLS trust risk)
 
@@ -12,7 +12,7 @@ Controls (V1):
 
 - Login required for all `/api/*` routes except health, setup, and login.
 - HttpOnly + `SameSite=Strict` session cookies with `Secure` on the default HTTPS deploy; token hashes stored in SQLite.
-- TOTP required at setup and login.
+- Single-factor password/PIN is the local admin control. TOTP is implemented but has always been disabled (`TOTP_ENABLED = false`) and is **being removed** — see [adr/0011](../adr/0011-remove-unused-totp.md) and [plans/remove-totp.md](../plans/remove-totp.md). Until that lands, note that the flag gates enforcement and UI only: `POST /api/setup/totp/init` is unauthenticated and returns a raw TOTP secret to any caller until the local admin exists.
 - Login/setup rate limiting and generic login errors.
 - Self-signed TLS encrypts browser-to-Pi traffic by default.
 
@@ -32,7 +32,7 @@ Current Controls:
 - Nginx terminates TLS; `COOKIE_SECURE=true` on the default Docker deploy.
 - Certificates stored under `DATA_DIR/certs`; regenerate with `INTEGRITAS_TLS_FORCE=1 bash scripts/generate-tls-cert.sh` after a LAN IP change.
 
-Plan: See `docs/plans/security-checklist.md` for V2+ custom-certificate/HSTS work.
+Plan: Custom certificates and HSTS stay out of scope for V1.5 — see [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#out-of-scope-for-v15).
 
 Status: Mitigated for passive sniffing; residual self-signed trust risk documented.
 
@@ -64,4 +64,9 @@ Plan:
 - Add backup/restore documentation.
 - Consider integrating OS keyring, TPM, age/sops, or user-provided passphrase for stronger production secret handling.
 
-Status: Partially mitigated by installer preservation. Production design open. See GAP-04 in `qa/gaps.md`.
+Status: **Partially mitigated — fail-closed startup scheduled, Phase 6 (GAP-04).** `install.sh`
+generates `openssl rand -hex 32`, so a default install gets a strong secret — but `ensure_app_secret`
+early-returns on any non-empty value, so a supplied or pre-existing `.env` carrying `dev-change-me`
+survives an install, and the backend only warns rather than refusing to start. Production secret
+design (keyring/TPM/age/sops/passphrase) remains open and is not in V1.5. See
+[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-6--fail-closed-on-weak-config).

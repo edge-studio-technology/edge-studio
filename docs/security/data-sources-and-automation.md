@@ -21,7 +21,11 @@ Plan:
 - Add auth before exposing Minima actions.
 - Review Minima RPC auth/options before production.
 
-Status: Partially mitigated by host-local bind and no arbitrary command proxy.
+Status: **Open — scheduled, Phase 2.** The "no arbitrary command proxy" control does not hold:
+an HTTP JSON Source pointed at `http://minima:9005/vault` reaches unauthenticated Minima RPC from
+inside the Docker network and returns the response to the caller, bypassing the console catalog's
+hard exclusions. See [adr/0010](../adr/0010-security-review-audit-verdict.md) and
+[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-2--close-the-minima-rpc-bypass).
 
 ## Minima Auto-Resync (optional)
 
@@ -75,15 +79,22 @@ Impact: Misconfigured or malicious URLs could probe internal services, create re
 Current Controls:
 
 - URLs must be saved on a data source before the health poll endpoint will fetch them.
-- Data-source mutation routes require admin role.
+- Data-source mutation routes require admin role. `GET /:id/health` does **not**, though it drives the same fetch primitive as the admin-gated `POST /:id/read`.
 - Health status polling is narrow and read-only, and the frontend polls saved health URLs once per minute.
 
 Plan:
 
-- Add URL allowlists or network egress policy for production.
+- Reject internal/Compose-network destinations and non-`http(s)` schemes at both save and fetch
+  time, via one shared validator. Phase 2 chooses between blocking the internal network only and a
+  full host allowlist.
+- Align the `/:id/health` admin gate with `/:id/read`.
 - Consider per-source health polling controls and rate limits.
 
-Status: Accepted prototype risk.
+Status: **Open — scheduled, Phase 2.** Previously recorded here as an accepted prototype risk on the
+grounds that it "could probe internal services". That understated it: the reachable internal service
+is an unauthenticated Minima RPC endpoint that returns wallet key material, and the response body is
+both returned to the caller and persisted to read history. The class of risk was anticipated; its
+consequence was not. See [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-2--close-the-minima-rpc-bypass).
 
 ## Public Data Source Webhooks
 
@@ -101,6 +112,12 @@ Current Controls:
 - Admin authentication is still required to create, edit, list, or delete webhook sources.
 - Incoming webhook payloads are recorded only when the source has an enabled automation workflow; otherwise the endpoint returns a disabled-ingestion error.
 - HTTPS encrypts webhook payload transport by default, but self-signed certificate trust must be handled by the sending system.
+
+Open gap: the bearer token is written to routine request logs (`requestLogger` logs `originalUrl`
+unconditionally), and reaches `data_source_reads.sourceUrl` whenever the triggered workflow contains
+a record-trigger-event block. Anyone who can read Docker logs or the database can replay the webhook.
+Scheduled Phase 7 — see
+[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-7--retention-redaction-budgets).
 
 Plan:
 
@@ -172,7 +189,11 @@ Plan:
 - Consider TLS, topic ACLs, and LAN bind controls before production use.
 - Document trusted-network-only use clearly in installation guidance.
 
-Status: Accepted prototype risk for local learning deployments only.
+Status: **Accepted for local learning deployments only — escalated to a product decision.** The
+external review rated anonymous publishing medium. It is off by default and profile-gated, but
+unauthenticated when on, and closing it needs a device-authentication model rather than a config
+change. Not scheduled as a patch — see
+[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#product-decisions).
 
 ## HTTP JSON Targets
 
@@ -187,6 +208,10 @@ Current Controls:
 - Supported methods are limited to `POST`, `PUT`, and `PATCH`.
 - Requests use JSON bodies and bounded timeouts.
 - Request bodies are selected per workflow block: custom JSON, workflow context, trigger payload, latest data, or no body.
+
+Open gap: target URLs get the same absent validation as data-source URLs, and `sendHttpOutput`
+returns the upstream response body to the caller — so this is the second route to the Minima RPC
+bypass. Response reads are also uncapped. Scheduled Phase 2 (validation) and Phase 5 (byte cap).
 - Custom output JSON can interpolate per-run workflow variables using `{{variableName}}`; variables may contain untrusted input from triggers or fetched data.
 
 Plan:

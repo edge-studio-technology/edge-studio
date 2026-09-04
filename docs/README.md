@@ -7,7 +7,7 @@ docs/
 ├── TASKS.md     current work items (read every session)
 ├── SESSION.md   scratch log for the session in progress
 ├── security/    detailed security risk register (see SECURITY.md for the policy)
-├── plans/       active or upcoming work
+├── plans/       active or upcoming work (archive/ for completed and superseded)
 ├── adr/         architecture decision records — why, not what; code comments point here
 ├── qa/          open gaps and hardening backlog
 └── reports/     point-in-time audits (not maintained after creation)
@@ -61,19 +61,25 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 
 ## Active plans
 
-| Plan                                                                                                     | Status                     |
-| -------------------------------------------------------------------------------------------------------- | -------------------------- |
-| [plans/automation-inbox-and-preview-block.md](./plans/automation-inbox-and-preview-block.md)             | V1 implemented             |
-| [plans/block-automation-workflows.md](./plans/block-automation-workflows.md)                             | In progress                |
-| [plans/device-configuration-and-mqtt-broker.md](./plans/device-configuration-and-mqtt-broker.md)         | V1 implemented             |
-| [plans/feedback.md](./plans/feedback.md)                                                                 | V1 implemented; V2 planned |
-| [plans/security-checklist.md](./plans/security-checklist.md)                                             | In progress                |
-| [plans/security-hardening-v1-5.md](./plans/security-hardening-v1-5.md)                                   | Not started                |
-| [plans/workflow-variables-and-output-templating.md](./plans/workflow-variables-and-output-templating.md) | V1 implemented             |
-| [plans/manifest-deploy-pull-model.md](./plans/manifest-deploy-pull-model.md)                             | In progress                |
-| [plans/workflow-runs-pagination.md](./plans/workflow-runs-pagination.md)                                 | Implemented                |
-| [plans/pir-motion-sensor-workflows.md](./plans/pir-motion-sensor-workflows.md)                           | Planned                    |
-| [plans/esp32-mqtt-sensor-onboarding.md](./plans/esp32-mqtt-sensor-onboarding.md)                         | Planned                    |
+| Plan | Status |
+| ---- | ------ |
+| [plans/security-hardening-v1-5.md](./plans/security-hardening-v1-5.md) | Not started — owns all V1.5 security work |
+| [plans/remove-totp.md](./plans/remove-totp.md) | Not started — own branch; sequence after the security plan's Phase 3 |
+| [plans/block-automation-workflows.md](./plans/block-automation-workflows.md) | In progress |
+| [plans/workflow-redesign.md](./plans/workflow-redesign.md) | In progress |
+| [plans/esp32-mqtt-sensor-onboarding.md](./plans/esp32-mqtt-sensor-onboarding.md) | In progress |
+| [plans/pir-motion-sensor-workflows.md](./plans/pir-motion-sensor-workflows.md) | In progress |
+| [plans/host-agent-capability-management.md](./plans/host-agent-capability-management.md) | Not started |
+| [plans/feedback.md](./plans/feedback.md) | V1 implemented; hosted receiver required |
+| [plans/minima-node-backup-restore.md](./plans/minima-node-backup-restore.md) | Implemented; needs verification against a real node |
+| [plans/bme-environmental-sensor-support.md](./plans/bme-environmental-sensor-support.md) | Implemented |
+| [plans/device-guide-starter-workflows.md](./plans/device-guide-starter-workflows.md) | Implemented |
+| [plans/replace-openssl-manifest-verification.md](./plans/replace-openssl-manifest-verification.md) | Implemented |
+| [plans/manifest-deploy-pull-model.md](./plans/manifest-deploy-pull-model.md) | Superseded — see [adr/0008](./adr/0008-manifest-served-from-github-raw.md) |
+
+Completed and superseded plans move to [plans/archive/](./plans/archive/); they are kept for
+context, not updated. `security-checklist.md` and `high-risk-business-logic-hardening.md` were
+archived on 2026-09-04 and folded into the hardening plan above.
 
 ---
 
@@ -94,7 +100,8 @@ of carrying the full rationale inline.
 | [adr/0007-release-channels-and-compose-generation.md](./adr/0007-release-channels-and-compose-generation.md) | Release workflow: branch-per-channel replaced with folder-per-channel on `main`, plus generated per-channel `docker-compose.yml`/`.env.example` |
 | [adr/0008-manifest-served-from-github-raw.md](./adr/0008-manifest-served-from-github-raw.md) | Default manifest delivery: `raw.githubusercontent.com` on the public manifest repo, replacing the never-finished VPS pull-based plan |
 | [adr/0009-manifest-fallback-to-github-raw.md](./adr/0009-manifest-fallback-to-github-raw.md) | Default manifest delivery switched to our own domain, with `update-agent` falling back to `raw.githubusercontent.com` on fetch failure |
-| [adr/0010-security-review-audit-verdict.md](./adr/0010-security-review-audit-verdict.md) | Second-opinion audit of the external V1.5 security review: all 14 findings confirmed, two severity downgrades, one missed SSRF-to-Minima-RPC finding, and the resulting fix ordering |
+| [adr/0010-security-review-audit-verdict.md](./adr/0010-security-review-audit-verdict.md) | Second-opinion audit of the external V1.5 security review: all 14 findings confirmed, one likelihood downgrade, one missed SSRF-to-Minima-RPC finding, and the resulting fix ordering |
+| [adr/0011-remove-unused-totp.md](./adr/0011-remove-unused-totp.md) | TOTP removed rather than hardened: disabled since inception, never user-reachable, but still carrying live routes, a placeholder-secret hack, schema, a known bug, and tests |
 
 ---
 

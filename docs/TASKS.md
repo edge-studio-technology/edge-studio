@@ -18,12 +18,13 @@
 
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
-- [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.
+- [ ] Security hardening V1.5 — close the external-review findings, the V1 sign-off remainder, and the unit-test-audit gaps in one ordered workstream; see `docs/plans/security-hardening-v1-5.md` (branch `task/272-security-hardening-v1-5`).
+- [ ] Remove TOTP — delete the disabled, never-reachable implementation (routes, schema, UI, tests, `otpauth`); see `docs/plans/remove-totp.md` and `docs/adr/0011-remove-unused-totp.md`. Own branch, sequenced after the security plan's Phase 3; needs a ticket number.
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
 
-- [ ] Address the production-behavior gaps from the high-risk unit-test audit on a separate branch — see `docs/plans/high-risk-business-logic-hardening.md`.
+- [ ] ~~Address the production-behavior gaps from the high-risk unit-test audit on a separate branch.~~ Folded into `docs/plans/security-hardening-v1-5.md` (Phases 1, 3, and 9); the standalone plan is archived.
 - [ ] Add privileged host-agent capability management so camera support can be enabled from the app after install — see `docs/plans/host-agent-capability-management.md`.
 - [ ] On a real device or a local `install.sh` run, confirm end-to-end that `last-applied-manifest.json` gets written and a Feedback submission's `app.version` reflects it (see `docs/adr/0006-app-version-single-source-of-truth.md`).
 - [ ] Implement the hosted feedback receiver endpoint in the Integritas API repo — see `docs/plans/feedback.md` Step 8.
