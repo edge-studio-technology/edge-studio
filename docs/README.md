@@ -92,6 +92,7 @@ of carrying the full rationale inline.
 | [adr/0007-release-channels-and-compose-generation.md](./adr/0007-release-channels-and-compose-generation.md) | Release workflow: branch-per-channel replaced with folder-per-channel on `main`, plus generated per-channel `docker-compose.yml`/`.env.example` |
 | [adr/0008-manifest-served-from-github-raw.md](./adr/0008-manifest-served-from-github-raw.md) | Default manifest delivery: `raw.githubusercontent.com` on the public manifest repo, replacing the never-finished VPS pull-based plan |
 | [adr/0009-manifest-fallback-to-github-raw.md](./adr/0009-manifest-fallback-to-github-raw.md) | Default manifest delivery switched to our own domain, with `update-agent` falling back to `raw.githubusercontent.com` on fetch failure |
+| [adr/0010-security-review-audit-verdict.md](./adr/0010-security-review-audit-verdict.md) | Second-opinion audit of the external V1.5 security review: all 14 findings confirmed, two severity downgrades, one missed SSRF-to-Minima-RPC finding, and the resulting fix ordering |
 
 ---
 
