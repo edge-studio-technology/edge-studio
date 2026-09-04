@@ -6,7 +6,7 @@
 ## Context
 
 An external security model (Daybreak Blue) produced a static review of the repository at
-`571ba70`, recorded in `.temp/security/security-review-2026-09-03.md`: 14 findings, rated
+`571ba70`, recorded in `docs/security/external-review-2026-09-03.md`: 14 findings, rated
 2 high / 11 medium / 1 low. Before acting on it we ran a second-opinion audit — every finding
 re-derived from current source rather than taken on trust — because a report that is wrong in
 either direction is expensive: false positives burn hardening budget on non-issues, and an
@@ -65,7 +65,7 @@ Verified during the audit, against source rather than against the report's own c
 
 - Accept the review as a valid basis for hardening work. Do not re-audit it further.
 - Record the audit's re-rating rather than the report's original severity mix as the ordering we
-  act on. The report's own severity field is left as-is in `.temp/security/`; this ADR is the
+  act on. The report is committed verbatim, its own severity field left as-is; this ADR is the
   reconciliation.
 - Treat the missed SSRF as a first-class finding alongside the report's 14, at a severity above
   every medium in the original set. It shares the report's own threat model (stolen or misused
@@ -128,7 +128,7 @@ Verified during the audit, against source rather than against the report's own c
 
 Nothing here is implemented yet; these are the sites the decision refers to.
 
-- `.temp/security/security-review-2026-09-03.md` — the reviewed report.
+- `docs/security/external-review-2026-09-03.md` — the reviewed report, committed verbatim.
 - `backend/src/features/minima/minima-backup.service.ts` — `createBackup` returns the
   password-bearing RPC result.
 - `backend/src/features/minima/minima.rpc.ts` — `runMinimaPathCommand`'s `command`/`source`

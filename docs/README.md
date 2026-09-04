@@ -55,6 +55,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | [security/wallet-and-tokens.md](./security/wallet-and-tokens.md)                     | Seed phrase import, automated transactions, debug clears, token creation                  |
 | [security/data-sources-and-automation.md](./security/data-sources-and-automation.md) | Minima RPC/resync/restart/peers, data source URLs, webhooks, MQTT, GPIO, Raspberry Pi Camera, Integritas proxy |
 | [security/low-priority-and-future.md](./security/low-priority-and-future.md)         | Rate limiting, error detail, logging hygiene, missing security tests                      |
+| [security/external-review-2026-09-03.md](./security/external-review-2026-09-03.md)   | External static security review of `571ba70` (14 findings), kept verbatim — see [adr/0010](./adr/0010-security-review-audit-verdict.md) for the audited verdict and fix ordering |
 
 ---
 
