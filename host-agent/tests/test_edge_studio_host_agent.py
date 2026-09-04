@@ -75,6 +75,44 @@ class HostAgentWriteTests(unittest.TestCase):
 
         self.assertIn("CUSTOM: true", self.agent.COMPOSE_OVERRIDE_FILE.read_text(encoding="utf-8"))
 
+    def test_gpio_status_reports_user_managed_override_blockage(self):
+        self.agent.ENV_FILE.write_text("ENABLE_GPIO=true\nGPIO_GID=997\nDOCKER_GID=0\n", encoding="utf-8")
+        self.agent.COMPOSE_OVERRIDE_FILE.write_text(
+            "services:\n"
+            "  backend:\n"
+            "    devices: []\n",
+            encoding="utf-8",
+        )
+        original_exists = self.agent.Path.exists
+
+        def fake_exists(path):
+            if path.as_posix() == "/dev/gpiochip0":
+                return True
+            return original_exists(path)
+
+        with patch.object(self.agent.Path, "exists", fake_exists):
+            status = self.agent.gpio_status()
+
+        self.assertEqual(status["state"], "failed")
+        self.assertFalse(status["available"])
+        self.assertTrue(status["checks"]["overrideUserManaged"])
+        self.assertIn("user-managed", status["reason"])
+
+    def test_apply_gpio_does_not_write_env_before_user_managed_override_error(self):
+        self.agent.ENV_FILE.write_text("ENABLE_GPIO=false\nGPIO_GID=997\n", encoding="utf-8")
+        self.agent.COMPOSE_OVERRIDE_FILE.write_text(
+            "services:\n"
+            "  backend:\n"
+            "    devices: []\n",
+            encoding="utf-8",
+        )
+
+        with patch.object(self.agent, "gpio_status", return_value={"state": "disabled", "reason": "disabled"}):
+            with self.assertRaisesRegex(ValueError, "user-managed"):
+                self.agent.apply_gpio()
+
+        self.assertIn("ENABLE_GPIO=false", self.agent.ENV_FILE.read_text(encoding="utf-8"))
+
     def test_unlink_if_exists_is_safe_when_file_is_already_missing(self):
         missing = self.root / "missing.service"
 

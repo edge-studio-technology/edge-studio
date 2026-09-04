@@ -304,6 +304,7 @@ Completed implementation checkpoints:
 - Installer/host-agent ownership boundary moved into final V1 shape: installer owns initial setup and host-agent installation, host-agent owns app-managed hardware changes after install, and installer advanced `ENABLE_*` shortcuts call the same host-agent capability logic through CLI install mode.
 - Host-agent status hardening is implemented for Camera, GPIO, I2C sensors, and local MQTT: checks distinguish missing host tools/devices, helper service states, generated GPIO override readiness, backend container device visibility, Compose profile/service availability, and MQTT container running state.
 - Host-agent file-write hardening started: `.env`, generated GPIO override, and camera/sensor systemd unit writes now use atomic replacement; service-file deletes tolerate repeated disable/race conditions; GPIO override writes refuse to replace user-managed override files.
+- GPIO action safety now reports user-managed override blockage in capability status and rejects automatic repair before changing `.env`, avoiding partial enablement when `docker-compose.override.yml` cannot be edited safely.
 
 ## Remaining Implementation Steps
 
@@ -314,10 +315,9 @@ Completed implementation checkpoints:
 
    - Audit each `apply_*` and `disable_*` path for repeated-click behavior and make each step safe when the target state already exists.
    - Replace or guard remaining file/directory operations so helper tokens and capture directories are updated only when needed and never leave empty/truncated files after an exception.
-   - Tighten GPIO status handling so a user-managed override reports a dedicated blocked/failed state before an action is attempted.
    - Review `.env` read/write behavior for comments, ordering, unknown keys, duplicate keys, missing trailing newline, and file permissions; preserve unrelated content while updating only allowlisted keys.
    - Make partial failures observable through `status()` by checking the concrete artifacts each action creates, not by trusting that an earlier command completed.
-   - Add retry-focused tests for `.env` updates, Compose profile updates, GPIO override ownership detection, and repeated apply/disable calls with mocked `systemctl`/`docker`/filesystem state.
+   - Add broader retry-focused tests for Compose profile updates and repeated Camera/GPIO/I2C/MQTT apply/disable calls with mocked `systemctl`/`docker`/filesystem state.
    - Verify failed prerequisites and failed partial actions can be corrected and retried without manual cleanup beyond the prerequisite fix.
 
 2. Improve hardware operation model.

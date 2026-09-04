@@ -318,6 +318,11 @@ def write_gpio_override(config):
     write_text_atomic(COMPOSE_OVERRIDE_FILE, "\n".join(lines) + "\n")
 
 
+def ensure_gpio_override_editable():
+    if COMPOSE_OVERRIDE_FILE.exists() and not is_managed_gpio_override():
+        raise ValueError("GPIO support cannot update docker-compose.override.yml because it is user-managed. Add the /dev/gpiochip0 backend device mount manually or remove the custom override before repairing GPIO support.")
+
+
 def is_managed_gpio_override():
     if not COMPOSE_OVERRIDE_FILE.exists():
         return False
@@ -337,6 +342,7 @@ def gpio_status():
     override_content = COMPOSE_OVERRIDE_FILE.read_text(encoding="utf-8") if override_exists else ""
     override_mounts_gpio = "/dev/gpiochip0:/dev/gpiochip0" in override_content
     override_managed = is_managed_gpio_override()
+    override_user_managed = override_exists and not override_managed
     expected_group_add = config.get("GPIO_GID", "0") != config.get("DOCKER_GID", "0")
     override_has_group_add = "group_add:" in override_content and "${GPIO_GID:-0}" in override_content
     backend_sees_device = backend_container_sees_path(config, "/dev/gpiochip0") if enabled and device_exists and override_mounts_gpio else False
@@ -345,6 +351,7 @@ def gpio_status():
         "hostDeviceExists": device_exists,
         "overrideExists": override_exists,
         "overrideManagedByHostAgent": override_managed,
+        "overrideUserManaged": override_user_managed,
         "overrideMountsGpio": override_mounts_gpio,
         "expectedGroupAdd": expected_group_add,
         "overrideHasGroupAdd": override_has_group_add,
@@ -358,6 +365,8 @@ def gpio_status():
         reason = "GPIO support is disabled. Enable it from Devices -> Hardware support."
     elif not device_exists:
         reason = "/dev/gpiochip0 was not found on the host. GPIO support requires Raspberry Pi GPIO support on the host, then refresh Hardware support."
+    elif override_user_managed and not available:
+        reason = "GPIO support is enabled, but docker-compose.override.yml is user-managed and cannot be repaired automatically. Add the /dev/gpiochip0 backend device mount manually or remove the custom override before repairing GPIO support."
     elif not override_exists:
         reason = "GPIO support is enabled, but backend device access is not configured. Repair GPIO support to recreate it."
     elif not override_mounts_gpio:
@@ -385,6 +394,7 @@ def apply_gpio():
         raise ValueError(status["reason"])
     config = read_env()
     gpio_gid = config.get("GPIO_GID") or detect_gpio_gid()
+    ensure_gpio_override_editable()
     write_env({"ENABLE_GPIO": "true", "GPIO_GID": gpio_gid})
     updated = read_env()
     write_gpio_override(updated)
