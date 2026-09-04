@@ -14,7 +14,7 @@ import {
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
-import { Button, LinkButton } from "../components/Button";
+import { Button } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";

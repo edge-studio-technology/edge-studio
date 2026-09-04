@@ -37,6 +37,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Documented the host-agent privilege boundary and token-protected backend-only access path.
 
+## [0.40.0] 2026-09-03
+
+### Added
+
+- Diagnostics verification saves available PDF reports locally on the Pi and offers an Open report link from the result toast.
+- Integritas proof history rows now include an Open verification report action when a locally saved report is available.
+
+## [0.39.0] 2026-09-03
+
+### Added
+
+- Unit test suites for the backend, frontend, and Update Agent, covering every feature area of each, including the currently disabled two-factor sign-in paths.
+- Smoke test asserting every non-public backend API route requires a session.
+- Test coverage reporting for all three packages, with per-package minimum thresholds enforced by `npm run check` and CI.
+- Unit test coverage for Update Agent's `auth/auth.middleware.ts` request guard, now included in its coverage threshold.
+- Unit tests for the release manifest scripts (`scripts/release/sign-manifest.mjs`, `scripts/release/build-manifest.mjs`), run via a new root-level test command wired into `npm run check`.
+- Pull requests to `main` are now rejected unless they come from `dev`.
+
+### Fixed
+
+- The app no longer stays on the loading screen when the startup session check fails; it falls back to the login screen.
+- Repeated background refresh failures no longer stack duplicate error toasts.
+
+## [0.38.14] 2026-09-03
+
+### Added
+
+- Workflow edit mode can change an existing workflow's start block while preserving the remaining blocks.
+
+### Changed
+
+- Changing a workflow start block now pauses the workflow until it is reviewed and re-enabled.
+- Manual start blocks now open their details panel from the canvas.
+
+## [0.38.13] 2026-08-24
+
+### Fixed
+
+- Fixed aria labels visability issue.
+
+## [0.38.12] 2026-08-24
+
+### Added
+
+- Added explinations to aria feedback labels.
+
 ## [0.38.11] 2026-08-18
 
 ### Added
@@ -46,6 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Feedback now presents a submit-only browser flow while keeping the local JSON export as a hidden operational fallback.
+- Feedback submissions now include the current Node and Integritas connection status.
 
 ### Removed
 

@@ -19,6 +19,7 @@ export type IntegritasProofRecord = {
   proof_payload: string | null;
   status_response: string | null;
   verify_response: string | null;
+  verification_report_file: string | null;
   proof_error: string | null;
 };
 

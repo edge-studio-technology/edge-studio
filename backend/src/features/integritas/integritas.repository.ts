@@ -16,6 +16,7 @@ export type IntegritasProofRecord = {
   proof_payload: string | null;
   status_response: string | null;
   verify_response: string | null;
+  verification_report_file: string | null;
   proof_error: string | null;
 };
 
@@ -98,8 +99,9 @@ export function updateProofStatus(id: string, input: { proofStatus: string; proo
   return getProofRecord(id)!;
 }
 
-export function updateVerifyResponse(id: string, verifyResponse: unknown) {
-  db.prepare("UPDATE integritas_proofs SET updated_at = ?, verify_response = ? WHERE id = ?").run(new Date().toISOString(), JSON.stringify(verifyResponse), id);
+export function updateVerifyResponse(id: string, verifyResponse: unknown, verificationReportFile: string | null) {
+  db.prepare("UPDATE integritas_proofs SET updated_at = ?, verify_response = ?, verification_report_file = ? WHERE id = ?")
+    .run(new Date().toISOString(), JSON.stringify(verifyResponse), verificationReportFile ?? null, id);
   return getProofRecord(id)!;
 }
 

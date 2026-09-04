@@ -254,7 +254,7 @@ load_existing_config() {
   if [ -z "$RUNTIME_BUNDLE_URL_INPUT" ]; then
     RUNTIME_BUNDLE_URL=""
   fi
-  DEV_MODE="${DEV_MODE_INPUT:-${DEV_MODE:-false}}"
+  DEV_MODE="${DEV_MODE_INPUT:-false}"
 }
 
 ensure_app_secret() {

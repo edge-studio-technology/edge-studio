@@ -1,0 +1,348 @@
+import assert from "node:assert/strict";
+import { afterAll, beforeAll, beforeEach, describe, it, vi } from "vitest";
+import { setupTestDatabase } from "../../helpers/testDatabase.js";
+
+const {
+  fetchMinimaStatusMock,
+  runMinimaPathCommandMock,
+  getMinimaContainerStatsMock,
+  getMinimaStorageInfoMock,
+  restartComposeServiceMock,
+  startComposeServiceMock,
+  getContainerRestartBaselineMock,
+  waitForContainerRestartMock,
+  getComposeServiceContainerMock
+} = vi.hoisted(() => ({
+  fetchMinimaStatusMock: vi.fn(),
+  runMinimaPathCommandMock: vi.fn(),
+  getMinimaContainerStatsMock: vi.fn(),
+  getMinimaStorageInfoMock: vi.fn(),
+  restartComposeServiceMock: vi.fn(),
+  startComposeServiceMock: vi.fn(),
+  getContainerRestartBaselineMock: vi.fn(),
+  waitForContainerRestartMock: vi.fn(),
+  getComposeServiceContainerMock: vi.fn()
+}));
+
+vi.mock("../../../src/features/minima/minima.rpc.js", () => ({
+  fetchMinimaStatus: fetchMinimaStatusMock,
+  runMinimaPathCommand: runMinimaPathCommandMock
+}));
+
+vi.mock("../../../src/features/minima/minima.docker.js", () => ({
+  getMinimaContainerStats: getMinimaContainerStatsMock,
+  getMinimaStorageInfo: getMinimaStorageInfoMock
+}));
+
+vi.mock("../../../src/features/status/docker.control.js", () => ({
+  restartComposeService: restartComposeServiceMock,
+  startComposeService: startComposeServiceMock,
+  getContainerRestartBaseline: getContainerRestartBaselineMock,
+  waitForContainerRestart: waitForContainerRestartMock
+}));
+
+vi.mock("../../../src/features/status/docker.service.js", () => ({
+  getComposeServiceContainer: getComposeServiceContainerMock
+}));
+
+let teardown: () => void;
+let minimaService: typeof import("../../../src/features/minima/minima.service.js");
+let minimaMonitoring: typeof import("../../../src/features/minima/minima-monitoring.js");
+
+beforeAll(async () => {
+  const testDb = await setupTestDatabase();
+  teardown = testDb.teardown;
+  minimaMonitoring = await import("../../../src/features/minima/minima-monitoring.js");
+  minimaService = await import("../../../src/features/minima/minima.service.js");
+});
+
+afterAll(() => {
+  teardown();
+});
+
+beforeEach(() => {
+  minimaMonitoring.endMinimaOperation();
+  fetchMinimaStatusMock.mockReset();
+  runMinimaPathCommandMock.mockReset();
+  getMinimaContainerStatsMock.mockReset().mockResolvedValue(null);
+  getMinimaStorageInfoMock.mockReset().mockReturnValue({
+    dataPath: "/home/minima/data",
+    containerDisk: null,
+    chainDataDisk: null
+  });
+  restartComposeServiceMock.mockReset();
+  startComposeServiceMock.mockReset();
+  getContainerRestartBaselineMock.mockReset().mockResolvedValue({ restartCount: 0, startedAt: "2026-01-01T00:00:00.000Z" });
+  waitForContainerRestartMock.mockReset().mockResolvedValue(false);
+  getComposeServiceContainerMock.mockReset().mockResolvedValue({ Id: "abc123fullcontainerid" });
+});
+
+function rpcOk(body: unknown) {
+  return { ok: true, status: 200, source: "http://127.0.0.1:9005/status", command: "status", body };
+}
+
+describe("getMinimaConfig / saveMinimaConfig", () => {
+  it("defaults to the built-in megammr host when nothing is saved", () => {
+    assert.deepEqual(minimaService.getMinimaConfig(), {
+      megammrHost: "megammr.minima.global:9001",
+      megammrHostSource: "default"
+    });
+  });
+
+  it("saves a trimmed host and reflects it as the source", () => {
+    const saved = minimaService.saveMinimaConfig({ megammrHost: " custom.host:9001 " });
+    assert.deepEqual(saved, { megammrHost: "custom.host:9001", megammrHostSource: "database" });
+    assert.deepEqual(minimaService.getMinimaConfig(), { megammrHost: "custom.host:9001", megammrHostSource: "database" });
+  });
+
+  it("rejects an empty host", () => {
+    assert.throws(() => minimaService.saveMinimaConfig({ megammrHost: "   " }), /megammrHost is required/);
+  });
+});
+
+describe("getMinimaNodeStatus", () => {
+  it("reports state error when RPC fails and no container is found", async () => {
+    fetchMinimaStatusMock.mockRejectedValue(new Error("fetch failed"));
+
+    const status = await minimaService.getMinimaNodeStatus();
+
+    assert.equal(status.state, "error");
+    assert.equal(status.rpc.ok, false);
+    assert.equal(status.rpc.error, "Minima RPC is temporarily unreachable");
+    assert.equal(status.sync.status, "unavailable");
+  });
+
+  it("reports state stopped when RPC fails but the container isn't running", async () => {
+    fetchMinimaStatusMock.mockRejectedValue(new Error("fetch failed"));
+    getMinimaContainerStatsMock.mockResolvedValue({
+      state: "exited",
+      status: "Exited (0)",
+      cpuPercent: null,
+      memory: null,
+      containerDisk: null
+    });
+
+    const status = await minimaService.getMinimaNodeStatus();
+    assert.equal(status.state, "stopped");
+  });
+
+  it("parses a full, healthy status response with no fallback RPC calls", async () => {
+    const recentMs = Date.now() - 45_000;
+    fetchMinimaStatusMock.mockResolvedValue(
+      rpcOk({
+        status: true,
+        response: {
+          chain: { block: "932067", time: "Fri Jul 05 16:24:46 BST 2024", timemilli: String(recentMs) },
+          network: { connected: 12, connecting: 0 },
+          memory: { ram: "256 MB", disk: "575.2 MB" },
+          data: "/home/minima/data/.minima/"
+        }
+      })
+    );
+
+    const status = await minimaService.getMinimaNodeStatus();
+
+    assert.equal(status.state, "running");
+    assert.equal(status.rpc.ok, true);
+    assert.equal(status.sync.status, "active");
+    assert.equal(status.sync.block, 932067);
+    assert.equal(status.health.peerCount, 12);
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
+  });
+
+  it("falls back to block/peers commands when the status response omits them", async () => {
+    fetchMinimaStatusMock.mockResolvedValue(
+      rpcOk({
+        status: true,
+        response: { chain: { block: "932067" } }
+      })
+    );
+    runMinimaPathCommandMock.mockImplementation(async (command: string) => {
+      if (command === "block") {
+        return {
+          ok: true,
+          status: 200,
+          source: "http://127.0.0.1:9005/block",
+          command: "block",
+          body: { status: true, response: { block: "932067", timemilli: String(Date.now() - 9_000) } }
+        };
+      }
+      if (command === "peers") {
+        return {
+          ok: true,
+          status: 200,
+          source: "http://127.0.0.1:9005/peers",
+          command: "peers",
+          body: { status: true, response: { connected: 7 } }
+        };
+      }
+      throw new Error(`unexpected command ${command}`);
+    });
+
+    const status = await minimaService.getMinimaNodeStatus();
+
+    assert.ok(status.sync.blockAgeSeconds !== null && status.sync.blockAgeSeconds < 15);
+    assert.equal(status.health.peerCount, 7);
+    assert.equal(status.health.peersKnown, 7);
+  });
+
+  it("keeps status-derived values when the block/peers fallback commands fail", async () => {
+    fetchMinimaStatusMock.mockResolvedValue(
+      rpcOk({
+        status: true,
+        response: { chain: { block: "932067" } }
+      })
+    );
+    runMinimaPathCommandMock.mockRejectedValue(new Error("timeout"));
+
+    const status = await minimaService.getMinimaNodeStatus();
+
+    assert.equal(status.sync.block, 932067);
+    assert.equal(status.sync.blockAgeSeconds, null);
+    assert.equal(status.health.peerCount, null);
+    assert.equal(status.health.peersKnown, null);
+  });
+});
+
+describe("getWalletBalance", () => {
+  it("delegates to the balance RPC command", async () => {
+    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, source: "s", command: "balance", body: {} });
+    const result = await minimaService.getWalletBalance();
+    assert.equal(runMinimaPathCommandMock.mock.calls[0][0], "balance");
+    assert.equal(result.command, "balance");
+  });
+});
+
+describe("resyncMegammr", () => {
+  it("builds the megammrsync command from the configured host with a 30s timeout", async () => {
+    minimaService.saveMinimaConfig({ megammrHost: "resync.host:9001" });
+    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, source: "s", command: "megammrsync", body: {} });
+    await minimaService.resyncMegammr();
+
+    const [command, timeoutMs] = runMinimaPathCommandMock.mock.calls.at(-1)!;
+    assert.equal(command, "megammrsync action:resync host:resync.host:9001");
+    assert.equal(timeoutMs, 30000);
+  });
+});
+
+describe("getMinimaPeers", () => {
+  it("returns the parsed peer list on success", async () => {
+    runMinimaPathCommandMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      source: "http://127.0.0.1:9005/peers",
+      command: "peers",
+      body: { status: true, response: { size: 2, peerslist: "megammr.minima.global:9001,127.0.0.1:9001" } }
+    });
+
+    const result = await minimaService.getMinimaPeers();
+    assert.equal(result.ok, true);
+    assert.equal(result.count, 2);
+    assert.deepEqual(result.peers, ["megammr.minima.global:9001", "127.0.0.1:9001"]);
+  });
+
+  it("reports ok:false when the peer count can't be parsed", async () => {
+    runMinimaPathCommandMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      source: "s",
+      command: "peers",
+      body: { status: false }
+    });
+
+    const result = await minimaService.getMinimaPeers();
+    assert.equal(result.ok, false);
+    assert.equal(result.count, null);
+  });
+});
+
+describe("addMinimaPeers", () => {
+  it("normalizes the peer list and calls the addpeers command", async () => {
+    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, source: "s", command: "peers", body: {} });
+    await minimaService.addMinimaPeers(" 127.0.0.1:9001 , megammr.minima.global:9001 ");
+
+    const [command] = runMinimaPathCommandMock.mock.calls.at(-1)!;
+    assert.equal(command, "peers action:addpeers peerslist:127.0.0.1:9001,megammr.minima.global:9001");
+  });
+
+  it("rejects an invalid peer address", async () => {
+    await assert.rejects(() => minimaService.addMinimaPeers("not-a-peer"), /Invalid peer address/);
+  });
+});
+
+describe("restartMinimaContainer", () => {
+  it("sends a compact quit and force-restarts only after the graceful wait times out", async () => {
+    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, source: "s", command: "quit", body: {} });
+    restartComposeServiceMock.mockResolvedValue({ ok: true, state: "restarting", service: "minima", containerId: "abc123" });
+
+    const result = await minimaService.restartMinimaContainer();
+
+    assert.equal(result.service, "minima");
+    assert.equal(result.state, "restarting");
+
+    // performGracefulRestart runs in the background (not awaited by restartMinimaContainer) —
+    // wait for it to reach the docker-restart fallback (waitForContainerRestart resolves false above).
+    await vi.waitFor(() => {
+      assert.equal(restartComposeServiceMock.mock.calls.length, 1);
+    });
+    assert.deepEqual(runMinimaPathCommandMock.mock.calls[0], ["quit compact:true", 5000]);
+    assert.deepEqual(getContainerRestartBaselineMock.mock.calls[0], ["abc123fullcontainerid"]);
+    assert.deepEqual(waitForContainerRestartMock.mock.calls[0], [
+      "abc123fullcontainerid",
+      { restartCount: 0, startedAt: "2026-01-01T00:00:00.000Z" },
+      5 * 60 * 1000,
+      1000
+    ]);
+    assert.equal(restartComposeServiceMock.mock.calls[0][0], "minima");
+    assert.equal(startComposeServiceMock.mock.calls.length, 0);
+    assert.ok(runMinimaPathCommandMock.mock.invocationCallOrder[0] < waitForContainerRestartMock.mock.invocationCallOrder[0]);
+    assert.ok(waitForContainerRestartMock.mock.invocationCallOrder[0] < restartComposeServiceMock.mock.invocationCallOrder[0]);
+  });
+
+  it("confirms the compose service is started without forcing a restart after Docker cycles it", async () => {
+    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, source: "s", command: "quit", body: {} });
+    waitForContainerRestartMock.mockResolvedValue(true);
+    startComposeServiceMock.mockResolvedValue({ ok: true });
+
+    await minimaService.restartMinimaContainer();
+
+    await vi.waitFor(() => {
+      assert.equal(startComposeServiceMock.mock.calls.length, 1);
+    });
+    assert.deepEqual(startComposeServiceMock.mock.calls[0], ["minima"]);
+    assert.equal(restartComposeServiceMock.mock.calls.length, 0);
+  });
+
+  it("continues waiting when quit closes the RPC connection", async () => {
+    runMinimaPathCommandMock.mockRejectedValue(new Error("socket closed"));
+    restartComposeServiceMock.mockResolvedValue({ ok: true });
+
+    await minimaService.restartMinimaContainer();
+
+    await vi.waitFor(() => {
+      assert.equal(restartComposeServiceMock.mock.calls.length, 1);
+    });
+    assert.equal(waitForContainerRestartMock.mock.calls.length, 1);
+  });
+
+  it("clears the operation marker when the background restart fails", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    runMinimaPathCommandMock.mockResolvedValue({ ok: true });
+    waitForContainerRestartMock.mockRejectedValue(new Error("inspect failed"));
+
+    await minimaService.restartMinimaContainer();
+    assert.equal(minimaMonitoring.isMinimaOperationInProgress(), true);
+
+    await vi.waitFor(() => {
+      assert.equal(consoleError.mock.calls.length, 1);
+    });
+    assert.equal(minimaMonitoring.isMinimaOperationInProgress(), false);
+    assert.match(String(consoleError.mock.calls[0][1]), /inspect failed/);
+  });
+
+  it("throws when the container can't be found", async () => {
+    getComposeServiceContainerMock.mockResolvedValue(null);
+    await assert.rejects(() => minimaService.restartMinimaContainer(), /Docker container not found/);
+    assert.equal(minimaMonitoring.isMinimaOperationInProgress(), false);
+  });
+});
