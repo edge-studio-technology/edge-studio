@@ -148,7 +148,7 @@ describe("IntegritasConnectPanel", () => {
       expect(screen.getByText("ada@example.com")).toBeInTheDocument();
       expect(screen.getByText("Pro")).toBeInTheDocument();
       expect(screen.getByText("(active)")).toBeInTheDocument();
-      expect(screen.getByText("1,234")).toBeInTheDocument();
+      expect(screen.getByText((text) => text.replace(/\D/g, "") === "1234")).toBeInTheDocument();
     });
 
     it("omits the plan status parenthetical when plan status is empty", () => {

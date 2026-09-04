@@ -419,7 +419,7 @@ describe("validateAutomationDraft — capture_camera", () => {
       manualStart(),
       block({ clientId: "2", type: "capture_camera", config: { sourceId: "cam1" } })
     ]);
-    expectError(result, "capture_camera.disabled");
+    expectError(result, "camera.disabled");
   });
 
   it("warns when camera capture is enabled but unavailable", async () => {
@@ -429,7 +429,7 @@ describe("validateAutomationDraft — capture_camera", () => {
       manualStart(),
       block({ clientId: "2", type: "capture_camera", config: { sourceId: "cam1" } })
     ]);
-    assert.ok(result.warnings.some((w) => w.code === "capture_camera.unavailable"));
+    assert.ok(result.warnings.some((w) => w.code === "camera.unavailable"));
   });
 
   it("always warns about camera privacy when referencing a valid camera source", async () => {

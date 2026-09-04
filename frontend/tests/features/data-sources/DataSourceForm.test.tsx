@@ -14,8 +14,6 @@ function fields(overrides: Partial<DeviceFormFields> = {}): DeviceFormFields {
     setType: vi.fn(),
     url: "",
     setUrl: vi.fn(),
-    healthStatusUrl: "",
-    setHealthStatusUrl: vi.fn(),
     brokerUrl: "",
     setBrokerUrl: vi.fn(),
     topic: "",
@@ -199,10 +197,9 @@ describe("DataSourceForm", () => {
     expect(screen.getByLabelText("Method")).toHaveValue("POST");
   });
 
-  it("shows URL/health/method fields for the default json-api type", () => {
+  it("shows URL and method fields for the default json-api type", () => {
     render(<DataSourceForm template={null} {...fields({ type: "json-api", url: "https://x", method: "PATCH" })} />);
     expect(screen.getByLabelText("URL")).toBeInTheDocument();
-    expect(screen.getByLabelText("Health status URL")).toBeInTheDocument();
     // PATCH isn't one of the GET/POST options, so it's normalized to POST for display.
     expect(screen.getByLabelText("Method")).toHaveValue("POST");
   });

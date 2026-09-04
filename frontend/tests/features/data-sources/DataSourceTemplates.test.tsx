@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import {
   inputTemplates,
@@ -7,7 +8,14 @@ import {
   resolveTemplateConfig,
   templateIcon,
 } from "../../../src/features/data-sources/DataSourceTemplates";
-import type { DataSourceCapabilities, DataSourceTemplate } from "../../../src/features/data-sources/dataSourceTypes";
+import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../../../src/features/data-sources/dataSourceTypes";
+
+const enabledHostCapabilities: HostCapability[] = [
+  { name: "camera", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "gpio", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "sensors", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "mqtt", enabled: true, installed: true, available: true, state: "enabled", reason: null, internalUrl: "mqtt://mqtt:1883", publicPort: 1883 },
+];
 
 function findTemplate(title: string): DataSourceTemplate {
   const template = [...inputTemplates, ...outputTemplates].find((t) => t.title === title);
@@ -72,19 +80,49 @@ describe("resolveTemplateConfig", () => {
 describe("LocalServicesCard", () => {
   it("shows Disabled and the enable-with hint when there is no mqttBroker capability", () => {
     render(<LocalServicesCard capabilities={null} />);
-    expect(screen.getByText("Disabled")).toBeInTheDocument();
+    expect(screen.getAllByText("Disabled").length).toBeGreaterThan(0);
     expect(screen.getByText("ENABLE_MQTT_BROKER=true")).toBeInTheDocument();
   });
 
-  it("shows Enabled and the LAN/internal URLs when the broker is enabled", () => {
+  it("shows Available and the LAN/internal URLs when the broker is enabled", () => {
     const capabilities: DataSourceCapabilities = {
       gpioInput: { available: true, devicePath: "", reason: null },
       mqttBroker: { enabled: true, internalUrl: "mqtt://mqtt:1883", publicHost: "pi.local", publicPort: 1883 },
     };
-    render(<LocalServicesCard capabilities={capabilities} />);
-    expect(screen.getByText("Enabled")).toBeInTheDocument();
+    render(<LocalServicesCard capabilities={capabilities} hostCapabilities={enabledHostCapabilities} />);
+    expect(screen.getAllByText("Available").length).toBeGreaterThan(0);
     expect(screen.getByText("mqtt://pi.local:1883")).toBeInTheDocument();
     expect(screen.getByText("mqtt://mqtt:1883")).toBeInTheDocument();
     expect(screen.queryByText("ENABLE_MQTT_BROKER=true")).not.toBeInTheDocument();
+  });
+
+  it("opens the hardware manager with disable actions for enabled capabilities", async () => {
+    render(<LocalServicesCard capabilities={null} hostCapabilities={enabledHostCapabilities} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
+
+    expect(screen.getByRole("dialog", { name: "Enable / disable hardware" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Disable" })).toHaveLength(4);
+    expect(screen.getAllByText("Prerequisites for Raspberry Pi OS").length).toBeGreaterThan(0);
+  });
+
+  it("disables a manager action when prerequisites are missing", async () => {
+    const hostCapabilities: HostCapability[] = [
+      {
+        name: "camera",
+        enabled: false,
+        installed: false,
+        available: false,
+        state: "missing_prerequisites",
+        reason: "Camera tools are missing.",
+      },
+    ];
+    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
+
+    expect(screen.getAllByRole("button", { name: "Enable" })[0]).toBeDisabled();
+    expect(screen.getByText("Action needed")).toBeInTheDocument();
+    expect(screen.getAllByText("Camera tools are missing.").length).toBeGreaterThan(0);
   });
 });

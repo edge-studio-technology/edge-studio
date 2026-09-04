@@ -14,9 +14,26 @@ export async function setupTestDatabase() {
     db,
     teardown() {
       db.close();
-      for (const suffix of ["", "-wal", "-shm"]) {
-        fs.rmSync(`${dbFile}${suffix}`, { force: true });
-      }
+      for (const suffix of ["", "-wal", "-shm"]) rmWithRetry(`${dbFile}${suffix}`);
     }
   };
+}
+
+function rmWithRetry(filePath: string) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      fs.rmSync(filePath, { force: true });
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "EBUSY" && code !== "EPERM") throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+    }
+  }
+  try {
+    fs.rmSync(filePath, { force: true });
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code !== "EBUSY" && code !== "EPERM") throw error;
+  }
 }
