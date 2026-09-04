@@ -35,6 +35,26 @@ def read_env():
     return values
 
 
+def write_text_atomic(path, content, mode=None):
+    path = Path(path)
+    temp_path = path.with_name(f".{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
+    try:
+        temp_path.write_text(content, encoding="utf-8")
+        if mode is not None:
+            os.chmod(temp_path, mode)
+        os.replace(temp_path, path)
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+
+
+def unlink_if_exists(path):
+    try:
+        Path(path).unlink()
+    except FileNotFoundError:
+        pass
+
+
 def write_env(updates):
     lines = []
     seen = set()
@@ -50,8 +70,7 @@ def write_env(updates):
     for key, value in updates.items():
         if key not in seen:
             lines.append(f"{key}={value}")
-    ENV_FILE.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-    os.chmod(ENV_FILE, 0o600)
+    write_text_atomic(ENV_FILE, "\n".join(lines).rstrip() + "\n", 0o600)
 
 
 def update_compose_profiles(config, profile, enabled):
@@ -285,15 +304,18 @@ def detect_gpio_gid():
 def write_gpio_override(config):
     if not is_truthy(config.get("ENABLE_GPIO")):
         if is_managed_gpio_override():
-            COMPOSE_OVERRIDE_FILE.unlink()
+            unlink_if_exists(COMPOSE_OVERRIDE_FILE)
         return
+
+    if COMPOSE_OVERRIDE_FILE.exists() and not is_managed_gpio_override():
+        raise ValueError("GPIO support cannot update docker-compose.override.yml because it is user-managed. Add the /dev/gpiochip0 backend device mount manually or remove the custom override before repairing GPIO support.")
 
     docker_gid = config.get("DOCKER_GID", "0")
     gpio_gid = config.get("GPIO_GID", "0")
     lines = [GPIO_OVERRIDE_MARKER, "services:", "  backend:", "    devices:", "      - /dev/gpiochip0:/dev/gpiochip0"]
     if gpio_gid != docker_gid:
         lines.extend(["    group_add:", "      - \"${GPIO_GID:-0}\""])
-    COMPOSE_OVERRIDE_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    write_text_atomic(COMPOSE_OVERRIDE_FILE, "\n".join(lines) + "\n")
 
 
 def is_managed_gpio_override():
@@ -464,8 +486,7 @@ RestartSec=2
 [Install]
 WantedBy=multi-user.target
 """
-    SENSOR_SERVICE_FILE.write_text(service, encoding="utf-8")
-    os.chmod(SENSOR_SERVICE_FILE, 0o600)
+    write_text_atomic(SENSOR_SERVICE_FILE, service, 0o600)
     run(["systemctl", "daemon-reload"])
     run(["systemctl", "enable", "edge-studio-sensor-helper.service"])
     run(["systemctl", "restart", "edge-studio-sensor-helper.service"])
@@ -488,7 +509,7 @@ def disable_sensors():
     if shutil.which("systemctl"):
         run(["systemctl", "disable", "--now", "edge-studio-sensor-helper.service"], check=False)
         if SENSOR_SERVICE_FILE.exists():
-            SENSOR_SERVICE_FILE.unlink()
+            unlink_if_exists(SENSOR_SERVICE_FILE)
         run(["systemctl", "daemon-reload"], check=False)
     write_env({"ENABLE_SENSORS": "false"})
     config = read_env()
@@ -608,8 +629,7 @@ RestartSec=2
 [Install]
 WantedBy=multi-user.target
 """
-    CAMERA_SERVICE_FILE.write_text(service, encoding="utf-8")
-    os.chmod(CAMERA_SERVICE_FILE, 0o600)
+    write_text_atomic(CAMERA_SERVICE_FILE, service, 0o600)
     run(["systemctl", "daemon-reload"])
     run(["systemctl", "enable", "edge-studio-camera-helper.service"])
     run(["systemctl", "restart", "edge-studio-camera-helper.service"])
@@ -633,7 +653,7 @@ def disable_camera():
     if shutil.which("systemctl"):
         run(["systemctl", "disable", "--now", "edge-studio-camera-helper.service"], check=False)
         if CAMERA_SERVICE_FILE.exists():
-            CAMERA_SERVICE_FILE.unlink()
+            unlink_if_exists(CAMERA_SERVICE_FILE)
         run(["systemctl", "daemon-reload"], check=False)
     write_env({"ENABLE_CAMERA": "false"})
     config = read_env()
