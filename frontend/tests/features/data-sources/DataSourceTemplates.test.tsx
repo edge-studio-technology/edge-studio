@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   inputTemplates,
   LocalServicesCard,
@@ -124,5 +124,26 @@ describe("LocalServicesCard", () => {
     expect(screen.getAllByRole("button", { name: "Enable" })[0]).toBeDisabled();
     expect(screen.getByText("Action needed")).toBeInTheDocument();
     expect(screen.getAllByText("Camera tools are missing.").length).toBeGreaterThan(0);
+  });
+
+  it("shows Repair for enabled unavailable capabilities and calls the enable action", async () => {
+    const onEnableCamera = vi.fn().mockResolvedValue(undefined);
+    const hostCapabilities: HostCapability[] = [
+      {
+        name: "camera",
+        enabled: true,
+        installed: true,
+        available: false,
+        state: "failed",
+        reason: "Camera support is enabled, but the camera helper is stopped. Repair camera support to restart it.",
+      },
+    ];
+    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onEnableCamera={onEnableCamera} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "Repair" }));
+
+    expect(onEnableCamera).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByText(/Repair camera support to restart it/).length).toBeGreaterThan(0);
   });
 });

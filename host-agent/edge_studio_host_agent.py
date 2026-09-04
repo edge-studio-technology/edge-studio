@@ -205,12 +205,12 @@ def missing_camera_tools_message():
 
 def missing_sensor_prerequisites_message():
     if not shutil.which("python3"):
-        return "python3 was not found on the host. Install Python 3 before enabling I2C sensor support."
+        return "python3 was not found on the host. Install Python 3 on the Pi host, then enable I2C sensor support."
     if not Path("/dev/i2c-1").exists():
-        return "/dev/i2c-1 was not found on the host. Enable I2C on the Raspberry Pi host, then refresh Hardware support."
+        return "/dev/i2c-1 was not found on the host. Enable I2C on the Raspberry Pi host, reboot if needed, then refresh Hardware support."
     completed = run(["python3", "-c", "try:\n import smbus2\nexcept Exception:\n import smbus"], check=False)
     if completed.returncode != 0:
-        return "Python SMBus support was not found. Install python3-smbus or python3-smbus2 on the host before enabling I2C sensor support."
+        return "Python SMBus support was not found. Install python3-smbus or python3-smbus2 on the Pi host, then enable I2C sensor support."
     return None
 
 
@@ -250,13 +250,13 @@ def camera_status():
         reason = missing_camera_tools_message()
         state = "missing_prerequisites"
     elif not checks["serviceFileExists"]:
-        reason = "Camera helper service is not installed."
+        reason = "Camera support is enabled, but the camera helper is not installed. Repair camera support to reinstall it."
     elif not checks["serviceEnabled"]:
-        reason = "Camera helper service is not enabled."
+        reason = "Camera support is enabled, but the camera helper is disabled. Repair camera support to enable it."
     elif not checks["serviceActive"]:
-        reason = "Camera helper service is not active."
+        reason = "Camera support is enabled, but the camera helper is stopped. Repair camera support to restart it."
     elif checks["cameraDetected"] is False:
-        reason = "No camera was detected by the Raspberry Pi camera stack."
+        reason = "No camera was detected by the Raspberry Pi camera stack. Connect and enable the camera on the Pi host, then refresh Hardware support."
         state = "missing_prerequisites"
     return {
         "name": "camera",
@@ -335,15 +335,15 @@ def gpio_status():
     if not enabled:
         reason = "GPIO support is disabled. Enable it from Devices -> Hardware support."
     elif not device_exists:
-        reason = "/dev/gpiochip0 was not found on the host. GPIO support requires Raspberry Pi GPIO support to be present."
+        reason = "/dev/gpiochip0 was not found on the host. GPIO support requires Raspberry Pi GPIO support on the host, then refresh Hardware support."
     elif not override_exists:
-        reason = "GPIO Compose device access is not configured."
+        reason = "GPIO support is enabled, but backend device access is not configured. Repair GPIO support to recreate it."
     elif not override_mounts_gpio:
-        reason = "GPIO Compose override does not mount /dev/gpiochip0 into the backend container."
+        reason = "GPIO support is enabled, but /dev/gpiochip0 is not mounted into the backend container. Repair GPIO support to recreate device access."
     elif expected_group_add and not override_has_group_add:
-        reason = "GPIO Compose override does not add the backend container to the GPIO group."
+        reason = "GPIO support is enabled, but the backend container is missing GPIO group access. Repair GPIO support to recreate device access."
     elif not backend_sees_device:
-        reason = "Backend container does not see /dev/gpiochip0 yet. Recreate the backend container or wait for the hardware action to finish."
+        reason = "GPIO support is enabled, but the backend container cannot see /dev/gpiochip0 yet. Repair GPIO support to recreate the backend container."
     return {
         "name": "gpio",
         "enabled": enabled,
@@ -402,17 +402,17 @@ def sensor_status():
     if not enabled:
         reason = "I2C sensor support is disabled. Enable it from Devices -> Hardware support."
     elif not i2c_exists:
-        reason = "/dev/i2c-1 was not found on the host. Enable I2C on the Raspberry Pi host, then refresh Hardware support."
+        reason = "/dev/i2c-1 was not found on the host. Enable I2C on the Raspberry Pi host, reboot if needed, then refresh Hardware support."
     elif not python_exists:
-        reason = "python3 was not found on the host. Install Python 3 before enabling I2C sensor support."
+        reason = "python3 was not found on the host. Install Python 3 on the Pi host, then enable I2C sensor support."
     elif not smbus_available:
-        reason = "Python SMBus support was not found. Install python3-smbus or python3-smbus2 on the host before enabling I2C sensor support."
+        reason = "Python SMBus support was not found. Install python3-smbus or python3-smbus2 on the Pi host, then enable I2C sensor support."
     elif not checks["serviceFileExists"]:
-        reason = "Sensor helper service is not installed."
+        reason = "I2C sensor support is enabled, but the sensor helper is not installed. Repair I2C sensor support to reinstall it."
     elif not checks["serviceEnabled"]:
-        reason = "Sensor helper service is not enabled."
+        reason = "I2C sensor support is enabled, but the sensor helper is disabled. Repair I2C sensor support to enable it."
     elif not checks["serviceActive"]:
-        reason = "Sensor helper service is not active."
+        reason = "I2C sensor support is enabled, but the sensor helper is stopped. Repair I2C sensor support to restart it."
     return {
         "name": "sensors",
         "enabled": enabled,
@@ -516,13 +516,13 @@ def mqtt_status():
     if not enabled:
         reason = "Local MQTT broker is disabled. Enable it from Devices -> Hardware support."
     elif not profile_enabled:
-        reason = "Docker Compose mqtt profile is not enabled."
+        reason = "Local MQTT broker support is enabled, but the Docker Compose mqtt profile is missing. Repair local MQTT broker support to restore it."
     elif not checks["composeAvailable"]:
-        reason = "Docker Compose is not available for checking the local MQTT broker."
+        reason = "Docker Compose is not available for checking the local MQTT broker. Make Docker Compose available on the Pi host, then refresh Hardware support."
     elif not service_exists:
-        reason = "Docker Compose mqtt service is not configured."
+        reason = "Local MQTT broker support is enabled, but the mqtt service is not configured. Repair local MQTT broker support to recreate it."
     elif not service_running:
-        reason = "Local MQTT broker container is not running."
+        reason = "Local MQTT broker support is enabled, but the broker container is stopped. Repair local MQTT broker support to restart it."
     return {
         "name": "mqtt",
         "enabled": enabled,

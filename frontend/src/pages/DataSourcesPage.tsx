@@ -184,21 +184,29 @@ export function DataSourcesPage() {
     }, "Device updated");
   }
 
+  function needsHardwareRepair(name: HostCapability["name"]) {
+    const capability = hostCapabilities.find((item) => item.name === name);
+    return Boolean(capability?.enabled && !capability.available);
+  }
+
   async function enableCameraHardware() {
+    const repair = needsHardwareRepair("camera");
     const result = await runHardwareAction(
       () => enableCameraSupport(),
       {
-        modalTitle: "Updating camera support",
-        progressTitle: "Applying hardware changes",
-        description: "Edge Studio is enabling the camera helper and restarting services. This can take a few seconds.",
+        modalTitle: repair ? "Repairing camera support" : "Updating camera support",
+        progressTitle: repair ? "Repairing hardware support" : "Applying hardware changes",
+        description: repair
+          ? "Edge Studio is reapplying camera support to reinstall, enable, or restart the camera helper. This can take a few seconds."
+          : "Edge Studio is enabling the camera helper and restarting services. This can take a few seconds.",
       },
-      { name: "camera", enabled: true },
+      { name: "camera", enabled: true, available: repair ? true : undefined },
     );
     if (!result) return;
     if (result.response?.warning) {
-      showToast({ tone: "warning", title: "Camera support enabled with warning", message: result.response.warning });
+      showToast({ tone: "warning", title: repair ? "Camera support repaired with warning" : "Camera support enabled with warning", message: result.response.warning });
     } else {
-      showToast({ tone: "success", title: "Camera support enabled" });
+      showToast({ tone: "success", title: repair ? "Camera support repaired" : "Camera support enabled" });
     }
   }
 
@@ -217,17 +225,20 @@ export function DataSourcesPage() {
   }
 
   async function enableGpioHardware() {
+    const repair = needsHardwareRepair("gpio");
     const result = await runHardwareAction(
       () => enableGpioSupport(),
       {
-        modalTitle: "Updating GPIO support",
-        progressTitle: "Applying hardware changes",
-        description: "Edge Studio is updating GPIO device access and restarting services. This can take a few seconds.",
+        modalTitle: repair ? "Repairing GPIO support" : "Updating GPIO support",
+        progressTitle: repair ? "Repairing hardware support" : "Applying hardware changes",
+        description: repair
+          ? "Edge Studio is reapplying GPIO support to recreate backend device access and restart services. This can take a few seconds."
+          : "Edge Studio is updating GPIO device access and restarting services. This can take a few seconds.",
       },
-      { name: "gpio", enabled: true },
+      { name: "gpio", enabled: true, available: repair ? true : undefined },
     );
     if (!result) return;
-    showToast({ tone: "success", title: "GPIO support enabled" });
+    showToast({ tone: "success", title: repair ? "GPIO support repaired" : "GPIO support enabled" });
   }
 
   async function disableGpioHardware() {
@@ -245,17 +256,20 @@ export function DataSourcesPage() {
   }
 
   async function enableSensorHardware() {
+    const repair = needsHardwareRepair("sensors");
     const result = await runHardwareAction(
       () => enableSensorSupport(),
       {
-        modalTitle: "Updating I2C sensor support",
-        progressTitle: "Applying hardware changes",
-        description: "Edge Studio is enabling the sensor helper and restarting services. This can take a few seconds.",
+        modalTitle: repair ? "Repairing I2C sensor support" : "Updating I2C sensor support",
+        progressTitle: repair ? "Repairing hardware support" : "Applying hardware changes",
+        description: repair
+          ? "Edge Studio is reapplying I2C sensor support to reinstall, enable, or restart the sensor helper. This can take a few seconds."
+          : "Edge Studio is enabling the sensor helper and restarting services. This can take a few seconds.",
       },
-      { name: "sensors", enabled: true },
+      { name: "sensors", enabled: true, available: repair ? true : undefined },
     );
     if (!result) return;
-    showToast({ tone: "success", title: "I2C sensor support enabled" });
+    showToast({ tone: "success", title: repair ? "I2C sensor support repaired" : "I2C sensor support enabled" });
   }
 
   async function disableSensorHardware() {
@@ -273,17 +287,20 @@ export function DataSourcesPage() {
   }
 
   async function enableMqttHardware() {
+    const repair = needsHardwareRepair("mqtt");
     const result = await runHardwareAction(
       () => enableMqttBroker(),
       {
-        modalTitle: "Updating local MQTT broker",
-        progressTitle: "Applying hardware changes",
-        description: "Edge Studio is enabling the local MQTT broker and restarting services. This can take a few seconds.",
+        modalTitle: repair ? "Repairing local MQTT broker" : "Updating local MQTT broker",
+        progressTitle: repair ? "Repairing hardware support" : "Applying hardware changes",
+        description: repair
+          ? "Edge Studio is reapplying local MQTT broker support to restore the Compose profile and restart the broker container. This can take a few seconds."
+          : "Edge Studio is enabling the local MQTT broker and restarting services. This can take a few seconds.",
       },
-      { name: "mqtt", enabled: true },
+      { name: "mqtt", enabled: true, available: repair ? true : undefined },
     );
     if (!result) return;
-    showToast({ tone: "success", title: "Local MQTT broker enabled" });
+    showToast({ tone: "success", title: repair ? "Local MQTT broker repaired" : "Local MQTT broker enabled" });
   }
 
   async function disableMqttHardware() {
@@ -303,7 +320,7 @@ export function DataSourcesPage() {
   async function runHardwareAction<T>(
     action: () => Promise<T>,
     operation: HardwareOperation,
-    expected: Pick<HostCapability, "name" | "enabled">,
+    expected: Pick<HostCapability, "name" | "enabled"> & { available?: boolean },
   ) {
     setBusy(true);
     setHardwareOperation(operation);
@@ -328,7 +345,7 @@ export function DataSourcesPage() {
     }
   }
 
-  async function waitForHardwareState(expected: Pick<HostCapability, "name" | "enabled">) {
+  async function waitForHardwareState(expected: Pick<HostCapability, "name" | "enabled"> & { available?: boolean }) {
     const deadline = Date.now() + HARDWARE_REFRESH_TIMEOUT_MS;
     let lastError: unknown = null;
     let stableRefreshes = 0;
@@ -337,7 +354,7 @@ export function DataSourcesPage() {
       try {
         const response = await refresh();
         const capability = response.hostCapabilities.find((item) => item.name === expected.name);
-        if (capability?.enabled === expected.enabled) {
+        if (capability?.enabled === expected.enabled && (expected.available === undefined || capability.available === expected.available)) {
           stableRefreshes += 1;
           if (stableRefreshes >= HARDWARE_STABLE_REFRESH_COUNT) return;
         } else {

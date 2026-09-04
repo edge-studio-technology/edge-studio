@@ -399,7 +399,11 @@ function HardwareActionRow({
   onDisable?: () => Promise<void>;
 }) {
   const enabled = capability?.enabled ?? false;
+  const available = capability?.available ?? false;
+  const needsRepair = enabled && !available;
   const missingPrerequisites = capability?.state === "missing_prerequisites";
+  const actionLabel = needsRepair ? "Repair" : enabled ? "Disable" : "Enable";
+  const action = needsRepair || !enabled ? onEnable : onDisable;
   return (
     <div className="border-border-subtle rounded-card-inner gap-detail-close grid border p-pad-tight">
       <div className="gap-detail-close flex flex-wrap items-center justify-between">
@@ -410,10 +414,10 @@ function HardwareActionRow({
         <Button
           type="button"
           variant={enabled ? "secondary" : "primary"}
-          disabled={busy || missingPrerequisites || (!onEnable && !onDisable)}
-          onClick={() => void (enabled ? onDisable?.() : onEnable?.())}
+          disabled={busy || missingPrerequisites || !action}
+          onClick={() => void action?.()}
         >
-          {enabled ? "Disable" : "Enable"}
+          {actionLabel}
         </Button>
       </div>
       {capability?.reason && <p className="type-meta text-text-tertiary m-0">{capability.reason}</p>}
