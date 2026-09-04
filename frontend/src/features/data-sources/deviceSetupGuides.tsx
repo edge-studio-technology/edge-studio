@@ -346,7 +346,9 @@ function bmeSensorGuide(source: DataSource) {
   return guide(
     source,
     `${sensorName} Environmental Sensor Setup`,
-    `Read temperature, humidity, and air pressure from a ${sensorName} module over the Pi I2C bus.`,
+    source.config.sensor === "bme680"
+      ? "Read temperature, humidity, air pressure, and gas resistance from a BME680 module over the Pi I2C bus."
+      : "Read temperature, humidity, and air pressure from a BME280 module over the Pi I2C bus.",
     [
       {
         title: "Requirements",

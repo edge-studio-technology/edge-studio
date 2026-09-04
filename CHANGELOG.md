@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added admin-only camera support enable and disable actions from the Devices page Hardware support area.
 - Added admin-only GPIO, I2C sensor, and local MQTT broker enable/disable actions from Hardware support.
 - Added `HOST_CAPABILITY_DEBUG=true` for secret-safe Hardware support diagnostics in backend and host-agent logs.
+- BME680 sensor reads now include gas resistance as `gasResistanceOhms` alongside temperature, humidity, and pressure.
 
 ### Changed
 

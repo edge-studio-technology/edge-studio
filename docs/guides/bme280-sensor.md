@@ -1,6 +1,6 @@
 # BME280/BME680 Sensor Setup
 
-Use this guide for a 4-pin BME280 or BME680 I2C environmental sensor module with `VIN`, `GND`, `SCL`, and `SDA` pins. The module reports temperature, humidity, and air pressure.
+Use this guide for a 4-pin BME280 or BME680 I2C environmental sensor module with `VIN`, `GND`, `SCL`, and `SDA` pins. Both modules report temperature, humidity, and air pressure. BME680 reads also report gas resistance.
 
 ## Enable Support
 
@@ -74,4 +74,19 @@ Then trigger a manual read from the Devices table. A successful read stores JSON
 }
 ```
 
-For BME680, the `sensor` field is `bme680` and the same JSON shape is used. Automation workflows can use `Fetch data source` with the BME device, then attach `Stamp data` to stamp the reading hash.
+For BME680, the `sensor` field is `bme680` and the JSON also includes `gasResistanceOhms`:
+
+```json
+{
+  "sensor": "bme680",
+  "bus": 1,
+  "address": "0x76",
+  "temperatureC": 22.4,
+  "humidityPercent": 48.1,
+  "pressureHpa": 1012.8,
+  "gasResistanceOhms": 128420,
+  "readAt": "2026-07-29T00:00:00Z"
+}
+```
+
+Automation workflows can use `Fetch data source` with the BME device, then attach `Stamp data` to stamp the reading hash.
