@@ -171,6 +171,49 @@ class HostAgentWriteTests(unittest.TestCase):
         self.assertIn("COMPOSE_PROFILES=other", env_content)
         self.assertNotIn("mqtt,mqtt", env_content)
 
+    def test_restart_backend_reports_missing_docker(self):
+        with patch.object(self.agent.shutil, "which", return_value=None):
+            result = self.agent.restart_backend({})
+
+        self.assertEqual(result, {"ok": False, "scheduled": False, "message": "docker was not found on the host"})
+
+    def test_restart_backend_reports_popen_failure(self):
+        with patch.object(self.agent.shutil, "which", return_value="/usr/bin/docker"):
+            with patch.object(self.agent.subprocess, "Popen", side_effect=OSError("permission denied")):
+                result = self.agent.restart_backend({})
+
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["scheduled"])
+        self.assertIn("Could not schedule backend restart", result["message"])
+
+    def test_schedule_compose_reports_missing_docker(self):
+        with patch.object(self.agent.shutil, "which", return_value=None):
+            result = self.agent.schedule_compose({}, ["up", "-d", "mqtt"])
+
+        self.assertEqual(result, {"ok": False, "scheduled": False, "message": "docker was not found on the host"})
+
+    def test_schedule_compose_reports_popen_failure(self):
+        with patch.object(self.agent.shutil, "which", return_value="/usr/bin/docker"):
+            with patch.object(self.agent.subprocess, "Popen", side_effect=OSError("permission denied")):
+                result = self.agent.schedule_compose({}, ["up", "-d", "mqtt"])
+
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["scheduled"])
+        self.assertIn("Could not schedule Docker Compose command", result["message"])
+
+    def test_apply_mqtt_returns_retryable_compose_schedule_failure(self):
+        self.agent.ENV_FILE.write_text("ENABLE_MQTT_BROKER=false\nCOMPOSE_PROFILES=other\n", encoding="utf-8")
+
+        with patch.object(self.agent.shutil, "which", return_value="/usr/bin/docker"):
+            with patch.object(self.agent.subprocess, "Popen", side_effect=OSError("permission denied")):
+                with patch.object(self.agent, "mqtt_status", return_value={"state": "failed"}):
+                    result = self.agent.apply_mqtt()
+
+        self.assertEqual(result["restart"]["ok"], False)
+        self.assertEqual(result["restart"]["scheduled"], False)
+        self.assertIn("Could not schedule Docker Compose command", result["restart"]["message"])
+        self.assertIn("ENABLE_MQTT_BROKER=true", self.agent.ENV_FILE.read_text(encoding="utf-8"))
+
     def test_disable_helper_actions_are_safe_to_repeat(self):
         self.agent.ENV_FILE.write_text("ENABLE_CAMERA=true\nENABLE_SENSORS=true\n", encoding="utf-8")
         self.agent.CAMERA_SERVICE_FILE.write_text("camera service\n", encoding="utf-8")

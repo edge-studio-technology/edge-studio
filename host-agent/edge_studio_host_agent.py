@@ -189,10 +189,13 @@ def restart_backend(config):
         debug_log("backend restart skipped", {"reason": "install-mode"}, config)
         return {"ok": True, "scheduled": False, "skipped": True}
     if not shutil.which("docker"):
-        return {"ok": False, "message": "docker was not found on the host"}
+        return {"ok": False, "scheduled": False, "message": "docker was not found on the host"}
     command = " ".join(compose_args(config) + ["up", "-d", "--no-deps", "backend"])
     debug_log("schedule backend restart", {"command": command}, config)
-    subprocess.Popen(["/bin/sh", "-c", f"sleep 1; {command}"], cwd=str(APP_DIR))
+    try:
+        subprocess.Popen(["/bin/sh", "-c", f"sleep 1; {command}"], cwd=str(APP_DIR))
+    except Exception as error:
+        return {"ok": False, "scheduled": False, "message": f"Could not schedule backend restart: {error}"}
     return {"ok": True, "scheduled": True}
 
 
@@ -201,10 +204,13 @@ def schedule_compose(config, args):
         debug_log("compose command skipped", {"reason": "install-mode", "args": args}, config)
         return {"ok": True, "scheduled": False, "skipped": True}
     if not shutil.which("docker"):
-        return {"ok": False, "message": "docker was not found on the host"}
+        return {"ok": False, "scheduled": False, "message": "docker was not found on the host"}
     command = " ".join(compose_args(config) + args)
     debug_log("schedule compose command", {"command": command}, config)
-    subprocess.Popen(["/bin/sh", "-c", f"sleep 1; {command}"], cwd=str(APP_DIR))
+    try:
+        subprocess.Popen(["/bin/sh", "-c", f"sleep 1; {command}"], cwd=str(APP_DIR))
+    except Exception as error:
+        return {"ok": False, "scheduled": False, "message": f"Could not schedule Docker Compose command: {error}"}
     return {"ok": True, "scheduled": True}
 
 
