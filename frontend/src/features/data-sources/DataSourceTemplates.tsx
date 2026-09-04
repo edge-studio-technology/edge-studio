@@ -91,7 +91,7 @@ export const inputTemplates: DataSourceTemplate[] = [
   },
   {
     title: "BME680 Environmental Sensor",
-    description: "Read temperature, humidity, and air pressure from a BME680 I2C module",
+    description: "Read temperature, humidity, air pressure, and gas resistance from a BME680 I2C module",
     type: "bme-sensor",
     config: { sensor: "bme680", bus: 1, address: "0x76" },
   },

@@ -343,9 +343,9 @@ export function DataSourceForm({
             ]}
           />
           <MutedText>
-            BME280/BME680 sensors read temperature, humidity, and air pressure over I2C. Wire VIN to
-            3.3V or 5V, GND to ground, SCL to physical pin 5 / GPIO3, and SDA to physical pin 3 /
-            GPIO2.
+            BME280/BME680 sensors read temperature, humidity, and air pressure over I2C. BME680
+            reads also include gas resistance. Wire VIN to 3.3V or 5V, GND to ground, SCL to
+            physical pin 5 / GPIO3, and SDA to physical pin 3 / GPIO2.
           </MutedText>
         </>
       ) : type === "device-system-data" ? (
