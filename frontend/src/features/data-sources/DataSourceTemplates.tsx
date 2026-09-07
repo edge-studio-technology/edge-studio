@@ -1,5 +1,7 @@
 import {
   Camera,
+  Check,
+  Copy as CopyIcon,
   Cpu,
   Globe2,
   Lightbulb,
@@ -16,7 +18,6 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Modal } from "../../components/Modal";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
-import { CopyField } from "../../components/patterns/CopyField";
 import { Pill } from "../../components/Pill";
 import { Disclosure } from "../../components/ui/Disclosure";
 import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "./dataSourceTypes";
@@ -361,8 +362,8 @@ export function LocalServicesCard({
                 onRefreshHardware={onRefreshHardware}
               />
             </div>
-            <ErrorAlert status="warning" className="max-w-none">
-              Optional hardware starts disabled by default. Host-agent actions update Edge Studio service configuration only. Prerequisite commands shown here assume Raspberry Pi OS or another Debian-based Pi image.
+            <ErrorAlert status="warning" className="max-w-none py-detail-tight">
+              Optional hardware starts disabled by default. Edge Studio changes app service configuration only; OS interfaces and packages stay operator-managed.
             </ErrorAlert>
           </div>
         </Modal>
@@ -456,34 +457,85 @@ function HardwareDetailPanel({
   const capability = item.capability;
   const status = hardwareStatus(capability);
   const action = hardwareAction(item);
+  const Icon = item.icon;
   return (
-    <section className="border-border-subtle rounded-card-inner gap-detail-next grid border p-pad-base" aria-label={`${item.title} details`}>
-      <div className="gap-detail-close flex flex-wrap items-start justify-between">
-        <div>
-          <div className="gap-detail-close flex flex-wrap items-center">
-            <h3 className="type-title text-text-primary m-0">{item.title}</h3>
-            <Pill tone={status.tone} indicator>{status.label}</Pill>
+    <section className="border-border-subtle bg-surface-primary rounded-card-inner gap-detail-tight grid border p-pad-tight" aria-label={`${item.title} details`}>
+      <div className="gap-detail-close flex items-start justify-between">
+        <div className="gap-detail-tight flex min-w-0 items-start">
+          <span className="bg-surface-secondary text-text-secondary mt-[2px] grid size-8 shrink-0 place-items-center rounded-full">
+            <Icon aria-hidden className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <div className="gap-detail-tight flex flex-wrap items-center">
+              <h3 className="type-body-em text-text-primary m-0">{item.title}</h3>
+              <Pill tone={status.tone} indicator>{status.label}</Pill>
+            </div>
+            <p className="type-meta text-text-secondary mt-detail-tight m-0">{hardwareStateSummary(item, status.label)}</p>
           </div>
-          <p className="type-body text-text-secondary mt-detail-tight m-0">{item.description}</p>
         </div>
         <Button
           type="button"
           variant={action.variant}
+          size="sm"
           disabled={busy || !action.onClick}
           onClick={() => void action.onClick?.()}
         >
           {action.label}
         </Button>
       </div>
-      {capability?.reason && <p className="type-meta text-text-tertiary m-0">{capability.reason}</p>}
+      {capability?.reason && <CompactReason tone={status.kind === "error" ? "error" : status.kind === "warn" ? "warn" : "neutral"}>{capability.reason}</CompactReason>}
       {item.name === "mqtt" && (
-        <div className="gap-detail-close grid md:grid-cols-2">
-          <CopyField label="LAN URL" value={lanUrl} description="Use this from external devices on the LAN." />
-          <CopyField label="Internal URL" value={internalUrl} description="Use this in Edge Studio MQTT device configs." />
+        <div className="border-border-subtle rounded-card-inner grid overflow-hidden border">
+          <CompactCopyRow label="LAN URL" value={lanUrl} description="External devices on the LAN" />
+          <CompactCopyRow label="Internal URL" value={internalUrl} description="Edge Studio MQTT configs" />
         </div>
       )}
       <HardwarePrerequisites capability={capability} busy={busy} onRefreshHardware={onRefreshHardware} />
     </section>
+  );
+}
+
+function hardwareStateSummary(item: HardwareItem, statusLabel: string) {
+  if (item.capability?.state === "missing_prerequisites") return "Complete the host setup steps, then refresh status.";
+  if (item.capability?.available) return "Ready for device workflows.";
+  if (item.capability?.enabled) return "Support is enabled but not currently usable.";
+  if (item.name === "mqtt") return "Enable the local broker for MQTT devices and workflows.";
+  return item.description;
+}
+
+function CompactReason({ children, tone }: { children: string; tone: "neutral" | "warn" | "error" }) {
+  const className = {
+    neutral: "border-border-subtle bg-surface-secondary text-text-secondary",
+    warn: "border-stroke-warning bg-feedback-warning/10 text-text-primary",
+    error: "border-stroke-error bg-feedback-error/10 text-text-primary",
+  }[tone];
+  return <p className={`type-meta rounded-card-inner m-0 border px-detail-next py-detail-tight ${className}`}>{children}</p>;
+}
+
+function CompactCopyRow({ label, value, description }: { label: string; value: string; description: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard can fail on non-secure origins; the value remains visible for manual copy.
+    }
+  }
+
+  return (
+    <div className="border-border-subtle gap-detail-tight grid grid-cols-[88px_minmax(0,1fr)_auto] items-center border-b px-detail-next py-detail-tight last:border-b-0">
+      <div className="min-w-0">
+        <p className="type-meta text-text-primary m-0">{label}</p>
+        <p className="type-meta text-text-tertiary m-0">{description}</p>
+      </div>
+      <code className="type-meta text-text-primary min-w-0 truncate rounded bg-surface-secondary px-detail-tight py-[3px]">{value}</code>
+      <Button type="button" variant="ghost" size="sm" iconEnd={copied ? <Check aria-hidden /> : <CopyIcon aria-hidden />} onClick={handleCopy}>
+        {copied ? "Copied" : "Copy"}
+      </Button>
+    </div>
   );
 }
 
@@ -528,25 +580,23 @@ function HardwarePrerequisites({ capability, busy, onRefreshHardware }: { capabi
     <Disclosure
       title={
         <span className="gap-detail-close flex flex-wrap items-center">
-          <span>Setup steps for Raspberry Pi OS</span>
+          <span>Setup steps</span>
           <Pill tone="warn">Action needed</Pill>
         </span>
       }
       defaultOpen={false}
       className="border-border-subtle bg-surface-subtle rounded-card-inner border p-pad-tight"
+      contentClassName="gap-detail-tight grid"
     >
       <p className="type-meta text-text-tertiary m-0">
-        Edge Studio manages its own helper services and app configuration in this version. Raspberry Pi OS interfaces and packages must be enabled on the host first.
+        Enable the required Raspberry Pi OS interface or package on the host, then refresh status.
       </p>
-      <p className="type-meta text-text-tertiary m-0">
-        These steps assume Raspberry Pi OS or another Debian-based Pi image. Other Linux distributions may use different package names or setup tools.
-      </p>
-      <div className="gap-detail-tight grid">
+      <div className="border-border-subtle rounded-card-inner grid overflow-hidden border">
         {guidance.map((item) => (
-          <CopyField key={item.label} label={item.label} value={item.command} description={item.description} />
+          <CompactCopyRow key={item.label} label={item.label} value={item.command} description={item.description} />
         ))}
       </div>
-      <Button type="button" variant="secondary" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
+      <Button type="button" variant="secondary" size="sm" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
         I have completed this, refresh now
       </Button>
     </Disclosure>

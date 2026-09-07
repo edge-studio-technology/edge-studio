@@ -109,7 +109,7 @@ describe("LocalServicesCard", () => {
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByRole("region", { name: "Raspberry Pi Camera details" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Disable" })).toBeInTheDocument();
-    expect(within(dialog).queryByText("Setup steps for Raspberry Pi OS")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Setup steps")).not.toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Refresh status" })).toBeInTheDocument();
 
     await userEvent.click(within(dialog).getByRole("button", { name: /MQTT Available/ }));
@@ -137,7 +137,7 @@ describe("LocalServicesCard", () => {
     expect(screen.getByText("Action needed")).toBeInTheDocument();
     expect(screen.getAllByText("Camera tools are missing.").length).toBeGreaterThan(0);
 
-    await userEvent.click(screen.getByText("Setup steps for Raspberry Pi OS"));
+    await userEvent.click(screen.getByText("Setup steps"));
 
     expect(screen.getByText("Install camera tools")).toBeInTheDocument();
     expect(screen.getByText(/rpicam-still --list-cameras/)).toBeInTheDocument();
@@ -164,7 +164,7 @@ describe("LocalServicesCard", () => {
 
     expect(screen.getByRole("button", { name: "Action required" })).toBeDisabled();
 
-    await userEvent.click(screen.getByText("Setup steps for Raspberry Pi OS"));
+    await userEvent.click(screen.getByText("Setup steps"));
 
     expect(screen.getByText("Enable I2C interface")).toBeInTheDocument();
     expect(screen.getByText(/sudo raspi-config/)).toBeInTheDocument();
