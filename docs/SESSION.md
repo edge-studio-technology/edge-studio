@@ -100,15 +100,26 @@ Later same branch, next session:
 - Verified: `npm run check` (typecheck + backend/frontend/update-agent `test:coverage` + new root scripts-vitest run, all green — backend 67 files/966 tests unchanged, update-agent now 13 files/149 tests, root scripts 2 files/11 tests; `audit:moderate` now passes clean across all three packages, so the `qs`/`express` blocker two sessions ago is resolved, likely by commit `1742cee` "Updated the dependencies for the package files"), `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config` — all clean.
 - Added one `CHANGELOG.md` line each for the `auth.middleware.ts` coverage and the new scripts test harness, under the existing `[Unreleased] test/unit-tests-and-ci` section.
 
+Later on branch `task/272-security-hardening-v1-5`:
+
+- Reconciled the TOTP scope drift across the V1.5 security plan, removal candidate, ADRs, risk
+  register, QA backlog, README, and task tracking. ADR 0011 is now superseded; ADR 0012 records that
+  this branch only hardens the dormant implementation and leaves its eventual fate undecided.
+- No production code changed. Verification was a documentation reference/status sweep.
+
 ## Next Steps
 
 - Implement `docs/plans/high-risk-business-logic-hardening.md` on a separate production-behavior branch; this test branch should not absorb those changes.
+- Continue the V1.5 security decision review with TOTP removal/retention excluded from this branch.
 - The `verification.md` update-agent-build-step gap moved to `docs/TASKS.md`'s Ideas section is still unactioned.
 - `npm audit --audit-level=moderate` is clean again as of this session (verified via `npm run check`) — the `qs`/`express` blocker from two sessions ago no longer reproduces, most likely resolved by commit `1742cee` "Updated the dependencies for the package files".
 - Still open from prior sessions: decide whether to split `docs/TASKS.md`'s `block-automation-workflows` line into per-milestone bullets (see Notes below); fix stale `integritasAuth`/`integritas-auth` doc reference.
 
 ## Notes / Open Questions
 
+- TOTP removal is not approved or scheduled. After V1.5, a fresh product decision and ADR must
+  choose whether to retain, redesign, re-enable, or remove it; any implementation then gets its own
+  ticket and branch.
 - `docs/TASKS.md`'s `block-automation-workflows` line hides an 844-line plan with several substantial unbuilt code features — recommend splitting it into per-milestone bullets next time it's picked up (see audit above). Not acted on yet; flagged for the user to decide.
 - `.claude/rules/frontend.md` says the Integritas Connect auth folder is `integritasAuth`; it's actually `integritas-auth` on disk. Small doc-drift fix, not made yet.
 - The `StampResult.tsx` double-toast bug is resolved: commit `92a4c1a` memoized `ToastProvider`'s `showToast`, so the pending-refresh effect no longer re-runs on every toast add. Now recorded in `CHANGELOG.md`.

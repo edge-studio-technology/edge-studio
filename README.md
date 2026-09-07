@@ -371,7 +371,10 @@ On first launch with an empty database, Edge Studio shows a setup wizard:
 
 After setup, sign in with the chosen PIN or password. You can switch credential types later in Settings. There is a single local admin account (no username to enter), and only its bcrypt hash is stored. Sessions persist across browser reloads until logout or expiry.
 
-TOTP is temporarily disabled through `TOTP_ENABLED = false` in the backend and frontend auth constants.
+TOTP is disabled through `TOTP_ENABLED = false` in the backend and frontend auth constants. Its
+future retention, redesign, re-enablement, or removal is not yet decided; V1.5 security hardening
+only closes the dormant routes while the feature is disabled (see
+[`docs/adr/0012`](docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md)).
 
 Public API routes (no session required):
 

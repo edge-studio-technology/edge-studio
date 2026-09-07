@@ -1,7 +1,7 @@
 # QA gaps backlog
 
 **Status:** Open  
-**Last verified:** 2026-09-04 (security items only, against `571ba70`)  
+**Last verified:** Findings against `571ba70`; TOTP scope and references reconciled 2026-09-07  
 **Related:** [SECURITY.md](../../SECURITY.md), [security/](../security/), [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md), [CHANGELOG.md](../../CHANGELOG.md)
 
 > Security items scheduled for V1.5 are owned by
@@ -29,7 +29,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 - [x] **GAP-02 Automated auth tests** — Done (0.39.0): backend auth suites plus a smoke test asserting every non-public route requires a session.
 - [ ] **GAP-03 Manual E2E checklist** — Wizard (with/without Integritas key), reload persistence, logout, generic login errors, setup cannot re-run, CLI 401 documented.
 - [ ] **GAP-04 `APP_SECRET` validation** — Default `dev-change-me` only warns; refuse startup in production-like mode. Also regenerate it in `install.sh`, which currently preserves any non-empty value. **Phase 6.**
-- [ ] **GAP-05 TOTP secret in API** — `POST /api/setup/totp/init` and `POST /api/auth/settings/totp/init` both return raw `secret`, and neither route is gated on `TOTP_ENABLED` (the setup one sits before `requireAuth` and answers anyone until the local admin exists). Resolution is removal, not hardening — TOTP is being deleted, see [adr/0011](../adr/0011-remove-unused-totp.md) and [plans/remove-totp.md](../plans/remove-totp.md).
+- [ ] **GAP-05 Dormant TOTP routes** — The four setup/settings init/verify routes remain callable while `TOTP_ENABLED` is false; the setup init route sits before `requireAuth` and returns a raw enrollment secret until a local admin exists. Phase 8 makes all four routes unavailable in the disabled configuration. TOTP's later retention, redesign, re-enablement, or removal is a separate undecided product question ([adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md)). **Phase 8.**
 - [ ] **GAP-06 CSRF** — `SameSite=Strict` only; no CSRF tokens. Decided: adequate V1 posture given JSON/multipart-only bodies ([adr/0010](../adr/0010-security-review-audit-verdict.md)); remaining work is writing it up as an accepted risk. **Phase 8.**
 - [ ] **GAP-07 Security headers** — No CSP, `X-Frame-Options`, `X-Content-Type-Options`, or `Referrer-Policy` on nginx/backend. **Phase 8.**
 

@@ -5,6 +5,8 @@
 **Revised:** 2026-09-04 — second-opinion review folded in: DNS-address pinning on egress, Phase 0 decision gate, non-destructive
 `APP_SECRET` migration, the multipart egress path, global outbound concurrency, and the installer's
 bootstrap trust set.
+**Revised:** 2026-09-07 — TOTP removal/retention moved outside this branch; this plan now hardens
+the dormant implementation without deciding its future. See [adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md).
 **Branch:** `task/272-security-hardening-v1-5`
 **Goal:** Close the findings from the external V1.5 security review and the V1 security sign-off
 remainder, in one ordered workstream. Phase 9 carries the unit-test audit's production-behaviour
@@ -27,16 +29,17 @@ This plan is the single owner of security work for V1.5. It absorbs two earlier 
   manual TLS checks are [Verify once](#verify-once-manual), its scope boundaries are
   [Out of scope](#out-of-scope-for-v15).
 - **`high-risk-business-logic-hardening.md`** (2026-09-02) — session revocation is Phase 3, error
-  sanitization is Phase 1, and its non-review items are Phase 9 (bar the TOTP one, which
-  [remove-totp.md](./remove-totp.md) deletes).
+  sanitization is Phase 1, and its non-review items are Phase 9. Its dormant TOTP retry-loop item
+  remains documented but is outside this branch.
 
-TOTP removal was briefly a phase here and has been split out to
-[plans/remove-totp.md](./remove-totp.md) on its own branch — it is a feature removal with a one-way
-schema migration, not a review finding, and it edits the same auth files as Phase 3. Two items below
-are deferred on the assumption it lands; neither was fixed, so nothing is wasted if it slips.
+TOTP removal, retention, redesign, or re-enablement is explicitly outside this plan. ADR 0011's
+earlier removal decision is superseded by [ADR 0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md).
+[plans/remove-totp.md](./remove-totp.md) remains unapproved candidate analysis only. This branch
+hardens the dormant implementation where a live security finding reaches it; it does not use those
+fixes to imply a decision about the feature's future.
 
-They were folded in because all three documents had begun to describe the same work with different
-numbering, which is how a fix gets done twice or not at all.
+The two archived plans were folded in because they had begun to describe the same work with
+different numbering, which is how a fix gets done twice or not at all.
 
 The ordering is ADR 0010's. Where the report and the audit disagree on severity, the ADR's rating
 is what this plan orders by.
@@ -76,7 +79,7 @@ Absorbed items, with their original IDs so the register and QA backlog stay trac
 | Source | Item | Phase |
 | --- | --- | --- |
 | GAP-07 / checklist 1 | Security headers on nginx | 8 |
-| GAP-05 / checklist 4 | TOTP secret returned by `*/totp/init` | deferred — [remove-totp.md](./remove-totp.md) deletes the routes |
+| GAP-05 / checklist 4 | Dormant TOTP routes remain callable while `TOTP_ENABLED` is false | 8 |
 | GAP-03 / checklist 6 | Manual auth E2E on fresh `DATA_DIR` | 8 |
 | GAP-06 / checklist 5 | CSRF posture — decide and document | 8 |
 | GAP-08 | `deleteExpiredSessions()` never scheduled | 3 |
@@ -85,7 +88,7 @@ Absorbed items, with their original IDs so the register and QA backlog stay trac
 | DEVICE-IO-06 | Output egress controls — HTTP URL validation only; broker allowlists and per-target rate limits stay open | 2 (partial) |
 | WALLET-08 | No server-side Minima address validation | 9 |
 | high-risk plan | Minima restart operation-lock cleanup | 9 |
-| high-risk plan | Onboarding TOTP QR retry loop | deferred — [remove-totp.md](./remove-totp.md) deletes the step |
+| high-risk plan | Onboarding TOTP QR retry loop | out of scope — dormant; must be fixed before re-enabling TOTP |
 | high-risk plan | Update Agent stream timeout never settles | 9 |
 
 Already closed since the register was last written, and not carried here: **GAP-02** (auth
@@ -254,9 +257,8 @@ matrix.
 
 **Covers:** [9], GAP-08, GAP-17.
 
-**Sequence after [remove-totp.md](./remove-totp.md).** Step 1 wires `verifyTotpReset`, which that
-plan deletes — doing this first means writing and testing a call site into a function that is about
-to go. If TOTP removal slips, do the `changePassword` half and leave the reset path.
+TOTP remains present for this branch, so session invalidation covers both existing credential-change
+paths. There is no sequencing dependency on a TOTP product decision or removal branch.
 
 `deleteAllUserSessions` already exists in both repository and service layers and is already
 unit-tested; it has zero production call sites.
@@ -265,17 +267,17 @@ unit-tested; it has zero production call sites.
 2. Policy (decided in the archived high-risk plan, carried forward): revoke every session including
    the caller's, and require a fresh login. Keeping the current session alive would first require
    extending the service/route contract so the current token can be identified explicitly.
-3. **Clear the caller's cookie on the way out.** `POST /settings/password` returns
-   `{ success: true }` and nothing touches the cookie — only `/logout` calls `res.clearCookie`
+3. **Clear the caller's cookie on the way out of both credential-change routes.** Neither returns
+   anything that touches the cookie today — only `/logout` calls `res.clearCookie`
    (`auth.routes.ts:34`). Deleting the session row without clearing the cookie leaves the browser
    presenting a dead session and collecting 401s on its next call instead of landing on the login
-   screen. Reuse `sessionCookieOptions`, and check the frontend routes to login on that response
-   rather than showing a stale shell.
+   screen. Reuse `sessionCookieOptions`, and check the frontend routes to login after password
+   change and TOTP reset rather than showing a stale shell.
 4. GAP-08: `deleteExpiredSessions()` exists but is never scheduled. Start it from
    `backend/src/index.ts` after migrations, same pattern as the other schedulers.
 
 **Tests:** extend `backend/tests/features/auth/auth.service.test.ts` and the session/route suites —
-invalidation on both credential paths, the cleared `Set-Cookie` on the change-password response,
+invalidation on both credential paths, the cleared `Set-Cookie` on both route responses,
 the audit events, and the current-session policy.
 
 ---
@@ -378,7 +380,7 @@ actually sustains.
    it, because `shared/crypto.ts:18` derives the AES key as `sha256(APP_SECRET)`. A new secret
    makes every stored ciphertext undecryptable: the Integritas Connect API key and refresh token
    (`integritas_auth.api_key_enc`), the Minima backup password — the only thing protecting every
-   `.bak` file in `${MINIMA_DATA_DIR}/backups` — and TOTP secrets while they still exist. Four
+   `.bak` file in `${MINIMA_DATA_DIR}/backups` — and the stored TOTP secrets. Four
    cases, decided explicitly:
    - **Fresh install, no `.env`** — generate a strong secret. Current behavior; keep it.
    - **Existing `.env`, no database or no encrypted rows** — treat `dev-change-me` as empty and
@@ -454,27 +456,29 @@ token still decrypts afterwards. For (3), diff the generated compose.
 
 ## Phase 8 — V1 sign-off remainder
 
-**Covers:** GAP-07, GAP-06, GAP-03. From the archived `security-checklist.md`, minus what has since
-shipped or been decided. GAP-05 (TOTP secret in API) is not here — [remove-totp.md](./remove-totp.md)
-deletes the routes that return it rather than hardening them.
+**Covers:** GAP-07, GAP-06, GAP-05, GAP-03. From the archived `security-checklist.md`, minus what
+has since shipped or been decided.
 
 1. **Security headers** (GAP-07) — `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
    and a minimal CSP on nginx.
 2. **CSRF** (GAP-06) — ADR 0010 already assessed `SameSite=Strict` plus JSON/multipart-only bodies
    as an adequate V1 posture. Remaining work is to write that down as an accepted risk in
    `SECURITY.md`, not to add tokens.
-3. **Manual auth E2E** (GAP-03) — on a fresh `DATA_DIR`: wizard with and without an Integritas key,
-   reload persistence, logout, generic login errors, setup cannot re-run, CLI 401 documented. Run
-   this after [remove-totp.md](./remove-totp.md) lands, so it exercises the wizard as shipped rather
-   than a flow being deleted.
+3. **Dormant TOTP routes** (GAP-05) — when backend `TOTP_ENABLED` is false, make all four setup and
+   settings init/verify routes unavailable. Keep `assertLocalAdminNotCreated()` on the setup paths
+   as defense in depth. Returning an enrollment secret when TOTP is deliberately enabled is part of
+   any future enablement design and is not decided here.
+4. **Manual auth E2E** (GAP-03) — on a fresh `DATA_DIR`: wizard with and without an Integritas key,
+   reload persistence, logout, generic login errors, setup cannot re-run, CLI 401 documented. Also
+   verify all four TOTP routes are unavailable in the shipped disabled configuration.
 
 ---
 
 ## Phase 9 — Correctness hardening from the unit-test audit
 
 **Covers:** three of the four non-review items from the archived
-`high-risk-business-logic-hardening.md`. Its fourth — the onboarding TOTP QR retry loop — is deleted
-rather than fixed, by [remove-totp.md](./remove-totp.md).
+`high-risk-business-logic-hardening.md`. Its fourth — the onboarding TOTP QR retry loop — remains
+dormant and is outside this branch. It must be fixed and tested before any future TOTP re-enablement.
 These are not review findings; they are places where tests could not establish intended behavior
 because the production contract was absent. Lower urgency than Phases 1-7, but they are already
 diagnosed, so they are cheap.
@@ -520,6 +524,9 @@ Carried from the archived checklist. Do not let these expand the branch:
 - CLI session auth (GAP-16) — 401 today, documented.
 - Replacing the Docker socket mount.
 - Argon2id (GAP-14), `__Host-` cookie prefix (GAP-15), pen test / ZAP scan (GAP-18).
+- The product decision to retain, redesign, re-enable, or remove TOTP, and any resulting feature or
+  schema work — see [adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md).
+- The dormant onboarding TOTP QR retry-loop bug; it remains documented and blocks re-enablement.
 
 ---
 

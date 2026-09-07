@@ -64,7 +64,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | Plan | Status |
 | ---- | ------ |
 | [plans/security-hardening-v1-5.md](./plans/security-hardening-v1-5.md) | Not started — owns all V1.5 security work |
-| [plans/remove-totp.md](./plans/remove-totp.md) | Not started — own branch; sequence after the security plan's Phase 3 |
+| [plans/remove-totp.md](./plans/remove-totp.md) | On hold — candidate analysis; removal not decided |
 | [plans/block-automation-workflows.md](./plans/block-automation-workflows.md) | In progress |
 | [plans/workflow-redesign.md](./plans/workflow-redesign.md) | In progress |
 | [plans/esp32-mqtt-sensor-onboarding.md](./plans/esp32-mqtt-sensor-onboarding.md) | In progress |
@@ -101,7 +101,8 @@ of carrying the full rationale inline.
 | [adr/0008-manifest-served-from-github-raw.md](./adr/0008-manifest-served-from-github-raw.md) | Default manifest delivery: `raw.githubusercontent.com` on the public manifest repo, replacing the never-finished VPS pull-based plan |
 | [adr/0009-manifest-fallback-to-github-raw.md](./adr/0009-manifest-fallback-to-github-raw.md) | Default manifest delivery switched to our own domain, with `update-agent` falling back to `raw.githubusercontent.com` on fetch failure |
 | [adr/0010-security-review-audit-verdict.md](./adr/0010-security-review-audit-verdict.md) | Second-opinion audit of the external V1.5 security review: all 14 findings confirmed, one likelihood downgrade, one missed SSRF-to-Minima-RPC finding, and the resulting fix ordering |
-| [adr/0011-remove-unused-totp.md](./adr/0011-remove-unused-totp.md) | TOTP removed rather than hardened: disabled since inception, never user-reachable, but still carrying live routes, a placeholder-secret hack, schema, a known bug, and tests |
+| [adr/0011-remove-unused-totp.md](./adr/0011-remove-unused-totp.md) | Superseded proposal to remove the dormant TOTP implementation |
+| [adr/0012-keep-totp-decision-outside-v1-5-hardening.md](./adr/0012-keep-totp-decision-outside-v1-5-hardening.md) | V1.5 hardens the dormant implementation without deciding whether TOTP is later retained, redesigned, re-enabled, or removed |
 
 ---
 

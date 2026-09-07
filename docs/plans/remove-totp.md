@@ -1,18 +1,23 @@
-# Remove TOTP
+# Candidate Plan: Remove TOTP
 
-**Status:** Not started
+**Status:** On hold — removal is not decided
 **Created:** 2026-09-04
-**Branch:** `task/remove-totp` (rename once the ticket exists)
-**Goal:** Delete the unused TOTP implementation — routes, services, schema, UI, tests, and the
-`otpauth` dependency — rather than harden a feature no user can reach.
+**Branch:** None — a future decision must authorize its own ticket and branch
+**Goal:** Preserve the previously investigated removal steps as candidate analysis if a future
+product decision chooses to remove TOTP.
 
-**Related:** [adr/0011](../adr/0011-remove-unused-totp.md) (the decision and why) ·
-[plans/security-hardening-v1-5.md](./security-hardening-v1-5.md) (was Phase 10 there; split out to
-keep that branch to review findings) · [qa/gaps.md](../qa/gaps.md) (GAP-05)
+**Related:** [adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md) (current scope
+decision) · [adr/0011](../adr/0011-remove-unused-totp.md) (superseded removal rationale) ·
+[plans/security-hardening-v1-5.md](./security-hardening-v1-5.md) (security mitigation only) ·
+[qa/gaps.md](../qa/gaps.md) (GAP-05)
+
+> This is not an approved or scheduled implementation plan. Do not execute its removal steps until
+> a fresh product decision chooses removal and records that choice in a new ADR. Retaining,
+> redesigning, and re-enabling TOTP remain equally open outcomes.
 
 ---
 
-## Why this is its own branch
+## Why any removal needs its own branch
 
 Not a security-review finding. It is a feature removal that touches the two most safety-critical
 flows in the app — login and first-run setup — and includes a one-way schema migration. Kept
@@ -20,10 +25,10 @@ separate so the security branch stays reviewable as security work, the migration
 revertable, and the coverage-floor movement this forces is not confused with coverage changes from
 security fixes.
 
-Sequence it **after** `task/272-security-hardening-v1-5`'s Phase 3 (session revocation), which edits
-the same auth files. Two items were deferred from that plan on the assumption this lands: GAP-05
-(Phase 8) and the onboarding QR retry loop (Phase 9). Neither was fixed, so nothing is wasted if
-this slips — but both stay open until it lands.
+If removal is chosen later, its branch should start after `task/272-security-hardening-v1-5` to
+avoid overlapping auth files. The security branch independently gates the dormant routes, revokes
+sessions on both credential-change paths, and leaves the onboarding QR retry loop documented as a
+blocker to re-enablement.
 
 ## Footprint (measured 2026-09-04)
 
@@ -48,7 +53,8 @@ placeholder copy listing what not to paste into feedback. Same for `SECURITY.md`
 
 - `POST /api/setup/totp/init` is mounted before `requireAuth` in `app.ts` and is not flag-checked.
   It returns a raw TOTP secret to any unauthenticated caller until the local admin exists
-  (`assertLocalAdminNotCreated`). This is GAP-05, and it closes by deletion.
+  (`assertLocalAdminNotCreated`). Phase 8 of the security plan mitigates GAP-05 by making the route
+  unavailable while TOTP is disabled; a future removal would delete it.
 - `POST /api/auth/settings/totp/init|verify` are auth-gated but unusable: `completeSetup()` writes a
   random placeholder secret to keep `users.totp_secret` `NOT NULL`, so they demand a code for a
   secret nobody holds.
@@ -57,7 +63,7 @@ placeholder copy listing what not to paste into feedback. Same for `SECURITY.md`
 
 ---
 
-## Steps
+## Candidate implementation steps
 
 ### Backend
 
@@ -81,8 +87,8 @@ placeholder copy listing what not to paste into feedback. Same for `SECURITY.md`
    setup/reset) and the `users.totp_secret` column.
    - Bundled SQLite is 3.49.2, so `ALTER TABLE … DROP COLUMN` is available.
    - The column is `NOT NULL` today, and existing installs have a real or placeholder value in it.
-     Dropping it destroys those secrets. Acceptable — every stored value is either a placeholder or
-     unreachable — but it is one-way.
+     Dropping it destroys those secrets. A future removal decision must explicitly approve that
+     one-way migration rather than inheriting approval from this candidate plan.
    - The migration must be idempotent and must be covered by a test that runs it against a database
      created by the *previous* schema, not just a fresh one.
 
@@ -147,8 +153,7 @@ Manual, both required — this touches the only two flows that can lock an opera
 
 ## Out of scope
 
-- Any replacement second factor. If 2FA is wanted later it gets designed then, against the threat
-  model that applies then — see [adr/0011](../adr/0011-remove-unused-totp.md). Passkeys are the
-  likelier answer for a single-admin LAN appliance than a revived TOTP.
+- The product decision itself. This candidate plan does not choose between retaining, redesigning,
+  re-enabling, or removing TOTP — see [adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md).
 - The first-boot admin claim (review finding [2]). Related in that both concern who can become
   admin, but it is a separate product decision owned by the security hardening plan.

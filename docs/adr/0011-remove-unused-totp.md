@@ -1,7 +1,12 @@
 # 0011: Remove TOTP Rather Than Harden It
 
-**Status:** Accepted
+**Status:** Superseded
 **Date:** 2026-09-04
+**Superseded by:** [0012: Keep the TOTP Product Decision Outside V1.5 Security Hardening](./0012-keep-totp-decision-outside-v1-5-hardening.md)
+
+This record preserves the reasoning behind the earlier removal proposal, but it no longer
+authorizes or schedules TOTP removal. ADR 0012 restores that choice to a future product decision
+on its own branch.
 
 ## Context
 
@@ -87,7 +92,8 @@ rather than a review finding.
 
 ## Where this lives in code
 
-Nothing is removed yet; these are the sites [plans/remove-totp.md](../plans/remove-totp.md) deletes.
+Nothing was removed under this superseded decision; these are the sites the candidate
+[plans/remove-totp.md](../plans/remove-totp.md) would delete if a future ADR chooses removal.
 
 - `backend/src/features/auth/totp.service.ts` — whole module.
 - `backend/src/features/auth/auth.constants.ts` — `TOTP_ENABLED`, `TOTP_ACCOUNT_LABEL`.

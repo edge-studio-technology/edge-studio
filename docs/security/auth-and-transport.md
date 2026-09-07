@@ -12,7 +12,7 @@ Controls (V1):
 
 - Login required for all `/api/*` routes except health, setup, and login.
 - HttpOnly + `SameSite=Strict` session cookies with `Secure` on the default HTTPS deploy; token hashes stored in SQLite.
-- Single-factor password/PIN is the local admin control. TOTP is implemented but has always been disabled (`TOTP_ENABLED = false`) and is **being removed** — see [adr/0011](../adr/0011-remove-unused-totp.md) and [plans/remove-totp.md](../plans/remove-totp.md). Until that lands, note that the flag gates enforcement and UI only: `POST /api/setup/totp/init` is unauthenticated and returns a raw TOTP secret to any caller until the local admin exists.
+- Single-factor password/PIN is the currently shipped local-admin control. TOTP is implemented but disabled (`TOTP_ENABLED = false`); whether it is later retained, redesigned, re-enabled, or removed is deliberately undecided and outside V1.5 hardening ([adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md)). The flag currently gates enforcement and UI but not the four TOTP routes, so `POST /api/setup/totp/init` remains callable before authentication and returns an enrollment secret until the local admin exists. Phase 8 makes all four routes unavailable while TOTP is disabled.
 - Login/setup rate limiting and generic login errors.
 - Self-signed TLS encrypts browser-to-Pi traffic by default.
 
