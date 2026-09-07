@@ -470,7 +470,7 @@ function HardwareDetailPanel({
               <h3 className="type-body-em text-text-primary m-0">{item.title}</h3>
               <Pill tone={status.tone} indicator>{status.label}</Pill>
             </div>
-            <p className="type-meta text-text-secondary mt-detail-fine m-0">{hardwareStateSummary(item, status.label)}</p>
+            <p className="type-meta text-text-secondary mt-detail-tight m-0">{hardwareStateSummary(item, status.label)}</p>
           </div>
         </div>
         <Button
@@ -526,13 +526,13 @@ function CompactCopyRow({ label, value, description }: { label: string; value: s
   }
 
   return (
-    <div className="border-stroke-secondary grid gap-detail-tight border-t px-detail-close py-detail-tight">
+    <div className="border-stroke-secondary grid gap-detail-next border-t px-detail-close py-detail-next">
       <div>
         <p className="type-meta text-text-primary m-0">{label}</p>
-        <p className="type-meta text-text-tertiary mt-detail-fine m-0">{description}</p>
+        <p className="type-meta text-text-tertiary mt-detail-tight m-0">{description}</p>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-detail-next">
-        <code className="type-mono text-text-primary min-w-0 truncate rounded-loose bg-surface-secondary px-detail-next py-[3px]">{value}</code>
+        <code className="type-mono text-text-primary min-w-0 truncate rounded-loose bg-surface-secondary px-detail-next py-detail-tight">{value}</code>
         <Button type="button" variant="ghost" size="sm" iconEnd={copied ? <Check aria-hidden /> : <CopyIcon aria-hidden />} onClick={handleCopy}>
           {copied ? "Copied" : "Copy"}
         </Button>
@@ -588,8 +588,8 @@ function HardwarePrerequisites({ capability, busy, onRefreshHardware }: { capabi
       }
       defaultOpen={false}
       className="border-stroke-secondary bg-surface-primary border-t p-0"
-      summaryClassName="px-detail-close py-detail-tight"
-      contentClassName="grid gap-detail-tight pb-detail-tight"
+      summaryClassName="px-detail-close py-detail-next"
+      contentClassName="grid gap-detail-next pb-detail-next"
     >
       <p className="type-meta text-text-tertiary m-0 px-detail-close">
         Enable the required Raspberry Pi OS interface or package on the host, then refresh status.
@@ -599,7 +599,7 @@ function HardwarePrerequisites({ capability, busy, onRefreshHardware }: { capabi
           <CompactCopyRow key={item.label} label={item.label} value={item.command} description={item.description} />
         ))}
       </div>
-      <div className="px-detail-close pt-detail-tight">
+      <div className="px-detail-close pt-detail-next">
         <Button type="button" variant="secondary" size="sm" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
           I have completed this, refresh now
         </Button>
