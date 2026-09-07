@@ -152,6 +152,8 @@ describe("LocalServicesCard", () => {
     expect(screen.getByRole("button", { name: "Action required" })).toBeDisabled();
     expect(screen.getByText("Enable I2C interface")).toBeInTheDocument();
     expect(screen.getByText(/sudo raspi-config/)).toBeInTheDocument();
+    expect(screen.getByText("Reboot the Pi")).toBeInTheDocument();
+    expect(screen.getByText(/sudo reboot/)).toBeInTheDocument();
     expect(screen.getByText(/ls -l \/dev\/i2c-1/)).toBeInTheDocument();
   });
 

@@ -104,6 +104,7 @@ Current Controls:
 
 - The browser never talks to the host agent directly; it calls backend routes under `/api/host-capabilities` for hardware actions and update-agent calls the host-agent for host runtime updates.
 - Backend host-capability mutations require an authenticated admin session.
+- Successful backend host-capability mutations write audit events with only capability name and resulting state; tokens, full `.env`, helper configuration, and restart payloads are not recorded.
 - The host agent requires an installer-generated bearer token that is written to `.env` and passed only to the backend container.
 - The host agent exposes fixed capability and host-runtime update endpoints only; it has no generic shell, package install, driver install, file write, or service-management proxy.
 - Host runtime updates replace only allowlisted files from the verified artifact: host-agent, camera helper, sensor helper, and Mosquitto config.

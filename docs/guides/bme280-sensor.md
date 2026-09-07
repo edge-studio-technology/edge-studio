@@ -4,11 +4,7 @@ Use this guide for a 4-pin BME280 or BME680 I2C environmental sensor module with
 
 ## Enable Support
 
-Install or update Edge Studio with sensor support enabled:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_SENSORS=true bash
-```
+In Edge Studio, open `Devices` -> `Hardware support` and enable `I2C sensors`. If required host prerequisites are missing, Hardware support shows `Action required` with copyable setup commands instead of trying an enable action that will fail.
 
 Also enable I2C on the Raspberry Pi host, then reboot if prompted:
 
@@ -17,6 +13,12 @@ sudo raspi-config
 ```
 
 Choose `Interface Options` -> `I2C` -> enable.
+
+If `/dev/i2c-1` is still missing after enabling I2C, reboot the Pi:
+
+```bash
+sudo reboot
+```
 
 ## Wiring
 
@@ -40,7 +42,7 @@ Some BME680 breakouts expose six pins because the chip also supports SPI. For I2
 
 If a BME680 module is configured as `0x76` but not found, check whether `SDO` is floating or tied high. If the module is not detected at either address, check whether `CS`/`CSB` must be tied high for I2C mode on that breakout.
 
-For BME680 modules, the helper also needs the Python `bme680` module. The installer creates a dedicated sensor-helper virtualenv at `/opt/edge-studio/.venv-sensor-helper` and installs `bme680` there when `ENABLE_SENSORS=true`.
+For BME680 modules, the helper also needs the Python `bme680` module. Hardware support creates a dedicated sensor-helper virtualenv at `/opt/edge-studio/.venv-sensor-helper` and installs `bme680` there when I2C sensor support is enabled. `ENABLE_SENSORS=true` remains available as an advanced install shortcut for headless/test installs.
 
 ## Device Settings
 

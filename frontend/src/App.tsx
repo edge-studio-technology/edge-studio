@@ -19,9 +19,9 @@ import { AuthSettingsPage } from "./pages/AuthSettingsPage";
 import { UpdatePage } from "./pages/UpdatePage";
 
 function LoginRoute() {
-  const { user, refreshSession } = useAuth();
+  const { user, refreshSession, sessionNotice } = useAuth();
   if (user) return <Navigate to="/dashboard" replace />;
-  return <LoginPage onSuccess={() => void refreshSession()} />;
+  return <LoginPage sessionNotice={sessionNotice} onSuccess={() => void refreshSession()} />;
 }
 
 function AppContent() {

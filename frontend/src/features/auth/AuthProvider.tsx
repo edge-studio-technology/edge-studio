@@ -11,6 +11,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [setupMode, setSetupMode] = useState<SetupMode>(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
 
   const refreshSession = useCallback(async () => {
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const me = await getMe();
         setUser(me);
         setShowLogin(false);
+        setSessionNotice(null);
         setSetupMode(status.setupComplete ? null : "resume");
       } catch {
         setUser(null);
@@ -48,11 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshSession]);
 
   useEffect(() => {
-    setUnauthorizedHandler(() => {
-      setUser(null);
-      setShowLogin(true);
-      setSetupMode(null);
-    });
+      setUnauthorizedHandler(() => {
+        setUser(null);
+        setShowLogin(true);
+        setSessionNotice("Edge Studio restarted or your session expired. Enter your PIN to continue.");
+        setSetupMode(null);
+      });
     return () => setUnauthorizedHandler(null);
   }, []);
 
@@ -64,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(null);
     setShowLogin(true);
+    setSessionNotice(null);
     setSetupMode(null);
   }, []);
 
@@ -74,10 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       showSetup,
       showLogin,
+      sessionNotice,
       signOut,
       refreshSession,
     }),
-    [user, loading, showSetup, showLogin, signOut, refreshSession],
+    [user, loading, showSetup, showLogin, sessionNotice, signOut, refreshSession],
   );
 
   if (loading) {

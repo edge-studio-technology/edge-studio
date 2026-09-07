@@ -19,6 +19,7 @@ describe("useAuth", () => {
       loading: false,
       showSetup: false,
       showLogin: false,
+      sessionNotice: null,
       signOut: vi.fn(),
       refreshSession: vi.fn(),
     };
