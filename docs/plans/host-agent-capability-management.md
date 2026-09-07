@@ -310,6 +310,7 @@ Completed implementation checkpoints:
 - Host-agent retry tests now also cover repeated Camera/I2C apply actions and systemd restart failures before `.env` is flipped to enabled.
 - Backend and Docker Compose restart scheduling now reports missing Docker and process-launch failures as structured retryable results instead of uncaught action errors.
 - Action-level backend restart failure tests now cover Camera, GPIO, and I2C enablement leaving generated state intact and returning the failed restart result for retry.
+- Automated capability-logic tests now cover frontend device/template host-capability mapping, backend workflow validation for disabled/unavailable Camera/GPIO/I2C/local MQTT dependencies, and host-agent `.env`/Compose/GPIO override safety behavior.
 
 ## Remaining Implementation Steps
 
@@ -326,7 +327,7 @@ Completed implementation checkpoints:
    The blocking modal plus polling is acceptable for V1. Longer-term, implement host-agent jobs: `POST /capabilities/:name/apply` returns a job id, and the UI polls job/capability state. This avoids request timeout issues for longer actions.
 
 3. Add automated tests around capability logic.
-   Add frontend tests for device type to capability mapping, backend workflow validation tests for disabled Camera/GPIO/I2C/local MQTT, and host-agent tests for `.env` updates, Compose profile updates, and safe GPIO override detection. Mock `systemctl`/`docker` where practical.
+   Core V1 capability-logic coverage is implemented. Add further tests only for bugs found during Pi retry validation or for future host-agent job/update-delivery work.
 
 4. Finalize prerequisite UX.
    Add an explicit `Refresh hardware status` action in the modal, copyable Raspberry Pi OS prerequisite commands, and an `I have completed this, refresh now` style affordance. Keep the Debian/Raspberry Pi OS disclaimer visible but not noisy.
