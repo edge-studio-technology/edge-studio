@@ -1,3 +1,5 @@
+import { redactDeep, redactSecrets } from "./redact.js";
+
 export type StructuredErrorDomain = "data_source" | "workflow" | "block" | "integritas" | "app" | "system" | "unknown";
 
 export type StructuredError = {
@@ -11,7 +13,14 @@ export type StructuredError = {
 };
 
 export function structuredError(input: Omit<StructuredError, "occurredAt"> & { occurredAt?: string }): StructuredError {
-  return { ...input, occurredAt: input.occurredAt ?? new Date().toISOString() };
+  const error: StructuredError = {
+    ...input,
+    message: redactSecrets(input.message),
+    occurredAt: input.occurredAt ?? new Date().toISOString()
+  };
+  if (input.nativeMessage !== undefined) error.nativeMessage = redactSecrets(input.nativeMessage);
+  if (input.context !== undefined) error.context = redactDeep(input.context);
+  return error;
 }
 
 export function dataSourceError(input: { type: string; message: string; nativeMessage?: string; nativeCode?: string; context?: Record<string, unknown> }) {
@@ -34,10 +43,12 @@ export function systemError(input: { type: string; message: string; nativeMessag
   return structuredError({ domain: "system", ...input });
 }
 
+// Redacts here too, not just on read — some callers persist a bare error.message string,
+// bypassing structuredError().
 export function serializeStructuredError(error: StructuredError | string | null | undefined) {
   if (error === null || error === undefined) return null;
-  if (typeof error === "string") return error;
-  return JSON.stringify(error);
+  if (typeof error === "string") return redactSecrets(error);
+  return JSON.stringify(redactDeep(error));
 }
 
 export function parseStoredError(error: string | null | undefined): StructuredError | null {
@@ -48,17 +59,17 @@ export function parseStoredError(error: string | null | undefined): StructuredEr
       return {
         domain: isDomain(parsed.domain) ? parsed.domain : "unknown",
         type: typeof parsed.type === "string" ? parsed.type : "unknown",
-        message: parsed.message,
-        nativeMessage: typeof parsed.nativeMessage === "string" ? parsed.nativeMessage : undefined,
+        message: redactSecrets(parsed.message),
+        nativeMessage: typeof parsed.nativeMessage === "string" ? redactSecrets(parsed.nativeMessage) : undefined,
         nativeCode: typeof parsed.nativeCode === "string" ? parsed.nativeCode : undefined,
-        context: parsed.context && typeof parsed.context === "object" && !Array.isArray(parsed.context) ? parsed.context as Record<string, unknown> : undefined,
+        context: parsed.context && typeof parsed.context === "object" && !Array.isArray(parsed.context) ? redactDeep(parsed.context as Record<string, unknown>) : undefined,
         occurredAt: typeof parsed.occurredAt === "string" ? parsed.occurredAt : undefined
       };
     }
   } catch {
     // Legacy string error.
   }
-  return { domain: "unknown", type: "unknown", message: error };
+  return { domain: "unknown", type: "unknown", message: redactSecrets(error) };
 }
 
 export function errorMessage(error: StructuredError | string | null | undefined) {

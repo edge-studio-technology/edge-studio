@@ -1,6 +1,6 @@
 # Security Hardening V1.5
 
-**Status:** Not started
+**Status:** In progress — Phase 1 done
 **Created:** 2026-09-04
 **Revised:** 2026-09-04 — second-opinion review folded in: DNS-address pinning on egress, Phase 0 decision gate, non-destructive
 `APP_SECRET` migration, the multipart egress path, global outbound concurrency, and the installer's
@@ -121,6 +121,8 @@ costs real rework, so raise it early rather than at the pass.
 
 ## Phase 1 — Stop returning the backup password
 
+**Status: done** (2026-09-07).
+
 **Covers:** [7]. Active secret disclosure; smallest fix in the set. Do this first.
 
 The password reaches clients on three paths, all because `createBackup()` returns
@@ -151,6 +153,15 @@ The password reaches clients on three paths, all because `createBackup()` return
    a boundary, not something every caller must remember.
 
 Steps 1-4 must not wait on 5-6.
+
+**How it landed.** `backend/src/shared/redact.ts` is the one boundary. `createBackup()` and
+`restoreBackup()` return purpose-built DTOs; `runMinimaPathCommand()` redacts its `command`,
+`source`, and `body` and rethrows errors with a redacted message and no cause chain, so the raw
+command exists only for the fetch itself; `structuredError()` redacts message/native message/context
+at construction (covering both the response and the persisted-error sink, including the MQTT
+broker-URL call site of step 6), `parseStoredError()` redacts on read so pre-existing rows cannot
+resurface a secret, and `sendApiError()` redacts the assembled body including `extra`. The backup
+routes also pass explicit redacted context instead of the result object.
 
 **Tests:** extend `backend/tests/features/minima/minima-backup.service.test.ts` — assert the
 success DTO, the failure-path body, and the console-run body each contain neither the plaintext

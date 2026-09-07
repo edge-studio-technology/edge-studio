@@ -133,7 +133,23 @@ export async function getBackupFilePath(fileName: string) {
   return absolutePath;
 }
 
-export async function createBackup({ auto = false }: { auto?: boolean } = {}) {
+// Never spread the RPC result outward — its `command` carries the password in plaintext.
+export type MinimaBackupCreateResult = {
+  ok: boolean;
+  status: number;
+  fileName: string;
+  auto: boolean;
+  sizeBytes: number | null;
+  createdAt: string | null;
+};
+
+export type MinimaBackupRestoreResult = {
+  ok: boolean;
+  status: number;
+  fileName: string;
+};
+
+export async function createBackup({ auto = false }: { auto?: boolean } = {}): Promise<MinimaBackupCreateResult> {
   const password = getBackupPassword();
   if (!password) {
     throw new MinimaBackupError("Set a backup password before creating a backup.", 400);
@@ -151,14 +167,22 @@ export async function createBackup({ auto = false }: { auto?: boolean } = {}) {
       if (oldest) await deleteBackup(oldest.fileName).catch(() => undefined);
     }
 
-    return { ...result, fileName, auto };
+    const written = existing.find((entry) => entry.fileName === fileName);
+    return {
+      ok: result.ok,
+      status: result.status,
+      fileName,
+      auto,
+      sizeBytes: written?.sizeBytes ?? null,
+      createdAt: written?.createdAt ?? null
+    };
   } catch (error) {
     endMinimaOperation();
     throw error;
   }
 }
 
-export async function restoreBackup({ fileName, password }: { fileName: string; password?: string }) {
+export async function restoreBackup({ fileName, password }: { fileName: string; password?: string }): Promise<MinimaBackupRestoreResult> {
   const absolutePath = await resolveBackupPath(fileName);
   await fs.access(absolutePath);
   const { megammrHost } = getMinimaConfig();
@@ -170,7 +194,9 @@ export async function restoreBackup({ fileName, password }: { fileName: string; 
   const command = `restoresync file:backups/${fileName} host:${megammrHost}${passwordArg}`;
   beginMinimaOperation("restore");
   try {
-    return await runMinimaPathCommand(command, 60000);
+    // Same reason as createBackup — the command carries the password.
+    const result = await runMinimaPathCommand(command, 60000);
+    return { ok: result.ok, status: result.status, fileName };
   } catch (error) {
     endMinimaOperation();
     throw error;

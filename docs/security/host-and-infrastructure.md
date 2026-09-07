@@ -75,14 +75,16 @@ Plan:
 
 - Consider allowing the backup password to be changed (re-encrypting nothing retroactively — existing backups keep their original password) with a clear UI warning that old backups won't decrypt with a new password.
 
-Status: **Partially mitigated — one open disclosure, scheduled Phase 1.** Storage and route
-controls are as described (narrow scoped volume, path containment, admin-only + re-auth-gated
-routes, capped/auto-pruned lists, audit logging — see `docs/plans/minima-node-backup-restore.md`).
-But the stored backup password is returned to the client in plaintext on three paths, because
-`createBackup()` returns the raw RPC result and that object carries the full
-`backup file:... password:"..."` command string: the `POST /backups` success body, its failure body
-via `dependencyUnavailable`'s `extra` spreading, and `POST /console/run` for a whitelisted `backup`.
-See [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-1--stop-returning-the-backup-password).
+Status: **Mitigated.** Storage and route controls are as described (narrow scoped volume, path
+containment, admin-only + re-auth-gated routes, capped/auto-pruned lists, audit logging — see
+`docs/plans/minima-node-backup-restore.md`). The stored backup password no longer reaches clients on
+any of the three paths it previously did (`POST /backups` success body, its failure body via
+`dependencyUnavailable`'s `extra` spreading, and `POST /console/run` for a whitelisted `backup`):
+`createBackup()`/`restoreBackup()` return purpose-built DTOs instead of the RPC result,
+`runMinimaPathCommand()` redacts the command, the URL built from it, and the response body before
+they leave the RPC layer, and `structuredError()`/`sendApiError()` redact both sinks so the secret
+reaches neither responses nor Docker logs. Closed in Phase 1 of
+[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-1--stop-returning-the-backup-password).
 
 ## Update Agent Docker Socket Mount
 

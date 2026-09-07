@@ -18,16 +18,25 @@ Status: Partially mitigated — auth paths only. Scheduled Phase 7 (GAP-10).
 
 ## Error Response Detail
 
-Risk: Backend may return upstream error bodies and detailed internal status. Confirmed live: the
-Minima backup password reaches clients through `dependencyUnavailable`'s `extra` spreading.
+Risk: Backend may return upstream error bodies and detailed internal status.
 
 Impact: Information disclosure, including secrets.
 
-Plan: Define a client-safe error contract in `shared/api-error.ts` and `shared/structured-error.ts`
-so redaction is a boundary rather than something each call site must remember. Keep full diagnostics
-in server logs.
+Controls: `shared/redact.ts` is the single redaction boundary. `structuredError()` redacts every
+error's message, native message, and context at construction, so both sinks — API responses and
+persisted error columns — carry the redacted form; `parseStoredError()` redacts on read so rows
+written before this existed cannot resurface a secret; `sendApiError()` redacts the whole assembled
+response body, including the `extra` object call sites spread into it. Covered patterns are secret
+`key:value` command arguments in both raw and percent-encoded form, `Bearer` tokens, credentials in
+a URL's userinfo (e.g. an MQTT broker URL), and values under secret-looking object keys.
 
-Status: Open, and no longer theoretical. Scheduled Phase 1.
+Plan: Logs may keep more non-secret context than responses (call site, error class, non-secret
+arguments); neither may keep a secret. Widen the covered patterns as new secret-bearing call sites
+appear.
+
+Status: Mitigated for the confirmed disclosure (the Minima backup password) and for the general
+contract. Closed in Phase 1 of
+[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-1--stop-returning-the-backup-password).
 
 ## Logging Sensitive Data
 

@@ -229,7 +229,8 @@ minimaRouter.post("/backups", requireRole("admin"), async (req, res) => {
   try {
     const result = await createBackup({ auto: false });
     recordAuditEvent("minima.backup.created", { userId: req.user?.id, detail: result.fileName });
-    if (!result.ok) return dependencyUnavailable(res, "Backup failed", undefined, undefined, result);
+    // Never pass the raw result — it can carry the RPC command.
+    if (!result.ok) return dependencyUnavailable(res, "Backup failed", undefined, undefined, { ok: false, source: "minima", fileName: result.fileName });
     res.json(result);
   } catch (error) {
     handleMinimaBackupError(res, error);
@@ -270,7 +271,7 @@ minimaRouter.post("/backups/restore", requireRole("admin"), backupUpload.single(
 
     const result = await restoreBackup({ fileName, password });
     recordAuditEvent("minima.backup.restored", { userId: req.user?.id, detail: fileName });
-    if (!result.ok) return dependencyUnavailable(res, "Restore failed", undefined, undefined, result);
+    if (!result.ok) return dependencyUnavailable(res, "Restore failed", undefined, undefined, { ok: false, source: "minima", fileName: result.fileName });
     res.json(result);
   } catch (error) {
     if (req.file && !uploadedFileName) await fs.rm(req.file.path, { force: true });
