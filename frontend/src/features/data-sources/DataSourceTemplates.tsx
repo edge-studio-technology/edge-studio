@@ -389,7 +389,7 @@ function HardwareStatusChip({ item, onClick }: { item: HardwareItem; onClick: ()
   return (
     <button
       type="button"
-      className="border-border-subtle bg-surface-primary hover:border-stroke-primary gap-detail-tight rounded-card-inner flex min-w-[150px] flex-1 items-center border p-pad-tight text-left transition-colors"
+      className="border-stroke-secondary bg-surface-primary hover:border-stroke-primary gap-detail-tight rounded-soft flex min-w-[150px] flex-1 items-center border p-pad-tight text-left transition-colors"
       aria-label={`${item.label}: ${status.label}`}
       onClick={onClick}
     >
@@ -421,10 +421,10 @@ function HardwareManagerNavItem({
   return (
     <button
       type="button"
-      className={`gap-detail-tight rounded-card-inner flex min-w-[180px] items-center border p-pad-tight text-left transition-colors md:min-w-0 ${
+      className={`gap-detail-tight rounded-soft flex min-w-[180px] items-center border p-pad-tight text-left transition-colors md:min-w-0 ${
         selected
           ? "border-stroke-primary bg-surface-secondary"
-          : "border-border-subtle bg-surface-primary hover:border-stroke-primary"
+          : "border-stroke-secondary bg-surface-primary hover:border-stroke-primary"
       }`}
       aria-pressed={selected}
       onClick={onClick}
@@ -459,8 +459,8 @@ function HardwareDetailPanel({
   const action = hardwareAction(item);
   const Icon = item.icon;
   return (
-    <section className="border-border-subtle bg-surface-primary rounded-card-inner gap-detail-tight grid border p-pad-tight" aria-label={`${item.title} details`}>
-      <div className="gap-detail-close flex items-start justify-between">
+    <section className="border-stroke-secondary bg-surface-primary rounded-soft grid overflow-hidden border" aria-label={`${item.title} details`}>
+      <div className="gap-detail-close flex items-start justify-between px-detail-close py-detail-next">
         <div className="gap-detail-tight flex min-w-0 items-start">
           <span className="bg-surface-secondary text-text-secondary mt-[2px] grid size-8 shrink-0 place-items-center rounded-full">
             <Icon aria-hidden className="size-4" />
@@ -485,7 +485,7 @@ function HardwareDetailPanel({
       </div>
       {capability?.reason && <CompactReason tone={status.kind === "error" ? "error" : status.kind === "warn" ? "warn" : "neutral"}>{capability.reason}</CompactReason>}
       {item.name === "mqtt" && (
-        <div className="border-border-subtle rounded-card-inner grid overflow-hidden border">
+        <div className="grid">
           <CompactCopyRow label="LAN URL" value={lanUrl} description="External devices on the LAN" />
           <CompactCopyRow label="Internal URL" value={internalUrl} description="Edge Studio MQTT configs" />
         </div>
@@ -505,11 +505,11 @@ function hardwareStateSummary(item: HardwareItem, statusLabel: string) {
 
 function CompactReason({ children, tone }: { children: string; tone: "neutral" | "warn" | "error" }) {
   const className = {
-    neutral: "border-border-subtle bg-surface-secondary text-text-secondary",
+    neutral: "border-stroke-secondary bg-surface-secondary text-text-secondary",
     warn: "border-stroke-warning bg-feedback-warning/10 text-text-primary",
     error: "border-stroke-error bg-feedback-error/10 text-text-primary",
   }[tone];
-  return <p className={`type-meta rounded-card-inner m-0 border px-detail-next py-detail-tight ${className}`}>{children}</p>;
+  return <p className={`type-meta m-0 border-t px-detail-close py-detail-tight ${className}`}>{children}</p>;
 }
 
 function CompactCopyRow({ label, value, description }: { label: string; value: string; description: string }) {
@@ -526,12 +526,12 @@ function CompactCopyRow({ label, value, description }: { label: string; value: s
   }
 
   return (
-    <div className="border-border-subtle gap-detail-tight grid grid-cols-[88px_minmax(0,1fr)_auto] items-center border-b px-detail-next py-detail-tight last:border-b-0">
+    <div className="border-stroke-secondary gap-detail-tight grid grid-cols-[92px_minmax(0,1fr)_auto] items-center border-t px-detail-close py-detail-tight">
       <div className="min-w-0">
         <p className="type-meta text-text-primary m-0">{label}</p>
         <p className="type-meta text-text-tertiary m-0">{description}</p>
       </div>
-      <code className="type-meta text-text-primary min-w-0 truncate rounded bg-surface-secondary px-detail-tight py-[3px]">{value}</code>
+      <code className="type-mono text-text-primary min-w-0 truncate rounded-loose bg-surface-secondary px-detail-tight py-[3px]">{value}</code>
       <Button type="button" variant="ghost" size="sm" iconEnd={copied ? <Check aria-hidden /> : <CopyIcon aria-hidden />} onClick={handleCopy}>
         {copied ? "Copied" : "Copy"}
       </Button>
@@ -585,20 +585,23 @@ function HardwarePrerequisites({ capability, busy, onRefreshHardware }: { capabi
         </span>
       }
       defaultOpen={false}
-      className="border-border-subtle bg-surface-subtle rounded-card-inner border p-pad-tight"
-      contentClassName="gap-detail-tight grid"
+      className="border-stroke-secondary bg-surface-primary border-t p-0"
+      summaryClassName="px-detail-close py-detail-next"
+      contentClassName="gap-detail-tight grid pb-detail-next"
     >
-      <p className="type-meta text-text-tertiary m-0">
+      <p className="type-meta text-text-tertiary m-0 px-detail-close">
         Enable the required Raspberry Pi OS interface or package on the host, then refresh status.
       </p>
-      <div className="border-border-subtle rounded-card-inner grid overflow-hidden border">
+      <div className="grid">
         {guidance.map((item) => (
           <CompactCopyRow key={item.label} label={item.label} value={item.command} description={item.description} />
         ))}
       </div>
-      <Button type="button" variant="secondary" size="sm" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
-        I have completed this, refresh now
-      </Button>
+      <div className="px-detail-close">
+        <Button type="button" variant="secondary" size="sm" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
+          I have completed this, refresh now
+        </Button>
+      </div>
     </Disclosure>
   );
 }
