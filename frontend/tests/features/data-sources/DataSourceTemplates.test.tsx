@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -78,33 +78,43 @@ describe("resolveTemplateConfig", () => {
 });
 
 describe("LocalServicesCard", () => {
-  it("shows Disabled and the enable-with hint when there is no mqttBroker capability", () => {
+  it("shows the disabled hardware summary when there is no mqttBroker capability", () => {
     render(<LocalServicesCard capabilities={null} />);
-    expect(screen.getAllByText("Disabled").length).toBeGreaterThan(0);
-    expect(screen.getByText("ENABLE_MQTT_BROKER=true")).toBeInTheDocument();
+    expect(screen.getByText("0 of 4 enabled")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "MQTT: Disabled" })).toBeInTheDocument();
   });
 
-  it("shows Available and the LAN/internal URLs when the broker is enabled", () => {
+  it("keeps MQTT URLs inside the MQTT hardware detail", async () => {
     const capabilities: DataSourceCapabilities = {
       gpioInput: { available: true, devicePath: "", reason: null },
       mqttBroker: { enabled: true, internalUrl: "mqtt://mqtt:1883", publicHost: "pi.local", publicPort: 1883 },
     };
     render(<LocalServicesCard capabilities={capabilities} hostCapabilities={enabledHostCapabilities} />);
-    expect(screen.getAllByText("Available").length).toBeGreaterThan(0);
+    expect(screen.getByText("4 of 4 enabled")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "MQTT: Available" })).toBeInTheDocument();
+    expect(screen.queryByText("mqtt://pi.local:1883")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "MQTT: Available" }));
+
     expect(screen.getByText("mqtt://pi.local:1883")).toBeInTheDocument();
     expect(screen.getByText("mqtt://mqtt:1883")).toBeInTheDocument();
-    expect(screen.queryByText("ENABLE_MQTT_BROKER=true")).not.toBeInTheDocument();
   });
 
-  it("opens the hardware manager with disable actions for enabled capabilities", async () => {
+  it("opens the hardware manager and switches selected hardware details", async () => {
     render(<LocalServicesCard capabilities={null} hostCapabilities={enabledHostCapabilities} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "Manage hardware" }));
 
-    expect(screen.getByRole("dialog", { name: "Enable / disable hardware" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Disable" })).toHaveLength(4);
-    expect(screen.queryByText("Prerequisites for Raspberry Pi OS")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Refresh hardware status" })).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "Hardware support" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole("region", { name: "Raspberry Pi Camera details" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Disable" })).toBeInTheDocument();
+    expect(within(dialog).queryByText("Setup steps for Raspberry Pi OS")).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Refresh status" })).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole("button", { name: /MQTT Available/ }));
+
+    expect(within(dialog).getByRole("region", { name: "Local MQTT broker details" })).toBeInTheDocument();
   });
 
   it("disables a manager action when prerequisites are missing", async () => {
@@ -121,11 +131,14 @@ describe("LocalServicesCard", () => {
     ];
     render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onRefreshHardware={onRefreshHardware} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "Manage hardware" }));
 
     expect(screen.getByRole("button", { name: "Action required" })).toBeDisabled();
     expect(screen.getByText("Action needed")).toBeInTheDocument();
     expect(screen.getAllByText("Camera tools are missing.").length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByText("Setup steps for Raspberry Pi OS"));
+
     expect(screen.getByText("Install camera tools")).toBeInTheDocument();
     expect(screen.getByText(/rpicam-still --list-cameras/)).toBeInTheDocument();
 
@@ -147,9 +160,12 @@ describe("LocalServicesCard", () => {
     ];
     render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "I2C sensors: Action required" }));
 
     expect(screen.getByRole("button", { name: "Action required" })).toBeDisabled();
+
+    await userEvent.click(screen.getByText("Setup steps for Raspberry Pi OS"));
+
     expect(screen.getByText("Enable I2C interface")).toBeInTheDocument();
     expect(screen.getByText(/sudo raspi-config/)).toBeInTheDocument();
     expect(screen.getByText("Reboot the Pi")).toBeInTheDocument();
@@ -171,7 +187,7 @@ describe("LocalServicesCard", () => {
     ];
     render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onDisableCamera={onDisableCamera} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "Manage hardware" }));
     await userEvent.click(screen.getByRole("button", { name: "Disable" }));
 
     expect(onDisableCamera).toHaveBeenCalledTimes(1);
@@ -182,8 +198,8 @@ describe("LocalServicesCard", () => {
     const onRefreshHardware = vi.fn().mockResolvedValue(undefined);
     render(<LocalServicesCard capabilities={null} hostCapabilities={enabledHostCapabilities} onRefreshHardware={onRefreshHardware} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
-    await userEvent.click(screen.getByRole("button", { name: "Refresh hardware status" }));
+    await userEvent.click(screen.getByRole("button", { name: "Manage hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "Refresh status" }));
 
     expect(onRefreshHardware).toHaveBeenCalledTimes(1);
   });
@@ -202,7 +218,7 @@ describe("LocalServicesCard", () => {
     ];
     render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onEnableCamera={onEnableCamera} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "Manage hardware" }));
     await userEvent.click(screen.getByRole("button", { name: "Repair" }));
 
     expect(onEnableCamera).toHaveBeenCalledTimes(1);

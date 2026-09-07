@@ -344,6 +344,17 @@ Completed implementation checkpoints:
 7. Documentation final pass.
    Completed. README, changelog, security risk register, and task tracking now reflect the V1 behavior: app-managed enable/disable from Hardware support, `Action required` prerequisite guidance, I2C reboot guidance, first-time MQTT timing tolerance, session-expiry copy after Pi reboot, signed host-runtime update delivery, and sanitized hardware action audit events.
 
+8. Deferred UI/UX review after redesign.
+   Complete these checks after the broader UI/UX rework/redesign, because the Hardware support surfaces, modal structure, and device setup guide presentation may change:
+
+   - Confirm the Hardware support modal hierarchy makes `Action required`, `Disable`, `Repair`, and `Enable` visually distinct and understandable.
+   - Confirm prerequisite copy clearly tells users they can skip hardware they do not own or do not plan to use.
+   - Confirm the I2C reboot flow is understandable after a reboot/session expiry, including returning to Hardware support and refreshing status.
+   - Confirm first-time local MQTT broker enablement progress copy matches the longer Docker create/start/recreate wait.
+   - Confirm device setup guides no longer teach the old install-flag-first mental model.
+   - Confirm the Hardware support modal and copy fields scroll cleanly on mobile.
+   - Confirm hardware action error toasts explain the next recovery step, not just the failure.
+
 ## Documentation Plan
 
 Update during implementation:
