@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import argparse
+import io
 import json
 import os
 import secrets
 import shutil
 import subprocess
+import tarfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
@@ -21,6 +23,12 @@ SENSOR_SERVICE_FILE = Path("/etc/systemd/system/edge-studio-sensor-helper.servic
 COMPOSE_OVERRIDE_FILE = APP_DIR / "docker-compose.override.yml"
 GPIO_OVERRIDE_MARKER = "# Managed by Edge Studio host-agent for GPIO support."
 SUPPRESS_RESTARTS = False
+HOST_RUNTIME_FILES = {
+    "host-agent/edge_studio_host_agent.py": 0o644,
+    "camera-helper/edge_studio_camera_helper.py": 0o644,
+    "sensor-helper/edge_studio_sensor_helper.py": 0o644,
+    "docker/mosquitto/mosquitto.conf": 0o644,
+}
 
 
 def read_env():
@@ -40,6 +48,19 @@ def write_text_atomic(path, content, mode=None):
     temp_path = path.with_name(f".{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
     try:
         temp_path.write_text(content, encoding="utf-8")
+        if mode is not None:
+            os.chmod(temp_path, mode)
+        os.replace(temp_path, path)
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+
+
+def write_bytes_atomic(path, content, mode=None):
+    path = Path(path)
+    temp_path = path.with_name(f".{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
+    try:
+        temp_path.write_bytes(content)
         if mode is not None:
             os.chmod(temp_path, mode)
         os.replace(temp_path, path)
@@ -606,6 +627,73 @@ def all_capabilities():
     return [camera_status(), gpio_status(), sensor_status(), mqtt_status()]
 
 
+def apply_host_runtime_update(artifact_bytes):
+    changed = []
+    try:
+        archive = tarfile.open(fileobj=io.BytesIO(artifact_bytes), mode="r:gz")
+    except tarfile.TarError as error:
+        raise ValueError(f"Host runtime artifact is not a valid tar.gz archive: {error}")
+
+    with archive:
+        members = {member.name.removeprefix("./"): member for member in archive.getmembers() if member.isfile()}
+        for path in members:
+            if path.startswith("/") or ".." in Path(path).parts:
+                raise ValueError("Host runtime artifact contains an unsafe path.")
+
+        missing = [path for path in HOST_RUNTIME_FILES if path not in members]
+        if missing:
+            raise ValueError(f"Host runtime artifact is missing required files: {', '.join(missing)}")
+
+        for relative_path, mode in HOST_RUNTIME_FILES.items():
+            member = members[relative_path]
+            extracted = archive.extractfile(member)
+            if extracted is None:
+                raise ValueError(f"Host runtime artifact could not read {relative_path}")
+            content = extracted.read()
+            target = APP_DIR / relative_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.exists() and target.read_bytes() == content:
+                continue
+            write_bytes_atomic(target, content, mode)
+            changed.append(relative_path)
+
+    restarts = restart_host_runtime_services(changed or list(HOST_RUNTIME_FILES))
+    return {"updated": bool(changed), "changed": changed, "restarts": restarts}
+
+
+def restart_host_runtime_services(changed):
+    restarts = []
+    config = read_env()
+    if "camera-helper/edge_studio_camera_helper.py" in changed and is_truthy(config.get("ENABLE_CAMERA")):
+        restarts.append(restart_systemd_service("edge-studio-camera-helper.service"))
+    if "sensor-helper/edge_studio_sensor_helper.py" in changed and is_truthy(config.get("ENABLE_SENSORS")):
+        restarts.append(restart_systemd_service("edge-studio-sensor-helper.service"))
+    if "docker/mosquitto/mosquitto.conf" in changed and is_truthy(config.get("ENABLE_MQTT_BROKER")):
+        restarts.append({"service": "mqtt", **schedule_compose(config, ["up", "-d", "mqtt"])})
+    if "host-agent/edge_studio_host_agent.py" in changed:
+        restarts.append(restart_systemd_service("edge-studio-host-agent.service", delayed=True))
+    return restarts
+
+
+def restart_systemd_service(service_name, delayed=False):
+    if not shutil.which("systemctl"):
+        return {"service": service_name, "ok": False, "scheduled": False, "message": "systemctl was not found on the host"}
+    command = ["systemctl", "restart", service_name]
+    if not delayed:
+        completed = run(command, check=False, timeout=10)
+        return {
+            "service": service_name,
+            "ok": completed.returncode == 0,
+            "scheduled": False,
+            "message": None if completed.returncode == 0 else completed.stderr.strip() or completed.stdout.strip() or f"exit code {completed.returncode}",
+        }
+    try:
+        subprocess.Popen(["/bin/sh", "-c", f"sleep 1; systemctl restart {service_name}"], cwd=str(APP_DIR))
+    except Exception as error:
+        return {"service": service_name, "ok": False, "scheduled": False, "message": f"Could not schedule service restart: {error}"}
+    return {"service": service_name, "ok": True, "scheduled": True, "message": None}
+
+
 def apply_camera():
     debug_log("apply camera requested")
     missing_tools = missing_camera_tools_message()
@@ -757,6 +845,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200, apply_sensors())
             if path == "/capabilities/sensors/disable":
                 return self.send_json(200, disable_sensors())
+            if path == "/updates/host-runtime/apply":
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0:
+                    return self.send_json(400, {"error": "Host runtime artifact body is required"})
+                if length > 10 * 1024 * 1024:
+                    return self.send_json(413, {"error": "Host runtime artifact is too large"})
+                return self.send_json(200, apply_host_runtime_update(self.rfile.read(length)))
             return self.send_json(404, {"error": "Not found"})
         except ValueError as error:
             debug_log("post validation error", {"path": path, "error": str(error)})

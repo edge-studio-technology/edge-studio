@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added admin-only GPIO, I2C sensor, and local MQTT broker enable/disable actions from Hardware support.
 - Added `HOST_CAPABILITY_DEBUG=true` for secret-safe Hardware support diagnostics in backend and host-agent logs.
 - BME680 sensor reads now include gas resistance as `gasResistanceOhms` alongside temperature, humidity, and pressure.
+- Added signed-manifest host runtime update delivery for host-agent, camera helper, sensor helper, and Mosquitto config files.
 
 ### Changed
 
@@ -28,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Removed the HTTP health status URL field and device health-check endpoint from data-source management.
 - Devices list now uses compact Name, Details, Status, Last activity, and Actions columns.
 - Hardware support status now reports more precise diagnostics for helper services, host devices, Compose state, and container readiness.
+- Update manifests now require a `hostRuntime` artifact URL and SHA-256 digest.
 
 ### Fixed
 

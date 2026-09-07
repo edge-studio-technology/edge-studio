@@ -11,7 +11,9 @@ const baseEnv = {
   VERSION: "1.2.3",
   FRONTEND_DIGEST: "sha256:frontend",
   BACKEND_DIGEST: "sha256:backend",
-  UPDATE_AGENT_DIGEST: "sha256:update-agent"
+  UPDATE_AGENT_DIGEST: "sha256:update-agent",
+  HOST_RUNTIME_URL: "https://example.com/edge-studio-host-runtime.tar.gz",
+  HOST_RUNTIME_SHA256: "a".repeat(64)
 };
 
 function runScript(argv: string[], env: Record<string, string | undefined>) {
@@ -62,6 +64,20 @@ describe("build-manifest.mjs", () => {
     assert.match(result.stderr, /manifest missing digest for "updateAgent"/);
   });
 
+  it("exits non-zero when the host runtime URL is missing", () => {
+    const result = runScript([outPath], { ...baseEnv, HOST_RUNTIME_URL: undefined });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /manifest missing host runtime URL/);
+  });
+
+  it("exits non-zero when the host runtime SHA-256 is missing", () => {
+    const result = runScript([outPath], { ...baseEnv, HOST_RUNTIME_SHA256: undefined });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /manifest missing host runtime SHA-256/);
+  });
+
   it("writes a manifest with the expected shape and fields", () => {
     const result = runScript([outPath], baseEnv);
 
@@ -70,10 +86,14 @@ describe("build-manifest.mjs", () => {
     assert.equal(manifest.frontend, "sha256:frontend");
     assert.equal(manifest.backend, "sha256:backend");
     assert.equal(manifest.updateAgent, "sha256:update-agent");
+    assert.deepEqual(manifest.hostRuntime, {
+      url: "https://example.com/edge-studio-host-runtime.tar.gz",
+      sha256: "a".repeat(64)
+    });
     assert.equal(manifest.version, "1.2.3");
     assert.equal(typeof manifest.createdAt, "string");
     assert.equal(Number.isNaN(Date.parse(manifest.createdAt)), false);
-    assert.deepEqual(Object.keys(manifest).sort(), ["backend", "createdAt", "frontend", "updateAgent", "version"]);
+    assert.deepEqual(Object.keys(manifest).sort(), ["backend", "createdAt", "frontend", "hostRuntime", "updateAgent", "version"]);
   });
 
   it("defaults to manifest.json in the cwd when no output path is given", () => {

@@ -20,6 +20,7 @@ export async function getUpdateStatus(): Promise<{
   currentVersion: string | null;
 }> {
   const manifest = await fetchVerifiedManifest();
+  let currentVersion = await getLastAppliedVersion();
 
   const services = await Promise.all(
     MANIFEST_SERVICE_KEYS.map(async (manifestKey) => {
@@ -48,17 +49,26 @@ export async function getUpdateStatus(): Promise<{
     targetImage: manifest.updateAgent,
     upToDate: updateAgentContainer?.Image === manifest.updateAgent
   });
-
-  let currentVersion = await getLastAppliedVersion();
+  services.push({
+    service: "host-runtime",
+    currentImage: currentVersion ? `version:${currentVersion}` : null,
+    targetImage: `version:${manifest.version}`,
+    upToDate: currentVersion === manifest.version
+  });
 
   // Devices installed before install.sh started recording last-applied-manifest.json
   // (or that had their update-agent state dir reset) never get it written, even
   // though frontend/backend already match the manifest — nothing ever calls
   // applyUpdates() for them since there's nothing to update. Self-heal here so
   // Settings doesn't show "Unknown" forever on an otherwise up-to-date device.
-  if (currentVersion === null && services.filter((service) => service.service !== "update-agent").every((service) => service.upToDate)) {
+  if (currentVersion === null && services.filter((service) => service.service !== "update-agent" && service.service !== "host-runtime").every((service) => service.upToDate)) {
     await recordAppliedManifest(manifest.createdAt, manifest.version);
     currentVersion = manifest.version;
+    const hostRuntime = services.find((service) => service.service === "host-runtime");
+    if (hostRuntime) {
+      hostRuntime.currentImage = `version:${manifest.version}`;
+      hostRuntime.upToDate = true;
+    }
   }
 
   return { manifest, services, currentVersion };

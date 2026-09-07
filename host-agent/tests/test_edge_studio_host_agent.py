@@ -1,4 +1,6 @@
 import importlib.util
+import io
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,6 +16,17 @@ def load_agent():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def host_runtime_artifact(files):
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+        for name, content in files.items():
+            data = content.encode("utf-8")
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            archive.addfile(info, io.BytesIO(data))
+    return buffer.getvalue()
 
 
 class HostAgentWriteTests(unittest.TestCase):
@@ -389,6 +402,62 @@ class HostAgentWriteTests(unittest.TestCase):
         self.agent.unlink_if_exists(missing)
 
         self.assertFalse(missing.exists())
+
+    def test_apply_host_runtime_update_replaces_allowlisted_files(self):
+        artifact = host_runtime_artifact({path: f"updated {path}\n" for path in self.agent.HOST_RUNTIME_FILES})
+
+        with patch.object(self.agent, "restart_systemd_service", return_value={"ok": True, "scheduled": True}):
+            result = self.agent.apply_host_runtime_update(artifact)
+
+        self.assertTrue(result["updated"])
+        self.assertEqual(set(result["changed"]), set(self.agent.HOST_RUNTIME_FILES))
+        for path in self.agent.HOST_RUNTIME_FILES:
+            self.assertEqual((self.root / path).read_text(encoding="utf-8"), f"updated {path}\n")
+
+    def test_apply_host_runtime_update_rejects_missing_required_file(self):
+        files = {path: f"updated {path}\n" for path in self.agent.HOST_RUNTIME_FILES}
+        del files["host-agent/edge_studio_host_agent.py"]
+
+        with self.assertRaisesRegex(ValueError, "missing required files"):
+            self.agent.apply_host_runtime_update(host_runtime_artifact(files))
+
+    def test_apply_host_runtime_update_rejects_unsafe_path(self):
+        files = {path: f"updated {path}\n" for path in self.agent.HOST_RUNTIME_FILES}
+        files["../escape.py"] = "bad"
+
+        with self.assertRaisesRegex(ValueError, "unsafe path"):
+            self.agent.apply_host_runtime_update(host_runtime_artifact(files))
+
+    def test_apply_host_runtime_update_restarts_changed_enabled_helpers(self):
+        files = {path: f"updated {path}\n" for path in self.agent.HOST_RUNTIME_FILES}
+        for path, content in files.items():
+            target = self.root / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content.encode("utf-8"))
+        changed_camera = "camera-helper/edge_studio_camera_helper.py"
+        files[changed_camera] = "changed camera helper\n"
+        self.agent.ENV_FILE.write_text("ENABLE_CAMERA=true\nENABLE_SENSORS=false\nENABLE_MQTT_BROKER=false\n", encoding="utf-8")
+
+        with patch.object(self.agent, "restart_systemd_service", return_value={"service": "edge-studio-camera-helper.service", "ok": True, "scheduled": False}) as restart:
+            result = self.agent.apply_host_runtime_update(host_runtime_artifact(files))
+
+        self.assertEqual(result["changed"], [changed_camera])
+        restart.assert_called_once_with("edge-studio-camera-helper.service")
+
+    def test_apply_host_runtime_update_retries_restarts_when_files_are_current(self):
+        files = {path: f"updated {path}\n" for path in self.agent.HOST_RUNTIME_FILES}
+        for path, content in files.items():
+            target = self.root / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content.encode("utf-8"))
+        self.agent.ENV_FILE.write_text("ENABLE_CAMERA=true\nENABLE_SENSORS=false\nENABLE_MQTT_BROKER=false\n", encoding="utf-8")
+
+        with patch.object(self.agent, "restart_systemd_service", return_value={"service": "edge-studio-camera-helper.service", "ok": True, "scheduled": False}) as restart:
+            result = self.agent.apply_host_runtime_update(host_runtime_artifact(files))
+
+        self.assertFalse(result["updated"])
+        self.assertEqual(result["changed"], [])
+        restart.assert_any_call("edge-studio-camera-helper.service")
 
 
 if __name__ == "__main__":

@@ -73,7 +73,7 @@ Status: Mitigated via a narrow scoped volume, path containment, admin-only + re-
 
 ## Update Agent Docker Socket Mount
 
-Risk: The `update-agent` service mounts `/var/run/docker.sock` to pull images by digest and recreate `frontend`/`backend`/`minima` containers during an update. Docker socket access is host-root-equivalent: any process holding the mount can start a privileged or host-mounted container regardless of whether the socket is reachable over the network.
+Risk: The `update-agent` service mounts `/var/run/docker.sock` to pull images by digest and recreate `frontend`/`backend` containers during an update. It also downloads signed-manifest host runtime artifacts and submits them to the host-agent. Docker socket access is host-root-equivalent: any process holding the mount can start a privileged or host-mounted container regardless of whether the socket is reachable over the network.
 
 Impact: If `update-agent` is compromised (e.g. via a flaw in its manifest parsing or HTTP handling), the attacker gains the same practical privilege as host root.
 
@@ -83,6 +83,8 @@ Current Controls:
 - No generic Docker command surface — only the specific pull/create/start/stop/remove/inspect calls needed to apply a signed update.
 - No dependencies beyond `express`; no endpoints beyond `/status`, `/apply`, and its static update page.
 - Update manifests must be signed (Ed25519) with a private key that only exists in GitHub Actions Secrets; `update-agent` verifies the signature against an embedded public key before trusting any digest.
+- Host runtime artifacts must match the SHA-256 digest carried by the signed manifest before `update-agent` submits them to the host-agent.
+- `update-agent` does not get broad root filesystem write access for host runtime updates; it calls the host-agent's narrow update endpoint with the existing host-agent token.
 - Deliberately not merged with TLS termination/routing duties — a bug in `update-agent` does not also hand over the public-facing routing layer, and vice versa.
 
 Plan:
@@ -94,16 +96,17 @@ Status: Accepted risk, documented. See `.agents/rules/update-agent.md`.
 
 ## Host Agent Capability Management
 
-Risk: `install.sh` installs a root-owned `edge-studio-host-agent` service that lets the backend request narrow host hardware support actions, including enabling or disabling Raspberry Pi Camera support, GPIO container access, I2C sensor helper support, and the local MQTT broker after the app is already installed.
+Risk: `install.sh` installs a root-owned `edge-studio-host-agent` service that lets the backend request narrow host hardware support actions, including enabling or disabling Raspberry Pi Camera support, GPIO container access, I2C sensor helper support, and the local MQTT broker after the app is already installed. The same token-protected service also accepts verified host runtime updates from update-agent.
 
-Impact: If the host agent or its bearer token is compromised, an attacker could perform the specific host actions implemented by the agent, including changing camera-helper/sensor-helper systemd state, changing GPIO Compose device access, toggling the MQTT Compose profile, and restarting backend/MQTT containers.
+Impact: If the host agent or its bearer token is compromised, an attacker could perform the specific host actions implemented by the agent, including changing camera-helper/sensor-helper systemd state, changing GPIO Compose device access, toggling the MQTT Compose profile, replacing allowlisted Edge Studio host runtime files, and restarting backend/MQTT/helper containers.
 
 Current Controls:
 
-- The browser never talks to the host agent directly; it calls backend routes under `/api/host-capabilities`.
+- The browser never talks to the host agent directly; it calls backend routes under `/api/host-capabilities` for hardware actions and update-agent calls the host-agent for host runtime updates.
 - Backend host-capability mutations require an authenticated admin session.
 - The host agent requires an installer-generated bearer token that is written to `.env` and passed only to the backend container.
-- The host agent exposes fixed capability endpoints only; it has no generic shell, package install, driver install, file write, or service-management proxy.
+- The host agent exposes fixed capability and host-runtime update endpoints only; it has no generic shell, package install, driver install, file write, or service-management proxy.
+- Host runtime updates replace only allowlisted files from the verified artifact: host-agent, camera helper, sensor helper, and Mosquitto config.
 - I2C sensor support can be enabled/disabled through the host agent, but host OS prerequisites such as I2C enablement and SMBus packages are still reported rather than installed automatically.
 - V1 host-agent actions manage Edge Studio helper/config state and report missing OS prerequisites; they do not install Raspberry Pi OS packages, drivers, firmware, or boot config automatically.
 - The installer adds the same Docker-subnet firewall pattern used by other host helpers where `iptables` is available.
@@ -113,7 +116,7 @@ Plan:
 - Keep future capabilities allowlisted and capability-specific.
 - Keep OS package/driver installation out of the normal enable path unless a later explicit, per-capability design is approved.
 - Add asynchronous job history if hardware setup actions become long-running.
-- Design host-agent update delivery so new helper/capability logic can ship through the app update path without asking users to rerun `install.sh`.
+- Keep host runtime update allowlists tight as new helper files are added.
 - Revisit binding/firewall behavior during real Pi verification.
 
 Status: Accepted risk for app-managed hardware enablement. See `docs/plans/host-agent-capability-management.md`.

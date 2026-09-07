@@ -3,6 +3,7 @@ import * as assert from "node:assert/strict";
 import { recordAppliedManifest } from "../../src/manifest/manifest-state.js";
 import { getUpdateStatus } from "../../src/status/status.service.js";
 import { launchSelfUpdate } from "../../src/self-update/self-update.service.js";
+import { updateHostRuntime } from "../../src/update/host-runtime-update.js";
 import { updateService } from "../../src/update/service-update.js";
 import type { Manifest } from "../../src/manifest/manifest.service.js";
 import type { ServiceStatus } from "../../src/status/status.service.js";
@@ -13,6 +14,7 @@ vi.mock("../../src/config/env.js", () => ({ env: mockEnv }));
 vi.mock("../../src/manifest/manifest-state.js", () => ({ recordAppliedManifest: vi.fn() }));
 vi.mock("../../src/status/status.service.js", () => ({ getUpdateStatus: vi.fn() }));
 vi.mock("../../src/self-update/self-update.service.js", () => ({ launchSelfUpdate: vi.fn() }));
+vi.mock("../../src/update/host-runtime-update.js", () => ({ updateHostRuntime: vi.fn() }));
 vi.mock("../../src/update/service-update.js", () => ({ updateService: vi.fn() }));
 
 const { applyUpdates } = await import("../../src/update/apply.service.js");
@@ -22,6 +24,7 @@ function manifest(overrides: Partial<Manifest> = {}): Manifest {
     frontend: "sha256:frontend-new",
     backend: "sha256:backend-new",
     updateAgent: "sha256:update-agent-new",
+    hostRuntime: { url: "https://example.com/edge-studio-host-runtime.tar.gz", sha256: "a".repeat(64) },
     version: "1.2.3",
     createdAt: "2026-08-01T00:00:00.000Z",
     ...overrides
@@ -33,6 +36,7 @@ describe("apply.service", () => {
     vi.resetAllMocks();
     mockEnv.dryRun = false;
     (launchSelfUpdate as any).mockResolvedValue(undefined);
+    (updateHostRuntime as any).mockResolvedValue({ service: "host-runtime", updated: true, reason: "updated host runtime" });
   });
 
   afterEach(() => {
@@ -56,11 +60,13 @@ describe("apply.service", () => {
 
       assert.deepEqual(result, [
         { service: "frontend", updated: true, reason: "dry run — no changes applied" },
-        { service: "backend", updated: false, reason: "already up to date" }
+        { service: "backend", updated: false, reason: "already up to date" },
+        { service: "host-runtime", updated: true, reason: "dry run — no changes applied" }
       ]);
       assert.equal((updateService as any).mock.calls.length, 0);
       assert.equal((recordAppliedManifest as any).mock.calls.length, 0);
       assert.equal((launchSelfUpdate as any).mock.calls.length, 0);
+      assert.equal((updateHostRuntime as any).mock.calls.length, 0);
     });
 
     it("skips already up-to-date services and updates the rest via updateService", async () => {
@@ -77,8 +83,10 @@ describe("apply.service", () => {
       assert.deepEqual((updateService as any).mock.calls, [["frontend", "sha256:frontend-new"]]);
       assert.deepEqual(result, [
         { service: "frontend", updated: true, reason: "updated and healthy" },
-        { service: "backend", updated: false, reason: "already up to date" }
+        { service: "backend", updated: false, reason: "already up to date" },
+        { service: "host-runtime", updated: true, reason: "updated host runtime" }
       ]);
+      assert.deepEqual((updateHostRuntime as any).mock.calls[0], [manifest().hostRuntime]);
     });
 
     it("never routes update-agent through updateService, even when not up to date", async () => {
@@ -90,7 +98,7 @@ describe("apply.service", () => {
       const result = await applyUpdates();
 
       assert.equal((updateService as any).mock.calls.length, 0);
-      assert.deepEqual(result, []);
+      assert.deepEqual(result, [{ service: "host-runtime", updated: true, reason: "updated host runtime" }]);
     });
 
     it("records the manifest as applied and launches self-update when nothing failed", async () => {
@@ -121,6 +129,21 @@ describe("apply.service", () => {
       assert.equal((launchSelfUpdate as any).mock.calls.length, 0);
     });
 
+    it("does not record the manifest or launch self-update when host runtime update fails", async () => {
+      const services: ServiceStatus[] = [{ service: "frontend", currentImage: "sha256:frontend-new", targetImage: "sha256:frontend-new", upToDate: true }];
+      (getUpdateStatus as any).mockResolvedValue({ manifest: manifest(), services, currentVersion: "1.0.0" });
+      (updateHostRuntime as any).mockResolvedValue({ service: "host-runtime", updated: false, reason: "host-agent unavailable" });
+
+      const result = await applyUpdates();
+
+      assert.deepEqual(result, [
+        { service: "frontend", updated: false, reason: "already up to date" },
+        { service: "host-runtime", updated: false, reason: "host-agent unavailable" }
+      ]);
+      assert.equal((recordAppliedManifest as any).mock.calls.length, 0);
+      assert.equal((launchSelfUpdate as any).mock.calls.length, 0);
+    });
+
     it("logs but does not throw when the fire-and-forget self-update launch fails", async () => {
       const services: ServiceStatus[] = [{ service: "frontend", currentImage: "old", targetImage: "sha256:frontend-new", upToDate: false }];
       (getUpdateStatus as any).mockResolvedValue({ manifest: manifest(), services, currentVersion: "1.0.0" });
@@ -131,7 +154,10 @@ describe("apply.service", () => {
       const result = await applyUpdates();
       await vi.waitFor(() => assert.equal(errorSpy.mock.calls.length, 1));
 
-      assert.deepEqual(result, [{ service: "frontend", updated: true, reason: "updated and healthy" }]);
+      assert.deepEqual(result, [
+        { service: "frontend", updated: true, reason: "updated and healthy" },
+        { service: "host-runtime", updated: true, reason: "updated host runtime" }
+      ]);
       assert.match(errorSpy.mock.calls[0][0] as string, /self-update launch failed/);
     });
   });
