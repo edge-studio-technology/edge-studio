@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { afterAll, beforeAll, beforeEach, describe, it, vi } from "vitest";
-import { env } from "../../../src/config/env.js";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
 const {
@@ -56,18 +55,20 @@ vi.mock("../../../src/features/data-sources/sensorHelper.service.js", () => ({
 }));
 
 let teardown: () => void;
+let env: typeof import("../../../src/config/env.js").env;
 let validation: typeof import("../../../src/features/automation/automation.validation.js");
 let repository: typeof import("../../../src/features/automation/automation.repository.js");
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
   teardown = testDb.teardown;
+  env = (await import("../../../src/config/env.js")).env;
   validation = await import("../../../src/features/automation/automation.validation.js");
   repository = await import("../../../src/features/automation/automation.repository.js");
 });
 
 afterAll(() => {
-  teardown();
+  teardown?.();
 });
 
 beforeEach(() => {
