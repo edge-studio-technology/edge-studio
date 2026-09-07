@@ -15,8 +15,6 @@ function fields(overrides: Partial<DeviceFormFields> = {}): DeviceFormFields {
     setType: vi.fn(),
     url: "",
     setUrl: vi.fn(),
-    healthStatusUrl: "",
-    setHealthStatusUrl: vi.fn(),
     brokerUrl: "",
     setBrokerUrl: vi.fn(),
     topic: "",
@@ -131,10 +129,10 @@ describe("AltDeviceForm", () => {
     expect(screen.getByLabelText("Method")).toBeInTheDocument();
   });
 
-  it("shows json-api URL/health/method fields", () => {
+  it("shows json-api URL and method fields", () => {
     render(<AltDeviceForm template={template} fields={fields({ type: "json-api", url: "https://x" })} />);
     expect(screen.getByLabelText("URL")).toHaveValue("https://x");
-    expect(screen.getByLabelText("Health status URL")).toBeInTheDocument();
+    expect(screen.getByLabelText("Method")).toBeInTheDocument();
   });
 
   it("shows no extra fields for webhook and device-system-data beyond name/description", () => {

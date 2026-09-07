@@ -4,6 +4,42 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] host-agent-capability-management
+
+### Added
+
+- Added a root-owned host agent for app-managed, allowlisted host hardware capability actions.
+- Added admin-only camera support enable and disable actions from the Devices page Hardware support area.
+- Added admin-only GPIO, I2C sensor, and local MQTT broker enable/disable actions from Hardware support.
+- Added `HOST_CAPABILITY_DEBUG=true` for secret-safe Hardware support diagnostics in backend and host-agent logs.
+- BME680 sensor reads now include gas resistance as `gasResistanceOhms` alongside temperature, humidity, and pressure.
+- Added signed-manifest host runtime update delivery for host-agent, camera helper, sensor helper, and Mosquitto config files.
+
+### Changed
+
+- Disabled host-backed hardware templates are hidden from the default New input and New output flows.
+- Host-backed templates and configured device status/actions now use a shared hardware capability mapping for Camera, GPIO, I2C sensors, and app-managed local MQTT broker devices.
+- Hardware install flags are now documented as advanced shortcuts while the app UI is the normal enablement path.
+- Host-agent V1 scope now explicitly reports missing OS prerequisites without installing host drivers or packages automatically.
+- Installer `ENABLE_*` hardware shortcuts now call the host-agent CLI in install mode so host-agent capability logic is the source of truth for hardware activation.
+- Camera enablement from Hardware support is blocked when host camera tools are missing.
+- Configured host-backed devices now show disabled or attention-needed status when required hardware support is unavailable.
+- Workflow list status now shows Error when workflow validation has errors, including disabled hardware dependencies for Camera, GPIO, I2C sensors, and app-managed local MQTT broker devices.
+- Devices list Status now reflects current usability and last failures instead of HTTP health-check configuration.
+- Removed the HTTP health status URL field and device health-check endpoint from data-source management.
+- Devices list now uses compact Name, Details, Status, Last activity, and Actions columns.
+- Hardware support status now reports more precise diagnostics for helper services, host devices, Compose state, and container readiness.
+- Update manifests now require a `hostRuntime` artifact URL and SHA-256 digest.
+
+### Fixed
+
+- GPIO watcher startup is skipped while GPIO support is disabled or unavailable, avoiding false device failures when toggling GPIO hardware support.
+- Disabled hardware workflow/device messages now point operators to Devices -> Hardware support instead of legacy `ENABLE_*` restart instructions.
+
+### Security
+
+- Documented the host-agent privilege boundary and token-protected backend-only access path.
+
 ## [0.40.0] 2026-09-03
 
 ### Added

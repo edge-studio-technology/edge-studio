@@ -11,7 +11,7 @@ export type SensorHelperCapability = {
 
 export async function getSensorHelperCapability(): Promise<SensorHelperCapability> {
   if (!env.sensorsEnabled) {
-    return { enabled: false, available: false, reason: "Sensor support is disabled. Set ENABLE_SENSORS=true and restart the app." };
+    return { enabled: false, available: false, reason: "I2C sensor support is disabled. Enable it from Devices -> Hardware support." };
   }
 
   try {
@@ -25,7 +25,7 @@ export async function getSensorHelperCapability(): Promise<SensorHelperCapabilit
 }
 
 export async function readBmeSensorSource(config: BmeSensorConfig) {
-  if (!env.sensorsEnabled) throw new Error("Sensor support is disabled. Set ENABLE_SENSORS=true and restart the app.");
+  if (!env.sensorsEnabled) throw new Error("I2C sensor support is disabled. Enable it from Devices -> Hardware support.");
   const preview = await sensorHelperRequest("/read", config, env.sensorReadTimeoutMs);
   const canonicalBytes = `${JSON.stringify(preview, null, 2)}\n`;
   return { contentType: "application/json", bytesHash: sha3HashHex(canonicalBytes), canonicalBytes, preview, fetchedAt: new Date().toISOString() };

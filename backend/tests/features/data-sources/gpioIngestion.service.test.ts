@@ -54,6 +54,14 @@ vi.mock("node:child_process", () => ({ spawn: spawnMock }));
 const automationServiceMock = vi.hoisted(() => ({ recordPushAutomationPayload: vi.fn() }));
 vi.mock("../../../src/features/automation/automation.service.js", () => automationServiceMock);
 
+const envMock = vi.hoisted(() => ({
+  gpioEnabled: true,
+  get databasePath() {
+    return process.env.DATABASE_PATH;
+  }
+}));
+vi.mock("../../../src/config/env.js", () => ({ env: envMock }));
+
 let teardown: () => void;
 let db: Awaited<ReturnType<typeof setupTestDatabase>>["db"];
 let dataSourcesRepo: typeof import("../../../src/features/data-sources/dataSources.repository.js");
@@ -96,6 +104,8 @@ function makeGpioWorkflow(sourceId: string, overrides: { enabled?: boolean } = {
 }
 
 beforeEach(() => {
+  envMock.gpioEnabled = true;
+  existsSyncMock.mockReset().mockReturnValue(true);
   children = [];
   spawnMock.mockReset();
   spawnMock.mockImplementation(() => {
@@ -119,7 +129,7 @@ describe("getGpioInputCapability", () => {
   it("reports available when the device path exists", () => {
     existsSyncMock.mockReturnValue(true);
     const result = gpioIngestion.getGpioInputCapability();
-    assert.deepEqual(result, { available: true, devicePath: "/dev/gpiochip0", reason: null });
+    assert.deepEqual(result, { enabled: true, available: true, devicePath: "/dev/gpiochip0", reason: null });
   });
 
   it("reports unavailable with a reason when the device path is missing", () => {
@@ -127,6 +137,14 @@ describe("getGpioInputCapability", () => {
     const result = gpioIngestion.getGpioInputCapability();
     assert.equal(result.available, false);
     assert.match(result.reason!, /not mounted in the backend container/);
+  });
+
+  it("reports disabled when GPIO support is off", () => {
+    envMock.gpioEnabled = false;
+    const result = gpioIngestion.getGpioInputCapability();
+    assert.equal(result.enabled, false);
+    assert.equal(result.available, true);
+    assert.match(result.reason!, /Enable it from Devices -> Hardware support/);
   });
 });
 

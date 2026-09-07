@@ -6,7 +6,14 @@ import {
   templateKind,
 } from "../../../../src/features/data-sources/add-device-classic/ClassicDeviceTemplates";
 import { inputTemplates, outputTemplates } from "../../../../src/features/data-sources/DataSourceTemplates";
-import type { DataSourceCapabilities, DataSourceTemplate } from "../../../../src/features/data-sources/dataSourceTypes";
+import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../../../../src/features/data-sources/dataSourceTypes";
+
+const enabledHostCapabilities: HostCapability[] = [
+  { name: "camera", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "gpio", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "sensors", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "mqtt", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+];
 
 function findTemplate(title: string): DataSourceTemplate {
   const template = [...inputTemplates, ...outputTemplates].find((t) => t.title === title);
@@ -37,14 +44,14 @@ describe("templateKind", () => {
 
 describe("DataSourceTemplates (classic)", () => {
   it("shows the input-sources heading and every input template when category is unset", () => {
-    render(<DataSourceTemplates mode="input" capabilities={null} onSelect={vi.fn()} />);
+    render(<DataSourceTemplates mode="input" capabilities={null} hostCapabilities={enabledHostCapabilities} onSelect={vi.fn()} />);
     expect(screen.getByText("Input sources")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "HTTP JSON Source" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "GPIO Button" })).toBeInTheDocument();
   });
 
   it("filters to template-kind cards only when category is 'template'", () => {
-    render(<DataSourceTemplates mode="input" category="template" capabilities={null} onSelect={vi.fn()} />);
+    render(<DataSourceTemplates mode="input" category="template" capabilities={null} hostCapabilities={enabledHostCapabilities} onSelect={vi.fn()} />);
     expect(screen.getByText("Templates and examples")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "GPIO Button" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "HTTP JSON Source" })).not.toBeInTheDocument();
@@ -81,12 +88,12 @@ describe("DataSourceTemplates (classic)", () => {
     );
   });
 
-  it("shows a GPIO-not-available warning for gpio-input/output templates when capabilities say so", () => {
+  it("hides GPIO templates when capabilities say GPIO is not available", () => {
     const capabilities: DataSourceCapabilities = {
       gpioInput: { available: false, devicePath: "/dev/gpiochip0", reason: "GPIO device not mounted" },
     };
     render(<DataSourceTemplates mode="input" category="manual" capabilities={capabilities} onSelect={vi.fn()} />);
-    expect(screen.getByText("GPIO device not mounted")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "GPIO Input Pin" })).not.toBeInTheDocument();
   });
 
   it("shows the bme680-not-supported warning when the sensor helper doesn't report bme680", () => {

@@ -30,8 +30,6 @@ export function DataSourceForm({
   setType,
   url,
   setUrl,
-  healthStatusUrl,
-  setHealthStatusUrl,
   brokerUrl,
   setBrokerUrl,
   topic,
@@ -77,8 +75,6 @@ export function DataSourceForm({
   setType: (value: DataSource["type"]) => void;
   url: string;
   setUrl: (value: string) => void;
-  healthStatusUrl: string;
-  setHealthStatusUrl: (value: string) => void;
   brokerUrl: string;
   setBrokerUrl: (value: string) => void;
   topic: string;
@@ -343,9 +339,9 @@ export function DataSourceForm({
             ]}
           />
           <MutedText>
-            BME280/BME680 sensors read temperature, humidity, and air pressure over I2C. Wire VIN to
-            3.3V or 5V, GND to ground, SCL to physical pin 5 / GPIO3, and SDA to physical pin 3 /
-            GPIO2.
+            BME280/BME680 sensors read temperature, humidity, and air pressure over I2C. BME680
+            reads also include gas resistance. Wire VIN to 3.3V or 5V, GND to ground, SCL to
+            physical pin 5 / GPIO3, and SDA to physical pin 3 / GPIO2.
           </MutedText>
         </>
       ) : type === "device-system-data" ? (
@@ -384,12 +380,6 @@ export function DataSourceForm({
             value={url}
             onChange={(event) => setUrl(event.target.value)}
             placeholder="https://example.com/data.json"
-          />
-          <InputField
-            label="Health status URL"
-            value={healthStatusUrl}
-            onChange={(event) => setHealthStatusUrl(event.target.value)}
-            placeholder="https://example.com/health"
           />
           <SelectField
             label="Method"

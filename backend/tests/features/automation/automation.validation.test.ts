@@ -8,14 +8,18 @@ const {
   getAddressBookEntryByIdMock,
   getIntegritasApiKeyMock,
   getWalletStatusMock,
-  getCameraCapabilityMock
+  getCameraCapabilityMock,
+  getGpioInputCapabilityMock,
+  getSensorHelperCapabilityMock
 } = vi.hoisted(() => ({
   getDataSourceMock: vi.fn(),
   parseGpioOutputConfigMock: vi.fn(),
   getAddressBookEntryByIdMock: vi.fn(),
   getIntegritasApiKeyMock: vi.fn(),
   getWalletStatusMock: vi.fn(),
-  getCameraCapabilityMock: vi.fn()
+  getCameraCapabilityMock: vi.fn(),
+  getGpioInputCapabilityMock: vi.fn(),
+  getSensorHelperCapabilityMock: vi.fn()
 }));
 
 vi.mock("../../../src/features/data-sources/dataSources.repository.js", () => ({
@@ -42,19 +46,29 @@ vi.mock("../../../src/features/data-sources/cameraCapture.service.js", () => ({
   getCameraCapability: getCameraCapabilityMock
 }));
 
+vi.mock("../../../src/features/data-sources/gpioIngestion.service.js", () => ({
+  getGpioInputCapability: getGpioInputCapabilityMock
+}));
+
+vi.mock("../../../src/features/data-sources/sensorHelper.service.js", () => ({
+  getSensorHelperCapability: getSensorHelperCapabilityMock
+}));
+
 let teardown: () => void;
+let env: typeof import("../../../src/config/env.js").env;
 let validation: typeof import("../../../src/features/automation/automation.validation.js");
 let repository: typeof import("../../../src/features/automation/automation.repository.js");
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
   teardown = testDb.teardown;
+  env = (await import("../../../src/config/env.js")).env;
   validation = await import("../../../src/features/automation/automation.validation.js");
   repository = await import("../../../src/features/automation/automation.repository.js");
 });
 
 afterAll(() => {
-  teardown();
+  teardown?.();
 });
 
 beforeEach(() => {
@@ -64,7 +78,10 @@ beforeEach(() => {
   getIntegritasApiKeyMock.mockReset();
   getWalletStatusMock.mockReset();
   getCameraCapabilityMock.mockReset();
+  getGpioInputCapabilityMock.mockReset();
+  getSensorHelperCapabilityMock.mockReset();
   getIntegritasApiKeyMock.mockReturnValue("key");
+  env.mqttBrokerEnabled = false;
 });
 
 type DraftBlock = Parameters<typeof validation.validateAutomationDraft>[0][number];
@@ -367,6 +384,78 @@ describe("validateAutomationDraft — block references", () => {
   });
 });
 
+describe("validateAutomationDraft — hardware dependencies", () => {
+  it("errors when a GPIO start source depends on disabled GPIO support", async () => {
+    getDataSourceMock.mockReturnValue({ id: "gpio1", type: "gpio-input", config: "{}" });
+    getGpioInputCapabilityMock.mockReturnValue({ enabled: false, available: false, reason: "GPIO support is disabled." });
+
+    const result = await validation.validateAutomationDraft([
+      block({ clientId: "start", type: "gpio_event_start", config: { sourceId: "gpio1", cooldownSeconds: 0 } })
+    ]);
+
+    expectError(result, "gpio.disabled");
+  });
+
+  it("warns when a GPIO output target depends on unavailable GPIO support", async () => {
+    getDataSourceMock.mockReturnValue({ id: "led1", type: "gpio-output", config: "{}" });
+    parseGpioOutputConfigMock.mockReturnValue({ profile: "led" });
+    getGpioInputCapabilityMock.mockReturnValue({ enabled: true, available: false, reason: "Backend cannot see /dev/gpiochip0." });
+
+    const result = await validation.validateAutomationDraft([
+      manualStart(),
+      block({ clientId: "2", type: "control_output", config: { targetId: "led1", bodyMode: "none" } })
+    ]);
+
+    assert.ok(result.warnings.some((w) => w.code === "gpio.unavailable"));
+  });
+
+  it("errors when a BME sensor source depends on disabled I2C sensor support", async () => {
+    getDataSourceMock.mockReturnValue({ id: "sensor1", type: "bme-sensor", config: "{}" });
+    getSensorHelperCapabilityMock.mockResolvedValue({ enabled: false, available: false, reason: "I2C sensor support is disabled." });
+
+    const result = await validation.validateAutomationDraft([
+      manualStart(),
+      block({ clientId: "2", type: "fetch_data_source", config: { sourceId: "sensor1" } })
+    ]);
+
+    expectError(result, "sensors.disabled");
+  });
+
+  it("warns when a BME sensor source depends on unavailable I2C sensor support", async () => {
+    getDataSourceMock.mockReturnValue({ id: "sensor1", type: "bme-sensor", config: "{}" });
+    getSensorHelperCapabilityMock.mockResolvedValue({ enabled: true, available: false, reason: "Sensor helper is stopped." });
+
+    const result = await validation.validateAutomationDraft([
+      manualStart(),
+      block({ clientId: "2", type: "fetch_data_source", config: { sourceId: "sensor1" } })
+    ]);
+
+    assert.ok(result.warnings.some((w) => w.code === "sensors.unavailable"));
+  });
+
+  it("errors when an MQTT start source uses the disabled local MQTT broker", async () => {
+    env.mqttBrokerEnabled = false;
+    getDataSourceMock.mockReturnValue({ id: "mqtt1", type: "mqtt", config: JSON.stringify({ brokerUrl: "mqtt://mqtt:1883" }) });
+
+    const result = await validation.validateAutomationDraft([
+      block({ clientId: "start", type: "mqtt_event_start", config: { sourceId: "mqtt1", cooldownSeconds: 0 } })
+    ]);
+
+    expectError(result, "mqtt.disabled");
+  });
+
+  it("does not require local MQTT support for an external MQTT broker", async () => {
+    env.mqttBrokerEnabled = false;
+    getDataSourceMock.mockReturnValue({ id: "mqtt1", type: "mqtt", config: JSON.stringify({ brokerUrl: "mqtt://broker.example:1883" }) });
+
+    const result = await validation.validateAutomationDraft([
+      block({ clientId: "start", type: "mqtt_event_start", config: { sourceId: "mqtt1", cooldownSeconds: 0 } })
+    ]);
+
+    expectNoError(result, "mqtt.disabled");
+  });
+});
+
 describe("validateAutomationDraft — attached stamp_integritas blocks", () => {
   it("errors when a non-stamp block is attached to another block", async () => {
     const result = await validation.validateAutomationDraft([
@@ -419,7 +508,7 @@ describe("validateAutomationDraft — capture_camera", () => {
       manualStart(),
       block({ clientId: "2", type: "capture_camera", config: { sourceId: "cam1" } })
     ]);
-    expectError(result, "capture_camera.disabled");
+    expectError(result, "camera.disabled");
   });
 
   it("warns when camera capture is enabled but unavailable", async () => {
@@ -429,7 +518,7 @@ describe("validateAutomationDraft — capture_camera", () => {
       manualStart(),
       block({ clientId: "2", type: "capture_camera", config: { sourceId: "cam1" } })
     ]);
-    assert.ok(result.warnings.some((w) => w.code === "capture_camera.unavailable"));
+    assert.ok(result.warnings.some((w) => w.code === "camera.unavailable"));
   });
 
   it("always warns about camera privacy when referencing a valid camera source", async () => {

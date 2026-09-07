@@ -8,7 +8,7 @@ const { fsState, fsMock } = vi.hoisted(() => {
   const state = new Map<string, FakeEntry>();
 
   function baseName(p: string) {
-    return p.split("/").pop() ?? p;
+    return p.split(/[\\/]/).pop() ?? p;
   }
   function enoent() {
     const err = new Error("ENOENT") as NodeJS.ErrnoException;

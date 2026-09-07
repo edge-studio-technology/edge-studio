@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "../../../src/components/ToastProvider";
 import { DataSourcesList } from "../../../src/features/data-sources/DataSourcesList";
-import type { DataSource, DataSourceHealthStatus } from "../../../src/features/data-sources/dataSourceTypes";
+import type { DataSource } from "../../../src/features/data-sources/dataSourceTypes";
 
 function source(overrides: Partial<DataSource> = {}): DataSource {
   return {
@@ -14,7 +14,7 @@ function source(overrides: Partial<DataSource> = {}): DataSource {
     type: "json-api",
     status: "active",
     description: null,
-    config: { url: "https://example.com/data.json", method: "GET", healthStatusUrl: "https://example.com/health" },
+    config: { url: "https://example.com/data.json", method: "GET" },
     lastReadAt: null,
     lastError: null,
     lastPreview: null,
@@ -27,7 +27,7 @@ const noop = () => {};
 function renderList(overrides: Partial<React.ComponentProps<typeof DataSourcesList>> = {}) {
   const props = {
     items: [] as DataSource[],
-    healthStatuses: {} as Record<string, DataSourceHealthStatus>,
+    capabilities: null,
     busy: false,
     onRead: noop,
     onTestOutput: noop,
@@ -66,30 +66,29 @@ describe("DataSourcesList", () => {
     expect(screen.getByRole("button", { name: "Clear filters" })).toBeInTheDocument();
   });
 
-  it("renders a row with type label, endpoint, and 'Not read yet' hash", () => {
+  it("renders a row with type label, endpoint, and no-activity status", () => {
     renderList({ items: [source()] });
     const table = screen.getByRole("table");
     const row = within(table).getAllByRole("row")[1];
     expect(within(row).getByText("Kitchen Sensor")).toBeInTheDocument();
-    expect(within(row).getByText("Input")).toBeInTheDocument();
     expect(within(row).getByText("HTTP JSON Source")).toBeInTheDocument();
-    expect(within(row).getByText("https://example.com/data.json")).toBeInTheDocument();
-    expect(within(row).getByText("Not read yet")).toBeInTheDocument();
+    expect(within(row).getByTitle("Input · https://example.com/data.json")).toBeInTheDocument();
+    expect(within(row).getByText("No activity")).toBeInTheDocument();
   });
 
   it("labels a pi-camera row's direction as Capture", () => {
     renderList({ items: [source({ type: "pi-camera", config: { mode: "photo", width: 1280, height: 720 } })] });
     const table = screen.getByRole("table");
     const row = within(table).getAllByRole("row")[1];
-    expect(within(row).getByText("Capture")).toBeInTheDocument();
+    expect(within(row).getByTitle("Capture · photo 1280x720")).toBeInTheDocument();
   });
 
   it("labels output-type rows as Output", () => {
     renderList({ items: [source({ type: "gpio-output", config: { chip: "gpiochip0", pin: 18 } })] });
     const table = screen.getByRole("table");
     const row = within(table).getAllByRole("row")[1];
-    expect(within(row).getByText("Output")).toBeInTheDocument();
     expect(within(row).getByText("GPIO LED")).toBeInTheDocument();
+    expect(within(row).getByTitle("Output · led gpiochip0 GPIO18 active:high")).toBeInTheDocument();
   });
 
   it("labels PIR motion / ESP32 board rows via their config profile", () => {
@@ -103,17 +102,9 @@ describe("DataSourcesList", () => {
     expect(screen.getByText("ESP32 MQTT Board")).toBeInTheDocument();
   });
 
-  it("shows Not configured health when the source doesn't support health checks", () => {
+  it("shows No activity when the source has no read history", () => {
     renderList({ items: [source({ type: "webhook", config: {} })] });
-    expect(screen.getByText("Not configured")).toBeInTheDocument();
-  });
-
-  it("shows Success/Failed health pills based on the health status", () => {
-    renderList({
-      items: [source()],
-      healthStatuses: { s1: { ok: true, checkedAt: "2026-08-20T00:00:00.000Z" } },
-    });
-    expect(screen.getByText("Success")).toBeInTheDocument();
+    expect(screen.getByText("No activity")).toBeInTheDocument();
   });
 
   it("shows a truncated hash pill when lastHash is present", () => {
@@ -121,7 +112,7 @@ describe("DataSourcesList", () => {
     expect(screen.queryByText("Not read yet")).not.toBeInTheDocument();
   });
 
-  it("shows last-preview status pills: Success, Failed, and No preview", () => {
+  it("shows last-preview status pills: Success, Failed, and No activity", () => {
     renderList({
       items: [
         source({ id: "s1", lastPreview: { a: 1 } }),
@@ -132,8 +123,8 @@ describe("DataSourcesList", () => {
     const table = screen.getByRole("table");
     const rows = within(table).getAllByRole("row").slice(1);
     expect(within(rows[0]).getByText("Success")).toBeInTheDocument();
-    expect(within(rows[1]).getByText("Failed")).toBeInTheDocument();
-    expect(within(rows[2]).getByText("No preview")).toBeInTheDocument();
+    expect(within(rows[1]).getAllByText("Failed").length).toBeGreaterThan(0);
+    expect(within(rows[2]).getByText("No activity")).toBeInTheDocument();
   });
 
   it("filters by direction", async () => {
@@ -224,36 +215,19 @@ describe("DataSourcesList", () => {
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeDisabled();
   });
 
-  it("opens the device details modal with health and last-preview disclosures", async () => {
+  it("opens the device details modal with status and last-preview disclosures", async () => {
     const item = source({
       lastHash: "abcdef0123456789",
       lastPreview: { temp: 21 },
       lastReadAt: "2026-08-20T00:00:00.000Z",
     });
-    renderList({
-      items: [item],
-      healthStatuses: { s1: { ok: true, checkedAt: "2026-08-20T00:00:00.000Z", body: { status: "ok" } } },
-    });
+    renderList({ items: [item] });
     await userEvent.click(screen.getByRole("button", { name: "More actions for Kitchen Sensor" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "View details" }));
 
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("Device details")).toBeInTheDocument();
     expect(within(dialog).getByText("abcdef0123456789")).toBeInTheDocument();
-  });
-
-  it("shows the health error panel in the details modal when the health check failed", async () => {
-    const item = source();
-    renderList({
-      items: [item],
-      healthStatuses: { s1: { ok: false, error: "Timed out", checkedAt: "2026-08-20T00:00:00.000Z" } },
-    });
-    await userEvent.click(screen.getByRole("button", { name: "More actions for Kitchen Sensor" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "View details" }));
-
-    // The Health/Last preview disclosures default to open, so their content is already visible.
-    const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Timed out")).toBeInTheDocument();
   });
 
   it("shows the error detail panel in the details modal when the last read failed with no preview", async () => {
@@ -263,6 +237,6 @@ describe("DataSourcesList", () => {
     await userEvent.click(screen.getByRole("menuitem", { name: "View details" }));
 
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Fetch failed")).toBeInTheDocument();
+    expect(within(dialog).getAllByText("Fetch failed").length).toBeGreaterThan(0);
   });
 });

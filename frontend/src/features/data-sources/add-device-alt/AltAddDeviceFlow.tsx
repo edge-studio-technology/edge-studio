@@ -5,7 +5,7 @@ import { Modal } from "../../../components/Modal";
 import { useToast } from "../../../components/ToastProvider";
 import { buildDeviceConfigInput } from "../buildDeviceConfig";
 import { createDataSource } from "../dataSourcesApi";
-import type { DataSource, DataSourceCapabilities, DataSourceTemplate } from "../dataSourceTypes";
+import type { DataSource, DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../dataSourceTypes";
 import { useDeviceFormFields } from "../useDeviceFormFields";
 import { AltDeviceForm, isAltDeviceFormValid } from "./AltDeviceForm";
 import { AltDevicePicker } from "./AltDevicePicker";
@@ -17,11 +17,13 @@ import { AltDevicePicker } from "./AltDevicePicker";
 export function AltAddDeviceFlow({
   mode,
   capabilities,
+  hostCapabilities,
   onClose,
   onCreated,
 }: {
   mode: "input" | "output" | null;
   capabilities: DataSourceCapabilities | null;
+  hostCapabilities?: HostCapability[];
   onClose: () => void;
   onCreated: (source: DataSource) => void;
 }) {
@@ -112,7 +114,7 @@ export function AltAddDeviceFlow({
         </Button>
       }
     >
-      <AltDevicePicker mode={mode} capabilities={capabilities} onSelect={selectTemplate} />
+      <AltDevicePicker mode={mode} capabilities={capabilities} hostCapabilities={hostCapabilities} onSelect={selectTemplate} />
     </Modal>
   );
 }

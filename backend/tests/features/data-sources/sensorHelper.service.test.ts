@@ -39,7 +39,7 @@ describe("getSensorHelperCapability", () => {
   it("reports disabled without calling the helper when sensors are off", async () => {
     envMock.sensorsEnabled = false;
     const result = await getSensorHelperCapability();
-    assert.deepEqual(result, { enabled: false, available: false, reason: "Sensor support is disabled. Set ENABLE_SENSORS=true and restart the app." });
+    assert.deepEqual(result, { enabled: false, available: false, reason: "I2C sensor support is disabled. Enable it from Devices -> Hardware support." });
     assert.equal(fetchMock.mock.calls.length, 0);
   });
 
@@ -73,7 +73,7 @@ describe("readBmeSensorSource", () => {
     envMock.sensorsEnabled = false;
     await assert.rejects(
       readBmeSensorSource({ sensor: "bme280", bus: 1, address: "0x76" }),
-      /Sensor support is disabled/
+      /I2C sensor support is disabled/
     );
   });
 

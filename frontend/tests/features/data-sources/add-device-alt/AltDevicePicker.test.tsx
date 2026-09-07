@@ -2,11 +2,18 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AltDevicePicker } from "../../../../src/features/data-sources/add-device-alt/AltDevicePicker";
-import type { DataSourceCapabilities } from "../../../../src/features/data-sources/dataSourceTypes";
+import type { DataSourceCapabilities, HostCapability } from "../../../../src/features/data-sources/dataSourceTypes";
+
+const enabledHostCapabilities: HostCapability[] = [
+  { name: "camera", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "gpio", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "sensors", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "mqtt", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+];
 
 describe("AltDevicePicker", () => {
   it("renders one card per manual input device option, excluding guided-only templates", () => {
-    render(<AltDevicePicker mode="input" capabilities={null} onSelect={vi.fn()} />);
+    render(<AltDevicePicker mode="input" capabilities={null} hostCapabilities={enabledHostCapabilities} onSelect={vi.fn()} />);
     expect(screen.getByRole("heading", { name: "HTTP JSON Source" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "I2C Environmental Sensor" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "ESP32 MQTT Board" })).not.toBeInTheDocument();
@@ -16,7 +23,7 @@ describe("AltDevicePicker", () => {
   });
 
   it("renders output options with 'Add output' actions", () => {
-    render(<AltDevicePicker mode="output" capabilities={null} onSelect={vi.fn()} />);
+    render(<AltDevicePicker mode="output" capabilities={null} hostCapabilities={enabledHostCapabilities} onSelect={vi.fn()} />);
     expect(screen.getByRole("heading", { name: "GPIO LED" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "HTTP JSON Target" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "MQTT Publisher" })).toBeInTheDocument();
@@ -30,7 +37,7 @@ describe("AltDevicePicker", () => {
       gpioInput: { available: true, devicePath: "/dev/gpiochip0", reason: null },
       mqttBroker: { enabled: true, internalUrl: "mqtt://mqtt:1883", publicHost: "pi.local", publicPort: 1883 },
     };
-    render(<AltDevicePicker mode="output" capabilities={capabilities} onSelect={onSelect} />);
+    render(<AltDevicePicker mode="output" capabilities={capabilities} hostCapabilities={enabledHostCapabilities} onSelect={onSelect} />);
 
     await user.click(screen.getAllByRole("button", { name: "Add output" })[0]);
     // Order: GPIO LED (button clicked is the first "Add output" -> GPIO LED, no broker resolution).

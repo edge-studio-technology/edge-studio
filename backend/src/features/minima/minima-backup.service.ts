@@ -31,7 +31,7 @@ export async function verifyCurrentPassword(userId: string | undefined, currentP
 // (`${MINIMA_DATA_DIR:-./minima}/backups:/minima-backups`), mirroring the hardcoded
 // /home/minima/data constant in minima.docker.ts. Relative to the minima container's own
 // data dir this is `backups/`, which is the path used in RPC commands below.
-const backupsRoot = "/minima-backups";
+const backupsRoot = path.resolve("/minima-backups");
 const autoBackupSetting = "minima_auto_backup_enabled";
 const backupPasswordSetting = "minima_backup_password_enc";
 

@@ -1,4 +1,4 @@
-import { Activity, Cable, Inbox, Play, Plus } from "lucide-react";
+import { Cable, Inbox, Play, Plus } from "lucide-react";
 import { useState } from "react";
 import {
   DataTable,
@@ -25,12 +25,11 @@ import { LoadingState } from "../../components/patterns/LoadingState";
 import { Button } from "../../components/ui/Button";
 import { Disclosure } from "../../components/ui/Disclosure";
 import { Pill } from "../../components/ui/Pill";
-import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatLocalDateTime } from "../../lib/time";
-import type { DataSource, DataSourceHealthStatus } from "./dataSourceTypes";
+import type { DataSource, DataSourceCapabilities, HostCapability } from "./dataSourceTypes";
 import { hasDeviceSetupGuide } from "./deviceSetupGuides";
-import { HealthErrorPanel } from "./HealthErrorPanel";
+import { fallbackCapabilityState, hostCapabilityForDevice } from "./hardwareCapabilities";
 
 const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
   value: String(size),
@@ -46,7 +45,8 @@ const DIRECTION_FILTER_OPTIONS = [
 
 export function DataSourcesList({
   items,
-  healthStatuses,
+  capabilities,
+  hostCapabilities = [],
   busy,
   loading = false,
   onRead,
@@ -58,7 +58,8 @@ export function DataSourcesList({
   onAddOutput,
 }: {
   items: DataSource[];
-  healthStatuses: Record<string, DataSourceHealthStatus>;
+  capabilities: DataSourceCapabilities | null;
+  hostCapabilities?: HostCapability[];
   busy: boolean;
   loading?: boolean;
   onRead: (source: DataSource) => void;
@@ -164,14 +165,11 @@ export function DataSourcesList({
         <TableWrap>
           <DataTable className="table-fixed">
             <TableHead>
-              <TableHeaderCell className="w-52">Name</TableHeaderCell>
-              <TableHeaderCell className="w-28">Direction</TableHeaderCell>
-              <TableHeaderCell className="w-56">Type</TableHeaderCell>
-              <TableHeaderCell className="w-72">Endpoint</TableHeaderCell>
-              <TableHeaderCell className="w-40">Health</TableHeaderCell>
-              <TableHeaderCell className="w-40">Last hash</TableHeaderCell>
-              <TableHeaderCell className="w-36">Last preview</TableHeaderCell>
-              <TableHeaderCell className="w-28">Actions</TableHeaderCell>
+              <TableHeaderCell className="w-[34%]">Name</TableHeaderCell>
+              <TableHeaderCell className="w-[38%]">Details</TableHeaderCell>
+              <TableHeaderCell className="w-32">Status</TableHeaderCell>
+              <TableHeaderCell className="w-32">Last activity</TableHeaderCell>
+              <TableHeaderCell className="w-24 whitespace-nowrap">Actions</TableHeaderCell>
             </TableHead>
             <TableBody>
               {pagedItems.map((source) => {
@@ -180,45 +178,46 @@ export function DataSourcesList({
                   usedByWorkflows.length > 0
                     ? `Used by workflow: ${usedByWorkflows.map((workflow) => workflow.name).join(", ")}`
                     : "Delete device";
+                const disabledHardwareReason = unavailableHardwareReason(source, capabilities, hostCapabilities);
                 const typeLabel = sourceTypeLabel(source);
                 const endpoint = sourceEndpoint(source);
                 return (
                   <TableRow key={source.id}>
-                    <TableCell className="min-w-0">
+                    <TableCell className="min-w-0 whitespace-normal">
                       <span className="type-body-em block truncate" title={source.name}>
                         {source.name}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-text-secondary">{sourceDirection(source)}</TableCell>
-                    <TableCell className="min-w-0">
-                      <span className="text-text-secondary block truncate" title={typeLabel}>
-                        {typeLabel}
-                      </span>
-                    </TableCell>
-                    <TableCell className="min-w-0">
-                      <code className="type-mono block truncate" title={endpoint}>
-                        {endpoint}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      <HealthCell source={source} status={healthStatuses[source.id]} />
-                    </TableCell>
-                    <TableCell>
-                      {source.lastHash ? (
-                        <TruncatedHash value={source.lastHash} />
-                      ) : (
-                        <span className="text-text-secondary">Not read yet</span>
+                      {source.description && (
+                        <p className="type-meta text-text-secondary mt-detail-next m-0 truncate" title={source.description}>
+                          {source.description}
+                        </p>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <LastPreviewCell source={source} />
+                    <TableCell className="min-w-0 whitespace-normal">
+                      <span className="type-body-em text-text-primary block truncate" title={typeLabel}>
+                        {typeLabel}
+                      </span>
+                      <p className="type-meta text-text-secondary mt-detail-next m-0 truncate" title={`${sourceDirection(source)} · ${endpoint}`}>
+                        {sourceDirection(source)} · <code className="type-mono">{endpoint}</code>
+                      </p>
                     </TableCell>
                     <TableCell>
+                      <StatusCell
+                        source={source}
+                        capabilities={capabilities}
+                        hostCapabilities={hostCapabilities}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <LastActivityCell source={source} />
+                    </TableCell>
+                    <TableCell className="w-24 whitespace-nowrap">
                       <RowActions>
                         <TableIconButton
                           type="button"
                           disabled={
                             busy ||
+                            Boolean(disabledHardwareReason) ||
                             source.type === "webhook" ||
                             source.type === "mqtt" ||
                             source.type === "gpio-input" ||
@@ -227,7 +226,7 @@ export function DataSourcesList({
                             source.type === "http-output" ||
                             source.type === "mqtt-output"
                           }
-                          title="Trigger manually"
+                          title={disabledHardwareReason ?? "Trigger manually"}
                           aria-label={`Trigger ${source.name} manually`}
                           onClick={() => onRead(source)}
                         >
@@ -243,7 +242,8 @@ export function DataSourcesList({
                                   {
                                     label:
                                       source.type === "gpio-output" ? "Test pulse" : "Test output",
-                                    disabled: busy,
+                                    disabled: busy || Boolean(disabledHardwareReason),
+                                    title: disabledHardwareReason ?? undefined,
                                     onClick: () => onTestOutput(source),
                                   },
                                 ]
@@ -303,7 +303,8 @@ export function DataSourcesList({
       {detailsSource && (
         <DeviceDetailsModal
           source={detailsSource}
-          status={healthStatuses[detailsSource.id]}
+          capabilities={capabilities}
+          hostCapabilities={hostCapabilities}
           onClose={() => setDetailsSource(null)}
         />
       )}
@@ -385,37 +386,65 @@ function sourceEndpoint(source: DataSource) {
   return source.config.url;
 }
 
-function supportsHealthCheck(source: DataSource) {
-  return (
-    source.type !== "bme-sensor" &&
-    source.type !== "webhook" &&
-    source.type !== "mqtt" &&
-    source.type !== "gpio-input" &&
-    source.type !== "gpio-output" &&
-    source.type !== "pi-camera" &&
-    source.type !== "device-system-data" &&
-    source.type !== "http-output" &&
-    source.type !== "mqtt-output" &&
-    Boolean(source.config.healthStatusUrl)
-  );
-}
+function StatusCell({
+  source,
+  capabilities,
+  hostCapabilities,
+}: {
+  source: DataSource;
+  capabilities: DataSourceCapabilities | null;
+  hostCapabilities: HostCapability[];
+}) {
+  const hostCapability = hostCapabilityForDevice(source, hostCapabilities);
+  const fallback = fallbackCapabilityState(source, capabilities);
+  const capabilityState = hostCapability
+    ? { enabled: hostCapability.enabled, available: hostCapability.available, reason: hostCapability.reason }
+    : fallback;
 
-function HealthCell({ source, status }: { source: DataSource; status?: DataSourceHealthStatus }) {
-  if (!supportsHealthCheck(source) || !status)
+  if (capabilityState && !capabilityState.enabled)
     return (
       <Pill tone="neutral" indicator>
-        Not configured
+        Disabled
+      </Pill>
+    );
+  if (capabilityState && !capabilityState.available)
+    return (
+      <Pill tone="warn" indicator>
+        Needs attention
+      </Pill>
+    );
+
+  if (source.lastError)
+    return (
+      <Pill tone="error" indicator>
+        Failed
       </Pill>
     );
 
   return (
-    <Pill tone={status.ok ? "good" : "error"} indicator>
-      {status.ok ? "Success" : "Failed"}
+    <Pill tone="good" indicator>
+      Enabled
     </Pill>
   );
 }
 
-function LastPreviewCell({ source }: { source: DataSource }) {
+function unavailableHardwareReason(
+  source: DataSource,
+  capabilities: DataSourceCapabilities | null,
+  hostCapabilities: HostCapability[],
+) {
+  const hostCapability = hostCapabilityForDevice(source, hostCapabilities);
+  const fallback = fallbackCapabilityState(source, capabilities);
+  const capabilityState = hostCapability
+    ? { enabled: hostCapability.enabled, available: hostCapability.available, reason: hostCapability.reason }
+    : fallback;
+  if (!capabilityState) return null;
+  if (!capabilityState.enabled) return capabilityState.reason ?? "Required hardware support is disabled.";
+  if (!capabilityState.available) return capabilityState.reason ?? "Required hardware support needs attention.";
+  return null;
+}
+
+function LastActivityCell({ source }: { source: DataSource }) {
   if (source.lastPreview)
     return (
       <Pill tone="good" indicator>
@@ -430,18 +459,20 @@ function LastPreviewCell({ source }: { source: DataSource }) {
     );
   return (
     <Pill tone="neutral" indicator>
-      No preview
+      No activity
     </Pill>
   );
 }
 
 function DeviceDetailsModal({
   source,
-  status,
+  capabilities,
+  hostCapabilities,
   onClose,
 }: {
   source: DataSource;
-  status?: DataSourceHealthStatus;
+  capabilities: DataSourceCapabilities | null;
+  hostCapabilities: HostCapability[];
   onClose: () => void;
 }) {
   return (
@@ -469,37 +500,25 @@ function DeviceDetailsModal({
           <Disclosure
             title={
               <span className="flex items-center gap-2">
-                Health
-                <HealthCell source={source} status={status} />
+                Status
+                <StatusCell
+                  source={source}
+                  capabilities={capabilities}
+                  hostCapabilities={hostCapabilities}
+                />
               </span>
             }
           >
-            {status && !status.ok ? (
-              <HealthErrorPanel status={status} />
-            ) : (
-              <div className="gap-detail-near grid">
-                {status?.checkedAt && (
-                  <DetailList>
-                    <DetailRow label="Checked at" value={formatLocalDateTime(status.checkedAt)} />
-                  </DetailList>
-                )}
-                {status?.body !== undefined ? (
-                  <JsonPreviewContent value={status.body} />
-                ) : (
-                  <EmptyContentState
-                    icon={Activity}
-                    title="No health data"
-                    description="Add a health status URL to this device to monitor its availability here."
-                  />
-                )}
-              </div>
-            )}
+            <DetailList>
+              <DetailRow label="Current status" value={<StatusCell source={source} capabilities={capabilities} hostCapabilities={hostCapabilities} />} />
+              {source.lastError && <DetailRow label="Last error" value={source.lastError} />}
+            </DetailList>
           </Disclosure>
           <Disclosure
             title={
               <span className="flex items-center gap-2">
-                Last preview
-                <LastPreviewCell source={source} />
+                Last activity
+                <LastActivityCell source={source} />
               </span>
             }
           >
@@ -524,8 +543,8 @@ function DeviceDetailsModal({
             ) : (
               <EmptyContentState
                 icon={Inbox}
-                title="No preview"
-                description="Trigger a manual read, or wait for the next scheduled run, to see a preview here."
+                    title="No activity"
+                    description="Trigger a manual read, test an output, or wait for a workflow run to see activity here."
               />
             )}
           </Disclosure>

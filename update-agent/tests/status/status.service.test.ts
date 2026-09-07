@@ -21,6 +21,7 @@ function manifest(overrides: Partial<Manifest> = {}): Manifest {
     frontend: "sha256:frontend-new",
     backend: "sha256:backend-new",
     updateAgent: "sha256:update-agent-new",
+    hostRuntime: { url: "https://example.com/edge-studio-host-runtime.tar.gz", sha256: "a".repeat(64) },
     version: "1.2.3",
     createdAt: "2026-08-01T00:00:00.000Z",
     ...overrides
@@ -58,7 +59,8 @@ describe("status.service", () => {
       assert.deepEqual(result.services, [
         { service: "frontend", currentImage: "sha256:frontend-new", targetImage: "sha256:frontend-new", upToDate: true },
         { service: "backend", currentImage: "sha256:backend-new", targetImage: "sha256:backend-new", upToDate: true },
-        { service: "update-agent", currentImage: "sha256:update-agent-new", targetImage: "sha256:update-agent-new", upToDate: true }
+        { service: "update-agent", currentImage: "sha256:update-agent-new", targetImage: "sha256:update-agent-new", upToDate: true },
+        { service: "host-runtime", currentImage: "version:1.0.0", targetImage: "version:1.2.3", upToDate: false }
       ]);
     });
 
@@ -82,7 +84,7 @@ describe("status.service", () => {
 
       const result = await getUpdateStatus();
 
-      for (const status of result.services) {
+      for (const status of result.services.filter((service) => service.service !== "host-runtime")) {
         assert.equal(status.currentImage, null);
         assert.equal(status.upToDate, false);
       }

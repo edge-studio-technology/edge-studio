@@ -3,15 +3,21 @@ import {
   Cpu,
   Globe2,
   Lightbulb,
+  Settings2,
   Radio,
   ShieldAlert,
   ThermometerSun,
   Webhook,
 } from "lucide-react";
+import { useState } from "react";
+import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { Modal } from "../../components/Modal";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { CopyField } from "../../components/patterns/CopyField";
 import { Pill } from "../../components/Pill";
-import type { DataSourceCapabilities, DataSourceTemplate } from "./dataSourceTypes";
+import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "./dataSourceTypes";
+import { isTemplateActiveByCapability } from "./hardwareCapabilities";
 
 export const inputTemplates: DataSourceTemplate[] = [
   {
@@ -91,7 +97,7 @@ export const inputTemplates: DataSourceTemplate[] = [
   },
   {
     title: "BME680 Environmental Sensor",
-    description: "Read temperature, humidity, and air pressure from a BME680 I2C module",
+    description: "Read temperature, humidity, air pressure, and gas resistance from a BME680 I2C module",
     type: "bme-sensor",
     config: { sensor: "bme680", bus: 1, address: "0x76" },
   },
@@ -183,31 +189,96 @@ export function resolveTemplateConfig(
   return { ...template.config, brokerUrl };
 }
 
+export function activeInputTemplates(
+  capabilities: DataSourceCapabilities | null,
+  hostCapabilities: HostCapability[] = [],
+) {
+  return inputTemplates.filter((template) => isTemplateActive(template, capabilities, hostCapabilities));
+}
+
+export function activeOutputTemplates(
+  capabilities: DataSourceCapabilities | null,
+  hostCapabilities: HostCapability[] = [],
+) {
+  return outputTemplates.filter((template) => isTemplateActive(template, capabilities, hostCapabilities));
+}
+
+function isTemplateActive(
+  template: DataSourceTemplate,
+  capabilities: DataSourceCapabilities | null,
+  hostCapabilities: HostCapability[],
+) {
+  return isTemplateActiveByCapability(template, capabilities, hostCapabilities);
+}
+
 export function LocalServicesCard({
   capabilities,
+  hostCapabilities = [],
+  busy = false,
+  onEnableCamera,
+  onDisableCamera,
+  onEnableGpio,
+  onDisableGpio,
+  onEnableSensors,
+  onDisableSensors,
+  onEnableMqtt,
+  onDisableMqtt,
+  onRefreshHardware,
 }: {
   capabilities: DataSourceCapabilities | null;
+  hostCapabilities?: HostCapability[];
+  busy?: boolean;
+  onEnableCamera?: () => Promise<void>;
+  onDisableCamera?: () => Promise<void>;
+  onEnableGpio?: () => Promise<void>;
+  onDisableGpio?: () => Promise<void>;
+  onEnableSensors?: () => Promise<void>;
+  onDisableSensors?: () => Promise<void>;
+  onEnableMqtt?: () => Promise<void>;
+  onDisableMqtt?: () => Promise<void>;
+  onRefreshHardware?: () => Promise<void>;
 }) {
+  const [managerOpen, setManagerOpen] = useState(false);
   const broker = capabilities?.mqttBroker;
+  const camera = hostCapabilities.find((capability) => capability.name === "camera");
+  const gpio = hostCapabilities.find((capability) => capability.name === "gpio");
+  const sensors = hostCapabilities.find((capability) => capability.name === "sensors");
+  const mqtt = hostCapabilities.find((capability) => capability.name === "mqtt");
   const browserHost = typeof window === "undefined" ? "<pi-host-or-ip>" : window.location.hostname;
   const publicHost = broker?.publicHost || browserHost || "<pi-host-or-ip>";
-  const publicPort = broker?.publicPort ?? 1883;
+  const publicPort = mqtt?.publicPort ?? broker?.publicPort ?? 1883;
   const lanUrl = `mqtt://${publicHost}:${publicPort}`;
-  const internalUrl = broker?.internalUrl ?? "mqtt://mqtt:1883";
+  const internalUrl = mqtt?.internalUrl ?? broker?.internalUrl ?? "mqtt://mqtt:1883";
+  const anyEnabled = Boolean(camera?.enabled || gpio?.enabled || sensors?.enabled || mqtt?.enabled || broker?.enabled);
 
   return (
     <Card className="gap-detail-near grid w-full">
       <div>
-        <div className="gap-detail-close flex flex-wrap items-center">
-          <h2 className="type-title text-text-primary m-0">Local services</h2>
-          <Pill tone={broker?.enabled ? "good" : "neutral"} indicator>
-            {broker?.enabled ? "Enabled" : "Disabled"}
-          </Pill>
+        <div className="gap-detail-close flex flex-wrap items-center justify-between">
+          <div className="gap-detail-close flex flex-wrap items-center">
+            <h2 className="type-title text-text-primary m-0">Hardware support</h2>
+            <Pill tone={anyEnabled ? "good" : "neutral"} indicator>
+              {anyEnabled ? "Some enabled" : "Disabled"}
+            </Pill>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            iconStart={<Settings2 aria-hidden />}
+            onClick={() => setManagerOpen(true)}
+          >
+            Enable / disable hardware
+          </Button>
         </div>
         <p className="type-body text-text-secondary mt-detail-next m-0">
-          Connection details for the local MQTT broker, so devices can connect directly to this Pi
-          without a separate broker.
+          Host-backed hardware and local services available to device workflows on this Pi.
         </p>
+      </div>
+      <div className="gap-detail-close grid md:grid-cols-2">
+        <HardwareStatus label="Camera" capability={camera} fallback="Camera support is disabled. Enable it from Devices -> Hardware support." />
+        <HardwareStatus label="I2C sensors" capability={sensors} fallback="I2C sensor support is disabled. Enable it from Devices -> Hardware support." />
+        <HardwareStatus label="GPIO" capability={gpio} fallback="GPIO support is disabled. Enable it from Devices -> Hardware support." />
+        <HardwareStatus label="Local MQTT broker" capability={mqtt} fallback="Local MQTT broker is disabled. Enable it from Devices -> Hardware support." />
       </div>
       <div className="gap-detail-close grid md:grid-cols-2">
         <CopyField
@@ -223,12 +294,226 @@ export function LocalServicesCard({
       </div>
       {!broker?.enabled && (
         <div>
-          <p className="type-meta text-text-tertiary m-0">Enable with</p>
+          <p className="type-meta text-text-tertiary m-0">Advanced install shortcut</p>
           <p className="type-body text-text-secondary mt-detail-tight m-0">
             <code>ENABLE_MQTT_BROKER=true</code> and the Docker Compose MQTT profile.
           </p>
         </div>
       )}
+      {managerOpen && (
+        <Modal title="Enable / disable hardware" onClose={() => setManagerOpen(false)}>
+          <div className="gap-detail-near grid">
+            <div className="gap-detail-close flex flex-wrap items-center justify-between">
+              <p className="type-body text-text-secondary m-0">
+                Enable, repair, or disable app-managed hardware support on this Pi.
+              </p>
+              <Button type="button" variant="secondary" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
+                Refresh hardware status
+              </Button>
+            </div>
+            <HardwareActionRow
+              title="Raspberry Pi Camera"
+              description="Install or disable the host camera helper used by camera capture workflows."
+              capability={camera}
+              busy={busy}
+              onEnable={onEnableCamera}
+              onDisable={onDisableCamera}
+              onRefreshHardware={onRefreshHardware}
+            />
+            <HardwareActionRow
+              title="GPIO"
+              description="Grant the backend container access to /dev/gpiochip0 for GPIO input and output workflows."
+              capability={gpio}
+              busy={busy}
+              onEnable={onEnableGpio}
+              onDisable={onDisableGpio}
+              onRefreshHardware={onRefreshHardware}
+            />
+            <HardwareActionRow
+              title="Local MQTT broker"
+              description="Enable or stop the app-managed Mosquitto broker for local MQTT devices."
+              capability={mqtt}
+              busy={busy}
+              onEnable={onEnableMqtt}
+              onDisable={onDisableMqtt}
+              onRefreshHardware={onRefreshHardware}
+            />
+            <HardwareActionRow
+              title="I2C sensors"
+              description="Install or disable the host sensor helper used by BME280/BME680 I2C sensor reads."
+              capability={sensors}
+              busy={busy}
+              onEnable={onEnableSensors}
+              onDisable={onDisableSensors}
+              onRefreshHardware={onRefreshHardware}
+            />
+            <ErrorAlert status="warning" className="max-w-none">
+              Optional hardware starts disabled by default. Host-agent actions update Edge Studio service configuration only. Prerequisite commands shown here assume Raspberry Pi OS or another Debian-based Pi image.
+            </ErrorAlert>
+          </div>
+        </Modal>
+      )}
     </Card>
   );
 }
+
+function HardwareStatus({
+  label,
+  capability,
+  enabled,
+  available,
+  reason,
+  fallback,
+}: {
+  label: string;
+  capability?: HostCapability;
+  enabled?: boolean;
+  available?: boolean;
+  reason?: string | null;
+  fallback?: string;
+}) {
+  const isEnabled = capability?.enabled ?? enabled ?? false;
+  const isAvailable = capability?.available ?? available ?? false;
+  return (
+    <div className="border-border-subtle rounded-card-inner gap-detail-tight grid border p-pad-tight">
+      <div className="gap-detail-close flex items-center justify-between">
+        <p className="type-body-em text-text-primary m-0">{label}</p>
+        <Pill tone={isAvailable ? "good" : isEnabled ? "warn" : "neutral"} indicator>
+          {capability?.state === "missing_prerequisites"
+            ? "Missing prerequisites"
+            : isAvailable
+              ? "Available"
+              : isEnabled
+                ? "Needs attention"
+                : "Disabled"}
+        </Pill>
+      </div>
+      <p className="type-meta text-text-tertiary m-0">
+        {isAvailable ? "Ready for device workflows." : capability?.reason ?? reason ?? fallback}
+      </p>
+    </div>
+  );
+}
+
+function HardwareActionRow({
+  title,
+  description,
+  capability,
+  busy,
+  onEnable,
+  onDisable,
+  onRefreshHardware,
+}: {
+  title: string;
+  description: string;
+  capability?: HostCapability;
+  busy: boolean;
+  onEnable?: () => Promise<void>;
+  onDisable?: () => Promise<void>;
+  onRefreshHardware?: () => Promise<void>;
+}) {
+  const enabled = capability?.enabled ?? false;
+  const available = capability?.available ?? false;
+  const needsRepair = enabled && !available;
+  const missingPrerequisites = capability?.state === "missing_prerequisites";
+  const actionLabel = needsRepair ? "Repair" : enabled ? "Disable" : "Enable";
+  const action = needsRepair || !enabled ? onEnable : onDisable;
+  return (
+    <div className="border-border-subtle rounded-card-inner gap-detail-close grid border p-pad-tight">
+      <div className="gap-detail-close flex flex-wrap items-center justify-between">
+        <div>
+          <p className="type-body-em text-text-primary m-0">{title}</p>
+          <p className="type-body text-text-secondary mt-detail-tight m-0">{description}</p>
+        </div>
+        <Button
+          type="button"
+          variant={enabled ? "secondary" : "primary"}
+          disabled={busy || missingPrerequisites || !action}
+          onClick={() => void action?.()}
+        >
+          {actionLabel}
+        </Button>
+      </div>
+      {capability?.reason && <p className="type-meta text-text-tertiary m-0">{capability.reason}</p>}
+      <HardwarePrerequisites capability={capability} busy={busy} onRefreshHardware={onRefreshHardware} />
+    </div>
+  );
+}
+
+function HardwarePrerequisites({ capability, busy, onRefreshHardware }: { capability?: HostCapability; busy: boolean; onRefreshHardware?: () => Promise<void> }) {
+  if (!capability) return null;
+  const guidance = capability ? prerequisiteGuidance[capability.name] : null;
+  if (!guidance) return null;
+  const isBlocking = capability.state === "missing_prerequisites";
+  if (!isBlocking) return null;
+  return (
+    <div className="border-border-subtle bg-surface-subtle rounded-card-inner gap-detail-tight grid border p-pad-tight">
+      <div className="gap-detail-close flex flex-wrap items-center justify-between">
+        <p className="type-body-em text-text-primary m-0">Prerequisites for Raspberry Pi OS</p>
+        <Pill tone="warn">Action needed</Pill>
+      </div>
+      <p className="type-meta text-text-tertiary m-0">
+        Edge Studio manages its own helper services and app configuration in this version. Raspberry Pi OS interfaces and packages must be enabled on the host first.
+      </p>
+      <p className="type-meta text-text-tertiary m-0">
+        These steps assume Raspberry Pi OS or another Debian-based Pi image. Other Linux distributions may use different package names or setup tools.
+      </p>
+      <div className="gap-detail-tight grid">
+        {guidance.map((item) => (
+          <CopyField key={item.label} label={item.label} value={item.command} description={item.description} />
+        ))}
+      </div>
+      <Button type="button" variant="secondary" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
+        I have completed this, refresh now
+      </Button>
+    </div>
+  );
+}
+
+type PrerequisiteCommand = { label: string; command: string; description: string };
+
+const prerequisiteGuidance: Partial<Record<HostCapability["name"], PrerequisiteCommand[]>> = {
+  camera: [
+    {
+      label: "Install camera tools",
+      command: "sudo apt-get update\nsudo apt-get install -y rpicam-apps",
+      description: "Run on the Pi host if rpicam-still or libcamera-still is missing.",
+    },
+    {
+      label: "Check camera detection",
+      command: "rpicam-still --list-cameras",
+      description: "Run after connecting and enabling the camera hardware.",
+    },
+  ],
+  gpio: [
+    {
+      label: "Check GPIO device",
+      command: "ls -l /dev/gpiochip0",
+      description: "GPIO support requires this host device to exist on the Pi.",
+    },
+  ],
+  sensors: [
+    {
+      label: "Enable I2C interface",
+      command: "sudo raspi-config",
+      description: "Open Interface Options -> I2C -> Enable, then reboot if prompted.",
+    },
+    {
+      label: "Install I2C tools",
+      command: "sudo apt-get update\nsudo apt-get install -y python3-smbus i2c-tools",
+      description: "Run if Python SMBus support or I2C tools are missing.",
+    },
+    {
+      label: "Check I2C device",
+      command: "ls -l /dev/i2c-1",
+      description: "Run after enabling I2C and rebooting the Pi.",
+    },
+  ],
+  mqtt: [
+    {
+      label: "Check Compose services",
+      command: "cd /opt/edge-studio\ndocker compose config --services\ndocker compose ps mqtt",
+      description: "Run if Docker Compose or the local mqtt service is not available.",
+    },
+  ],
+};

@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, it } from "vitest";
 let rootDir: string;
 let outsideDir: string;
 let service: typeof import("../../../src/features/files/files.service.js");
+let symlinksCreated = false;
 
 beforeAll(async () => {
   rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "files-service-root-"));
@@ -18,8 +19,13 @@ beforeAll(async () => {
   fs.mkdirSync(path.join(rootDir, "a-dir"));
   fs.mkdirSync(path.join(rootDir, "z-dir"));
   fs.writeFileSync(path.join(rootDir, "a-dir", "nested.txt"), "x");
-  fs.symlinkSync(outsideDir, path.join(rootDir, "escape-link"), "dir");
-  fs.symlinkSync(path.join(rootDir, "a-dir"), path.join(rootDir, "inside-link"), "dir");
+  try {
+    fs.symlinkSync(outsideDir, path.join(rootDir, "escape-link"), "dir");
+    fs.symlinkSync(path.join(rootDir, "a-dir"), path.join(rootDir, "inside-link"), "dir");
+    symlinksCreated = true;
+  } catch (error) {
+    if (process.platform !== "win32") throw error;
+  }
 
   service = await import("../../../src/features/files/files.service.js");
 });
@@ -34,14 +40,17 @@ describe("listFiles", () => {
   it("lists the root directory with directories before files before other entries, alphabetically within each group", async () => {
     const result = await service.listFiles("/");
     assert.equal(result.path, "/");
-    assert.deepEqual(result.items.map((item) => [item.name, item.type]), [
+    const expected = [
       ["a-dir", "directory"],
       ["z-dir", "directory"],
       ["a-file.txt", "file"],
-      ["b-file.txt", "file"],
+      ["b-file.txt", "file"]
+    ];
+    if (symlinksCreated) expected.push(
       ["escape-link", "other"],
       ["inside-link", "other"]
-    ]);
+    );
+    assert.deepEqual(result.items.map((item) => [item.name, item.type]), expected);
   });
 
   it("includes file sizes but not directory sizes", async () => {
@@ -71,6 +80,7 @@ describe("listFiles", () => {
   });
 
   it("rejects a symlink that resolves outside the root", async () => {
+    if (!symlinksCreated) return;
     await assert.rejects(
       () => service.listFiles("/escape-link"),
       (error: NodeJS.ErrnoException) => error.code === "OUTSIDE_ROOT"
@@ -78,6 +88,7 @@ describe("listFiles", () => {
   });
 
   it("follows a symlink that resolves inside the root", async () => {
+    if (!symlinksCreated) return;
     const result = await service.listFiles("/inside-link");
     assert.deepEqual(result.items, [{ name: "nested.txt", type: "file", size: 1 }]);
   });
