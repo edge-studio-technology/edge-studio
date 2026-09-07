@@ -504,6 +504,11 @@ const prerequisiteGuidance: Partial<Record<HostCapability["name"], PrerequisiteC
       description: "Run if Python SMBus support or I2C tools are missing.",
     },
     {
+      label: "Reboot the Pi",
+      command: "sudo reboot",
+      description: "Run after enabling I2C if /dev/i2c-1 is still missing or raspi-config prompts for a reboot.",
+    },
+    {
       label: "Check I2C device",
       command: "ls -l /dev/i2c-1",
       description: "Run after enabling I2C and rebooting the Pi.",

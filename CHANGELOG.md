@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added `HOST_CAPABILITY_DEBUG=true` for secret-safe Hardware support diagnostics in backend and host-agent logs.
 - BME680 sensor reads now include gas resistance as `gasResistanceOhms` alongside temperature, humidity, and pressure.
 - Added signed-manifest host runtime update delivery for host-agent, camera helper, sensor helper, and Mosquitto config files.
+- Added audit events for admin hardware enable/disable actions with capability name and resulting state.
 
 ### Changed
 
@@ -29,16 +30,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Removed the HTTP health status URL field and device health-check endpoint from data-source management.
 - Devices list now uses compact Name, Details, Status, Last activity, and Actions columns.
 - Hardware support status now reports more precise diagnostics for helper services, host devices, Compose state, and container readiness.
+- Hardware support now shows missing OS/hardware prerequisites as `Action required` before enablement, keeps `Disable` available for already-enabled capabilities with missing prerequisites, and includes a reboot step in I2C guidance.
+- First-time local MQTT broker enablement now allows a longer restart/status wait to avoid false failure toasts while Docker creates the broker container and recreates backend.
 - Update manifests now require a `hostRuntime` artifact URL and SHA-256 digest.
 
 ### Fixed
 
 - GPIO watcher startup is skipped while GPIO support is disabled or unavailable, avoiding false device failures when toggling GPIO hardware support.
 - Disabled hardware workflow/device messages now point operators to Devices -> Hardware support instead of legacy `ENABLE_*` restart instructions.
+- Login now explains likely Edge Studio restart/session expiry after a Pi reboot instead of leaving users with only an `Unauthorized` refresh error.
 
 ### Security
 
 - Documented the host-agent privilege boundary and token-protected backend-only access path.
+- Hardware action audit details avoid host-agent tokens and full runtime configuration values.
 
 ## [0.40.0] 2026-09-03
 

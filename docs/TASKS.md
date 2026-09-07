@@ -16,7 +16,6 @@
 
 ## In Progress
 
-- [ ] Add privileged host-agent capability management so hardware support can be enabled from the app after install — real Pi regression complete; remaining status hardening, tests, update delivery, and audit trail work are tracked in `docs/plans/host-agent-capability-management.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.
@@ -25,7 +24,6 @@
 ## Next
 
 - [ ] Address the production-behavior gaps from the high-risk unit-test audit on a separate branch — see `docs/plans/high-risk-business-logic-hardening.md`.
-- [ ] Add privileged host-agent capability management so camera support can be enabled from the app after install — see `docs/plans/host-agent-capability-management.md`.
 - [ ] On a real device or a local `install.sh` run, confirm end-to-end that `last-applied-manifest.json` gets written and a Feedback submission's `app.version` reflects it (see `docs/adr/0006-app-version-single-source-of-truth.md`).
 - [ ] Implement the hosted feedback receiver endpoint in the Integritas API repo — see `docs/plans/feedback.md` Step 8.
 - [ ] Manual browser check of the rebuilt Automation "Workflows" table (`AutomationWorkflowsList.tsx`): filter/search, pagination, pause/play, the overflow menu's six actions, and the delete flow now going through confirm → progress modal instead of deleting immediately.
@@ -69,6 +67,7 @@
 
 ## Done
 
+- [x] Added privileged host-agent capability management so Camera, GPIO, I2C sensors, and local MQTT broker support can be enabled/disabled from Devices -> Hardware support after install. Includes prerequisite guidance, retry-safe host-agent actions, signed host-runtime update delivery, workflow/device validation, audit events, and Pi regression fixes — see `docs/plans/host-agent-capability-management.md`.
 - [x] Closed the last 3 real gaps from an external unit-test checklist audit: `update-agent`'s `auth/auth.middleware.ts` request guard (now coverage-tracked, no longer excluded) and a new root-level Vitest harness (`vitest.scripts.config.mts`, `scripts/tests/release/`) covering `scripts/release/sign-manifest.mjs`/`build-manifest.mjs`, which previously had no test infrastructure at all. 4 other checklist items (`rate-limit.middleware.ts`, `integritas-validation.service.ts`, `upload.middleware.ts`, `health.routes.ts`) were confirmed to be config-only/dead-code/routes files with nothing to unit test, consistent with their existing coverage exclusions.
 - [x] Closed the TOTP unit-test gap on both sides of the app, all behind the disabled `TOTP_ENABLED` constant. Backend: `auth.service.ts` 39% → 100% lines, `features/auth` 73% → 99% (TOTP reset init/verify plus the gated `login`/`changePassword`/`completeSetup` branches). Frontend: the gated branches in `steps.ts`, `WelcomeStep`, `SidebarUserBox`, `ChangeCredentialPanel`, `ConnectIntegritasStep`, and `OnboardingWizard`'s two-factor step. Coverage floors raised (backend 94% lines, frontend 92%).
 - [x] Recorded a production bug found by those tests — `OnboardingWizard`'s QR-code effect retries `initTotp()` without limit when it fails — in `docs/plans/high-risk-business-logic-hardening.md`; unreachable until TOTP is re-enabled.

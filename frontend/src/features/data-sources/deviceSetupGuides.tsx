@@ -353,11 +353,11 @@ function bmeSensorGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_SENSORS=true so the host-side sensor helper is running.",
-          "Enable I2C on the Raspberry Pi host and reboot if needed.",
+          "Enable I2C sensors from Devices -> Hardware support so the host-side sensor helper is running.",
+          "Enable I2C on the Raspberry Pi host and reboot if /dev/i2c-1 is still missing.",
           ...(source.config.sensor === "bme680"
             ? [
-                "The installer installs the PyPI bme680 module in /opt/edge-studio/.venv-sensor-helper for BME680 reads.",
+                "Hardware support installs the PyPI bme680 module in /opt/edge-studio/.venv-sensor-helper for BME680 reads.",
               ]
             : []),
           "Use address 0x76 first, then try 0x77 if reads fail.",
@@ -464,7 +464,7 @@ function gpioInputGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_GPIO=true so /dev/gpiochip0 is available to the backend.",
+          "Enable GPIO from Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
           "Use BCM pin numbering, not physical header numbering.",
           "Never connect a GPIO input directly to 5V.",
         ],
@@ -501,7 +501,7 @@ function gpioButtonGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_GPIO=true so /dev/gpiochip0 is available to the backend.",
+          "Enable GPIO from Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
           "Use BCM pin numbering, not physical header numbering.",
           "Never connect a GPIO input directly to 5V.",
         ],
@@ -538,7 +538,7 @@ function pirGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_GPIO=true.",
+          "Enable GPIO from Devices -> Hardware support.",
           "Let the PIR sensor warm up for 60-90 seconds after power-on.",
           "Verify the module output voltage before connecting unknown clones to a Pi GPIO pin.",
         ],
@@ -574,7 +574,7 @@ function gpioLedGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_GPIO=true.",
+          "Enable GPIO from Devices -> Hardware support.",
           "Use a 220-330 ohm resistor in series with the LED.",
           "Never connect GPIO directly to 5V, motors, relays, or mains voltage.",
         ],
@@ -609,7 +609,7 @@ function piCameraGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_CAMERA=true so the host camera helper is running.",
+          "Enable Camera from Devices -> Hardware support so the host camera helper is running.",
           "Verify the Pi host can see the camera with rpicam-still --list-cameras or libcamera-still --list-cameras.",
           "Place the camera with consent and privacy in mind.",
         ],
