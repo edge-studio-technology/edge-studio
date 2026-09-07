@@ -103,10 +103,12 @@ describe("LocalServicesCard", () => {
 
     expect(screen.getByRole("dialog", { name: "Enable / disable hardware" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Disable" })).toHaveLength(4);
-    expect(screen.getAllByText("Prerequisites for Raspberry Pi OS").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Prerequisites for Raspberry Pi OS")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refresh hardware status" })).toBeInTheDocument();
   });
 
   it("disables a manager action when prerequisites are missing", async () => {
+    const onRefreshHardware = vi.fn().mockResolvedValue(undefined);
     const hostCapabilities: HostCapability[] = [
       {
         name: "camera",
@@ -117,13 +119,29 @@ describe("LocalServicesCard", () => {
         reason: "Camera tools are missing.",
       },
     ];
-    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} />);
+    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onRefreshHardware={onRefreshHardware} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
 
     expect(screen.getAllByRole("button", { name: "Enable" })[0]).toBeDisabled();
     expect(screen.getByText("Action needed")).toBeInTheDocument();
     expect(screen.getAllByText("Camera tools are missing.").length).toBeGreaterThan(0);
+    expect(screen.getByText("Install camera tools")).toBeInTheDocument();
+    expect(screen.getByText(/rpicam-still --list-cameras/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "I have completed this, refresh now" }));
+
+    expect(onRefreshHardware).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls the hardware refresh action from the manager header", async () => {
+    const onRefreshHardware = vi.fn().mockResolvedValue(undefined);
+    render(<LocalServicesCard capabilities={null} hostCapabilities={enabledHostCapabilities} onRefreshHardware={onRefreshHardware} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "Refresh hardware status" }));
+
+    expect(onRefreshHardware).toHaveBeenCalledTimes(1);
   });
 
   it("shows Repair for enabled unavailable capabilities and calls the enable action", async () => {

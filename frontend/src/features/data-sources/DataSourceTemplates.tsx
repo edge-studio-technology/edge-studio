@@ -223,6 +223,7 @@ export function LocalServicesCard({
   onDisableSensors,
   onEnableMqtt,
   onDisableMqtt,
+  onRefreshHardware,
 }: {
   capabilities: DataSourceCapabilities | null;
   hostCapabilities?: HostCapability[];
@@ -235,6 +236,7 @@ export function LocalServicesCard({
   onDisableSensors?: () => Promise<void>;
   onEnableMqtt?: () => Promise<void>;
   onDisableMqtt?: () => Promise<void>;
+  onRefreshHardware?: () => Promise<void>;
 }) {
   const [managerOpen, setManagerOpen] = useState(false);
   const broker = capabilities?.mqttBroker;
@@ -301,6 +303,14 @@ export function LocalServicesCard({
       {managerOpen && (
         <Modal title="Enable / disable hardware" onClose={() => setManagerOpen(false)}>
           <div className="gap-detail-near grid">
+            <div className="gap-detail-close flex flex-wrap items-center justify-between">
+              <p className="type-body text-text-secondary m-0">
+                Enable, repair, or disable app-managed hardware support on this Pi.
+              </p>
+              <Button type="button" variant="secondary" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
+                Refresh hardware status
+              </Button>
+            </div>
             <HardwareActionRow
               title="Raspberry Pi Camera"
               description="Install or disable the host camera helper used by camera capture workflows."
@@ -308,6 +318,7 @@ export function LocalServicesCard({
               busy={busy}
               onEnable={onEnableCamera}
               onDisable={onDisableCamera}
+              onRefreshHardware={onRefreshHardware}
             />
             <HardwareActionRow
               title="GPIO"
@@ -316,6 +327,7 @@ export function LocalServicesCard({
               busy={busy}
               onEnable={onEnableGpio}
               onDisable={onDisableGpio}
+              onRefreshHardware={onRefreshHardware}
             />
             <HardwareActionRow
               title="Local MQTT broker"
@@ -324,6 +336,7 @@ export function LocalServicesCard({
               busy={busy}
               onEnable={onEnableMqtt}
               onDisable={onDisableMqtt}
+              onRefreshHardware={onRefreshHardware}
             />
             <HardwareActionRow
               title="I2C sensors"
@@ -332,11 +345,10 @@ export function LocalServicesCard({
               busy={busy}
               onEnable={onEnableSensors}
               onDisable={onDisableSensors}
+              onRefreshHardware={onRefreshHardware}
             />
             <ErrorAlert status="warning" className="max-w-none">
-              Optional hardware starts disabled by default. Host-agent actions update Edge Studio
-              service configuration only; missing host OS drivers or interfaces must be installed
-              or enabled on the Pi first.
+              Optional hardware starts disabled by default. Host-agent actions update Edge Studio service configuration only. Prerequisite commands shown here assume Raspberry Pi OS or another Debian-based Pi image.
             </ErrorAlert>
           </div>
         </Modal>
@@ -390,6 +402,7 @@ function HardwareActionRow({
   busy,
   onEnable,
   onDisable,
+  onRefreshHardware,
 }: {
   title: string;
   description: string;
@@ -397,6 +410,7 @@ function HardwareActionRow({
   busy: boolean;
   onEnable?: () => Promise<void>;
   onDisable?: () => Promise<void>;
+  onRefreshHardware?: () => Promise<void>;
 }) {
   const enabled = capability?.enabled ?? false;
   const available = capability?.available ?? false;
@@ -421,21 +435,22 @@ function HardwareActionRow({
         </Button>
       </div>
       {capability?.reason && <p className="type-meta text-text-tertiary m-0">{capability.reason}</p>}
-      <HardwarePrerequisites capability={capability} />
+      <HardwarePrerequisites capability={capability} busy={busy} onRefreshHardware={onRefreshHardware} />
     </div>
   );
 }
 
-function HardwarePrerequisites({ capability }: { capability?: HostCapability }) {
+function HardwarePrerequisites({ capability, busy, onRefreshHardware }: { capability?: HostCapability; busy: boolean; onRefreshHardware?: () => Promise<void> }) {
   if (!capability) return null;
   const guidance = capability ? prerequisiteGuidance[capability.name] : null;
   if (!guidance) return null;
   const isBlocking = capability.state === "missing_prerequisites";
+  if (!isBlocking) return null;
   return (
     <div className="border-border-subtle bg-surface-subtle rounded-card-inner gap-detail-tight grid border p-pad-tight">
       <div className="gap-detail-close flex flex-wrap items-center justify-between">
         <p className="type-body-em text-text-primary m-0">Prerequisites for Raspberry Pi OS</p>
-        <Pill tone={isBlocking ? "warn" : "neutral"}>{isBlocking ? "Action needed" : "Host setup"}</Pill>
+        <Pill tone="warn">Action needed</Pill>
       </div>
       <p className="type-meta text-text-tertiary m-0">
         Edge Studio manages its own helper services and app configuration in this version. Raspberry Pi OS interfaces and packages must be enabled on the host first.
@@ -445,32 +460,60 @@ function HardwarePrerequisites({ capability }: { capability?: HostCapability }) 
       </p>
       <div className="gap-detail-tight grid">
         {guidance.map((item) => (
-          <p key={item} className="type-meta text-text-secondary m-0">
-            {item}
-          </p>
+          <CopyField key={item.label} label={item.label} value={item.command} description={item.description} />
         ))}
       </div>
+      <Button type="button" variant="secondary" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
+        I have completed this, refresh now
+      </Button>
     </div>
   );
 }
 
-const prerequisiteGuidance: Partial<Record<HostCapability["name"], string[]>> = {
+type PrerequisiteCommand = { label: string; command: string; description: string };
+
+const prerequisiteGuidance: Partial<Record<HostCapability["name"], PrerequisiteCommand[]>> = {
   camera: [
-    "Install the Raspberry Pi camera stack if camera tools are missing: sudo apt-get update && sudo apt-get install -y rpicam-apps",
-    "Test from the Pi host: rpicam-still --list-cameras",
-    "Connect and enable the camera hardware before enabling camera support here.",
+    {
+      label: "Install camera tools",
+      command: "sudo apt-get update\nsudo apt-get install -y rpicam-apps",
+      description: "Run on the Pi host if rpicam-still or libcamera-still is missing.",
+    },
+    {
+      label: "Check camera detection",
+      command: "rpicam-still --list-cameras",
+      description: "Run after connecting and enabling the camera hardware.",
+    },
   ],
   gpio: [
-    "GPIO requires /dev/gpiochip0 on the Pi host. This is normally present on Raspberry Pi OS.",
-    "If it is missing, verify this is a Raspberry Pi and that GPIO/kernel support is enabled before returning here.",
+    {
+      label: "Check GPIO device",
+      command: "ls -l /dev/gpiochip0",
+      description: "GPIO support requires this host device to exist on the Pi.",
+    },
   ],
   sensors: [
-    "Enable I2C on the Pi host: sudo raspi-config, then Interface Options -> I2C -> Enable.",
-    "Reboot after enabling I2C, then verify /dev/i2c-1 exists.",
-    "Install SMBus tools if missing: sudo apt-get update && sudo apt-get install -y python3-smbus i2c-tools",
+    {
+      label: "Enable I2C interface",
+      command: "sudo raspi-config",
+      description: "Open Interface Options -> I2C -> Enable, then reboot if prompted.",
+    },
+    {
+      label: "Install I2C tools",
+      command: "sudo apt-get update\nsudo apt-get install -y python3-smbus i2c-tools",
+      description: "Run if Python SMBus support or I2C tools are missing.",
+    },
+    {
+      label: "Check I2C device",
+      command: "ls -l /dev/i2c-1",
+      description: "Run after enabling I2C and rebooting the Pi.",
+    },
   ],
   mqtt: [
-    "The local broker requires Docker Compose to be healthy and port 1883 to be available on the Pi host.",
-    "Use external MQTT brokers without enabling this row by entering their broker URL in MQTT device settings.",
+    {
+      label: "Check Compose services",
+      command: "cd /opt/edge-studio\ndocker compose config --services\ndocker compose ps mqtt",
+      description: "Run if Docker Compose or the local mqtt service is not available.",
+    },
   ],
 };

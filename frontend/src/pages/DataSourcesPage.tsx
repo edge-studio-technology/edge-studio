@@ -184,6 +184,22 @@ export function DataSourcesPage() {
     }, "Device updated");
   }
 
+  async function refreshHardwareStatus() {
+    setBusy(true);
+    try {
+      await refresh();
+      showToast({ tone: "success", title: "Hardware status refreshed" });
+    } catch (err) {
+      showToast({
+        tone: "error",
+        title: "Could not refresh hardware status",
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function needsHardwareRepair(name: HostCapability["name"]) {
     const capability = hostCapabilities.find((item) => item.name === name);
     return Boolean(capability?.enabled && !capability.available);
@@ -411,6 +427,7 @@ export function DataSourcesPage() {
         onDisableSensors={disableSensorHardware}
         onEnableMqtt={enableMqttHardware}
         onDisableMqtt={disableMqttHardware}
+        onRefreshHardware={refreshHardwareStatus}
       />
 
       {ADD_DEVICE_FLOW === "alt" ? (
