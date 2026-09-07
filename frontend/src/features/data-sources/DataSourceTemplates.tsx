@@ -526,15 +526,17 @@ function CompactCopyRow({ label, value, description }: { label: string; value: s
   }
 
   return (
-    <div className="border-stroke-secondary gap-detail-tight grid grid-cols-[92px_minmax(0,1fr)_auto] items-center border-t px-detail-close py-detail-tight">
-      <div className="min-w-0">
+    <div className="border-stroke-secondary gap-detail-tight grid border-t px-detail-close py-detail-next">
+      <div>
         <p className="type-meta text-text-primary m-0">{label}</p>
         <p className="type-meta text-text-tertiary m-0">{description}</p>
       </div>
-      <code className="type-mono text-text-primary min-w-0 truncate rounded-loose bg-surface-secondary px-detail-tight py-[3px]">{value}</code>
-      <Button type="button" variant="ghost" size="sm" iconEnd={copied ? <Check aria-hidden /> : <CopyIcon aria-hidden />} onClick={handleCopy}>
-        {copied ? "Copied" : "Copy"}
-      </Button>
+      <div className="gap-detail-next grid grid-cols-[minmax(0,1fr)_auto] items-center">
+        <code className="type-mono text-text-primary min-w-0 truncate rounded-loose bg-surface-secondary px-detail-next py-detail-tight">{value}</code>
+        <Button type="button" variant="ghost" size="sm" iconEnd={copied ? <Check aria-hidden /> : <CopyIcon aria-hidden />} onClick={handleCopy}>
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
     </div>
   );
 }
