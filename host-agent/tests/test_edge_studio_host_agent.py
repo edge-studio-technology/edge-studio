@@ -359,6 +359,25 @@ class HostAgentWriteTests(unittest.TestCase):
         self.assertIn("ENABLE_SENSORS=true", env_content)
         self.assertTrue(self.agent.SENSOR_SERVICE_FILE.exists())
 
+    def test_sensor_status_reports_missing_i2c_before_enable(self):
+        self.agent.ENV_FILE.write_text("ENABLE_SENSORS=false\n", encoding="utf-8")
+        original_exists = self.agent.Path.exists
+
+        def fake_exists(path):
+            if path.as_posix() == "/dev/i2c-1":
+                return False
+            return original_exists(path)
+
+        with patch.object(self.agent.Path, "exists", fake_exists):
+            with patch.object(self.agent.shutil, "which", return_value="/usr/bin/python3"):
+                with patch.object(self.agent, "run", return_value=self.agent.subprocess.CompletedProcess([], 0, "", "")):
+                    status = self.agent.sensor_status()
+
+        self.assertEqual(status["state"], "missing_prerequisites")
+        self.assertFalse(status["enabled"])
+        self.assertFalse(status["available"])
+        self.assertIn("/dev/i2c-1 was not found", status["reason"])
+
     def test_apply_camera_systemd_failure_does_not_enable_env(self):
         self.agent.ENV_FILE.write_text("ENABLE_CAMERA=false\nCAMERA_HELPER_TOKEN=token\n", encoding="utf-8")
 
