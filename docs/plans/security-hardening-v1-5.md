@@ -99,21 +99,23 @@ Tests" entry in `security/low-priority-and-future.md`.
 
 ## Phase 0 — Product decision gate
 
-**Covers:** [2] (high), [5]. Not code. Both decisions get an owner, a date, and an ADR before
-Phase 1 starts. The findings themselves are described in
+**Covers:** [2] (high), [5]. Not code. The findings themselves are described in
 [Product decision detail](#product-decision-detail) below.
 
-| Decision | Owner | Due | Outcome |
+Both are **provisionally defaulted to acceptance** so implementation is not blocked. Neither default
+is confirmed; both are re-opened at the [pre-merge decision pass](#pre-merge-decision-pass).
+
+| Decision | Provisional default | Confirm by | Outcome if confirmed |
 | --- | --- | --- | --- |
-| [2] First-boot provisioning — enrollment code, physical presence, or documented acceptance | product | before Phase 1 | ADR + `SECURITY.md` entry; if not acceptance, its own numbered phase |
-| [5] MQTT device authentication model | product | before Phase 7 | ADR; unblocks DEVICE-IO-04/05 and the MQTT half of DEVICE-IO-06 |
+| [2] First-boot provisioning — enrollment code, physical presence, or documented acceptance | accept, document the LAN threat model | pre-merge | ADR + `SECURITY.md` entry; stays open/accepted in `docs/security/` |
+| [5] MQTT device authentication model | accept as-is; off by default and profile-gated | pre-merge | ADR; DEVICE-IO-04/05 and the MQTT half of DEVICE-IO-06 stay open |
 
-Testable outcome for each is an ADR naming the chosen option. Where the choice is acceptance, the
-matching `docs/security/` entry stays **open/accepted** — accepted risk is not closed risk, and the
-register must not read as though it were.
+Where the choice is acceptance, the matching `docs/security/` entry stays **open/accepted** —
+accepted risk is not closed risk, and the register must not read as though it were.
 
-If [2] lands on anything other than acceptance, it gets a numbered phase and moves ahead of
-Phase 5: on ADR 0010's ordering it outranks everything below Phase 4.
+If [2] is overturned at the pre-merge pass, it gets a numbered phase and moves ahead of Phase 5: on
+ADR 0010's ordering it outranks everything below Phase 4. That is the one default whose reversal
+costs real rework, so raise it early rather than at the pass.
 
 ---
 
@@ -423,20 +425,34 @@ token still decrypts afterwards. For (3), diff the generated compose.
    pruned in batches of 500 on an hourly scheduler tick so a large backlog never holds a long write
    lock; plus one prune pass at startup after migrations, since a Pi that was powered off for a
    month gets no ticks in the interim. Configurable with hard maxima, same pattern as Phase 5.
-2. `backend/src/middleware/requestLogger.ts` logs `req.originalUrl` including webhook tokens.
-   Redact the token segment.
+2. The webhook token is a URL path segment, so it is written verbatim to **two** log streams on
+   every delivery: `backend/src/middleware/requestLogger.ts` logs `req.originalUrl`, and the
+   `frontend` nginx logs the full request line (`frontend/nginx.conf` sets no `access_log`, and it
+   is installed as a server-block include, so the `nginx:1.25-alpine` default stays active). Both
+   go to stdout and land in Docker's json-file logs on the Pi. Redact the token segment in the
+   backend logger and set an nginx `log_format` that masks it. **`docker-compose.yml` configures no
+   `logging:` block anywhere**, so json-file rotation is unbounded and these never age out — set
+   `max-size`/`max-file` as part of this phase, since it is the same retention concern as (1).
 3. The token also reaches `data_source_reads.sourceUrl` — but only via `recordTriggerEvent`, which
    derives it through `sourceUrlForRecord` from `config.webhookToken`. Store a source reference
    instead of the tokenised URL. (While here: the `sourceUrl` argument threaded through
    `recordPushAutomationPayload` is never read — `executeWorkflow` re-derives it. Dead param;
    remove it with this change, not separately.)
-4. **Fixing the writers does not un-leak what is already stored.** Also: rotate every existing
-   webhook token as part of this change, so a token that already reached a log or a DB row stops
-   being a valid capability; scrub or delete the historical `data_source_reads` rows carrying one;
-   and note in `SECURITY.md` that Docker logs predating this change may still contain old tokens
-   and are not rewritten. Rotation breaks operators' configured webhook senders — that is the
-   point, and the changelog entry must say so plainly.
-5. [8]: workflow cooldown defaults to `0` (disabled). An attacker cannot choose a payment
+4. Same bug in a narrower blast radius: `mqttIngestion.service.ts:92` and `:101` build `sourceUrl`
+   as `` `${config.brokerUrl} ${config.topic}` ``, and `parseMqttConfig`
+   (`dataSources.service.ts:134-139`) accepts any non-empty string as a broker URL — so
+   `mqtt://user:pass@host:1883` is legal and its credentials land in the read row. They reach the
+   **database only**, never a log: `brokerUrl` arrives in a request body, and neither logger in (2)
+   logs bodies. Cover it with (3) rather than as a separate item.
+5. **Fixing the writers does not un-leak what is already stored.** Scrub the historical
+   `data_source_reads` rows carrying a token or broker credential, and note in `SECURITY.md` that
+   Docker logs predating this change are not rewritten. **Rotating** existing webhook tokens is
+   *not* part of this phase by default: the DB and API side are only readable by the admin who
+   already owns the token, so the exposure that would justify a breaking rotation is Pi-local
+   Docker logs. Revisit at the [pre-merge decision pass](#pre-merge-decision-pass); rotate if those
+   logs are shipped off-box by then, and say so plainly in the changelog because it invalidates
+   every configured sender.
+6. [8]: workflow cooldown defaults to `0` (disabled). An attacker cannot choose a payment
    destination or amount, but can trigger repeated payments to an already-trusted address and
    repeated GPIO/network actions. **Decided, so this is implementable:** reject `cooldownSeconds`
    of `0` at validation time (`automation.validation.ts:228`) for any workflow containing a
@@ -447,9 +463,9 @@ token still decrypts afterwards. For (3), diff the generated compose.
    budget and global wallet serialization are the report's other two asks; both are a new
    subsystem, and both are deferred with an ADR rather than half-built here. Do not present any of
    this as fixing fund theft — it never was.
-6. GAP-10: rate limiting currently covers login, setup, and `/api/auth/settings/*` only. Extend to
+7. GAP-10: rate limiting currently covers login, setup, and `/api/auth/settings/*` only. Extend to
    the stamp, automation, and webhook ingest paths, which are the ones an untrusted event source
-   can drive. HTTP rate limiting does not reach MQTT or GPIO events — those are covered by (5)'s
+   can drive. HTTP rate limiting does not reach MQTT or GPIO events — those are covered by (6)'s
    per-workflow budget, which is enforced centrally, after any transport.
 
 ---
@@ -511,6 +527,42 @@ each gets an ADR recording it.
   `listener 1883 0.0.0.0`. Off by default and profile-gated, but unauthenticated when on.
   Needs a device-authentication model, not a config tweak. DEVICE-IO-04 (broker auth) and
   DEVICE-IO-05 (TLS, topic ACLs, bind controls) are the concrete work once that call is made.
+
+---
+
+## Pre-merge decision pass
+
+Every product/policy call in this plan is **provisionally defaulted to the safest option that does
+not block implementation**, so the branch can be worked end to end without stopping. None are
+confirmed. Run this pass before the branch merges to `dev`/`main`; a default that survives the pass
+becomes the decision and gets its ADR then.
+
+Defaults in force:
+
+| # | Decision | Provisional default | Phase | Reversal cost |
+| --- | --- | --- | --- | --- |
+| 1 | [2] First-boot admin claim | accept; document LAN threat model | 0 | **high** — adds a numbered phase ahead of Phase 5 |
+| 2 | [5] MQTT device auth | accept as-is; off by default | 0 | low — DEVICE-IO-04/05 stay open either way |
+| 3 | Egress URL policy | block Compose subnet, gateway, service names; `http`/`https` only | 2 | medium — widening to a deny-by-default allowlist is a rewrite |
+| 4 | DNS address pinning | pin resolved address to socket; take the `undici` dependency | 2 | medium — moves the test mock boundary off `global.fetch` |
+| 5 | Console mutating subcommands | constrain argument shape per catalog entry | 2 | low |
+| 6 | Session revocation scope | revoke all sessions incl. caller; clear cookie; force re-login | 3 | low |
+| 7 | Verifier runtime | pin `node:20-bookworm-slim` by digest | 4 | low |
+| 8 | `curl \| sudo bash` | accept as residual; ship documented download-inspect-run + checksum | 4 | low — real fix needs release infra |
+| 9 | Limit values | ship the proposed table as defaults, measure on the Pi, pin in ADR | 5 | low — values are configurable |
+| 10 | `APP_SECRET` migration | one-shot transactional re-encrypt; never boot half-migrated | 6 | low — safe whether or not field installs exist |
+| 11 | Dev escape hatch | explicit opt-in env flag, never derived from `NODE_ENV` | 6 | low |
+| 12 | Image digest pins | manual bump at release, documented in the release doc | 6 | low |
+| 13 | Retention values | 30 days / 10 000 rows / 500-row batches / hourly + startup pass | 7 | low — configurable |
+| 14 | Webhook token rotation | **do not rotate**; fix the logger and the label only | 7 | low now, rises once logs leave the Pi |
+| 15 | Wallet-trigger budget | reject `cooldownSeconds: 0` on `send_transaction` workflows; 10 runs/hour persisted | 7 | medium — the budget counter is a schema change |
+| 16 | CSRF posture | `SameSite=Strict` + JSON/multipart-only; no tokens | 8 | low — already settled in ADR 0010 |
+| 17 | Dormant TOTP routes | gate all four on `TOTP_ENABLED`; keep the first-admin guard | 8 | low — already settled in ADR 0012 |
+| 18 | Minima address grammar | take it from Minima source/docs; defer WALLET-08 rather than guess | 9 | low |
+
+Rows 1, 10, 14, and 15 are the ones with real product or operator consequences; the rest are
+technical calls that can be confirmed in bulk. Rows 16 and 17 are already decided by ADR and are
+listed only so the pass is complete.
 
 ---
 
@@ -578,9 +630,9 @@ Per phase, not at the end:
 
 ## Sign-off
 
-V1.5 security is accepted when Phase 0's two decisions each have an ADR, Phases 1-8 are done or
-explicitly accepted in `SECURITY.md`, the manual checks above pass on a Pi deploy, and
-`npm run check` plus `docker compose build` pass. Phase 9 is correctness hardening rather than a
+V1.5 security is accepted when the [pre-merge decision pass](#pre-merge-decision-pass) has run and
+every surviving default has its ADR, Phases 1-8 are done or explicitly accepted in `SECURITY.md`,
+the manual checks above pass on a Pi deploy, and `npm run check` plus `docker compose build` pass. Phase 9 is correctness hardening rather than a
 review finding, and is deliberately outside this bar.
 
 Anything recorded as accepted rather than fixed — the `curl | sudo bash` one-liner, global wallet
