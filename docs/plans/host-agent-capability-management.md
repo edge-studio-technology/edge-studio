@@ -309,19 +309,17 @@ Completed implementation checkpoints:
 - Host-agent retry tests now cover repeated GPIO apply, repeated MQTT apply/disable, and repeated Camera/I2C helper disable actions with mocked external service boundaries.
 - Host-agent retry tests now also cover repeated Camera/I2C apply actions and systemd restart failures before `.env` is flipped to enabled.
 - Backend and Docker Compose restart scheduling now reports missing Docker and process-launch failures as structured retryable results instead of uncaught action errors.
+- Action-level backend restart failure tests now cover Camera, GPIO, and I2C enablement leaving generated state intact and returning the failed restart result for retry.
 
 ## Remaining Implementation Steps
 
 1. Host-agent action safety.
-   Keep every action idempotent and retry-safe. Continue protecting user-managed Compose overrides. Improve `.env` write preservation where needed. Ensure partial failures leave a useful reported state and can be retried without manual cleanup.
+   V1 action safety is implemented for the known file-write, duplicate-update, user-managed override, repeated-click, and restart-scheduling failure paths. Keep this section open only for manual Pi retry validation and issues found during release testing.
 
    Implementation checkpoints:
 
-   - Audit each `apply_*` and `disable_*` path for repeated-click behavior and make each step safe when the target state already exists.
-   - Replace or guard remaining file/directory operations so helper tokens and capture directories are updated only when needed and never leave empty/truncated files after an exception.
+   - Run manual Pi retry validation for repeated Enable/Disable/Repair across Camera, GPIO, I2C sensors, and local MQTT.
    - Review whether `.env` writes should reject non-allowlisted keys at the helper boundary, even though callers currently pass fixed internal updates only.
-   - Make partial failures observable through `status()` by checking the concrete artifacts each action creates, not by trusting that an earlier command completed.
-   - Add any remaining action-level partial-failure tests for backend recreation failures after Camera/GPIO/I2C enablement.
    - Verify failed prerequisites and failed partial actions can be corrected and retried without manual cleanup beyond the prerequisite fix.
 
 2. Improve hardware operation model.

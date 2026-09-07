@@ -153,6 +153,19 @@ class HostAgentWriteTests(unittest.TestCase):
         self.assertIn("ENABLE_GPIO=true", env_content)
         self.assertEqual(override_content.count("/dev/gpiochip0:/dev/gpiochip0"), 1)
 
+    def test_apply_gpio_returns_retryable_backend_restart_failure(self):
+        self.agent.ENV_FILE.write_text("ENABLE_GPIO=false\nGPIO_GID=997\nDOCKER_GID=0\n", encoding="utf-8")
+        restart_failure = {"ok": False, "scheduled": False, "message": "docker was not found on the host"}
+
+        with patch.object(self.agent, "gpio_status", return_value={"state": "failed"}):
+            with patch.object(self.agent, "restart_backend", return_value=restart_failure):
+                result = self.agent.apply_gpio()
+
+        env_content = self.agent.ENV_FILE.read_text(encoding="utf-8")
+        self.assertEqual(result["restart"], restart_failure)
+        self.assertIn("ENABLE_GPIO=true", env_content)
+        self.assertIn("/dev/gpiochip0:/dev/gpiochip0", self.agent.COMPOSE_OVERRIDE_FILE.read_text(encoding="utf-8"))
+
     def test_apply_and_disable_mqtt_are_safe_to_repeat(self):
         self.agent.ENV_FILE.write_text("ENABLE_MQTT_BROKER=false\nCOMPOSE_PROFILES=other\n", encoding="utf-8")
 
@@ -260,6 +273,28 @@ class HostAgentWriteTests(unittest.TestCase):
         self.assertIn("CAMERA_HELPER_TOKEN=existing-camera-token", env_content)
         self.assertIn("Environment=CAMERA_HELPER_TOKEN=existing-camera-token", service_content)
 
+    def test_apply_camera_returns_retryable_backend_restart_failure(self):
+        self.agent.ENV_FILE.write_text(
+            "ENABLE_CAMERA=false\n"
+            "CAMERA_HELPER_TOKEN=existing-camera-token\n"
+            "CAMERA_HELPER_PORT=38180\n"
+            "CAMERA_CAPTURE_DIR=/data/captures\n",
+            encoding="utf-8",
+        )
+        restart_failure = {"ok": False, "scheduled": False, "message": "docker was not found on the host"}
+
+        with patch.object(self.agent, "missing_camera_tools_message", return_value=None):
+            with patch.object(self.agent, "helper_user", return_value="root"):
+                with patch.object(self.agent, "run", return_value=self.agent.subprocess.CompletedProcess([], 0, "", "")):
+                    with patch.object(self.agent, "restart_backend", return_value=restart_failure):
+                        with patch.object(self.agent, "camera_status", return_value={"state": "failed"}):
+                            result = self.agent.apply_camera()
+
+        env_content = self.agent.ENV_FILE.read_text(encoding="utf-8")
+        self.assertEqual(result["restart"], restart_failure)
+        self.assertIn("ENABLE_CAMERA=true", env_content)
+        self.assertTrue(self.agent.CAMERA_SERVICE_FILE.exists())
+
     def test_apply_sensors_is_safe_to_repeat(self):
         self.agent.ENV_FILE.write_text(
             "ENABLE_SENSORS=false\n"
@@ -286,6 +321,30 @@ class HostAgentWriteTests(unittest.TestCase):
         self.assertIn("ENABLE_SENSORS=true", env_content)
         self.assertIn("SENSOR_HELPER_TOKEN=existing-sensor-token", env_content)
         self.assertIn("Environment=SENSOR_HELPER_TOKEN=existing-sensor-token", service_content)
+
+    def test_apply_sensors_returns_retryable_backend_restart_failure(self):
+        self.agent.ENV_FILE.write_text(
+            "ENABLE_SENSORS=false\n"
+            "SENSOR_HELPER_TOKEN=existing-sensor-token\n"
+            "SENSOR_HELPER_PORT=38181\n",
+            encoding="utf-8",
+        )
+        sensor_python = self.root / ".venv-sensor-helper" / "bin" / "python"
+        sensor_python.parent.mkdir(parents=True)
+        sensor_python.write_text("", encoding="utf-8")
+        restart_failure = {"ok": False, "scheduled": False, "message": "docker was not found on the host"}
+
+        with patch.object(self.agent, "missing_sensor_prerequisites_message", return_value=None):
+            with patch.object(self.agent, "helper_user", return_value="root"):
+                with patch.object(self.agent, "run", return_value=self.agent.subprocess.CompletedProcess([], 0, "", "")):
+                    with patch.object(self.agent, "restart_backend", return_value=restart_failure):
+                        with patch.object(self.agent, "sensor_status", return_value={"state": "failed"}):
+                            result = self.agent.apply_sensors()
+
+        env_content = self.agent.ENV_FILE.read_text(encoding="utf-8")
+        self.assertEqual(result["restart"], restart_failure)
+        self.assertIn("ENABLE_SENSORS=true", env_content)
+        self.assertTrue(self.agent.SENSOR_SERVICE_FILE.exists())
 
     def test_apply_camera_systemd_failure_does_not_enable_env(self):
         self.agent.ENV_FILE.write_text("ENABLE_CAMERA=false\nCAMERA_HELPER_TOKEN=token\n", encoding="utf-8")
