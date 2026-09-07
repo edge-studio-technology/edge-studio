@@ -45,6 +45,22 @@ describe("host-runtime-update", () => {
     assert.deepEqual(result, { service: "host-runtime", updated: false, reason: "HOST_AGENT_URL is not configured" });
   });
 
+  it("returns a failure when the host-agent token is missing", async () => {
+    mockEnv.hostAgentToken = "";
+
+    const result = await updateHostRuntime({ url: "https://example.com/runtime.tar.gz", sha256: "a".repeat(64) });
+
+    assert.deepEqual(result, { service: "host-runtime", updated: false, reason: "HOST_AGENT_TOKEN is not configured" });
+  });
+
+  it("returns a failure when fetching the host runtime artifact fails", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => errorResponse(502)));
+
+    const result = await updateHostRuntime({ url: "https://example.com/runtime.tar.gz", sha256: "a".repeat(64) });
+
+    assert.deepEqual(result, { service: "host-runtime", updated: false, reason: "failed to fetch host runtime artifact: HTTP 502" });
+  });
+
   it("verifies the artifact hash before posting to the host-agent", async () => {
     const artifact = Buffer.from("artifact");
     const sha256 = createHash("sha256").update(artifact).digest("hex");
