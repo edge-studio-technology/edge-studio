@@ -78,6 +78,11 @@ services:
       DATABASE_PATH: /data/edge-studio.db
       ENABLE_MQTT_BROKER: "false"
       ENABLE_CAMERA: "false"
+      ENABLE_GPIO: "false"
+      ENABLE_SENSORS: "false"
+      HOST_AGENT_URL: \${HOST_AGENT_URL:-http://host.docker.internal:38182}
+      HOST_AGENT_TOKEN: \${HOST_AGENT_TOKEN:-}
+      HOST_CAPABILITY_DEBUG: \${HOST_CAPABILITY_DEBUG:-false}
       APP_SECRET: \${APP_SECRET:-dev-change-me}
       COOKIE_SECURE: \${COOKIE_SECURE:-true}
       SESSION_MAX_AGE_DAYS: \${SESSION_MAX_AGE_DAYS:-7}
@@ -125,6 +130,8 @@ services:
       MANIFEST_URL: \${MANIFEST_URL}
       RELEASE_CHANNEL: \${RELEASE_CHANNEL:-${channel}}
       BACKEND_INTERNAL_URL: http://backend:3000
+      HOST_AGENT_URL: \${HOST_AGENT_URL:-http://host.docker.internal:38182}
+      HOST_AGENT_TOKEN: \${HOST_AGENT_TOKEN:-}
       STATE_DIR_IN_CONTAINER: /state
       HEALTH_CHECK_TIMEOUT_MS: \${UPDATE_HEALTH_CHECK_TIMEOUT_MS:-60000}
       HEALTH_CHECK_INTERVAL_MS: \${UPDATE_HEALTH_CHECK_INTERVAL_MS:-2000}
@@ -208,7 +215,7 @@ MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES=30
 
 # Update manifest (required for updates)
 # Point to the ${channel} channel manifest
-MANIFEST_URL=https://integritas.technology/edge-studio/${channel}/manifest.json
+MANIFEST_URL=https://edgestudio.technology/manifest/${channel}/manifest.json
 RELEASE_CHANNEL=${channel}
 
 # Update Agent configuration
@@ -232,6 +239,12 @@ CAMERA_MAX_DURATION_SECONDS=30
 CAMERA_RETENTION_DAYS=7
 CAMERA_PHOTO_COMMAND=rpicam-still
 CAMERA_VIDEO_COMMAND=rpicam-vid
+
+# Host-agent is installed by install.sh on Raspberry Pi deployments.
+HOST_AGENT_URL=http://host.docker.internal:38182
+HOST_AGENT_TOKEN=
+HOST_AGENT_PORT=38182
+HOST_CAPABILITY_DEBUG=false
 
 # Optional: Environmental sensor support (BME280/BME680)
 ENABLE_SENSORS=false
