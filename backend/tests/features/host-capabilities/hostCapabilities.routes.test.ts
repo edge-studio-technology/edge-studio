@@ -28,6 +28,13 @@ vi.mock("../../../src/features/auth/audit.service.js", () => ({
   recordAuditEvent: recordAuditEventMock,
 }));
 
+vi.mock("../../../src/features/auth/auth.middleware.js", () => ({
+  requireRole: () => (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    return next();
+  },
+}));
+
 const { hostCapabilitiesRouter } = await import("../../../src/features/host-capabilities/hostCapabilities.routes.js");
 
 function testApp() {
