@@ -295,21 +295,19 @@ def camera_status():
             checks["cameraDetected"] = True
     available = enabled and checks["serviceFileExists"] and checks["serviceEnabled"] and checks["serviceActive"] and checks["cameraToolAvailable"] and checks["cameraDetected"] is not False
     reason = None
-    state = "enabled" if available else "disabled" if not enabled else "failed"
-    if not enabled:
-        reason = "Camera support is disabled. Enable it from Devices -> Hardware support."
-    elif not checks["cameraToolAvailable"]:
+    state = "enabled" if available else "missing_prerequisites" if not checks["cameraToolAvailable"] or checks["cameraDetected"] is False else "disabled" if not enabled else "failed"
+    if not checks["cameraToolAvailable"]:
         reason = missing_camera_tools_message()
-        state = "missing_prerequisites"
+    elif checks["cameraDetected"] is False:
+        reason = "No camera was detected by the Raspberry Pi camera stack. Connect and enable the camera on the Pi host, then refresh Hardware support."
+    elif not enabled:
+        reason = "Camera support is disabled. Enable it from Devices -> Hardware support."
     elif not checks["serviceFileExists"]:
         reason = "Camera support is enabled, but the camera helper is not installed. Repair camera support to reinstall it."
     elif not checks["serviceEnabled"]:
         reason = "Camera support is enabled, but the camera helper is disabled. Repair camera support to enable it."
     elif not checks["serviceActive"]:
         reason = "Camera support is enabled, but the camera helper is stopped. Repair camera support to restart it."
-    elif checks["cameraDetected"] is False:
-        reason = "No camera was detected by the Raspberry Pi camera stack. Connect and enable the camera on the Pi host, then refresh Hardware support."
-        state = "missing_prerequisites"
     return {
         "name": "camera",
         "enabled": enabled,
@@ -392,12 +390,12 @@ def gpio_status():
         "backendContainerSeesDevice": backend_sees_device,
     }
     available = enabled and device_exists and override_mounts_gpio and backend_sees_device
-    state = "enabled" if available else "disabled" if not enabled else "missing_prerequisites" if not device_exists else "failed"
+    state = "enabled" if available else "missing_prerequisites" if not device_exists else "disabled" if not enabled else "failed"
     reason = None
-    if not enabled:
-        reason = "GPIO support is disabled. Enable it from Devices -> Hardware support."
-    elif not device_exists:
+    if not device_exists:
         reason = "/dev/gpiochip0 was not found on the host. GPIO support requires Raspberry Pi GPIO support on the host, then refresh Hardware support."
+    elif not enabled:
+        reason = "GPIO support is disabled. Enable it from Devices -> Hardware support."
     elif override_user_managed and not available:
         reason = "GPIO support is enabled, but docker-compose.override.yml is user-managed and cannot be repaired automatically. Add the /dev/gpiochip0 backend device mount manually or remove the custom override before repairing GPIO support."
     elif not override_exists:
@@ -462,16 +460,16 @@ def sensor_status():
         "smbusAvailable": smbus_available,
     })
     available = enabled and i2c_exists and python_exists and smbus_available and checks["serviceFileExists"] and checks["serviceEnabled"] and checks["serviceActive"]
-    state = "enabled" if available else "disabled" if not enabled else "missing_prerequisites" if not i2c_exists or not python_exists or not smbus_available else "failed"
+    state = "enabled" if available else "missing_prerequisites" if not i2c_exists or not python_exists or not smbus_available else "disabled" if not enabled else "failed"
     reason = None
-    if not enabled:
-        reason = "I2C sensor support is disabled. Enable it from Devices -> Hardware support."
-    elif not i2c_exists:
+    if not i2c_exists:
         reason = "/dev/i2c-1 was not found on the host. Enable I2C on the Raspberry Pi host, reboot if needed, then refresh Hardware support."
     elif not python_exists:
         reason = "python3 was not found on the host. Install Python 3 on the Pi host, then enable I2C sensor support."
     elif not smbus_available:
         reason = "Python SMBus support was not found. Install python3-smbus or python3-smbus2 on the Pi host, then enable I2C sensor support."
+    elif not enabled:
+        reason = "I2C sensor support is disabled. Enable it from Devices -> Hardware support."
     elif not checks["serviceFileExists"]:
         reason = "I2C sensor support is enabled, but the sensor helper is not installed. Repair I2C sensor support to reinstall it."
     elif not checks["serviceEnabled"]:

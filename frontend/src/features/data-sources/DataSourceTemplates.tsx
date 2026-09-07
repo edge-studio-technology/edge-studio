@@ -380,7 +380,7 @@ function HardwareStatus({
         <p className="type-body-em text-text-primary m-0">{label}</p>
         <Pill tone={isAvailable ? "good" : isEnabled ? "warn" : "neutral"} indicator>
           {capability?.state === "missing_prerequisites"
-            ? "Missing prerequisites"
+            ? "Action required"
             : isAvailable
               ? "Available"
               : isEnabled
@@ -414,10 +414,10 @@ function HardwareActionRow({
 }) {
   const enabled = capability?.enabled ?? false;
   const available = capability?.available ?? false;
-  const needsRepair = enabled && !available;
   const missingPrerequisites = capability?.state === "missing_prerequisites";
-  const actionLabel = needsRepair ? "Repair" : enabled ? "Disable" : "Enable";
-  const action = needsRepair || !enabled ? onEnable : onDisable;
+  const needsRepair = enabled && !available && !missingPrerequisites;
+  const actionLabel = missingPrerequisites && !enabled ? "Action required" : needsRepair ? "Repair" : enabled ? "Disable" : "Enable";
+  const action = needsRepair || (!enabled && !missingPrerequisites) ? onEnable : enabled ? onDisable : undefined;
   return (
     <div className="border-border-subtle rounded-card-inner gap-detail-close grid border p-pad-tight">
       <div className="gap-detail-close flex flex-wrap items-center justify-between">
@@ -428,7 +428,7 @@ function HardwareActionRow({
         <Button
           type="button"
           variant={enabled ? "secondary" : "primary"}
-          disabled={busy || missingPrerequisites || !action}
+          disabled={busy || !action}
           onClick={() => void action?.()}
         >
           {actionLabel}

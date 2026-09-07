@@ -47,6 +47,7 @@ import { useDeviceFormFields } from "../features/data-sources/useDeviceFormField
 /** Flip to "classic" to compare against the previous add-device flow before it is removed. */
 const ADD_DEVICE_FLOW: "alt" | "classic" = "alt";
 const HARDWARE_REFRESH_TIMEOUT_MS = 30000;
+const MQTT_HARDWARE_REFRESH_TIMEOUT_MS = 90000;
 const HARDWARE_REFRESH_INTERVAL_MS = 1000;
 const HARDWARE_RESTART_SETTLE_MS = 7000;
 const HARDWARE_STABLE_REFRESH_COUNT = 2;
@@ -313,7 +314,7 @@ export function DataSourcesPage() {
           ? "Edge Studio is reapplying local MQTT broker support to restore the Compose profile and restart the broker container. This can take a few seconds."
           : "Edge Studio is enabling the local MQTT broker and restarting services. This can take a few seconds.",
       },
-      { name: "mqtt", enabled: true, available: repair ? true : undefined },
+      { name: "mqtt", enabled: true, available: repair ? true : undefined, timeoutMs: MQTT_HARDWARE_REFRESH_TIMEOUT_MS },
     );
     if (!result) return;
     showToast({ tone: "success", title: repair ? "Local MQTT broker repaired" : "Local MQTT broker enabled" });
@@ -336,7 +337,7 @@ export function DataSourcesPage() {
   async function runHardwareAction<T>(
     action: () => Promise<T>,
     operation: HardwareOperation,
-    expected: Pick<HostCapability, "name" | "enabled"> & { available?: boolean },
+    expected: Pick<HostCapability, "name" | "enabled"> & { available?: boolean; timeoutMs?: number },
   ) {
     setBusy(true);
     setHardwareOperation(operation);
@@ -361,8 +362,8 @@ export function DataSourcesPage() {
     }
   }
 
-  async function waitForHardwareState(expected: Pick<HostCapability, "name" | "enabled"> & { available?: boolean }) {
-    const deadline = Date.now() + HARDWARE_REFRESH_TIMEOUT_MS;
+  async function waitForHardwareState(expected: Pick<HostCapability, "name" | "enabled"> & { available?: boolean; timeoutMs?: number }) {
+    const deadline = Date.now() + (expected.timeoutMs ?? HARDWARE_REFRESH_TIMEOUT_MS);
     let lastError: unknown = null;
     let stableRefreshes = 0;
     while (Date.now() < deadline) {

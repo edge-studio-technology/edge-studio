@@ -123,7 +123,7 @@ describe("LocalServicesCard", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
 
-    expect(screen.getAllByRole("button", { name: "Enable" })[0]).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Action required" })).toBeDisabled();
     expect(screen.getByText("Action needed")).toBeInTheDocument();
     expect(screen.getAllByText("Camera tools are missing.").length).toBeGreaterThan(0);
     expect(screen.getByText("Install camera tools")).toBeInTheDocument();
@@ -132,6 +132,48 @@ describe("LocalServicesCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "I have completed this, refresh now" }));
 
     expect(onRefreshHardware).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows I2C setup guidance instead of an Enable action when sensor prerequisites are missing", async () => {
+    const hostCapabilities: HostCapability[] = [
+      {
+        name: "sensors",
+        enabled: false,
+        installed: false,
+        available: false,
+        state: "missing_prerequisites",
+        reason: "/dev/i2c-1 was not found on the host. Enable I2C on the Raspberry Pi host, reboot if needed, then refresh Hardware support.",
+      },
+    ];
+    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
+
+    expect(screen.getByRole("button", { name: "Action required" })).toBeDisabled();
+    expect(screen.getByText("Enable I2C interface")).toBeInTheDocument();
+    expect(screen.getByText(/sudo raspi-config/)).toBeInTheDocument();
+    expect(screen.getByText(/ls -l \/dev\/i2c-1/)).toBeInTheDocument();
+  });
+
+  it("allows disabling an enabled capability even when prerequisites are missing", async () => {
+    const onDisableCamera = vi.fn().mockResolvedValue(undefined);
+    const hostCapabilities: HostCapability[] = [
+      {
+        name: "camera",
+        enabled: true,
+        installed: true,
+        available: false,
+        state: "missing_prerequisites",
+        reason: "No camera was detected by the Raspberry Pi camera stack.",
+      },
+    ];
+    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onDisableCamera={onDisableCamera} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Enable / disable hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "Disable" }));
+
+    expect(onDisableCamera).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Action needed")).toBeInTheDocument();
   });
 
   it("calls the hardware refresh action from the manager header", async () => {
