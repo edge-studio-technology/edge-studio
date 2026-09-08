@@ -1,21 +1,25 @@
 import {
   Camera,
+  Check,
+  Copy as CopyIcon,
   Cpu,
   Globe2,
   Lightbulb,
+  RefreshCw,
   Settings2,
   Radio,
   ShieldAlert,
   ThermometerSun,
   Webhook,
+  type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Modal } from "../../components/Modal";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
-import { CopyField } from "../../components/patterns/CopyField";
 import { Pill } from "../../components/Pill";
+import { Disclosure } from "../../components/ui/Disclosure";
 import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "./dataSourceTypes";
 import { isTemplateActiveByCapability } from "./hardwareCapabilities";
 
@@ -239,6 +243,7 @@ export function LocalServicesCard({
   onRefreshHardware?: () => Promise<void>;
 }) {
   const [managerOpen, setManagerOpen] = useState(false);
+  const [selectedHardware, setSelectedHardware] = useState<HostCapability["name"]>("camera");
   const broker = capabilities?.mqttBroker;
   const camera = hostCapabilities.find((capability) => capability.name === "camera");
   const gpio = hostCapabilities.find((capability) => capability.name === "gpio");
@@ -249,7 +254,55 @@ export function LocalServicesCard({
   const publicPort = mqtt?.publicPort ?? broker?.publicPort ?? 1883;
   const lanUrl = `mqtt://${publicHost}:${publicPort}`;
   const internalUrl = mqtt?.internalUrl ?? broker?.internalUrl ?? "mqtt://mqtt:1883";
-  const anyEnabled = Boolean(camera?.enabled || gpio?.enabled || sensors?.enabled || mqtt?.enabled || broker?.enabled);
+  const hardwareItems: HardwareItem[] = [
+    {
+      name: "camera",
+      label: "Camera",
+      title: "Raspberry Pi Camera",
+      description: "Install or disable the host camera helper used by camera capture workflows.",
+      icon: Camera,
+      capability: camera,
+      onEnable: onEnableCamera,
+      onDisable: onDisableCamera,
+    },
+    {
+      name: "gpio",
+      label: "GPIO",
+      title: "GPIO",
+      description: "Grant the backend container access to /dev/gpiochip0 for GPIO input and output workflows.",
+      icon: Lightbulb,
+      capability: gpio,
+      onEnable: onEnableGpio,
+      onDisable: onDisableGpio,
+    },
+    {
+      name: "mqtt",
+      label: "MQTT",
+      title: "Local MQTT broker",
+      description: "Enable or stop the app-managed Mosquitto broker for local MQTT devices.",
+      icon: Radio,
+      capability: mqtt,
+      onEnable: onEnableMqtt,
+      onDisable: onDisableMqtt,
+    },
+    {
+      name: "sensors",
+      label: "I2C sensors",
+      title: "I2C sensors",
+      description: "Install or disable the host sensor helper used by BME280/BME680 I2C sensor reads.",
+      icon: ThermometerSun,
+      capability: sensors,
+      onEnable: onEnableSensors,
+      onDisable: onDisableSensors,
+    },
+  ];
+  const enabledCount = hardwareItems.filter((item) => item.capability?.enabled || (item.name === "mqtt" && broker?.enabled)).length;
+  const selectedItem = hardwareItems.find((item) => item.name === selectedHardware) ?? hardwareItems[0];
+
+  function openHardwareManager(name: HostCapability["name"]) {
+    setSelectedHardware(name);
+    setManagerOpen(true);
+  }
 
   return (
     <Card className="gap-detail-near grid w-full">
@@ -257,8 +310,8 @@ export function LocalServicesCard({
         <div className="gap-detail-close flex flex-wrap items-center justify-between">
           <div className="gap-detail-close flex flex-wrap items-center">
             <h2 className="type-title text-text-primary m-0">Hardware support</h2>
-            <Pill tone={anyEnabled ? "good" : "neutral"} indicator>
-              {anyEnabled ? "Some enabled" : "Disabled"}
+            <Pill tone={enabledCount > 0 ? "good" : "neutral"} indicator>
+              {enabledCount} of {hardwareItems.length} enabled
             </Pill>
           </div>
           <Button
@@ -267,88 +320,50 @@ export function LocalServicesCard({
             iconStart={<Settings2 aria-hidden />}
             onClick={() => setManagerOpen(true)}
           >
-            Enable / disable hardware
+            Manage hardware
           </Button>
         </div>
         <p className="type-body text-text-secondary mt-detail-next m-0">
           Host-backed hardware and local services available to device workflows on this Pi.
         </p>
       </div>
-      <div className="gap-detail-close grid md:grid-cols-2">
-        <HardwareStatus label="Camera" capability={camera} fallback="Camera support is disabled. Enable it from Devices -> Hardware support." />
-        <HardwareStatus label="I2C sensors" capability={sensors} fallback="I2C sensor support is disabled. Enable it from Devices -> Hardware support." />
-        <HardwareStatus label="GPIO" capability={gpio} fallback="GPIO support is disabled. Enable it from Devices -> Hardware support." />
-        <HardwareStatus label="Local MQTT broker" capability={mqtt} fallback="Local MQTT broker is disabled. Enable it from Devices -> Hardware support." />
+      <div className="gap-detail-close flex flex-wrap">
+        {hardwareItems.map((item) => (
+          <HardwareStatusChip key={item.name} item={item} onClick={() => openHardwareManager(item.name)} />
+        ))}
       </div>
-      <div className="gap-detail-close grid md:grid-cols-2">
-        <CopyField
-          label="LAN URL"
-          value={lanUrl}
-          description="Use this from external devices on the LAN."
-        />
-        <CopyField
-          label="Internal URL"
-          value={internalUrl}
-          description="Use this in Edge Studio MQTT device configs."
-        />
-      </div>
-      {!broker?.enabled && (
-        <div>
-          <p className="type-meta text-text-tertiary m-0">Advanced install shortcut</p>
-          <p className="type-body text-text-secondary mt-detail-tight m-0">
-            <code>ENABLE_MQTT_BROKER=true</code> and the Docker Compose MQTT profile.
-          </p>
-        </div>
-      )}
       {managerOpen && (
-        <Modal title="Enable / disable hardware" onClose={() => setManagerOpen(false)}>
+        <Modal title="Hardware support" onClose={() => setManagerOpen(false)}>
           <div className="gap-detail-near grid">
             <div className="gap-detail-close flex flex-wrap items-center justify-between">
               <p className="type-body text-text-secondary m-0">
                 Enable, repair, or disable app-managed hardware support on this Pi.
               </p>
-              <Button type="button" variant="secondary" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
-                Refresh hardware status
+              <Button type="button" variant="secondary" iconStart={<RefreshCw aria-hidden />} disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
+                Refresh status
               </Button>
             </div>
-            <HardwareActionRow
-              title="Raspberry Pi Camera"
-              description="Install or disable the host camera helper used by camera capture workflows."
-              capability={camera}
-              busy={busy}
-              onEnable={onEnableCamera}
-              onDisable={onDisableCamera}
-              onRefreshHardware={onRefreshHardware}
-            />
-            <HardwareActionRow
-              title="GPIO"
-              description="Grant the backend container access to /dev/gpiochip0 for GPIO input and output workflows."
-              capability={gpio}
-              busy={busy}
-              onEnable={onEnableGpio}
-              onDisable={onDisableGpio}
-              onRefreshHardware={onRefreshHardware}
-            />
-            <HardwareActionRow
-              title="Local MQTT broker"
-              description="Enable or stop the app-managed Mosquitto broker for local MQTT devices."
-              capability={mqtt}
-              busy={busy}
-              onEnable={onEnableMqtt}
-              onDisable={onDisableMqtt}
-              onRefreshHardware={onRefreshHardware}
-            />
-            <HardwareActionRow
-              title="I2C sensors"
-              description="Install or disable the host sensor helper used by BME280/BME680 I2C sensor reads."
-              capability={sensors}
-              busy={busy}
-              onEnable={onEnableSensors}
-              onDisable={onDisableSensors}
-              onRefreshHardware={onRefreshHardware}
-            />
-            <ErrorAlert status="warning" className="max-w-none">
-              Optional hardware starts disabled by default. Host-agent actions update Edge Studio service configuration only. Prerequisite commands shown here assume Raspberry Pi OS or another Debian-based Pi image.
+            <div className="gap-detail-next grid md:grid-cols-[220px_minmax(0,1fr)]">
+              <div className="gap-detail-tight flex overflow-x-auto pb-detail-tight md:grid md:overflow-visible md:pb-0">
+                {hardwareItems.map((item) => (
+                  <HardwareManagerNavItem
+                    key={item.name}
+                    item={item}
+                    selected={item.name === selectedItem.name}
+                    onClick={() => setSelectedHardware(item.name)}
+                  />
+                ))}
+              </div>
+              <HardwareDetailPanel
+                item={selectedItem}
+                busy={busy}
+                lanUrl={lanUrl}
+                internalUrl={internalUrl}
+                onRefreshHardware={onRefreshHardware}
+              />
+            </div>
+            <ErrorAlert status="warning" className="max-w-none py-detail-tight">
+              Optional hardware starts disabled by default. Edge Studio changes app service configuration only; OS interfaces and packages stay operator-managed.
             </ErrorAlert>
           </div>
         </Modal>
@@ -357,87 +372,204 @@ export function LocalServicesCard({
   );
 }
 
-function HardwareStatus({
-  label,
-  capability,
-  enabled,
-  available,
-  reason,
-  fallback,
-}: {
+type HardwareItem = {
+  name: HostCapability["name"];
   label: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
   capability?: HostCapability;
-  enabled?: boolean;
-  available?: boolean;
-  reason?: string | null;
-  fallback?: string;
-}) {
-  const isEnabled = capability?.enabled ?? enabled ?? false;
-  const isAvailable = capability?.available ?? available ?? false;
+  onEnable?: () => Promise<void>;
+  onDisable?: () => Promise<void>;
+};
+
+function HardwareStatusChip({ item, onClick }: { item: HardwareItem; onClick: () => void }) {
+  const status = hardwareStatus(item.capability);
+  const Icon = item.icon;
   return (
-    <div className="border-border-subtle rounded-card-inner gap-detail-tight grid border p-pad-tight">
-      <div className="gap-detail-close flex items-center justify-between">
-        <p className="type-body-em text-text-primary m-0">{label}</p>
-        <Pill tone={isAvailable ? "good" : isEnabled ? "warn" : "neutral"} indicator>
-          {capability?.state === "missing_prerequisites"
-            ? "Action required"
-            : isAvailable
-              ? "Available"
-              : isEnabled
-                ? "Needs attention"
-                : "Disabled"}
-        </Pill>
+    <button
+      type="button"
+      className="border-stroke-secondary bg-surface-primary hover:border-stroke-primary gap-detail-tight rounded-soft flex min-w-[150px] flex-1 items-center border p-pad-tight text-left transition-colors"
+      aria-label={`${item.label}: ${status.label}`}
+      onClick={onClick}
+    >
+      <span className="bg-surface-secondary text-text-secondary grid size-9 shrink-0 place-items-center rounded-full">
+        <Icon aria-hidden className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="type-body-em text-text-primary block">{item.label}</span>
+        <span className="type-meta text-text-tertiary gap-detail-tight flex items-center">
+          <StatusDot status={status.kind} />
+          {status.label}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function HardwareManagerNavItem({
+  item,
+  selected,
+  onClick,
+}: {
+  item: HardwareItem;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  const status = hardwareStatus(item.capability);
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      className={`gap-detail-tight rounded-soft flex min-w-[180px] items-center border p-pad-tight text-left transition-colors md:min-w-0 ${
+        selected
+          ? "border-stroke-primary bg-surface-secondary"
+          : "border-stroke-secondary bg-surface-primary hover:border-stroke-primary"
+      }`}
+      aria-pressed={selected}
+      onClick={onClick}
+    >
+      <Icon aria-hidden className="text-text-secondary size-4 shrink-0" />
+      <span className="min-w-0 flex-1">
+        <span className="type-body-em text-text-primary block">{item.label}</span>
+        <span className="type-meta text-text-tertiary gap-detail-tight flex items-center">
+          <StatusDot status={status.kind} />
+          {status.label}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function HardwareDetailPanel({
+  item,
+  busy,
+  lanUrl,
+  internalUrl,
+  onRefreshHardware,
+}: {
+  item: HardwareItem;
+  busy: boolean;
+  lanUrl: string;
+  internalUrl: string;
+  onRefreshHardware?: () => Promise<void>;
+}) {
+  const capability = item.capability;
+  const status = hardwareStatus(capability);
+  const action = hardwareAction(item);
+  const Icon = item.icon;
+  return (
+    <section className="border-stroke-secondary bg-surface-primary rounded-soft grid overflow-hidden border" aria-label={`${item.title} details`}>
+      <div className="gap-detail-close flex items-start justify-between px-detail-close py-detail-next">
+        <div className="gap-detail-tight flex min-w-0 items-start">
+          <span className="bg-surface-secondary text-text-secondary mt-[2px] grid size-8 shrink-0 place-items-center rounded-full">
+            <Icon aria-hidden className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <div className="gap-detail-tight flex flex-wrap items-center">
+              <h3 className="type-body-em text-text-primary m-0">{item.title}</h3>
+              <Pill tone={status.tone} indicator>{status.label}</Pill>
+            </div>
+            <p className="type-meta text-text-secondary mt-detail-tight m-0">{hardwareStateSummary(item, status.label)}</p>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant={action.variant}
+          size="sm"
+          disabled={busy || !action.onClick}
+          onClick={() => void action.onClick?.()}
+        >
+          {action.label}
+        </Button>
       </div>
-      <p className="type-meta text-text-tertiary m-0">
-        {isAvailable ? "Ready for device workflows." : capability?.reason ?? reason ?? fallback}
-      </p>
+      {capability?.reason && <CompactReason tone={status.kind === "error" ? "error" : status.kind === "warn" ? "warn" : "neutral"}>{capability.reason}</CompactReason>}
+      {item.name === "mqtt" && (
+        <div className="grid">
+          <CompactCopyRow label="LAN URL" value={lanUrl} description="External devices on the LAN" />
+          <CompactCopyRow label="Internal URL" value={internalUrl} description="Edge Studio MQTT configs" />
+        </div>
+      )}
+      <HardwarePrerequisites capability={capability} busy={busy} onRefreshHardware={onRefreshHardware} />
+    </section>
+  );
+}
+
+function hardwareStateSummary(item: HardwareItem, statusLabel: string) {
+  if (item.capability?.state === "missing_prerequisites") return "Complete the host setup steps, then refresh status.";
+  if (item.capability?.available) return "Ready for device workflows.";
+  if (item.capability?.enabled) return "Support is enabled but not currently usable.";
+  if (item.name === "mqtt") return "Enable the local broker for MQTT devices and workflows.";
+  return item.description;
+}
+
+function CompactReason({ children, tone }: { children: string; tone: "neutral" | "warn" | "error" }) {
+  const className = {
+    neutral: "border-stroke-secondary bg-surface-secondary text-text-secondary",
+    warn: "border-stroke-warning bg-feedback-warning/10 text-text-primary",
+    error: "border-stroke-error bg-feedback-error/10 text-text-primary",
+  }[tone];
+  return <p className={`type-meta m-0 border-t px-detail-close py-detail-tight ${className}`}>{children}</p>;
+}
+
+function CompactCopyRow({ label, value, description }: { label: string; value: string; description: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard can fail on non-secure origins; the value remains visible for manual copy.
+    }
+  }
+
+  return (
+    <div className="border-stroke-secondary grid gap-detail-next border-t px-detail-close py-detail-next">
+      <div>
+        <p className="type-meta text-text-primary m-0">{label}</p>
+        <p className="type-meta text-text-tertiary mt-detail-tight m-0">{description}</p>
+      </div>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-detail-next">
+        <code className="type-mono text-text-primary min-w-0 truncate rounded-loose bg-surface-secondary px-detail-next py-detail-tight">{value}</code>
+        <Button type="button" variant="ghost" size="sm" iconEnd={copied ? <Check aria-hidden /> : <CopyIcon aria-hidden />} onClick={handleCopy}>
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
     </div>
   );
 }
 
-function HardwareActionRow({
-  title,
-  description,
-  capability,
-  busy,
-  onEnable,
-  onDisable,
-  onRefreshHardware,
-}: {
-  title: string;
-  description: string;
-  capability?: HostCapability;
-  busy: boolean;
-  onEnable?: () => Promise<void>;
-  onDisable?: () => Promise<void>;
-  onRefreshHardware?: () => Promise<void>;
-}) {
+function hardwareStatus(capability?: HostCapability): { label: string; kind: "good" | "neutral" | "warn" | "error"; tone: "good" | "neutral" | "warn" | "error" } {
+  const enabled = capability?.enabled ?? false;
+  const available = capability?.available ?? false;
+  if (capability?.state === "missing_prerequisites") return { label: "Action required", kind: "warn", tone: "warn" };
+  if (available) return { label: "Available", kind: "good", tone: "good" };
+  if (enabled) return { label: "Needs repair", kind: "error", tone: "error" };
+  return { label: "Disabled", kind: "neutral", tone: "neutral" };
+}
+
+function hardwareAction(item: HardwareItem): { label: string; variant: "primary" | "secondary"; onClick?: () => Promise<void> } {
+  const capability = item.capability;
   const enabled = capability?.enabled ?? false;
   const available = capability?.available ?? false;
   const missingPrerequisites = capability?.state === "missing_prerequisites";
   const needsRepair = enabled && !available && !missingPrerequisites;
-  const actionLabel = missingPrerequisites && !enabled ? "Action required" : needsRepair ? "Repair" : enabled ? "Disable" : "Enable";
-  const action = needsRepair || (!enabled && !missingPrerequisites) ? onEnable : enabled ? onDisable : undefined;
-  return (
-    <div className="border-border-subtle rounded-card-inner gap-detail-close grid border p-pad-tight">
-      <div className="gap-detail-close flex flex-wrap items-center justify-between">
-        <div>
-          <p className="type-body-em text-text-primary m-0">{title}</p>
-          <p className="type-body text-text-secondary mt-detail-tight m-0">{description}</p>
-        </div>
-        <Button
-          type="button"
-          variant={enabled ? "secondary" : "primary"}
-          disabled={busy || !action}
-          onClick={() => void action?.()}
-        >
-          {actionLabel}
-        </Button>
-      </div>
-      {capability?.reason && <p className="type-meta text-text-tertiary m-0">{capability.reason}</p>}
-      <HardwarePrerequisites capability={capability} busy={busy} onRefreshHardware={onRefreshHardware} />
-    </div>
-  );
+  if (missingPrerequisites && !enabled) return { label: "Action required", variant: "primary" };
+  if (needsRepair) return { label: "Repair", variant: "primary", onClick: item.onEnable };
+  if (enabled) return { label: "Disable", variant: "secondary", onClick: item.onDisable };
+  return { label: "Enable", variant: "primary", onClick: item.onEnable };
+}
+
+function StatusDot({ status }: { status: "good" | "neutral" | "warn" | "error" }) {
+  const className = {
+    good: "bg-feedback-positive",
+    neutral: "bg-grey-04",
+    warn: "bg-feedback-warning",
+    error: "bg-feedback-error",
+  }[status];
+  return <span aria-hidden className={`inline-block size-2 rounded-full ${className}`} />;
 }
 
 function HardwarePrerequisites({ capability, busy, onRefreshHardware }: { capability?: HostCapability; busy: boolean; onRefreshHardware?: () => Promise<void> }) {
@@ -447,26 +579,32 @@ function HardwarePrerequisites({ capability, busy, onRefreshHardware }: { capabi
   const isBlocking = capability.state === "missing_prerequisites";
   if (!isBlocking) return null;
   return (
-    <div className="border-border-subtle bg-surface-subtle rounded-card-inner gap-detail-tight grid border p-pad-tight">
-      <div className="gap-detail-close flex flex-wrap items-center justify-between">
-        <p className="type-body-em text-text-primary m-0">Prerequisites for Raspberry Pi OS</p>
-        <Pill tone="warn">Action needed</Pill>
-      </div>
-      <p className="type-meta text-text-tertiary m-0">
-        Edge Studio manages its own helper services and app configuration in this version. Raspberry Pi OS interfaces and packages must be enabled on the host first.
+    <Disclosure
+      title={
+        <span className="gap-detail-close flex flex-wrap items-center">
+          <span>Setup steps</span>
+          <Pill tone="warn">Action needed</Pill>
+        </span>
+      }
+      defaultOpen={false}
+      className="border-stroke-secondary bg-surface-primary border-t p-0"
+      summaryClassName="px-detail-close py-detail-next"
+      contentClassName="grid gap-detail-next pb-detail-next"
+    >
+      <p className="type-meta text-text-tertiary m-0 px-detail-close">
+        Enable the required Raspberry Pi OS interface or package on the host, then refresh status.
       </p>
-      <p className="type-meta text-text-tertiary m-0">
-        These steps assume Raspberry Pi OS or another Debian-based Pi image. Other Linux distributions may use different package names or setup tools.
-      </p>
-      <div className="gap-detail-tight grid">
+      <div className="grid">
         {guidance.map((item) => (
-          <CopyField key={item.label} label={item.label} value={item.command} description={item.description} />
+          <CompactCopyRow key={item.label} label={item.label} value={item.command} description={item.description} />
         ))}
       </div>
-      <Button type="button" variant="secondary" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
-        I have completed this, refresh now
-      </Button>
-    </div>
+      <div className="px-detail-close pt-detail-next">
+        <Button type="button" variant="secondary" size="sm" disabled={busy || !onRefreshHardware} onClick={() => void onRefreshHardware?.()}>
+          I have completed this, refresh now
+        </Button>
+      </div>
+    </Disclosure>
   );
 }
 
