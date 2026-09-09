@@ -347,21 +347,34 @@ describe("readDeviceSystemDataSource", () => {
   });
 });
 
-const fetchMock = vi.fn();
+// Egress goes through undici so the validated address can be pinned to the socket, so the
+// mock boundary is undici's fetch plus the resolver it validates against — not global.fetch.
+const { fetchMock, lookupMock } = vi.hoisted(() => ({ fetchMock: vi.fn(), lookupMock: vi.fn() }));
+
+vi.mock("undici", () => ({
+  fetch: fetchMock,
+  Agent: class {
+    close() {
+      return Promise.resolve();
+    }
+  }
+}));
+
+vi.mock("node:dns/promises", () => ({
+  default: { lookup: lookupMock }
+}));
 
 beforeEach(() => {
   fetchMock.mockReset();
-  vi.stubGlobal("fetch", fetchMock);
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
+  lookupMock.mockReset();
+  lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
 });
 
 function mockResponse(status: number, bodyText: string) {
   return {
     ok: status >= 200 && status < 300,
     status,
+    headers: new Headers(),
     text: async () => bodyText,
     json: async () => JSON.parse(bodyText) as unknown
   };
@@ -375,7 +388,7 @@ describe("checkDataSourceHealth", () => {
   it("fetches the health status URL and reports ok/status", async () => {
     fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify({ up: true })));
     const result = await checkDataSourceHealth({ url: "https://example.com", method: "GET", healthStatusUrl: "https://example.com/health" });
-    assert.equal(fetchMock.mock.calls[0][0], "https://example.com/health");
+    assert.equal(String(fetchMock.mock.calls[0][0]), "https://example.com/health");
     assert.equal(result.ok, true);
     assert.equal(result.status, 200);
     assert.deepEqual(result.body, { up: true });
@@ -386,7 +399,7 @@ describe("readJsonApiSource", () => {
   it("fetches, hashes canonical JSON, and returns the parsed preview", async () => {
     fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify({ a: 1 })));
     const result = await readJsonApiSource({ url: "https://example.com", method: "GET" });
-    assert.equal(fetchMock.mock.calls[0][0], "https://example.com");
+    assert.equal(String(fetchMock.mock.calls[0][0]), "https://example.com/");
     assert.deepEqual(result.preview, { a: 1 });
     assert.ok(result.bytesHash);
   });
@@ -459,5 +472,69 @@ describe("sendMultipartMediaOutput", () => {
   it("throws on a non-ok response", async () => {
     fetchMock.mockResolvedValue(mockResponse(500, JSON.stringify({ error: "boom" })));
     await assert.rejects(sendMultipartMediaOutput({ url: "https://example.com", method: "POST" }, { fileFieldName: "file", fileName: "img.jpg", mediaType: "image/jpeg", bytes: Buffer.from([1]) }), /HTTP output returned HTTP 500/);
+  });
+});
+
+describe("egress URL policy", () => {
+  describe("at save time", () => {
+    it("rejects a JSON API source pointed at the Minima RPC service", () => {
+      assert.throws(() => parseJsonApiConfig({ url: "http://minima:9005/vault" }), /internal Edge Studio service/);
+    });
+
+    it("rejects a JSON API health URL pointed at an internal service, even when the read URL is fine", () => {
+      assert.throws(
+        () => parseJsonApiConfig({ url: "https://example.com", healthStatusUrl: "http://backend:3000/api/health" }),
+        /internal Edge Studio service/
+      );
+    });
+
+    it("rejects a non-http scheme on a JSON API source", () => {
+      assert.throws(() => parseJsonApiConfig({ url: "file:///etc/passwd" }), /scheme 'file' is not allowed/);
+    });
+
+    it("rejects an HTTP output target on the container network", () => {
+      assert.throws(() => parseHttpOutputConfig({ url: "http://172.30.0.4:9005/status" }), /container network/);
+    });
+
+    it("still accepts an ordinary external URL and a plain LAN address", () => {
+      assert.equal(parseJsonApiConfig({ url: "https://api.vendor.example/v1" }).url, "https://api.vendor.example/v1");
+      assert.equal(parseHttpOutputConfig({ url: "http://192.168.1.20/ingest" }).url, "http://192.168.1.20/ingest");
+    });
+  });
+
+  // Config rows predate the validator and DNS answers change between save and fetch, so each
+  // egress call site re-checks rather than trusting the stored config.
+  describe("at fetch time", () => {
+    it("rejects readJsonApiSource against an internal service", async () => {
+      await assert.rejects(readJsonApiSource({ url: "http://minima:9005/vault", method: "GET" }), /internal Edge Studio service/);
+      assert.equal(fetchMock.mock.calls.length, 0);
+    });
+
+    it("rejects checkDataSourceHealth against an internal service", async () => {
+      await assert.rejects(
+        checkDataSourceHealth({ url: "https://example.com", method: "GET", healthStatusUrl: "http://minima:9005/status" }),
+        /internal Edge Studio service/
+      );
+      assert.equal(fetchMock.mock.calls.length, 0);
+    });
+
+    it("rejects sendHttpOutput against an internal service", async () => {
+      await assert.rejects(sendHttpOutput({ url: "http://minima:9005/vault", method: "POST" }, { a: 1 }), /internal Edge Studio service/);
+      assert.equal(fetchMock.mock.calls.length, 0);
+    });
+
+    it("rejects sendMultipartMediaOutput against an internal service", async () => {
+      await assert.rejects(
+        sendMultipartMediaOutput({ url: "http://minima:9005/vault", method: "POST" }, { fileFieldName: "file", fileName: "img.jpg", mediaType: "image/jpeg", bytes: Buffer.from([1]) }),
+        /internal Edge Studio service/
+      );
+      assert.equal(fetchMock.mock.calls.length, 0);
+    });
+
+    it("rejects a stored external hostname that now resolves onto the container network", async () => {
+      lookupMock.mockResolvedValue([{ address: "172.30.0.3", family: 4 }]);
+      await assert.rejects(readJsonApiSource({ url: "https://api.vendor.example/v1", method: "GET" }), /container network/);
+      assert.equal(fetchMock.mock.calls.length, 0);
+    });
   });
 });

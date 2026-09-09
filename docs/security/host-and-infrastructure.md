@@ -33,6 +33,7 @@ Current Controls:
 - Closed-world catalog: nothing runs unless it is both listed in the static `minimaConsoleCatalog` array and enabled in the admin whitelist (`minima_console_whitelist` setting). No request body can whitelist a command outside the catalog — `updateConsoleWhitelist` rejects unknown keys.
 - `vault`, `sendfrom`, `signfrom`, `createfrom`, `postfrom`, `createtokenfrom`, `decryptbackup`, `keys`, and `quit` have no catalog entry at all for v1, so no whitelist edit can ever enable them as a raw, free-text command. The first six can expose or accept a raw wallet private key or seed phrase; a bare, unwrapped `quit` can shut the node down with no in-UI recovery. `quit compact:true` is used internally by `restartMinimaContainer()` (`minima.service.ts`) as the first step of a controlled restart that always ends by starting the container back up — this is a narrow, wrapped, non-whitelist-able use, not an exception to the exclusion.
 - Every other catalog command defaults to enabled only if it is read-only (no side effects); anything that can mutate funds, chain state, config, network, or the wallet defaults to disabled and must be explicitly turned on.
+- Classification is per accepted argument shape, not per verb. A read-enabled verb whose `action:` argument can mutate (`tokens action:import`, `maxcontacts action:add`/`action:remove`) carries a separate, default-disabled entry that claims every `action:` value outside an explicit read allowlist — so an unrecognized action, including one added by a future Minima release, is refused rather than allowed. `cointrack` has no read form and is classified `write` in full.
 - Whitelist edits (`POST /api/minima/console/whitelist`) require re-entering the admin PIN/password, the same re-auth pattern `changePassword` uses, and are rate-limited (`authRateLimiter`). This raises the bar against a hijacked-but-not-credentialed session; it does not help if the admin credential itself is compromised (accepted, user-level risk).
 - `GET`/`POST /api/minima/console/whitelist` and `POST /api/minima/console/run` all require an admin session (`requireRole("admin")`).
 - Where a whitelisted command already has a dedicated narrow backend action (`megammrsync` → `resyncMegammr()`, `peers action:addpeers` → `addMinimaPeers()`), the console dispatches to that same function instead of re-implementing the RPC call, so operation-tracking, audit logging, and error normalization stay a single source of truth.
@@ -44,13 +45,14 @@ Plan:
 - Revisit `keys` (whether its response can ever include private key material) and `decryptbackup`/`vault`/the `*from` family before ever considering them for the catalog.
 - If any excluded command is ever added later, add response redaction before persisting or displaying it — not just gate it behind the whitelist.
 
-Status: **Partially mitigated — two gaps, scheduled Phase 2.** The closed-world catalog,
-re-auth-gated whitelist, and hard exclusions work as described (see `.agents/rules/minima.md`), but
-(a) `parseVerb` matches the first token only, so read-enabled `tokens`/`cointrack`/`maxcontacts`
-entries still accept their mutating subcommand forms, and (b) the catalog's exclusions can be
-sidestepped entirely via the data-source SSRF path, which never goes through the console — see
-*Data Source URL Fetching* in `data-sources-and-automation.md`.
-See [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-2--close-the-minima-rpc-bypass).
+Status: **Mitigated (Phase 2, 2026-09-08).** The closed-world catalog, re-auth-gated whitelist, and
+hard exclusions work as described (see `.agents/rules/minima.md`). Both previously recorded gaps are
+closed: command classification is now per accepted argument shape rather than per verb, so the
+mutating `action:` forms of `tokens`/`maxcontacts` resolve to their own default-disabled entries and
+`cointrack` is classified `write` outright ([adr/0015](../adr/0015-minima-console-mutating-subcommands.md));
+and the data-source path that sidestepped the catalog entirely is closed by the egress URL policy —
+see *Data Source URL Fetching* in `data-sources-and-automation.md` and
+[adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md).
 
 ## Minima Node Backup & Restore
 

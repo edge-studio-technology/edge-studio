@@ -83,6 +83,8 @@ services:
       SESSION_MAX_AGE_DAYS: \${SESSION_MAX_AGE_DAYS:-7}
       SESSION_IDLE_HOURS: \${SESSION_IDLE_HOURS:-24}
       DOCKER_SOCKET_PATH: /var/run/docker.sock
+      EDGE_STUDIO_DOCKER_SUBNET: \${EDGE_STUDIO_DOCKER_SUBNET:-172.30.0.0/24}
+      EDGE_STUDIO_DOCKER_GATEWAY: \${EDGE_STUDIO_DOCKER_GATEWAY:-172.30.0.1}
     volumes:
       - \${HOST_FILES_DIR:-./host-files}:/host-files:ro
       - \${DATA_DIR:-./data}:/data
@@ -188,6 +190,12 @@ TZ=UTC
 
 # Docker integration
 DOCKER_GID=0
+
+# The Compose network Edge Studio runs on. The backend treats these as internal destinations and
+# refuses to fetch data sources or HTTP output targets that resolve into them. Keep in step with the
+# network block in docker-compose.yml.
+EDGE_STUDIO_DOCKER_SUBNET=172.30.0.0/24
+EDGE_STUDIO_DOCKER_GATEWAY=172.30.0.1
 
 # Integritas Connect
 INTEGRITAS_CONNECT_BASE_URL=https://integritas.technology

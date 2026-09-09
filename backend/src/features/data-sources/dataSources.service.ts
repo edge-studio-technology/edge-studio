@@ -2,7 +2,8 @@ import crypto from "node:crypto";
 import { readFile } from "node:fs/promises";
 import * as os from "node:os";
 import { sha3HashHex } from "../../shared/crypto.js";
-import { fetchJsonWithTimeout } from "../../shared/http.js";
+import { fetchExternalJson } from "../../shared/http.js";
+import { assertAllowedEgressUrl, EgressUrlError } from "../../shared/url-policy.js";
 import { errorMessage, parseStoredError } from "../../shared/structured-error.js";
 import type { DataSourceRecord } from "./dataSources.repository.js";
 
@@ -105,6 +106,8 @@ export function parseJsonApiConfig(value: unknown): JsonApiConfig {
   const healthStatusUrl = typeof config?.healthStatusUrl === "string" ? config.healthStatusUrl.trim() : "";
 
   if (!url) throw new Error("config.url is required");
+  assertAllowedEgressUrl(url);
+  if (healthStatusUrl) assertAllowedEgressUrl(healthStatusUrl);
 
   return { url, method, headers, healthStatusUrl: healthStatusUrl || undefined, body: config?.body };
 }
@@ -147,6 +150,7 @@ export function parseHttpOutputConfig(value: unknown): HttpOutputConfig {
   const timeoutMs = Number(config?.timeoutMs ?? 5000);
 
   if (!url) throw new Error("config.url is required");
+  assertAllowedEgressUrl(url);
   if (!Number.isFinite(timeoutMs) || timeoutMs < 100 || timeoutMs > 60000) throw new Error("config.timeoutMs must be between 100 and 60000");
 
   return { url, method, headers, timeoutMs };
@@ -237,24 +241,25 @@ export function parseDeviceSystemDataConfig(value: unknown): DeviceSystemDataCon
 
 export async function checkDataSourceHealth(config: JsonApiConfig) {
   if (!config.healthStatusUrl) throw new Error("Data source has no health status URL configured");
-  const { response, body } = await fetchJsonWithTimeout(config.healthStatusUrl);
+  const { response, body } = await fetchExternalJson(config.healthStatusUrl);
   return { ok: response.ok, status: response.status, source: config.healthStatusUrl, body, checkedAt: new Date().toISOString() };
 }
 
 export async function readJsonApiSource(config: JsonApiConfig) {
-  let response: Response;
+  let response: { ok: boolean; status: number };
+  let text: string;
 
   try {
-    response = await fetch(config.url, {
+    ({ response, text } = await fetchExternalJson(config.url, {
       method: config.method,
       headers: { ...config.headers, "Content-Type": "application/json" },
       body: config.method === "POST" && config.body !== undefined ? JSON.stringify(config.body) : undefined
-    });
+    }));
   } catch (error) {
+    if (error instanceof EgressUrlError) throw error;
     throw new Error(`Could not fetch ${config.url}: ${describeFetchError(error)}`);
   }
 
-  const text = await response.text();
   let json: unknown;
 
   try {
@@ -283,7 +288,7 @@ export async function readDeviceSystemDataSource(config: DeviceSystemDataConfig)
 }
 
 export async function sendHttpOutput(config: HttpOutputConfig, payload: unknown, hasBody = true) {
-  const { response, body: responseBody } = await fetchJsonWithTimeout(config.url, {
+  const { response, body: responseBody } = await fetchExternalJson(config.url, {
     method: config.method,
     headers: { ...config.headers, "Content-Type": "application/json" },
     body: hasBody ? JSON.stringify(payload) : undefined
@@ -301,13 +306,11 @@ export async function sendMultipartMediaOutput(config: HttpOutputConfig, input: 
   form.append(input.fileFieldName, new Blob([fileBytes], { type: input.mediaType }), input.fileName);
 
   const headers = Object.fromEntries(Object.entries(config.headers ?? {}).filter(([key]) => key.toLowerCase() !== "content-type"));
-  const response = await fetch(config.url, {
+  const { response, body: responseBody } = await fetchExternalJson(config.url, {
     method: config.method,
     headers,
-    body: form,
-    signal: AbortSignal.timeout(config.timeoutMs ?? 5000)
-  });
-  const responseBody = await response.json().catch(() => null) as unknown;
+    body: form
+  }, config.timeoutMs ?? 5000);
 
   if (!response.ok) throw new Error(`HTTP output returned HTTP ${response.status}${responseBody === null ? "" : `: ${JSON.stringify(responseBody)}`}`);
 

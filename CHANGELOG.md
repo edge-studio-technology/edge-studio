@@ -11,6 +11,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Minima backup and restore responses no longer return the RPC command, the request URL, or the stored backup password.
 - Minima RPC command strings, request URLs, and response bodies are redacted before they reach any API response or log line.
 - Backend API error responses and persisted error records redact secret command arguments, bearer tokens, credentials embedded in URLs such as MQTT broker URLs, and secret-looking fields.
+- Data source and HTTP output target URLs are rejected when they point at Edge Studio's own container network, its gateway, a container service name, loopback, or a link-local address, and when they use a scheme other than `http` or `https`.
+- Data source and HTTP output URLs are re-checked when they are fetched, not only when they are saved, and the checked address is pinned to the connection so a changed DNS answer cannot redirect the request onto an internal service.
+- Redirects on data source and HTTP output requests are followed one hop at a time and re-checked against the same rules, up to a hop limit.
+- Camera and sensor host helper URLs come from install-time configuration and are exempt from these checks; see [docs/adr/0014](docs/adr/0014-egress-url-policy-for-operator-supplied-urls.md).
+- Minima console commands are classified by their arguments rather than by verb alone: `tokens action:import`, `maxcontacts action:add`, and `maxcontacts action:remove` are now disabled by default and must be enabled in the console whitelist, and `cointrack` is treated as a mutating command.
+- Unrecognized `action:` values on Minima console commands are refused by default rather than accepted as reads.
+- `GET /api/data-sources/:id/health`, `POST /api/minima/config`, and `POST /api/minima/megammrsync/resync` now require an admin role.
+- Integritas stamping, file stamping, history deletion, proof polling, and proof verification now require an admin role.
+
+### Changed
+
+- The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; both Compose files pass them through with the existing defaults.
 
 ## [0.39.0] 2026-09-03
 

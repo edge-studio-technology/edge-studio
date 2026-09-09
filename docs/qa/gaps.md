@@ -39,7 +39,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 - [ ] **GAP-09 Single-session on login** — New login does not invalidate other sessions (optional for single-admin Pi).
 - [ ] **GAP-10 Rate limits** — Login, setup, and `/api/auth/settings/*` are rate-limited. Integritas stamp, automation, files, etc. are not. **Phase 7.**
 - [ ] **GAP-11 Input validation** — No `zod` on auth/setup bodies; manual checks only.
-- [ ] **GAP-12 Integritas admin gates** — Stamp, history delete/export, verify require session only; `requireRole('admin')` only on API-key routes. Folded into Phase 2's single admin-gate audit pass, with MINIMA-06/07 and `GET /api/data-sources/:id/health`. **Phase 2.**
+- [x] **GAP-12 Integritas admin gates** — Closed in Phase 2's admin-gate audit pass (unreleased): `requireRole('admin')` added to stamp, stamp-file, history delete-selected, history poll, and history verify; history reads/export stay session-only. `GET /api/data-sources/:id/health` and MINIMA-06/07 closed in the same pass, and `tests/app.401-smoke.test.ts` now pins the whole admin-gate matrix.
 - [ ] **GAP-13 Audit hygiene** — Confirm audit rows never contain passwords, TOTP, tokens, or API keys (`login.failure` stores `"failed"` only).
 - [ ] **GAP-17 Session invalidation** — Password change and TOTP reset UI shipped (0.9.0); sessions are **not** invalidated after password/TOTP change. `deleteAllUserSessions` exists and is unit-tested with zero call sites. Review finding [9]. **Phase 3.**
 
@@ -89,8 +89,8 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 ### P1
 
-- [ ] **MINIMA-06 Admin gate on resync** — `POST /api/minima/megammrsync/resync` is any authenticated user, not admin. **Phase 2.**
-- [ ] **MINIMA-07 Admin gate on config** — `POST /api/minima/config` is any authenticated user. **Phase 2.**
+- [x] **MINIMA-06 Admin gate on resync** — `POST /api/minima/megammrsync/resync` requires `requireRole('admin')` (Phase 2, unreleased).
+- [x] **MINIMA-07 Admin gate on config** — `POST /api/minima/config` requires `requireRole('admin')` (Phase 2, unreleased).
 - [ ] **MINIMA-08 Auto-resync no restart** — Poller calls `resyncMegammr()` only; does not restart container when `needsRestart`.
 - [ ] **MINIMA-09 App shell overview** — Header wallet/node pills fetched once on mount; may be stale until reload.
 - [ ] **MINIMA-10 Stall detection** — In-memory `monitoring.*` resets on backend restart.
@@ -166,7 +166,8 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 - [ ] **DEVICE-IO-04 MQTT broker auth** — Add username/password support for the optional local broker before production use. Review finding [5]; blocked on the device-authentication product decision.
 - [ ] **DEVICE-IO-05 MQTT broker hardening** — Add TLS/certificate options, topic ACLs, and LAN bind controls before production use. Same product decision as DEVICE-IO-04.
-- [ ] **DEVICE-IO-06 Output egress controls** — Add broker/URL allowlists and per-target rate limits for HTTP/API and MQTT output targets. Now urgent, not future: unvalidated target URLs are one of the two routes to the Minima RPC bypass. **Phase 2.**
+- [x] **DEVICE-IO-06a Output egress controls (HTTP)** — **Closed (Phase 2, unreleased).** HTTP output target URLs are validated at save and fetch time against the shared egress policy, with the resolved address pinned to the socket and every redirect hop re-validated. See [adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md).
+- [ ] **DEVICE-IO-06b Output egress controls (MQTT + rate limits)** — Still open: MQTT broker allowlists and per-target rate limits for both HTTP and MQTT outputs. The broker half depends on Phase 0's MQTT device-authentication decision; rate limits are Phase 7's per-workflow budget work.
 - [ ] **DEVICE-IO-07 Secret/header handling** — Add safe storage/redaction before exposing custom HTTP output headers or credentials in the UI.
 
 ### P2

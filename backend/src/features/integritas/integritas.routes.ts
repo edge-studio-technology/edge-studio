@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Response } from "express";
 import fs from "node:fs/promises";
 import { sha3HashHex } from "../../shared/crypto.js";
+import { requireRole } from "../auth/auth.middleware.js";
 import { badRequest, notFound, sendApiError, unexpected, dependencyUnavailable } from "../../shared/api-error.js";
 import { appError, systemError } from "../../shared/structured-error.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
@@ -107,7 +108,7 @@ integritasRouter.post("/hash", (req, res) => {
   return res.json(hashCanonicalBytes(canonicalBytes));
 });
 
-integritasRouter.post("/stamp", async (req, res) => {
+integritasRouter.post("/stamp", requireRole("admin"), async (req, res) => {
   const apiKey = requireIntegritasApiKey(res);
   if (!apiKey) return;
 
@@ -121,7 +122,7 @@ integritasRouter.post("/stamp", async (req, res) => {
   return res.json(result);
 });
 
-integritasRouter.post("/stamp-file", upload.single("file"), async (req, res) => {
+integritasRouter.post("/stamp-file", requireRole("admin"), upload.single("file"), async (req, res) => {
   const apiKey = requireIntegritasApiKey(res);
   if (!apiKey) return;
   if (!req.file) return badRequest(res, "file is required", { field: "file" });
@@ -158,7 +159,7 @@ integritasRouter.get("/history/:id", (req, res) => {
   return res.json({ record });
 });
 
-integritasRouter.post("/history/delete-selected", (req, res) => {
+integritasRouter.post("/history/delete-selected", requireRole("admin"), (req, res) => {
   const parsed = parseSelectedIds(req);
   if (!parsed.ok) return badRequest(res, parsed.error, { field: "ids" });
   deleteProofRecords(parsed.ids);
@@ -192,7 +193,7 @@ integritasRouter.get("/history/:id/download-zip", async (req, res) => {
   }
 });
 
-integritasRouter.post("/history/:id/poll", async (req, res) => {
+integritasRouter.post("/history/:id/poll", requireRole("admin"), async (req, res) => {
   const apiKey = requireIntegritasApiKey(res);
   if (!apiKey) return;
 
@@ -202,7 +203,7 @@ integritasRouter.post("/history/:id/poll", async (req, res) => {
   return res.json({ record: result.record, status: result.status });
 });
 
-integritasRouter.post("/history/:id/verify", async (req, res) => {
+integritasRouter.post("/history/:id/verify", requireRole("admin"), async (req, res) => {
   const apiKey = requireIntegritasApiKey(res);
   if (!apiKey) return;
   const record = getProofRecord(req.params.id);

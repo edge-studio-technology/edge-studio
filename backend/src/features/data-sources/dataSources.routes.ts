@@ -108,7 +108,7 @@ dataSourcesRouter.patch("/:id", requireRole("admin"), async (req, res) => {
   }
 });
 
-dataSourcesRouter.get("/:id/health", async (req, res) => {
+dataSourcesRouter.get("/:id/health", requireRole("admin"), async (req, res) => {
   const record = getDataSource(req.params.id);
   if (!record) return notFound(res, "Data source not found");
   if (record.type === "webhook" || record.type === "mqtt" || record.type === "gpio-input" || record.type === "gpio-output" || record.type === "pi-camera" || record.type === "bme-sensor" || record.type === "device-system-data" || record.type === "http-output" || record.type === "mqtt-output") return badRequest(res, "This device does not have a health URL", { sourceId: record.id, type: record.type });

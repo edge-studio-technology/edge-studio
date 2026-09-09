@@ -1,7 +1,20 @@
 import assert from "node:assert/strict";
-import { afterAll, beforeAll, describe, it } from "vitest";
+import { afterAll, beforeAll, describe, it, vi } from "vitest";
 import request from "supertest";
 import { setupTestDatabase } from "./helpers/testDatabase.js";
+
+// A non-admin session, which `UserRole` cannot express today — the admin-gate matrix below
+// needs one to tell requireRole's 403 apart from requireAuth's 401.
+const VIEWER_TOKEN = "viewer-session-token";
+
+vi.mock("../src/features/auth/session.service.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/features/auth/session.service.js")>();
+  return {
+    ...actual,
+    validateSession: (token: string) =>
+      token === VIEWER_TOKEN ? { id: "u-1", username: "viewer", role: "viewer" as unknown as "admin" } : null
+  };
+});
 
 let teardown: () => void;
 let app: import("express").Express;
@@ -37,6 +50,33 @@ const protectedPrefixes = [
   "/api/wallet/address-book",
   "/api/tokens",
   "/api/debug"
+];
+
+// The admin-gate matrix. `UserRole` has one member today, so this cannot be driven through a
+// real login — it mounts the same routers behind a stub that sets a non-admin role, which is
+// what a second role would look like. Listing every route here is the point: the gates were
+// asymmetric on the same primitives (health vs. read, resync/config vs. peers/add), and the
+// failure mode is a new route quietly shipping ungated.
+const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: string][] = [
+  ["get", "/api/files"],
+  ["get", "/api/data-sources/src-1/health"],
+  ["post", "/api/data-sources/src-1/read"],
+  ["post", "/api/data-sources"],
+  ["post", "/api/minima/config"],
+  ["post", "/api/minima/megammrsync/resync"],
+  ["post", "/api/minima/peers/add"],
+  ["post", "/api/minima/restart"],
+  ["post", "/api/minima/console/run"],
+  ["get", "/api/minima/console/whitelist"],
+  ["post", "/api/minima/backups"],
+  ["post", "/api/integritas/stamp"],
+  ["post", "/api/integritas/stamp-file"],
+  ["post", "/api/integritas/history/delete-selected"],
+  ["post", "/api/integritas/history/rec-1/poll"],
+  ["post", "/api/integritas/history/rec-1/verify"],
+  ["post", "/api/automation/workflows"],
+  ["post", "/api/wallet/send-payment"],
+  ["post", "/api/tokens/create"]
 ];
 
 describe("app 401 smoke test", () => {
@@ -79,5 +119,16 @@ describe("app 401 smoke test", () => {
       const response = await request(app).post("/api/data-source-webhooks/nonexistent-token").send({});
       assert.notEqual(response.status, 401);
     });
+  });
+
+  // requireAuth runs before any requireRole, so the non-admin case is driven by stubbing
+  // session validation rather than by mounting the routers a second time.
+  describe("admin-gated routes reject an authenticated non-admin", () => {
+    for (const [method, path] of adminOnlyRoutes) {
+      it(`${method.toUpperCase()} ${path} -> 403`, async () => {
+        const response = await request(app)[method](path).set("Cookie", `session=${VIEWER_TOKEN}`);
+        assert.equal(response.status, 403);
+      });
+    }
   });
 });

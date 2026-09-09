@@ -78,23 +78,29 @@ Impact: Misconfigured or malicious URLs could probe internal services, create re
 
 Current Controls:
 
-- URLs must be saved on a data source before the health poll endpoint will fetch them.
-- Data-source mutation routes require admin role. `GET /:id/health` does **not**, though it drives the same fetch primitive as the admin-gated `POST /:id/read`.
+- One shared validator (`backend/src/shared/url-policy.ts`) rejects non-`http(s)` schemes and internal destinations: the Compose subnet and gateway (`EDGE_STUDIO_DOCKER_SUBNET`/`EDGE_STUDIO_DOCKER_GATEWAY`), the container service names (`backend`, `frontend`, `minima`, `mqtt`, `update-agent`), loopback, link-local, `0.0.0.0/8`, `::`, and `host.docker.internal` — in IPv4 and IPv4-mapped IPv6 form alike.
+- Enforced at save time in `parseJsonApiConfig` and `parseHttpOutputConfig`, and again at fetch time on all four egress call sites (`readJsonApiSource`, the `healthStatusUrl` read, `sendHttpOutput`, `sendMultipartMediaOutput` — the last previously used a bare `fetch` with no validation at all). Config rows predate the validator, so fetch-time re-checking is not redundant.
+- The host is resolved once and rejected if **any** returned A/AAAA record is protected, then that validated address is pinned to the socket (`undici` `Agent` with a fixed `lookup`), so a resolver answering differently on a second lookup cannot move the connection onto an internal host.
+- Redirects are fetched with `redirect: "manual"` and every `Location` hop re-runs the whole check — resolve and pin included — under a hop cap, so the remote server cannot choose the final destination.
+- `GET /:id/health` now requires admin role, matching `POST /:id/read`, which drives the same fetch primitive.
 - Health status polling is narrow and read-only, and the frontend polls saved health URLs once per minute.
+- The camera and sensor host helpers are deliberately exempt: they fetch install-time `.env` values, not API-writable rows, and point at exactly the gateway ports this policy protects. The line drawn is API-writable URL versus deployment config.
 
 Plan:
 
-- Reject internal/Compose-network destinations and non-`http(s)` schemes at both save and fetch
-  time, via one shared validator. Phase 2 chooses between blocking the internal network only and a
-  full host allowlist.
-- Align the `/:id/health` admin gate with `/:id/read`.
 - Consider per-source health polling controls and rate limits.
+- DEVICE-IO-06's other half — MQTT broker allowlists and per-target rate limits — stays open.
 
-Status: **Open — scheduled, Phase 2.** Previously recorded here as an accepted prototype risk on the
-grounds that it "could probe internal services". That understated it: the reachable internal service
-is an unauthenticated Minima RPC endpoint that returns wallet key material, and the response body is
-both returned to the caller and persisted to read history. The class of risk was anticipated; its
-consequence was not. See [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-2--close-the-minima-rpc-bypass).
+Status: **Mitigated (Phase 2, 2026-09-08).** Previously recorded here as an accepted prototype risk on
+the grounds that it "could probe internal services". That understated it: the reachable internal
+service is an unauthenticated Minima RPC endpoint that returns wallet key material, and the response
+body is both returned to the caller and persisted to read history. The class of risk was anticipated;
+its consequence was not.
+
+**Residual, accepted:** an operator can still point a data source at any other LAN host, including
+one they do not control. That is the deliberate scope of the chosen policy — see
+[adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md) for the options weighed and
+what a deny-by-default host allowlist would cost.
 
 ## Public Data Source Webhooks
 

@@ -1,6 +1,6 @@
 # Security Hardening V1.5
 
-**Status:** In progress — Phase 1 done
+**Status:** In progress — Phases 1-2 done
 **Created:** 2026-09-04
 **Revised:** 2026-09-04 — second-opinion review folded in: DNS-address pinning on egress, Phase 0 decision gate, non-destructive
 `APP_SECRET` migration, the multipart egress path, global outbound concurrency, and the installer's
@@ -173,9 +173,13 @@ inputs, asserting both safe client output and retained diagnostics.
 
 ## Phase 2 — Close the Minima RPC bypass
 
+**Status: done** (2026-09-08). Decisions recorded in
+[adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md) (URL policy) and
+[adr/0015](../adr/0015-minima-console-mutating-subcommands.md) (console subcommands).
+
 **Covers:** SSRF, [10], GAP-12, MINIMA-06/07, DEVICE-IO-06 (partial).
 
-**Blocked on a decision, and needs its own ADR.** Validation over operator-supplied URLs is a
+**Was blocked on a decision, and needed its own ADR.** Validation over operator-supplied URLs is a
 behavioral change for anyone legitimately pointing a data source at another LAN host. Decide
 before writing code:
 
@@ -192,8 +196,8 @@ service names are reachable, not that LAN access is wrong in general.
 **Protected destinations under C.** The ADR lists these explicitly rather than leaving "internal"
 to the reader:
 
-- The Compose subnet and gateway (`INTEGRITAS_DOCKER_SUBNET`, default `172.30.0.0/24`;
-  `INTEGRITAS_DOCKER_GATEWAY`, default `172.30.0.1`), in both IPv4 and IPv4-mapped IPv6
+- The Compose subnet and gateway (`EDGE_STUDIO_DOCKER_SUBNET`, default `172.30.0.0/24`;
+  `EDGE_STUDIO_DOCKER_GATEWAY`, default `172.30.0.1`), in both IPv4 and IPv4-mapped IPv6
   (`::ffff:a.b.c.d`) form.
 - Compose service names: `backend`, `frontend`, `minima`, `mqtt`, `update-agent`.
 - Loopback (`127.0.0.0/8`, `::1`), link-local (`169.254.0.0/16`, `fe80::/10`), `0.0.0.0`, `[::]`,
@@ -263,6 +267,29 @@ pinning specifically: a stubbed resolver that returns a public address on the fi
 internal one on the second must not produce a connection to the internal address. Add a console test per
 catalog entry changed, and extend the existing non-public-route smoke test to assert the admin-role
 matrix.
+
+**How it landed.** `backend/src/shared/url-policy.ts` is the one validator; `fetchExternalJson` in
+`backend/src/shared/http.ts` is the one egress path, using `undici`'s `Agent` with a fixed `lookup`
+to pin the validated address and `redirect: "manual"` to re-check each hop. Both parse functions
+validate at save time and all four egress sites re-validate at fetch time. `fetchJsonWithTimeout`
+is unchanged and still serves the deployment-config callers (`minima.rpc.ts`, `integritas`,
+`feedback`, `status`), which must reach internal services.
+
+Writing the IPv6 tests surfaced a real hole in the first draft: `new URL()` re-serializes
+`::ffff:127.0.0.1` as `::ffff:7f00:1`, so the textual check for the dotted form missed the address it
+existed to catch. The validator now expands IPv6 literals to bytes rather than pattern-matching them.
+
+Option C's residual — an operator can still reach any other LAN host — is recorded as accepted in
+`docs/security/data-sources-and-automation.md`, not ticked as closed.
+
+For [10], classification became per accepted argument shape: `tokens` and `maxcontacts` each gained
+a default-disabled sibling entry claiming every `action:` outside an explicit read allowlist, so an
+action the catalog has never seen fails closed. `cointrack` has no read form and is now `write`
+outright.
+
+DEVICE-IO-06 was split in `docs/qa/gaps.md` rather than ticked: **06a** (HTTP URL validation) is
+closed, **06b** (MQTT broker allowlists, per-target rate limits) stays open and points at Phase 0's
+broker-auth decision and Phase 7's budgets.
 
 ---
 
@@ -554,9 +581,9 @@ Defaults in force:
 | --- | --- | --- | --- | --- |
 | 1 | [2] First-boot admin claim | accept; document LAN threat model | 0 | **high** — adds a numbered phase ahead of Phase 5 |
 | 2 | [5] MQTT device auth | accept as-is; off by default | 0 | low — DEVICE-IO-04/05 stay open either way |
-| 3 | Egress URL policy | block Compose subnet, gateway, service names; `http`/`https` only | 2 | medium — widening to a deny-by-default allowlist is a rewrite |
-| 4 | DNS address pinning | pin resolved address to socket; take the `undici` dependency | 2 | medium — moves the test mock boundary off `global.fetch` |
-| 5 | Console mutating subcommands | constrain argument shape per catalog entry | 2 | low |
+| 3 | Egress URL policy | block Compose subnet, gateway, service names; `http`/`https` only — **implemented, adr/0014** | 2 | medium — widening to a deny-by-default allowlist is a rewrite |
+| 4 | DNS address pinning | pin resolved address to socket; take the `undici` dependency — **implemented, adr/0014** | 2 | low — mock boundary already moved off `global.fetch` |
+| 5 | Console mutating subcommands | constrain argument shape per catalog entry — **implemented, adr/0015** | 2 | low |
 | 6 | Session revocation scope | revoke all sessions incl. caller; clear cookie; force re-login | 3 | low |
 | 7 | Verifier runtime | pin `node:20-bookworm-slim` by digest | 4 | low |
 | 8 | `curl \| sudo bash` | accept as residual; ship documented download-inspect-run + checksum | 4 | low — real fix needs release infra |
@@ -635,8 +662,7 @@ Per phase, not at the end:
 - `docs/qa/gaps.md` — tick the GAP/MINIMA/WALLET/DEVICE-IO IDs listed in the finding map.
 - `SECURITY.md` — only when a guideline or accepted risk actually changes.
 - `CHANGELOG.md` under `## [Unreleased] task/272-security-hardening-v1-5`, `### Security`.
-- ADRs for: the Phase 2 URL policy (its protected-destination list, the host-helper exemption, and
-  the `undici` dependency taken on to pin resolved addresses), the Phase 5 limit values, the Phase 6 `APP_SECRET` migration, the Phase 7 deferred
+- ADRs for: the Phase 2 URL policy (**done — adr/0014**) and console subcommands (**done — adr/0015**), the Phase 5 limit values, the Phase 6 `APP_SECRET` migration, the Phase 7 deferred
   global budgets, and each Phase 0 product decision.
 
 ## Sign-off

@@ -44,6 +44,55 @@ describe("minimaConsoleCatalog", () => {
     assert.equal(peersAdd?.match?.("peers"), false);
   });
 
+  // Finding [10]: command lookup keys on the first token, so a read-classified verb that
+  // accepts a mutating `action:` form needs a sibling write entry ahead of it in the catalog.
+  describe("verbs whose action: argument can mutate", () => {
+    function entriesFor(verb: string) {
+      return minimaConsoleCatalog.filter((entry) => entry.verb === verb);
+    }
+
+    it("lists the tokens write entry before the read entry, so action:import cannot slip through", () => {
+      const [first, second] = entriesFor("tokens");
+      assert.equal(first.key, "tokens.write");
+      assert.equal(first.kind, "write");
+      assert.equal(first.defaultEnabled, false);
+      assert.equal(first.match?.("tokens action:import data:0x123"), true);
+      assert.equal(first.match?.("tokens action:export tokenid:0x00"), false);
+      assert.equal(first.match?.("tokens"), false);
+      assert.equal(second.key, "tokens");
+      assert.equal(second.defaultEnabled, true);
+    });
+
+    it("claims unknown tokens actions for the write entry rather than allowing them", () => {
+      const [first] = entriesFor("tokens");
+      assert.equal(first.match?.("tokens action:somethingnew"), true);
+    });
+
+    it("lists the maxcontacts write entry before the read entry", () => {
+      const [first, second] = entriesFor("maxcontacts");
+      assert.equal(first.key, "maxcontacts.write");
+      assert.equal(first.defaultEnabled, false);
+      assert.equal(first.match?.("maxcontacts action:add contact:MAX#..."), true);
+      assert.equal(first.match?.("maxcontacts action:remove id:1"), true);
+      assert.equal(first.match?.("maxcontacts action:list"), false);
+      assert.equal(first.match?.("maxcontacts action:search"), false);
+      assert.equal(second.key, "maxcontacts");
+      assert.equal(second.defaultEnabled, true);
+    });
+
+    it("classifies cointrack as write — it has no read form", () => {
+      const [cointrack] = entriesFor("cointrack");
+      assert.equal(cointrack.kind, "write");
+      assert.equal(cointrack.defaultEnabled, false);
+    });
+
+    it("is case-insensitive about the action value", () => {
+      const [tokens] = entriesFor("tokens");
+      assert.equal(tokens.match?.("tokens ACTION:IMPORT"), true);
+      assert.equal(tokens.match?.("tokens ACTION:EXPORT"), false);
+    });
+  });
+
   it("bare peers entry is read, default-enabled, and has no match guard", () => {
     const peers = minimaConsoleCatalog.find((entry) => entry.key === "peers");
     assert.equal(peers?.kind, "read");

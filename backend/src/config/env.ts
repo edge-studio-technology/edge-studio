@@ -66,6 +66,8 @@ export const env = {
   dataDir: resolveDataDir(databasePath),
   appSecret: process.env.APP_SECRET ?? "dev-change-me",
   dockerSocketPath: process.env.DOCKER_SOCKET_PATH ?? "/var/run/docker.sock",
+  dockerSubnet: process.env.EDGE_STUDIO_DOCKER_SUBNET ?? "172.30.0.0/24",
+  dockerGateway: process.env.EDGE_STUDIO_DOCKER_GATEWAY ?? "172.30.0.1",
   cookieSecure: process.env.COOKIE_SECURE === "true",
   cookieSameSite: "strict" as const,
   sessionCookieName: "session",

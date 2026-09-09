@@ -42,7 +42,7 @@ minimaRouter.get("/config", (_req, res) => {
   res.json(getMinimaConfig());
 });
 
-minimaRouter.post("/config", (req, res) => {
+minimaRouter.post("/config", requireRole("admin"), (req, res) => {
   try {
     const megammrHost = typeof req.body?.megammrHost === "string" ? req.body.megammrHost : "";
     res.json(saveMinimaConfig({ megammrHost }));
@@ -126,7 +126,7 @@ minimaRouter.get("/balance", async (_req, res) => {
   }
 });
 
-minimaRouter.post("/megammrsync/resync", async (_req, res) => {
+minimaRouter.post("/megammrsync/resync", requireRole("admin"), async (_req, res) => {
   try {
     const result = await resyncMegammr();
     if (!result.ok) return dependencyUnavailable(res, "Megammr resync failed", undefined, undefined, result);
