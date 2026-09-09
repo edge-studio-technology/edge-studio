@@ -40,7 +40,7 @@ export type MqttOutputConfig = {
 export type GpioInputConfig = {
   chip: string;
   pin: number;
-  profile: "generic" | "pir-motion";
+  profile: "generic" | "pir-motion" | "gpio-button";
   pull: "off" | "up" | "down";
   edge: "rising" | "falling" | "both";
   debounceMs: number;
@@ -167,7 +167,7 @@ export function parseGpioInputConfig(value: unknown): GpioInputConfig {
   const config = value as Partial<GpioInputConfig> | undefined;
   const chip = typeof config?.chip === "string" && config.chip.trim() ? config.chip.trim() : "gpiochip0";
   const pin = Number(config?.pin);
-  const profile = config?.profile === "pir-motion" ? "pir-motion" : "generic";
+  const profile = config?.profile === "pir-motion" || config?.profile === "gpio-button" ? config.profile : "generic";
   const pull = config?.pull === "up" || config?.pull === "down" || config?.pull === "off" ? config.pull : "off";
   const edge = config?.edge === "rising" || config?.edge === "falling" || config?.edge === "both" ? config.edge : "both";
   const debounceMs = Number(config?.debounceMs ?? 100);

@@ -83,8 +83,8 @@ export function DataSourceForm({
   setGpioChip: (value: string) => void;
   gpioPin: string;
   setGpioPin: (value: string) => void;
-  gpioProfile: "generic" | "pir-motion";
-  setGpioProfile: (value: "generic" | "pir-motion") => void;
+  gpioProfile: "generic" | "pir-motion" | "gpio-button";
+  setGpioProfile: (value: "generic" | "pir-motion" | "gpio-button") => void;
   gpioPull: "off" | "up" | "down";
   setGpioPull: (value: "off" | "up" | "down") => void;
   gpioEdge: "rising" | "falling" | "both";
@@ -233,6 +233,8 @@ export function DataSourceForm({
           <MutedText>
             {gpioProfile === "pir-motion"
               ? "PIR Motion Sensor profile is fixed by the selected template."
+              : gpioProfile === "gpio-button"
+                ? "GPIO Button profile is fixed by the selected template."
               : "GPIO Input Pin uses the generic input profile."}{" "}
             GPIO input sources use BCM numbering and record edge events only while a
             workflow is enabled.

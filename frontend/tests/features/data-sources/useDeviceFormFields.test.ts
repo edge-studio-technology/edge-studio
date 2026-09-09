@@ -42,7 +42,7 @@ describe("useDeviceFormFields", () => {
       title: "GPIO Button",
       description: "Detect a push button",
       type: "gpio-input",
-      config: { chip: "gpiochip0", pin: 17, profile: "generic", pull: "up", edge: "falling", debounceMs: 100, activeState: "low" },
+      config: { chip: "gpiochip0", pin: 17, profile: "gpio-button", pull: "up", edge: "falling", debounceMs: 100, activeState: "low" },
     };
     const { result } = renderHook(() => useDeviceFormFields());
     act(() => result.current.fillFromTemplate(template));
@@ -50,6 +50,7 @@ describe("useDeviceFormFields", () => {
     expect(fields.name).toBe("GPIO Button");
     expect(fields.description).toBe("Detect a push button");
     expect(fields.type).toBe("gpio-input");
+    expect(fields.gpioProfile).toBe("gpio-button");
     expect(fields.gpioPull).toBe("up");
     expect(fields.gpioEdge).toBe("falling");
     expect(fields.gpioActiveState).toBe("low");
@@ -57,7 +58,7 @@ describe("useDeviceFormFields", () => {
     expect(fields.url).toBe("");
   });
 
-  it("fillFromTemplate falls back gpioProfile to 'generic' when the template profile isn't pir-motion", () => {
+  it("fillFromTemplate falls back gpioProfile to 'generic' when the template profile is not a GPIO input profile", () => {
     const template: DataSourceTemplate = {
       title: "MQTT Subscriber",
       description: "",

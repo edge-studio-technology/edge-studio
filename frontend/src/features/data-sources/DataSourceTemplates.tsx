@@ -69,13 +69,13 @@ export const inputTemplates: DataSourceTemplate[] = [
     title: "GPIO Button",
     description: "Detect a simple push button wired between GPIO17 and GND",
     type: "gpio-input",
-    config: {
-      chip: "gpiochip0",
-      pin: 17,
-      profile: "generic",
-      pull: "up",
-      edge: "falling",
-      debounceMs: 100,
+      config: {
+        chip: "gpiochip0",
+        pin: 17,
+        profile: "gpio-button",
+        pull: "up",
+        edge: "falling",
+        debounceMs: 100,
       activeState: "low",
     },
   },
@@ -389,7 +389,7 @@ function HardwareStatusChip({ item, onClick }: { item: HardwareItem; onClick: ()
   return (
     <button
       type="button"
-      className="border-stroke-secondary bg-surface-primary hover:border-stroke-primary gap-detail-tight rounded-soft flex min-w-[150px] flex-1 items-center border p-pad-tight text-left transition-colors"
+      className="border-stroke-secondary bg-surface-primary hover:border-stroke-primary gap-detail-tight rounded-soft flex min-w-[150px] flex-1 cursor-pointer items-center border p-pad-tight text-left transition-colors"
       aria-label={`${item.label}: ${status.label}`}
       onClick={onClick}
     >
@@ -484,7 +484,7 @@ function HardwareDetailPanel({
         </Button>
       </div>
       {capability?.reason && <CompactReason tone={status.kind === "error" ? "error" : status.kind === "warn" ? "warn" : "neutral"}>{capability.reason}</CompactReason>}
-      {item.name === "mqtt" && (
+      {item.name === "mqtt" && capability?.enabled && (
         <div className="grid">
           <CompactCopyRow label="LAN URL" value={lanUrl} description="External devices on the LAN" />
           <CompactCopyRow label="Internal URL" value={internalUrl} description="Edge Studio MQTT configs" />
@@ -497,7 +497,7 @@ function HardwareDetailPanel({
 
 function hardwareStateSummary(item: HardwareItem, statusLabel: string) {
   if (item.capability?.state === "missing_prerequisites") return "Complete the host setup steps, then refresh status.";
-  if (item.capability?.available) return "Ready for device workflows.";
+  if (item.capability?.available) return "Ready for device configuration.";
   if (item.capability?.enabled) return "Support is enabled but not currently usable.";
   if (item.name === "mqtt") return "Enable the local broker for MQTT devices and workflows.";
   return item.description;
@@ -649,7 +649,7 @@ const prerequisiteGuidance: Partial<Record<HostCapability["name"], PrerequisiteC
     {
       label: "Check I2C device",
       command: "ls -l /dev/i2c-1",
-      description: "Run after enabling I2C and rebooting the Pi.",
+      description: "Run after enabling I2C and rebooting the Pi. Expected output starts with crw-rw---- and shows root i2c.",
     },
   ],
   mqtt: [

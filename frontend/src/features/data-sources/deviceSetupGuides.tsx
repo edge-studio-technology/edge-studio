@@ -62,6 +62,8 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
     );
   if (source.type === "gpio-input" && source.config.profile === "pir-motion")
     return pirGuide(source);
+  if (source.type === "gpio-input" && source.config.profile === "gpio-button")
+    return gpioButtonGuide(source);
   if (source.type === "gpio-input") return gpioInputGuide(source);
   if (source.type === "gpio-output") return gpioLedGuide(source);
   if (source.type === "bme-sensor") return bmeSensorGuide(source);
@@ -455,7 +457,6 @@ function deviceSystemDataGuide(source: DataSource) {
 }
 
 function gpioInputGuide(source: DataSource) {
-  if (source.name.toLowerCase().includes("button")) return gpioButtonGuide(source);
   return guide(
     source,
     "GPIO Input Setup Guide",

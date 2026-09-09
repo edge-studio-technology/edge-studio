@@ -147,6 +147,12 @@ describe("buildDeviceConfigInput", () => {
     });
   });
 
+  it("gpio-input preserves the gpio-button profile", () => {
+    expect(
+      buildDeviceConfigInput(fields({ type: "gpio-input", gpioProfile: "gpio-button" }), {}),
+    ).toMatchObject({ profile: "gpio-button" });
+  });
+
   it("gpio-output fixes the led profile and inactive initial state", () => {
     expect(
       buildDeviceConfigInput(

@@ -100,6 +100,19 @@ describe("LocalServicesCard", () => {
     expect(screen.getByText("mqtt://mqtt:1883")).toBeInTheDocument();
   });
 
+  it("hides MQTT URLs while the local broker is disabled", async () => {
+    const capabilities: DataSourceCapabilities = {
+      gpioInput: { available: true, devicePath: "", reason: null },
+      mqttBroker: { enabled: false, internalUrl: "mqtt://mqtt:1883", publicHost: "pi.local", publicPort: 1883 },
+    };
+    render(<LocalServicesCard capabilities={capabilities} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "MQTT: Disabled" }));
+
+    expect(screen.queryByText("mqtt://pi.local:1883")).not.toBeInTheDocument();
+    expect(screen.queryByText("mqtt://mqtt:1883")).not.toBeInTheDocument();
+  });
+
   it("opens the hardware manager and switches selected hardware details", async () => {
     render(<LocalServicesCard capabilities={null} hostCapabilities={enabledHostCapabilities} />);
 

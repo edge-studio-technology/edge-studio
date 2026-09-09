@@ -15,7 +15,7 @@ export function useDeviceFormFields() {
   const [topic, setTopic] = useState("");
   const [gpioChip, setGpioChip] = useState("gpiochip0");
   const [gpioPin, setGpioPin] = useState("17");
-  const [gpioProfile, setGpioProfile] = useState<"generic" | "pir-motion">("generic");
+  const [gpioProfile, setGpioProfile] = useState<"generic" | "pir-motion" | "gpio-button">("generic");
   const [gpioPull, setGpioPull] = useState<"off" | "up" | "down">("off");
   const [gpioEdge, setGpioEdge] = useState<"rising" | "falling" | "both">("both");
   const [gpioDebounceMs, setGpioDebounceMs] = useState("100");
@@ -44,7 +44,7 @@ export function useDeviceFormFields() {
     setTopic(config.topic ?? "");
     setGpioChip(config.chip ?? "gpiochip0");
     setGpioPin(String(config.pin ?? 17));
-    setGpioProfile(config.profile === "pir-motion" ? "pir-motion" : "generic");
+    setGpioProfile(config.profile === "pir-motion" || config.profile === "gpio-button" ? config.profile : "generic");
     setGpioPull(config.pull ?? "off");
     setGpioEdge(config.edge ?? "both");
     setGpioDebounceMs(String(config.debounceMs ?? 100));

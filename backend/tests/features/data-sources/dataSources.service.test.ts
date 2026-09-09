@@ -192,6 +192,11 @@ describe("parseGpioInputConfig", () => {
     assert.equal(config.activeState, "high");
   });
 
+  it("keeps recognized GPIO input profiles", () => {
+    assert.equal(parseGpioInputConfig({ pin: 4, profile: "pir-motion" }).profile, "pir-motion");
+    assert.equal(parseGpioInputConfig({ pin: 4, profile: "gpio-button" }).profile, "gpio-button");
+  });
+
   it("accepts a /dev/gpiochipN chip path", () => {
     const config = parseGpioInputConfig({ chip: "/dev/gpiochip1", pin: 4 });
     assert.equal(config.chip, "/dev/gpiochip1");
