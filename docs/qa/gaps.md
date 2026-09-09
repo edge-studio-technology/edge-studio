@@ -35,13 +35,13 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 ### P1
 
-- [ ] **GAP-08 Session cleanup** — `deleteExpiredSessions()` exists but is not scheduled from `index.ts`. **Phase 3.**
+- [x] **GAP-08 Session cleanup** — Closed in Phase 3 (unreleased): `startSessionCleanupScheduler()` runs `deleteExpiredSessions()` at startup and hourly, started from `index.ts` after migrations.
 - [ ] **GAP-09 Single-session on login** — New login does not invalidate other sessions (optional for single-admin Pi).
 - [ ] **GAP-10 Rate limits** — Login, setup, and `/api/auth/settings/*` are rate-limited. Integritas stamp, automation, files, etc. are not. **Phase 7.**
 - [ ] **GAP-11 Input validation** — No `zod` on auth/setup bodies; manual checks only.
 - [x] **GAP-12 Integritas admin gates** — Closed in Phase 2's admin-gate audit pass (unreleased): `requireRole('admin')` added to stamp, stamp-file, history delete-selected, history poll, and history verify; history reads/export stay session-only. `GET /api/data-sources/:id/health` and MINIMA-06/07 closed in the same pass, and `tests/app.401-smoke.test.ts` now pins the whole admin-gate matrix.
 - [ ] **GAP-13 Audit hygiene** — Confirm audit rows never contain passwords, TOTP, tokens, or API keys (`login.failure` stores `"failed"` only).
-- [ ] **GAP-17 Session invalidation** — Password change and TOTP reset UI shipped (0.9.0); sessions are **not** invalidated after password/TOTP change. `deleteAllUserSessions` exists and is unit-tested with zero call sites. Review finding [9]. **Phase 3.**
+- [x] **GAP-17 Session invalidation** — Closed in Phase 3 (unreleased): password change and TOTP reset revoke every session including the caller's, clear the caller's session cookie, and the UI returns to the login screen. Review finding [9].
 
 ### P2
 

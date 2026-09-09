@@ -51,6 +51,33 @@ Controls (V1):
 
 Status: Mitigated.
 
+## Session Lifecycle On Credential Change
+
+Risk: A stolen or shared session cookie survived the credential change made to lock the attacker
+out. Password change and TOTP reset rewrote the stored credential but left every existing session
+row valid, so revocation was impossible short of waiting out the 7-day cookie lifetime or deleting
+rows by hand.
+
+Impact: An admin who suspects compromise cannot end the attacker's access. Expired session rows also
+accumulated in SQLite indefinitely, since the only deletion path was a validation attempt against
+that specific row.
+
+Controls:
+
+- `POST /api/auth/settings/password` and `POST /api/auth/settings/totp/verify` delete every session
+  for the user on success, including the caller's own, and clear the caller's session cookie on the
+  way out. The frontend signs out and returns to the login screen after showing the confirmation.
+- Sessions are only revoked once the credential change has actually been applied; a rejected change
+  leaves existing sessions alone.
+- An hourly backend scheduler (started from `index.ts`, plus one sweep at startup) deletes sessions
+  past their absolute expiry.
+
+Residual gap: A new login still does not invalidate other sessions (GAP-09). Sessions that are past
+the idle timeout but not past absolute expiry are rejected and deleted on their next use rather than
+by the sweep, so such rows can sit in the table until then.
+
+Status: **Mitigated (Phase 3, 2026-09-09).** Review finding [9]; GAP-08 and GAP-17.
+
 ## `APP_SECRET` Dependency
 
 Risk: Encrypted local secrets (Integritas API key, TOTP, Connect tokens) can only be decrypted with the same `APP_SECRET` from `.env`. If `APP_SECRET` is lost or changed, stored secrets are unrecoverable. If `.env` leaks together with the database, encrypted secrets can be decrypted.

@@ -4,7 +4,7 @@ import { apiErrorFromStatus, unauthorized, unexpected } from "../../shared/api-e
 import { login, changePassword, initTotpReset, verifyTotpReset, AuthSettingsError } from "./auth.service.js";
 import { recordAuditEvent } from "./audit.service.js";
 import { authRateLimiter } from "./rate-limit.middleware.js";
-import { deleteSession, sessionCookieOptions } from "./session.service.js";
+import { deleteSession, sessionClearCookieOptions, sessionCookieOptions } from "./session.service.js";
 
 export const authPublicRouter = Router();
 export const authProtectedRouter = Router();
@@ -31,12 +31,7 @@ authProtectedRouter.post("/logout", (req, res) => {
     }
   }
 
-  res.clearCookie(env.sessionCookieName, {
-    httpOnly: true,
-    secure: env.cookieSecure,
-    sameSite: env.cookieSameSite,
-    path: "/",
-  });
+  res.clearCookie(env.sessionCookieName, sessionClearCookieOptions());
   return res.json({ success: true });
 });
 
@@ -60,7 +55,9 @@ authProtectedRouter.post("/settings/password", authRateLimiter, async (req, res)
     const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
     const totpToken = typeof req.body?.totpToken === "string" ? req.body.totpToken : "";
     await changePassword(req.user.id, { currentPassword, newPassword, totpToken });
-    return res.json({ success: true });
+    // Every session was revoked, including this one — drop the now-dead cookie.
+    res.clearCookie(env.sessionCookieName, sessionClearCookieOptions());
+    return res.json({ success: true, sessionsRevoked: true });
   } catch (error) {
     if (error instanceof AuthSettingsError) {
       return apiErrorFromStatus(res, error.status, error.message);
@@ -89,7 +86,9 @@ authProtectedRouter.post("/settings/totp/verify", authRateLimiter, async (req, r
   try {
     const totpToken = typeof req.body?.totpToken === "string" ? req.body.totpToken : "";
     await verifyTotpReset(req.user.id, totpToken);
-    return res.json({ success: true });
+    // Every session was revoked, including this one — drop the now-dead cookie.
+    res.clearCookie(env.sessionCookieName, sessionClearCookieOptions());
+    return res.json({ success: true, sessionsRevoked: true });
   } catch (error) {
     if (error instanceof AuthSettingsError) {
       return apiErrorFromStatus(res, error.status, error.message);

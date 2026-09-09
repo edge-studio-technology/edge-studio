@@ -1,6 +1,6 @@
 # Security Hardening V1.5
 
-**Status:** In progress — Phases 1-2 done
+**Status:** In progress — Phases 1-3 done
 **Created:** 2026-09-04
 **Revised:** 2026-09-04 — second-opinion review folded in: DNS-address pinning on egress, Phase 0 decision gate, non-destructive
 `APP_SECRET` migration, the multipart egress path, global outbound concurrency, and the installer's
@@ -295,6 +295,8 @@ broker-auth decision and Phase 7's budgets.
 
 ## Phase 3 — Session lifecycle
 
+**Status: done** (2026-09-09).
+
 **Covers:** [9], GAP-08, GAP-17.
 
 TOTP remains present for this branch, so session invalidation covers both existing credential-change
@@ -319,6 +321,24 @@ unit-tested; it has zero production call sites.
 **Tests:** extend `backend/tests/features/auth/auth.service.test.ts` and the session/route suites —
 invalidation on both credential paths, the cleared `Set-Cookie` on both route responses,
 the audit events, and the current-session policy.
+
+**How it landed.** `changePassword` and `verifyTotpReset` call `deleteAllUserSessions` after the
+credential is written, so a rejected change leaves sessions alone. Both routes then
+`res.clearCookie` with a new `sessionClearCookieOptions()` — the same attributes as
+`sessionCookieOptions()` minus `maxAge`, which Express would otherwise turn back into a future
+`Expires` and defeat the clear; `/logout` uses the same helper instead of its own literal. The
+routes return `sessionsRevoked: true`; the frontend shows the confirmation, then signs out after a
+short delay so the login screen replaces the shell. The TOTP "Reset again" button went with it — it
+could only ever 401 after revocation.
+
+`startSessionCleanupScheduler()` lives in `session.service.ts` and is started from `index.ts` after
+migrations: one sweep immediately, then hourly. It runs `deleteExpiredSessions()` as-is, which
+matches on absolute expiry only — sessions past the *idle* timeout but not past absolute expiry are
+still reaped by `validateSession` on next use, and are recorded as a residual in
+`docs/security/auth-and-transport.md` rather than widened here.
+
+No new audit action was added: `settings.password_changed` and `settings.totp_reset` already record
+the events that cause revocation, and revocation is now unconditional on those paths.
 
 ---
 
@@ -584,7 +604,7 @@ Defaults in force:
 | 3 | Egress URL policy | block Compose subnet, gateway, service names; `http`/`https` only — **implemented, adr/0014** | 2 | medium — widening to a deny-by-default allowlist is a rewrite |
 | 4 | DNS address pinning | pin resolved address to socket; take the `undici` dependency — **implemented, adr/0014** | 2 | low — mock boundary already moved off `global.fetch` |
 | 5 | Console mutating subcommands | constrain argument shape per catalog entry — **implemented, adr/0015** | 2 | low |
-| 6 | Session revocation scope | revoke all sessions incl. caller; clear cookie; force re-login | 3 | low |
+| 6 | Session revocation scope | revoke all sessions incl. caller; clear cookie; force re-login — **implemented** | 3 | low |
 | 7 | Verifier runtime | pin `node:20-bookworm-slim` by digest | 4 | low |
 | 8 | `curl \| sudo bash` | accept as residual; ship documented download-inspect-run + checksum | 4 | low — real fix needs release infra |
 | 9 | Limit values | ship the proposed table as defaults, measure on the Pi, pin in ADR | 5 | low — values are configurable |

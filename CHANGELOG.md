@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Camera and sensor host helper URLs come from install-time configuration and are exempt from these checks; see [docs/adr/0014](docs/adr/0014-egress-url-policy-for-operator-supplied-urls.md).
 - Minima console commands are classified by their arguments rather than by verb alone: `tokens action:import`, `maxcontacts action:add`, and `maxcontacts action:remove` are now disabled by default and must be enabled in the console whitelist, and `cointrack` is treated as a mutating command.
 - Unrecognized `action:` values on Minima console commands are refused by default rather than accepted as reads.
+- Changing the admin PIN/password or resetting two-factor authentication now signs out every session, including the one making the change, and the browser returns to the login screen.
+- Expired sessions are deleted by a backend sweep at startup and hourly, instead of only when the session is next used.
 - `GET /api/data-sources/:id/health`, `POST /api/minima/config`, and `POST /api/minima/megammrsync/resync` now require an admin role.
 - Integritas stamping, file stamping, history deletion, proof polling, and proof verification now require an admin role.
 
