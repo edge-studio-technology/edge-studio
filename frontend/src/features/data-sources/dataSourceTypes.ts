@@ -19,7 +19,7 @@ export type DataSource = {
     edge?: "rising" | "falling" | "both";
     debounceMs?: number;
     activeState?: "high" | "low";
-    profile?: "led" | "pir-motion" | "generic" | "esp32-mqtt-board";
+    profile?: "led" | "pir-motion" | "generic" | "gpio-button" | "esp32-mqtt-board";
     initialState?: "inactive";
     body?: unknown;
     timeoutMs?: number;

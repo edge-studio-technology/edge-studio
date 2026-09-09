@@ -43,9 +43,14 @@ describe("getDeviceSetupGuide / hasDeviceSetupGuide", () => {
     expect(guide?.title).toBe("PIR Motion Sensor Setup Guide");
   });
 
-  it("dispatches the GPIO Button guide when the gpio-input source name contains 'button'", () => {
-    const guide = getDeviceSetupGuide(source({ type: "gpio-input", name: "Front Door Button", config: {} }));
+  it("dispatches the GPIO Button guide for gpio-input with the gpio-button profile", () => {
+    const guide = getDeviceSetupGuide(source({ type: "gpio-input", name: "Front Door Button", config: { profile: "gpio-button" } }));
     expect(guide?.title).toBe("GPIO Button Setup Guide");
+  });
+
+  it("does not dispatch the GPIO Button guide from the source name", () => {
+    const guide = getDeviceSetupGuide(source({ type: "gpio-input", name: "Front Door Button", config: {} }));
+    expect(guide?.title).toBe("GPIO Input Setup Guide");
   });
 
   it("dispatches the generic GPIO Input guide otherwise", () => {
