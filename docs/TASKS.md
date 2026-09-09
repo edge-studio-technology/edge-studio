@@ -36,6 +36,7 @@
 - [ ] Manual check of the update-agent UI Back buttons and the dashboard "Update available" badge across a real update cycle (Pi or local Docker Compose) — this session's fixes were only build/typecheck-verified.
 - [ ] Manual browser check of `update-agent`'s restyled static update-progress page (`update-agent/public/index.html`): black-to-purple gradient background and the white logo below the centered card, matching the login page — not yet manually checked (static HTML, no build step).
 - [ ] Reconcile `.claude/rules/update-agent.md`/`.agents/rules/update-agent.md`/`.cursor/rules/update-agent.mdc`, which still say `update-agent` has "no self-update path" — `update-agent/src/self-update/` already implements one (commit `4e26bfe`), and `docs/notes/update-agent-self-update.md` is stale too.
+- [ ] Close the unit-test gaps found while retiring old PM-tool QA tickets (automation, devices, ...) — see `docs/plans/legacy-ticket-unit-test-gaps.md`.
 - [ ] Add HC-SR501 PIR motion sensor as a first-class GPIO input workflow source - see `docs/plans/pir-motion-sensor-workflows.md`.
 - [ ] Add ESP32 MQTT board onboarding with generated starter firmware - see `docs/plans/esp32-mqtt-sensor-onboarding.md`.
 - [ ] Document the `DEV_MODE` install flag in `README.md`'s runtime-config section and note its manifest-signature-verification bypass in `SECURITY.md`/`docs/security/host-and-infrastructure.md` — flagged during code review, deliberately deferred as a separate concern from the pagination work.
