@@ -138,22 +138,24 @@ Impact: A stolen signing key could be used to make `update-agent` pull and run a
 Current Controls:
 
 - The private key is generated once, manually, and stored only in GitHub Actions Secrets. It never exists on the VPS or any Pi.
-- CI signs the manifest in a single job step; the key is read from the secret into an environment variable for that step only and is never written to a file that survives the job.
+- CI signs the manifest and the runtime bundle in single job steps; the key is read from the secret into an environment variable for those steps only and is never written to a file that survives the job.
 - `update-agent` only ever holds the public key, baked into its image at build time.
+- `install.sh` holds its own embedded copy of the public key and of the verifier source, and pins the verifier's Node image by digest. Neither the key nor the verifier comes from the runtime bundle any more, and the bundle itself is signature-verified before extraction.
 - Digest pinning means a valid signature alone is not sufficient to run a different artifact than what the digest names — an attacker would need both a stolen key and control of a pushed image.
 
 Plan:
 
-- If the key is ever suspected compromised, rotate it (generate a new keypair, update the GH secret, ship the new public key in a `update-agent` release) and document the rotation in this file.
-- Stop `install.sh` taking its verifier and public key from the unsigned bundle (Phase 4).
+- If the key is ever suspected compromised, rotate it (generate a new keypair, update the GH secret, update the embedded PEM in `install.sh`, ship the new public key in a `update-agent` release) and document the rotation in this file.
 
-Status: **Partially mitigated — install-time gap open, scheduled Phase 4.** The key-handling
-controls above hold, and `update-agent`'s runtime trust boundary is sound because its public key is
-baked into its own image. `install.sh` is the gap: it takes both `scripts/verify-manifest.mjs` and
-`manifest-public-key.pem` from the unsigned runtime bundle served by the same origin as the manifest
-they are meant to authenticate. At install time, compromise of that one origin is sufficient, and it
-persists across updates; GitHub compromise is not required. Rated high by the external review — see
-[adr/0010](../adr/0010-security-review-audit-verdict.md) and `.agents/rules/update-agent.md`.
+Status: **Mitigated.** The key-handling controls above hold, `update-agent`'s runtime trust boundary
+is sound because its public key is baked into its own image, and the install-time gap is closed:
+`install.sh` no longer takes its verifier, its trust anchor, or its verifier runtime from an artifact
+it is meant to authenticate. Compromise of the artifact origin alone is no longer sufficient — the
+signing key is now required. Rated high by the external review — see
+[adr/0010](../adr/0010-security-review-audit-verdict.md),
+[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md), and `.agents/rules/update-agent.md`.
+The remaining bootstrap exposure is the installer distribution channel itself — see *One-Line Curl
+Installer* below.
 
 ## File Browser Metadata Exposure
 
@@ -229,17 +231,30 @@ the only available control. See
 
 Risk: `curl | sudo bash` executes remote code as root.
 
-Impact: If GitHub, DNS, TLS trust, or repository contents are compromised, host compromise is possible.
+Impact: If GitHub, DNS, TLS trust, or repository contents are compromised, host compromise is
+possible. The whole install-time trust chain — public key, verifier source, pinned verifier digest —
+is embedded in `install.sh`, so substituting the script substitutes the chain.
+
+Current Controls:
+
+- HTTPS transport, and GitHub account/repository controls on the source branch.
+- The release pipeline publishes `install.sh.sha256` into the separate manifest repository, and
+  `README.md` documents a verified path: download a tag-pinned `install.sh`, check that checksum,
+  read it, then run it.
+- Everything downstream of the script is signature-verified against the embedded key, so this is the
+  only unsigned step left in the chain.
 
 Plan:
 
-- Publish checksums or signed releases.
-- Support downloading and inspecting installer before running.
-- Consider package repository, deb package, or signed install bundle.
-- Keep installer minimal and auditable.
+- Exit criteria: an immutable, versioned installer URL with a detached signature, and a verification
+  key distributed independently of the source repository. That is release infrastructure, not a code
+  change, and is out of scope for V1.5.
+- Until then, prefer the verified path in `README.md` for anything beyond a lab Pi.
+- Consider a package repository, deb package, or signed install bundle.
 
-Status: **Open — scheduled, Phase 4.** Two distinct failures, not one: the `curl | sudo bash`
-pattern itself (mitigate with a published checksum and a documented download-inspect-run path), and
-the separate, more persistent problem that the unverified runtime bundle supplies both the manifest
-verifier and its public key — see *Update Manifest Signing Key* above and
-[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-4--fix-the-install-time-trust-chain).
+Status: **Open — accepted.** Finding [4] of the external review, rated medium. Mitigated by the
+documented verified path and the published checksum; not closed, because a checksum published by the
+same publisher does not authenticate the publisher. The second, more persistent half of Phase 4 —
+the unverified runtime bundle supplying its own verifier and public key — is closed; see *Update
+Manifest Signing Key* above and
+[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md).

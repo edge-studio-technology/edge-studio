@@ -21,6 +21,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Expired sessions are deleted by a backend sweep at startup and hourly, instead of only when the session is next used.
 - `GET /api/data-sources/:id/health`, `POST /api/minima/config`, and `POST /api/minima/megammrsync/resync` now require an admin role.
 - Integritas stamping, file stamping, history deletion, proof polling, and proof verification now require an admin role.
+- The installer verifies the runtime bundle's Ed25519 signature before extracting it, and refuses to install if the signature or the bundle is missing.
+- The installer carries its own copy of the manifest public key and of the signature verifier instead of taking them from the runtime bundle, and runs the verifier on a digest-pinned Node image instead of a mutable tag.
+- The installer rejects runtime bundle entries with absolute or `..` paths, and entries that are not regular files or directories.
+- Releases publish `edge-studio-runtime.tar.gz.sig` and `install.sh.sha256` alongside the manifest.
+- `README.md` documents a verified install path — tag-pinned installer, published checksum, read before running — alongside the one-liner, which `SECURITY.md` now records as an accepted residual risk.
 
 ### Changed
 

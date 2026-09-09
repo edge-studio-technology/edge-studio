@@ -12,6 +12,9 @@ writeFileSync(publicKeyPath, publicKeyPem);
 
 console.log(`Wrote public key to ${publicKeyPath} (commit this — update-agent's Dockerfile bakes it into the image).`);
 console.log("");
+console.log("Also update the MANIFEST_PUBLIC_KEY_PEM heredoc in install.sh to match, or installs will");
+console.log("reject the new signatures. scripts/tests/install-bootstrap-trust-set.test.ts checks this.");
+console.log("");
 console.log("Private key (PEM) — paste this into the GitHub secret MANIFEST_SIGNING_KEY, then discard it locally:");
 console.log("");
 console.log(privateKeyPem);

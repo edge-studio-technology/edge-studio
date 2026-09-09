@@ -1,6 +1,6 @@
 # Security Hardening V1.5
 
-**Status:** In progress — Phases 1-3 done
+**Status:** In progress — Phases 1-4 done
 **Created:** 2026-09-04
 **Revised:** 2026-09-04 — second-opinion review folded in: DNS-address pinning on egress, Phase 0 decision gate, non-destructive
 `APP_SECRET` migration, the multipart egress path, global outbound concurrency, and the installer's
@@ -344,6 +344,9 @@ the events that cause revocation, and revocation is now unconditional on those p
 
 ## Phase 4 — Fix the install-time trust chain
 
+**Status: done** (2026-09-09). Decisions recorded in
+[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md).
+
 **Covers:** [1] (high), [4].
 
 These are distinct failures with distinct fixes; ADR 0010 explains why collapsing them loses the
@@ -379,6 +382,31 @@ more persistent one.
 
 **Verification:** `bash -n install.sh`, plus a real install against a staging manifest. This phase
 is the one most likely to break installs — do not merge it on static checks alone.
+
+**How it landed.** `install.sh` carries the whole bootstrap trust set: the Ed25519 public key and the
+verifier source as embedded heredocs written to a private `mktemp -d` on start and removed on exit,
+and `VERIFIER_IMAGE` pinned to the `node:20-bookworm-slim` multi-arch index digest. One
+`verify_ed25519_signature()` now serves both artifacts. CI signs `edge-studio-runtime.tar.gz` with the
+same key as the manifest and publishes `edge-studio-runtime.tar.gz.sig`; `install.sh` fetches both,
+verifies before `tar -xzf`, and fails closed if either is missing. `assert_safe_archive_entries()`
+then rejects absolute paths, `..` components, and anything that is not a regular file or directory.
+
+`scripts/verify-manifest.mjs` is deleted and both it and `manifest-public-key.pem` are out of
+`runtime-bundle-files.json` — the verifier and the trust anchor no longer travel with anything they
+authenticate, and there is no second copy in `$APP_DIR` to reach for by mistake. Keeping the standalone
+file as a byte-diff fixture was considered and dropped: `scripts/tests/install-bootstrap-trust-set.test.ts`
+extracts the embedded verifier and tests what it *does* (accepts a signed binary artifact, rejects a
+modified one, rejects another key's signature, exits non-zero on unreadable input), plus asserts the
+digest pin, the key matching `update-agent/manifest-public-key.pem`, and the bundle list.
+
+**Installs fail closed against pre-Phase-4 bundles.** Every release channel needs one release through
+the updated workflow before an installer carrying this change can install from it.
+
+[4] is mitigated and accepted, not closed: the release pipeline publishes `install.sh.sha256` into the
+manifest repo (a different repository from the `main`-branch raw URL the one-liner uses), `README.md`
+documents a tag-pinned download-verify-read-run path, and `SECURITY.md` plus
+`docs/security/host-and-infrastructure.md` record the one-liner as an accepted residual with an
+immutable signed installer URL as its exit criteria.
 
 ---
 
@@ -605,8 +633,8 @@ Defaults in force:
 | 4 | DNS address pinning | pin resolved address to socket; take the `undici` dependency — **implemented, adr/0014** | 2 | low — mock boundary already moved off `global.fetch` |
 | 5 | Console mutating subcommands | constrain argument shape per catalog entry — **implemented, adr/0015** | 2 | low |
 | 6 | Session revocation scope | revoke all sessions incl. caller; clear cookie; force re-login — **implemented** | 3 | low |
-| 7 | Verifier runtime | pin `node:20-bookworm-slim` by digest | 4 | low |
-| 8 | `curl \| sudo bash` | accept as residual; ship documented download-inspect-run + checksum | 4 | low — real fix needs release infra |
+| 7 | Verifier runtime | pin `node:20-bookworm-slim` by digest — **implemented, adr/0016** | 4 | low |
+| 8 | `curl \| sudo bash` | accept as residual; ship documented download-inspect-run + checksum — **implemented, adr/0016** | 4 | low — real fix needs release infra |
 | 9 | Limit values | ship the proposed table as defaults, measure on the Pi, pin in ADR | 5 | low — values are configurable |
 | 10 | `APP_SECRET` migration | one-shot transactional re-encrypt; never boot half-migrated | 6 | low — safe whether or not field installs exist |
 | 11 | Dev escape hatch | explicit opt-in env flag, never derived from `NODE_ENV` | 6 | low |
@@ -682,7 +710,7 @@ Per phase, not at the end:
 - `docs/qa/gaps.md` — tick the GAP/MINIMA/WALLET/DEVICE-IO IDs listed in the finding map.
 - `SECURITY.md` — only when a guideline or accepted risk actually changes.
 - `CHANGELOG.md` under `## [Unreleased] task/272-security-hardening-v1-5`, `### Security`.
-- ADRs for: the Phase 2 URL policy (**done — adr/0014**) and console subcommands (**done — adr/0015**), the Phase 5 limit values, the Phase 6 `APP_SECRET` migration, the Phase 7 deferred
+- ADRs for: the Phase 2 URL policy (**done — adr/0014**) and console subcommands (**done — adr/0015**), the Phase 4 install-time trust set (**done — adr/0016**), the Phase 5 limit values, the Phase 6 `APP_SECRET` migration, the Phase 7 deferred
   global budgets, and each Phase 0 product decision.
 
 ## Sign-off

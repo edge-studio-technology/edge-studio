@@ -79,6 +79,12 @@ RUNTIME_BUNDLE_URL="${RUNTIME_BUNDLE_URL:-}"
 DEV_MODE="${DEV_MODE:-false}"
 COMPOSE_FILE_NAME="docker-compose.yml"
 
+# Install-time bootstrap trust set. The Ed25519 public key, the verifier source, and the
+# verifier's runtime are all pinned here rather than taken from the runtime bundle they
+# authenticate. See docs/adr/0016-install-time-bootstrap-trust-set.md.
+VERIFIER_IMAGE="node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0"
+BOOTSTRAP_DIR=""
+
 APT_PACKAGES=(
   curl
   ca-certificates
@@ -149,6 +155,90 @@ verify_docker() {
     echo "Try: apt-get install -y docker-compose-plugin"
     exit 1
   fi
+}
+
+cleanup_bootstrap_trust_set() {
+  if [ -n "$BOOTSTRAP_DIR" ]; then
+    rm -rf "$BOOTSTRAP_DIR"
+  fi
+}
+
+# On key rotation, update the embedded PEM below to match update-agent/manifest-public-key.pem;
+# scripts/tests/install-bootstrap-trust-set.test.ts fails the build if the two drift apart.
+write_bootstrap_trust_set() {
+  BOOTSTRAP_DIR="$(mktemp -d)"
+  chmod 700 "$BOOTSTRAP_DIR"
+  trap cleanup_bootstrap_trust_set EXIT
+
+  cat > "$BOOTSTRAP_DIR/manifest-public-key.pem" <<'MANIFEST_PUBLIC_KEY_PEM'
+-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEA+M2QEMrLOqZuqMlIZ6/QJPSRJoNgKSVEYqVGOYDHg9o=
+-----END PUBLIC KEY-----
+MANIFEST_PUBLIC_KEY_PEM
+
+  cat > "$BOOTSTRAP_DIR/verify-manifest.mjs" <<'VERIFY_MANIFEST_MJS'
+import { readFileSync } from "node:fs";
+import { verify } from "node:crypto";
+
+const [manifestPath, signaturePath, publicKeyPath] = process.argv.slice(2);
+
+if (!manifestPath || !signaturePath || !publicKeyPath) {
+  console.error("Usage: verify-manifest.mjs <manifest-path> <signature-b64-path> <public-key-pem-path>");
+  process.exit(1);
+}
+
+try {
+  const manifestBytes = readFileSync(manifestPath);
+  const signatureBase64 = readFileSync(signaturePath, "utf8").trim();
+  const signature = Buffer.from(signatureBase64, "base64");
+  const publicKeyPem = readFileSync(publicKeyPath, "utf8");
+
+  const valid = verify(null, manifestBytes, { key: publicKeyPem, format: "pem" }, signature);
+  if (!valid) {
+    console.error("Manifest signature verification failed");
+    process.exit(1);
+  }
+} catch (error) {
+  console.error(`Manifest verification error: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
+VERIFY_MANIFEST_MJS
+}
+
+verify_ed25519_signature() {
+  local target_file="$1"
+  local signature_file="$2"
+
+  docker run --rm --network none \
+    -v "$BOOTSTRAP_DIR/verify-manifest.mjs:/verify-manifest.mjs:ro" \
+    -v "$BOOTSTRAP_DIR/manifest-public-key.pem:/manifest-public-key.pem:ro" \
+    -v "$target_file:/signed-artifact:ro" \
+    -v "$signature_file:/signed-artifact.sig:ro" \
+    "$VERIFIER_IMAGE" node /verify-manifest.mjs /signed-artifact /signed-artifact.sig /manifest-public-key.pem
+}
+
+# Defense in depth behind the bundle signature: refuse an archive that could write outside the
+# extraction directory, or that carries anything other than regular files and directories.
+assert_safe_archive_entries() {
+  local archive_file="$1"
+  local entry
+  local line
+
+  while IFS= read -r entry; do
+    case "$entry" in
+      "") continue ;;
+      /*) echo "Runtime bundle rejected: absolute path entry '$entry'"; exit 1 ;;
+      ..|../*|*/..|*/../*) echo "Runtime bundle rejected: parent directory entry '$entry'"; exit 1 ;;
+    esac
+  done < <(tar -tzf "$archive_file")
+
+  while IFS= read -r line; do
+    case "$line" in
+      "") continue ;;
+      -*|d*) ;;
+      *) echo "Runtime bundle rejected: entry is not a regular file or directory: $line"; exit 1 ;;
+    esac
+  done < <(tar -tvzf "$archive_file")
 }
 
 prepare_app_directory() {
@@ -447,25 +537,38 @@ download_full_repo() {
 download_runtime_bundle() {
   local tmp_dir
   local bundle_file
+  local signature_file
 
   derive_runtime_bundle_url
   tmp_dir="$(mktemp -d)"
   bundle_file="$tmp_dir/edge-studio-runtime.tar.gz"
+  signature_file="$tmp_dir/edge-studio-runtime.tar.gz.sig"
 
   log "Downloading runtime bundle from $RUNTIME_BUNDLE_URL"
-  if ! curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file"; then
+  if ! curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file" \
+    || ! curl -fsSL "${RUNTIME_BUNDLE_URL}.sig" -o "$signature_file"; then
     if [ -n "$RUNTIME_BUNDLE_URL_INPUT" ] || [ "$MANIFEST_URL" = "$MANIFEST_FALLBACK_URL" ]; then
-      echo "Failed to download runtime bundle from $RUNTIME_BUNDLE_URL"
+      echo "Failed to download runtime bundle or its signature from $RUNTIME_BUNDLE_URL"
       exit 1
     fi
     RUNTIME_BUNDLE_URL="${MANIFEST_FALLBACK_URL%/manifest.json}/edge-studio-runtime.tar.gz"
     log "Retrying runtime bundle download from fallback $RUNTIME_BUNDLE_URL"
     curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file"
+    curl -fsSL "${RUNTIME_BUNDLE_URL}.sig" -o "$signature_file"
   fi
+
+  log "Verifying runtime bundle signature"
+  if ! verify_ed25519_signature "$bundle_file" "$signature_file"; then
+    echo "Runtime bundle signature verification failed. Refusing to extract untrusted files."
+    rm -rf "$tmp_dir"
+    exit 1
+  fi
+
+  assert_safe_archive_entries "$bundle_file"
   tar -xzf "$bundle_file" -C "$tmp_dir"
 
   clean_app_directory
-  rm -f "$bundle_file"
+  rm -f "$bundle_file" "$signature_file"
   cp -a "$tmp_dir/." "$APP_DIR/"
   chmod 755 "$APP_DIR"
   rm -rf "$tmp_dir"
@@ -509,12 +612,6 @@ fetch_and_verify_manifest() {
     exit 1
   fi
 
-  local public_key_file="$APP_DIR/update-agent/manifest-public-key.pem"
-  if [ ! -f "$public_key_file" ]; then
-    echo "Manifest public key not found at $public_key_file"
-    exit 1
-  fi
-
   log "Fetching update manifest from $MANIFEST_URL"
 
   local manifest_file="$APP_DIR/.manifest.json"
@@ -532,12 +629,7 @@ fetch_and_verify_manifest() {
     curl -fsSL "${fetch_url}.sig" -o "$signature_file"
   fi
 
-  if ! docker run --rm --network none \
-    -v "$APP_DIR/scripts/verify-manifest.mjs:/verify-manifest.mjs:ro" \
-    -v "$manifest_file:/manifest.json:ro" \
-    -v "$signature_file:/manifest.json.sig:ro" \
-    -v "$public_key_file:/manifest-public-key.pem:ro" \
-    node:20-bookworm-slim node /verify-manifest.mjs /manifest.json /manifest.json.sig /manifest-public-key.pem; then
+  if ! verify_ed25519_signature "$manifest_file" "$signature_file"; then
     echo "Manifest signature verification failed. Refusing to install untrusted images."
     rm -f "$manifest_file" "$signature_file"
     exit 1
@@ -921,6 +1013,7 @@ main() {
   install_apt_dependencies
   install_docker_if_missing
   verify_docker
+  write_bootstrap_trust_set
   prepare_app_directory
   load_existing_config
   ensure_app_secret

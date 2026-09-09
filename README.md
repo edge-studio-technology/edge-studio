@@ -23,6 +23,28 @@ Run:
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo bash
 ```
 
+### Verified Install (recommended)
+
+The one-liner above pipes a mutable branch into a root shell. To pin a release and check it before
+running it, download, verify, read, then run:
+
+```bash
+# 1. Download the installer at a release tag, not at main
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/<tag>/install.sh -o install.sh
+
+# 2. Fetch the checksum published by that release and check it
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio-manifests/main/edge-studio/release/install.sh.sha256 -o install.sh.sha256
+sha256sum -c install.sh.sha256
+
+# 3. Read it, then run it
+less install.sh
+sudo bash install.sh
+```
+
+The checksum is published to a different repository from the installer itself, so it is not simply
+the same file vouching for itself. This does not fully close the bootstrap trust problem — see
+[SECURITY.md](SECURITY.md) for what remains and what would close it.
+
 To install from a branch before it is merged to `main`, pass `APP_BRANCH`:
 
 ```bash
@@ -72,6 +94,7 @@ The installer will:
 - Install Docker if Docker is missing
 - Verify Docker Compose
 - Download the default runtime bundle to `/opt/edge-studio` or clone the repository when `DEV_MODE=true`
+- Verify the runtime bundle's Ed25519 signature before extracting it, and refuse archive entries with absolute or `..` paths or anything other than regular files and directories
 - Write `/opt/edge-studio/.env`
 - Generate a self-signed TLS certificate in `DATA_DIR/certs`
 - Start the app with `docker compose up -d --build`
@@ -244,7 +267,7 @@ Future versions may support custom certificates or an external reverse proxy.
 
 `SESSION_MAX_AGE_DAYS` and `SESSION_IDLE_HOURS` control session lifetime (default 7 days max, 24 hours idle).
 
-`MANIFEST_URL` configures the `update-agent` service: the signed update manifest URL, served from `edgestudio.technology` by default. If that fetch fails, `update-agent` automatically falls back to the public [edge-studio-manifests](https://github.com/edge-studio-technology/edge-studio-manifests) GitHub repo via `raw.githubusercontent.com` (not configurable). The Ed25519 public key used to verify its signature is baked into the `update-agent` image at build time from the committed `update-agent/manifest-public-key.pem`, not an env var. Leave `MANIFEST_URL` empty to disable update checks. The update flow is split across two origins-in-one: `https://<pi-ip>:8080/update` (no trailing slash) is the product frontend's own page — checks for updates and starts one; `https://<pi-ip>:8080/update/` (trailing slash) is `update-agent`'s own static page — shows apply progress and survives a frontend container swap mid-update. Both are the same TLS cert/origin, proxied through `frontend`'s nginx (no extra browser approval). See [.agents/rules/update-agent.md](.agents/rules/update-agent.md) for the full design.
+`MANIFEST_URL` configures the `update-agent` service: the signed update manifest URL, served from `edgestudio.technology` by default. If that fetch fails, `update-agent` automatically falls back to the public [edge-studio-manifests](https://github.com/edge-studio-technology/edge-studio-manifests) GitHub repo via `raw.githubusercontent.com` (not configurable). The Ed25519 public key used to verify its signature is baked into the `update-agent` image at build time from the committed `update-agent/manifest-public-key.pem`, not an env var. `install.sh` verifies the same signature at install time using its own embedded copy of that key, its own embedded verifier, and a digest-pinned Node container, so neither the key nor the verifier comes from the runtime bundle they authenticate (see [docs/adr/0016](docs/adr/0016-install-time-bootstrap-trust-set.md)). Leave `MANIFEST_URL` empty to disable update checks. The update flow is split across two origins-in-one: `https://<pi-ip>:8080/update` (no trailing slash) is the product frontend's own page — checks for updates and starts one; `https://<pi-ip>:8080/update/` (trailing slash) is `update-agent`'s own static page — shows apply progress and survives a frontend container swap mid-update. Both are the same TLS cert/origin, proxied through `frontend`'s nginx (no extra browser approval). See [.agents/rules/update-agent.md](.agents/rules/update-agent.md) for the full design.
 
 Default installs use `docker-compose.yml` plus `docker-compose.release.yml`, which removes source build contexts and uses the signed manifest's image digests. `DEV_MODE=true` installs use only `docker-compose.yml` so frontend/backend can be built from source.
 

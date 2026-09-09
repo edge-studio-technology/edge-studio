@@ -107,8 +107,24 @@ Later on branch `task/272-security-hardening-v1-5`:
   this branch only hardens the dormant implementation and leaves its eventual fate undecided.
 - No production code changed. Verification was a documentation reference/status sweep.
 
+Later same branch, next session:
+
+- Implemented Phase 4 of `docs/plans/security-hardening-v1-5.md` — the install-time trust chain, review findings [1] (high) and [4] (medium). Decisions recorded in `docs/adr/0016-install-time-bootstrap-trust-set.md`.
+- `install.sh` now carries the whole bootstrap trust set instead of taking it from the artifact it authenticates: the Ed25519 public key and the verifier source are embedded heredocs written to a private `mktemp -d` on start and removed by an EXIT trap, and `VERIFIER_IMAGE` pins `node:20-bookworm-slim` to its multi-arch OCI index digest (`sha256:2cf067cf…`, resolved from the registry and confirmed to carry arm64/armv7/amd64) instead of the mutable tag.
+- The runtime bundle is now signed and verified before extraction. CI signs `edge-studio-runtime.tar.gz` with the same key as the manifest and publishes `edge-studio-runtime.tar.gz.sig`; `install.sh` fetches both (including on the GitHub-raw fallback path), fails closed if either is missing, and only then extracts. One `verify_ed25519_signature()` serves both the bundle and the manifest.
+- Added `assert_safe_archive_entries()` as defense in depth behind the signature: rejects absolute paths, `..` components, and any entry that is not a regular file or directory. Rejecting non-regular types outright is stricter and simpler than resolving link targets, and costs nothing — the bundle is built from a flat list of regular files.
+- Deleted `scripts/verify-manifest.mjs` and dropped it plus `update-agent/manifest-public-key.pem` from `runtime-bundle-files.json`, so neither the verifier nor the trust anchor travels with anything it authenticates and there is no second copy in `$APP_DIR` for a later change to reach for.
+- Chose behavior tests over a byte-diff fixture: `scripts/tests/install-bootstrap-trust-set.test.ts` (9 tests) extracts the embedded verifier from `install.sh` and asserts what it does — accepts a signed binary artifact, rejects one modified after signing, rejects another key's signature, exits non-zero rather than throwing on unreadable input — plus asserts the digest pin's shape, that the embedded PEM matches `update-agent/manifest-public-key.pem`, and that the bundle list ships neither file. `generate-signing-key.mjs` now prints the two-file rotation reminder.
+- [4] is mitigated and accepted, not closed: `release.yml` publishes `install.sh.sha256` into the manifest repo (a different repository from the `main`-branch raw URL the one-liner uses), `README.md` documents a tag-pinned download-verify-read-run path, and `SECURITY.md` plus `docs/security/host-and-infrastructure.md` record the one-liner as an accepted residual with an immutable signed installer URL as its exit criteria. Consolidated that into the register's existing *One-Line Curl Installer* entry rather than adding a second one; *Update Manifest Signing Key* moved from Partially mitigated to Mitigated.
+- Verified beyond static checks, since this phase is the one most likely to break installs. Built a real runtime bundle, signed it with a throwaway key, served it over local HTTP, and ran `download_runtime_bundle` against it three ways: valid signature extracts the expected 9-file tree; tampered bundle prints the refusal and leaves `APP_DIR` empty; missing `.sig` fails the download and leaves `APP_DIR` empty. Separately exercised `assert_safe_archive_entries()` against purpose-built archives containing a symlink, an absolute path, and a `../` member — all three rejected, a clean archive accepted. Also confirmed the pinned image pulls and verifies on this host.
+- Also verified: `bash -n install.sh`, `bash -n bin/edge-studio`, `docker compose config`, `npm run check` (typecheck + all four coverage suites green), `npm --prefix backend run build`, `npm --prefix frontend run build`, and `release.yml` parses as valid YAML. `audit:moderate` still fails on pre-existing `multer`/`vitest` advisories — confirmed identical on a stashed clean tree, so unrelated to this work.
+- Docs: new ADR 0016; plan Phase 4 marked done with a "How it landed" section and the pre-merge decision rows 7/8 marked implemented; `CHANGELOG.md` under `### Security`; `README.md` (verified install path, installer step list, manifest-key paragraph); `SECURITY.md` (two new guidelines); `docs/security/host-and-infrastructure.md`; the `update-agent` rule in all three of `.agents/`, `.claude/`, `.cursor/`; and a superseded note on `docs/plans/replace-openssl-manifest-verification.md`, which describes the now-deleted standalone verifier.
+
 ## Next Steps
 
+- V1.5 security hardening: Phases 1-4 are done; Phase 5 (resource limits) is next. Phase 0's two product decisions stay defaulted to acceptance until the pre-merge decision pass.
+- Before Phase 4 ships, every release channel needs one release through the updated `release.yml` — an installer carrying this change cannot install from a channel whose latest bundle has no `.sig`. Fail-closed by design, but it has to be sequenced.
+- Phase 4 still wants a live root install on a Pi against a staging manifest. The local rehearsal covered the bundle download/verify/extract paths in isolation; it did not run the full `main()`, the manifest fetch, or container start.
 - Implement `docs/plans/high-risk-business-logic-hardening.md` on a separate production-behavior branch; this test branch should not absorb those changes.
 - Continue the V1.5 security decision review with TOTP removal/retention excluded from this branch.
 - The `verification.md` update-agent-build-step gap moved to `docs/TASKS.md`'s Ideas section is still unactioned.
@@ -117,6 +133,9 @@ Later on branch `task/272-security-hardening-v1-5`:
 
 ## Notes / Open Questions
 
+- The verifier image digest pin is bumped by hand at release. A stale pin means verification runs on an older Node inside a `--network none` container that reads three files, so letting it age between deliberate bumps is acceptable — but nothing reminds anyone to bump it.
+- Signing key rotation now touches two files (`update-agent/manifest-public-key.pem` and the embedded PEM in `install.sh`). The scripts test fails the build if they drift, so this is guarded rather than remembered.
+- The embedded verifier's failure messages still say "Manifest signature verification failed" even when it is judging the runtime bundle. Left byte-identical deliberately — `install.sh` prints an artifact-specific line immediately after, and renaming internals in working crypto code was not worth the churn.
 - TOTP removal is not approved or scheduled. After V1.5, a fresh product decision and ADR must
   choose whether to retain, redesign, re-enable, or remove it; any implementation then gets its own
   ticket and branch.
