@@ -172,6 +172,63 @@ app doesn't implement — not gaps, since there's nothing to test.
    (`app.401-smoke.test.ts:6-8`), not a real role. Fine as regression coverage for the gate itself, but there's
    no second role to build a genuine operator-permission test around until one exists.
 
+### Node Failure Mode Testing ticket
+
+Backend restart-failure handling is solid already: `minima.service.test.ts:115-126` covers the RPC-fails-but-
+container-stopped case, and `:328-341` covers clearing the operation marker when a background restart fails.
+Everything else has at least one real frontend gap, plus two checklist items that don't match anything built.
+
+1. **No frontend test feeds a stopped/exited/error container state into the Minima Core UI.**
+   `MinimaContainerCard.tsx` and `DashboardDevices.tsx`'s `deviceNodeStatus()`
+   (`frontend/src/features/dashboard/DashboardDevices.tsx:24-29`) both branch on `stopped`/`error`, but
+   `MinimaContainerCard.test.tsx` only exercises `null` and `running` containers, and `DashboardDevices.test.tsx`
+   only covers `restarting` (around lines 141-150) for the node card — never `stopped` or `error`.
+   - Add: cases in `MinimaContainerCard.test.tsx` for `state: "stopped"`/`"exited"`/`"error"`, asserting card
+     copy/styling; a case in `DashboardDevices.test.tsx` for `node.state: "stopped"`/`"error"` asserting the
+     mapped status pill.
+   - Files: `frontend/tests/features/minima/MinimaContainerCard.test.tsx`,
+     `frontend/tests/features/dashboard/DashboardDevices.test.tsx`.
+
+2. **Restart button disabled→re-enable cycle has no test, and its real owner (`MinimaPage.tsx`) has no test
+   file at all.** The button's `disabled={busy}` prop is only tested by manually re-rendering with `busy`
+   forced true/false (`MinimaContainerCard.test.tsx:74-86`) — no test clicks restart, asserts immediate
+   disable, then simulates the status poll resolving and asserts re-enable. The state itself lives in
+   `MinimaPage.tsx:42` (`useState`), which has zero test coverage.
+   - Add: click restart, assert button disabled immediately, resolve the mocked status poll, assert
+     re-enabled.
+   - File: new `frontend/tests/pages/MinimaPage.test.tsx` (doesn't exist).
+
+3. **Restart failure has no route-level backend test and no frontend toast test.** `POST /api/minima/restart`'s
+   failure path (`minima.routes.ts:102-114`) has zero test references in `minima.routes.test.ts` (only the
+   service-level failure is tested, not the route). On the frontend, `MinimaPage.tsx:90-95` catches and toasts
+   when `restartMinimaContainer()` throws, but again `MinimaPage.tsx` has no test file to exercise it.
+   - Add: a route-level case in `minima.routes.test.ts` for restart failure (mock the service to reject,
+     assert the error response shape); a case in the new `MinimaPage.test.tsx` asserting the toast fires on a
+     rejected restart call.
+   - Files: `backend/tests/features/minima/minima.routes.test.ts`, `frontend/tests/pages/MinimaPage.test.tsx`.
+
+4. **Dashboard metrics under "stopped"/"error" node state are untested.** `DashboardDevices.test.tsx` covers
+   `restarting` (wallet marked unavailable, wallet fetch skipped) and Integritas unreachable, but never Minima
+   `node.state: "stopped"` or `"error"` — the actual "node offline" cases this checklist item is asking about.
+   - Add: cases for `node.state: "stopped"`/`"error"`, asserting wallet/metrics sections degrade the same way
+     as `restarting`.
+   - File: `frontend/tests/features/dashboard/DashboardDevices.test.tsx`.
+
+5. **"Degraded" isn't a real state — checklist item doesn't map cleanly onto what exists.** There's no
+   `degraded` value anywhere in the codebase. What exists instead: a binary `rpc.ok`/`rpc.error` (well
+   covered — `minimaStatusDisplay.test.ts`, `MinimaHealthCard.test.tsx:101-121`) and a separate
+   `monitoring.stallDetected` flag for a stalled-but-still-connected node. No test combines "unreachable" +
+   "stalled" the way "degraded" implies, because the UI doesn't model them as one combined state. Flag to
+   whoever wrote the checklist rather than writing a test against a state that doesn't exist.
+
+6. **"Diagnostics screen when node logs unavailable" isn't a feature.** `DiagnosticsPage.tsx`'s three tabs are
+   Integritas/Data Reads/Workflow Runs (`TAB_DESCRIPTION`, lines 52-56) — there's no "node logs" tab or
+   concept, and (as already noted in the Diagnostics ticket section above) `DiagnosticsPage.tsx` has no test
+   file at all, matching every other page-level component.
+
+Checklist item 7 ("Unit and integration tests") is satisfied by convention, not a gap: this project is
+unit-tests-only (`.claude/rules/testing.md`), no separate integration suite exists or is expected.
+
 <!-- Add "### <short ticket topic>" sections here only when a legacy ticket turns up a real gap. -->
 
 ## Docs
