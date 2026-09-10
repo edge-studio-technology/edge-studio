@@ -35,6 +35,7 @@ function baseInspect(overrides: Partial<DockerContainerInspect> = {}): DockerCon
     HostConfig: {
       Binds: ["/data:/data"],
       GroupAdd: ["999"],
+      Devices: [{ PathOnHost: "/dev/gpiochip0", PathInContainer: "/dev/gpiochip0", CgroupPermissions: "rwm" }],
       RestartPolicy: { Name: "unless-stopped" },
       ExtraHosts: ["host.docker.internal:host-gateway"],
       PortBindings: { "80/tcp": [{ HostPort: "8080" }] }
@@ -127,6 +128,7 @@ describe("docker.service", () => {
       assert.deepEqual(body.Labels, { "com.docker.compose.service": "frontend" });
       assert.deepEqual(body.ExposedPorts, { "80/tcp": {} });
       assert.deepEqual(body.HostConfig.Binds, ["/data:/data"]);
+      assert.deepEqual(body.HostConfig.Devices, [{ PathOnHost: "/dev/gpiochip0", PathInContainer: "/dev/gpiochip0", CgroupPermissions: "rwm" }]);
       assert.deepEqual(body.HostConfig.RestartPolicy, { Name: "unless-stopped" });
       assert.equal(body.HostConfig.AutoRemove, undefined);
       assert.equal(body.HostConfig.PortBindings, undefined);

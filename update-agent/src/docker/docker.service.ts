@@ -77,6 +77,7 @@ export function createBodyFromInspect(
     HostConfig: {
       Binds: inspected.HostConfig.Binds,
       GroupAdd: inspected.HostConfig.GroupAdd,
+      Devices: inspected.HostConfig.Devices,
       RestartPolicy: options?.oneShot ? { Name: "no" } : inspected.HostConfig.RestartPolicy,
       AutoRemove: options?.oneShot ? true : undefined,
       ExtraHosts: inspected.HostConfig.ExtraHosts,
