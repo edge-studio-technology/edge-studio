@@ -229,6 +229,36 @@ Everything else has at least one real frontend gap, plus two checklist items tha
 Checklist item 7 ("Unit and integration tests") is satisfied by convention, not a gap: this project is
 unit-tests-only (`.claude/rules/testing.md`), no separate integration suite exists or is expected.
 
+### Workflow Rule Testing ticket (automation)
+
+Six of seven checklist items are already fully covered: create-workflow modal field combinations for every
+block type (`WorkflowBlockInspectors.test.tsx`, `CreateWorkflowWorkspace.test.tsx`), enable/disable toggle at
+every layer (`mqttIngestion.service.test.ts` "ends the client when its workflow is disabled",
+`gpioIngestion.service.test.ts` "kills the watcher when its workflow is disabled",
+`automation.repository.test.ts`, `AutomationWorkflowsList.test.tsx`), trigger-fires-on-matching-event across
+HTTP poll/webhook/MQTT/GPIO/manual paths (`automation.service.test.ts`, `mqttIngestion.service.test.ts`,
+`gpioIngestion.service.test.ts`), condition-not-met skipping remaining blocks
+(`automation.service.test.ts:308` "stops the workflow and skips remaining blocks when the condition does not
+match"), run history outcome recording (`automationRuns.repository.test.ts`, `AutomationRunsTable.test.tsx`,
+`automationRunDisplay.test.ts`), and the automation screen empty state (`AutomationWorkflowsList.test.tsx:50`
+"shows an empty state prompting to build the first workflow"). One real gap:
+
+1. **`sendHttpOutput`'s success-path test never asserts what's actually sent over the wire.**
+   `sendHttpOutput` (`backend/src/features/data-sources/dataSources.service.ts:291-301`) issues the outbound
+   POST for an HTTP JSON Target output block via `fetchExternalJson(config.url, { method, body:
+   JSON.stringify(payload) }, ...)`. Its tests (`dataSources.service.test.ts:449-468`) only assert
+   `result.status`/`result.response` on success, and check `options.body === undefined` on the no-body branch
+   — no case checks `fetchMock.mock.calls[0][0]` (the URL) or the JSON body against the configured `url` and
+   payload. `readJsonApiSource`'s own tests already assert the URL this way (`dataSources.service.test.ts:403`,
+   `:414`), so the pattern exists but wasn't applied here. The workflow-layer test
+   (`automation.service.test.ts:715` "sends a custom body to an http-output target") mocks `sendHttpOutput`
+   entirely and only checks the payload argument passed into the mock, so it proves nothing about the real
+   request.
+   - Add: a case in the `sendHttpOutput` describe block asserting `fetchMock.mock.calls[0][0]` equals
+     `config.url` and the parsed request body equals the payload, for the normal (`hasBody: true`) success
+     path.
+   - File: `backend/tests/features/data-sources/dataSources.service.test.ts`.
+
 <!-- Add "### <short ticket topic>" sections here only when a legacy ticket turns up a real gap. -->
 
 ## Docs
