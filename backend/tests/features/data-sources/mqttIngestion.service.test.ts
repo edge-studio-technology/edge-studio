@@ -37,6 +37,7 @@ let dataSourcesRepo: typeof import("../../../src/features/data-sources/dataSourc
 let automationRepo: typeof import("../../../src/features/automation/automation.repository.js");
 let dataReadsRepo: typeof import("../../../src/features/data-reads/dataReads.repository.js");
 let mqttIngestion: typeof import("../../../src/features/data-sources/mqttIngestion.service.js");
+let env: typeof import("../../../src/config/env.js")["env"];
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
@@ -46,6 +47,7 @@ beforeAll(async () => {
   automationRepo = await import("../../../src/features/automation/automation.repository.js");
   dataReadsRepo = await import("../../../src/features/data-reads/dataReads.repository.js");
   mqttIngestion = await import("../../../src/features/data-sources/mqttIngestion.service.js");
+  ({ env } = await import("../../../src/config/env.js"));
 });
 
 afterAll(() => {
@@ -214,6 +216,41 @@ describe("MQTT message handling", () => {
     const reads = dataReadsRepo.listDataSourceReads({ page: 1, pageSize: 10 });
     assert.equal(reads.length, 1);
     assert.equal(reads[0].status, "failed");
+  });
+
+  it("rejects an oversized payload before parsing it, and records the failed read", async () => {
+    const source = makeMqttSource();
+    makeMqttWorkflow(source.id);
+    mqttIngestion.syncMqttDataSources();
+    const client = clients[0];
+
+    // Valid JSON, so only the size check can reject it.
+    const oversized = `{"blob":"${"x".repeat(env.mqttMaxPayloadBytes)}"}`;
+    client.emit("message", "sensors/temp", Buffer.from(oversized));
+    await flush();
+
+    assert.equal(automationServiceMock.recordPushAutomationPayload.mock.calls.length, 0);
+    const updated = dataSourcesRepo.getDataSource(source.id)!;
+    const error = JSON.parse(updated.last_error!) as { type: string; message: string };
+    assert.equal(error.type, "invalid_payload");
+    assert.match(error.message, /byte limit/);
+
+    const reads = dataReadsRepo.listDataSourceReads({ page: 1, pageSize: 10 });
+    assert.equal(reads.length, 1);
+    assert.equal(reads[0].status, "failed");
+  });
+
+  it("accepts a payload right at the size limit", async () => {
+    const source = makeMqttSource();
+    makeMqttWorkflow(source.id);
+    mqttIngestion.syncMqttDataSources();
+    const client = clients[0];
+
+    const padding = "x".repeat(env.mqttMaxPayloadBytes - '{"blob":""}'.length);
+    client.emit("message", "sensors/temp", Buffer.from(`{"blob":"${padding}"}`));
+    await flush();
+
+    assert.equal(automationServiceMock.recordPushAutomationPayload.mock.calls.length, 1);
   });
 
   it("swallows workflow-busy errors without logging", async () => {

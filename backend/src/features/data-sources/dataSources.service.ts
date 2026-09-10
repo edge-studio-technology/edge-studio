@@ -2,7 +2,8 @@ import crypto from "node:crypto";
 import { readFile } from "node:fs/promises";
 import * as os from "node:os";
 import { sha3HashHex } from "../../shared/crypto.js";
-import { fetchExternalJson } from "../../shared/http.js";
+import { EgressQueueFullError } from "../../shared/egress-limiter.js";
+import { fetchExternalJson, ResponseTooLargeError } from "../../shared/http.js";
 import { assertAllowedEgressUrl, EgressUrlError } from "../../shared/url-policy.js";
 import { errorMessage, parseStoredError } from "../../shared/structured-error.js";
 import type { DataSourceRecord } from "./dataSources.repository.js";
@@ -256,7 +257,7 @@ export async function readJsonApiSource(config: JsonApiConfig) {
       body: config.method === "POST" && config.body !== undefined ? JSON.stringify(config.body) : undefined
     }));
   } catch (error) {
-    if (error instanceof EgressUrlError) throw error;
+    if (error instanceof EgressUrlError || error instanceof ResponseTooLargeError || error instanceof EgressQueueFullError) throw error;
     throw new Error(`Could not fetch ${config.url}: ${describeFetchError(error)}`);
   }
 

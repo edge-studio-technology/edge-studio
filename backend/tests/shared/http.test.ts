@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
-import { fetchExternalJson, fetchJsonWithTimeout, parseResponseBody } from "../../src/shared/http.js";
+import { env } from "../../src/config/env.js";
+import { fetchExternalJson, fetchJsonWithTimeout, parseResponseBody, ResponseTooLargeError } from "../../src/shared/http.js";
 import { EgressUrlError } from "../../src/shared/url-policy.js";
 
 const { fetchMock, lookupMock, agentOptions } = vi.hoisted(() => ({
@@ -101,12 +102,32 @@ describe("fetchJsonWithTimeout", () => {
   });
 });
 
-function response(status: number, bodyText: string, headers: Record<string, string> = {}) {
+/** A stand-in undici Response whose body is a real stream, so the byte cap is exercised for real. */
+function response(status: number, bodyText: string, headers: Record<string, string> = {}, chunks?: Uint8Array[]) {
+  const parts = chunks ?? [new TextEncoder().encode(bodyText)];
+  let index = 0;
+  let cancelled = false;
+
   return {
     ok: status >= 200 && status < 300,
     status,
     headers: new Headers(headers),
-    body: { cancel: () => Promise.resolve() },
+    get cancelled() {
+      return cancelled;
+    },
+    body: {
+      cancel: () => {
+        cancelled = true;
+        return Promise.resolve();
+      },
+      getReader: () => ({
+        read: async () => (index < parts.length ? { done: false, value: parts[index++] } : { done: true, value: undefined }),
+        cancel: () => {
+          cancelled = true;
+          return Promise.resolve();
+        }
+      })
+    },
     text: async () => bodyText
   };
 }
@@ -224,5 +245,59 @@ describe("fetchExternalJson", () => {
 
     assert.equal(capturedSignal?.aborted, true);
     vi.useRealTimers();
+  });
+
+  it("clamps a caller timeout above the hard maximum", async () => {
+    vi.useFakeTimers();
+    let capturedSignal: AbortSignal | undefined;
+    fetchMock.mockImplementation((_url: URL, options: { signal: AbortSignal }) => {
+      capturedSignal = options.signal;
+      return new Promise(() => {});
+    });
+
+    const pending = fetchExternalJson("https://api.vendor.example/readings", {}, 10 * 60_000);
+    pending.catch(() => {});
+    await vi.advanceTimersByTimeAsync(env.egressMaxTimeoutMs);
+
+    assert.equal(capturedSignal?.aborted, true);
+    vi.useRealTimers();
+  });
+});
+
+describe("fetchExternalJson response cap", () => {
+  it("rejects an oversized Content-Length without reading the body", async () => {
+    const oversized = response(200, "{}", { "content-length": String(env.egressMaxResponseBytes + 1) });
+    fetchMock.mockResolvedValue(oversized);
+
+    await assert.rejects(() => fetchExternalJson("https://api.vendor.example/readings"), ResponseTooLargeError);
+    assert.equal(oversized.cancelled, true);
+  });
+
+  it("aborts mid-stream when the decoded bytes pass the cap, even with no Content-Length", async () => {
+    // Four chunks that only exceed the cap once combined: a length header would not have caught it.
+    const chunk = new Uint8Array(Math.ceil(env.egressMaxResponseBytes / 3));
+    const streamed = response(200, "", {}, [chunk, chunk, chunk, chunk]);
+    fetchMock.mockResolvedValue(streamed);
+
+    await assert.rejects(() => fetchExternalJson("https://api.vendor.example/readings"), ResponseTooLargeError);
+    assert.equal(streamed.cancelled, true);
+  });
+
+  it("accepts a body that understates its size in Content-Length but stays under the cap", async () => {
+    // A gzip body inflates past its declared encoded length; undici decodes before we count, so
+    // what matters is the decoded total, not the header.
+    const body = '{"ok":true}';
+    fetchMock.mockResolvedValue(response(200, body, { "content-length": "4" }));
+
+    const result = await fetchExternalJson("https://api.vendor.example/readings");
+    assert.deepEqual(result.body, { ok: true });
+  });
+
+  it("returns an empty string when the response has no body", async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 204, headers: new Headers(), body: null });
+
+    const result = await fetchExternalJson("https://api.vendor.example/readings");
+    assert.equal(result.text, "");
+    assert.equal(result.body, null);
   });
 });

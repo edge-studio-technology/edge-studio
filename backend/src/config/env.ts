@@ -48,6 +48,19 @@ function resolveMinimaStatusUrl() {
   return `http://127.0.0.1:${rpcPort}/status`;
 }
 
+/**
+ * Resource limits are operator-configurable but not operator-removable: a value outside
+ * [min, max] is clamped rather than honoured, so raising a cap past what the Pi sustains
+ * is not a supported configuration. See docs/adr/0017.
+ */
+function boundedNumber(raw: string | undefined, fallback: number, min: number, max: number) {
+  const value = Number(raw ?? fallback);
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(Math.max(value, min), max);
+}
+
+const MB = 1024 * 1024;
+
 const databasePath = resolveDatabasePath();
 
 export const env = {
@@ -92,5 +105,15 @@ export const env = {
   sensorsEnabled: process.env.ENABLE_SENSORS === "true",
   sensorHelperUrl: process.env.SENSOR_HELPER_URL ?? "http://host.docker.internal:38181",
   sensorHelperToken: process.env.SENSOR_HELPER_TOKEN ?? "",
-  sensorReadTimeoutMs: Number(process.env.SENSOR_READ_TIMEOUT_MS ?? 5000)
+  sensorReadTimeoutMs: Number(process.env.SENSOR_READ_TIMEOUT_MS ?? 5000),
+  egressMaxResponseBytes: boundedNumber(process.env.EGRESS_MAX_RESPONSE_BYTES, 5 * MB, 64 * 1024, 50 * MB),
+  egressTimeoutMs: boundedNumber(process.env.EGRESS_TIMEOUT_MS, 5000, 100, 60000),
+  egressMaxTimeoutMs: 60000,
+  egressMaxConcurrent: boundedNumber(process.env.EGRESS_MAX_CONCURRENT, 4, 1, 16),
+  egressQueueLimit: boundedNumber(process.env.EGRESS_QUEUE_LIMIT, 32, 1, 256),
+  // Stamping arbitrary files is the product, so the upload cap has a floor but no ceiling.
+  uploadMaxFileBytes: boundedNumber(process.env.UPLOAD_MAX_FILE_BYTES, 100 * MB, MB, Number.MAX_SAFE_INTEGER),
+  uploadMaxFiles: boundedNumber(process.env.UPLOAD_MAX_FILES, 1, 1, 8),
+  uploadMaxFields: boundedNumber(process.env.UPLOAD_MAX_FIELDS, 8, 1, 64),
+  mqttMaxPayloadBytes: boundedNumber(process.env.MQTT_MAX_PAYLOAD_BYTES, 256 * 1024, 1024, 4 * MB)
 };

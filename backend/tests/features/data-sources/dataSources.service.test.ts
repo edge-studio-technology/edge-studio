@@ -33,6 +33,7 @@ import type {
   WebhookConfig
 } from "../../../src/features/data-sources/dataSources.service.js";
 import type { DataSourceRecord } from "../../../src/features/data-sources/dataSources.repository.js";
+import { env } from "../../../src/config/env.js";
 
 function makeRecord(overrides: Partial<DataSourceRecord> = {}): DataSourceRecord {
   return {
@@ -371,10 +372,21 @@ beforeEach(() => {
 });
 
 function mockResponse(status: number, bodyText: string) {
+  // fetchExternalJson reads the body as a stream so it can count decoded bytes against the cap.
+  const parts = [new TextEncoder().encode(bodyText)];
+  let index = 0;
+
   return {
     ok: status >= 200 && status < 300,
     status,
     headers: new Headers(),
+    body: {
+      cancel: () => Promise.resolve(),
+      getReader: () => ({
+        read: async () => (index < parts.length ? { done: false, value: parts[index++] } : { done: true, value: undefined }),
+        cancel: () => Promise.resolve()
+      })
+    },
     text: async () => bodyText,
     json: async () => JSON.parse(bodyText) as unknown
   };
@@ -425,6 +437,12 @@ describe("readJsonApiSource", () => {
   it("throws when the response status is not ok", async () => {
     fetchMock.mockResolvedValue(mockResponse(500, JSON.stringify({ error: "boom" })));
     await assert.rejects(readJsonApiSource({ url: "https://example.com", method: "GET" }), /Source returned HTTP 500/);
+  });
+
+  it("surfaces an oversized response as a size error, not a generic fetch failure", async () => {
+    // "Could not fetch <url>: ..." would hide why the read failed from the operator.
+    fetchMock.mockResolvedValue(mockResponse(200, "x".repeat(env.egressMaxResponseBytes + 1)));
+    await assert.rejects(readJsonApiSource({ url: "https://example.com", method: "GET" }), /exceeded the .* byte limit/);
   });
 });
 

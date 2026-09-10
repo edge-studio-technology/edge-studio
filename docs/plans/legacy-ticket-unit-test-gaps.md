@@ -126,6 +126,52 @@ ticket describes behavior that isn't part of the built feature):
    live from the Integritas API — Integritas reachability only affects whether *pending* records get new poll
    updates, not whether the list renders. There's no separate "API unavailable" list state to build or test.
 
+### Wallet Security ticket
+
+Two checklist items already have solid coverage: the non-admin gate on `POST /api/wallet/send-payment`
+(`app.401-smoke.test.ts:78,126-133`) and the no-auth-token pen test (`/api/wallet` sits in the protected-prefix
+matrix, `app.401-smoke.test.ts:49-50`). Two real gaps, plus four checklist items that describe behavior the
+app doesn't implement — not gaps, since there's nothing to test.
+
+1. **Backup download/restore reauth isn't route-level tested for rejection.** `verifyCurrentPassword` is
+   unit-tested directly in `minima-backup.service.test.ts:125-151` (wrong password -> 401, correct ->
+   resolves), and `POST /api/minima/backups/:fileName/download` / `POST /api/minima/backups/restore` both call
+   it before touching the file (`minima.routes.ts:240-253`, `:255-282`). But `minima.routes.test.ts:98-152`
+   only exercises the leak-prevention path (raw RPC command never returned) — no case sends a wrong
+   `currentPassword` to either route and asserts the request is rejected before the file is read/returned.
+   - Add: a case per route in `minima.routes.test.ts` — valid session, wrong `currentPassword`, assert
+     rejection and that no file is read/returned.
+   - File: `backend/tests/features/minima/minima.routes.test.ts`.
+
+2. **Wallet import route has no test asserting the phrase is absent from the response.** `POST
+   /api/wallet/import` (`wallet.routes.ts:85-100`) never logs the phrase (redaction pinned by
+   `redact.test.ts:66-68`), and `ImportWalletResult` has no phrase field by construction, but no test drives
+   the route and inspects the JSON response body for the submitted phrase string.
+   - Add: a route-level case — POST a valid phrase, assert the response body doesn't contain the phrase
+     substring (same style as `minima.routes.test.ts:51-55`'s leak-check assertions).
+   - File: `backend/tests/features/wallet/wallet.routes.test.ts` (doesn't exist yet — only
+     `wallet.service.test.ts`/`wallet.parse.test.ts` do).
+
+3. **"Wallet creation with passphrase, encrypted at rest" isn't a feature.** There's no create-wallet
+   endpoint; wallet key material is owned by the Minima node, not the backend (`wallet.service.ts` only has
+   `import`/`send`/`receive-address`/`balance`/`history`). Nothing to test.
+
+4. **"Send payment: wrong passphrase / cancellation / double-send prevention" isn't implemented.**
+   `sendPayment` (`wallet.service.ts:30-36`) is a bare RPC call with amount/address validation only (tested,
+   `wallet.service.test.ts:63-89`) — no per-send passphrase step, no cancellation flow, and no
+   idempotency/double-send guard exists to test.
+
+5. **"Generate address: unique per call" contradicts the actual design.** `getReceiveAddress`
+   (`wallet.service.ts:20-22`) explicitly returns one of 64 pre-created addresses at random and is documented
+   as NOT creating new key material — the opposite of "unique per call." The existing test
+   (`wallet.service.test.ts:43-61`) covers parsing/QR generation, not format validation. Flag to whoever owns
+   this ticket rather than writing a test against a false assumption.
+
+6. **"Operator role cannot send payment" has no real Operator role to test against.** `UserRole` has one
+   member (`admin`) — the 403 coverage noted above is driven by a stubbed non-admin session
+   (`app.401-smoke.test.ts:6-8`), not a real role. Fine as regression coverage for the gate itself, but there's
+   no second role to build a genuine operator-permission test around until one exists.
+
 <!-- Add "### <short ticket topic>" sections here only when a legacy ticket turns up a real gap. -->
 
 ## Docs

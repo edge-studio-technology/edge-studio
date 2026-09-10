@@ -26,6 +26,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The installer rejects runtime bundle entries with absolute or `..` paths, and entries that are not regular files or directories.
 - Releases publish `edge-studio-runtime.tar.gz.sig` and `install.sh.sha256` alongside the manifest.
 - `README.md` documents a verified install path — tag-pinned installer, published checksum, read before running — alongside the one-liner, which `SECURITY.md` now records as an accepted residual risk.
+- Data source reads, health checks, and HTTP output requests now stop at a response size cap (`EGRESS_MAX_RESPONSE_BYTES`, default 5 MB), counted on decompressed bytes and enforced while the response is still arriving.
+- Outbound requests to operator-supplied URLs share a global concurrency limit (`EGRESS_MAX_CONCURRENT`, default 4) with a bounded queue (`EGRESS_QUEUE_LIMIT`, default 32); requests past the queue are rejected instead of waiting indefinitely.
+- Outbound request deadlines are capped at 60 seconds regardless of the configured per-target timeout.
+- MQTT messages larger than `MQTT_MAX_PAYLOAD_BYTES` (default 256 KB) are rejected before parsing and recorded as a failed read.
+- File uploads for stamping and Minima backup restore are limited by size (`UPLOAD_MAX_FILE_BYTES`, default 100 MB), file count, and field count, and an oversized upload now returns `413` instead of a server error.
+- `POST /api/integritas/stamp-file` and `POST /api/integritas/verify-proof-file` delete the uploaded temporary file when the request is rejected for a missing Integritas link, not only on the success path.
+- Resource limits are configurable in `.env` and clamped to a supported range, so a limit cannot be configured away; see [docs/adr/0017](docs/adr/0017-outbound-and-upload-resource-limits.md).
+- `multer` updated to 2.3.0, closing advisories for denial of service via crafted multipart field names, file descriptor leaks on aborted uploads, and a file size limit bypass.
 
 ### Changed
 

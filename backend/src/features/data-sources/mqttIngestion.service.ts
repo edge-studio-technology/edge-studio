@@ -1,4 +1,5 @@
 import mqtt, { type MqttClient } from "mqtt";
+import { env } from "../../config/env.js";
 import { dataSourceError, errorFromUnknown } from "../../shared/structured-error.js";
 import { listEnabledEventWorkflows, type AutomationWorkflowRecord } from "../automation/automation.repository.js";
 import { recordPushAutomationPayload } from "../automation/automation.service.js";
@@ -78,23 +79,39 @@ function connectMqttSource(source: DataSourceRecord, workflow: AutomationWorkflo
   return client;
 }
 
+function recordMqttIngestFailure(source: DataSourceRecord, workflow: AutomationWorkflowRecord, config: { brokerUrl: string; topic: string }, details: ReturnType<typeof dataSourceError>) {
+  updateDataSourceReadResult(source.id, { error: details });
+  createDataSourceRead({
+    dataSourceId: source.id,
+    workflowId: workflow.id,
+    sourceName: source.name,
+    sourceUrl: `${config.brokerUrl} ${config.topic}`,
+    triggerType: "mqtt",
+    status: "failed",
+    error: details,
+    triggerSourceId: source.id
+  });
+}
+
 async function handleMqttMessage(source: DataSourceRecord, workflow: AutomationWorkflowRecord, config: { brokerUrl: string; topic: string }, payload: Buffer) {
+  // Checked before the JSON parse: an untrusted publisher should not be able to make the backend
+  // parse an arbitrarily large payload just by publishing it.
+  if (payload.byteLength > env.mqttMaxPayloadBytes) {
+    const message = `MQTT payload exceeded the ${env.mqttMaxPayloadBytes} byte limit`;
+    recordMqttIngestFailure(source, workflow, config, dataSourceError({
+      type: "invalid_payload",
+      message,
+      nativeMessage: message,
+      context: { sourceId: source.id, topic: config.topic, payloadBytes: payload.byteLength, maxBytes: env.mqttMaxPayloadBytes }
+    }));
+    return;
+  }
+
   let parsed: unknown;
   try {
     parsed = JSON.parse(payload.toString("utf8")) as unknown;
   } catch (error) {
-    const details = dataSourceError({ type: "invalid_payload", ...errorFromUnknown(error, "MQTT payload was not valid JSON", { sourceId: source.id, topic: config.topic }), message: "MQTT payload was not valid JSON" });
-    updateDataSourceReadResult(source.id, { error: details });
-    createDataSourceRead({
-      dataSourceId: source.id,
-      workflowId: workflow.id,
-      sourceName: source.name,
-      sourceUrl: `${config.brokerUrl} ${config.topic}`,
-      triggerType: "mqtt",
-      status: "failed",
-      error: details,
-      triggerSourceId: source.id
-    });
+    recordMqttIngestFailure(source, workflow, config, dataSourceError({ type: "invalid_payload", ...errorFromUnknown(error, "MQTT payload was not valid JSON", { sourceId: source.id, topic: config.topic }), message: "MQTT payload was not valid JSON" }));
     return;
   }
   const result = processMqttPayload(parsed);

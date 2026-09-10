@@ -1,6 +1,6 @@
 # Security Hardening V1.5
 
-**Status:** In progress — Phases 1-4 done
+**Status:** In progress — Phases 1-5 done
 **Created:** 2026-09-04
 **Revised:** 2026-09-04 — second-opinion review folded in: DNS-address pinning on egress, Phase 0 decision gate, non-destructive
 `APP_SECRET` migration, the multipart egress path, global outbound concurrency, and the installer's
@@ -412,6 +412,9 @@ immutable signed installer URL as its exit criteria.
 
 ## Phase 5 — Resource limits
 
+**Status: done** (2026-09-09). Limit values recorded in
+[adr/0017](../adr/0017-outbound-and-upload-resource-limits.md).
+
 **Covers:** [3], [13].
 
 1. `readJsonApiSource` (`dataSources.service.ts:244`) uses bare `fetch` — no deadline, no cap. The
@@ -453,6 +456,38 @@ the limit away:
 
 These numbers are a proposal, not measured. Pin them in the phase's ADR against what the Pi
 actually sustains.
+
+**How it landed.** `fetchExternalJson()` is where every outbound limit is enforced, not the four
+call sites — it was already the one egress path from Phase 2. Bodies are read as a stream and the
+request is aborted the moment the running total passes the cap; `Content-Length` is rejected up
+front when already oversized but is not trusted, since it is absent on chunked responses and can
+understate the body. undici decompresses before the chunks reach us, so the count is of decoded
+bytes and a small gzip body that inflates past the cap is cut off mid-stream.
+`fetchJsonWithTimeout()` is deliberately left uncapped: it serves deployment-config callers whose
+responses (a Minima `coins` listing) are legitimately larger than any data-source-sized cap.
+
+The global semaphore is `backend/src/shared/egress-limiter.ts`, with the bounded queue rejecting
+fast past its length. Its deadline covers the queue wait as well as the request — starting the
+clock only once a slot is acquired would let total wall time reach queue depth × timeout, so a
+saturated limiter would hold callers far longer than any configured deadline suggests.
+
+Every value reads through `boundedNumber()` in `config/env.ts`, which **clamps** rather than
+honours an out-of-range setting, so an operator can tune a limit but cannot configure it away. The
+upload size cap is the one row with a floor and no ceiling: stamping arbitrary files is the product.
+
+Multer needed an error handler as well as `limits` — it signals an over-limit upload by passing a
+`MulterError` to `next()`, and with nothing registered Express answered with an HTML 500 that a
+client could not tell from a server fault. `backend/src/middleware/uploadErrors.ts` maps
+`LIMIT_FILE_SIZE` to `413` and the rest to `400`.
+
+Step 7's claim that "only `/stamp-file` needs the fix" was wrong: `/verify-proof-file` has the
+identical missing-API-key early return above its `finally`, so it orphaned the temp file on that
+path too. Both are fixed. `/backups/restore` was checked and is genuinely clean —
+`saveUploadedBackup()` removes the multer temp file on the success path, and the `catch` removes it
+otherwise.
+
+**The defaults remain reasoned, not measured.** No Pi throughput or memory measurement was taken.
+Tracked as **DEVICE-IO-09** in `docs/qa/gaps.md` rather than left implicit in the ADR.
 
 ---
 
@@ -635,7 +670,7 @@ Defaults in force:
 | 6 | Session revocation scope | revoke all sessions incl. caller; clear cookie; force re-login — **implemented** | 3 | low |
 | 7 | Verifier runtime | pin `node:20-bookworm-slim` by digest — **implemented, adr/0016** | 4 | low |
 | 8 | `curl \| sudo bash` | accept as residual; ship documented download-inspect-run + checksum — **implemented, adr/0016** | 4 | low — real fix needs release infra |
-| 9 | Limit values | ship the proposed table as defaults, measure on the Pi, pin in ADR | 5 | low — values are configurable |
+| 9 | Limit values | ship the proposed table as defaults, clamp to hard maxima — **implemented, adr/0017**; Pi measurement still outstanding (DEVICE-IO-09) | 5 | low — values are configurable |
 | 10 | `APP_SECRET` migration | one-shot transactional re-encrypt; never boot half-migrated | 6 | low — safe whether or not field installs exist |
 | 11 | Dev escape hatch | explicit opt-in env flag, never derived from `NODE_ENV` | 6 | low |
 | 12 | Image digest pins | manual bump at release, documented in the release doc | 6 | low |
@@ -710,7 +745,7 @@ Per phase, not at the end:
 - `docs/qa/gaps.md` — tick the GAP/MINIMA/WALLET/DEVICE-IO IDs listed in the finding map.
 - `SECURITY.md` — only when a guideline or accepted risk actually changes.
 - `CHANGELOG.md` under `## [Unreleased] task/272-security-hardening-v1-5`, `### Security`.
-- ADRs for: the Phase 2 URL policy (**done — adr/0014**) and console subcommands (**done — adr/0015**), the Phase 4 install-time trust set (**done — adr/0016**), the Phase 5 limit values, the Phase 6 `APP_SECRET` migration, the Phase 7 deferred
+- ADRs for: the Phase 2 URL policy (**done — adr/0014**) and console subcommands (**done — adr/0015**), the Phase 4 install-time trust set (**done — adr/0016**), the Phase 5 limit values (**done — adr/0017**), the Phase 6 `APP_SECRET` migration, the Phase 7 deferred
   global budgets, and each Phase 0 product decision.
 
 ## Sign-off

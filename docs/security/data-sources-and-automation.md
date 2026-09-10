@@ -102,6 +102,49 @@ one they do not control. That is the deliberate scope of the chosen policy — s
 [adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md) for the options weighed and
 what a deny-by-default host allowlist would cost.
 
+## Outbound Request Resource Limits
+
+Risk: Data source reads, health checks, and HTTP output targets fetch operator-supplied URLs. The
+remote end controls how large its response is, how compressible it is, and how slowly it answers —
+none of which the Pi controls.
+
+Impact: Before Phase 5, every outbound read buffered the whole response into memory with no ceiling
+(`sendMultipartMediaOutput` via `response.json()`, the rest via `response.text()`), and nothing
+limited how many such requests could be in flight. An oversized, highly compressible, or slow
+response could exhaust the backend's heap or hold every workflow run open at once. The same shape
+existed on MQTT: `handleMqttMessage` parsed whatever a publisher sent.
+
+Current Controls:
+
+- All four egress call sites go through `fetchExternalJson()`, which is the only place these limits
+  need to be enforced.
+- Responses are read as a stream and aborted the moment the running total passes
+  `EGRESS_MAX_RESPONSE_BYTES` (default 5 MB, hard max 50 MB). `Content-Length` is rejected up front
+  when already oversized but is not trusted — it is absent on chunked responses and can understate
+  the body. The count is of **decoded** bytes, so a small gzip body that inflates past the cap is
+  still cut off mid-stream.
+- One global semaphore (`shared/egress-limiter.ts`) caps concurrent outbound requests
+  (`EGRESS_MAX_CONCURRENT`, default 4) with a **bounded** queue (`EGRESS_QUEUE_LIMIT`, default 32).
+  Past the queue, callers are rejected immediately rather than accumulating a backlog of pending
+  workflow runs — which would be the same failure, deferred.
+- The request deadline covers the queue wait as well as the request, and is clamped to 60 s
+  regardless of a target's configured `timeoutMs`.
+- MQTT messages over `MQTT_MAX_PAYLOAD_BYTES` (default 256 KB, hard max 4 MB) are rejected before
+  `JSON.parse` and recorded as a failed read against the source.
+- Every limit is configurable in `.env` and **clamped** to a supported range in `config/env.ts`, so
+  an operator can tune a limit but cannot configure it away.
+- `fetchJsonWithTimeout()` — the deployment-config path for Minima RPC, Integritas, status, and the
+  camera/sensor helpers — is deliberately not capped: those URLs are not API-writable and their
+  responses are legitimately large.
+
+Plan:
+
+- The defaults are reasoned, not measured on a Pi under load. Revisit
+  [adr/0017](../adr/0017-outbound-and-upload-resource-limits.md) with real numbers.
+
+Status: **Mitigated (Phase 5, 2026-09-09).** Review finding [3]. See
+[adr/0017](../adr/0017-outbound-and-upload-resource-limits.md).
+
 ## Public Data Source Webhooks
 
 Risk: Webhook data sources expose generated public receive URLs under `/api/data-source-webhooks/:token` so external systems can POST JSON without a browser session.

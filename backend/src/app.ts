@@ -21,6 +21,7 @@ import { addressBookRouter } from "./features/address-book/address-book.routes.j
 import { tokensRouter } from "./features/tokens/tokens.routes.js";
 import { walletRouter } from "./features/wallet/wallet.routes.js";
 import { requestLogger } from "./middleware/requestLogger.js";
+import { uploadErrorHandler } from "./middleware/uploadErrors.js";
 
 export function createApp() {
   const app = express();
@@ -52,6 +53,8 @@ export function createApp() {
   app.use("/api/wallet/address-book", addressBookRouter);
   app.use("/api/tokens", tokensRouter);
   app.use("/api/debug", debugRouter);
+
+  app.use(uploadErrorHandler);
 
   return app;
 }

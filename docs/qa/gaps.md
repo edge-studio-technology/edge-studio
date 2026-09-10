@@ -159,7 +159,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 ### P0
 
 - [ ] **DEVICE-IO-01 Pi/LAN E2E** — Verify HTTP/API output, MQTT output, MQTT input through the optional local broker, and GPIO output on a Raspberry Pi or representative LAN setup.
-- [ ] **DEVICE-IO-02 Dependency audit** — `npm run check` currently reaches audit and reports backend advisories for `multer`, transitive `tar` via `@mapbox/node-pre-gyp`, and frontend/dev `esbuild`; decide update vs accepted prototype risk.
+- [ ] **DEVICE-IO-02 Dependency audit** — Partly closed in Phase 5 (unreleased): `multer` updated to 2.3.0, clearing its four advisories and the transitive `tar` one. `npm run check` still exits non-zero on dev-only `vitest`/`@vitest/mocker` advisories; decide update vs accepted prototype risk.
 - [ ] **DEVICE-IO-03 CLI shell syntax** — `bash -n bin/edge-studio` fails on this workspace because the file has CRLF line endings; normalize before relying on shell verification.
 
 ### P1
@@ -168,6 +168,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 - [ ] **DEVICE-IO-05 MQTT broker hardening** — Add TLS/certificate options, topic ACLs, and LAN bind controls before production use. Same product decision as DEVICE-IO-04.
 - [x] **DEVICE-IO-06a Output egress controls (HTTP)** — **Closed (Phase 2, unreleased).** HTTP output target URLs are validated at save and fetch time against the shared egress policy, with the resolved address pinned to the socket and every redirect hop re-validated. See [adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md).
 - [ ] **DEVICE-IO-06b Output egress controls (MQTT + rate limits)** — Still open: MQTT broker allowlists and per-target rate limits for both HTTP and MQTT outputs. The broker half depends on Phase 0's MQTT device-authentication decision; rate limits are Phase 7's per-workflow budget work.
+- [ ] **DEVICE-IO-09 Measure the Phase 5 limit defaults on a Pi** — The outbound response cap, concurrency/queue bounds, deadline, upload cap, and MQTT payload cap were chosen by reasoning about workload shape, not measured under load on real hardware. Every value is configurable and clamped, so a wrong default is a tuning problem rather than a security one. Revisit [adr/0017](../adr/0017-outbound-and-upload-resource-limits.md) with real numbers.
 - [ ] **DEVICE-IO-07 Secret/header handling** — Add safe storage/redaction before exposing custom HTTP output headers or credentials in the UI.
 
 ### P2
@@ -189,6 +190,7 @@ These are not code gaps but stale docs that confuse QA:
 
 | Date | Change |
 |------|--------|
+| 2026-09-09 | Phase 5 resource limits landed; added DEVICE-IO-09 to measure the chosen defaults on a Pi |
 | 2026-09-04 | Reconciled security items against the external review and [adr/0010](../adr/0010-security-review-audit-verdict.md); annotated scheduled items with their hardening phase; closed GAP-02 |
 | 2026-07-09 | `SECURITY.md` split into lean top-level file + `docs/security/*`; fixed stale `fromAccountAddress` reference |
 | 2026-06-29 | Consolidated per-area QA docs into single backlog; applied 0.8.0/0.9.0 corrections |

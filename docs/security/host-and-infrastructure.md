@@ -209,6 +209,35 @@ Plan:
 
 Status: Partially mitigated.
 
+## Multipart Upload Limits And Temporary Files
+
+Risk: `POST /api/integritas/stamp-file`, `POST /api/integritas/verify-proof-file`, and
+`POST /api/minima/backups/restore` accept multipart uploads. Multer writes the body to the
+container's `/tmp` before any route handler runs, so parsing and disk write happen before the
+handler's own checks.
+
+Impact: Before Phase 5, both multer instances were constructed with no `limits`, so an
+authenticated client could fill the container's `/tmp` with a single request, or send unbounded
+non-file fields. `/stamp-file` and `/verify-proof-file` also returned on a missing Integritas API
+key *before* entering the `try/finally` that removes the file, orphaning it on that path.
+
+Current Controls:
+
+- Both multer instances enforce `fileSize` (`UPLOAD_MAX_FILE_BYTES`, default 100 MB), `files`
+  (default 1), and `fields` (default 8). Multer removes the partial file itself when the size limit
+  trips.
+- `backend/src/middleware/uploadErrors.ts` turns multer's `LIMIT_FILE_SIZE` into a `413` and every
+  other `MulterError` into a `400`, through the same error contract as the rest of the API. Without
+  it, Express answered with an HTML 500 that a client could not tell from a server fault.
+- Both Integritas upload routes capture `req.file` and enter the `try/finally` before the API-key
+  check, so every early return removes the temp file. `/backups/restore` already cleaned up on both
+  its error and success paths.
+- The upload size cap has a floor but **no hard maximum** — stamping arbitrary files is the product,
+  so an operator can raise it.
+
+Status: **Mitigated (Phase 5, 2026-09-09).** Review finding [13]. See
+[adr/0017](../adr/0017-outbound-and-upload-resource-limits.md).
+
 ## Dependency And Image Supply Chain
 
 Risk: Docker images and npm packages are pulled from external registries. Tags such as `minimaglobal/minima:dev` are mutable.
