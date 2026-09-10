@@ -227,6 +227,7 @@ export function LocalServicesCard({
   onDisableSensors,
   onEnableMqtt,
   onDisableMqtt,
+  onSetupSensorPrerequisites,
   onRefreshHardware,
 }: {
   capabilities: DataSourceCapabilities | null;
@@ -240,6 +241,7 @@ export function LocalServicesCard({
   onDisableSensors?: () => Promise<void>;
   onEnableMqtt?: () => Promise<void>;
   onDisableMqtt?: () => Promise<void>;
+  onSetupSensorPrerequisites?: () => Promise<void>;
   onRefreshHardware?: () => Promise<void>;
 }) {
   const [managerOpen, setManagerOpen] = useState(false);
@@ -359,6 +361,7 @@ export function LocalServicesCard({
                 busy={busy}
                 lanUrl={lanUrl}
                 internalUrl={internalUrl}
+                onSetupSensorPrerequisites={onSetupSensorPrerequisites}
                 onRefreshHardware={onRefreshHardware}
               />
             </div>
@@ -446,12 +449,14 @@ function HardwareDetailPanel({
   busy,
   lanUrl,
   internalUrl,
+  onSetupSensorPrerequisites,
   onRefreshHardware,
 }: {
   item: HardwareItem;
   busy: boolean;
   lanUrl: string;
   internalUrl: string;
+  onSetupSensorPrerequisites?: () => Promise<void>;
   onRefreshHardware?: () => Promise<void>;
 }) {
   const capability = item.capability;
@@ -490,7 +495,7 @@ function HardwareDetailPanel({
           <CompactCopyRow label="Internal URL" value={internalUrl} description="Edge Studio MQTT configs" />
         </div>
       )}
-      <HardwarePrerequisites capability={capability} busy={busy} onRefreshHardware={onRefreshHardware} />
+      <HardwarePrerequisites capability={capability} busy={busy} onSetupSensorPrerequisites={onSetupSensorPrerequisites} onRefreshHardware={onRefreshHardware} />
     </section>
   );
 }
@@ -572,22 +577,51 @@ function StatusDot({ status }: { status: "good" | "neutral" | "warn" | "error" }
   return <span aria-hidden className={`inline-block size-2 rounded-full ${className}`} />;
 }
 
-function HardwarePrerequisites({ capability, busy, onRefreshHardware }: { capability?: HostCapability; busy: boolean; onRefreshHardware?: () => Promise<void> }) {
+function HardwarePrerequisites({
+  capability,
+  busy,
+  onSetupSensorPrerequisites,
+  onRefreshHardware,
+}: {
+  capability?: HostCapability;
+  busy: boolean;
+  onSetupSensorPrerequisites?: () => Promise<void>;
+  onRefreshHardware?: () => Promise<void>;
+}) {
+  const [manualOpen, setManualOpen] = useState(false);
   if (!capability) return null;
   const guidance = capability ? prerequisiteGuidance[capability.name] : null;
   if (!guidance) return null;
   const isBlocking = capability.state === "missing_prerequisites";
   if (!isBlocking) return null;
+  const showSensorSetupChoice = capability.name === "sensors";
   return (
-    <Disclosure
+    <div className="border-stroke-secondary grid border-t">
+      {showSensorSetupChoice && (
+        <div className="gap-detail-next grid px-detail-close py-detail-next">
+          <p className="type-meta text-text-secondary m-0">Choose automatic setup, or open manual steps if you prefer to run the commands yourself.</p>
+          <div className="gap-detail-next flex flex-wrap">
+            <Button type="button" variant="primary" size="sm" disabled={busy || !onSetupSensorPrerequisites} onClick={() => void onSetupSensorPrerequisites?.()}>
+              Automatic setup
+            </Button>
+            <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => setManualOpen(true)}>
+              Manual setup
+            </Button>
+          </div>
+        </div>
+      )}
+    {(!showSensorSetupChoice || manualOpen) && (
+      <Disclosure
       title={
         <span className="gap-detail-close flex flex-wrap items-center">
-          <span>Setup steps</span>
+          <span>{showSensorSetupChoice ? "Manual setup steps" : "Setup steps"}</span>
           <Pill tone="warn">Action needed</Pill>
         </span>
       }
+      open={showSensorSetupChoice ? manualOpen : undefined}
       defaultOpen={false}
-      className="border-stroke-secondary bg-surface-primary border-t p-0"
+      onToggle={(event) => showSensorSetupChoice && setManualOpen(event.currentTarget.open)}
+      className={`${showSensorSetupChoice ? "" : "border-stroke-secondary border-t"} bg-surface-primary p-0`}
       summaryClassName="px-detail-close py-detail-next"
       contentClassName="grid gap-detail-next pb-detail-next"
     >
@@ -604,7 +638,9 @@ function HardwarePrerequisites({ capability, busy, onRefreshHardware }: { capabi
           I have completed this, refresh now
         </Button>
       </div>
-    </Disclosure>
+      </Disclosure>
+    )}
+    </div>
   );
 }
 

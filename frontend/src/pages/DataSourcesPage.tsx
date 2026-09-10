@@ -21,6 +21,7 @@ import {
   getHostCapabilities,
   listDataSources,
   readDataSource,
+  setupSensorPrerequisites,
   testDataSourceOutput,
   updateDataSource,
 } from "../features/data-sources/dataSourcesApi";
@@ -289,6 +290,32 @@ export function DataSourcesPage() {
     showToast({ tone: "success", title: repair ? "I2C sensor support repaired" : "I2C sensor support enabled" });
   }
 
+  async function setupSensorHardwarePrerequisites() {
+    setBusy(true);
+    setHardwareOperation({
+      modalTitle: "Setting up I2C prerequisites",
+      progressTitle: "Applying host setup",
+      description: "Edge Studio is installing Raspberry Pi OS I2C packages and enabling the I2C interface. This can take a few minutes.",
+    });
+    try {
+      const response = await setupSensorPrerequisites();
+      await refresh();
+      showToast({
+        tone: response.rebootRequired ? "warning" : "success",
+        title: response.rebootRequired ? "I2C setup applied, reboot required" : "I2C setup applied",
+        message: response.rebootRequired
+          ? "Reboot the Pi, then refresh Hardware support before enabling I2C sensors."
+          : "Refresh Hardware support, then enable I2C sensors.",
+      });
+    } catch (err) {
+      showToast({ tone: "error", title: "Automatic I2C setup failed", message: err instanceof Error ? err.message : "Unknown error" });
+      await refresh().catch(() => undefined);
+    } finally {
+      setHardwareOperation(null);
+      setBusy(false);
+    }
+  }
+
   async function disableSensorHardware() {
     const result = await runHardwareAction(
       () => disableSensorSupport(),
@@ -426,6 +453,7 @@ export function DataSourcesPage() {
         onDisableGpio={disableGpioHardware}
         onEnableSensors={enableSensorHardware}
         onDisableSensors={disableSensorHardware}
+        onSetupSensorPrerequisites={setupSensorHardwarePrerequisites}
         onEnableMqtt={enableMqttHardware}
         onDisableMqtt={disableMqttHardware}
         onRefreshHardware={refreshHardwareStatus}

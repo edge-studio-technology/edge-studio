@@ -35,6 +35,12 @@ export async function enableSensorSupport() {
   return postJson<{ capability: HostCapability }>("/api/host-capabilities/sensors/enable");
 }
 
+export async function setupSensorPrerequisites() {
+  return postJson<{ capability: HostCapability; steps: Array<{ label: string; ok: boolean }>; rebootRequired: boolean }>(
+    "/api/host-capabilities/sensors/setup-prerequisites",
+  );
+}
+
 export async function disableSensorSupport() {
   return postJson<{ capability: HostCapability }>("/api/host-capabilities/sensors/disable");
 }

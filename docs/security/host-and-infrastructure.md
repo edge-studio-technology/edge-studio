@@ -108,14 +108,14 @@ Current Controls:
 - The host agent requires an installer-generated bearer token that is written to `.env` and passed only to the backend container.
 - The host agent exposes fixed capability and host-runtime update endpoints only; it has no generic shell, package install, driver install, file write, or service-management proxy.
 - Host runtime updates replace only allowlisted files from the verified artifact: host-agent, camera helper, sensor helper, and Mosquitto config.
-- I2C sensor support can be enabled/disabled through the host agent, but host OS prerequisites such as I2C enablement and SMBus packages are still reported rather than installed automatically.
-- V1 host-agent actions manage Edge Studio helper/config state and report missing OS prerequisites; they do not install Raspberry Pi OS packages, drivers, firmware, or boot config automatically.
+- I2C sensor support can be enabled/disabled through the host agent, and missing I2C prerequisites can be applied through a separate admin-only action that runs fixed Raspberry Pi OS commands.
+- V1 host-agent actions manage Edge Studio helper/config state and report missing OS prerequisites; automatic OS prerequisite setup is limited to the explicit I2C setup action and does not expose generic package, shell, driver, firmware, or service-management endpoints.
 - The installer adds the same Docker-subnet firewall pattern used by other host helpers where `iptables` is available.
 
 Plan:
 
 - Keep future capabilities allowlisted and capability-specific.
-- Keep OS package/driver installation out of the normal enable path unless a later explicit, per-capability design is approved.
+- Keep OS package/driver installation out of the normal enable path unless it is added as an explicit, per-capability action with fixed commands and audit coverage.
 - Add asynchronous job history if hardware setup actions become long-running.
 - Keep host runtime update allowlists tight as new helper files are added.
 - Revisit binding/firewall behavior during real Pi verification.

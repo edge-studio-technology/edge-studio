@@ -559,6 +559,34 @@ def disable_sensors():
     return {"capability": sensor_status(), "restart": restart}
 
 
+def setup_sensor_prerequisites():
+    if shutil.which("apt-get") is None:
+        raise ValueError("Automatic I2C setup requires apt-get. Use manual setup on this OS.")
+    if shutil.which("raspi-config") is None:
+        raise ValueError("Automatic I2C setup requires raspi-config. Use manual setup on this OS.")
+
+    steps = []
+
+    def run_step(label, command, timeout=300):
+        completed = run(command, check=False, timeout=timeout)
+        ok = completed.returncode == 0
+        steps.append({"label": label, "ok": ok})
+        if not ok:
+            raise ValueError(f"Automatic I2C setup failed during: {label}")
+
+    run_step("Update package lists", ["apt-get", "update"])
+    run_step("Install I2C packages", ["apt-get", "install", "-y", "python3-smbus", "i2c-tools"])
+    run_step("Enable I2C interface", ["raspi-config", "nonint", "do_i2c", "0"])
+
+    device_exists = Path("/dev/i2c-1").exists()
+    steps.append({"label": "Check /dev/i2c-1", "ok": device_exists})
+    return {
+        "capability": sensor_status(),
+        "steps": steps,
+        "rebootRequired": not device_exists,
+    }
+
+
 def mqtt_status():
     config = read_env()
     enabled = is_truthy(config.get("ENABLE_MQTT_BROKER"))
@@ -843,6 +871,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200, apply_sensors())
             if path == "/capabilities/sensors/disable":
                 return self.send_json(200, disable_sensors())
+            if path == "/capabilities/sensors/setup-prerequisites":
+                return self.send_json(200, setup_sensor_prerequisites())
             if path == "/updates/host-runtime/apply":
                 length = int(self.headers.get("Content-Length", "0"))
                 if length <= 0:

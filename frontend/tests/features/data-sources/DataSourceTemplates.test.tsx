@@ -160,7 +160,8 @@ describe("LocalServicesCard", () => {
     expect(onRefreshHardware).toHaveBeenCalledTimes(1);
   });
 
-  it("shows I2C setup guidance instead of an Enable action when sensor prerequisites are missing", async () => {
+  it("shows automatic and manual I2C setup options when sensor prerequisites are missing", async () => {
+    const onSetupSensorPrerequisites = vi.fn().mockResolvedValue(undefined);
     const hostCapabilities: HostCapability[] = [
       {
         name: "sensors",
@@ -171,13 +172,20 @@ describe("LocalServicesCard", () => {
         reason: "/dev/i2c-1 was not found on the host. Enable I2C on the Raspberry Pi host, reboot if needed, then refresh Hardware support.",
       },
     ];
-    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} />);
+    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onSetupSensorPrerequisites={onSetupSensorPrerequisites} />);
 
     await userEvent.click(screen.getByRole("button", { name: "I2C sensors: Action required" }));
 
     expect(screen.getByRole("button", { name: "Action required" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Automatic setup" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Manual setup" })).toBeInTheDocument();
+    expect(screen.queryByText("Enable I2C interface")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByText("Setup steps"));
+    await userEvent.click(screen.getByRole("button", { name: "Automatic setup" }));
+
+    expect(onSetupSensorPrerequisites).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "Manual setup" }));
 
     expect(screen.getByText("Enable I2C interface")).toBeInTheDocument();
     expect(screen.getByText(/sudo raspi-config/)).toBeInTheDocument();

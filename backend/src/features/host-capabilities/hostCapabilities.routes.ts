@@ -2,7 +2,7 @@ import { Router } from "express";
 import { dependencyUnavailable } from "../../shared/api-error.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
-import { disableHostCameraCapability, disableHostGpioCapability, disableHostMqttCapability, disableHostSensorCapability, enableHostCameraCapability, enableHostGpioCapability, enableHostMqttCapability, enableHostSensorCapability, getHostCameraCapability, getHostGpioCapability, getHostMqttCapability, getHostSensorCapability, listHostCapabilities, type HostCapability } from "./hostCapabilities.service.js";
+import { disableHostCameraCapability, disableHostGpioCapability, disableHostMqttCapability, disableHostSensorCapability, enableHostCameraCapability, enableHostGpioCapability, enableHostMqttCapability, enableHostSensorCapability, getHostCameraCapability, getHostGpioCapability, getHostMqttCapability, getHostSensorCapability, listHostCapabilities, setupHostSensorPrerequisites, type HostCapability } from "./hostCapabilities.service.js";
 
 export const hostCapabilitiesRouter = Router();
 
@@ -123,6 +123,19 @@ hostCapabilitiesRouter.post("/sensors/disable", requireRole("admin"), async (_re
     return res.json(result);
   } catch (error) {
     return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to disable I2C sensor support");
+  }
+});
+
+hostCapabilitiesRouter.post("/sensors/setup-prerequisites", requireRole("admin"), async (_req, res) => {
+  try {
+    const result = await setupHostSensorPrerequisites();
+    recordAuditEvent("host-capability.setup-prerequisites", {
+      userId: _req.user?.id,
+      detail: `capability=sensors state=${result.capability.state} rebootRequired=${String(result.rebootRequired)}`,
+    });
+    return res.json(result);
+  } catch (error) {
+    return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to set up I2C prerequisites");
   }
 });
 
