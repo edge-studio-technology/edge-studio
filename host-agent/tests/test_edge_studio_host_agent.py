@@ -212,6 +212,15 @@ class HostAgentWriteTests(unittest.TestCase):
         self.assertFalse(result["scheduled"])
         self.assertIn("Could not schedule backend restart", result["message"])
 
+    def test_restart_backend_forces_recreate(self):
+        with patch.object(self.agent.shutil, "which", return_value="/usr/bin/docker"):
+            with patch.object(self.agent.subprocess, "Popen") as popen:
+                result = self.agent.restart_backend({})
+
+        self.assertTrue(result["ok"])
+        command = popen.call_args.args[0][2]
+        self.assertIn("up -d --no-deps --force-recreate backend", command)
+
     def test_schedule_compose_reports_missing_docker(self):
         with patch.object(self.agent.shutil, "which", return_value=None):
             result = self.agent.schedule_compose({}, ["up", "-d", "mqtt"])

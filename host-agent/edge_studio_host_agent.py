@@ -211,7 +211,7 @@ def restart_backend(config):
         return {"ok": True, "scheduled": False, "skipped": True}
     if not shutil.which("docker"):
         return {"ok": False, "scheduled": False, "message": "docker was not found on the host"}
-    command = " ".join(compose_args(config) + ["up", "-d", "--no-deps", "backend"])
+    command = " ".join(compose_args(config) + ["up", "-d", "--no-deps", "--force-recreate", "backend"])
     debug_log("schedule backend restart", {"command": command}, config)
     try:
         subprocess.Popen(["/bin/sh", "-c", f"sleep 1; {command}"], cwd=str(APP_DIR))
