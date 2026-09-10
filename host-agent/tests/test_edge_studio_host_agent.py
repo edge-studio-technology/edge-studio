@@ -387,6 +387,33 @@ class HostAgentWriteTests(unittest.TestCase):
         self.assertFalse(status["available"])
         self.assertIn("/dev/i2c-1 was not found", status["reason"])
 
+    def test_setup_sensor_prerequisites_runs_fixed_i2c_steps(self):
+        original_exists = self.agent.Path.exists
+        commands = []
+
+        def fake_exists(path):
+            if path.as_posix() == "/dev/i2c-1":
+                return True
+            return original_exists(path)
+
+        def fake_run(command, **_kwargs):
+            commands.append(command)
+            return self.agent.subprocess.CompletedProcess(command, 0, "", "")
+
+        with patch.object(self.agent.shutil, "which", return_value="/usr/bin/tool"):
+            with patch.object(self.agent.Path, "exists", fake_exists):
+                with patch.object(self.agent, "run", side_effect=fake_run):
+                    with patch.object(self.agent, "sensor_status", return_value={"name": "sensors", "state": "disabled"}):
+                        result = self.agent.setup_sensor_prerequisites()
+
+        self.assertEqual(commands, [
+            ["apt-get", "update"],
+            ["apt-get", "install", "-y", "python3-smbus", "i2c-tools"],
+            ["raspi-config", "nonint", "do_i2c", "0"],
+        ])
+        self.assertFalse(result["rebootRequired"])
+        self.assertEqual(result["steps"][-1], {"label": "Check /dev/i2c-1", "ok": True})
+
     def test_apply_camera_systemd_failure_does_not_enable_env(self):
         self.agent.ENV_FILE.write_text("ENABLE_CAMERA=false\nCAMERA_HELPER_TOKEN=token\n", encoding="utf-8")
 

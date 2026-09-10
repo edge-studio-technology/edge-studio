@@ -20,8 +20,10 @@ export type HostCapability = {
 type HostAgentListResponse = { items: HostCapability[] };
 type HostAgentItemResponse = { item: HostCapability };
 type HostAgentActionResponse = { capability: HostCapability; restart?: { ok: boolean; scheduled?: boolean; message?: string }; warning?: string | null };
+export type HostSensorPrerequisiteSetupResponse = { capability: HostCapability; steps: Array<{ label: string; ok: boolean }>; rebootRequired: boolean };
 const HOST_AGENT_READ_TIMEOUT_MS = 5000;
 const HOST_AGENT_ACTION_TIMEOUT_MS = 60000;
+const HOST_AGENT_SETUP_TIMEOUT_MS = 300000;
 
 export async function listHostCapabilities() {
   if (!env.hostAgentUrl || !env.hostAgentToken) return fallbackCapabilities("Host agent is not configured");
@@ -75,6 +77,11 @@ export async function enableHostSensorCapability() {
 export async function disableHostSensorCapability() {
   debugHostCapability("post", "/capabilities/sensors/disable");
   return hostAgentActionRequest("/capabilities/sensors/disable");
+}
+
+export async function setupHostSensorPrerequisites() {
+  debugHostCapability("post", "/capabilities/sensors/setup-prerequisites");
+  return hostAgentRequest<HostSensorPrerequisiteSetupResponse>("/capabilities/sensors/setup-prerequisites", { method: "POST" }, HOST_AGENT_SETUP_TIMEOUT_MS);
 }
 
 export async function getHostMqttCapability() {

@@ -4,7 +4,7 @@ Use this guide for a 4-pin BME280 or BME680 I2C environmental sensor module with
 
 ## Enable Support
 
-In Edge Studio, open `Devices` -> `Hardware support` and enable `I2C sensors`. If required host prerequisites are missing, Hardware support shows `Action required` with copyable setup commands instead of trying an enable action that will fail.
+In Edge Studio, open `Devices` -> `Hardware support` and enable `I2C sensors`. If required host prerequisites are missing, Hardware support shows `Action required` with automatic setup and manual setup options instead of trying an enable action that will fail.
 
 Also enable I2C on the Raspberry Pi host, then reboot if prompted:
 

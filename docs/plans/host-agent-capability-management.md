@@ -19,7 +19,7 @@ Rejected approaches for the first implementation:
 
 The first capability should be camera enable/disable, because it is the current user pain point and already has host helper logic in `install.sh`.
 
-V1 explicitly separates Edge Studio hardware support from host OS driver/package management. The host agent should detect missing OS prerequisites and report them clearly, but it should not install OS packages, edit boot config, or enable kernel/device-tree features automatically in the first version.
+V1 separates Edge Studio hardware support from generic host OS management. The host agent detects missing OS prerequisites and reports them clearly; automatic OS prerequisite setup is limited to explicit, capability-specific actions such as I2C setup.
 
 ## Target Architecture
 
@@ -279,7 +279,7 @@ Implemented so far:
 - Backend exposes admin-gated `/api/host-capabilities` routes and never exposes the host-agent token to the browser.
 - Hardware support in Devices can enable/disable Camera, GPIO, I2C sensors, and the app-managed local MQTT broker.
 - Host-agent actions update `.env`, manage Edge Studio-owned helper/systemd/Compose state, and schedule backend or Compose service restarts as needed.
-- Host-agent actions report missing OS prerequisites instead of installing host OS packages, drivers, firmware, or boot config.
+- Host-agent actions report missing OS prerequisites, with automatic setup limited to explicit per-capability flows such as I2C prerequisite setup.
 - Camera, GPIO, I2C sensor, and local MQTT capability state is shown in Hardware support.
 - Disabled or unavailable host-backed templates are hidden from the default `New input` / `New output` flows.
 - Configured host-backed devices show `Disabled` or `Needs attention` when required support is unavailable.
@@ -295,7 +295,7 @@ Known V1 boundaries:
 
 - The installer remains responsible for initial install, host-agent installation, Docker/runtime bundle setup, and advanced `ENABLE_*` shortcut behavior.
 - The host-agent owns hardware activation/disablement logic. The app reaches it through backend APIs after install, and installer `ENABLE_*` shortcuts call the same host-agent code through CLI install mode.
-- Edge Studio does not install OS-level prerequisites automatically yet.
+- Edge Studio can automatically apply I2C prerequisites through an explicit admin action; other OS-level prerequisites remain manual.
 - Raspberry Pi OS/Debian prerequisite guidance is shown in the UI; other Linux distributions may work but are not the primary supported guidance path.
 
 Completed implementation checkpoints:

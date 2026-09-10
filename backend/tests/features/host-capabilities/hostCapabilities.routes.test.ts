@@ -2,9 +2,10 @@ import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { enableHostSensorCapabilityMock, disableHostMqttCapabilityMock, recordAuditEventMock } = vi.hoisted(() => ({
+const { enableHostSensorCapabilityMock, disableHostMqttCapabilityMock, setupHostSensorPrerequisitesMock, recordAuditEventMock } = vi.hoisted(() => ({
   enableHostSensorCapabilityMock: vi.fn(),
   disableHostMqttCapabilityMock: vi.fn(),
+  setupHostSensorPrerequisitesMock: vi.fn(),
   recordAuditEventMock: vi.fn(),
 }));
 
@@ -22,6 +23,7 @@ vi.mock("../../../src/features/host-capabilities/hostCapabilities.service.js", (
   disableHostMqttCapability: disableHostMqttCapabilityMock,
   enableHostSensorCapability: enableHostSensorCapabilityMock,
   disableHostSensorCapability: vi.fn(),
+  setupHostSensorPrerequisites: setupHostSensorPrerequisitesMock,
 }));
 
 vi.mock("../../../src/features/auth/audit.service.js", () => ({
@@ -51,6 +53,7 @@ describe("hostCapabilities.routes", () => {
   beforeEach(() => {
     enableHostSensorCapabilityMock.mockReset();
     disableHostMqttCapabilityMock.mockReset();
+    setupHostSensorPrerequisitesMock.mockReset();
     recordAuditEventMock.mockReset();
   });
 
@@ -87,5 +90,20 @@ describe("hostCapabilities.routes", () => {
     await request(testApp()).post("/api/host-capabilities/sensors/enable").expect(502);
 
     expect(recordAuditEventMock).not.toHaveBeenCalled();
+  });
+
+  it("records a sanitized audit event after automatic I2C prerequisite setup", async () => {
+    setupHostSensorPrerequisitesMock.mockResolvedValue({
+      capability: { name: "sensors", enabled: false, installed: false, available: false, state: "disabled", reason: "disabled" },
+      steps: [{ label: "Enable I2C interface", ok: true }],
+      rebootRequired: false,
+    });
+
+    await request(testApp()).post("/api/host-capabilities/sensors/setup-prerequisites").expect(200);
+
+    expect(recordAuditEventMock).toHaveBeenCalledWith("host-capability.setup-prerequisites", {
+      userId: "user-1",
+      detail: "capability=sensors state=disabled rebootRequired=false",
+    });
   });
 });

@@ -15,13 +15,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - BME680 sensor reads now include gas resistance as `gasResistanceOhms` alongside temperature, humidity, and pressure.
 - Added signed-manifest host runtime update delivery for host-agent, camera helper, sensor helper, and Mosquitto config files.
 - Added audit events for admin hardware enable/disable actions with capability name and resulting state.
+- Added an admin-only automatic I2C prerequisite setup action from Hardware support.
 
 ### Changed
 
 - Disabled host-backed hardware templates are hidden from the default New input and New output flows.
 - Host-backed templates and configured device status/actions now use a shared hardware capability mapping for Camera, GPIO, I2C sensors, and app-managed local MQTT broker devices.
 - Hardware install flags are now documented as advanced shortcuts while the app UI is the normal enablement path.
-- Host-agent V1 scope now explicitly reports missing OS prerequisites without installing host drivers or packages automatically.
+- Host-agent V1 scope now keeps OS prerequisite changes explicit and capability-specific, with automatic setup limited to I2C prerequisites.
 - Installer `ENABLE_*` hardware shortcuts now call the host-agent CLI in install mode so host-agent capability logic is the source of truth for hardware activation.
 - Camera enablement from Hardware support is blocked when host camera tools are missing.
 - Configured host-backed devices now show disabled or attention-needed status when required hardware support is unavailable.
