@@ -13,6 +13,7 @@
 ## Current Focus
 
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
+- [ ] Factory-reset Pi validation for Host Agent Capability Management V1: repeated Camera/GPIO/I2C/MQTT enable-disable-repair flows, I2C automatic setup/reboot return, GPIO device persistence after update/restart, and Hardware support modal copy/layout — see `docs/guides/host-agent-pi-validation.md` and `docs/plans/host-agent-capability-management.md`.
 
 ## In Progress
 

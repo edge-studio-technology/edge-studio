@@ -1,6 +1,6 @@
 # Host Agent Capability Management Plan
 
-**Status:** In progress
+**Status:** V1 implemented; Pi validation in progress
 **Created:** 2026-08-19  
 **Goal:** Let an admin enable optional host hardware support from the web app after first install, without rerunning `install.sh` manually.
 
@@ -76,7 +76,7 @@ Rules:
 - Accept only allowlisted capability names and actions.
 - Reject unknown request fields instead of silently accepting future behavior.
 - Never accept command strings, package names, file paths, or service names from the app.
-- Do not install OS packages, drivers, or tools automatically in V1.
+- Do not expose generic package/driver/tool installation; automatic host prerequisite setup must be explicit, allowlisted, and capability-specific.
 - Log actions and results, but never log tokens or secrets.
 
 Backend routes that call the host agent must require a logged-in admin. Use existing auth middleware and `requireRole("admin")` for mutations.
@@ -325,24 +325,24 @@ Completed implementation checkpoints:
    - Verify failed prerequisites and failed partial actions can be corrected and retried without manual cleanup beyond the prerequisite fix.
 
 2. Improve hardware operation model.
-   The blocking modal plus polling is acceptable for V1. Longer-term, implement host-agent jobs: `POST /capabilities/:name/apply` returns a job id, and the UI polls job/capability state. This avoids request timeout issues for longer actions.
+   Deferred beyond V1. The blocking modal plus polling is acceptable for V1. Longer-term, implement host-agent jobs: `POST /capabilities/:name/apply` returns a job id, and the UI polls job/capability state. This avoids request timeout issues for longer actions.
 
 3. Add automated tests around capability logic.
    Core V1 capability-logic coverage is implemented. Add further tests only for bugs found during Pi retry validation or for future host-agent job/update-delivery work.
 
 4. Finalize prerequisite UX.
-   Implemented for V1. Keep open only for copy refinements from real Pi operator testing.
+   Implemented for V1. Hardware support now shows prerequisite checks, explicit refresh affordances, copyable manual commands, and automatic/manual I2C setup choices. Keep open only for copy refinements from real Pi operator testing.
 
 5. Host-agent update delivery.
    Completed. Signed manifests now require `hostRuntime.url` and `hostRuntime.sha256`; the release workflow builds `edge-studio-runtime.tar.gz`, hashes it before manifest signing, and publishes the manifest, signature, and runtime bundle together. The update-agent downloads and verifies the runtime artifact, then submits it to the host-agent's narrow update endpoint. The host-agent atomically replaces only allowlisted host runtime files and retries relevant service restarts on later applies if a previous restart failed.
 
 6. Security and audit trail.
-   Add audit events for hardware enable/disable actions, including capability name and resulting state. Do not log tokens or full `.env`. Consider re-auth for hardware actions later if these are treated like other privileged host mutations.
+   Completed for V1. Hardware enable/disable and I2C prerequisite setup actions write sanitized audit events including capability name and resulting state where applicable. Do not log tokens or full `.env`. Consider re-auth for hardware actions later if these are treated like other privileged host mutations.
 
-   Implemented: backend host-capability enable/disable routes now write `host-capability.enable` / `host-capability.disable` audit events after successful host-agent actions. Details are limited to `capability`, resulting `state`, `enabled`, and `available`; host-agent tokens, `.env`, restart payloads, and helper configuration are not recorded. Re-auth remains a future policy decision.
+   Implemented: backend host-capability enable/disable routes now write `host-capability.enable` / `host-capability.disable` audit events after successful host-agent actions, and I2C prerequisite setup writes `host-capability.setup-prerequisites`. Details are limited to safe fields such as `capability`, resulting `state`, `enabled`, `available`, and `rebootRequired`; host-agent tokens, `.env`, raw command output, restart payloads, and helper configuration are not recorded. Re-auth remains a future policy decision.
 
 7. Documentation final pass.
-   Completed. README, changelog, security risk register, and task tracking now reflect the V1 behavior: app-managed enable/disable from Hardware support, `Action required` prerequisite guidance, I2C reboot guidance, first-time MQTT timing tolerance, session-expiry copy after Pi reboot, signed host-runtime update delivery, and sanitized hardware action audit events.
+   Completed for V1. README, changelog, security risk register, ADRs, guides, and task tracking now reflect the V1 behavior: app-managed enable/disable from Hardware support, automatic/manual I2C prerequisite setup, `Action required` prerequisite guidance, I2C reboot guidance, first-time MQTT timing tolerance, session-expiry copy after Pi reboot, signed host-runtime update delivery, and sanitized hardware action audit events.
 
 8. Deferred UI/UX review after redesign.
    Complete these checks after the broader UI/UX rework/redesign, because the Hardware support surfaces, modal structure, and device setup guide presentation may change:
@@ -406,6 +406,6 @@ Manual Pi checks:
 ## Open Questions
 
 - Should the host agent bind only to localhost with a backend-accessible proxy, or directly to the configured Docker gateway address long term? V1 uses the backend-accessible host/Docker route plus token and Docker-subnet firewall rule where available.
-- Should any future capability install OS packages or edit Raspberry Pi boot/interface config automatically? V1 reports missing prerequisites and keeps OS-level changes manual.
+- Should any future capability install OS packages or edit Raspberry Pi boot/interface config automatically? V1 allows this only for explicit, fixed, capability-specific actions such as I2C prerequisite setup.
 - Should a future version include an app-triggered reboot action for `needs_reboot`, or only instruct the user to reboot from the Pi/system UI?
 - Should hardware enable/disable actions require re-auth in addition to an admin session?
