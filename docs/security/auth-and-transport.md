@@ -1,6 +1,6 @@
 # Auth And Transport Risks
 
-Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md#auth) · [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md)
+Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md#auth) · [plans/security/](../plans/security/README.md)
 
 ## Unauthenticated LAN Access (mitigated, residual TLS trust risk)
 
@@ -32,7 +32,7 @@ Current Controls:
 - Nginx terminates TLS; `COOKIE_SECURE=true` on the default Docker deploy.
 - Certificates stored under `DATA_DIR/certs`; regenerate with `INTEGRITAS_TLS_FORCE=1 bash scripts/generate-tls-cert.sh` after a LAN IP change.
 
-Plan: Custom certificates and HSTS stay out of scope for V1.5 — see [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#out-of-scope-for-v15).
+Plan: Custom certificates and HSTS stay out of scope for V1.5 — see [plans/security/](../plans/security/README.md#out-of-scope-for-v15).
 
 Status: Mitigated for passive sniffing; residual self-signed trust risk documented.
 
@@ -96,4 +96,4 @@ generates `openssl rand -hex 32`, so a default install gets a strong secret — 
 early-returns on any non-empty value, so a supplied or pre-existing `.env` carrying `dev-change-me`
 survives an install, and the backend only warns rather than refusing to start. Production secret
 design (keyring/TPM/age/sops/passphrase) remains open and is not in V1.5. See
-[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-6--fail-closed-on-weak-config).
+[plans/security/phase-6-fail-closed-on-weak-config.md](../plans/security/phase-6-fail-closed-on-weak-config.md).

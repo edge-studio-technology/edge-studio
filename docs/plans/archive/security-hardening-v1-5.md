@@ -1,29 +1,33 @@
 # Security Hardening V1.5
 
+> **Archived 2026-09-11 — split into one file per phase under
+> [`docs/plans/security/`](../../security/README.md), starting from `README.md` as the index.** Kept
+> here verbatim for history; do not edit this copy going forward.
+
 **Status:** In progress — Phases 1-5 done
 **Created:** 2026-09-04
 **Revised:** 2026-09-04 — second-opinion review folded in: DNS-address pinning on egress, Phase 0 decision gate, non-destructive
 `APP_SECRET` migration, the multipart egress path, global outbound concurrency, and the installer's
 bootstrap trust set.
 **Revised:** 2026-09-07 — TOTP removal/retention moved outside this branch; this plan now hardens
-the dormant implementation without deciding its future. See [adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md).
+the dormant implementation without deciding its future. See [adr/0012](../../adr/0012-keep-totp-decision-outside-v1-5-hardening.md).
 **Branch:** `task/272-security-hardening-v1-5`
 **Goal:** Close the findings from the external V1.5 security review and the V1 security sign-off
 remainder, in one ordered workstream. Phase 9 carries the unit-test audit's production-behaviour
 gaps alongside them — they are diagnosed and cheap, but they are not review findings and sit
 outside the security sign-off bar.
 
-**Related:** [adr/0010](../adr/0010-security-review-audit-verdict.md) (triage record and severity
-reconciliation) · [security/external-review-2026-09-03.md](../security/external-review-2026-09-03.md)
-(the report, verbatim) · [security/](../security/) (risk register — the living record of what is
-open vs. closed) · [qa/gaps.md](../qa/gaps.md) (broader QA backlog) · [SECURITY.md](../../SECURITY.md)
+**Related:** [adr/0010](../../adr/0010-security-review-audit-verdict.md) (triage record and severity
+reconciliation) · [security/external-review-2026-09-03.md](../../security/external-review-2026-09-03.md)
+(the report, verbatim) · [security/](../../security/) (risk register — the living record of what is
+open vs. closed) · [qa/gaps.md](../../qa/gaps.md) (broader QA backlog) · [SECURITY.md](../../../SECURITY.md)
 
 ---
 
 ## Scope
 
 This plan is the single owner of security work for V1.5. It absorbs two earlier plans, both now in
-[archive/](./archive/):
+[archive/](.):
 
 - **`security-checklist.md`** (V1 sign-off, 2026-06-25) — its remaining live items are Phase 8, its
   manual TLS checks are [Verify once](#verify-once-manual), its scope boundaries are
@@ -33,8 +37,8 @@ This plan is the single owner of security work for V1.5. It absorbs two earlier 
   remains documented but is outside this branch.
 
 TOTP removal, retention, redesign, or re-enablement is explicitly outside this plan. ADR 0011's
-earlier removal decision is superseded by [ADR 0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md).
-[plans/remove-totp.md](./remove-totp.md) remains unapproved candidate analysis only. This branch
+earlier removal decision is superseded by [ADR 0012](../../adr/0012-keep-totp-decision-outside-v1-5-hardening.md).
+[plans/remove-totp.md](../remove-totp.md) remains unapproved candidate analysis only. This branch
 hardens the dormant implementation where a live security finding reaches it; it does not use those
 fixes to imply a decision about the feature's future.
 
@@ -174,8 +178,8 @@ inputs, asserting both safe client output and retained diagnostics.
 ## Phase 2 — Close the Minima RPC bypass
 
 **Status: done** (2026-09-08). Decisions recorded in
-[adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md) (URL policy) and
-[adr/0015](../adr/0015-minima-console-mutating-subcommands.md) (console subcommands).
+[adr/0014](../../adr/0014-egress-url-policy-for-operator-supplied-urls.md) (URL policy) and
+[adr/0015](../../adr/0015-minima-console-mutating-subcommands.md) (console subcommands).
 
 **Covers:** SSRF, [10], GAP-12, MINIMA-06/07, DEVICE-IO-06 (partial).
 
@@ -345,7 +349,7 @@ the events that cause revocation, and revocation is now unconditional on those p
 ## Phase 4 — Fix the install-time trust chain
 
 **Status: done** (2026-09-09). Decisions recorded in
-[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md).
+[adr/0016](../../adr/0016-install-time-bootstrap-trust-set.md).
 
 **Covers:** [1] (high), [4].
 
@@ -413,7 +417,7 @@ immutable signed installer URL as its exit criteria.
 ## Phase 5 — Resource limits
 
 **Status: done** (2026-09-09). Limit values recorded in
-[adr/0017](../adr/0017-outbound-and-upload-resource-limits.md).
+[adr/0017](../../adr/0017-outbound-and-upload-resource-limits.md).
 
 **Covers:** [3], [13].
 
@@ -623,7 +627,7 @@ diagnosed, so they are cheap.
 1. **Minima restart operation lock** — `backend/src/features/minima/minima.service.ts`: every
    failure after the lock is acquired must clear it, including failures locating the container or
    reading its restart baseline before the background task starts. Preserve the graceful-restart
-   contract from [adr/0001](../adr/0001-minima-graceful-node-restart.md).
+   contract from [adr/0001](../../adr/0001-minima-graceful-node-restart.md).
 2. **Minima address validation** (WALLET-08) — establish the authoritative address grammar before
    changing `backend/src/shared/minima-address.ts`; do not infer length or character rules from
    examples. Then replace prefix-only acceptance, and apply the same validator at the wallet-payment
@@ -698,7 +702,7 @@ Carried from the archived checklist. Do not let these expand the branch:
 - Replacing the Docker socket mount.
 - Argon2id (GAP-14), `__Host-` cookie prefix (GAP-15), pen test / ZAP scan (GAP-18).
 - The product decision to retain, redesign, re-enable, or remove TOTP, and any resulting feature or
-  schema work — see [adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md).
+  schema work — see [adr/0012](../../adr/0012-keep-totp-decision-outside-v1-5-hardening.md).
 - The dormant onboarding TOTP QR retry-loop bug; it remains documented and blocks re-enablement.
 
 ---

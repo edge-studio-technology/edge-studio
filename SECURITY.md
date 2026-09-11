@@ -33,7 +33,7 @@ An external static security review of the codebase was completed on 2026-09-03
 ([`docs/security/external-review-2026-09-03.md`](docs/security/external-review-2026-09-03.md),
 kept verbatim). Its findings were independently audited and re-rated in
 [`docs/adr/0010`](docs/adr/0010-security-review-audit-verdict.md), and the resulting work is
-scheduled in [`docs/plans/security-hardening-v1-5.md`](docs/plans/security-hardening-v1-5.md).
+scheduled in [`docs/plans/security/`](docs/plans/security/README.md).
 Several of the findings are open as of this writing; the register entries say which, and under which
 phase they are addressed. This is a prototype on a trusted LAN — treat the register, not this page,
 as the current state.

@@ -63,7 +63,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 
 | Plan | Status |
 | ---- | ------ |
-| [plans/security-hardening-v1-5.md](./plans/security-hardening-v1-5.md) | Not started — owns all V1.5 security work |
+| [plans/security/](./plans/security/README.md) | In progress — Phases 1-5 done and in review; owns all V1.5 security work |
 | [plans/remove-totp.md](./plans/remove-totp.md) | On hold — candidate analysis; removal not decided |
 | [plans/block-automation-workflows.md](./plans/block-automation-workflows.md) | In progress |
 | [plans/workflow-redesign.md](./plans/workflow-redesign.md) | In progress |

@@ -19,7 +19,7 @@ Finding [4] (medium) is the layer above it: the documented install and upgrade c
 with no pinned version and no detached signature.
 
 ADR 0010 ordered [1] as one of the two highs. This is Phase 4 of
-[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md).
+[plans/security/](../plans/security/README.md).
 
 ## Decision
 

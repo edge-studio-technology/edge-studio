@@ -1,6 +1,6 @@
 # Security Checklist
 
-> **Archived 2026-09-04 — superseded by [security-hardening-v1-5.md](../security-hardening-v1-5.md).**
+> **Archived 2026-09-04 — superseded by [security-hardening-v1-5.md](./security-hardening-v1-5.md) (split into per-phase files at [../security/](../security/README.md)).**
 > Remaining live items became that plan's Phase 8; the manual TLS checks became its "Verify once"
 > section; the scope boundaries became its "Out of scope". Kept for the V1 threat model and the
 > record of what shipped. Do not add new work here.

@@ -2,10 +2,10 @@
 
 **Status:** Open  
 **Last verified:** Findings against `571ba70`; TOTP scope and references reconciled 2026-09-07  
-**Related:** [SECURITY.md](../../SECURITY.md), [security/](../security/), [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md), [CHANGELOG.md](../../CHANGELOG.md)
+**Related:** [SECURITY.md](../../SECURITY.md), [security/](../security/), [plans/security/](../plans/security/README.md), [CHANGELOG.md](../../CHANGELOG.md)
 
 > Security items scheduled for V1.5 are owned by
-> [plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md) and annotated below with
+> [plans/security/](../plans/security/README.md) and annotated below with
 > their phase. This backlog stays the list of *what is open*; the plan is *when and how*. Tick items
 > here as each phase lands.
 

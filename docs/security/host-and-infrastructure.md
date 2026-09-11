@@ -86,7 +86,7 @@ any of the three paths it previously did (`POST /backups` success body, its fail
 `runMinimaPathCommand()` redacts the command, the URL built from it, and the response body before
 they leave the RPC layer, and `structuredError()`/`sendApiError()` redact both sinks so the secret
 reaches neither responses nor Docker logs. Closed in Phase 1 of
-[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-1--stop-returning-the-backup-password).
+[plans/security/phase-1-backup-password-leak.md](../plans/security/phase-1-backup-password-leak.md).
 
 ## Update Agent Docker Socket Mount
 
@@ -254,7 +254,7 @@ Plan:
 Status: **Open — scheduled, Phase 6.** `minimaglobal/minimacore` is untagged and
 `eclipse-mosquitto:2` is a mutable tag; both sit outside the signed manifest, so digest pinning is
 the only available control. See
-[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-6--fail-closed-on-weak-config).
+[plans/security/phase-6-fail-closed-on-weak-config.md](../plans/security/phase-6-fail-closed-on-weak-config.md).
 
 ## One-Line Curl Installer
 

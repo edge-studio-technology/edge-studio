@@ -57,7 +57,7 @@ its own review and ADR; removal, if chosen, then gets its own ticket and branch.
 
 This is currently a scope and planning decision; no production code implements it yet.
 
-- `docs/plans/security-hardening-v1-5.md` — owns only the route gating and credential-session
+- `docs/plans/security/` — owns only the route gating and credential-session
   hardening required for V1.5.
 - `docs/plans/remove-totp.md` — retained on hold as unapproved candidate analysis.
 - `docs/qa/gaps.md` and `docs/security/auth-and-transport.md` — track the live dormant-route gap and

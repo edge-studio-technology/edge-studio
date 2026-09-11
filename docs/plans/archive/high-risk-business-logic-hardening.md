@@ -1,6 +1,6 @@
 # High-Risk Business Logic Hardening Plan
 
-> **Archived 2026-09-04 — superseded by [security-hardening-v1-5.md](../security-hardening-v1-5.md).**
+> **Archived 2026-09-04 — superseded by [security-hardening-v1-5.md](./security-hardening-v1-5.md) (split into per-phase files at [../security/](../security/README.md)).**
 > Session revocation became that plan's Phase 3, outward error sanitization its Phase 1, and the
 > four remaining items its Phase 9. Kept for the audit context that produced them. Do not add new
 > work here.

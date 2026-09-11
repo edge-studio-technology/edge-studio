@@ -25,7 +25,7 @@ Status: **Open — scheduled, Phase 2.** The "no arbitrary command proxy" contro
 an HTTP JSON Source pointed at `http://minima:9005/vault` reaches unauthenticated Minima RPC from
 inside the Docker network and returns the response to the caller, bypassing the console catalog's
 hard exclusions. See [adr/0010](../adr/0010-security-review-audit-verdict.md) and
-[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-2--close-the-minima-rpc-bypass).
+[plans/security/phase-2-minima-rpc-bypass.md](../plans/security/phase-2-minima-rpc-bypass.md).
 
 ## Minima Auto-Resync (optional)
 
@@ -166,7 +166,7 @@ Open gap: the bearer token is written to routine request logs (`requestLogger` l
 unconditionally), and reaches `data_source_reads.sourceUrl` whenever the triggered workflow contains
 a record-trigger-event block. Anyone who can read Docker logs or the database can replay the webhook.
 Scheduled Phase 7 — see
-[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#phase-7--retention-redaction-budgets).
+[plans/security/phase-7-retention-redaction-budgets.md](../plans/security/phase-7-retention-redaction-budgets.md).
 
 Plan:
 
@@ -242,7 +242,7 @@ Status: **Accepted for local learning deployments only — escalated to a produc
 external review rated anonymous publishing medium. It is off by default and profile-gated, but
 unauthenticated when on, and closing it needs a device-authentication model rather than a config
 change. Not scheduled as a patch — see
-[plans/security-hardening-v1-5.md](../plans/security-hardening-v1-5.md#product-decisions).
+[plans/security/phase-0-product-decision-gate.md](../plans/security/phase-0-product-decision-gate.md#findings-in-detail).
 
 ## HTTP JSON Targets
 

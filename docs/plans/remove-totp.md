@@ -8,7 +8,7 @@ product decision chooses to remove TOTP.
 
 **Related:** [adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md) (current scope
 decision) · [adr/0011](../adr/0011-remove-unused-totp.md) (superseded removal rationale) ·
-[plans/security-hardening-v1-5.md](./security-hardening-v1-5.md) (security mitigation only) ·
+[plans/security/](./security/README.md) (security mitigation only) ·
 [qa/gaps.md](../qa/gaps.md) (GAP-05)
 
 > This is not an approved or scheduled implementation plan. Do not execute its removal steps until
@@ -130,7 +130,7 @@ placeholder copy listing what not to paste into feedback. Same for `SECURITY.md`
 18. `docs/security/auth-and-transport.md` — single-factor password/PIN is the design, not a state
     pending TOTP's return; drop the note about the unauthenticated `/api/setup/totp/init`.
 19. `docs/qa/gaps.md` — close GAP-05 as removed.
-20. `docs/plans/security-hardening-v1-5.md` — mark the two deferred items resolved by removal.
+20. `docs/plans/security/` — mark the two deferred items resolved by removal.
 21. `CHANGELOG.md` under `### Removed`, on this branch's own `## [Unreleased]` heading.
 22. Leave `FeedbackModal.tsx:356` and `SECURITY.md`'s "never return … TOTP secrets" alone.
 
