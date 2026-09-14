@@ -120,9 +120,30 @@ Later same branch, next session:
 - Also verified: `bash -n install.sh`, `bash -n bin/edge-studio`, `docker compose config`, `npm run check` (typecheck + all four coverage suites green), `npm --prefix backend run build`, `npm --prefix frontend run build`, and `release.yml` parses as valid YAML. `audit:moderate` still fails on pre-existing `multer`/`vitest` advisories — confirmed identical on a stashed clean tree, so unrelated to this work.
 - Docs: new ADR 0016; plan Phase 4 marked done with a "How it landed" section and the pre-merge decision rows 7/8 marked implemented; `CHANGELOG.md` under `### Security`; `README.md` (verified install path, installer step list, manifest-key paragraph); `SECURITY.md` (two new guidelines); `docs/security/host-and-infrastructure.md`; the `update-agent` rule in all three of `.agents/`, `.claude/`, `.cursor/`; and a superseded note on `docs/plans/replace-openssl-manifest-verification.md`, which describes the now-deleted standalone verifier.
 
+Later same branch, next session:
+
+- Added `docs/qa/security-hardening-phases-1-5.md`, a repeatable promotion runbook for the completed
+  security phases. It separates source checks, clean-deployment smoke tests, phase-specific abuse
+  cases, staging/Pi checks, cross-phase regression, stop-ship conditions, and the final sign-off
+  record.
+- Linked the runbook from `docs/plans/security/README.md` and made its scope explicit: a pass can
+  approve the recorded next release channel, but cannot replace the parent plan's Phase 0,
+  Phases 6-8, Pi/TLS, and final V1.5 sign-off requirements.
+- Reconciled `docs/TASKS.md` so execution of the runbook against the exact candidate artifacts and
+  a dedicated Pi remains open. No product code changed and no full runtime QA pass was claimed for
+  this documentation-only session.
+- Verified the runbook's focused Phase 3 and Phase 4 rerun commands: the backend auth route suite
+  passed 3 tests, the frontend credential-panel suite passed 14, and the bootstrap trust-set suite
+  passed 8. The bootstrap suite needed an unsandboxed rerun because its child Node verifier process
+  is blocked with `EPERM` inside the workspace sandbox.
+
 ## Next Steps
 
-- V1.5 security hardening: Phases 1-4 are done; Phase 5 (resource limits) is next. Phase 0's two product decisions stay defaulted to acceptance until the pre-merge decision pass.
+- Execute the Phase 1-5 QA runbook against the exact candidate commit, staging release artifacts,
+  and a dedicated Pi before promotion; Phases 1-5 are implemented but not signed off by this
+  documentation session.
+- V1.5 security hardening: Phase 6 (fail closed on weak config) is next. Phase 0's two product
+  decisions stay defaulted to acceptance until the pre-merge decision pass.
 - Before Phase 4 ships, every release channel needs one release through the updated `release.yml` — an installer carrying this change cannot install from a channel whose latest bundle has no `.sig`. Fail-closed by design, but it has to be sequenced.
 - Phase 4 still wants a live root install on a Pi against a staging manifest. The local rehearsal covered the bundle download/verify/extract paths in isolation; it did not run the full `main()`, the manifest fetch, or container start.
 - Implement `docs/plans/high-risk-business-logic-hardening.md` on a separate production-behavior branch; this test branch should not absorb those changes.

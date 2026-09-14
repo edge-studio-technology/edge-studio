@@ -41,6 +41,10 @@ notes, and tests. This index carries only what's shared across all of them.
 | 8 | V1 sign-off remainder | Not started | [phase-8-v1-sign-off-remainder.md](./phase-8-v1-sign-off-remainder.md) |
 | 9 | Correctness hardening from the unit-test audit | Not started | [phase-9-correctness-hardening.md](./phase-9-correctness-hardening.md) |
 
+QA and promotion of the completed work in Phases 1-5 uses the
+[Phase 1-5 QA sign-off runbook](../../qa/security-hardening-phases-1-5.md). A pass there approves
+promotion only to the recorded next channel; it does not replace this plan's full V1.5 sign-off.
+
 ---
 
 ## Scope
