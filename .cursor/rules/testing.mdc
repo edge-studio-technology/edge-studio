@@ -1,0 +1,17 @@
+---
+description: Testing/coverage criteria and conventions
+globs: **/*.test.ts,**/*.test.tsx,**/vitest.config.ts,frontend/vite.config.ts
+alwaysApply: false
+---
+
+# Testing Rules
+
+- Coverage is a regression guard, not the definition of "well-tested" — a line executing isn't the same as a test that would catch a bug. Use it to find untested code, not as a quality score.
+- Target tiers (line coverage, scoped to in-scope code — see below):
+  - **60%** — minimum acceptable floor for any in-scope module. CI-enforced per package via `coverage.thresholds` in each `vitest.config.ts`/`vite.config.ts`.
+  - **70-80%** — general target for standard business/application logic. Diminishing returns past this for most code; don't chase higher just to move the number.
+  - **90%** — target for high-risk/critical logic: auth (`auth/`, `integritas-auth/`), crypto/secrets (`shared/crypto.ts`, `settings/secrets.service.ts`), money movement (`wallet/`), and integrity-sensitive Integritas/Minima paths (`integritas/`, `minima-backup*`, `minima-console*`). Treat as a PR review bar for these modules; not yet split out as separate per-module CI thresholds.
+- The coverage denominator excludes deliberate non-goals per package (routes, types, bootstrap, config — see each `vitest.config.ts`'s `coverage.exclude`), so the % measures what's actually meant to be tested, not diluted by thin wiring.
+- A useful test exercises real branches/error paths (not just the happy path), mocks at the actual I/O boundary the module owns (`global.fetch`, `node:http`, the DB harness) rather than the module under test, uses `vi.useFakeTimers()` for time-based logic, and asserts meaningful behavior — not just "didn't throw." No lingering `.skip`/`.todo` tests; an untested branch is a known gap, not a silently skipped test.
+- One test file mirrors one source file: `backend/tests/features/<feature>/<module>.test.ts`, `frontend/tests/.../<Component>.test.tsx`, `update-agent/tests/<module>/<file>.test.ts`.
+- `npm run check` (root) runs `test:coverage` — threshold-enforced — across all three packages; a coverage drop below the package floor fails the same way a failing test would.

@@ -9,7 +9,7 @@ import { buildDeviceConfigInput } from "../buildDeviceConfig";
 import { DataSourceForm, isDataSourceFormValid } from "../DataSourceForm";
 import { resolveTemplateConfig } from "../DataSourceTemplates";
 import { DataSourceTemplates } from "./ClassicDeviceTemplates";
-import type { DataSource, DataSourceCapabilities, DataSourceTemplate } from "../dataSourceTypes";
+import type { DataSource, DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../dataSourceTypes";
 import { useDeviceFormFields } from "../useDeviceFormFields";
 
 /**
@@ -18,11 +18,13 @@ import { useDeviceFormFields } from "../useDeviceFormFields";
 export function ClassicAddDeviceFlow({
   mode,
   capabilities,
+  hostCapabilities,
   onClose,
   onCreated,
 }: {
   mode: "input" | "output" | null;
   capabilities: DataSourceCapabilities | null;
+  hostCapabilities?: HostCapability[];
   onClose: () => void;
   onCreated: (source: DataSource) => void;
 }) {
@@ -114,6 +116,7 @@ export function ClassicAddDeviceFlow({
             mode={mode}
             category={category}
             capabilities={capabilities}
+            hostCapabilities={hostCapabilities}
             onSelect={selectTemplate}
           />
         ) : (

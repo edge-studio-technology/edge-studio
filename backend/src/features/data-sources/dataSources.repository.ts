@@ -68,3 +68,9 @@ export function updateDataSourceReadResult(id: string, input: { hash?: string; p
   `).run(new Date().toISOString(), new Date().toISOString(), serializeStructuredError(input.error), input.preview === undefined ? null : JSON.stringify(input.preview), input.hash ?? null, id);
   return getDataSource(id)!;
 }
+
+export function clearDataSourceLastError(id: string) {
+  db.prepare("UPDATE data_sources SET updated_at = ?, last_error = NULL WHERE id = ?")
+    .run(new Date().toISOString(), id);
+  return getDataSource(id)!;
+}

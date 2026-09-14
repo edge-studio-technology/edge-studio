@@ -18,6 +18,8 @@ export const env = {
   manifestPublicKey: readManifestPublicKey(),
   releaseChannel: process.env.RELEASE_CHANNEL ?? "stable",
   backendInternalUrl: process.env.BACKEND_INTERNAL_URL ?? "http://backend:3000",
+  hostAgentUrl: process.env.HOST_AGENT_URL ?? "",
+  hostAgentToken: process.env.HOST_AGENT_TOKEN ?? "",
   stateDirInContainer: process.env.STATE_DIR_IN_CONTAINER ?? "/state",
   healthCheckTimeoutMs: Number(process.env.HEALTH_CHECK_TIMEOUT_MS ?? 60000),
   healthCheckIntervalMs: Number(process.env.HEALTH_CHECK_INTERVAL_MS ?? 2000),

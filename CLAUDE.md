@@ -90,6 +90,7 @@ Read the rules relevant to the area you're working in before editing:
 | [.claude/rules/automation.md](.claude/rules/automation.md) | Automation workflow rules |
 | [.claude/rules/docker.md](.claude/rules/docker.md) | Docker / Raspberry Pi deployment rules |
 | [.claude/rules/update-agent.md](.claude/rules/update-agent.md) | Update Agent service rules |
+| [.claude/rules/testing.md](.claude/rules/testing.md) | Coverage criteria and unit test conventions |
 | [.claude/rules/verification.md](.claude/rules/verification.md) | Commands to run before finishing changes |
 | [.claude/rules/documenting-work.md](.claude/rules/documenting-work.md) | Task summaries, doc updates, changelog policy |
 | [.claude/rules/adr.md](.claude/rules/adr.md) | Where decision rationale goes (not changelog/comments/commits) |

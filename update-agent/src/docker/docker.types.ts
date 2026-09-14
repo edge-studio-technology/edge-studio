@@ -20,6 +20,7 @@ export type DockerContainerInspect = {
   HostConfig: {
     Binds?: string[];
     GroupAdd?: string[];
+    Devices?: Array<{ PathOnHost: string; PathInContainer: string; CgroupPermissions: string }>;
     RestartPolicy?: { Name: string; MaximumRetryCount?: number };
     ExtraHosts?: string[];
     PortBindings?: Record<string, { HostIp?: string; HostPort?: string }[]>;

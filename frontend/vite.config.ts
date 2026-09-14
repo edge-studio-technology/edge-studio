@@ -55,5 +55,34 @@ export default defineConfig(({ mode }) => {
       https,
       proxy,
     },
+    test: {
+      environment: "happy-dom",
+      include: ["tests/**/*.test.{ts,tsx}"],
+      setupFiles: ["tests/setup.ts"],
+      coverage: {
+        provider: "v8",
+        reporter: ["text", "json-summary", "html"],
+        include: ["src/**/*.{ts,tsx}"],
+        exclude: [
+          "src/**/*.d.ts",
+          "src/**/*Types.ts",
+          "src/**/types.ts",
+          "src/pages/**",
+          "src/App.tsx",
+          "src/main.tsx",
+          "src/app/nav.ts",
+          "src/app/brand.ts",
+          "src/app/names.ts",
+          "src/features/auth/index.ts",
+          "src/features/automation/workflow/canvas/index.ts",
+        ],
+        thresholds: {
+          statements: 90,
+          branches: 89,
+          functions: 87,
+          lines: 92,
+        },
+      },
+    },
   };
 });

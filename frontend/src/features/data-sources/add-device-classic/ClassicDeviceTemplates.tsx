@@ -4,10 +4,12 @@ import { MutedText } from "../../../components/Text";
 import {
   inputTemplates,
   outputTemplates,
+  activeInputTemplates,
+  activeOutputTemplates,
   resolveTemplateConfig,
   templateIcon,
 } from "../DataSourceTemplates";
-import type { DataSourceCapabilities, DataSourceTemplate } from "../dataSourceTypes";
+import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../dataSourceTypes";
 
 /** Wiring/capability notes shown alongside a template's form. */
 export function TemplateNotes({
@@ -105,14 +107,19 @@ export function DataSourceTemplates({
   mode,
   category,
   capabilities,
+  hostCapabilities,
   onSelect,
 }: {
   mode: "input" | "output";
   category?: "template" | "manual";
   capabilities: DataSourceCapabilities | null;
+  hostCapabilities?: HostCapability[];
   onSelect: (template: DataSourceTemplate) => void;
 }) {
-  const templates = (mode === "input" ? inputTemplates : outputTemplates).filter(
+  const sourceTemplates = mode === "input"
+    ? activeInputTemplates(capabilities, hostCapabilities)
+    : activeOutputTemplates(capabilities, hostCapabilities);
+  const templates = sourceTemplates.filter(
     (template) => !category || templateKind(template) === category,
   );
 
@@ -188,5 +195,5 @@ function bme680SupportWarning(capabilities: DataSourceCapabilities | null) {
   if (!capabilities?.sensors?.enabled || capabilities.sensors.available === false) return null;
   const supportedSensors = capabilities.sensors.supportedSensors;
   if (!supportedSensors || supportedSensors.includes("bme680")) return null;
-  return "The sensor helper is not reporting BME680 support yet. Re-run the installer with ENABLE_SENSORS=true or install the PyPI bme680 module in /opt/edge-studio/.venv-sensor-helper, then restart the sensor helper.";
+  return "The sensor helper is not reporting BME680 support yet. Repair I2C sensors from Devices -> Hardware support, or install the PyPI bme680 module in /opt/edge-studio/.venv-sensor-helper, then restart the sensor helper.";
 }

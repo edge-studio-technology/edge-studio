@@ -265,18 +265,17 @@ export function CreateWorkflowWorkspace({
     const startIndex = draftBlocks.findIndex((block) => block.type.endsWith("_start"));
     if (startIndex < 0) {
       setDraftBlocks([start]);
-      setSelectedBlockId(type === "manual_start" ? "" : start.id);
+      setSelectedBlockId(start.id);
       return;
     }
     if (draftBlocks[startIndex].type === type) {
-      // Re-open options for starts that have configuration.
-      if (type !== "manual_start") setSelectedBlockId(draftBlocks[startIndex].id);
+      setSelectedBlockId(draftBlocks[startIndex].id);
       return;
     }
     const next = [...draftBlocks];
     next[startIndex] = start;
     setDraftBlocks(next);
-    setSelectedBlockId(type === "manual_start" ? "" : start.id);
+    setSelectedBlockId(start.id);
   }
 
   function resetCanvas() {
@@ -370,17 +369,15 @@ export function CreateWorkflowWorkspace({
             selectedBlockId={selectedBlock?.id ?? ""}
             validationByBlockId={draftValidationByBlockId}
             onSelectBlock={(id) => {
-              const block = draftBlocks.find((item) => item.id === id);
-              // Manual run has nothing to configure — don't open the options sheet.
               setRevealSendPaymentErrors(false);
-              setSelectedBlockId(block?.type === "manual_start" ? "" : id);
+              setSelectedBlockId(id);
             }}
             onMoveBlock={moveDraftBlock}
             onRemoveBlock={removeDraftBlock}
           />
         }
         selectedSheet={
-          selectedBlock && selectedBlock.type !== "manual_start" ? (
+          selectedBlock ? (
             <SelectedBlockSheet
               title={draftBlockTitle(selectedBlock)}
               description={draftBlockDescription(selectedBlock, sources, addressBook)}

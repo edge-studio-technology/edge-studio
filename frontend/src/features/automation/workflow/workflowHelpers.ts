@@ -267,7 +267,7 @@ export function workflowMatchesFilter(
   if (filter === "active" && workflow.archived) return false;
   if (filter === "enabled" && (!workflow.enabled || workflow.archived)) return false;
   if (filter === "paused" && (workflow.enabled || workflow.archived)) return false;
-  if (filter === "error" && !workflow.lastError) return false;
+  if (filter === "error" && !workflow.lastError && !workflow.validation?.errorCount) return false;
   if (filter === "archived" && !workflow.archived) return false;
 
   const query = search.trim().toLowerCase();

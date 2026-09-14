@@ -6,7 +6,7 @@ import { badRequest, notFound, sendApiError, unexpected, dependencyUnavailable }
 import { appError, systemError } from "../../shared/structured-error.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
 import { createProofRecord, deleteProofRecords, getProofRecord, listProofRecords, countProofRecords, countPollablePendingProofRecords, PROOF_LIST_STATUSES, updateVerifyResponse } from "./integritas.repository.js";
-import { getIntegritasConfig, hashCanonicalBytes, parseProofPayload, pollProofStatus, refreshProofRecord, requestProofUid, sha3HashFile, verifyProof, writeProofExport, writeProofSourceZip } from "./integritas.service.js";
+import { getIntegritasConfig, hashCanonicalBytes, parseProofPayload, pollProofStatus, refreshProofRecord, requestProofUid, saveVerificationReport, sha3HashFile, verificationReportFilePath, verifyProof, writeProofExport, writeProofSourceZip } from "./integritas.service.js";
 import type { IntegritasApiFailure } from "./integritas.types.js";
 import { parseListQuery, toPaginatedResult } from "../../shared/list-query.js";
 import { upload } from "./upload.middleware.js";
@@ -211,11 +211,33 @@ integritasRouter.post("/history/:id/verify", async (req, res) => {
   if (!proofPayload) return badRequest(res, "Proof record has no proof payload");
   const result = await verifyProof({ apiKey, proofPayload });
   if (!result.ok) return sendIntegritasError(res, result);
-  const updated = updateVerifyResponse(req.params.id, result.response);
+  const verificationReportFile = await saveVerificationReport(req.params.id, result.response).catch(() => null);
+  const updated = updateVerifyResponse(req.params.id, result.response, verificationReportFile);
   return res.json({
     record: updated,
     currentHash: record.hash,
     response: result.response,
+    verificationReportUrl: verificationReportFile ? `/api/integritas/history/${record.id}/verification-report` : null,
+  });
+});
+
+integritasRouter.get("/history/:id/verification-report", async (req, res) => {
+  const record = getProofRecord(req.params.id);
+  if (!record) return notFound(res, "Proof record not found");
+  if (!record.verification_report_file) return notFound(res, "Verification report not found");
+
+  const filePath = verificationReportFilePath(record.verification_report_file);
+  try {
+    await fs.access(filePath);
+  } catch {
+    return notFound(res, "Verification report not found");
+  }
+
+  return res.sendFile(filePath, {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="integritas-verification-report-${record.id}.pdf"`,
+    },
   });
 });
 

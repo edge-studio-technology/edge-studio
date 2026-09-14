@@ -4,11 +4,88 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] main
+## [Unreleased] host-agent-capability-management
+
+### Added
+
+- Added a root-owned host agent for app-managed, allowlisted host hardware capability actions.
+- Added admin-only camera support enable and disable actions from the Devices page Hardware support area.
+- Added admin-only GPIO, I2C sensor, and local MQTT broker enable/disable actions from Hardware support.
+- Added `HOST_CAPABILITY_DEBUG=true` for secret-safe Hardware support diagnostics in backend and host-agent logs.
+- BME680 sensor reads now include gas resistance as `gasResistanceOhms` alongside temperature, humidity, and pressure.
+- Added signed-manifest host runtime update delivery for host-agent, camera helper, sensor helper, and Mosquitto config files.
+- Added audit events for admin hardware enable/disable actions with capability name and resulting state.
+- Added an admin-only automatic I2C prerequisite setup action from Hardware support.
 
 ### Changed
 
+- Disabled host-backed hardware templates are hidden from the default New input and New output flows.
+- Host-backed templates and configured device status/actions now use a shared hardware capability mapping for Camera, GPIO, I2C sensors, and app-managed local MQTT broker devices.
+- Hardware install flags are now documented as advanced shortcuts while the app UI is the normal enablement path.
+- Host-agent V1 scope now keeps OS prerequisite changes explicit and capability-specific, with automatic setup limited to I2C prerequisites.
+- Installer `ENABLE_*` hardware shortcuts now call the host-agent CLI in install mode so host-agent capability logic is the source of truth for hardware activation.
+- Camera enablement from Hardware support is blocked when host camera tools are missing.
+- Configured host-backed devices now show disabled or attention-needed status when required hardware support is unavailable.
+- Workflow list status now shows Error when workflow validation has errors, including disabled hardware dependencies for Camera, GPIO, I2C sensors, and app-managed local MQTT broker devices.
+- Devices list Status now reflects current usability and last failures instead of HTTP health-check configuration.
+- Removed the HTTP health status URL field and device health-check endpoint from data-source management.
+- Devices list now uses compact Name, Details, Status, Last activity, and Actions columns.
+- Hardware support status now reports more precise diagnostics for helper services, host devices, Compose state, and container readiness.
+- Hardware support now shows missing OS/hardware prerequisites as `Action required` before enablement, keeps `Disable` available for already-enabled capabilities with missing prerequisites, and includes a reboot step in I2C guidance.
+- First-time local MQTT broker enablement now allows a longer restart/status wait to avoid false failure toasts while Docker creates the broker container and recreates backend.
+- Update manifests now require a `hostRuntime` artifact URL and SHA-256 digest.
 - Workflow toolkit cards now show the same block-type icons as the canvas.
+
+### Fixed
+
+- GPIO watcher startup is skipped while GPIO support is disabled or unavailable, avoiding false device failures when toggling GPIO hardware support.
+- Disabled hardware workflow/device messages now point operators to Devices -> Hardware support instead of legacy `ENABLE_*` restart instructions.
+- Login now explains likely Edge Studio restart/session expiry after a Pi reboot instead of leaving users with only an `Unauthorized` refresh error.
+
+### Security
+
+- Documented the host-agent privilege boundary and token-protected backend-only access path.
+- Hardware action audit details avoid host-agent tokens and full runtime configuration values.
+
+## [0.40.0] 2026-09-03
+
+### Added
+
+- Diagnostics verification saves available PDF reports locally on the Pi and offers an Open report link from the result toast.
+- Integritas proof history rows now include an Open verification report action when a locally saved report is available.
+
+## [0.39.0] 2026-09-03
+
+### Added
+
+- Unit test suites for the backend, frontend, and Update Agent, covering every feature area of each, including the currently disabled two-factor sign-in paths.
+- Smoke test asserting every non-public backend API route requires a session.
+- Test coverage reporting for all three packages, with per-package minimum thresholds enforced by `npm run check` and CI.
+- Unit test coverage for Update Agent's `auth/auth.middleware.ts` request guard, now included in its coverage threshold.
+- Unit tests for the release manifest scripts (`scripts/release/sign-manifest.mjs`, `scripts/release/build-manifest.mjs`), run via a new root-level test command wired into `npm run check`.
+- Pull requests to `main` are now rejected unless they come from `dev`.
+
+### Fixed
+
+- The app no longer stays on the loading screen when the startup session check fails; it falls back to the login screen.
+- Repeated background refresh failures no longer stack duplicate error toasts.
+
+## [0.38.14] 2026-09-03
+
+### Added
+
+- Workflow edit mode can change an existing workflow's start block while preserving the remaining blocks.
+
+### Changed
+
+- Changing a workflow start block now pauses the workflow until it is reviewed and re-enabled.
+- Manual start blocks now open their details panel from the canvas.
+
+## [0.38.13] 2026-08-24
+
+### Fixed
+
+- Fixed aria labels visability issue.
 
 ## [0.38.12] 2026-08-24
 

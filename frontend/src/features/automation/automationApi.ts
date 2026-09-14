@@ -73,6 +73,16 @@ export async function addAutomationBlock(
   );
 }
 
+export async function replaceAutomationStartBlock(
+  workflowId: string,
+  input: { type: AutomationBlockType; config?: AutomationBlock["config"] },
+) {
+  return patchJson<{ item: AutomationBlock; workflow: AutomationWorkflow }>(
+    `/api/automation/workflows/${workflowId}/start-block`,
+    input,
+  );
+}
+
 export async function deleteAutomationBlock(workflowId: string, blockId: string) {
   return deleteJson<{ deleted: boolean; workflow: AutomationWorkflow }>(
     `/api/automation/workflows/${workflowId}/blocks/${blockId}`,
