@@ -103,44 +103,42 @@ export function DataSourcesList({
       title="Configured devices"
       description="Create and monitor your configured input sources and output targets."
     >
-      <div className="gap-detail-close flex flex-wrap items-end justify-between">
-        <div className="min-w-0 flex-1 [&>div]:mb-0">
-          <ListFilterBar
-            filter={direction}
-            q={query}
-            filterOptions={DIRECTION_FILTER_OPTIONS}
-            searchPlaceholder="Name, type, or endpoint"
-            disabled={loading || items.length === 0}
-            onFilterChange={(value) => {
-              setDirection(value);
-              setPage(1);
-            }}
-            onQueryChange={(q) => {
-              setQuery(q);
-              setPage(1);
-            }}
-          />
-        </div>
-        {onAddInput || onAddOutput ? (
-          <div className="gap-detail-next flex flex-wrap items-center">
-            {onAddInput ? (
-              <Button type="button" iconStart={<Plus aria-hidden />} onClick={onAddInput}>
-                New input
-              </Button>
-            ) : null}
-            {onAddOutput ? (
-              <Button
-                type="button"
-                variant="secondary"
-                iconStart={<Plus aria-hidden />}
-                onClick={onAddOutput}
-              >
-                New output
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+      <ListFilterBar
+        filter={direction}
+        q={query}
+        filterOptions={DIRECTION_FILTER_OPTIONS}
+        searchPlaceholder="Name, type, or endpoint"
+        disabled={loading || items.length === 0}
+        onFilterChange={(value) => {
+          setDirection(value);
+          setPage(1);
+        }}
+        onQueryChange={(q) => {
+          setQuery(q);
+          setPage(1);
+        }}
+        actions={
+          onAddInput || onAddOutput ? (
+            <>
+              {onAddInput ? (
+                <Button type="button" iconStart={<Plus aria-hidden />} onClick={onAddInput}>
+                  New input
+                </Button>
+              ) : null}
+              {onAddOutput ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  iconStart={<Plus aria-hidden />}
+                  onClick={onAddOutput}
+                >
+                  New output
+                </Button>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      />
 
       {loading ? (
         <LoadingState title="Fetching your devices" description="This should take a few seconds." />

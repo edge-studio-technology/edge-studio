@@ -103,28 +103,26 @@ export function AutomationWorkflowsList({
 
   return (
     <Card className="gap-detail-close grid w-full">
-      <div className="gap-detail-close flex flex-wrap items-end justify-between">
-        <div className="min-w-0 flex-1 [&>div]:mb-0">
-          <ListFilterBar
-            filter={filter}
-            q={query}
-            filterOptions={STATUS_FILTER_OPTIONS}
-            searchPlaceholder="Name, block type, device, hash..."
-            disabled={loading || workflows.length === 0}
-            onFilterChange={(value) => {
-              setFilter(value as WorkflowFilter);
-              setPage(1);
-            }}
-            onQueryChange={(q) => {
-              setQuery(q);
-              setPage(1);
-            }}
-          />
-        </div>
-        <Button type="button" iconStart={<Plus aria-hidden />} onClick={onCreate}>
-          New workflow
-        </Button>
-      </div>
+      <ListFilterBar
+        filter={filter}
+        q={query}
+        filterOptions={STATUS_FILTER_OPTIONS}
+        searchPlaceholder="Name, block type, device, hash..."
+        disabled={loading || workflows.length === 0}
+        onFilterChange={(value) => {
+          setFilter(value as WorkflowFilter);
+          setPage(1);
+        }}
+        onQueryChange={(q) => {
+          setQuery(q);
+          setPage(1);
+        }}
+        actions={
+          <Button type="button" iconStart={<Plus aria-hidden />} onClick={onCreate}>
+            New workflow
+          </Button>
+        }
+      />
 
       {loading ? (
         <LoadingState

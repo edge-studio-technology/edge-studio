@@ -108,7 +108,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - `StatusRow`: label / value / status row
 - [DetailList](#detaillist): label / value detail rows
 - [StatusBar](#statusbar): app shell status chrome
-- `ListFilterBar`: list search and status filter
+- [ListFilterBar](#listfilterbar): list search, filter, and optional primary actions
 - `ListPaginationFooter`: list pager and page-size controls
 - `Pagination`: prev/next page strip
 - `StatusPage`: centered whole-page empty / not-found state
@@ -164,6 +164,34 @@ Wrapping horizontal group for buttons and button-like actions (`frontend/src/com
     Cancel
   </Button>
 </ButtonRow>
+```
+
+### ListFilterBar
+
+List toolbar for search and optional status/kind filter (`frontend/src/components/patterns/ListFilterBar.tsx`). Pass primary list actions (New …, Refresh) via `actions` so they stack full-width under the fields below `md` and sit beside them from `md` up — do not wrap a separate `flex-wrap justify-between` row around the bar.
+
+| Prop                | Notes                                                                 |
+| ------------------- | --------------------------------------------------------------------- |
+| `q` / `onQueryChange` | Controlled search string; changes debounce ~300ms                   |
+| `filter` / `onFilterChange` / `filterOptions` | Optional filter select; label is always "Filter"          |
+| `searchPlaceholder` | Search field placeholder                                              |
+| `disabled`          | Disables search and filter                                            |
+| `actions`           | Optional trailing button(s); layout owned by the bar                  |
+
+```tsx
+<ListFilterBar
+  q={query}
+  filter={filter}
+  filterOptions={STATUS_FILTER_OPTIONS}
+  searchPlaceholder="Name or hash"
+  onFilterChange={setFilter}
+  onQueryChange={setQuery}
+  actions={
+    <Button type="button" iconStart={<Plus aria-hidden />} onClick={onCreate}>
+      New workflow
+    </Button>
+  }
+/>
 ```
 
 ### Button
