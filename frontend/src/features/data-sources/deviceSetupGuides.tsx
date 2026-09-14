@@ -62,6 +62,8 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
     );
   if (source.type === "gpio-input" && source.config.profile === "pir-motion")
     return pirGuide(source);
+  if (source.type === "gpio-input" && source.config.profile === "gpio-button")
+    return gpioButtonGuide(source);
   if (source.type === "gpio-input") return gpioInputGuide(source);
   if (source.type === "gpio-output") return gpioLedGuide(source);
   if (source.type === "bme-sensor") return bmeSensorGuide(source);
@@ -346,16 +348,18 @@ function bmeSensorGuide(source: DataSource) {
   return guide(
     source,
     `${sensorName} Environmental Sensor Setup`,
-    `Read temperature, humidity, and air pressure from a ${sensorName} module over the Pi I2C bus.`,
+    source.config.sensor === "bme680"
+      ? "Read temperature, humidity, air pressure, and gas resistance from a BME680 module over the Pi I2C bus."
+      : "Read temperature, humidity, and air pressure from a BME280 module over the Pi I2C bus.",
     [
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_SENSORS=true so the host-side sensor helper is running.",
-          "Enable I2C on the Raspberry Pi host and reboot if needed.",
+          "Enable I2C sensors from Devices -> Hardware support so the host-side sensor helper is running.",
+          "Enable I2C on the Raspberry Pi host and reboot if /dev/i2c-1 is still missing.",
           ...(source.config.sensor === "bme680"
             ? [
-                "The installer installs the PyPI bme680 module in /opt/edge-studio/.venv-sensor-helper for BME680 reads.",
+                "Hardware support installs the PyPI bme680 module in /opt/edge-studio/.venv-sensor-helper for BME680 reads.",
               ]
             : []),
           "Use address 0x76 first, then try 0x77 if reads fail.",
@@ -453,7 +457,6 @@ function deviceSystemDataGuide(source: DataSource) {
 }
 
 function gpioInputGuide(source: DataSource) {
-  if (source.name.toLowerCase().includes("button")) return gpioButtonGuide(source);
   return guide(
     source,
     "GPIO Input Setup Guide",
@@ -462,7 +465,7 @@ function gpioInputGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_GPIO=true so /dev/gpiochip0 is available to the backend.",
+          "Enable GPIO from Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
           "Use BCM pin numbering, not physical header numbering.",
           "Never connect a GPIO input directly to 5V.",
         ],
@@ -499,7 +502,7 @@ function gpioButtonGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_GPIO=true so /dev/gpiochip0 is available to the backend.",
+          "Enable GPIO from Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
           "Use BCM pin numbering, not physical header numbering.",
           "Never connect a GPIO input directly to 5V.",
         ],
@@ -536,7 +539,7 @@ function pirGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_GPIO=true.",
+          "Enable GPIO from Devices -> Hardware support.",
           "Let the PIR sensor warm up for 60-90 seconds after power-on.",
           "Verify the module output voltage before connecting unknown clones to a Pi GPIO pin.",
         ],
@@ -572,7 +575,7 @@ function gpioLedGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_GPIO=true.",
+          "Enable GPIO from Devices -> Hardware support.",
           "Use a 220-330 ohm resistor in series with the LED.",
           "Never connect GPIO directly to 5V, motors, relays, or mains voltage.",
         ],
@@ -607,7 +610,7 @@ function piCameraGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Install with ENABLE_CAMERA=true so the host camera helper is running.",
+          "Enable Camera from Devices -> Hardware support so the host camera helper is running.",
           "Verify the Pi host can see the camera with rpicam-still --list-cameras or libcamera-still --list-cameras.",
           "Place the camera with consent and privacy in mind.",
         ],
@@ -644,7 +647,6 @@ function httpJsonSourceGuide(source: DataSource) {
         table: [
           ["Method", source.config.method ?? "GET"],
           ["URL", source.config.url ?? ""],
-          ["Health URL", source.config.healthStatusUrl ?? "Not configured"],
         ],
       },
       {

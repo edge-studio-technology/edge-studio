@@ -23,9 +23,13 @@ services:
       MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES: ${MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES:-30}
       DATABASE_PATH: /data/edge-studio.db
       ENABLE_MQTT_BROKER: ${ENABLE_MQTT_BROKER:-false}
+      ENABLE_GPIO: ${ENABLE_GPIO:-false}
       MQTT_PUBLIC_HOST: ${MQTT_PUBLIC_HOST:-}
       MQTT_PUBLIC_PORT: ${MQTT_PUBLIC_PORT:-1883}
       MQTT_INTERNAL_URL: ${MQTT_INTERNAL_URL:-mqtt://mqtt:1883}
+      HOST_CAPABILITY_DEBUG: ${HOST_CAPABILITY_DEBUG:-false}
+      HOST_AGENT_URL: ${HOST_AGENT_URL:-http://${INTEGRITAS_DOCKER_GATEWAY:-172.30.0.1}:38182}
+      HOST_AGENT_TOKEN: ${HOST_AGENT_TOKEN:-}
       ENABLE_CAMERA: ${ENABLE_CAMERA:-false}
       CAMERA_CAPTURE_DIR: ${CAMERA_CAPTURE_DIR:-/data/captures}
       CAMERA_HELPER_URL: ${CAMERA_HELPER_URL:-http://${INTEGRITAS_DOCKER_GATEWAY:-172.30.0.1}:38180}
@@ -104,6 +108,8 @@ services:
       - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - ${DATA_DIR:-./data}/mosquitto:/mosquitto/data
     restart: unless-stopped
+    networks:
+      - integritas
 
   update-agent:
     build:
@@ -117,6 +123,8 @@ services:
       MANIFEST_URL: ${MANIFEST_URL:-}
       RELEASE_CHANNEL: ${RELEASE_CHANNEL:-stable}
       BACKEND_INTERNAL_URL: http://backend:3000
+      HOST_AGENT_URL: ${HOST_AGENT_URL:-http://${INTEGRITAS_DOCKER_GATEWAY:-172.30.0.1}:38182}
+      HOST_AGENT_TOKEN: ${HOST_AGENT_TOKEN:-}
       STATE_DIR_IN_CONTAINER: /state
       HEALTH_CHECK_TIMEOUT_MS: ${UPDATE_HEALTH_CHECK_TIMEOUT_MS:-60000}
       HEALTH_CHECK_INTERVAL_MS: ${UPDATE_HEALTH_CHECK_INTERVAL_MS:-2000}

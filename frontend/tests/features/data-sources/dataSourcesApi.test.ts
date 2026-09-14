@@ -13,7 +13,6 @@ vi.mock("../../../src/lib/api", () => ({
 }));
 
 import {
-  checkDataSourceHealth,
   createDataSource,
   deleteDataSource,
   getDataSourceCapabilities,
@@ -85,14 +84,4 @@ describe("dataSourcesApi", () => {
     expect(postJson).toHaveBeenCalledWith("/api/data-sources/id-1/test-output", { durationMs: 2000 });
   });
 
-  it("checkDataSourceHealth fetches the health endpoint with credentials and parses JSON", async () => {
-    const status = { ok: true, checkedAt: "2026-08-20T00:00:00.000Z" };
-    const fetchMock = vi.fn().mockResolvedValue({ json: () => Promise.resolve(status) });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await checkDataSourceHealth("id-1");
-
-    expect(fetchMock).toHaveBeenCalledWith("/api/data-sources/id-1/health", { credentials: "include" });
-    expect(result).toBe(status);
-  });
 });

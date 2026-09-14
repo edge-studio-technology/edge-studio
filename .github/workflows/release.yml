@@ -187,11 +187,22 @@ jobs:
             echo "update-agent=" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Build runtime bundle
+        run: npm run release:build-runtime-bundle
+
+      - name: Compute host runtime metadata
+        id: host-runtime
+        run: |
+          echo "url=https://edgestudio.technology/manifest/${{ steps.channel.outputs.channel }}/edge-studio-runtime.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(sha256sum edge-studio-runtime.tar.gz | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
+
       - name: Build manifest
         env:
           FRONTEND_DIGEST: ${{ needs.build.outputs.frontend-digest || steps.previous-manifest.outputs.frontend }}
           BACKEND_DIGEST: ${{ needs.build.outputs.backend-digest || steps.previous-manifest.outputs.backend }}
           UPDATE_AGENT_DIGEST: ${{ needs.build.outputs.update-agent-digest || steps.previous-manifest.outputs.update-agent }}
+          HOST_RUNTIME_URL: ${{ steps.host-runtime.outputs.url }}
+          HOST_RUNTIME_SHA256: ${{ steps.host-runtime.outputs.sha256 }}
           VERSION: ${{ github.ref_name }}
         run: node scripts/release/build-manifest.mjs manifest.json
 
@@ -199,9 +210,6 @@ jobs:
         env:
           MANIFEST_SIGNING_KEY: ${{ secrets.MANIFEST_SIGNING_KEY }}
         run: node scripts/release/sign-manifest.mjs manifest.json manifest.json.sig
-
-      - name: Build runtime bundle
-        run: npm run release:build-runtime-bundle
 
       - name: Deploy manifest (push to private manifest repo)
         run: |

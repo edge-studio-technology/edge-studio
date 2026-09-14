@@ -17,6 +17,9 @@ GPIO_GID_INPUT="${GPIO_GID-}"
 ENABLE_MQTT_BROKER_INPUT="${ENABLE_MQTT_BROKER-}"
 MQTT_PUBLIC_HOST_INPUT="${MQTT_PUBLIC_HOST-}"
 MQTT_PUBLIC_PORT_INPUT="${MQTT_PUBLIC_PORT-}"
+HOST_AGENT_TOKEN_INPUT="${HOST_AGENT_TOKEN-}"
+HOST_AGENT_PORT_INPUT="${HOST_AGENT_PORT-}"
+HOST_CAPABILITY_DEBUG_INPUT="${HOST_CAPABILITY_DEBUG-}"
 ENABLE_CAMERA_INPUT="${ENABLE_CAMERA-}"
 CAMERA_CAPTURE_DIR_INPUT="${CAMERA_CAPTURE_DIR-}"
 CAMERA_HELPER_TOKEN_INPUT="${CAMERA_HELPER_TOKEN-}"
@@ -52,6 +55,9 @@ GPIO_GID="${GPIO_GID:-}"
 ENABLE_MQTT_BROKER="${ENABLE_MQTT_BROKER:-false}"
 MQTT_PUBLIC_HOST="${MQTT_PUBLIC_HOST:-}"
 MQTT_PUBLIC_PORT="${MQTT_PUBLIC_PORT:-1883}"
+HOST_AGENT_TOKEN="${HOST_AGENT_TOKEN:-}"
+HOST_AGENT_PORT="${HOST_AGENT_PORT:-38182}"
+HOST_CAPABILITY_DEBUG="${HOST_CAPABILITY_DEBUG:-false}"
 ENABLE_CAMERA="${ENABLE_CAMERA:-false}"
 CAMERA_CAPTURE_DIR="${CAMERA_CAPTURE_DIR:-/data/captures}"
 CAMERA_HELPER_TOKEN="${CAMERA_HELPER_TOKEN:-}"
@@ -84,6 +90,8 @@ APT_PACKAGES=(
   ca-certificates
   git
   openssl
+  python3
+  python3-venv
 )
 
 log() {
@@ -216,6 +224,9 @@ load_existing_config() {
   ENABLE_MQTT_BROKER="${ENABLE_MQTT_BROKER_INPUT:-${ENABLE_MQTT_BROKER:-false}}"
   MQTT_PUBLIC_HOST="${MQTT_PUBLIC_HOST_INPUT:-${MQTT_PUBLIC_HOST:-}}"
   MQTT_PUBLIC_PORT="${MQTT_PUBLIC_PORT_INPUT:-${MQTT_PUBLIC_PORT:-1883}}"
+  HOST_AGENT_TOKEN="${HOST_AGENT_TOKEN_INPUT:-${HOST_AGENT_TOKEN:-}}"
+  HOST_AGENT_PORT="${HOST_AGENT_PORT_INPUT:-${HOST_AGENT_PORT:-38182}}"
+  HOST_CAPABILITY_DEBUG="${HOST_CAPABILITY_DEBUG_INPUT:-${HOST_CAPABILITY_DEBUG:-false}}"
   ENABLE_CAMERA="${ENABLE_CAMERA_INPUT:-${ENABLE_CAMERA:-false}}"
   CAMERA_CAPTURE_DIR="${CAMERA_CAPTURE_DIR_INPUT:-${CAMERA_CAPTURE_DIR:-/data/captures}}"
   CAMERA_HELPER_TOKEN="${CAMERA_HELPER_TOKEN_INPUT:-${CAMERA_HELPER_TOKEN:-}}"
@@ -253,6 +264,15 @@ ensure_app_secret() {
 
   log "Generating APP_SECRET for encrypted local settings"
   APP_SECRET="$(openssl rand -hex 32)"
+}
+
+ensure_host_agent_token() {
+  if [ -n "$HOST_AGENT_TOKEN" ]; then
+    return
+  fi
+
+  log "Generating HOST_AGENT_TOKEN for host capability management"
+  HOST_AGENT_TOKEN="$(openssl rand -hex 32)"
 }
 
 ensure_camera_helper_token() {
@@ -353,6 +373,14 @@ normalize_dev_mode() {
   else
     DEV_MODE="false"
     COMPOSE_FILE_NAME="docker-compose.yml:docker-compose.release.yml"
+  fi
+}
+
+normalize_host_capability_debug() {
+  if is_truthy "$HOST_CAPABILITY_DEBUG"; then
+    HOST_CAPABILITY_DEBUG="true"
+  else
+    HOST_CAPABILITY_DEBUG="false"
   fi
 }
 
@@ -586,8 +614,26 @@ EOF
 write_env_file() {
   log "Writing runtime configuration"
 
+  local enable_gpio_runtime="$ENABLE_GPIO"
+  local enable_camera_runtime="$ENABLE_CAMERA"
+  local enable_sensors_runtime="$ENABLE_SENSORS"
+  local enable_mqtt_broker_runtime="$ENABLE_MQTT_BROKER"
+
+  if is_truthy "$ENABLE_GPIO_INPUT"; then
+    enable_gpio_runtime="false"
+  fi
+  if is_truthy "$ENABLE_CAMERA_INPUT"; then
+    enable_camera_runtime="false"
+  fi
+  if is_truthy "$ENABLE_SENSORS_INPUT"; then
+    enable_sensors_runtime="false"
+  fi
+  if is_truthy "$ENABLE_MQTT_BROKER_INPUT"; then
+    enable_mqtt_broker_runtime="false"
+  fi
+
   local compose_profiles=()
-  [ "$ENABLE_MQTT_BROKER" = "true" ] && compose_profiles+=(mqtt)
+  [ "$enable_mqtt_broker_runtime" = "true" ] && compose_profiles+=(mqtt)
   is_truthy "$DEV_MODE" || compose_profiles+=(update-agent)
   local compose_profiles_joined
   compose_profiles_joined="$(IFS=,; echo "${compose_profiles[*]:-}")"
@@ -598,9 +644,9 @@ FRONTEND_PORT=$FRONTEND_PORT
 DATA_DIR=$DATA_DIR
 APP_SECRET=$APP_SECRET
 DOCKER_GID=$DOCKER_GID
-ENABLE_GPIO=$ENABLE_GPIO
+ENABLE_GPIO=$enable_gpio_runtime
 GPIO_GID=$GPIO_GID
-ENABLE_CAMERA=$ENABLE_CAMERA
+ENABLE_CAMERA=$enable_camera_runtime
 CAMERA_CAPTURE_DIR=$CAMERA_CAPTURE_DIR
 CAMERA_HELPER_URL=http://$INTEGRITAS_DOCKER_GATEWAY:$CAMERA_HELPER_PORT
 CAMERA_HELPER_TOKEN=$CAMERA_HELPER_TOKEN
@@ -609,19 +655,23 @@ CAMERA_MAX_DURATION_SECONDS=$CAMERA_MAX_DURATION_SECONDS
 CAMERA_RETENTION_DAYS=$CAMERA_RETENTION_DAYS
 CAMERA_PHOTO_COMMAND=$CAMERA_PHOTO_COMMAND
 CAMERA_VIDEO_COMMAND=$CAMERA_VIDEO_COMMAND
-ENABLE_SENSORS=$ENABLE_SENSORS
+ENABLE_SENSORS=$enable_sensors_runtime
 SENSOR_HELPER_URL=http://$INTEGRITAS_DOCKER_GATEWAY:$SENSOR_HELPER_PORT
 SENSOR_HELPER_TOKEN=$SENSOR_HELPER_TOKEN
 SENSOR_HELPER_PORT=$SENSOR_HELPER_PORT
 SENSOR_READ_TIMEOUT_MS=$SENSOR_READ_TIMEOUT_MS
 INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
 INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
-ENABLE_MQTT_BROKER=$ENABLE_MQTT_BROKER
+ENABLE_MQTT_BROKER=$enable_mqtt_broker_runtime
 DEV_MODE=$DEV_MODE
 COMPOSE_PROFILES=$compose_profiles_joined
 MQTT_PUBLIC_HOST=$MQTT_PUBLIC_HOST
 MQTT_PUBLIC_PORT=$MQTT_PUBLIC_PORT
 MQTT_INTERNAL_URL=mqtt://mqtt:1883
+HOST_AGENT_URL=http://$INTEGRITAS_DOCKER_GATEWAY:$HOST_AGENT_PORT
+HOST_AGENT_TOKEN=$HOST_AGENT_TOKEN
+HOST_AGENT_PORT=$HOST_AGENT_PORT
+HOST_CAPABILITY_DEBUG=$HOST_CAPABILITY_DEBUG
 MINIMA_DATA_DIR=$MINIMA_DATA_DIR
 UPDATE_AGENT_STATE_DIR=$UPDATE_AGENT_STATE_DIR
 MINIMA_P2P_PORT=$MINIMA_P2P_PORT
@@ -639,210 +689,98 @@ UPDATE_AGENT_IMAGE=$UPDATE_AGENT_IMAGE
 EOF
 }
 
-write_compose_override() {
-  local docker_group
-  local gpio_group
+install_host_agent() {
+  local service_file="/etc/systemd/system/edge-studio-host-agent.service"
+  local helper_user
 
-  if ! is_truthy "$ENABLE_GPIO"; then
-    rm -f "$APP_DIR/docker-compose.override.yml"
+  helper_user="${SUDO_USER:-pi}"
+  if ! id "$helper_user" >/dev/null 2>&1; then
+    helper_user="root"
+  fi
+
+  if [ ! -f "$APP_DIR/host-agent/edge_studio_host_agent.py" ]; then
+    log "Warning: host-agent script was not found; hardware support changes from the app will be unavailable."
     return
   fi
 
-  docker_group="${DOCKER_GID:-0}"
-  gpio_group="${GPIO_GID:-0}"
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required for the host agent but was not found."
+    exit 1
+  fi
 
-  cat > "$APP_DIR/docker-compose.override.yml" <<EOF
-services:
-  backend:
+  log "Installing host capability agent"
+  cat > "$service_file" <<EOF
+[Unit]
+Description=Edge Studio Host Agent
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$APP_DIR
+Environment=APP_DIR=$APP_DIR
+Environment=HOST_AGENT_HOST=0.0.0.0
+Environment=HOST_AGENT_PORT=$HOST_AGENT_PORT
+Environment=HOST_AGENT_TOKEN=$HOST_AGENT_TOKEN
+Environment=HOST_CAPABILITY_DEBUG=$HOST_CAPABILITY_DEBUG
+Environment=HOST_HELPER_USER=$helper_user
+Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
+Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
+ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $HOST_AGENT_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $HOST_AGENT_PORT -j ACCEPT; fi'
+ExecStart=/usr/bin/python3 $APP_DIR/host-agent/edge_studio_host_agent.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
 EOF
+
+  chmod 600 "$service_file"
+  systemctl daemon-reload
+  systemctl enable edge-studio-host-agent.service
+  systemctl restart edge-studio-host-agent.service
+}
+
+run_host_agent_capability() {
+  local action="$1"
+  local capability="$2"
+
+  if [ ! -f "$APP_DIR/host-agent/edge_studio_host_agent.py" ]; then
+    log "Warning: host-agent script was not found; cannot $action $capability support."
+    return
+  fi
+
+  log "Host agent: $action $capability support"
+  if ! APP_DIR="$APP_DIR" HOST_HELPER_USER="${SUDO_USER:-pi}" HOST_CAPABILITY_DEBUG="$HOST_CAPABILITY_DEBUG" \
+    python3 "$APP_DIR/host-agent/edge_studio_host_agent.py" capability "$action" "$capability" --install-mode; then
+    log "Warning: host agent could not $action $capability support. Fix any reported prerequisites, then use Devices -> Hardware support."
+  fi
+}
+
+apply_hardware_shortcuts_via_host_agent() {
+  if is_truthy "$ENABLE_CAMERA"; then
+    run_host_agent_capability apply camera
+  elif [ -n "$ENABLE_CAMERA_INPUT" ]; then
+    run_host_agent_capability disable camera
+  fi
 
   if is_truthy "$ENABLE_GPIO"; then
-    log "Enabling GPIO device access"
-
-    if [ ! -e /dev/gpiochip0 ]; then
-      log "Warning: /dev/gpiochip0 was not found on this host. GPIO sources will not work until the device exists."
-    fi
-
-    cat >> "$APP_DIR/docker-compose.override.yml" <<EOF
-    devices:
-      - /dev/gpiochip0:/dev/gpiochip0
-EOF
+    run_host_agent_capability apply gpio
+  elif [ -n "$ENABLE_GPIO_INPUT" ]; then
+    run_host_agent_capability disable gpio
   fi
 
-  if [ "$gpio_group" != "$docker_group" ]; then
-    cat >> "$APP_DIR/docker-compose.override.yml" <<EOF
-    group_add:
-EOF
-    cat >> "$APP_DIR/docker-compose.override.yml" <<EOF
-      - "\${GPIO_GID:-0}"
-EOF
-  fi
-}
-
-install_camera_helper() {
-  local service_file="/etc/systemd/system/edge-studio-camera-helper.service"
-  local helper_user
-  local supplementary_groups=""
-  local capture_dir
-
-  if ! is_truthy "$ENABLE_CAMERA"; then
-    if [ -f "$service_file" ]; then
-      log "Disabling camera helper service"
-      systemctl disable --now edge-studio-camera-helper.service >/dev/null 2>&1 || true
-      rm -f "$service_file"
-      systemctl daemon-reload
-    fi
-    return
+  if is_truthy "$ENABLE_SENSORS"; then
+    run_host_agent_capability apply sensors
+  elif [ -n "$ENABLE_SENSORS_INPUT" ]; then
+    run_host_agent_capability disable sensors
   fi
 
-  helper_user="${SUDO_USER:-pi}"
-  if ! id "$helper_user" >/dev/null 2>&1; then
-    helper_user="root"
+  if is_truthy "$ENABLE_MQTT_BROKER"; then
+    run_host_agent_capability apply mqtt
+  elif [ -n "$ENABLE_MQTT_BROKER_INPUT" ]; then
+    run_host_agent_capability disable mqtt
   fi
-  if getent group video >/dev/null 2>&1; then
-    supplementary_groups="SupplementaryGroups=video"
-  fi
-
-  capture_dir="$(resolved_camera_capture_dir)"
-  mkdir -p "$capture_dir"
-  if [ "$helper_user" != "root" ]; then
-    chown -R "$helper_user:$helper_user" "$capture_dir"
-  fi
-  chmod 700 "$capture_dir"
-
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "python3 is required for the camera helper but was not found."
-    exit 1
-  fi
-
-  if ! command -v rpicam-still >/dev/null 2>&1 && ! command -v libcamera-still >/dev/null 2>&1; then
-    log "Warning: neither rpicam-still nor libcamera-still was found on the host. Install Raspberry Pi camera apps before using camera workflows."
-  fi
-
-  log "Installing camera helper service"
-  cat > "$service_file" <<EOF
-[Unit]
-Description=Edge Studio Camera Helper
-After=network.target
-
-[Service]
-Type=simple
-User=$helper_user
-$supplementary_groups
-WorkingDirectory=$APP_DIR
-Environment=CAMERA_HELPER_HOST=0.0.0.0
-Environment=CAMERA_HELPER_PORT=$CAMERA_HELPER_PORT
-Environment=CAMERA_HELPER_TOKEN=$CAMERA_HELPER_TOKEN
-Environment=CAMERA_CAPTURE_DIR=$capture_dir
-Environment=CAMERA_CONTAINER_CAPTURE_DIR=$CAMERA_CAPTURE_DIR
-Environment=CAMERA_MAX_DURATION_SECONDS=$CAMERA_MAX_DURATION_SECONDS
-Environment=CAMERA_PHOTO_COMMAND=$CAMERA_PHOTO_COMMAND
-Environment=CAMERA_VIDEO_COMMAND=$CAMERA_VIDEO_COMMAND
-Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
-Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
-ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT; fi'
-ExecStart=/usr/bin/python3 $APP_DIR/camera-helper/edge_studio_camera_helper.py
-Restart=on-failure
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-  chmod 600 "$service_file"
-  systemctl daemon-reload
-  systemctl enable edge-studio-camera-helper.service
-  systemctl restart edge-studio-camera-helper.service
-}
-
-install_sensor_helper() {
-  local service_file="/etc/systemd/system/edge-studio-sensor-helper.service"
-  local sensor_venv="$APP_DIR/.venv-sensor-helper"
-  local sensor_python="$sensor_venv/bin/python"
-  local helper_user
-  local supplementary_groups=""
-
-  if ! is_truthy "$ENABLE_SENSORS"; then
-    if [ -f "$service_file" ]; then
-      log "Disabling sensor helper service"
-      systemctl disable --now edge-studio-sensor-helper.service >/dev/null 2>&1 || true
-      rm -f "$service_file"
-      systemctl daemon-reload
-    fi
-    return
-  fi
-
-  helper_user="${SUDO_USER:-pi}"
-  if ! id "$helper_user" >/dev/null 2>&1; then
-    helper_user="root"
-  fi
-  if getent group i2c >/dev/null 2>&1; then
-    supplementary_groups="SupplementaryGroups=i2c"
-  fi
-
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "python3 is required for the sensor helper but was not found."
-    exit 1
-  fi
-
-  if ! python3 - <<'PY' >/dev/null 2>&1
-try:
-    import smbus2
-except Exception:
-    import smbus
-PY
-  then
-    log "Installing Python SMBus support for I2C sensors"
-    DEBIAN_FRONTEND=noninteractive apt-get install -y python3-smbus i2c-tools
-  fi
-
-  if [ ! -x "$sensor_python" ]; then
-    log "Creating sensor helper Python environment"
-    DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv
-    python3 -m venv --system-site-packages "$sensor_venv"
-  fi
-
-  if ! "$sensor_python" - <<'PY' >/dev/null 2>&1
-import bme680
-PY
-  then
-    log "Installing optional Python BME680 support for I2C sensors"
-    "$sensor_python" -m pip install bme680 || log "Warning: Python bme680 could not be installed automatically. BME680 reads require the Python bme680 module in $sensor_venv."
-  fi
-
-  if [ ! -e /dev/i2c-1 ]; then
-    log "Warning: /dev/i2c-1 was not found. Enable I2C on the Raspberry Pi before using BME280/BME680 sensor devices."
-  fi
-
-  log "Installing sensor helper service"
-  cat > "$service_file" <<EOF
-[Unit]
-Description=Edge Studio Sensor Helper
-After=network.target
-
-[Service]
-Type=simple
-User=$helper_user
-$supplementary_groups
-WorkingDirectory=$APP_DIR
-Environment=SENSOR_HELPER_HOST=0.0.0.0
-Environment=SENSOR_HELPER_PORT=$SENSOR_HELPER_PORT
-Environment=SENSOR_HELPER_TOKEN=$SENSOR_HELPER_TOKEN
-Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
-Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
-ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT; fi'
-ExecStart=$sensor_python $APP_DIR/sensor-helper/edge_studio_sensor_helper.py
-Restart=on-failure
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-  chmod 600 "$service_file"
-  systemctl daemon-reload
-  systemctl enable edge-studio-sensor-helper.service
-  systemctl restart edge-studio-sensor-helper.service
 }
 
 generate_tls_cert() {
@@ -924,6 +862,7 @@ main() {
   prepare_app_directory
   load_existing_config
   ensure_app_secret
+  ensure_host_agent_token
   ensure_camera_helper_token
   ensure_sensor_helper_token
   detect_docker_gid
@@ -931,14 +870,14 @@ main() {
   normalize_mqtt_broker_config
   normalize_sensor_config
   normalize_dev_mode
+  normalize_host_capability_debug
   download_app
   resolve_images
   prepare_runtime_directories
   record_applied_manifest
   write_env_file
-  write_compose_override
-  install_camera_helper
-  install_sensor_helper
+  install_host_agent
+  apply_hardware_shortcuts_via_host_agent
   generate_tls_cert
   install_cli
   start_app

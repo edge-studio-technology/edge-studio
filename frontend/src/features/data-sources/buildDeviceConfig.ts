@@ -17,7 +17,6 @@ export function buildDeviceConfigInput(
   const {
     type,
     url,
-    healthStatusUrl,
     brokerUrl,
     topic,
     gpioChip,
@@ -97,7 +96,6 @@ export function buildDeviceConfigInput(
   return {
     url,
     method: method === "PUT" || method === "PATCH" ? ("POST" as const) : method,
-    healthStatusUrl: healthStatusUrl.trim() || undefined,
     headers: {},
   };
 }

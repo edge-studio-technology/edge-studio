@@ -255,12 +255,6 @@ export function AltDeviceForm({
             onChange={(event) => fields.setUrl(event.target.value)}
             placeholder="https://example.com/data.json"
           />
-          <InputField
-            label="Health status URL"
-            value={fields.healthStatusUrl}
-            onChange={(event) => fields.setHealthStatusUrl(event.target.value)}
-            placeholder="https://example.com/health"
-          />
           <SelectField
             label="Method"
             value={fields.method === "PUT" || fields.method === "PATCH" ? "POST" : fields.method}

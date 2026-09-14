@@ -10,6 +10,7 @@ import { feedbackRouter } from "./features/feedback/feedback.routes.js";
 import { dataSourcesRouter, dataSourcesWebhookRouter } from "./features/data-sources/dataSources.routes.js";
 import { debugRouter } from "./features/debug/debug.routes.js";
 import { healthRouter } from "./features/health/health.routes.js";
+import { hostCapabilitiesRouter } from "./features/host-capabilities/hostCapabilities.routes.js";
 import { integritasRouter } from "./features/integritas/integritas.routes.js";
 import {
   integritasAuthRouter,
@@ -41,6 +42,7 @@ export function createApp() {
   app.use("/api/auth", integritasAuthRouter);
   app.use("/api/user", integritasUserRouter);
   app.use("/api/status", statusRouter);
+  app.use("/api/host-capabilities", hostCapabilitiesRouter);
   app.use("/api/minima", minimaRouter);
   app.use("/api/integritas", integritasRouter);
   app.use("/api/data-sources", dataSourcesRouter);

@@ -48,6 +48,10 @@ function baseManifest(overrides: Partial<Manifest> = {}): Manifest {
     frontend: "sha256:frontend",
     backend: "sha256:backend",
     updateAgent: "sha256:update-agent",
+    hostRuntime: {
+      url: "https://example.com/edge-studio-host-runtime.tar.gz",
+      sha256: "a".repeat(64)
+    },
     version: "1.2.3",
     createdAt: "2026-08-01T00:00:00.000Z",
     ...overrides
@@ -179,6 +183,36 @@ describe("manifest.service", () => {
       delete (incomplete as Record<string, unknown>).updateAgent;
       const bytes = Buffer.from(JSON.stringify(incomplete));
       const signatureBase64 = cryptoSign(null, bytes, privateKey).toString("base64");
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string) => {
+          if (url === mockEnv.manifestUrl) return okResponse(bytes);
+          return okResponse(signatureBase64);
+        })
+      );
+
+      await assert.rejects(fetchVerifiedManifest(), /Manifest is missing required fields/);
+    });
+
+    it("throws when hostRuntime is missing", async () => {
+      const incomplete = { ...baseManifest(), hostRuntime: undefined };
+      delete (incomplete as Record<string, unknown>).hostRuntime;
+      const bytes = Buffer.from(JSON.stringify(incomplete));
+      const signatureBase64 = cryptoSign(null, bytes, privateKey).toString("base64");
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string) => {
+          if (url === mockEnv.manifestUrl) return okResponse(bytes);
+          return okResponse(signatureBase64);
+        })
+      );
+
+      await assert.rejects(fetchVerifiedManifest(), /Manifest is missing required fields/);
+    });
+
+    it("throws when hostRuntime has an invalid hash", async () => {
+      const manifest = baseManifest({ hostRuntime: { url: "https://example.com/edge-studio-host-runtime.tar.gz", sha256: "not-a-sha" } });
+      const { bytes, signatureBase64 } = signManifest(manifest);
       vi.stubGlobal(
         "fetch",
         vi.fn(async (url: string) => {

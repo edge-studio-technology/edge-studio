@@ -2,6 +2,7 @@ import { env } from "../config/env.js";
 import { recordAppliedManifest } from "../manifest/manifest-state.js";
 import { getUpdateStatus } from "../status/status.service.js";
 import { launchSelfUpdate } from "../self-update/self-update.service.js";
+import { updateHostRuntime } from "./host-runtime-update.js";
 import { updateService } from "./service-update.js";
 import type { ServiceUpdateResult } from "./update.types.js";
 
@@ -20,12 +21,13 @@ export async function applyUpdates(): Promise<ServiceUpdateResult[]> {
     // manifest is deliberately never recorded as applied — see
     // docs/adr/0003-update-dry-run.md for why that's the point, not a bug.
     return services
-      .filter((status) => status.service !== "update-agent")
+      .filter((status) => status.service !== "update-agent" && status.service !== "host-runtime")
       .map((status) => ({
         service: status.service,
         updated: !status.upToDate,
         reason: status.upToDate ? "already up to date" : "dry run — no changes applied"
-      }));
+      }))
+      .concat({ service: "host-runtime", updated: true, reason: "dry run — no changes applied" });
   }
 
   const results: ServiceUpdateResult[] = [];
@@ -34,7 +36,7 @@ export async function applyUpdates(): Promise<ServiceUpdateResult[]> {
     // update-agent doesn't go through the generic pull/health-check/swap loop
     // — it updates itself via a separate ephemeral orchestrator, launched
     // after everything else here has finished (see below).
-    if (status.service === "update-agent") continue;
+    if (status.service === "update-agent" || status.service === "host-runtime") continue;
 
     if (status.upToDate) {
       results.push({ service: status.service, updated: false, reason: "already up to date" });
@@ -49,6 +51,8 @@ export async function applyUpdates(): Promise<ServiceUpdateResult[]> {
 
     results.push(result);
   }
+
+  results.push(await updateHostRuntime(manifest.hostRuntime));
 
   // Only record the manifest as applied if nothing failed — a partial
   // failure must remain retryable against the same manifest.

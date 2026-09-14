@@ -31,7 +31,7 @@ type CameraCapturePreview = {
 
 export async function getCameraCapability() {
   if (!env.cameraEnabled) {
-    return { available: false, enabled: false, captureDir: env.cameraCaptureDir, reason: "Camera support is disabled. Set ENABLE_CAMERA=true and restart the app." };
+    return { available: false, enabled: false, captureDir: env.cameraCaptureDir, reason: "Camera support is disabled. Enable it from Devices -> Hardware support." };
   }
 
   try {

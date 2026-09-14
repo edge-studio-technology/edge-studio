@@ -10,7 +10,6 @@ export type JsonApiConfig = {
   url: string;
   method: "GET" | "POST";
   headers?: Record<string, string>;
-  healthStatusUrl?: string;
   body?: unknown;
 };
 
@@ -41,7 +40,7 @@ export type MqttOutputConfig = {
 export type GpioInputConfig = {
   chip: string;
   pin: number;
-  profile: "generic" | "pir-motion";
+  profile: "generic" | "pir-motion" | "gpio-button";
   pull: "off" | "up" | "down";
   edge: "rising" | "falling" | "both";
   debounceMs: number;
@@ -102,11 +101,10 @@ export function parseJsonApiConfig(value: unknown): JsonApiConfig {
   const url = typeof config?.url === "string" ? config.url.trim() : "";
   const method = config?.method === "POST" ? "POST" : "GET";
   const headers = config?.headers && typeof config.headers === "object" && !Array.isArray(config.headers) ? config.headers as Record<string, string> : {};
-  const healthStatusUrl = typeof config?.healthStatusUrl === "string" ? config.healthStatusUrl.trim() : "";
 
   if (!url) throw new Error("config.url is required");
 
-  return { url, method, headers, healthStatusUrl: healthStatusUrl || undefined, body: config?.body };
+  return { url, method, headers, body: config?.body };
 }
 
 export function parseDataSourceConfig(type: string, value: unknown, existingConfig?: unknown) {
@@ -169,7 +167,7 @@ export function parseGpioInputConfig(value: unknown): GpioInputConfig {
   const config = value as Partial<GpioInputConfig> | undefined;
   const chip = typeof config?.chip === "string" && config.chip.trim() ? config.chip.trim() : "gpiochip0";
   const pin = Number(config?.pin);
-  const profile = config?.profile === "pir-motion" ? "pir-motion" : "generic";
+  const profile = config?.profile === "pir-motion" || config?.profile === "gpio-button" ? config.profile : "generic";
   const pull = config?.pull === "up" || config?.pull === "down" || config?.pull === "off" ? config.pull : "off";
   const edge = config?.edge === "rising" || config?.edge === "falling" || config?.edge === "both" ? config.edge : "both";
   const debounceMs = Number(config?.debounceMs ?? 100);
@@ -233,12 +231,6 @@ export function parseDeviceSystemDataConfig(value: unknown): DeviceSystemDataCon
     includeNetwork: config?.includeNetwork !== false,
     includeLocation: config?.includeLocation !== false
   };
-}
-
-export async function checkDataSourceHealth(config: JsonApiConfig) {
-  if (!config.healthStatusUrl) throw new Error("Data source has no health status URL configured");
-  const { response, body } = await fetchJsonWithTimeout(config.healthStatusUrl);
-  return { ok: response.ok, status: response.status, source: config.healthStatusUrl, body, checkedAt: new Date().toISOString() };
 }
 
 export async function readJsonApiSource(config: JsonApiConfig) {

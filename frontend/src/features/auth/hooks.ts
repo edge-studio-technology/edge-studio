@@ -6,6 +6,7 @@ export type AuthContextValue = {
   loading: boolean;
   showSetup: boolean;
   showLogin: boolean;
+  sessionNotice: string | null;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
 };

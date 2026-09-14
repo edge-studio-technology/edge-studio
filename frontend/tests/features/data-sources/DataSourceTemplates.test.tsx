@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import {
   inputTemplates,
   LocalServicesCard,
@@ -7,7 +8,14 @@ import {
   resolveTemplateConfig,
   templateIcon,
 } from "../../../src/features/data-sources/DataSourceTemplates";
-import type { DataSourceCapabilities, DataSourceTemplate } from "../../../src/features/data-sources/dataSourceTypes";
+import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../../../src/features/data-sources/dataSourceTypes";
+
+const enabledHostCapabilities: HostCapability[] = [
+  { name: "camera", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "gpio", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "sensors", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "mqtt", enabled: true, installed: true, available: true, state: "enabled", reason: null, internalUrl: "mqtt://mqtt:1883", publicPort: 1883 },
+];
 
 function findTemplate(title: string): DataSourceTemplate {
   const template = [...inputTemplates, ...outputTemplates].find((t) => t.title === title);
@@ -70,21 +78,171 @@ describe("resolveTemplateConfig", () => {
 });
 
 describe("LocalServicesCard", () => {
-  it("shows Disabled and the enable-with hint when there is no mqttBroker capability", () => {
+  it("shows the disabled hardware summary when there is no mqttBroker capability", () => {
     render(<LocalServicesCard capabilities={null} />);
-    expect(screen.getByText("Disabled")).toBeInTheDocument();
-    expect(screen.getByText("ENABLE_MQTT_BROKER=true")).toBeInTheDocument();
+    expect(screen.getByText("0 of 4 enabled")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "MQTT: Disabled" })).toBeInTheDocument();
   });
 
-  it("shows Enabled and the LAN/internal URLs when the broker is enabled", () => {
+  it("keeps MQTT URLs inside the MQTT hardware detail", async () => {
     const capabilities: DataSourceCapabilities = {
       gpioInput: { available: true, devicePath: "", reason: null },
       mqttBroker: { enabled: true, internalUrl: "mqtt://mqtt:1883", publicHost: "pi.local", publicPort: 1883 },
     };
-    render(<LocalServicesCard capabilities={capabilities} />);
-    expect(screen.getByText("Enabled")).toBeInTheDocument();
+    render(<LocalServicesCard capabilities={capabilities} hostCapabilities={enabledHostCapabilities} />);
+    expect(screen.getByText("4 of 4 enabled")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "MQTT: Available" })).toBeInTheDocument();
+    expect(screen.queryByText("mqtt://pi.local:1883")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "MQTT: Available" }));
+
     expect(screen.getByText("mqtt://pi.local:1883")).toBeInTheDocument();
     expect(screen.getByText("mqtt://mqtt:1883")).toBeInTheDocument();
-    expect(screen.queryByText("ENABLE_MQTT_BROKER=true")).not.toBeInTheDocument();
+  });
+
+  it("hides MQTT URLs while the local broker is disabled", async () => {
+    const capabilities: DataSourceCapabilities = {
+      gpioInput: { available: true, devicePath: "", reason: null },
+      mqttBroker: { enabled: false, internalUrl: "mqtt://mqtt:1883", publicHost: "pi.local", publicPort: 1883 },
+    };
+    render(<LocalServicesCard capabilities={capabilities} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "MQTT: Disabled" }));
+
+    expect(screen.queryByText("mqtt://pi.local:1883")).not.toBeInTheDocument();
+    expect(screen.queryByText("mqtt://mqtt:1883")).not.toBeInTheDocument();
+  });
+
+  it("opens the hardware manager and switches selected hardware details", async () => {
+    render(<LocalServicesCard capabilities={null} hostCapabilities={enabledHostCapabilities} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Manage hardware" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Hardware support" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole("region", { name: "Raspberry Pi Camera details" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Disable" })).toBeInTheDocument();
+    expect(within(dialog).queryByText("Setup steps")).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Refresh status" })).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole("button", { name: /MQTT Available/ }));
+
+    expect(within(dialog).getByRole("region", { name: "Local MQTT broker details" })).toBeInTheDocument();
+  });
+
+  it("disables a manager action when prerequisites are missing", async () => {
+    const onRefreshHardware = vi.fn().mockResolvedValue(undefined);
+    const hostCapabilities: HostCapability[] = [
+      {
+        name: "camera",
+        enabled: false,
+        installed: false,
+        available: false,
+        state: "missing_prerequisites",
+        reason: "Camera tools are missing.",
+      },
+    ];
+    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onRefreshHardware={onRefreshHardware} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Manage hardware" }));
+
+    expect(screen.getByRole("button", { name: "Action required" })).toBeDisabled();
+    expect(screen.getByText("Action needed")).toBeInTheDocument();
+    expect(screen.getAllByText("Camera tools are missing.").length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByText("Setup steps"));
+
+    expect(screen.getByText("Install camera tools")).toBeInTheDocument();
+    expect(screen.getByText(/rpicam-still --list-cameras/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "I have completed this, refresh now" }));
+
+    expect(onRefreshHardware).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows automatic and manual I2C setup options when sensor prerequisites are missing", async () => {
+    const onSetupSensorPrerequisites = vi.fn().mockResolvedValue(undefined);
+    const hostCapabilities: HostCapability[] = [
+      {
+        name: "sensors",
+        enabled: false,
+        installed: false,
+        available: false,
+        state: "missing_prerequisites",
+        reason: "/dev/i2c-1 was not found on the host. Enable I2C on the Raspberry Pi host, reboot if needed, then refresh Hardware support.",
+      },
+    ];
+    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onSetupSensorPrerequisites={onSetupSensorPrerequisites} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "I2C sensors: Action required" }));
+
+    expect(screen.getByRole("button", { name: "Action required" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Automatic setup" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Manual setup" })).toBeInTheDocument();
+    expect(screen.queryByText("Enable I2C interface")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Automatic setup" }));
+
+    expect(onSetupSensorPrerequisites).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "Manual setup" }));
+
+    expect(screen.getByText("Enable I2C interface")).toBeInTheDocument();
+    expect(screen.getByText(/sudo raspi-config/)).toBeInTheDocument();
+    expect(screen.getByText("Reboot the Pi")).toBeInTheDocument();
+    expect(screen.getByText(/sudo reboot/)).toBeInTheDocument();
+    expect(screen.getByText(/ls -l \/dev\/i2c-1/)).toBeInTheDocument();
+  });
+
+  it("allows disabling an enabled capability even when prerequisites are missing", async () => {
+    const onDisableCamera = vi.fn().mockResolvedValue(undefined);
+    const hostCapabilities: HostCapability[] = [
+      {
+        name: "camera",
+        enabled: true,
+        installed: true,
+        available: false,
+        state: "missing_prerequisites",
+        reason: "No camera was detected by the Raspberry Pi camera stack.",
+      },
+    ];
+    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onDisableCamera={onDisableCamera} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Manage hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "Disable" }));
+
+    expect(onDisableCamera).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Action needed")).toBeInTheDocument();
+  });
+
+  it("calls the hardware refresh action from the manager header", async () => {
+    const onRefreshHardware = vi.fn().mockResolvedValue(undefined);
+    render(<LocalServicesCard capabilities={null} hostCapabilities={enabledHostCapabilities} onRefreshHardware={onRefreshHardware} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Manage hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "Refresh status" }));
+
+    expect(onRefreshHardware).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows Repair for enabled unavailable capabilities and calls the enable action", async () => {
+    const onEnableCamera = vi.fn().mockResolvedValue(undefined);
+    const hostCapabilities: HostCapability[] = [
+      {
+        name: "camera",
+        enabled: true,
+        installed: true,
+        available: false,
+        state: "failed",
+        reason: "Camera support is enabled, but the camera helper is stopped. Repair camera support to restart it.",
+      },
+    ];
+    render(<LocalServicesCard capabilities={null} hostCapabilities={hostCapabilities} onEnableCamera={onEnableCamera} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Manage hardware" }));
+    await userEvent.click(screen.getByRole("button", { name: "Repair" }));
+
+    expect(onEnableCamera).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByText(/Repair camera support to restart it/).length).toBeGreaterThan(0);
   });
 });

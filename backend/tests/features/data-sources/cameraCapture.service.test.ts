@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import path from "node:path";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import type { DataSourceRecord } from "../../../src/features/data-sources/dataSources.repository.js";
 
@@ -75,7 +76,7 @@ describe("getCameraCapability", () => {
   it("reports disabled without calling the helper when the camera is off", async () => {
     envMock.cameraEnabled = false;
     const result = await getCameraCapability();
-    assert.deepEqual(result, { available: false, enabled: false, captureDir: "/captures", reason: "Camera support is disabled. Set ENABLE_CAMERA=true and restart the app." });
+    assert.deepEqual(result, { available: false, enabled: false, captureDir: "/captures", reason: "Camera support is disabled. Enable it from Devices -> Hardware support." });
     assert.equal(fetchMock.mock.calls.length, 0);
   });
 
@@ -138,14 +139,15 @@ describe("capturePiCamera", () => {
       }));
 
     fsMock.readFile.mockResolvedValue(Buffer.from("jpeg-bytes"));
-    fsMock.stat.mockImplementation(async (filePath: string) => (filePath === "/captures/capture-1.jpg" ? { size: 10, isFile: () => true, mtimeMs: Date.now() } : { size: 1, isFile: () => true, mtimeMs: 0 }));
+    const capturePath = path.resolve("/captures/capture-1.jpg");
+    fsMock.stat.mockImplementation(async (filePath: string) => (filePath === capturePath ? { size: 10, isFile: () => true, mtimeMs: Date.now() } : { size: 1, isFile: () => true, mtimeMs: 0 }));
 
     const result = await capturePiCamera({ sourceId: "src-1" });
 
     assert.equal(result.contentType, "image/jpeg");
     assert.equal(result.sizeBytes, 10);
     assert.ok(result.bytesHash);
-    assert.equal(result.preview.path, "/captures/capture-1.jpg");
+    assert.equal(result.preview.path, capturePath);
     assert.equal(result.preview.sizeBytes, 10);
 
     const captureCall = fetchMock.mock.calls[2] as [string, RequestInit];
@@ -187,18 +189,20 @@ describe("capturePiCamera", () => {
       }));
 
     fsMock.readFile.mockResolvedValue(Buffer.from("bytes"));
+    const capturePath = path.resolve("/captures/capture-1.jpg");
+    const oldPath = path.join("/captures", "old.jpg");
     const now = Date.now();
     const old = now - 10 * 24 * 60 * 60 * 1000;
     fsMock.stat.mockImplementation(async (filePath: string) => {
-      if (filePath === "/captures/capture-1.jpg") return { size: 5, isFile: () => true, mtimeMs: now };
-      if (filePath === "/captures/old.jpg") return { size: 5, isFile: () => true, mtimeMs: old };
+      if (filePath === capturePath) return { size: 5, isFile: () => true, mtimeMs: now };
+      if (filePath === oldPath) return { size: 5, isFile: () => true, mtimeMs: old };
       return { size: 5, isFile: () => true, mtimeMs: now };
     });
     fsMock.readdir.mockResolvedValue(["capture-1.jpg", "old.jpg", "recent.jpg"]);
 
     await capturePiCamera({ sourceId: "src-1" });
 
-    assert.deepEqual(fsMock.unlink.mock.calls.map((call) => call[0]), ["/captures/old.jpg"]);
+    assert.deepEqual(fsMock.unlink.mock.calls.map((call) => call[0]), [oldPath]);
   });
 
   it("does not prune when retention is disabled", async () => {

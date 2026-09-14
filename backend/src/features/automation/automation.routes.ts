@@ -63,8 +63,20 @@ automationRouter.delete("/inbox/:id", requireRole("admin"), (req, res) => {
   return res.json({ deleted: true });
 });
 
-automationRouter.get("/workflows", (_req, res) => {
-  res.json({ items: listAutomationWorkflows().map(serializeAutomationWorkflow) });
+automationRouter.get("/workflows", async (_req, res) => {
+  const workflows = listAutomationWorkflows();
+  const validations = await Promise.all(workflows.map((workflow) => validateAutomationWorkflow(workflow.id)));
+  res.json({
+    items: workflows.map((workflow, index) => ({
+      ...serializeAutomationWorkflow(workflow),
+      validation: {
+        ok: validations[index].ok,
+        errorCount: validations[index].errors.length,
+        warningCount: validations[index].warnings.length,
+        firstErrorMessage: validations[index].errors[0]?.message ?? null,
+      },
+    })),
+  });
 });
 
 automationRouter.get("/runs", (req, res) => {

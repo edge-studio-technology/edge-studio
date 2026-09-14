@@ -13,7 +13,7 @@ type LoginPhase = "credentials" | "twofa";
 
 const TOTP_CODE_LENGTH = 6;
 
-export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
+export function LoginPage({ onSuccess, sessionNotice }: { onSuccess: () => void; sessionNotice?: string | null }) {
   const [phase, setPhase] = useState<LoginPhase>("credentials");
   const [credential, setCredential] = useState("");
   const [twoFactorCode, setTwoFactorCode] = useState("");
@@ -89,6 +89,12 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
                     Enter your password or PIN to continue.
                   </p>
                 </header>
+
+                {sessionNotice && (
+                  <p className="type-meta border-border-subtle bg-surface-subtle text-text-secondary rounded-card-inner m-0 border p-pad-tight text-center">
+                    {sessionNotice}
+                  </p>
+                )}
 
                 <div className="gap-detail-close flex w-full flex-col">
                   <InputField

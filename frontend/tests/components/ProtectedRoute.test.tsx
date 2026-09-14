@@ -13,6 +13,7 @@ function renderWithAuth(user: AuthContextValue["user"]) {
     loading: false,
     showSetup: false,
     showLogin: false,
+    sessionNotice: null,
     signOut: async () => {},
     refreshSession: async () => {},
   };
