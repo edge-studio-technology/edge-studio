@@ -326,31 +326,29 @@ export function DiagnosticsPage() {
 
         <p className="type-body text-text-secondary m-0">{TAB_DESCRIPTION[activeTab]}</p>
 
-        <div className="gap-detail-close flex flex-wrap items-end justify-between">
-          <div className="min-w-0 flex-1 [&>div]:mb-0">
-            <ListFilterBar
-              filter={listQuery.status}
-              q={listQuery.q}
-              filterOptions={statusOptions}
-              searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
-              disabled={
-                refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)
-              }
-              onFilterChange={(status) => updateListQuery({ status })}
-              onQueryChange={(q) => updateListQuery({ q })}
-            />
-          </div>
-          <Button
-            type="button"
-            iconStart={<RefreshCw aria-hidden />}
-            onClick={() => {
-              void handleRefresh();
-            }}
-            disabled={refreshing}
-          >
-            {refreshing ? "Refreshing…" : "Refresh"}
-          </Button>
-        </div>
+        <ListFilterBar
+          filter={listQuery.status}
+          q={listQuery.q}
+          filterOptions={statusOptions}
+          searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
+          disabled={
+            refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)
+          }
+          onFilterChange={(status) => updateListQuery({ status })}
+          onQueryChange={(q) => updateListQuery({ q })}
+          actions={
+            <Button
+              type="button"
+              iconStart={<RefreshCw aria-hidden />}
+              onClick={() => {
+                void handleRefresh();
+              }}
+              disabled={refreshing}
+            >
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </Button>
+          }
+        />
 
         {error ? (
           <ErrorAlert title="Couldn't load diagnostics" className="w-full max-w-none">
