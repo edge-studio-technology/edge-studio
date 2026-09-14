@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Hardware support now shows missing OS/hardware prerequisites as `Action required` before enablement, keeps `Disable` available for already-enabled capabilities with missing prerequisites, and includes a reboot step in I2C guidance.
 - First-time local MQTT broker enablement now allows a longer restart/status wait to avoid false failure toasts while Docker creates the broker container and recreates backend.
 - Update manifests now require a `hostRuntime` artifact URL and SHA-256 digest.
+- Workflow toolkit cards now show the same block-type icons as the canvas.
 
 ### Fixed
 
