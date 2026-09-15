@@ -13,8 +13,6 @@ function fields(overrides: Partial<DeviceFormFields> = {}): DeviceFormFields {
     setType: vi.fn(),
     url: "https://example.com/data.json",
     setUrl: vi.fn(),
-    healthStatusUrl: "",
-    setHealthStatusUrl: vi.fn(),
     brokerUrl: "mqtt://localhost:1883",
     setBrokerUrl: vi.fn(),
     topic: "sensors/+/data",
@@ -149,6 +147,12 @@ describe("buildDeviceConfigInput", () => {
     });
   });
 
+  it("gpio-input preserves the gpio-button profile", () => {
+    expect(
+      buildDeviceConfigInput(fields({ type: "gpio-input", gpioProfile: "gpio-button" }), {}),
+    ).toMatchObject({ profile: "gpio-button" });
+  });
+
   it("gpio-output fixes the led profile and inactive initial state", () => {
     expect(
       buildDeviceConfigInput(
@@ -211,22 +215,21 @@ describe("buildDeviceConfigInput", () => {
     });
   });
 
-  it("json-api (default) trims an empty health status URL to undefined", () => {
+  it("json-api (default) keeps GET and headers", () => {
     expect(
       buildDeviceConfigInput(
-        fields({ type: "json-api", url: "https://x", healthStatusUrl: "  ", method: "GET" }),
+        fields({ type: "json-api", url: "https://x", method: "GET" }),
         {},
       ),
-    ).toEqual({ url: "https://x", method: "GET", healthStatusUrl: undefined, headers: {} });
+    ).toEqual({ url: "https://x", method: "GET", headers: {} });
   });
 
-  it("json-api (default) keeps a trimmed health status URL and forces PUT/PATCH to POST", () => {
+  it("json-api (default) forces PUT/PATCH to POST", () => {
     expect(
       buildDeviceConfigInput(
         fields({
           type: "json-api",
           url: "https://x",
-          healthStatusUrl: " https://x/health ",
           method: "PATCH",
         }),
         {},
@@ -234,7 +237,6 @@ describe("buildDeviceConfigInput", () => {
     ).toEqual({
       url: "https://x",
       method: "POST",
-      healthStatusUrl: "https://x/health",
       headers: {},
     });
   });

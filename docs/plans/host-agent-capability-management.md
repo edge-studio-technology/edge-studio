@@ -1,6 +1,6 @@
 # Host Agent Capability Management Plan
 
-**Status:** Not started  
+**Status:** In progress
 **Created:** 2026-08-19  
 **Goal:** Let an admin enable optional host hardware support from the web app after first install, without rerunning `install.sh` manually.
 
@@ -19,6 +19,8 @@ Rejected approaches for the first implementation:
 
 The first capability should be camera enable/disable, because it is the current user pain point and already has host helper logic in `install.sh`.
 
+V1 separates Edge Studio hardware support from generic host OS management. The host agent detects missing OS prerequisites and reports them clearly; automatic OS prerequisite setup is limited to explicit, capability-specific actions such as I2C setup.
+
 ## Target Architecture
 
 ```txt
@@ -29,6 +31,12 @@ Browser UI
 ```
 
 The host agent is installed once by `install.sh`, even when optional capabilities start disabled. It exposes only fixed capability actions and reports status/progress back to the backend.
+
+Layer responsibilities:
+
+- `host-agent`: root-owned service that detects capability state, installs/enables/disables Edge Studio helper services, updates app runtime config, and restarts/reloads app services when needed.
+- Edge Studio app: Docker frontend/backend that shows hardware state, hides unavailable templates, and requests allowlisted actions through backend APIs.
+- Host OS: owns low-level drivers, packages, firmware, boot config, and kernel/device-tree enablement in V1.
 
 Suggested host-side layout:
 
@@ -68,6 +76,7 @@ Rules:
 - Accept only allowlisted capability names and actions.
 - Reject unknown request fields instead of silently accepting future behavior.
 - Never accept command strings, package names, file paths, or service names from the app.
+- Do not install OS packages, drivers, or tools automatically in V1.
 - Log actions and results, but never log tokens or secrets.
 
 Backend routes that call the host agent must require a logged-in admin. Use existing auth middleware and `requireRole("admin")` for mutations.
@@ -93,9 +102,12 @@ applying
 enabled
 failed
 needs_reboot
+missing_prerequisites
 ```
 
 The job endpoint should be included if camera setup can take long enough that a frontend request may time out. If implementation stays fast and synchronous at first, preserve the response shape so async jobs can be added without redesigning the frontend.
+
+If OS prerequisites are missing, return `missing_prerequisites` or `failed` with safe, specific diagnostics. The UI should explain what is missing and should not offer a normal enable action until the prerequisite is present.
 
 ## Installer Plan
 
@@ -138,6 +150,8 @@ Camera disable should perform fixed, idempotent steps:
 6. Return final status and any safe diagnostic details.
 
 Warnings such as missing `rpicam-still` or `libcamera-still` should be reported as capability diagnostics rather than hidden in install logs.
+
+Camera apply should not install Raspberry Pi camera packages in V1. If neither `rpicam-still` nor `libcamera-still` is available, the host agent should report missing host camera tools and the UI should guide the operator to fix the host OS first.
 
 ## Runtime Configuration Plan
 
@@ -224,6 +238,10 @@ Button: Disable / Reinstall
 
 Camera support: Failed
 Details disclosure + Retry
+
+Camera support: Missing host camera tools
+Button: disabled or replaced by guidance
+Details: install/enable the Raspberry Pi camera stack on the host, then refresh
 ```
 
 Frontend notes:
@@ -232,7 +250,8 @@ Frontend notes:
 2. Show user intent, not env flags.
 3. Use existing shared UI components and toast/error-detail patterns.
 4. Poll job/status while an apply or disable action is running.
-5. If a reboot is required, show a clear `needs_reboot` state.
+5. If a reboot is required for a future capability, show a clear `needs_reboot` state.
+6. If host OS prerequisites are missing, explain the missing prerequisite and do not hide it as a generic enable failure.
 
 Device creation should respect capability state. Hardware templates that require disabled or unavailable host support should not appear in the default `New input` or `New output` flows. Keep them in an internal inactive/disabled template list for now, but do not expose that list until there is a dedicated `Show inactive/disabled devices` UI.
 
@@ -240,13 +259,101 @@ Device creation should respect capability state. Hardware templates that require
 
 After camera works, the same host-agent capability framework can support other host features.
 
-Likely future capabilities:
+Implemented V1 capabilities:
 
 - `sensors` for I2C sensor helper setup.
 - `gpio` for device access and compose override management.
 - `mqtt` for local broker profile/config toggling if host-level work is needed.
 
 Each capability should remain its own allowlisted action set. Do not add generic service-management endpoints as a shortcut.
+
+Automatic OS package/driver installation is deferred. If it is added later, it should be an explicit per-capability action with OS/model-specific checks, signed/updateable agent logic, reboot handling, and clear user consent. It should not be hidden inside the normal `Enable` action.
+
+Host-agent update delivery also needs a future design. New hardware support may require host-agent changes in addition to frontend/backend Docker image updates, and users should not have to rerun `install.sh` for every host-agent update.
+
+## Current Implementation State
+
+Implemented so far:
+
+- `install.sh` installs a root-owned `edge-studio-host-agent` systemd service during normal install.
+- Backend exposes admin-gated `/api/host-capabilities` routes and never exposes the host-agent token to the browser.
+- Hardware support in Devices can enable/disable Camera, GPIO, I2C sensors, and the app-managed local MQTT broker.
+- Host-agent actions update `.env`, manage Edge Studio-owned helper/systemd/Compose state, and schedule backend or Compose service restarts as needed.
+- Host-agent actions report missing OS prerequisites, with automatic setup limited to explicit per-capability flows such as I2C prerequisite setup.
+- Camera, GPIO, I2C sensor, and local MQTT capability state is shown in Hardware support.
+- Disabled or unavailable host-backed templates are hidden from the default `New input` / `New output` flows.
+- Configured host-backed devices show `Disabled` or `Needs attention` when required support is unavailable.
+- Manual read/test actions are disabled when a configured device's required hardware support is unavailable.
+- Workflow validation reports disabled/unavailable hardware dependencies for Camera, GPIO, I2C sensors, and app-managed local MQTT broker devices.
+- Workflow list rows show a validation error message when there is no persisted runtime `lastError`.
+- Hardware enable/disable uses a blocking modal with polling/settle time so the UI does not accept more hardware actions while backend/services are restarting.
+- `HOST_CAPABILITY_DEBUG=true` enables secret-safe backend and host-agent diagnostics for hardware support flows.
+- Real Pi regression confirmed enable/disable for Camera, GPIO, I2C sensors, and Local MQTT, including state after backend/container restart, disabled device status, workflow validation errors, and template hiding.
+- Host-agent capability status now includes per-capability `checks` diagnostics and distinguishes missing tools/devices, helper service state, Compose profile/service/container state, generated GPIO override state, and backend container GPIO readiness.
+
+Known V1 boundaries:
+
+- The installer remains responsible for initial install, host-agent installation, Docker/runtime bundle setup, and advanced `ENABLE_*` shortcut behavior.
+- The host-agent owns hardware activation/disablement logic. The app reaches it through backend APIs after install, and installer `ENABLE_*` shortcuts call the same host-agent code through CLI install mode.
+- Edge Studio can automatically apply I2C prerequisites through an explicit admin action; other OS-level prerequisites remain manual.
+- Raspberry Pi OS/Debian prerequisite guidance is shown in the UI; other Linux distributions may work but are not the primary supported guidance path.
+
+Completed implementation checkpoints:
+
+- Real Pi regression pass for app-managed hardware enable/disable, backend/container restart behavior, disabled device status, workflow validation errors, and template hiding.
+- Installer/host-agent ownership boundary moved into final V1 shape: installer owns initial setup and host-agent installation, host-agent owns app-managed hardware changes after install, and installer advanced `ENABLE_*` shortcuts call the same host-agent capability logic through CLI install mode.
+- Host-agent status hardening is implemented for Camera, GPIO, I2C sensors, and local MQTT: checks distinguish missing host tools/devices, helper service states, generated GPIO override readiness, backend container device visibility, Compose profile/service availability, and MQTT container running state.
+- Host-agent file-write hardening started: `.env`, generated GPIO override, and camera/sensor systemd unit writes now use atomic replacement; service-file deletes tolerate repeated disable/race conditions; GPIO override writes refuse to replace user-managed override files.
+- GPIO action safety now reports user-managed override blockage in capability status and rejects automatic repair before changing `.env`, avoiding partial enablement when `docker-compose.override.yml` cannot be edited safely.
+- `.env` and Compose profile updates are now more retry-safe: repeated updates collapse duplicate edited keys and repeated MQTT apply/disable does not duplicate profile entries.
+- Host-agent retry tests now cover repeated GPIO apply, repeated MQTT apply/disable, and repeated Camera/I2C helper disable actions with mocked external service boundaries.
+- Host-agent retry tests now also cover repeated Camera/I2C apply actions and systemd restart failures before `.env` is flipped to enabled.
+- Backend and Docker Compose restart scheduling now reports missing Docker and process-launch failures as structured retryable results instead of uncaught action errors.
+- Action-level backend restart failure tests now cover Camera, GPIO, and I2C enablement leaving generated state intact and returning the failed restart result for retry.
+- Automated capability-logic tests now cover frontend device/template host-capability mapping, backend workflow validation for disabled/unavailable Camera/GPIO/I2C/local MQTT dependencies, and host-agent `.env`/Compose/GPIO override safety behavior.
+- Prerequisite UX now includes an explicit Hardware support refresh action, contextual `I have completed this, refresh now` affordance for blocked prerequisites, copyable Raspberry Pi OS/Debian-oriented commands, and a single low-noise platform disclaimer.
+
+## Remaining Implementation Steps
+
+1. Host-agent action safety.
+   V1 action safety is implemented for the known file-write, duplicate-update, user-managed override, repeated-click, and restart-scheduling failure paths. Keep this section open only for manual Pi retry validation and issues found during release testing.
+
+   Implementation checkpoints:
+
+   - Run manual Pi retry validation for repeated Enable/Disable/Repair across Camera, GPIO, I2C sensors, and local MQTT.
+   - Review whether `.env` writes should reject non-allowlisted keys at the helper boundary, even though callers currently pass fixed internal updates only.
+   - Verify failed prerequisites and failed partial actions can be corrected and retried without manual cleanup beyond the prerequisite fix.
+
+2. Improve hardware operation model.
+   The blocking modal plus polling is acceptable for V1. Longer-term, implement host-agent jobs: `POST /capabilities/:name/apply` returns a job id, and the UI polls job/capability state. This avoids request timeout issues for longer actions.
+
+3. Add automated tests around capability logic.
+   Core V1 capability-logic coverage is implemented. Add further tests only for bugs found during Pi retry validation or for future host-agent job/update-delivery work.
+
+4. Finalize prerequisite UX.
+   Implemented for V1. Keep open only for copy refinements from real Pi operator testing.
+
+5. Host-agent update delivery.
+   Completed. Signed manifests now require `hostRuntime.url` and `hostRuntime.sha256`; the release workflow builds `edge-studio-runtime.tar.gz`, hashes it before manifest signing, and publishes the manifest, signature, and runtime bundle together. The update-agent downloads and verifies the runtime artifact, then submits it to the host-agent's narrow update endpoint. The host-agent atomically replaces only allowlisted host runtime files and retries relevant service restarts on later applies if a previous restart failed.
+
+6. Security and audit trail.
+   Add audit events for hardware enable/disable actions, including capability name and resulting state. Do not log tokens or full `.env`. Consider re-auth for hardware actions later if these are treated like other privileged host mutations.
+
+   Implemented: backend host-capability enable/disable routes now write `host-capability.enable` / `host-capability.disable` audit events after successful host-agent actions. Details are limited to `capability`, resulting `state`, `enabled`, and `available`; host-agent tokens, `.env`, restart payloads, and helper configuration are not recorded. Re-auth remains a future policy decision.
+
+7. Documentation final pass.
+   Completed. README, changelog, security risk register, and task tracking now reflect the V1 behavior: app-managed enable/disable from Hardware support, `Action required` prerequisite guidance, I2C reboot guidance, first-time MQTT timing tolerance, session-expiry copy after Pi reboot, signed host-runtime update delivery, and sanitized hardware action audit events.
+
+8. Deferred UI/UX review after redesign.
+   Complete these checks after the broader UI/UX rework/redesign, because the Hardware support surfaces, modal structure, and device setup guide presentation may change:
+
+   - Confirm the Hardware support modal hierarchy makes `Action required`, `Disable`, `Repair`, and `Enable` visually distinct and understandable.
+   - Confirm prerequisite copy clearly tells users they can skip hardware they do not own or do not plan to use.
+   - Confirm the I2C reboot flow is understandable after a reboot/session expiry, including returning to Hardware support and refreshing status.
+   - Confirm first-time local MQTT broker enablement progress copy matches the longer Docker create/start/recreate wait.
+   - Confirm device setup guides no longer teach the old install-flag-first mental model.
+   - Confirm the Hardware support modal and copy fields scroll cleanly on mobile.
+   - Confirm hardware action error toasts explain the next recovery step, not just the failure.
 
 ## Documentation Plan
 
@@ -298,7 +405,7 @@ Manual Pi checks:
 
 ## Open Questions
 
-- Should the host agent bind only to localhost with a backend-accessible proxy, or directly to the configured Docker gateway address?
-- Should camera apply install missing Raspberry Pi camera packages, or only report that required host camera tools are missing?
-- Should V1 include an app-triggered reboot action for `needs_reboot`, or only instruct the user to reboot from the Pi/system UI?
-- Should the first UI live in Account settings or Devices?
+- Should the host agent bind only to localhost with a backend-accessible proxy, or directly to the configured Docker gateway address long term? V1 uses the backend-accessible host/Docker route plus token and Docker-subnet firewall rule where available.
+- Should any future capability install OS packages or edit Raspberry Pi boot/interface config automatically? V1 reports missing prerequisites and keeps OS-level changes manual.
+- Should a future version include an app-triggered reboot action for `needs_reboot`, or only instruct the user to reboot from the Pi/system UI?
+- Should hardware enable/disable actions require re-auth in addition to an admin session?

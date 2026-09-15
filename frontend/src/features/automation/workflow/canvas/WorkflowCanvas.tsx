@@ -5,29 +5,9 @@ import { IconButton } from "../../../../components/ui/Button";
 import { Divider } from "../../../../components/ui/Divider";
 import { ScrollArea } from "../../../../components/ui/ScrollArea";
 import { cx } from "../../../../lib/cx";
-import type { LucideIcon } from "lucide-react";
-import {
-  Camera,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  Cpu,
-  Database,
-  GitBranch,
-  Inbox,
-  Play,
-  Radio,
-  Send,
-  ShieldCheck,
-  Timer,
-  Trash2,
-  TriangleAlert,
-  Variable,
-  Webhook,
-  Zap,
-} from "lucide-react";
-import type { AutomationBlockType } from "../../automationTypes";
-import { blockPresentation, isDataBlock, type WorkflowCanvasBadge } from "./blockPresentation";
+import { ChevronDown, ChevronUp, Trash2, TriangleAlert } from "lucide-react";
+import { WorkflowBlockTypeIcon } from "./blockIcons";
+import { blockPresentation, type WorkflowCanvasBadge } from "./blockPresentation";
 import type {
   DraftWorkflowBlock,
   WorkflowCanvasBlock,
@@ -49,35 +29,6 @@ const emptyCanvasClass =
 const blockBaseClass =
   "relative w-full max-w-[520px] cursor-pointer rounded-soft border p-margin-tight text-text-primary transition-[border-color,box-shadow] before:absolute before:left-1/2 before:top-[-25px] before:hidden before:h-[24px] before:w-px before:-translate-x-1/2 before:bg-stroke-active focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none [&+&]:mt-detail-near [&+&]:before:block";
 const selectedBlockClass = "border-stroke-active shadow-[0_0_0_1px_var(--color-stroke-active)]";
-const blockIconTileBaseClass = "flex size-7 shrink-0 items-center justify-center rounded-full";
-
-/** Soft tint + icon color by category; shape/icon carry meaning so color isn’t the only cue. */
-function blockIconToneClass(type: AutomationBlockType) {
-  if (type.endsWith("_start")) return "bg-feedback-warning/20 text-icon-warning";
-  if (isDataBlock(type)) return "bg-[#2563EB]/15 text-[#2563EB]";
-  if (type === "set_variable" || type === "if_payload_field_equals" || type === "wait")
-    return "bg-surface-accent/15 text-text-accent";
-  if (type === "stamp_integritas") return "bg-feedback-positive/20 text-icon-success";
-  return "bg-[#DB2777]/15 text-[#DB2777]";
-}
-
-const blockTypeIcon: Record<AutomationBlockType, LucideIcon> = {
-  manual_start: Play,
-  schedule_start: Clock,
-  gpio_event_start: Cpu,
-  webhook_event_start: Webhook,
-  mqtt_event_start: Radio,
-  record_trigger_event: Inbox,
-  fetch_data_source: Database,
-  capture_camera: Camera,
-  set_variable: Variable,
-  if_payload_field_equals: GitBranch,
-  wait: Timer,
-  show_preview: Zap,
-  stamp_integritas: ShieldCheck,
-  control_output: Cpu,
-  send_transaction: Send,
-};
 
 export function WorkflowCanvas({
   mode,
@@ -202,7 +153,6 @@ function WorkflowBlockCard({
   onRemove: () => void;
 }) {
   const presentation = blockPresentation(block, sources, addressBook, validationIssues, runtime);
-  const BlockIcon = blockTypeIcon[block.type];
   const showActions = !block.type.endsWith("_start");
   const showFooter = presentation.badges.length > 0 || showActions;
   return (
@@ -238,12 +188,7 @@ function WorkflowBlockCard({
         </div>
         {/* Title row: category icon badge + title/description */}
         <div className="gap-detail-next flex items-start">
-          <span
-            className={cx(blockIconTileBaseClass, "mt-detail-fine", blockIconToneClass(block.type))}
-            aria-hidden
-          >
-            <BlockIcon className="size-4" strokeWidth={2} />
-          </span>
+          <WorkflowBlockTypeIcon type={block.type} className="mt-detail-fine" />
           <div className="gap-detail-tight grid min-w-0 flex-1">
             <strong className="type-body-em text-text-primary">{presentation.title}</strong>
             <p className="type-body text-text-primary m-0">{presentation.description}</p>
@@ -313,7 +258,6 @@ function AttachedBlockCard({
   addressBook: AddressBookEntry[];
 }) {
   const presentation = blockPresentation(block, sources, addressBook, [], undefined);
-  const BlockIcon = blockTypeIcon[block.type];
   return (
     <div
       className={cx(
@@ -325,12 +269,7 @@ function AttachedBlockCard({
         {block.enabled === false ? "Attached · Disabled" : "Attached"}
       </span>
       <div className="gap-detail-next flex items-start">
-        <span
-          className={cx(blockIconTileBaseClass, "mt-detail-fine", blockIconToneClass(block.type))}
-          aria-hidden
-        >
-          <BlockIcon className="size-4" strokeWidth={2} />
-        </span>
+        <WorkflowBlockTypeIcon type={block.type} className="mt-detail-fine" />
         <div className="gap-detail-tight grid min-w-0 flex-1">
           <strong className="type-body-em text-text-primary">{presentation.title}</strong>
           <p className="type-body text-text-primary m-0">{presentation.description}</p>

@@ -8,7 +8,7 @@
 The V1.5 external security review, findings [3] and [13]:
 
 - **[3]** Outbound HTTP reads buffered whole responses into memory. `readJsonApiSource`,
-  the `healthStatusUrl` check, `sendHttpOutput`, and `sendMultipartMediaOutput` all read the full
+  `sendHttpOutput`, and `sendMultipartMediaOutput` all read the full
   body — the last via `response.json()` — with no byte ceiling, and nothing limited how many such
   requests could be in flight at once. A configured remote service that answers slowly, or with a
   very large or highly compressible body, could exhaust the Pi's heap or pin every workflow run
@@ -33,7 +33,7 @@ never a smaller number than the product needs.
 
 `fetchExternalJson()` in `backend/src/shared/http.ts` was already the single egress path for
 operator-supplied URLs (ADR 0014). It is now also where every outbound limit is enforced, rather
-than each of the four call sites carrying its own. `fetchJsonWithTimeout()` is deliberately left
+than each of the three call sites carrying its own. `fetchJsonWithTimeout()` is deliberately left
 alone: it serves deployment-config callers (Minima RPC, Integritas, the camera/sensor helpers,
 status), whose URLs are not API-writable and whose responses — a Minima `coins` listing, for
 instance — have no business being cut off at a data-source-sized cap.

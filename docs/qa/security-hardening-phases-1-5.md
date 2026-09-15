@@ -180,12 +180,12 @@ test.
 
 | ID | Procedure | Expected result |
 | --- | --- | --- |
-| P2-01 | Save and read a JSON API input on the controlled LAN endpoint over `http` or `https`. Add a health URL, an HTTP output, and a multipart media output pointing at the same controlled endpoint. | Save and all four egress paths work, proving ordinary LAN/public egress was not accidentally disabled. |
+| P2-01 | Save and read a JSON API input on the controlled LAN endpoint over `http` or `https`. Add an HTTP output and a multipart media output pointing at the same controlled endpoint. | Save and all three egress paths work, proving ordinary LAN/public egress was not accidentally disabled. |
 | P2-02 | Try saving each path with `http://minima:9005/vault`, `http://backend:3000`, the configured Compose gateway/helper ports, `127.0.0.1`, `[::1]`, an IPv4-mapped loopback address, `host.docker.internal`, `file://`, and `gopher://`. | Every save is rejected with a safe validation error and no request reaches the destination. |
 | P2-03 | Have the controlled endpoint return a redirect whose `Location` is `http://minima:9005/status`; exercise all applicable egress paths. | The redirect is not followed to Minima. The operation fails with a safe destination-policy error. |
 | P2-04 | Confirm the focused URL/HTTP tests cover a hostname whose second answer is protected and a resolver that changes after validation. | Any protected answer rejects the request; the connection uses the already-validated address and does not perform an attacker-controlled second resolution. |
 | P2-05 | With the default console whitelist, run `status`, `tokens`, `tokens action:import`, `tokens action:somethingnew`, `maxcontacts action:add`, `cointrack`, `quit`, and an unknown verb. | Read commands work. Mutating/unknown action forms select disabled write entries. `cointrack` is write-only. Permanently excluded and unknown verbs never reach Minima. |
-| P2-06 | Review the `app.401-smoke` result and route assertions for data-source health, Minima config/resync, and Integritas stamp/history mutation routes. | No unauthenticated request passes; the changed routes require admin. Session-only history read/export behavior remains unchanged. |
+| P2-06 | Review the `app.401-smoke` result and route assertions for Minima config/resync and Integritas stamp/history mutation routes. | No unauthenticated request passes; the changed routes require admin. Session-only history read/export behavior remains unchanged. |
 
 The accepted residual from ADR 0014 is that other LAN hosts remain reachable. Treating that known
 policy as a test failure would be incorrect; reaching Edge Studio's protected destinations is a

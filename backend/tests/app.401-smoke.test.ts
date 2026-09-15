@@ -59,7 +59,6 @@ const protectedPrefixes = [
 // failure mode is a new route quietly shipping ungated.
 const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: string][] = [
   ["get", "/api/files"],
-  ["get", "/api/data-sources/src-1/health"],
   ["post", "/api/data-sources/src-1/read"],
   ["post", "/api/data-sources"],
   ["post", "/api/minima/config"],

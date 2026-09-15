@@ -72,18 +72,16 @@ Status: Documented prototype tradeoff.
 
 ## Data Source URL Fetching
 
-Risk: Saved data source URLs and optional health status URLs are fetched by the backend. In this prototype, an admin can configure URLs that cause the backend to make outbound or Docker-network HTTP requests.
+Risk: Saved data source and HTTP output target URLs are fetched by the backend. In this prototype, an admin can configure URLs that cause the backend to make outbound or Docker-network HTTP requests.
 
 Impact: Misconfigured or malicious URLs could probe internal services, create repeated outbound traffic, or expose upstream response details in the UI.
 
 Current Controls:
 
 - One shared validator (`backend/src/shared/url-policy.ts`) rejects non-`http(s)` schemes and internal destinations: the Compose subnet and gateway (`EDGE_STUDIO_DOCKER_SUBNET`/`EDGE_STUDIO_DOCKER_GATEWAY`), the container service names (`backend`, `frontend`, `minima`, `mqtt`, `update-agent`), loopback, link-local, `0.0.0.0/8`, `::`, and `host.docker.internal` — in IPv4 and IPv4-mapped IPv6 form alike.
-- Enforced at save time in `parseJsonApiConfig` and `parseHttpOutputConfig`, and again at fetch time on all four egress call sites (`readJsonApiSource`, the `healthStatusUrl` read, `sendHttpOutput`, `sendMultipartMediaOutput` — the last previously used a bare `fetch` with no validation at all). Config rows predate the validator, so fetch-time re-checking is not redundant.
+- Enforced at save time in `parseJsonApiConfig` and `parseHttpOutputConfig`, and again at fetch time on all three egress call sites (`readJsonApiSource`, `sendHttpOutput`, and `sendMultipartMediaOutput` — the last previously used a bare `fetch` with no validation at all). Config rows predate the validator, so fetch-time re-checking is not redundant.
 - The host is resolved once and rejected if **any** returned A/AAAA record is protected, then that validated address is pinned to the socket (`undici` `Agent` with a fixed `lookup`), so a resolver answering differently on a second lookup cannot move the connection onto an internal host.
 - Redirects are fetched with `redirect: "manual"` and every `Location` hop re-runs the whole check — resolve and pin included — under a hop cap, so the remote server cannot choose the final destination.
-- `GET /:id/health` now requires admin role, matching `POST /:id/read`, which drives the same fetch primitive.
-- Health status polling is narrow and read-only, and the frontend polls saved health URLs once per minute.
 - The camera and sensor host helpers are deliberately exempt: they fetch install-time `.env` values, not API-writable rows, and point at exactly the gateway ports this policy protects. The line drawn is API-writable URL versus deployment config.
 
 Plan:
@@ -221,14 +219,14 @@ Status: Accepted prototype risk.
 
 ## Local MQTT Broker (optional)
 
-Risk: When `ENABLE_MQTT_BROKER=true` and the `mqtt` Compose profile is active, the app starts a local Mosquitto broker exposed on `${MQTT_PUBLIC_PORT:-1883}`. The current prototype broker allows anonymous LAN connections.
+Risk: When the local MQTT broker is enabled from Devices -> Hardware support, or with the advanced `ENABLE_MQTT_BROKER=true` install shortcut and the `mqtt` Compose profile, the app starts a local Mosquitto broker exposed on `${MQTT_PUBLIC_PORT:-1883}`. The current prototype broker allows anonymous LAN connections.
 
 Impact: Any device that can reach the broker port on the trusted LAN can publish or subscribe to broker topics. This may expose device messages or allow unintended commands if topic names are known.
 
 Current Controls:
 
 - Disabled by default.
-- Requires explicit install/runtime configuration.
+- Requires explicit admin enablement from Hardware support or advanced install/runtime configuration.
 - Shown in the Devices page as a local service, not as a workflow target itself.
 - Backend MQTT inputs/outputs still require admin-created configured devices with saved broker/topic details.
 
@@ -284,7 +282,8 @@ Current Controls:
 - GPIO watchers start only while an enabled automation workflow exists for the source.
 - The backend uses fixed `gpiomon` arguments built from validated source config, not arbitrary shell command execution.
 - GPIO config uses BCM pin numbering, explicit edge selection, and debounce controls.
-- GPIO Docker device access is opt-in through `ENABLE_GPIO=true` in the installer, which writes a Compose override for `/dev/gpiochip0`.
+- GPIO Docker device access is opt-in from Devices -> Hardware support or through the advanced `ENABLE_GPIO=true` installer shortcut, both of which write a Compose override for `/dev/gpiochip0`.
+- Automation validation reports disabled/unavailable GPIO dependencies before affected workflows run.
 
 Plan:
 
@@ -307,7 +306,8 @@ Current Controls:
 - Output actions are allowlisted workflow blocks, not arbitrary shell commands.
 - GPIO output config uses BCM pin numbering and validates chip/pin shape.
 - The backend rejects GPIO output targets that reuse a configured GPIO input/output pin.
-- GPIO device access remains opt-in through `ENABLE_GPIO=true` and `/dev/gpiochip0` mounting.
+- GPIO device access remains opt-in through Hardware support or the advanced `ENABLE_GPIO=true` shortcut and `/dev/gpiochip0` mounting.
+- Automation validation reports disabled/unavailable GPIO output dependencies before affected workflows run.
 
 Required wiring baseline: use an LED with a 220-330 ohm resistor in series. Do not connect GPIO pins directly to 5V, motors, relays, mains voltage, or unknown modules.
 
@@ -322,13 +322,13 @@ Impact: Captures can contain private images/video. The helper expands app contro
 Current Controls:
 
 - Raspberry Pi Camera device creation/editing requires admin role.
-- Camera access is opt-in through `ENABLE_CAMERA=true`; the installer creates a localhost-only `edge-studio-camera-helper` systemd service.
+- Camera access is opt-in from Devices -> Hardware support or through the advanced `ENABLE_CAMERA=true` installer shortcut; both paths create/manage an `edge-studio-camera-helper` systemd service.
 - The helper requires a generated bearer token shared with the backend through `.env`.
-- Camera capability reporting checks that host camera commands exist and that the helper can list at least one detected camera before enabling Raspberry Pi Camera device creation.
+- Camera capability reporting checks that host camera commands exist and that the helper service is active before enabling Raspberry Pi Camera device creation.
 - Camera capture is a narrow workflow data block, not arbitrary shell execution or a generic output target.
 - Captured media stays local under the configured capture directory; read history stores JSON metadata and the media hash.
 - Integritas stamping uses the captured media file hash, not the raw image/video content.
-- Automation validation warns that camera workflows may record private images/video.
+- Automation validation reports disabled/unavailable camera dependencies and warns that camera workflows may record private images/video.
 - Per-capture duration is bounded by `CAMERA_MAX_DURATION_SECONDS`.
 - Old capture files are pruned opportunistically before new captures according to `CAMERA_RETENTION_DAYS`.
 

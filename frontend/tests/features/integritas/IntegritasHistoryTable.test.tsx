@@ -20,6 +20,7 @@ function record(overrides: Partial<IntegritasProofRecord> = {}): IntegritasProof
     verify_response: null,
     proof_error: null,
     ...overrides,
+    verification_report_file: overrides.verification_report_file ?? null,
   };
 }
 
@@ -34,6 +35,7 @@ function renderTable(props: Partial<React.ComponentProps<typeof IntegritasHistor
         onVerify={vi.fn()}
         onDownload={vi.fn()}
         onDownloadZip={vi.fn()}
+        onOpenVerificationReport={vi.fn()}
         onClearSelection={vi.fn()}
         onDeleteSelected={vi.fn()}
         onDownloadSelected={vi.fn()}
@@ -290,6 +292,18 @@ describe("IntegritasHistoryTable", () => {
     expect(onDownloadZip).toHaveBeenCalledWith(item);
   });
 
+  it("calls Open verification report when a local report is available", async () => {
+    const user = userEvent.setup();
+    const onOpenVerificationReport = vi.fn();
+    const item = record({ id: "r1", proof_uid: "uid-1", verification_report_file: "r1.pdf" });
+    renderTable({ records: [item], onOpenVerificationReport });
+
+    await user.click(screen.getByRole("button", { name: "More actions for uid-1" }));
+    await user.click(screen.getByRole("menuitem", { name: "Open verification report" }));
+
+    expect(onOpenVerificationReport).toHaveBeenCalledWith(item);
+  });
+
   it("disables Verify/Download/Download ZIP in the row menu when there is no payload", async () => {
     const user = userEvent.setup();
     const item = record({ id: "r1", proof_uid: "uid-1", proof_payload: null });
@@ -299,6 +313,16 @@ describe("IntegritasHistoryTable", () => {
     expect(screen.getByRole("menuitem", { name: "Verify" })).toBeDisabled();
     expect(screen.getByRole("menuitem", { name: "Download" })).toBeDisabled();
     expect(screen.getByRole("menuitem", { name: "Download ZIP" })).toBeDisabled();
+  });
+
+  it("disables Open verification report when no local report is available", async () => {
+    const user = userEvent.setup();
+    const item = record({ id: "r1", proof_uid: "uid-1", verification_report_file: null });
+    renderTable({ records: [item] });
+
+    await user.click(screen.getByRole("button", { name: "More actions for uid-1" }));
+
+    expect(screen.getByRole("menuitem", { name: "Open verification report" })).toBeDisabled();
   });
 
   it("shows a Verifying… label and disables the menu item for the record currently verifying", async () => {

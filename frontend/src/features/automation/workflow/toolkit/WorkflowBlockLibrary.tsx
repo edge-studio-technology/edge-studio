@@ -6,6 +6,7 @@ import { Tooltip } from "../../../../components/ui/Tooltip";
 import { cx } from "../../../../lib/cx";
 import type { DataSource } from "../../../data-sources/dataSourceTypes";
 import type { AutomationBlockType } from "../../automationTypes";
+import { WorkflowBlockTypeIcon } from "../canvas";
 import { WorkflowRailHeader, WorkflowRailPanel } from "../chrome/WorkflowRail";
 import { blockHelp, workflowBlockLibraryTypes } from "../workflowBlockHelp";
 import { missingDeviceLibraryReason } from "../workflowHelpers";
@@ -254,7 +255,10 @@ function LibraryCard({
       }}
     >
       <span className="gap-detail-close flex items-center justify-between">
-        <span className="type-body-em text-text-primary">{help.title}</span>
+        <span className="gap-detail-close flex min-w-0 items-center">
+          <WorkflowBlockTypeIcon type={type} />
+          <span className="type-body-em text-text-primary min-w-0">{help.title}</span>
+        </span>
         <span className="gap-detail-tight flex shrink-0 items-center">
           {selected ? (
             <Check aria-hidden className="text-icon-primary size-4 shrink-0" strokeWidth={2.5} />

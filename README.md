@@ -51,7 +51,9 @@ To install from a branch before it is merged to `main`, pass `APP_BRANCH`:
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env APP_BRANCH=<branch-name> bash
 ```
 
-To enable Raspberry Pi GPIO input sources during install, pass `ENABLE_GPIO=true`:
+Optional hardware support is disabled by default on first install. After install, enable supported hardware from Devices -> Hardware support in the app UI. If required host prerequisites are missing, Hardware support shows `Action required` with setup commands instead of running an enable action that will fail. The installer still accepts `ENABLE_*` flags as advanced shortcuts for developers, testing, and headless installs.
+
+Advanced: to enable Raspberry Pi GPIO input sources during install, pass `ENABLE_GPIO=true`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_GPIO=true bash
@@ -59,7 +61,7 @@ curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/
 
 `ENABLE_GPIO=true` writes `/opt/edge-studio/docker-compose.override.yml` with `/dev/gpiochip0` mounted into the backend container and detects the host GPIO group id. Leave it disabled unless this deployment needs GPIO hardware ingestion.
 
-To enable Raspberry Pi camera capture devices during install, pass `ENABLE_CAMERA=true`:
+Advanced: to enable Raspberry Pi camera capture devices during install, pass `ENABLE_CAMERA=true`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_CAMERA=true bash
@@ -67,17 +69,19 @@ curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/
 
 `ENABLE_CAMERA=true` installs and starts a host-side `edge-studio-camera-helper` systemd service, generates a `CAMERA_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Edge Studio Compose gateway. Leave it disabled unless this deployment needs camera capture workflows.
 
+After install, an admin can enable or disable camera support from Devices -> Hardware support. The installer always installs a narrow root-owned `edge-studio-host-agent` service for this app-managed hardware setup path.
+
 `ENABLE_CAMERA=true` does not install host camera drivers or enable the Raspberry Pi camera stack. Before using camera workflows, verify the Pi host can see the camera with `libcamera-still --list-cameras` or `rpicam-still --list-cameras`. Camera Module 3 (`imx708`) requires a host OS/kernel/libcamera stack that supports it. The helper uses the host camera tools, not camera binaries inside the backend container.
 
-To enable BME280/BME680 I2C environmental sensor devices during install, pass `ENABLE_SENSORS=true`:
+Advanced: to enable BME280/BME680 I2C environmental sensor devices during install, pass `ENABLE_SENSORS=true`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_SENSORS=true bash
 ```
 
-`ENABLE_SENSORS=true` installs and starts a host-side `edge-studio-sensor-helper` systemd service, generates a `SENSOR_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Edge Studio Compose gateway. Leave it disabled unless this deployment needs direct I2C sensor reads. The Pi's I2C interface must also be enabled on the host. BME680 reads require the Python `bme680` module; the installer creates a dedicated sensor-helper virtualenv and installs the module there when sensor support is enabled.
+`ENABLE_SENSORS=true` installs and starts a host-side `edge-studio-sensor-helper` systemd service, generates a `SENSOR_HELPER_TOKEN`, and writes backend configuration so the Docker backend can call the helper through the fixed Edge Studio Compose gateway. Leave it disabled unless this deployment needs direct I2C sensor reads. The Pi's I2C interface must also be enabled on the host, and the Pi may need a reboot before `/dev/i2c-1` appears. BME680 reads require the Python `bme680` module; the installer creates a dedicated sensor-helper virtualenv and installs the module there when sensor support is enabled.
 
-To enable the optional local MQTT broker during install, pass `ENABLE_MQTT_BROKER=true`:
+Advanced: to enable the optional local MQTT broker during install, pass `ENABLE_MQTT_BROKER=true`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env ENABLE_MQTT_BROKER=true bash
@@ -96,6 +100,8 @@ The installer will:
 - Download the default runtime bundle to `/opt/edge-studio` or clone the repository when `DEV_MODE=true`
 - Verify the runtime bundle's Ed25519 signature before extracting it, and refuse archive entries with absolute or `..` paths or anything other than regular files and directories
 - Write `/opt/edge-studio/.env`
+- Install the host agent used for admin-triggered hardware support changes from the app
+- Leave optional hardware and local services disabled unless advanced `ENABLE_*` flags were provided
 - Generate a self-signed TLS certificate in `DATA_DIR/certs`
 - Start the app with `docker compose up -d --build`
 
@@ -201,17 +207,17 @@ The backend runs a Minima health poller on `MINIMA_HEALTH_POLL_INTERVAL_SECONDS`
 
 `DOCKER_GID` lets the non-root backend user read Docker status through `/var/run/docker.sock`. The installer detects this automatically from the socket group id.
 
-`ENABLE_GPIO=true` lets the installer create a Docker Compose override that mounts `/dev/gpiochip0` for GPIO input sources. `GPIO_GID` is detected from `/dev/gpiochip0` or the host `gpio` group when possible. GPIO stays disabled by default because it grants the backend container host hardware access.
+`ENABLE_GPIO=true` is an advanced install shortcut that asks the host agent to create a Docker Compose override that mounts `/dev/gpiochip0` for GPIO input/output devices during install. Normal installs should leave GPIO disabled and let an admin enable it later from Devices -> Hardware support. `GPIO_GID` is detected from `/dev/gpiochip0` or the host `gpio` group when possible. GPIO stays disabled by default because it grants the backend container host hardware access.
 
 When GPIO is not enabled or `/dev/gpiochip0` is unavailable in the backend container, the GPIO Input and PIR Motion Sensor cards are disabled in the Data Sources page.
 
 GPIO input/output settings for tested button, LED, and HC-SR501 PIR motion sensor wiring, plus suggested untested device profiles, are documented in [`docs/guides/gpio-device-settings.md`](./docs/guides/gpio-device-settings.md).
 
-`ENABLE_CAMERA=true` lets the installer create a host-side Python camera helper service. The Devices page enables the Pi Camera capture device type only when the helper reports usable host camera commands and at least one detected camera. Camera support stays disabled by default because it grants the app a way to trigger host camera capture and captured images/video may contain private data.
+`ENABLE_CAMERA=true` is an advanced install shortcut that asks the host agent to create a host-side Python camera helper service during install. Normal installs should leave camera disabled and let an admin enable it later from Devices -> Hardware support. The Devices page enables the Pi Camera capture device type only when camera support is enabled. Camera support stays disabled by default because it grants the app a way to trigger host camera capture and captured images/video may contain private data. Edge Studio does not install Raspberry Pi camera OS packages or drivers in V1; if `rpicam-*` or `libcamera-*` tools are missing, Hardware support reports that prerequisite instead of enabling capture.
 
 Pi Camera devices are capture/input devices, not generic output targets. Automation workflows use a `Capture camera` data block to capture a photo or short video clip, hash the captured media bytes, store capture metadata in read history, and optionally attach `Stamp data` to create an Integritas proof for the media hash. Captured media is stored locally under `CAMERA_CAPTURE_DIR` (`/data/captures` in Docker, mapped to the host data directory for the helper). `CAMERA_MAX_DURATION_SECONDS` limits per-capture video duration. `CAMERA_PHOTO_COMMAND` and `CAMERA_VIDEO_COMMAND` default to `rpicam-still` and `rpicam-vid`; the Python helper also falls back to `libcamera-still` and `libcamera-vid`. `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` pin the Compose network so the backend has a stable route to the host helper after reboot/redeploy. The helper uses only Python's standard library and is intended as the extension point for future USB/RTSP/HTTP camera backends.
 
-`ENABLE_SENSORS=true` lets the installer create a host-side Python sensor helper service for direct I2C sensor reads. The Devices page includes `BME280 Environmental Sensor` and `BME680 Environmental Sensor` templates. BME sensor devices are readable input sources: manual reads and Automation `Fetch data source` blocks produce JSON with `temperatureC`, `humidityPercent`, `pressureHpa`, I2C bus/address, and `readAt`, then hash that JSON for Integritas stamping. Wire the module's `VIN` to 3.3V or 5V, `GND` to ground, `SCL` to physical pin 5 / GPIO3, and `SDA` to physical pin 3 / GPIO2. Enable I2C on the Pi host first, and use address `0x76` or `0x77` depending on the module. BME680 reads require the Python `bme680` module in the sensor-helper virtualenv. See [`docs/guides/bme280-sensor.md`](./docs/guides/bme280-sensor.md) for setup details.
+`ENABLE_SENSORS=true` is an advanced install shortcut that asks the host agent to create a host-side Python sensor helper service for direct I2C sensor reads during install. Normal installs should leave sensors disabled and let an admin enable them later from Devices -> Hardware support. The Devices page includes `BME280 Environmental Sensor` and `BME680 Environmental Sensor` templates only when sensor support is enabled. BME sensor devices are readable input sources: manual reads and Automation `Fetch data source` blocks produce JSON with `temperatureC`, `humidityPercent`, `pressureHpa`, I2C bus/address, and `readAt`, then hash that JSON for Integritas stamping. Wire the module's `VIN` to 3.3V or 5V, `GND` to ground, `SCL` to physical pin 5 / GPIO3, and `SDA` to physical pin 3 / GPIO2. Enable I2C on the Pi host first, reboot if prompted or if `/dev/i2c-1` is still missing, and use address `0x76` or `0x77` depending on the module. BME680 reads require the Python `bme680` module in the sensor-helper virtualenv; Hardware support attempts to install it into the helper venv, but does not install OS packages. Edge Studio does not enable host I2C or install host SMBus packages automatically in V1; missing host prerequisites are reported to the user with copyable commands. See [`docs/guides/bme280-sensor.md`](./docs/guides/bme280-sensor.md) for setup details.
 
 `INTEGRITAS_CONNECT_BASE_URL` is the Integritas Connect host used for device activation and account linking (default `https://integritas.technology`).
 
@@ -220,7 +226,11 @@ Pi Camera devices are capture/input devices, not generic output targets. Automat
 Proof stamping uses the Integritas Connect account API key stored encrypted in `integritas_auth.api_key_enc` after device linking. Link Integritas Connect from the Integritas page or during first-run setup. API keys are never exposed in the frontend bundle.
 
 `INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS` is how often the Pi polls Connect while device activation is pending (default `5`).
-`ENABLE_MQTT_BROKER=true` enables the optional local Mosquitto broker when `COMPOSE_PROFILES=mqtt` is also set. The installer sets both values when launched with `ENABLE_MQTT_BROKER=true`. The Devices page shows the LAN broker URL for external devices and the internal Docker URL for Edge Studio MQTT input/output configs.
+`ENABLE_MQTT_BROKER=true` is an advanced install shortcut that asks the host agent to enable the optional local Mosquitto broker and the Docker Compose `mqtt` profile during install. Normal installs can enable or disable the local broker later from Devices -> Hardware support. First enable can take longer than later toggles because Docker may need to create/start the broker container and recreate the backend. The Devices page shows the LAN broker URL for external devices and the internal Docker URL for Edge Studio MQTT input/output configs.
+
+Hardware enable/disable actions are admin-only and recorded in the SQLite `audit_events` table with the capability name and resulting state. Audit details intentionally omit host-agent tokens, helper tokens, full `.env` content, and restart payloads.
+
+Set `HOST_CAPABILITY_DEBUG=true` temporarily when debugging Hardware support enable/disable flows. It prints secret-safe diagnostics in backend logs and `edge-studio-host-agent` systemd logs, including host-capability endpoint calls, returned status codes, capability states, and scheduled Compose commands. Turn it off after troubleshooting.
 
 The ESP32 MQTT Board onboarding option creates a normal MQTT input source and then shows copyable Arduino ESP32 starter firmware. The generated firmware uses the LAN broker host/port for the ESP32 while the saved MQTT source can keep using the backend's internal broker URL.
 
@@ -275,13 +285,15 @@ Future versions may support custom certificates or an external reverse proxy.
 
 `SESSION_MAX_AGE_DAYS` and `SESSION_IDLE_HOURS` control session lifetime (default 7 days max, 24 hours idle).
 
-`MANIFEST_URL` configures the `update-agent` service: the signed update manifest URL, served from `edgestudio.technology` by default. If that fetch fails, `update-agent` automatically falls back to the public [edge-studio-manifests](https://github.com/edge-studio-technology/edge-studio-manifests) GitHub repo via `raw.githubusercontent.com` (not configurable). The Ed25519 public key used to verify its signature is baked into the `update-agent` image at build time from the committed `update-agent/manifest-public-key.pem`, not an env var. `install.sh` verifies the same signature at install time using its own embedded copy of that key, its own embedded verifier, and a digest-pinned Node container, so neither the key nor the verifier comes from the runtime bundle they authenticate (see [docs/adr/0016](docs/adr/0016-install-time-bootstrap-trust-set.md)). Leave `MANIFEST_URL` empty to disable update checks. The update flow is split across two origins-in-one: `https://<pi-ip>:8080/update` (no trailing slash) is the product frontend's own page — checks for updates and starts one; `https://<pi-ip>:8080/update/` (trailing slash) is `update-agent`'s own static page — shows apply progress and survives a frontend container swap mid-update. Both are the same TLS cert/origin, proxied through `frontend`'s nginx (no extra browser approval). See [.agents/rules/update-agent.md](.agents/rules/update-agent.md) for the full design.
+If a Raspberry Pi reboot happens while the browser is open, the old session may become invalid before the next refresh. The login screen explains that Edge Studio restarted or the session expired and asks the admin to enter the PIN/password again.
+
+`MANIFEST_URL` configures the `update-agent` service: the signed update manifest URL, served from `edgestudio.technology` by default. If that fetch fails, `update-agent` automatically falls back to the public [edge-studio-manifests](https://github.com/edge-studio-technology/edge-studio-manifests) GitHub repo via `raw.githubusercontent.com` (not configurable). The Ed25519 public key used to verify its signature is baked into the `update-agent` image at build time from the committed `update-agent/manifest-public-key.pem`, not an env var. `install.sh` verifies the same signature at install time using its own embedded copy of that key, its own embedded verifier, and a digest-pinned Node container, so neither the key nor the verifier comes from the runtime bundle they authenticate (see [docs/adr/0016](docs/adr/0016-install-time-bootstrap-trust-set.md)). Current manifests must include `hostRuntime.url` and `hostRuntime.sha256`; update-agent downloads that artifact, verifies the SHA-256 from the signed manifest, then asks the token-protected host-agent to atomically update allowlisted host runtime files. Leave `MANIFEST_URL` empty to disable update checks. The update flow is split across two origins-in-one: `https://<pi-ip>:8080/update` (no trailing slash) is the product frontend's own page — checks for updates and starts one; `https://<pi-ip>:8080/update/` (trailing slash) is `update-agent`'s own static page — shows apply progress and survives a frontend container swap mid-update. Both are the same TLS cert/origin, proxied through `frontend`'s nginx (no extra browser approval). See [.agents/rules/update-agent.md](.agents/rules/update-agent.md) for the full design.
 
 Default installs use `docker-compose.yml` plus `docker-compose.release.yml`, which removes source build contexts and uses the signed manifest's image digests. `DEV_MODE=true` installs use only `docker-compose.yml` so frontend/backend can be built from source.
 
 The default-install runtime bundle is intentionally limited to the files listed in `scripts/release/runtime-bundle-files.json`; source-build directories such as `frontend/`, `backend/`, and `update-agent/` are only required for `DEV_MODE=true` installs.
 
-Build the default-install runtime archive with `npm run release:build-runtime-bundle`; it writes `edge-studio-runtime.tar.gz` from the allowlisted files. The installer derives `RUNTIME_BUNDLE_URL` from `MANIFEST_URL` unless explicitly overridden.
+Build the default-install runtime archive with `npm run release:build-runtime-bundle`; it writes `edge-studio-runtime.tar.gz` from the allowlisted files. The installer derives `RUNTIME_BUNDLE_URL` from `MANIFEST_URL` unless explicitly overridden. Release manifests are generated with `HOST_RUNTIME_URL` and `HOST_RUNTIME_SHA256` so the same runtime artifact can be applied by update-agent after install.
 
 To install with another file root or port:
 
@@ -598,8 +610,7 @@ backend container
 - Integritas hash, stamp, status, verify endpoints
   - File uploads (stamp a file, verify a proof file, restore a Minima backup) are limited to `UPLOAD_MAX_FILE_BYTES` (default 100 MB) and `UPLOAD_MAX_FILES`/`UPLOAD_MAX_FIELDS` per request; Nginx derives multipart request headroom from the same settings, and an oversized file returns a JSON `413` from the backend. Raise `UPLOAD_MAX_FILE_BYTES` if you stamp larger files — it has no hard maximum.
 - Device APIs and historic read log at `/api/data-sources` and `/api/data-reads`
-  - Input sources can include an optional health status URL. The browser polls saved health URLs once per minute through the backend and shows the latest status in the configured devices table.
-  - HTTP source and HTTP output target URLs (including health status URLs) must use `http` or `https` and must not point at Edge Studio's own container network, its gateway, a container service name, loopback, or a link-local address. The check runs when the device is saved and again on every fetch, follows redirects one hop at a time, and pins the address it checked to the connection. LAN and public destinations are unaffected. Set `EDGE_STUDIO_DOCKER_SUBNET` / `EDGE_STUDIO_DOCKER_GATEWAY` if the Compose network differs from the defaults.
+  - HTTP source and HTTP output target URLs must use `http` or `https` and must not point at Edge Studio's own container network, its gateway, a container service name, loopback, or a link-local address. The check runs when the device is saved and again on every fetch, follows redirects one hop at a time, and pins the address it checked to the connection. LAN and public destinations are unaffected. Set `EDGE_STUDIO_DOCKER_SUBNET` / `EDGE_STUDIO_DOCKER_GATEWAY` if the Compose network differs from the defaults.
   - Outbound reads and HTTP output requests stop at `EGRESS_MAX_RESPONSE_BYTES` (default 5 MB, hard max 50 MB) of decompressed response body, share a global limit of `EGRESS_MAX_CONCURRENT` in-flight requests (default 4) with a queue of `EGRESS_QUEUE_LIMIT` (default 32), and are cut off at `EGRESS_TIMEOUT_MS` (default 5 s, hard max 60 s). Requests past the queue are rejected rather than queued indefinitely. MQTT messages over `MQTT_MAX_PAYLOAD_BYTES` (default 256 KB, hard max 4 MB) are rejected and recorded as a failed read. Values outside the supported range are clamped; see [docs/adr/0017](docs/adr/0017-outbound-and-upload-resource-limits.md).
   - Device protocols currently include HTTP JSON API fetches, BME280/BME680 I2C sensor reads, webhook JSON receives, MQTT JSON subscriptions, Raspberry Pi GPIO input events, HC-SR501-style PIR motion events, and Raspberry Pi GPIO LED output targets. Devices define connection details; Automation workflows decide whether reads are recorded, outputs are controlled, and hashes are stamped. GPIO LED output targets can also be test-pulsed from the Devices page before adding them to a workflow.
   - Event-driven workflow start blocks support a cooldown between runs. GPIO starts can also ignore inactive edges, which is recommended for PIR motion workflows so `motion_cleared` does not trigger notifications or output actions.

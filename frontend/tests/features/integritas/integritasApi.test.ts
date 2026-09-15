@@ -19,6 +19,7 @@ import {
   stampFile,
   verifyProofFile,
   verifyRecord,
+  verificationReportUrl,
 } from "../../../src/features/integritas/integritasApi";
 
 describe("integritasApi", () => {
@@ -81,6 +82,13 @@ describe("integritasApi", () => {
 
     expect(postJson).toHaveBeenCalledWith("/api/integritas/history/r1/verify");
     expect(result).toBe(response);
+  });
+
+  it("builds a local verification report URL only when a saved report is available", () => {
+    expect(verificationReportUrl({ id: "r1", verification_report_file: "r1.pdf" })).toBe(
+      "/api/integritas/history/r1/verification-report",
+    );
+    expect(verificationReportUrl({ id: "r1", verification_report_file: null })).toBe(null);
   });
 
   it("verifyProofFile POSTs the file as form data", async () => {

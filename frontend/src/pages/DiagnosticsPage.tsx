@@ -5,7 +5,7 @@ import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../components/patterns/ListPaginationFooter";
 import { Page } from "../components/patterns/Page";
-import { Button } from "../components/ui/Button";
+import { Button, LinkButton } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { TabList } from "../components/ui/TabList";
 import { useToast } from "../components/ToastProvider";
@@ -21,6 +21,7 @@ import {
   downloadSelected,
   getHistory,
   verifyRecord,
+  verificationReportUrl,
 } from "../features/integritas/integritasApi";
 import { integritasErrorToast } from "../features/integritas/integritasErrors";
 import { IntegritasHistoryTable } from "../features/integritas/IntegritasHistoryTable";
@@ -241,11 +242,19 @@ export function DiagnosticsPage() {
       const result = await verifyRecord(record.id);
       applyPaginatedPage(await getHistory(listQuery), listQuery.page, setProofsPage, clampPage);
       const isFullMatch = extractVerifyMatch(result.response) === "full_match";
+      const reportUrl = result.verificationReportUrl;
       showToast({
         tone: isFullMatch ? "success" : "warning",
         title: isFullMatch ? "Full match" : "No match",
-        message: isFullMatch ? "The proof matches the original data." : "The proof does not match.",
-        timeoutMs: 6000,
+        message: reportUrl
+          ? `${isFullMatch ? "The proof matches the original data." : "The proof does not match."} Verification report saved on this Pi.`
+          : isFullMatch ? "The proof matches the original data." : "The proof does not match.",
+        action: reportUrl ? (
+          <LinkButton size="sm" href={reportUrl} target="_blank" rel="noopener noreferrer">
+            Open report
+          </LinkButton>
+        ) : undefined,
+        timeoutMs: reportUrl ? 10000 : 6000,
       });
     } catch (err) {
       const { title, message } = integritasErrorToast(err);
@@ -317,31 +326,29 @@ export function DiagnosticsPage() {
 
         <p className="type-body text-text-secondary m-0">{TAB_DESCRIPTION[activeTab]}</p>
 
-        <div className="gap-detail-close flex flex-wrap items-end justify-between">
-          <div className="min-w-0 flex-1 [&>div]:mb-0">
-            <ListFilterBar
-              filter={listQuery.status}
-              q={listQuery.q}
-              filterOptions={statusOptions}
-              searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
-              disabled={
-                refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)
-              }
-              onFilterChange={(status) => updateListQuery({ status })}
-              onQueryChange={(q) => updateListQuery({ q })}
-            />
-          </div>
-          <Button
-            type="button"
-            iconStart={<RefreshCw aria-hidden />}
-            onClick={() => {
-              void handleRefresh();
-            }}
-            disabled={refreshing}
-          >
-            {refreshing ? "Refreshing…" : "Refresh"}
-          </Button>
-        </div>
+        <ListFilterBar
+          filter={listQuery.status}
+          q={listQuery.q}
+          filterOptions={statusOptions}
+          searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
+          disabled={
+            refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)
+          }
+          onFilterChange={(status) => updateListQuery({ status })}
+          onQueryChange={(q) => updateListQuery({ q })}
+          actions={
+            <Button
+              type="button"
+              iconStart={<RefreshCw aria-hidden />}
+              onClick={() => {
+                void handleRefresh();
+              }}
+              disabled={refreshing}
+            >
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </Button>
+          }
+        />
 
         {error ? (
           <ErrorAlert title="Couldn't load diagnostics" className="w-full max-w-none">
@@ -383,6 +390,10 @@ export function DiagnosticsPage() {
             }}
             onDownloadZip={(record) => {
               void handleDownloadZip(record);
+            }}
+            onOpenVerificationReport={(record) => {
+              const reportUrl = verificationReportUrl(record);
+              if (reportUrl) window.open(reportUrl, "_blank", "noopener,noreferrer");
             }}
             onDeleteSelected={() =>
               void run(

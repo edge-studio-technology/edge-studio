@@ -105,6 +105,7 @@ of carrying the full rationale inline.
 | [adr/0012-keep-totp-decision-outside-v1-5-hardening.md](./adr/0012-keep-totp-decision-outside-v1-5-hardening.md) | V1.5 hardens the dormant implementation without deciding whether TOTP is later retained, redesigned, re-enabled, or removed |
 | [adr/0013-secret-redaction-boundary.md](./adr/0013-secret-redaction-boundary.md) | Single redaction boundary: `redactDeep()` vs `redactStrings()` split, write-time redaction, fail-closed depth limit, and the `isSecretKey()` KISS simplification |
 | [adr/0018-nginx-upload-request-limit.md](./adr/0018-nginx-upload-request-limit.md) | Nginx derives bounded multipart headroom from the backend upload settings instead of carrying a second operator-configured limit |
+| [adr/0019-i2c-prerequisite-setup-action.md](./adr/0019-i2c-prerequisite-setup-action.md) | I2C prerequisite setup: fixed Raspberry Pi OS host-agent action with manual fallback |
 
 ---
 

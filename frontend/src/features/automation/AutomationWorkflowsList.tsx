@@ -103,28 +103,26 @@ export function AutomationWorkflowsList({
 
   return (
     <Card className="gap-detail-close grid w-full">
-      <div className="gap-detail-close flex flex-wrap items-end justify-between">
-        <div className="min-w-0 flex-1 [&>div]:mb-0">
-          <ListFilterBar
-            filter={filter}
-            q={query}
-            filterOptions={STATUS_FILTER_OPTIONS}
-            searchPlaceholder="Name, block type, device, hash..."
-            disabled={loading || workflows.length === 0}
-            onFilterChange={(value) => {
-              setFilter(value as WorkflowFilter);
-              setPage(1);
-            }}
-            onQueryChange={(q) => {
-              setQuery(q);
-              setPage(1);
-            }}
-          />
-        </div>
-        <Button type="button" iconStart={<Plus aria-hidden />} onClick={onCreate}>
-          New workflow
-        </Button>
-      </div>
+      <ListFilterBar
+        filter={filter}
+        q={query}
+        filterOptions={STATUS_FILTER_OPTIONS}
+        searchPlaceholder="Name, block type, device, hash..."
+        disabled={loading || workflows.length === 0}
+        onFilterChange={(value) => {
+          setFilter(value as WorkflowFilter);
+          setPage(1);
+        }}
+        onQueryChange={(q) => {
+          setQuery(q);
+          setPage(1);
+        }}
+        actions={
+          <Button type="button" iconStart={<Plus aria-hidden />} onClick={onCreate}>
+            New workflow
+          </Button>
+        }
+      />
 
       {loading ? (
         <LoadingState
@@ -159,26 +157,29 @@ export function AutomationWorkflowsList({
               <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
             </TableHead>
             <TableBody>
-              {pagedWorkflows.map((workflow) => (
-                <TableRow key={workflow.id}>
-                  <TableCell className="min-w-0">
-                    <span className="type-body-em block truncate" title={workflow.name}>
-                      {workflow.name}
-                    </span>
-                    {workflow.lastError && (
-                      <p
-                        className="type-meta text-text-error mt-detail-next m-0 truncate"
-                        title={workflow.lastError}
-                      >
-                        {workflow.lastError}
-                      </p>
-                    )}
-                    {workflow.archived && (
-                      <p className="type-meta text-text-secondary mt-detail-next m-0">
-                        Archived, does not run until restored.
-                      </p>
-                    )}
-                  </TableCell>
+              {pagedWorkflows.map((workflow) => {
+                const validationError = workflow.validation?.firstErrorMessage ?? null;
+                const inlineError = workflow.lastError ?? validationError;
+                return (
+                  <TableRow key={workflow.id}>
+                    <TableCell className="min-w-0">
+                      <span className="type-body-em block truncate" title={workflow.name}>
+                        {workflow.name}
+                      </span>
+                      {inlineError && (
+                        <p
+                          className="type-meta text-text-error mt-detail-next m-0 truncate"
+                          title={inlineError}
+                        >
+                          {inlineError}
+                        </p>
+                      )}
+                      {workflow.archived && (
+                        <p className="type-meta text-text-secondary mt-detail-next m-0">
+                          Archived, does not run until restored.
+                        </p>
+                      )}
+                    </TableCell>
                   <TableCell>
                     <SwitchField
                       aria-label={`${workflow.enabled ? "Disable" : "Enable"} ${workflow.name}`}
@@ -267,8 +268,9 @@ export function AutomationWorkflowsList({
                       />
                     </RowActions>
                   </TableCell>
-                </TableRow>
-              ))}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </DataTable>
         </TableWrap>

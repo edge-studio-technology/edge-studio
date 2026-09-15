@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import {
-  checkDataSourceHealth,
   parseBmeSensorConfig,
   parseDataSourceConfig,
   parseDeviceSystemDataConfig,
@@ -93,14 +92,12 @@ describe("parseJsonApiConfig", () => {
     assert.equal(config.url, "https://example.com");
     assert.equal(config.method, "GET");
     assert.deepEqual(config.headers, {});
-    assert.equal(config.healthStatusUrl, undefined);
   });
 
-  it("accepts POST method, headers, healthStatusUrl, and body", () => {
-    const config = parseJsonApiConfig({ url: "https://example.com", method: "POST", headers: { "X-Test": "1" }, healthStatusUrl: "https://example.com/health", body: { a: 1 } });
+  it("accepts POST method, headers, and body", () => {
+    const config = parseJsonApiConfig({ url: "https://example.com", method: "POST", headers: { "X-Test": "1" }, body: { a: 1 } });
     assert.equal(config.method, "POST");
     assert.deepEqual(config.headers, { "X-Test": "1" });
-    assert.equal(config.healthStatusUrl, "https://example.com/health");
     assert.deepEqual(config.body, { a: 1 });
   });
 
@@ -194,6 +191,11 @@ describe("parseGpioInputConfig", () => {
     assert.equal(config.edge, "both");
     assert.equal(config.debounceMs, 100);
     assert.equal(config.activeState, "high");
+  });
+
+  it("keeps recognized GPIO input profiles", () => {
+    assert.equal(parseGpioInputConfig({ pin: 4, profile: "pir-motion" }).profile, "pir-motion");
+    assert.equal(parseGpioInputConfig({ pin: 4, profile: "gpio-button" }).profile, "gpio-button");
   });
 
   it("accepts a /dev/gpiochipN chip path", () => {
@@ -392,21 +394,6 @@ function mockResponse(status: number, bodyText: string) {
   };
 }
 
-describe("checkDataSourceHealth", () => {
-  it("requires a configured health status URL", async () => {
-    await assert.rejects(checkDataSourceHealth({ url: "https://example.com", method: "GET" }), /Data source has no health status URL configured/);
-  });
-
-  it("fetches the health status URL and reports ok/status", async () => {
-    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify({ up: true })));
-    const result = await checkDataSourceHealth({ url: "https://example.com", method: "GET", healthStatusUrl: "https://example.com/health" });
-    assert.equal(String(fetchMock.mock.calls[0][0]), "https://example.com/health");
-    assert.equal(result.ok, true);
-    assert.equal(result.status, 200);
-    assert.deepEqual(result.body, { up: true });
-  });
-});
-
 describe("readJsonApiSource", () => {
   it("fetches, hashes canonical JSON, and returns the parsed preview", async () => {
     fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify({ a: 1 })));
@@ -499,13 +486,6 @@ describe("egress URL policy", () => {
       assert.throws(() => parseJsonApiConfig({ url: "http://minima:9005/vault" }), /internal Edge Studio service/);
     });
 
-    it("rejects a JSON API health URL pointed at an internal service, even when the read URL is fine", () => {
-      assert.throws(
-        () => parseJsonApiConfig({ url: "https://example.com", healthStatusUrl: "http://backend:3000/api/health" }),
-        /internal Edge Studio service/
-      );
-    });
-
     it("rejects a non-http scheme on a JSON API source", () => {
       assert.throws(() => parseJsonApiConfig({ url: "file:///etc/passwd" }), /scheme 'file' is not allowed/);
     });
@@ -525,14 +505,6 @@ describe("egress URL policy", () => {
   describe("at fetch time", () => {
     it("rejects readJsonApiSource against an internal service", async () => {
       await assert.rejects(readJsonApiSource({ url: "http://minima:9005/vault", method: "GET" }), /internal Edge Studio service/);
-      assert.equal(fetchMock.mock.calls.length, 0);
-    });
-
-    it("rejects checkDataSourceHealth against an internal service", async () => {
-      await assert.rejects(
-        checkDataSourceHealth({ url: "https://example.com", method: "GET", healthStatusUrl: "http://minima:9005/status" }),
-        /internal Edge Studio service/
-      );
       assert.equal(fetchMock.mock.calls.length, 0);
     });
 

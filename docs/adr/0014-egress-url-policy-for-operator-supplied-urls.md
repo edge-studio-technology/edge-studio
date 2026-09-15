@@ -11,9 +11,9 @@ it on the Compose network, so an admin-authored data source or HTTP output targe
 Minima RPC port — and every other internal service — from inside the trust boundary. ADR 0010 rated
 this above every medium finding and below the two highs.
 
-Four egress call sites in `dataSources.service.ts` reach an operator-supplied URL: `readJsonApiSource`,
-the `healthStatusUrl` read in `checkDataSourceHealth`, `sendHttpOutput`, and `sendMultipartMediaOutput`.
-The last used a bare `fetch` with no validation of any kind.
+Three egress call sites in `dataSources.service.ts` reach an operator-supplied URL:
+`readJsonApiSource`, `sendHttpOutput`, and `sendMultipartMediaOutput`. The last used a bare `fetch`
+with no validation of any kind.
 
 Three policy shapes were on the table:
 
@@ -83,7 +83,7 @@ Costs accepted:
 — install-time `.env` values, not data-source rows — and they point at exactly the gateway ports the
 list above protects. Routing them through the validator would break camera and sensor reads. The
 line the policy draws is **API-writable URL versus deployment config**, so `parseJsonApiConfig`,
-`parseHttpOutputConfig`, and the four egress sites are the entire surface. `minima.rpc.ts`,
+`parseHttpOutputConfig`, and the three egress sites are the entire surface. `minima.rpc.ts`,
 `integritas.service.ts`, `feedback`, and `status` are exempt on the same grounds and keep using
 `fetchJsonWithTimeout`.
 

@@ -38,11 +38,9 @@ to the reader:
    call site. Enforce scheme (`http`/`https` only) unconditionally, regardless of which option wins.
 2. `backend/src/features/data-sources/dataSources.service.ts` — `parseJsonApiConfig` and
    `parseHttpOutputConfig` call it at parse time, so bad URLs are rejected on save, not on fetch.
-3. Re-validate at fetch time on **all four** egress call sites, not two: `readJsonApiSource`,
-   `sendHttpOutput`, `sendMultipartMediaOutput` (`dataSources.service.ts:297` — bare `fetch`, no
-   validation today, and the path the first draft of this plan missed), and the `healthStatusUrl`
-   read in `dataSources.service.ts:239`. Config rows predate the validator and DNS answers change
-   between save and fetch.
+3. Re-validate at fetch time on **all three** egress call sites: `readJsonApiSource`,
+   `sendHttpOutput`, and `sendMultipartMediaOutput` (the last previously used a bare `fetch` with
+   no validation). Config rows predate the validator and DNS answers change between save and fetch.
 4. **Resolve, then check, then connect to what you checked.** Validating the URL string alone is
    not enough:
    - Resolve once with `dns.lookup(host, { all: true })` and reject if **any** returned A/AAAA
@@ -65,9 +63,8 @@ to the reader:
      at fetch time narrows it to a race against our own second lookup; pinning removes the second
      lookup. If pinning proves infeasible in review, the fallback is to record the TOCTOU as an
      accepted residual in the ADR **and** in `docs/security/` — not to leave it unstated.
-5. Admin-gate asymmetries on the same primitives: `GET /api/data-sources/:id/health` has no
-   `requireRole("admin")` while `POST /:id/read` does. Same pattern in
-   `POST /api/minima/megammrsync/resync` and `POST /api/minima/config` (MINIMA-06/07), and across
+5. Admin-gate asymmetries remain in `POST /api/minima/megammrsync/resync` and
+   `POST /api/minima/config` (MINIMA-06/07), and across
    Integritas stamp/history routes (GAP-12). Audit all of `app.ts`'s mounts and align them; this is
    one review pass, not four separate tickets.
 6. [10]: `minima-console.catalog.ts` — `parseVerb` whitelists on the first token only, so a

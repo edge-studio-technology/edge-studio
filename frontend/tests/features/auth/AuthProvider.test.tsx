@@ -35,12 +35,13 @@ vi.mock("../../../src/features/setup/OnboardingWizard", () => ({
 }));
 
 function Consumer() {
-  const { user, loading, showSetup, showLogin, signOut, refreshSession } = useAuth();
+  const { user, loading, showSetup, showLogin, sessionNotice, signOut, refreshSession } = useAuth();
   return (
     <div>
       <p>loading:{String(loading)}</p>
       <p>showSetup:{String(showSetup)}</p>
       <p>showLogin:{String(showLogin)}</p>
+      <p>sessionNotice:{sessionNotice ?? "none"}</p>
       <p>user:{user ? user.displayName : "none"}</p>
       <button onClick={() => void signOut()}>Sign out</button>
       <button onClick={() => void refreshSession()}>Refresh</button>
@@ -213,5 +214,6 @@ describe("AuthProvider", () => {
 
     expect(await screen.findByText("user:none")).toBeInTheDocument();
     expect(screen.getByText("showLogin:true")).toBeInTheDocument();
+    expect(screen.getByText("sessionNotice:Edge Studio restarted or your session expired. Enter your PIN to continue.")).toBeInTheDocument();
   });
 });

@@ -32,6 +32,7 @@ const OPERATION_ERRORS: Record<IntegritasOperation, string> = {
 };
 
 const DEFAULT_INTEGRITAS_PORTAL_URL = "https://integritas.technology/profile?tab=apilogs";
+const VERIFICATION_REPORTS_DIR = "integritas-verification-reports";
 
 export function getIntegritasConfig() {
   return {
@@ -289,6 +290,44 @@ export async function verifyProof({ apiKey, proofPayload }: { apiKey: string; pr
 
   if (!result.ok) return result;
   return { ok: true as const, response: result.parsed };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function verifyEnvelope(response: unknown): Record<string, unknown> | null {
+  return asRecord(Array.isArray(response) ? response[0] : response);
+}
+
+export function verificationReportDownloadUrl(response: unknown) {
+  const url = asRecord(asRecord(verifyEnvelope(response)?.data)?.file)?.download_url;
+  return typeof url === "string" && /^https?:\/\//i.test(url) ? url : null;
+}
+
+function verificationReportFileName(recordId: string) {
+  return `${recordId}.pdf`;
+}
+
+export function verificationReportFilePath(fileName: string) {
+  return path.join(env.dataDir, VERIFICATION_REPORTS_DIR, path.basename(fileName));
+}
+
+export async function saveVerificationReport(recordId: string, response: unknown) {
+  const reportUrl = verificationReportDownloadUrl(response);
+  if (!reportUrl) return null;
+
+  const fetchResponse = await fetch(reportUrl, { signal: AbortSignal.timeout(env.integritasRequestTimeoutMs) });
+  if (!fetchResponse.ok) throw new Error(`Verification report download failed with HTTP ${fetchResponse.status}`);
+
+  const bytes = Buffer.from(await fetchResponse.arrayBuffer());
+  const fileName = verificationReportFileName(recordId);
+  const reportsDir = path.join(env.dataDir, VERIFICATION_REPORTS_DIR);
+  await fs.mkdir(reportsDir, { recursive: true });
+  await fs.writeFile(path.join(reportsDir, fileName), bytes);
+  return fileName;
 }
 
 export function parseProofPayload(value: string | null) {

@@ -115,27 +115,25 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
 
   return (
     <div className="gap-detail-close flex flex-col">
-      <div className="gap-detail-close flex flex-wrap items-end justify-between">
-        <div className="min-w-0 flex-1 [&>div]:mb-0">
-          <ListFilterBar
-            q={query}
-            searchPlaceholder="Name, address, or notes"
-            disabled={isLoading || entries.length === 0}
-            onQueryChange={(q) => {
-              setQuery(q);
-              setPage(1);
-            }}
-          />
-        </div>
-        <Button
-          type="button"
-          iconStart={<Plus aria-hidden />}
-          onClick={() => setAddOpen(true)}
-          disabled={actionsBlocked}
-        >
-          New contact
-        </Button>
-      </div>
+      <ListFilterBar
+        q={query}
+        searchPlaceholder="Name, address, or notes"
+        disabled={isLoading || entries.length === 0}
+        onQueryChange={(q) => {
+          setQuery(q);
+          setPage(1);
+        }}
+        actions={
+          <Button
+            type="button"
+            iconStart={<Plus aria-hidden />}
+            onClick={() => setAddOpen(true)}
+            disabled={actionsBlocked}
+          >
+            New contact
+          </Button>
+        }
+      />
 
       {error ? (
         <ErrorAlert title="Couldn't load address book" className="w-full max-w-none">

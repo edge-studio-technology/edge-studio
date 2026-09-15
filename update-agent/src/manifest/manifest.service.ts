@@ -6,6 +6,10 @@ export type Manifest = {
   frontend: string;
   backend: string;
   updateAgent: string;
+  hostRuntime: {
+    url: string;
+    sha256: string;
+  };
   version: string;
   createdAt: string;
 };
@@ -31,14 +35,30 @@ function signatureUrl(manifestUrl: string): string {
 function isManifest(value: unknown): value is Manifest {
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
+  const hostRuntime = record.hostRuntime as Record<string, unknown> | undefined;
   return (
     typeof record.frontend === "string" &&
     typeof record.backend === "string" &&
     typeof record.updateAgent === "string" &&
+    Boolean(hostRuntime) &&
+    typeof hostRuntime === "object" &&
+    typeof hostRuntime.url === "string" &&
+    isValidUrl(hostRuntime.url) &&
+    typeof hostRuntime.sha256 === "string" &&
+    /^[a-fA-F0-9]{64}$/.test(hostRuntime.sha256) &&
     typeof record.version === "string" &&
     typeof record.createdAt === "string" &&
     !Number.isNaN(Date.parse(record.createdAt))
   );
+}
+
+function isValidUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
 }
 
 async function fetchManifestBytesAndSignature(manifestUrl: string): Promise<{ manifestBytes: Buffer; signatureBase64: string }> {

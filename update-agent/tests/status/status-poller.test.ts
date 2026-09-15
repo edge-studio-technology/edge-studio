@@ -21,7 +21,7 @@ describe("status-poller", () => {
     vi.resetModules();
     vi.resetAllMocks();
     (getUpdateStatus as any).mockResolvedValue({
-      manifest: { frontend: "sha256:a", backend: "sha256:b", updateAgent: "sha256:c", version: "1.2.3", createdAt: "2026-08-01T00:00:00.000Z" },
+      manifest: { frontend: "sha256:a", backend: "sha256:b", updateAgent: "sha256:c", hostRuntime: { url: "https://example.com/edge-studio-host-runtime.tar.gz", sha256: "a".repeat(64) }, version: "1.2.3", createdAt: "2026-08-01T00:00:00.000Z" },
       services,
       currentVersion: "1.0.0"
     });
@@ -69,7 +69,7 @@ describe("status-poller", () => {
     it("overwrites a previous snapshot on the next successful refresh", async () => {
       await refreshCachedStatus();
       (getUpdateStatus as any).mockResolvedValue({
-        manifest: { frontend: "sha256:x", backend: "sha256:b", updateAgent: "sha256:c", version: "1.3.0", createdAt: "2026-08-02T00:00:00.000Z" },
+        manifest: { frontend: "sha256:x", backend: "sha256:b", updateAgent: "sha256:c", hostRuntime: { url: "https://example.com/edge-studio-host-runtime.tar.gz", sha256: "b".repeat(64) }, version: "1.3.0", createdAt: "2026-08-02T00:00:00.000Z" },
         services: [],
         currentVersion: "1.2.3"
       });

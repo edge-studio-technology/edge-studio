@@ -9,6 +9,14 @@ vi.mock("../../../../src/features/data-sources/dataSourcesApi", () => ({
 }));
 
 import { ClassicAddDeviceFlow } from "../../../../src/features/data-sources/add-device-classic/ClassicAddDeviceFlow";
+import type { HostCapability } from "../../../../src/features/data-sources/dataSourceTypes";
+
+const enabledHostCapabilities: HostCapability[] = [
+  { name: "camera", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "gpio", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "sensors", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+  { name: "mqtt", enabled: true, installed: true, available: true, state: "enabled", reason: null },
+];
 
 function renderFlow(overrides: Partial<React.ComponentProps<typeof ClassicAddDeviceFlow>> = {}) {
   const props = {
@@ -54,7 +62,7 @@ describe("ClassicAddDeviceFlow", () => {
   });
 
   it("choosing a template shows the guided template grid with a Template breadcrumb", async () => {
-    renderFlow({ mode: "input" });
+    renderFlow({ mode: "input", hostCapabilities: enabledHostCapabilities });
     await userEvent.click(screen.getByRole("button", { name: /Choose template/ }));
     expect(screen.getByText("Template")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "GPIO Button" })).toBeInTheDocument();

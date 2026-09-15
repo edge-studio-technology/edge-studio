@@ -30,8 +30,6 @@ export function DataSourceForm({
   setType,
   url,
   setUrl,
-  healthStatusUrl,
-  setHealthStatusUrl,
   brokerUrl,
   setBrokerUrl,
   topic,
@@ -77,8 +75,6 @@ export function DataSourceForm({
   setType: (value: DataSource["type"]) => void;
   url: string;
   setUrl: (value: string) => void;
-  healthStatusUrl: string;
-  setHealthStatusUrl: (value: string) => void;
   brokerUrl: string;
   setBrokerUrl: (value: string) => void;
   topic: string;
@@ -87,8 +83,8 @@ export function DataSourceForm({
   setGpioChip: (value: string) => void;
   gpioPin: string;
   setGpioPin: (value: string) => void;
-  gpioProfile: "generic" | "pir-motion";
-  setGpioProfile: (value: "generic" | "pir-motion") => void;
+  gpioProfile: "generic" | "pir-motion" | "gpio-button";
+  setGpioProfile: (value: "generic" | "pir-motion" | "gpio-button") => void;
   gpioPull: "off" | "up" | "down";
   setGpioPull: (value: "off" | "up" | "down") => void;
   gpioEdge: "rising" | "falling" | "both";
@@ -237,6 +233,8 @@ export function DataSourceForm({
           <MutedText>
             {gpioProfile === "pir-motion"
               ? "PIR Motion Sensor profile is fixed by the selected template."
+              : gpioProfile === "gpio-button"
+                ? "GPIO Button profile is fixed by the selected template."
               : "GPIO Input Pin uses the generic input profile."}{" "}
             GPIO input sources use BCM numbering and record edge events only while a
             workflow is enabled.
@@ -343,9 +341,9 @@ export function DataSourceForm({
             ]}
           />
           <MutedText>
-            BME280/BME680 sensors read temperature, humidity, and air pressure over I2C. Wire VIN to
-            3.3V or 5V, GND to ground, SCL to physical pin 5 / GPIO3, and SDA to physical pin 3 /
-            GPIO2.
+            BME280/BME680 sensors read temperature, humidity, and air pressure over I2C. BME680
+            reads also include gas resistance. Wire VIN to 3.3V or 5V, GND to ground, SCL to
+            physical pin 5 / GPIO3, and SDA to physical pin 3 / GPIO2.
           </MutedText>
         </>
       ) : type === "device-system-data" ? (
@@ -384,12 +382,6 @@ export function DataSourceForm({
             value={url}
             onChange={(event) => setUrl(event.target.value)}
             placeholder="https://example.com/data.json"
-          />
-          <InputField
-            label="Health status URL"
-            value={healthStatusUrl}
-            onChange={(event) => setHealthStatusUrl(event.target.value)}
-            placeholder="https://example.com/health"
           />
           <SelectField
             label="Method"

@@ -191,9 +191,20 @@ describe("updateProofStatus", () => {
 describe("updateVerifyResponse", () => {
   it("stores the serialized verify response", () => {
     const record = createRecord({ hash: "a" });
-    const updated = repo.updateVerifyResponse(record.id, { verified: true });
+    const updated = repo.updateVerifyResponse(record.id, { verified: true }, "report.pdf");
 
     assert.equal(updated.verify_response, JSON.stringify({ verified: true }));
+    assert.equal(updated.verification_report_file, "report.pdf");
+  });
+
+  it("clears the verification report file when omitted", () => {
+    const record = createRecord({ hash: "a" });
+    repo.updateVerifyResponse(record.id, { verified: true }, "report.pdf");
+
+    const updated = repo.updateVerifyResponse(record.id, { verified: false }, null);
+
+    assert.equal(updated.verify_response, JSON.stringify({ verified: false }));
+    assert.equal(updated.verification_report_file, null);
   });
 });
 
