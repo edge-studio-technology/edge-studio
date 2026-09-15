@@ -23,6 +23,7 @@
 
 ## Next
 
+- [ ] Fail closed on weak `APP_SECRET`, safely migrate existing encrypted values, and pin remaining deployment images — see `docs/plans/security/704-fail-closed-on-weak-config.md`.
 - [ ] Address the production-behavior gaps from the high-risk unit-test audit on a separate branch — see `docs/plans/high-risk-business-logic-hardening.md`.
 - [ ] On a real device or a local `install.sh` run, confirm end-to-end that `last-applied-manifest.json` gets written and a Feedback submission's `app.version` reflects it (see `docs/adr/0006-app-version-single-source-of-truth.md`).
 - [ ] Implement the hosted feedback receiver endpoint in the Integritas API repo — see `docs/plans/feedback.md` Step 8.
