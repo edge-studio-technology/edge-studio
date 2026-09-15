@@ -30,7 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Outbound requests to operator-supplied URLs share a global concurrency limit (`EGRESS_MAX_CONCURRENT`, default 4) with a bounded queue (`EGRESS_QUEUE_LIMIT`, default 32); requests past the queue are rejected instead of waiting indefinitely.
 - Outbound request deadlines are capped at 60 seconds regardless of the configured per-target timeout.
 - MQTT messages larger than `MQTT_MAX_PAYLOAD_BYTES` (default 256 KB) are rejected before parsing and recorded as a failed read.
-- File uploads for stamping and Minima backup restore are limited by size (`UPLOAD_MAX_FILE_BYTES`, default 100 MB), file count, and field count, and an oversized upload now returns `413` instead of a server error.
+- File uploads for stamping and Minima backup restore use the configured backend size limit through the HTTPS proxy and return a JSON `413` when oversized.
+- Nginx-generated responses no longer disclose the installed Nginx version.
 - `POST /api/integritas/stamp-file` and `POST /api/integritas/verify-proof-file` delete the uploaded temporary file when the request is rejected for a missing Integritas link, not only on the success path.
 - Resource limits are configurable in `.env` and clamped to a supported range, so a limit cannot be configured away; see [docs/adr/0017](docs/adr/0017-outbound-and-upload-resource-limits.md).
 - `multer` updated to 2.3.0, closing advisories for denial of service via crafted multipart field names, file descriptor leaks on aborted uploads, and a file size limit bypass.

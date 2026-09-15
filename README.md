@@ -596,7 +596,7 @@ backend container
   - GET /api/files
   - GET /api/minima/status
 - Integritas hash, stamp, status, verify endpoints
-  - File uploads (stamp a file, verify a proof file, restore a Minima backup) are limited to `UPLOAD_MAX_FILE_BYTES` (default 100 MB) and `UPLOAD_MAX_FILES`/`UPLOAD_MAX_FIELDS` per request; an oversized upload returns `413`. Raise `UPLOAD_MAX_FILE_BYTES` if you stamp larger files — it has no hard maximum.
+  - File uploads (stamp a file, verify a proof file, restore a Minima backup) are limited to `UPLOAD_MAX_FILE_BYTES` (default 100 MB) and `UPLOAD_MAX_FILES`/`UPLOAD_MAX_FIELDS` per request; Nginx derives multipart request headroom from the same settings, and an oversized file returns a JSON `413` from the backend. Raise `UPLOAD_MAX_FILE_BYTES` if you stamp larger files — it has no hard maximum.
 - Device APIs and historic read log at `/api/data-sources` and `/api/data-reads`
   - Input sources can include an optional health status URL. The browser polls saved health URLs once per minute through the backend and shows the latest status in the configured devices table.
   - HTTP source and HTTP output target URLs (including health status URLs) must use `http` or `https` and must not point at Edge Studio's own container network, its gateway, a container service name, loopback, or a link-local address. The check runs when the device is saved and again on every fetch, follows redirects one hop at a time, and pins the address it checked to the connection. LAN and public destinations are unaffected. Set `EDGE_STUDIO_DOCKER_SUBNET` / `EDGE_STUDIO_DOCKER_GATEWAY` if the Compose network differs from the defaults.

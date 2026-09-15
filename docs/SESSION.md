@@ -137,11 +137,32 @@ Later same branch, next session:
   passed 8. The bootstrap suite needed an unsandboxed rerun because its child Node verifier process
   is blocked with `EPERM` inside the workspace sandbox.
 
+Later same branch, Pi QA and Phase 5 proxy fix:
+
+- Manually passed Phases 1-4 on the Pi against `v0.50.0-dev.8`: backup secrets stayed out of API
+  responses and logs, SSRF controls rejected internal/non-HTTP targets while allowing a public API,
+  credential changes invalidated active sessions, and a bad runtime signature stopped installation
+  without disrupting the running app.
+- Found a Phase 5 stop-ship issue: Nginx's default 1 MiB request-body limit rejected uploads before
+  the backend's configurable limit, returning an HTML `413` and an "Unknown error" toast.
+- Fixed the proxy boundary by deriving bounded multipart request headroom from
+  `UPLOAD_MAX_FILE_BYTES` and `UPLOAD_MAX_FIELDS` for the three upload routes only. Both development
+  and generated release Compose pass the same settings to the frontend; Nginx version tokens are
+  disabled. Decision recorded in ADR 0018.
+- Added five script-level regression tests for default/custom/invalid/scientific/signed limit
+  parsing, upload-route scoping, and version-token configuration. Focused backend upload tests passed
+  (10), all backend/frontend/update-agent/script coverage suites passed (2,774 tests), both builds
+  passed, `docker compose config` passed, the frontend image built, its rendered Nginx config passed
+  `nginx -T`, and live headers returned `Server: nginx` without a version. `npm run check` reached its
+  audit step and reported an unrelated moderate Vitest development-tool advisory.
+
 ## Next Steps
 
 - Execute the Phase 1-5 QA runbook against the exact candidate commit, staging release artifacts,
   and a dedicated Pi before promotion; Phases 1-5 are implemented but not signed off by this
   documentation session.
+- Publish a new development build containing the Phase 5 proxy fix, then repeat the 1 MiB/2 MiB Pi
+  upload test and confirm the oversized file returns the backend's JSON `413` with a useful UI error.
 - V1.5 security hardening: Phase 6 (fail closed on weak config) is next. Phase 0's two product
   decisions stay defaulted to acceptance until the pre-merge decision pass.
 - Before Phase 4 ships, every release channel needs one release through the updated `release.yml` — an installer carrying this change cannot install from a channel whose latest bundle has no `.sig`. Fail-closed by design, but it has to be sequenced.

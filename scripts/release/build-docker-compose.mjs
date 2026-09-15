@@ -114,6 +114,9 @@ services:
 
   frontend:
     image: ${manifest.frontend}
+    environment:
+      UPLOAD_MAX_FILE_BYTES: \${UPLOAD_MAX_FILE_BYTES:-104857600}
+      UPLOAD_MAX_FIELDS: \${UPLOAD_MAX_FIELDS:-8}
     ports:
       - "\${FRONTEND_PORT:-8080}:443"
     volumes:
