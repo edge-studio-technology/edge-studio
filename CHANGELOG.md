@@ -4,7 +4,7 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] task/272-security-hardening-v1-5
+## [Unreleased] task/702-backup-password-leak-ssrf-session-lifecycle-install-trust-chain-resource-limits
 
 ### Security
 
