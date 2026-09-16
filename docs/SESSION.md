@@ -174,11 +174,20 @@ Later same branch, post-merge installer findings:
   tests passed, the parser and URL resolver passed through the real pinned Docker image, and isolated
   matching/mismatching hash checks confirmed that only the match reaches replacement while mismatch
   preserves the existing installation.
+- Committed the installer binding as `3843d6d`, tagged and pushed `v0.41.1-dev.1`, and confirmed the
+  release workflow passed. The GitHub Raw development manifest, runtime SHA-256, installer checksum,
+  and generated Compose IPAM rendering matched; the primary website was still serving the previous
+  development manifest and runtime when checked.
+- Added the full release-installer regression matrix around the real `resolve_images` -> `download_app`
+  sequence with generated Ed25519 signatures and tar archives. It covers matching manifest/bundle
+  success, signed cross-bundle digest mismatch, modified and unsigned bundles, invalid manifest
+  signatures, missing/malformed runtime digests, explicit URL precedence and hash enforcement,
+  hash-bound fallback downloads, and byte/mode preservation of an existing installation on every
+  trust failure. The focused suite passed 24 tests; all release/installer script tests passed 43/43;
+  `bash -n install.sh`, Prettier, and `git diff --check` passed.
 
 ## Next Steps
 
-- Add the full installer regression matrix for signed manifest/bundle pairs, overrides, malformed
-  metadata, and existing-installation preservation.
 - Run the complete local sign-off suite, then create and verify the next development tag on the Pi.
 - Execute the Phase 1-5 QA runbook against the exact candidate commit, staging release artifacts,
   and a dedicated Pi before promotion; Phases 1-5 are implemented but not signed off by this
@@ -200,6 +209,9 @@ Later same branch, post-merge installer findings:
 - The verifier image digest pin is bumped by hand at release. A stale pin means verification runs on an older Node inside a `--network none` container that reads three files, so letting it age between deliberate bumps is acceptable — but nothing reminds anyone to bump it.
 - Signing key rotation now touches two files (`update-agent/manifest-public-key.pem` and the embedded PEM in `install.sh`). The scripts test fails the build if they drift, so this is guarded rather than remembered.
 - The embedded verifier's failure messages still say "Manifest signature verification failed" even when it is judging the runtime bundle. Left byte-identical deliberately — `install.sh` prints an artifact-specific line immediately after, and renaming internals in working crypto code was not worth the churn.
+- `https://edgestudio.technology/manifest/development/` still served the previous development
+  manifest and bundle after `v0.41.1-dev.1` published successfully to the GitHub Raw fallback. Until
+  that origin is refreshed, immediate Pi QA needs explicit GitHub Raw manifest and runtime URLs.
 - TOTP removal is not approved or scheduled. After V1.5, a fresh product decision and ADR must
   choose whether to retain, redesign, re-enable, or remove it; any implementation then gets its own
   ticket and branch.
