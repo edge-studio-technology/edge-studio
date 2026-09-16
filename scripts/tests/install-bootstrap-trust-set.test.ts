@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { generateKeyPairSync, sign as cryptoSign } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "vitest";
@@ -103,5 +103,81 @@ describe("install.sh embedded verifier", () => {
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Manifest verification error/);
+  });
+});
+
+describe("install.sh embedded manifest parser", () => {
+  let dir: string;
+  let parserPath: string;
+  let manifestPath: string;
+  let outputDir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "bootstrap-manifest-parser-"));
+    parserPath = join(dir, "parse-manifest.mjs");
+    manifestPath = join(dir, "manifest.json");
+    outputDir = join(dir, "fields");
+    mkdirSync(outputDir);
+    writeFileSync(parserPath, readHeredoc("PARSE_MANIFEST_MJS"));
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  function runParser(hostRuntime: unknown) {
+    writeFileSync(
+      manifestPath,
+      JSON.stringify({
+        frontend: "ghcr.io/example/frontend@sha256:frontend",
+        backend: "ghcr.io/example/backend@sha256:backend",
+        updateAgent: "ghcr.io/example/update-agent@sha256:update-agent",
+        hostRuntime,
+        version: "1.2.3",
+        createdAt: "2026-09-16T00:00:00.000Z"
+      })
+    );
+    return spawnSync(process.execPath, [parserPath, manifestPath, outputDir], { encoding: "utf8" });
+  }
+
+  it("writes validated manifest fields and normalizes the runtime metadata", () => {
+    const result = runParser({
+      url: "https://example.com/runtime.tar.gz?token=test",
+      sha256: "A".repeat(64)
+    });
+
+    assert.equal(result.status, 0);
+    assert.equal(readFileSync(join(outputDir, "host-runtime-url"), "utf8"), "https://example.com/runtime.tar.gz?token=test");
+    assert.equal(readFileSync(join(outputDir, "host-runtime-sha256"), "utf8"), "a".repeat(64));
+  });
+
+  it("rejects a malformed host runtime URL", () => {
+    const result = runParser({ url: "file:///tmp/runtime.tar.gz", sha256: "a".repeat(64) });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /hostRuntime\.url/);
+  });
+
+  it("rejects a malformed host runtime SHA-256", () => {
+    const result = runParser({ url: "https://example.com/runtime.tar.gz", sha256: "not-a-sha" });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /hostRuntime\.sha256/);
+  });
+});
+
+describe("install.sh embedded signature URL resolver", () => {
+  it("appends the signature suffix to the URL pathname", () => {
+    const dir = mkdtempSync(join(tmpdir(), "bootstrap-signature-url-"));
+    const resolverPath = join(dir, "signature-url.mjs");
+    writeFileSync(resolverPath, readHeredoc("SIGNATURE_URL_MJS"));
+
+    const result = spawnSync(process.execPath, [resolverPath, "https://example.com/runtime.tar.gz?token=test"], {
+      encoding: "utf8"
+    });
+
+    rmSync(dir, { recursive: true, force: true });
+    assert.equal(result.status, 0);
+    assert.equal(result.stdout, "https://example.com/runtime.tar.gz.sig?token=test");
   });
 });

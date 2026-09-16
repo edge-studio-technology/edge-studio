@@ -170,7 +170,7 @@ Current Controls:
 - The private key is generated once, manually, and stored only in GitHub Actions Secrets. It never exists on the VPS or any Pi.
 - CI signs the manifest and the runtime bundle in single job steps; the key is read from the secret into an environment variable for those steps only and is never written to a file that survives the job.
 - `update-agent` only ever holds the public key, baked into its image at build time.
-- `install.sh` holds its own embedded copy of the public key and of the verifier source, and pins the verifier's Node image by digest. Neither the key nor the verifier comes from the runtime bundle any more, and the bundle itself is signature-verified before extraction.
+- `install.sh` holds its own embedded copy of the public key and verifier source, pins the verifier's Node image by digest, and requires the signature-verified bundle to match the signed manifest SHA-256 before extraction or application-directory changes.
 - Digest pinning means a valid signature alone is not sufficient to run a different artifact than what the digest names — an attacker would need both a stolen key and control of a pushed image.
 
 Plan:
@@ -183,7 +183,8 @@ is sound because its public key is baked into its own image, and the install-tim
 it is meant to authenticate. Compromise of the artifact origin alone is no longer sufficient — the
 signing key is now required. Rated high by the external review — see
 [adr/0010](../adr/0010-security-review-audit-verdict.md),
-[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md), and `.agents/rules/update-agent.md`.
+[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md),
+[adr/0020](../adr/0020-bind-installer-runtime-to-signed-manifest.md), and `.agents/rules/update-agent.md`.
 The remaining bootstrap exposure is the installer distribution channel itself — see *One-Line Curl
 Installer* below.
 

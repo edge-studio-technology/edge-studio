@@ -97,8 +97,8 @@ The installer will:
 - Install required host packages
 - Install Docker if Docker is missing
 - Verify Docker Compose
-- Download the default runtime bundle to `/opt/edge-studio` or clone the repository when `DEV_MODE=true`
-- Verify the runtime bundle's Ed25519 signature before extracting it, and refuse archive entries with absolute or `..` paths or anything other than regular files and directories
+- Download and verify the signed manifest before selecting the default runtime bundle, or clone the repository when `DEV_MODE=true`
+- Verify the runtime bundle's Ed25519 signature and signed-manifest SHA-256 before extracting it, and refuse archive entries with absolute or `..` paths or anything other than regular files and directories
 - Write `/opt/edge-studio/.env`
 - Install the host agent used for admin-triggered hardware support changes from the app
 - Leave optional hardware and local services disabled unless advanced `ENABLE_*` flags were provided
@@ -293,7 +293,7 @@ Default installs use `docker-compose.yml` plus `docker-compose.release.yml`, whi
 
 The default-install runtime bundle is intentionally limited to the files listed in `scripts/release/runtime-bundle-files.json`; source-build directories such as `frontend/`, `backend/`, and `update-agent/` are only required for `DEV_MODE=true` installs.
 
-Build the default-install runtime archive with `npm run release:build-runtime-bundle`; it writes `edge-studio-runtime.tar.gz` from the allowlisted files. The installer derives `RUNTIME_BUNDLE_URL` from `MANIFEST_URL` unless explicitly overridden. Release manifests are generated with `HOST_RUNTIME_URL` and `HOST_RUNTIME_SHA256` so the same runtime artifact can be applied by update-agent after install.
+Build the default-install runtime archive with `npm run release:build-runtime-bundle`; it writes `edge-studio-runtime.tar.gz` from the allowlisted files. The installer uses the signed manifest's `hostRuntime.url` unless `RUNTIME_BUNDLE_URL` is explicitly overridden for QA, and every downloaded bundle must match the signed `hostRuntime.sha256`. Release manifests are generated with `HOST_RUNTIME_URL` and `HOST_RUNTIME_SHA256` so the same runtime artifact can be applied by update-agent after install.
 
 To install with another file root or port:
 

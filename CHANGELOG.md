@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Expired sessions are deleted by a backend sweep at startup and hourly, instead of only when the session is next used.
 - `POST /api/minima/config` and `POST /api/minima/megammrsync/resync` now require an admin role.
 - Integritas stamping, file stamping, history deletion, proof polling, and proof verification now require an admin role.
-- The installer verifies the runtime bundle's Ed25519 signature before extracting it, and refuses to install if the signature or the bundle is missing.
+- The installer verifies the runtime bundle's Ed25519 signature and signed-manifest SHA-256 before extracting it or replacing application files.
 - The installer carries its own copy of the manifest public key and of the signature verifier instead of taking them from the runtime bundle, and runs the verifier on a digest-pinned Node image instead of a mutable tag.
 - The installer rejects runtime bundle entries with absolute or `..` paths, and entries that are not regular files or directories.
 - Releases publish `edge-studio-runtime.tar.gz.sig` and `install.sh.sha256` alongside the manifest.
@@ -38,7 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; both Compose files pass them through with the existing defaults.
+- The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; source and generated release Compose files apply the same values to the backend and network IPAM.
 
 ## [Unreleased] dev
 

@@ -156,8 +156,30 @@ Later same branch, Pi QA and Phase 5 proxy fix:
   `nginx -T`, and live headers returned `Server: nginx` without a version. `npm run check` reached its
   audit step and reported an unrelated moderate Vitest development-tool advisory.
 
+Later same branch, post-merge installer findings:
+
+- Added the main Compose network IPAM block to generated release Compose, using the same configurable
+  subnet and gateway as the backend's internal-destination protections. Generated development
+  Compose resolved custom values consistently through `docker compose config`; all release-script
+  tests passed.
+- Reordered release installation so the signed manifest is fetched, verified, and parsed in the
+  digest-pinned bootstrap Node runtime before the runtime bundle is selected. The signed runtime URL
+  remains overridable for QA, the GitHub Raw transport fallback remains available, and every bundle
+  must pass its detached signature and the signed manifest SHA-256 before archive handling.
+- Moved manifest, bundle, archive validation, and extraction staging outside `APP_DIR`; release-mode
+  failures now occur before the installer creates, cleans, or copies application files. Query-bearing
+  artifact URLs preserve their query when resolving the sibling `.sig` URL. Decision recorded in ADR
+  0020.
+- Added embedded manifest-parser and signature-URL tests. `bash -n install.sh` passed, all 31 script
+  tests passed, the parser and URL resolver passed through the real pinned Docker image, and isolated
+  matching/mismatching hash checks confirmed that only the match reaches replacement while mismatch
+  preserves the existing installation.
+
 ## Next Steps
 
+- Add the full installer regression matrix for signed manifest/bundle pairs, overrides, malformed
+  metadata, and existing-installation preservation.
+- Run the complete local sign-off suite, then create and verify the next development tag on the Pi.
 - Execute the Phase 1-5 QA runbook against the exact candidate commit, staging release artifacts,
   and a dedicated Pi before promotion; Phases 1-5 are implemented but not signed off by this
   documentation session.

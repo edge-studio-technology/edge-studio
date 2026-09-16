@@ -90,6 +90,8 @@ COMPOSE_FILE_NAME="docker-compose.yml"
 # authenticate. See docs/adr/0016-install-time-bootstrap-trust-set.md.
 VERIFIER_IMAGE="node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0"
 BOOTSTRAP_DIR=""
+MANIFEST_HOST_RUNTIME_URL=""
+MANIFEST_HOST_RUNTIME_SHA256=""
 
 APT_PACKAGES=(
   curl
@@ -211,6 +213,82 @@ try {
   process.exit(1);
 }
 VERIFY_MANIFEST_MJS
+
+  cat > "$BOOTSTRAP_DIR/parse-manifest.mjs" <<'PARSE_MANIFEST_MJS'
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const [manifestPath, outputDir] = process.argv.slice(2);
+
+if (!manifestPath || !outputDir) {
+  console.error("Usage: parse-manifest.mjs <manifest-path> <output-directory>");
+  process.exit(1);
+}
+
+function requiredString(value, field) {
+  if (typeof value !== "string" || value.length === 0 || /[\0\r\n]/.test(value)) {
+    throw new Error(`${field} must be a non-empty single-line string`);
+  }
+  return value;
+}
+
+try {
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  if (!manifest || typeof manifest !== "object" || !manifest.hostRuntime || typeof manifest.hostRuntime !== "object") {
+    throw new Error("hostRuntime must be an object");
+  }
+
+  const hostRuntimeUrl = new URL(requiredString(manifest.hostRuntime.url, "hostRuntime.url"));
+  if (hostRuntimeUrl.protocol !== "https:" && hostRuntimeUrl.protocol !== "http:") {
+    throw new Error("hostRuntime.url must use HTTP or HTTPS");
+  }
+
+  const hostRuntimeSha256 = requiredString(manifest.hostRuntime.sha256, "hostRuntime.sha256");
+  if (!/^[a-fA-F0-9]{64}$/.test(hostRuntimeSha256)) {
+    throw new Error("hostRuntime.sha256 must be a 64-character hexadecimal digest");
+  }
+
+  const createdAt = requiredString(manifest.createdAt, "createdAt");
+  if (Number.isNaN(Date.parse(createdAt))) {
+    throw new Error("createdAt must be a valid date");
+  }
+
+  const fields = {
+    frontend: requiredString(manifest.frontend, "frontend"),
+    backend: requiredString(manifest.backend, "backend"),
+    "update-agent": requiredString(manifest.updateAgent, "updateAgent"),
+    version: requiredString(manifest.version, "version"),
+    "created-at": createdAt,
+    "host-runtime-url": hostRuntimeUrl.toString(),
+    "host-runtime-sha256": hostRuntimeSha256.toLowerCase()
+  };
+
+  for (const [name, value] of Object.entries(fields)) {
+    writeFileSync(join(outputDir, name), value, { flag: "wx" });
+  }
+} catch (error) {
+  console.error(`Manifest validation error: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
+PARSE_MANIFEST_MJS
+
+  cat > "$BOOTSTRAP_DIR/signature-url.mjs" <<'SIGNATURE_URL_MJS'
+const [value] = process.argv.slice(2);
+
+if (!value) {
+  console.error("Usage: signature-url.mjs <artifact-url>");
+  process.exit(1);
+}
+
+try {
+  const url = new URL(value);
+  url.pathname += ".sig";
+  process.stdout.write(url.toString());
+} catch (error) {
+  console.error(`Artifact URL error: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
+SIGNATURE_URL_MJS
 }
 
 verify_ed25519_signature() {
@@ -223,6 +301,37 @@ verify_ed25519_signature() {
     -v "$target_file:/signed-artifact:ro" \
     -v "$signature_file:/signed-artifact.sig:ro" \
     "$VERIFIER_IMAGE" node /verify-manifest.mjs /signed-artifact /signed-artifact.sig /manifest-public-key.pem
+}
+
+parse_verified_manifest() {
+  local manifest_file="$1"
+  local output_dir="$BOOTSTRAP_DIR/manifest-fields"
+
+  mkdir "$output_dir"
+  if ! docker run --rm --network none \
+    -v "$BOOTSTRAP_DIR/parse-manifest.mjs:/parse-manifest.mjs:ro" \
+    -v "$manifest_file:/manifest.json:ro" \
+    -v "$output_dir:/manifest-fields" \
+    "$VERIFIER_IMAGE" node /parse-manifest.mjs /manifest.json /manifest-fields; then
+    echo "Signed manifest contains invalid release metadata. Refusing to install."
+    exit 1
+  fi
+
+  FRONTEND_IMAGE="$(<"$output_dir/frontend")"
+  BACKEND_IMAGE="$(<"$output_dir/backend")"
+  UPDATE_AGENT_IMAGE="$(<"$output_dir/update-agent")"
+  MANIFEST_VERSION="$(<"$output_dir/version")"
+  MANIFEST_CREATED_AT="$(<"$output_dir/created-at")"
+  MANIFEST_HOST_RUNTIME_URL="$(<"$output_dir/host-runtime-url")"
+  MANIFEST_HOST_RUNTIME_SHA256="$(<"$output_dir/host-runtime-sha256")"
+}
+
+signature_url() {
+  local artifact_url="$1"
+
+  docker run --rm --network none \
+    -v "$BOOTSTRAP_DIR/signature-url.mjs:/signature-url.mjs:ro" \
+    "$VERIFIER_IMAGE" node /signature-url.mjs "$artifact_url"
 }
 
 # Defense in depth behind the bundle signature: refuse an archive that could write outside the
@@ -515,14 +624,7 @@ derive_runtime_bundle_url() {
   if [ -n "$RUNTIME_BUNDLE_URL" ]; then
     return
   fi
-
-  case "$MANIFEST_URL" in
-    */manifest.json) RUNTIME_BUNDLE_URL="${MANIFEST_URL%/manifest.json}/edge-studio-runtime.tar.gz" ;;
-    *)
-      echo "RUNTIME_BUNDLE_URL is not set and could not be derived from MANIFEST_URL=$MANIFEST_URL"
-      exit 1
-      ;;
-  esac
+  RUNTIME_BUNDLE_URL="$MANIFEST_HOST_RUNTIME_URL"
 }
 
 clean_app_directory() {
@@ -554,35 +656,42 @@ download_full_repo() {
   log "Downloading $APP_REPO_URL ($APP_BRANCH)"
   git clone --depth 1 --branch "$APP_BRANCH" "$APP_REPO_URL" "$tmp_dir"
 
+  prepare_app_directory
   clean_app_directory
   cp -a "$tmp_dir/." "$APP_DIR/"
   chmod 755 "$APP_DIR"
   rm -rf "$tmp_dir"
 
-  log "install.sh version: $(fetch_manifest_field "$APP_DIR/package.json" version)"
+  log "install.sh version: $(fetch_package_version "$APP_DIR/package.json")"
 }
 
 download_runtime_bundle() {
   local tmp_dir
   local bundle_file
   local signature_file
+  local fallback_bundle_url
+  local actual_sha256
+  local signature_url_value
 
   derive_runtime_bundle_url
+  fallback_bundle_url="${MANIFEST_FALLBACK_URL%/manifest.json}/edge-studio-runtime.tar.gz"
   tmp_dir="$(mktemp -d)"
   bundle_file="$tmp_dir/edge-studio-runtime.tar.gz"
   signature_file="$tmp_dir/edge-studio-runtime.tar.gz.sig"
 
   log "Downloading runtime bundle from $RUNTIME_BUNDLE_URL"
+  signature_url_value="$(signature_url "$RUNTIME_BUNDLE_URL")"
   if ! curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file" \
-    || ! curl -fsSL "${RUNTIME_BUNDLE_URL}.sig" -o "$signature_file"; then
-    if [ -n "$RUNTIME_BUNDLE_URL_INPUT" ] || [ "$MANIFEST_URL" = "$MANIFEST_FALLBACK_URL" ]; then
+    || ! curl -fsSL "$signature_url_value" -o "$signature_file"; then
+    if [ -n "$RUNTIME_BUNDLE_URL_INPUT" ] || [ "$RUNTIME_BUNDLE_URL" = "$fallback_bundle_url" ]; then
       echo "Failed to download runtime bundle or its signature from $RUNTIME_BUNDLE_URL"
       exit 1
     fi
-    RUNTIME_BUNDLE_URL="${MANIFEST_FALLBACK_URL%/manifest.json}/edge-studio-runtime.tar.gz"
+    RUNTIME_BUNDLE_URL="$fallback_bundle_url"
     log "Retrying runtime bundle download from fallback $RUNTIME_BUNDLE_URL"
+    signature_url_value="$(signature_url "$RUNTIME_BUNDLE_URL")"
     curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file"
-    curl -fsSL "${RUNTIME_BUNDLE_URL}.sig" -o "$signature_file"
+    curl -fsSL "$signature_url_value" -o "$signature_file"
   fi
 
   log "Verifying runtime bundle signature"
@@ -592,16 +701,24 @@ download_runtime_bundle() {
     exit 1
   fi
 
+  read -r actual_sha256 _ < <(sha256sum "$bundle_file")
+  if [ "$actual_sha256" != "$MANIFEST_HOST_RUNTIME_SHA256" ]; then
+    echo "Runtime bundle SHA-256 does not match the signed manifest. Refusing to extract untrusted files."
+    rm -rf "$tmp_dir"
+    exit 1
+  fi
+
   assert_safe_archive_entries "$bundle_file"
   tar -xzf "$bundle_file" -C "$tmp_dir"
 
+  prepare_app_directory
   clean_app_directory
   rm -f "$bundle_file" "$signature_file"
   cp -a "$tmp_dir/." "$APP_DIR/"
   chmod 755 "$APP_DIR"
   rm -rf "$tmp_dir"
 
-  log "install.sh version: $(fetch_manifest_field "$APP_DIR/package.json" version)"
+  log "install.sh version: $(fetch_package_version "$APP_DIR/package.json")"
 }
 
 download_app() {
@@ -612,10 +729,9 @@ download_app() {
   fi
 }
 
-fetch_manifest_field() {
-  local manifest_file="$1"
-  local field="$2"
-  grep -o "\"${field}\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "$manifest_file" \
+fetch_package_version() {
+  local package_file="$1"
+  grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$package_file" \
     | head -n1 \
     | sed -E 's/.*:[[:space:]]*"([^"]*)"$/\1/'
 }
@@ -642,19 +758,22 @@ fetch_and_verify_manifest() {
 
   log "Fetching update manifest from $MANIFEST_URL"
 
-  local manifest_file="$APP_DIR/.manifest.json"
-  local signature_file="$APP_DIR/.manifest.json.sig"
+  local manifest_file="$BOOTSTRAP_DIR/manifest.json"
+  local signature_file="$BOOTSTRAP_DIR/manifest.json.sig"
   local fetch_url="$MANIFEST_URL"
+  local signature_url_value
 
-  if ! curl -fsSL "$fetch_url" -o "$manifest_file" || ! curl -fsSL "${fetch_url}.sig" -o "$signature_file"; then
+  signature_url_value="$(signature_url "$fetch_url")"
+  if ! curl -fsSL "$fetch_url" -o "$manifest_file" || ! curl -fsSL "$signature_url_value" -o "$signature_file"; then
     if [ "$MANIFEST_URL" = "$MANIFEST_FALLBACK_URL" ]; then
       echo "Failed to fetch manifest from $fetch_url"
       exit 1
     fi
     fetch_url="$MANIFEST_FALLBACK_URL"
     log "Failed to fetch manifest from $MANIFEST_URL, retrying from fallback $fetch_url"
+    signature_url_value="$(signature_url "$fetch_url")"
     curl -fsSL "$fetch_url" -o "$manifest_file"
-    curl -fsSL "${fetch_url}.sig" -o "$signature_file"
+    curl -fsSL "$signature_url_value" -o "$signature_file"
   fi
 
   if ! verify_ed25519_signature "$manifest_file" "$signature_file"; then
@@ -663,18 +782,9 @@ fetch_and_verify_manifest() {
     exit 1
   fi
 
-  FRONTEND_IMAGE="$(fetch_manifest_field "$manifest_file" frontend)"
-  BACKEND_IMAGE="$(fetch_manifest_field "$manifest_file" backend)"
-  UPDATE_AGENT_IMAGE="$(fetch_manifest_field "$manifest_file" updateAgent)"
-  MANIFEST_VERSION="$(fetch_manifest_field "$manifest_file" version)"
-  MANIFEST_CREATED_AT="$(fetch_manifest_field "$manifest_file" createdAt)"
+  parse_verified_manifest "$manifest_file"
 
   rm -f "$manifest_file" "$signature_file"
-
-  if [ -z "$FRONTEND_IMAGE" ] || [ -z "$BACKEND_IMAGE" ] || [ -z "$UPDATE_AGENT_IMAGE" ]; then
-    echo "Manifest is missing frontend, backend, or update-agent image digest."
-    exit 1
-  fi
 
   log "Manifest verified. frontend=$FRONTEND_IMAGE backend=$BACKEND_IMAGE update-agent=$UPDATE_AGENT_IMAGE"
 }
@@ -952,7 +1062,6 @@ main() {
   install_docker_if_missing
   verify_docker
   write_bootstrap_trust_set
-  prepare_app_directory
   load_existing_config
   ensure_app_secret
   ensure_host_agent_token
@@ -964,8 +1073,8 @@ main() {
   normalize_sensor_config
   normalize_dev_mode
   normalize_host_capability_debug
-  download_app
   resolve_images
+  download_app
   prepare_runtime_directories
   record_applied_manifest
   write_env_file
