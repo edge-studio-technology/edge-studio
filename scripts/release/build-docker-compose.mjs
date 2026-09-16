@@ -88,6 +88,16 @@ services:
       SESSION_MAX_AGE_DAYS: \${SESSION_MAX_AGE_DAYS:-7}
       SESSION_IDLE_HOURS: \${SESSION_IDLE_HOURS:-24}
       DOCKER_SOCKET_PATH: /var/run/docker.sock
+      EDGE_STUDIO_DOCKER_SUBNET: \${EDGE_STUDIO_DOCKER_SUBNET:-172.30.0.0/24}
+      EDGE_STUDIO_DOCKER_GATEWAY: \${EDGE_STUDIO_DOCKER_GATEWAY:-172.30.0.1}
+      EGRESS_MAX_RESPONSE_BYTES: \${EGRESS_MAX_RESPONSE_BYTES:-5242880}
+      EGRESS_TIMEOUT_MS: \${EGRESS_TIMEOUT_MS:-5000}
+      EGRESS_MAX_CONCURRENT: \${EGRESS_MAX_CONCURRENT:-4}
+      EGRESS_QUEUE_LIMIT: \${EGRESS_QUEUE_LIMIT:-32}
+      UPLOAD_MAX_FILE_BYTES: \${UPLOAD_MAX_FILE_BYTES:-104857600}
+      UPLOAD_MAX_FILES: \${UPLOAD_MAX_FILES:-1}
+      UPLOAD_MAX_FIELDS: \${UPLOAD_MAX_FIELDS:-8}
+      MQTT_MAX_PAYLOAD_BYTES: \${MQTT_MAX_PAYLOAD_BYTES:-262144}
     volumes:
       - \${HOST_FILES_DIR:-./host-files}:/host-files:ro
       - \${DATA_DIR:-./data}:/data
@@ -109,6 +119,9 @@ services:
 
   frontend:
     image: ${manifest.frontend}
+    environment:
+      UPLOAD_MAX_FILE_BYTES: \${UPLOAD_MAX_FILE_BYTES:-104857600}
+      UPLOAD_MAX_FIELDS: \${UPLOAD_MAX_FIELDS:-8}
     ports:
       - "\${FRONTEND_PORT:-8080}:443"
     volumes:
@@ -173,6 +186,10 @@ services:
 networks:
   integritas:
     name: edge-studio
+    ipam:
+      config:
+        - subnet: \${EDGE_STUDIO_DOCKER_SUBNET:-172.30.0.0/24}
+          gateway: \${EDGE_STUDIO_DOCKER_GATEWAY:-172.30.0.1}
 `;
 
 const envExample = `# edge-studio ${channel} channel
@@ -195,6 +212,23 @@ TZ=UTC
 
 # Docker integration
 DOCKER_GID=0
+
+# The Compose network Edge Studio runs on. The backend treats these as internal destinations and
+# refuses to fetch data sources or HTTP output targets that resolve into them. Keep in step with the
+# network block in docker-compose.yml.
+EDGE_STUDIO_DOCKER_SUBNET=172.30.0.0/24
+EDGE_STUDIO_DOCKER_GATEWAY=172.30.0.1
+
+# Resource limits. Values outside the supported range are clamped, not honoured — see
+# docs/adr/0017-outbound-and-upload-resource-limits.md.
+EGRESS_MAX_RESPONSE_BYTES=5242880
+EGRESS_TIMEOUT_MS=5000
+EGRESS_MAX_CONCURRENT=4
+EGRESS_QUEUE_LIMIT=32
+UPLOAD_MAX_FILE_BYTES=104857600
+UPLOAD_MAX_FILES=1
+UPLOAD_MAX_FIELDS=8
+MQTT_MAX_PAYLOAD_BYTES=262144
 
 # Integritas Connect
 INTEGRITAS_CONNECT_BASE_URL=https://integritas.technology

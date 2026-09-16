@@ -21,7 +21,11 @@ Plan:
 - Add auth before exposing Minima actions.
 - Review Minima RPC auth/options before production.
 
-Status: Partially mitigated by host-local bind and no arbitrary command proxy.
+Status: **Open — scheduled, Phase 2.** The "no arbitrary command proxy" control does not hold:
+an HTTP JSON Source pointed at `http://minima:9005/vault` reaches unauthenticated Minima RPC from
+inside the Docker network and returns the response to the caller, bypassing the console catalog's
+hard exclusions. See [adr/0010](../adr/0010-security-review-audit-verdict.md) and
+[plans/security/phase-2-minima-rpc-bypass.md](../plans/security/phase-2-minima-rpc-bypass.md).
 
 ## Minima Auto-Resync (optional)
 
@@ -68,22 +72,76 @@ Status: Documented prototype tradeoff.
 
 ## Data Source URL Fetching
 
-Risk: Saved data source URLs and optional health status URLs are fetched by the backend. In this prototype, an admin can configure URLs that cause the backend to make outbound or Docker-network HTTP requests.
+Risk: Saved data source and HTTP output target URLs are fetched by the backend. In this prototype, an admin can configure URLs that cause the backend to make outbound or Docker-network HTTP requests.
 
 Impact: Misconfigured or malicious URLs could probe internal services, create repeated outbound traffic, or expose upstream response details in the UI.
 
 Current Controls:
 
-- URLs must be saved on a data source before the health poll endpoint will fetch them.
-- Data-source mutation routes require admin role.
-- Health status polling is narrow and read-only, and the frontend polls saved health URLs once per minute.
+- One shared validator (`backend/src/shared/url-policy.ts`) rejects non-`http(s)` schemes and internal destinations: the Compose subnet and gateway (`EDGE_STUDIO_DOCKER_SUBNET`/`EDGE_STUDIO_DOCKER_GATEWAY`), the container service names (`backend`, `frontend`, `minima`, `mqtt`, `update-agent`), loopback, link-local, `0.0.0.0/8`, `::`, and `host.docker.internal` — in IPv4 and IPv4-mapped IPv6 form alike.
+- Enforced at save time in `parseJsonApiConfig` and `parseHttpOutputConfig`, and again at fetch time on all three egress call sites (`readJsonApiSource`, `sendHttpOutput`, and `sendMultipartMediaOutput` — the last previously used a bare `fetch` with no validation at all). Config rows predate the validator, so fetch-time re-checking is not redundant.
+- The host is resolved once and rejected if **any** returned A/AAAA record is protected, then that validated address is pinned to the socket (`undici` `Agent` with a fixed `lookup`), so a resolver answering differently on a second lookup cannot move the connection onto an internal host.
+- Redirects are fetched with `redirect: "manual"` and every `Location` hop re-runs the whole check — resolve and pin included — under a hop cap, so the remote server cannot choose the final destination.
+- The camera and sensor host helpers are deliberately exempt: they fetch install-time `.env` values, not API-writable rows, and point at exactly the gateway ports this policy protects. The line drawn is API-writable URL versus deployment config.
 
 Plan:
 
-- Add URL allowlists or network egress policy for production.
 - Consider per-source health polling controls and rate limits.
+- DEVICE-IO-06's other half — MQTT broker allowlists and per-target rate limits — stays open.
 
-Status: Accepted prototype risk.
+Status: **Mitigated (Phase 2, 2026-09-08).** Previously recorded here as an accepted prototype risk on
+the grounds that it "could probe internal services". That understated it: the reachable internal
+service is an unauthenticated Minima RPC endpoint that returns wallet key material, and the response
+body is both returned to the caller and persisted to read history. The class of risk was anticipated;
+its consequence was not.
+
+**Residual, accepted:** an operator can still point a data source at any other LAN host, including
+one they do not control. That is the deliberate scope of the chosen policy — see
+[adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md) for the options weighed and
+what a deny-by-default host allowlist would cost.
+
+## Outbound Request Resource Limits
+
+Risk: Data source reads, health checks, and HTTP output targets fetch operator-supplied URLs. The
+remote end controls how large its response is, how compressible it is, and how slowly it answers —
+none of which the Pi controls.
+
+Impact: Before Phase 5, every outbound read buffered the whole response into memory with no ceiling
+(`sendMultipartMediaOutput` via `response.json()`, the rest via `response.text()`), and nothing
+limited how many such requests could be in flight. An oversized, highly compressible, or slow
+response could exhaust the backend's heap or hold every workflow run open at once. The same shape
+existed on MQTT: `handleMqttMessage` parsed whatever a publisher sent.
+
+Current Controls:
+
+- All four egress call sites go through `fetchExternalJson()`, which is the only place these limits
+  need to be enforced.
+- Responses are read as a stream and aborted the moment the running total passes
+  `EGRESS_MAX_RESPONSE_BYTES` (default 5 MB, hard max 50 MB). `Content-Length` is rejected up front
+  when already oversized but is not trusted — it is absent on chunked responses and can understate
+  the body. The count is of **decoded** bytes, so a small gzip body that inflates past the cap is
+  still cut off mid-stream.
+- One global semaphore (`shared/egress-limiter.ts`) caps concurrent outbound requests
+  (`EGRESS_MAX_CONCURRENT`, default 4) with a **bounded** queue (`EGRESS_QUEUE_LIMIT`, default 32).
+  Past the queue, callers are rejected immediately rather than accumulating a backlog of pending
+  workflow runs — which would be the same failure, deferred.
+- The request deadline covers the queue wait as well as the request, and is clamped to 60 s
+  regardless of a target's configured `timeoutMs`.
+- MQTT messages over `MQTT_MAX_PAYLOAD_BYTES` (default 256 KB, hard max 4 MB) are rejected before
+  `JSON.parse` and recorded as a failed read against the source.
+- Every limit is configurable in `.env` and **clamped** to a supported range in `config/env.ts`, so
+  an operator can tune a limit but cannot configure it away.
+- `fetchJsonWithTimeout()` — the deployment-config path for Minima RPC, Integritas, status, and the
+  camera/sensor helpers — is deliberately not capped: those URLs are not API-writable and their
+  responses are legitimately large.
+
+Plan:
+
+- The defaults are reasoned, not measured on a Pi under load. Revisit
+  [adr/0017](../adr/0017-outbound-and-upload-resource-limits.md) with real numbers.
+
+Status: **Mitigated (Phase 5, 2026-09-09).** Review finding [3]. See
+[adr/0017](../adr/0017-outbound-and-upload-resource-limits.md).
 
 ## Public Data Source Webhooks
 
@@ -101,6 +159,12 @@ Current Controls:
 - Admin authentication is still required to create, edit, list, or delete webhook sources.
 - Incoming webhook payloads are recorded only when the source has an enabled automation workflow; otherwise the endpoint returns a disabled-ingestion error.
 - HTTPS encrypts webhook payload transport by default, but self-signed certificate trust must be handled by the sending system.
+
+Open gap: the bearer token is written to routine request logs (`requestLogger` logs `originalUrl`
+unconditionally), and reaches `data_source_reads.sourceUrl` whenever the triggered workflow contains
+a record-trigger-event block. Anyone who can read Docker logs or the database can replay the webhook.
+Scheduled Phase 7 — see
+[plans/security/phase-7-retention-redaction-budgets.md](../plans/security/phase-7-retention-redaction-budgets.md).
 
 Plan:
 
@@ -172,7 +236,11 @@ Plan:
 - Consider TLS, topic ACLs, and LAN bind controls before production use.
 - Document trusted-network-only use clearly in installation guidance.
 
-Status: Accepted prototype risk for local learning deployments only.
+Status: **Accepted for local learning deployments only — escalated to a product decision.** The
+external review rated anonymous publishing medium. It is off by default and profile-gated, but
+unauthenticated when on, and closing it needs a device-authentication model rather than a config
+change. Not scheduled as a patch — see
+[plans/security/phase-0-product-decision-gate.md](../plans/security/phase-0-product-decision-gate.md#findings-in-detail).
 
 ## HTTP JSON Targets
 
@@ -187,6 +255,10 @@ Current Controls:
 - Supported methods are limited to `POST`, `PUT`, and `PATCH`.
 - Requests use JSON bodies and bounded timeouts.
 - Request bodies are selected per workflow block: custom JSON, workflow context, trigger payload, latest data, or no body.
+
+Open gap: target URLs get the same absent validation as data-source URLs, and `sendHttpOutput`
+returns the upstream response body to the caller — so this is the second route to the Minima RPC
+bypass. Response reads are also uncapped. Scheduled Phase 2 (validation) and Phase 5 (byte cap).
 - Custom output JSON can interpolate per-run workflow variables using `{{variableName}}`; variables may contain untrusted input from triggers or fetched data.
 
 Plan:

@@ -7,7 +7,7 @@ docs/
 ├── TASKS.md     current work items (read every session)
 ├── SESSION.md   scratch log for the session in progress
 ├── security/    detailed security risk register (see SECURITY.md for the policy)
-├── plans/       active or upcoming work
+├── plans/       active or upcoming work (archive/ for completed and superseded)
 ├── adr/         architecture decision records — why, not what; code comments point here
 ├── qa/          open gaps and hardening backlog
 └── reports/     point-in-time audits (not maintained after creation)
@@ -55,23 +55,31 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | [security/wallet-and-tokens.md](./security/wallet-and-tokens.md)                     | Seed phrase import, automated transactions, debug clears, token creation                  |
 | [security/data-sources-and-automation.md](./security/data-sources-and-automation.md) | Minima RPC/resync/restart/peers, data source URLs, webhooks, MQTT, GPIO, Raspberry Pi Camera, Integritas proxy |
 | [security/low-priority-and-future.md](./security/low-priority-and-future.md)         | Rate limiting, error detail, logging hygiene, missing security tests                      |
+| [security/external-review-2026-09-03.md](./security/external-review-2026-09-03.md)   | External static security review of `571ba70` (14 findings), kept verbatim — see [adr/0010](./adr/0010-security-review-audit-verdict.md) for the audited verdict and fix ordering |
 
 ---
 
 ## Active plans
 
-| Plan                                                                                                     | Status                     |
-| -------------------------------------------------------------------------------------------------------- | -------------------------- |
-| [plans/automation-inbox-and-preview-block.md](./plans/automation-inbox-and-preview-block.md)             | V1 implemented             |
-| [plans/block-automation-workflows.md](./plans/block-automation-workflows.md)                             | In progress                |
-| [plans/device-configuration-and-mqtt-broker.md](./plans/device-configuration-and-mqtt-broker.md)         | V1 implemented             |
-| [plans/feedback.md](./plans/feedback.md)                                                                 | V1 implemented; V2 planned |
-| [plans/security-checklist.md](./plans/security-checklist.md)                                             | In progress                |
-| [plans/workflow-variables-and-output-templating.md](./plans/workflow-variables-and-output-templating.md) | V1 implemented             |
-| [plans/manifest-deploy-pull-model.md](./plans/manifest-deploy-pull-model.md)                             | In progress                |
-| [plans/workflow-runs-pagination.md](./plans/workflow-runs-pagination.md)                                 | Implemented                |
-| [plans/pir-motion-sensor-workflows.md](./plans/pir-motion-sensor-workflows.md)                           | Planned                    |
-| [plans/esp32-mqtt-sensor-onboarding.md](./plans/esp32-mqtt-sensor-onboarding.md)                         | Planned                    |
+| Plan | Status |
+| ---- | ------ |
+| [plans/security/](./plans/security/README.md) | In progress — Phases 1-5 done and in review; owns all V1.5 security work |
+| [plans/remove-totp.md](./plans/remove-totp.md) | On hold — candidate analysis; removal not decided |
+| [plans/block-automation-workflows.md](./plans/block-automation-workflows.md) | In progress |
+| [plans/workflow-redesign.md](./plans/workflow-redesign.md) | In progress |
+| [plans/esp32-mqtt-sensor-onboarding.md](./plans/esp32-mqtt-sensor-onboarding.md) | In progress |
+| [plans/pir-motion-sensor-workflows.md](./plans/pir-motion-sensor-workflows.md) | In progress |
+| [plans/host-agent-capability-management.md](./plans/host-agent-capability-management.md) | Not started |
+| [plans/feedback.md](./plans/feedback.md) | V1 implemented; hosted receiver required |
+| [plans/minima-node-backup-restore.md](./plans/minima-node-backup-restore.md) | Implemented; needs verification against a real node |
+| [plans/bme-environmental-sensor-support.md](./plans/bme-environmental-sensor-support.md) | Implemented |
+| [plans/device-guide-starter-workflows.md](./plans/device-guide-starter-workflows.md) | Implemented |
+| [plans/replace-openssl-manifest-verification.md](./plans/replace-openssl-manifest-verification.md) | Implemented |
+| [plans/manifest-deploy-pull-model.md](./plans/manifest-deploy-pull-model.md) | Superseded — see [adr/0008](./adr/0008-manifest-served-from-github-raw.md) |
+
+Completed and superseded plans move to [plans/archive/](./plans/archive/); they are kept for
+context, not updated. `security-checklist.md` and `high-risk-business-logic-hardening.md` were
+archived on 2026-09-04 and folded into the hardening plan above.
 
 ---
 
@@ -92,7 +100,13 @@ of carrying the full rationale inline.
 | [adr/0007-release-channels-and-compose-generation.md](./adr/0007-release-channels-and-compose-generation.md) | Release workflow: branch-per-channel replaced with folder-per-channel on `main`, plus generated per-channel `docker-compose.yml`/`.env.example` |
 | [adr/0008-manifest-served-from-github-raw.md](./adr/0008-manifest-served-from-github-raw.md) | Default manifest delivery: `raw.githubusercontent.com` on the public manifest repo, replacing the never-finished VPS pull-based plan |
 | [adr/0009-manifest-fallback-to-github-raw.md](./adr/0009-manifest-fallback-to-github-raw.md) | Default manifest delivery switched to our own domain, with `update-agent` falling back to `raw.githubusercontent.com` on fetch failure |
-| [adr/0010-i2c-prerequisite-setup-action.md](./adr/0010-i2c-prerequisite-setup-action.md) | I2C prerequisite setup: fixed Raspberry Pi OS host-agent action with manual fallback |
+| [adr/0010-security-review-audit-verdict.md](./adr/0010-security-review-audit-verdict.md) | Second-opinion audit of the external V1.5 security review: all 14 findings confirmed, one likelihood downgrade, one missed SSRF-to-Minima-RPC finding, and the resulting fix ordering |
+| [adr/0011-remove-unused-totp.md](./adr/0011-remove-unused-totp.md) | Superseded proposal to remove the dormant TOTP implementation |
+| [adr/0012-keep-totp-decision-outside-v1-5-hardening.md](./adr/0012-keep-totp-decision-outside-v1-5-hardening.md) | V1.5 hardens the dormant implementation without deciding whether TOTP is later retained, redesigned, re-enabled, or removed |
+| [adr/0013-secret-redaction-boundary.md](./adr/0013-secret-redaction-boundary.md) | Single redaction boundary: `redactDeep()` vs `redactStrings()` split, write-time redaction, fail-closed depth limit, and the `isSecretKey()` KISS simplification |
+| [adr/0018-nginx-upload-request-limit.md](./adr/0018-nginx-upload-request-limit.md) | Nginx derives bounded multipart headroom from the backend upload settings instead of carrying a second operator-configured limit |
+| [adr/0019-i2c-prerequisite-setup-action.md](./adr/0019-i2c-prerequisite-setup-action.md) | I2C prerequisite setup: fixed Raspberry Pi OS host-agent action with manual fallback |
+| [adr/0020-bind-installer-runtime-to-signed-manifest.md](./adr/0020-bind-installer-runtime-to-signed-manifest.md) | Release installer verifies the runtime bundle against the signed manifest before replacing application files |
 
 ---
 

@@ -18,7 +18,7 @@ import {
   isValidAdminCredential,
   verifyPassword
 } from "./password.service.js";
-import { createSession } from "./session.service.js";
+import { createSession, deleteAllUserSessions } from "./session.service.js";
 import { decryptTotpSecret, encryptTotpSecret, generateSecret, getOtpAuthUrl, renderQrPngBase64, verifyToken } from "./totp.service.js";
 
 const DUMMY_HASH = bcrypt.hashSync("edge-studio-dummy-login-path", 12);
@@ -102,6 +102,7 @@ export async function changePassword(
 
   const newHash = await hashPassword(input.newPassword);
   updateUserPassword(userId, newHash, getAdminCredentialType(input.newPassword));
+  deleteAllUserSessions(userId);
   recordAuditEvent("settings.password_changed", { userId, detail: LOCAL_ADMIN_DISPLAY_NAME });
 }
 
@@ -153,5 +154,6 @@ export async function verifyTotpReset(userId: string, totpToken: string) {
 
   updateUserTotpSecret(userId, pending.totp_secret);
   clearSetupPending();
+  deleteAllUserSessions(userId);
   recordAuditEvent("settings.totp_reset", { userId, detail: LOCAL_ADMIN_DISPLAY_NAME });
 }

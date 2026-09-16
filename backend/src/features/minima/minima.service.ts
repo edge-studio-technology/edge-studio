@@ -202,7 +202,6 @@ export async function getMinimaPeers() {
   const parsed = parsePeersListResponse(result.body);
   return {
     ok: result.ok && parsed.count !== null,
-    source: result.source,
     command: result.command,
     count: parsed.count,
     peers: parsed.peers,

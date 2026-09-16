@@ -100,15 +100,121 @@ Later same branch, next session:
 - Verified: `npm run check` (typecheck + backend/frontend/update-agent `test:coverage` + new root scripts-vitest run, all green — backend 67 files/966 tests unchanged, update-agent now 13 files/149 tests, root scripts 2 files/11 tests; `audit:moderate` now passes clean across all three packages, so the `qs`/`express` blocker two sessions ago is resolved, likely by commit `1742cee` "Updated the dependencies for the package files"), `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config` — all clean.
 - Added one `CHANGELOG.md` line each for the `auth.middleware.ts` coverage and the new scripts test harness, under the existing `[Unreleased] test/unit-tests-and-ci` section.
 
+Later on branch `task/272-security-hardening-v1-5`:
+
+- Reconciled the TOTP scope drift across the V1.5 security plan, removal candidate, ADRs, risk
+  register, QA backlog, README, and task tracking. ADR 0011 is now superseded; ADR 0012 records that
+  this branch only hardens the dormant implementation and leaves its eventual fate undecided.
+- No production code changed. Verification was a documentation reference/status sweep.
+
+Later same branch, next session:
+
+- Implemented Phase 4 of `docs/plans/security-hardening-v1-5.md` — the install-time trust chain, review findings [1] (high) and [4] (medium). Decisions recorded in `docs/adr/0016-install-time-bootstrap-trust-set.md`.
+- `install.sh` now carries the whole bootstrap trust set instead of taking it from the artifact it authenticates: the Ed25519 public key and the verifier source are embedded heredocs written to a private `mktemp -d` on start and removed by an EXIT trap, and `VERIFIER_IMAGE` pins `node:20-bookworm-slim` to its multi-arch OCI index digest (`sha256:2cf067cf…`, resolved from the registry and confirmed to carry arm64/armv7/amd64) instead of the mutable tag.
+- The runtime bundle is now signed and verified before extraction. CI signs `edge-studio-runtime.tar.gz` with the same key as the manifest and publishes `edge-studio-runtime.tar.gz.sig`; `install.sh` fetches both (including on the GitHub-raw fallback path), fails closed if either is missing, and only then extracts. One `verify_ed25519_signature()` serves both the bundle and the manifest.
+- Added `assert_safe_archive_entries()` as defense in depth behind the signature: rejects absolute paths, `..` components, and any entry that is not a regular file or directory. Rejecting non-regular types outright is stricter and simpler than resolving link targets, and costs nothing — the bundle is built from a flat list of regular files.
+- Deleted `scripts/verify-manifest.mjs` and dropped it plus `update-agent/manifest-public-key.pem` from `runtime-bundle-files.json`, so neither the verifier nor the trust anchor travels with anything it authenticates and there is no second copy in `$APP_DIR` for a later change to reach for.
+- Chose behavior tests over a byte-diff fixture: `scripts/tests/install-bootstrap-trust-set.test.ts` (9 tests) extracts the embedded verifier from `install.sh` and asserts what it does — accepts a signed binary artifact, rejects one modified after signing, rejects another key's signature, exits non-zero rather than throwing on unreadable input — plus asserts the digest pin's shape, that the embedded PEM matches `update-agent/manifest-public-key.pem`, and that the bundle list ships neither file. `generate-signing-key.mjs` now prints the two-file rotation reminder.
+- [4] is mitigated and accepted, not closed: `release.yml` publishes `install.sh.sha256` into the manifest repo (a different repository from the `main`-branch raw URL the one-liner uses), `README.md` documents a tag-pinned download-verify-read-run path, and `SECURITY.md` plus `docs/security/host-and-infrastructure.md` record the one-liner as an accepted residual with an immutable signed installer URL as its exit criteria. Consolidated that into the register's existing *One-Line Curl Installer* entry rather than adding a second one; *Update Manifest Signing Key* moved from Partially mitigated to Mitigated.
+- Verified beyond static checks, since this phase is the one most likely to break installs. Built a real runtime bundle, signed it with a throwaway key, served it over local HTTP, and ran `download_runtime_bundle` against it three ways: valid signature extracts the expected 9-file tree; tampered bundle prints the refusal and leaves `APP_DIR` empty; missing `.sig` fails the download and leaves `APP_DIR` empty. Separately exercised `assert_safe_archive_entries()` against purpose-built archives containing a symlink, an absolute path, and a `../` member — all three rejected, a clean archive accepted. Also confirmed the pinned image pulls and verifies on this host.
+- Also verified: `bash -n install.sh`, `bash -n bin/edge-studio`, `docker compose config`, `npm run check` (typecheck + all four coverage suites green), `npm --prefix backend run build`, `npm --prefix frontend run build`, and `release.yml` parses as valid YAML. `audit:moderate` still fails on pre-existing `multer`/`vitest` advisories — confirmed identical on a stashed clean tree, so unrelated to this work.
+- Docs: new ADR 0016; plan Phase 4 marked done with a "How it landed" section and the pre-merge decision rows 7/8 marked implemented; `CHANGELOG.md` under `### Security`; `README.md` (verified install path, installer step list, manifest-key paragraph); `SECURITY.md` (two new guidelines); `docs/security/host-and-infrastructure.md`; the `update-agent` rule in all three of `.agents/`, `.claude/`, `.cursor/`; and a superseded note on `docs/plans/replace-openssl-manifest-verification.md`, which describes the now-deleted standalone verifier.
+
+Later same branch, next session:
+
+- Added `docs/qa/security-hardening-phases-1-5.md`, a repeatable promotion runbook for the completed
+  security phases. It separates source checks, clean-deployment smoke tests, phase-specific abuse
+  cases, staging/Pi checks, cross-phase regression, stop-ship conditions, and the final sign-off
+  record.
+- Linked the runbook from `docs/plans/security/README.md` and made its scope explicit: a pass can
+  approve the recorded next release channel, but cannot replace the parent plan's Phase 0,
+  Phases 6-8, Pi/TLS, and final V1.5 sign-off requirements.
+- Reconciled `docs/TASKS.md` so execution of the runbook against the exact candidate artifacts and
+  a dedicated Pi remains open. No product code changed and no full runtime QA pass was claimed for
+  this documentation-only session.
+- Verified the runbook's focused Phase 3 and Phase 4 rerun commands: the backend auth route suite
+  passed 3 tests, the frontend credential-panel suite passed 14, and the bootstrap trust-set suite
+  passed 8. The bootstrap suite needed an unsandboxed rerun because its child Node verifier process
+  is blocked with `EPERM` inside the workspace sandbox.
+
+Later same branch, Pi QA and Phase 5 proxy fix:
+
+- Manually passed Phases 1-4 on the Pi against `v0.50.0-dev.8`: backup secrets stayed out of API
+  responses and logs, SSRF controls rejected internal/non-HTTP targets while allowing a public API,
+  credential changes invalidated active sessions, and a bad runtime signature stopped installation
+  without disrupting the running app.
+- Found a Phase 5 stop-ship issue: Nginx's default 1 MiB request-body limit rejected uploads before
+  the backend's configurable limit, returning an HTML `413` and an "Unknown error" toast.
+- Fixed the proxy boundary by deriving bounded multipart request headroom from
+  `UPLOAD_MAX_FILE_BYTES` and `UPLOAD_MAX_FIELDS` for the three upload routes only. Both development
+  and generated release Compose pass the same settings to the frontend; Nginx version tokens are
+  disabled. Decision recorded in ADR 0018.
+- Added five script-level regression tests for default/custom/invalid/scientific/signed limit
+  parsing, upload-route scoping, and version-token configuration. Focused backend upload tests passed
+  (10), all backend/frontend/update-agent/script coverage suites passed (2,774 tests), both builds
+  passed, `docker compose config` passed, the frontend image built, its rendered Nginx config passed
+  `nginx -T`, and live headers returned `Server: nginx` without a version. `npm run check` reached its
+  audit step and reported an unrelated moderate Vitest development-tool advisory.
+
+Later same branch, post-merge installer findings:
+
+- Added the main Compose network IPAM block to generated release Compose, using the same configurable
+  subnet and gateway as the backend's internal-destination protections. Generated development
+  Compose resolved custom values consistently through `docker compose config`; all release-script
+  tests passed.
+- Reordered release installation so the signed manifest is fetched, verified, and parsed in the
+  digest-pinned bootstrap Node runtime before the runtime bundle is selected. The signed runtime URL
+  remains overridable for QA, the GitHub Raw transport fallback remains available, and every bundle
+  must pass its detached signature and the signed manifest SHA-256 before archive handling.
+- Moved manifest, bundle, archive validation, and extraction staging outside `APP_DIR`; release-mode
+  failures now occur before the installer creates, cleans, or copies application files. Query-bearing
+  artifact URLs preserve their query when resolving the sibling `.sig` URL. Decision recorded in ADR
+  0020.
+- Added embedded manifest-parser and signature-URL tests. `bash -n install.sh` passed, all 31 script
+  tests passed, the parser and URL resolver passed through the real pinned Docker image, and isolated
+  matching/mismatching hash checks confirmed that only the match reaches replacement while mismatch
+  preserves the existing installation.
+- Committed the installer binding as `3843d6d`, tagged and pushed `v0.41.1-dev.1`, and confirmed the
+  release workflow passed. The GitHub Raw development manifest, runtime SHA-256, installer checksum,
+  and generated Compose IPAM rendering matched; the primary website was still serving the previous
+  development manifest and runtime when checked.
+- Added the full release-installer regression matrix around the real `resolve_images` -> `download_app`
+  sequence with generated Ed25519 signatures and tar archives. It covers matching manifest/bundle
+  success, signed cross-bundle digest mismatch, modified and unsigned bundles, invalid manifest
+  signatures, missing/malformed runtime digests, explicit URL precedence and hash enforcement,
+  hash-bound fallback downloads, and byte/mode preservation of an existing installation on every
+  trust failure. The focused suite passed 24 tests; all release/installer script tests passed 43/43;
+  `bash -n install.sh`, Prettier, and `git diff --check` passed.
+
 ## Next Steps
 
+- Run the complete local sign-off suite, then create and verify the next development tag on the Pi.
+- Execute the Phase 1-5 QA runbook against the exact candidate commit, staging release artifacts,
+  and a dedicated Pi before promotion; Phases 1-5 are implemented but not signed off by this
+  documentation session.
+- Publish a new development build containing the Phase 5 proxy fix, then repeat the 1 MiB/2 MiB Pi
+  upload test and confirm the oversized file returns the backend's JSON `413` with a useful UI error.
+- V1.5 security hardening: Phase 6 (fail closed on weak config) is next. Phase 0's two product
+  decisions stay defaulted to acceptance until the pre-merge decision pass.
+- Before Phase 4 ships, every release channel needs one release through the updated `release.yml` — an installer carrying this change cannot install from a channel whose latest bundle has no `.sig`. Fail-closed by design, but it has to be sequenced.
+- Phase 4 still wants a live root install on a Pi against a staging manifest. The local rehearsal covered the bundle download/verify/extract paths in isolation; it did not run the full `main()`, the manifest fetch, or container start.
 - Implement `docs/plans/high-risk-business-logic-hardening.md` on a separate production-behavior branch; this test branch should not absorb those changes.
+- Continue the V1.5 security decision review with TOTP removal/retention excluded from this branch.
 - The `verification.md` update-agent-build-step gap moved to `docs/TASKS.md`'s Ideas section is still unactioned.
 - `npm audit --audit-level=moderate` is clean again as of this session (verified via `npm run check`) — the `qs`/`express` blocker from two sessions ago no longer reproduces, most likely resolved by commit `1742cee` "Updated the dependencies for the package files".
 - Still open from prior sessions: decide whether to split `docs/TASKS.md`'s `block-automation-workflows` line into per-milestone bullets (see Notes below); fix stale `integritasAuth`/`integritas-auth` doc reference.
 
 ## Notes / Open Questions
 
+- The verifier image digest pin is bumped by hand at release. A stale pin means verification runs on an older Node inside a `--network none` container that reads three files, so letting it age between deliberate bumps is acceptable — but nothing reminds anyone to bump it.
+- Signing key rotation now touches two files (`update-agent/manifest-public-key.pem` and the embedded PEM in `install.sh`). The scripts test fails the build if they drift, so this is guarded rather than remembered.
+- The embedded verifier's failure messages still say "Manifest signature verification failed" even when it is judging the runtime bundle. Left byte-identical deliberately — `install.sh` prints an artifact-specific line immediately after, and renaming internals in working crypto code was not worth the churn.
+- `https://edgestudio.technology/manifest/development/` still served the previous development
+  manifest and bundle after `v0.41.1-dev.1` published successfully to the GitHub Raw fallback. Until
+  that origin is refreshed, immediate Pi QA needs explicit GitHub Raw manifest and runtime URLs.
+- TOTP removal is not approved or scheduled. After V1.5, a fresh product decision and ADR must
+  choose whether to retain, redesign, re-enable, or remove it; any implementation then gets its own
+  ticket and branch.
 - `docs/TASKS.md`'s `block-automation-workflows` line hides an 844-line plan with several substantial unbuilt code features — recommend splitting it into per-milestone bullets next time it's picked up (see audit above). Not acted on yet; flagged for the user to decide.
 - `.claude/rules/frontend.md` says the Integritas Connect auth folder is `integritasAuth`; it's actually `integritas-auth` on disk. Small doc-drift fix, not made yet.
 - The `StampResult.tsx` double-toast bug is resolved: commit `92a4c1a` memoized `ToastProvider`'s `showToast`, so the pending-refresh effect no longer re-runs on every toast add. Now recorded in `CHANGELOG.md`.

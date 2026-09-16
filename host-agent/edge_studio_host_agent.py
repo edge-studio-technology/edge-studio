@@ -517,9 +517,9 @@ WorkingDirectory={APP_DIR}
 Environment=SENSOR_HELPER_HOST=0.0.0.0
 Environment=SENSOR_HELPER_PORT={port}
 Environment=SENSOR_HELPER_TOKEN={token}
-Environment=INTEGRITAS_DOCKER_SUBNET={config.get('INTEGRITAS_DOCKER_SUBNET', '172.30.0.0/24')}
-Environment=INTEGRITAS_DOCKER_GATEWAY={config.get('INTEGRITAS_DOCKER_GATEWAY', '172.30.0.1')}
-ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT; fi'
+Environment=EDGE_STUDIO_DOCKER_SUBNET={config.get('EDGE_STUDIO_DOCKER_SUBNET', '172.30.0.0/24')}
+Environment=EDGE_STUDIO_DOCKER_GATEWAY={config.get('EDGE_STUDIO_DOCKER_GATEWAY', '172.30.0.1')}
+ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $EDGE_STUDIO_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $EDGE_STUDIO_DOCKER_SUBNET -p tcp --dport $SENSOR_HELPER_PORT -j ACCEPT; fi'
 ExecStart={sensor_python} {APP_DIR}/sensor-helper/edge_studio_sensor_helper.py
 Restart=on-failure
 RestartSec=2
@@ -532,7 +532,7 @@ WantedBy=multi-user.target
     run(["systemctl", "enable", "edge-studio-sensor-helper.service"])
     run(["systemctl", "restart", "edge-studio-sensor-helper.service"])
 
-    gateway = config.get("INTEGRITAS_DOCKER_GATEWAY", "172.30.0.1")
+    gateway = config.get("EDGE_STUDIO_DOCKER_GATEWAY", "172.30.0.1")
     write_env({
         "ENABLE_SENSORS": "true",
         "SENSOR_HELPER_URL": f"http://{gateway}:{port}",
@@ -755,9 +755,9 @@ Environment=CAMERA_CONTAINER_CAPTURE_DIR={capture_dir_container}
 Environment=CAMERA_MAX_DURATION_SECONDS={config.get('CAMERA_MAX_DURATION_SECONDS', '30')}
 Environment=CAMERA_PHOTO_COMMAND={config.get('CAMERA_PHOTO_COMMAND', 'rpicam-still')}
 Environment=CAMERA_VIDEO_COMMAND={config.get('CAMERA_VIDEO_COMMAND', 'rpicam-vid')}
-Environment=INTEGRITAS_DOCKER_SUBNET={config.get('INTEGRITAS_DOCKER_SUBNET', '172.30.0.0/24')}
-Environment=INTEGRITAS_DOCKER_GATEWAY={config.get('INTEGRITAS_DOCKER_GATEWAY', '172.30.0.1')}
-ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT; fi'
+Environment=EDGE_STUDIO_DOCKER_SUBNET={config.get('EDGE_STUDIO_DOCKER_SUBNET', '172.30.0.0/24')}
+Environment=EDGE_STUDIO_DOCKER_GATEWAY={config.get('EDGE_STUDIO_DOCKER_GATEWAY', '172.30.0.1')}
+ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $EDGE_STUDIO_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $EDGE_STUDIO_DOCKER_SUBNET -p tcp --dport $CAMERA_HELPER_PORT -j ACCEPT; fi'
 ExecStart=/usr/bin/python3 {APP_DIR}/camera-helper/edge_studio_camera_helper.py
 Restart=on-failure
 RestartSec=2
@@ -770,7 +770,7 @@ WantedBy=multi-user.target
     run(["systemctl", "enable", "edge-studio-camera-helper.service"])
     run(["systemctl", "restart", "edge-studio-camera-helper.service"])
 
-    gateway = config.get("INTEGRITAS_DOCKER_GATEWAY", "172.30.0.1")
+    gateway = config.get("EDGE_STUDIO_DOCKER_GATEWAY", "172.30.0.1")
     write_env({
         "ENABLE_CAMERA": "true",
         "CAMERA_CAPTURE_DIR": capture_dir_container,

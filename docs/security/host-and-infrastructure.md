@@ -33,6 +33,7 @@ Current Controls:
 - Closed-world catalog: nothing runs unless it is both listed in the static `minimaConsoleCatalog` array and enabled in the admin whitelist (`minima_console_whitelist` setting). No request body can whitelist a command outside the catalog — `updateConsoleWhitelist` rejects unknown keys.
 - `vault`, `sendfrom`, `signfrom`, `createfrom`, `postfrom`, `createtokenfrom`, `decryptbackup`, `keys`, and `quit` have no catalog entry at all for v1, so no whitelist edit can ever enable them as a raw, free-text command. The first six can expose or accept a raw wallet private key or seed phrase; a bare, unwrapped `quit` can shut the node down with no in-UI recovery. `quit compact:true` is used internally by `restartMinimaContainer()` (`minima.service.ts`) as the first step of a controlled restart that always ends by starting the container back up — this is a narrow, wrapped, non-whitelist-able use, not an exception to the exclusion.
 - Every other catalog command defaults to enabled only if it is read-only (no side effects); anything that can mutate funds, chain state, config, network, or the wallet defaults to disabled and must be explicitly turned on.
+- Classification is per accepted argument shape, not per verb. A read-enabled verb whose `action:` argument can mutate (`tokens action:import`, `maxcontacts action:add`/`action:remove`) carries a separate, default-disabled entry that claims every `action:` value outside an explicit read allowlist — so an unrecognized action, including one added by a future Minima release, is refused rather than allowed. `cointrack` has no read form and is classified `write` in full.
 - Whitelist edits (`POST /api/minima/console/whitelist`) require re-entering the admin PIN/password, the same re-auth pattern `changePassword` uses, and are rate-limited (`authRateLimiter`). This raises the bar against a hijacked-but-not-credentialed session; it does not help if the admin credential itself is compromised (accepted, user-level risk).
 - `GET`/`POST /api/minima/console/whitelist` and `POST /api/minima/console/run` all require an admin session (`requireRole("admin")`).
 - Where a whitelisted command already has a dedicated narrow backend action (`megammrsync` → `resyncMegammr()`, `peers action:addpeers` → `addMinimaPeers()`), the console dispatches to that same function instead of re-implementing the RPC call, so operation-tracking, audit logging, and error normalization stay a single source of truth.
@@ -44,7 +45,14 @@ Plan:
 - Revisit `keys` (whether its response can ever include private key material) and `decryptbackup`/`vault`/the `*from` family before ever considering them for the catalog.
 - If any excluded command is ever added later, add response redaction before persisting or displaying it — not just gate it behind the whitelist.
 
-Status: Mitigated via closed-world catalog + re-auth-gated whitelist + hard exclusions. See `.agents/rules/minima.md`.
+Status: **Mitigated (Phase 2, 2026-09-08).** The closed-world catalog, re-auth-gated whitelist, and
+hard exclusions work as described (see `.agents/rules/minima.md`). Both previously recorded gaps are
+closed: command classification is now per accepted argument shape rather than per verb, so the
+mutating `action:` forms of `tokens`/`maxcontacts` resolve to their own default-disabled entries and
+`cointrack` is classified `write` outright ([adr/0015](../adr/0015-minima-console-mutating-subcommands.md));
+and the data-source path that sidestepped the catalog entirely is closed by the egress URL policy —
+see *Data Source URL Fetching* in `data-sources-and-automation.md` and
+[adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md).
 
 ## Minima Node Backup & Restore
 
@@ -69,7 +77,16 @@ Plan:
 
 - Consider allowing the backup password to be changed (re-encrypting nothing retroactively — existing backups keep their original password) with a clear UI warning that old backups won't decrypt with a new password.
 
-Status: Mitigated via a narrow scoped volume, path containment, admin-only + re-auth-gated routes (including for the password itself), capped/auto-pruned lists, and audit logging. Third revision this session — see `docs/plans/minima-node-backup-restore.md`.
+Status: **Mitigated.** Storage and route controls are as described (narrow scoped volume, path
+containment, admin-only + re-auth-gated routes, capped/auto-pruned lists, audit logging — see
+`docs/plans/minima-node-backup-restore.md`). The stored backup password no longer reaches clients on
+any of the three paths it previously did (`POST /backups` success body, its failure body via
+`dependencyUnavailable`'s `extra` spreading, and `POST /console/run` for a whitelisted `backup`):
+`createBackup()`/`restoreBackup()` return purpose-built DTOs instead of the RPC result,
+`runMinimaPathCommand()` redacts the command, the URL built from it, and the response body before
+they leave the RPC layer, and `structuredError()`/`sendApiError()` redact both sinks so the secret
+reaches neither responses nor Docker logs. Closed in Phase 1 of
+[plans/security/phase-1-backup-password-leak.md](../plans/security/phase-1-backup-password-leak.md).
 
 ## Update Agent Docker Socket Mount
 
@@ -151,15 +168,25 @@ Impact: A stolen signing key could be used to make `update-agent` pull and run a
 Current Controls:
 
 - The private key is generated once, manually, and stored only in GitHub Actions Secrets. It never exists on the VPS or any Pi.
-- CI signs the manifest in a single job step; the key is read from the secret into an environment variable for that step only and is never written to a file that survives the job.
+- CI signs the manifest and the runtime bundle in single job steps; the key is read from the secret into an environment variable for those steps only and is never written to a file that survives the job.
 - `update-agent` only ever holds the public key, baked into its image at build time.
+- `install.sh` holds its own embedded copy of the public key and verifier source, pins the verifier's Node image by digest, and requires the signature-verified bundle to match the signed manifest SHA-256 before extraction or application-directory changes.
 - Digest pinning means a valid signature alone is not sufficient to run a different artifact than what the digest names — an attacker would need both a stolen key and control of a pushed image.
 
 Plan:
 
-- If the key is ever suspected compromised, rotate it (generate a new keypair, update the GH secret, ship the new public key in a `update-agent` release) and document the rotation in this file.
+- If the key is ever suspected compromised, rotate it (generate a new keypair, update the GH secret, update the embedded PEM in `install.sh`, ship the new public key in a `update-agent` release) and document the rotation in this file.
 
-Status: Accepted risk, documented. See `.agents/rules/update-agent.md`.
+Status: **Mitigated.** The key-handling controls above hold, `update-agent`'s runtime trust boundary
+is sound because its public key is baked into its own image, and the install-time gap is closed:
+`install.sh` no longer takes its verifier, its trust anchor, or its verifier runtime from an artifact
+it is meant to authenticate. Compromise of the artifact origin alone is no longer sufficient — the
+signing key is now required. Rated high by the external review — see
+[adr/0010](../adr/0010-security-review-audit-verdict.md),
+[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md),
+[adr/0020](../adr/0020-bind-installer-runtime-to-signed-manifest.md), and `.agents/rules/update-agent.md`.
+The remaining bootstrap exposure is the installer distribution channel itself — see *One-Line Curl
+Installer* below.
 
 ## File Browser Metadata Exposure
 
@@ -174,7 +201,7 @@ Plan:
 - Add per-user allowlists or explicit directory selection later.
 - Avoid mounting `/home/pi` in production unless required.
 
-Status: Partially mitigated by read-only mount and path traversal checks. Auth gates `/api/files/*` (see `docs/plans/auth-security.md`).
+Status: Partially mitigated by read-only mount and path traversal checks. `/api/files/*` is auth-gated, with admin role on mutations.
 
 ## Path Traversal And Symlink Escape
 
@@ -193,7 +220,7 @@ Plan:
 - Add tests for traversal, symlink escape, encoded paths, and permission errors.
 - Consider hiding symlinks entirely.
 
-Status: Mitigated for prototype, needs tests.
+Status: Mitigated. Containment double-checks via `realpath` in `files.service.ts` and is covered by `backend/tests/features/files/files.service.test.ts`. The external review examined this surface and found no issue.
 
 ## SQLite File Permissions
 
@@ -213,6 +240,35 @@ Plan:
 
 Status: Partially mitigated.
 
+## Multipart Upload Limits And Temporary Files
+
+Risk: `POST /api/integritas/stamp-file`, `POST /api/integritas/verify-proof-file`, and
+`POST /api/minima/backups/restore` accept multipart uploads. Multer writes the body to the
+container's `/tmp` before any route handler runs, so parsing and disk write happen before the
+handler's own checks.
+
+Impact: Before Phase 5, both multer instances were constructed with no `limits`, so an
+authenticated client could fill the container's `/tmp` with a single request, or send unbounded
+non-file fields. `/stamp-file` and `/verify-proof-file` also returned on a missing Integritas API
+key *before* entering the `try/finally` that removes the file, orphaning it on that path.
+
+Current Controls:
+
+- Both multer instances enforce `fileSize` (`UPLOAD_MAX_FILE_BYTES`, default 100 MB), `files`
+  (default 1), and `fields` (default 8). Multer removes the partial file itself when the size limit
+  trips.
+- `backend/src/middleware/uploadErrors.ts` turns multer's `LIMIT_FILE_SIZE` into a `413` and every
+  other `MulterError` into a `400`, through the same error contract as the rest of the API. Without
+  it, Express answered with an HTML 500 that a client could not tell from a server fault.
+- Both Integritas upload routes capture `req.file` and enter the `try/finally` before the API-key
+  check, so every early return removes the temp file. `/backups/restore` already cleaned up on both
+  its error and success paths.
+- The upload size cap has a floor but **no hard maximum** — stamping arbitrary files is the product,
+  so an operator can raise it.
+
+Status: **Mitigated (Phase 5, 2026-09-09).** Review finding [13]. See
+[adr/0017](../adr/0017-outbound-and-upload-resource-limits.md).
+
 ## Dependency And Image Supply Chain
 
 Risk: Docker images and npm packages are pulled from external registries. Tags such as `minimaglobal/minima:dev` are mutable.
@@ -226,19 +282,39 @@ Plan:
 - Add automated `npm audit` and image vulnerability scanning.
 - Review native dependency `better-sqlite3` updates.
 
-Status: Open.
+Status: **Open — scheduled, Phase 6.** `minimaglobal/minimacore` is untagged and
+`eclipse-mosquitto:2` is a mutable tag; both sit outside the signed manifest, so digest pinning is
+the only available control. See
+[plans/security/phase-6-fail-closed-on-weak-config.md](../plans/security/phase-6-fail-closed-on-weak-config.md).
 
 ## One-Line Curl Installer
 
 Risk: `curl | sudo bash` executes remote code as root.
 
-Impact: If GitHub, DNS, TLS trust, or repository contents are compromised, host compromise is possible.
+Impact: If GitHub, DNS, TLS trust, or repository contents are compromised, host compromise is
+possible. The whole install-time trust chain — public key, verifier source, pinned verifier digest —
+is embedded in `install.sh`, so substituting the script substitutes the chain.
+
+Current Controls:
+
+- HTTPS transport, and GitHub account/repository controls on the source branch.
+- The release pipeline publishes `install.sh.sha256` into the separate manifest repository, and
+  `README.md` documents a verified path: download a tag-pinned `install.sh`, check that checksum,
+  read it, then run it.
+- Everything downstream of the script is signature-verified against the embedded key, so this is the
+  only unsigned step left in the chain.
 
 Plan:
 
-- Publish checksums or signed releases.
-- Support downloading and inspecting installer before running.
-- Consider package repository, deb package, or signed install bundle.
-- Keep installer minimal and auditable.
+- Exit criteria: an immutable, versioned installer URL with a detached signature, and a verification
+  key distributed independently of the source repository. That is release infrastructure, not a code
+  change, and is out of scope for V1.5.
+- Until then, prefer the verified path in `README.md` for anything beyond a lab Pi.
+- Consider a package repository, deb package, or signed install bundle.
 
-Status: Open. Accepted for prototype UX exploration.
+Status: **Open — accepted.** Finding [4] of the external review, rated medium. Mitigated by the
+documented verified path and the published checksum; not closed, because a checksum published by the
+same publisher does not authenticate the publisher. The second, more persistent half of Phase 4 —
+the unverified runtime bundle supplying its own verifier and public key — is closed; see *Update
+Manifest Signing Key* above and
+[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md).

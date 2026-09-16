@@ -154,3 +154,39 @@ describe("apiErrorFromStatus", () => {
     assert.equal(body.errorDetails.type, "unexpected");
   });
 });
+
+// The finding this covers: dependencyUnavailable(res, msg, native, ctx, extra) spreads
+// `extra` into the body, and call sites passed whole upstream RPC results through it.
+describe("secret redaction in the response body", () => {
+  const SECRET = "api-error-canary";
+
+  it("redacts an upstream result spread through extra", () => {
+    const { res, calls } = mockResponse();
+    const command = `backup file:backups/a.bak password:"${SECRET}"`;
+
+    dependencyUnavailable(res, "Backup failed", undefined, undefined, {
+      ok: false,
+      command,
+      source: `http://minima:9005/${encodeURIComponent(command)}`
+    });
+
+    const serialized = JSON.stringify(calls.json);
+    assert.equal(serialized.includes(SECRET), false);
+    assert.equal(serialized.includes(encodeURIComponent(SECRET)), false);
+    assert.equal((calls.json as { ok: boolean }).ok, false);
+  });
+
+  it("redacts a secret carried in the error message itself", () => {
+    const { res, calls } = mockResponse();
+    sendApiError(res, 500, appError({ type: "unexpected", message: `password:"${SECRET}"` }));
+    assert.equal(JSON.stringify(calls.json).includes(SECRET), false);
+  });
+
+  it("leaves an ordinary error body untouched", () => {
+    const { res, calls } = mockResponse();
+    badRequest(res, "fileName is required", undefined, { ok: false });
+    const body = calls.json as { error: string; ok: boolean };
+    assert.equal(body.error, "fileName is required");
+    assert.equal(body.ok, false);
+  });
+});

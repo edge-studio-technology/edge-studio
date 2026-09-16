@@ -3,7 +3,7 @@ import type {
   MinimaBackupCreateResult,
   MinimaBackupListResponse,
   MinimaBackupPasswordResponse,
-  MinimaCommandResult
+  MinimaBackupRestoreResult
 } from "../../app/types";
 import { deleteJson, getJson, postForm, postJson } from "../../lib/api";
 
@@ -50,7 +50,7 @@ export async function downloadMinimaBackup(fileName: string, currentPassword: st
 }
 
 export function restoreMinimaBackup(input: { fileName: string; currentPassword: string }) {
-  return postJson<MinimaCommandResult>("/api/minima/backups/restore", input);
+  return postJson<MinimaBackupRestoreResult>("/api/minima/backups/restore", input);
 }
 
 export function restoreMinimaBackupFromUpload(input: { file: File; password: string; currentPassword: string }) {
@@ -58,7 +58,7 @@ export function restoreMinimaBackupFromUpload(input: { file: File; password: str
   form.append("file", input.file);
   form.append("currentPassword", input.currentPassword);
   if (input.password) form.append("password", input.password);
-  return postForm<MinimaCommandResult>("/api/minima/backups/restore", form);
+  return postForm<MinimaBackupRestoreResult>("/api/minima/backups/restore", form);
 }
 
 export function deleteMinimaBackup(fileName: string) {

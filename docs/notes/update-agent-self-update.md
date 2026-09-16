@@ -1,11 +1,14 @@
-# Future: update-agent self-update support
+# Update-agent self-update support
 
-**Status:** Not started. Deferred deliberately — noted during the version-display discussion so it isn't forgotten.
+**Status:** Implemented.
 
-Right now `update-agent`'s digest is carried in the manifest but excluded from `MANIFEST_SERVICE_KEYS` (`["frontend", "backend"]`), so it has no self-update path — by original design (the deleted `docs/plans/update-agent/archive/update-service.md`, recoverable from git history: "Self-update: resolved by scope — update-agent is deliberately not in the manifest... no self-update path in V1").
+`update-agent`'s digest is carried in the signed manifest but remains excluded from
+`MANIFEST_SERVICE_KEYS` (`["frontend", "backend"]`). It updates itself through the dedicated
+`update-agent/src/self-update/` path rather than the generic service swap loop.
 
-The user wants to eventually have `update-agent` itself be built, pushed, tracked in the manifest, and updated like `frontend`/`backend`.
+The running agent launches a one-shot orchestrator from the target image. That orchestrator starts
+and health-checks a candidate container before stopping the current agent. If the candidate fails,
+the current container remains running.
 
-Why this is harder than frontend/backend updates: `update-agent` is the process that supervises updates (pulls new images, health-checks them, swaps containers, rolls back on failure). Having it update itself means the supervisor has to replace itself mid-supervision — there's no external process watching over *that* swap the way `update-agent` watches over `frontend`/`backend`'s swap. Needs real design thought (e.g. a tiny separate watchdog, or a self-swap dance with careful ordering) before implementation, not a quick extension of the existing per-service update flow.
-
-Not scoped or started. Revisit as its own focused discussion.
+This separate orchestration is required because the normal update supervisor cannot safely replace
+its own running container from inside that same container.

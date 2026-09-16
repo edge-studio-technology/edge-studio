@@ -10,7 +10,6 @@ import {
   MousePointerClick,
   PanelLeft,
   RefreshCw,
-  RotateCcw,
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
@@ -37,6 +36,9 @@ type TotpResetPhase = "idle" | "scan" | "done";
 
 const formClass = "grid max-w-md gap-3";
 
+/** Long enough to read the confirmation before the forced re-login. */
+const SIGN_OUT_AFTER_CREDENTIAL_CHANGE_MS = 3000;
+
 export function AuthSettingsPage() {
   const [totpPhase, setTotpPhase] = useState<TotpResetPhase>("idle");
   const [resetCurrentPassword, setResetCurrentPassword] = useState("");
@@ -50,6 +52,15 @@ export function AuthSettingsPage() {
   const [verifyCode, setVerifyCode] = useState("");
   const [verifySubmitting, setVerifySubmitting] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  // Changing a credential or the TOTP secret revokes every session server-side, so the
+  // browser is holding a dead cookie from here on — force the login screen.
+  const scheduleSignOut = () => {
+    window.setTimeout(() => void signOut(), SIGN_OUT_AFTER_CREDENTIAL_CHANGE_MS);
+  };
 
   const handleInitTotpReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +90,7 @@ export function AuthSettingsPage() {
       setQrCode(null);
       setTotpSecret(null);
       setTotpPhase("done");
+      scheduleSignOut();
     } catch (err) {
       setVerifyError(err instanceof Error ? err.message : "Invalid code — try again");
     } finally {
@@ -96,19 +108,6 @@ export function AuthSettingsPage() {
       setCopyState("idle");
     }
   };
-
-  const resetTotpFlow = () => {
-    setTotpPhase("idle");
-    setResetCurrentPassword("");
-    setResetCurrentToken("");
-    setVerifyCode("");
-    setVerifyError(null);
-    setResetError(null);
-    setShowManualKey(false);
-  };
-
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
 
   const closeModalOnOutsideClick = useSyncExternalStore(
     closeModalOnOutsideClickSetting.subscribe,
@@ -140,7 +139,7 @@ export function AuthSettingsPage() {
           defaultOpen={false}
         >
           <div className="gap-detail-close my-detail-close grid">
-            <ChangeCredentialPanel />
+            <ChangeCredentialPanel onCredentialChanged={scheduleSignOut} />
 
             {TOTP_ENABLED ? (
               <SubSection
@@ -294,14 +293,10 @@ export function AuthSettingsPage() {
                       <p className="m-0 flex items-center gap-2 text-sm text-emerald-700">
                         <CheckCircle2 size={14} />
                         Two-factor authentication has been reset. Your authenticator app is now
-                        linked to the new secret.
+                        linked to the new secret. Signing you out — log in again with a code from
+                        the new secret.
                       </p>
                     </div>
-                    <ButtonRow>
-                      <Button type="button" onClick={resetTotpFlow}>
-                        <RotateCcw size={14} /> Reset again
-                      </Button>
-                    </ButtonRow>
                   </div>
                 )}
               </SubSection>

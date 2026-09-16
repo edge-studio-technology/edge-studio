@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { fetchMinimaStatus, runMinimaPathCommand } from "../../../src/features/minima/minima.rpc.js";
+import { parseBalanceResponse } from "../../../src/features/wallet/wallet.parse.js";
+import { parseTokenCreateResponse } from "../../../src/features/tokens/tokens.parse.js";
 
 const fetchMock = vi.fn();
 
@@ -31,7 +33,6 @@ describe("fetchMinimaStatus", () => {
     assert.equal(result.ok, true);
     assert.equal(result.status, 200);
     assert.equal(result.command, "status");
-    assert.equal(result.source, "http://127.0.0.1:9005/status");
     assert.deepEqual(result.body, { status: true, response: { chain: {} } });
   });
 
@@ -54,7 +55,6 @@ describe("runMinimaPathCommand", () => {
 
     assert.equal(fetchMock.mock.calls[0][0], "http://127.0.0.1:9005/peers");
     assert.equal(result.command, "peers");
-    assert.equal(result.source, "http://127.0.0.1:9005/peers");
   });
 
   it("percent-encodes a command with spaces and colons into a single path segment", async () => {
@@ -66,5 +66,52 @@ describe("runMinimaPathCommand", () => {
     const requestedUrl = fetchMock.mock.calls[0][0] as string;
     assert.equal(requestedUrl, `http://127.0.0.1:9005/${encodeURIComponent(command)}`);
     assert.ok(!requestedUrl.includes(" "));
+  });
+});
+
+// The feature-level wallet/token suites mock minima.rpc.js wholesale, so nothing there ever
+// runs the redaction the RPC layer applies to a response body. These pipe a recorded Minima
+// body through the real runMinimaPathCommand and into the real parsers, which is where a
+// redaction rule that is too broad shows up as corrupted data rather than as a leak.
+describe("response body redaction against recorded Minima bodies", () => {
+  it("leaves a balance response parseable — token ids and names survive", async () => {
+    const body = {
+      status: true,
+      response: [
+        { token: "Minima", tokenid: "0x00", confirmed: "1000", unconfirmed: "0", sendable: "1000", coins: "3" },
+        { token: { name: "MyToken", description: "d" }, tokenid: "0xFEED", confirmed: "5", unconfirmed: "0", sendable: "5", coins: "1" }
+      ]
+    };
+    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify(body)));
+
+    const result = await runMinimaPathCommand("balance");
+    const parsed = parseBalanceResponse(result.body);
+
+    assert.equal(parsed.tokens.length, 2);
+    assert.equal(parsed.tokens[0].tokenId, "0x00");
+    assert.equal(parsed.tokens[0].isNative, true);
+    assert.equal(parsed.tokens[0].name, "Minima");
+    assert.equal(parsed.tokens[1].tokenId, "0xFEED");
+    assert.equal(parsed.tokens[1].name, "MyToken");
+  });
+
+  it("leaves a tokencreate response parseable — the new token id survives", async () => {
+    const body = { status: true, response: { txpowid: "0xTX", body: { txn: { outputs: [{ token: { tokenid: "0xNEW", name: "MyToken" } }] } } } };
+    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify(body)));
+
+    const result = await runMinimaPathCommand("tokencreate name:MyToken amount:10 decimals:8");
+    const parsed = parseTokenCreateResponse(result.body);
+
+    assert.equal(parsed.ok, true);
+    assert.equal(parsed.tokenId, "0xNEW");
+  });
+
+  it("still redacts a secret echoed back inside the response body", async () => {
+    const command = 'backup file:backups/a.bak password:"echo-me-not"';
+    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify({ status: true, params: { command } })));
+
+    const result = await runMinimaPathCommand(command);
+
+    assert.equal(JSON.stringify(result.body).includes("echo-me-not"), false);
   });
 });

@@ -18,13 +18,15 @@
 
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
-- [ ] V1 security sign-off checklist — see `docs/plans/security-checklist.md`.
+- [ ] Security hardening V1.5 — close the external-review findings, the V1 sign-off remainder, and the unit-test-audit gaps in one ordered workstream; see `docs/plans/security/README.md` (branch `task/702-backup-password-leak-ssrf-session-lifecycle-install-trust-chain-resource-limits`), one file per phase under `docs/plans/security/`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`.
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
 
 - [ ] Fail closed on weak `APP_SECRET`, safely migrate existing encrypted values, and pin remaining deployment images — see `docs/plans/security/704-fail-closed-on-weak-config.md`.
-- [ ] Address the production-behavior gaps from the high-risk unit-test audit on a separate branch — see `docs/plans/high-risk-business-logic-hardening.md`.
+- [ ] After V1.5 security hardening, make a fresh product decision on whether to retain, redesign, re-enable, or remove TOTP. Removal is not currently approved; `docs/plans/remove-totp.md` is candidate analysis only. See `docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md`.
+- [ ] ~~Address the production-behavior gaps from the high-risk unit-test audit on a separate branch.~~ Folded into `docs/plans/security/` (Phases 1, 3, and 9); the standalone plan is archived.
+- [ ] Cut one release per channel through the updated `release.yml` before the V1.5 security branch ships — installers carrying Phase 4 refuse any runtime bundle published without an `edge-studio-runtime.tar.gz.sig`. See `docs/adr/0016-install-time-bootstrap-trust-set.md`.
 - [ ] On a real device or a local `install.sh` run, confirm end-to-end that `last-applied-manifest.json` gets written and a Feedback submission's `app.version` reflects it (see `docs/adr/0006-app-version-single-source-of-truth.md`).
 - [ ] Implement the hosted feedback receiver endpoint in the Integritas API repo — see `docs/plans/feedback.md` Step 8.
 - [ ] Manual browser check of the rebuilt Automation "Workflows" table (`AutomationWorkflowsList.tsx`): filter/search, pagination, pause/play, the overflow menu's six actions, and the delete flow now going through confirm → progress modal instead of deleting immediately.
@@ -34,7 +36,7 @@
 - [ ] Post-v1: add seed-phrase-only restore as an option inside `MinimaBackupPanel`, then remove the commented-out `WalletSettingsPanel` from `AuthSettingsPage.tsx`.
 - [ ] Manual check of the update-agent UI Back buttons and the dashboard "Update available" badge across a real update cycle (Pi or local Docker Compose) — this session's fixes were only build/typecheck-verified.
 - [ ] Manual browser check of `update-agent`'s restyled static update-progress page (`update-agent/public/index.html`): black-to-purple gradient background and the white logo below the centered card, matching the login page — not yet manually checked (static HTML, no build step).
-- [ ] Reconcile `.claude/rules/update-agent.md`/`.agents/rules/update-agent.md`/`.cursor/rules/update-agent.mdc`, which still say `update-agent` has "no self-update path" — `update-agent/src/self-update/` already implements one (commit `4e26bfe`), and `docs/notes/update-agent-self-update.md` is stale too.
+- [ ] Close the unit-test gaps found while retiring old PM-tool QA tickets (automation, devices, ...) — see `docs/plans/legacy-ticket-unit-test-gaps.md`.
 - [ ] Add HC-SR501 PIR motion sensor as a first-class GPIO input workflow source - see `docs/plans/pir-motion-sensor-workflows.md`.
 - [ ] Add ESP32 MQTT board onboarding with generated starter firmware - see `docs/plans/esp32-mqtt-sensor-onboarding.md`.
 - [ ] Document the `DEV_MODE` install flag in `README.md`'s runtime-config section and note its manifest-signature-verification bypass in `SECURITY.md`/`docs/security/host-and-infrastructure.md` — flagged during code review, deliberately deferred as a separate concern from the pagination work.
@@ -68,6 +70,7 @@
 
 ## Done
 
+- [x] Added configurable IPAM to generated release Compose, bound release-mode installer runtime bundles to the signed manifest SHA-256 before any application-directory replacement, and added end-to-end installer regressions for matching/mismatched/tampered/unsigned/invalid-metadata/override/fallback paths plus existing-installation preservation — see `docs/adr/0020-bind-installer-runtime-to-signed-manifest.md`.
 - [x] Added privileged host-agent capability management so Camera, GPIO, I2C sensors, and local MQTT broker support can be enabled/disabled from Devices -> Hardware support after install. Includes prerequisite guidance, retry-safe host-agent actions, signed host-runtime update delivery, workflow/device validation, audit events, and Pi regression fixes — see `docs/plans/host-agent-capability-management.md`.
 - [x] Closed the last 3 real gaps from an external unit-test checklist audit: `update-agent`'s `auth/auth.middleware.ts` request guard (now coverage-tracked, no longer excluded) and a new root-level Vitest harness (`vitest.scripts.config.mts`, `scripts/tests/release/`) covering `scripts/release/sign-manifest.mjs`/`build-manifest.mjs`, which previously had no test infrastructure at all. 4 other checklist items (`rate-limit.middleware.ts`, `integritas-validation.service.ts`, `upload.middleware.ts`, `health.routes.ts`) were confirmed to be config-only/dead-code/routes files with nothing to unit test, consistent with their existing coverage exclusions.
 - [x] Closed the TOTP unit-test gap on both sides of the app, all behind the disabled `TOTP_ENABLED` constant. Backend: `auth.service.ts` 39% → 100% lines, `features/auth` 73% → 99% (TOTP reset init/verify plus the gated `login`/`changePassword`/`completeSetup` branches). Frontend: the gated branches in `steps.ts`, `WelcomeStep`, `SidebarUserBox`, `ChangeCredentialPanel`, `ConnectIntegritasStep`, and `OnboardingWizard`'s two-factor step. Coverage floors raised (backend 94% lines, frontend 92%).

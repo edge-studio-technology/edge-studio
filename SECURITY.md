@@ -14,6 +14,7 @@ Follow these when deploying, operating, or contributing to this project:
 - Never commit `.env`, `APP_SECRET`, Integritas API keys, or any other credential to version control.
 - Never add a generic Minima command proxy or arbitrary shell execution path. Expose only narrow, allowlisted, validated actions. The admin RPC console is a scoped exception: it only runs commands from a static, closed-world catalog that are also enabled in an admin-curated, re-auth-gated whitelist — see `docs/security/host-and-infrastructure.md`.
 - Never return secrets, password hashes, TOTP secrets, or raw session tokens from an API response.
+- Never return an upstream result object verbatim from a service that built a secret-bearing request, and never carry a secret into a log line — a Pi's Docker logs are as much a sink as a response body. Redaction is a boundary (`backend/src/shared/redact.ts`, applied by `structuredError()`, `sendApiError()`, and the Minima RPC layer), not something each call site remembers.
 - Local admins may use a 6-digit PIN on a trusted LAN or an 8+ character password containing uppercase, lowercase, a number, and a symbol. Prefer a unique password when stronger protection is needed; only the bcrypt hash is stored, and the credential type is not persisted.
 - Preserve `APP_SECRET` across upgrades; losing or changing it makes stored encrypted secrets unrecoverable. For Integritas Connect, the Pi detects decrypt failure, clears the local link (`TOKEN_DECRYPT_FAILED`), and requires reconnect — it does not revoke the device on Connect as revoking requires secret tokens.
 - Integritas core calls prefer the Connect account API key decrypted in backend memory. Manually saved and environment API keys remain backend-only fallbacks and are never returned to the browser.
@@ -22,9 +23,21 @@ Follow these when deploying, operating, or contributing to this project:
 - Host-agent hardware actions manage Edge Studio helper services and report missing host OS prerequisites; they do not install OS drivers/packages automatically in V1.
 - Device System Data reads can include local hostname, LAN IP addresses, OS/kernel details, CPU/memory facts, and timezone/locale. Review previews before stamping or sharing them; do not add public-IP geolocation, GPS, Wi-Fi SSID/BSSID, MAC address, CPU serial, or other stable hardware identifiers without explicit opt-in and updated documentation.
 - Pin dependency and image versions before any production-like deployment; avoid mutable tags such as `:dev`.
+- Never let `install.sh` take its verifier, its trust anchor, or its verifier runtime from an artifact it is meant to authenticate. The Ed25519 public key, the verifier source, and the pinned Node image digest are embedded in `install.sh` itself; the runtime bundle and update manifest are verified against them, and the bundle must match the signed manifest SHA-256 before anything is extracted or pulled. See [`docs/adr/0016`](docs/adr/0016-install-time-bootstrap-trust-set.md) and [`docs/adr/0020`](docs/adr/0020-bind-installer-runtime-to-signed-manifest.md).
+- The documented `curl ... | sudo bash` install command is an **accepted residual risk**, not a closed one. It streams a mutable branch into a root shell, and the trust chain above starts at that script. Prefer the verified install path in `README.md` (tag-pinned installer, published checksum, read before running). Closing this needs an immutable versioned installer URL, a detached signature, and a key distributed independently of the source repository.
 - Never set `UPDATE_DRY_RUN=true` outside local development — it makes `update-agent` report every apply as successful without pulling or swapping any container, silently masking a broken or misconfigured update path. It defaults off and is never written by `install.sh`.
 
-The detailed risk register — specific risks, current controls, and mitigation plans by area — is maintained separately and kept current as the system changes.
+The detailed risk register — specific risks, current controls, and mitigation plans by area — lives
+in [`docs/security/`](docs/security/) and is kept current as the system changes.
+
+An external static security review of the codebase was completed on 2026-09-03
+([`docs/security/external-review-2026-09-03.md`](docs/security/external-review-2026-09-03.md),
+kept verbatim). Its findings were independently audited and re-rated in
+[`docs/adr/0010`](docs/adr/0010-security-review-audit-verdict.md), and the resulting work is
+scheduled in [`docs/plans/security/`](docs/plans/security/README.md).
+Several of the findings are open as of this writing; the register entries say which, and under which
+phase they are addressed. This is a prototype on a trusted LAN — treat the register, not this page,
+as the current state.
 
 ## Reporting A Vulnerability
 

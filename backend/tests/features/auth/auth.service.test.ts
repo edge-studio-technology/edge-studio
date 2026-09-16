@@ -16,6 +16,7 @@ let updateUserPassword: AuthRepository["updateUserPassword"];
 let updateUserTotpSecret: AuthRepository["updateUserTotpSecret"];
 let db: import("better-sqlite3").Database;
 let authService: typeof import("../../../src/features/auth/auth.service.js");
+let sessionService: typeof import("../../../src/features/auth/session.service.js");
 let totpService: typeof import("../../../src/features/auth/totp.service.js");
 
 let userId: string;
@@ -36,6 +37,7 @@ beforeAll(async () => {
     updateUserTotpSecret
   } = await import("../../../src/features/auth/auth.repository.js"));
   authService = await import("../../../src/features/auth/auth.service.js");
+  sessionService = await import("../../../src/features/auth/session.service.js");
   totpService = await import("../../../src/features/auth/totp.service.js");
 
   const passwordHash = await hashPassword(PASSWORD);
@@ -127,6 +129,28 @@ describe("changePassword", () => {
     assert.ok(user);
     assert.equal(await verifyPassword(newPassword, user!.password), true);
     assert.equal(await verifyPassword(PASSWORD, user!.password), false);
+  });
+
+  it("revokes every session on success", async () => {
+    const currentPassword = "Newpass1!";
+    const tokenA = sessionService.createSession(userId);
+    const tokenB = sessionService.createSession(userId);
+
+    await authService.changePassword(userId, { currentPassword, newPassword: "Revoked1!" });
+
+    assert.equal(sessionService.validateSession(tokenA), null);
+    assert.equal(sessionService.validateSession(tokenB), null);
+  });
+
+  it("leaves sessions in place when the change is rejected", async () => {
+    const token = sessionService.createSession(userId);
+
+    await assert.rejects(() =>
+      authService.changePassword(userId, { currentPassword: "wrong-password", newPassword: "Other1!aa" })
+    );
+
+    assert.ok(sessionService.validateSession(token));
+    sessionService.deleteAllUserSessions(userId);
   });
 });
 
@@ -261,8 +285,12 @@ describe("verifyTotpReset", () => {
     assert.ok(getLatestSetupPending());
   });
 
-  it("promotes the pending secret, clears it, and records an audit event on success", async () => {
+  it("promotes the pending secret, clears it, revokes sessions, and records an audit event on success", async () => {
+    const sessionToken = sessionService.createSession(userId);
+
     await authService.verifyTotpReset(userId, currentToken(pendingSecret));
+
+    assert.equal(sessionService.validateSession(sessionToken), null);
 
     const user = findUserById(userId);
     assert.equal(totpService.decryptTotpSecret(user!.totp_secret), pendingSecret);
