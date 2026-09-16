@@ -186,6 +186,10 @@ services:
 networks:
   integritas:
     name: edge-studio
+    ipam:
+      config:
+        - subnet: \${EDGE_STUDIO_DOCKER_SUBNET:-172.30.0.0/24}
+          gateway: \${EDGE_STUDIO_DOCKER_GATEWAY:-172.30.0.1}
 `;
 
 const envExample = `# edge-studio ${channel} channel
