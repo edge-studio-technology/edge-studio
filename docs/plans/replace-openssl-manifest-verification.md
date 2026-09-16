@@ -1,6 +1,9 @@
 # Replace OpenSSL Manifest Verification Plan
 
-**Status:** Implemented
+**Status:** Implemented — partly superseded by [adr/0016](../adr/0016-install-time-bootstrap-trust-set.md),
+which moved the verifier source and public key into `install.sh` itself and pinned the Node image by
+digest. `scripts/verify-manifest.mjs` no longer exists as a standalone file; the container-based
+verification approach below is unchanged.
 **Created:** 2026-07-28
 **Goal:** Replace `install.sh`'s host-`openssl`-dependent Ed25519 manifest signature check with a verification run inside a disposable, pinned Node container, so it works regardless of the host's OpenSSL version.
 

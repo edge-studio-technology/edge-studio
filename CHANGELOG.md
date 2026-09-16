@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- Minima backup and restore responses no longer return the RPC command, the request URL, or the stored backup password.
+- Minima RPC command strings, request URLs, and response bodies are redacted before they reach any API response or log line.
+- Backend API error responses and persisted error records redact secret command arguments, bearer tokens, credentials embedded in URLs such as MQTT broker URLs, and secret-looking fields.
+- Data source and HTTP output target URLs are rejected when they point at Edge Studio's own container network, its gateway, a container service name, loopback, or a link-local address, and when they use a scheme other than `http` or `https`.
+- Data source and HTTP output URLs are re-checked when they are fetched, not only when they are saved, and the checked address is pinned to the connection so a changed DNS answer cannot redirect the request onto an internal service.
+- Redirects on data source and HTTP output requests are followed one hop at a time and re-checked against the same rules, up to a hop limit.
+- Camera and sensor host helper URLs come from install-time configuration and are exempt from these checks; see [docs/adr/0014](docs/adr/0014-egress-url-policy-for-operator-supplied-urls.md).
+- Minima console commands are classified by their arguments rather than by verb alone: `tokens action:import`, `maxcontacts action:add`, and `maxcontacts action:remove` are now disabled by default and must be enabled in the console whitelist, and `cointrack` is treated as a mutating command.
+- Unrecognized `action:` values on Minima console commands are refused by default rather than accepted as reads.
+- Changing the admin PIN/password or resetting two-factor authentication now signs out every session, including the one making the change, and the browser returns to the login screen.
+- Expired sessions are deleted by a backend sweep at startup and hourly, instead of only when the session is next used.
+- `POST /api/minima/config` and `POST /api/minima/megammrsync/resync` now require an admin role.
+- Integritas stamping, file stamping, history deletion, proof polling, and proof verification now require an admin role.
+- The installer verifies the runtime bundle's Ed25519 signature and signed-manifest SHA-256 before extracting it or replacing application files.
+- The installer carries its own copy of the manifest public key and of the signature verifier instead of taking them from the runtime bundle, and runs the verifier on a digest-pinned Node image instead of a mutable tag.
+- The installer rejects runtime bundle entries with absolute or `..` paths, and entries that are not regular files or directories.
+- Releases publish `edge-studio-runtime.tar.gz.sig` and `install.sh.sha256` alongside the manifest.
+- `README.md` documents a verified install path — tag-pinned installer, published checksum, read before running — alongside the one-liner, which `SECURITY.md` now records as an accepted residual risk.
+- Data source reads and HTTP output requests now stop at a response size cap (`EGRESS_MAX_RESPONSE_BYTES`, default 5 MB), counted on decompressed bytes and enforced while the response is still arriving.
+- Outbound requests to operator-supplied URLs share a global concurrency limit (`EGRESS_MAX_CONCURRENT`, default 4) with a bounded queue (`EGRESS_QUEUE_LIMIT`, default 32); requests past the queue are rejected instead of waiting indefinitely.
+- Outbound request deadlines are capped at 60 seconds regardless of the configured per-target timeout.
+- MQTT messages larger than `MQTT_MAX_PAYLOAD_BYTES` (default 256 KB) are rejected before parsing and recorded as a failed read.
+- File uploads for stamping and Minima backup restore use the configured backend size limit through the HTTPS proxy and return a JSON `413` when oversized.
+- Nginx-generated responses no longer disclose the installed Nginx version.
+- `POST /api/integritas/stamp-file` and `POST /api/integritas/verify-proof-file` delete the uploaded temporary file when the request is rejected for a missing Integritas link, not only on the success path.
+- Resource limits are configurable in `.env` and clamped to a supported range, so a limit cannot be configured away; see [docs/adr/0017](docs/adr/0017-outbound-and-upload-resource-limits.md).
+- `multer` updated to 2.3.0, closing advisories for denial of service via crafted multipart field names, file descriptor leaks on aborted uploads, and a file size limit bypass.
+
+### Changed
+
+- The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; source and generated release Compose files apply the same values to the backend and network IPAM.
+
 ### Fixed
 
 - List search/filter rows on Devices, Workflows, Address book, and Diagnostics stack with their New/Refresh buttons as one group on tablet and phone.

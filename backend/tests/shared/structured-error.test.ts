@@ -148,3 +148,76 @@ describe("errorFromUnknown", () => {
     assert.deepEqual(result.context, { path: "/a" });
   });
 });
+
+// Phase 1 of the V1.5 security hardening plan: every structured error is built through
+// structuredError(), and both sinks — API responses and persisted error columns — read what
+// it returns, so redaction is asserted here rather than at each call site.
+describe("secret redaction", () => {
+  const SECRET = "structured-error-canary";
+
+  it("redacts a bare string error at write time, not only on read", () => {
+    // automation.service.ts persists `error.message` directly for data-source read failures,
+    // so the string branch is a real write path — sanitizing only on read would leave the
+    // credential sitting in the SQLite row.
+    const serialized = serializeStructuredError(`fetch failed for https://user:${SECRET}@api.example.com/feed`);
+    assert.equal(String(serialized).includes(SECRET), false);
+  });
+
+  it("redacts a structured error at write time even if it skipped structuredError()", () => {
+    const serialized = serializeStructuredError({
+      domain: "data_source",
+      type: "fetch_failed",
+      message: `connect to mqtt://sensor:${SECRET}@broker.local:1883 failed`,
+      context: { apiKey: SECRET }
+    });
+    assert.equal(String(serialized).includes(SECRET), false);
+  });
+
+  it("redacts a secret argument in the message and native message", () => {
+    const error = systemError({
+      type: "dependency_unavailable",
+      message: `backup file:backups/a.bak password:"${SECRET}" failed`,
+      nativeMessage: `GET http://minima:9005/${encodeURIComponent(`backup password:"${SECRET}"`)}`
+    });
+
+    assert.equal(error.message.includes(SECRET), false);
+    assert.equal(error.nativeMessage?.includes(encodeURIComponent(SECRET)), false);
+    assert.ok(error.message.includes("backup file:backups/a.bak"));
+  });
+
+  it("redacts secret-looking context keys and credential-bearing URLs in context", () => {
+    const error = dataSourceError({
+      type: "connection_failed",
+      message: "MQTT connection error",
+      context: { sourceId: "src-1", brokerUrl: `mqtt://sensor:${SECRET}@broker.local:1883`, backupPassword: SECRET }
+    });
+
+    assert.equal(JSON.stringify(error.context).includes(SECRET), false);
+    assert.equal(error.context?.sourceId, "src-1");
+    assert.equal(error.context?.brokerUrl, "mqtt://sensor:[redacted]@broker.local:1883");
+  });
+
+  it("keeps nativeMessage and context absent when they were not supplied", () => {
+    const error = appError({ type: "bad_request", message: "nope" });
+    assert.equal("nativeMessage" in error, false);
+    assert.equal("context" in error, false);
+  });
+
+  it("redacts rows persisted before redaction existed, on read", () => {
+    const stored = JSON.stringify({
+      domain: "system",
+      type: "unexpected",
+      message: `backup password:"${SECRET}"`,
+      nativeMessage: `backup password:"${SECRET}"`,
+      context: { command: `backup password:"${SECRET}"` }
+    });
+
+    const parsed = parseStoredError(stored);
+    assert.equal(JSON.stringify(parsed).includes(SECRET), false);
+  });
+
+  it("redacts a legacy plain-string error row on read", () => {
+    const parsed = parseStoredError(`backup password:"${SECRET}"`);
+    assert.equal(parsed?.message.includes(SECRET), false);
+  });
+});

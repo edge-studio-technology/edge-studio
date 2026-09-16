@@ -1,8 +1,10 @@
 import type { Response } from "express";
+import { redactDeep } from "./redact.js";
 import { appError, systemError, type StructuredError } from "./structured-error.js";
 
+// extra has carried whole upstream result objects — redact the assembled body, not just error.
 export function sendApiError(res: Response, status: number, error: StructuredError, extra: Record<string, unknown> = {}) {
-  return res.status(status).json({ ...extra, error: error.message, errorDetails: error });
+  return res.status(status).json(redactDeep({ ...extra, error: error.message, errorDetails: error }));
 }
 
 export function badRequest(res: Response, message: string, context?: Record<string, unknown>, extra: Record<string, unknown> = {}) {

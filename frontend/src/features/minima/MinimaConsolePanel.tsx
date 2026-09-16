@@ -31,7 +31,7 @@ function prettyJson(value: unknown): string {
   return JSON.stringify(value, null, 2).replace(/\\n/g, "\n");
 }
 
-// Minima RPC results are wrapped as { ok, status, source, command, body: { ...,
+// Minima RPC results are wrapped as { ok, status, command, body: { ...,
 // response } }. The `response` field is the part an operator actually cares about;
 // everything else is envelope/metadata worth keeping around but not front-and-center.
 function extractResponse(payload: unknown): { response: unknown; envelope: unknown } {

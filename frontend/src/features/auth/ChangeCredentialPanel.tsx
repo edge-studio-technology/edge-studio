@@ -16,7 +16,11 @@ import {
 import { PasswordRequirements } from "./PasswordRequirements";
 import { TOTP_ENABLED } from "./totpEnabled";
 
-export function ChangeCredentialPanel() {
+export function ChangeCredentialPanel({
+  onCredentialChanged,
+}: {
+  onCredentialChanged?: () => void;
+}) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newCredentialType, setNewCredentialType] = useState<AdminCredentialType>("pin");
   const [newPassword, setNewPassword] = useState("");
@@ -51,6 +55,7 @@ export function ChangeCredentialPanel() {
       setNewPassword("");
       setConfirmNewPassword("");
       setPwTotpToken("");
+      onCredentialChanged?.();
     } catch (err) {
       setPwError(err instanceof Error ? err.message : "Failed to change credential");
     } finally {
@@ -71,7 +76,8 @@ export function ChangeCredentialPanel() {
       {pwSuccess && (
         <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
           <p className="m-0 flex items-center gap-2 text-sm text-emerald-700">
-            <Check size={14} /> Credential changed successfully.
+            <Check size={14} /> Credential changed. Signing you out — log in again with your new
+            PIN or password.
           </p>
         </div>
       )}

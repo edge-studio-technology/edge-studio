@@ -3,7 +3,9 @@
 //
 // Classification rule: defaultEnabled=true only for commands with no side effects ("read").
 // Everything that can mutate funds, chain state, config, network, or the wallet defaults
-// to disabled ("write"). vault/sendfrom/signfrom/createfrom/postfrom/createtokenfrom are
+// to disabled ("write"). Classification is per accepted argument shape, not per verb — a verb
+// whose `action:` argument can turn a read into a mutation carries a separate, default-disabled
+// entry for those forms (see mutatingAction below). vault/sendfrom/signfrom/createfrom/postfrom/createtokenfrom are
 // excluded entirely because they take or expose a raw wallet private key; decryptbackup is
 // excluded because it can turn an encrypted backup into plaintext seed/key material; keys
 // and quit are excluded pending further review (keys' key-listing scope, quit's node-halt
@@ -42,6 +44,26 @@ function read(verb: string, label: string): ConsoleCommandEntry {
 
 function write(verb: string, label: string): ConsoleCommandEntry {
   return { key: verb, verb, label, kind: "write", defaultEnabled: false, dispatch: "passthrough" };
+}
+
+// Some verbs classified as reads also accept mutating `action:` forms. Command lookup keys on
+// the first token only, so a read entry would otherwise accept them. Each such verb gets a
+// sibling write entry, listed first, that claims every `action:` value outside its read set —
+// unknown actions included, so a new mutating action is disabled rather than silently allowed.
+function mutatingAction(key: string, verb: string, label: string, readActions: string[]): ConsoleCommandEntry {
+  const allowed = new Set(readActions);
+  return {
+    key,
+    verb,
+    label,
+    kind: "write",
+    defaultEnabled: false,
+    dispatch: "passthrough",
+    match: (rawInput) => {
+      const match = /(?:^|\s)action:"?([^"\s]*)"?/i.exec(rawInput);
+      return match ? !allowed.has(match[1].toLowerCase()) : false;
+    }
+  };
 }
 
 export const minimaConsoleCatalog: ConsoleCommandEntry[] = [
@@ -98,7 +120,8 @@ export const minimaConsoleCatalog: ConsoleCommandEntry[] = [
   read("history", "Search relevant TxPoW history"),
   read("txpow", "Search TxPoW records"),
   read("coins", "Search coins"),
-  read("tokens", "List, import, or export tokens"),
+  mutatingAction("tokens.write", "tokens", "Import a token", ["export"]),
+  read("tokens", "List or export tokens"),
   read("getaddress", "Get a default address"),
   read("sendview", "View a transaction"),
   read("balance", "Wallet balance"),
@@ -112,7 +135,6 @@ export const minimaConsoleCatalog: ConsoleCommandEntry[] = [
   read("mmrcreate", "Create an MMR tree"),
   read("mmrproof", "Check an MMR proof"),
   read("coincheck", "Check a coin exists"),
-  read("cointrack", "Track or untrack a coin"),
   read("verify", "Verify a signature"),
   read("txnlist", "List custom transactions"),
   read("txncheck", "Show transaction details"),
@@ -120,13 +142,15 @@ export const minimaConsoleCatalog: ConsoleCommandEntry[] = [
   read("txnview", "View a transaction as JSON"),
   read("network", "Network status"),
   read("maxima", "Maxima details"),
-  read("maxcontacts", "Manage Maxima contacts"),
+  mutatingAction("maxcontacts.write", "maxcontacts", "Add or remove Maxima contacts", ["list", "search"]),
+  read("maxcontacts", "List or search Maxima contacts"),
   read("maxverify", "Verify a Maxima signature"),
   read("checkpending", "Check pending command status"),
   read("checkmode", "Check READ/WRITE mode"),
   read("checkrestore", "Check restore status"),
 
   // Write / mutating, default disabled.
+  write("cointrack", "Track or untrack a coin"),
   write("logs", "Enable subsystem logs"),
   write("newaddress", "Create a new address"),
   write("send", "Send Minima or tokens"),

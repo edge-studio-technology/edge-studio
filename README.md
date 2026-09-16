@@ -23,6 +23,28 @@ Run:
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo bash
 ```
 
+### Verified Install (recommended)
+
+The one-liner above pipes a mutable branch into a root shell. To pin a release and check it before
+running it, download, verify, read, then run:
+
+```bash
+# 1. Download the installer at a release tag, not at main
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/<tag>/install.sh -o install.sh
+
+# 2. Fetch the checksum published by that release and check it
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio-manifests/main/edge-studio/release/install.sh.sha256 -o install.sh.sha256
+sha256sum -c install.sh.sha256
+
+# 3. Read it, then run it
+less install.sh
+sudo bash install.sh
+```
+
+The checksum is published to a different repository from the installer itself, so it is not simply
+the same file vouching for itself. This does not fully close the bootstrap trust problem — see
+[SECURITY.md](SECURITY.md) for what remains and what would close it.
+
 To install from a branch before it is merged to `main`, pass `APP_BRANCH`:
 
 ```bash
@@ -75,7 +97,8 @@ The installer will:
 - Install required host packages
 - Install Docker if Docker is missing
 - Verify Docker Compose
-- Download the default runtime bundle to `/opt/edge-studio` or clone the repository when `DEV_MODE=true`
+- Download and verify the signed manifest before selecting the default runtime bundle, or clone the repository when `DEV_MODE=true`
+- Verify the runtime bundle's Ed25519 signature and signed-manifest SHA-256 before extracting it, and refuse archive entries with absolute or `..` paths or anything other than regular files and directories
 - Write `/opt/edge-studio/.env`
 - Install the host agent used for admin-triggered hardware support changes from the app
 - Leave optional hardware and local services disabled unless advanced `ENABLE_*` flags were provided
@@ -123,8 +146,16 @@ SENSOR_HELPER_URL=http://172.30.0.1:38181
 SENSOR_HELPER_TOKEN=
 SENSOR_HELPER_PORT=38181
 SENSOR_READ_TIMEOUT_MS=5000
-INTEGRITAS_DOCKER_SUBNET=172.30.0.0/24
-INTEGRITAS_DOCKER_GATEWAY=172.30.0.1
+EDGE_STUDIO_DOCKER_SUBNET=172.30.0.0/24
+EDGE_STUDIO_DOCKER_GATEWAY=172.30.0.1
+EGRESS_MAX_RESPONSE_BYTES=5242880
+EGRESS_TIMEOUT_MS=5000
+EGRESS_MAX_CONCURRENT=4
+EGRESS_QUEUE_LIMIT=32
+UPLOAD_MAX_FILE_BYTES=104857600
+UPLOAD_MAX_FILES=1
+UPLOAD_MAX_FIELDS=8
+MQTT_MAX_PAYLOAD_BYTES=262144
 ENABLE_MQTT_BROKER=false
 COMPOSE_PROFILES=
 MQTT_PUBLIC_HOST=
@@ -184,7 +215,7 @@ GPIO input/output settings for tested button, LED, and HC-SR501 PIR motion senso
 
 `ENABLE_CAMERA=true` is an advanced install shortcut that asks the host agent to create a host-side Python camera helper service during install. Normal installs should leave camera disabled and let an admin enable it later from Devices -> Hardware support. The Devices page enables the Pi Camera capture device type only when camera support is enabled. Camera support stays disabled by default because it grants the app a way to trigger host camera capture and captured images/video may contain private data. Edge Studio does not install Raspberry Pi camera OS packages or drivers in V1; if `rpicam-*` or `libcamera-*` tools are missing, Hardware support reports that prerequisite instead of enabling capture.
 
-Pi Camera devices are capture/input devices, not generic output targets. Automation workflows use a `Capture camera` data block to capture a photo or short video clip, hash the captured media bytes, store capture metadata in read history, and optionally attach `Stamp data` to create an Integritas proof for the media hash. Captured media is stored locally under `CAMERA_CAPTURE_DIR` (`/data/captures` in Docker, mapped to the host data directory for the helper). `CAMERA_MAX_DURATION_SECONDS` limits per-capture video duration. `CAMERA_PHOTO_COMMAND` and `CAMERA_VIDEO_COMMAND` default to `rpicam-still` and `rpicam-vid`; the Python helper also falls back to `libcamera-still` and `libcamera-vid`. `INTEGRITAS_DOCKER_SUBNET` and `INTEGRITAS_DOCKER_GATEWAY` pin the Compose network so the backend has a stable route to the host helper after reboot/redeploy. The helper uses only Python's standard library and is intended as the extension point for future USB/RTSP/HTTP camera backends.
+Pi Camera devices are capture/input devices, not generic output targets. Automation workflows use a `Capture camera` data block to capture a photo or short video clip, hash the captured media bytes, store capture metadata in read history, and optionally attach `Stamp data` to create an Integritas proof for the media hash. Captured media is stored locally under `CAMERA_CAPTURE_DIR` (`/data/captures` in Docker, mapped to the host data directory for the helper). `CAMERA_MAX_DURATION_SECONDS` limits per-capture video duration. `CAMERA_PHOTO_COMMAND` and `CAMERA_VIDEO_COMMAND` default to `rpicam-still` and `rpicam-vid`; the Python helper also falls back to `libcamera-still` and `libcamera-vid`. `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` pin the Compose network so the backend has a stable route to the host helper after reboot/redeploy. The helper uses only Python's standard library and is intended as the extension point for future USB/RTSP/HTTP camera backends.
 
 `ENABLE_SENSORS=true` is an advanced install shortcut that asks the host agent to create a host-side Python sensor helper service for direct I2C sensor reads during install. Normal installs should leave sensors disabled and let an admin enable them later from Devices -> Hardware support. The Devices page includes `BME280 Environmental Sensor` and `BME680 Environmental Sensor` templates only when sensor support is enabled. BME sensor devices are readable input sources: manual reads and Automation `Fetch data source` blocks produce JSON with `temperatureC`, `humidityPercent`, `pressureHpa`, I2C bus/address, and `readAt`, then hash that JSON for Integritas stamping. Wire the module's `VIN` to 3.3V or 5V, `GND` to ground, `SCL` to physical pin 5 / GPIO3, and `SDA` to physical pin 3 / GPIO2. Enable I2C on the Pi host first, reboot if prompted or if `/dev/i2c-1` is still missing, and use address `0x76` or `0x77` depending on the module. BME680 reads require the Python `bme680` module in the sensor-helper virtualenv; Hardware support attempts to install it into the helper venv, but does not install OS packages. Edge Studio does not enable host I2C or install host SMBus packages automatically in V1; missing host prerequisites are reported to the user with copyable commands. See [`docs/guides/bme280-sensor.md`](./docs/guides/bme280-sensor.md) for setup details.
 
@@ -256,13 +287,13 @@ Future versions may support custom certificates or an external reverse proxy.
 
 If a Raspberry Pi reboot happens while the browser is open, the old session may become invalid before the next refresh. The login screen explains that Edge Studio restarted or the session expired and asks the admin to enter the PIN/password again.
 
-`MANIFEST_URL` configures the `update-agent` service: the signed update manifest URL, served from `edgestudio.technology` by default. If that fetch fails, `update-agent` automatically falls back to the public [edge-studio-manifests](https://github.com/edge-studio-technology/edge-studio-manifests) GitHub repo via `raw.githubusercontent.com` (not configurable). The Ed25519 public key used to verify its signature is baked into the `update-agent` image at build time from the committed `update-agent/manifest-public-key.pem`, not an env var. Current manifests must include `hostRuntime.url` and `hostRuntime.sha256`; update-agent downloads that artifact, verifies the SHA-256 from the signed manifest, then asks the token-protected host-agent to atomically update allowlisted host runtime files. Leave `MANIFEST_URL` empty to disable update checks. The update flow is split across two origins-in-one: `https://<pi-ip>:8080/update` (no trailing slash) is the product frontend's own page — checks for updates and starts one; `https://<pi-ip>:8080/update/` (trailing slash) is `update-agent`'s own static page — shows apply progress and survives a frontend container swap mid-update. Both are the same TLS cert/origin, proxied through `frontend`'s nginx (no extra browser approval). See [.agents/rules/update-agent.md](.agents/rules/update-agent.md) for the full design.
+`MANIFEST_URL` configures the `update-agent` service: the signed update manifest URL, served from `edgestudio.technology` by default. If that fetch fails, `update-agent` automatically falls back to the public [edge-studio-manifests](https://github.com/edge-studio-technology/edge-studio-manifests) GitHub repo via `raw.githubusercontent.com` (not configurable). The Ed25519 public key used to verify its signature is baked into the `update-agent` image at build time from the committed `update-agent/manifest-public-key.pem`, not an env var. `install.sh` verifies the same signature at install time using its own embedded copy of that key, its own embedded verifier, and a digest-pinned Node container, so neither the key nor the verifier comes from the runtime bundle they authenticate (see [docs/adr/0016](docs/adr/0016-install-time-bootstrap-trust-set.md)). Current manifests must include `hostRuntime.url` and `hostRuntime.sha256`; update-agent downloads that artifact, verifies the SHA-256 from the signed manifest, then asks the token-protected host-agent to atomically update allowlisted host runtime files. Leave `MANIFEST_URL` empty to disable update checks. The update flow is split across two origins-in-one: `https://<pi-ip>:8080/update` (no trailing slash) is the product frontend's own page — checks for updates and starts one; `https://<pi-ip>:8080/update/` (trailing slash) is `update-agent`'s own static page — shows apply progress and survives a frontend container swap mid-update. Both are the same TLS cert/origin, proxied through `frontend`'s nginx (no extra browser approval). See [.agents/rules/update-agent.md](.agents/rules/update-agent.md) for the full design.
 
 Default installs use `docker-compose.yml` plus `docker-compose.release.yml`, which removes source build contexts and uses the signed manifest's image digests. `DEV_MODE=true` installs use only `docker-compose.yml` so frontend/backend can be built from source.
 
 The default-install runtime bundle is intentionally limited to the files listed in `scripts/release/runtime-bundle-files.json`; source-build directories such as `frontend/`, `backend/`, and `update-agent/` are only required for `DEV_MODE=true` installs.
 
-Build the default-install runtime archive with `npm run release:build-runtime-bundle`; it writes `edge-studio-runtime.tar.gz` from the allowlisted files. The installer derives `RUNTIME_BUNDLE_URL` from `MANIFEST_URL` unless explicitly overridden. Release manifests are generated with `HOST_RUNTIME_URL` and `HOST_RUNTIME_SHA256` so the same runtime artifact can be applied by update-agent after install.
+Build the default-install runtime archive with `npm run release:build-runtime-bundle`; it writes `edge-studio-runtime.tar.gz` from the allowlisted files. The installer uses the signed manifest's `hostRuntime.url` unless `RUNTIME_BUNDLE_URL` is explicitly overridden for QA, and every downloaded bundle must match the signed `hostRuntime.sha256`. Release manifests are generated with `HOST_RUNTIME_URL` and `HOST_RUNTIME_SHA256` so the same runtime artifact can be applied by update-agent after install.
 
 To install with another file root or port:
 
@@ -383,7 +414,12 @@ On first launch with an empty database, Edge Studio shows a setup wizard:
 
 After setup, sign in with the chosen PIN or password. You can switch credential types later in Settings. There is a single local admin account (no username to enter), and only its bcrypt hash is stored. Sessions persist across browser reloads until logout or expiry.
 
-TOTP is temporarily disabled through `TOTP_ENABLED = false` in the backend and frontend auth constants.
+Changing the PIN/password (or resetting two-factor authentication) signs out every session, including the browser making the change, and returns you to the login screen. Expired sessions are also swept from the database at backend startup and hourly.
+
+TOTP is disabled through `TOTP_ENABLED = false` in the backend and frontend auth constants. Its
+future retention, redesign, re-enablement, or removal is not yet decided; V1.5 security hardening
+only closes the dormant routes while the feature is disabled (see
+[`docs/adr/0012`](docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md)).
 
 Public API routes (no session required):
 
@@ -572,8 +608,10 @@ backend container
   - GET /api/files
   - GET /api/minima/status
 - Integritas hash, stamp, status, verify endpoints
+  - File uploads (stamp a file, verify a proof file, restore a Minima backup) are limited to `UPLOAD_MAX_FILE_BYTES` (default 100 MB) and `UPLOAD_MAX_FILES`/`UPLOAD_MAX_FIELDS` per request; Nginx derives multipart request headroom from the same settings, and an oversized file returns a JSON `413` from the backend. Raise `UPLOAD_MAX_FILE_BYTES` if you stamp larger files — it has no hard maximum.
 - Device APIs and historic read log at `/api/data-sources` and `/api/data-reads`
-  - Input sources can include an optional health status URL. The browser polls saved health URLs once per minute through the backend and shows the latest status in the configured devices table.
+  - HTTP source and HTTP output target URLs must use `http` or `https` and must not point at Edge Studio's own container network, its gateway, a container service name, loopback, or a link-local address. The check runs when the device is saved and again on every fetch, follows redirects one hop at a time, and pins the address it checked to the connection. LAN and public destinations are unaffected. Set `EDGE_STUDIO_DOCKER_SUBNET` / `EDGE_STUDIO_DOCKER_GATEWAY` if the Compose network differs from the defaults.
+  - Outbound reads and HTTP output requests stop at `EGRESS_MAX_RESPONSE_BYTES` (default 5 MB, hard max 50 MB) of decompressed response body, share a global limit of `EGRESS_MAX_CONCURRENT` in-flight requests (default 4) with a queue of `EGRESS_QUEUE_LIMIT` (default 32), and are cut off at `EGRESS_TIMEOUT_MS` (default 5 s, hard max 60 s). Requests past the queue are rejected rather than queued indefinitely. MQTT messages over `MQTT_MAX_PAYLOAD_BYTES` (default 256 KB, hard max 4 MB) are rejected and recorded as a failed read. Values outside the supported range are clamped; see [docs/adr/0017](docs/adr/0017-outbound-and-upload-resource-limits.md).
   - Device protocols currently include HTTP JSON API fetches, BME280/BME680 I2C sensor reads, webhook JSON receives, MQTT JSON subscriptions, Raspberry Pi GPIO input events, HC-SR501-style PIR motion events, and Raspberry Pi GPIO LED output targets. Devices define connection details; Automation workflows decide whether reads are recorded, outputs are controlled, and hashes are stamped. GPIO LED output targets can also be test-pulsed from the Devices page before adding them to a workflow.
   - Event-driven workflow start blocks support a cooldown between runs. GPIO starts can also ignore inactive edges, which is recommended for PIR motion workflows so `motion_cleared` does not trigger notifications or output actions.
   - Automation workflows are block-based. Start blocks trigger ordered action blocks; logic blocks can stop the remaining flow when selected trigger or data fields do not match; Integritas stamping is attached as a side block to record/fetch data blocks so it stamps that block's hash without becoming the final step in the main flow. Attached stamp blocks can also have their own field condition against the trigger event or recorded/fetched data. New workflow creation uses a Scratch-inspired draft workspace with a clean Start/Data/Logic/Action block library, a visual block-chain canvas, setup inspector, and backend-powered inline validation. The draft starts empty, requires one start block first, hides start blocks after selection, and uses Reset canvas when the operator wants a different trigger. Create/edit/watch workspaces are URL-driven (`/workflows/new`, `/workflows/:id/edit`, `/workflows/:id/watch`) and render in the page rather than opening workflow editing in a modal. Build, Edit, and Watch share one workspace shell and normalized canvas renderer. Canvas blocks show validation error/warning badges in Build/Edit and selected run status/duration in Watch. Edit mode shares the builder shell, categorized block library, selected-block inspector pattern, workflow name editing, and right-side validation placement; Watch mode owns run controls, test payload execution, selected-block runtime output/error/timing, read/proof Diagnostics links, and a historic run picker that visualizes selected runs on the canvas. Draft action blocks include Pulse output and Send transaction; Integritas stamps attach as side blocks on Record/Fetch data blocks. Templates are intentionally deferred until the basic block building experience is complete. Block edits are saved per block with visible unsaved/saved feedback; add/remove/move/pause/enable actions apply immediately. Workflow validation flags broken block chains, missing devices, output/transaction risks, and missing Integritas key setup before manual runs; validation errors block `Run now` / `Run with payload`, while warnings stay visible for operator review. Workflow logs show the run trigger plus block outputs, and fetch/record blocks link their stored read preview so operators can see the JSON that conditions evaluated. Workflow lists support search, status filters, duplicate, archive, restore, and delete; archived workflows do not run automatically or manually until restored. Automation can also send native MINIMA (`0x00`) transactions to saved address book recipients through an allowlisted Send transaction block. Prototype workflows created with older equals-only condition configs should be recreated.

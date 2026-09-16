@@ -27,6 +27,10 @@ import {
   stopGpioIngestion,
 } from "./features/data-sources/gpioIngestion.service.js";
 import { stopGpioOutputHolders } from "./features/data-sources/gpioOutput.service.js";
+import {
+  startSessionCleanupScheduler,
+  stopSessionCleanupScheduler,
+} from "./features/auth/session.service.js";
 import { ensureDeviceId } from "./features/status/device.service.js";
 
 if (env.appSecret === "dev-change-me") {
@@ -43,6 +47,7 @@ startMinimaHealthPoller();
 startMinimaAutoBackupScheduler();
 startMqttIngestion();
 startGpioIngestion();
+startSessionCleanupScheduler();
 
 const app = createApp();
 
@@ -63,6 +68,7 @@ function shutdown() {
   stopMqttIngestion();
   stopGpioIngestion();
   stopGpioOutputHolders();
+  stopSessionCleanupScheduler();
   db.close();
   process.exit(0);
 }

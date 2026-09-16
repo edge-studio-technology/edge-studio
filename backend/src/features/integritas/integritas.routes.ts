@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Response } from "express";
 import fs from "node:fs/promises";
 import { sha3HashHex } from "../../shared/crypto.js";
+import { requireRole } from "../auth/auth.middleware.js";
 import { badRequest, notFound, sendApiError, unexpected, dependencyUnavailable } from "../../shared/api-error.js";
 import { appError, systemError } from "../../shared/structured-error.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
@@ -107,7 +108,7 @@ integritasRouter.post("/hash", (req, res) => {
   return res.json(hashCanonicalBytes(canonicalBytes));
 });
 
-integritasRouter.post("/stamp", async (req, res) => {
+integritasRouter.post("/stamp", requireRole("admin"), async (req, res) => {
   const apiKey = requireIntegritasApiKey(res);
   if (!apiKey) return;
 
@@ -121,25 +122,32 @@ integritasRouter.post("/stamp", async (req, res) => {
   return res.json(result);
 });
 
-integritasRouter.post("/stamp-file", upload.single("file"), async (req, res) => {
-  const apiKey = requireIntegritasApiKey(res);
-  if (!apiKey) return;
-  if (!req.file) return badRequest(res, "file is required", { field: "file" });
+integritasRouter.post("/stamp-file", requireRole("admin"), upload.single("file"), async (req, res) => {
+  // multer has already written the upload to /tmp by the time any of these checks run, so the
+  // cleanup has to cover the early returns too, not just the success path.
+  const file = req.file;
+  if (!file) {
+    if (!requireIntegritasApiKey(res)) return;
+    return badRequest(res, "file is required", { field: "file" });
+  }
 
   try {
-    const hash = await sha3HashFile(req.file.path);
+    const apiKey = requireIntegritasApiKey(res);
+    if (!apiKey) return;
+
+    const hash = await sha3HashFile(file.path);
     const result = await requestProofUid({ apiKey, hash });
     if (!result.ok) return sendIntegritasError(res, result);
     const record = createProofRecord({
-      fileName: req.file.originalname,
-      fileSize: req.file.size,
+      fileName: file.originalname,
+      fileSize: file.size,
       hash,
       proofUid: result.proofUid,
       proofStatus: "pending",
     });
     return res.json({ record, stamp: result });
   } finally {
-    await fs.rm(req.file.path, { force: true });
+    await fs.rm(file.path, { force: true });
   }
 });
 
@@ -158,7 +166,7 @@ integritasRouter.get("/history/:id", (req, res) => {
   return res.json({ record });
 });
 
-integritasRouter.post("/history/delete-selected", (req, res) => {
+integritasRouter.post("/history/delete-selected", requireRole("admin"), (req, res) => {
   const parsed = parseSelectedIds(req);
   if (!parsed.ok) return badRequest(res, parsed.error, { field: "ids" });
   deleteProofRecords(parsed.ids);
@@ -192,7 +200,7 @@ integritasRouter.get("/history/:id/download-zip", async (req, res) => {
   }
 });
 
-integritasRouter.post("/history/:id/poll", async (req, res) => {
+integritasRouter.post("/history/:id/poll", requireRole("admin"), async (req, res) => {
   const apiKey = requireIntegritasApiKey(res);
   if (!apiKey) return;
 
@@ -202,7 +210,7 @@ integritasRouter.post("/history/:id/poll", async (req, res) => {
   return res.json({ record: result.record, status: result.status });
 });
 
-integritasRouter.post("/history/:id/verify", async (req, res) => {
+integritasRouter.post("/history/:id/verify", requireRole("admin"), async (req, res) => {
   const apiKey = requireIntegritasApiKey(res);
   if (!apiKey) return;
   const record = getProofRecord(req.params.id);
@@ -242,19 +250,25 @@ integritasRouter.get("/history/:id/verification-report", async (req, res) => {
 });
 
 integritasRouter.post("/verify-proof-file", upload.single("file"), async (req, res) => {
-  const apiKey = requireIntegritasApiKey(res);
-  if (!apiKey) return;
-  if (!req.file) return badRequest(res, "file is required", { field: "file" });
+  // Same early-return orphan as /stamp-file: the missing-API-key check ran before the finally.
+  const file = req.file;
+  if (!file) {
+    if (!requireIntegritasApiKey(res)) return;
+    return badRequest(res, "file is required", { field: "file" });
+  }
 
   try {
-    const text = await fs.readFile(req.file.path, "utf8");
+    const apiKey = requireIntegritasApiKey(res);
+    if (!apiKey) return;
+
+    const text = await fs.readFile(file.path, "utf8");
     const proofPayload = JSON.parse(text) as unknown;
     if (!Array.isArray(proofPayload) || proofPayload.length === 0) return badRequest(res, "proof JSON must be a non-empty array", { field: "file" });
     const result = await verifyProof({ apiKey, proofPayload });
     if (!result.ok) return sendIntegritasError(res, result);
     return res.json({ response: result.response });
   } finally {
-    await fs.rm(req.file.path, { force: true });
+    await fs.rm(file.path, { force: true });
   }
 });
 
