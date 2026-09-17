@@ -4,16 +4,11 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] dev-task/704-fail-closed-on-weak-config
-
-### Security
-
-- The backend now refuses to start before creating or opening its database when `APP_SECRET` is absent or empty, and shipped configuration no longer supplies a public default.
-
 ## [Unreleased]
 
 ### Security
 
+- The backend now refuses to start before creating or opening its database when `APP_SECRET` is absent or empty, and shipped configuration no longer supplies a public default.
 - Minima backup and restore responses no longer return the RPC command, the request URL, or the stored backup password.
 - Minima RPC command strings, request URLs, and response bodies are redacted before they reach any API response or log line.
 - Backend API error responses and persisted error records redact secret command arguments, bearer tokens, credentials embedded in URLs such as MQTT broker URLs, and secret-looking fields.
