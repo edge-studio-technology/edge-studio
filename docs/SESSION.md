@@ -186,6 +186,24 @@ Later same branch, post-merge installer findings:
   trust failure. The focused suite passed 24 tests; all release/installer script tests passed 43/43;
   `bash -n install.sh`, Prettier, and `git diff --check` passed.
 
+Later on branch `dev-task/704-fail-closed-on-weak-config`:
+
+- Removed the public `dev-change-me` default from backend config, checked-in/generated Compose,
+  checked-in/generated `.env.example`, and README examples. Native development now requires an
+  explicit non-empty `APP_SECRET`; `install.sh` remains unchanged and still generates/preserves it.
+- Added a side-effect-free startup guard and moved database/app/scheduler imports behind its
+  boundary, so absent or empty values exit `1` before SQLite, migrations, polling, ingestion, or
+  listening. Tests cover absent, empty, explicitly supplied `dev-change-me`, a strong value, and
+  prove rejected values never invoke the startup callback.
+- Updated the risk register, GAP-04, Phase 6 split/index, SECURITY policy, task plan, README, and
+  changelog. ADR 0021 remains the decision record; finding [6] image pinning remains separate.
+- Verified `npm run check` outside the sandbox (2,842 tests, all coverage floors and audits green),
+  both production builds, `bash -n install.sh`, Compose config with configured/empty values,
+  `docker compose build`, focused tests, compiled fail-closed startup, and `git diff --check`.
+  An isolated live Compose stack reached healthy backend/frontend state with a configured secret;
+  an empty-secret container exited `1` without creating SQLite. Temporary containers/data were
+  removed.
+
 ## Next Steps
 
 - Run the complete local sign-off suite, then create and verify the next development tag on the Pi.
@@ -194,8 +212,9 @@ Later same branch, post-merge installer findings:
   documentation session.
 - Publish a new development build containing the Phase 5 proxy fix, then repeat the 1 MiB/2 MiB Pi
   upload test and confirm the oversized file returns the backend's JSON `413` with a useful UI error.
-- V1.5 security hardening: Phase 6 (fail closed on weak config) is next. Phase 0's two product
-  decisions stay defaulted to acceptance until the pre-merge decision pass.
+- V1.5 security hardening: task 704's fail-closed `APP_SECRET` work is complete; finding [6] image
+  digest pinning is next. Phase 0's two product decisions stay defaulted to acceptance until the
+  pre-merge decision pass.
 - Before Phase 4 ships, every release channel needs one release through the updated `release.yml` — an installer carrying this change cannot install from a channel whose latest bundle has no `.sig`. Fail-closed by design, but it has to be sequenced.
 - Phase 4 still wants a live root install on a Pi against a staging manifest. The local rehearsal covered the bundle download/verify/extract paths in isolation; it did not run the full `main()`, the manifest fetch, or container start.
 - Implement `docs/plans/high-risk-business-logic-hardening.md` on a separate production-behavior branch; this test branch should not absorb those changes.
@@ -215,6 +234,9 @@ Later same branch, post-merge installer findings:
 - TOTP removal is not approved or scheduled. After V1.5, a fresh product decision and ADR must
   choose whether to retain, redesign, re-enable, or remove it; any implementation then gets its own
   ticket and branch.
+- ADR 0021 intentionally accepts every deliberately supplied non-empty `APP_SECRET`, including
+  `dev-change-me`; the control removes shipped defaults and rejects missing configuration rather
+  than introducing a strength policy, migration, or development bypass.
 - `docs/TASKS.md`'s `block-automation-workflows` line hides an 844-line plan with several substantial unbuilt code features — recommend splitting it into per-milestone bullets next time it's picked up (see audit above). Not acted on yet; flagged for the user to decide.
 - `.claude/rules/frontend.md` says the Integritas Connect auth folder is `integritasAuth`; it's actually `integritas-auth` on disk. Small doc-drift fix, not made yet.
 - The `StampResult.tsx` double-toast bug is resolved: commit `92a4c1a` memoized `ToastProvider`'s `showToast`, so the pending-refresh effect no longer re-runs on every toast add. Now recorded in `CHANGELOG.md`.

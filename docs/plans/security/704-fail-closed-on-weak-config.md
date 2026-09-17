@@ -1,6 +1,6 @@
 # Fail Closed On Missing APP_SECRET Plan
 
-**Status:** Not started  
+**Status:** Complete (2026-09-17)
 **Created:** 2026-09-15  
 **Revised:** 2026-09-16 — scope reduced; see `docs/adr/0021-app-secret-fail-closed-without-migration.md`  
 **Goal:** Remove the public `dev-change-me` default from every shipped path and make the backend refuse to start without an `APP_SECRET`.
@@ -81,10 +81,23 @@ git status --short --untracked-files=all
 
 About **2-3 engineering hours**.
 
+## Verification Results
+
+- The compiled backend exited `1` for absent and empty values, printed the static remediation
+  message, and created no SQLite file.
+- An isolated Docker Compose deployment with a configured secret brought backend and frontend to
+  healthy state and returned `200` from the HTTPS health endpoint.
+- An isolated backend container with an empty secret exited `1` and created no SQLite file.
+- `npm run check`, both production builds, `bash -n install.sh`, Compose config with set/empty
+  values, `docker compose build`, focused startup/generator tests, and `git diff --check` passed.
+- A destructive real-host `install.sh` upgrade was not rerun because the installer is unchanged;
+  existing installer tests cover preservation of an existing secret, and crypto tests cover
+  decrypt compatibility when the value is preserved.
+
 ## Milestones
 
 - [x] Re-audit the encrypted-value inventory and record the scope decision in ADR 0021.
-- [ ] Backend startup check and tests.
-- [ ] Remove defaults from Compose, `.env.example`, and the generator; update generator test.
-- [ ] Manual Docker verification.
-- [ ] Documentation, changelog, session notes, and tasks.
+- [x] Backend startup check and tests.
+- [x] Remove defaults from Compose, `.env.example`, and the generator; update generator test.
+- [x] Manual Docker verification.
+- [x] Documentation, changelog, session notes, and tasks.

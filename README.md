@@ -128,7 +128,7 @@ HOST_FILES_DIR=/home/pi
 FRONTEND_PORT=8080
 TZ=UTC
 DATA_DIR=./data
-APP_SECRET=dev-change-me
+APP_SECRET=
 DOCKER_GID=0
 ENABLE_GPIO=false
 GPIO_GID=0
@@ -203,7 +203,7 @@ The backend runs a Minima health poller on `MINIMA_HEALTH_POLL_INTERVAL_SECONDS`
 
 `DATA_DIR` is mounted into the backend container as `/data` and stores the SQLite database.
 
-`APP_SECRET` is used by the backend to encrypt local secrets before storing them in SQLite. The installer generates this automatically and preserves it on updates. If it changes, previously encrypted secrets cannot be decrypted.
+`APP_SECRET` is used by the backend to encrypt local secrets before storing them in SQLite. The installer generates this automatically and preserves it on updates. The backend refuses to start while it is absent or empty; native `npm run dev` therefore requires it to be set explicitly. If it changes, previously encrypted secrets cannot be decrypted.
 
 `DOCKER_GID` lets the non-root backend user read Docker status through `/var/run/docker.sock`. The installer detects this automatically from the socket group id.
 
