@@ -23,7 +23,8 @@
 
 ## Next
 
-- [ ] Fail closed on weak `APP_SECRET`, safely migrate existing encrypted values, and pin remaining deployment images — see `docs/plans/security/704-fail-closed-on-weak-config.md`.
+- [ ] Fail closed on a missing `APP_SECRET` and remove the `dev-change-me` default from every shipped path — see `docs/plans/security/704-fail-closed-on-weak-config.md` and `docs/adr/0021-app-secret-fail-closed-without-migration.md`.
+- [ ] Digest-pin the third-party deployment images outside the signed manifest (`minimaglobal/minimacore`, `eclipse-mosquitto:2`, `minimaglobal/minima:dev`, `alpine:3.20`) and document the manual pin-bump procedure — finding [6], split from task 704; see step 3 of `docs/plans/security/phase-6-fail-closed-on-weak-config.md`.
 - [ ] After V1.5 security hardening, make a fresh product decision on whether to retain, redesign, re-enable, or remove TOTP. Removal is not currently approved; `docs/plans/remove-totp.md` is candidate analysis only. See `docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md`.
 - [ ] ~~Address the production-behavior gaps from the high-risk unit-test audit on a separate branch.~~ Folded into `docs/plans/security/` (Phases 1, 3, and 9); the standalone plan is archived.
 - [ ] Cut one release per channel through the updated `release.yml` before the V1.5 security branch ships — installers carrying Phase 4 refuse any runtime bundle published without an `edge-studio-runtime.tar.gz.sig`. See `docs/adr/0016-install-time-bootstrap-trust-set.md`.
