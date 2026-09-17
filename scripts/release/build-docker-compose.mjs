@@ -83,7 +83,7 @@ services:
       HOST_AGENT_URL: \${HOST_AGENT_URL:-http://host.docker.internal:38182}
       HOST_AGENT_TOKEN: \${HOST_AGENT_TOKEN:-}
       HOST_CAPABILITY_DEBUG: \${HOST_CAPABILITY_DEBUG:-false}
-      APP_SECRET: \${APP_SECRET:-dev-change-me}
+      APP_SECRET: \${APP_SECRET:-}
       COOKIE_SECURE: \${COOKIE_SECURE:-true}
       SESSION_MAX_AGE_DAYS: \${SESSION_MAX_AGE_DAYS:-7}
       SESSION_IDLE_HOURS: \${SESSION_IDLE_HOURS:-24}
@@ -259,7 +259,8 @@ UPDATE_PULL_TIMEOUT_MS=300000
 STATUS_POLL_INTERVAL_MS=1800000
 
 # Security (set to true for production HTTPS)
-APP_SECRET=dev-change-me
+# install.sh generates APP_SECRET; the backend will not start while it is empty.
+APP_SECRET=
 COOKIE_SECURE=true
 SESSION_MAX_AGE_DAYS=7
 SESSION_IDLE_HOURS=24

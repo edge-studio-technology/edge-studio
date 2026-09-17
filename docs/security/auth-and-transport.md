@@ -91,9 +91,9 @@ Plan:
 - Add backup/restore documentation.
 - Consider integrating OS keyring, TPM, age/sops, or user-provided passphrase for stronger production secret handling.
 
-Status: **Partially mitigated — fail-closed startup scheduled, Phase 6 (GAP-04).** `install.sh`
-generates `openssl rand -hex 32`, so a default install gets a strong secret — but `ensure_app_secret`
-early-returns on any non-empty value, so a supplied or pre-existing `.env` carrying `dev-change-me`
-survives an install, and the backend only warns rather than refusing to start. Production secret
-design (keyring/TPM/age/sops/passphrase) remains open and is not in V1.5. See
-[plans/security/phase-6-fail-closed-on-weak-config.md](../plans/security/phase-6-fail-closed-on-weak-config.md).
+Status: **Mitigated (task 704, 2026-09-17), with production secret storage still open.** The backend
+refuses to start before database or background-service initialization when `APP_SECRET` is absent
+or empty. `install.sh` generates `openssl rand -hex 32` for a fresh install and preserves existing
+values during upgrades. Operator-supplied non-empty values remain accepted by policy; no migration
+or secret rotation was added. Production secret design (keyring/TPM/age/sops/passphrase) remains
+open and is not in V1.5. See [ADR 0021](../adr/0021-app-secret-fail-closed-without-migration.md).
