@@ -21,17 +21,19 @@ The audit confirmed the credential paths described by the ticket:
 
 The existing session cleanup service provides the startup-plus-hourly scheduler pattern to reuse. Automation run deletion cascades to block runs, while inbox references become null; pruning must still cap all four named tables independently and physically remove soft-deleted inbox rows.
 
-The ticket deliberately excludes a global cross-workflow budget, global wallet serialization, and webhook-token rotation. Record those rejected alternatives and the selected per-workflow design in an ADR during implementation. Token rotation remains unjustified while exposure is local to an admin-readable database and Pi-local Docker logs; Docker logs created before this fix will not be rewritten.
+The ticket deliberately excludes a global cross-workflow budget, global wallet serialization, and webhook-token rotation. [ADR 0022](../../adr/0022-bound-external-automation-effects.md) records those rejected alternatives and the approved per-workflow design. Token rotation remains unjustified while exposure is local to an admin-readable database and Pi-local Docker logs; Docker logs created before this fix will not be rewritten.
 
-## Decisions Required Before Implementation
+## Approved Decisions
 
-The ticket specifies a persisted rolling-window budget but not its policy values or complete privileged-block set. Confirm these before coding:
+The security policy choices were approved on 2026-09-17 and are recorded in [ADR 0022](../../adr/0022-bound-external-automation-effects.md):
 
-- Recommended default: **10 budgeted runs per rolling hour per workflow**, enforced for `send_transaction`, `control_output`, and `capture_camera`. These are the current money-moving or device-affecting blocks.
-- Decide whether `stamp_integritas` also consumes the workflow budget. It spends an external service quota but is separately covered by HTTP stamp rate limiting; an externally triggered automation can still reach it without that HTTP path.
-- Decide whether max-runs/window are fixed server policy or persisted workflow settings. Recommended V1 scope is fixed, non-disableable policy with only consumption events persisted; configurable per-workflow values would also require API and frontend editing UX not requested by the ticket.
+- Enforce **10 budgeted runs per rolling hour per workflow**.
+- Treat `send_transaction`, `control_output`, `capture_camera`, and `stamp_integritas` as privileged blocks. Stamping is included because automation execution bypasses the HTTP stamp limiter and can consume external quota.
+- Keep the maximum and window as fixed, named, non-disableable backend policy constants. Persist only timestamped consumption events; do not add API or frontend configuration in this task.
+- Use a timestamp ledger with one unique reservation per run to implement an atomic true rolling window that survives restarts.
+- Count a run once immediately before its first privileged block, including failed privileged attempts, and apply the policy to every trigger type.
 
-Whichever values are selected, name them constants, document them in `SECURITY.md`, and lock them with tests. Do not claim that the budget prevents destination or amount selection: those values are already fixed by trusted workflow configuration.
+Document these constants in `SECURITY.md` and lock them with tests. Do not claim that the budget prevents destination or amount selection: those values are already fixed by trusted workflow configuration.
 
 ## Backend Changes
 
@@ -127,7 +129,7 @@ Whichever values are selected, name them constants, document them in `SECURITY.m
 - `docs/security/data-sources-and-automation.md`, `docs/security/wallet-and-tokens.md`, and `docs/security/low-priority-and-future.md`: close findings [11], [14], [8], and GAP-10 accurately, including HTTP-vs-MQTT/GPIO rate-limit scope.
 - `docs/qa/gaps.md`: mark GAP-10 covered with the new regression tests.
 - `docs/plans/security/phase-7-retention-redaction-budgets.md` and `docs/plans/security/README.md`: point to this task plan and update status when complete.
-- Add an ADR for the per-workflow ledger/policy and the explicit deferral of global cross-workflow budgeting and wallet serialization.
+- Keep [ADR 0022](../../adr/0022-bound-external-automation-effects.md) aligned if implementation evidence forces a policy change; do not duplicate its rationale in code comments or the changelog.
 - `README.md` and `.env.example`: update only if retention, budget, rate-limit, or log-rotation settings become operator-configurable.
 - `CHANGELOG.md`: add operator-facing Security/Changed entries under `## [Unreleased] dev-task/705-retention-redaction-budgets`.
 - On completion, use the `session-notes` skill to reconcile `docs/SESSION.md` and `docs/TASKS.md`.
@@ -165,14 +167,13 @@ Manual/container checks:
 
 ## Implementation Order
 
-1. Confirm budget policy and privileged-block set; write the ADR.
-2. Add schema/migrations for budget events and historical source-url scrub.
-3. Add source references and remove the dead push-ingestion argument.
-4. Add retention repository/scheduler and startup wiring.
-5. Add persisted budget enforcement and cooldown validation.
-6. Add backend/nginx redaction, Docker rotation, and release-generator parity.
-7. Add scoped rate limiters.
-8. Complete focused tests, baseline verification, security docs, changelog, and session/task reconciliation.
+1. Add schema/migrations for budget events and historical source-url scrub.
+2. Add source references and remove the dead push-ingestion argument.
+3. Add retention repository/scheduler and startup wiring.
+4. Add persisted budget enforcement and cooldown validation.
+5. Add backend/nginx redaction, Docker rotation, and release-generator parity.
+6. Add scoped rate limiters.
+7. Complete focused tests, baseline verification, security docs, changelog, and session/task reconciliation.
 
 ## Estimate
 

@@ -108,6 +108,7 @@ of carrying the full rationale inline.
 | [adr/0019-i2c-prerequisite-setup-action.md](./adr/0019-i2c-prerequisite-setup-action.md) | I2C prerequisite setup: fixed Raspberry Pi OS host-agent action with manual fallback |
 | [adr/0020-bind-installer-runtime-to-signed-manifest.md](./adr/0020-bind-installer-runtime-to-signed-manifest.md) | Release installer verifies the runtime bundle against the signed manifest before replacing application files |
 | [adr/0021-app-secret-fail-closed-without-migration.md](./adr/0021-app-secret-fail-closed-without-migration.md) | Backend refuses an empty `APP_SECRET`, `dev-change-me` default removed, no secret migration; operator owns custom values |
+| [adr/0022-bound-external-automation-effects.md](./adr/0022-bound-external-automation-effects.md) | External automation hardening: bounded retention and logs, credential-free source history, and a persisted 10-runs-per-hour privileged workflow budget |
 
 ---
 
