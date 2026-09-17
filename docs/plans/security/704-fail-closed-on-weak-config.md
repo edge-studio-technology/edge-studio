@@ -1,8 +1,11 @@
 # Fail Closed On Missing APP_SECRET Plan
 
 **Status:** Complete (2026-09-17)
-**Created:** 2026-09-15  
-**Revised:** 2026-09-16 — scope reduced; see `docs/adr/0021-app-secret-fail-closed-without-migration.md`  
+
+**Created:** 2026-09-15
+
+**Revised:** 2026-09-16 — scope reduced; see `docs/adr/0021-app-secret-fail-closed-without-migration.md`
+
 **Goal:** Remove the public `dev-change-me` default from every shipped path and make the backend refuse to start without an `APP_SECRET`.
 
 ## Context
