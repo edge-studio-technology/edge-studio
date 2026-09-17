@@ -56,9 +56,12 @@ work or change database-wide deletion semantics without first auditing and recon
   regression testing.
 - Apply the budget to manual, scheduled, webhook, MQTT, and GPIO execution. Keep cooldown and
   in-memory concurrency guards as complementary controls.
-- Add separate traffic-volume rate limiters for webhook ingestion, automation mutations/manual
-  runs, and Integritas stamp creation. Do not reuse the authentication limiter or apply these
-  write-oriented policies to normal read/status polling.
+- Add separate one-minute traffic-volume rate limiters: 60 webhook-ingestion requests per client
+  and source, 30 automation mutation/manual-run requests per client, and 10 Integritas stamp-creation
+  requests per client. Do not reuse the authentication limiter or apply these write-oriented
+  policies to normal read/status polling.
+- Configure Docker's `json-file` driver for every long-running service with `max-size: "10m"` and
+  `max-file: "3"`, bounding retained JSON logs to approximately 30 MB per service.
 - Keep the budget and retention policies as named backend constants for V1.5. Do not add API,
   frontend, or environment configuration for them.
 

@@ -32,6 +32,8 @@ The security policy choices were approved on 2026-09-17 and are recorded in [ADR
 - Keep the maximum and window as fixed, named, non-disableable backend policy constants. Persist only timestamped consumption events; do not add API or frontend configuration in this task.
 - Use a timestamp ledger with one unique reservation per run to implement an atomic true rolling window that survives restarts.
 - Count a run once immediately before its first privileged block, including failed privileged attempts, and apply the policy to every trigger type.
+- Apply fixed one-minute HTTP traffic windows: webhook ingestion allows **60 requests per minute per client and source**, automation mutations/manual runs allow **30 requests per minute per client**, and Integritas stamp creation allows **10 requests per minute per client**.
+- Rotate each long-running service's Docker `json-file` logs at **10 MB per file with 3 files retained** (`max-size: "10m"`, `max-file: "3"`).
 
 Document these constants in `SECURITY.md` and lock them with tests. Do not claim that the budget prevents destination or amount selection: those values are already fixed by trusted workflow configuration.
 
@@ -94,15 +96,15 @@ Document these constants in `SECURITY.md` and lock them with tests. Do not claim
 
 - Keep `authRateLimiter` unchanged for credential attempts; its `skipSuccessfulRequests` behavior is not suitable for traffic-volume controls.
 - Add purpose-specific limiters in `backend/src/features/auth/rate-limit.middleware.ts` (or a renamed shared rate-limit module) with standard `RateLimit-*` headers and JSON `429` responses:
-  - webhook ingestion, keyed by client IP and source identity without storing/logging the raw token;
-  - automation mutation/manual-run endpoints, applied to POST/PATCH/DELETE routes rather than read polling;
-  - Integritas stamp creation (`/stamp` and `/stamp-file`), without throttling proof/status reads.
-- Set explicit windows/maxima as named constants and document them. Ensure proxy-aware IP keys remain correct under the existing `app.set("trust proxy", 1)` and nginx forwarding headers.
+  - webhook ingestion: 60 requests per one-minute window, keyed by client IP and source identity without storing/logging the raw token;
+  - automation mutation/manual-run endpoints: 30 requests per one-minute window per client, applied to POST/PATCH/DELETE routes rather than read polling;
+  - Integritas stamp creation (`/stamp` and `/stamp-file`): 10 requests per one-minute window per client, without throttling proof/status reads.
+- Define those windows/maxima as named constants and document them. Ensure proxy-aware IP keys remain correct under the existing `app.set("trust proxy", 1)` and nginx forwarding headers.
 - Rate limiting is process-local and resets on restart; the durable workflow budget is the restart-safe control for privileged automation and covers MQTT/GPIO paths that Express middleware cannot see.
 
 ## Docker And Release Changes
 
-- Add the same Docker json-file `logging.options` policy to every long-running service in `docker-compose.yml` (`max-size` and `max-file`, values stored as strings). Applying it consistently prevents a different noisy service from retaining unbounded logs.
+- Add the same Docker `json-file` policy to every long-running service in `docker-compose.yml`: `max-size: "10m"` and `max-file: "3"`. This bounds retained JSON logs to approximately 30 MB per service and prevents a different noisy service from retaining unbounded logs.
 - Mirror the policy in `scripts/release/build-docker-compose.mjs` and extend its tests so installed runtime bundles cannot drift from source Compose.
 - Keep rotation limits fixed unless the implementation intentionally adds documented environment variables with hard bounds; configurability is not required by this ticket.
 
