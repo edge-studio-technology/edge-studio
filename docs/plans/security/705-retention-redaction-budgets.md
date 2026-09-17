@@ -19,7 +19,7 @@ The audit confirmed the credential paths described by the ticket:
 - `recordPushAutomationPayload()` accepts a `sourceUrl` argument that none of its execution logic reads.
 - `docker-compose.yml` has no json-file rotation policy, and the release Compose generator must mirror any source Compose change.
 
-The existing session cleanup service provides the startup-plus-hourly scheduler pattern to reuse. Automation run deletion cascades to block runs, while inbox references become null; pruning must still cap all four named tables independently and physically remove soft-deleted inbox rows.
+The existing session cleanup service provides the startup-plus-hourly scheduler pattern to reuse. Although the schema declares cascades and nullification, the shared SQLite connection does not enable foreign-key enforcement. Pruning must therefore explicitly delete dependent rows, cap all four named tables independently, and physically remove soft-deleted inbox rows. Enabling database-wide foreign-key enforcement is deferred to a separate database-integrity task after existing orphaned rows and all delete paths are audited.
 
 The ticket deliberately excludes a global cross-workflow budget, global wallet serialization, and webhook-token rotation. [ADR 0022](../../adr/0022-bound-external-automation-effects.md) records those rejected alternatives and the approved per-workflow design. Token rotation remains unjustified while exposure is local to an admin-readable database and Pi-local Docker logs; Docker logs created before this fix will not be rewritten.
 
@@ -44,7 +44,7 @@ Document these constants in `SECURITY.md` and lock them with tests. Do not claim
   - rows older than 30 days;
   - rows outside the newest 10,000 rows;
   - the union is capped to 500 rows per table per pass.
-- Use `(timestamp, id)` ordering for deterministic oldest-first deletion. Prune automation runs before block runs so foreign-key cascades reduce the remaining block-run work; cap block runs independently afterward.
+- Use `(timestamp, id)` ordering for deterministic oldest-first deletion. In one transaction, explicitly remove block-run rows belonging to eligible parent runs before removing those parents; do not rely on inactive SQLite cascades. Cap block runs independently as well.
 - Physically delete eligible inbox rows, including rows already soft-deleted through `deleted_at`.
 - Add/confirm timestamp indexes needed by the bounded selects; `automation_block_runs.started_at` currently lacks its own age/cap index.
 - Add `startRetentionScheduler()` / `stopRetentionScheduler()` following `features/auth/session.service.ts`: run one guarded pass immediately after migrations, then hourly, log only a static failure message plus redacted error detail, and make start/stop idempotent for tests.
@@ -73,7 +73,7 @@ Document these constants in `SECURITY.md` and lock them with tests. Do not claim
 ### 4. Persisted rolling-window workflow budget
 
 - Add a dedicated `automation_workflow_budget_events` table in `backend/src/db/database.ts` with `workflow_id`, unique `run_id`, and `consumed_at`, plus an index on `(workflow_id, consumed_at)`. A timestamp ledger implements a true rolling window and survives restart; a single `window_started_at/count` pair would only implement a fixed window.
-- Cascade budget events when a workflow is deleted. Budget-event retention can delete entries older than the configured window during reservation and does not need operator-facing history.
+- Explicitly delete budget events in the workflow-deletion transaction because SQLite foreign-key enforcement is currently disabled. Budget-event retention can delete entries older than the configured window during reservation and does not need operator-facing history.
 - Add a repository transaction that, immediately before the first privileged block in a run:
   1. removes expired events for that workflow;
   2. counts events inside the rolling window;
@@ -113,7 +113,7 @@ Document these constants in `SECURITY.md` and lock them with tests. Do not claim
   - 10,000-row cap with deterministic oldest-first deletion;
   - union of age and count eligibility without double counting;
   - at most 500 direct deletions per table/pass;
-  - automation-run cascades, independent block-run cap, physical inbox deletion, and idempotent repeated passes;
+  - explicit dependent block-run deletion, independent block-run cap, physical inbox deletion, and idempotent repeated passes;
   - immediate startup pass, hourly tick, error isolation, and clean stop using fake timers.
 - Database migration tests for live webhook/MQTT/GPIO sources, deleted-source orphan rows, already-safe URLs, idempotency, and absence of original tokens/userinfo after migration.
 - Update `automation.service`, GPIO ingestion, MQTT ingestion, data-source route, and data-read tests to assert stable source references and the removed dead argument.

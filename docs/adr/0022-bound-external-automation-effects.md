@@ -21,13 +21,18 @@ Event cooldown alone does not bound privileged workflow effects: transaction wor
 accept a zero cooldown, cooldown state is process-local, and a restart clears it. HTTP rate limits
 also cannot protect MQTT or GPIO execution and reset with the backend process.
 
+The schema declares `ON DELETE CASCADE` and `ON DELETE SET NULL` relationships, but the shared
+SQLite connection does not enable `PRAGMA foreign_keys = ON`. Existing installations may therefore
+contain rows that violate those declared relationships. This feature cannot safely assume cascades
+work or change database-wide deletion semantics without first auditing and reconciling that data.
+
 ## Decision
 
 - Apply two independent retention limits to automation runs, block runs, inbox items, and
   data-source reads: retain no more than 30 days and no more than the newest 10,000 rows. Delete the
   oldest eligible rows in batches of at most 500 per table, once after startup migrations and then
-  hourly. Automation-run deletion continues to cascade to its block runs, but block runs retain an
-  independent cap.
+  hourly. Explicitly delete dependent block-run rows in the retention transaction before deleting
+  their parent runs; do not rely on SQLite cascades. Block runs retain an independent cap.
 - Replace persisted webhook and MQTT URLs with a credential-free stable source reference such as
   `data-source:<id>`. Remove the unused `sourceUrl` parameter from push automation recording and
   scrub historical read rows without logging their previous values. Credential-bearing MQTT URLs
@@ -45,6 +50,10 @@ also cannot protect MQTT or GPIO execution and reset with the backend process.
   unique `run_id`. Reservation and rolling-window counting are atomic. A run containing multiple
   privileged blocks consumes once; a failed privileged action still consumes its reservation
   because its external effect may have happened before failure was observed.
+- Explicitly delete workflow budget events when their workflow is deleted. Preserve the current
+  SQLite foreign-key setting in this feature. Audit orphaned rows and consider enabling
+  `PRAGMA foreign_keys = ON` in a separate database-integrity change with its own migration and
+  regression testing.
 - Apply the budget to manual, scheduled, webhook, MQTT, and GPIO execution. Keep cooldown and
   in-memory concurrency guards as complementary controls.
 - Add separate traffic-volume rate limiters for webhook ingestion, automation mutations/manual
@@ -71,6 +80,10 @@ remain trusted workflow configuration.
   require them; credentials should remain usable in configuration but must not enter read history.
 - **One large startup cleanup.** Rejected because an unbounded deletion can hold SQLite write locks
   and delay startup on resource-constrained hardware.
+- **Enable SQLite foreign-key enforcement in this feature.** Deferred because it changes deletion
+  behavior across the whole application and existing databases may already contain orphaned rows.
+  A separate task must inventory violations, define cleanup or repair rules, enable enforcement at
+  connection startup, and regression-test every affected delete path.
 - **Global cross-workflow budgeting and wallet serialization.** Deferred to their own subsystem and
   ADR because they require global coordination beyond this per-workflow hardening task.
 - **Webhook-token rotation.** Deferred while the token is only readable by the owning administrator
@@ -90,17 +103,21 @@ remain trusted workflow configuration.
   temporary false-positive blocking after operational failures.
 - The timestamp ledger adds SQLite writes and requires expiry cleanup, but its bounded per-workflow
   query provides accurate rolling-window behavior.
+- Retention and workflow deletion require explicit dependent-row cleanup until a separate
+  database-integrity task safely enables foreign-key enforcement.
 - HTTP rate limiting remains process-local; the persisted workflow budget is the durable control.
 - Global aggregate wallet risk and cross-workflow serialization remain unaddressed.
 
 ## Where this lives in code
 
 - `backend/src/db/database.ts` — retention indexes, historical source scrub, and workflow budget
-  ledger migration.
+  ledger migration; foreign-key enforcement remains unchanged.
 - `backend/src/features/retention/` and `backend/src/startup.ts` — bounded startup/hourly pruning.
 - `backend/src/features/automation/automation.service.ts` and
   `backend/src/features/automation/automation.validation.ts` — source references, budget reservation,
   and transaction cooldown validation.
+- `backend/src/features/automation/automation.repository.ts` — explicit workflow budget-event
+  deletion without relying on a cascade.
 - `backend/src/features/data-sources/mqttIngestion.service.ts` and data-source ingest routes — safe
   source recording for MQTT and webhooks.
 - `backend/src/middleware/requestLogger.ts`, `frontend/nginx.conf` — webhook path redaction.
