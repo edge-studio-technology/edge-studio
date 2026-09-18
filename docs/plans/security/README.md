@@ -1,6 +1,6 @@
 # Security Hardening V1.5
 
-**Status:** In progress — Phases 1-5 done; Phase 6 finding [12] split into task 704
+**Status:** In progress — Phases 1-5 and 8 done; Phase 6 finding [12] closed by task 704
 **Created:** 2026-09-04
 **Revised:** 2026-09-04 — second-opinion review folded in: DNS-address pinning on egress, Phase 0 decision gate, non-destructive
 `APP_SECRET` migration, the multipart egress path, global outbound concurrency, and the installer's
@@ -12,6 +12,8 @@ Phases 1-5 can be tracked as reviewable/done while Phases 0 and 6-9 stay open. T
 plan is archived at [archive/security-hardening-v1-5.md](../archive/security-hardening-v1-5.md).
 **Revised:** 2026-09-17 — Phase 6 finding [12] reduced to fail-closed startup in task 704 under
 ADR 0021; finding [6] image pinning split into a separate task.
+**Revised:** 2026-09-18 — Phase 8 completed by task 706 with recorded clean-data production
+Compose auth and browser/header sign-off.
 **Branch:** `task/272-security-hardening-v1-5`
 **Goal:** Close the findings from the external V1.5 security review and the V1 security sign-off
 remainder, in one ordered workstream. Phase 9 carries the unit-test audit's production-behaviour
@@ -40,7 +42,7 @@ notes, and tests. This index carries only what's shared across all of them.
 | 5 | Resource limits | Done (2026-09-09) | [phase-5-resource-limits.md](./phase-5-resource-limits.md) |
 | 6 | Fail closed on weak config | Split: [12] implemented in task 704; [6] image pinning remains open | [phase-6-fail-closed-on-weak-config.md](./phase-6-fail-closed-on-weak-config.md) |
 | 7 | Retention, redaction, budgets | Not started | [phase-7-retention-redaction-budgets.md](./phase-7-retention-redaction-budgets.md) |
-| 8 | V1 sign-off remainder | In progress — automated slices complete; manual sign-off pending | [706-v1-sign-off-remainder.md](./706-v1-sign-off-remainder.md) |
+| 8 | V1 sign-off remainder | Done (2026-09-18) | [706-v1-sign-off-remainder.md](./706-v1-sign-off-remainder.md) |
 | 9 | Correctness hardening from the unit-test audit | Not started | [phase-9-correctness-hardening.md](./phase-9-correctness-hardening.md) |
 
 QA and promotion of the completed work in Phases 1-5 uses the

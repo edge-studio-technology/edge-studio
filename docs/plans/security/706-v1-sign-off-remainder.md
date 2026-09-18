@@ -2,7 +2,7 @@
 
 # Task 706 — V1 Sign-off Remainder Plan
 
-**Status:** In progress — automated implementation and CSRF documentation complete; manual auth sign-off remains
+**Status:** Done — implemented and production Compose sign-off passed 2026-09-18
 
 **Created:** 2026-09-18  
 **Branch:** `dev-task/706-v1-sign-off-remainder`  
@@ -33,16 +33,19 @@ single-admin threat model.
 ## Implementation progress
 
 - 2026-09-18: The dormant-TOTP slice conditionally omits all four route registrations, preserves the
-  setup first-admin service guard, and covers disabled plus module-mocked enabled behavior. GAP-05
-  remains open until the production manual sign-off.
+  setup first-admin service guard, and covers disabled plus module-mocked enabled behavior.
 - 2026-09-18: The nginx-header slice adds the four response headers to HTTP redirects and every
   HTTPS location with `always`. A live Compose check covers the SPA, backend health proxy,
-  nginx-generated error, and HTTP redirect. GAP-07 remains open until the final browser CSP smoke
-  test, including the proxied update page.
+  nginx-generated error, and HTTP redirect.
 - 2026-09-18: The CSRF documentation slice records that V1 intentionally uses no CSRF tokens and
   accepts strict same-site cookies plus JSON/multipart browser mutations for the trusted-LAN,
-  single-admin threat model. GAP-06 is closed. The clean-data auth sign-off remains for the final
-  slice.
+  single-admin threat model. GAP-06 is closed.
+- 2026-09-18: The final sign-off used two separately named clean-data production Compose runs. It
+  passed account-connected and deferred-Connect onboarding, session/reload/logout/login boundaries,
+  generic credential failures, setup immutability, CLI `401`, cookie attributes, shipped TOTP
+  `404`s, live nginx headers, and a Brave/Chromium CSP smoke across Dashboard, Account, and Update.
+  The evidence is recorded in [the V1 auth sign-off](../../qa/v1-auth-sign-off.md); GAP-03, GAP-05,
+  and GAP-07 are closed.
 
 ## 1. Add nginx security headers
 

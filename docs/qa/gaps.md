@@ -1,7 +1,7 @@
 # QA gaps backlog
 
 **Status:** Open  
-**Last verified:** Findings against `571ba70`; TOTP scope and references reconciled 2026-09-07  
+**Last verified:** Task 706 production Compose auth/header sign-off passed 2026-09-18
 **Related:** [SECURITY.md](../../SECURITY.md), [security/](../security/), [plans/security/](../plans/security/README.md), [CHANGELOG.md](../../CHANGELOG.md)
 
 > Security items scheduled for V1.5 are owned by
@@ -27,11 +27,11 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 - [ ] **GAP-01 Transport** — HTTPS default deploy ships (`COOKIE_SECURE=true`). Manual: cookie has `Secure` flag; HTTP redirects to HTTPS. HSTS deferred (V2+).
 - [x] **GAP-02 Automated auth tests** — Done (0.39.0): backend auth suites plus a smoke test asserting every non-public route requires a session.
-- [ ] **GAP-03 Manual E2E checklist** — Wizard (with/without Integritas key), reload persistence, logout, generic login errors, setup cannot re-run, CLI 401 documented.
+- [x] **GAP-03 Manual E2E checklist** — Closed by task 706: two separately named clean-data production Compose runs covered Integritas Connect completion and deferred Connect, reload/restart persistence, logout and protected `401`, generic login errors, setup immutability, and the documented CLI `401` ([sign-off](./v1-auth-sign-off.md)).
 - [x] **GAP-04 `APP_SECRET` validation** — Closed by task 704: the public default was removed and the backend refuses startup before database or background-service initialization when the value is absent or empty. `install.sh` still generates fresh values and preserves existing ones; ADR 0021 records why migration/regeneration was dropped.
-- [ ] **GAP-05 Dormant TOTP routes** — Task 706 now omits all four setup/settings init/verify routes while `TOTP_ENABLED` is false, with automated regressions for disabled and enabled configurations and the setup first-admin guard. This remains open until the production manual sign-off confirms the shipped container behavior. TOTP's later retention, redesign, re-enablement, or removal is a separate undecided product question ([adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md)). **Phase 8.**
+- [x] **GAP-05 Dormant TOTP routes** — Closed by task 706: all four setup/settings init/verify routes are omitted while `TOTP_ENABLED` is false, with automated regressions for disabled/enabled configurations and the setup first-admin guard plus shipped-container `404` verification. TOTP's later retention, redesign, re-enablement, or removal remains a separate product decision ([adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md), [sign-off](./v1-auth-sign-off.md)). **Phase 8.**
 - [x] **GAP-06 CSRF** — Closed by task 706: V1 intentionally uses no CSRF tokens; `HttpOnly`, `SameSite=Strict` session cookies (`Secure` by default) and JSON/multipart browser mutations are the accepted posture for the trusted-LAN, single-admin threat model. Revisit before the exposure or request assumptions change ([adr/0010](../adr/0010-security-review-audit-verdict.md)).
-- [ ] **GAP-07 Security headers** — Task 706 adds CSP, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy` to nginx responses and covers the live SPA, API proxy, nginx error, and HTTP redirect paths. This remains open until the production manual sign-off confirms the main UI and proxied update page have no CSP regressions. **Phase 8.**
+- [x] **GAP-07 Security headers** — Closed by task 706: CSP, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy` were verified on live SPA, API proxy, nginx error, and HTTP redirect responses; Dashboard, Account, and Update produced no browser CSP violations ([sign-off](./v1-auth-sign-off.md)). **Phase 8.**
 
 ### P1
 

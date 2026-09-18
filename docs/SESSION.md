@@ -204,6 +204,23 @@ Later on branch `dev-task/704-fail-closed-on-weak-config`:
   an empty-secret container exited `1` without creating SQLite. Temporary containers/data were
   removed.
 
+Later on branch `dev-task/706-v1-sign-off-remainder`:
+
+- Made all four setup/settings TOTP init/verify routes unavailable while `TOTP_ENABLED` is false,
+  preserving the setup first-admin service guards and module-mocked enabled-route coverage.
+- Added CSP, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy` to nginx HTTPS,
+  proxy, error, and HTTP-redirect responses plus a live response-level regression script.
+- Recorded the accepted V1 CSRF posture in policy/security docs: strict same-site session cookies
+  and JSON/multipart browser mutations without CSRF tokens for trusted-LAN, single-admin use.
+- Passed the production Compose auth sign-off on two separately named clean-data variants: one
+  completed Integritas Connect; the other created the local admin without Connect approval and
+  resumed at the Connect step after reload. Auth failures, setup immutability, logout/`401`, CLI
+  `401`, cookie attributes, shipped TOTP `404`s, headers, and Brave/Chromium CSP behavior passed.
+- Recorded the reproducible evidence in `docs/qa/v1-auth-sign-off.md`, closed GAP-03/GAP-05/GAP-06/
+  GAP-07, and completed Phase 8/task 706 tracking.
+- Verified `npm run check` (2,851 tests and zero audit vulnerabilities), backend/frontend builds,
+  disposable Compose config/build/health, the live nginx-header script, and clean diff formatting.
+
 ## Next Steps
 
 - Run the complete local sign-off suite, then create and verify the next development tag on the Pi.
@@ -212,9 +229,10 @@ Later on branch `dev-task/704-fail-closed-on-weak-config`:
   documentation session.
 - Publish a new development build containing the Phase 5 proxy fix, then repeat the 1 MiB/2 MiB Pi
   upload test and confirm the oversized file returns the backend's JSON `413` with a useful UI error.
-- V1.5 security hardening: task 704's fail-closed `APP_SECRET` work is complete; finding [6] image
-  digest pinning is next. Phase 0's two product decisions stay defaulted to acceptance until the
-  pre-merge decision pass.
+- V1.5 security hardening: tasks 704 and 706 are complete; finding [6] image digest pinning is next.
+  Phase 0's two product decisions stay defaulted to acceptance until the pre-merge decision pass.
+- Revoke the disposable “Task 706” Integritas Connect device from the QA account when its evidence
+  is no longer needed, then remove the `/tmp/edge-studio-706-*` data directories.
 - Before Phase 4 ships, every release channel needs one release through the updated `release.yml` — an installer carrying this change cannot install from a channel whose latest bundle has no `.sig`. Fail-closed by design, but it has to be sequenced.
 - Phase 4 still wants a live root install on a Pi against a staging manifest. The local rehearsal covered the bundle download/verify/extract paths in isolation; it did not run the full `main()`, the manifest fetch, or container start.
 - Implement `docs/plans/high-risk-business-logic-hardening.md` on a separate production-behavior branch; this test branch should not absorb those changes.

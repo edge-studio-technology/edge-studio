@@ -10,7 +10,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Disabled two-factor setup and reset endpoints are no longer exposed while TOTP is off.
 - HTTPS application, proxy, error, and redirect responses now include CSP, clickjacking, MIME-sniffing, and referrer-policy protections.
-- The V1 CSRF posture now explicitly uses strict same-site session cookies and JSON/multipart browser mutations without CSRF tokens.
 
 ## [Unreleased]
 

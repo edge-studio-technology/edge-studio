@@ -19,6 +19,11 @@ Controls (V1):
   protection, and a no-referrer policy to redirects, application responses, proxied responses, and
   errors.
 
+Task 706's production Compose sign-off verified both clean-data onboarding variants, session
+persistence and cookie attributes, generic auth failures, setup immutability, disabled TOTP route
+responses, nginx headers, and browser CSP compatibility. See
+[the recorded sign-off](../qa/v1-auth-sign-off.md).
+
 Residual gap: Self-signed certificates do not prove server identity. Custom trusted certificates or operator-managed reverse-proxy TLS are planned for a later release.
 
 Status: Partially mitigated; see `docs/qa/gaps.md` (GAP-01) for follow-up items (HSTS, custom certs).
