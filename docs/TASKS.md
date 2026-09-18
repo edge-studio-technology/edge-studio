@@ -16,6 +16,7 @@
 
 ## In Progress
 
+- [ ] Close the V1 sign-off remainder (nginx headers, accepted CSRF posture, dormant TOTP routes, and fresh-data auth E2E) — see `docs/plans/security/706-v1-sign-off-remainder.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] Security hardening V1.5 — close the external-review findings, the V1 sign-off remainder, and the unit-test-audit gaps in one ordered workstream; see `docs/plans/security/README.md`, one file per phase under `docs/plans/security/`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`; task 704 closed finding [12].
