@@ -1,7 +1,7 @@
 # Table Column Visibility Plan
 
-**Status:** In progress  
-**Created:** 2026-09-17  
+**Status:** Done
+**Created:** 2026-09-17
 **Goal:** Let users choose which columns are shown in every `DataTable`-based table, with preferences saved by the backend.
 
 ## Context
@@ -104,6 +104,15 @@ Update these when implementation is done:
 
 ## Verification
 
+Implementation status:
+
+- Shared `TableControls` shell added so table utility controls have one placement pattern.
+- Backend-saved column preferences added under `/api/preferences/table-columns` using the existing `settings` table.
+- Column chooser wired into every current shared `DataTable` table in scope.
+- Diagnostics uses its route-level toolbar so filter/search/Refresh and the active tab's cog button share one row.
+- Diagnostics wide table minimums now drop away when users hide columns down to a small visible set.
+- Manual browser checks completed after implementation; the remaining scrollbar issue found there was fixed.
+
 Automated checks:
 
 ```bash
@@ -113,13 +122,18 @@ npm --prefix frontend run build
 docker compose config
 ```
 
+Completed checks:
+
+- `npm --prefix frontend run test -- tests/components/patterns/TableControls.test.tsx tests/components/patterns/TableColumnVisibility.test.tsx`
+- `npm --prefix frontend run build`
+- `npm --prefix backend run build`
+- `npm --prefix backend test -- tests/features/preferences/table-column-preferences.service.test.ts`
+- `docker compose config`
+
+Known verification caveat:
+
+- Full `npm run check` requires a Node runtime compatible with installed `undici@8.10.2` (`>=22.19.0`). The local shell used for this work was Node `v20.19.4`, which fails backend coverage at runtime with `webidl.util.markAsUncloneable is not a function`.
+
 Manual browser checks:
 
-- Open every scoped table and confirm the cog button appears above the table.
-- Toggle each informational column off and on and confirm matching headers and cells update together.
-- Confirm action/select columns can be hidden.
-- Confirm the last visible data column cannot be hidden.
-- Refresh the page, sign out/in if relevant, and confirm backend-saved preferences return.
-- Confirm empty, loading, filtered-empty, and paginated states still work.
-- Confirm mobile width still allows the toolbar and modal to operate without clipping.
-- Confirm stale preferences do not break the UI by testing with a removed or unknown saved column ID.
+- Completed. Checked every scoped table, cog placement, column hide/show behavior, persistence, last-data-column guard, action/select columns, empty/loading/filtered-empty states, and mobile/desktop placement.
