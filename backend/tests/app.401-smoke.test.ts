@@ -12,7 +12,9 @@ vi.mock("../src/features/auth/session.service.js", async (importOriginal) => {
   return {
     ...actual,
     validateSession: (token: string) =>
-      token === VIEWER_TOKEN ? { id: "u-1", username: "viewer", role: "viewer" as unknown as "admin" } : null
+      token === VIEWER_TOKEN
+        ? { id: "u-1", username: "viewer", role: "viewer" as unknown as "admin" }
+        : null,
   };
 });
 
@@ -49,7 +51,8 @@ const protectedPrefixes = [
   "/api/wallet",
   "/api/wallet/address-book",
   "/api/tokens",
-  "/api/debug"
+  "/api/preferences",
+  "/api/debug",
 ];
 
 // The admin-gate matrix. `UserRole` has one member today, so this cannot be driven through a
@@ -75,7 +78,7 @@ const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: strin
   ["post", "/api/integritas/history/rec-1/verify"],
   ["post", "/api/automation/workflows"],
   ["post", "/api/wallet/send-payment"],
-  ["post", "/api/tokens/create"]
+  ["post", "/api/tokens/create"],
 ];
 
 describe("app 401 smoke test", () => {
@@ -115,7 +118,9 @@ describe("app 401 smoke test", () => {
     });
 
     it("POST /api/data-source-webhooks/:token does not require auth", async () => {
-      const response = await request(app).post("/api/data-source-webhooks/nonexistent-token").send({});
+      const response = await request(app)
+        .post("/api/data-source-webhooks/nonexistent-token")
+        .send({});
       assert.notEqual(response.status, 401);
     });
   });

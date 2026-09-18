@@ -11,9 +11,7 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
 
 function isPublicAuthPath(url: string) {
   return (
-    url.includes("/api/auth/login") ||
-    url.includes("/api/auth/me") ||
-    url.includes("/api/setup/")
+    url.includes("/api/auth/login") || url.includes("/api/auth/me") || url.includes("/api/setup/")
   );
 }
 
@@ -36,7 +34,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
         ? parsed.error
         : typeof parsed.message === "string"
           ? parsed.message
-          : details.message
+          : details.message,
     ) as ApiError;
     error.status = response.status;
     error.details = details;
@@ -47,7 +45,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 const defaultInit: RequestInit = {
-  credentials: "include"
+  credentials: "include",
 };
 
 export async function getJson<T>(url: string): Promise<T> {
@@ -60,7 +58,7 @@ export async function postJson<T>(url: string, body?: unknown): Promise<T> {
     ...defaultInit,
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body)
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   return parseResponse<T>(response);
 }
@@ -70,7 +68,17 @@ export async function patchJson<T>(url: string, body: unknown): Promise<T> {
     ...defaultInit,
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+  });
+  return parseResponse<T>(response);
+}
+
+export async function putJson<T>(url: string, body: unknown): Promise<T> {
+  const response = await fetch(url, {
+    ...defaultInit,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
   return parseResponse<T>(response);
 }
@@ -80,7 +88,7 @@ export async function deleteJson<T>(url: string, body?: unknown): Promise<T> {
     ...defaultInit,
     method: "DELETE",
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body)
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   return parseResponse<T>(response);
 }
@@ -89,7 +97,7 @@ export async function postForm<T>(url: string, form: FormData): Promise<T> {
   const response = await fetch(url, {
     ...defaultInit,
     method: "POST",
-    body: form
+    body: form,
   });
   return parseResponse<T>(response);
 }

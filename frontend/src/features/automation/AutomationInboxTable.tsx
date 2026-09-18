@@ -16,6 +16,11 @@ import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
+import {
+  TableColumnVisibilityButton,
+  type TableColumnDefinition,
+} from "../../components/patterns/TableColumnVisibility";
+import { TableControls } from "../../components/patterns/TableControls";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { JsonPreviewContent } from "../../components/JsonPreview";
 import { Card } from "../../components/ui/Card";
@@ -24,6 +29,7 @@ import { Modal } from "../../components/ui/Modal";
 import { Pill } from "../../components/ui/Pill";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatLocalDateTime } from "../../lib/time";
+import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 import type { AutomationInboxItem } from "./automationTypes";
 import { isImagePreviewContent, textPreviewContent } from "./workflow/workflowHelpers";
 
@@ -39,6 +45,15 @@ const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
   value: String(size),
   label: String(size),
 }));
+
+const INBOX_COLUMNS = [
+  { id: "title", label: "Title" },
+  { id: "workflow", label: "Workflow" },
+  { id: "format", label: "Format" },
+  { id: "created", label: "Created" },
+  { id: "status", label: "Status" },
+  { id: "actions", label: "Actions", dataColumn: false },
+] as const satisfies readonly TableColumnDefinition[];
 
 function inboxMatchesFilter(item: AutomationInboxItem, query: string, filter: InboxFilter) {
   if (filter === "unread" && item.readAt) return false;
@@ -68,6 +83,7 @@ export function AutomationInboxTable({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
   const [detailsItem, setDetailsItem] = useState<AutomationInboxItem | null>(null);
+  const { visibility, setVisibility } = useTableColumnVisibility("workflow-inbox", INBOX_COLUMNS);
 
   const unreadCount = items.filter((item) => !item.readAt).length;
   const filtersActive = Boolean(query.trim()) || filter !== "all";
@@ -105,23 +121,34 @@ export function AutomationInboxTable({
           Local workflow previews stay here even if no browser was open when the workflow ran.
         </p>
 
-        <div className="min-w-0 flex-1 [&>div]:mb-0">
-          <ListFilterBar
-            filter={filter}
-            q={query}
-            filterOptions={STATUS_FILTER_OPTIONS}
-            searchPlaceholder="Title, workflow, or format"
-            disabled={loading || items.length === 0}
-            onFilterChange={(value) => {
-              setFilter(value as InboxFilter);
-              setPage(1);
-            }}
-            onQueryChange={(q) => {
-              setQuery(q);
-              setPage(1);
-            }}
-          />
-        </div>
+        <TableControls
+          utilities={
+            <TableColumnVisibilityButton
+              tableLabel="Workflow Inbox"
+              columns={INBOX_COLUMNS}
+              visibility={visibility}
+              onChange={setVisibility}
+            />
+          }
+        >
+          <div className="min-w-0 flex-1 [&>div]:mb-0">
+            <ListFilterBar
+              filter={filter}
+              q={query}
+              filterOptions={STATUS_FILTER_OPTIONS}
+              searchPlaceholder="Title, workflow, or format"
+              disabled={loading || items.length === 0}
+              onFilterChange={(value) => {
+                setFilter(value as InboxFilter);
+                setPage(1);
+              }}
+              onQueryChange={(q) => {
+                setQuery(q);
+                setPage(1);
+              }}
+            />
+          </div>
+        </TableControls>
 
         {loading ? (
           <LoadingState title="Fetching your inbox" description="This should take a few seconds." />
@@ -142,80 +169,96 @@ export function AutomationInboxTable({
           <TableWrap>
             <DataTable className="table-fixed">
               <TableHead>
-                <TableHeaderCell className="w-52">Title</TableHeaderCell>
-                <TableHeaderCell className="w-56">Workflow</TableHeaderCell>
-                <TableHeaderCell className="w-28">Format</TableHeaderCell>
-                <TableHeaderCell className="w-40">Created</TableHeaderCell>
-                <TableHeaderCell className="w-32">Status</TableHeaderCell>
-                <TableHeaderCell className="w-28 whitespace-nowrap">Actions</TableHeaderCell>
+                {visibility.title && <TableHeaderCell className="w-52">Title</TableHeaderCell>}
+                {visibility.workflow && (
+                  <TableHeaderCell className="w-56">Workflow</TableHeaderCell>
+                )}
+                {visibility.format && <TableHeaderCell className="w-28">Format</TableHeaderCell>}
+                {visibility.created && <TableHeaderCell className="w-40">Created</TableHeaderCell>}
+                {visibility.status && <TableHeaderCell className="w-32">Status</TableHeaderCell>}
+                {visibility.actions && (
+                  <TableHeaderCell className="w-28 whitespace-nowrap">Actions</TableHeaderCell>
+                )}
               </TableHead>
               <TableBody>
                 {pagedItems.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="min-w-0">
-                      <span className="type-body-em block truncate" title={item.title}>
-                        {item.title}
-                      </span>
-                    </TableCell>
-                    <TableCell className="min-w-0">
-                      <span
-                        className="text-text-secondary block truncate"
-                        title={item.workflowName}
-                      >
-                        {item.workflowName}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Pill>{item.format}</Pill>
-                    </TableCell>
-                    <TableCell>
-                      <time className="text-text-secondary type-meta" dateTime={item.createdAt}>
-                        {formatLocalDateTime(item.createdAt)}
-                      </time>
-                    </TableCell>
-                    <TableCell>
-                      {item.readAt ? (
-                        <Pill tone="neutral" indicator>
-                          Read
-                        </Pill>
-                      ) : (
-                        <Pill tone="warn" indicator>
-                          Unread
-                        </Pill>
-                      )}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <RowActions>
-                        <TableIconButton
-                          type="button"
-                          title="View preview"
-                          aria-label={`View preview for ${item.title}`}
-                          onClick={() => viewItem(item)}
+                    {visibility.title && (
+                      <TableCell className="min-w-0">
+                        <span className="type-body-em block truncate" title={item.title}>
+                          {item.title}
+                        </span>
+                      </TableCell>
+                    )}
+                    {visibility.workflow && (
+                      <TableCell className="min-w-0">
+                        <span
+                          className="text-text-secondary block truncate"
+                          title={item.workflowName}
                         >
-                          {item.readAt ? (
-                            <MailOpen size={16} aria-hidden />
-                          ) : (
-                            <Mail size={16} aria-hidden />
-                          )}
-                        </TableIconButton>
-                        <TableIconMenu
-                          aria-label={`More actions for ${item.title}`}
-                          items={[
-                            {
-                              label: item.readAt ? "Mark unread" : "Mark read",
-                              disabled: busy,
-                              onClick: () => onMarkRead(item, !item.readAt),
-                            },
-                            {
-                              label: "Delete",
-                              danger: true,
-                              disabled: busy,
-                              onClick: () => onDelete(item),
-                            },
-                          ]}
-                        />
-                      </RowActions>
-                    </TableCell>
+                          {item.workflowName}
+                        </span>
+                      </TableCell>
+                    )}
+                    {visibility.format && (
+                      <TableCell>
+                        <Pill>{item.format}</Pill>
+                      </TableCell>
+                    )}
+                    {visibility.created && (
+                      <TableCell>
+                        <time className="text-text-secondary type-meta" dateTime={item.createdAt}>
+                          {formatLocalDateTime(item.createdAt)}
+                        </time>
+                      </TableCell>
+                    )}
+                    {visibility.status && (
+                      <TableCell>
+                        {item.readAt ? (
+                          <Pill tone="neutral" indicator>
+                            Read
+                          </Pill>
+                        ) : (
+                          <Pill tone="warn" indicator>
+                            Unread
+                          </Pill>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibility.actions && (
+                      <TableCell className="whitespace-nowrap">
+                        <RowActions>
+                          <TableIconButton
+                            type="button"
+                            title="View preview"
+                            aria-label={`View preview for ${item.title}`}
+                            onClick={() => viewItem(item)}
+                          >
+                            {item.readAt ? (
+                              <MailOpen size={16} aria-hidden />
+                            ) : (
+                              <Mail size={16} aria-hidden />
+                            )}
+                          </TableIconButton>
+                          <TableIconMenu
+                            aria-label={`More actions for ${item.title}`}
+                            items={[
+                              {
+                                label: item.readAt ? "Mark unread" : "Mark read",
+                                disabled: busy,
+                                onClick: () => onMarkRead(item, !item.readAt),
+                              },
+                              {
+                                label: "Delete",
+                                danger: true,
+                                disabled: busy,
+                                onClick: () => onDelete(item),
+                              },
+                            ]}
+                          />
+                        </RowActions>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

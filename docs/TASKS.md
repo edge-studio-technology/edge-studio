@@ -23,6 +23,7 @@
 
 ## Next
 
+- [ ] Manual browser check of backend-saved column visibility controls on every shared `DataTable` table — see `docs/plans/table-column-visibility.md`.
 - [ ] After V1.5 security hardening, make a fresh product decision on whether to retain, redesign, re-enable, or remove TOTP. Removal is not currently approved; `docs/plans/remove-totp.md` is candidate analysis only. See `docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md`.
 - [ ] ~~Address the production-behavior gaps from the high-risk unit-test audit on a separate branch.~~ Folded into `docs/plans/security/` (Phases 1, 3, and 9); the standalone plan is archived.
 - [ ] Cut one release per channel through the updated `release.yml` before the V1.5 security branch ships — installers carrying Phase 4 refuse any runtime bundle published without an `edge-studio-runtime.tar.gz.sig`. See `docs/adr/0016-install-time-bootstrap-trust-set.md`.
@@ -69,6 +70,7 @@
 
 ## Done
 
+- [x] Added backend-saved column visibility controls to every shared `DataTable` table: a shared table controls shell, cog-button chooser modal, authenticated preferences API, and per-table visibility wiring across Diagnostics, Devices, Workflows, Workflow Inbox, Wallet, Address book, Minima, and workflow watch tables — see `docs/plans/table-column-visibility.md`.
 - [x] Added configurable IPAM to generated release Compose, bound release-mode installer runtime bundles to the signed manifest SHA-256 before any application-directory replacement, and added end-to-end installer regressions for matching/mismatched/tampered/unsigned/invalid-metadata/override/fallback paths plus existing-installation preservation — see `docs/adr/0020-bind-installer-runtime-to-signed-manifest.md`.
 - [x] Added privileged host-agent capability management so Camera, GPIO, I2C sensors, and local MQTT broker support can be enabled/disabled from Devices -> Hardware support after install. Includes prerequisite guidance, retry-safe host-agent actions, signed host-runtime update delivery, workflow/device validation, audit events, and Pi regression fixes — see `docs/plans/host-agent-capability-management.md`.
 - [x] Closed the last 3 real gaps from an external unit-test checklist audit: `update-agent`'s `auth/auth.middleware.ts` request guard (now coverage-tracked, no longer excluded) and a new root-level Vitest harness (`vitest.scripts.config.mts`, `scripts/tests/release/`) covering `scripts/release/sign-manifest.mjs`/`build-manifest.mjs`, which previously had no test infrastructure at all. 4 other checklist items (`rate-limit.middleware.ts`, `integritas-validation.service.ts`, `upload.middleware.ts`, `health.routes.ts`) were confirmed to be config-only/dead-code/routes files with nothing to unit test, consistent with their existing coverage exclusions.
