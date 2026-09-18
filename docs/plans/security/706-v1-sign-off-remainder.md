@@ -4,8 +4,8 @@
 
 **Status:** Done — implemented and production Compose sign-off passed 2026-09-18
 
-**Created:** 2026-09-18  
-**Branch:** `dev-task/706-v1-sign-off-remainder`  
+**Created:** 2026-09-18
+**Branch:** `dev-task/706-v1-sign-off-remainder`
 **Goal:** Close GAP-07, GAP-06, GAP-05, and GAP-03 with nginx security headers, an explicit accepted CSRF posture, unavailable dormant TOTP routes, and a recorded clean-data auth sign-off.
 
 ## Context
