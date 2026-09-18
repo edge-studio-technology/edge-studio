@@ -68,6 +68,7 @@ export function AutomationRunsTable({
   );
   const visibility = columnVisibility ?? internalColumns.visibility;
   const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
+  const visibleColumnCount = columns.filter((column) => visibility[column.id]).length;
 
   const controls = showColumnControls ? (
     <TableControls
@@ -116,7 +117,10 @@ export function AutomationRunsTable({
     <>
       {controls}
       <TableWrap>
-        <DataTable aria-label="Workflow logs" className="min-w-245">
+        <DataTable
+          aria-label="Workflow logs"
+          className={visibleColumnCount > 3 ? "min-w-245" : undefined}
+        >
           <TableHead>
             {visibility.started && (
               <TableHeaderCell className="whitespace-nowrap">Started</TableHeaderCell>

@@ -107,6 +107,7 @@ export function IntegritasHistoryTable({
   const internalColumns = useTableColumnVisibility("diagnostics-proofs", PROOF_COLUMNS);
   const visibility = columnVisibility ?? internalColumns.visibility;
   const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
+  const visibleColumnCount = PROOF_COLUMNS.filter((column) => visibility[column.id]).length;
   const controls = showColumnControls ? (
     <TableControls
       utilities={
@@ -235,7 +236,10 @@ export function IntegritasHistoryTable({
       ) : (
         <>
           <TableWrap>
-            <DataTable aria-label="Proof history" className="min-w-245">
+            <DataTable
+              aria-label="Proof history"
+              className={visibleColumnCount > 3 ? "min-w-245" : undefined}
+            >
               <TableHead>
                 {visibility.select && (
                   <TableHeaderCell className="w-px whitespace-nowrap">

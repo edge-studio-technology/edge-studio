@@ -73,6 +73,7 @@ export function DataReadsHistoryTable({
   const internalColumns = useTableColumnVisibility("diagnostics-reads", READ_COLUMNS);
   const visibility = columnVisibility ?? internalColumns.visibility;
   const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
+  const visibleColumnCount = READ_COLUMNS.filter((column) => visibility[column.id]).length;
 
   const controls = showColumnControls ? (
     <TableControls
@@ -121,7 +122,10 @@ export function DataReadsHistoryTable({
     <>
       {controls}
       <TableWrap>
-        <DataTable aria-label="Read history" className="min-w-245">
+        <DataTable
+          aria-label="Read history"
+          className={visibleColumnCount > 3 ? "min-w-245" : undefined}
+        >
           <TableHead>
             {visibility.readTime && <TableHeaderCell>Read time</TableHeaderCell>}
             {visibility.source && <TableHeaderCell>Source</TableHeaderCell>}
