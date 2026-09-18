@@ -31,7 +31,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 - [x] **GAP-04 `APP_SECRET` validation** — Closed by task 704: the public default was removed and the backend refuses startup before database or background-service initialization when the value is absent or empty. `install.sh` still generates fresh values and preserves existing ones; ADR 0021 records why migration/regeneration was dropped.
 - [ ] **GAP-05 Dormant TOTP routes** — Task 706 now omits all four setup/settings init/verify routes while `TOTP_ENABLED` is false, with automated regressions for disabled and enabled configurations and the setup first-admin guard. This remains open until the production manual sign-off confirms the shipped container behavior. TOTP's later retention, redesign, re-enablement, or removal is a separate undecided product question ([adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md)). **Phase 8.**
 - [ ] **GAP-06 CSRF** — `SameSite=Strict` only; no CSRF tokens. Decided: adequate V1 posture given JSON/multipart-only bodies ([adr/0010](../adr/0010-security-review-audit-verdict.md)); remaining work is writing it up as an accepted risk. **Phase 8.**
-- [ ] **GAP-07 Security headers** — No CSP, `X-Frame-Options`, `X-Content-Type-Options`, or `Referrer-Policy` on nginx/backend. **Phase 8.**
+- [ ] **GAP-07 Security headers** — Task 706 adds CSP, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy` to nginx responses and covers the live SPA, API proxy, nginx error, and HTTP redirect paths. This remains open until the production manual sign-off confirms the main UI and proxied update page have no CSP regressions. **Phase 8.**
 
 ### P1
 

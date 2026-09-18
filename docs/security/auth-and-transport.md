@@ -15,6 +15,9 @@ Controls (V1):
 - Single-factor password/PIN is the currently shipped local-admin control. TOTP is implemented but disabled (`TOTP_ENABLED = false`); whether it is later retained, redesigned, re-enabled, or removed is deliberately undecided and outside V1.5 hardening ([adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md)). The backend flag gates enforcement and all four TOTP route registrations: setup init/verify return `404`, while settings init/verify pass through the global auth gate before an authenticated request receives `404`.
 - Login/setup rate limiting and generic login errors.
 - Self-signed TLS encrypts browser-to-Pi traffic by default.
+- Nginx adds a restrictive Content Security Policy, clickjacking protection, MIME-sniffing
+  protection, and a no-referrer policy to redirects, application responses, proxied responses, and
+  errors.
 
 Residual gap: Self-signed certificates do not prove server identity. CSRF tokens are a follow-up (`SameSite=Strict` is the V1 baseline). Custom trusted certificates or operator-managed reverse-proxy TLS are planned for a later release.
 

@@ -2,7 +2,7 @@
 
 # Task 706 — V1 Sign-off Remainder Plan
 
-**Status:** In progress — dormant TOTP route slice implemented and automatically verified
+**Status:** In progress — dormant TOTP routes and nginx headers implemented and automatically verified
 
 **Created:** 2026-09-18  
 **Branch:** `dev-task/706-v1-sign-off-remainder`  
@@ -34,8 +34,12 @@ single-admin threat model.
 
 - 2026-09-18: The dormant-TOTP slice conditionally omits all four route registrations, preserves the
   setup first-admin service guard, and covers disabled plus module-mocked enabled behavior. GAP-05
-  remains open until the production manual sign-off. The nginx headers, accepted CSRF posture, and
-  clean-data auth sign-off remain for later slices.
+  remains open until the production manual sign-off.
+- 2026-09-18: The nginx-header slice adds the four response headers to HTTP redirects and every
+  HTTPS location with `always`. A live Compose check covers the SPA, backend health proxy,
+  nginx-generated error, and HTTP redirect. GAP-07 remains open until the final browser CSP smoke
+  test, including the proxied update page. The accepted CSRF posture and clean-data auth sign-off
+  remain for later slices.
 
 ## 1. Add nginx security headers
 
@@ -50,13 +54,15 @@ errors and proxied responses:
 Start with a CSP compatible with the current frontend:
 
 ```text
-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://raw.githubusercontent.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'
+default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://raw.githubusercontent.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'
 ```
 
-The exceptions are required by current behavior, not speculative allowances: React components use
-inline style attributes, QR/preview images use data URLs, and the update changelog fetches from
-`raw.githubusercontent.com`. Confirm the production build needs each allowance before finalizing
-the policy and do not broaden it for unrelated future integrations.
+The exceptions are required by current behavior, not speculative allowances: React components and
+the update page use inline styles, QR images use data URLs, automation inbox entries support
+user-configured HTTPS image previews, and the update changelog fetches from
+`raw.githubusercontent.com`. Inspection confirmed that current blob URLs are download links rather
+than image sources, so `blob:` is not included. Do not broaden the policy for unrelated future
+integrations.
 
 Apply the headers to both the HTTP redirect server and the HTTPS application server so every nginx
 response has a consistent baseline. Do not add HSTS; it remains explicitly deferred for the
