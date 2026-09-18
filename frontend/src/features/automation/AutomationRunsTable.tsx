@@ -18,6 +18,7 @@ import { LoadingState } from "../../components/patterns/LoadingState";
 import {
   TableColumnVisibilityButton,
   type TableColumnDefinition,
+  type TableColumnVisibility,
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
 import { Pill } from "../../components/ui/Pill";
@@ -27,7 +28,7 @@ import { AutomationRunInspectModal } from "./AutomationRunInspectModal";
 import { formatRunDuration, RUN_STATUS } from "./automationRunDisplay";
 import type { AutomationRun } from "./automationTypes";
 
-const WORKFLOW_RUN_COLUMNS = [
+export const WORKFLOW_RUN_COLUMNS = [
   { id: "started", label: "Started" },
   { id: "workflow", label: "Workflow" },
   { id: "trigger", label: "Trigger" },
@@ -43,59 +44,77 @@ export function AutomationRunsTable({
   filtered = false,
   loading = false,
   onClearFilters,
+  columnVisibility,
+  onColumnVisibilityChange,
+  showColumnControls = true,
 }: {
   runs: AutomationRun[];
   compact?: boolean;
   filtered?: boolean;
   loading?: boolean;
   onClearFilters?: () => void;
+  columnVisibility?: TableColumnVisibility;
+  onColumnVisibilityChange?: (next: TableColumnVisibility) => void;
+  showColumnControls?: boolean;
 }) {
   const [inspectRunId, setInspectRunId] = useState<string | null>(null);
   const inspectRun = inspectRunId ? (runs.find((run) => run.id === inspectRunId) ?? null) : null;
   const columns = compact
     ? WORKFLOW_RUN_COLUMNS.filter((column) => column.id !== "workflow")
     : WORKFLOW_RUN_COLUMNS;
-  const { visibility, setVisibility } = useTableColumnVisibility(
+  const internalColumns = useTableColumnVisibility(
     compact ? "workflow-runs-compact" : "workflow-runs",
     columns,
   );
+  const visibility = columnVisibility ?? internalColumns.visibility;
+  const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
+
+  const controls = showColumnControls ? (
+    <TableControls
+      utilities={
+        <TableColumnVisibilityButton
+          tableLabel={compact ? "Workflow runs" : "Workflow logs"}
+          columns={columns}
+          visibility={visibility}
+          onChange={setVisibility}
+        />
+      }
+    />
+  ) : null;
 
   if (loading)
     return (
-      <LoadingState
-        title="Fetching your workflow runs"
-        description="This should take a few seconds."
-      />
+      <>
+        {controls}
+        <LoadingState
+          title="Fetching your workflow runs"
+          description="This should take a few seconds."
+        />
+      </>
     );
 
   if (runs.length === 0)
     return (
-      <EmptyContentState
-        icon={Inbox}
-        title={filtered ? "No matching workflow runs" : "No workflow runs yet"}
-        description={
-          filtered
-            ? "Try another status or search, or clear filters."
-            : "Runs from your workflows will be added to your history here."
-        }
-        actionLabel={filtered && onClearFilters ? "Clear filters" : undefined}
-        actionVariant="secondary"
-        onAction={filtered ? onClearFilters : undefined}
-      />
+      <>
+        {controls}
+        <EmptyContentState
+          icon={Inbox}
+          title={filtered ? "No matching workflow runs" : "No workflow runs yet"}
+          description={
+            filtered
+              ? "Try another status or search, or clear filters."
+              : "Runs from your workflows will be added to your history here."
+          }
+          actionLabel={filtered && onClearFilters ? "Clear filters" : undefined}
+          actionVariant="secondary"
+          onAction={filtered ? onClearFilters : undefined}
+        />
+      </>
     );
 
   return (
     <>
-      <TableControls
-        utilities={
-          <TableColumnVisibilityButton
-            tableLabel={compact ? "Workflow runs" : "Workflow logs"}
-            columns={columns}
-            visibility={visibility}
-            onChange={setVisibility}
-          />
-        }
-      />
+      {controls}
       <TableWrap>
         <DataTable aria-label="Workflow logs" className="min-w-245">
           <TableHead>

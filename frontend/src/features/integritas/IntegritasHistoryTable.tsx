@@ -20,6 +20,7 @@ import { LoadingState } from "../../components/patterns/LoadingState";
 import {
   TableColumnVisibilityButton,
   type TableColumnDefinition,
+  type TableColumnVisibility,
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
 import { Button } from "../../components/ui/Button";
@@ -45,7 +46,7 @@ const PROOF_STATUS: Record<string, { tone: Tone; label: string }> = {
   error: { tone: "error", label: "Error" },
 };
 
-const PROOF_COLUMNS = [
+export const PROOF_COLUMNS = [
   { id: "select", label: "Select", dataColumn: false },
   { id: "timestamp", label: "Timestamp" },
   { id: "uid", label: "UID" },
@@ -72,6 +73,9 @@ export function IntegritasHistoryTable({
   busy,
   bulkBusy = null,
   verifyingId = null,
+  columnVisibility,
+  onColumnVisibilityChange,
+  showColumnControls = true,
 }: {
   records: IntegritasProofRecord[];
   selectedIds: string[];
@@ -90,6 +94,9 @@ export function IntegritasHistoryTable({
   busy: boolean;
   bulkBusy?: "download" | "delete" | null;
   verifyingId?: string | null;
+  columnVisibility?: TableColumnVisibility;
+  onColumnVisibilityChange?: (next: TableColumnVisibility) => void;
+  showColumnControls?: boolean;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [detailsRecord, setDetailsRecord] = useState<IntegritasProofRecord | null>(null);
@@ -97,10 +104,21 @@ export function IntegritasHistoryTable({
   const selectedOnPage = records.filter((record) => selectedIds.includes(record.id)).length;
   const allVisibleSelected = records.length > 0 && selectedOnPage === records.length;
   const someVisibleSelected = selectedOnPage > 0 && !allVisibleSelected;
-  const { visibility, setVisibility } = useTableColumnVisibility(
-    "diagnostics-proofs",
-    PROOF_COLUMNS,
-  );
+  const internalColumns = useTableColumnVisibility("diagnostics-proofs", PROOF_COLUMNS);
+  const visibility = columnVisibility ?? internalColumns.visibility;
+  const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
+  const controls = showColumnControls ? (
+    <TableControls
+      utilities={
+        <TableColumnVisibilityButton
+          tableLabel="Proof history"
+          columns={PROOF_COLUMNS}
+          visibility={visibility}
+          onChange={setVisibility}
+        />
+      }
+    />
+  ) : null;
 
   return (
     <div className="gap-detail-close flex flex-col">
@@ -194,6 +212,8 @@ export function IntegritasHistoryTable({
         <ProofDetailsModal record={detailsRecord} onClose={() => setDetailsRecord(null)} />
       ) : null}
 
+      {controls}
+
       {loading ? (
         <LoadingState
           title="Fetching your proof history"
@@ -214,16 +234,6 @@ export function IntegritasHistoryTable({
         />
       ) : (
         <>
-          <TableControls
-            utilities={
-              <TableColumnVisibilityButton
-                tableLabel="Proof history"
-                columns={PROOF_COLUMNS}
-                visibility={visibility}
-                onChange={setVisibility}
-              />
-            }
-          />
           <TableWrap>
             <DataTable aria-label="Proof history" className="min-w-245">
               <TableHead>

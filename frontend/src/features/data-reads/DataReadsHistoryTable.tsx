@@ -19,6 +19,7 @@ import { LoadingState } from "../../components/patterns/LoadingState";
 import {
   TableColumnVisibilityButton,
   type TableColumnDefinition,
+  type TableColumnVisibility,
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
 import { Disclosure } from "../../components/ui/Disclosure";
@@ -31,7 +32,7 @@ import { formatLocalDateTime } from "../../lib/time";
 import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 import type { DataSourceRead } from "./dataReadTypes";
 
-const READ_COLUMNS = [
+export const READ_COLUMNS = [
   { id: "readTime", label: "Read time" },
   { id: "source", label: "Source" },
   { id: "trigger", label: "Trigger" },
@@ -56,51 +57,69 @@ export function DataReadsHistoryTable({
   filtered,
   loading = false,
   onClearFilters,
+  columnVisibility,
+  onColumnVisibilityChange,
+  showColumnControls = true,
 }: {
   items: DataSourceRead[];
   filtered?: boolean;
   loading?: boolean;
   onClearFilters?: () => void;
+  columnVisibility?: TableColumnVisibility;
+  onColumnVisibilityChange?: (next: TableColumnVisibility) => void;
+  showColumnControls?: boolean;
 }) {
   const [detailsItem, setDetailsItem] = useState<DataSourceRead | null>(null);
-  const { visibility, setVisibility } = useTableColumnVisibility("diagnostics-reads", READ_COLUMNS);
+  const internalColumns = useTableColumnVisibility("diagnostics-reads", READ_COLUMNS);
+  const visibility = columnVisibility ?? internalColumns.visibility;
+  const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
+
+  const controls = showColumnControls ? (
+    <TableControls
+      utilities={
+        <TableColumnVisibilityButton
+          tableLabel="Read history"
+          columns={READ_COLUMNS}
+          visibility={visibility}
+          onChange={setVisibility}
+        />
+      }
+    />
+  ) : null;
 
   if (loading)
     return (
-      <LoadingState
-        title="Fetching your read history"
-        description="This should take a few seconds."
-      />
+      <>
+        {controls}
+        <LoadingState
+          title="Fetching your read history"
+          description="This should take a few seconds."
+        />
+      </>
     );
 
   if (items.length === 0)
     return (
-      <EmptyContentState
-        icon={Inbox}
-        title={filtered ? "No matching read history" : "No reads recorded yet"}
-        description={
-          filtered
-            ? "Try another status or search, or clear filters."
-            : "Reads from your devices will be added to your history here."
-        }
-        actionLabel={filtered && onClearFilters ? "Clear filters" : undefined}
-        actionVariant="secondary"
-        onAction={filtered ? onClearFilters : undefined}
-      />
+      <>
+        {controls}
+        <EmptyContentState
+          icon={Inbox}
+          title={filtered ? "No matching read history" : "No reads recorded yet"}
+          description={
+            filtered
+              ? "Try another status or search, or clear filters."
+              : "Reads from your devices will be added to your history here."
+          }
+          actionLabel={filtered && onClearFilters ? "Clear filters" : undefined}
+          actionVariant="secondary"
+          onAction={filtered ? onClearFilters : undefined}
+        />
+      </>
     );
 
   return (
     <>
-      <TableControls
-        utilities={
-          <TableColumnVisibilityButton
-            tableLabel="Read history"
-            columns={READ_COLUMNS}
-            visibility={visibility}
-            onChange={setVisibility}
-          />
-        }
-      />
+      {controls}
       <TableWrap>
         <DataTable aria-label="Read history" className="min-w-245">
           <TableHead>

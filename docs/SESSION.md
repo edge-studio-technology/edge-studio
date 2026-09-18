@@ -192,7 +192,9 @@ Later same branch, table column visibility:
 - Added authenticated backend preferences routes at `/api/preferences/table-columns`, backed by the existing SQLite `settings` table with sanitized JSON storage.
 - Added frontend preference API/hook support and wired column visibility into every current `DataTable` call site: Diagnostics proofs/reads/workflow logs, Devices, Workflows, Workflow Inbox, Wallet assets/history, Address book, Minima backups/peers, and workflow watch run history.
 - Updated `docs/frontend-design-system.md`, `CHANGELOG.md`, `docs/plans/table-column-visibility.md`, and `docs/TASKS.md` for the new table controls/column chooser behavior.
-- Verified: `npm --prefix frontend run build`, `npm --prefix backend run build`, `npm --prefix backend test -- tests/features/preferences/table-column-preferences.service.test.ts`, and `docker compose config` passed.
+- Fixed the Diagnostics toolbar alignment follow-up: the active tab's cog button now renders in `DiagnosticsPage` beside filter/search/Refresh, while the tab table receives the same visibility state and suppresses its own separate cog row.
+- Added focused frontend tests for `TableControls` and `TableColumnVisibilityButton` covering utility-slot rendering, toggling data/action columns, helper functions, and the last-data-column guard.
+- Verified: `npm --prefix frontend run test -- tests/components/patterns/TableControls.test.tsx tests/components/patterns/TableColumnVisibility.test.tsx`, `npm --prefix frontend run build`, `npm --prefix backend run build`, `npm --prefix backend test -- tests/features/preferences/table-column-preferences.service.test.ts`, and `docker compose config` passed.
 - `npm run check` reached backend coverage but failed under local Node `v20.19.4` after installing the declared backend `undici@8.10.2`, which requires Node `>=22.19.0` and throws `webidl.util.markAsUncloneable is not a function`; this is an environment/runtime dependency issue rather than a table-column change failure.
 
 ## Next Steps
