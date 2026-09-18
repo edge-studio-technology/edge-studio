@@ -2,7 +2,7 @@
 
 # Task 706 — V1 Sign-off Remainder Plan
 
-**Status:** In progress — dormant TOTP routes and nginx headers implemented and automatically verified
+**Status:** In progress — automated implementation and CSRF documentation complete; manual auth sign-off remains
 
 **Created:** 2026-09-18  
 **Branch:** `dev-task/706-v1-sign-off-remainder`  
@@ -38,8 +38,11 @@ single-admin threat model.
 - 2026-09-18: The nginx-header slice adds the four response headers to HTTP redirects and every
   HTTPS location with `always`. A live Compose check covers the SPA, backend health proxy,
   nginx-generated error, and HTTP redirect. GAP-07 remains open until the final browser CSP smoke
-  test, including the proxied update page. The accepted CSRF posture and clean-data auth sign-off
-  remain for later slices.
+  test, including the proxied update page.
+- 2026-09-18: The CSRF documentation slice records that V1 intentionally uses no CSRF tokens and
+  accepts strict same-site cookies plus JSON/multipart browser mutations for the trusted-LAN,
+  single-admin threat model. GAP-06 is closed. The clean-data auth sign-off remains for the final
+  slice.
 
 ## 1. Add nginx security headers
 

@@ -19,9 +19,22 @@ Controls (V1):
   protection, and a no-referrer policy to redirects, application responses, proxied responses, and
   errors.
 
-Residual gap: Self-signed certificates do not prove server identity. CSRF tokens are a follow-up (`SameSite=Strict` is the V1 baseline). Custom trusted certificates or operator-managed reverse-proxy TLS are planned for a later release.
+Residual gap: Self-signed certificates do not prove server identity. Custom trusted certificates or operator-managed reverse-proxy TLS are planned for a later release.
 
 Status: Partially mitigated; see `docs/qa/gaps.md` (GAP-01) for follow-up items (HSTS, custom certs).
+
+## CSRF Posture (accepted V1 residual risk)
+
+V1 intentionally does not use CSRF tokens. Session cookies are `HttpOnly` and
+`SameSite=Strict`, and `Secure` in the default HTTPS deployment. Browser mutations use JSON or
+multipart bodies rather than simple form bodies.
+
+This is an accepted residual risk for the trusted-LAN, single-admin V1 threat model. Revisit the
+decision before public-internet or multi-tenant use, cross-site browser integrations, loosening
+`SameSite`, or accepting simple form content types. See
+[ADR 0010](../adr/0010-security-review-audit-verdict.md).
+
+Status: Accepted for V1; no CSRF-token follow-up is planned within the current threat model.
 
 ## Self-Signed HTTPS UI
 
