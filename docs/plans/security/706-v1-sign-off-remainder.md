@@ -2,15 +2,16 @@
 
 # Task 706 — V1 Sign-off Remainder Plan
 
-**Status:** Not started  
+**Status:** In progress — dormant TOTP route slice implemented and automatically verified
+
 **Created:** 2026-09-18  
 **Branch:** `dev-task/706-v1-sign-off-remainder`  
 **Goal:** Close GAP-07, GAP-06, GAP-05, and GAP-03 with nginx security headers, an explicit accepted CSRF posture, unavailable dormant TOTP routes, and a recorded clean-data auth sign-off.
 
 ## Context
 
-This task closes the remaining work carried from the archived V1 security checklist. The current
-branch still has all four gaps:
+This task closes the remaining work carried from the archived V1 security checklist. At planning
+time, the branch still had all four gaps:
 
 - `frontend/nginx.conf` suppresses version tokens but does not set `X-Content-Type-Options`,
   `X-Frame-Options`, `Referrer-Policy`, or `Content-Security-Policy`.
@@ -28,6 +29,13 @@ schema, dependencies, frontend code, or request fields.
 
 Adding CSRF tokens is also out of scope. ADR 0010 already made that decision for the V1 trusted-LAN,
 single-admin threat model.
+
+## Implementation progress
+
+- 2026-09-18: The dormant-TOTP slice conditionally omits all four route registrations, preserves the
+  setup first-admin service guard, and covers disabled plus module-mocked enabled behavior. GAP-05
+  remains open until the production manual sign-off. The nginx headers, accepted CSRF posture, and
+  clean-data auth sign-off remain for later slices.
 
 ## 1. Add nginx security headers
 
