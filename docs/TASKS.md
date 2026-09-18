@@ -18,7 +18,7 @@
 
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
-- [ ] Security hardening V1.5 — close the external-review findings, the V1 sign-off remainder, and the unit-test-audit gaps in one ordered workstream; see `docs/plans/security/README.md`, one file per phase under `docs/plans/security/`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`; task 704 closed finding [12].
+- [ ] Security hardening V1.5 — close the external-review findings and unit-test-audit gaps in one ordered workstream; see `docs/plans/security/README.md`, one file per phase under `docs/plans/security/`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`; task 704 closed finding [12], and task 706 completed Phase 8.
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
@@ -70,6 +70,7 @@
 
 ## Done
 
+- [x] Closed the V1 sign-off remainder with nginx security headers, an accepted documented CSRF posture, unavailable dormant TOTP routes, and a passing two-variant clean-data auth/browser sign-off — see `docs/plans/security/706-v1-sign-off-remainder.md` and `docs/qa/v1-auth-sign-off.md`.
 - [x] Failed closed on an absent or empty `APP_SECRET` before database/background startup and removed the public `dev-change-me` default from every shipped configuration path — see `docs/plans/security/704-fail-closed-on-weak-config.md` and `docs/adr/0021-app-secret-fail-closed-without-migration.md`.
 - [x] Added configurable IPAM to generated release Compose, bound release-mode installer runtime bundles to the signed manifest SHA-256 before any application-directory replacement, and added end-to-end installer regressions for matching/mismatched/tampered/unsigned/invalid-metadata/override/fallback paths plus existing-installation preservation — see `docs/adr/0020-bind-installer-runtime-to-signed-manifest.md`.
 - [x] Added privileged host-agent capability management so Camera, GPIO, I2C sensors, and local MQTT broker support can be enabled/disabled from Devices -> Hardware support after install. Includes prerequisite guidance, retry-safe host-agent actions, signed host-runtime update delivery, workflow/device validation, audit events, and Pi regression fixes — see `docs/plans/host-agent-capability-management.md`.
