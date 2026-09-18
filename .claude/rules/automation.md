@@ -10,6 +10,7 @@
 - Save `last_hash` after successful data fetch or push ingestion even if Integritas stamping fails.
 - Raspberry Pi Camera capture blocks hash the captured media file bytes, not only the JSON metadata preview.
 - Surface detailed upstream errors where possible without leaking secrets.
+- Runs reaching `send_transaction`, `control_output`, `capture_camera`, or `stamp_integritas` reserve one slot of the persisted per-workflow budget (`automation.policy.ts`, 10 runs per rolling hour) before the side effect, for every trigger type; add new side-effecting block types to that set. Event-started workflows with a payment block need a cooldown of at least 1 second, enforced in both validation and `executeWorkflow()`. Automation history is pruned by `features/retention/` (30 days / 10,000 rows per table). See `docs/adr/0022-bound-external-automation-effects.md`.
 
 ## Frontend naming
 

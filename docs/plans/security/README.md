@@ -39,7 +39,7 @@ notes, and tests. This index carries only what's shared across all of them.
 | 4 | Fix the install-time trust chain | Done (2026-09-09) | [phase-4-install-time-trust-chain.md](./phase-4-install-time-trust-chain.md) |
 | 5 | Resource limits | Done (2026-09-09) | [phase-5-resource-limits.md](./phase-5-resource-limits.md) |
 | 6 | Fail closed on weak config | Split: [12] implemented in task 704; [6] image pinning remains open | [phase-6-fail-closed-on-weak-config.md](./phase-6-fail-closed-on-weak-config.md) |
-| 7 | Retention, redaction, budgets | Not started | [phase-7-retention-redaction-budgets.md](./phase-7-retention-redaction-budgets.md) |
+| 7 | Retention, redaction, budgets | Implemented in task 705 (unreleased) | [phase-7-retention-redaction-budgets.md](./phase-7-retention-redaction-budgets.md) |
 | 8 | V1 sign-off remainder | Not started | [phase-8-v1-sign-off-remainder.md](./phase-8-v1-sign-off-remainder.md) |
 | 9 | Correctness hardening from the unit-test audit | Not started | [phase-9-correctness-hardening.md](./phase-9-correctness-hardening.md) |
 

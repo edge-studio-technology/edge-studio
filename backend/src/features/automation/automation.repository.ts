@@ -272,7 +272,10 @@ export function deleteAutomationBlock(workflowId: string, blockId: string) {
 }
 
 export function deleteAutomationWorkflow(id: string) {
-  db.prepare("DELETE FROM automation_workflows WHERE id = ?").run(id);
+  db.transaction(() => {
+    db.prepare("DELETE FROM automation_workflow_budget_events WHERE workflow_id = ?").run(id);
+    db.prepare("DELETE FROM automation_workflows WHERE id = ?").run(id);
+  })();
 }
 
 export function replaceAutomationBlocks(workflowId: string, blocks: { type: AutomationBlockType; config: unknown; enabled?: boolean }[]) {

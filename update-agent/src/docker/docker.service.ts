@@ -81,6 +81,7 @@ export function createBodyFromInspect(
       RestartPolicy: options?.oneShot ? { Name: "no" } : inspected.HostConfig.RestartPolicy,
       AutoRemove: options?.oneShot ? true : undefined,
       ExtraHosts: inspected.HostConfig.ExtraHosts,
+      LogConfig: inspected.HostConfig.LogConfig,
       PortBindings: includePortBindings ? inspected.HostConfig.PortBindings : undefined
     },
     NetworkingConfig: {

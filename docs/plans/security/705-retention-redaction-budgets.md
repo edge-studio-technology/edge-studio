@@ -1,6 +1,6 @@
 # Retention, Redaction, And Workflow Budgets Plan
 
-**Status:** Not started
+**Status:** Implemented (2026-09-17); manual Pi/container checks pending
 
 **Created:** 2026-09-17
 

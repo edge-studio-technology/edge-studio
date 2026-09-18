@@ -160,19 +160,23 @@ Current Controls:
 - Incoming webhook payloads are recorded only when the source has an enabled automation workflow; otherwise the endpoint returns a disabled-ingestion error.
 - HTTPS encrypts webhook payload transport by default, but self-signed certificate trust must be handled by the sending system.
 
-Open gap: the bearer token is written to routine request logs (`requestLogger` logs `originalUrl`
-unconditionally), and reaches `data_source_reads.sourceUrl` whenever the triggered workflow contains
-a record-trigger-event block. Anyone who can read Docker logs or the database can replay the webhook.
-Scheduled Phase 7 — see
-[plans/security/phase-7-retention-redaction-budgets.md](../plans/security/phase-7-retention-redaction-budgets.md).
+- The bearer token is masked in the backend request log and in the nginx access log on both the HTTPS and HTTP-redirect servers. The webhook location logs only critical nginx errors, because nginx error lines embed the raw request line.
+- Recorded webhook reads store `data-source:<id>`, never the tokenised URL; the upgrade migration rewrote historical rows.
+- Webhook ingestion is limited to 60 requests per minute per client IP and source. The limiter key uses a SHA-256 hash of the token, and the limit is process-local.
+- Automation runs, block runs, inbox items, and reads created by webhook events are pruned after 30 days or beyond 10,000 rows per table.
+- Workflows reaching payment, device output, camera, or stamp blocks are bounded to 10 runs per rolling hour per workflow, persisted across restarts; exhaustion returns `429`.
+
+Residual: Docker logs written before Phase 7 still contain tokens until they rotate out or are
+removed; tokens are not rotated automatically. Retention removes at most 500 rows per table per
+hourly pass, so a sustained flood of non-privileged events from a token holder can outgrow it
+between passes. Review findings [11] and [14].
 
 Plan:
 
-- Add optional webhook secret headers/signatures and rate limiting before production use.
-- Add optional event retention limits if webhook volume grows.
+- Add optional webhook secret headers/signatures before production use.
 - Add custom/trusted certificate support or documented reverse-proxy TLS for senders that cannot accept self-signed certificates.
 
-Status: Accepted prototype risk.
+Status: **Mitigated (Phase 7, task 705)** for log/read-history token leakage, unbounded event storage, and unbounded privileged repetition. Unsigned bearer-token delivery remains an accepted prototype risk. See [adr/0022](../adr/0022-bound-external-automation-effects.md).
 
 ## MQTT Data Sources
 
@@ -187,10 +191,13 @@ Current Controls:
 - MQTT sources are narrow subscriptions, not generic command execution.
 - MQTT payloads must parse as JSON before they update source preview/hash.
 - MQTT sources are push-only and do not use scheduled polling intervals.
+- Broker URLs may carry credentials for the live connection, but read history stores `data-source:<id>` instead of the broker URL, and the upgrade migration scrubbed historical rows. Error details redact both `user:password@` and username-only userinfo.
+- MQTT-triggered workflows share the per-workflow run budget (10 runs with payment, device output, camera, or stamp blocks per rolling hour); budget exhaustion is skipped silently. HTTP rate limits do not apply to MQTT.
+- MQTT-created automation history and reads are covered by 30-day / 10,000-row retention.
 
 Plan:
 
-- Add broker allowlists, credentials/secrets handling, TLS/certificate options, and per-source rate limits before production use.
+- Add broker allowlists, encrypted credential storage, TLS/certificate options, and per-source message-rate limits before production use.
 - Add payload size/shape controls if MQTT message volume or payload size becomes a concern.
 
 Status: Accepted prototype risk.

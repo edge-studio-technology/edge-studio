@@ -9,12 +9,17 @@ Risk: Endpoints can be called repeatedly.
 Impact: Local DoS, Integritas quota consumption, log noise.
 
 Controls: Login, setup, and `/api/auth/settings/*` are rate-limited (`authRateLimiter`, 5 requests
-per 15 minutes, skipping successful requests).
+per 15 minutes, skipping successful requests). Phase 7 added one-minute traffic limiters with
+`RateLimit-*` headers and JSON `429` responses: webhook ingestion (60 per client IP and source),
+automation mutations and manual runs (30 per client; reads and draft validation are not limited),
+and Integritas stamp creation (10 per client across `/stamp` and `/stamp-file`).
 
-Plan: Extend to the stamp, automation, and webhook ingest paths — the ones an untrusted event source
-can drive.
+Limits: all HTTP limiters are in-memory and reset when the backend restarts. They cannot see MQTT or
+GPIO events; those, and every other trigger, are bounded by the persisted per-workflow run budget
+([wallet-and-tokens.md](./wallet-and-tokens.md#automated-wallet-transactions)). Files and other
+admin-only endpoints remain unlimited.
 
-Status: Partially mitigated — auth paths only. Scheduled Phase 7 (GAP-10).
+Status: **Mitigated for the paths untrusted event sources can drive (Phase 7, GAP-10).**
 
 ## Error Response Detail
 
@@ -49,7 +54,11 @@ trigger event.
 Plan: Redact the webhook token segment; keep logs metadata-only. Never log API keys, request bodies,
 canonical bytes, or proof payloads unless explicitly redacted.
 
-Status: Open for the webhook token path. Scheduled Phase 7.
+Status: **Mitigated (Phase 7).** `requestLogger` passes URLs through `redactSecrets()`, which masks
+the `/api/data-source-webhooks/<token>` segment and URL userinfo; nginx logs a masked request URI on
+both servers and logs only critical errors for the webhook location. Docker `json-file` logs rotate
+at 10 MB × 3 files per service, and Update Agent preserves that log configuration when it recreates
+containers. Logs written before this change are not rewritten.
 
 ## Missing Security Tests
 

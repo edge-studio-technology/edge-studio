@@ -4,6 +4,11 @@
 
 **Covers:** [11], [14], [8], GAP-10.
 
+**Status:** Implemented by [task 705](./705-retention-redaction-budgets.md); decisions in
+[adr/0022](../../adr/0022-bound-external-automation-effects.md). Retention limits are fixed
+constants rather than the configurable-with-maxima shape proposed in item 1, and webhook tokens are
+not rotated.
+
 1. Retention/pruning for `automation_runs`, block runs, inbox items, and `data_source_reads`.
    Unbounded growth from untrusted push events on a Pi's SD card. Concrete, not "add retention":
    per-table age cap (30 days) and row cap (10 000 rows, oldest first), whichever hits first;

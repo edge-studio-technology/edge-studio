@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import "../config/loadEnv.js";
 import { env } from "../config/env.js";
+import { redactSecrets } from "../shared/redact.js";
 import { ensureDatabaseDirectory } from "./ensureDatabaseDirectory.js";
 
 ensureDatabaseDirectory(env.databasePath);
@@ -170,6 +171,8 @@ export function runMigrations() {
       ON automation_runs(started_at);
     CREATE INDEX IF NOT EXISTS idx_automation_block_runs_run_id
       ON automation_block_runs(run_id);
+    CREATE INDEX IF NOT EXISTS idx_automation_block_runs_started
+      ON automation_block_runs(started_at);
     CREATE INDEX IF NOT EXISTS idx_automation_inbox_items_created
       ON automation_inbox_items(created_at);
     CREATE INDEX IF NOT EXISTS idx_automation_inbox_items_read_created
@@ -210,6 +213,19 @@ export function runMigrations() {
       ON data_source_reads(status, created_at);
     CREATE INDEX IF NOT EXISTS idx_data_source_reads_created
       ON data_source_reads(created_at);
+  `);
+
+  scrubDataSourceReadSourceUrls();
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS automation_workflow_budget_events (
+      run_id TEXT PRIMARY KEY,
+      workflow_id TEXT NOT NULL,
+      consumed_at TEXT NOT NULL,
+      FOREIGN KEY (workflow_id) REFERENCES automation_workflows(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_automation_workflow_budget_events_workflow_consumed
+      ON automation_workflow_budget_events(workflow_id, consumed_at);
   `);
 
   db.exec(`
@@ -384,6 +400,29 @@ function resetLegacyAutomationSchema() {
 function ensureColumn(table: string, column: string, definition: string) {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!columns.some((item) => item.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+// Push-source reads store a credential-free `data-source:<id>` reference. Rows whose source is gone
+// (or was never a push source) are sanitized in place. Old values are never logged.
+function scrubDataSourceReadSourceUrls() {
+  db.exec(`
+    UPDATE data_source_reads
+    SET source_url = 'data-source:' || data_source_id
+    WHERE data_source_id IN (SELECT id FROM data_sources WHERE type IN ('webhook', 'mqtt', 'gpio-input'))
+      AND source_url <> 'data-source:' || data_source_id
+  `);
+
+  const rows = db.prepare(`
+    SELECT id, source_url FROM data_source_reads
+    WHERE source_url LIKE '%/api/data-source-webhooks/%' OR source_url LIKE '%://%@%'
+  `).all() as { id: string; source_url: string }[];
+  const update = db.prepare("UPDATE data_source_reads SET source_url = ? WHERE id = ?");
+  db.transaction(() => {
+    for (const row of rows) {
+      const sanitized = redactSecrets(row.source_url);
+      if (sanitized !== row.source_url) update.run(sanitized, row.id);
+    }
+  })();
 }
 
 function migrateDataSourceReadsToPreserveDeletedSources() {

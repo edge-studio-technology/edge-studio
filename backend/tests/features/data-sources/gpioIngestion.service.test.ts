@@ -215,6 +215,7 @@ describe("GPIO line handling", () => {
     assert.equal(call.result.preview.edge, "rising");
     assert.equal(call.result.preview.state, "high");
     assert.equal(call.result.preview.event, "gpio_edge");
+    assert.equal("sourceUrl" in call, false);
   });
 
   it("uses pir-motion event naming for pir-motion profile sources", async () => {
@@ -272,6 +273,22 @@ describe("GPIO line handling", () => {
     child.stdout.emit("data", "gpiochip0 17 RISING\n");
     await flush();
 
+    assert.equal((console.error as ReturnType<typeof vi.fn>).mock.calls.length, 0);
+  });
+
+  it("swallows run-budget exhaustion without logging", async () => {
+    const source = makeGpioSource();
+    makeGpioWorkflow(source.id);
+    automationServiceMock.recordPushAutomationPayload.mockReset().mockRejectedValue(
+      Object.assign(new Error("Workflow run budget exhausted"), { code: "WORKFLOW_RUN_BUDGET_EXHAUSTED" })
+    );
+    gpioIngestion.syncGpioDataSources();
+    const child = children[0];
+
+    child.stdout.emit("data", "gpiochip0 17 RISING\n");
+    await flush();
+
+    assert.equal(automationServiceMock.recordPushAutomationPayload.mock.calls.length, 1);
     assert.equal((console.error as ReturnType<typeof vi.fn>).mock.calls.length, 0);
   });
 

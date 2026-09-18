@@ -197,6 +197,25 @@ describe("MQTT message handling", () => {
     assert.equal(call.dataSource.id, source.id);
     assert.equal(call.triggerType, "mqtt");
     assert.deepEqual(call.result.preview, { temp: 21.5 });
+    assert.equal("sourceUrl" in call, false);
+  });
+
+  it("records failed reads with a source reference instead of the credential-bearing broker URL", async () => {
+    const brokerPassword = ["broker", "password"].join("-");
+    const source = makeMqttSource({ brokerUrl: `mqtt://sensor:${brokerPassword}@broker.local:1883` });
+    makeMqttWorkflow(source.id);
+    mqttIngestion.syncMqttDataSources();
+    const client = clients[0];
+
+    client.emit("message", "sensors/temp", Buffer.from("not json"));
+    client.emit("message", "sensors/temp", Buffer.from(`{"blob":"${"x".repeat(env.mqttMaxPayloadBytes)}"}`));
+    await flush();
+
+    const reads = dataReadsRepo.listDataSourceReads({ page: 1, pageSize: 10 });
+    assert.equal(reads.length, 2);
+    for (const read of reads) assert.equal(read.source_url, `data-source:${source.id}`);
+    assert.equal(JSON.stringify(reads).includes(brokerPassword), false);
+    assert.equal(mqttMock.connect.mock.calls[0][0], `mqtt://sensor:${brokerPassword}@broker.local:1883`);
   });
 
   it("records an invalid_payload error and a failed data-source read for non-JSON messages", async () => {
@@ -267,6 +286,22 @@ describe("MQTT message handling", () => {
     client.emit("message", "sensors/temp", Buffer.from(JSON.stringify({ a: 1 })));
     await flush();
 
+    assert.equal((console.error as ReturnType<typeof vi.fn>).mock.calls.length, 0);
+  });
+
+  it("swallows run-budget exhaustion without logging", async () => {
+    const source = makeMqttSource();
+    makeMqttWorkflow(source.id);
+    automationServiceMock.recordPushAutomationPayload.mockReset().mockRejectedValue(
+      Object.assign(new Error("Workflow run budget exhausted"), { code: "WORKFLOW_RUN_BUDGET_EXHAUSTED" })
+    );
+    mqttIngestion.syncMqttDataSources();
+    const client = clients[0];
+
+    client.emit("message", "sensors/temp", Buffer.from(JSON.stringify({ a: 1 })));
+    await flush();
+
+    assert.equal(automationServiceMock.recordPushAutomationPayload.mock.calls.length, 1);
     assert.equal((console.error as ReturnType<typeof vi.fn>).mock.calls.length, 0);
   });
 

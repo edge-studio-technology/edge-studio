@@ -24,6 +24,7 @@ export type DockerContainerInspect = {
     RestartPolicy?: { Name: string; MaximumRetryCount?: number };
     ExtraHosts?: string[];
     PortBindings?: Record<string, { HostIp?: string; HostPort?: string }[]>;
+    LogConfig?: { Type: string; Config?: Record<string, string> };
   };
   NetworkSettings: {
     Networks: Record<string, { Aliases?: string[] | null }>;

@@ -39,6 +39,29 @@ describe("redactSecrets", () => {
     assert.ok(redacted.includes("devices/temp"));
   });
 
+  it("redacts username-only userinfo, which is often the credential itself", () => {
+    const redacted = redactSecrets(`mqtt://${SECRET}@broker.local:1883 devices/temp`);
+    assert.equal(redacted.includes(SECRET), false);
+    assert.equal(redacted, "mqtt://[redacted]@broker.local:1883 devices/temp");
+  });
+
+  it("does not treat an @ in a URL path or query as userinfo", () => {
+    const url = "https://api.example.com/users?email=a@b.example";
+    assert.equal(redactSecrets(url), url);
+  });
+
+  it("redacts the webhook token path segment and keeps the route, trailing path, and query shape", () => {
+    assert.equal(redactSecrets(`/api/data-source-webhooks/${SECRET}`), "/api/data-source-webhooks/[redacted]");
+    assert.equal(redactSecrets(`/api/data-source-webhooks/${SECRET}?shape=1`), "/api/data-source-webhooks/[redacted]?shape=1");
+    assert.equal(redactSecrets(`/api/data-source-webhooks/${SECRET}/extra`), "/api/data-source-webhooks/[redacted]/extra");
+    assert.equal(redactSecrets(`https://pi.local:8080/API/Data-Source-Webhooks/${SECRET}`).includes(SECRET), false);
+  });
+
+  it("is idempotent for already-redacted webhook paths and userinfo", () => {
+    const once = redactSecrets(`/api/data-source-webhooks/${SECRET} mqtt://u:${SECRET}@h mqtt://${SECRET}@h`);
+    assert.equal(redactSecrets(once), once);
+  });
+
   it("redacts bearer tokens", () => {
     assert.equal(redactSecrets(`Authorization: Bearer ${SECRET}`).includes(SECRET), false);
   });

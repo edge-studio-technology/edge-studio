@@ -204,6 +204,30 @@ Later on branch `dev-task/704-fail-closed-on-weak-config`:
   an empty-secret container exited `1` without creating SQLite. Temporary containers/data were
   removed.
 
+Later on branch `dev-task/705-retention-redaction-budgets` (uncommitted):
+
+- Added `features/retention/`: startup-plus-hourly pruning of automation runs, block runs, inbox
+  items (including soft-deleted), and data source reads past 30 days or 10,000 rows, 500 rows per
+  table per pass, deleting block runs before their runs.
+- Push reads (webhook/MQTT/GPIO) now store `data-source:<id>`; a startup migration scrubs historical
+  `source_url` values. Removed the dead `sourceUrl` argument from `recordPushAutomationPayload()`.
+- `redact.ts` gained webhook-path and username-only userinfo rules; `requestLogger` uses it. nginx
+  logs a masked request URI on both servers, and the webhook location logs only `crit` errors.
+- Added `json-file` rotation (10m × 3) to every Compose service and the release generator; Update
+  Agent now copies `HostConfig.LogConfig` when recreating containers.
+- Added the persisted per-workflow budget (`automation_workflow_budget_events`, 10 runs per rolling
+  hour, reserved before the first privileged block, `429` on manual run/webhook, silent skip on
+  MQTT/GPIO) and the transaction cooldown rule in validation plus an execution guard.
+- Added webhook (60/min per IP+token hash), automation write (30/min, excludes GETs and draft
+  validation), and stamp (10/min) limiters.
+- Tests: retention repo/service, budget repo (limit, rolling expiry, lock contention, reopen),
+  policy, migration scrub, logger, route 429s, service budget/cooldown/source refs, ingestion, and a
+  Docker-based nginx log-redaction test (verified to fail against the old config).
+- Docs: SECURITY.md, risk register, GAP-10, plan index/status, ADR 0022 corrections, CHANGELOG,
+  README, and synced rule bullets.
+- Verified `npm run check` (backend 1217, frontend 1486, update-agent 159, scripts 46 tests; coverage
+  and audits green), both builds, `docker compose config`, `docker compose build`, `git diff --check`.
+
 ## Next Steps
 
 - Run the complete local sign-off suite, then create and verify the next development tag on the Pi.
@@ -223,7 +247,22 @@ Later on branch `dev-task/704-fail-closed-on-weak-config`:
 - `npm audit --audit-level=moderate` is clean again as of this session (verified via `npm run check`) — the `qs`/`express` blocker from two sessions ago no longer reproduces, most likely resolved by commit `1742cee` "Updated the dependencies for the package files".
 - Still open from prior sessions: decide whether to split `docs/TASKS.md`'s `block-automation-workflows` line into per-milestone bullets (see Notes below); fix stale `integritasAuth`/`integritas-auth` doc reference.
 
+- Task 705: run plan manual checks 1-6 on a live stack/Pi (sentinel token in both container logs,
+  SQLite `source_url`, upgrade scrub, retention backlog drain, budget across restart, `docker inspect`
+  log options), then commit.
+- Task 705: decide whether retention should drain more than 500 rows per table per hour (see Notes).
+
 ## Notes / Open Questions
+
+- Task 705: the plan/ADR premise that SQLite foreign keys are off was wrong — `better-sqlite3`
+  defaults `foreign_keys = 1`, so cascades are enforced. Explicit deletes were kept; ADR 0022 corrected.
+- Task 705: hourly 500-row batches cannot keep up with a sustained flood of non-privileged events
+  (webhooks allow 3,600/hour per client; MQTT is unlimited). Options: loop short batches per pass
+  until drained, or run passes more often. Needs a decision; recorded as residual in ADR 0022.
+- Task 705: workflow validation is advisory on create/update/enable, so the transaction cooldown rule
+  is also enforced at execution time — a deviation from the plan's wording, recorded in ADR 0022.
+- `.agents/rules/automation.md` lacks the "Frontend naming" section that `.claude`/`.cursor` have —
+  pre-existing drift, not fixed.
 
 - The verifier image digest pin is bumped by hand at release. A stale pin means verification runs on an older Node inside a `--network none` container that reads three files, so letting it age between deliberate bumps is acceptable — but nothing reminds anyone to bump it.
 - Signing key rotation now touches two files (`update-agent/manifest-public-key.pem` and the embedded PEM in `install.sh`). The scripts test fails the build if they drift, so this is guarded rather than remembered.

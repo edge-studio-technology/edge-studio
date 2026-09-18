@@ -38,7 +38,8 @@ function baseInspect(overrides: Partial<DockerContainerInspect> = {}): DockerCon
       Devices: [{ PathOnHost: "/dev/gpiochip0", PathInContainer: "/dev/gpiochip0", CgroupPermissions: "rwm" }],
       RestartPolicy: { Name: "unless-stopped" },
       ExtraHosts: ["host.docker.internal:host-gateway"],
-      PortBindings: { "80/tcp": [{ HostPort: "8080" }] }
+      PortBindings: { "80/tcp": [{ HostPort: "8080" }] },
+      LogConfig: { Type: "json-file", Config: { "max-size": "10m", "max-file": "3" } }
     },
     NetworkSettings: {
       Networks: { "edge-studio_default": { Aliases: ["frontend"] } }
@@ -130,6 +131,7 @@ describe("docker.service", () => {
       assert.deepEqual(body.HostConfig.Binds, ["/data:/data"]);
       assert.deepEqual(body.HostConfig.Devices, [{ PathOnHost: "/dev/gpiochip0", PathInContainer: "/dev/gpiochip0", CgroupPermissions: "rwm" }]);
       assert.deepEqual(body.HostConfig.RestartPolicy, { Name: "unless-stopped" });
+      assert.deepEqual(body.HostConfig.LogConfig, { Type: "json-file", Config: { "max-size": "10m", "max-file": "3" } });
       assert.equal(body.HostConfig.AutoRemove, undefined);
       assert.equal(body.HostConfig.PortBindings, undefined);
       assert.deepEqual(body.NetworkingConfig.EndpointsConfig, {

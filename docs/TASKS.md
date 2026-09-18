@@ -19,11 +19,11 @@
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] Security hardening V1.5 — close the external-review findings, the V1 sign-off remainder, and the unit-test-audit gaps in one ordered workstream; see `docs/plans/security/README.md`, one file per phase under `docs/plans/security/`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`; task 704 closed finding [12].
+- [ ] Add bounded retention, webhook/MQTT credential redaction, persisted workflow run budgets, and rate limits for event-driven security paths — implemented and `npm run check`/Docker build verified on `dev-task/705-retention-redaction-budgets`; needs manual container/Pi checks and a retention-throughput decision — see `docs/plans/security/705-retention-redaction-budgets.md`.
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
 
-- [ ] Add bounded retention, webhook/MQTT credential redaction, persisted workflow run budgets, and rate limits for event-driven security paths — see `docs/plans/security/705-retention-redaction-budgets.md`.
 - [ ] Digest-pin the third-party deployment images outside the signed manifest (`minimaglobal/minimacore`, `eclipse-mosquitto:2`, `minimaglobal/minima:dev`, `alpine:3.20`) and document the manual pin-bump procedure — finding [6], split from task 704; see step 3 of `docs/plans/security/phase-6-fail-closed-on-weak-config.md`.
 - [ ] After V1.5 security hardening, make a fresh product decision on whether to retain, redesign, re-enable, or remove TOTP. Removal is not currently approved; `docs/plans/remove-totp.md` is candidate analysis only. See `docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md`.
 - [ ] ~~Address the production-behavior gaps from the high-risk unit-test audit on a separate branch.~~ Folded into `docs/plans/security/` (Phases 1, 3, and 9); the standalone plan is archived.

@@ -9,6 +9,7 @@ import {
   forbidden,
   notFound,
   sendApiError,
+  tooManyRequests,
   unauthorized,
   unexpected,
   validationFailed
@@ -89,6 +90,17 @@ describe("status-specific helpers", () => {
     conflict(res, "already exists", { id: "1" });
     assert.equal(calls.status, 409);
     assert.deepEqual((calls.json as { errorDetails: { context?: unknown } }).errorDetails.context, { id: "1" });
+  });
+
+  it("tooManyRequests sends 429 as an app error with context", () => {
+    const { res, calls } = mockResponse();
+    tooManyRequests(res, "slow down", { nextAvailableAt: "2026-09-17T12:00:00.000Z" });
+    assert.equal(calls.status, 429);
+    const body = calls.json as { error: string; errorDetails: { domain: string; type: string; context?: Record<string, unknown> } };
+    assert.equal(body.error, "slow down");
+    assert.equal(body.errorDetails.domain, "app");
+    assert.equal(body.errorDetails.type, "rate_limited");
+    assert.deepEqual(body.errorDetails.context, { nextAvailableAt: "2026-09-17T12:00:00.000Z" });
   });
 
   it("dependencyUnavailable sends 502 as a system error with nativeMessage", () => {
