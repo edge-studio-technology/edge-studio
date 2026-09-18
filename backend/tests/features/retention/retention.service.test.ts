@@ -76,7 +76,7 @@ describe("retention.service — policy", () => {
     assert.equal(service.RETENTION_INTERVAL_MS, 60 * 60 * 1000);
   });
 
-  it("removes at most 500 direct rows per table per pass when over the 10,000-row cap", () => {
+  it("removes at most 500 direct rows per table per batch when over the 10,000-row cap", () => {
     seed(10_700, 0);
 
     assert.deepEqual(service.runRetentionPass(NOW), {
@@ -105,17 +105,36 @@ describe("retention.service — policy", () => {
 });
 
 describe("retention.service — scheduler", () => {
-  it("runs one bounded pass immediately and drains the backlog on hourly ticks", () => {
+  it("yields between bounded batches and drains the backlog before the next hourly tick", async () => {
     vi.useFakeTimers({ now: NOW });
-    seed(10_000, 700);
+    seed(10_000, 1700);
 
     service.startRetentionScheduler();
     assert.equal(count("data_source_reads"), 9_500);
 
-    vi.advanceTimersByTime(service.RETENTION_INTERVAL_MS - 1);
-    assert.equal(count("data_source_reads"), 9_500);
-    vi.advanceTimersByTime(1);
-    assert.equal(count("data_source_reads"), 9_300);
+    // No second batch runs synchronously on the startup stack.
+    await vi.advanceTimersByTimeAsync(10);
+    for (const table of ["automation_runs", "automation_block_runs", "automation_inbox_items", "data_source_reads"]) {
+      assert.equal(count(table), 8_300);
+    }
+    db.exec("DELETE FROM automation_inbox_items; DELETE FROM automation_block_runs; DELETE FROM automation_runs; DELETE FROM data_source_reads;");
+    seed(10, 10);
+    await vi.advanceTimersByTimeAsync(service.RETENTION_INTERVAL_MS);
+    assert.equal(count("data_source_reads"), 0);
+  });
+
+  it("does not start overlapping sweeps and cancels a pending continuation on stop", async () => {
+    vi.useFakeTimers({ now: NOW });
+    seed(1700, 1700);
+    service.startRetentionScheduler();
+    service.startRetentionScheduler();
+    assert.equal(count("data_source_reads"), 1200);
+    service.stopRetentionScheduler();
+    await vi.advanceTimersByTimeAsync(10);
+    assert.equal(count("data_source_reads"), 1200);
+    service.startRetentionScheduler();
+    await vi.advanceTimersByTimeAsync(10);
+    assert.equal(count("data_source_reads"), 0);
   });
 
   it("is a no-op when already started and stops cleanly", () => {

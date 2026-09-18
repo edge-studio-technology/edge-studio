@@ -39,19 +39,27 @@ line, and their format cannot be configured. Update Agent recreates `frontend` a
 
 - Apply two independent retention limits to automation runs, block runs, inbox items, and
   data-source reads: retain no more than 30 days and no more than the newest 10,000 rows. Delete the
-  oldest eligible rows in batches of at most 500 per table, once after startup migrations and then
-  hourly. Explicitly delete dependent block-run rows in the retention transaction before deleting
+  oldest eligible rows in repeated batches of at most 500 direct deletions per table, starting after
+  startup migrations and then hourly. Yield to the event loop between batches and continue until
+  nothing eligible remains; do not overlap sweeps, and cancel continuations on shutdown. Explicitly delete dependent block-run rows in the retention transaction before deleting
   their parent runs. The cascade would also remove them; the explicit delete keeps retention correct
   if a table is rebuilt without its foreign key. Block runs retain an independent cap.
+  Exclude runs executing in this process and all their block runs from age and count deletion;
+  track active IDs from run creation to completion. Do not exempt every persisted `running` row,
+  since abandoned executions must expire after a restart.
 - Replace persisted webhook and MQTT URLs with a credential-free stable source reference such as
   `data-source:<id>`. Remove the unused `sourceUrl` parameter from push automation recording and
   scrub historical read rows without logging their previous values. Credential-bearing MQTT URLs
   remain valid live connection configuration; they are excluded at the persistence boundary.
 - Redact the webhook token path segment independently in backend request logging and nginx access
-  logging. The nginx webhook location sets `error_log ... crit`, so upstream failures do not write
+  logging. nginx matches its normalized `$uri` case-insensitively for access-log masking and
+  webhook routing, covering encoded separators, repeated slashes, and case variants. Webhook log
+  entries omit query strings and trailing path segments. The nginx webhook location sets `error_log ... crit`, so upstream failures do not write
   the token into the error stream. Configure bounded Docker `json-file` rotation for every
-  long-running Compose service, and copy `HostConfig.LogConfig` when Update Agent recreates a
-  container so updated containers keep that rotation. Existing Docker logs are not rewritten.
+  long-running Compose service, and apply the fixed `json-file` 10m × 3 policy when Update Agent
+  recreates a container, including legacy containers with no rotation configured. Existing Docker
+  logs are not rewritten. Existing installations require one verified installer rerun to recreate
+  all services with the new Compose policy; image-only updates do not recreate every service.
 - Reject workflow drafts that combine an enabled `send_transaction` block with an enabled event
   start whose `cooldownSeconds` is not a finite integer of at least one second. Enforce the same
   rule in `executeWorkflow()` for webhook, MQTT, and GPIO triggers
@@ -94,8 +102,13 @@ remain trusted workflow configuration.
   also cause physical, privacy, storage, or external-quota effects.
 - **Reject MQTT URLs containing credentials.** Rejected because authenticated brokers legitimately
   require them; credentials should remain usable in configuration but must not enter read history.
-- **One large startup cleanup.** Rejected because an unbounded deletion can hold SQLite write locks
-  and delay startup on resource-constrained hardware.
+- **One large startup transaction.** Rejected because an unbounded deletion can hold SQLite write
+  locks and delay startup on resource-constrained hardware. Short transactions with event-loop yields
+  drain the backlog without the former 500-rows-per-hour throughput ceiling.
+- **Preserve all inspected logging options.** Rejected because legacy installs retain unbounded
+  logs indefinitely through image-only updates. The fixed policy now applies on every recreation.
+- **Protect rows solely by persisted running status.** Rejected because a crashed process leaves
+  rows in that state permanently. Only executions in this process need protection.
 - **Enable SQLite foreign-key enforcement in this feature.** Originally deferred on the assumption
   that it was off. It is already on through the `better-sqlite3` build default, so nothing is left
   to decide here.
@@ -112,8 +125,7 @@ remain trusted workflow configuration.
 
 ## Consequences
 
-- Database and Docker-log growth become bounded, with large historical backlogs drained gradually
-  rather than synchronously.
+- Retention drains historical backlogs in short batches; Docker logs use a fixed rotation policy.
 - Newly written read rows and request logs retain useful source/route identity without reusable
   webhook or broker credentials. Historical database rows are scrubbed, but pre-fix Docker logs
   may still contain webhook tokens and require operator-managed removal or expiry.
@@ -125,10 +137,10 @@ remain trusted workflow configuration.
 - The timestamp ledger adds SQLite writes and requires expiry cleanup, but its bounded per-workflow
   query provides accurate rolling-window behavior.
 - Retention and workflow deletion duplicate the enforced cascades with explicit deletes.
-- Each hourly pass removes at most 500 rows per table. A sustained flood of events that do not
-  reach privileged blocks, such as record-and-preview workflows with no cooldown, can add rows faster
-  than retention removes them. Such rows are bounded only by the HTTP rate limits (webhooks) or by
-  nothing (MQTT) until the pass rate or batch size changes.
+- Each sweep repeats 500-row batches until drained. The 10,000-row target can still be exceeded
+  between hourly sweeps, by protected active executions, or when ingestion exceeds disk cleanup
+  throughput; this is eventual retention, not an admission or disk-byte cap. MQTT has no transport
+  rate limit. Dependent block-run deletion can exceed 500 rows in a transaction.
 - The webhook nginx location loses non-critical nginx error diagnostics.
 - HTTP rate limiting remains process-local; the persisted workflow budget is the durable control.
 - Global aggregate wallet risk and cross-workflow serialization remain unaddressed.

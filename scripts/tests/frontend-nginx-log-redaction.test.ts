@@ -19,7 +19,7 @@ function run(command: string, args: string[]) {
 }
 
 function containerCurl(args: string[]) {
-  return run("docker", ["exec", containerName, "curl", "-ks", "-o", "/dev/null", "-w", "%{http_code}", ...args]);
+  return run("docker", ["exec", containerName, "curl", "--path-as-is", "-ks", "-o", "/dev/null", "-w", "%{http_code}", ...args]);
 }
 
 let certDir: string;
@@ -59,12 +59,16 @@ describe("frontend nginx access logging", () => {
     containerCurl(["-X", "POST", `https://127.0.0.1/api/data-source-webhooks/${sentinel}?shape=1`]);
     containerCurl([`https://127.0.0.1/api/data-source-webhooks/${sentinel}/trailing`]);
     assert.equal(containerCurl([`http://127.0.0.1/api/data-source-webhooks/${sentinel}`]), "301");
+    for (const route of ["/api/DATA-SOURCE-WEBHOOKS/", "/api//data-source-webhooks/", "/api/data-source-webhooks%2f", "/%61pi/data-source-webhooks/", "/api/./data-source-webhooks/"]) {
+      assert.match(containerCurl(["-X", "POST", `https://127.0.0.1${route}${sentinel}`]), /^50[0-9]$/);
+      assert.equal(containerCurl([`http://127.0.0.1${route}${sentinel}`]), "301");
+    }
     containerCurl(["https://127.0.0.1/api/health?probe=1"]);
 
     const logs = run("docker", ["logs", containerName]);
     assert.ok(!logs.includes(sentinel), "nginx logs contain the webhook token");
-    assert.match(logs, /"POST \/api\/data-source-webhooks\/\[redacted\]\?shape=1 HTTP\/1\.1" 50\d/);
-    assert.match(logs, /"GET \/api\/data-source-webhooks\/\[redacted\]\/trailing HTTP\/1\.1"/);
+    assert.match(logs, /"POST \/api\/data-source-webhooks\/\[redacted\] HTTP\/1\.1" 50\d/);
+    assert.match(logs, /"GET \/api\/data-source-webhooks\/\[redacted\] HTTP\/1\.1"/);
     assert.match(logs, /"GET \/api\/data-source-webhooks\/\[redacted\] HTTP\/1\.1" 301/);
     assert.match(logs, /"GET \/api\/health\?probe=1 HTTP\/1\.1"/);
   }, 60_000);

@@ -143,3 +143,33 @@ describe("retention.repository — pruneAutomationRuns", () => {
     assert.deepEqual(ids("automation_block_runs"), ["run-0-a", "run-0-b"]);
   });
 });
+
+
+describe("retention during workflow execution", () => {
+  it("protects live runs and their blocks, permits the next block, and expires them after completion", async () => {
+    const runs = await import("../../../src/features/automation/automationRuns.repository.js");
+    db.prepare("INSERT OR IGNORE INTO automation_workflows (id, created_at, updated_at, name, enabled) VALUES ('live-workflow', ?, ?, 'Live', 1)").run(iso(1000), iso(1000));
+    const run = runs.createAutomationRun({ workflowId: "live-workflow", workflowName: "Live", triggerType: "mqtt", blockCount: 2 });
+    db.prepare("UPDATE automation_runs SET started_at = ? WHERE id = ?").run(iso(40 * 24 * 60 * 60 * 1000), run.id);
+    insertBlockRun("live-block", run.id, iso(40 * 24 * 60 * 60 * 1000));
+    insertRun("newer-finished", iso(1000));
+    const limits = { ...generous, maxRows: 0 };
+    try {
+      assert.equal(repo.pruneAutomationRuns(limits).runs, 1);
+      assert.deepEqual(ids("automation_runs"), [run.id]);
+      assert.equal(repo.pruneRetainedRows("automation_block_runs", limits), 0);
+      assert.deepEqual(ids("automation_block_runs"), ["live-block"]);
+      assert.doesNotThrow(() => insertBlockRun("next-block", run.id, iso(0)));
+      assert.equal(repo.pruneAutomationRuns(limits).runs, 0);
+    } finally {
+      runs.finishAutomationRun(run.id, { status: "success" });
+    }
+    assert.deepEqual(repo.pruneAutomationRuns(limits), { runs: 1, dependentBlockRuns: 2 });
+  });
+
+  it("expires abandoned running rows that are not executing in this process", () => {
+    insertRun("abandoned", iso(40 * 24 * 60 * 60 * 1000));
+    db.prepare("UPDATE automation_runs SET status = 'running' WHERE id = 'abandoned'").run();
+    assert.equal(repo.pruneAutomationRuns(generous).runs, 1);
+  });
+});

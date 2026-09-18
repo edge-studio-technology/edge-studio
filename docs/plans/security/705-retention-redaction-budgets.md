@@ -45,12 +45,12 @@ Document these constants in `SECURITY.md` and lock them with tests. Do not claim
 - For `automation_runs`, `automation_block_runs`, `automation_inbox_items`, and `data_source_reads`, delete the oldest eligible rows using both rules:
   - rows older than 30 days;
   - rows outside the newest 10,000 rows;
-  - the union is capped to 500 rows per table per pass.
+  - the union is capped to 500 direct rows per table per batch; repeat batches until drained, yielding between them and protecting active executions and their block runs.
 - Use `(timestamp, id)` ordering for deterministic oldest-first deletion. In one transaction, explicitly remove block-run rows belonging to eligible parent runs before removing those parents; do not rely on inactive SQLite cascades. Cap block runs independently as well.
 - Physically delete eligible inbox rows, including rows already soft-deleted through `deleted_at`.
 - Add/confirm timestamp indexes needed by the bounded selects; `automation_block_runs.started_at` currently lacks its own age/cap index.
 - Add `startRetentionScheduler()` / `stopRetentionScheduler()` following `features/auth/session.service.ts`: run one guarded pass immediately after migrations, then hourly, log only a static failure message plus redacted error detail, and make start/stop idempotent for tests.
-- Wire start/stop into `backend/src/startup.ts`. A startup pass remains bounded to 500 rows per table; subsequent hourly ticks drain a larger backlog without holding a long write lock.
+- Wire start/stop into `backend/src/startup.ts`. Startup and hourly sweeps repeat 500-row batches until drained, with no overlapping sweeps and cancellation on stop.
 
 ### 2. Source references and historical scrub
 
@@ -114,7 +114,7 @@ Document these constants in `SECURITY.md` and lock them with tests. Do not claim
   - 30-day age cutoff, including exact-boundary behavior;
   - 10,000-row cap with deterministic oldest-first deletion;
   - union of age and count eligibility without double counting;
-  - at most 500 direct deletions per table/pass;
+  - at most 500 direct deletions per table/batch, with multi-batch catch-up and active-run protection;
   - explicit dependent block-run deletion, independent block-run cap, physical inbox deletion, and idempotent repeated passes;
   - immediate startup pass, hourly tick, error isolation, and clean stop using fake timers.
 - Database migration tests for live webhook/MQTT/GPIO sources, deleted-source orphan rows, already-safe URLs, idempotency, and absence of original tokens/userinfo after migration.
@@ -163,7 +163,7 @@ Manual/container checks:
 1. Send a webhook containing a unique sentinel token through frontend nginx; verify the backend and frontend container logs contain the redacted marker but not the sentinel.
 2. Trigger webhook and credential-bearing MQTT reads; inspect SQLite and verify `source_url` contains only the stable source reference.
 3. Upgrade a database seeded with historical tokenised webhook URLs and MQTT userinfo; verify migration removes the credentials without changing unrelated read rows.
-4. Seed each retained table beyond age/count limits, restart the backend, and verify only one bounded batch per table is removed at startup and later hourly passes drain the backlog.
+4. Seed each retained table beyond age/count limits, restart the backend, and verify short batches drain the backlog during the same sweep without deleting active runs or their block runs.
 5. Exhaust a privileged workflow's budget, restart the backend, and verify the next run remains blocked until the rolling window expires.
 6. Confirm Docker reports the configured log rotation options for every Compose service.
 

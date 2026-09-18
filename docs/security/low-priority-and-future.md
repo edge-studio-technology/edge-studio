@@ -56,9 +56,12 @@ canonical bytes, or proof payloads unless explicitly redacted.
 
 Status: **Mitigated (Phase 7).** `requestLogger` passes URLs through `redactSecrets()`, which masks
 the `/api/data-source-webhooks/<token>` segment and URL userinfo; nginx logs a masked request URI on
-both servers and logs only critical errors for the webhook location. Docker `json-file` logs rotate
-at 10 MB × 3 files per service, and Update Agent preserves that log configuration when it recreates
-containers. Logs written before this change are not rewritten.
+both servers using normalized, case-insensitive paths (including encoded and repeated slashes),
+and logs only critical errors for matching webhook locations. Docker `json-file` logs rotate
+at 10 MB × 3 files per service, and Update Agent enforces that fixed policy when it recreates
+containers, including legacy unbounded configurations. Apply the verified installer again on
+existing deployments for services that image-only updates do not recreate. Logs written before
+this change are not rewritten.
 
 ## Missing Security Tests
 

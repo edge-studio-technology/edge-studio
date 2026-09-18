@@ -167,9 +167,12 @@ Current Controls:
 - Workflows reaching payment, device output, camera, or stamp blocks are bounded to 10 runs per rolling hour per workflow, persisted across restarts; exhaustion returns `429`.
 
 Residual: Docker logs written before Phase 7 still contain tokens until they rotate out or are
-removed; tokens are not rotated automatically. Retention removes at most 500 rows per table per
-hourly pass, so a sustained flood of non-privileged events from a token holder can outgrow it
-between passes. Review findings [11] and [14].
+removed; tokens are not rotated automatically. Startup/hourly sweeps now repeat short 500-row
+batches until drained, yielding between batches and protecting active executions and their blocks.
+The former 500-rows-per-hour ceiling is removed. Rows can still exceed the target between sweeps
+or when ingestion exceeds cleanup throughput; this is not a disk-byte cap. Existing deployments
+need the verified installer rerun documented in README for rotation on every service. Review
+findings [11] and [14].
 
 Plan:
 

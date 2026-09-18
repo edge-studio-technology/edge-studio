@@ -19,7 +19,7 @@
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] Security hardening V1.5 — close the external-review findings, the V1 sign-off remainder, and the unit-test-audit gaps in one ordered workstream; see `docs/plans/security/README.md`, one file per phase under `docs/plans/security/`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`; task 704 closed finding [12].
-- [ ] Add bounded retention, webhook/MQTT credential redaction, persisted workflow run budgets, and rate limits for event-driven security paths — implemented and `npm run check`/Docker build verified on `dev-task/705-retention-redaction-budgets`; needs manual container/Pi checks and a retention-throughput decision — see `docs/plans/security/705-retention-redaction-budgets.md`.
+- [ ] Add bounded retention, webhook/MQTT credential redaction, persisted workflow run budgets, and rate limits for event-driven security paths — implemented and `npm run check`/Docker build verified on `dev-task/705-retention-redaction-budgets`; audit fixes and multi-batch retention verified; needs remaining manual container/Pi checks and the documented existing-installation log migration — see `docs/plans/security/705-retention-redaction-budgets.md`.
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
@@ -70,6 +70,8 @@
 - [ ] Manual browser check of the address book contact-actions rework: "View contact" is read-only (no Edit/Delete buttons); kebab "Edit" opens the edit form; kebab "Remove" opens the delete-confirm modal then a progress modal, and the row disappears with a success toast on completion.
 
 ## Done
+
+- [x] Fixed task 705 audit findings: normalized nginx webhook log protection, active-run retention safety, repeated yielding cleanup batches, and fixed log rotation for recreated legacy containers; full checks and Docker builds passed — see `docs/adr/0022-bound-external-automation-effects.md`.
 
 - [x] Failed closed on an absent or empty `APP_SECRET` before database/background startup and removed the public `dev-change-me` default from every shipped configuration path — see `docs/plans/security/704-fail-closed-on-weak-config.md` and `docs/adr/0021-app-secret-fail-closed-without-migration.md`.
 - [x] Added configurable IPAM to generated release Compose, bound release-mode installer runtime bundles to the signed manifest SHA-256 before any application-directory replacement, and added end-to-end installer regressions for matching/mismatched/tampered/unsigned/invalid-metadata/override/fallback paths plus existing-installation preservation — see `docs/adr/0020-bind-installer-runtime-to-signed-manifest.md`.

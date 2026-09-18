@@ -139,6 +139,17 @@ describe("docker.service", () => {
       });
     });
 
+    it("applies bounded logging when upgrading legacy containers with unbounded or missing settings", () => {
+      const legacyConfigs: DockerContainerInspect["HostConfig"]["LogConfig"][] = [undefined, { Type: "json-file", Config: {} }, { Type: "json-file", Config: { "max-size": "-1" } }];
+      for (const LogConfig of legacyConfigs) {
+        const inspected = baseInspect();
+        inspected.HostConfig.LogConfig = LogConfig;
+        const body = dockerService.createBodyFromInspect(inspected, "edge-studio/frontend@sha256:new");
+        assert.deepEqual(body.HostConfig.LogConfig, { Type: "json-file", Config: { "max-size": "10m", "max-file": "3" } });
+        assert.equal(inspected.HostConfig.LogConfig, LogConfig);
+      }
+    });
+
     it("includes port bindings when includePortBindings is true", () => {
       const body = dockerService.createBodyFromInspect(baseInspect(), "edge-studio/frontend@sha256:new", true);
 

@@ -8,15 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
-- Automation runs, block runs, inbox items, and data source reads older than 30 days or beyond the newest 10,000 rows per table are deleted in batches of up to 500 per table at startup and hourly.
+- Automation runs, block runs, inbox items, and data source reads older than 30 days or beyond the newest 10,000 rows per table are deleted in repeated batches of up to 500 direct rows per table until drained at startup and hourly, with active workflow executions protected.
 - Deleted automation inbox items are now permanently removed by retention.
 - Webhook, MQTT, and GPIO data source reads record `data-source:<id>` instead of the webhook URL or MQTT broker URL.
 - Existing data source read history is scrubbed of webhook tokens and URL credentials on upgrade.
 - The backend request log and the frontend nginx access log mask the webhook token in `/api/data-source-webhooks/<token>` URLs.
-- Nginx logs only critical errors for webhook requests.
+- Nginx masks normalized webhook paths and logs only critical errors for webhook requests, including case variants and encoded or repeated slashes.
 - Error details and logs now also redact URL credentials given as a username only, such as `mqtt://token@broker`.
 - Every Docker Compose service rotates its container logs at 10 MB, keeping 3 files, in both the source and release Compose files.
-- Update Agent keeps a container's log rotation settings when it replaces the container during an update.
+- Update Agent applies the fixed 10 MB × 3 log policy to replacement containers, including upgrades from unbounded logging.
 - A workflow run that reaches a payment, device output, camera capture, or Integritas stamp block uses one slot of a budget of 10 runs per rolling hour per workflow, and further runs fail with `429` until a slot frees up.
 - The workflow run budget is stored in the database, survives backend restarts, and applies to manual, scheduled, webhook, MQTT, and GPIO runs.
 - Webhook, MQTT, or GPIO workflows with an enabled payment block must have a cooldown of at least 1 second, both when validated and when triggered.

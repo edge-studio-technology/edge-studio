@@ -586,6 +586,8 @@ You can override the branch:
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo APP_BRANCH=main bash
 ```
 
+Existing installations upgrading from before task 705 need a one-time rerun of the [verified installer](#verified-install-recommended) to apply the 10 MB × 3 container-log policy to every service, including Minima and the optional MQTT broker. This recreates containers and briefly interrupts service while preserving data. Image-only updates apply the fixed logging policy only to containers recreated by the new Update Agent; they do not refresh the installed Compose file or recreate every service. Do not use an old source Compose checkout to perform this migration: it can rebuild older application images over an image-only update.
+
 ## Architecture
 
 ```txt

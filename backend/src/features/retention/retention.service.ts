@@ -6,6 +6,7 @@ export const RETENTION_MAX_ROWS = 10_000;
 export const RETENTION_BATCH_SIZE = 500;
 export const RETENTION_INTERVAL_MS = 60 * 60 * 1000;
 
+let cancelCleanup: (() => void) | null = null;
 let retentionTimer: NodeJS.Timeout | null = null;
 
 export function runRetentionPass(now = Date.now()) {
@@ -27,19 +28,33 @@ export function runRetentionPass(now = Date.now()) {
 export function startRetentionScheduler() {
   if (retentionTimer) return;
 
-  const sweep = () => {
+  let cancelled = false;
+  let running = false;
+  cancelCleanup = () => { cancelled = true; };
+  const sweep = async () => {
+    if (running || cancelled) return;
+    running = true;
     try {
-      runRetentionPass();
+      const now = Date.now();
+      while (!cancelled) {
+        const deleted = runRetentionPass(now);
+        if (Object.values(deleted).every((count) => count === 0)) break;
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      }
     } catch (error) {
       console.error("Retention cleanup failed:", redactSecrets(error instanceof Error ? error.message : String(error)));
+    } finally {
+      running = false;
     }
   };
 
-  sweep();
+  void sweep();
   retentionTimer = setInterval(sweep, RETENTION_INTERVAL_MS);
 }
 
 export function stopRetentionScheduler() {
+  cancelCleanup?.();
+  cancelCleanup = null;
   if (retentionTimer) {
     clearInterval(retentionTimer);
     retentionTimer = null;

@@ -228,6 +228,15 @@ Later on branch `dev-task/705-retention-redaction-budgets` (uncommitted):
 - Verified `npm run check` (backend 1217, frontend 1486, update-agent 159, scripts 46 tests; coverage
   and audits green), both builds, `docker compose config`, `docker compose build`, `git diff --check`.
 
+Audit follow-up on `dev-task/705-retention-redaction-budgets`:
+
+- Fixed nginx access-log masking and error-log suppression for normalized webhook paths, including case variants, encoded separators, repeated slashes, and dot segments; verified synthetic tokens stay out of both log streams in an isolated container.
+- Protected live workflow runs and their block runs during retention using process-local execution IDs; abandoned persisted running rows remain eligible after restart.
+- Changed startup/hourly cleanup to repeat 500-row batches until drained, yielding between batches, preventing overlapping sweeps, and cancelling pending continuations on stop.
+- Applied the fixed 10m × 3 logging policy to containers recreated by Update Agent, including legacy unbounded configurations; documented the verified installer rerun needed for every existing service.
+- Updated ADR 0022, the task plan, security policy/register, README, changelog, and all three Docker rule counterparts.
+- Verified `npm run check` (1,220 backend, 1,486 frontend, 160 Update Agent, 46 script tests; coverage thresholds and all dependency audits passed), all three production builds, `docker compose config --quiet`, `docker compose build`, and `git diff --check`.
+
 ## Next Steps
 
 - Run the complete local sign-off suite, then create and verify the next development tag on the Pi.
@@ -250,15 +259,12 @@ Later on branch `dev-task/705-retention-redaction-budgets` (uncommitted):
 - Task 705: run plan manual checks 1-6 on a live stack/Pi (sentinel token in both container logs,
   SQLite `source_url`, upgrade scrub, retention backlog drain, budget across restart, `docker inspect`
   log options), then commit.
-- Task 705: decide whether retention should drain more than 500 rows per table per hour (see Notes).
 
 ## Notes / Open Questions
 
 - Task 705: the plan/ADR premise that SQLite foreign keys are off was wrong — `better-sqlite3`
   defaults `foreign_keys = 1`, so cascades are enforced. Explicit deletes were kept; ADR 0022 corrected.
-- Task 705: hourly 500-row batches cannot keep up with a sustained flood of non-privileged events
-  (webhooks allow 3,600/hour per client; MQTT is unlimited). Options: loop short batches per pass
-  until drained, or run passes more often. Needs a decision; recorded as residual in ADR 0022.
+- Task 705: approved and implemented repeated short batches per sweep. Retention remains eventual: rows can exceed the target between sweeps or when ingestion exceeds cleanup throughput; MQTT has no transport rate limit. Existing deployments still need the documented installer migration and Pi QA.
 - Task 705: workflow validation is advisory on create/update/enable, so the transaction cooldown rule
   is also enforced at execution time — a deviation from the plan's wording, recorded in ADR 0022.
 - `.agents/rules/automation.md` lacks the "Frontend naming" section that `.claude`/`.cursor` have —
