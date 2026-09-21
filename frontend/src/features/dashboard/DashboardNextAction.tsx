@@ -35,11 +35,11 @@ export function DashboardNextAction() {
 
   if (state.status === "loading") {
     return (
-      <Card>
+      <Card className="w-full">
         <LoadingState
           title="Checking your next step"
           description="This should take a few seconds."
-          className="min-h-48 border-0"
+          className="min-h-48 rounded-none border-0 bg-transparent p-0"
         />
       </Card>
     );
@@ -47,7 +47,7 @@ export function DashboardNextAction() {
 
   if (state.status === "error") {
     return (
-      <ErrorAlert title="Dashboard setup couldn't be loaded" className="w-full max-w-none">
+      <ErrorAlert title="Dashboard setup couldn't be loaded" className="w-full max-w-none!">
         We couldn't check your devices and workflows. Refresh the page to try again.
       </ErrorAlert>
     );

@@ -113,7 +113,7 @@ export function DashboardDevices() {
   return (
     <>
       {statusError ? (
-        <ErrorAlert title="Device status couldn't be loaded" className="w-full max-w-none">
+        <ErrorAlert title="Device status couldn't be loaded" className="w-full max-w-none!">
           Some Dashboard metrics may be unavailable or out of date. We'll try again automatically.
         </ErrorAlert>
       ) : null}
