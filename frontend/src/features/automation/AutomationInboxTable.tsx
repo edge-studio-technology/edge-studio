@@ -88,6 +88,7 @@ export function AutomationInboxTable({
   const visibleColumns = orderedColumns(INBOX_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
   );
+  const visibleColumnCount = visibleColumns.length;
 
   const unreadCount = items.filter((item) => !item.readAt).length;
   const filtersActive = Boolean(query.trim()) || filter !== "all";
@@ -173,7 +174,7 @@ export function AutomationInboxTable({
           />
         ) : (
           <TableWrap>
-            <DataTable className="table-fixed">
+            <DataTable className={visibleColumnCount > 3 ? "min-w-245" : undefined}>
               <TableHead>
                 {visibleColumns.map((column) => (
                   <TableHeaderCell key={column.id}>{column.label}</TableHeaderCell>

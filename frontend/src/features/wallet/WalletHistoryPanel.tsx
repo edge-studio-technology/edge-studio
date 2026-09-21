@@ -94,6 +94,7 @@ export function WalletHistoryPanel({
   const visibleColumns = orderedColumns(WALLET_HISTORY_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
   );
+  const visibleColumnCount = visibleColumns.length;
   const isDev = import.meta.env.DEV;
 
   const trimmedHistoryQuery = historyQuery.trim().toLowerCase();
@@ -214,7 +215,7 @@ export function WalletHistoryPanel({
         />
       ) : (
         <TableWrap>
-          <DataTable aria-label="Send history">
+          <DataTable aria-label="Send history" className={visibleColumnCount > 3 ? "min-w-245" : undefined}>
             <TableHead>
               {visibleColumns.map((column) => (
                 <TableHeaderCell

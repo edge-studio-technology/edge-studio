@@ -104,6 +104,7 @@ export function AutomationWorkflowsList({
   const visibleColumns = orderedColumns(WORKFLOW_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
   );
+  const visibleColumnCount = visibleColumns.length;
 
   const sourceName = (id: string) =>
     sources.find((source) => source.id === id)?.name ?? "Unknown source";
@@ -181,7 +182,7 @@ export function AutomationWorkflowsList({
         />
       ) : (
         <TableWrap>
-          <DataTable>
+          <DataTable className={visibleColumnCount > 3 ? "min-w-245" : undefined}>
             <TableHead>
               {visibleColumns.map((column) => (
                 <TableHeaderCell key={column.id} className={workflowHeaderClass(column.id)}>

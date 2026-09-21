@@ -98,6 +98,7 @@ export function DataSourcesList({
   const visibleColumns = orderedColumns(DEVICE_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
   );
+  const visibleColumnCount = visibleColumns.length;
 
   const trimmedQuery = query.trim().toLowerCase();
   const filtersActive = Boolean(direction || trimmedQuery);
@@ -197,7 +198,7 @@ export function DataSourcesList({
         />
       ) : (
         <TableWrap>
-          <DataTable className="table-fixed">
+          <DataTable className={visibleColumnCount > 3 ? "min-w-245" : undefined}>
             <TableHead>
               {visibleColumns.map((column) => (
                 <TableHeaderCell key={column.id} className={deviceHeaderClass(column.id)}>
