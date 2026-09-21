@@ -74,14 +74,14 @@ export function TableWrap({ children, className }: { children: ReactNode; classN
         <div
           aria-hidden="true"
           data-scroll-edge="left"
-          className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/70 via-white/35 to-transparent"
+          className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-grey-03/45 via-grey-03/15 to-transparent"
         />
       )}
       {scrollEdges.right && (
         <div
           aria-hidden="true"
           data-scroll-edge="right"
-          className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/70 via-white/35 to-transparent"
+          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-grey-03/45 via-grey-03/15 to-transparent"
         />
       )}
     </div>
