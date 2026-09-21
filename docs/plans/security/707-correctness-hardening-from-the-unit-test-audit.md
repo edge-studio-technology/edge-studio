@@ -2,7 +2,7 @@
 
 # Task 707 — Correctness Hardening From The Unit-Test Audit Plan
 
-**Status:** Not started
+**Status:** Done (2026-09-21)
 
 **Created:** 2026-09-21
 **Branch:** `dev-task/707-correctness-hardening-from-the-unit-test-audit`
@@ -200,6 +200,16 @@ required for these deterministic failure paths.
 - A stalled Docker stream rejects on timeout exactly once and cannot hang its caller.
 - Focused tests, the full coverage suite, all three package builds, Compose validation, and final
   worktree checks pass.
+
+## Completion Record
+
+- Minima restart setup failures now clear the operation marker and preserve the original error;
+  successful background restart behavior and timing remain unchanged.
+- Wallet sends and address-book create/update operations now enforce Minima's source-defined `0x`
+  and checksummed `Mx` grammar, including the wallet service boundary used by automation.
+- Docker stream timeouts now reject and destroy the request through one guarded settlement path.
+- Focused regressions and `npm run check` passed, as did all three package builds,
+  `docker compose config`, `git diff --check`, and the final worktree check.
 
 ## Estimate
 
