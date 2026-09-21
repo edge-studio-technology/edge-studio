@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] dev-task/707-correctness-hardening-from-the-unit-test-audit
 
+### Security
+
+- Wallet sends and address-book writes now reject malformed Minima destinations using the upstream `0x` and checksummed `Mx` address grammar.
+
 ### Fixed
 
 - Minima restart setup failures now clear the temporary restarting state instead of leaving stale operation status in the UI.

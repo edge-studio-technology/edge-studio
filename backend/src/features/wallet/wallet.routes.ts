@@ -35,7 +35,7 @@ walletRouter.post("/send-payment", requireRole("admin"), async (req, res) => {
   const tokenName = typeof req.body?.tokenName === "string" ? req.body.tokenName.trim() : "";
 
   if (!address) return validationFailed(res, "address is required", { address: "address is required" }, { ok: false });
-  if (!isMinimaAddress(address)) return badRequest(res, "address must start with Mx or 0x", { field: "address" }, { ok: false });
+  if (!isMinimaAddress(address)) return badRequest(res, "address must be a valid Minima Mx or 0x address", { field: "address" }, { ok: false });
   if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0) {
     return validationFailed(res, "amount must be a positive number", { amount: "amount must be a positive number" }, { ok: false });
   }
