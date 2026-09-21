@@ -12,7 +12,6 @@
 
 ## Current Focus
 
-- [ ] Verify the Dashboard next-action and metric-card loading/error fix on a Raspberry Pi using this branch's `DEV_MODE=true` install — see `docs/plans/bugs/661-dashboard-next-action-and-metric-cards-don-t-treat-errors-as-empty.md`.
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
@@ -70,6 +69,7 @@
 
 ## Done
 
+- [x] Fixed and Raspberry Pi-verified Dashboard next-action and metric-card loading/error states so failed requests no longer appear empty or spin indefinitely — see `docs/plans/bugs/661-dashboard-next-action-and-metric-cards-don-t-treat-errors-as-empty.md`.
 - [x] Completed task 707 correctness hardening: Minima restart setup failures clear stale operation state, wallet/address-book destinations follow Minima's source grammar, and Update Agent Docker stream timeouts settle reliably — see `docs/plans/security/707-correctness-hardening-from-the-unit-test-audit.md`.
 - [x] Added backend-saved column visibility controls to every shared `DataTable` table: a shared table controls shell, cog-button chooser modal, authenticated preferences API, and per-table visibility wiring across Diagnostics, Devices, Workflows, Workflow Inbox, Wallet, Address book, Minima, and workflow watch tables — see `docs/plans/table-column-visibility.md`.
 - [x] Manual browser check of backend-saved column visibility controls on every shared `DataTable` table, including the follow-up fix for diagnostics table width after columns are hidden — see `docs/plans/table-column-visibility.md`.

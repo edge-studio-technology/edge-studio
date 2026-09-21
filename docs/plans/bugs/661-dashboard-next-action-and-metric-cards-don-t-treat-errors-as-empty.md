@@ -1,6 +1,6 @@
 # Dashboard Next-Action And Metric Error States Plan
 
-**Status:** Implementation complete; Raspberry Pi browser verification pending
+**Status:** Complete
 
 **Created:** 2026-09-21
 **Branch:** `bug/661-dashboard-next-action-and-metric-cards-don-t-treat-errors-as-empty`
