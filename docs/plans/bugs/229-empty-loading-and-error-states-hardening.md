@@ -4,13 +4,14 @@
 
 **Created:** 2026-09-21
 **Branch:** `feature/229-empty-loading-and-error-states-hardening`
-**Goal:** Make Dashboard and Devices distinguish first-load progress, legitimate empty results, and request failures so users are never shown false empty data or an indefinite loading state.
+**Goal:** Make Dashboard, Devices, and every other in-scope user-facing async data surface distinguish first-load progress, legitimate empty results, and request failures so users are never shown false empty data or an indefinite loading state.
 
 ## Tracked Tasks
 
 - [x] `bug/661-dashboard-next-action-and-metric-cards-don-t-treat-errors-as-empty` — [#661] Dashboard next-action and metric cards: don't treat errors as empty.
 - [ ] `bug/659-devices-failed-load-stays-on-spinner-forever` — [#659] Devices: failed load stays on spinner forever.
 - [ ] `bug/660-dashboard-live-activity-add-loading-empty-and-error-states` — [#660] Dashboard live activity: add loading, empty, and error states.
+- [ ] Complete and close the cross-app async-state gap check before the branch is allowed to merge into `dev`.
 
 Task #661 is already implemented and Raspberry Pi-verified on this branch; its detailed completed plan remains in `docs/plans/bugs/661-dashboard-next-action-and-metric-cards-don-t-treat-errors-as-empty.md`. This plan records how the two remaining bugs complete the parent feature on the shared feature branch.
 
@@ -33,6 +34,8 @@ The remaining ambiguity is in page-level request orchestration:
 - `useIntegritasHistoryAutoRefresh()` intentionally treats later pending-proof refresh failures as background-only. Preserve that behavior; the new Live activity error state covers the initial combined proofs/reads load and its explicit Retry action.
 
 The existing `LoadingState`, `EmptyContentState`, `ErrorAlert`, and `Button` components already implement the design-system treatment and accessibility roles this feature needs. Persistent load failures belong in `ErrorAlert`, not a toast; transient device actions should continue using the current toast behavior. No new shared component or ADR is warranted.
+
+The two remaining tickets define the known regressions, but they are not the complete release boundary. Before this branch can merge into `dev`, perform an application-wide gap check of user-facing async data displays. The default disposition for a newly discovered gap is to fix and test it on this branch when it is the same class of loading/empty/error ambiguity. This keeps the parent hardening feature coherent instead of knowingly shipping equivalent defects elsewhere. The parent ticket's explicit exclusions remain audit-visible but implementation-excluded unless their scope is separately changed; they must not disappear from the audit simply because this branch does not modify them.
 
 ## Target State Matrix
 
@@ -107,9 +110,22 @@ Add `frontend/tests/pages/DashboardPage.test.tsx`:
 - Exercise Retry: prove both endpoints are called again, the section re-enters loading, and a successful response clears the alert and renders the correct empty or populated state.
 - Retain the existing focused #661 tests in `frontend/tests/features/dashboard/DashboardNextAction.test.tsx` and `frontend/tests/features/dashboard/DashboardDevices.test.tsx` as regression coverage for the already-completed acceptance criteria.
 
+### 5. Run and close a cross-app async-state gap check
+
+After #659 and #660 pass their focused tests, audit the complete frontend rather than treating those pages as proof that the pattern is correct everywhere:
+
+- Inventory every user-facing page, feature panel, summary card, list, table, and detail view that owns an initial load, refresh, or polling request. Search API call sites, async effects/hooks, nullable-data loading sentinels, `.catch()` paths, spinners, raw error styles, and fabricated placeholder rows as discovery aids; do not treat a text search alone as verification.
+- Record the result in this plan during implementation using a compact table with: surface/file, loading behavior, successful-empty behavior (or why empty is not applicable), error behavior, retry/recovery behavior, test/manual evidence, and disposition.
+- For every in-scope surface, confirm that request state is not inferred from data values and that loading, successful empty, error, and successful data are mutually exclusive. A failure must settle loading and must not render a zero count, empty prompt, fake record, stale success without an explicit stale/error indication, or raw ad hoc error text.
+- Confirm that polling and background refresh failures preserve intentionally usable last-known data without turning the whole surface back into an initial spinner. Where recovery is safe and practical, expose Retry through the shared state components.
+- Fix newly discovered instances of the same hardening problem on this branch and add focused regression coverage. Keep changes surgical: reuse `LoadingState`, `EmptyContentState`, and `ErrorAlert`; do not introduce global request-state infrastructure or unrelated UI redesigns.
+- List every explicitly out-of-scope surface in the audit table as `Excluded` with the controlling scope item. If an excluded surface has a release-critical version of this defect, stop branch sign-off and obtain an explicit scope decision rather than silently passing it or creating an unowned follow-up.
+
+The branch is not ready for `dev` while an audited in-scope surface is marked unknown, has an unresolved state gap, or lacks verification appropriate to its risk. The goal is gap closure, not merely an audit report.
+
 ## Scope Boundaries
 
-Do not expand this work into:
+Do not expand implementation into the following parent-ticket exclusions. They are still inspected and recorded by the cross-app gap check so the release decision is explicit:
 
 - inline `ErrorAlert` page-jump behavior (Feature #693);
 - header status refresh failure handling;
@@ -158,3 +174,11 @@ Manual browser checks with network throttling/request blocking:
 6. Block each Live activity endpoint separately; confirm the shared error alert replaces loading/empty/activity content and Retry requests both sources again.
 7. Restore the endpoints and retry; confirm activity returns in newest-first order and pending Integritas proofs still auto-refresh.
 8. Recheck #661 behavior: the next-action card stays present while loading, failures never become zero counts, and status metric failures settle as unavailable/error rather than spinning indefinitely.
+
+Cross-app merge gate:
+
+1. Complete the async-state audit table added to this plan with no unknown in-scope surfaces.
+2. Verify every newly discovered in-scope gap has been fixed and covered by an automated test or a recorded manual check.
+3. Confirm successful empty results are only shown after successful requests, failures always settle initial loading, and user-visible failures use the shared state treatment rather than fake content or raw error text.
+4. Confirm every parent-ticket exclusion is recorded as `Excluded`, with no accidental implementation changes hidden in this branch.
+5. Do not merge to `dev` if any in-scope gap remains open or an excluded release-critical gap has not received an explicit scope decision.

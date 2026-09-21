@@ -16,7 +16,7 @@
 
 ## In Progress
 
-- [ ] Harden Dashboard and Devices empty, loading, and error states across tasks #659, #660, and completed #661 — see `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
+- [ ] Harden app-wide empty, loading, and error states across tasks #659, #660, completed #661, and a cross-app merge-gate audit — see `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
 - [ ] Security hardening V1.5 — close the external-review findings and unit-test-audit gaps in one ordered workstream; see `docs/plans/security/README.md`, one file per phase under `docs/plans/security/`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`; task 704 closed finding [12], and task 706 completed Phase 8.
