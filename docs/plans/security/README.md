@@ -43,7 +43,7 @@ notes, and tests. This index carries only what's shared across all of them.
 | 6 | Fail closed on weak config | Split: [12] implemented in task 704; [6] image pinning remains open | [phase-6-fail-closed-on-weak-config.md](./phase-6-fail-closed-on-weak-config.md) |
 | 7 | Retention, redaction, budgets | Not started | [phase-7-retention-redaction-budgets.md](./phase-7-retention-redaction-budgets.md) |
 | 8 | V1 sign-off remainder | Done (2026-09-18) | [706-v1-sign-off-remainder.md](./706-v1-sign-off-remainder.md) |
-| 9 | Correctness hardening from the unit-test audit | Not started | [phase-9-correctness-hardening.md](./phase-9-correctness-hardening.md) |
+| 9 | Correctness hardening from the unit-test audit | Not started | [707-correctness-hardening-from-the-unit-test-audit.md](./707-correctness-hardening-from-the-unit-test-audit.md) |
 
 QA and promotion of the completed work in Phases 1-5 uses the
 [Phase 1-5 QA sign-off runbook](../../qa/security-hardening-phases-1-5.md). A pass there approves
