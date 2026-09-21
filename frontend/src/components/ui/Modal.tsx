@@ -71,6 +71,7 @@ export function Modal({
   className,
   bodyClassName,
   bodyStableGutter = true,
+  bodyScrollable = true,
   width = "default",
 }: {
   title: string | ReactNode;
@@ -82,6 +83,7 @@ export function Modal({
   className?: string;
   bodyClassName?: string;
   bodyStableGutter?: boolean;
+  bodyScrollable?: boolean;
   width?: "default" | "wide";
 }) {
   const titleId = useId();
@@ -156,7 +158,7 @@ export function Modal({
               ) : null}
             </div>
 
-            {children ? (
+            {children && bodyScrollable ? (
               <ScrollArea
                 stableGutter={bodyStableGutter}
                 className={
@@ -166,6 +168,8 @@ export function Modal({
               >
                 {children}
               </ScrollArea>
+            ) : children ? (
+              <div className={bodyClassName}>{children}</div>
             ) : null}
 
             {footer ? (

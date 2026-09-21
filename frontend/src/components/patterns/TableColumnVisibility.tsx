@@ -128,6 +128,7 @@ export function TableColumnVisibilityButton({
           description="Choose which table columns are shown. At least one data column must remain visible."
           onClose={() => setOpen(false)}
           bodyClassName="min-h-0"
+          bodyScrollable={false}
           bodyStableGutter={false}
         >
           <div className="gap-detail-near grid">
