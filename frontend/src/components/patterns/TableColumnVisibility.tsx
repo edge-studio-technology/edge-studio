@@ -4,6 +4,7 @@ import { Button, IconButton } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { SwitchField } from "../ui/SwitchField";
 import { Text } from "../ui/Text";
+import { cx } from "../../lib/cx";
 
 export type TableColumnDefinition = {
   id: string;
@@ -71,6 +72,7 @@ export function TableColumnVisibilityButton({
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [movedColumnId, setMovedColumnId] = useState<string | null>(null);
   const resolvedColumnOrder = useMemo(
     () => resolveColumnOrder(columns, columnOrder),
     [columns, columnOrder],
@@ -104,6 +106,7 @@ export function TableColumnVisibilityButton({
     if (index < 0 || nextIndex < 0 || nextIndex >= resolvedColumnOrder.length) return;
     const next = [...resolvedColumnOrder];
     [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+    setMovedColumnId(columnId);
     onOrderChange(next);
   }
 
@@ -132,17 +135,17 @@ export function TableColumnVisibilityButton({
               const disabledToggle =
                 column.dataColumn !== false && checked && visibleDataCount <= 1;
               return (
-                <div key={column.id} className="gap-detail-next grid grid-cols-[1fr_auto] items-center">
-                  <SwitchField
-                    label={column.label}
-                    checked={checked}
-                    disabled={disabledToggle}
-                    description={
-                      disabledToggle ? "At least one data column must stay visible." : undefined
-                    }
-                    onChange={() => toggleColumn(column)}
-                  />
-                  <div className="gap-detail-tight flex items-center">
+                <div
+                  key={column.id}
+                  className={cx(
+                    "border-stroke-secondary gap-detail-next grid grid-cols-[auto_auto_minmax(0,1fr)] items-start border-t py-detail-next first:border-t-0 first:pt-0 last:pb-0",
+                    movedColumnId === column.id && "table-column-option-moved",
+                  )}
+                  onAnimationEnd={() => {
+                    if (movedColumnId === column.id) setMovedColumnId(null);
+                  }}
+                >
+                  <div className="gap-detail-tight flex items-center pt-[2px]">
                     <IconButton
                       type="button"
                       variant="secondary"
@@ -166,6 +169,18 @@ export function TableColumnVisibilityButton({
                       <ArrowDown aria-hidden />
                     </IconButton>
                   </div>
+                  <span className="type-meta text-text-secondary min-w-5 pt-detail-tight text-right tabular-nums">
+                    {index + 1}.
+                  </span>
+                  <SwitchField
+                    label={column.label}
+                    checked={checked}
+                    disabled={disabledToggle}
+                    description={
+                      disabledToggle ? "At least one data column must stay visible." : undefined
+                    }
+                    onChange={() => toggleColumn(column)}
+                  />
                 </div>
               );
             })}
