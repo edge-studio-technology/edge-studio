@@ -51,6 +51,8 @@ const WALLET_HISTORY_COLUMNS = [
   { id: "to", label: "To" },
   { id: "status", label: "Status" },
   { id: "date", label: "Date" },
+  { id: "token", label: "Token", defaultVisible: false },
+  { id: "txpow", label: "TxPoW ID", defaultVisible: false },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
@@ -214,6 +216,8 @@ export function WalletHistoryPanel({
               {visibility.date && (
                 <TableHeaderCell className="whitespace-nowrap">Date</TableHeaderCell>
               )}
+              {visibility.token && <TableHeaderCell>Token</TableHeaderCell>}
+              {visibility.txpow && <TableHeaderCell>TxPoW ID</TableHeaderCell>}
               {visibility.actions && (
                 <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
               )}
@@ -256,6 +260,22 @@ export function WalletHistoryPanel({
                         <time className="type-meta text-text-secondary" dateTime={entry.createdAt}>
                           {formatLocalDateTime(entry.createdAt)}
                         </time>
+                      </TableCell>
+                    )}
+                    {visibility.token && (
+                      <TableCell className="max-w-48 min-w-0">
+                        <span className="block truncate" title={entry.tokenName}>
+                          {entry.tokenName}
+                        </span>
+                      </TableCell>
+                    )}
+                    {visibility.txpow && (
+                      <TableCell className="max-w-48 min-w-0">
+                        {entry.txpowId ? (
+                          <TruncatedHash value={entry.txpowId} />
+                        ) : (
+                          <span className="text-text-secondary">None</span>
+                        )}
                       </TableCell>
                     )}
                     {visibility.actions && (

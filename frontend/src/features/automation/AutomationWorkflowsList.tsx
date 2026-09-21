@@ -60,6 +60,10 @@ const WORKFLOW_COLUMNS = [
   { id: "enabled", label: "Enabled" },
   { id: "status", label: "Status" },
   { id: "lastRun", label: "Last run" },
+  { id: "source", label: "Source", defaultVisible: false },
+  { id: "blocks", label: "Blocks", defaultVisible: false },
+  { id: "nextRun", label: "Next run", defaultVisible: false },
+  { id: "lastHash", label: "Last hash", defaultVisible: false },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
@@ -176,10 +180,11 @@ export function AutomationWorkflowsList({
               {visibility.name && <TableHeaderCell>Name</TableHeaderCell>}
               {visibility.enabled && <TableHeaderCell className="w-28">Enabled</TableHeaderCell>}
               {visibility.status && <TableHeaderCell className="w-40">Status</TableHeaderCell>}
-              {/* <TableHeaderCell className="w-56">Source</TableHeaderCell> */}
-              {/* <TableHeaderCell className="w-48">Blocks</TableHeaderCell> */}
               {visibility.lastRun && <TableHeaderCell className="w-40">Last run</TableHeaderCell>}
-              {/* <TableHeaderCell className="w-40">Last hash</TableHeaderCell> */}
+              {visibility.source && <TableHeaderCell className="w-56">Source</TableHeaderCell>}
+              {visibility.blocks && <TableHeaderCell className="w-48">Blocks</TableHeaderCell>}
+              {visibility.nextRun && <TableHeaderCell className="w-40">Next run</TableHeaderCell>}
+              {visibility.lastHash && <TableHeaderCell className="w-40">Last hash</TableHeaderCell>}
               {visibility.actions && (
                 <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
               )}
@@ -226,22 +231,6 @@ export function AutomationWorkflowsList({
                         <WorkflowStatusPill workflow={workflow} />
                       </TableCell>
                     )}
-                    {/* <TableCell className="min-w-0">
-                    <span className="block truncate">
-                      {sourceName(workflowPrimarySourceId(workflow))}
-                    </span>
-                    <p className="type-meta text-text-secondary mt-detail-next m-0">
-                      {workflowIntervalSeconds(workflow) > 0
-                        ? formatInterval(workflowIntervalSeconds(workflow))
-                        : "Event driven"}
-                    </p>
-                  </TableCell> */}
-                    {/* <TableCell className="min-w-0">
-                    <span>{workflow.blocks.length}</span>
-                    <p className="type-meta text-text-secondary mt-detail-next m-0 truncate">
-                      {summarizeBlocks(workflow)}
-                    </p>
-                  </TableCell> */}
                     {visibility.lastRun && (
                       <TableCell className="whitespace-nowrap">
                         {workflow.lastRunAt ? (
@@ -256,13 +245,49 @@ export function AutomationWorkflowsList({
                         )}
                       </TableCell>
                     )}
-                    {/* <TableCell>
-                    {workflow.lastHash ? (
-                      <TruncatedHash value={workflow.lastHash} />
-                    ) : (
-                      <span className="text-text-secondary">Not read yet</span>
+                    {visibility.source && (
+                      <TableCell className="min-w-0">
+                        <span className="block truncate">
+                          {sourceName(workflowPrimarySourceId(workflow))}
+                        </span>
+                        <p className="type-meta text-text-secondary mt-detail-next m-0">
+                          {workflowIntervalSeconds(workflow) > 0
+                            ? formatInterval(workflowIntervalSeconds(workflow))
+                            : "Event driven"}
+                        </p>
+                      </TableCell>
                     )}
-                  </TableCell> */}
+                    {visibility.blocks && (
+                      <TableCell className="min-w-0">
+                        <span>{workflow.blocks.length}</span>
+                        <p className="type-meta text-text-secondary mt-detail-next m-0 truncate">
+                          {summarizeBlocks(workflow)}
+                        </p>
+                      </TableCell>
+                    )}
+                    {visibility.nextRun && (
+                      <TableCell className="whitespace-nowrap">
+                        {workflow.nextRunAt ? (
+                          <time
+                            className="text-text-secondary type-meta"
+                            dateTime={workflow.nextRunAt}
+                          >
+                            {formatLocalDateTime(workflow.nextRunAt)}
+                          </time>
+                        ) : (
+                          <span className="text-text-secondary">Not scheduled</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibility.lastHash && (
+                      <TableCell>
+                        {workflow.lastHash ? (
+                          <TruncatedHash value={workflow.lastHash} />
+                        ) : (
+                          <span className="text-text-secondary">Not read yet</span>
+                        )}
+                      </TableCell>
+                    )}
                     {visibility.actions && (
                       <TableCell className="w-px whitespace-nowrap">
                         <RowActions>

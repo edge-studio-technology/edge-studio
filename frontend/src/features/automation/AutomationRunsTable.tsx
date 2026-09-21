@@ -35,6 +35,10 @@ export const WORKFLOW_RUN_COLUMNS = [
   { id: "status", label: "Status" },
   { id: "duration", label: "Duration" },
   { id: "blocks", label: "Blocks" },
+  { id: "finished", label: "Finished", defaultVisible: false },
+  { id: "triggerSource", label: "Trigger source", defaultVisible: false },
+  { id: "error", label: "Error", defaultVisible: false },
+  { id: "runId", label: "Run ID", defaultVisible: false },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
@@ -130,6 +134,10 @@ export function AutomationRunsTable({
             {visibility.status && <TableHeaderCell>Status</TableHeaderCell>}
             {visibility.duration && <TableHeaderCell>Duration</TableHeaderCell>}
             {visibility.blocks && <TableHeaderCell>Blocks</TableHeaderCell>}
+            {visibility.finished && <TableHeaderCell>Finished</TableHeaderCell>}
+            {visibility.triggerSource && <TableHeaderCell>Trigger source</TableHeaderCell>}
+            {visibility.error && <TableHeaderCell>Error</TableHeaderCell>}
+            {visibility.runId && <TableHeaderCell>Run ID</TableHeaderCell>}
             {visibility.actions && (
               <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
             )}
@@ -174,6 +182,46 @@ export function AutomationRunsTable({
                   {visibility.blocks && (
                     <TableCell className="whitespace-nowrap">
                       {successBlocks}/{run.blockCount}
+                    </TableCell>
+                  )}
+                  {visibility.finished && (
+                    <TableCell className="whitespace-nowrap">
+                      {run.finishedAt ? (
+                        <time className="text-text-secondary type-meta" dateTime={run.finishedAt}>
+                          {formatLocalDateTime(run.finishedAt)}
+                        </time>
+                      ) : (
+                        <span className="text-text-secondary">Running</span>
+                      )}
+                    </TableCell>
+                  )}
+                  {visibility.triggerSource && (
+                    <TableCell className="max-w-44 min-w-0">
+                      {run.triggerSourceId ? (
+                        <code className="type-mono block truncate" title={run.triggerSourceId}>
+                          {run.triggerSourceId}
+                        </code>
+                      ) : (
+                        <span className="text-text-secondary">None</span>
+                      )}
+                    </TableCell>
+                  )}
+                  {visibility.error && (
+                    <TableCell className="max-w-64 min-w-0">
+                      {run.error ? (
+                        <span className="text-text-error block truncate" title={run.error}>
+                          {run.error}
+                        </span>
+                      ) : (
+                        <span className="text-text-secondary">None</span>
+                      )}
+                    </TableCell>
+                  )}
+                  {visibility.runId && (
+                    <TableCell className="max-w-44 min-w-0">
+                      <code className="type-mono block truncate" title={run.id}>
+                        {run.id}
+                      </code>
                     </TableCell>
                   )}
                   {visibility.actions && (

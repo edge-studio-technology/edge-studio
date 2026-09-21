@@ -52,6 +52,9 @@ export const PROOF_COLUMNS = [
   { id: "uid", label: "UID" },
   { id: "status", label: "Status" },
   { id: "hash", label: "Data hash" },
+  { id: "fileName", label: "File name", defaultVisible: false },
+  { id: "fileSize", label: "File size", defaultVisible: false },
+  { id: "updated", label: "Updated", defaultVisible: false },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
@@ -259,6 +262,9 @@ export function IntegritasHistoryTable({
                 {visibility.uid && <TableHeaderCell>UID</TableHeaderCell>}
                 {visibility.status && <TableHeaderCell>Status</TableHeaderCell>}
                 {visibility.hash && <TableHeaderCell>Data hash</TableHeaderCell>}
+                {visibility.fileName && <TableHeaderCell>File name</TableHeaderCell>}
+                {visibility.fileSize && <TableHeaderCell>File size</TableHeaderCell>}
+                {visibility.updated && <TableHeaderCell>Updated</TableHeaderCell>}
                 {visibility.actions && (
                   <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
                 )}
@@ -310,6 +316,28 @@ export function IntegritasHistoryTable({
                           <TruncatedHash value={record.hash} />
                         </TableCell>
                       )}
+                      {visibility.fileName && (
+                        <TableCell className="max-w-56 min-w-0">
+                          <span className="block truncate" title={record.file_name ?? undefined}>
+                            {record.file_name ?? "—"}
+                          </span>
+                        </TableCell>
+                      )}
+                      {visibility.fileSize && (
+                        <TableCell className="whitespace-nowrap">
+                          {record.file_size === null ? "—" : formatFileSize(record.file_size)}
+                        </TableCell>
+                      )}
+                      {visibility.updated && (
+                        <TableCell className="whitespace-nowrap">
+                          <time
+                            className="type-meta text-text-secondary"
+                            dateTime={record.updated_at}
+                          >
+                            {formatLocalDateTime(record.updated_at)}
+                          </time>
+                        </TableCell>
+                      )}
                       {visibility.actions && (
                         <TableCell className="w-px whitespace-nowrap">
                           <RowActions>
@@ -358,6 +386,12 @@ export function IntegritasHistoryTable({
       )}
     </div>
   );
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 /** "View details" modal — key facts, then the payload in an expandable disclosure. */

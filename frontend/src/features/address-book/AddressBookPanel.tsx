@@ -33,6 +33,7 @@ import { Modal } from "../../components/ui/Modal";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { useToast } from "../../components/ToastProvider";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
+import { formatLocalDateTime } from "../../lib/time";
 import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 import {
   createAddressBookEntry,
@@ -55,6 +56,7 @@ const ADDRESS_BOOK_COLUMNS = [
   { id: "name", label: "Name" },
   { id: "address", label: "Address" },
   { id: "notes", label: "Notes" },
+  { id: "created", label: "Created", defaultVisible: false },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
@@ -199,6 +201,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
               {visibility.name && <TableHeaderCell className="w-72">Name</TableHeaderCell>}
               {visibility.address && <TableHeaderCell className="w-40">Address</TableHeaderCell>}
               {visibility.notes && <TableHeaderCell>Notes</TableHeaderCell>}
+              {visibility.created && <TableHeaderCell className="w-40">Created</TableHeaderCell>}
               {visibility.actions && (
                 <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
               )}
@@ -221,6 +224,13 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
                       <span className="type-body text-text-secondary truncate">
                         {entry.notes || "—"}
                       </span>
+                    </TableCell>
+                  )}
+                  {visibility.created && (
+                    <TableCell className="whitespace-nowrap">
+                      <time className="type-meta text-text-secondary" dateTime={entry.created_at}>
+                        {formatLocalDateTime(entry.created_at)}
+                      </time>
                     </TableCell>
                   )}
                   {visibility.actions && (

@@ -30,6 +30,7 @@ import { TableControls } from "../../components/patterns/TableControls";
 import { Button } from "../../components/ui/Button";
 import { Disclosure } from "../../components/ui/Disclosure";
 import { Pill } from "../../components/ui/Pill";
+import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatLocalDateTime } from "../../lib/time";
 import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
@@ -54,6 +55,9 @@ const DEVICE_COLUMNS = [
   { id: "details", label: "Details" },
   { id: "status", label: "Status" },
   { id: "lastActivity", label: "Last activity" },
+  { id: "usedBy", label: "Used by workflows", defaultVisible: false },
+  { id: "created", label: "Created", defaultVisible: false },
+  { id: "lastHash", label: "Last hash", defaultVisible: false },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
@@ -195,6 +199,9 @@ export function DataSourcesList({
               {visibility.lastActivity && (
                 <TableHeaderCell className="w-32">Last activity</TableHeaderCell>
               )}
+              {visibility.usedBy && <TableHeaderCell className="w-44">Used by workflows</TableHeaderCell>}
+              {visibility.created && <TableHeaderCell className="w-40">Created</TableHeaderCell>}
+              {visibility.lastHash && <TableHeaderCell className="w-40">Last hash</TableHeaderCell>}
               {visibility.actions && (
                 <TableHeaderCell className="w-24 whitespace-nowrap">Actions</TableHeaderCell>
               )}
@@ -258,6 +265,36 @@ export function DataSourcesList({
                     {visibility.lastActivity && (
                       <TableCell>
                         <LastActivityCell source={source} />
+                      </TableCell>
+                    )}
+                    {visibility.usedBy && (
+                      <TableCell className="max-w-44 min-w-0">
+                        {usedByWorkflows.length > 0 ? (
+                          <span
+                            className="type-meta text-text-secondary block truncate"
+                            title={usedByWorkflows.map((workflow) => workflow.name).join(", ")}
+                          >
+                            {usedByWorkflows.length} {usedByWorkflows.length === 1 ? "workflow" : "workflows"}
+                          </span>
+                        ) : (
+                          <span className="text-text-secondary">None</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibility.created && (
+                      <TableCell className="whitespace-nowrap">
+                        <time className="type-meta text-text-secondary" dateTime={source.createdAt}>
+                          {formatLocalDateTime(source.createdAt)}
+                        </time>
+                      </TableCell>
+                    )}
+                    {visibility.lastHash && (
+                      <TableCell className="max-w-40 min-w-0">
+                        {source.lastHash ? (
+                          <TruncatedHash value={source.lastHash} />
+                        ) : (
+                          <span className="text-text-secondary">No hash</span>
+                        )}
                       </TableCell>
                     )}
                     {visibility.actions && (
