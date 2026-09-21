@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Minima restart setup failures now clear the temporary restarting state instead of leaving stale operation status in the UI.
+- Update Agent Docker stream requests now reject reliably when their timeout expires instead of leaving update pulls hanging.
 
 ## [Unreleased]
 
