@@ -70,6 +70,7 @@ export function Modal({
   closeDisabled = false,
   className,
   bodyClassName,
+  bodyStableGutter = true,
   width = "default",
 }: {
   title: string | ReactNode;
@@ -80,6 +81,7 @@ export function Modal({
   closeDisabled?: boolean;
   className?: string;
   bodyClassName?: string;
+  bodyStableGutter?: boolean;
   width?: "default" | "wide";
 }) {
   const titleId = useId();
@@ -156,6 +158,7 @@ export function Modal({
 
             {children ? (
               <ScrollArea
+                stableGutter={bodyStableGutter}
                 className={
                   bodyClassName ??
                   "border-stroke-secondary bg-surface-primary rounded-soft p-pad-close min-h-0 flex-1 border"

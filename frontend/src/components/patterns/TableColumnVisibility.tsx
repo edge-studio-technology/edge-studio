@@ -127,63 +127,66 @@ export function TableColumnVisibilityButton({
           title={`Choose columns for ${tableLabel}`}
           description="Choose which table columns are shown. At least one data column must remain visible."
           onClose={() => setOpen(false)}
-          bodyClassName="min-h-0 flex-1"
+          bodyClassName="max-h-[min(62vh,560px)]"
+          bodyStableGutter={false}
         >
           <div className="gap-detail-near grid">
-            {orderedColumnDefinitions.map((column, index) => {
-              const checked = visibility[column.id];
-              const disabledToggle =
-                column.dataColumn !== false && checked && visibleDataCount <= 1;
-              return (
-                <div
-                  key={column.id}
-                  className={cx(
-                    "border-stroke-secondary gap-detail-next grid grid-cols-[auto_auto_minmax(0,1fr)] items-start border-t py-detail-next first:border-t-0 first:pt-0 last:pb-0",
-                    movedColumnId === column.id && "table-column-option-moved",
-                  )}
-                  onAnimationEnd={() => {
-                    if (movedColumnId === column.id) setMovedColumnId(null);
-                  }}
-                >
-                  <div className="gap-detail-tight flex items-center pt-[2px]">
-                    <IconButton
-                      type="button"
-                      variant="secondary"
-                      size="compact"
-                      aria-label={`Move ${column.label} up`}
-                      title={`Move ${column.label} up`}
-                      disabled={!onOrderChange || index === 0}
-                      onClick={() => moveColumn(column.id, -1)}
-                    >
-                      <ArrowUp aria-hidden />
-                    </IconButton>
-                    <IconButton
-                      type="button"
-                      variant="secondary"
-                      size="compact"
-                      aria-label={`Move ${column.label} down`}
-                      title={`Move ${column.label} down`}
-                      disabled={!onOrderChange || index === orderedColumnDefinitions.length - 1}
-                      onClick={() => moveColumn(column.id, 1)}
-                    >
-                      <ArrowDown aria-hidden />
-                    </IconButton>
+            <div className="divide-stroke-secondary divide-y">
+              {orderedColumnDefinitions.map((column, index) => {
+                const checked = visibility[column.id];
+                const disabledToggle =
+                  column.dataColumn !== false && checked && visibleDataCount <= 1;
+                return (
+                  <div
+                    key={column.id}
+                    className={cx(
+                      "gap-detail-next grid grid-cols-[auto_auto_minmax(0,1fr)] items-center py-detail-next first:pt-0 last:pb-0",
+                      movedColumnId === column.id && "table-column-option-moved",
+                    )}
+                    onAnimationEnd={() => {
+                      if (movedColumnId === column.id) setMovedColumnId(null);
+                    }}
+                  >
+                    <div className="gap-detail-tight flex items-center">
+                      <IconButton
+                        type="button"
+                        variant="secondary"
+                        size="compact"
+                        aria-label={`Move ${column.label} up`}
+                        title={`Move ${column.label} up`}
+                        disabled={!onOrderChange || index === 0}
+                        onClick={() => moveColumn(column.id, -1)}
+                      >
+                        <ArrowUp aria-hidden />
+                      </IconButton>
+                      <IconButton
+                        type="button"
+                        variant="secondary"
+                        size="compact"
+                        aria-label={`Move ${column.label} down`}
+                        title={`Move ${column.label} down`}
+                        disabled={!onOrderChange || index === orderedColumnDefinitions.length - 1}
+                        onClick={() => moveColumn(column.id, 1)}
+                      >
+                        <ArrowDown aria-hidden />
+                      </IconButton>
+                    </div>
+                    <span className="type-meta text-text-secondary min-w-5 text-right tabular-nums">
+                      {index + 1}.
+                    </span>
+                    <SwitchField
+                      label={column.label}
+                      checked={checked}
+                      disabled={disabledToggle}
+                      description={
+                        disabledToggle ? "At least one data column must stay visible." : undefined
+                      }
+                      onChange={() => toggleColumn(column)}
+                    />
                   </div>
-                  <span className="type-meta text-text-secondary min-w-5 pt-detail-tight text-right tabular-nums">
-                    {index + 1}.
-                  </span>
-                  <SwitchField
-                    label={column.label}
-                    checked={checked}
-                    disabled={disabledToggle}
-                    description={
-                      disabledToggle ? "At least one data column must stay visible." : undefined
-                    }
-                    onChange={() => toggleColumn(column)}
-                  />
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
             <div className="flex justify-start">
               <Button type="button" variant="secondary" size="sm" onClick={resetToDefaultView}>
                 Reset to default view
