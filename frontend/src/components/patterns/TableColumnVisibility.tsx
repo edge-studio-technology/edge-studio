@@ -1,6 +1,6 @@
 import { Settings } from "lucide-react";
 import { useMemo, useState } from "react";
-import { IconButton } from "../ui/Button";
+import { Button, IconButton } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { SwitchField } from "../ui/SwitchField";
 import { Text } from "../ui/Text";
@@ -57,6 +57,10 @@ export function TableColumnVisibilityButton({
     onChange({ ...visibility, [column.id]: !currentlyVisible });
   }
 
+  function resetToDefaultView() {
+    onChange(resolveColumnVisibility(columns, null));
+  }
+
   return (
     <>
       <IconButton
@@ -94,6 +98,11 @@ export function TableColumnVisibilityButton({
                 />
               );
             })}
+            <div className="flex justify-start">
+              <Button type="button" variant="secondary" size="sm" onClick={resetToDefaultView}>
+                Reset to default view
+              </Button>
+            </div>
             <Text.Muted className="m-0">Changes are saved for this Edge Studio device.</Text.Muted>
           </div>
         </Modal>

@@ -89,4 +89,30 @@ describe("TableColumnVisibilityButton", () => {
     expect(screen.getByText("At least one data column must stay visible.")).toBeInTheDocument();
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it("resets columns to their default visibility", async () => {
+    const onChange = vi.fn();
+    const columnsWithHiddenDefault = [
+      ...columns,
+      { id: "created", label: "Created", defaultVisible: false },
+    ] as const satisfies readonly TableColumnDefinition[];
+    render(
+      <TableColumnVisibilityButton
+        tableLabel="Devices"
+        columns={columnsWithHiddenDefault}
+        visibility={{ name: false, status: true, actions: false, created: true }}
+        onChange={onChange}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Choose columns for Devices" }));
+    await userEvent.click(screen.getByRole("button", { name: "Reset to default view" }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      name: true,
+      status: true,
+      actions: true,
+      created: false,
+    });
+  });
 });
