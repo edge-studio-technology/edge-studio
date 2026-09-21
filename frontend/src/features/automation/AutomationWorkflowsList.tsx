@@ -17,6 +17,7 @@ import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
+  orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../components/patterns/TableColumnVisibility";
@@ -99,7 +100,10 @@ export function AutomationWorkflowsList({
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
-  const { visibility, setVisibility } = useTableColumnVisibility("workflows", WORKFLOW_COLUMNS);
+  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility("workflows", WORKFLOW_COLUMNS);
+  const visibleColumns = orderedColumns(WORKFLOW_COLUMNS, columnOrder).filter(
+    (column) => visibility[column.id],
+  );
 
   const sourceName = (id: string) =>
     sources.find((source) => source.id === id)?.name ?? "Unknown source";
@@ -128,7 +132,9 @@ export function AutomationWorkflowsList({
             tableLabel="Workflows"
             columns={WORKFLOW_COLUMNS}
             visibility={visibility}
+            columnOrder={columnOrder}
             onChange={setVisibility}
+            onOrderChange={setColumnOrder}
           />
         }
       >
@@ -177,17 +183,11 @@ export function AutomationWorkflowsList({
         <TableWrap>
           <DataTable>
             <TableHead>
-              {visibility.name && <TableHeaderCell>Name</TableHeaderCell>}
-              {visibility.enabled && <TableHeaderCell className="w-28">Enabled</TableHeaderCell>}
-              {visibility.status && <TableHeaderCell className="w-40">Status</TableHeaderCell>}
-              {visibility.lastRun && <TableHeaderCell className="w-40">Last run</TableHeaderCell>}
-              {visibility.source && <TableHeaderCell className="w-56">Source</TableHeaderCell>}
-              {visibility.blocks && <TableHeaderCell className="w-48">Blocks</TableHeaderCell>}
-              {visibility.nextRun && <TableHeaderCell className="w-40">Next run</TableHeaderCell>}
-              {visibility.lastHash && <TableHeaderCell className="w-40">Last hash</TableHeaderCell>}
-              {visibility.actions && (
-                <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-              )}
+              {visibleColumns.map((column) => (
+                <TableHeaderCell key={column.id} className={workflowHeaderClass(column.id)}>
+                  {column.label}
+                </TableHeaderCell>
+              ))}
             </TableHead>
             <TableBody>
               {pagedWorkflows.map((workflow) => {
@@ -195,145 +195,22 @@ export function AutomationWorkflowsList({
                 const inlineError = workflow.lastError ?? validationError;
                 return (
                   <TableRow key={workflow.id}>
-                    {visibility.name && (
-                      <TableCell className="min-w-0">
-                        <span className="type-body-em block truncate" title={workflow.name}>
-                          {workflow.name}
-                        </span>
-                        {inlineError && (
-                          <p
-                            className="type-meta text-text-error mt-detail-next m-0 truncate"
-                            title={inlineError}
-                          >
-                            {inlineError}
-                          </p>
-                        )}
-                        {workflow.archived && (
-                          <p className="type-meta text-text-secondary mt-detail-next m-0">
-                            Archived, does not run until restored.
-                          </p>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibility.enabled && (
-                      <TableCell>
-                        <SwitchField
-                          aria-label={`${workflow.enabled ? "Disable" : "Enable"} ${workflow.name}`}
-                          checked={workflow.enabled}
-                          disabled={busy || workflow.archived}
-                          className="min-w-0"
-                          onChange={() => onToggleEnabled(workflow)}
-                        />
-                      </TableCell>
-                    )}
-                    {visibility.status && (
-                      <TableCell>
-                        <WorkflowStatusPill workflow={workflow} />
-                      </TableCell>
-                    )}
-                    {visibility.lastRun && (
-                      <TableCell className="whitespace-nowrap">
-                        {workflow.lastRunAt ? (
-                          <time
-                            className="text-text-secondary type-meta"
-                            dateTime={workflow.lastRunAt}
-                          >
-                            {formatLocalDateTime(workflow.lastRunAt)}
-                          </time>
-                        ) : (
-                          <span className="text-text-secondary">Never</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibility.source && (
-                      <TableCell className="min-w-0">
-                        <span className="block truncate">
-                          {sourceName(workflowPrimarySourceId(workflow))}
-                        </span>
-                        <p className="type-meta text-text-secondary mt-detail-next m-0">
-                          {workflowIntervalSeconds(workflow) > 0
-                            ? formatInterval(workflowIntervalSeconds(workflow))
-                            : "Event driven"}
-                        </p>
-                      </TableCell>
-                    )}
-                    {visibility.blocks && (
-                      <TableCell className="min-w-0">
-                        <span>{workflow.blocks.length}</span>
-                        <p className="type-meta text-text-secondary mt-detail-next m-0 truncate">
-                          {summarizeBlocks(workflow)}
-                        </p>
-                      </TableCell>
-                    )}
-                    {visibility.nextRun && (
-                      <TableCell className="whitespace-nowrap">
-                        {workflow.nextRunAt ? (
-                          <time
-                            className="text-text-secondary type-meta"
-                            dateTime={workflow.nextRunAt}
-                          >
-                            {formatLocalDateTime(workflow.nextRunAt)}
-                          </time>
-                        ) : (
-                          <span className="text-text-secondary">Not scheduled</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibility.lastHash && (
-                      <TableCell>
-                        {workflow.lastHash ? (
-                          <TruncatedHash value={workflow.lastHash} />
-                        ) : (
-                          <span className="text-text-secondary">Not read yet</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibility.actions && (
-                      <TableCell className="w-px whitespace-nowrap">
-                        <RowActions>
-                          <TableIconButton
-                            type="button"
-                            disabled={busy}
-                            title="Edit workflow"
-                            aria-label={`Edit ${workflow.name}`}
-                            onClick={() => onEdit(workflow)}
-                          >
-                            <Pencil size={16} aria-hidden />
-                          </TableIconButton>
-                          <TableIconMenu
-                            aria-label={`More actions for ${workflow.name}`}
-                            items={[
-                              {
-                                label: "Run now",
-                                disabled: busy || workflow.archived,
-                                onClick: () => onRunNow(workflow),
-                              },
-                              // {
-                              //   label: "Watch workflow",
-                              //   disabled: busy,
-                              //   onClick: () => onWatch(workflow),
-                              // },
-                              {
-                                label: "Duplicate",
-                                disabled: busy,
-                                onClick: () => onDuplicate(workflow),
-                              },
-                              {
-                                label: workflow.archived ? "Restore" : "Archive",
-                                disabled: busy,
-                                onClick: () => onToggleArchive(workflow),
-                              },
-                              {
-                                label: "Delete",
-                                danger: true,
-                                disabled: busy,
-                                onClick: () => onDelete(workflow),
-                              },
-                            ]}
-                          />
-                        </RowActions>
-                      </TableCell>
-                    )}
+                    {visibleColumns.map((column) => (
+                      <WorkflowCell
+                        key={column.id}
+                        columnId={column.id}
+                        workflow={workflow}
+                        inlineError={inlineError}
+                        busy={busy}
+                        sourceName={sourceName}
+                        onToggleEnabled={() => onToggleEnabled(workflow)}
+                        onEdit={() => onEdit(workflow)}
+                        onRunNow={() => onRunNow(workflow)}
+                        onDuplicate={() => onDuplicate(workflow)}
+                        onToggleArchive={() => onToggleArchive(workflow)}
+                        onDelete={() => onDelete(workflow)}
+                      />
+                    ))}
                   </TableRow>
                 );
               })}
@@ -357,4 +234,119 @@ export function AutomationWorkflowsList({
       />
     </Card>
   );
+}
+
+function workflowHeaderClass(columnId: string) {
+  if (columnId === "enabled") return "w-28";
+  if (columnId === "status" || columnId === "lastRun" || columnId === "nextRun" || columnId === "lastHash") return "w-40";
+  if (columnId === "source") return "w-56";
+  if (columnId === "blocks") return "w-48";
+  if (columnId === "actions") return "w-px whitespace-nowrap";
+  return undefined;
+}
+
+function WorkflowCell({
+  columnId,
+  workflow,
+  inlineError,
+  busy,
+  sourceName,
+  onToggleEnabled,
+  onEdit,
+  onRunNow,
+  onDuplicate,
+  onToggleArchive,
+  onDelete,
+}: {
+  columnId: string;
+  workflow: AutomationWorkflow;
+  inlineError: string | null;
+  busy: boolean;
+  sourceName: (id: string) => string;
+  onToggleEnabled: () => void;
+  onEdit: () => void;
+  onRunNow: () => void;
+  onDuplicate: () => void;
+  onToggleArchive: () => void;
+  onDelete: () => void;
+}) {
+  if (columnId === "name") {
+    return (
+      <TableCell className="min-w-0">
+        <span className="type-body-em block truncate" title={workflow.name}>{workflow.name}</span>
+        {inlineError && <p className="type-meta text-text-error mt-detail-next m-0 truncate" title={inlineError}>{inlineError}</p>}
+        {workflow.archived && <p className="type-meta text-text-secondary mt-detail-next m-0">Archived, does not run until restored.</p>}
+      </TableCell>
+    );
+  }
+  if (columnId === "enabled") {
+    return (
+      <TableCell>
+        <SwitchField
+          aria-label={`${workflow.enabled ? "Disable" : "Enable"} ${workflow.name}`}
+          checked={workflow.enabled}
+          disabled={busy || workflow.archived}
+          className="min-w-0"
+          onChange={onToggleEnabled}
+        />
+      </TableCell>
+    );
+  }
+  if (columnId === "status") return <TableCell><WorkflowStatusPill workflow={workflow} /></TableCell>;
+  if (columnId === "lastRun") {
+    return (
+      <TableCell className="whitespace-nowrap">
+        {workflow.lastRunAt ? <time className="text-text-secondary type-meta" dateTime={workflow.lastRunAt}>{formatLocalDateTime(workflow.lastRunAt)}</time> : <span className="text-text-secondary">Never</span>}
+      </TableCell>
+    );
+  }
+  if (columnId === "source") {
+    return (
+      <TableCell className="min-w-0">
+        <span className="block truncate">{sourceName(workflowPrimarySourceId(workflow))}</span>
+        <p className="type-meta text-text-secondary mt-detail-next m-0">
+          {workflowIntervalSeconds(workflow) > 0 ? formatInterval(workflowIntervalSeconds(workflow)) : "Event driven"}
+        </p>
+      </TableCell>
+    );
+  }
+  if (columnId === "blocks") {
+    return (
+      <TableCell className="min-w-0">
+        <span>{workflow.blocks.length}</span>
+        <p className="type-meta text-text-secondary mt-detail-next m-0 truncate">{summarizeBlocks(workflow)}</p>
+      </TableCell>
+    );
+  }
+  if (columnId === "nextRun") {
+    return (
+      <TableCell className="whitespace-nowrap">
+        {workflow.nextRunAt ? <time className="text-text-secondary type-meta" dateTime={workflow.nextRunAt}>{formatLocalDateTime(workflow.nextRunAt)}</time> : <span className="text-text-secondary">Not scheduled</span>}
+      </TableCell>
+    );
+  }
+  if (columnId === "lastHash") {
+    return <TableCell>{workflow.lastHash ? <TruncatedHash value={workflow.lastHash} /> : <span className="text-text-secondary">Not read yet</span>}</TableCell>;
+  }
+  if (columnId === "actions") {
+    return (
+      <TableCell className="w-px whitespace-nowrap">
+        <RowActions>
+          <TableIconButton type="button" disabled={busy} title="Edit workflow" aria-label={`Edit ${workflow.name}`} onClick={onEdit}>
+            <Pencil size={16} aria-hidden />
+          </TableIconButton>
+          <TableIconMenu
+            aria-label={`More actions for ${workflow.name}`}
+            items={[
+              { label: "Run now", disabled: busy || workflow.archived, onClick: onRunNow },
+              { label: "Duplicate", disabled: busy, onClick: onDuplicate },
+              { label: workflow.archived ? "Restore" : "Archive", disabled: busy, onClick: onToggleArchive },
+              { label: "Delete", danger: true, disabled: busy, onClick: onDelete },
+            ]}
+          />
+        </RowActions>
+      </TableCell>
+    );
+  }
+  return null;
 }

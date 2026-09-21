@@ -323,21 +323,27 @@ export function DiagnosticsPage() {
         tableLabel="Proof history"
         columns={PROOF_COLUMNS}
         visibility={proofColumns.visibility}
+        columnOrder={proofColumns.columnOrder}
         onChange={proofColumns.setVisibility}
+        onOrderChange={proofColumns.setColumnOrder}
       />
     ) : activeTab === "reads" ? (
       <TableColumnVisibilityButton
         tableLabel="Read history"
         columns={READ_COLUMNS}
         visibility={readColumns.visibility}
+        columnOrder={readColumns.columnOrder}
         onChange={readColumns.setVisibility}
+        onOrderChange={readColumns.setColumnOrder}
       />
     ) : (
       <TableColumnVisibilityButton
         tableLabel="Workflow logs"
         columns={WORKFLOW_RUN_COLUMNS}
         visibility={workflowRunColumns.visibility}
+        columnOrder={workflowRunColumns.columnOrder}
         onChange={workflowRunColumns.setVisibility}
+        onOrderChange={workflowRunColumns.setColumnOrder}
       />
     );
 
@@ -400,7 +406,9 @@ export function DiagnosticsPage() {
             filtered={listFiltered}
             loading={tabLoading}
             columnVisibility={proofColumns.visibility}
+            columnOrder={proofColumns.columnOrder}
             onColumnVisibilityChange={proofColumns.setVisibility}
+            onColumnOrderChange={proofColumns.setColumnOrder}
             showColumnControls={false}
             onClearFilters={() => updateListQuery({ status: "", q: "" })}
             busy={busy}
@@ -471,7 +479,9 @@ export function DiagnosticsPage() {
             filtered={listFiltered}
             loading={tabLoading}
             columnVisibility={readColumns.visibility}
+            columnOrder={readColumns.columnOrder}
             onColumnVisibilityChange={readColumns.setVisibility}
+            onColumnOrderChange={readColumns.setColumnOrder}
             showColumnControls={false}
             onClearFilters={() => updateListQuery({ status: "", q: "" })}
           />
@@ -481,7 +491,9 @@ export function DiagnosticsPage() {
             filtered={listFiltered}
             loading={tabLoading}
             columnVisibility={workflowRunColumns.visibility}
+            columnOrder={workflowRunColumns.columnOrder}
             onColumnVisibilityChange={workflowRunColumns.setVisibility}
+            onColumnOrderChange={workflowRunColumns.setColumnOrder}
             showColumnControls={false}
             onClearFilters={() => updateListQuery({ status: "", q: "" })}
           />

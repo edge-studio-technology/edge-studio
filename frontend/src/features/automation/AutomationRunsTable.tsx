@@ -16,8 +16,10 @@ import {
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
+  orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
+  type TableColumnOrder,
   type TableColumnVisibility,
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
@@ -49,7 +51,9 @@ export function AutomationRunsTable({
   loading = false,
   onClearFilters,
   columnVisibility,
+  columnOrder: controlledColumnOrder,
   onColumnVisibilityChange,
+  onColumnOrderChange,
   showColumnControls = true,
 }: {
   runs: AutomationRun[];
@@ -58,7 +62,9 @@ export function AutomationRunsTable({
   loading?: boolean;
   onClearFilters?: () => void;
   columnVisibility?: TableColumnVisibility;
+  columnOrder?: TableColumnOrder;
   onColumnVisibilityChange?: (next: TableColumnVisibility) => void;
+  onColumnOrderChange?: (next: TableColumnOrder) => void;
   showColumnControls?: boolean;
 }) {
   const [inspectRunId, setInspectRunId] = useState<string | null>(null);
@@ -72,7 +78,10 @@ export function AutomationRunsTable({
   );
   const visibility = columnVisibility ?? internalColumns.visibility;
   const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
-  const visibleColumnCount = columns.filter((column) => visibility[column.id]).length;
+  const columnOrder = controlledColumnOrder ?? internalColumns.columnOrder;
+  const setColumnOrder = onColumnOrderChange ?? internalColumns.setColumnOrder;
+  const visibleColumns = orderedColumns(columns, columnOrder).filter((column) => visibility[column.id]);
+  const visibleColumnCount = visibleColumns.length;
 
   const controls = showColumnControls ? (
     <TableControls
@@ -81,7 +90,9 @@ export function AutomationRunsTable({
           tableLabel={compact ? "Workflow runs" : "Workflow logs"}
           columns={columns}
           visibility={visibility}
+          columnOrder={columnOrder}
           onChange={setVisibility}
+          onOrderChange={setColumnOrder}
         />
       }
     />
@@ -126,21 +137,14 @@ export function AutomationRunsTable({
           className={visibleColumnCount > 3 ? "min-w-245" : undefined}
         >
           <TableHead>
-            {visibility.started && (
-              <TableHeaderCell className="whitespace-nowrap">Started</TableHeaderCell>
-            )}
-            {!compact && visibility.workflow && <TableHeaderCell>Workflow</TableHeaderCell>}
-            {visibility.trigger && <TableHeaderCell>Trigger</TableHeaderCell>}
-            {visibility.status && <TableHeaderCell>Status</TableHeaderCell>}
-            {visibility.duration && <TableHeaderCell>Duration</TableHeaderCell>}
-            {visibility.blocks && <TableHeaderCell>Blocks</TableHeaderCell>}
-            {visibility.finished && <TableHeaderCell>Finished</TableHeaderCell>}
-            {visibility.triggerSource && <TableHeaderCell>Trigger source</TableHeaderCell>}
-            {visibility.error && <TableHeaderCell>Error</TableHeaderCell>}
-            {visibility.runId && <TableHeaderCell>Run ID</TableHeaderCell>}
-            {visibility.actions && (
-              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-            )}
+            {visibleColumns.map((column) => (
+              <TableHeaderCell
+                key={column.id}
+                className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
+              >
+                {column.label}
+              </TableHeaderCell>
+            ))}
           </TableHead>
           <TableBody>
             {runs.map((run) => {
@@ -148,87 +152,16 @@ export function AutomationRunsTable({
               const successBlocks = run.blocks.filter((block) => block.status === "success").length;
               return (
                 <TableRow key={run.id}>
-                  {visibility.started && (
-                    <TableCell className="whitespace-nowrap">
-                      <time className="text-text-secondary type-meta" dateTime={run.startedAt}>
-                        {formatLocalDateTime(run.startedAt)}
-                      </time>
-                    </TableCell>
-                  )}
-                  {!compact && visibility.workflow && (
-                    <TableCell className="max-w-56 min-w-0">
-                      <span className="type-body-em text-text-primary block truncate">
-                        {run.workflowName}
-                      </span>
-                    </TableCell>
-                  )}
-                  {visibility.trigger && (
-                    <TableCell>
-                      <Pill>{run.triggerType}</Pill>
-                    </TableCell>
-                  )}
-                  {visibility.status && (
-                    <TableCell>
-                      <Pill tone={status.tone} indicator>
-                        {status.label}
-                      </Pill>
-                    </TableCell>
-                  )}
-                  {visibility.duration && (
-                    <TableCell className="whitespace-nowrap">
-                      {formatRunDuration(run.durationMs)}
-                    </TableCell>
-                  )}
-                  {visibility.blocks && (
-                    <TableCell className="whitespace-nowrap">
-                      {successBlocks}/{run.blockCount}
-                    </TableCell>
-                  )}
-                  {visibility.finished && (
-                    <TableCell className="whitespace-nowrap">
-                      {run.finishedAt ? (
-                        <time className="text-text-secondary type-meta" dateTime={run.finishedAt}>
-                          {formatLocalDateTime(run.finishedAt)}
-                        </time>
-                      ) : (
-                        <span className="text-text-secondary">Running</span>
-                      )}
-                    </TableCell>
-                  )}
-                  {visibility.triggerSource && (
-                    <TableCell className="max-w-44 min-w-0">
-                      {run.triggerSourceId ? (
-                        <code className="type-mono block truncate" title={run.triggerSourceId}>
-                          {run.triggerSourceId}
-                        </code>
-                      ) : (
-                        <span className="text-text-secondary">None</span>
-                      )}
-                    </TableCell>
-                  )}
-                  {visibility.error && (
-                    <TableCell className="max-w-64 min-w-0">
-                      {run.error ? (
-                        <span className="text-text-error block truncate" title={run.error}>
-                          {run.error}
-                        </span>
-                      ) : (
-                        <span className="text-text-secondary">None</span>
-                      )}
-                    </TableCell>
-                  )}
-                  {visibility.runId && (
-                    <TableCell className="max-w-44 min-w-0">
-                      <code className="type-mono block truncate" title={run.id}>
-                        {run.id}
-                      </code>
-                    </TableCell>
-                  )}
-                  {visibility.actions && (
-                    <TableCell className="w-px whitespace-nowrap">
-                      <RunRowActions run={run} onView={() => setInspectRunId(run.id)} />
-                    </TableCell>
-                  )}
+                  {visibleColumns.map((column) => (
+                    <WorkflowRunCell
+                      key={column.id}
+                      columnId={column.id}
+                      run={run}
+                      status={status}
+                      successBlocks={successBlocks}
+                      onView={() => setInspectRunId(run.id)}
+                    />
+                  ))}
                 </TableRow>
               );
             })}
@@ -241,6 +174,101 @@ export function AutomationRunsTable({
       ) : null}
     </>
   );
+}
+
+function WorkflowRunCell({
+  columnId,
+  run,
+  status,
+  successBlocks,
+  onView,
+}: {
+  columnId: string;
+  run: AutomationRun;
+  status: (typeof RUN_STATUS)[AutomationRun["status"]];
+  successBlocks: number;
+  onView: () => void;
+}) {
+  if (columnId === "started") {
+    return (
+      <TableCell className="whitespace-nowrap">
+        <time className="text-text-secondary type-meta" dateTime={run.startedAt}>
+          {formatLocalDateTime(run.startedAt)}
+        </time>
+      </TableCell>
+    );
+  }
+  if (columnId === "workflow") {
+    return (
+      <TableCell className="max-w-56 min-w-0">
+        <span className="type-body-em text-text-primary block truncate">{run.workflowName}</span>
+      </TableCell>
+    );
+  }
+  if (columnId === "trigger") {
+    return (
+      <TableCell>
+        <Pill>{run.triggerType}</Pill>
+      </TableCell>
+    );
+  }
+  if (columnId === "status") {
+    return (
+      <TableCell>
+        <Pill tone={status.tone} indicator>
+          {status.label}
+        </Pill>
+      </TableCell>
+    );
+  }
+  if (columnId === "duration") return <TableCell className="whitespace-nowrap">{formatRunDuration(run.durationMs)}</TableCell>;
+  if (columnId === "blocks") return <TableCell className="whitespace-nowrap">{successBlocks}/{run.blockCount}</TableCell>;
+  if (columnId === "finished") {
+    return (
+      <TableCell className="whitespace-nowrap">
+        {run.finishedAt ? (
+          <time className="text-text-secondary type-meta" dateTime={run.finishedAt}>
+            {formatLocalDateTime(run.finishedAt)}
+          </time>
+        ) : (
+          <span className="text-text-secondary">Running</span>
+        )}
+      </TableCell>
+    );
+  }
+  if (columnId === "triggerSource") {
+    return (
+      <TableCell className="max-w-44 min-w-0">
+        {run.triggerSourceId ? (
+          <code className="type-mono block truncate" title={run.triggerSourceId}>{run.triggerSourceId}</code>
+        ) : (
+          <span className="text-text-secondary">None</span>
+        )}
+      </TableCell>
+    );
+  }
+  if (columnId === "error") {
+    return (
+      <TableCell className="max-w-64 min-w-0">
+        {run.error ? <span className="text-text-error block truncate" title={run.error}>{run.error}</span> : <span className="text-text-secondary">None</span>}
+      </TableCell>
+    );
+  }
+  if (columnId === "runId") {
+    return (
+      <TableCell className="max-w-44 min-w-0">
+        <code className="type-mono block truncate" title={run.id}>{run.id}</code>
+      </TableCell>
+    );
+  }
+  if (columnId === "actions") {
+    return (
+      <TableCell className="w-px whitespace-nowrap">
+        <RunRowActions run={run} onView={onView} />
+      </TableCell>
+    );
+  }
+  return null;
 }
 
 function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void }) {

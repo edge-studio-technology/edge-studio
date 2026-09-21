@@ -22,7 +22,19 @@ describe("parseTableColumnPreferences", () => {
         devices: { name: true, details: false, invalid: "yes" },
         bad: "value",
       }),
-      { devices: { name: true, details: false } },
+      { devices: { visibility: { name: true, details: false }, order: [] } },
+    );
+  });
+
+  it("keeps visibility and order preferences and drops invalid values", () => {
+    assert.deepEqual(
+      service.parseTableColumnPreferences({
+        devices: {
+          visibility: { name: true, details: false, invalid: "yes" },
+          order: ["details", "name", 123],
+        },
+      }),
+      { devices: { visibility: { name: true, details: false }, order: ["details", "name"] } },
     );
   });
 
@@ -35,12 +47,14 @@ describe("parseTableColumnPreferences", () => {
 describe("table column preferences storage", () => {
   it("saves and loads sanitized preferences", () => {
     const saved = service.saveTableColumnPreferences({
-      workflows: { name: true, enabled: false, count: 1 },
+      workflows: { visibility: { name: true, enabled: false, count: 1 }, order: ["enabled", "name"] },
     });
 
-    assert.deepEqual(saved, { workflows: { name: true, enabled: false } });
+    assert.deepEqual(saved, {
+      workflows: { visibility: { name: true, enabled: false }, order: ["enabled", "name"] },
+    });
     assert.deepEqual(service.getTableColumnPreferences(), {
-      workflows: { name: true, enabled: false },
+      workflows: { visibility: { name: true, enabled: false }, order: ["enabled", "name"] },
     });
   });
 });

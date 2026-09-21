@@ -20,6 +20,7 @@ import { ListPaginationFooter } from "../../components/patterns/ListPaginationFo
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
+  orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../components/patterns/TableColumnVisibility";
@@ -86,9 +87,12 @@ export function WalletHistoryPanel({
     null,
   );
   const [debugClearingHistory, setDebugClearingHistory] = useState(false);
-  const { visibility, setVisibility } = useTableColumnVisibility(
+  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility(
     "wallet-history",
     WALLET_HISTORY_COLUMNS,
+  );
+  const visibleColumns = orderedColumns(WALLET_HISTORY_COLUMNS, columnOrder).filter(
+    (column) => visibility[column.id],
   );
   const isDev = import.meta.env.DEV;
 
@@ -151,7 +155,9 @@ export function WalletHistoryPanel({
             tableLabel="Send history"
             columns={WALLET_HISTORY_COLUMNS}
             visibility={visibility}
+            columnOrder={columnOrder}
             onChange={setVisibility}
+            onOrderChange={setColumnOrder}
           />
         }
       >
@@ -210,17 +216,14 @@ export function WalletHistoryPanel({
         <TableWrap>
           <DataTable aria-label="Send history">
             <TableHead>
-              {visibility.amount && <TableHeaderCell>Amount</TableHeaderCell>}
-              {visibility.to && <TableHeaderCell>To</TableHeaderCell>}
-              {visibility.status && <TableHeaderCell>Status</TableHeaderCell>}
-              {visibility.date && (
-                <TableHeaderCell className="whitespace-nowrap">Date</TableHeaderCell>
-              )}
-              {visibility.token && <TableHeaderCell>Token</TableHeaderCell>}
-              {visibility.txpow && <TableHeaderCell>TxPoW ID</TableHeaderCell>}
-              {visibility.actions && (
-                <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-              )}
+              {visibleColumns.map((column) => (
+                <TableHeaderCell
+                  key={column.id}
+                  className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
+                >
+                  {column.label}
+                </TableHeaderCell>
+              ))}
             </TableHead>
             <TableBody>
               {pagedHistory.map((entry) => {
@@ -228,70 +231,16 @@ export function WalletHistoryPanel({
                 const toShort = shortHash(entry.toAddress);
                 return (
                   <TableRow key={entry.id}>
-                    {visibility.amount && (
-                      <TableCell className="min-w-0">
-                        <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
-                          <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
-                          <span className="gap-detail-tight flex min-w-0 flex-col">
-                            <span className="type-mono text-text-primary truncate tabular-nums">
-                              {amountLabel}
-                            </span>
-                            {/* <span className="type-meta text-text-secondary truncate">
-                            {entry.tokenName}
-                          </span> */}
-                          </span>
-                        </span>
-                      </TableCell>
-                    )}
-                    {visibility.to && (
-                      <TableCell className="min-w-0">
-                        <TruncatedHash value={entry.toAddress} />
-                      </TableCell>
-                    )}
-                    {visibility.status && (
-                      <TableCell>
-                        <Pill tone={historyStatusTone(entry.status)} indicator>
-                          {historyStatusLabel(entry.status)}
-                        </Pill>
-                      </TableCell>
-                    )}
-                    {visibility.date && (
-                      <TableCell className="whitespace-nowrap">
-                        <time className="type-meta text-text-secondary" dateTime={entry.createdAt}>
-                          {formatLocalDateTime(entry.createdAt)}
-                        </time>
-                      </TableCell>
-                    )}
-                    {visibility.token && (
-                      <TableCell className="max-w-48 min-w-0">
-                        <span className="block truncate" title={entry.tokenName}>
-                          {entry.tokenName}
-                        </span>
-                      </TableCell>
-                    )}
-                    {visibility.txpow && (
-                      <TableCell className="max-w-48 min-w-0">
-                        {entry.txpowId ? (
-                          <TruncatedHash value={entry.txpowId} />
-                        ) : (
-                          <span className="text-text-secondary">None</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibility.actions && (
-                      <TableCell className="w-px whitespace-nowrap">
-                        <RowActions>
-                          <TableIconButton
-                            type="button"
-                            title="View details"
-                            aria-label={`View send of ${amountLabel} ${entry.tokenName} to ${toShort}`}
-                            onClick={() => setSelectedHistoryItem(entry)}
-                          >
-                            <Eye size={16} aria-hidden />
-                          </TableIconButton>
-                        </RowActions>
-                      </TableCell>
-                    )}
+                    {visibleColumns.map((column) => (
+                      <WalletHistoryCell
+                        key={column.id}
+                        columnId={column.id}
+                        entry={entry}
+                        amountLabel={amountLabel}
+                        toShort={toShort}
+                        onView={() => setSelectedHistoryItem(entry)}
+                      />
+                    ))}
                   </TableRow>
                 );
               })}
@@ -337,4 +286,73 @@ export function WalletHistoryPanel({
       ) : null}
     </div>
   );
+}
+
+function WalletHistoryCell({
+  columnId,
+  entry,
+  amountLabel,
+  toShort,
+  onView,
+}: {
+  columnId: string;
+  entry: WalletSendHistoryItem;
+  amountLabel: string;
+  toShort: string;
+  onView: () => void;
+}) {
+  if (columnId === "amount") {
+    return (
+      <TableCell className="min-w-0">
+        <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
+          <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
+          <span className="gap-detail-tight flex min-w-0 flex-col">
+            <span className="type-mono text-text-primary truncate tabular-nums">{amountLabel}</span>
+          </span>
+        </span>
+      </TableCell>
+    );
+  }
+  if (columnId === "to") return <TableCell className="min-w-0"><TruncatedHash value={entry.toAddress} /></TableCell>;
+  if (columnId === "status") {
+    return (
+      <TableCell>
+        <Pill tone={historyStatusTone(entry.status)} indicator>
+          {historyStatusLabel(entry.status)}
+        </Pill>
+      </TableCell>
+    );
+  }
+  if (columnId === "date") {
+    return (
+      <TableCell className="whitespace-nowrap">
+        <time className="type-meta text-text-secondary" dateTime={entry.createdAt}>{formatLocalDateTime(entry.createdAt)}</time>
+      </TableCell>
+    );
+  }
+  if (columnId === "token") return <TableCell className="max-w-48 min-w-0"><span className="block truncate" title={entry.tokenName}>{entry.tokenName}</span></TableCell>;
+  if (columnId === "txpow") {
+    return (
+      <TableCell className="max-w-48 min-w-0">
+        {entry.txpowId ? <TruncatedHash value={entry.txpowId} /> : <span className="text-text-secondary">None</span>}
+      </TableCell>
+    );
+  }
+  if (columnId === "actions") {
+    return (
+      <TableCell className="w-px whitespace-nowrap">
+        <RowActions>
+          <TableIconButton
+            type="button"
+            title="View details"
+            aria-label={`View send of ${amountLabel} ${entry.tokenName} to ${toShort}`}
+            onClick={onView}
+          >
+            <Eye size={16} aria-hidden />
+          </TableIconButton>
+        </RowActions>
+      </TableCell>
+    );
+  }
+  return null;
 }

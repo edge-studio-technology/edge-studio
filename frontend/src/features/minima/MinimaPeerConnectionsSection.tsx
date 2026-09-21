@@ -39,7 +39,7 @@ export function MinimaPeerConnectionsSection({
   onAddPeers: () => void;
 }) {
   const peerItems = peers?.peers ?? [];
-  const { visibility, setVisibility } = useTableColumnVisibility("minima-peers", PEER_COLUMNS);
+  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility("minima-peers", PEER_COLUMNS);
 
   return (
     <SubSection
@@ -73,7 +73,9 @@ export function MinimaPeerConnectionsSection({
                 tableLabel="Peers"
                 columns={PEER_COLUMNS}
                 visibility={visibility}
+                columnOrder={columnOrder}
                 onChange={setVisibility}
+                onOrderChange={setColumnOrder}
               />
             }
           >

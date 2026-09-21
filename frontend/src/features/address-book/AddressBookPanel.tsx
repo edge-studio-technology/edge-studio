@@ -23,6 +23,7 @@ import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
+  orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../components/patterns/TableColumnVisibility";
@@ -79,9 +80,12 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
   const [editEntry, setEditEntry] = useState<AddressBookEntry | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AddressBookEntry | null>(null);
   const [deletingEntry, setDeletingEntry] = useState<AddressBookEntry | null>(null);
-  const { visibility, setVisibility } = useTableColumnVisibility(
+  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility(
     "address-book",
     ADDRESS_BOOK_COLUMNS,
+  );
+  const visibleColumns = orderedColumns(ADDRESS_BOOK_COLUMNS, columnOrder).filter(
+    (column) => visibility[column.id],
   );
 
   useEffect(() => {
@@ -143,7 +147,9 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
             tableLabel="Address book"
             columns={ADDRESS_BOOK_COLUMNS}
             visibility={visibility}
+            columnOrder={columnOrder}
             onChange={setVisibility}
+            onOrderChange={setColumnOrder}
           />
         }
       >
@@ -198,69 +204,28 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         <TableWrap>
           <DataTable aria-label="Address book">
             <TableHead>
-              {visibility.name && <TableHeaderCell className="w-72">Name</TableHeaderCell>}
-              {visibility.address && <TableHeaderCell className="w-40">Address</TableHeaderCell>}
-              {visibility.notes && <TableHeaderCell>Notes</TableHeaderCell>}
-              {visibility.created && <TableHeaderCell className="w-40">Created</TableHeaderCell>}
-              {visibility.actions && (
-                <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-              )}
+              {visibleColumns.map((column) => (
+                <TableHeaderCell
+                  key={column.id}
+                  className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
+                >
+                  {column.label}
+                </TableHeaderCell>
+              ))}
             </TableHead>
             <TableBody>
               {pagedEntries.map((entry) => (
                 <TableRow key={entry.id}>
-                  {visibility.name && (
-                    <TableCell className="min-w-0">
-                      <span className="type-body-em text-text-primary truncate">{entry.label}</span>
-                    </TableCell>
-                  )}
-                  {visibility.address && (
-                    <TableCell className="min-w-0">
-                      <TruncatedHash value={entry.address} />
-                    </TableCell>
-                  )}
-                  {visibility.notes && (
-                    <TableCell className="min-w-0">
-                      <span className="type-body text-text-secondary truncate">
-                        {entry.notes || "—"}
-                      </span>
-                    </TableCell>
-                  )}
-                  {visibility.created && (
-                    <TableCell className="whitespace-nowrap">
-                      <time className="type-meta text-text-secondary" dateTime={entry.created_at}>
-                        {formatLocalDateTime(entry.created_at)}
-                      </time>
-                    </TableCell>
-                  )}
-                  {visibility.actions && (
-                    <TableCell className="w-px whitespace-nowrap">
-                      <RowActions>
-                        <TableIconButton
-                          type="button"
-                          title="View contact"
-                          aria-label={`View ${entry.label}`}
-                          onClick={() => setViewEntry(entry)}
-                        >
-                          <Eye size={16} aria-hidden />
-                        </TableIconButton>
-                        <TableIconMenu
-                          aria-label={`More actions for ${entry.label}`}
-                          items={[
-                            {
-                              label: "Edit",
-                              onClick: () => setEditEntry(entry),
-                            },
-                            {
-                              label: "Remove",
-                              danger: true,
-                              onClick: () => setDeleteTarget(entry),
-                            },
-                          ]}
-                        />
-                      </RowActions>
-                    </TableCell>
-                  )}
+                  {visibleColumns.map((column) => (
+                    <AddressBookCell
+                      key={column.id}
+                      columnId={column.id}
+                      entry={entry}
+                      onView={() => setViewEntry(entry)}
+                      onEdit={() => setEditEntry(entry)}
+                      onDelete={() => setDeleteTarget(entry)}
+                    />
+                  ))}
                 </TableRow>
               ))}
             </TableBody>
@@ -329,6 +294,70 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
       )}
     </div>
   );
+}
+
+function AddressBookCell({
+  columnId,
+  entry,
+  onView,
+  onEdit,
+  onDelete,
+}: {
+  columnId: string;
+  entry: AddressBookEntry;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  if (columnId === "name") {
+    return (
+      <TableCell className="min-w-0">
+        <span className="type-body-em text-text-primary truncate">{entry.label}</span>
+      </TableCell>
+    );
+  }
+  if (columnId === "address") {
+    return (
+      <TableCell className="min-w-0">
+        <TruncatedHash value={entry.address} />
+      </TableCell>
+    );
+  }
+  if (columnId === "notes") {
+    return (
+      <TableCell className="min-w-0">
+        <span className="type-body text-text-secondary truncate">{entry.notes || "—"}</span>
+      </TableCell>
+    );
+  }
+  if (columnId === "created") {
+    return (
+      <TableCell className="whitespace-nowrap">
+        <time className="type-meta text-text-secondary" dateTime={entry.created_at}>
+          {formatLocalDateTime(entry.created_at)}
+        </time>
+      </TableCell>
+    );
+  }
+  if (columnId === "actions") {
+    return (
+      <TableCell className="w-px whitespace-nowrap">
+        <RowActions>
+          <TableIconButton type="button" title="View contact" aria-label={`View ${entry.label}`} onClick={onView}>
+            <Eye size={16} aria-hidden />
+          </TableIconButton>
+          <TableIconMenu
+            aria-label={`More actions for ${entry.label}`}
+            items={[
+              { label: "Edit", onClick: onEdit },
+              { label: "Remove", danger: true, onClick: onDelete },
+            ]}
+          />
+        </RowActions>
+      </TableCell>
+    );
+  }
+  return null;
 }
 
 function ContactDetailModal({ entry, onClose }: { entry: AddressBookEntry; onClose: () => void }) {

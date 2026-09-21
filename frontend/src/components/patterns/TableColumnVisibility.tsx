@@ -1,4 +1,4 @@
-import { Settings } from "lucide-react";
+import { ArrowDown, ArrowUp, Settings } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button, IconButton } from "../ui/Button";
 import { Modal } from "../ui/Modal";
@@ -13,6 +13,7 @@ export type TableColumnDefinition = {
 };
 
 export type TableColumnVisibility = Record<string, boolean>;
+export type TableColumnOrder = string[];
 
 export function resolveColumnVisibility(
   columns: readonly TableColumnDefinition[],
@@ -30,20 +31,54 @@ export function visibleColumnIds(
   return columns.filter((column) => visibility[column.id]).map((column) => column.id);
 }
 
+export function resolveColumnOrder(
+  columns: readonly TableColumnDefinition[],
+  saved: TableColumnOrder | null | undefined,
+) {
+  const knownIds = new Set(columns.map((column) => column.id));
+  const savedKnownIds = (saved ?? []).filter((id) => knownIds.has(id));
+  const missingIds = columns
+    .map((column) => column.id)
+    .filter((id) => !savedKnownIds.includes(id));
+  return [...savedKnownIds, ...missingIds];
+}
+
+export function orderedColumns(
+  columns: readonly TableColumnDefinition[],
+  columnOrder: TableColumnOrder,
+) {
+  const byId = new Map(columns.map((column) => [column.id, column]));
+  return columnOrder
+    .map((id) => byId.get(id))
+    .filter((column): column is TableColumnDefinition => Boolean(column));
+}
+
 export function TableColumnVisibilityButton({
   tableLabel,
   columns,
   visibility,
+  columnOrder,
   onChange,
+  onOrderChange,
   disabled = false,
 }: {
   tableLabel: string;
   columns: readonly TableColumnDefinition[];
   visibility: TableColumnVisibility;
+  columnOrder?: TableColumnOrder;
   onChange: (next: TableColumnVisibility) => void;
+  onOrderChange?: (next: TableColumnOrder) => void;
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const resolvedColumnOrder = useMemo(
+    () => resolveColumnOrder(columns, columnOrder),
+    [columns, columnOrder],
+  );
+  const orderedColumnDefinitions = useMemo(
+    () => orderedColumns(columns, resolvedColumnOrder),
+    [columns, resolvedColumnOrder],
+  );
   const visibleDataCount = useMemo(
     () => columns.filter((column) => column.dataColumn !== false && visibility[column.id]).length,
     [columns, visibility],
@@ -59,6 +94,17 @@ export function TableColumnVisibilityButton({
 
   function resetToDefaultView() {
     onChange(resolveColumnVisibility(columns, null));
+    onOrderChange?.(resolveColumnOrder(columns, null));
+  }
+
+  function moveColumn(columnId: string, direction: -1 | 1) {
+    if (!onOrderChange) return;
+    const index = resolvedColumnOrder.indexOf(columnId);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= resolvedColumnOrder.length) return;
+    const next = [...resolvedColumnOrder];
+    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+    onOrderChange(next);
   }
 
   return (
@@ -81,21 +127,46 @@ export function TableColumnVisibilityButton({
           bodyClassName="min-h-0 flex-1"
         >
           <div className="gap-detail-near grid">
-            {columns.map((column) => {
+            {orderedColumnDefinitions.map((column, index) => {
               const checked = visibility[column.id];
               const disabledToggle =
                 column.dataColumn !== false && checked && visibleDataCount <= 1;
               return (
-                <SwitchField
-                  key={column.id}
-                  label={column.label}
-                  checked={checked}
-                  disabled={disabledToggle}
-                  description={
-                    disabledToggle ? "At least one data column must stay visible." : undefined
-                  }
-                  onChange={() => toggleColumn(column)}
-                />
+                <div key={column.id} className="gap-detail-next grid grid-cols-[1fr_auto] items-center">
+                  <SwitchField
+                    label={column.label}
+                    checked={checked}
+                    disabled={disabledToggle}
+                    description={
+                      disabledToggle ? "At least one data column must stay visible." : undefined
+                    }
+                    onChange={() => toggleColumn(column)}
+                  />
+                  <div className="gap-detail-tight flex items-center">
+                    <IconButton
+                      type="button"
+                      variant="secondary"
+                      size="compact"
+                      aria-label={`Move ${column.label} up`}
+                      title={`Move ${column.label} up`}
+                      disabled={!onOrderChange || index === 0}
+                      onClick={() => moveColumn(column.id, -1)}
+                    >
+                      <ArrowUp aria-hidden />
+                    </IconButton>
+                    <IconButton
+                      type="button"
+                      variant="secondary"
+                      size="compact"
+                      aria-label={`Move ${column.label} down`}
+                      title={`Move ${column.label} down`}
+                      disabled={!onOrderChange || index === orderedColumnDefinitions.length - 1}
+                      onClick={() => moveColumn(column.id, 1)}
+                    >
+                      <ArrowDown aria-hidden />
+                    </IconButton>
+                  </div>
+                </div>
               );
             })}
             <div className="flex justify-start">

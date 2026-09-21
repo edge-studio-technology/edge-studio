@@ -12,6 +12,7 @@ import {
 } from "../../../components/DataTable";
 import { JsonPreview } from "../../../components/JsonPreview";
 import {
+  orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../../components/patterns/TableColumnVisibility";
@@ -132,6 +133,63 @@ export function WatchRunControls({
       </RowActions>
     </WorkflowRailPanel>
   );
+}
+
+function WatchRunCell({
+  columnId,
+  run,
+  selectedRunId,
+  rawRunId,
+  onSelectRun,
+  onToggleRaw,
+}: {
+  columnId: string;
+  run: AutomationRun;
+  selectedRunId: string | null;
+  rawRunId: string | null;
+  onSelectRun: (runId: string) => void;
+  onToggleRaw: () => void;
+}) {
+  if (columnId === "started") return <td className={tableCellClass}>{formatLocalTime(run.startedAt)}</td>;
+  if (columnId === "trigger") return <td className={tableCellClass}>{run.triggerType}</td>;
+  if (columnId === "status") {
+    return (
+      <td className={tableCellClass}>
+        <StatusPill status={run.status === "success" ? "good" : run.status === "failed" ? "warn" : "neutral"}>
+          {run.status}
+        </StatusPill>
+      </td>
+    );
+  }
+  if (columnId === "duration") return <td className={tableCellClass}>{formatDuration(run.durationMs)}</td>;
+  if (columnId === "blocks") {
+    return (
+      <td className={tableCellClass}>
+        {run.blocks.filter((block) => block.status === "success").length}/{run.blockCount}
+      </td>
+    );
+  }
+  if (columnId === "details") {
+    return (
+      <td className={tableCellClass}>
+        <RowActions>
+          <Button
+            type="button"
+            variant="secondary"
+            size="xs"
+            disabled={selectedRunId === run.id}
+            onClick={() => onSelectRun(run.id)}
+          >
+            {selectedRunId === run.id ? "Showing" : "Show on canvas"}
+          </Button>
+          <Button type="button" variant="secondary" size="xs" onClick={onToggleRaw}>
+            {rawRunId === run.id ? "Hide raw" : "Raw details"}
+          </Button>
+        </RowActions>
+      </td>
+    );
+  }
+  return null;
 }
 
 /** Watch-mode selected-block sheet: run/block status and output. */
@@ -274,9 +332,12 @@ export function WatchRunHistory({
 }) {
   const [rawRunId, setRawRunId] = useState<string | null>(null);
   const rawRun = runs.find((run) => run.id === rawRunId);
-  const { visibility, setVisibility } = useTableColumnVisibility(
+  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility(
     "workflow-watch-runs",
     WATCH_RUN_COLUMNS,
+  );
+  const visibleColumns = orderedColumns(WATCH_RUN_COLUMNS, columnOrder).filter(
+    (column) => visibility[column.id],
   );
 
   return (
@@ -300,7 +361,9 @@ export function WatchRunHistory({
                 tableLabel="Historic runs"
                 columns={WATCH_RUN_COLUMNS}
                 visibility={visibility}
+                columnOrder={columnOrder}
                 onChange={setVisibility}
+                onOrderChange={setColumnOrder}
               />
             }
           />
@@ -309,68 +372,25 @@ export function WatchRunHistory({
               <DataTable>
                 <thead>
                   <tr className={tableHeadRowClass}>
-                    {visibility.started && <th className={tableHeaderCellClass}>Started</th>}
-                    {visibility.trigger && <th className={tableHeaderCellClass}>Trigger</th>}
-                    {visibility.status && <th className={tableHeaderCellClass}>Status</th>}
-                    {visibility.duration && <th className={tableHeaderCellClass}>Duration</th>}
-                    {visibility.blocks && <th className={tableHeaderCellClass}>Blocks</th>}
-                    {visibility.details && <th className={tableHeaderCellClass}>Details</th>}
+                    {visibleColumns.map((column) => (
+                      <th key={column.id} className={tableHeaderCellClass}>{column.label}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {runs.map((run) => (
                     <tr key={run.id} className={tableRowClass}>
-                      {visibility.started && (
-                        <td className={tableCellClass}>{formatLocalTime(run.startedAt)}</td>
-                      )}
-                      {visibility.trigger && <td className={tableCellClass}>{run.triggerType}</td>}
-                      {visibility.status && (
-                        <td className={tableCellClass}>
-                          <StatusPill
-                            status={
-                              run.status === "success"
-                                ? "good"
-                                : run.status === "failed"
-                                  ? "warn"
-                                  : "neutral"
-                            }
-                          >
-                            {run.status}
-                          </StatusPill>
-                        </td>
-                      )}
-                      {visibility.duration && (
-                        <td className={tableCellClass}>{formatDuration(run.durationMs)}</td>
-                      )}
-                      {visibility.blocks && (
-                        <td className={tableCellClass}>
-                          {run.blocks.filter((block) => block.status === "success").length}/
-                          {run.blockCount}
-                        </td>
-                      )}
-                      {visibility.details && (
-                        <td className={tableCellClass}>
-                          <RowActions>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="xs"
-                              disabled={selectedRunId === run.id}
-                              onClick={() => onSelectRun(run.id)}
-                            >
-                              {selectedRunId === run.id ? "Showing" : "Show on canvas"}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="xs"
-                              onClick={() => setRawRunId(rawRunId === run.id ? null : run.id)}
-                            >
-                              {rawRunId === run.id ? "Hide raw" : "Raw details"}
-                            </Button>
-                          </RowActions>
-                        </td>
-                      )}
+                      {visibleColumns.map((column) => (
+                        <WatchRunCell
+                          key={column.id}
+                          columnId={column.id}
+                          run={run}
+                          selectedRunId={selectedRunId}
+                          rawRunId={rawRunId}
+                          onSelectRun={onSelectRun}
+                          onToggleRaw={() => setRawRunId(rawRunId === run.id ? null : run.id)}
+                        />
+                      ))}
                     </tr>
                   ))}
                 </tbody>

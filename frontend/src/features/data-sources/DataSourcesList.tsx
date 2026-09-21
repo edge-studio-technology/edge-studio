@@ -23,6 +23,7 @@ import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
+  orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../components/patterns/TableColumnVisibility";
@@ -93,7 +94,10 @@ export function DataSourcesList({
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
-  const { visibility, setVisibility } = useTableColumnVisibility("devices", DEVICE_COLUMNS);
+  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility("devices", DEVICE_COLUMNS);
+  const visibleColumns = orderedColumns(DEVICE_COLUMNS, columnOrder).filter(
+    (column) => visibility[column.id],
+  );
 
   const trimmedQuery = query.trim().toLowerCase();
   const filtersActive = Boolean(direction || trimmedQuery);
@@ -128,7 +132,9 @@ export function DataSourcesList({
             tableLabel="Devices"
             columns={DEVICE_COLUMNS}
             visibility={visibility}
+            columnOrder={columnOrder}
             onChange={setVisibility}
+            onOrderChange={setColumnOrder}
           />
         }
       >
@@ -193,18 +199,11 @@ export function DataSourcesList({
         <TableWrap>
           <DataTable className="table-fixed">
             <TableHead>
-              {visibility.name && <TableHeaderCell className="w-[34%]">Name</TableHeaderCell>}
-              {visibility.details && <TableHeaderCell className="w-[38%]">Details</TableHeaderCell>}
-              {visibility.status && <TableHeaderCell className="w-32">Status</TableHeaderCell>}
-              {visibility.lastActivity && (
-                <TableHeaderCell className="w-32">Last activity</TableHeaderCell>
-              )}
-              {visibility.usedBy && <TableHeaderCell className="w-44">Used by workflows</TableHeaderCell>}
-              {visibility.created && <TableHeaderCell className="w-40">Created</TableHeaderCell>}
-              {visibility.lastHash && <TableHeaderCell className="w-40">Last hash</TableHeaderCell>}
-              {visibility.actions && (
-                <TableHeaderCell className="w-24 whitespace-nowrap">Actions</TableHeaderCell>
-              )}
+              {visibleColumns.map((column) => (
+                <TableHeaderCell key={column.id} className={deviceHeaderClass(column.id)}>
+                  {column.label}
+                </TableHeaderCell>
+              ))}
             </TableHead>
             <TableBody>
               {pagedItems.map((source) => {
@@ -222,152 +221,27 @@ export function DataSourcesList({
                 const endpoint = sourceEndpoint(source);
                 return (
                   <TableRow key={source.id}>
-                    {visibility.name && (
-                      <TableCell className="min-w-0 whitespace-normal">
-                        <span className="type-body-em block truncate" title={source.name}>
-                          {source.name}
-                        </span>
-                        {source.description && (
-                          <p
-                            className="type-meta text-text-secondary mt-detail-next m-0 truncate"
-                            title={source.description}
-                          >
-                            {source.description}
-                          </p>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibility.details && (
-                      <TableCell className="min-w-0 whitespace-normal">
-                        <span
-                          className="type-body-em text-text-primary block truncate"
-                          title={typeLabel}
-                        >
-                          {typeLabel}
-                        </span>
-                        <p
-                          className="type-meta text-text-secondary mt-detail-next m-0 truncate"
-                          title={`${sourceDirection(source)} · ${endpoint}`}
-                        >
-                          {sourceDirection(source)} · <code className="type-mono">{endpoint}</code>
-                        </p>
-                      </TableCell>
-                    )}
-                    {visibility.status && (
-                      <TableCell>
-                        <StatusCell
-                          source={source}
-                          capabilities={capabilities}
-                          hostCapabilities={hostCapabilities}
-                        />
-                      </TableCell>
-                    )}
-                    {visibility.lastActivity && (
-                      <TableCell>
-                        <LastActivityCell source={source} />
-                      </TableCell>
-                    )}
-                    {visibility.usedBy && (
-                      <TableCell className="max-w-44 min-w-0">
-                        {usedByWorkflows.length > 0 ? (
-                          <span
-                            className="type-meta text-text-secondary block truncate"
-                            title={usedByWorkflows.map((workflow) => workflow.name).join(", ")}
-                          >
-                            {usedByWorkflows.length} {usedByWorkflows.length === 1 ? "workflow" : "workflows"}
-                          </span>
-                        ) : (
-                          <span className="text-text-secondary">None</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibility.created && (
-                      <TableCell className="whitespace-nowrap">
-                        <time className="type-meta text-text-secondary" dateTime={source.createdAt}>
-                          {formatLocalDateTime(source.createdAt)}
-                        </time>
-                      </TableCell>
-                    )}
-                    {visibility.lastHash && (
-                      <TableCell className="max-w-40 min-w-0">
-                        {source.lastHash ? (
-                          <TruncatedHash value={source.lastHash} />
-                        ) : (
-                          <span className="text-text-secondary">No hash</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibility.actions && (
-                      <TableCell className="w-24 whitespace-nowrap">
-                        <RowActions>
-                          <TableIconButton
-                            type="button"
-                            disabled={
-                              busy ||
-                              Boolean(disabledHardwareReason) ||
-                              source.type === "webhook" ||
-                              source.type === "mqtt" ||
-                              source.type === "gpio-input" ||
-                              source.type === "gpio-output" ||
-                              source.type === "pi-camera" ||
-                              source.type === "http-output" ||
-                              source.type === "mqtt-output"
-                            }
-                            title={disabledHardwareReason ?? "Trigger manually"}
-                            aria-label={`Trigger ${source.name} manually`}
-                            onClick={() => onRead(source)}
-                          >
-                            <Play size={16} aria-hidden />
-                          </TableIconButton>
-                          <TableIconMenu
-                            aria-label={`More actions for ${source.name}`}
-                            items={[
-                              ...(source.type === "gpio-output" ||
-                              source.type === "http-output" ||
-                              source.type === "mqtt-output"
-                                ? [
-                                    {
-                                      label:
-                                        source.type === "gpio-output"
-                                          ? "Test pulse"
-                                          : "Test output",
-                                      disabled: busy || Boolean(disabledHardwareReason),
-                                      title: disabledHardwareReason ?? undefined,
-                                      onClick: () => onTestOutput(source),
-                                    },
-                                  ]
-                                : []),
-                              ...(hasDeviceSetupGuide(source)
-                                ? [
-                                    {
-                                      label: "Setup guide",
-                                      disabled: busy,
-                                      onClick: () => onOpenSetupGuide(source),
-                                    },
-                                  ]
-                                : []),
-                              {
-                                label: "View details",
-                                disabled: busy,
-                                onClick: () => setDetailsSource(source),
-                              },
-                              {
-                                label: "Edit",
-                                disabled: busy,
-                                onClick: () => onEdit(source),
-                              },
-                              {
-                                label: "Delete",
-                                title: deleteDisabledReason,
-                                danger: true,
-                                disabled: busy || usedByWorkflows.length > 0,
-                                onClick: () => onDelete(source),
-                              },
-                            ]}
-                          />
-                        </RowActions>
-                      </TableCell>
-                    )}
+                    {visibleColumns.map((column) => (
+                      <DeviceCell
+                        key={column.id}
+                        columnId={column.id}
+                        source={source}
+                        typeLabel={typeLabel}
+                        endpoint={endpoint}
+                        usedByWorkflows={usedByWorkflows}
+                        busy={busy}
+                        capabilities={capabilities}
+                        hostCapabilities={hostCapabilities}
+                        disabledHardwareReason={disabledHardwareReason}
+                        deleteDisabledReason={deleteDisabledReason}
+                        onRead={() => onRead(source)}
+                        onTestOutput={() => onTestOutput(source)}
+                        onOpenSetupGuide={() => onOpenSetupGuide(source)}
+                        onViewDetails={() => setDetailsSource(source)}
+                        onEdit={() => onEdit(source)}
+                        onDelete={() => onDelete(source)}
+                      />
+                    ))}
                   </TableRow>
                 );
               })}
@@ -400,6 +274,126 @@ export function DataSourcesList({
       )}
     </TableCard>
   );
+}
+
+function deviceHeaderClass(columnId: string) {
+  if (columnId === "name") return "w-[34%]";
+  if (columnId === "details") return "w-[38%]";
+  if (columnId === "status" || columnId === "lastActivity") return "w-32";
+  if (columnId === "usedBy") return "w-44";
+  if (columnId === "created" || columnId === "lastHash") return "w-40";
+  if (columnId === "actions") return "w-24 whitespace-nowrap";
+  return undefined;
+}
+
+function DeviceCell({
+  columnId,
+  source,
+  typeLabel,
+  endpoint,
+  usedByWorkflows,
+  busy,
+  capabilities,
+  hostCapabilities,
+  disabledHardwareReason,
+  deleteDisabledReason,
+  onRead,
+  onTestOutput,
+  onOpenSetupGuide,
+  onViewDetails,
+  onEdit,
+  onDelete,
+}: {
+  columnId: string;
+  source: DataSource;
+  typeLabel: string;
+  endpoint: string | undefined;
+  usedByWorkflows: NonNullable<DataSource["usedByWorkflows"]>;
+  busy: boolean;
+  capabilities: DataSourceCapabilities | null;
+  hostCapabilities: HostCapability[];
+  disabledHardwareReason: string | null;
+  deleteDisabledReason: string;
+  onRead: () => void;
+  onTestOutput: () => void;
+  onOpenSetupGuide: () => void;
+  onViewDetails: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  if (columnId === "name") {
+    return (
+      <TableCell className="min-w-0 whitespace-normal">
+        <span className="type-body-em block truncate" title={source.name}>{source.name}</span>
+        {source.description && <p className="type-meta text-text-secondary mt-detail-next m-0 truncate" title={source.description}>{source.description}</p>}
+      </TableCell>
+    );
+  }
+  if (columnId === "details") {
+    return (
+      <TableCell className="min-w-0 whitespace-normal">
+        <span className="type-body-em text-text-primary block truncate" title={typeLabel}>{typeLabel}</span>
+        <p className="type-meta text-text-secondary mt-detail-next m-0 truncate" title={`${sourceDirection(source)} · ${endpoint ?? "—"}`}>
+          {sourceDirection(source)} · <code className="type-mono">{endpoint ?? "—"}</code>
+        </p>
+      </TableCell>
+    );
+  }
+  if (columnId === "status") {
+    return <TableCell><StatusCell source={source} capabilities={capabilities} hostCapabilities={hostCapabilities} /></TableCell>;
+  }
+  if (columnId === "lastActivity") return <TableCell><LastActivityCell source={source} /></TableCell>;
+  if (columnId === "usedBy") {
+    return (
+      <TableCell className="max-w-44 min-w-0">
+        {usedByWorkflows.length > 0 ? (
+          <span className="type-meta text-text-secondary block truncate" title={usedByWorkflows.map((workflow) => workflow.name).join(", ")}>
+            {usedByWorkflows.length} {usedByWorkflows.length === 1 ? "workflow" : "workflows"}
+          </span>
+        ) : <span className="text-text-secondary">None</span>}
+      </TableCell>
+    );
+  }
+  if (columnId === "created") {
+    return <TableCell className="whitespace-nowrap"><time className="type-meta text-text-secondary" dateTime={source.createdAt}>{formatLocalDateTime(source.createdAt)}</time></TableCell>;
+  }
+  if (columnId === "lastHash") {
+    return <TableCell className="max-w-40 min-w-0">{source.lastHash ? <TruncatedHash value={source.lastHash} /> : <span className="text-text-secondary">No hash</span>}</TableCell>;
+  }
+  if (columnId === "actions") {
+    const manualReadDisabled =
+      busy ||
+      Boolean(disabledHardwareReason) ||
+      source.type === "webhook" ||
+      source.type === "mqtt" ||
+      source.type === "gpio-input" ||
+      source.type === "gpio-output" ||
+      source.type === "pi-camera" ||
+      source.type === "http-output" ||
+      source.type === "mqtt-output";
+    return (
+      <TableCell className="w-24 whitespace-nowrap">
+        <RowActions>
+          <TableIconButton type="button" disabled={manualReadDisabled} title={disabledHardwareReason ?? "Trigger manually"} aria-label={`Trigger ${source.name} manually`} onClick={onRead}>
+            <Play size={16} aria-hidden />
+          </TableIconButton>
+          <TableIconMenu
+            aria-label={`More actions for ${source.name}`}
+            items={[
+              ...(source.type === "gpio-output" || source.type === "http-output" || source.type === "mqtt-output"
+                ? [{ label: source.type === "gpio-output" ? "Test pulse" : "Test output", disabled: busy || Boolean(disabledHardwareReason), title: disabledHardwareReason ?? undefined, onClick: onTestOutput }]
+                : []),
+              ...(hasDeviceSetupGuide(source) ? [{ label: "Setup guide", disabled: busy, onClick: onOpenSetupGuide }] : []),
+              { label: "View details", disabled: busy, onClick: onViewDetails },
+              { label: "Edit", disabled: busy, onClick: onEdit },
+              { label: "Delete", title: deleteDisabledReason, danger: true, disabled: busy || usedByWorkflows.length > 0, onClick: onDelete },
+            ]}
+          />
+        </RowActions>
+      </TableCell>
+    );
+  }
+  return null;
 }
 
 function webhookUrl(source: DataSource) {

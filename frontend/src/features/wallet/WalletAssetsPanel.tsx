@@ -16,6 +16,7 @@ import { ListPaginationFooter } from "../../components/patterns/ListPaginationFo
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
+  orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../components/patterns/TableColumnVisibility";
@@ -58,9 +59,12 @@ export function WalletAssetsPanel({
   const [assetPage, setAssetPage] = useState(1);
   const [assetPageSize, setAssetPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
   const [selectedAsset, setSelectedAsset] = useState<TokenBalance | null>(null);
-  const { visibility, setVisibility } = useTableColumnVisibility(
+  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility(
     "wallet-assets",
     WALLET_ASSET_COLUMNS,
+  );
+  const visibleColumns = orderedColumns(WALLET_ASSET_COLUMNS, columnOrder).filter(
+    (column) => visibility[column.id],
   );
 
   const trimmedAssetQuery = assetQuery.trim().toLowerCase();
@@ -96,7 +100,9 @@ export function WalletAssetsPanel({
             tableLabel="Wallet assets"
             columns={WALLET_ASSET_COLUMNS}
             visibility={visibility}
+            columnOrder={columnOrder}
             onChange={setVisibility}
+            onOrderChange={setColumnOrder}
           />
         }
       >
@@ -138,44 +144,26 @@ export function WalletAssetsPanel({
         <TableWrap>
           <DataTable>
             <TableHead>
-              {visibility.name && <TableHeaderCell>Name</TableHeaderCell>}
-              {visibility.amount && <TableHeaderCell>Amount</TableHeaderCell>}
-              {visibility.actions && (
-                <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-              )}
+              {visibleColumns.map((column) => (
+                <TableHeaderCell
+                  key={column.id}
+                  className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
+                >
+                  {column.label}
+                </TableHeaderCell>
+              ))}
             </TableHead>
             <TableBody>
               {pagedAssets.map((token) => (
                 <TableRow key={token.tokenId}>
-                  {visibility.name && (
-                    <TableCell className="min-w-0">
-                      <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
-                        <TokenGlyph isNative={token.isNative} />
-                        <span className="truncate">{token.name}</span>
-                      </span>
-                    </TableCell>
-                  )}
-                  {visibility.amount && (
-                    <TableCell>
-                      <span className="type-mono tabular-nums">
-                        {formatMinimaAmount(token.sendable, 12)}
-                      </span>
-                    </TableCell>
-                  )}
-                  {visibility.actions && (
-                    <TableCell className="w-px whitespace-nowrap">
-                      <RowActions>
-                        <TableIconButton
-                          type="button"
-                          title="View details"
-                          aria-label={`View ${token.name}`}
-                          onClick={() => setSelectedAsset(token)}
-                        >
-                          <Eye size={16} />
-                        </TableIconButton>
-                      </RowActions>
-                    </TableCell>
-                  )}
+                  {visibleColumns.map((column) => (
+                    <WalletAssetCell
+                      key={column.id}
+                      columnId={column.id}
+                      token={token}
+                      onView={() => setSelectedAsset(token)}
+                    />
+                  ))}
                 </TableRow>
               ))}
             </TableBody>
@@ -202,4 +190,44 @@ export function WalletAssetsPanel({
       )}
     </div>
   );
+}
+
+function WalletAssetCell({
+  columnId,
+  token,
+  onView,
+}: {
+  columnId: string;
+  token: TokenBalance;
+  onView: () => void;
+}) {
+  if (columnId === "name") {
+    return (
+      <TableCell className="min-w-0">
+        <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
+          <TokenGlyph isNative={token.isNative} />
+          <span className="truncate">{token.name}</span>
+        </span>
+      </TableCell>
+    );
+  }
+  if (columnId === "amount") {
+    return (
+      <TableCell>
+        <span className="type-mono tabular-nums">{formatMinimaAmount(token.sendable, 12)}</span>
+      </TableCell>
+    );
+  }
+  if (columnId === "actions") {
+    return (
+      <TableCell className="w-px whitespace-nowrap">
+        <RowActions>
+          <TableIconButton type="button" title="View details" aria-label={`View ${token.name}`} onClick={onView}>
+            <Eye size={16} />
+          </TableIconButton>
+        </RowActions>
+      </TableCell>
+    );
+  }
+  return null;
 }

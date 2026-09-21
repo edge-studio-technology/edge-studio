@@ -23,6 +23,7 @@ import {
 } from "../../components/patterns/DeleteConfirmModal";
 import { FileDropBox } from "../../components/patterns/FileDropBox";
 import {
+  orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
   type TableColumnVisibility,
@@ -76,7 +77,7 @@ const restoreWarning = (
 
 function BackupRow({
   backup,
-  visibility,
+  visibleColumns,
   actionsBlocked,
   deleting,
   onDownload,
@@ -84,7 +85,7 @@ function BackupRow({
   onDelete,
 }: {
   backup: MinimaBackupEntry;
-  visibility: TableColumnVisibility;
+  visibleColumns: readonly TableColumnDefinition[];
   actionsBlocked: boolean;
   deleting: boolean;
   onDownload: () => void;
@@ -93,43 +94,75 @@ function BackupRow({
 }) {
   return (
     <TableRow>
-      {visibility.file && (
-        <TableCell className="min-w-0">
-          <span className="type-body-em text-text-primary block truncate">{backup.fileName}</span>
-        </TableCell>
-      )}
-      {visibility.size && (
-        <TableCell className="whitespace-nowrap">{formatSize(backup.sizeBytes)}</TableCell>
-      )}
-      {visibility.created && (
-        <TableCell className="whitespace-nowrap">
-          <time className="type-meta text-text-secondary" dateTime={backup.createdAt}>
-            {formatLocalDateTime(backup.createdAt)}
-          </time>
-        </TableCell>
-      )}
-      {visibility.actions && (
-        <TableCell className="w-px whitespace-nowrap">
-          <RowActions>
-            <TableIconButton
-              title="Download"
-              aria-label={`Download ${backup.fileName}`}
-              onClick={onDownload}
-            >
-              <Download size={16} aria-hidden />
-            </TableIconButton>
-            <TableIconMenu
-              aria-label={`More actions for ${backup.fileName}`}
-              items={[
-                { label: "Restore", disabled: actionsBlocked, onClick: onRestore },
-                { label: "Delete", danger: true, disabled: deleting, onClick: onDelete },
-              ]}
-            />
-          </RowActions>
-        </TableCell>
-      )}
+      {visibleColumns.map((column) => (
+        <BackupCell
+          key={column.id}
+          columnId={column.id}
+          backup={backup}
+          actionsBlocked={actionsBlocked}
+          deleting={deleting}
+          onDownload={onDownload}
+          onRestore={onRestore}
+          onDelete={onDelete}
+        />
+      ))}
     </TableRow>
   );
+}
+
+function BackupCell({
+  columnId,
+  backup,
+  actionsBlocked,
+  deleting,
+  onDownload,
+  onRestore,
+  onDelete,
+}: {
+  columnId: string;
+  backup: MinimaBackupEntry;
+  actionsBlocked: boolean;
+  deleting: boolean;
+  onDownload: () => void;
+  onRestore: () => void;
+  onDelete: () => void;
+}) {
+  if (columnId === "file") {
+    return (
+      <TableCell className="min-w-0">
+        <span className="type-body-em text-text-primary block truncate">{backup.fileName}</span>
+      </TableCell>
+    );
+  }
+  if (columnId === "size") return <TableCell className="whitespace-nowrap">{formatSize(backup.sizeBytes)}</TableCell>;
+  if (columnId === "created") {
+    return (
+      <TableCell className="whitespace-nowrap">
+        <time className="type-meta text-text-secondary" dateTime={backup.createdAt}>
+          {formatLocalDateTime(backup.createdAt)}
+        </time>
+      </TableCell>
+    );
+  }
+  if (columnId === "actions") {
+    return (
+      <TableCell className="w-px whitespace-nowrap">
+        <RowActions>
+          <TableIconButton title="Download" aria-label={`Download ${backup.fileName}`} onClick={onDownload}>
+            <Download size={16} aria-hidden />
+          </TableIconButton>
+          <TableIconMenu
+            aria-label={`More actions for ${backup.fileName}`}
+            items={[
+              { label: "Restore", disabled: actionsBlocked, onClick: onRestore },
+              { label: "Delete", danger: true, disabled: deleting, onClick: onDelete },
+            ]}
+          />
+        </RowActions>
+      </TableCell>
+    );
+  }
+  return null;
 }
 
 export function MinimaBackupPanel({
@@ -179,8 +212,11 @@ export function MinimaBackupPanel({
   const [rowRestorePassword, setRowRestorePassword] = useState("");
   const [rowRestoreBusy, setRowRestoreBusy] = useState(false);
   const [rowRestoreError, setRowRestoreError] = useState<string | null>(null);
-  const { visibility, setVisibility } = useTableColumnVisibility("minima-backups", BACKUP_COLUMNS);
-  const visibleColumnCount = BACKUP_COLUMNS.filter((column) => visibility[column.id]).length;
+  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility("minima-backups", BACKUP_COLUMNS);
+  const visibleColumns = orderedColumns(BACKUP_COLUMNS, columnOrder).filter(
+    (column) => visibility[column.id],
+  );
+  const visibleColumnCount = visibleColumns.length;
 
   async function refreshBackups() {
     try {
@@ -480,7 +516,9 @@ export function MinimaBackupPanel({
                   tableLabel="Backups"
                   columns={BACKUP_COLUMNS}
                   visibility={visibility}
+                  columnOrder={columnOrder}
                   onChange={setVisibility}
+                  onOrderChange={setColumnOrder}
                 />
               }
             >
@@ -494,12 +532,14 @@ export function MinimaBackupPanel({
             >
               <DataTable aria-label="Backups">
                 <TableHead>
-                  {visibility.file && <TableHeaderCell>File</TableHeaderCell>}
-                  {visibility.size && <TableHeaderCell>Size</TableHeaderCell>}
-                  {visibility.created && <TableHeaderCell>Created</TableHeaderCell>}
-                  {visibility.actions && (
-                    <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-                  )}
+                  {visibleColumns.map((column) => (
+                    <TableHeaderCell
+                      key={column.id}
+                      className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
+                    >
+                      {column.label}
+                    </TableHeaderCell>
+                  ))}
                 </TableHead>
                 <TableBody>
                   {backups.length === 0 ? (
@@ -513,7 +553,7 @@ export function MinimaBackupPanel({
                       <BackupRow
                         key={backup.fileName}
                         backup={backup}
-                        visibility={visibility}
+                        visibleColumns={visibleColumns}
                         actionsBlocked={actionsBlocked}
                         deleting={deletingFile === backup.fileName}
                         onDownload={() => startDownload(backup.fileName)}

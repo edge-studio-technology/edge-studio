@@ -2,7 +2,12 @@ import { getSetting, saveSetting } from "../settings/settings.repository.js";
 
 const TABLE_COLUMN_PREFERENCES_KEY = "ui.tableColumnPreferences";
 
-export type TableColumnPreferences = Record<string, Record<string, boolean>>;
+export type TableColumnPreferenceEntry = {
+  visibility: Record<string, boolean>;
+  order: string[];
+};
+
+export type TableColumnPreferences = Record<string, TableColumnPreferenceEntry>;
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -14,11 +19,15 @@ export function parseTableColumnPreferences(value: unknown): TableColumnPreferen
   const preferences: TableColumnPreferences = {};
   for (const [tableId, tableValue] of Object.entries(value)) {
     if (!isPlainRecord(tableValue)) continue;
-    const columns: Record<string, boolean> = {};
-    for (const [columnId, visible] of Object.entries(tableValue)) {
-      if (typeof visible === "boolean") columns[columnId] = visible;
+    const rawVisibility = isPlainRecord(tableValue.visibility) ? tableValue.visibility : tableValue;
+    const visibility: Record<string, boolean> = {};
+    for (const [columnId, visible] of Object.entries(rawVisibility)) {
+      if (typeof visible === "boolean") visibility[columnId] = visible;
     }
-    preferences[tableId] = columns;
+    const order = Array.isArray(tableValue.order)
+      ? tableValue.order.filter((columnId): columnId is string => typeof columnId === "string")
+      : [];
+    preferences[tableId] = { visibility, order };
   }
   return preferences;
 }
