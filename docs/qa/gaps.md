@@ -144,7 +144,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 - [ ] **WALLET-05 Import restart** — Node may restart after import; verify RPC recovery and no stale balance.
 - [ ] **WALLET-06 Send errors** — Insufficient balance, malformed address, zero/negative amount surfaced correctly.
 - [ ] **WALLET-07 Token names** — Custom tokens show human-readable name in send modal (not tokenId fallback).
-- [ ] **WALLET-08 Address validation** — No server-side format regex; frontend placeholder `Mx… or 0x…` only. Establish the authoritative grammar first. **Phase 9.**
+- [x] **WALLET-08 Address validation** — Closed by task 707: wallet sends and address-book create/update validate Minima's source-defined, case-insensitive `0x` grammar and checksummed `Mx` encoding server-side. Validation follows Minima's parser and encoder rather than imposing a fixed length derived from examples. **Phase 9.**
 
 ### P2
 

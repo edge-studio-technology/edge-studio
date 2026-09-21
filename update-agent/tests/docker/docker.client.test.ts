@@ -485,5 +485,18 @@ describe("docker.client", () => {
       assert.equal(typeof mockRequest.setTimeout.mock.calls[0]?.[1], "function");
       assert.equal(mockRequest.end.mock.calls.length, 1);
     });
+
+    it("should destroy the stream request and reject exactly once when the timeout fires", async () => {
+      const promise = dockerRequestStream("/images/create", 10000);
+      const timeoutHandler = mockRequest.setTimeout.mock.calls[0]?.[1] as () => void;
+
+      timeoutHandler();
+      mockRequest.emit("error", new Error("late socket error"));
+      mockResponse.emitEnd();
+
+      await assert.rejects(promise, /Docker API POST \/images\/create timed out/);
+      assert.equal(mockRequest.destroy.mock.calls.length, 1);
+      assert.match((mockRequest.destroy.mock.calls[0]?.[0] as Error).message, /POST \/images\/create timed out/);
+    });
   });
 });

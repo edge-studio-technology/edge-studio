@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
+- Wallet sends and address-book writes now reject malformed Minima destinations using the upstream `0x` and checksummed `Mx` address grammar.
 - Disabled two-factor setup and reset endpoints are no longer exposed while TOTP is off.
 - HTTPS application, proxy, error, and redirect responses now include CSP, clickjacking, MIME-sniffing, and referrer-policy protections.
 - The backend now refuses to start before creating or opening its database when `APP_SECRET` is absent or empty, and shipped configuration no longer supplies a public default.
@@ -46,6 +47,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Minima restart setup failures now clear the temporary restarting state instead of leaving stale operation status in the UI.
+- Update Agent Docker stream requests now reject reliably when their timeout expires instead of leaving update pulls hanging.
 - List search/filter rows on Devices, Workflows, Address book, and Diagnostics stack with their New/Refresh buttons as one group on tablet and phone.
 
 ## [0.41.0] 2026-09-14
