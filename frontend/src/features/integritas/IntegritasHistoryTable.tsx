@@ -17,6 +17,12 @@ import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorDetailPanel } from "../../components/patterns/ErrorDetailPanel";
 import { JsonPreviewContent } from "../../components/JsonPreview";
 import { LoadingState } from "../../components/patterns/LoadingState";
+import {
+  TableColumnVisibilityButton,
+  type TableColumnDefinition,
+  type TableColumnVisibility,
+} from "../../components/patterns/TableColumnVisibility";
+import { TableControls } from "../../components/patterns/TableControls";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { Disclosure } from "../../components/ui/Disclosure";
@@ -24,6 +30,7 @@ import { Modal } from "../../components/ui/Modal";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { formatLocalDateTime } from "../../lib/time";
+import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 import type { Tone } from "../../app/types";
 import { Download, Eye, Stamp, Trash2 } from "lucide-react";
 import type { IntegritasProofRecord } from "./integritasTypes";
@@ -38,6 +45,15 @@ const PROOF_STATUS: Record<string, { tone: Tone; label: string }> = {
   failed: { tone: "error", label: "Failed" },
   error: { tone: "error", label: "Error" },
 };
+
+export const PROOF_COLUMNS = [
+  { id: "select", label: "Select", dataColumn: false },
+  { id: "timestamp", label: "Timestamp" },
+  { id: "uid", label: "UID" },
+  { id: "status", label: "Status" },
+  { id: "hash", label: "Data hash" },
+  { id: "actions", label: "Actions", dataColumn: false },
+] as const satisfies readonly TableColumnDefinition[];
 
 export function IntegritasHistoryTable({
   records,
@@ -57,6 +73,9 @@ export function IntegritasHistoryTable({
   busy,
   bulkBusy = null,
   verifyingId = null,
+  columnVisibility,
+  onColumnVisibilityChange,
+  showColumnControls = true,
 }: {
   records: IntegritasProofRecord[];
   selectedIds: string[];
@@ -75,6 +94,9 @@ export function IntegritasHistoryTable({
   busy: boolean;
   bulkBusy?: "download" | "delete" | null;
   verifyingId?: string | null;
+  columnVisibility?: TableColumnVisibility;
+  onColumnVisibilityChange?: (next: TableColumnVisibility) => void;
+  showColumnControls?: boolean;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [detailsRecord, setDetailsRecord] = useState<IntegritasProofRecord | null>(null);
@@ -82,6 +104,22 @@ export function IntegritasHistoryTable({
   const selectedOnPage = records.filter((record) => selectedIds.includes(record.id)).length;
   const allVisibleSelected = records.length > 0 && selectedOnPage === records.length;
   const someVisibleSelected = selectedOnPage > 0 && !allVisibleSelected;
+  const internalColumns = useTableColumnVisibility("diagnostics-proofs", PROOF_COLUMNS);
+  const visibility = columnVisibility ?? internalColumns.visibility;
+  const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
+  const visibleColumnCount = PROOF_COLUMNS.filter((column) => visibility[column.id]).length;
+  const controls = showColumnControls ? (
+    <TableControls
+      utilities={
+        <TableColumnVisibilityButton
+          tableLabel="Proof history"
+          columns={PROOF_COLUMNS}
+          visibility={visibility}
+          onChange={setVisibility}
+        />
+      }
+    />
+  ) : null;
 
   return (
     <div className="gap-detail-close flex flex-col">
@@ -175,6 +213,8 @@ export function IntegritasHistoryTable({
         <ProofDetailsModal record={detailsRecord} onClose={() => setDetailsRecord(null)} />
       ) : null}
 
+      {controls}
+
       {loading ? (
         <LoadingState
           title="Fetching your proof history"
@@ -194,101 +234,127 @@ export function IntegritasHistoryTable({
           onAction={filtered ? onClearFilters : undefined}
         />
       ) : (
-        <TableWrap>
-          <DataTable aria-label="Proof history" className="min-w-245">
-            <TableHead>
-              <TableHeaderCell className="w-px whitespace-nowrap">
-                <CheckboxField
-                  label={null}
-                  aria-label="Select all proofs on this page"
-                  checked={allVisibleSelected}
-                  indeterminate={someVisibleSelected}
-                  disabled={busy || records.length === 0}
-                  onChange={onToggleAllVisible}
-                />
-              </TableHeaderCell>
-              <TableHeaderCell className="whitespace-nowrap">Timestamp</TableHeaderCell>
-              <TableHeaderCell>UID</TableHeaderCell>
-              <TableHeaderCell>Status</TableHeaderCell>
-              <TableHeaderCell>Data hash</TableHeaderCell>
-              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
-            </TableHead>
-            <TableBody>
-              {records.map((record) => {
-                const hasPayload = Boolean(record.proof_payload);
-                const selected = selectedIds.includes(record.id);
-                return (
-                  <TableRow key={record.id}>
-                    <TableCell className="w-px whitespace-nowrap">
-                      <CheckboxField
-                        label={null}
-                        aria-label={`Select proof ${record.proof_uid ?? record.id}`}
-                        checked={selected}
-                        disabled={busy}
-                        onChange={() => onToggle(record.id)}
-                      />
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <time className="type-meta text-text-secondary" dateTime={record.created_at}>
-                        {formatLocalDateTime(record.created_at)}
-                      </time>
-                    </TableCell>
-                    <TableCell className="max-w-40 min-w-0">
-                      <code
-                        className="type-mono text-text-secondary block truncate"
-                        title={record.proof_uid ?? undefined}
-                      >
-                        {record.proof_uid ?? "—"}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      <ProofStatusPill status={record.proof_status} />
-                    </TableCell>
-                    <TableCell className="max-w-48 min-w-0">
-                      <TruncatedHash value={record.hash} />
-                    </TableCell>
-                    <TableCell className="w-px whitespace-nowrap">
-                      <RowActions>
-                        <TableIconButton
-                          title="View details"
-                          aria-label={`View details for ${record.proof_uid ?? record.id}`}
-                          onClick={() => setDetailsRecord(record)}
-                        >
-                          <Eye size={16} aria-hidden />
-                        </TableIconButton>
-                        <TableIconMenu
-                          aria-label={`More actions for ${record.proof_uid ?? record.id}`}
-                          items={[
-                            {
-                              label: verifyingId === record.id ? "Verifying…" : "Verify",
-                              disabled: busy || verifyingId !== null || !hasPayload,
-                              onClick: () => onVerify(record),
-                            },
-                            {
-                              label: "Download",
-                              disabled: busy || !hasPayload,
-                              onClick: () => onDownload(record),
-                            },
-                            {
-                              label: "Download ZIP",
-                              disabled: busy || !hasPayload,
-                              onClick: () => onDownloadZip(record),
-                            },
-                            {
-                              label: "Open verification report",
-                              disabled: busy || !record.verification_report_file,
-                              onClick: () => onOpenVerificationReport(record),
-                            },
-                          ]}
-                        />
-                      </RowActions>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </DataTable>
-        </TableWrap>
+        <>
+          <TableWrap>
+            <DataTable
+              aria-label="Proof history"
+              className={visibleColumnCount > 3 ? "min-w-245" : undefined}
+            >
+              <TableHead>
+                {visibility.select && (
+                  <TableHeaderCell className="w-px whitespace-nowrap">
+                    <CheckboxField
+                      label={null}
+                      aria-label="Select all proofs on this page"
+                      checked={allVisibleSelected}
+                      indeterminate={someVisibleSelected}
+                      disabled={busy || records.length === 0}
+                      onChange={onToggleAllVisible}
+                    />
+                  </TableHeaderCell>
+                )}
+                {visibility.timestamp && (
+                  <TableHeaderCell className="whitespace-nowrap">Timestamp</TableHeaderCell>
+                )}
+                {visibility.uid && <TableHeaderCell>UID</TableHeaderCell>}
+                {visibility.status && <TableHeaderCell>Status</TableHeaderCell>}
+                {visibility.hash && <TableHeaderCell>Data hash</TableHeaderCell>}
+                {visibility.actions && (
+                  <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+                )}
+              </TableHead>
+              <TableBody>
+                {records.map((record) => {
+                  const hasPayload = Boolean(record.proof_payload);
+                  const selected = selectedIds.includes(record.id);
+                  return (
+                    <TableRow key={record.id}>
+                      {visibility.select && (
+                        <TableCell className="w-px whitespace-nowrap">
+                          <CheckboxField
+                            label={null}
+                            aria-label={`Select proof ${record.proof_uid ?? record.id}`}
+                            checked={selected}
+                            disabled={busy}
+                            onChange={() => onToggle(record.id)}
+                          />
+                        </TableCell>
+                      )}
+                      {visibility.timestamp && (
+                        <TableCell className="whitespace-nowrap">
+                          <time
+                            className="type-meta text-text-secondary"
+                            dateTime={record.created_at}
+                          >
+                            {formatLocalDateTime(record.created_at)}
+                          </time>
+                        </TableCell>
+                      )}
+                      {visibility.uid && (
+                        <TableCell className="max-w-40 min-w-0">
+                          <code
+                            className="type-mono text-text-secondary block truncate"
+                            title={record.proof_uid ?? undefined}
+                          >
+                            {record.proof_uid ?? "—"}
+                          </code>
+                        </TableCell>
+                      )}
+                      {visibility.status && (
+                        <TableCell>
+                          <ProofStatusPill status={record.proof_status} />
+                        </TableCell>
+                      )}
+                      {visibility.hash && (
+                        <TableCell className="max-w-48 min-w-0">
+                          <TruncatedHash value={record.hash} />
+                        </TableCell>
+                      )}
+                      {visibility.actions && (
+                        <TableCell className="w-px whitespace-nowrap">
+                          <RowActions>
+                            <TableIconButton
+                              title="View details"
+                              aria-label={`View details for ${record.proof_uid ?? record.id}`}
+                              onClick={() => setDetailsRecord(record)}
+                            >
+                              <Eye size={16} aria-hidden />
+                            </TableIconButton>
+                            <TableIconMenu
+                              aria-label={`More actions for ${record.proof_uid ?? record.id}`}
+                              items={[
+                                {
+                                  label: verifyingId === record.id ? "Verifying…" : "Verify",
+                                  disabled: busy || verifyingId !== null || !hasPayload,
+                                  onClick: () => onVerify(record),
+                                },
+                                {
+                                  label: "Download",
+                                  disabled: busy || !hasPayload,
+                                  onClick: () => onDownload(record),
+                                },
+                                {
+                                  label: "Download ZIP",
+                                  disabled: busy || !hasPayload,
+                                  onClick: () => onDownloadZip(record),
+                                },
+                                {
+                                  label: "Open verification report",
+                                  disabled: busy || !record.verification_report_file,
+                                  onClick: () => onOpenVerificationReport(record),
+                                },
+                              ]}
+                            />
+                          </RowActions>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </DataTable>
+          </TableWrap>
+        </>
       )}
     </div>
   );

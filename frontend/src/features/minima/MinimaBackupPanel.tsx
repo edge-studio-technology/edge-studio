@@ -17,14 +17,24 @@ import {
 } from "../../components/DataTable";
 import { LoadingDots } from "../../components/LoadingDots";
 import { Modal } from "../../components/Modal";
-import { DeleteConfirmModal, DeleteProgressModal } from "../../components/patterns/DeleteConfirmModal";
+import {
+  DeleteConfirmModal,
+  DeleteProgressModal,
+} from "../../components/patterns/DeleteConfirmModal";
 import { FileDropBox } from "../../components/patterns/FileDropBox";
+import {
+  TableColumnVisibilityButton,
+  type TableColumnDefinition,
+  type TableColumnVisibility,
+} from "../../components/patterns/TableColumnVisibility";
+import { TableControls } from "../../components/patterns/TableControls";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { InputField } from "../../components/ui/InputField";
 import { ScrollArea } from "../../components/ui/ScrollArea";
 import { formatLocalDateTime } from "../../lib/time";
+import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 import {
   clearBackupPassword,
   createMinimaBackup,
@@ -36,10 +46,17 @@ import {
   restoreMinimaBackup,
   restoreMinimaBackupFromUpload,
   setAutoBackupEnabled,
-  setBackupPassword
+  setBackupPassword,
 } from "./minimaBackupApi";
 
 const MAX_BACKUPS = 20;
+
+const BACKUP_COLUMNS = [
+  { id: "file", label: "File" },
+  { id: "size", label: "Size" },
+  { id: "created", label: "Created" },
+  { id: "actions", label: "Actions", dataColumn: false },
+] as const satisfies readonly TableColumnDefinition[];
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -48,23 +65,26 @@ function formatSize(bytes: number) {
 }
 
 const restoreWarning = (
-  <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
-    <p className="text-sm font-bold text-amber-800 m-0">This will replace the current node state</p>
-    <p className="text-sm text-amber-700 mt-1 m-0">
-      Restoring re-syncs from the configured MegaMMR host and overwrites the node's current wallet and chain state.
+  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+    <p className="m-0 text-sm font-bold text-amber-800">This will replace the current node state</p>
+    <p className="m-0 mt-1 text-sm text-amber-700">
+      Restoring re-syncs from the configured MegaMMR host and overwrites the node's current wallet
+      and chain state.
     </p>
   </div>
 );
 
 function BackupRow({
   backup,
+  visibility,
   actionsBlocked,
   deleting,
   onDownload,
   onRestore,
-  onDelete
+  onDelete,
 }: {
   backup: MinimaBackupEntry;
+  visibility: TableColumnVisibility;
   actionsBlocked: boolean;
   deleting: boolean;
   onDownload: () => void;
@@ -73,33 +93,41 @@ function BackupRow({
 }) {
   return (
     <TableRow>
-      <TableCell className="min-w-0">
-        <span className="type-body-em text-text-primary block truncate">{backup.fileName}</span>
-      </TableCell>
-      <TableCell className="whitespace-nowrap">{formatSize(backup.sizeBytes)}</TableCell>
-      <TableCell className="whitespace-nowrap">
-        <time className="type-meta text-text-secondary" dateTime={backup.createdAt}>
-          {formatLocalDateTime(backup.createdAt)}
-        </time>
-      </TableCell>
-      <TableCell className="w-px whitespace-nowrap">
-        <RowActions>
-          <TableIconButton
-            title="Download"
-            aria-label={`Download ${backup.fileName}`}
-            onClick={onDownload}
-          >
-            <Download size={16} aria-hidden />
-          </TableIconButton>
-          <TableIconMenu
-            aria-label={`More actions for ${backup.fileName}`}
-            items={[
-              { label: "Restore", disabled: actionsBlocked, onClick: onRestore },
-              { label: "Delete", danger: true, disabled: deleting, onClick: onDelete }
-            ]}
-          />
-        </RowActions>
-      </TableCell>
+      {visibility.file && (
+        <TableCell className="min-w-0">
+          <span className="type-body-em text-text-primary block truncate">{backup.fileName}</span>
+        </TableCell>
+      )}
+      {visibility.size && (
+        <TableCell className="whitespace-nowrap">{formatSize(backup.sizeBytes)}</TableCell>
+      )}
+      {visibility.created && (
+        <TableCell className="whitespace-nowrap">
+          <time className="type-meta text-text-secondary" dateTime={backup.createdAt}>
+            {formatLocalDateTime(backup.createdAt)}
+          </time>
+        </TableCell>
+      )}
+      {visibility.actions && (
+        <TableCell className="w-px whitespace-nowrap">
+          <RowActions>
+            <TableIconButton
+              title="Download"
+              aria-label={`Download ${backup.fileName}`}
+              onClick={onDownload}
+            >
+              <Download size={16} aria-hidden />
+            </TableIconButton>
+            <TableIconMenu
+              aria-label={`More actions for ${backup.fileName}`}
+              items={[
+                { label: "Restore", disabled: actionsBlocked, onClick: onRestore },
+                { label: "Delete", danger: true, disabled: deleting, onClick: onDelete },
+              ]}
+            />
+          </RowActions>
+        </TableCell>
+      )}
     </TableRow>
   );
 }
@@ -151,6 +179,8 @@ export function MinimaBackupPanel({
   const [rowRestorePassword, setRowRestorePassword] = useState("");
   const [rowRestoreBusy, setRowRestoreBusy] = useState(false);
   const [rowRestoreError, setRowRestoreError] = useState<string | null>(null);
+  const { visibility, setVisibility } = useTableColumnVisibility("minima-backups", BACKUP_COLUMNS);
+  const visibleColumnCount = BACKUP_COLUMNS.filter((column) => visibility[column.id]).length;
 
   async function refreshBackups() {
     try {
@@ -184,10 +214,17 @@ export function MinimaBackupPanel({
     setSetupBusy(true);
     setSetupError(null);
     try {
-      const res = await setBackupPassword({ backupPassword: newBackupPassword, currentPassword: setupCurrentPassword });
+      const res = await setBackupPassword({
+        backupPassword: newBackupPassword,
+        currentPassword: setupCurrentPassword,
+      });
       setHasPassword(res.hasPassword);
       setPasswordModalOpen(false);
-      showToast({ tone: "success", title: "Backup password saved", message: "Used for every manual and automatic backup from now on." });
+      showToast({
+        tone: "success",
+        title: "Backup password saved",
+        message: "Used for every manual and automatic backup from now on.",
+      });
     } catch (error) {
       setSetupError(error instanceof Error ? error.message : "Failed to set backup password");
     } finally {
@@ -210,7 +247,11 @@ export function MinimaBackupPanel({
       setHasPassword(res.hasPassword);
       setAutoBackupEnabledState(false);
       setClearPasswordOpen(false);
-      showToast({ tone: "success", title: "Backup password removed", message: "Automatic backups have been turned off." });
+      showToast({
+        tone: "success",
+        title: "Backup password removed",
+        message: "Automatic backups have been turned off.",
+      });
     } catch (error) {
       setClearPasswordError(error instanceof Error ? error.message : "Invalid current credential");
     } finally {
@@ -222,14 +263,18 @@ export function MinimaBackupPanel({
     setCreating(true);
     try {
       await createMinimaBackup();
-      showToast({ tone: "success", title: "Backup created", message: "Minima wrote a new backup file." });
+      showToast({
+        tone: "success",
+        title: "Backup created",
+        message: "Minima wrote a new backup file.",
+      });
       await refreshBackups();
     } catch (error) {
       showToast({
         tone: "error",
         title: "Backup failed",
         message: error instanceof Error ? error.message : "Unknown error",
-        timeoutMs: 9000
+        timeoutMs: 9000,
       });
     } finally {
       setCreating(false);
@@ -247,7 +292,7 @@ export function MinimaBackupPanel({
         tone: "error",
         title: "Failed to update auto-backup",
         message: error instanceof Error ? error.message : "Unknown error",
-        timeoutMs: 9000
+        timeoutMs: 9000,
       });
     } finally {
       setTogglingAuto(false);
@@ -271,7 +316,7 @@ export function MinimaBackupPanel({
         tone: "error",
         title: "Delete failed",
         message: error instanceof Error ? error.message : "Unknown error",
-        timeoutMs: 9000
+        timeoutMs: 9000,
       });
     } finally {
       setDeletingFile(null);
@@ -314,9 +359,13 @@ export function MinimaBackupPanel({
       await restoreMinimaBackupFromUpload({
         file: uploadFile,
         password: uploadPasswordOverride,
-        currentPassword: uploadCurrentPassword
+        currentPassword: uploadCurrentPassword,
       });
-      showToast({ tone: "success", title: "Restore started", message: "Minima is restoring and re-syncing from the backup." });
+      showToast({
+        tone: "success",
+        title: "Restore started",
+        message: "Minima is restoring and re-syncing from the backup.",
+      });
       setUploadRestoreOpen(false);
       await refreshBackups();
     } catch (error) {
@@ -337,8 +386,15 @@ export function MinimaBackupPanel({
     setRowRestoreBusy(true);
     setRowRestoreError(null);
     try {
-      await restoreMinimaBackup({ fileName: rowRestoreTarget.fileName, currentPassword: rowRestorePassword });
-      showToast({ tone: "success", title: "Restore started", message: "Minima is restoring and re-syncing from the backup." });
+      await restoreMinimaBackup({
+        fileName: rowRestoreTarget.fileName,
+        currentPassword: rowRestorePassword,
+      });
+      showToast({
+        tone: "success",
+        title: "Restore started",
+        message: "Minima is restoring and re-syncing from the backup.",
+      });
       setRowRestoreTarget(null);
       await refreshBackups();
     } catch (error) {
@@ -361,16 +417,20 @@ export function MinimaBackupPanel({
       )}
 
       {hasPassword === false && (
-        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
-          <p className="text-sm text-amber-800 m-0">
-            No backup password set. Use the key icon below to set one — required for manual and automatic backups.
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <p className="m-0 text-sm text-amber-800">
+            No backup password set. Use the key icon below to set one — required for manual and
+            automatic backups.
           </p>
         </div>
       )}
 
       <div className="grid gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={() => void handleCreateBackup()} disabled={creating || actionsBlocked || !hasPassword}>
+          <Button
+            onClick={() => void handleCreateBackup()}
+            disabled={creating || actionsBlocked || !hasPassword}
+          >
             {creating ? "Backing up…" : "Backup now"}
           </Button>
           <IconButton
@@ -379,7 +439,9 @@ export function MinimaBackupPanel({
             title={hasPassword ? "Manage backup password" : "Set backup password"}
             aria-label={hasPassword ? "Manage backup password" : "Set backup password"}
             onClick={openPasswordModal}
-            className={hasPassword === false ? "border-amber-300 bg-amber-50 text-amber-700" : undefined}
+            className={
+              hasPassword === false ? "border-amber-300 bg-amber-50 text-amber-700" : undefined
+            }
           >
             <KeyRound />
           </IconButton>
@@ -412,24 +474,37 @@ export function MinimaBackupPanel({
 
         {backups && (
           <div className="grid gap-2">
-            <p className="m-0 text-sm font-medium text-slate-500">
-              Backups ({backups.length}/{MAX_BACKUPS})
-            </p>
+            <TableControls
+              utilities={
+                <TableColumnVisibilityButton
+                  tableLabel="Backups"
+                  columns={BACKUP_COLUMNS}
+                  visibility={visibility}
+                  onChange={setVisibility}
+                />
+              }
+            >
+              <p className="m-0 text-sm font-medium text-slate-500">
+                Backups ({backups.length}/{MAX_BACKUPS})
+              </p>
+            </TableControls>
             <ScrollArea
               stableGutter={false}
-              className="max-h-80 rounded-loose border border-stroke-primary bg-surface-always-white"
+              className="rounded-loose border-stroke-primary bg-surface-always-white max-h-80 border"
             >
               <DataTable aria-label="Backups">
                 <TableHead>
-                  <TableHeaderCell>File</TableHeaderCell>
-                  <TableHeaderCell>Size</TableHeaderCell>
-                  <TableHeaderCell>Created</TableHeaderCell>
-                  <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+                  {visibility.file && <TableHeaderCell>File</TableHeaderCell>}
+                  {visibility.size && <TableHeaderCell>Size</TableHeaderCell>}
+                  {visibility.created && <TableHeaderCell>Created</TableHeaderCell>}
+                  {visibility.actions && (
+                    <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+                  )}
                 </TableHead>
                 <TableBody>
                   {backups.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4}>
+                      <TableCell colSpan={visibleColumnCount}>
                         <EmptyTableState>None yet.</EmptyTableState>
                       </TableCell>
                     </TableRow>
@@ -438,6 +513,7 @@ export function MinimaBackupPanel({
                       <BackupRow
                         key={backup.fileName}
                         backup={backup}
+                        visibility={visibility}
                         actionsBlocked={actionsBlocked}
                         deleting={deletingFile === backup.fileName}
                         onDownload={() => startDownload(backup.fileName)}
@@ -471,14 +547,19 @@ export function MinimaBackupPanel({
               >
                 Cancel
               </Button>
-              <Button onClick={() => void confirmDownload()} disabled={downloadBusy || downloadPassword.length === 0}>
+              <Button
+                onClick={() => void confirmDownload()}
+                disabled={downloadBusy || downloadPassword.length === 0}
+              >
                 {downloadBusy ? "Confirming…" : "Confirm"}
               </Button>
             </>
           }
         >
           <div className="grid gap-3">
-            <p className="text-sm text-slate-600 m-0">Re-enter your current PIN or password to download this backup.</p>
+            <p className="m-0 text-sm text-slate-600">
+              Re-enter your current PIN or password to download this backup.
+            </p>
             <InputField
               label="Current PIN or password"
               type="password"
@@ -513,7 +594,12 @@ export function MinimaBackupPanel({
                 Cancel
               </Button>
               {hasPassword === true && (
-                <Button variant="danger" type="button" onClick={openClearPassword} disabled={setupBusy}>
+                <Button
+                  variant="danger"
+                  type="button"
+                  onClick={openClearPassword}
+                  disabled={setupBusy}
+                >
                   Remove backup password
                 </Button>
               )}
@@ -522,7 +608,11 @@ export function MinimaBackupPanel({
                 form="backup-password-form"
                 disabled={setupBusy || !newBackupPassword || !setupCurrentPassword}
               >
-                {setupBusy ? "Saving…" : hasPassword ? "Update backup password" : "Save backup password"}
+                {setupBusy
+                  ? "Saving…"
+                  : hasPassword
+                    ? "Update backup password"
+                    : "Save backup password"}
               </Button>
             </>
           }
@@ -533,9 +623,9 @@ export function MinimaBackupPanel({
             className="grid gap-3"
           >
             {hasPassword === false && (
-              <p className="text-sm text-slate-600 m-0">
-                One password protects every manual and automatic backup. It's stored encrypted; nothing about it is
-                ever shown again, so keep a copy somewhere safe.
+              <p className="m-0 text-sm text-slate-600">
+                One password protects every manual and automatic backup. It's stored encrypted;
+                nothing about it is ever shown again, so keep a copy somewhere safe.
               </p>
             )}
             <InputField
@@ -639,7 +729,10 @@ export function MinimaBackupPanel({
               >
                 Cancel
               </Button>
-              <Button onClick={() => void confirmRowRestore()} disabled={rowRestoreBusy || rowRestorePassword.length === 0}>
+              <Button
+                onClick={() => void confirmRowRestore()}
+                disabled={rowRestoreBusy || rowRestorePassword.length === 0}
+              >
                 {rowRestoreBusy ? "Restoring…" : "Confirm restore"}
               </Button>
             </>
@@ -647,9 +740,9 @@ export function MinimaBackupPanel({
         >
           <div className="grid gap-3">
             {restoreWarning}
-            <p className="text-sm text-slate-600 m-0">
-              Restoring <span className="font-mono">{rowRestoreTarget.fileName}</span>. Re-enter your current PIN or
-              password to confirm.
+            <p className="m-0 text-sm text-slate-600">
+              Restoring <span className="font-mono">{rowRestoreTarget.fileName}</span>. Re-enter
+              your current PIN or password to confirm.
             </p>
             <InputField
               label="Current PIN or password"
@@ -709,9 +802,11 @@ export function MinimaBackupPanel({
           }
         >
           <div className="grid gap-3">
-            <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
-              <p className="text-sm font-bold text-amber-800 m-0">This turns off automatic backups</p>
-              <p className="text-sm text-amber-700 mt-1 m-0">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <p className="m-0 text-sm font-bold text-amber-800">
+                This turns off automatic backups
+              </p>
+              <p className="m-0 mt-1 text-sm text-amber-700">
                 You'll need to set a new backup password before creating another backup.
               </p>
             </div>

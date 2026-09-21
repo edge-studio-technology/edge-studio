@@ -5,15 +5,20 @@ import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../components/patterns/ListPaginationFooter";
 import { Page } from "../components/patterns/Page";
+import { TableColumnVisibilityButton } from "../components/patterns/TableColumnVisibility";
+import { TableControls } from "../components/patterns/TableControls";
 import { Button, LinkButton } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { TabList } from "../components/ui/TabList";
 import { useToast } from "../components/ToastProvider";
 import { listAutomationRuns } from "../features/automation/automationApi";
-import { AutomationRunsTable } from "../features/automation/AutomationRunsTable";
+import {
+  AutomationRunsTable,
+  WORKFLOW_RUN_COLUMNS,
+} from "../features/automation/AutomationRunsTable";
 import type { AutomationRun } from "../features/automation/automationTypes";
 import { listDataReads } from "../features/data-reads/dataReadsApi";
-import { DataReadsHistoryTable } from "../features/data-reads/DataReadsHistoryTable";
+import { DataReadsHistoryTable, READ_COLUMNS } from "../features/data-reads/DataReadsHistoryTable";
 import type { DataSourceRead } from "../features/data-reads/dataReadTypes";
 import {
   deleteSelected,
@@ -24,13 +29,17 @@ import {
   verificationReportUrl,
 } from "../features/integritas/integritasApi";
 import { integritasErrorToast } from "../features/integritas/integritasErrors";
-import { IntegritasHistoryTable } from "../features/integritas/IntegritasHistoryTable";
+import {
+  IntegritasHistoryTable,
+  PROOF_COLUMNS,
+} from "../features/integritas/IntegritasHistoryTable";
 import type {
   IntegritasHistoryPage,
   IntegritasProofRecord,
 } from "../features/integritas/integritasTypes";
 import { extractVerifyMatch } from "../features/integritas/VerifyResult";
 import { useIntegritasHistoryAutoRefresh } from "../features/integritas/useIntegritasHistoryAutoRefresh";
+import { useTableColumnVisibility } from "../features/preferences/useTableColumnVisibility";
 import { DEFAULT_PAGE_SIZE_OPTIONS, emptyPaginatedPage } from "../lib/paginated";
 import {
   defaultDiagnosticsListQuery,
@@ -96,6 +105,9 @@ export function DiagnosticsPage() {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [tabLoading, setTabLoading] = useState(true);
+  const proofColumns = useTableColumnVisibility("diagnostics-proofs", PROOF_COLUMNS);
+  const readColumns = useTableColumnVisibility("diagnostics-reads", READ_COLUMNS);
+  const workflowRunColumns = useTableColumnVisibility("workflow-runs", WORKFLOW_RUN_COLUMNS);
   const busy = bulkBusy !== null;
 
   const updateListQuery = useCallback(
@@ -248,7 +260,9 @@ export function DiagnosticsPage() {
         title: isFullMatch ? "Full match" : "No match",
         message: reportUrl
           ? `${isFullMatch ? "The proof matches the original data." : "The proof does not match."} Verification report saved on this Pi.`
-          : isFullMatch ? "The proof matches the original data." : "The proof does not match.",
+          : isFullMatch
+            ? "The proof matches the original data."
+            : "The proof does not match.",
         action: reportUrl ? (
           <LinkButton size="sm" href={reportUrl} target="_blank" rel="noopener noreferrer">
             Open report
@@ -303,6 +317,29 @@ export function DiagnosticsPage() {
         ? READ_STATUS_OPTIONS
         : WORKFLOW_STATUS_OPTIONS;
   const listFiltered = Boolean(listQuery.status || listQuery.q);
+  const columnControl =
+    activeTab === "proofs" ? (
+      <TableColumnVisibilityButton
+        tableLabel="Proof history"
+        columns={PROOF_COLUMNS}
+        visibility={proofColumns.visibility}
+        onChange={proofColumns.setVisibility}
+      />
+    ) : activeTab === "reads" ? (
+      <TableColumnVisibilityButton
+        tableLabel="Read history"
+        columns={READ_COLUMNS}
+        visibility={readColumns.visibility}
+        onChange={readColumns.setVisibility}
+      />
+    ) : (
+      <TableColumnVisibilityButton
+        tableLabel="Workflow logs"
+        columns={WORKFLOW_RUN_COLUMNS}
+        visibility={workflowRunColumns.visibility}
+        onChange={workflowRunColumns.setVisibility}
+      />
+    );
 
   return (
     <Page
@@ -326,29 +363,29 @@ export function DiagnosticsPage() {
 
         <p className="type-body text-text-secondary m-0">{TAB_DESCRIPTION[activeTab]}</p>
 
-        <ListFilterBar
-          filter={listQuery.status}
-          q={listQuery.q}
-          filterOptions={statusOptions}
-          searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
-          disabled={
-            refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)
-          }
-          onFilterChange={(status) => updateListQuery({ status })}
-          onQueryChange={(q) => updateListQuery({ q })}
-          actions={
-            <Button
-              type="button"
-              iconStart={<RefreshCw aria-hidden />}
-              onClick={() => {
-                void handleRefresh();
-              }}
-              disabled={refreshing}
-            >
-              {refreshing ? "Refreshing…" : "Refresh"}
-            </Button>
-          }
-        />
+        <TableControls utilities={columnControl}>
+          <ListFilterBar
+            filter={listQuery.status}
+            q={listQuery.q}
+            filterOptions={statusOptions}
+            searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
+            disabled={refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)}
+            onFilterChange={(status) => updateListQuery({ status })}
+            onQueryChange={(q) => updateListQuery({ q })}
+            actions={
+              <Button
+                type="button"
+                iconStart={<RefreshCw aria-hidden />}
+                onClick={() => {
+                  void handleRefresh();
+                }}
+                disabled={refreshing}
+              >
+                {refreshing ? "Refreshing…" : "Refresh"}
+              </Button>
+            }
+          />
+        </TableControls>
 
         {error ? (
           <ErrorAlert title="Couldn't load diagnostics" className="w-full max-w-none">
@@ -362,6 +399,9 @@ export function DiagnosticsPage() {
             selectedIds={selectedIds}
             filtered={listFiltered}
             loading={tabLoading}
+            columnVisibility={proofColumns.visibility}
+            onColumnVisibilityChange={proofColumns.setVisibility}
+            showColumnControls={false}
             onClearFilters={() => updateListQuery({ status: "", q: "" })}
             busy={busy}
             bulkBusy={bulkBusy}
@@ -430,6 +470,9 @@ export function DiagnosticsPage() {
             items={readsPage.items}
             filtered={listFiltered}
             loading={tabLoading}
+            columnVisibility={readColumns.visibility}
+            onColumnVisibilityChange={readColumns.setVisibility}
+            showColumnControls={false}
             onClearFilters={() => updateListQuery({ status: "", q: "" })}
           />
         ) : (
@@ -437,6 +480,9 @@ export function DiagnosticsPage() {
             runs={workflowRunsPage.items}
             filtered={listFiltered}
             loading={tabLoading}
+            columnVisibility={workflowRunColumns.visibility}
+            onColumnVisibilityChange={workflowRunColumns.setVisibility}
+            showColumnControls={false}
             onClearFilters={() => updateListQuery({ status: "", q: "" })}
           />
         )}

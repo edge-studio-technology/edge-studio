@@ -15,11 +15,17 @@ import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { LoadingState } from "../../components/patterns/LoadingState";
+import {
+  TableColumnVisibilityButton,
+  type TableColumnDefinition,
+} from "../../components/patterns/TableColumnVisibility";
+import { TableControls } from "../../components/patterns/TableControls";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatMinimaAmount } from "../../lib/format";
 import { AssetDetailModal } from "./AssetDetailModal";
 import { TokenGlyph } from "./TokenGlyph";
 import type { TokenBalance } from "./walletTypes";
+import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 
 const ASSET_KIND_OPTIONS = [
   { value: "", label: "All" },
@@ -31,6 +37,12 @@ const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
   value: String(size),
   label: String(size),
 }));
+
+const WALLET_ASSET_COLUMNS = [
+  { id: "name", label: "Name" },
+  { id: "amount", label: "Amount" },
+  { id: "actions", label: "Actions", dataColumn: false },
+] as const satisfies readonly TableColumnDefinition[];
 
 export function WalletAssetsPanel({
   tokens,
@@ -46,6 +58,10 @@ export function WalletAssetsPanel({
   const [assetPage, setAssetPage] = useState(1);
   const [assetPageSize, setAssetPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
   const [selectedAsset, setSelectedAsset] = useState<TokenBalance | null>(null);
+  const { visibility, setVisibility } = useTableColumnVisibility(
+    "wallet-assets",
+    WALLET_ASSET_COLUMNS,
+  );
 
   const trimmedAssetQuery = assetQuery.trim().toLowerCase();
   const filtersActive = Boolean(assetKind || trimmedAssetQuery);
@@ -74,23 +90,34 @@ export function WalletAssetsPanel({
 
   return (
     <div className="gap-detail-close flex flex-col">
-      <div className="[&>div]:mb-0">
-        <ListFilterBar
-          filter={assetKind}
-          q={assetQuery}
-          filterOptions={ASSET_KIND_OPTIONS}
-          searchPlaceholder="Name or coin ID"
-          disabled={pagerDisabled || tokens.length === 0}
-          onFilterChange={(kind) => {
-            setAssetKind(kind);
-            setAssetPage(1);
-          }}
-          onQueryChange={(q) => {
-            setAssetQuery(q);
-            setAssetPage(1);
-          }}
-        />
-      </div>
+      <TableControls
+        utilities={
+          <TableColumnVisibilityButton
+            tableLabel="Wallet assets"
+            columns={WALLET_ASSET_COLUMNS}
+            visibility={visibility}
+            onChange={setVisibility}
+          />
+        }
+      >
+        <div className="[&>div]:mb-0">
+          <ListFilterBar
+            filter={assetKind}
+            q={assetQuery}
+            filterOptions={ASSET_KIND_OPTIONS}
+            searchPlaceholder="Name or coin ID"
+            disabled={pagerDisabled || tokens.length === 0}
+            onFilterChange={(kind) => {
+              setAssetKind(kind);
+              setAssetPage(1);
+            }}
+            onQueryChange={(q) => {
+              setAssetQuery(q);
+              setAssetPage(1);
+            }}
+          />
+        </div>
+      </TableControls>
 
       {loading || actionsBlocked ? (
         <LoadingState title="Fetching your assets" description="This should take a few seconds." />
@@ -111,36 +138,44 @@ export function WalletAssetsPanel({
         <TableWrap>
           <DataTable>
             <TableHead>
-              <TableHeaderCell>Name</TableHeaderCell>
-              <TableHeaderCell>Amount</TableHeaderCell>
-              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+              {visibility.name && <TableHeaderCell>Name</TableHeaderCell>}
+              {visibility.amount && <TableHeaderCell>Amount</TableHeaderCell>}
+              {visibility.actions && (
+                <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+              )}
             </TableHead>
             <TableBody>
               {pagedAssets.map((token) => (
                 <TableRow key={token.tokenId}>
-                  <TableCell className="min-w-0">
-                    <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
-                      <TokenGlyph isNative={token.isNative} />
-                      <span className="truncate">{token.name}</span>
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="type-mono tabular-nums">
-                      {formatMinimaAmount(token.sendable, 12)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="w-px whitespace-nowrap">
-                    <RowActions>
-                      <TableIconButton
-                        type="button"
-                        title="View details"
-                        aria-label={`View ${token.name}`}
-                        onClick={() => setSelectedAsset(token)}
-                      >
-                        <Eye size={16} />
-                      </TableIconButton>
-                    </RowActions>
-                  </TableCell>
+                  {visibility.name && (
+                    <TableCell className="min-w-0">
+                      <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
+                        <TokenGlyph isNative={token.isNative} />
+                        <span className="truncate">{token.name}</span>
+                      </span>
+                    </TableCell>
+                  )}
+                  {visibility.amount && (
+                    <TableCell>
+                      <span className="type-mono tabular-nums">
+                        {formatMinimaAmount(token.sendable, 12)}
+                      </span>
+                    </TableCell>
+                  )}
+                  {visibility.actions && (
+                    <TableCell className="w-px whitespace-nowrap">
+                      <RowActions>
+                        <TableIconButton
+                          type="button"
+                          title="View details"
+                          aria-label={`View ${token.name}`}
+                          onClick={() => setSelectedAsset(token)}
+                        >
+                          <Eye size={16} />
+                        </TableIconButton>
+                      </RowActions>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

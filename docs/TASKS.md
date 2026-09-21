@@ -70,6 +70,8 @@
 
 ## Done
 
+- [x] Added backend-saved column visibility controls to every shared `DataTable` table: a shared table controls shell, cog-button chooser modal, authenticated preferences API, and per-table visibility wiring across Diagnostics, Devices, Workflows, Workflow Inbox, Wallet, Address book, Minima, and workflow watch tables — see `docs/plans/table-column-visibility.md`.
+- [x] Manual browser check of backend-saved column visibility controls on every shared `DataTable` table, including the follow-up fix for diagnostics table width after columns are hidden — see `docs/plans/table-column-visibility.md`.
 - [x] Closed the V1 sign-off remainder with nginx security headers, an accepted documented CSRF posture, unavailable dormant TOTP routes, and a passing two-variant clean-data auth/browser sign-off — see `docs/plans/security/706-v1-sign-off-remainder.md` and `docs/qa/v1-auth-sign-off.md`.
 - [x] Failed closed on an absent or empty `APP_SECRET` before database/background startup and removed the public `dev-change-me` default from every shipped configuration path — see `docs/plans/security/704-fail-closed-on-weak-config.md` and `docs/adr/0021-app-secret-fail-closed-without-migration.md`.
 - [x] Added configurable IPAM to generated release Compose, bound release-mode installer runtime bundles to the signed manifest SHA-256 before any application-directory replacement, and added end-to-end installer regressions for matching/mismatched/tampered/unsigned/invalid-metadata/override/fallback paths plus existing-installation preservation — see `docs/adr/0020-bind-installer-runtime-to-signed-manifest.md`.

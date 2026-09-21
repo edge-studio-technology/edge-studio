@@ -15,11 +15,28 @@ import {
 } from "../../components/patterns/DataTable";
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { LoadingState } from "../../components/patterns/LoadingState";
+import {
+  TableColumnVisibilityButton,
+  type TableColumnDefinition,
+  type TableColumnVisibility,
+} from "../../components/patterns/TableColumnVisibility";
+import { TableControls } from "../../components/patterns/TableControls";
 import { Pill } from "../../components/ui/Pill";
 import { formatLocalDateTime } from "../../lib/time";
+import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 import { AutomationRunInspectModal } from "./AutomationRunInspectModal";
 import { formatRunDuration, RUN_STATUS } from "./automationRunDisplay";
 import type { AutomationRun } from "./automationTypes";
+
+export const WORKFLOW_RUN_COLUMNS = [
+  { id: "started", label: "Started" },
+  { id: "workflow", label: "Workflow" },
+  { id: "trigger", label: "Trigger" },
+  { id: "status", label: "Status" },
+  { id: "duration", label: "Duration" },
+  { id: "blocks", label: "Blocks" },
+  { id: "actions", label: "Actions", dataColumn: false },
+] as const satisfies readonly TableColumnDefinition[];
 
 export function AutomationRunsTable({
   runs,
@@ -27,52 +44,95 @@ export function AutomationRunsTable({
   filtered = false,
   loading = false,
   onClearFilters,
+  columnVisibility,
+  onColumnVisibilityChange,
+  showColumnControls = true,
 }: {
   runs: AutomationRun[];
   compact?: boolean;
   filtered?: boolean;
   loading?: boolean;
   onClearFilters?: () => void;
+  columnVisibility?: TableColumnVisibility;
+  onColumnVisibilityChange?: (next: TableColumnVisibility) => void;
+  showColumnControls?: boolean;
 }) {
   const [inspectRunId, setInspectRunId] = useState<string | null>(null);
   const inspectRun = inspectRunId ? (runs.find((run) => run.id === inspectRunId) ?? null) : null;
+  const columns = compact
+    ? WORKFLOW_RUN_COLUMNS.filter((column) => column.id !== "workflow")
+    : WORKFLOW_RUN_COLUMNS;
+  const internalColumns = useTableColumnVisibility(
+    compact ? "workflow-runs-compact" : "workflow-runs",
+    columns,
+  );
+  const visibility = columnVisibility ?? internalColumns.visibility;
+  const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
+  const visibleColumnCount = columns.filter((column) => visibility[column.id]).length;
+
+  const controls = showColumnControls ? (
+    <TableControls
+      utilities={
+        <TableColumnVisibilityButton
+          tableLabel={compact ? "Workflow runs" : "Workflow logs"}
+          columns={columns}
+          visibility={visibility}
+          onChange={setVisibility}
+        />
+      }
+    />
+  ) : null;
 
   if (loading)
     return (
-      <LoadingState
-        title="Fetching your workflow runs"
-        description="This should take a few seconds."
-      />
+      <>
+        {controls}
+        <LoadingState
+          title="Fetching your workflow runs"
+          description="This should take a few seconds."
+        />
+      </>
     );
 
   if (runs.length === 0)
     return (
-      <EmptyContentState
-        icon={Inbox}
-        title={filtered ? "No matching workflow runs" : "No workflow runs yet"}
-        description={
-          filtered
-            ? "Try another status or search, or clear filters."
-            : "Runs from your workflows will be added to your history here."
-        }
-        actionLabel={filtered && onClearFilters ? "Clear filters" : undefined}
-        actionVariant="secondary"
-        onAction={filtered ? onClearFilters : undefined}
-      />
+      <>
+        {controls}
+        <EmptyContentState
+          icon={Inbox}
+          title={filtered ? "No matching workflow runs" : "No workflow runs yet"}
+          description={
+            filtered
+              ? "Try another status or search, or clear filters."
+              : "Runs from your workflows will be added to your history here."
+          }
+          actionLabel={filtered && onClearFilters ? "Clear filters" : undefined}
+          actionVariant="secondary"
+          onAction={filtered ? onClearFilters : undefined}
+        />
+      </>
     );
 
   return (
     <>
+      {controls}
       <TableWrap>
-        <DataTable aria-label="Workflow logs" className="min-w-245">
+        <DataTable
+          aria-label="Workflow logs"
+          className={visibleColumnCount > 3 ? "min-w-245" : undefined}
+        >
           <TableHead>
-            <TableHeaderCell className="whitespace-nowrap">Started</TableHeaderCell>
-            {!compact && <TableHeaderCell>Workflow</TableHeaderCell>}
-            <TableHeaderCell>Trigger</TableHeaderCell>
-            <TableHeaderCell>Status</TableHeaderCell>
-            <TableHeaderCell>Duration</TableHeaderCell>
-            <TableHeaderCell>Blocks</TableHeaderCell>
-            <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+            {visibility.started && (
+              <TableHeaderCell className="whitespace-nowrap">Started</TableHeaderCell>
+            )}
+            {!compact && visibility.workflow && <TableHeaderCell>Workflow</TableHeaderCell>}
+            {visibility.trigger && <TableHeaderCell>Trigger</TableHeaderCell>}
+            {visibility.status && <TableHeaderCell>Status</TableHeaderCell>}
+            {visibility.duration && <TableHeaderCell>Duration</TableHeaderCell>}
+            {visibility.blocks && <TableHeaderCell>Blocks</TableHeaderCell>}
+            {visibility.actions && (
+              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+            )}
           </TableHead>
           <TableBody>
             {runs.map((run) => {
@@ -80,35 +140,47 @@ export function AutomationRunsTable({
               const successBlocks = run.blocks.filter((block) => block.status === "success").length;
               return (
                 <TableRow key={run.id}>
-                  <TableCell className="whitespace-nowrap">
-                    <time className="text-text-secondary type-meta" dateTime={run.startedAt}>
-                      {formatLocalDateTime(run.startedAt)}
-                    </time>
-                  </TableCell>
-                  {!compact && (
+                  {visibility.started && (
+                    <TableCell className="whitespace-nowrap">
+                      <time className="text-text-secondary type-meta" dateTime={run.startedAt}>
+                        {formatLocalDateTime(run.startedAt)}
+                      </time>
+                    </TableCell>
+                  )}
+                  {!compact && visibility.workflow && (
                     <TableCell className="max-w-56 min-w-0">
                       <span className="type-body-em text-text-primary block truncate">
                         {run.workflowName}
                       </span>
                     </TableCell>
                   )}
-                  <TableCell>
-                    <Pill>{run.triggerType}</Pill>
-                  </TableCell>
-                  <TableCell>
-                    <Pill tone={status.tone} indicator>
-                      {status.label}
-                    </Pill>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    {formatRunDuration(run.durationMs)}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    {successBlocks}/{run.blockCount}
-                  </TableCell>
-                  <TableCell className="w-px whitespace-nowrap">
-                    <RunRowActions run={run} onView={() => setInspectRunId(run.id)} />
-                  </TableCell>
+                  {visibility.trigger && (
+                    <TableCell>
+                      <Pill>{run.triggerType}</Pill>
+                    </TableCell>
+                  )}
+                  {visibility.status && (
+                    <TableCell>
+                      <Pill tone={status.tone} indicator>
+                        {status.label}
+                      </Pill>
+                    </TableCell>
+                  )}
+                  {visibility.duration && (
+                    <TableCell className="whitespace-nowrap">
+                      {formatRunDuration(run.durationMs)}
+                    </TableCell>
+                  )}
+                  {visibility.blocks && (
+                    <TableCell className="whitespace-nowrap">
+                      {successBlocks}/{run.blockCount}
+                    </TableCell>
+                  )}
+                  {visibility.actions && (
+                    <TableCell className="w-px whitespace-nowrap">
+                      <RunRowActions run={run} onView={() => setInspectRunId(run.id)} />
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })}

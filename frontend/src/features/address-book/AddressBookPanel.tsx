@@ -13,18 +13,27 @@ import {
   TableWrap,
 } from "../../components/DataTable";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
-import { DeleteConfirmModal, DeleteProgressModal } from "../../components/patterns/DeleteConfirmModal";
+import {
+  DeleteConfirmModal,
+  DeleteProgressModal,
+} from "../../components/patterns/DeleteConfirmModal";
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
+import {
+  TableColumnVisibilityButton,
+  type TableColumnDefinition,
+} from "../../components/patterns/TableColumnVisibility";
+import { TableControls } from "../../components/patterns/TableControls";
 import { Button } from "../../components/ui/Button";
 import { InputField } from "../../components/ui/InputField";
 import { Modal } from "../../components/ui/Modal";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { useToast } from "../../components/ToastProvider";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
+import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 import {
   createAddressBookEntry,
   deleteAddressBookEntry,
@@ -41,6 +50,13 @@ const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
   value: String(size),
   label: String(size),
 }));
+
+const ADDRESS_BOOK_COLUMNS = [
+  { id: "name", label: "Name" },
+  { id: "address", label: "Address" },
+  { id: "notes", label: "Notes" },
+  { id: "actions", label: "Actions", dataColumn: false },
+] as const satisfies readonly TableColumnDefinition[];
 
 function sortByLabel(entries: AddressBookEntry[]): AddressBookEntry[] {
   return [...entries].sort((a, b) =>
@@ -61,6 +77,10 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
   const [editEntry, setEditEntry] = useState<AddressBookEntry | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AddressBookEntry | null>(null);
   const [deletingEntry, setDeletingEntry] = useState<AddressBookEntry | null>(null);
+  const { visibility, setVisibility } = useTableColumnVisibility(
+    "address-book",
+    ADDRESS_BOOK_COLUMNS,
+  );
 
   useEffect(() => {
     listAddressBookEntries()
@@ -115,25 +135,36 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
 
   return (
     <div className="gap-detail-close flex flex-col">
-      <ListFilterBar
-        q={query}
-        searchPlaceholder="Name, address, or notes"
-        disabled={isLoading || entries.length === 0}
-        onQueryChange={(q) => {
-          setQuery(q);
-          setPage(1);
-        }}
-        actions={
-          <Button
-            type="button"
-            iconStart={<Plus aria-hidden />}
-            onClick={() => setAddOpen(true)}
-            disabled={actionsBlocked}
-          >
-            New contact
-          </Button>
+      <TableControls
+        utilities={
+          <TableColumnVisibilityButton
+            tableLabel="Address book"
+            columns={ADDRESS_BOOK_COLUMNS}
+            visibility={visibility}
+            onChange={setVisibility}
+          />
         }
-      />
+      >
+        <ListFilterBar
+          q={query}
+          searchPlaceholder="Name, address, or notes"
+          disabled={isLoading || entries.length === 0}
+          onQueryChange={(q) => {
+            setQuery(q);
+            setPage(1);
+          }}
+          actions={
+            <Button
+              type="button"
+              iconStart={<Plus aria-hidden />}
+              onClick={() => setAddOpen(true)}
+              disabled={actionsBlocked}
+            >
+              New contact
+            </Button>
+          }
+        />
+      </TableControls>
 
       {error ? (
         <ErrorAlert title="Couldn't load address book" className="w-full max-w-none">
@@ -165,51 +196,61 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         <TableWrap>
           <DataTable aria-label="Address book">
             <TableHead>
-              <TableHeaderCell className="w-72">Name</TableHeaderCell>
-              <TableHeaderCell className="w-40">Address</TableHeaderCell>
-              <TableHeaderCell>Notes</TableHeaderCell>
-              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+              {visibility.name && <TableHeaderCell className="w-72">Name</TableHeaderCell>}
+              {visibility.address && <TableHeaderCell className="w-40">Address</TableHeaderCell>}
+              {visibility.notes && <TableHeaderCell>Notes</TableHeaderCell>}
+              {visibility.actions && (
+                <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+              )}
             </TableHead>
             <TableBody>
               {pagedEntries.map((entry) => (
                 <TableRow key={entry.id}>
-                  <TableCell className="min-w-0">
-                    <span className="type-body-em text-text-primary truncate">{entry.label}</span>
-                  </TableCell>
-                  <TableCell className="min-w-0">
-                    <TruncatedHash value={entry.address} />
-                  </TableCell>
-                  <TableCell className="min-w-0">
-                    <span className="type-body text-text-secondary truncate">
-                      {entry.notes || "—"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="w-px whitespace-nowrap">
-                    <RowActions>
-                      <TableIconButton
-                        type="button"
-                        title="View contact"
-                        aria-label={`View ${entry.label}`}
-                        onClick={() => setViewEntry(entry)}
-                      >
-                        <Eye size={16} aria-hidden />
-                      </TableIconButton>
-                      <TableIconMenu
-                        aria-label={`More actions for ${entry.label}`}
-                        items={[
-                          {
-                            label: "Edit",
-                            onClick: () => setEditEntry(entry),
-                          },
-                          {
-                            label: "Remove",
-                            danger: true,
-                            onClick: () => setDeleteTarget(entry),
-                          },
-                        ]}
-                      />
-                    </RowActions>
-                  </TableCell>
+                  {visibility.name && (
+                    <TableCell className="min-w-0">
+                      <span className="type-body-em text-text-primary truncate">{entry.label}</span>
+                    </TableCell>
+                  )}
+                  {visibility.address && (
+                    <TableCell className="min-w-0">
+                      <TruncatedHash value={entry.address} />
+                    </TableCell>
+                  )}
+                  {visibility.notes && (
+                    <TableCell className="min-w-0">
+                      <span className="type-body text-text-secondary truncate">
+                        {entry.notes || "—"}
+                      </span>
+                    </TableCell>
+                  )}
+                  {visibility.actions && (
+                    <TableCell className="w-px whitespace-nowrap">
+                      <RowActions>
+                        <TableIconButton
+                          type="button"
+                          title="View contact"
+                          aria-label={`View ${entry.label}`}
+                          onClick={() => setViewEntry(entry)}
+                        >
+                          <Eye size={16} aria-hidden />
+                        </TableIconButton>
+                        <TableIconMenu
+                          aria-label={`More actions for ${entry.label}`}
+                          items={[
+                            {
+                              label: "Edit",
+                              onClick: () => setEditEntry(entry),
+                            },
+                            {
+                              label: "Remove",
+                              danger: true,
+                              onClick: () => setDeleteTarget(entry),
+                            },
+                          ]}
+                        />
+                      </RowActions>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -280,13 +321,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
   );
 }
 
-function ContactDetailModal({
-  entry,
-  onClose,
-}: {
-  entry: AddressBookEntry;
-  onClose: () => void;
-}) {
+function ContactDetailModal({ entry, onClose }: { entry: AddressBookEntry; onClose: () => void }) {
   return (
     <Modal title={entry.label} description="Saved recipient details." onClose={onClose}>
       <div className="gap-detail-close grid">
