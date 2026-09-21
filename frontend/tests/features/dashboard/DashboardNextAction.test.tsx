@@ -75,13 +75,13 @@ describe("DashboardNextAction", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders nothing while counts are loading", () => {
+  it("renders an accessible placeholder while counts are loading", () => {
     listDataSources.mockReturnValue(new Promise(() => {}));
     listAutomationWorkflows.mockReturnValue(new Promise(() => {}));
 
-    const { container } = renderNextAction();
+    renderNextAction();
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByRole("status")).toHaveTextContent("Checking your next step");
   });
 
   it("renders nothing once at least one device and one enabled workflow exist", async () => {
@@ -146,12 +146,25 @@ describe("DashboardNextAction", () => {
     expect(await screen.findByText("Create your first workflow")).toBeInTheDocument();
   });
 
-  it("defaults both counts to 0 when the underlying requests fail", async () => {
+  it("shows an error instead of onboarding when the devices request fails", async () => {
     listDataSources.mockRejectedValue(new Error("boom"));
+    listAutomationWorkflows.mockResolvedValue({ items: [workflow()] });
+
+    renderNextAction();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Dashboard setup couldn't be loaded");
+    expect(screen.queryByText("Connect a device to get started")).not.toBeInTheDocument();
+    expect(screen.queryByText("Create your first workflow")).not.toBeInTheDocument();
+  });
+
+  it("shows an error instead of onboarding when the workflows request fails", async () => {
+    listDataSources.mockResolvedValue({ items: [dataSource()] });
     listAutomationWorkflows.mockRejectedValue(new Error("boom"));
 
     renderNextAction();
 
-    expect(await screen.findByText("Connect a device to get started")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Dashboard setup couldn't be loaded");
+    expect(screen.queryByText("Connect a device to get started")).not.toBeInTheDocument();
+    expect(screen.queryByText("Create your first workflow")).not.toBeInTheDocument();
   });
 });
