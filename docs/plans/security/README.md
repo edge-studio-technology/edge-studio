@@ -1,6 +1,6 @@
 # Security Hardening V1.5
 
-**Status:** In progress — Phases 1-5 done
+**Status:** In progress — Phases 1-5 and 8 done; Phase 6 finding [12] closed by task 704
 **Created:** 2026-09-04
 **Revised:** 2026-09-04 — second-opinion review folded in: DNS-address pinning on egress, Phase 0 decision gate, non-destructive
 `APP_SECRET` migration, the multipart egress path, global outbound concurrency, and the installer's
@@ -10,6 +10,10 @@ the dormant implementation without deciding its future. See [adr/0012](../../adr
 **Revised:** 2026-09-11 — split into one file per phase (this index plus `phase-N-*.md`) so
 Phases 1-5 can be tracked as reviewable/done while Phases 0 and 6-9 stay open. The prior combined
 plan is archived at [archive/security-hardening-v1-5.md](../archive/security-hardening-v1-5.md).
+**Revised:** 2026-09-17 — Phase 6 finding [12] reduced to fail-closed startup in task 704 under
+ADR 0021; finding [6] image pinning split into a separate task.
+**Revised:** 2026-09-18 — Phase 8 completed by task 706 with recorded clean-data production
+Compose auth and browser/header sign-off.
 **Branch:** `task/272-security-hardening-v1-5`
 **Goal:** Close the findings from the external V1.5 security review and the V1 security sign-off
 remainder, in one ordered workstream. Phase 9 carries the unit-test audit's production-behaviour
@@ -36,9 +40,9 @@ notes, and tests. This index carries only what's shared across all of them.
 | 3 | Session lifecycle | Done (2026-09-09) | [phase-3-session-lifecycle.md](./phase-3-session-lifecycle.md) |
 | 4 | Fix the install-time trust chain | Done (2026-09-09) | [phase-4-install-time-trust-chain.md](./phase-4-install-time-trust-chain.md) |
 | 5 | Resource limits | Done (2026-09-09) | [phase-5-resource-limits.md](./phase-5-resource-limits.md) |
-| 6 | Fail closed on weak config | Not started | [phase-6-fail-closed-on-weak-config.md](./phase-6-fail-closed-on-weak-config.md) |
+| 6 | Fail closed on weak config | Split: [12] implemented in task 704; [6] image pinning remains open | [phase-6-fail-closed-on-weak-config.md](./phase-6-fail-closed-on-weak-config.md) |
 | 7 | Retention, redaction, budgets | Not started | [phase-7-retention-redaction-budgets.md](./phase-7-retention-redaction-budgets.md) |
-| 8 | V1 sign-off remainder | Not started | [phase-8-v1-sign-off-remainder.md](./phase-8-v1-sign-off-remainder.md) |
+| 8 | V1 sign-off remainder | Done (2026-09-18) | [706-v1-sign-off-remainder.md](./706-v1-sign-off-remainder.md) |
 | 9 | Correctness hardening from the unit-test audit | Not started | [phase-9-correctness-hardening.md](./phase-9-correctness-hardening.md) |
 
 QA and promotion of the completed work in Phases 1-5 uses the
@@ -93,13 +97,13 @@ Review findings (15 = the report's 14 plus the SSRF the audit added):
 | 3 | Outbound HTTP reads buffer unbounded responses, one path has no deadline | medium | 5 |
 | 4 | Documented installer streams mutable remote code into a root shell | medium | 4 |
 | 5 | Optional LAN MQTT broker permits anonymous publishing | medium | 0 |
-| 6 | Minima and MQTT use mutable image tags outside the signed manifest | medium | 6 |
+| 6 | Minima and MQTT use mutable image tags outside the signed manifest | medium | Separate image-pinning task (split from 6) |
 | 7 | Backup creation response exposes the stored backup password | medium, understated (three paths) | 1 |
 | 8 | External events can repeatedly execute wallet and device actions | medium (scope clarified, not downgraded) | 7 |
 | 9 | Credential changes do not revoke existing sessions | medium | 3 |
 | 10 | Default-enabled Minima console verbs include mutating subcommands | medium | 2 |
 | 11 | Untrusted events grow persistent automation data without retention | medium | 7 |
-| 12 | Supported Compose paths silently accept a public encryption secret | medium, likelihood overrated | 6 |
+| 12 | Supported Compose paths silently accept a public encryption secret | medium, likelihood overrated | 704 (split from 6) |
 | 13 | Multipart upload endpoints lack limits and can leave temp files | medium | 5 |
 | 14 | Webhook bearer tokens written to request logs (and conditionally to the DB) | low, understated (DB path) | 7 |
 
@@ -153,9 +157,9 @@ Defaults in force:
 | 7 | Verifier runtime | pin `node:20-bookworm-slim` by digest — **implemented, adr/0016** | 4 | low |
 | 8 | `curl \| sudo bash` | accept as residual; ship documented download-inspect-run + checksum — **implemented, adr/0016** | 4 | low — real fix needs release infra |
 | 9 | Limit values | ship the proposed table as defaults, clamp to hard maxima — **implemented, adr/0017**; Pi measurement still outstanding (DEVICE-IO-09) | 5 | low — values are configurable |
-| 10 | `APP_SECRET` migration | one-shot transactional re-encrypt; never boot half-migrated | 6 | low — safe whether or not field installs exist |
-| 11 | Dev escape hatch | explicit opt-in env flag, never derived from `NODE_ENV` | 6 | low |
-| 12 | Image digest pins | manual bump at release, documented in the release doc | 6 | low |
+| 10 | `APP_SECRET` migration | no migration; installer never shipped the public default — **decided, adr/0021** | 704 | none |
+| 11 | Dev escape hatch | no bypass; every backend startup requires a non-empty value — **decided, adr/0021** | 704 | low |
+| 12 | Image digest pins | manual bump at release, documented in the release doc | separate pinning task | low |
 | 13 | Retention values | 30 days / 10 000 rows / 500-row batches / hourly + startup pass | 7 | low — configurable |
 | 14 | Webhook token rotation | **do not rotate**; fix the logger and the label only | 7 | low now, rises once logs leave the Pi |
 | 15 | Wallet-trigger budget | reject `cooldownSeconds: 0` on `send_transaction` workflows; 10 runs/hour persisted | 7 | medium — the budget counter is a schema change |
@@ -226,8 +230,8 @@ Per phase, not at the end:
   only tracks the work.
 - `docs/qa/gaps.md` — tick the GAP/MINIMA/WALLET/DEVICE-IO IDs listed in the finding map.
 - `SECURITY.md` — only when a guideline or accepted risk actually changes.
-- `CHANGELOG.md` under `## [Unreleased] task/272-security-hardening-v1-5`, `### Security`.
-- ADRs for: the Phase 2 URL policy (**done — adr/0014**) and console subcommands (**done — adr/0015**), the Phase 4 install-time trust set (**done — adr/0016**), the Phase 5 limit values (**done — adr/0017**), the Phase 6 `APP_SECRET` migration, the Phase 7 deferred
+- `CHANGELOG.md` under the implementing branch's named `## [Unreleased]` section, `### Security`.
+- ADRs for: the Phase 2 URL policy (**done — adr/0014**) and console subcommands (**done — adr/0015**), the Phase 4 install-time trust set (**done — adr/0016**), the Phase 5 limit values (**done — adr/0017**), the Phase 6 `APP_SECRET` scope (**done — adr/0021**), the Phase 7 deferred
   global budgets, and each Phase 0 product decision.
 
 ## Sign-off

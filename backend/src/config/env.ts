@@ -77,7 +77,7 @@ export const env = {
   integritasPortalUrl: process.env.INTEGRITAS_PORTAL_URL ?? "",
   databasePath,
   dataDir: resolveDataDir(databasePath),
-  appSecret: process.env.APP_SECRET ?? "dev-change-me",
+  appSecret: process.env.APP_SECRET ?? "",
   dockerSocketPath: process.env.DOCKER_SOCKET_PATH ?? "/var/run/docker.sock",
   dockerSubnet: process.env.EDGE_STUDIO_DOCKER_SUBNET ?? "172.30.0.0/24",
   dockerGateway: process.env.EDGE_STUDIO_DOCKER_GATEWAY ?? "172.30.0.1",
