@@ -165,7 +165,7 @@ git status --short --untracked-files=all
 
 - [x] Step 4 — webhook receiver route tests (200 / 404 / 409 / 202 / 502).
 - [x] Step 5 — Integritas connection check, with the module-cache isolation constraint handled.
-- [ ] Step 6 — backup download/restore reauth rejection.
+- [x] Step 6 — backup download/restore reauth rejection.
 - [ ] Step 7 — wallet import response leak check.
 
 ### Milestone 3: Frontend + wrap-up (#225)
