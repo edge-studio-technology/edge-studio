@@ -108,7 +108,9 @@ export function DashboardDevices() {
       : "/data unavailable"
     : undefined;
   const walletUnavailable = nodeRestarting || walletBalance === null;
-  const unavailableStatus: Status = statusError ? "error" : "neutral";
+  // The banner above already carries the failure; unavailable metrics stay neutral so one
+  // outage doesn't render as seven separate errors.
+  const unavailableStatus: Status = "neutral";
 
   return (
     <>
@@ -132,7 +134,7 @@ export function DashboardDevices() {
             )
           }
           description="Primary Pi Wallet"
-          status={walletUnavailable && statusError ? "error" : "neutral"}
+          status={walletUnavailable ? unavailableStatus : "neutral"}
         />
         <MetricCard
           label="Node status"

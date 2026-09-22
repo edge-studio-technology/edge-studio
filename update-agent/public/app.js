@@ -1,4 +1,5 @@
 const views = {
+  checking: document.getElementById("view-checking"),
   updating: document.getElementById("view-updating"),
   success: document.getElementById("view-success"),
   failure: document.getElementById("view-failure"),
@@ -17,10 +18,10 @@ const POLL_INTERVAL_MS = 3000;
 // Only give up after this many *consecutive* poll failures.
 const MAX_CONSECUTIVE_POLL_FAILURES = 10;
 
-function finishWithFailure(message) {
+function finishWithFailure(title, message) {
+  document.getElementById("failure-title").textContent = title;
   document.getElementById("failure-message").textContent = message;
   showView("failure");
-  setTimeout(() => window.location.assign("/"), 4000);
 }
 
 function finishWithSuccess() {
@@ -40,7 +41,10 @@ async function pollApplyStatus(consecutiveFailures = 0) {
     data = await response.json();
   } catch {
     if (consecutiveFailures + 1 >= MAX_CONSECUTIVE_POLL_FAILURES) {
-      finishWithFailure("Lost contact with the update agent. If the frontend was updated, reload to check its status.");
+      finishWithFailure(
+        "Couldn't check update status",
+        "Lost contact with the update agent. Retry the status check, or return to the app to check whether the update completed."
+      );
       return;
     }
     setTimeout(() => pollApplyStatus(consecutiveFailures + 1), POLL_INTERVAL_MS);
@@ -59,21 +63,30 @@ async function pollApplyStatus(consecutiveFailures = 0) {
   }
 
   if (data.state === "failed") {
-    finishWithFailure(data.error || "Update failed");
+    finishWithFailure("Update failed", data.error || "The update did not complete.");
     return;
   }
 
   if (data.state !== "succeeded") {
-    finishWithFailure(`Unexpected update status: ${data.state}`);
+    finishWithFailure("Couldn't check update status", `Unexpected update status: ${data.state}`);
     return;
   }
 
   const failed = data.results.filter((result) => !result.updated && result.reason !== "already up to date");
   if (failed.length > 0) {
-    finishWithFailure(failed.map((result) => `${result.service}: ${result.reason}`).join(" "));
+    finishWithFailure(
+      "Update failed",
+      failed.map((result) => `${result.service}: ${result.reason}`).join(" ")
+    );
   } else {
     finishWithSuccess();
   }
 }
 
-pollApplyStatus();
+document.getElementById("retry-status").addEventListener("click", () => {
+  showView("checking");
+  void pollApplyStatus();
+});
+
+showView("checking");
+void pollApplyStatus();

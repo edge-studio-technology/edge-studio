@@ -7,6 +7,8 @@ import { Disclosure } from "../components/ui/Disclosure";
 import { Modal } from "../components/ui/Modal";
 import { Pill } from "../components/ui/Pill";
 import { Page } from "../components/patterns/Page";
+import { ErrorContentState } from "../components/patterns/ErrorContentState";
+import { describeLoadFailure } from "../lib/errors";
 import { SubSection } from "../components/patterns/SubSection";
 import { useToast } from "../components/ToastProvider";
 import {
@@ -37,6 +39,7 @@ export function MinimaPage() {
   const { showToast } = useToast();
   const [nodeStatus, setNodeStatus] = useState<MinimaNodeStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [restarting, setRestarting] = useState(false);
@@ -46,15 +49,18 @@ export function MinimaPage() {
 
   const handleStatus = useCallback((status: MinimaNodeStatus) => {
     setNodeStatus((previous) => mergeMinimaStatus(previous, status));
+    setStatusError(null);
     setStatusLoading(false);
   }, []);
 
-  const handleStatusError = useCallback((_message: string) => {
+  const handleStatusError = useCallback((message: string) => {
+    setStatusError(message);
     setStatusLoading(false);
   }, []);
 
-  useMinimaStatusRefresh(handleStatus, handleStatusError, {
+  const { refresh: refreshStatus } = useMinimaStatusRefresh(handleStatus, handleStatusError, {
     enabled: !resyncing && !restarting && !busy,
+    reportTransientErrors: true,
   });
 
   async function refreshAfterOperation(): Promise<boolean> {
@@ -220,28 +226,46 @@ export function MinimaPage() {
       </Card>
 
       <section className="gap-detail-close grid w-full items-stretch lg:grid-cols-2">
-        <MinimaHealthCard
-          status={nodeStatus}
-          loading={statusLoading && !nodeStatus}
-          refreshing={resyncing || nodeRestarting}
-        />
-        <MinimaContainerCard
+        {statusError && !nodeStatus ? (
+          <ErrorContentState
+            title="Minima status isn't available"
+            description={describeLoadFailure(statusError)}
+            className="lg:col-span-2"
+            onRetry={() => {
+              setStatusLoading(true);
+              setStatusError(null);
+              void refreshStatus();
+            }}
+          />
+        ) : null}
+        {!statusError || nodeStatus ? (
+          <>
+            <MinimaHealthCard
+              status={nodeStatus}
+              loading={statusLoading && !nodeStatus}
+              refreshing={resyncing || nodeRestarting}
+            />
+            <MinimaContainerCard
+              status={nodeStatus}
+              loading={statusLoading && !nodeStatus}
+              busy={actionsBlocked}
+              refreshing={nodeRestarting}
+              onRestart={openRestartConfirm}
+            />
+          </>
+        ) : null}
+      </section>
+
+      {!statusError || nodeStatus ? (
+        <MinimaSummaryGrid
           status={nodeStatus}
           loading={statusLoading && !nodeStatus}
           busy={actionsBlocked}
-          refreshing={nodeRestarting}
-          onRestart={openRestartConfirm}
+          resyncing={resyncing}
+          refreshing={resyncing || nodeRestarting}
+          onResync={runResync}
         />
-      </section>
-
-      <MinimaSummaryGrid
-        status={nodeStatus}
-        loading={statusLoading && !nodeStatus}
-        busy={actionsBlocked}
-        resyncing={resyncing}
-        refreshing={resyncing || nodeRestarting}
-        onResync={runResync}
-      />
+      ) : null}
 
       <Card className="gap-detail-close flex w-full flex-col">
         <Disclosure

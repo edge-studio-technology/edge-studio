@@ -152,9 +152,26 @@ describe("DashboardNextAction", () => {
 
     renderNextAction();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Dashboard setup couldn't be loaded");
+    expect(await screen.findByText("Your next step isn't available")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
     expect(screen.queryByText("Connect a device to get started")).not.toBeInTheDocument();
     expect(screen.queryByText("Create your first workflow")).not.toBeInTheDocument();
+  });
+
+  it("recovers from a failed load through Retry", async () => {
+    listDataSources
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValueOnce({ items: [] });
+    listAutomationWorkflows.mockResolvedValue({ items: [] });
+
+    renderNextAction();
+
+    expect(await screen.findByText("Your next step isn't available")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(await screen.findByText("Connect a device to get started")).toBeInTheDocument();
+    expect(screen.queryByText("Your next step isn't available")).not.toBeInTheDocument();
   });
 
   it("shows an error instead of onboarding when the workflows request fails", async () => {
@@ -163,7 +180,8 @@ describe("DashboardNextAction", () => {
 
     renderNextAction();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Dashboard setup couldn't be loaded");
+    expect(await screen.findByText("Your next step isn't available")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
     expect(screen.queryByText("Connect a device to get started")).not.toBeInTheDocument();
     expect(screen.queryByText("Create your first workflow")).not.toBeInTheDocument();
   });

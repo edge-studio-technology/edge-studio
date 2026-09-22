@@ -4,18 +4,24 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
-- Implemented explicit loading and error states for the Dashboard next-action card so request failures no longer appear as zero devices or workflows.
-- Implemented settled error and recovery states for Dashboard status metrics, including unavailable values after an initial failure and preservation of last-known values after a refresh failure.
-- Added focused regressions for next-action loading/failures and status-metric initial failure, timed recovery, and stale-data preservation.
-- Refined the loading and error layouts after device review so the Dashboard states use the full content width without a nested grey loading panel.
-- Verified all planned loading, blocked-request, unavailable, and recovery states on a Raspberry Pi through the branch's `DEV_MODE=true` install.
-- Verified the focused Dashboard suite (21 tests), frontend production build, final full `npm run check` suite, `docker compose config`, and `git diff --check`.
+- Completed #659 so Devices settles failed initial requests into a shared retryable error without an endless spinner or false first-device state.
+- Completed #660 so Dashboard Live activity has mutually exclusive loading, empty, error, and populated states with combined-request Retry.
+- Completed the cross-app async-state audit and recorded every in-scope surface and named exclusion in `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
+- Closed same-class gaps in Diagnostics, the Workflows list, wallet balance/history, address book, Minima node status, and Minima configuration/peers.
+- Added focused regression coverage for each newly fixed surface and preserved transient-error suppression for background Minima polling consumers unless explicitly opted in.
+- Extended the audit to Integritas and software updates: Integritas status now settles to a retryable unavailable state, file stamping has explicit progress, update changelog failures can retry, and the update-agent page distinguishes checking from an active update with persistent recovery actions.
+- Fixed Wallet history and contacts being forced into permanent loading states when Minima actions were unavailable; loaded read-only content now remains visible while mutations stay disabled.
+- Updated the branch changelog and verified 79 focused tests, the complete 2,894-test repository check/coverage/audit suite, backend/frontend/update-agent production builds, Compose configuration, and diff whitespace.
+- Rebuilt and recreated the update-agent development container so the new `/update/` states are ready for manual Brave testing.
 
 ## Next Steps
 
-- Open a pull request from `bug/661-dashboard-next-action-and-metric-cards-don-t-treat-errors-as-empty` into `dev`.
+- Run the thirteen manual Brave throttling/request-blocking checks in the ticket plan, including Integritas, software update/update-agent, Wallet-with-Minima-unavailable, and the #661 Dashboard recheck.
+- After manual verification, mark the plan complete and merge `feature/229-empty-loading-and-error-states-hardening` into `dev`.
 
 ## Notes / Open Questions
 
-- No backend, API-contract, shared `MetricCard`, README, deployment, or security documentation changes were needed.
-- Other Dashboard/API issues observed during browser testing are outside this ticket and should remain with their own tickets.
+- No backend, API-contract, global state-management, README, deployment, security, or ADR changes were needed.
+- The first sandboxed full check failed only because Supertest could not bind ephemeral ports; the approved unsandboxed rerun passed all suites.
+- The user explicitly expanded the release boundary to the mounted Integritas page and software-update surfaces; onboarding and the remaining parent-feature exclusions stay recorded as excluded.
+- The recreated update-agent is running on port 8081; its existing development manifest warning (`Manifest is missing required fields`) remains unrelated to these UI state changes.

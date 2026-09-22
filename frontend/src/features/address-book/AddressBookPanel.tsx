@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Eye, Inbox, Plus, UserPlus } from "lucide-react";
 import {
   DataTable,
@@ -20,7 +20,9 @@ import {
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
+import { describeLoadFailure } from "../../lib/errors";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
   TableColumnVisibilityButton,
@@ -82,18 +84,24 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
     ADDRESS_BOOK_COLUMNS,
   );
 
-  useEffect(() => {
-    listAddressBookEntries()
+  const loadEntries = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    return listAddressBookEntries()
       .then(setEntries)
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load address book."))
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    void loadEntries();
+  }, [loadEntries]);
+
   function upsertEntry(next: AddressBookEntry) {
     setEntries((prev) => sortByLabel([...prev.filter((e) => e.id !== next.id), next]));
   }
 
-  const isLoading = loading || actionsBlocked;
+  const isLoading = loading;
   const trimmedQuery = query.trim().toLowerCase();
   const filtersActive = Boolean(trimmedQuery);
   const filteredEntries = entries.filter((entry) => {
@@ -135,44 +143,46 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
 
   return (
     <div className="gap-detail-close flex flex-col">
-      <TableControls
-        utilities={
-          <TableColumnVisibilityButton
-            tableLabel="Address book"
-            columns={ADDRESS_BOOK_COLUMNS}
-            visibility={visibility}
-            onChange={setVisibility}
-          />
-        }
-      >
-        <ListFilterBar
-          q={query}
-          searchPlaceholder="Name, address, or notes"
-          disabled={isLoading || entries.length === 0}
-          onQueryChange={(q) => {
-            setQuery(q);
-            setPage(1);
-          }}
-          actions={
-            <Button
-              type="button"
-              iconStart={<Plus aria-hidden />}
-              onClick={() => setAddOpen(true)}
-              disabled={actionsBlocked}
-            >
-              New contact
-            </Button>
+      {error ? null : (
+        <TableControls
+          utilities={
+            <TableColumnVisibilityButton
+              tableLabel="Address book"
+              columns={ADDRESS_BOOK_COLUMNS}
+              visibility={visibility}
+              onChange={setVisibility}
+            />
           }
-        />
-      </TableControls>
+        >
+          <ListFilterBar
+            q={query}
+            searchPlaceholder="Name, address, or notes"
+            disabled={isLoading || entries.length === 0}
+            onQueryChange={(q) => {
+              setQuery(q);
+              setPage(1);
+            }}
+            actions={
+              <Button
+                type="button"
+                iconStart={<Plus aria-hidden />}
+                onClick={() => setAddOpen(true)}
+                disabled={actionsBlocked}
+              >
+                New contact
+              </Button>
+            }
+          />
+        </TableControls>
+      )}
 
       {error ? (
-        <ErrorAlert title="Couldn't load address book" className="w-full max-w-none">
-          {error}
-        </ErrorAlert>
-      ) : null}
-
-      {isLoading ? (
+        <ErrorContentState
+          title="Your address book isn't available"
+          description={describeLoadFailure(error)}
+          onRetry={() => void loadEntries()}
+        />
+      ) : isLoading ? (
         <LoadingState
           title="Fetching your contacts"
           description="This should take a few seconds."
@@ -258,19 +268,21 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         </TableWrap>
       )}
 
-      <ListPaginationFooter
-        page={currentPage}
-        pageSize={pageSize}
-        total={filteredEntries.length}
-        totalPages={totalPages}
-        disabled={isLoading}
-        onPageChange={setPage}
-        onPageSizeChange={(size) => {
-          setPageSize(size);
-          setPage(1);
-        }}
-        pageSizeOptions={PAGE_SIZE_OPTIONS}
-      />
+      {error ? null : (
+        <ListPaginationFooter
+          page={currentPage}
+          pageSize={pageSize}
+          total={filteredEntries.length}
+          totalPages={totalPages}
+          disabled={isLoading}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+        />
+      )}
 
       {addOpen ? (
         <AddContactForm
