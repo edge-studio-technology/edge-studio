@@ -132,7 +132,7 @@ describe("MinimaSettingsPanel", () => {
     getMinimaPeers.mockRejectedValue(new Error("peers down"));
     renderPanel("running");
     expect(await screen.findByText("Failed to load peers")).toBeInTheDocument();
-    expect(screen.getByText("Couldn't load peers")).toBeInTheDocument();
+    expect(screen.getByText("Peer list isn't available")).toBeInTheDocument();
     expect(
       screen.queryByText("No configured peers returned from Minima RPC."),
     ).not.toBeInTheDocument();

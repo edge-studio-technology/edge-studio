@@ -4,6 +4,8 @@ import { BookOpen } from "lucide-react";
 import { Button, LinkButton } from "../components/Button";
 import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import { ErrorAlert } from "../components/ErrorAlert";
+import { ErrorContentState } from "../components/patterns/ErrorContentState";
+import { describeLoadFailure } from "../lib/errors";
 import { LoadingState } from "../components/patterns/LoadingState";
 import { Page } from "../components/Page";
 import { useToast } from "../components/ToastProvider";
@@ -320,7 +322,7 @@ export function AutomationPage() {
         />
         {loadError && (
           <ErrorAlert
-            title="Workflow data could not be loaded"
+            title="Some workflow data couldn't be loaded"
             className="max-w-none"
             action={
               <Button type="button" variant="secondary" size="sm" onClick={() => void loadPage()}>
@@ -328,7 +330,7 @@ export function AutomationPage() {
               </Button>
             }
           >
-            {loadError}
+            {describeLoadFailure(loadError)}
           </ErrorAlert>
         )}
       </>
@@ -400,15 +402,21 @@ export function AutomationPage() {
               )
             }
           />
+        ) : loadError ? (
+          <ErrorContentState
+            title="This workflow isn't available"
+            description={describeLoadFailure(loadError)}
+            onRetry={() => void loadPage()}
+          />
         ) : (
           <LoadingState
             title="Fetching your workflow"
             description="This should take a few seconds."
           />
         )}
-        {loadError && (
+        {workspaceWorkflow && loadError ? (
           <ErrorAlert
-            title="Workflow data could not be loaded"
+            title="Some workflow data couldn't be loaded"
             className="max-w-none"
             action={
               <Button type="button" variant="secondary" size="sm" onClick={() => void loadPage()}>
@@ -416,9 +424,9 @@ export function AutomationPage() {
               </Button>
             }
           >
-            {loadError}
+            {describeLoadFailure(loadError)}
           </ErrorAlert>
-        )}
+        ) : null}
       </>
     );
   }
@@ -434,17 +442,11 @@ export function AutomationPage() {
       }
     >
       {loadError && (
-        <ErrorAlert
-          title="Workflows data could not be loaded"
-          className="max-w-none"
-          action={
-            <Button type="button" variant="secondary" size="sm" onClick={() => void loadPage()}>
-              Retry
-            </Button>
-          }
-        >
-          {loadError}
-        </ErrorAlert>
+        <ErrorContentState
+          title="Workflows aren't available"
+          description={describeLoadFailure(loadError)}
+          onRetry={() => void loadPage()}
+        />
       )}
 
       {deletingWorkflow && (

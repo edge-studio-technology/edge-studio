@@ -53,7 +53,7 @@ describe("AutomationPage", () => {
     listAutomationWorkflows.mockRejectedValueOnce(new Error("workflows down"));
     renderPage();
 
-    expect(await screen.findByText("Workflows data could not be loaded")).toBeInTheDocument();
+    expect(await screen.findByText("Workflows aren't available")).toBeInTheDocument();
     expect(screen.queryByText("Build your first workflow")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));

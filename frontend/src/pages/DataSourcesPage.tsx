@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../components/patterns/ErrorContentState";
+import { describeLoadFailure } from "../lib/errors";
 import { Page } from "../components/Page";
 import { useToast } from "../components/ToastProvider";
 import { createAutomationWorkflow } from "../features/automation/automationApi";
@@ -575,17 +577,11 @@ export function DataSourcesPage() {
       )}
 
       {initialLoadError ? (
-        <ErrorAlert
-          title="Could not load devices"
-          className="max-w-none"
-          action={
-            <Button variant="secondary" onClick={() => void loadInitialData()}>
-              Retry
-            </Button>
-          }
-        >
-          {initialLoadError}
-        </ErrorAlert>
+        <ErrorContentState
+          title="Devices aren't available"
+          description={describeLoadFailure(initialLoadError)}
+          onRetry={() => void loadInitialData()}
+        />
       ) : (
         <DataSourcesList
           items={items}

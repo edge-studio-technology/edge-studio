@@ -62,13 +62,15 @@ describe("WalletHistoryPanel", () => {
     expect(screen.getByText("No send activity yet")).toBeInTheDocument();
   });
 
-  it("shows only an error alert and supports retry", async () => {
+  it("replaces the table and its chrome with a retryable error state", async () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
     renderPanel({ items: [], error: "could not load history", onRefresh });
 
-    expect(screen.getByText("Couldn't load history")).toBeInTheDocument();
+    expect(screen.getByText("Send history isn't available")).toBeInTheDocument();
     expect(screen.getByText("could not load history")).toBeInTheDocument();
     expect(screen.queryByText("No send activity yet")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Address, token, or txpow ID")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRefresh).toHaveBeenCalledOnce();

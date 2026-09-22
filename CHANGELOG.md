@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] feature/229-empty-loading-and-error-states-hardening
 
+### Changed
+
+- Failed loads on Dashboard Live activity, Wallet history, Devices, Workflows, Diagnostics, Address book, and Minima peers now show a calm in-content error state with Retry instead of a red alert banner.
+- A failed table, list, or region now hides its own filter bar, toolbar, and pager instead of showing controls and counts for data that isn't there.
+- Browser connection failures now read as "Edge Studio couldn't reach the backend service" instead of "Failed to fetch".
+- Dashboard metric cards showing `Unavailable` are no longer coloured as errors, since the notice above them already reports the failure.
+
+### Added
+
+- `ErrorContentState` shared component for load failures that leave a whole region empty (see `docs/frontend-design-system.md`).
+
 ### Fixed
 
 - Dashboard next-action and status metric cards now distinguish loading and request failures from legitimate empty or unavailable data.

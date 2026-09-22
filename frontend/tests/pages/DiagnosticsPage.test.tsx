@@ -42,9 +42,10 @@ describe("DiagnosticsPage", () => {
     getHistory.mockRejectedValueOnce(new Error("history down")).mockResolvedValueOnce(emptyPage);
     renderPage();
 
-    expect(await screen.findByText("Couldn't load diagnostics")).toBeInTheDocument();
+    expect(await screen.findByText("Proof records aren't available")).toBeInTheDocument();
     expect(screen.getByText("history down")).toBeInTheDocument();
     expect(screen.queryByText("No proof history yet")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("UID, hash, or file name")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
 

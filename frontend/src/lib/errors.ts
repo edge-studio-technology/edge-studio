@@ -51,3 +51,26 @@ export function titleFromType(type: string, fallback: string) {
   if (type === "unknown") return fallback;
   return type.split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 }
+
+const TRANSPORT_ERROR_MESSAGES = [
+  "failed to fetch",
+  "networkerror",
+  "network request failed",
+  "load failed",
+  "fetch failed",
+];
+
+/**
+ * Turns a load failure into operator-facing copy for `ErrorContentState`. Browser transport
+ * failures surface as bare `TypeError` text ("Failed to fetch"), which describes nothing an
+ * operator can act on, so they become a service-unreachable sentence instead; anything else
+ * already carries a real backend message and is passed through.
+ */
+export function describeLoadFailure(value: unknown): string {
+  const message = normalizeError(value).message;
+  const normalized = message.trim().toLowerCase();
+  if (TRANSPORT_ERROR_MESSAGES.some((pattern) => normalized.includes(pattern))) {
+    return "Edge Studio couldn't reach the backend service. It may be restarting.";
+  }
+  return message;
+}

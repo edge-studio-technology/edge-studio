@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RefreshCw } from "lucide-react";
-import { ErrorAlert } from "../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../components/patterns/ErrorContentState";
+import { describeLoadFailure } from "../lib/errors";
 import { ListFilterBar } from "../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../components/patterns/ListPaginationFooter";
 import { Page } from "../components/patterns/Page";
@@ -63,6 +64,12 @@ const TAB_DESCRIPTION: Record<DiagnosticsTab, string> = {
   proofs: "Stored Integritas proof requests and their status.",
   reads: "Data-source read logs from polls, webhooks, and device events.",
   "workflow-runs": "Recent automated and manual workflow runs across all workflows.",
+};
+
+const TAB_LABEL: Record<DiagnosticsTab, string> = {
+  proofs: "Proof records",
+  reads: "Read logs",
+  "workflow-runs": "Workflow runs",
 };
 
 const TAB_SEARCH_PLACEHOLDER: Record<DiagnosticsTab, string> = {
@@ -366,47 +373,41 @@ export function DiagnosticsPage() {
 
         <p className="type-body text-text-secondary m-0">{TAB_DESCRIPTION[activeTab]}</p>
 
-        <TableControls utilities={columnControl}>
-          <ListFilterBar
-            filter={listQuery.status}
-            q={listQuery.q}
-            filterOptions={statusOptions}
-            searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
-            disabled={refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)}
-            onFilterChange={(status) => updateListQuery({ status })}
-            onQueryChange={(q) => updateListQuery({ q })}
-            actions={
-              <Button
-                type="button"
-                iconStart={<RefreshCw aria-hidden />}
-                onClick={() => {
-                  void handleRefresh();
-                }}
-                disabled={refreshing}
-              >
-                {refreshing ? "Refreshing…" : "Refresh"}
-              </Button>
-            }
-          />
-        </TableControls>
+        {error ? null : (
+          <TableControls utilities={columnControl}>
+            <ListFilterBar
+              filter={listQuery.status}
+              q={listQuery.q}
+              filterOptions={statusOptions}
+              searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
+              disabled={
+                refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)
+              }
+              onFilterChange={(status) => updateListQuery({ status })}
+              onQueryChange={(q) => updateListQuery({ q })}
+              actions={
+                <Button
+                  type="button"
+                  iconStart={<RefreshCw aria-hidden />}
+                  onClick={() => {
+                    void handleRefresh();
+                  }}
+                  disabled={refreshing}
+                >
+                  {refreshing ? "Refreshing…" : "Refresh"}
+                </Button>
+              }
+            />
+          </TableControls>
+        )}
 
         {error ? (
-          <ErrorAlert
-            title="Couldn't load diagnostics"
-            className="w-full max-w-none"
-            action={
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => void handleRefresh()}
-              >
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </ErrorAlert>
+          <ErrorContentState
+            title={`${TAB_LABEL[activeTab]} aren't available`}
+            description={describeLoadFailure(error)}
+            retryDisabled={refreshing}
+            onRetry={() => void handleRefresh()}
+          />
         ) : null}
 
         {!error &&

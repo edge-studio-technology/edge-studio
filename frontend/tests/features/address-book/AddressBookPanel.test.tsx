@@ -56,16 +56,17 @@ describe("AddressBookPanel", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows only an error alert after failure and retries the initial fetch", async () => {
+  it("replaces the table and its chrome with a retryable error state, then retries", async () => {
     listAddressBookEntries
       .mockRejectedValueOnce(new Error("network down"))
       .mockResolvedValueOnce([]);
     renderPanel();
 
-    expect(await screen.findByText("Couldn't load address book")).toBeInTheDocument();
+    expect(await screen.findByText("Your address book isn't available")).toBeInTheDocument();
     expect(screen.getByText("network down")).toBeInTheDocument();
     expect(screen.queryByText("Fetching your contacts")).not.toBeInTheDocument();
     expect(screen.queryByText("Save your first contact")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New contact" })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
 

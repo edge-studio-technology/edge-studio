@@ -121,6 +121,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [CopyableCode](#copyablecode): mono value with copy control
 - [EmptyContentState](#emptycontentstate): empty table/content state with icon, title, description, and optional action
 - [LoadingState](#loadingstate): fetching state with spinner (default or slow pace), optional title and description
+- [ErrorContentState](#errorcontentstate): failed-to-load state for a whole table/list/region, with optional retry
 - `FileDropBox`: large drag/drop or click file picker with reject toast, selected-file row, and busy/disabled state
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
@@ -314,7 +315,8 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Use `PinField` for segmented numeric verification / approval codes.
 - Use bare `Input` only when there is no label stack (rare toolbars / search).
 - Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
-- Use `ErrorAlert` for persistent in-page / form-level failures that stay in layout (optional Retry action).
+- Use `ErrorContentState` when a load failure leaves a whole table/list/region with nothing to show — it replaces that content, and that content's own toolbar/pager chrome, in place.
+- Use `ErrorAlert` for persistent in-page / form-level failures that stay in layout while the surrounding page still works (optional Retry action).
 - Use toast errors for transient action failures that should not occupy page layout.
 
 ### CheckboxField
@@ -541,7 +543,7 @@ Back control is `IconButton` ghost compact with ChevronLeft. Count uses `Pill`. 
 
 ### ErrorAlert
 
-In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): white surface, status stroke, 20% feedback wash (same chrome as matching toast tones). Prefer field `error` for per-control validation; prefer toast for transient action failures.
+In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): white surface, status stroke, 20% feedback wash (same chrome as matching toast tones). Prefer field `error` for per-control validation; prefer toast for transient action failures; prefer [ErrorContentState](#errorcontentstate) when the failure leaves a whole region with nothing to render, since a washed alert standing in for missing content reads as a crashed page.
 
 | Prop        | Notes                                                                  |
 | ----------- | ---------------------------------------------------------------------- |
@@ -717,7 +719,7 @@ Mono value chip with a compact copy control (`frontend/src/components/patterns/C
 
 Empty content state (`frontend/src/components/patterns/EmptyContentState.tsx`): centered bare glyph, bold title, description, and an optional `Button` action, on a bordered `surface-primary` panel. Prefer this over a bare "No X yet." string wherever a table or list can be genuinely empty — no rows, no filter matches, nothing saved yet.
 
-**Render it in place of the table/list, not as a row inside it.** Putting it in a `<td colSpan>` leaves empty header chrome above it, which is not the intended state. Pair it with `LoadingState`, which uses the same panel shell (`contentStatePanelClass`, exported here) so the two swap cleanly.
+**Render it in place of the table/list, not as a row inside it.** Putting it in a `<td colSpan>` leaves empty header chrome above it, which is not the intended state. Pair it with `LoadingState` and `ErrorContentState`, which use the same panel shell (`contentStatePanelClass`, exported here) so the three swap cleanly.
 
 | Prop             | Notes                                                                     |
 | ---------------- | ------------------------------------------------------------------------- |
@@ -769,6 +771,40 @@ Fetching content state (`frontend/src/components/patterns/LoadingState.tsx`): ce
   title="Preparing your backup"
   description="This can take a minute."
 />
+```
+
+### ErrorContentState
+
+Failed content state (`frontend/src/components/patterns/ErrorContentState.tsx`): centered `AlertCircle` in `icon-error`, bold title, description, optional muted `detail`, and an optional retry button, on the same panel as `EmptyContentState` / `LoadingState`. It is the third member of that trio — use it wherever a fetch failure leaves a table, list, or region with nothing to show, and use `ErrorAlert` only when the surrounding page still works and one slice degraded.
+
+**Render it in place of the content, and hide that content's chrome.** A toolbar, filter bar, or pager left above/below it still implies data that isn't there (`Showing 0 of 0` under a failed fetch asserts an empty result, which is wrong). The panel announces with `role="status"` / `aria-live="polite"` rather than `role="alert"`, matching the `LoadingState` it swaps with.
+
+Pass `description` through `describeLoadFailure()` (`frontend/src/lib/errors.ts`) so bare browser transport text ("Failed to fetch") becomes service-unreachable copy instead.
+
+| Prop            | Notes                                                    |
+| --------------- | -------------------------------------------------------- |
+| `title`         | Required bold heading naming what is unavailable          |
+| `description`   | Optional copy under the title                             |
+| `detail`        | Optional muted secondary line (e.g. a status code)        |
+| `retryLabel`    | Retry button label (default `"Retry"`)                    |
+| `retryDisabled` | Disables the retry button                                 |
+| `onRetry`       | Retry handler (omit to hide the button)                   |
+| `className`     | Merged onto the panel                                     |
+
+```tsx
+{
+  error ? (
+    <ErrorContentState
+      title="Devices aren't available"
+      description={describeLoadFailure(error)}
+      onRetry={() => void loadDevices()}
+    />
+  ) : loading ? (
+    <LoadingState title="Fetching your devices" description="This should take a few seconds." />
+  ) : (
+    <DevicesList … />
+  );
+}
 ```
 
 ### SpinnerAlt

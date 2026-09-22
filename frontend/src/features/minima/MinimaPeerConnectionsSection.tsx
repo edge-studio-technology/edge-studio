@@ -10,7 +10,8 @@ import {
   TableRow,
 } from "../../components/DataTable";
 import { SubSection } from "../../components/patterns/SubSection";
-import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
+import { describeLoadFailure } from "../../lib/errors";
 import {
   TableColumnVisibilityButton,
   type TableColumnDefinition,
@@ -72,30 +73,26 @@ export function MinimaPeerConnectionsSection({
         </p>
 
         <div className="grid gap-2">
-          <TableControls
-            utilities={
-              <TableColumnVisibilityButton
-                tableLabel="Peers"
-                columns={PEER_COLUMNS}
-                visibility={visibility}
-                onChange={setVisibility}
-              />
-            }
-          >
-            <p className="m-0 text-sm font-medium text-slate-500">Peers ({peerItems.length})</p>
-          </TableControls>
-          {peersError ? (
-            <ErrorAlert
-              title="Couldn't load peers"
-              className="w-full max-w-none"
-              action={
-                <Button type="button" variant="secondary" size="sm" onClick={onRetry}>
-                  Retry
-                </Button>
+          {peersError ? null : (
+            <TableControls
+              utilities={
+                <TableColumnVisibilityButton
+                  tableLabel="Peers"
+                  columns={PEER_COLUMNS}
+                  visibility={visibility}
+                  onChange={setVisibility}
+                />
               }
             >
-              {peersError}
-            </ErrorAlert>
+              <p className="m-0 text-sm font-medium text-slate-500">Peers ({peerItems.length})</p>
+            </TableControls>
+          )}
+          {peersError ? (
+            <ErrorContentState
+              title="Peer list isn't available"
+              description={describeLoadFailure(peersError)}
+              onRetry={onRetry}
+            />
           ) : (
             <div className="rounded-loose border-stroke-primary bg-surface-always-white overflow-hidden border">
               {visibility.address && (

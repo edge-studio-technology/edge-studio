@@ -1,10 +1,9 @@
 import { Activity } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EmptyContentState } from "../components/patterns/EmptyContentState";
-import { ErrorAlert } from "../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../components/patterns/ErrorContentState";
 import { LoadingState } from "../components/patterns/LoadingState";
 import { Page } from "../components/patterns/Page";
-import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { Pill } from "../components/ui/Pill";
 import { DashboardDevices } from "../features/dashboard/DashboardDevices";
@@ -14,6 +13,7 @@ import type { DataSourceRead } from "../features/data-reads/dataReadTypes";
 import { getHistory } from "../features/integritas/integritasApi";
 import type { IntegritasProofRecord } from "../features/integritas/integritasTypes";
 import { useIntegritasHistoryAutoRefresh } from "../features/integritas/useIntegritasHistoryAutoRefresh";
+import { describeLoadFailure } from "../lib/errors";
 import { formatLocalDateTime } from "../lib/time";
 import { APP_NAME } from "../app/names";
 import type { Tone } from "../app/types";
@@ -83,17 +83,11 @@ export function DashboardPage() {
             description="This should take a few seconds."
           />
         ) : activityError ? (
-          <ErrorAlert
-            title="Could not load live activity"
-            className="w-full max-w-none"
-            action={
-              <Button variant="secondary" onClick={() => void loadActivity()}>
-                Retry
-              </Button>
-            }
-          >
-            {activityError}
-          </ErrorAlert>
+          <ErrorContentState
+            title="Live activity isn't available"
+            description={describeLoadFailure(activityError)}
+            onRetry={() => void loadActivity()}
+          />
         ) : activity.length === 0 ? (
           <EmptyContentState
             icon={Activity}
@@ -109,7 +103,9 @@ export function DashboardPage() {
               >
                 <div className="min-w-0">
                   <p className="type-body-em text-text-primary m-0">{item.category}</p>
-                  <p className="type-meta text-text-secondary mt-detail-tight m-0">{item.message}</p>
+                  <p className="type-meta text-text-secondary mt-detail-tight m-0">
+                    {item.message}
+                  </p>
                 </div>
                 <time className="type-meta text-text-secondary" dateTime={item.createdAt}>
                   {formatLocalDateTime(item.createdAt)}
@@ -138,7 +134,12 @@ function buildActivity(proofs: IntegritasProofRecord[], reads: DataSourceRead[])
         : proof.proof_status === "failed"
           ? "Failed"
           : "Pending",
-    tone: proof.proof_status === "ready" ? "good" : proof.proof_status === "failed" ? "error" : "neutral",
+    tone:
+      proof.proof_status === "ready"
+        ? "good"
+        : proof.proof_status === "failed"
+          ? "error"
+          : "neutral",
   }));
 
   const readItems: ActivityItem[] = reads.map((read) => ({

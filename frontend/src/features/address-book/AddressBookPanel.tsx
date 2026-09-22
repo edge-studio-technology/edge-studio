@@ -20,7 +20,9 @@ import {
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
+import { describeLoadFailure } from "../../lib/errors";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
   TableColumnVisibilityButton,
@@ -141,49 +143,45 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
 
   return (
     <div className="gap-detail-close flex flex-col">
-      <TableControls
-        utilities={
-          <TableColumnVisibilityButton
-            tableLabel="Address book"
-            columns={ADDRESS_BOOK_COLUMNS}
-            visibility={visibility}
-            onChange={setVisibility}
-          />
-        }
-      >
-        <ListFilterBar
-          q={query}
-          searchPlaceholder="Name, address, or notes"
-          disabled={isLoading || entries.length === 0}
-          onQueryChange={(q) => {
-            setQuery(q);
-            setPage(1);
-          }}
-          actions={
-            <Button
-              type="button"
-              iconStart={<Plus aria-hidden />}
-              onClick={() => setAddOpen(true)}
-              disabled={actionsBlocked}
-            >
-              New contact
-            </Button>
-          }
-        />
-      </TableControls>
-
-      {error ? (
-        <ErrorAlert
-          title="Couldn't load address book"
-          className="w-full max-w-none"
-          action={
-            <Button type="button" variant="secondary" size="sm" onClick={() => void loadEntries()}>
-              Retry
-            </Button>
+      {error ? null : (
+        <TableControls
+          utilities={
+            <TableColumnVisibilityButton
+              tableLabel="Address book"
+              columns={ADDRESS_BOOK_COLUMNS}
+              visibility={visibility}
+              onChange={setVisibility}
+            />
           }
         >
-          {error}
-        </ErrorAlert>
+          <ListFilterBar
+            q={query}
+            searchPlaceholder="Name, address, or notes"
+            disabled={isLoading || entries.length === 0}
+            onQueryChange={(q) => {
+              setQuery(q);
+              setPage(1);
+            }}
+            actions={
+              <Button
+                type="button"
+                iconStart={<Plus aria-hidden />}
+                onClick={() => setAddOpen(true)}
+                disabled={actionsBlocked}
+              >
+                New contact
+              </Button>
+            }
+          />
+        </TableControls>
+      )}
+
+      {error ? (
+        <ErrorContentState
+          title="Your address book isn't available"
+          description={describeLoadFailure(error)}
+          onRetry={() => void loadEntries()}
+        />
       ) : isLoading ? (
         <LoadingState
           title="Fetching your contacts"
@@ -270,19 +268,21 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         </TableWrap>
       )}
 
-      <ListPaginationFooter
-        page={currentPage}
-        pageSize={pageSize}
-        total={filteredEntries.length}
-        totalPages={totalPages}
-        disabled={isLoading}
-        onPageChange={setPage}
-        onPageSizeChange={(size) => {
-          setPageSize(size);
-          setPage(1);
-        }}
-        pageSizeOptions={PAGE_SIZE_OPTIONS}
-      />
+      {error ? null : (
+        <ListPaginationFooter
+          page={currentPage}
+          pageSize={pageSize}
+          total={filteredEntries.length}
+          totalPages={totalPages}
+          disabled={isLoading}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+        />
+      )}
 
       {addOpen ? (
         <AddContactForm

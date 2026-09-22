@@ -78,11 +78,12 @@ describe("DataSourcesPage", () => {
 
     renderPage();
 
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("Could not load devices");
-    expect(alert).toHaveTextContent(
-      failedRequest === "list" ? "Devices request failed" : "Capabilities request failed",
-    );
+    expect(await screen.findByText("Devices aren't available")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        failedRequest === "list" ? "Devices request failed" : "Capabilities request failed",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
     expect(screen.queryByText("Fetching your devices")).not.toBeInTheDocument();
     expect(screen.queryByText("Connect your first device")).not.toBeInTheDocument();

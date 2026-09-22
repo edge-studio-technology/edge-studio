@@ -169,7 +169,7 @@ describe("DashboardPage Live activity", () => {
   it.each([
     ["proof history", "proofs"],
     ["data reads", "reads"],
-  ])("shows a shared error without loading, empty, or rows when %s fails", async (_label, failure) => {
+  ])("replaces live activity with a retryable error state when %s fails", async (_label, failure) => {
     getHistory.mockResolvedValue(historyPage());
     listDataReads.mockResolvedValue(readsPage());
     if (failure === "proofs") {
@@ -180,13 +180,12 @@ describe("DashboardPage Live activity", () => {
 
     render(<DashboardPage />);
 
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("Could not load live activity");
-    expect(alert).toHaveTextContent(
-      failure === "proofs" ? "Proof history failed" : "Data reads failed",
-    );
+    expect(await screen.findByText("Live activity isn't available")).toBeInTheDocument();
+    expect(
+      screen.getByText(failure === "proofs" ? "Proof history failed" : "Data reads failed"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fetching live activity")).not.toBeInTheDocument();
     expect(screen.queryByText("No live activity yet")).not.toBeInTheDocument();
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
   });
