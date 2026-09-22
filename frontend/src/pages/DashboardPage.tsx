@@ -1,5 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { Activity } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { EmptyContentState } from "../components/patterns/EmptyContentState";
+import { ErrorAlert } from "../components/patterns/ErrorAlert";
+import { LoadingState } from "../components/patterns/LoadingState";
 import { Page } from "../components/patterns/Page";
+import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { Pill } from "../components/ui/Pill";
 import { DashboardDevices } from "../features/dashboard/DashboardDevices";
@@ -25,16 +30,33 @@ type ActivityItem = {
 export function DashboardPage() {
   const [proofs, setProofs] = useState<IntegritasProofRecord[]>([]);
   const [reads, setReads] = useState<DataSourceRead[]>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
   const [activityError, setActivityError] = useState<string | null>(null);
 
-  useEffect(() => {
-    Promise.all([getHistory({ page: 1, pageSize: 100 }), listDataReads({ page: 1, pageSize: 100 })])
-      .then(([proofHistory, readHistory]) => {
-        setProofs(proofHistory.items);
-        setReads(readHistory.items);
-      })
-      .catch((err: Error) => setActivityError(err.message));
+  const loadActivity = useCallback(async () => {
+    setActivityLoading(true);
+    setActivityError(null);
+    try {
+      const [proofHistory, readHistory] = await Promise.all([
+        getHistory({ page: 1, pageSize: 100 }),
+        listDataReads({ page: 1, pageSize: 100 }),
+      ]);
+      setProofs(proofHistory.items);
+      setReads(readHistory.items);
+    } catch (err) {
+      setActivityError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Edge Studio could not load live activity. Try again.",
+      );
+    } finally {
+      setActivityLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadActivity();
+  }, [loadActivity]);
 
   useIntegritasHistoryAutoRefresh(proofs, setProofs, { query: { page: 1, pageSize: 100 } });
 
@@ -55,31 +77,50 @@ export function DashboardPage() {
             Events, attestations, and actions from proofs and data reads.
           </p>
         </div>
-        {activityError ? <p className="type-meta text-text-error">{activityError}</p> : null}
-        <div className="gap-detail-next flex flex-col">
-          {activity.map((item) => (
-            <article
-              className="border-stroke-secondary bg-surface-primary gap-detail-close rounded-soft p-detail-close grid items-center border sm:grid-cols-[minmax(0,1fr)_auto_auto]"
-              key={item.id}
-            >
-              <div className="min-w-0">
-                <p className="type-body-em text-text-primary m-0">{item.category}</p>
-                <p className="type-meta text-text-secondary mt-detail-tight m-0">{item.message}</p>
-              </div>
-              <time className="type-meta text-text-secondary" dateTime={item.createdAt}>
-                {formatLocalDateTime(item.createdAt)}
-              </time>
-              <Pill tone={item.tone} indicator>
-                {item.status}
-              </Pill>
-            </article>
-          ))}
-        </div>
-        {activity.length === 0 && !activityError ? (
-          <div className="border-stroke-secondary bg-surface-primary gap-detail-close rounded-soft p-detail-close grid items-center border sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-            <p className="type-body text-text-secondary m-0">No live activity yet.</p>
+        {activityLoading ? (
+          <LoadingState
+            title="Fetching live activity"
+            description="This should take a few seconds."
+          />
+        ) : activityError ? (
+          <ErrorAlert
+            title="Could not load live activity"
+            className="w-full max-w-none"
+            action={
+              <Button variant="secondary" onClick={() => void loadActivity()}>
+                Retry
+              </Button>
+            }
+          >
+            {activityError}
+          </ErrorAlert>
+        ) : activity.length === 0 ? (
+          <EmptyContentState
+            icon={Activity}
+            title="No live activity yet"
+            description="Proofs and data reads will appear here as they happen."
+          />
+        ) : (
+          <div className="gap-detail-next flex flex-col">
+            {activity.map((item) => (
+              <article
+                className="border-stroke-secondary bg-surface-primary gap-detail-close rounded-soft p-detail-close grid items-center border sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+                key={item.id}
+              >
+                <div className="min-w-0">
+                  <p className="type-body-em text-text-primary m-0">{item.category}</p>
+                  <p className="type-meta text-text-secondary mt-detail-tight m-0">{item.message}</p>
+                </div>
+                <time className="type-meta text-text-secondary" dateTime={item.createdAt}>
+                  {formatLocalDateTime(item.createdAt)}
+                </time>
+                <Pill tone={item.tone} indicator>
+                  {item.status}
+                </Pill>
+              </article>
+            ))}
           </div>
-        ) : null}
+        )}
       </Card>
     </Page>
   );
