@@ -8,10 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Failed loads on Dashboard Live activity, Wallet history, Devices, Workflows, Diagnostics, Address book, and Minima peers now show a calm in-content error state with Retry instead of a red alert banner.
+- Failed loads across Dashboard, Wallet, Devices, Workflows, Diagnostics, Minima, Integritas Connect, and Software update now show a calm in-content error state with Retry instead of a red alert banner.
 - A failed table, list, or region now hides its own filter bar, toolbar, and pager instead of showing controls and counts for data that isn't there.
 - Browser connection failures now read as "Edge Studio couldn't reach the backend service" instead of "Failed to fetch".
-- Dashboard metric cards showing `Unavailable` are no longer coloured as errors, since the notice above them already reports the failure.
+- Dashboard metric cards showing `Unavailable` are no longer coloured as errors.
+- Minima backups, the Minima console whitelist, the receive-address dialog, release notes, and the update check now use the same loading and error states as the rest of the app instead of a bare spinner and a red text line.
+- The Dashboard next-step card, the receive-address dialog, release notes, the Minima console whitelist, and the Minima backup list can now be retried in place instead of requiring a page refresh.
 
 ### Added
 

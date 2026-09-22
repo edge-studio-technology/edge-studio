@@ -34,10 +34,10 @@ describe("ChangelogPreview", () => {
 
     render(<ChangelogPreview />);
 
-    expect(screen.getByText("Loading changelog…")).toBeInTheDocument();
+    expect(screen.getByText("Fetching release notes")).toBeInTheDocument();
   });
 
-  it("shows an error alert when the fetch fails and recovers through Retry", async () => {
+  it("replaces the changelog with a retryable error state and recovers through Retry", async () => {
     const retry = deferred<string>();
     fetchChangelog
       .mockRejectedValueOnce(new Error("network down"))
@@ -48,12 +48,12 @@ describe("ChangelogPreview", () => {
 
     render(<ChangelogPreview />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load changelog");
+    expect(await screen.findByText("Release notes aren't available")).toBeInTheDocument();
     expect(screen.getByText("Couldn't load the changelog from GitHub.")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
 
-    expect(screen.getByText("Loading changelog…")).toBeInTheDocument();
+    expect(screen.getByText("Fetching release notes")).toBeInTheDocument();
     retry.resolve("raw markdown");
     expect(await screen.findByText("Recovered")).toBeInTheDocument();
     expect(fetchChangelog).toHaveBeenCalledTimes(2);

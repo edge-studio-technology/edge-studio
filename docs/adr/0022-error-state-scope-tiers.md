@@ -62,6 +62,16 @@ operator-readable; only the transport layer's own text is not.
 Dashboard metric cards that read `Unavailable` use `neutral`, not `error`. The banner above them
 already states the failure once.
 
+Bare `LoadingDots` / `SpinnerAlt` / `ErrorText` stay for **inline value placeholders** and per-field
+messages — a metric value, a card cell, a QR slot, a form field — where the surrounding layout is
+already on screen. Anything that owns a whole content region uses the trio. Several surfaces
+(Minima backups, the console whitelist modal, the receive-address dialog, release notes, the update
+check) had grown their own bare-spinner/bare-red-text pairing and are folded back onto it.
+
+Every converted surface gets a retry. Where no retry callback existed, the owning component keeps a
+`loadAttempt` counter and re-runs its effect; "refresh the page to try again" is not a recovery
+path the rest of the app asks for.
+
 ## Alternatives rejected
 
 **Recolour `ErrorAlert` (softer tint, or `warning` status) and keep one component.** Leaves

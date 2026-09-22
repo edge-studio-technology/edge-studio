@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
-import { ErrorAlert } from "../../components/patterns/ErrorAlert";
-import { LoadingDots } from "../../components/ui/LoadingDots";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { Modal } from "../../components/ui/Modal";
+import { describeLoadFailure } from "../../lib/errors";
 import { getReceiveAddress } from "./walletApi";
 import type { ReceiveAddress } from "./walletTypes";
 
@@ -16,6 +17,7 @@ export function ReceiveAddressModal({
   const [address, setAddress] = useState<ReceiveAddress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     if (actionsBlocked) {
@@ -41,7 +43,7 @@ export function ReceiveAddressModal({
     return () => {
       cancelled = true;
     };
-  }, [actionsBlocked]);
+  }, [actionsBlocked, loadAttempt]);
 
   return (
     <Modal
@@ -51,15 +53,16 @@ export function ReceiveAddressModal({
     >
       <div className="gap-detail-close grid">
         {error ? (
-          <ErrorAlert title="Couldn't load address" className="w-full max-w-none">
-            {error}
-          </ErrorAlert>
-        ) : null}
-
-        {loading ? (
-          <div className="py-pad-relaxed flex items-center justify-center" aria-busy="true">
-            <LoadingDots />
-          </div>
+          <ErrorContentState
+            title="Receive address isn't available"
+            description={describeLoadFailure(error)}
+            onRetry={actionsBlocked ? undefined : () => setLoadAttempt((attempt) => attempt + 1)}
+          />
+        ) : loading ? (
+          <LoadingState
+            title="Fetching your receive address"
+            description="This should take a few seconds."
+          />
         ) : address ? (
           <>
             <section

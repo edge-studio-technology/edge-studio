@@ -5,9 +5,12 @@ import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { MutedText } from "../../components/Text";
 import type { IntegritasConfig, Tone } from "../../app/types";
 import { getJson } from "../../lib/api";
+import { describeLoadFailure } from "../../lib/errors";
 import type { UseIntegritasAuthResult } from "./useIntegritasAuth";
 import { hasConnectedProfile, type IntegritasAuthStatusKind } from "./integritasAuthApi";
 
@@ -55,21 +58,24 @@ export function IntegritasConnectPanel({
     <>
       {!bare && <h3 style={{ margin: 0 }}>Integritas Connect</h3>}
 
-      {loading && !status && <MutedText className="m-0">Checking connection…</MutedText>}
+      {loading && !status && (
+        <LoadingState
+          title="Checking your Integritas connection"
+          description="This should take a few seconds."
+        />
+      )}
 
-      {error && (
-        <ErrorAlert
-          title={status ? "Integritas Connect error" : "Couldn't load Integritas status"}
-          className="w-full max-w-none"
-          action={
-            !status ? (
-              <Button type="button" variant="secondary" size="sm" onClick={() => void refresh()}>
-                Retry
-              </Button>
-            ) : undefined
-          }
-        >
-          {error}
+      {error && !status && (
+        <ErrorContentState
+          title="Integritas Connect status isn't available"
+          description={describeLoadFailure(error)}
+          onRetry={() => void refresh()}
+        />
+      )}
+
+      {error && status && (
+        <ErrorAlert title="Integritas Connect error" className="w-full max-w-none">
+          {describeLoadFailure(error)}
         </ErrorAlert>
       )}
 

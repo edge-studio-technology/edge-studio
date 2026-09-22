@@ -74,10 +74,16 @@ describe("MinimaBackupPanel", () => {
     expect(screen.getByText("5.0 MB")).toBeInTheDocument();
   });
 
-  it("shows a list error when the initial fetch fails", async () => {
-    listMinimaBackups.mockRejectedValue(new Error("list down"));
+  it("replaces the backup list with a retryable error state when the initial fetch fails", async () => {
+    listMinimaBackups.mockRejectedValueOnce(new Error("list down")).mockResolvedValueOnce(backups);
     renderPanel();
-    expect(await screen.findByText("list down")).toBeInTheDocument();
+
+    expect(await screen.findByText("Backup list isn't available")).toBeInTheDocument();
+    expect(screen.getByText("list down")).toBeInTheDocument();
+    expect(screen.queryByText("None yet.")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByText("5.0 MB")).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no backups", async () => {

@@ -315,7 +315,7 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Use `PinField` for segmented numeric verification / approval codes.
 - Use bare `Input` only when there is no label stack (rare toolbars / search).
 - Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
-- Use `ErrorContentState` when a load failure leaves a whole table/list/region with nothing to show — it replaces that content, and that content's own toolbar/pager chrome, in place.
+- Use `ErrorContentState` when a load failure leaves a whole table/list/region with nothing to show — it replaces that content, and that content's own toolbar/pager chrome, in place. Do not stand in a bare `ErrorText` line or a bare `LoadingDots` for these; the trio is the vocabulary for a whole content region.
 - Use `ErrorAlert` for persistent in-page / form-level failures that stay in layout while the surrounding page still works (optional Retry action).
 - Use toast errors for transient action failures that should not occupy page layout.
 
@@ -779,6 +779,10 @@ Failed content state (`frontend/src/components/patterns/ErrorContentState.tsx`):
 
 **Render it in place of the content, and hide that content's chrome.** A toolbar, filter bar, or pager left above/below it still implies data that isn't there (`Showing 0 of 0` under a failed fetch asserts an empty result, which is wrong). The panel announces with `role="status"` / `aria-live="polite"` rather than `role="alert"`, matching the `LoadingState` it swaps with.
 
+**Give it a retry wherever the load can be re-run.** A surface whose only recovery is "refresh the page" is the outlier, not the pattern; where no retry callback exists yet, a `loadAttempt` counter in the owning component is usually enough to re-run the effect.
+
+A panel that can both degrade and fail outright picks per render, not per component: fall back to `ErrorAlert` only on the branch where real content is still on screen (see `IntegritasConnectPanel`, `AutomationPage` workspace modes).
+
 Pass `description` through `describeLoadFailure()` (`frontend/src/lib/errors.ts`) so bare browser transport text ("Failed to fetch") becomes service-unreachable copy instead.
 
 | Prop            | Notes                                                    |
@@ -819,6 +823,8 @@ Loading indicator (`frontend/src/components/ui/SpinnerAlt.tsx`): eight pins arou
 | `className` | optional                                  | Merged onto the `<svg>`                    |
 
 Decorative (`aria-hidden`) by design — always pair it with adjacent text describing what's loading, as `LoadingState` does.
+
+Reserve bare `SpinnerAlt` / `LoadingDots` for **inline value placeholders** — a metric value, a card cell, a QR slot, a busy button — where the surrounding layout is already on screen. A whole table, list, or panel waiting on its first load uses `LoadingState`.
 
 ```tsx
 <SpinnerAlt />

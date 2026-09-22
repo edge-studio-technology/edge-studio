@@ -7,7 +7,8 @@ import { Disclosure } from "../components/ui/Disclosure";
 import { Modal } from "../components/ui/Modal";
 import { Pill } from "../components/ui/Pill";
 import { Page } from "../components/patterns/Page";
-import { ErrorAlert } from "../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../components/patterns/ErrorContentState";
+import { describeLoadFailure } from "../lib/errors";
 import { SubSection } from "../components/patterns/SubSection";
 import { useToast } from "../components/ToastProvider";
 import {
@@ -226,26 +227,16 @@ export function MinimaPage() {
 
       <section className="gap-detail-close grid w-full items-stretch lg:grid-cols-2">
         {statusError && !nodeStatus ? (
-          <ErrorAlert
-            title="Couldn't load Minima status"
-            className="w-full max-w-none lg:col-span-2"
-            action={
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setStatusLoading(true);
-                  setStatusError(null);
-                  void refreshStatus();
-                }}
-              >
-                Retry
-              </Button>
-            }
-          >
-            {statusError}
-          </ErrorAlert>
+          <ErrorContentState
+            title="Minima status isn't available"
+            description={describeLoadFailure(statusError)}
+            className="lg:col-span-2"
+            onRetry={() => {
+              setStatusLoading(true);
+              setStatusError(null);
+              void refreshStatus();
+            }}
+          />
         ) : null}
         {!statusError || nodeStatus ? (
           <>

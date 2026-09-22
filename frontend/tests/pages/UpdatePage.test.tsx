@@ -43,8 +43,8 @@ describe("UpdatePage", () => {
 
     render(<UpdatePage />);
 
-    expect(screen.getByText("Checking for updates…")).toBeInTheDocument();
-    expect(await screen.findByText("Couldn't check for updates")).toBeInTheDocument();
+    expect(screen.getByText("Checking for updates")).toBeInTheDocument();
+    expect(await screen.findByText("Update status isn't available")).toBeInTheDocument();
     expect(screen.getByText("update agent unavailable")).toBeInTheDocument();
     expect(screen.queryByText("Up to date")).not.toBeInTheDocument();
 

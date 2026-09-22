@@ -15,7 +15,6 @@ import {
   TableIconMenu,
   TableRow,
 } from "../../components/DataTable";
-import { LoadingDots } from "../../components/LoadingDots";
 import { Modal } from "../../components/Modal";
 import {
   DeleteConfirmModal,
@@ -28,6 +27,9 @@ import {
   type TableColumnVisibility,
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
+import { LoadingState } from "../../components/patterns/LoadingState";
+import { describeLoadFailure } from "../../lib/errors";
 import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
 import { CheckboxField } from "../../components/ui/CheckboxField";
@@ -469,8 +471,19 @@ export function MinimaBackupPanel({
           Auto backup runs nightly at 00:30 and keeps the last {MAX_BACKUPS}, deleting the oldest.
         </p>
 
-        {listError && <ErrorText className="m-0">{listError}</ErrorText>}
-        {!backups && !listError && <LoadingDots />}
+        {listError && (
+          <ErrorContentState
+            title="Backup list isn't available"
+            description={describeLoadFailure(listError)}
+            onRetry={() => void refreshBackups()}
+          />
+        )}
+        {!backups && !listError && (
+          <LoadingState
+            title="Fetching your backups"
+            description="This should take a few seconds."
+          />
+        )}
 
         {backups && (
           <div className="grid gap-2">

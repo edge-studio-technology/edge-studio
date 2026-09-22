@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Cable, Check, Workflow } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { APP_NAME } from "../../app/names";
-import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -19,8 +19,10 @@ type NextActionState =
 export function DashboardNextAction() {
   const navigate = useNavigate();
   const [state, setState] = useState<NextActionState>({ status: "loading" });
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
+    setState({ status: "loading" });
     Promise.all([
       listDataSources().then((res) => res.items.length),
       listAutomationWorkflows().then(
@@ -31,7 +33,7 @@ export function DashboardNextAction() {
         setState({ status: "ready", deviceCount, workflowCount });
       })
       .catch(() => setState({ status: "error" }));
-  }, []);
+  }, [loadAttempt]);
 
   if (state.status === "loading") {
     return (
@@ -47,9 +49,14 @@ export function DashboardNextAction() {
 
   if (state.status === "error") {
     return (
-      <ErrorAlert title="Dashboard setup couldn't be loaded" className="w-full max-w-none!">
-        We couldn't check your devices and workflows. Refresh the page to try again.
-      </ErrorAlert>
+      <Card className="w-full">
+        <ErrorContentState
+          title="Your next step isn't available"
+          description="Edge Studio couldn't check your devices and workflows."
+          className="min-h-48 rounded-none border-0 bg-transparent p-0"
+          onRetry={() => setLoadAttempt((attempt) => attempt + 1)}
+        />
+      </Card>
     );
   }
 

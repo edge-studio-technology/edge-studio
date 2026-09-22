@@ -37,7 +37,7 @@ describe("MinimaPage", () => {
 
     act(() => reportError("status down"));
 
-    expect(screen.getByText("Couldn't load Minima status")).toBeInTheDocument();
+    expect(screen.getByText("Minima status isn't available")).toBeInTheDocument();
     expect(screen.getByText("status down")).toBeInTheDocument();
     expect(screen.queryByText("Node health content")).not.toBeInTheDocument();
     expect(screen.queryByText("Summary content")).not.toBeInTheDocument();

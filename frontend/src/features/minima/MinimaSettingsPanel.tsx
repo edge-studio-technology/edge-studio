@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import type { MinimaConfig, MinimaNodeState, MinimaPeersResponse } from "../../app/types";
 import { Card } from "../../components/Card";
-import { Button } from "../../components/Button";
 import { ErrorText } from "../../components/Text";
-import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
+import { describeLoadFailure } from "../../lib/errors";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import { useToast } from "../../components/ToastProvider";
 import {
@@ -169,17 +169,11 @@ export function MinimaSettingsPanel({
           description="This should take a few seconds."
         />
       ) : configLoadError ? (
-        <ErrorAlert
-          title="Couldn't load Minima settings"
-          className="w-full max-w-none"
-          action={
-            <Button type="button" variant="secondary" size="sm" onClick={() => void loadConfig()}>
-              Retry
-            </Button>
-          }
-        >
-          {configLoadError}
-        </ErrorAlert>
+        <ErrorContentState
+          title="Minima settings aren't available"
+          description={describeLoadFailure(configLoadError)}
+          onRetry={() => void loadConfig()}
+        />
       ) : (
         <MinimaMegammrHostSection
           config={config}
