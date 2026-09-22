@@ -63,7 +63,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 ### P1
 
 - [ ] **DS-04 Unit tests** — `device.service.ts` (`ensureDeviceId`, `getDeviceInfo`).
-- [ ] **DS-05 Route tests** — `status.routes.ts` authenticated 200, unauthenticated 401.
+- [x] **DS-05 Route tests** — Closed by ticket 242: `statusRoutes.test.ts` drives `/api/status` and `/api/status/overview` for the Integritas connection check (200 with connected true/false, upstream error, missing API key, TTL cache reuse); the unauthenticated `401` half stays pinned by `app.401-smoke.test.ts`.
 
 ### P2
 
