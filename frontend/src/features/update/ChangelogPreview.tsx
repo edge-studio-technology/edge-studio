@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { Button } from "../../components/ui/Button";
 import { Disclosure } from "../../components/ui/Disclosure";
 import { SpinnerAlt } from "../../components/ui/SpinnerAlt";
 import { fetchChangelog, parseChangelog } from "./changelog";
@@ -78,9 +79,12 @@ function ChangelogEntryView({ entry, defaultOpen }: { entry: ChangelogEntry; def
 export function ChangelogPreview() {
   const [entries, setEntries] = useState<ChangelogEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setEntries(null);
+    setError(null);
     fetchChangelog()
       .then((text) => {
         if (!cancelled) setEntries(parseChangelog(text));
@@ -91,10 +95,26 @@ export function ChangelogPreview() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadAttempt]);
 
   if (error) {
-    return <ErrorAlert title="Couldn't load changelog">{error}</ErrorAlert>;
+    return (
+      <ErrorAlert
+        title="Couldn't load changelog"
+        action={
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+          >
+            Retry
+          </Button>
+        }
+      >
+        {error}
+      </ErrorAlert>
+    );
   }
 
   if (!entries) {

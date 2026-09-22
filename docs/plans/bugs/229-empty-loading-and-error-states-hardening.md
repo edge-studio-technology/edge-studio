@@ -134,20 +134,24 @@ The branch is not ready for `dev` while an audited in-scope surface is marked un
 | Workflow list (`AutomationPage`, `AutomationWorkflowsList`) | Shared loading state | Shared first-workflow state | Shared alert now replaces both initialized lists | Retry reloads required workflow data | `AutomationPage.test.tsx`, `AutomationWorkflowsList.test.tsx` | Fixed in gap check |
 | Automation inbox best-effort load (`AutomationPage`) | Existing table loading | Empty inbox | Failure is intentionally converted to an empty response | Page refresh | Code inspection | Excluded — silent `.catch()` outside Dashboard |
 | Workflow create/edit/watch workspace and inspectors | Workspace loading / local action progress | N/A | Existing workspace/action treatment | Existing page/action recovery | Scope inspection | Excluded — workflow canvas and watch inspector |
-| Wallet balance and send history (`WalletPage`, `WalletHero`, `WalletHistoryPanel`) | Balance/history loading indicators | Shared no-history state | Balance now shows unavailable; shared history alert replaces empty/table content | History Retry reloads the combined wallet request | `WalletHero.test.tsx`, `WalletHistoryPanel.test.tsx` | Fixed in gap check |
-| Wallet address book (`AddressBookPanel`) | Shared loading state | Shared first-contact state | Shared alert now replaces empty/table content | Retry reloads contacts | `AddressBookPanel.test.tsx` | Fixed in gap check |
+| Wallet balance and send history (`WalletPage`, `WalletHero`, `WalletHistoryPanel`) | Balance/history loading indicators only while requests are pending | Shared no-history state | Balance now shows unavailable; shared history alert replaces empty/table content | History Retry reloads the combined wallet request; loaded history remains visible when Minima actions are blocked | `WalletHero.test.tsx`, `WalletHistoryPanel.test.tsx` | Fixed in gap check and follow-up audit |
+| Wallet address book (`AddressBookPanel`) | Shared loading state only while contacts are pending | Shared first-contact state | Shared alert now replaces empty/table content | Retry reloads contacts; loaded contacts remain visible when Minima actions are blocked | `AddressBookPanel.test.tsx` | Fixed in gap check and follow-up audit |
 | Wallet receive modal (`ReceiveAddressModal`) | Modal progress indicator | N/A | Shared alert replaces address content | Close/reopen after restoring Minima/API | Existing focused test and code inspection | Pass |
 | Minima node status (`MinimaPage`, status cards) | Status-card loading indicators | N/A | Shared alert now replaces unavailable-looking cards on first-load failure; last-known status remains during later polling failures | Retry plus background polling | `MinimaPage.test.tsx`, `useMinimaStatusRefresh.test.ts` | Fixed in gap check |
 | Minima configuration and peer list (`MinimaSettingsPanel`) | Shared config loading state and peer loading row | Empty peers only after success | Shared retryable alerts replace default config/fake empty peers | Retry each failed request | `MinimaSettingsPanel.test.tsx`, `MinimaPeerConnectionsSection.test.tsx` | Fixed in gap check |
-| Software update status (`UpdatePage`) | Explicit checking state | N/A | Shared alert replaces status content | Retry / Check again | Code inspection and frontend build | Pass |
-| Update changelog (`ChangelogPreview`) | Explicit changelog spinner | Parsed list may be empty without fabricated content | Shared alert replaces preview | Page reload | Existing focused test and code inspection | Pass |
-| Integritas stamp/verify actions and pending proof result (`IntegritasPage`, `StampResult`) | Action progress / pending proof loading state | N/A | Action failures use toast; terminal proof failure is explicit | Repeat action / Diagnostics link; polling preserves pending state | Existing focused suites and code inspection | Pass |
+| Software update status (`UpdatePage`) | Explicit checking state | N/A | Shared alert replaces status content when update-agent is unavailable | Retry / Check again | `UpdatePage.test.tsx` | Pass |
+| Update changelog (`ChangelogPreview`) | Explicit changelog spinner | Parsed list may be empty without fabricated content | Shared alert replaces preview | Retry reloads the changelog | `ChangelogPreview.test.tsx` | Fixed in follow-up audit |
+| Update progress (`update-agent/public`) | Checking state precedes confirmed updating state | Explicit idle state when no job exists | Persistent failure state after update failure, unexpected status, or exhausted contact retries | Retry status check / Back to Update | `update-agent/tests/public/app.test.ts` | Fixed in follow-up audit |
+| Integritas Connect status (`IntegritasPage`, `IntegritasConnectPanel`, `useIntegritasAuth`) | Explicit checking state and neutral pill | Not connected is a successful status, not an error | Error pill plus shared alert replace indefinite Checking/raw error text | Retry re-enters checking and reloads status | `IntegritasPage.test.tsx`, `IntegritasConnectPanel.test.tsx`, `useIntegritasAuth.test.tsx` | Fixed in follow-up audit |
+| Integritas stamp/verify actions and pending proof result (`IntegritasPage`, `StampFilePanel`, `VerifyProofPanel`, `StampResult`) | Explicit action progress for both stamp and verify; pending proofs remain explicit | N/A | Action failures use toast; terminal proof failure is explicit | Repeat action / Diagnostics link; polling preserves pending state | Focused Integritas panel/result suites | Fixed in follow-up audit |
 | Header status overview (`AppShell`, `useStatusOverviewRefresh`) | Existing header bootstrap | N/A | Preserves last-known status and marks refresh stale | Background polling | Scope inspection | Excluded — header status refresh failure |
-| Login, onboarding, Integritas Connect, Account and PIN/TOTP forms | Form-specific progress | N/A | Form-specific validation/errors | Form resubmission | Scope inspection | Excluded — named parent-feature boundary |
+| Login, onboarding, Account and PIN/TOTP forms | Form-specific progress | N/A | Form-specific validation/errors | Form resubmission | Scope inspection | Excluded — named parent-feature boundary |
 | Minima console, whitelist and backups | Surface-specific progress | Surface-specific empty states | Existing surface-specific errors | Existing actions | Scope inspection | Excluded — Minima console / backups |
 | Inline alert page-jump behavior | N/A | N/A | Existing alerts do not add page-jump behavior here | N/A | Scope inspection | Excluded — Feature #693 |
 
 The audit found no remaining unknown or unresolved in-scope user-facing async surface. API action forms without a loadable collection or summary (for example feedback submission and wallet send) have no meaningful successful-empty state and retain their existing submitting/success/error treatment. Unreachable code such as the unmounted `ReceiveQrPanel` was inspected but is not a user-facing release surface.
+
+A follow-up audit expanded the release boundary to the Integritas page and both software-update surfaces. It also rechecked whether non-request availability flags were being presented as loading. This explicit follow-up supersedes the original Integritas Connect exclusion for the mounted Integritas page while leaving onboarding and other forms excluded.
 
 ## Scope Boundaries
 
@@ -155,7 +159,7 @@ Do not expand implementation into the following parent-ticket exclusions. They a
 
 - inline `ErrorAlert` page-jump behavior (Feature #693);
 - header status refresh failure handling;
-- login, onboarding, Connect, or Account/PIN forms;
+- login, onboarding, or Account/PIN forms;
 - Minima console or backups;
 - the workflow watch inspector;
 - silent `.catch()` cleanup outside Dashboard;
@@ -185,6 +189,7 @@ Required repository checks:
 npm run check
 npm --prefix backend run build
 npm --prefix frontend run build
+npm --prefix update-agent run build
 docker compose config
 git diff --check
 git status --short --untracked-files=all
@@ -200,6 +205,11 @@ Manual browser checks with network throttling/request blocking:
 6. Block each Live activity endpoint separately; confirm the shared error alert replaces loading/empty/activity content and Retry requests both sources again.
 7. Restore the endpoints and retry; confirm activity returns in newest-first order and pending Integritas proofs still auto-refresh.
 8. Recheck #661 behavior: the next-action card stays present while loading, failures never become zero counts, and status metric failures settle as unavailable/error rather than spinning indefinitely.
+9. Block `/api/auth/connect/status` on Integritas; confirm the status pill settles to `Unavailable`, expanding Integritas Connect shows the shared error alert, and Retry recovers after the block is removed.
+10. Throttle `/api/integritas/stamp-file` and `/api/integritas/verify-proof-file` separately; confirm each action shows its own loading state and a failed action leaves the selected file available to retry.
+11. Block `/update/status` on Software update; confirm checking settles to the shared error alert and Retry recovers after the block is removed.
+12. Open `/update/` with no update running; confirm `Checking update status…` resolves to the idle state. Block `/update/apply`, wait for the bounded retries to settle into `Couldn't check update status`, then remove the block and use `Retry status check` to recover.
+13. With Wallet history and contacts already loaded, stop Minima and wait for the page warning; confirm both lists remain visible while write actions are disabled, then restart Minima.
 
 Cross-app merge gate:
 
@@ -212,7 +222,8 @@ Cross-app merge gate:
 ### Verification record (2026-09-22)
 
 - Focused async-state regressions: 17 files, 117 tests passed.
-- Full `npm run check`: backend 81 files / 1,174 tests, frontend 186 files / 1,511 tests, update-agent 14 files / 160 tests, root scripts 5 files / 43 tests; coverage thresholds and moderate dependency audits passed.
-- `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config`, and `git diff --check` passed.
+- Full `npm run check`: backend 81 files / 1,174 tests, frontend 188 files / 1,515 tests, update-agent 15 files / 162 tests, root scripts 5 files / 43 tests; coverage thresholds and moderate dependency audits passed.
+- Backend, frontend, and update-agent builds, `docker compose config`, and `git diff --check` passed.
 - The first sandboxed `npm run check` attempt could not bind Supertest's ephemeral local ports (`EPERM`); the required rerun outside that network sandbox passed completely.
-- Manual browser checks 1–8 above remain pending and are the only outstanding release verification for this plan.
+- Follow-up focused regressions cover Integritas status/stamping, Software update/update-agent progress, changelog Retry, and Wallet read-only content while Minima actions are blocked.
+- Manual browser checks 1–13 above remain pending and are the only outstanding release verification for this plan.

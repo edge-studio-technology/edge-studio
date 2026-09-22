@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Dashboard Live activity now distinguishes loading, empty, and failed requests, with Retry available after errors.
 - Devices now show an error with Retry when the initial load fails.
 - Diagnostics, Workflows, Wallet, Address book, and Minima status/settings no longer show empty, zero, unavailable, or indefinitely loading content after failed requests.
+- Integritas and software update status checks now settle failures and provide Retry actions.
+- Wallet history and contacts no longer appear to keep loading when Minima actions are unavailable.
 
 ## [Unreleased]
 
