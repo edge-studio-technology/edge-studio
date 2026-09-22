@@ -1,6 +1,6 @@
 # Regression Testing Debt Plan
 
-**Status:** Not started  
+**Status:** Done  
 **Created:** 2026-09-22  
 **Goal:** Close the six remaining unit-test gaps tracked under OpenProject feature #363 so the behaviors they describe are pinned by tests, without changing any application behavior.
 
@@ -171,6 +171,6 @@ git status --short --untracked-files=all
 ### Milestone 3: Frontend + wrap-up (#225)
 
 - [x] Step 8 — `diagnosticsQuery.ts` tests.
-- [ ] Open question resolved: `DiagnosticsPage` tab-switching/pagination cases, or an explicit decision not to add them.
-- [ ] Docs reconciled (`docs/qa/gaps.md` DS-05, `docs/TASKS.md`, `docs/SESSION.md`, `legacy-ticket-unit-test-gaps.md`).
-- [ ] #258 closure and #259 ownership raised with the ticket owner.
+- [x] Open question resolved: tab-switching and pagination cases added to the existing `DiagnosticsPage.test.tsx`.
+- [x] Docs reconciled (`docs/qa/gaps.md` DS-05, `docs/TASKS.md`, `docs/SESSION.md`, `legacy-ticket-unit-test-gaps.md`).
+- [ ] #258 closure and #259 ownership raised with the ticket owner (board hygiene, no code work).

@@ -36,8 +36,7 @@
 - [ ] Post-v1: add seed-phrase-only restore as an option inside `MinimaBackupPanel`, then remove the commented-out `WalletSettingsPanel` from `AuthSettingsPage.tsx`.
 - [ ] Manual check of the update-agent UI Back buttons and the dashboard "Update available" badge across a real update cycle (Pi or local Docker Compose) — this session's fixes were only build/typecheck-verified.
 - [ ] Manual browser check of `update-agent`'s restyled static update-progress page (`update-agent/public/index.html`): black-to-purple gradient background and the white logo below the centered card, matching the login page — not yet manually checked (static HTML, no build step).
-- [ ] Close the unit-test gaps found while retiring old PM-tool QA tickets (automation, devices, ...) — see `docs/plans/legacy-ticket-unit-test-gaps.md`.
-- [ ] Close the remaining regression-testing debt tracked under OpenProject #363 and its children (#213, #218, #225, #242, #287) — see `docs/plans/363-regression-testing-debt.md`.
+- [ ] Close OpenProject #259 (Node Failure Mode Unit Testing) — the one section of `docs/plans/legacy-ticket-unit-test-gaps.md` left open by #363; it sits under *Node Management* and needs an owner, and its `MinimaPage.test.tsx` gap needs re-verifying.
 - [ ] Add HC-SR501 PIR motion sensor as a first-class GPIO input workflow source - see `docs/plans/pir-motion-sensor-workflows.md`.
 - [ ] Add ESP32 MQTT board onboarding with generated starter firmware - see `docs/plans/esp32-mqtt-sensor-onboarding.md`.
 - [ ] Document the `DEV_MODE` install flag in `README.md`'s runtime-config section and note its manifest-signature-verification bypass in `SECURITY.md`/`docs/security/host-and-infrastructure.md` — flagged during code review, deliberately deferred as a separate concern from the pagination work.
@@ -70,6 +69,8 @@
 - [ ] Manual browser check of the address book contact-actions rework: "View contact" is read-only (no Edit/Delete buttons); kebab "Edit" opens the edit form; kebab "Remove" opens the delete-confirm modal then a progress modal, and the row disappears with a success toast on completion.
 
 ## Done
+
+- [x] Closed the regression-testing debt tracked under OpenProject #363 and its children (#213, #218, #225, #242, #287): request-level `sendHttpOutput` assertions, MQTT/GPIO teardown on source deletion, webhook receiver route tests, the Integritas connection check, backup re-auth rejection, wallet import phrase-leak checks, and diagnostics query/tab/pagination tests — see `docs/plans/363-regression-testing-debt.md`.
 
 - [x] Fixed and Raspberry Pi-verified Dashboard next-action and metric-card loading/error states so failed requests no longer appear empty or spin indefinitely — see `docs/plans/bugs/661-dashboard-next-action-and-metric-cards-don-t-treat-errors-as-empty.md`.
 - [x] Completed task 707 correctness hardening: Minima restart setup failures clear stale operation state, wallet/address-book destinations follow Minima's source grammar, and Update Agent Docker stream timeouts settle reliably — see `docs/plans/security/707-correctness-hardening-from-the-unit-test-audit.md`.
