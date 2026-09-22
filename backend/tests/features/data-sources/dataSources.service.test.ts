@@ -441,6 +441,15 @@ describe("sendHttpOutput", () => {
     assert.deepEqual(result.response, { received: true });
   });
 
+  it("posts the payload to the configured url", async () => {
+    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify({ received: true })));
+    await sendHttpOutput({ url: "https://example.com/hook", method: "POST" }, { a: 1, nested: { b: "two" } });
+    assert.equal(String(fetchMock.mock.calls[0][0]), "https://example.com/hook");
+    const options = fetchMock.mock.calls[0][1] as RequestInit;
+    assert.equal(options.method, "POST");
+    assert.deepEqual(JSON.parse(String(options.body)), { a: 1, nested: { b: "two" } });
+  });
+
   it("throws on a non-ok response, including the response body", async () => {
     fetchMock.mockResolvedValue(mockResponse(500, JSON.stringify({ error: "boom" })));
     await assert.rejects(sendHttpOutput({ url: "https://example.com", method: "POST" }, { a: 1 }), /HTTP output returned HTTP 500/);
