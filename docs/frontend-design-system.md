@@ -719,7 +719,7 @@ Mono value chip with a compact copy control (`frontend/src/components/patterns/C
 
 Empty content state (`frontend/src/components/patterns/EmptyContentState.tsx`): centered bare glyph, bold title, description, and an optional `Button` action, on a bordered `surface-primary` panel. Prefer this over a bare "No X yet." string wherever a table or list can be genuinely empty — no rows, no filter matches, nothing saved yet.
 
-**Render it in place of the table/list, not as a row inside it.** Putting it in a `<td colSpan>` leaves empty header chrome above it, which is not the intended state. Pair it with `LoadingState` and `ErrorContentState`, which use the same panel shell (`contentStatePanelClass`, exported here) so the three swap cleanly.
+**Render it in place of the table/list, not as a row inside it.** Putting it in a `<td colSpan>` leaves empty header chrome above it, which is not the intended state. Pair it with `LoadingState` and `ErrorContentState`, which use the same panel shell (`contentStatePanelClass`, exported here) so the three swap cleanly. The shell is `w-full` by design — it stands in for a whole content region, and `Page` lays its children out with `items-start`, which would otherwise shrink the panel to its text width.
 
 | Prop             | Notes                                                                     |
 | ---------------- | ------------------------------------------------------------------------- |
