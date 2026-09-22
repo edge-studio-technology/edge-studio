@@ -1,6 +1,7 @@
 # Legacy QA Ticket Unit-Test Gap Follow-Up Plan
 
-**Status:** Not started
+**Status:** Closed except *Node Failure Mode Testing*  
+**Closed by:** `feature/363-regression-testing-debt` (OpenProject #363 and children #213, #218, #225, #242, #287) — see `docs/plans/363-regression-testing-debt.md`
 **Created:** 2026-09-09
 **Goal:** While retiring old PM-tool QA tickets (automation/devices/etc., written before the naming and architecture settled), catalog the specific unit-test gaps found against today's suite, so a single new ticket/branch can close them.
 
@@ -173,6 +174,10 @@ app doesn't implement — not gaps, since there's nothing to test.
    no second role to build a genuine operator-permission test around until one exists.
 
 ### Node Failure Mode Testing ticket
+
+**Still open.** Tracked as OpenProject #259 under *Node Management*, not under #363 — a deliberate scope split,
+confirmed with the ticket owner, to be worked separately. Gap 3 below needs re-verification before it is worked:
+`frontend/tests/pages/MinimaPage.test.tsx` now exists (commit `6ff998b`).
 
 Backend restart-failure handling is solid already: `minima.service.test.ts:115-126` covers the RPC-fails-but-
 container-stopped case, and `:328-341` covers clearing the operation marker when a background restart fails.
