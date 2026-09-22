@@ -170,7 +170,7 @@ git status --short --untracked-files=all
 
 ### Milestone 3: Frontend + wrap-up (#225)
 
-- [ ] Step 8 — `diagnosticsQuery.ts` tests.
+- [x] Step 8 — `diagnosticsQuery.ts` tests.
 - [ ] Open question resolved: `DiagnosticsPage` tab-switching/pagination cases, or an explicit decision not to add them.
 - [ ] Docs reconciled (`docs/qa/gaps.md` DS-05, `docs/TASKS.md`, `docs/SESSION.md`, `legacy-ticket-unit-test-gaps.md`).
 - [ ] #258 closure and #259 ownership raised with the ticket owner.
