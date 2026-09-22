@@ -2,6 +2,8 @@ node_modules/
 dist/
 coverage/
 .env
+.env.local
+!.env.example
 /data/
 /data/certs/
 /minima/
