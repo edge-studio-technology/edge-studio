@@ -36,7 +36,7 @@
 - [ ] Post-v1: add seed-phrase-only restore as an option inside `MinimaBackupPanel`, then remove the commented-out `WalletSettingsPanel` from `AuthSettingsPage.tsx`.
 - [ ] Manual check of the update-agent UI Back buttons and the dashboard "Update available" badge across a real update cycle (Pi or local Docker Compose) — this session's fixes were only build/typecheck-verified.
 - [ ] Manual browser check of `update-agent`'s restyled static update-progress page (`update-agent/public/index.html`): black-to-purple gradient background and the white logo below the centered card, matching the login page — not yet manually checked (static HTML, no build step).
-- [ ] Close OpenProject #259 (Node Failure Mode Unit Testing) — the one section of `docs/plans/legacy-ticket-unit-test-gaps.md` left open by #363; it sits under *Node Management* and needs an owner, and its `MinimaPage.test.tsx` gap needs re-verifying.
+- [ ] Close OpenProject #259 (Node Failure Mode Unit Testing) — the one section of `docs/plans/legacy-ticket-unit-test-gaps.md` left open by #363, deliberately scoped under *Node Management* rather than #363; its `MinimaPage.test.tsx` gap needs re-verifying first.
 - [ ] Add HC-SR501 PIR motion sensor as a first-class GPIO input workflow source - see `docs/plans/pir-motion-sensor-workflows.md`.
 - [ ] Add ESP32 MQTT board onboarding with generated starter firmware - see `docs/plans/esp32-mqtt-sensor-onboarding.md`.
 - [ ] Document the `DEV_MODE` install flag in `README.md`'s runtime-config section and note its manifest-signature-verification bypass in `SECURITY.md`/`docs/security/host-and-infrastructure.md` — flagged during code review, deliberately deferred as a separate concern from the pagination work.

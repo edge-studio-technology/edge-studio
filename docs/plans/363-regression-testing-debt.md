@@ -39,8 +39,8 @@ Every gap in the five open children was re-verified against the current tree. Al
 
 ### Ticket state findings (surface to the ticket owner, not code work)
 
-- **#258 Navigation & Route Regression is `Done` / 100% with all six checklist items unticked.** Its checklist is a manual QA script (9 routes load, back/forward, deep links, refresh, unauthenticated redirect, 404 fallback), not the unit-test-gap format the other five children use, and it predates the plan doc. No code work is planned for it here. Worth confirming with whoever closed it whether it was closed on manual verification or by mistake.
-- **#259 Node Failure Mode Unit Testing is orphaned from this branch.** It is the seventh gap section of `legacy-ticket-unit-test-gaps.md`, but it is parented under *Node Management* (status `Ready`), not under #363, and there is a separate sibling feature #356 *Node Testing* under *Testing & Engineering Quality*. Its four gaps (`MinimaContainerCard` stopped/exited/error states, `DashboardDevices` stopped/error pills and metric degradation, a new `MinimaPage.test.tsx` restart disable/re-enable + failure toast, and a `POST /api/minima/restart` route failure case) are **out of scope for this branch**. Note that `frontend/tests/pages/MinimaPage.test.tsx` now exists (commit `6ff998b`), so #259's third item needs re-verification before it is worked.
+- **#258 Navigation & Route Regression is `Done` / 100% with all six checklist items unticked.** Its checklist is a manual QA script (9 routes load, back/forward, deep links, refresh, unauthenticated redirect, 404 fallback), not the unit-test-gap format the other five children use, and it predates the plan doc. **Confirmed with the ticket owner: genuinely done, the boxes were just never ticked.** No code work.
+- **#259 Node Failure Mode Unit Testing stays under *Node Management*.** **Confirmed with the ticket owner: the scope is correct as-is and it will be worked separately.** It is the seventh gap section of `legacy-ticket-unit-test-gaps.md`, but it is parented under *Node Management* (status `Ready`), not under #363, and there is a separate sibling feature #356 *Node Testing* under *Testing & Engineering Quality*. Its four gaps (`MinimaContainerCard` stopped/exited/error states, `DashboardDevices` stopped/error pills and metric degradation, a new `MinimaPage.test.tsx` restart disable/re-enable + failure toast, and a `POST /api/minima/restart` route failure case) are **out of scope for this branch**. Note that `frontend/tests/pages/MinimaPage.test.tsx` now exists (commit `6ff998b`), so #259's third item needs re-verification before it is worked.
 
 ### Not gaps
 
@@ -173,4 +173,4 @@ git status --short --untracked-files=all
 - [x] Step 8 — `diagnosticsQuery.ts` tests.
 - [x] Open question resolved: tab-switching and pagination cases added to the existing `DiagnosticsPage.test.tsx`.
 - [x] Docs reconciled (`docs/qa/gaps.md` DS-05, `docs/TASKS.md`, `docs/SESSION.md`, `legacy-ticket-unit-test-gaps.md`).
-- [ ] #258 closure and #259 ownership raised with the ticket owner (board hygiene, no code work).
+- [x] #258 closure and #259 ownership confirmed with the ticket owner: #258 is genuinely done, #259 stays under *Node Management* and will be worked separately.

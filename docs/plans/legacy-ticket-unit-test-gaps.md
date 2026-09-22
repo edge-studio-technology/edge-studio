@@ -175,8 +175,8 @@ app doesn't implement — not gaps, since there's nothing to test.
 
 ### Node Failure Mode Testing ticket
 
-**Still open.** Tracked as OpenProject #259 under *Node Management*, not under #363, so it was out of scope for
-`feature/363-regression-testing-debt`. Gap 3 below needs re-verification before it is worked:
+**Still open.** Tracked as OpenProject #259 under *Node Management*, not under #363 — a deliberate scope split,
+confirmed with the ticket owner, to be worked separately. Gap 3 below needs re-verification before it is worked:
 `frontend/tests/pages/MinimaPage.test.tsx` now exists (commit `6ff998b`).
 
 Backend restart-failure handling is solid already: `minima.service.test.ts:115-126` covers the RPC-fails-but-
