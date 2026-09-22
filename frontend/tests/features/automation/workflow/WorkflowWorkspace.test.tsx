@@ -188,6 +188,7 @@ function renderWorkspace(
         onReorderBlocks={vi.fn()}
         onRunNow={vi.fn()}
         onRunWithPayload={vi.fn()}
+        onCreateAddressBookEntry={vi.fn()}
         {...props}
       />
     </MemoryRouter>,

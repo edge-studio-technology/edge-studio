@@ -41,8 +41,14 @@ import type {
   AutomationValidationResult,
   AutomationWorkflow,
 } from "../features/automation/automationTypes";
-import { listAddressBookEntries } from "../features/address-book/addressBookApi";
-import type { AddressBookEntry } from "../features/address-book/addressBookTypes";
+import {
+  createAddressBookEntry,
+  listAddressBookEntries,
+} from "../features/address-book/addressBookApi";
+import type {
+  AddressBookEntry,
+  CreateAddressBookEntryInput,
+} from "../features/address-book/addressBookTypes";
 import { listDataSources } from "../features/data-sources/dataSourcesApi";
 import type { DataSource } from "../features/data-sources/dataSourceTypes";
 import { getWalletStatus } from "../features/wallet/walletApi";
@@ -63,6 +69,12 @@ function automationFlowFromRoute(
   if (params.workflowId && pathname.includes("/watch"))
     return { mode: "watch", workflowId: params.workflowId, runId: params.runId };
   return { mode: "list" };
+}
+
+function sortAddressBook(entries: AddressBookEntry[]): AddressBookEntry[] {
+  return [...entries].sort((a, b) =>
+    a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+  );
 }
 
 export function AutomationPage() {
@@ -286,6 +298,15 @@ export function AutomationPage() {
     }
   }
 
+  async function createWorkflowRecipient(data: CreateAddressBookEntryInput) {
+    const entry = await createAddressBookEntry(data);
+    setAddressBook((current) =>
+      sortAddressBook([...current.filter((item) => item.id !== entry.id), entry]),
+    );
+    showToast({ tone: "success", title: "Contact added" });
+    return entry;
+  }
+
   const sourceById = (id: string) => sources.find((source) => source.id === id);
   const activeWorkflowId = flowWorkflowId;
   const workspaceWorkflow = activeWorkflowId
@@ -308,6 +329,7 @@ export function AutomationPage() {
           onEnabledChange={setEnabled}
           onCancel={() => navigateFlow({ mode: "list" })}
           onCreate={submitWorkflow}
+          onCreateAddressBookEntry={createWorkflowRecipient}
         />
         {loadError && (
           <ErrorAlert
@@ -395,6 +417,7 @@ export function AutomationPage() {
                 "Could not run workflow",
               )
             }
+            onCreateAddressBookEntry={createWorkflowRecipient}
           />
         ) : (
           <LoadingState

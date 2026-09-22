@@ -132,6 +132,7 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof CreateWorkfl
         onEnabledChange={vi.fn()}
         onCancel={vi.fn()}
         onCreate={vi.fn()}
+        onCreateAddressBookEntry={vi.fn()}
         {...props}
       />
     </MemoryRouter>,
@@ -307,11 +308,11 @@ describe("CreateWorkflowWorkspace", () => {
     expect(screen.getByRole("button", { name: "select-manual_start" })).toBeInTheDocument();
   });
 
-  it("does not add a payment block when the address book is empty", async () => {
+  it("adds a payment block when the address book is empty", async () => {
     renderWorkspace();
     await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
     await userEvent.click(screen.getByRole("button", { name: "add-send-transaction" }));
-    expect(screen.queryByRole("button", { name: "select-send_transaction" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "select-send_transaction" })).toBeInTheDocument();
   });
 
   it("disables Reset canvas until a block is added, then clears blocks", async () => {

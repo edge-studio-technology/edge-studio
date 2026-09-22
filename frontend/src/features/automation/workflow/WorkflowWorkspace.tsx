@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/Button";
 import { InputField } from "../../../components/ui/InputField";
 import { Text } from "../../../components/Text";
-import type { AddressBookEntry } from "../../address-book/addressBookTypes";
+import type {
+  AddressBookEntry,
+  CreateAddressBookEntryInput,
+} from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { WalletStatus } from "../../wallet/walletTypes";
 import {
@@ -84,6 +87,7 @@ export function WorkflowWorkspace({
   onReorderBlocks,
   onRunNow,
   onRunWithPayload,
+  onCreateAddressBookEntry,
 }: {
   workflow: AutomationWorkflow;
   runs: AutomationRun[];
@@ -110,6 +114,7 @@ export function WorkflowWorkspace({
   onReorderBlocks: (blockIds: string[]) => void;
   onRunNow: () => void;
   onRunWithPayload: (payload: unknown) => void;
+  onCreateAddressBookEntry: (data: CreateAddressBookEntryInput) => Promise<AddressBookEntry>;
 }) {
   const [payloadText, setPayloadText] = useState(() =>
     JSON.stringify(examplePayload(workflow), null, 2),
@@ -147,7 +152,7 @@ export function WorkflowWorkspace({
       startBlock.type === "mqtt_event_start") &&
     !mainBlocks.some((block) => block.type === "record_trigger_event"),
   );
-  const canAddSendPayment = addressBook.length > 0;
+  const canAddSendPayment = true;
   const uiValidation = withSoftenedInsufficientBalance(validation);
   const hasValidationErrors = Boolean(uiValidation && uiValidation.errors.length > 0);
   const validationByBlockId = validationIssuesByBlockId(uiValidation);
@@ -213,7 +218,6 @@ export function WorkflowWorkspace({
     flushSelectedInspector();
     // Send payment must be configured before the API will accept it — open a local draft sheet.
     if (type === "send_transaction") {
-      if (!canAddSendPayment) return;
       pauseForEditIfNeeded();
       const draft = createDraftBlock(type, sources);
       setDraftRevealErrors(false);
@@ -562,6 +566,7 @@ export function WorkflowWorkspace({
                 addressBook={addressBook}
                 walletStatus={walletStatus}
                 revealSendPaymentErrors={draftRevealErrors}
+                onCreateAddressBookEntry={onCreateAddressBookEntry}
                 onChange={(config) => {
                   setDraftBlock((current) => (current ? { ...current, config } : current));
                 }}
@@ -610,6 +615,7 @@ export function WorkflowWorkspace({
                   addressBook={addressBook}
                   walletStatus={walletStatus}
                   busy={busy}
+                  onCreateAddressBookEntry={onCreateAddressBookEntry}
                   onDirty={pauseForEditIfNeeded}
                   onAttachStamp={() => {
                     pauseForEditIfNeeded();

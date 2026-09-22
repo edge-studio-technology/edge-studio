@@ -4,7 +4,10 @@ import { useBlocker } from "react-router-dom";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
 import { InputField } from "../../../components/ui/InputField";
-import type { AddressBookEntry } from "../../address-book/addressBookTypes";
+import type {
+  AddressBookEntry,
+  CreateAddressBookEntryInput,
+} from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { WalletStatus } from "../../wallet/walletTypes";
 import { validateAutomationDraft } from "../automationApi";
@@ -61,6 +64,7 @@ export function CreateWorkflowWorkspace({
   onEnabledChange,
   onCancel,
   onCreate,
+  onCreateAddressBookEntry,
 }: {
   name: string;
   initialName: string;
@@ -74,6 +78,7 @@ export function CreateWorkflowWorkspace({
   onCancel: () => void;
   /** Return `false` when create fails so leave-blocking stays on. */
   onCreate: (blocks: CreateWorkflowBlocks) => void | boolean | Promise<void | boolean>;
+  onCreateAddressBookEntry: (data: CreateAddressBookEntryInput) => Promise<AddressBookEntry>;
 }) {
   const [draftBlocks, setDraftBlocks] = useState<DraftWorkflowBlock[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState("");
@@ -231,7 +236,6 @@ export function CreateWorkflowWorkspace({
 
   function addDraftBlock(type: AutomationBlockType) {
     if (!hasStartBlock && !type.endsWith("_start")) return;
-    if (type === "send_transaction" && addressBook.length === 0) return;
     if (missingDeviceLibraryReason(type, sources)) return;
     const block = createDraftBlock(type, sources);
     setDraftBlocks((blocks) => [...blocks, block]);
@@ -348,7 +352,7 @@ export function CreateWorkflowWorkspace({
                 hasStartBlock={hasStartBlock}
                 selectedStartType={selectedStartType}
                 canAddRecordTriggerEvent={canAddRecordTriggerEvent}
-                canAddSendPayment={addressBook.length > 0}
+                canAddSendPayment
                 sources={sources}
                 enabled={enabled}
                 onEnabledChange={onEnabledChange}
@@ -419,6 +423,7 @@ export function CreateWorkflowWorkspace({
                   onAttachedRemove={(attachedId) =>
                     removeAttachedBlock(selectedBlock.id, attachedId)
                   }
+                  onCreateAddressBookEntry={onCreateAddressBookEntry}
                 />
                 {isDataBlock(selectedBlock.type) &&
                 !selectedBlock.attachedBlocks?.some(

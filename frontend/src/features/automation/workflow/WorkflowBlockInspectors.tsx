@@ -6,7 +6,11 @@ import { SelectField } from "../../../components/ui/SelectField";
 import { SwitchField } from "../../../components/ui/SwitchField";
 import { Text } from "../../../components/ui/Text";
 import { TextareaField } from "../../../components/ui/TextareaField";
-import type { AddressBookEntry } from "../../address-book/addressBookTypes";
+import { AddContactModal } from "../../address-book/AddContactModal";
+import type {
+  AddressBookEntry,
+  CreateAddressBookEntryInput,
+} from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { WalletStatus } from "../../wallet/walletTypes";
 import { updateAutomationBlock } from "../automationApi";
@@ -39,6 +43,8 @@ import {
 import { InspectorSection, errorText, formGridClass, mutedText } from "./workflowWorkspaceUi";
 import { draftBlockDescription, isDataBlock, type DraftWorkflowBlock } from "./canvas";
 
+const CREATE_RECIPIENT_VALUE = "__create_new_recipient__";
+
 export type PersistedBlockInspectorHandle = {
   /** Persist dirty block config before leaving the options sheet. */
   flush: () => void;
@@ -53,6 +59,7 @@ export function DraftBlockInspector({
   onChange,
   onAttachedChange,
   onAttachedRemove,
+  onCreateAddressBookEntry,
   revealSendPaymentErrors = false,
 }: {
   block: DraftWorkflowBlock;
@@ -62,9 +69,11 @@ export function DraftBlockInspector({
   onChange: (config: AutomationBlock["config"]) => void;
   onAttachedChange: (attachedId: string, config: AutomationBlock["config"]) => void;
   onAttachedRemove: (attachedId: string) => void;
+  onCreateAddressBookEntry?: (data: CreateAddressBookEntryInput) => Promise<AddressBookEntry>;
   /** After Done on incomplete Send payment, show required-field errors. */
   revealSendPaymentErrors?: boolean;
 }) {
+  const [addRecipientOpen, setAddRecipientOpen] = useState(false);
   const startSources = sourcesForStart(block.type, sources);
   const readableSources = sources.filter(isReadableSource);
   const cameraSources = sources.filter((source) => source.type === "pi-camera");
@@ -609,53 +618,80 @@ export function DraftBlockInspector({
   }
 
   if (block.type === "send_transaction") {
+    const recipientOptions = [
+      ...addressBook.map((entry) => ({ value: entry.id, label: entry.label })),
+      ...(onCreateAddressBookEntry
+        ? [{ value: CREATE_RECIPIENT_VALUE, label: "Create new recipient" }]
+        : []),
+    ];
+
     return (
-      <InspectorSection
-        title="Payment"
-        description="This spends wallet funds automatically when the workflow runs."
-        className={formGridClass}
-      >
-        {addressBook.length === 0 ? (
-          <p className={mutedText}>You need to create an address book contact first. </p>
+      <>
+        <InspectorSection
+          title="Payment"
+          description="This spends wallet funds automatically when the workflow runs."
+          className={formGridClass}
+        >
+          {addressBook.length === 0 ? (
+            <p className={mutedText}>Create a recipient now, or choose a saved contact later.</p>
+          ) : null}
+          <SelectField
+            label="Address book recipient"
+            value={block.config.recipientAddressBookId ?? ""}
+            placeholder="Select address book recipient..."
+            options={recipientOptions}
+            error={paymentErrors.recipient}
+            disabled={recipientOptions.length === 0}
+            onChange={(event) => {
+              if (event.target.value === CREATE_RECIPIENT_VALUE) {
+                setAddRecipientOpen(true);
+                return;
+              }
+              onChange({
+                ...block.config,
+                recipientAddressBookId: event.target.value,
+                tokenId: "0x00",
+              });
+            }}
+          />
+          <SelectField
+            label="Token"
+            value={block.config.tokenId ?? "0x00"}
+            options={
+              nativeTokens.length > 0
+                ? nativeTokens.map((token) => ({
+                    value: "0x00",
+                    label: `Minima (native) - ${token.sendable} sendable`,
+                  }))
+                : [{ value: "0x00", label: "Minima (native)" }]
+            }
+            onChange={() => onChange({ ...block.config, tokenId: "0x00" })}
+          />
+          <InputField
+            label="Amount"
+            value={block.config.amount ?? ""}
+            inputMode="decimal"
+            error={paymentErrors.amount}
+            onChange={(event) =>
+              onChange({ ...block.config, tokenId: "0x00", amount: event.target.value })
+            }
+          />
+        </InspectorSection>
+        {addRecipientOpen && onCreateAddressBookEntry ? (
+          <AddContactModal
+            onSave={async (data) => {
+              const entry = await onCreateAddressBookEntry(data);
+              onChange({
+                ...block.config,
+                recipientAddressBookId: entry.id,
+                tokenId: "0x00",
+              });
+              setAddRecipientOpen(false);
+            }}
+            onCancel={() => setAddRecipientOpen(false)}
+          />
         ) : null}
-        <SelectField
-          label="Address book recipient"
-          value={block.config.recipientAddressBookId ?? ""}
-          placeholder="Select address book recipient..."
-          options={addressBook.map((entry) => ({ value: entry.id, label: entry.label }))}
-          error={paymentErrors.recipient}
-          disabled={addressBook.length === 0}
-          onChange={(event) =>
-            onChange({
-              ...block.config,
-              recipientAddressBookId: event.target.value,
-              tokenId: "0x00",
-            })
-          }
-        />
-        <SelectField
-          label="Token"
-          value={block.config.tokenId ?? "0x00"}
-          options={
-            nativeTokens.length > 0
-              ? nativeTokens.map((token) => ({
-                  value: "0x00",
-                  label: `Minima (native) - ${token.sendable} sendable`,
-                }))
-              : [{ value: "0x00", label: "Minima (native)" }]
-          }
-          onChange={() => onChange({ ...block.config, tokenId: "0x00" })}
-        />
-        <InputField
-          label="Amount"
-          value={block.config.amount ?? ""}
-          inputMode="decimal"
-          error={paymentErrors.amount}
-          onChange={(event) =>
-            onChange({ ...block.config, tokenId: "0x00", amount: event.target.value })
-          }
-        />
-      </InspectorSection>
+      </>
     );
   }
 
@@ -787,6 +823,7 @@ export const PersistedBlockInspector = forwardRef<
     onUpdateAttached: (blockId: string, input: Parameters<typeof updateAutomationBlock>[2]) => void;
     onDelete: () => void;
     onDeleteAttached: (blockId: string) => void;
+    onCreateAddressBookEntry?: (data: CreateAddressBookEntryInput) => Promise<AddressBookEntry>;
   }
 >(function PersistedBlockInspector(
   {
@@ -802,6 +839,7 @@ export const PersistedBlockInspector = forwardRef<
     onUpdateAttached,
     onDelete,
     onDeleteAttached,
+    onCreateAddressBookEntry,
   },
   ref,
 ) {
@@ -873,6 +911,7 @@ export const PersistedBlockInspector = forwardRef<
           onUpdateAttached(attachedId, { config: nextConfig })
         }
         onAttachedRemove={onDeleteAttached}
+        onCreateAddressBookEntry={onCreateAddressBookEntry}
       />
       {block.lastError && <p className={errorText}>{block.lastError}</p>}
       {canAttachStamp ? (
