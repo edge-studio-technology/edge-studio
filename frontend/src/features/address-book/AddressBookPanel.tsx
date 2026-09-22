@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Eye, Inbox, Plus, UserPlus } from "lucide-react";
 import {
   DataTable,
@@ -82,12 +82,18 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
     ADDRESS_BOOK_COLUMNS,
   );
 
-  useEffect(() => {
-    listAddressBookEntries()
+  const loadEntries = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    return listAddressBookEntries()
       .then(setEntries)
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load address book."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    void loadEntries();
+  }, [loadEntries]);
 
   function upsertEntry(next: AddressBookEntry) {
     setEntries((prev) => sortByLabel([...prev.filter((e) => e.id !== next.id), next]));
@@ -167,12 +173,18 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
       </TableControls>
 
       {error ? (
-        <ErrorAlert title="Couldn't load address book" className="w-full max-w-none">
+        <ErrorAlert
+          title="Couldn't load address book"
+          className="w-full max-w-none"
+          action={
+            <Button type="button" variant="secondary" size="sm" onClick={() => void loadEntries()}>
+              Retry
+            </Button>
+          }
+        >
           {error}
         </ErrorAlert>
-      ) : null}
-
-      {isLoading ? (
+      ) : isLoading ? (
         <LoadingState
           title="Fetching your contacts"
           description="This should take a few seconds."

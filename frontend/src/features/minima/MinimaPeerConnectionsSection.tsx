@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "../../components/DataTable";
 import { SubSection } from "../../components/patterns/SubSection";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import {
   TableColumnVisibilityButton,
   type TableColumnDefinition,
@@ -26,17 +27,21 @@ const PEER_COLUMNS = [
 export function MinimaPeerConnectionsSection({
   peers,
   peersLoading,
+  peersError = null,
   peerslistInput,
   setPeerslistInput,
   busy,
   onAddPeers,
+  onRetry = () => undefined,
 }: {
   peers: MinimaPeersResponse | null;
   peersLoading: boolean;
+  peersError?: string | null;
   peerslistInput: string;
   setPeerslistInput: (value: string) => void;
   busy: boolean;
   onAddPeers: () => void;
+  onRetry?: () => void;
 }) {
   const peerItems = peers?.peers ?? [];
   const { visibility, setVisibility } = useTableColumnVisibility("minima-peers", PEER_COLUMNS);
@@ -79,40 +84,54 @@ export function MinimaPeerConnectionsSection({
           >
             <p className="m-0 text-sm font-medium text-slate-500">Peers ({peerItems.length})</p>
           </TableControls>
-          <div className="rounded-loose border-stroke-primary bg-surface-always-white overflow-hidden border">
-            {visibility.address && (
-              <div className="bg-surface-secondary px-margin-tight py-margin-tight type-body-em text-text-primary">
-                Address
-              </div>
-            )}
-            <ScrollArea stableGutter={false} className="max-h-80">
-              <DataTable aria-label="Peers">
-                <TableBody>
-                  {peerItems.length > 0 ? (
-                    peerItems.map((peer) => (
-                      <TableRow key={peer}>
-                        {visibility.address && (
-                          <TableCell className="min-w-0">
-                            <code className="text-text-primary truncate">{peer}</code>
-                          </TableCell>
-                        )}
+          {peersError ? (
+            <ErrorAlert
+              title="Couldn't load peers"
+              className="w-full max-w-none"
+              action={
+                <Button type="button" variant="secondary" size="sm" onClick={onRetry}>
+                  Retry
+                </Button>
+              }
+            >
+              {peersError}
+            </ErrorAlert>
+          ) : (
+            <div className="rounded-loose border-stroke-primary bg-surface-always-white overflow-hidden border">
+              {visibility.address && (
+                <div className="bg-surface-secondary px-margin-tight py-margin-tight type-body-em text-text-primary">
+                  Address
+                </div>
+              )}
+              <ScrollArea stableGutter={false} className="max-h-80">
+                <DataTable aria-label="Peers">
+                  <TableBody>
+                    {peerItems.length > 0 ? (
+                      peerItems.map((peer) => (
+                        <TableRow key={peer}>
+                          {visibility.address && (
+                            <TableCell className="min-w-0">
+                              <code className="text-text-primary truncate">{peer}</code>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell>
+                          <EmptyTableState>
+                            {peersLoading
+                              ? "Loading peer list…"
+                              : "No configured peers returned from Minima RPC."}
+                          </EmptyTableState>
+                        </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell>
-                        <EmptyTableState>
-                          {peersLoading
-                            ? "Loading peer list…"
-                            : "No configured peers returned from Minima RPC."}
-                        </EmptyTableState>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </DataTable>
-            </ScrollArea>
-          </div>
+                    )}
+                  </TableBody>
+                </DataTable>
+              </ScrollArea>
+            </div>
+          )}
         </div>
       </div>
     </SubSection>

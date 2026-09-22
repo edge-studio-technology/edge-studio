@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import type { MinimaConfig, MinimaNodeState, MinimaPeersResponse } from "../../app/types";
 import { Card } from "../../components/Card";
+import { Button } from "../../components/Button";
 import { ErrorText } from "../../components/Text";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { useToast } from "../../components/ToastProvider";
 import {
   addMinimaPeers,
@@ -28,17 +31,20 @@ export function MinimaSettingsPanel({
   const actionsBlocked = minimaState !== "running";
 
   const [config, setConfig] = useState<MinimaConfig | null>(null);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [configLoadError, setConfigLoadError] = useState<string | null>(null);
   const [megammrHostInput, setMegammrHostInput] = useState("megammr.minima.global:9001");
   const [peerslistInput, setPeerslistInput] = useState("megammr.minima.global:9001");
   const [peers, setPeers] = useState<MinimaPeersResponse | null>(null);
   const [peersLoading, setPeersLoading] = useState(false);
+  const [peersError, setPeersError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
   const [autoRestartEnabled, setAutoRestartEnabledState] = useState<boolean | null>(null);
   const [togglingAutoRestart, setTogglingAutoRestart] = useState(false);
 
   useEffect(() => {
-    refreshConfig().catch((err: Error) => setConfigError(err.message));
+    void loadConfig();
     getAutoRestartEnabled()
       .then((res) => setAutoRestartEnabledState(res.autoRestartEnabled))
       .catch(() => undefined);
@@ -59,11 +65,27 @@ export function MinimaSettingsPanel({
     setMegammrHostInput(parsed.megammrHost);
   }
 
+  async function loadConfig() {
+    setConfigLoading(true);
+    setConfigLoadError(null);
+    try {
+      await refreshConfig();
+    } catch (error) {
+      setConfigLoadError(
+        error instanceof Error ? error.message : "Failed to load Minima settings.",
+      );
+    } finally {
+      setConfigLoading(false);
+    }
+  }
+
   async function refreshPeers() {
     setPeersLoading(true);
+    setPeersError(null);
     try {
       setPeers(await getMinimaPeers());
     } catch (error) {
+      setPeersError(error instanceof Error ? error.message : "Failed to load peers.");
       showToast({
         tone: "error",
         title: "Failed to load peers",
@@ -141,20 +163,41 @@ export function MinimaSettingsPanel({
         </div>
       )}
 
-      <MinimaMegammrHostSection
-        config={config}
-        megammrHostInput={megammrHostInput}
-        setMegammrHostInput={setMegammrHostInput}
-        busy={busy || actionsBlocked}
-        onSave={saveConfig}
-      />
+      {configLoading ? (
+        <LoadingState
+          title="Fetching Minima settings"
+          description="This should take a few seconds."
+        />
+      ) : configLoadError ? (
+        <ErrorAlert
+          title="Couldn't load Minima settings"
+          className="w-full max-w-none"
+          action={
+            <Button type="button" variant="secondary" size="sm" onClick={() => void loadConfig()}>
+              Retry
+            </Button>
+          }
+        >
+          {configLoadError}
+        </ErrorAlert>
+      ) : (
+        <MinimaMegammrHostSection
+          config={config}
+          megammrHostInput={megammrHostInput}
+          setMegammrHostInput={setMegammrHostInput}
+          busy={busy || actionsBlocked}
+          onSave={saveConfig}
+        />
+      )}
       <MinimaPeerConnectionsSection
         peers={peers}
         peersLoading={peersLoading}
+        peersError={peersError}
         peerslistInput={peerslistInput}
         setPeerslistInput={setPeerslistInput}
         busy={busy || actionsBlocked}
         onAddPeers={runAddPeers}
+        onRetry={() => void refreshPeers()}
       />
       {configError && <ErrorText>{configError}</ErrorText>}
 

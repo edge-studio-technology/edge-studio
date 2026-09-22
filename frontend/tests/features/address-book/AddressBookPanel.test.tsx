@@ -56,12 +56,21 @@ describe("AddressBookPanel", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows an error alert when the initial fetch fails", async () => {
-    listAddressBookEntries.mockRejectedValue(new Error("network down"));
+  it("shows only an error alert after failure and retries the initial fetch", async () => {
+    listAddressBookEntries
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockResolvedValueOnce([]);
     renderPanel();
 
     expect(await screen.findByText("Couldn't load address book")).toBeInTheDocument();
     expect(screen.getByText("network down")).toBeInTheDocument();
+    expect(screen.queryByText("Fetching your contacts")).not.toBeInTheDocument();
+    expect(screen.queryByText("Save your first contact")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(await screen.findByText("Save your first contact")).toBeInTheDocument();
+    expect(listAddressBookEntries).toHaveBeenCalledTimes(2);
   });
 
   it("renders contacts sorted by label with a fallback for missing notes", async () => {
@@ -139,7 +148,9 @@ describe("AddressBookPanel", () => {
   });
 
   it("does not render a notes section in the view modal when there are no notes", async () => {
-    listAddressBookEntries.mockResolvedValue([entry({ label: "Alice", address: "Mx1", notes: null })]);
+    listAddressBookEntries.mockResolvedValue([
+      entry({ label: "Alice", address: "Mx1", notes: null }),
+    ]);
     renderPanel();
     await screen.findByRole("table", { name: "Address book" });
 
@@ -222,7 +233,9 @@ describe("AddressBookPanel", () => {
     await userEvent.type(within(dialog).getByLabelText("Address"), "not-an-address");
     await userEvent.click(within(dialog).getByRole("button", { name: "Add contact" }));
 
-    expect(await within(dialog).findByText("Address must start with Mx or 0x.")).toBeInTheDocument();
+    expect(
+      await within(dialog).findByText("Address must start with Mx or 0x."),
+    ).toBeInTheDocument();
     expect(createAddressBookEntry).not.toHaveBeenCalled();
   });
 
@@ -243,7 +256,9 @@ describe("AddressBookPanel", () => {
   });
 
   it("edits an existing contact via the row menu and shows a success toast", async () => {
-    listAddressBookEntries.mockResolvedValue([entry({ id: "1", label: "Alice", address: "Mx1", notes: null })]);
+    listAddressBookEntries.mockResolvedValue([
+      entry({ id: "1", label: "Alice", address: "Mx1", notes: null }),
+    ]);
     const updated = entry({ id: "1", label: "Alicia", address: "Mx1", notes: null });
     updateAddressBookEntry.mockResolvedValue(updated);
     renderPanel();

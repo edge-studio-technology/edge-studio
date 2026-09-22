@@ -59,16 +59,24 @@ describe("WalletHistoryPanel", () => {
     expect(screen.getByText("No send activity yet")).toBeInTheDocument();
   });
 
-  it("shows an error alert alongside existing content", () => {
-    renderPanel({ error: "could not load history" });
+  it("shows only an error alert and supports retry", async () => {
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    renderPanel({ items: [], error: "could not load history", onRefresh });
 
     expect(screen.getByText("Couldn't load history")).toBeInTheDocument();
     expect(screen.getByText("could not load history")).toBeInTheDocument();
+    expect(screen.queryByText("No send activity yet")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRefresh).toHaveBeenCalledOnce();
   });
 
   it("renders history rows with status pill and truncated address", () => {
     renderPanel({
-      items: [item({ status: "failed" }), item({ id: "2", status: "submitted", toAddress: "Mx2222222222222222" })],
+      items: [
+        item({ status: "failed" }),
+        item({ id: "2", status: "submitted", toAddress: "Mx2222222222222222" }),
+      ],
     });
 
     const table = screen.getByRole("table", { name: "Send history" });

@@ -7,7 +7,10 @@ const RESTARTING_INTERVAL_MS = 3_000;
 
 function formatRefreshError(error: unknown): string | null {
   if (error instanceof Error) {
-    if (/fetch failed|aborted|temporarily unreachable/i.test(error.message) || error.name === "AbortError") {
+    if (
+      /fetch failed|aborted|temporarily unreachable/i.test(error.message) ||
+      error.name === "AbortError"
+    ) {
       return null;
     }
     return error.message;
@@ -18,10 +21,11 @@ function formatRefreshError(error: unknown): string | null {
 export function useMinimaStatusRefresh(
   onStatus: (status: MinimaNodeStatus) => void,
   onError: (message: string) => void,
-  options?: { intervalMs?: number; enabled?: boolean }
+  options?: { intervalMs?: number; enabled?: boolean; reportTransientErrors?: boolean },
 ) {
   const intervalMs = options?.intervalMs ?? DEFAULT_INTERVAL_MS;
   const enabled = options?.enabled ?? true;
+  const reportTransientErrors = options?.reportTransientErrors ?? false;
   const onStatusRef = useRef(onStatus);
   const onErrorRef = useRef(onError);
 
@@ -35,10 +39,14 @@ export function useMinimaStatusRefresh(
       return status;
     } catch (error) {
       const message = formatRefreshError(error);
-      if (message) onErrorRef.current(message);
+      if (message || reportTransientErrors) {
+        onErrorRef.current(
+          message ?? (error instanceof Error ? error.message : "Could not load Minima status"),
+        );
+      }
       return null;
     }
-  }, []);
+  }, [reportTransientErrors]);
 
   useEffect(() => {
     if (!enabled) return;

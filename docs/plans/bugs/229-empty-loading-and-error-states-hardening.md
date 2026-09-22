@@ -1,6 +1,6 @@
 # Empty, Loading & Error States Hardening Plan
 
-**Status:** In progress
+**Status:** Implementation complete; manual verification pending
 
 **Created:** 2026-09-21
 **Branch:** `feature/229-empty-loading-and-error-states-hardening`
@@ -9,9 +9,9 @@
 ## Tracked Tasks
 
 - [x] `bug/661-dashboard-next-action-and-metric-cards-don-t-treat-errors-as-empty` — [#661] Dashboard next-action and metric cards: don't treat errors as empty.
-- [ ] `bug/659-devices-failed-load-stays-on-spinner-forever` — [#659] Devices: failed load stays on spinner forever.
-- [ ] `bug/660-dashboard-live-activity-add-loading-empty-and-error-states` — [#660] Dashboard live activity: add loading, empty, and error states.
-- [ ] Complete and close the cross-app async-state gap check before the branch is allowed to merge into `dev`.
+- [x] `bug/659-devices-failed-load-stays-on-spinner-forever` — [#659] Devices: failed load stays on spinner forever.
+- [x] `bug/660-dashboard-live-activity-add-loading-empty-and-error-states` — [#660] Dashboard live activity: add loading, empty, and error states.
+- [x] Complete and close the cross-app async-state gap check before the branch is allowed to merge into `dev`.
 
 Task #661 is already implemented and Raspberry Pi-verified on this branch; its detailed completed plan remains in `docs/plans/bugs/661-dashboard-next-action-and-metric-cards-don-t-treat-errors-as-empty.md`. This plan records how the two remaining bugs complete the parent feature on the shared feature branch.
 
@@ -123,6 +123,32 @@ After #659 and #660 pass their focused tests, audit the complete frontend rather
 
 The branch is not ready for `dev` while an audited in-scope surface is marked unknown, has an unresolved state gap, or lacks verification appropriate to its risk. The goal is gap closure, not merely an audit report.
 
+#### Async-state audit
+
+| Surface / owner | Loading | Successful empty / N/A | Error | Retry / recovery | Evidence | Disposition |
+| --- | --- | --- | --- | --- | --- | --- |
+| Dashboard next action and metrics (`DashboardNextAction`, `DashboardDevices`) | Stable loading content | Setup action or legitimate unavailable value | Shared alert; metrics settle unavailable or retain last-known data | Timed refresh / remount | Focused #661 tests and Pi verification | Pass |
+| Dashboard Live activity (`DashboardPage`) | Shared loading state | Shared empty state | Shared alert replaces activity | Retry reloads both sources | `DashboardPage.test.tsx` | Fixed #660 |
+| Devices (`DataSourcesPage`, `DataSourcesList`) | Shared loading state | First-device prompt only after success | Shared alert replaces list | Retry reloads required requests | `DataSourcesPage.test.tsx`, `DataSourcesList.test.tsx` | Fixed #659 |
+| Diagnostics histories (`DiagnosticsPage`, three history tables) | Per-tab shared loading state | Per-tab shared empty state | Shared alert now replaces table and pager | Retry reloads the active tab | `DiagnosticsPage.test.tsx` plus table suites | Fixed in gap check |
+| Workflow list (`AutomationPage`, `AutomationWorkflowsList`) | Shared loading state | Shared first-workflow state | Shared alert now replaces both initialized lists | Retry reloads required workflow data | `AutomationPage.test.tsx`, `AutomationWorkflowsList.test.tsx` | Fixed in gap check |
+| Automation inbox best-effort load (`AutomationPage`) | Existing table loading | Empty inbox | Failure is intentionally converted to an empty response | Page refresh | Code inspection | Excluded — silent `.catch()` outside Dashboard |
+| Workflow create/edit/watch workspace and inspectors | Workspace loading / local action progress | N/A | Existing workspace/action treatment | Existing page/action recovery | Scope inspection | Excluded — workflow canvas and watch inspector |
+| Wallet balance and send history (`WalletPage`, `WalletHero`, `WalletHistoryPanel`) | Balance/history loading indicators | Shared no-history state | Balance now shows unavailable; shared history alert replaces empty/table content | History Retry reloads the combined wallet request | `WalletHero.test.tsx`, `WalletHistoryPanel.test.tsx` | Fixed in gap check |
+| Wallet address book (`AddressBookPanel`) | Shared loading state | Shared first-contact state | Shared alert now replaces empty/table content | Retry reloads contacts | `AddressBookPanel.test.tsx` | Fixed in gap check |
+| Wallet receive modal (`ReceiveAddressModal`) | Modal progress indicator | N/A | Shared alert replaces address content | Close/reopen after restoring Minima/API | Existing focused test and code inspection | Pass |
+| Minima node status (`MinimaPage`, status cards) | Status-card loading indicators | N/A | Shared alert now replaces unavailable-looking cards on first-load failure; last-known status remains during later polling failures | Retry plus background polling | `MinimaPage.test.tsx`, `useMinimaStatusRefresh.test.ts` | Fixed in gap check |
+| Minima configuration and peer list (`MinimaSettingsPanel`) | Shared config loading state and peer loading row | Empty peers only after success | Shared retryable alerts replace default config/fake empty peers | Retry each failed request | `MinimaSettingsPanel.test.tsx`, `MinimaPeerConnectionsSection.test.tsx` | Fixed in gap check |
+| Software update status (`UpdatePage`) | Explicit checking state | N/A | Shared alert replaces status content | Retry / Check again | Code inspection and frontend build | Pass |
+| Update changelog (`ChangelogPreview`) | Explicit changelog spinner | Parsed list may be empty without fabricated content | Shared alert replaces preview | Page reload | Existing focused test and code inspection | Pass |
+| Integritas stamp/verify actions and pending proof result (`IntegritasPage`, `StampResult`) | Action progress / pending proof loading state | N/A | Action failures use toast; terminal proof failure is explicit | Repeat action / Diagnostics link; polling preserves pending state | Existing focused suites and code inspection | Pass |
+| Header status overview (`AppShell`, `useStatusOverviewRefresh`) | Existing header bootstrap | N/A | Preserves last-known status and marks refresh stale | Background polling | Scope inspection | Excluded — header status refresh failure |
+| Login, onboarding, Integritas Connect, Account and PIN/TOTP forms | Form-specific progress | N/A | Form-specific validation/errors | Form resubmission | Scope inspection | Excluded — named parent-feature boundary |
+| Minima console, whitelist and backups | Surface-specific progress | Surface-specific empty states | Existing surface-specific errors | Existing actions | Scope inspection | Excluded — Minima console / backups |
+| Inline alert page-jump behavior | N/A | N/A | Existing alerts do not add page-jump behavior here | N/A | Scope inspection | Excluded — Feature #693 |
+
+The audit found no remaining unknown or unresolved in-scope user-facing async surface. API action forms without a loadable collection or summary (for example feedback submission and wallet send) have no meaningful successful-empty state and retain their existing submitting/success/error treatment. Unreachable code such as the unmounted `ReceiveQrPanel` was inspected but is not a user-facing release surface.
+
 ## Scope Boundaries
 
 Do not expand implementation into the following parent-ticket exclusions. They are still inspected and recorded by the cross-app gap check so the release decision is explicit:
@@ -182,3 +208,11 @@ Cross-app merge gate:
 3. Confirm successful empty results are only shown after successful requests, failures always settle initial loading, and user-visible failures use the shared state treatment rather than fake content or raw error text.
 4. Confirm every parent-ticket exclusion is recorded as `Excluded`, with no accidental implementation changes hidden in this branch.
 5. Do not merge to `dev` if any in-scope gap remains open or an excluded release-critical gap has not received an explicit scope decision.
+
+### Verification record (2026-09-22)
+
+- Focused async-state regressions: 17 files, 117 tests passed.
+- Full `npm run check`: backend 81 files / 1,174 tests, frontend 186 files / 1,511 tests, update-agent 14 files / 160 tests, root scripts 5 files / 43 tests; coverage thresholds and moderate dependency audits passed.
+- `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config`, and `git diff --check` passed.
+- The first sandboxed `npm run check` attempt could not bind Supertest's ephemeral local ports (`EPERM`); the required rerun outside that network sandbox passed completely.
+- Manual browser checks 1–8 above remain pending and are the only outstanding release verification for this plan.

@@ -173,20 +173,30 @@ export function WalletHistoryPanel({
       </TableControls>
 
       {error ? (
-        <ErrorAlert title="Couldn't load history" className="w-full max-w-none">
+        <ErrorAlert
+          title="Couldn't load history"
+          className="w-full max-w-none"
+          action={
+            <Button type="button" variant="secondary" size="sm" onClick={() => void onRefresh()}>
+              Retry
+            </Button>
+          }
+        >
           {error}
         </ErrorAlert>
       ) : null}
 
-      <p className="sr-only" aria-live="polite">
-        {showLoading
-          ? "Loading send history."
-          : filtersActive
-            ? `${filteredHistory.length} matching ${filteredHistory.length === 1 ? "send" : "sends"}.`
-            : `${filteredHistory.length} ${filteredHistory.length === 1 ? "send" : "sends"} in history.`}
-      </p>
+      {!error ? (
+        <p className="sr-only" aria-live="polite">
+          {showLoading
+            ? "Loading send history."
+            : filtersActive
+              ? `${filteredHistory.length} matching ${filteredHistory.length === 1 ? "send" : "sends"}.`
+              : `${filteredHistory.length} ${filteredHistory.length === 1 ? "send" : "sends"} in history.`}
+        </p>
+      ) : null}
 
-      {showLoading ? (
+      {error ? null : showLoading ? (
         <LoadingState
           title="Fetching your send history"
           description="This should take a few seconds."

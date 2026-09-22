@@ -20,7 +20,9 @@ vi.mock("../../../src/features/minima/minimaApi", () => ({
   setAutoRestartEnabled: (...args: unknown[]) => setAutoRestartEnabled(...args),
 }));
 
-function renderPanel(minimaState: "running" | "stopped" | "error" | "restarting" | null = "running") {
+function renderPanel(
+  minimaState: "running" | "stopped" | "error" | "restarting" | null = "running",
+) {
   return render(<MinimaSettingsPanel minimaState={minimaState} />, { wrapper: ToastProvider });
 }
 
@@ -28,7 +30,9 @@ describe("MinimaSettingsPanel", () => {
   beforeEach(() => {
     addMinimaPeers.mockReset();
     getAutoRestartEnabled.mockReset().mockResolvedValue({ autoRestartEnabled: false });
-    getMinimaConfig.mockReset().mockResolvedValue({ megammrHost: "host:9001", megammrHostSource: "default" });
+    getMinimaConfig
+      .mockReset()
+      .mockResolvedValue({ megammrHost: "host:9001", megammrHostSource: "default" });
     getMinimaPeers.mockReset().mockResolvedValue({ ok: true, count: 0, peers: [] });
     saveMinimaConfig.mockReset();
     setAutoRestartEnabled.mockReset();
@@ -52,15 +56,25 @@ describe("MinimaSettingsPanel", () => {
     expect(getMinimaPeers).not.toHaveBeenCalled();
   });
 
-  it("shows a config error when the initial config fetch fails", async () => {
-    getMinimaConfig.mockRejectedValue(new Error("config down"));
+  it("shows a retryable config error without the settings form after the initial fetch fails", async () => {
+    getMinimaConfig
+      .mockRejectedValueOnce(new Error("config down"))
+      .mockResolvedValueOnce({ megammrHost: "host:9001", megammrHostSource: "default" });
     renderPanel("running");
     expect(await screen.findByText("config down")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Host")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByLabelText("Host")).toHaveValue("host:9001");
+    expect(getMinimaConfig).toHaveBeenCalledTimes(2);
   });
 
   it("saves the megammr host and refreshes the input from the response", async () => {
     const user = userEvent.setup();
-    saveMinimaConfig.mockResolvedValue({ megammrHost: "new-host:9001", megammrHostSource: "database" });
+    saveMinimaConfig.mockResolvedValue({
+      megammrHost: "new-host:9001",
+      megammrHostSource: "database",
+    });
     renderPanel("running");
 
     await screen.findByLabelText("Host");
@@ -118,6 +132,10 @@ describe("MinimaSettingsPanel", () => {
     getMinimaPeers.mockRejectedValue(new Error("peers down"));
     renderPanel("running");
     expect(await screen.findByText("Failed to load peers")).toBeInTheDocument();
+    expect(screen.getByText("Couldn't load peers")).toBeInTheDocument();
+    expect(
+      screen.queryByText("No configured peers returned from Minima RPC."),
+    ).not.toBeInTheDocument();
   });
 
   it("disables save/add actions while the node isn't running", async () => {
