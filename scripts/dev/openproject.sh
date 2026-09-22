@@ -16,6 +16,8 @@
 #   scripts/dev/openproject.sh wp     <id>              # one work package
 #   scripts/dev/openproject.sh children <id>            # direct children of a work package
 #   scripts/dev/openproject.sh statuses                 # id -> name status list
+#   scripts/dev/openproject.sh boards                   # boards, with the sprint each one filters on
+#   scripts/dev/openproject.sh sprint <id> [status-id]  # work packages on a sprint board
 #   scripts/dev/openproject.sh status <id> <status-id>  # move a work package (handles lockVersion)
 #   scripts/dev/openproject.sh comment <id> <text>      # add a comment
 #
@@ -68,6 +70,14 @@ read_body() {
   esac
 }
 
+# Percent-encodes an OpenProject filters array from name/value pairs.
+encode_filters() {
+  python3 -c 'import json,sys,urllib.parse
+pairs = sys.argv[1:]
+f = [{pairs[i]: {"operator": "=", "values": [pairs[i + 1]]}} for i in range(0, len(pairs), 2)]
+print(urllib.parse.quote(json.dumps(f)))' "$@"
+}
+
 # curl with auth supplied via --config on stdin so the token never hits argv.
 op_curl() {
   local method="$1" path="$2" body="${3-}"
@@ -87,7 +97,7 @@ op_curl() {
 json_get() { python3 -c 'import json,sys;d=json.load(sys.stdin);[d:=d[k] for k in sys.argv[1:]];print(d)' "$@"; }
 
 cmd="${1:-}"
-[ -n "$cmd" ] || die "Usage: scripts/dev/openproject.sh <get|post|patch|wp|children|statuses|status|comment> ..."
+[ -n "$cmd" ] || die "Usage: scripts/dev/openproject.sh <get|post|patch|wp|children|statuses|boards|sprint|status|comment> ..."
 shift
 
 case "$cmd" in
@@ -123,6 +133,37 @@ case "$cmd" in
       | python3 -c 'import json,sys
 for s in json.load(sys.stdin)["_embedded"]["elements"]:
     print("%4d  %s%s" % (s["id"], s["name"], "  (closed)" if s.get("isClosed") else ""))'
+    ;;
+
+  boards)
+    op_curl GET "/api/v3/grids?pageSize=100" \
+      | python3 -c 'import json,sys
+for g in json.load(sys.stdin)["_embedded"]["elements"]:
+    o = g.get("options") or {}
+    if o.get("type") != "action":
+        continue
+    sprints = [v for f in o.get("filters", []) for v in f.get("sprint_id", {}).get("values", [])]
+    cols = [w.get("options", {}).get("queryId") for w in g.get("widgets", [])]
+    print("grid %-4s sprint %-4s %s" % (g["id"], ",".join(sprints) or "-", g.get("name")))
+    print("          column queries: %s" % ", ".join(str(c) for c in cols if c))'
+    ;;
+
+  sprint)
+    [ $# -ge 1 ] || die "Usage: sprint <sprint-id> [status-id]"
+    if [ $# -ge 2 ]; then
+      filters="$(encode_filters sprint "$1" status "$2")"
+    else
+      filters="$(encode_filters sprint "$1")"
+    fi
+    op_curl GET "/api/v3/work_packages?filters=$filters&pageSize=200" \
+      | python3 -c 'import json,sys
+d = json.load(sys.stdin)
+print("total: %s" % d["total"])
+for e in d["_embedded"]["elements"]:
+    l = e["_links"]
+    print("  #%-5s %-9s %-22s %-18s %s" % (
+        e["id"], l["type"]["title"], l["status"]["title"],
+        (l.get("assignee") or {}).get("title", "unassigned")[:18], e["subject"]))'
     ;;
 
   status)

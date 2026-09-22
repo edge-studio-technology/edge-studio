@@ -24,6 +24,9 @@ The helper loads `.env.local` itself and passes the token to curl over stdin, so
 
 ```bash
 scripts/dev/openproject.sh statuses              # id -> name, which ones are closed
+scripts/dev/openproject.sh boards                # boards, and the sprint id each one filters on
+scripts/dev/openproject.sh sprint 17             # everything on that sprint board
+scripts/dev/openproject.sh sprint 17 7           # ...narrowed to one status (7 = In progress)
 scripts/dev/openproject.sh wp 363                # one work package, full JSON
 scripts/dev/openproject.sh children 363          # direct children of a feature
 scripts/dev/openproject.sh get <path>            # any /api/v3/ GET
@@ -34,6 +37,14 @@ scripts/dev/openproject.sh patch <path> <json|@file|->
 ```
 
 Responses are raw JSON. Pipe through `python3 -m json.tool` or a small `python3 -c` to pull out the few fields you need — a full work package is large and mostly `_links`.
+
+## Sprints and boards
+
+**Sprints here are not versions.** `/api/v3/versions` is empty in this instance — do not conclude from that that sprints don't exist. A sprint is a board: `/api/v3/grids`, where each board carries a grid-level `options.filters` entry like `{"sprint_id": {"operator": "=", "values": ["17"]}}`, and `sprint` is a valid work-package filter.
+
+The trap: a board's columns are ordinary saved queries that filter on **status only**. The sprint filter lives on the grid, not on the column queries. So reading a column query directly returns every matching work package in the project, not the sprint's — plausible-looking numbers that are wrong. Always apply the `sprint` filter yourself, or use `sprint <id>`.
+
+Start with `boards` to map a sprint name to its id, then `sprint <id> [status-id]`.
 
 `status` handles OpenProject's optimistic locking for you: it re-reads `lockVersion` immediately before the PATCH. If you write a raw `patch` against a work package yourself, you must include the current `lockVersion` or the API returns `409`.
 

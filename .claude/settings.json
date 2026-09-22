@@ -37,7 +37,11 @@
       "Bash(scripts/dev/openproject.sh children*)",
       "Bash(./scripts/dev/openproject.sh children*)",
       "Bash(scripts/dev/openproject.sh statuses*)",
-      "Bash(./scripts/dev/openproject.sh statuses*)"
+      "Bash(./scripts/dev/openproject.sh statuses*)",
+      "Bash(scripts/dev/openproject.sh boards*)",
+      "Bash(./scripts/dev/openproject.sh boards*)",
+      "Bash(scripts/dev/openproject.sh sprint*)",
+      "Bash(./scripts/dev/openproject.sh sprint*)"
     ],
     "deny": [
       "Bash(git push --force*)",
