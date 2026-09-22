@@ -159,7 +159,7 @@ git status --short --untracked-files=all
 
 - [x] Step 1 — `sendHttpOutput` URL/body assertions.
 - [x] Step 2 — MQTT client ended after source deletion.
-- [ ] Step 3 — GPIO watcher killed after source deletion.
+- [x] Step 3 — GPIO watcher killed after source deletion.
 
 ### Milestone 2: Route-level gaps (#218 webhook, #242, #287)
 
