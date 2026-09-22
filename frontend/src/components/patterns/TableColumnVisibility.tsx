@@ -252,30 +252,39 @@ export function TableColumnVisibilityButton({
                       <span className="type-meta text-text-secondary min-w-5 text-right tabular-nums">
                         {index + 1}.
                       </span>
-                      <SwitchField
-                        label={column.label}
-                        checked={checked}
-                        disabled={disabledToggle}
-                        description={
-                          disabledToggle ? "At least one data column must stay visible." : undefined
-                        }
-                        onChange={() => toggleColumn(column)}
-                      />
-                      {column.filterable && onFiltersChange ? (
-                        <IconButton
-                          type="button"
-                          variant={activeFilter ? "primary" : "secondary"}
-                          size="compact"
-                          aria-label={`Filter ${column.label}`}
-                          title={`Filter ${column.label}`}
-                          onClick={() => setExpandedFilterColumnId(filterOpen ? null : column.id)}
-                        >
-                          <Filter aria-hidden />
-                        </IconButton>
+                      <span className={cx("type-body min-w-px [overflow-wrap:anywhere]", disabledToggle ? "text-text-disabled" : "text-text-primary")}>{column.label}</span>
+                      <div className="gap-detail-next grid grid-cols-[2rem_2.5rem] items-center justify-end">
+                        <div className="grid size-8 place-items-center">
+                          {column.filterable && onFiltersChange ? (
+                            <IconButton
+                              type="button"
+                              variant={activeFilter ? "primary" : "secondary"}
+                              size="compact"
+                              aria-label={`Filter ${column.label}`}
+                              title={`Filter ${column.label}`}
+                              onClick={() => setExpandedFilterColumnId(filterOpen ? null : column.id)}
+                            >
+                              <Filter aria-hidden />
+                            </IconButton>
+                          ) : null}
+                        </div>
+                        <SwitchField
+                          label={null}
+                          aria-label={column.label}
+                          checked={checked}
+                          disabled={disabledToggle}
+                          className="min-w-0"
+                          onChange={() => toggleColumn(column)}
+                        />
+                      </div>
+                      {disabledToggle ? (
+                        <p className="type-body text-text-disabled col-start-3 m-0 w-full [overflow-wrap:anywhere]">
+                          At least one data column must stay visible.
+                        </p>
                       ) : null}
                     </div>
                     {filterOpen ? (
-                      <div className="border-stroke-secondary bg-surface-primary gap-detail-next mt-detail-next ml-[calc(64px+var(--spacing-detail-next)+1.25rem+var(--spacing-detail-next))] grid rounded-soft border p-pad-close sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)_auto] sm:items-end">
+                      <div className="border-stroke-secondary bg-surface-primary gap-detail-next mt-detail-next grid rounded-soft border p-pad-close sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)_auto] sm:items-end">
                         <SelectField
                           label="Rule"
                           size="sm"
