@@ -163,7 +163,7 @@ git status --short --untracked-files=all
 
 ### Milestone 2: Route-level gaps (#218 webhook, #242, #287)
 
-- [ ] Step 4 — webhook receiver route tests (200 / 404 / 409 / 202).
+- [x] Step 4 — webhook receiver route tests (200 / 404 / 409 / 202 / 502).
 - [ ] Step 5 — Integritas connection check, with the module-cache isolation constraint handled.
 - [ ] Step 6 — backup download/restore reauth rejection.
 - [ ] Step 7 — wallet import response leak check.
