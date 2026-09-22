@@ -19,6 +19,7 @@ import {
   orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
+  type TableColumnFilters,
   type TableColumnOrder,
   type TableColumnVisibility,
 } from "../../components/patterns/TableColumnVisibility";
@@ -32,15 +33,15 @@ import type { AutomationRun } from "./automationTypes";
 
 export const WORKFLOW_RUN_COLUMNS = [
   { id: "started", label: "Started" },
-  { id: "workflow", label: "Workflow" },
-  { id: "trigger", label: "Trigger" },
+  { id: "workflow", label: "Workflow", filterable: true },
+  { id: "trigger", label: "Trigger", filterable: true },
   { id: "status", label: "Status" },
   { id: "duration", label: "Duration" },
   { id: "blocks", label: "Blocks" },
   { id: "finished", label: "Finished", defaultVisible: false },
-  { id: "triggerSource", label: "Trigger source", defaultVisible: false },
-  { id: "error", label: "Error", defaultVisible: false },
-  { id: "runId", label: "Run ID", defaultVisible: false },
+  { id: "triggerSource", label: "Trigger source", defaultVisible: false, filterable: true },
+  { id: "error", label: "Error", defaultVisible: false, filterable: true },
+  { id: "runId", label: "Run ID", defaultVisible: false, filterable: true },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
@@ -52,8 +53,10 @@ export function AutomationRunsTable({
   onClearFilters,
   columnVisibility,
   columnOrder: controlledColumnOrder,
+  columnFilters: controlledColumnFilters,
   onColumnVisibilityChange,
   onColumnOrderChange,
+  onColumnFiltersChange,
   showColumnControls = true,
 }: {
   runs: AutomationRun[];
@@ -63,8 +66,10 @@ export function AutomationRunsTable({
   onClearFilters?: () => void;
   columnVisibility?: TableColumnVisibility;
   columnOrder?: TableColumnOrder;
+  columnFilters?: TableColumnFilters;
   onColumnVisibilityChange?: (next: TableColumnVisibility) => void;
   onColumnOrderChange?: (next: TableColumnOrder) => void;
+  onColumnFiltersChange?: (next: TableColumnFilters) => void;
   showColumnControls?: boolean;
 }) {
   const [inspectRunId, setInspectRunId] = useState<string | null>(null);
@@ -80,6 +85,8 @@ export function AutomationRunsTable({
   const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
   const columnOrder = controlledColumnOrder ?? internalColumns.columnOrder;
   const setColumnOrder = onColumnOrderChange ?? internalColumns.setColumnOrder;
+  const filters = controlledColumnFilters ?? internalColumns.filters;
+  const setFilters = onColumnFiltersChange ?? internalColumns.setFilters;
   const visibleColumns = orderedColumns(columns, columnOrder).filter((column) => visibility[column.id]);
   const visibleColumnCount = visibleColumns.length;
 
@@ -91,8 +98,10 @@ export function AutomationRunsTable({
           columns={columns}
           visibility={visibility}
           columnOrder={columnOrder}
+          filters={filters}
           onChange={setVisibility}
           onOrderChange={setColumnOrder}
+          onFiltersChange={setFilters}
         />
       }
     />

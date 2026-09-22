@@ -17,7 +17,9 @@ import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
+  applyColumnFilters,
   orderedColumns,
+  TableColumnFilterSummary,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../components/patterns/TableColumnVisibility";
@@ -48,9 +50,9 @@ const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
 }));
 
 const INBOX_COLUMNS = [
-  { id: "title", label: "Title" },
-  { id: "workflow", label: "Workflow" },
-  { id: "format", label: "Format" },
+  { id: "title", label: "Title", filterable: true },
+  { id: "workflow", label: "Workflow", filterable: true },
+  { id: "format", label: "Format", filterable: true },
   { id: "created", label: "Created" },
   { id: "status", label: "Status" },
   { id: "actions", label: "Actions", dataColumn: false },
@@ -84,15 +86,20 @@ export function AutomationInboxTable({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
   const [detailsItem, setDetailsItem] = useState<AutomationInboxItem | null>(null);
-  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility("workflow-inbox", INBOX_COLUMNS);
+  const { visibility, columnOrder, filters, setVisibility, setColumnOrder, setFilters } = useTableColumnVisibility("workflow-inbox", INBOX_COLUMNS);
   const visibleColumns = orderedColumns(INBOX_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
   );
   const visibleColumnCount = visibleColumns.length;
 
   const unreadCount = items.filter((item) => !item.readAt).length;
-  const filtersActive = Boolean(query.trim()) || filter !== "all";
-  const filteredItems = items.filter((item) => inboxMatchesFilter(item, query, filter));
+  const filtersActive = Boolean(query.trim()) || filter !== "all" || Object.keys(filters).length > 0;
+  const searchFilteredItems = items.filter((item) => inboxMatchesFilter(item, query, filter));
+  const filteredItems = applyColumnFilters(searchFilteredItems, filters, {
+    title: (item) => item.title,
+    workflow: (item) => item.workflowName,
+    format: (item) => item.format,
+  });
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const pagedItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -133,8 +140,10 @@ export function AutomationInboxTable({
               columns={INBOX_COLUMNS}
               visibility={visibility}
               columnOrder={columnOrder}
+              filters={filters}
               onChange={setVisibility}
               onOrderChange={setColumnOrder}
+              onFiltersChange={setFilters}
             />
           }
         >
@@ -156,6 +165,13 @@ export function AutomationInboxTable({
             />
           </div>
         </TableControls>
+
+        <TableColumnFilterSummary
+          columns={INBOX_COLUMNS}
+          filters={filters}
+          onRemove={(columnId) => setFilters({ ...filters, [columnId]: undefined })}
+          onClear={() => setFilters({})}
+        />
 
         {loading ? (
           <LoadingState title="Fetching your inbox" description="This should take a few seconds." />

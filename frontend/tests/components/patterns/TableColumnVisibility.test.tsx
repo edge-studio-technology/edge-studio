@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
+  applyColumnFilters,
   resolveColumnOrder,
   resolveColumnVisibility,
   TableColumnVisibilityButton,
@@ -45,6 +46,30 @@ describe("resolveColumnOrder", () => {
       "name",
       "actions",
     ]);
+  });
+});
+
+describe("applyColumnFilters", () => {
+  it("applies active filters with AND semantics", () => {
+    const rows = [
+      { name: "Button workflow", source: "Enabled sensor" },
+      { name: "Button workflow", source: "Disabled sensor" },
+      { name: "Camera workflow", source: "Enabled sensor" },
+    ];
+
+    expect(
+      applyColumnFilters(
+        rows,
+        {
+          name: { operator: "contains", value: "button" },
+          source: { operator: "not_contains", value: "disabled" },
+        },
+        {
+          name: (row) => row.name,
+          source: (row) => row.source,
+        },
+      ),
+    ).toEqual([{ name: "Button workflow", source: "Enabled sensor" }]);
   });
 });
 
@@ -150,5 +175,30 @@ describe("TableColumnVisibilityButton", () => {
 
     expect(onOrderChange).toHaveBeenNthCalledWith(1, ["status", "name", "actions"]);
     expect(onOrderChange).toHaveBeenNthCalledWith(2, ["name", "actions", "status"]);
+  });
+
+  it("opens a filter editor for filterable columns", async () => {
+    const onFiltersChange = vi.fn();
+    render(
+      <TableColumnVisibilityButton
+        tableLabel="Devices"
+        columns={[{ id: "name", label: "Name", filterable: true }, { id: "actions", label: "Actions", dataColumn: false }]}
+        visibility={{ name: true, actions: true }}
+        filters={{}}
+        onChange={vi.fn()}
+        onFiltersChange={onFiltersChange}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Choose columns for Devices" }));
+    await userEvent.click(screen.getByRole("button", { name: "Filter Name" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Text" }), {
+      target: { value: "Button" },
+    });
+
+    expect(screen.queryByRole("button", { name: "Filter Actions" })).not.toBeInTheDocument();
+    expect(onFiltersChange).toHaveBeenLastCalledWith({
+      name: { operator: "contains", value: "Button" },
+    });
   });
 });

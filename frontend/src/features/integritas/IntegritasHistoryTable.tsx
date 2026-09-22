@@ -21,6 +21,7 @@ import {
   orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
+  type TableColumnFilters,
   type TableColumnOrder,
   type TableColumnVisibility,
 } from "../../components/patterns/TableColumnVisibility";
@@ -51,10 +52,10 @@ const PROOF_STATUS: Record<string, { tone: Tone; label: string }> = {
 export const PROOF_COLUMNS = [
   { id: "select", label: "Select", dataColumn: false },
   { id: "timestamp", label: "Timestamp" },
-  { id: "uid", label: "UID" },
+  { id: "uid", label: "UID", filterable: true },
   { id: "status", label: "Status" },
-  { id: "hash", label: "Data hash" },
-  { id: "fileName", label: "File name", defaultVisible: false },
+  { id: "hash", label: "Data hash", filterable: true },
+  { id: "fileName", label: "File name", defaultVisible: false, filterable: true },
   { id: "fileSize", label: "File size", defaultVisible: false },
   { id: "updated", label: "Updated", defaultVisible: false },
   { id: "actions", label: "Actions", dataColumn: false },
@@ -80,8 +81,10 @@ export function IntegritasHistoryTable({
   verifyingId = null,
   columnVisibility,
   columnOrder: controlledColumnOrder,
+  columnFilters: controlledColumnFilters,
   onColumnVisibilityChange,
   onColumnOrderChange,
+  onColumnFiltersChange,
   showColumnControls = true,
 }: {
   records: IntegritasProofRecord[];
@@ -103,8 +106,10 @@ export function IntegritasHistoryTable({
   verifyingId?: string | null;
   columnVisibility?: TableColumnVisibility;
   columnOrder?: TableColumnOrder;
+  columnFilters?: TableColumnFilters;
   onColumnVisibilityChange?: (next: TableColumnVisibility) => void;
   onColumnOrderChange?: (next: TableColumnOrder) => void;
+  onColumnFiltersChange?: (next: TableColumnFilters) => void;
   showColumnControls?: boolean;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -118,6 +123,8 @@ export function IntegritasHistoryTable({
   const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
   const columnOrder = controlledColumnOrder ?? internalColumns.columnOrder;
   const setColumnOrder = onColumnOrderChange ?? internalColumns.setColumnOrder;
+  const filters = controlledColumnFilters ?? internalColumns.filters;
+  const setFilters = onColumnFiltersChange ?? internalColumns.setFilters;
   const visibleColumns = orderedColumns(PROOF_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
   );
@@ -130,8 +137,10 @@ export function IntegritasHistoryTable({
           columns={PROOF_COLUMNS}
           visibility={visibility}
           columnOrder={columnOrder}
+          filters={filters}
           onChange={setVisibility}
           onOrderChange={setColumnOrder}
+          onFiltersChange={setFilters}
         />
       }
     />

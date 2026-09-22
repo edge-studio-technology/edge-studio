@@ -5,7 +5,11 @@ import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../components/patterns/ListPaginationFooter";
 import { Page } from "../components/patterns/Page";
-import { TableColumnVisibilityButton } from "../components/patterns/TableColumnVisibility";
+import {
+  applyColumnFilters,
+  TableColumnFilterSummary,
+  TableColumnVisibilityButton,
+} from "../components/patterns/TableColumnVisibility";
 import { TableControls } from "../components/patterns/TableControls";
 import { Button, LinkButton } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -109,6 +113,23 @@ export function DiagnosticsPage() {
   const readColumns = useTableColumnVisibility("diagnostics-reads", READ_COLUMNS);
   const workflowRunColumns = useTableColumnVisibility("workflow-runs", WORKFLOW_RUN_COLUMNS);
   const busy = bulkBusy !== null;
+  const filteredProofItems = applyColumnFilters(proofsPage.items, proofColumns.filters, {
+    uid: (record) => record.proof_uid,
+    hash: (record) => record.hash,
+    fileName: (record) => record.file_name,
+  });
+  const filteredReadItems = applyColumnFilters(readsPage.items, readColumns.filters, {
+    source: (item) => [item.sourceName, item.sourceUrl].join(" "),
+    hash: (item) => item.hash,
+    proof: (item) => item.integritasProofId,
+  });
+  const filteredWorkflowRuns = applyColumnFilters(workflowRunsPage.items, workflowRunColumns.filters, {
+    workflow: (run) => run.workflowName,
+    trigger: (run) => run.triggerType,
+    triggerSource: (run) => run.triggerSourceId,
+    error: (run) => run.error,
+    runId: (run) => run.id,
+  });
 
   const updateListQuery = useCallback(
     (patch: Partial<DiagnosticsListQuery>) => {
@@ -324,8 +345,10 @@ export function DiagnosticsPage() {
         columns={PROOF_COLUMNS}
         visibility={proofColumns.visibility}
         columnOrder={proofColumns.columnOrder}
+        filters={proofColumns.filters}
         onChange={proofColumns.setVisibility}
         onOrderChange={proofColumns.setColumnOrder}
+        onFiltersChange={proofColumns.setFilters}
       />
     ) : activeTab === "reads" ? (
       <TableColumnVisibilityButton
@@ -333,8 +356,10 @@ export function DiagnosticsPage() {
         columns={READ_COLUMNS}
         visibility={readColumns.visibility}
         columnOrder={readColumns.columnOrder}
+        filters={readColumns.filters}
         onChange={readColumns.setVisibility}
         onOrderChange={readColumns.setColumnOrder}
+        onFiltersChange={readColumns.setFilters}
       />
     ) : (
       <TableColumnVisibilityButton
@@ -342,8 +367,10 @@ export function DiagnosticsPage() {
         columns={WORKFLOW_RUN_COLUMNS}
         visibility={workflowRunColumns.visibility}
         columnOrder={workflowRunColumns.columnOrder}
+        filters={workflowRunColumns.filters}
         onChange={workflowRunColumns.setVisibility}
         onOrderChange={workflowRunColumns.setColumnOrder}
+        onFiltersChange={workflowRunColumns.setFilters}
       />
     );
 
@@ -400,15 +427,40 @@ export function DiagnosticsPage() {
         ) : null}
 
         {activeTab === "proofs" ? (
+          <TableColumnFilterSummary
+            columns={PROOF_COLUMNS}
+            filters={proofColumns.filters}
+            onRemove={(columnId) => proofColumns.setFilters({ ...proofColumns.filters, [columnId]: undefined })}
+            onClear={() => proofColumns.setFilters({})}
+          />
+        ) : activeTab === "reads" ? (
+          <TableColumnFilterSummary
+            columns={READ_COLUMNS}
+            filters={readColumns.filters}
+            onRemove={(columnId) => readColumns.setFilters({ ...readColumns.filters, [columnId]: undefined })}
+            onClear={() => readColumns.setFilters({})}
+          />
+        ) : (
+          <TableColumnFilterSummary
+            columns={WORKFLOW_RUN_COLUMNS}
+            filters={workflowRunColumns.filters}
+            onRemove={(columnId) => workflowRunColumns.setFilters({ ...workflowRunColumns.filters, [columnId]: undefined })}
+            onClear={() => workflowRunColumns.setFilters({})}
+          />
+        )}
+
+        {activeTab === "proofs" ? (
           <IntegritasHistoryTable
-            records={proofsPage.items}
+            records={filteredProofItems}
             selectedIds={selectedIds}
             filtered={listFiltered}
             loading={tabLoading}
             columnVisibility={proofColumns.visibility}
             columnOrder={proofColumns.columnOrder}
+            columnFilters={proofColumns.filters}
             onColumnVisibilityChange={proofColumns.setVisibility}
             onColumnOrderChange={proofColumns.setColumnOrder}
+            onColumnFiltersChange={proofColumns.setFilters}
             showColumnControls={false}
             onClearFilters={() => updateListQuery({ status: "", q: "" })}
             busy={busy}
@@ -420,7 +472,7 @@ export function DiagnosticsPage() {
               );
             }}
             onToggleAllVisible={() => {
-              const pageIds = proofsPage.items.map((record) => record.id);
+              const pageIds = filteredProofItems.map((record) => record.id);
               const allSelected =
                 pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
               setSelectedIds((ids) =>
@@ -475,25 +527,29 @@ export function DiagnosticsPage() {
           />
         ) : activeTab === "reads" ? (
           <DataReadsHistoryTable
-            items={readsPage.items}
+            items={filteredReadItems}
             filtered={listFiltered}
             loading={tabLoading}
             columnVisibility={readColumns.visibility}
             columnOrder={readColumns.columnOrder}
+            columnFilters={readColumns.filters}
             onColumnVisibilityChange={readColumns.setVisibility}
             onColumnOrderChange={readColumns.setColumnOrder}
+            onColumnFiltersChange={readColumns.setFilters}
             showColumnControls={false}
             onClearFilters={() => updateListQuery({ status: "", q: "" })}
           />
         ) : (
           <AutomationRunsTable
-            runs={workflowRunsPage.items}
+            runs={filteredWorkflowRuns}
             filtered={listFiltered}
             loading={tabLoading}
             columnVisibility={workflowRunColumns.visibility}
             columnOrder={workflowRunColumns.columnOrder}
+            columnFilters={workflowRunColumns.filters}
             onColumnVisibilityChange={workflowRunColumns.setVisibility}
             onColumnOrderChange={workflowRunColumns.setColumnOrder}
+            onColumnFiltersChange={workflowRunColumns.setFilters}
             showColumnControls={false}
             onClearFilters={() => updateListQuery({ status: "", q: "" })}
           />

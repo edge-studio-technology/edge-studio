@@ -20,6 +20,7 @@ import {
   orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
+  type TableColumnFilters,
   type TableColumnOrder,
   type TableColumnVisibility,
 } from "../../components/patterns/TableColumnVisibility";
@@ -36,11 +37,11 @@ import type { DataSourceRead } from "./dataReadTypes";
 
 export const READ_COLUMNS = [
   { id: "readTime", label: "Read time" },
-  { id: "source", label: "Source" },
+  { id: "source", label: "Source", filterable: true },
   { id: "trigger", label: "Trigger" },
   { id: "status", label: "Status" },
-  { id: "hash", label: "Hash" },
-  { id: "proof", label: "Integritas proof" },
+  { id: "hash", label: "Hash", filterable: true },
+  { id: "proof", label: "Integritas proof", filterable: true },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
@@ -61,8 +62,10 @@ export function DataReadsHistoryTable({
   onClearFilters,
   columnVisibility,
   columnOrder: controlledColumnOrder,
+  columnFilters: controlledColumnFilters,
   onColumnVisibilityChange,
   onColumnOrderChange,
+  onColumnFiltersChange,
   showColumnControls = true,
 }: {
   items: DataSourceRead[];
@@ -71,8 +74,10 @@ export function DataReadsHistoryTable({
   onClearFilters?: () => void;
   columnVisibility?: TableColumnVisibility;
   columnOrder?: TableColumnOrder;
+  columnFilters?: TableColumnFilters;
   onColumnVisibilityChange?: (next: TableColumnVisibility) => void;
   onColumnOrderChange?: (next: TableColumnOrder) => void;
+  onColumnFiltersChange?: (next: TableColumnFilters) => void;
   showColumnControls?: boolean;
 }) {
   const [detailsItem, setDetailsItem] = useState<DataSourceRead | null>(null);
@@ -81,6 +86,8 @@ export function DataReadsHistoryTable({
   const setVisibility = onColumnVisibilityChange ?? internalColumns.setVisibility;
   const columnOrder = controlledColumnOrder ?? internalColumns.columnOrder;
   const setColumnOrder = onColumnOrderChange ?? internalColumns.setColumnOrder;
+  const filters = controlledColumnFilters ?? internalColumns.filters;
+  const setFilters = onColumnFiltersChange ?? internalColumns.setFilters;
   const visibleColumns = orderedColumns(READ_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
   );
@@ -94,8 +101,10 @@ export function DataReadsHistoryTable({
           columns={READ_COLUMNS}
           visibility={visibility}
           columnOrder={columnOrder}
+          filters={filters}
           onChange={setVisibility}
           onOrderChange={setColumnOrder}
+          onFiltersChange={setFilters}
         />
       }
     />

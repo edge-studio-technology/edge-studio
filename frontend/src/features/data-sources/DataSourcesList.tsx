@@ -23,7 +23,9 @@ import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
+  applyColumnFilters,
   orderedColumns,
+  TableColumnFilterSummary,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../components/patterns/TableColumnVisibility";
@@ -52,13 +54,13 @@ const DIRECTION_FILTER_OPTIONS = [
 ] as const;
 
 const DEVICE_COLUMNS = [
-  { id: "name", label: "Name" },
-  { id: "details", label: "Details" },
+  { id: "name", label: "Name", filterable: true },
+  { id: "details", label: "Details", filterable: true },
   { id: "status", label: "Status" },
   { id: "lastActivity", label: "Last activity" },
-  { id: "usedBy", label: "Used by workflows", defaultVisible: false },
+  { id: "usedBy", label: "Used by workflows", defaultVisible: false, filterable: true },
   { id: "created", label: "Created", defaultVisible: false },
-  { id: "lastHash", label: "Last hash", defaultVisible: false },
+  { id: "lastHash", label: "Last hash", defaultVisible: false, filterable: true },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
@@ -94,15 +96,15 @@ export function DataSourcesList({
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
-  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility("devices", DEVICE_COLUMNS);
+  const { visibility, columnOrder, filters, setVisibility, setColumnOrder, setFilters } = useTableColumnVisibility("devices", DEVICE_COLUMNS);
   const visibleColumns = orderedColumns(DEVICE_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
   );
   const visibleColumnCount = visibleColumns.length;
 
   const trimmedQuery = query.trim().toLowerCase();
-  const filtersActive = Boolean(direction || trimmedQuery);
-  const visibleItems = items.filter((source) => {
+  const filtersActive = Boolean(direction || trimmedQuery || Object.keys(filters).length > 0);
+  const searchFilteredItems = items.filter((source) => {
     if (direction && sourceDirection(source) !== direction) return false;
     if (!trimmedQuery) return true;
     return (
@@ -110,6 +112,12 @@ export function DataSourcesList({
       sourceTypeLabel(source).toLowerCase().includes(trimmedQuery) ||
       (sourceEndpoint(source) ?? "").toLowerCase().includes(trimmedQuery)
     );
+  });
+  const visibleItems = applyColumnFilters(searchFilteredItems, filters, {
+    name: (source) => [source.name, source.description].filter(Boolean).join(" "),
+    details: (source) => [sourceTypeLabel(source), sourceDirection(source), sourceEndpoint(source)].filter(Boolean).join(" "),
+    usedBy: (source) => (source.usedByWorkflows ?? []).map((workflow) => workflow.name).join(" "),
+    lastHash: (source) => source.lastHash,
   });
   const totalPages = Math.max(1, Math.ceil(visibleItems.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -134,8 +142,10 @@ export function DataSourcesList({
             columns={DEVICE_COLUMNS}
             visibility={visibility}
             columnOrder={columnOrder}
+            filters={filters}
             onChange={setVisibility}
             onOrderChange={setColumnOrder}
+            onFiltersChange={setFilters}
           />
         }
       >
@@ -176,6 +186,13 @@ export function DataSourcesList({
           }
         />
       </TableControls>
+
+      <TableColumnFilterSummary
+        columns={DEVICE_COLUMNS}
+        filters={filters}
+        onRemove={(columnId) => setFilters({ ...filters, [columnId]: undefined })}
+        onClear={() => setFilters({})}
+      />
 
       {loading ? (
         <LoadingState title="Fetching your devices" description="This should take a few seconds." />

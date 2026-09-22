@@ -23,7 +23,9 @@ import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
+  applyColumnFilters,
   orderedColumns,
+  TableColumnFilterSummary,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../components/patterns/TableColumnVisibility";
@@ -54,9 +56,9 @@ const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
 }));
 
 const ADDRESS_BOOK_COLUMNS = [
-  { id: "name", label: "Name" },
-  { id: "address", label: "Address" },
-  { id: "notes", label: "Notes" },
+  { id: "name", label: "Name", filterable: true },
+  { id: "address", label: "Address", filterable: true },
+  { id: "notes", label: "Notes", filterable: true },
   { id: "created", label: "Created", defaultVisible: false },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
@@ -80,7 +82,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
   const [editEntry, setEditEntry] = useState<AddressBookEntry | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AddressBookEntry | null>(null);
   const [deletingEntry, setDeletingEntry] = useState<AddressBookEntry | null>(null);
-  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility(
+  const { visibility, columnOrder, filters, setVisibility, setColumnOrder, setFilters } = useTableColumnVisibility(
     "address-book",
     ADDRESS_BOOK_COLUMNS,
   );
@@ -101,14 +103,19 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
 
   const isLoading = loading || actionsBlocked;
   const trimmedQuery = query.trim().toLowerCase();
-  const filtersActive = Boolean(trimmedQuery);
-  const filteredEntries = entries.filter((entry) => {
+  const filtersActive = Boolean(trimmedQuery || Object.keys(filters).length > 0);
+  const searchFilteredEntries = entries.filter((entry) => {
     if (!trimmedQuery) return true;
     return (
       entry.label.toLowerCase().includes(trimmedQuery) ||
       entry.address.toLowerCase().includes(trimmedQuery) ||
       (entry.notes ?? "").toLowerCase().includes(trimmedQuery)
     );
+  });
+  const filteredEntries = applyColumnFilters(searchFilteredEntries, filters, {
+    name: (entry) => entry.label,
+    address: (entry) => entry.address,
+    notes: (entry) => entry.notes,
   });
   const totalPages = Math.max(1, Math.ceil(filteredEntries.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -148,8 +155,10 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
             columns={ADDRESS_BOOK_COLUMNS}
             visibility={visibility}
             columnOrder={columnOrder}
+            filters={filters}
             onChange={setVisibility}
             onOrderChange={setColumnOrder}
+            onFiltersChange={setFilters}
           />
         }
       >
@@ -179,6 +188,13 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
           {error}
         </ErrorAlert>
       ) : null}
+
+      <TableColumnFilterSummary
+        columns={ADDRESS_BOOK_COLUMNS}
+        filters={filters}
+        onRemove={(columnId) => setFilters({ ...filters, [columnId]: undefined })}
+        onClear={() => setFilters({})}
+      />
 
       {isLoading ? (
         <LoadingState

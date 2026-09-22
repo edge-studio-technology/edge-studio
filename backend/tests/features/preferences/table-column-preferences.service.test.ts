@@ -22,7 +22,7 @@ describe("parseTableColumnPreferences", () => {
         devices: { name: true, details: false, invalid: "yes" },
         bad: "value",
       }),
-      { devices: { visibility: { name: true, details: false }, order: [] } },
+      { devices: { visibility: { name: true, details: false }, order: [], filters: {} } },
     );
   });
 
@@ -32,9 +32,20 @@ describe("parseTableColumnPreferences", () => {
         devices: {
           visibility: { name: true, details: false, invalid: "yes" },
           order: ["details", "name", 123],
+          filters: {
+            name: { operator: "contains", value: "Button" },
+            details: { operator: "not_contains", value: "" },
+            bad: { operator: "bad", value: 123 },
+          },
         },
       }),
-      { devices: { visibility: { name: true, details: false }, order: ["details", "name"] } },
+      {
+        devices: {
+          visibility: { name: true, details: false },
+          order: ["details", "name"],
+          filters: { name: { operator: "contains", value: "Button" } },
+        },
+      },
     );
   });
 
@@ -47,14 +58,26 @@ describe("parseTableColumnPreferences", () => {
 describe("table column preferences storage", () => {
   it("saves and loads sanitized preferences", () => {
     const saved = service.saveTableColumnPreferences({
-      workflows: { visibility: { name: true, enabled: false, count: 1 }, order: ["enabled", "name"] },
+      workflows: {
+        visibility: { name: true, enabled: false, count: 1 },
+        order: ["enabled", "name"],
+        filters: { name: { operator: "not_contains", value: "Archived" } },
+      },
     });
 
     assert.deepEqual(saved, {
-      workflows: { visibility: { name: true, enabled: false }, order: ["enabled", "name"] },
+      workflows: {
+        visibility: { name: true, enabled: false },
+        order: ["enabled", "name"],
+        filters: { name: { operator: "not_contains", value: "Archived" } },
+      },
     });
     assert.deepEqual(service.getTableColumnPreferences(), {
-      workflows: { visibility: { name: true, enabled: false }, order: ["enabled", "name"] },
+      workflows: {
+        visibility: { name: true, enabled: false },
+        order: ["enabled", "name"],
+        filters: { name: { operator: "not_contains", value: "Archived" } },
+      },
     });
   });
 });

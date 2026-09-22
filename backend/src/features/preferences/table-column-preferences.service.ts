@@ -5,6 +5,7 @@ const TABLE_COLUMN_PREFERENCES_KEY = "ui.tableColumnPreferences";
 export type TableColumnPreferenceEntry = {
   visibility: Record<string, boolean>;
   order: string[];
+  filters: Record<string, { operator: "contains" | "not_contains"; value: string }>;
 };
 
 export type TableColumnPreferences = Record<string, TableColumnPreferenceEntry>;
@@ -27,7 +28,20 @@ export function parseTableColumnPreferences(value: unknown): TableColumnPreferen
     const order = Array.isArray(tableValue.order)
       ? tableValue.order.filter((columnId): columnId is string => typeof columnId === "string")
       : [];
-    preferences[tableId] = { visibility, order };
+    const filters: TableColumnPreferenceEntry["filters"] = {};
+    if (isPlainRecord(tableValue.filters)) {
+      for (const [columnId, filter] of Object.entries(tableValue.filters)) {
+        if (!isPlainRecord(filter)) continue;
+        if (typeof filter.value !== "string") continue;
+        const value = filter.value.trim();
+        if (!value) continue;
+        filters[columnId] = {
+          operator: filter.operator === "not_contains" ? "not_contains" : "contains",
+          value
+        };
+      }
+    }
+    preferences[tableId] = { visibility, order, filters };
   }
   return preferences;
 }

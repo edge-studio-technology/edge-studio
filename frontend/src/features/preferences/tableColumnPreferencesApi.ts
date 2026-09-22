@@ -1,6 +1,7 @@
 import { getJson, putJson } from "../../lib/api";
 import type {
   TableColumnOrder,
+  TableColumnFilters,
   TableColumnVisibility,
 } from "../../components/patterns/TableColumnVisibility";
 
@@ -9,6 +10,7 @@ export type TableColumnPreferenceEntry =
   | {
       visibility?: TableColumnVisibility;
       order?: TableColumnOrder;
+      filters?: TableColumnFilters;
     };
 
 export type TableColumnPreferences = Record<string, TableColumnPreferenceEntry>;

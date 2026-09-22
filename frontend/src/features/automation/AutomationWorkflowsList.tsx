@@ -17,7 +17,9 @@ import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
+  applyColumnFilters,
   orderedColumns,
+  TableColumnFilterSummary,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../components/patterns/TableColumnVisibility";
@@ -57,14 +59,14 @@ const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
 }));
 
 const WORKFLOW_COLUMNS = [
-  { id: "name", label: "Name" },
+  { id: "name", label: "Name", filterable: true },
   { id: "enabled", label: "Enabled" },
   { id: "status", label: "Status" },
   { id: "lastRun", label: "Last run" },
-  { id: "source", label: "Source", defaultVisible: false },
-  { id: "blocks", label: "Blocks", defaultVisible: false },
+  { id: "source", label: "Source", defaultVisible: false, filterable: true },
+  { id: "blocks", label: "Blocks", defaultVisible: false, filterable: true },
   { id: "nextRun", label: "Next run", defaultVisible: false },
-  { id: "lastHash", label: "Last hash", defaultVisible: false },
+  { id: "lastHash", label: "Last hash", defaultVisible: false, filterable: true },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
@@ -100,7 +102,7 @@ export function AutomationWorkflowsList({
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
-  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility("workflows", WORKFLOW_COLUMNS);
+  const { visibility, columnOrder, filters, setVisibility, setColumnOrder, setFilters } = useTableColumnVisibility("workflows", WORKFLOW_COLUMNS);
   const visibleColumns = orderedColumns(WORKFLOW_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
   );
@@ -108,10 +110,16 @@ export function AutomationWorkflowsList({
 
   const sourceName = (id: string) =>
     sources.find((source) => source.id === id)?.name ?? "Unknown source";
-  const filtersActive = Boolean(query.trim()) || filter !== "active";
-  const filteredWorkflows = workflows.filter((workflow) =>
+  const filtersActive = Boolean(query.trim()) || filter !== "active" || Object.keys(filters).length > 0;
+  const searchFilteredWorkflows = workflows.filter((workflow) =>
     workflowMatchesFilter(workflow, query, filter, sourceName(workflowPrimarySourceId(workflow))),
   );
+  const filteredWorkflows = applyColumnFilters(searchFilteredWorkflows, filters, {
+    name: (workflow) => [workflow.name, workflow.lastError, workflow.validation?.firstErrorMessage].filter(Boolean).join(" "),
+    source: (workflow) => sourceName(workflowPrimarySourceId(workflow)),
+    blocks: (workflow) => summarizeBlocks(workflow),
+    lastHash: (workflow) => workflow.lastHash,
+  });
   const totalPages = Math.max(1, Math.ceil(filteredWorkflows.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const pagedWorkflows = filteredWorkflows.slice(
@@ -134,8 +142,10 @@ export function AutomationWorkflowsList({
             columns={WORKFLOW_COLUMNS}
             visibility={visibility}
             columnOrder={columnOrder}
+            filters={filters}
             onChange={setVisibility}
             onOrderChange={setColumnOrder}
+            onFiltersChange={setFilters}
           />
         }
       >
@@ -160,6 +170,13 @@ export function AutomationWorkflowsList({
           }
         />
       </TableControls>
+
+      <TableColumnFilterSummary
+        columns={WORKFLOW_COLUMNS}
+        filters={filters}
+        onRemove={(columnId) => setFilters({ ...filters, [columnId]: undefined })}
+        onClear={() => setFilters({})}
+      />
 
       {loading ? (
         <LoadingState

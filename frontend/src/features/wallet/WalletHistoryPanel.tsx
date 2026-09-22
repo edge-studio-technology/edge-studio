@@ -20,7 +20,9 @@ import { ListPaginationFooter } from "../../components/patterns/ListPaginationFo
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import {
+  applyColumnFilters,
   orderedColumns,
+  TableColumnFilterSummary,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../components/patterns/TableColumnVisibility";
@@ -49,11 +51,11 @@ const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
 
 const WALLET_HISTORY_COLUMNS = [
   { id: "amount", label: "Amount" },
-  { id: "to", label: "To" },
+  { id: "to", label: "To", filterable: true },
   { id: "status", label: "Status" },
   { id: "date", label: "Date" },
-  { id: "token", label: "Token", defaultVisible: false },
-  { id: "txpow", label: "TxPoW ID", defaultVisible: false },
+  { id: "token", label: "Token", defaultVisible: false, filterable: true },
+  { id: "txpow", label: "TxPoW ID", defaultVisible: false, filterable: true },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
@@ -87,7 +89,7 @@ export function WalletHistoryPanel({
     null,
   );
   const [debugClearingHistory, setDebugClearingHistory] = useState(false);
-  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility(
+  const { visibility, columnOrder, filters, setVisibility, setColumnOrder, setFilters } = useTableColumnVisibility(
     "wallet-history",
     WALLET_HISTORY_COLUMNS,
   );
@@ -98,10 +100,10 @@ export function WalletHistoryPanel({
   const isDev = import.meta.env.DEV;
 
   const trimmedHistoryQuery = historyQuery.trim().toLowerCase();
-  const filtersActive = Boolean(historyStatus || trimmedHistoryQuery);
+  const filtersActive = Boolean(historyStatus || trimmedHistoryQuery || Object.keys(filters).length > 0);
   const pagerDisabled = loading || actionsBlocked;
   const showLoading = loading || actionsBlocked;
-  const filteredHistory = items.filter((entry) => {
+  const searchFilteredHistory = items.filter((entry) => {
     if (historyStatus && entry.status !== historyStatus) return false;
     if (!trimmedHistoryQuery) return true;
     return (
@@ -109,6 +111,11 @@ export function WalletHistoryPanel({
       entry.tokenName.toLowerCase().includes(trimmedHistoryQuery) ||
       (entry.txpowId ?? "").toLowerCase().includes(trimmedHistoryQuery)
     );
+  });
+  const filteredHistory = applyColumnFilters(searchFilteredHistory, filters, {
+    to: (entry) => entry.toAddress,
+    token: (entry) => entry.tokenName,
+    txpow: (entry) => entry.txpowId,
   });
   const historyTotalPages = Math.max(1, Math.ceil(filteredHistory.length / historyPageSize));
   const historyCurrentPage = Math.min(historyPage, historyTotalPages);
@@ -157,8 +164,10 @@ export function WalletHistoryPanel({
             columns={WALLET_HISTORY_COLUMNS}
             visibility={visibility}
             columnOrder={columnOrder}
+            filters={filters}
             onChange={setVisibility}
             onOrderChange={setColumnOrder}
+            onFiltersChange={setFilters}
           />
         }
       >
@@ -186,6 +195,13 @@ export function WalletHistoryPanel({
           {error}
         </ErrorAlert>
       ) : null}
+
+      <TableColumnFilterSummary
+        columns={WALLET_HISTORY_COLUMNS}
+        filters={filters}
+        onRemove={(columnId) => setFilters({ ...filters, [columnId]: undefined })}
+        onClear={() => setFilters({})}
+      />
 
       <p className="sr-only" aria-live="polite">
         {showLoading
