@@ -679,6 +679,8 @@ export function DraftBlockInspector({
         </InspectorSection>
         {addRecipientOpen && onCreateAddressBookEntry ? (
           <AddContactModal
+            closeOnOutsideClick={false}
+            layer="top"
             onSave={async (data) => {
               const entry = await onCreateAddressBookEntry(data);
               onChange({

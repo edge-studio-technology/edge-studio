@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { Button } from "../../components/ui/Button";
 import { InputField } from "../../components/ui/InputField";
@@ -8,9 +8,13 @@ import type { CreateAddressBookEntryInput } from "./addressBookTypes";
 export function AddContactModal({
   onSave,
   onCancel,
+  closeOnOutsideClick,
+  layer,
 }: {
   onSave: (data: CreateAddressBookEntryInput) => Promise<void>;
   onCancel: () => void;
+  closeOnOutsideClick?: boolean;
+  layer?: ComponentProps<typeof Modal>["layer"];
 }) {
   const [label, setLabel] = useState("");
   const [address, setAddress] = useState("");
@@ -59,6 +63,8 @@ export function AddContactModal({
       bodyClassName="min-h-0 flex-1"
       onClose={onCancel}
       closeDisabled={submitting}
+      closeOnOutsideClick={closeOnOutsideClick}
+      layer={layer}
       footer={
         <>
           <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>

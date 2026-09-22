@@ -337,6 +337,11 @@ describe("DraftBlockInspector send_transaction", () => {
       "__create_new_recipient__",
     );
     const dialog = screen.getByRole("dialog", { name: "New contact" });
+    const backdrop = dialog.closest('[role="presentation"]');
+    expect(backdrop).not.toBeNull();
+    fireEvent.mouseDown(backdrop!);
+    expect(screen.getByRole("dialog", { name: "New contact" })).toBeInTheDocument();
+
     await userEvent.type(within(dialog).getByRole("textbox", { name: "Label" }), "Bob");
     await userEvent.type(within(dialog).getByRole("textbox", { name: "Address" }), "Mx2");
     await userEvent.click(within(dialog).getByRole("button", { name: "Add contact" }));
