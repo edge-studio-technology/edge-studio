@@ -137,6 +137,19 @@ describe("syncMqttDataSources", () => {
     assert.equal(mqttMock.connect.mock.calls.length, 1);
   });
 
+  it("ends the client when its source is deleted", () => {
+    const source = makeMqttSource();
+    makeMqttWorkflow(source.id);
+    mqttIngestion.syncMqttDataSources();
+    const client = clients[0];
+
+    dataSourcesRepo.deleteDataSource(source.id);
+    mqttIngestion.syncMqttDataSources();
+
+    assert.equal(client.end.mock.calls[0][0], true);
+    assert.equal(mqttMock.connect.mock.calls.length, 1);
+  });
+
   it("records a configuration_invalid error and does not connect for an invalid config", () => {
     const source = dataSourcesRepo.createDataSource({ name: "Bad MQTT", type: "mqtt", config: {} });
     makeMqttWorkflow(source.id);

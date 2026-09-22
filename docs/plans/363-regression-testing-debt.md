@@ -158,7 +158,7 @@ git status --short --untracked-files=all
 ### Milestone 1: Measured-service gaps (#213, #218 teardown)
 
 - [x] Step 1 — `sendHttpOutput` URL/body assertions.
-- [ ] Step 2 — MQTT client ended after source deletion.
+- [x] Step 2 — MQTT client ended after source deletion.
 - [ ] Step 3 — GPIO watcher killed after source deletion.
 
 ### Milestone 2: Route-level gaps (#218 webhook, #242, #287)
