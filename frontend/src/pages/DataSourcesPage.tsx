@@ -65,6 +65,8 @@ export function DataSourcesPage() {
   const [items, setItems] = useState<DataSource[]>([]);
   const [capabilities, setCapabilities] = useState<DataSourceCapabilities | null>(null);
   const [hostCapabilities, setHostCapabilities] = useState<HostCapability[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
   const [addDeviceMode, setAddDeviceMode] = useState<"input" | "output" | null>(null);
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -80,10 +82,24 @@ export function DataSourcesPage() {
   );
 
   useEffect(() => {
-    refresh().catch((err: Error) =>
-      showToast({ tone: "error", title: "Could not load devices", message: err.message }),
-    );
+    void loadInitialData();
   }, []);
+
+  async function loadInitialData() {
+    setInitialLoading(true);
+    setInitialLoadError(null);
+    try {
+      await refresh();
+    } catch (err) {
+      setInitialLoadError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Edge Studio could not load your devices. Try again.",
+      );
+    } finally {
+      setInitialLoading(false);
+    }
+  }
 
   async function refresh() {
     const [response, capabilityResponse, hostCapabilityResponse] = await Promise.all([
@@ -558,20 +574,34 @@ export function DataSourcesPage() {
         </Modal>
       )}
 
-      <DataSourcesList
-        items={items}
-        capabilities={capabilities}
-        hostCapabilities={hostCapabilities}
-        busy={busy}
-        loading={capabilities === null}
-        onRead={(source) => run(() => readDataSource(source.id), "Manual read completed")}
-        onTestOutput={(source) => run(() => testDataSourceOutput(source.id), "Test pulse sent")}
-        onOpenSetupGuide={setSetupGuideSource}
-        onEdit={editSource}
-        onDelete={setDeleteTarget}
-        onAddInput={() => setAddDeviceMode("input")}
-        onAddOutput={() => setAddDeviceMode("output")}
-      />
+      {initialLoadError ? (
+        <ErrorAlert
+          title="Could not load devices"
+          className="max-w-none"
+          action={
+            <Button variant="secondary" onClick={() => void loadInitialData()}>
+              Retry
+            </Button>
+          }
+        >
+          {initialLoadError}
+        </ErrorAlert>
+      ) : (
+        <DataSourcesList
+          items={items}
+          capabilities={capabilities}
+          hostCapabilities={hostCapabilities}
+          busy={busy}
+          loading={initialLoading}
+          onRead={(source) => run(() => readDataSource(source.id), "Manual read completed")}
+          onTestOutput={(source) => run(() => testDataSourceOutput(source.id), "Test pulse sent")}
+          onOpenSetupGuide={setSetupGuideSource}
+          onEdit={editSource}
+          onDelete={setDeleteTarget}
+          onAddInput={() => setAddDeviceMode("input")}
+          onAddOutput={() => setAddDeviceMode("output")}
+        />
+      )}
     </Page>
   );
 }

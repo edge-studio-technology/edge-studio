@@ -4,6 +4,13 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] feature/229-empty-loading-and-error-states-hardening
+
+### Fixed
+
+- Dashboard next-action and status metric cards now distinguish loading and request failures from legitimate empty or unavailable data.
+- Devices now show an error with Retry when the initial load fails.
+
 ## [Unreleased]
 
 ### Security
@@ -47,7 +54,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Dashboard next-action and status metric cards now distinguish loading and request failures from legitimate empty or unavailable data.
 - Minima restart setup failures now clear the temporary restarting state instead of leaving stale operation status in the UI.
 - Update Agent Docker stream requests now reject reliably when their timeout expires instead of leaving update pulls hanging.
 - List search/filter rows on Devices, Workflows, Address book, and Diagnostics stack with their New/Refresh buttons as one group on tablet and phone.
