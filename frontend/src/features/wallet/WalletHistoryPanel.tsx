@@ -92,8 +92,8 @@ export function WalletHistoryPanel({
 
   const trimmedHistoryQuery = historyQuery.trim().toLowerCase();
   const filtersActive = Boolean(historyStatus || trimmedHistoryQuery);
-  const pagerDisabled = loading || actionsBlocked;
-  const showLoading = loading || actionsBlocked;
+  const pagerDisabled = loading;
+  const showLoading = loading;
   const filteredHistory = items.filter((entry) => {
     if (historyStatus && entry.status !== historyStatus) return false;
     if (!trimmedHistoryQuery) return true;

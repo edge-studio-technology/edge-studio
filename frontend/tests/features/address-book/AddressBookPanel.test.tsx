@@ -331,14 +331,16 @@ describe("AddressBookPanel", () => {
     expect(screen.getByText("Alice")).toBeInTheDocument();
   });
 
-  it("disables the new-contact action and forces the loading state while actionsBlocked", async () => {
+  it("keeps loaded contacts visible but disables the new-contact action while actionsBlocked", async () => {
     listAddressBookEntries.mockResolvedValue([entry({ label: "Alice", address: "Mx1" })]);
     renderPanel(true);
 
     await waitFor(() => {
       expect(listAddressBookEntries).toHaveBeenCalled();
     });
-    expect(screen.getByText("Fetching your contacts")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Address book" })).toBeInTheDocument();
+    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(screen.queryByText("Fetching your contacts")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "New contact" })).toBeDisabled();
   });
 });

@@ -99,7 +99,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
     setEntries((prev) => sortByLabel([...prev.filter((e) => e.id !== next.id), next]));
   }
 
-  const isLoading = loading || actionsBlocked;
+  const isLoading = loading;
   const trimmedQuery = query.trim().toLowerCase();
   const filtersActive = Boolean(trimmedQuery);
   const filteredEntries = entries.filter((entry) => {

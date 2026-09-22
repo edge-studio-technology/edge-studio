@@ -47,10 +47,13 @@ describe("WalletHistoryPanel", () => {
     expect(screen.getByText("Fetching your send history")).toBeInTheDocument();
   });
 
-  it("shows a loading state while actionsBlocked", () => {
+  it("keeps loaded history visible while actions are blocked", () => {
     renderPanel({ actionsBlocked: true });
 
-    expect(screen.getByText("Fetching your send history")).toBeInTheDocument();
+    const table = screen.getByRole("table", { name: "Send history" });
+    expect(table).toBeInTheDocument();
+    expect(within(table).getByText("Submitted")).toBeInTheDocument();
+    expect(screen.queryByText("Fetching your send history")).not.toBeInTheDocument();
   });
 
   it("shows an empty state when there is no history", () => {

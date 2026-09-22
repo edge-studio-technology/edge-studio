@@ -52,9 +52,19 @@ describe("IntegritasConnectPanel", () => {
     expect(screen.getByText("Checking connection…")).toBeInTheDocument();
   });
 
-  it("shows an error message when present", () => {
-    render(<IntegritasConnectPanel auth={makeAuth({ error: "Failed to load Integritas status" })} />);
+  it("shows an error alert and retries when the initial status load fails", async () => {
+    const refresh = vi.fn();
+    render(
+      <IntegritasConnectPanel
+        auth={makeAuth({ error: "Failed to load Integritas status", refresh })}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Couldn't load Integritas status");
     expect(screen.getByText("Failed to load Integritas status")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("shows a notice when present and there is no error", () => {

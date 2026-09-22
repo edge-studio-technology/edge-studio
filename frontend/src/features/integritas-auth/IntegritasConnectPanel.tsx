@@ -4,7 +4,8 @@ import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
-import { ErrorText, MutedText } from "../../components/Text";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { MutedText } from "../../components/Text";
 import type { IntegritasConfig, Tone } from "../../app/types";
 import { getJson } from "../../lib/api";
 import type { UseIntegritasAuthResult } from "./useIntegritasAuth";
@@ -39,7 +40,7 @@ export function IntegritasConnectPanel({
   bare?: boolean;
   auth: UseIntegritasAuthResult;
 }) {
-  const { status, loading, starting, error, notice, start, openVerification } = auth;
+  const { status, loading, starting, error, notice, refresh, start, openVerification } = auth;
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
 
   const kind = status?.status;
@@ -57,9 +58,19 @@ export function IntegritasConnectPanel({
       {loading && !status && <MutedText className="m-0">Checking connection…</MutedText>}
 
       {error && (
-        <ErrorText className="m-0" style={{ marginBottom: 12 }}>
+        <ErrorAlert
+          title={status ? "Integritas Connect error" : "Couldn't load Integritas status"}
+          className="w-full max-w-none"
+          action={
+            !status ? (
+              <Button type="button" variant="secondary" size="sm" onClick={() => void refresh()}>
+                Retry
+              </Button>
+            ) : undefined
+          }
+        >
           {error}
-        </ErrorText>
+        </ErrorAlert>
       )}
 
       {notice && !error && (
