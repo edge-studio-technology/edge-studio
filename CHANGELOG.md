@@ -4,7 +4,7 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] dev-task/705-retention-redaction-budgets
+## [Unreleased]
 
 ### Security
 
@@ -25,12 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Webhook ingestion is rate-limited to 60 requests per minute per client and source.
 - Automation changes and manual workflow runs are rate-limited to 30 requests per minute per client.
 - Integritas stamp creation is rate-limited to 10 requests per minute per client.
-- See [docs/adr/0022](docs/adr/0022-bound-external-automation-effects.md) and `SECURITY.md`.
-
-## [Unreleased]
-
-### Security
-
+- See [ADR 0022](docs/adr/0022-bound-external-automation-effects.md), [ADR 0023](docs/adr/0023-classify-stored-records-before-applying-retention.md), and `SECURITY.md`.
 - Wallet sends and address-book writes now reject malformed Minima destinations using the upstream `0x` and checksummed `Mx` address grammar.
 - Disabled two-factor setup and reset endpoints are no longer exposed while TOTP is off.
 - HTTPS application, proxy, error, and redirect responses now include CSP, clickjacking, MIME-sniffing, and referrer-policy protections.
