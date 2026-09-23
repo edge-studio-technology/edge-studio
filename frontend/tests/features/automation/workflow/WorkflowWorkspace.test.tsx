@@ -36,7 +36,9 @@ vi.mock("../../../../src/features/automation/workflow/WorkflowBlockInspectors", 
       onDirty: () => void;
       onAttachStamp: () => void;
       onUpdate: (input: unknown) => void;
+      onUpdateAttached: (blockId: string, input: unknown) => void;
       onDelete: () => void;
+      onDeleteAttached: (blockId: string) => void;
     },
     ref,
   ) {
@@ -48,11 +50,17 @@ vi.mock("../../../../src/features/automation/workflow/WorkflowBlockInspectors", 
         <button type="button" onClick={() => props.onUpdate({ config: { touched: true } })}>
           persisted-update
         </button>
+        <button type="button" onClick={() => props.onUpdateAttached("b-stamp", { config: { touched: true } })}>
+          persisted-update-attached
+        </button>
         <button type="button" onClick={() => props.onAttachStamp()}>
           persisted-attach-stamp
         </button>
         <button type="button" onClick={() => props.onDelete()}>
           persisted-delete
+        </button>
+        <button type="button" onClick={() => props.onDeleteAttached("b-stamp")}>
+          persisted-delete-attached
         </button>
         <button type="button" onClick={() => props.onDirty()}>
           persisted-dirty
@@ -119,7 +127,7 @@ function block(overrides: Partial<AutomationBlock> = {}): AutomationBlock {
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
     type: "manual_start",
-    enabled: true,
+    enabled: false,
     order: 0,
     parentBlockId: null,
     config: {},
@@ -135,7 +143,7 @@ function workflow(overrides: Partial<AutomationWorkflow> = {}): AutomationWorkfl
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
     name: "Front gate flow",
-    enabled: true,
+    enabled: false,
     archived: false,
     lastRunAt: null,
     nextRunAt: null,
@@ -223,13 +231,29 @@ describe("WorkflowWorkspace edit mode", () => {
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ name: "New name" });
   });
 
-  it("does not pause an enabled workflow while typing the name", async () => {
+  it("asks before applying the first edit to an enabled workflow", async () => {
     const onUpdateWorkflow = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({ onUpdateWorkflow, workflow: workflow({ enabled: true }) });
 
-    await user.type(screen.getByRole("textbox", { name: "Workflow name" }), "!");
+    const nameField = screen.getByRole("textbox", { name: "Workflow name" });
+    await user.type(nameField, "!");
+
+    expect(screen.getByRole("dialog", { name: "Editing will pause this workflow." })).toBeInTheDocument();
+    expect(nameField).toHaveValue("Front gate flow");
     expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ enabled: false });
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog", { name: "Editing will pause this workflow." })).not.toBeInTheDocument();
+
+    await user.type(nameField, "!");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(nameField).toHaveValue("Front gate flow");
+
+    await user.type(nameField, "!");
+    await user.click(screen.getByRole("button", { name: "Pause and edit" }));
+    expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: false });
+    expect(nameField).toHaveValue("Front gate flow!");
   });
 
   it("does not save the name while typing and commits it on Enter", async () => {
@@ -429,6 +453,9 @@ describe("WorkflowWorkspace edit mode", () => {
     await user.click(screen.getByRole("button", { name: "persisted-update" }));
     expect(onUpdateBlock).toHaveBeenCalledWith("b-wait", { config: { touched: true } });
 
+    await user.click(screen.getByRole("button", { name: "persisted-update-attached" }));
+    expect(onUpdateBlock).toHaveBeenCalledWith("b-stamp", { config: { touched: true } });
+
     await user.click(screen.getByRole("button", { name: "persisted-attach-stamp" }));
     expect(onAddBlock).toHaveBeenCalledWith(
       expect.objectContaining({ type: "stamp_integritas", parentBlockId: "b-wait" }),
@@ -436,6 +463,9 @@ describe("WorkflowWorkspace edit mode", () => {
 
     await user.click(screen.getByRole("button", { name: "persisted-delete" }));
     expect(onDeleteBlock).toHaveBeenCalledWith("b-wait");
+
+    await user.click(screen.getByRole("button", { name: "persisted-delete-attached" }));
+    expect(onDeleteBlock).toHaveBeenCalledWith("b-stamp");
   });
 
   it("shows notices for archived workflows and the last run error", () => {

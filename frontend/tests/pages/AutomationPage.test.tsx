@@ -98,20 +98,13 @@ describe("AutomationPage", () => {
     expect(await screen.findByText("Build your first workflow")).toBeInTheDocument();
   });
 
-  it("asks before editing an enabled workflow and pauses before opening edit", async () => {
+  it("opens edit directly from the list without pausing", async () => {
     listAutomationWorkflows.mockResolvedValue({ items: [workflow()] });
     renderPage();
 
     await userEvent.click(await screen.findByRole("button", { name: "Edit Front gate flow" }));
 
-    expect(screen.getByRole("dialog", { name: "Editing will pause this workflow." })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(updateAutomationWorkflow).not.toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole("button", { name: "Edit Front gate flow" }));
-    await userEvent.click(screen.getByRole("button", { name: "Pause and edit" }));
-
-    expect(updateAutomationWorkflow).toHaveBeenCalledWith("w1", { enabled: false });
     expect(await screen.findByText("Edit route")).toBeInTheDocument();
   });
 

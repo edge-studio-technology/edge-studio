@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/Button";
+import { Modal } from "../../../components/Modal";
 import { InputField } from "../../../components/ui/InputField";
 import { Text } from "../../../components/Text";
 import type {
@@ -110,7 +111,7 @@ export function WorkflowWorkspace({
   ) => void | Promise<{ item: AutomationBlock } | undefined>;
   onDeleteBlock: (blockId: string) => void;
   onUpdateBlock: (blockId: string, input: Parameters<typeof updateAutomationBlock>[2]) => void;
-  onUpdateWorkflow: (input: Parameters<typeof updateAutomationWorkflow>[1]) => void;
+  onUpdateWorkflow: (input: Parameters<typeof updateAutomationWorkflow>[1]) => void | Promise<unknown>;
   onReorderBlocks: (blockIds: string[]) => void;
   onRunNow: () => void;
   onRunWithPayload: (payload: unknown) => void;
@@ -122,6 +123,7 @@ export function WorkflowWorkspace({
   const [payloadError, setPayloadError] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState(workflow.name);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [pendingEditAction, setPendingEditAction] = useState<(() => unknown | Promise<unknown>) | null>(null);
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
   const startBlock = mainBlocks[0];
   const [selectedBlockId, setSelectedBlockId] = useState("");
@@ -129,6 +131,7 @@ export function WorkflowWorkspace({
   const [draftRevealErrors, setDraftRevealErrors] = useState(false);
   const inspectorRef = useRef<PersistedBlockInspectorHandle>(null);
   const lastSubmittedNameRef = useRef(workflow.name);
+  const editPauseConfirmedRef = useRef(false);
   const selectedBlock = selectedBlockId
     ? mainBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
@@ -189,7 +192,12 @@ export function WorkflowWorkspace({
   useEffect(() => {
     setWorkflowName(workflow.name);
     lastSubmittedNameRef.current = workflow.name;
+    editPauseConfirmedRef.current = false;
   }, [workflow.id]); // eslint-disable-line react-hooks/exhaustive-deps -- workflow.name intentionally omitted
+
+  useEffect(() => {
+    if (workflow.enabled) editPauseConfirmedRef.current = false;
+  }, [workflow.enabled]);
 
   useEffect(() => {
     if (mode !== "watch") return;
@@ -209,37 +217,40 @@ export function WorkflowWorkspace({
     flushSelectedInspector();
     // Send payment must be configured before the API will accept it — open a local draft sheet.
     if (type === "send_transaction") {
-      pauseForEditIfNeeded();
-      const draft = createDraftBlock(type, sources);
-      setDraftRevealErrors(false);
-      setDraftBlock(draft);
-      setSelectedBlockId(draft.id);
+      requestEditAction(() => {
+        const draft = createDraftBlock(type, sources);
+        setDraftRevealErrors(false);
+        setDraftBlock(draft);
+        setSelectedBlockId(draft.id);
+      });
       return;
     }
     // Avoid API toast when the toolkit card should already be disabled for missing devices.
     if (missingDeviceLibraryReason(type, sources)) return;
-    setDraftRevealErrors(false);
-    setDraftBlock(null);
-    pauseForEditIfNeeded();
-    const result = await onAddBlock({
-      type,
-      config: defaultEditBlockConfig(type, sources, addressBook),
+    requestEditAction(async () => {
+      setDraftRevealErrors(false);
+      setDraftBlock(null);
+      const result = await onAddBlock({
+        type,
+        config: defaultEditBlockConfig(type, sources, addressBook),
+      });
+      if (result?.item && !result.item.parentBlockId) setSelectedBlockId(result.item.id);
     });
-    if (result?.item && !result.item.parentBlockId) setSelectedBlockId(result.item.id);
   }
 
   async function replaceStartBlockFromLibrary(type: AutomationBlockType) {
     if (type === startBlock?.type) return;
     if (missingDeviceLibraryReason(type, sources)) return;
     flushSelectedInspector();
-    setDraftRevealErrors(false);
-    setDraftBlock(null);
-    pauseForEditIfNeeded();
-    const result = await onReplaceStartBlock({
-      type,
-      config: defaultEditBlockConfig(type, sources, addressBook),
+    requestEditAction(async () => {
+      setDraftRevealErrors(false);
+      setDraftBlock(null);
+      const result = await onReplaceStartBlock({
+        type,
+        config: defaultEditBlockConfig(type, sources, addressBook),
+      });
+      setSelectedBlockId(result?.item.id ?? "");
     });
-    setSelectedBlockId(result?.item.id ?? "");
   }
 
   function flushSelectedInspector() {
@@ -260,12 +271,13 @@ export function WorkflowWorkspace({
   async function saveDraftBlock() {
     if (!draftBlock) return;
     const draft = draftBlock;
-    pauseForEditIfNeeded();
-    await onAddBlock({ type: draft.type, config: draft.config });
-    setDraftRevealErrors(false);
-    setDraftBlock(null);
-    // Done means finish adding — don't reopen the persisted inspector for the new block.
-    setSelectedBlockId("");
+    requestEditAction(async () => {
+      await onAddBlock({ type: draft.type, config: draft.config });
+      setDraftRevealErrors(false);
+      setDraftBlock(null);
+      // Done means finish adding — don't reopen the persisted inspector for the new block.
+      setSelectedBlockId("");
+    });
   }
 
   function closeSelectedSheet() {
@@ -296,15 +308,28 @@ export function WorkflowWorkspace({
     const trimmed = nextName.trim();
     if (!trimmed || trimmed === workflow.name || trimmed === lastSubmittedNameRef.current) return;
     lastSubmittedNameRef.current = trimmed;
-    onUpdateWorkflow({ name: trimmed });
+    requestEditAction(() => onUpdateWorkflow({ name: trimmed }));
   }
 
-  function pauseForEditIfNeeded() {
-    // Workflows are paused before entering Edit from the list. Edit actions should not
-    // implicitly change run state; Resume is the explicit action in the header.
+  function requestEditAction(action: () => unknown | Promise<unknown>) {
+    if (mode === "edit" && workflow.enabled && !workflow.archived && !editPauseConfirmedRef.current) {
+      setPendingEditAction(() => action);
+      return;
+    }
+    void action();
+  }
+
+  async function confirmPauseAndEdit() {
+    const action = pendingEditAction;
+    if (!action) return;
+    await onUpdateWorkflow({ enabled: false });
+    editPauseConfirmedRef.current = true;
+    setPendingEditAction(null);
+    await action();
   }
 
   return (
+    <>
     <WorkflowWorkspaceShell
       breadcrumbLabel={mode === "watch" ? "Watch workflow" : "Edit workflow"}
       nameControl={
@@ -314,8 +339,11 @@ export function WorkflowWorkspace({
             value={workflowName}
             onChange={(event) => {
               const next = event.target.value;
+              if (next.trim() && next.trim() !== workflow.name) {
+                requestEditAction(() => setWorkflowName(next));
+                return;
+              }
               setWorkflowName(next);
-              if (next.trim() && next.trim() !== workflow.name) pauseForEditIfNeeded();
             }}
             onBlur={(event) => saveWorkflowNameIfNeeded(event.currentTarget.value)}
             onKeyDown={(event) => {
@@ -406,9 +434,11 @@ export function WorkflowWorkspace({
         mode === "edit" || workflow.archived || workflow.lastError ? (
           <>
             {mode === "edit" ? (
-              <Text.Body className={mutedText}>
-                Paused while you edit. Resume when you want it to run.
-              </Text.Body>
+              !workflow.enabled ? (
+                <Text.Body className={mutedText}>
+                  Paused while you edit. Resume when you want it to run.
+                </Text.Body>
+              ) : null
             ) : null}
             {workflow.archived && (
               <p className={mutedText}>
@@ -487,8 +517,7 @@ export function WorkflowWorkspace({
           onMoveBlock={(blockId, direction) => {
             const index = mainBlocks.findIndex((block) => block.id === blockId);
             if (index > 0) {
-              pauseForEditIfNeeded();
-              onReorderBlocks(moveBlock(mainBlocks, index, index + direction));
+              requestEditAction(() => onReorderBlocks(moveBlock(mainBlocks, index, index + direction)));
             }
           }}
           onRemoveBlock={(blockId) => {
@@ -499,8 +528,7 @@ export function WorkflowWorkspace({
             const block = mainBlocks.find((item) => item.id === blockId);
             if (block && !block.type.endsWith("_start")) {
               if (blockId === selectedBlockId) flushSelectedInspector();
-              pauseForEditIfNeeded();
-              onDeleteBlock(block.id);
+              requestEditAction(() => onDeleteBlock(block.id));
             }
           }}
         />
@@ -585,31 +613,26 @@ export function WorkflowWorkspace({
                   walletStatus={walletStatus}
                   busy={busy}
                   onCreateAddressBookEntry={onCreateAddressBookEntry}
-                  onDirty={pauseForEditIfNeeded}
+                  onDirty={() => requestEditAction(() => undefined)}
                   onAttachStamp={() => {
-                    pauseForEditIfNeeded();
-                    onAddBlock({
+                    requestEditAction(() => onAddBlock({
                       type: "stamp_integritas",
                       config: {},
                       parentBlockId: selectedBlock.id,
-                    })
+                    }));
                   }}
                   onUpdate={(input) => {
-                    pauseForEditIfNeeded();
-                    onUpdateBlock(selectedBlock.id, input);
+                    requestEditAction(() => onUpdateBlock(selectedBlock.id, input));
                   }}
                   onUpdateAttached={(blockId, input) => {
-                    pauseForEditIfNeeded();
-                    onUpdateBlock(blockId, input);
+                    requestEditAction(() => onUpdateBlock(blockId, input));
                   }}
                   onDelete={() => {
                     if (selectedBlock.type.endsWith("_start")) return;
-                    pauseForEditIfNeeded();
-                    onDeleteBlock(selectedBlock.id);
+                    requestEditAction(() => onDeleteBlock(selectedBlock.id));
                   }}
                   onDeleteAttached={(blockId) => {
-                    pauseForEditIfNeeded();
-                    onDeleteBlock(blockId);
+                    requestEditAction(() => onDeleteBlock(blockId));
                   }}
                 />
               </div>
@@ -636,5 +659,35 @@ export function WorkflowWorkspace({
         ) : undefined
       }
     />
+    {pendingEditAction ? (
+      <Modal
+        title="Editing will pause this workflow."
+        description="It will not run until you resume it."
+        onClose={() => setPendingEditAction(null)}
+        closeDisabled={busy}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              onClick={() => setPendingEditAction(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={busy}
+              onClick={() => void confirmPauseAndEdit()}
+            >
+              Pause and edit
+            </Button>
+          </>
+        }
+      />
+    ) : null}
+    </>
   );
 }

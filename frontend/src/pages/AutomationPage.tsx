@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { BookOpen } from "lucide-react";
 import { Button, LinkButton } from "../components/Button";
-import { Modal } from "../components/Modal";
 import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { ErrorContentState } from "../components/patterns/ErrorContentState";
@@ -116,7 +115,6 @@ export function AutomationPage() {
   const [deletingInboxItem, setDeletingInboxItem] = useState<AutomationInboxItem | null>(null);
   const [deleteInboxTarget, setDeleteInboxTarget] = useState<AutomationInboxItem | null>(null);
   const [inboxLoading, setInboxLoading] = useState(true);
-  const [editPauseTarget, setEditPauseTarget] = useState<AutomationWorkflow | null>(null);
 
   useEffect(() => {
     void loadPage();
@@ -318,26 +316,6 @@ export function AutomationPage() {
     return entry;
   }
 
-  function requestEditWorkflow(workflow: AutomationWorkflow) {
-    if (workflow.enabled && !workflow.archived) {
-      setEditPauseTarget(workflow);
-      return;
-    }
-    navigateFlow({ mode: "edit", workflowId: workflow.id });
-  }
-
-  async function confirmPauseAndEdit() {
-    if (!editPauseTarget) return;
-    const workflow = editPauseTarget;
-    const result = await run(
-      () => updateAutomationWorkflow(workflow.id, { enabled: false }),
-      "Could not pause workflow",
-    );
-    if (!result) return;
-    setEditPauseTarget(null);
-    navigateFlow({ mode: "edit", workflowId: workflow.id });
-  }
-
   const sourceById = (id: string) => sources.find((source) => source.id === id);
   const activeWorkflowId = flowWorkflowId;
   const workspaceWorkflow = activeWorkflowId
@@ -524,36 +502,6 @@ export function AutomationPage() {
         />
       )}
 
-      {editPauseTarget && (
-        <Modal
-          title="Editing will pause this workflow."
-          description="It will not run until you resume it."
-          onClose={() => setEditPauseTarget(null)}
-          closeDisabled={busy}
-          footer={
-            <>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={busy}
-                onClick={() => setEditPauseTarget(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={busy}
-                onClick={() => void confirmPauseAndEdit()}
-              >
-                Pause and edit
-              </Button>
-            </>
-          }
-        />
-      )}
-
       {!loadError ? (
         <AutomationWorkflowsList
           workflows={workflows}
@@ -561,7 +509,7 @@ export function AutomationPage() {
           busy={busy}
           loading={workflowsLoading}
           onCreate={() => navigateFlow({ mode: "build" })}
-          onEdit={requestEditWorkflow}
+          onEdit={(workflow) => navigateFlow({ mode: "edit", workflowId: workflow.id })}
           onWatch={(workflow) => navigateFlow({ mode: "watch", workflowId: workflow.id })}
           onRunNow={(workflow) =>
             run(() => runAutomationWorkflow(workflow.id), "Could not run workflow")
