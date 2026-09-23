@@ -34,6 +34,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | [../.agents/rules/backend.md](../.agents/rules/backend.md)                   | Backend feature folders, route/schema conventions, auth rules |
 | [../.agents/rules/frontend.md](../.agents/rules/frontend.md)                 | Frontend feature folders, API usage, styling conventions      |
 | [../.agents/skills/frontend-design-system/SKILL.md](../.agents/skills/frontend-design-system/SKILL.md) | Place new shared UI in `ui/` vs `patterns/` (migrate later) |
+| [../.agents/skills/openproject/SKILL.md](../.agents/skills/openproject/SKILL.md) | Read/write OpenProject tickets via its REST API (no deletes) |
 | [../.agents/rules/cli.md](../.agents/rules/cli.md)                           | CLI conventions and constraints                               |
 | [../.agents/rules/minima.md](../.agents/rules/minima.md)                     | Minima RPC command rules                                      |
 | [../.agents/rules/integritas.md](../.agents/rules/integritas.md)             | Integritas stamping/proof rules                               |
