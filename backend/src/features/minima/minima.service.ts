@@ -258,13 +258,20 @@ async function performGracefulRestart(containerId: string, baseline: ContainerRe
 
 export async function restartMinimaContainer() {
   beginMinimaOperation("restart");
-  const container = await getComposeServiceContainer("minima");
-  if (!container) {
+  let container;
+  let baseline;
+  try {
+    container = await getComposeServiceContainer("minima");
+    if (!container) {
+      throw new Error('Docker container not found for service "minima"');
+    }
+
+    baseline = await getContainerRestartBaseline(container.Id);
+  } catch (error) {
     endMinimaOperation();
-    throw new Error('Docker container not found for service "minima"');
+    throw error;
   }
 
-  const baseline = await getContainerRestartBaseline(container.Id);
   void performGracefulRestart(container.Id, baseline).catch((error) => {
     endMinimaOperation();
     console.error("Minima graceful restart failed:", error instanceof Error ? error.message : error);

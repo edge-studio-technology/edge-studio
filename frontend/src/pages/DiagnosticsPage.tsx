@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RefreshCw } from "lucide-react";
-import { ErrorAlert } from "../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../components/patterns/ErrorContentState";
+import { describeLoadFailure } from "../lib/errors";
 import { ListFilterBar } from "../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../components/patterns/ListPaginationFooter";
 import { Page } from "../components/patterns/Page";
@@ -67,6 +68,12 @@ const TAB_DESCRIPTION: Record<DiagnosticsTab, string> = {
   proofs: "Stored Integritas proof requests and their status.",
   reads: "Data-source read logs from polls, webhooks, and device events.",
   "workflow-runs": "Recent automated and manual workflow runs across all workflows.",
+};
+
+const TAB_LABEL: Record<DiagnosticsTab, string> = {
+  proofs: "Proof records",
+  reads: "Read logs",
+  "workflow-runs": "Workflow runs",
 };
 
 const TAB_SEARCH_PLACEHOLDER: Record<DiagnosticsTab, string> = {
@@ -318,14 +325,17 @@ export function DiagnosticsPage() {
   }
 
   async function handleRefresh() {
+    const replacingFailedLoad = error !== null;
     setRefreshing(true);
     setError(null);
+    if (replacingFailedLoad) setTabLoading(true);
     try {
       await loadActiveTab(listQuery);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to refresh diagnostics history.");
     } finally {
       setRefreshing(false);
+      if (replacingFailedLoad) setTabLoading(false);
     }
   }
 
@@ -396,175 +406,195 @@ export function DiagnosticsPage() {
 
         <p className="type-body text-text-secondary m-0">{TAB_DESCRIPTION[activeTab]}</p>
 
-        <TableControls utilities={columnControl}>
-          <ListFilterBar
-            filter={listQuery.status}
-            q={listQuery.q}
-            filterOptions={statusOptions}
-            searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
-            disabled={refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)}
-            onFilterChange={(status) => updateListQuery({ status })}
-            onQueryChange={(q) => updateListQuery({ q })}
-            actions={
-              <Button
-                type="button"
-                iconStart={<RefreshCw aria-hidden />}
-                onClick={() => {
-                  void handleRefresh();
-                }}
-                disabled={refreshing}
-              >
-                {refreshing ? "Refreshing…" : "Refresh"}
-              </Button>
-            }
-          />
-        </TableControls>
-
-        {error ? (
-          <ErrorAlert title="Couldn't load diagnostics" className="w-full max-w-none">
-            {error}
-          </ErrorAlert>
-        ) : null}
-
-        {activeTab === "proofs" ? (
-          <TableColumnFilterSummary
-            columns={PROOF_COLUMNS}
-            filters={proofColumns.filters}
-            onRemove={(columnId) => proofColumns.setFilters({ ...proofColumns.filters, [columnId]: undefined })}
-            onClear={() => proofColumns.setFilters({})}
-          />
-        ) : activeTab === "reads" ? (
-          <TableColumnFilterSummary
-            columns={READ_COLUMNS}
-            filters={readColumns.filters}
-            onRemove={(columnId) => readColumns.setFilters({ ...readColumns.filters, [columnId]: undefined })}
-            onClear={() => readColumns.setFilters({})}
-          />
-        ) : (
-          <TableColumnFilterSummary
-            columns={WORKFLOW_RUN_COLUMNS}
-            filters={workflowRunColumns.filters}
-            onRemove={(columnId) => workflowRunColumns.setFilters({ ...workflowRunColumns.filters, [columnId]: undefined })}
-            onClear={() => workflowRunColumns.setFilters({})}
-          />
+        {error ? null : (
+          <TableControls utilities={columnControl}>
+            <ListFilterBar
+              filter={listQuery.status}
+              q={listQuery.q}
+              filterOptions={statusOptions}
+              searchPlaceholder={TAB_SEARCH_PLACEHOLDER[activeTab]}
+              disabled={
+                refreshing || tabLoading || (!listFiltered && activePager.items.length === 0)
+              }
+              onFilterChange={(status) => updateListQuery({ status })}
+              onQueryChange={(q) => updateListQuery({ q })}
+              actions={
+                <Button
+                  type="button"
+                  iconStart={<RefreshCw aria-hidden />}
+                  onClick={() => {
+                    void handleRefresh();
+                  }}
+                  disabled={refreshing}
+                >
+                  {refreshing ? "Refreshing…" : "Refresh"}
+                </Button>
+              }
+            />
+          </TableControls>
         )}
 
-        {activeTab === "proofs" ? (
-          <IntegritasHistoryTable
-            records={filteredProofItems}
-            selectedIds={selectedIds}
-            filtered={listFiltered}
-            loading={tabLoading}
-            columnVisibility={proofColumns.visibility}
-            columnOrder={proofColumns.columnOrder}
-            columnFilters={proofColumns.filters}
-            onColumnVisibilityChange={proofColumns.setVisibility}
-            onColumnOrderChange={proofColumns.setColumnOrder}
-            onColumnFiltersChange={proofColumns.setFilters}
-            showColumnControls={false}
-            onClearFilters={() => updateListQuery({ status: "", q: "" })}
-            busy={busy}
-            bulkBusy={bulkBusy}
-            verifyingId={verifyingId}
-            onToggle={(id) => {
-              setSelectedIds((ids) =>
-                ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id],
+        {error ? (
+          <ErrorContentState
+            title={`${TAB_LABEL[activeTab]} aren't available`}
+            description={describeLoadFailure(error)}
+            retryDisabled={refreshing}
+            onRetry={() => void handleRefresh()}
+          />
+        ) : null}
+
+        {!error &&
+          (activeTab === "proofs" ? (
+            <TableColumnFilterSummary
+              columns={PROOF_COLUMNS}
+              filters={proofColumns.filters}
+              onRemove={(columnId) =>
+                proofColumns.setFilters({ ...proofColumns.filters, [columnId]: undefined })
+              }
+              onClear={() => proofColumns.setFilters({})}
+            />
+          ) : activeTab === "reads" ? (
+            <TableColumnFilterSummary
+              columns={READ_COLUMNS}
+              filters={readColumns.filters}
+              onRemove={(columnId) =>
+                readColumns.setFilters({ ...readColumns.filters, [columnId]: undefined })
+              }
+              onClear={() => readColumns.setFilters({})}
+            />
+          ) : (
+            <TableColumnFilterSummary
+              columns={WORKFLOW_RUN_COLUMNS}
+              filters={workflowRunColumns.filters}
+              onRemove={(columnId) =>
+                workflowRunColumns.setFilters({
+                  ...workflowRunColumns.filters,
+                  [columnId]: undefined,
+                })
+              }
+              onClear={() => workflowRunColumns.setFilters({})}
+            />
+          ))}
+
+        {!error &&
+          (activeTab === "proofs" ? (
+            <IntegritasHistoryTable
+              records={filteredProofItems}
+              selectedIds={selectedIds}
+              filtered={listFiltered}
+              loading={tabLoading}
+              columnVisibility={proofColumns.visibility}
+              columnOrder={proofColumns.columnOrder}
+              columnFilters={proofColumns.filters}
+              onColumnVisibilityChange={proofColumns.setVisibility}
+              onColumnOrderChange={proofColumns.setColumnOrder}
+              onColumnFiltersChange={proofColumns.setFilters}
+              showColumnControls={false}
+              onClearFilters={() => updateListQuery({ status: "", q: "" })}
+              busy={busy}
+              bulkBusy={bulkBusy}
+              verifyingId={verifyingId}
+              onToggle={(id) => {
+                setSelectedIds((ids) =>
+                  ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id],
               );
             }}
             onToggleAllVisible={() => {
-              const pageIds = filteredProofItems.map((record) => record.id);
-              const allSelected =
-                pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
-              setSelectedIds((ids) =>
-                allSelected
-                  ? ids.filter((id) => !pageIds.includes(id))
-                  : [...new Set([...ids, ...pageIds])],
-              );
-            }}
-            onClearSelection={() => setSelectedIds([])}
-            onVerify={(record) => {
-              void handleVerify(record);
-            }}
-            onDownload={(record) => {
-              void handleDownload(record);
-            }}
-            onDownloadZip={(record) => {
-              void handleDownloadZip(record);
-            }}
-            onOpenVerificationReport={(record) => {
-              const reportUrl = verificationReportUrl(record);
-              if (reportUrl) window.open(reportUrl, "_blank", "noopener,noreferrer");
-            }}
-            onDeleteSelected={() =>
-              void run(
-                async () => {
-                  const count = selectedIds.length;
-                  await deleteSelected(selectedIds);
-                  setSelectedIds([]);
-                  return count;
-                },
-                {
-                  busyAs: "delete",
-                  successTitle: "Proofs deleted",
+                const pageIds = filteredProofItems.map((record) => record.id);
+                const allSelected =
+                  pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+                setSelectedIds((ids) =>
+                  allSelected
+                    ? ids.filter((id) => !pageIds.includes(id))
+                    : [...new Set([...ids, ...pageIds])],
+                );
+              }}
+              onClearSelection={() => setSelectedIds([])}
+              onVerify={(record) => {
+                void handleVerify(record);
+              }}
+              onDownload={(record) => {
+                void handleDownload(record);
+              }}
+              onDownloadZip={(record) => {
+                void handleDownloadZip(record);
+              }}
+              onOpenVerificationReport={(record) => {
+                const reportUrl = verificationReportUrl(record);
+                if (reportUrl) window.open(reportUrl, "_blank", "noopener,noreferrer");
+              }}
+              onDeleteSelected={() =>
+                void run(
+                  async () => {
+                    const count = selectedIds.length;
+                    await deleteSelected(selectedIds);
+                    setSelectedIds([]);
+                    return count;
+                  },
+                  {
+                    busyAs: "delete",
+                    successTitle: "Proofs deleted",
+                    successMessage:
+                      selectedIds.length === 1
+                        ? "1 proof record was deleted."
+                        : `${selectedIds.length} proof records were deleted.`,
+                  },
+                )
+              }
+              onDownloadSelected={() =>
+                void run(() => downloadSelected(selectedIds), {
+                  refresh: false,
+                  busyAs: "download",
+                  successTitle: "Download started",
                   successMessage:
                     selectedIds.length === 1
-                      ? "1 proof record was deleted."
-                      : `${selectedIds.length} proof records were deleted.`,
-                },
-              )
-            }
-            onDownloadSelected={() =>
-              void run(() => downloadSelected(selectedIds), {
-                refresh: false,
-                busyAs: "download",
-                successTitle: "Download started",
-                successMessage:
-                  selectedIds.length === 1
-                    ? "1 proof file is downloading."
-                    : `${selectedIds.length} proofs are downloading.`,
-              })
-            }
-          />
-        ) : activeTab === "reads" ? (
-          <DataReadsHistoryTable
-            items={filteredReadItems}
-            filtered={listFiltered}
-            loading={tabLoading}
-            columnVisibility={readColumns.visibility}
-            columnOrder={readColumns.columnOrder}
-            columnFilters={readColumns.filters}
-            onColumnVisibilityChange={readColumns.setVisibility}
-            onColumnOrderChange={readColumns.setColumnOrder}
-            onColumnFiltersChange={readColumns.setFilters}
-            showColumnControls={false}
-            onClearFilters={() => updateListQuery({ status: "", q: "" })}
-          />
-        ) : (
-          <AutomationRunsTable
-            runs={filteredWorkflowRuns}
-            filtered={listFiltered}
-            loading={tabLoading}
-            columnVisibility={workflowRunColumns.visibility}
-            columnOrder={workflowRunColumns.columnOrder}
-            columnFilters={workflowRunColumns.filters}
-            onColumnVisibilityChange={workflowRunColumns.setVisibility}
-            onColumnOrderChange={workflowRunColumns.setColumnOrder}
-            onColumnFiltersChange={workflowRunColumns.setFilters}
-            showColumnControls={false}
-            onClearFilters={() => updateListQuery({ status: "", q: "" })}
-          />
-        )}
+                      ? "1 proof file is downloading."
+                      : `${selectedIds.length} proofs are downloading.`,
+                })
+              }
+            />
+          ) : activeTab === "reads" ? (
+            <DataReadsHistoryTable
+              items={filteredReadItems}
+              filtered={listFiltered}
+              loading={tabLoading}
+              columnVisibility={readColumns.visibility}
+              columnOrder={readColumns.columnOrder}
+              columnFilters={readColumns.filters}
+              onColumnVisibilityChange={readColumns.setVisibility}
+              onColumnOrderChange={readColumns.setColumnOrder}
+              onColumnFiltersChange={readColumns.setFilters}
+              showColumnControls={false}
+              onClearFilters={() => updateListQuery({ status: "", q: "" })}
+            />
+          ) : (
+            <AutomationRunsTable
+              runs={filteredWorkflowRuns}
+              filtered={listFiltered}
+              loading={tabLoading}
+              columnVisibility={workflowRunColumns.visibility}
+              columnOrder={workflowRunColumns.columnOrder}
+              columnFilters={workflowRunColumns.filters}
+              onColumnVisibilityChange={workflowRunColumns.setVisibility}
+              onColumnOrderChange={workflowRunColumns.setColumnOrder}
+              onColumnFiltersChange={workflowRunColumns.setFilters}
+              showColumnControls={false}
+              onClearFilters={() => updateListQuery({ status: "", q: "" })}
+            />
+          ))}
 
-        <ListPaginationFooter
-          page={listQuery.page}
-          pageSize={listQuery.pageSize}
-          total={activePager.total}
-          totalPages={Math.max(1, activePager.totalPages)}
-          disabled={refreshing || tabLoading}
-          onPageChange={(page) => updateListQuery({ page })}
-          onPageSizeChange={(pageSize) => updateListQuery({ pageSize })}
-          pageSizeOptions={PAGE_SIZE_OPTIONS}
-        />
+        {!error ? (
+          <ListPaginationFooter
+            page={listQuery.page}
+            pageSize={listQuery.pageSize}
+            total={activePager.total}
+            totalPages={Math.max(1, activePager.totalPages)}
+            disabled={refreshing || tabLoading}
+            onPageChange={(page) => updateListQuery({ page })}
+            onPageSizeChange={(pageSize) => updateListQuery({ pageSize })}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+          />
+        ) : null}
       </Card>
     </Page>
   );

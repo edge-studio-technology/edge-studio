@@ -15,7 +15,7 @@ import { Button } from "../../components/ui/Button";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
-import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { LoadingState } from "../../components/patterns/LoadingState";
@@ -28,6 +28,7 @@ import {
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
 import { useToast } from "../../components/ToastProvider";
+import { describeLoadFailure } from "../../lib/errors";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatMinimaAmount, shortHash } from "../../lib/format";
 import { formatLocalDateTime } from "../../lib/time";
@@ -101,8 +102,8 @@ export function WalletHistoryPanel({
 
   const trimmedHistoryQuery = historyQuery.trim().toLowerCase();
   const filtersActive = Boolean(historyStatus || trimmedHistoryQuery || Object.keys(filters).length > 0);
-  const pagerDisabled = loading || actionsBlocked;
-  const showLoading = loading || actionsBlocked;
+  const pagerDisabled = loading;
+  const showLoading = loading;
   const searchFilteredHistory = items.filter((entry) => {
     if (historyStatus && entry.status !== historyStatus) return false;
     if (!trimmedHistoryQuery) return true;
@@ -157,61 +158,67 @@ export function WalletHistoryPanel({
 
   return (
     <div className="gap-detail-close flex flex-col">
-      <TableControls
-        utilities={
-          <TableColumnVisibilityButton
-            tableLabel="Send history"
-            columns={WALLET_HISTORY_COLUMNS}
-            visibility={visibility}
-            columnOrder={columnOrder}
-            filters={filters}
-            onChange={setVisibility}
-            onOrderChange={setColumnOrder}
-            onFiltersChange={setFilters}
-          />
-        }
-      >
-        <div className="[&>div]:mb-0">
-          <ListFilterBar
-            filter={historyStatus}
-            q={historyQuery}
-            filterOptions={HISTORY_STATUS_OPTIONS}
-            searchPlaceholder="Address, token, or txpow ID"
-            disabled={pagerDisabled || items.length === 0}
-            onFilterChange={(status) => {
-              setHistoryStatus(status);
-              setHistoryPage(1);
-            }}
-            onQueryChange={(q) => {
-              setHistoryQuery(q);
-              setHistoryPage(1);
-            }}
-          />
-        </div>
-      </TableControls>
+      {error ? null : (
+        <TableControls
+          utilities={
+            <TableColumnVisibilityButton
+              tableLabel="Send history"
+              columns={WALLET_HISTORY_COLUMNS}
+              visibility={visibility}
+              columnOrder={columnOrder}
+              filters={filters}
+              onChange={setVisibility}
+              onOrderChange={setColumnOrder}
+              onFiltersChange={setFilters}
+            />
+          }
+        >
+          <div className="[&>div]:mb-0">
+            <ListFilterBar
+              filter={historyStatus}
+              q={historyQuery}
+              filterOptions={HISTORY_STATUS_OPTIONS}
+              searchPlaceholder="Address, token, or txpow ID"
+              disabled={pagerDisabled || items.length === 0}
+              onFilterChange={(status) => {
+                setHistoryStatus(status);
+                setHistoryPage(1);
+              }}
+              onQueryChange={(q) => {
+                setHistoryQuery(q);
+                setHistoryPage(1);
+              }}
+            />
+          </div>
+        </TableControls>
+      )}
 
-      {error ? (
-        <ErrorAlert title="Couldn't load history" className="w-full max-w-none">
-          {error}
-        </ErrorAlert>
+      {!error ? (
+        <p className="sr-only" aria-live="polite">
+          {showLoading
+            ? "Loading send history."
+            : filtersActive
+              ? `${filteredHistory.length} matching ${filteredHistory.length === 1 ? "send" : "sends"}.`
+              : `${filteredHistory.length} ${filteredHistory.length === 1 ? "send" : "sends"} in history.`}
+        </p>
       ) : null}
 
-      <TableColumnFilterSummary
-        columns={WALLET_HISTORY_COLUMNS}
-        filters={filters}
-        onRemove={(columnId) => setFilters({ ...filters, [columnId]: undefined })}
-        onClear={() => setFilters({})}
-      />
+      {error ? null : (
+        <TableColumnFilterSummary
+          columns={WALLET_HISTORY_COLUMNS}
+          filters={filters}
+          onRemove={(columnId) => setFilters({ ...filters, [columnId]: undefined })}
+          onClear={() => setFilters({})}
+        />
+      )}
 
-      <p className="sr-only" aria-live="polite">
-        {showLoading
-          ? "Loading send history."
-          : filtersActive
-            ? `${filteredHistory.length} matching ${filteredHistory.length === 1 ? "send" : "sends"}.`
-            : `${filteredHistory.length} ${filteredHistory.length === 1 ? "send" : "sends"} in history.`}
-      </p>
-
-      {showLoading ? (
+      {error ? (
+        <ErrorContentState
+          title="Send history isn't available"
+          description={describeLoadFailure(error)}
+          onRetry={() => void onRefresh()}
+        />
+      ) : showLoading ? (
         <LoadingState
           title="Fetching your send history"
           description="This should take a few seconds."
@@ -266,19 +273,21 @@ export function WalletHistoryPanel({
         </TableWrap>
       )}
 
-      <ListPaginationFooter
-        page={historyCurrentPage}
-        pageSize={historyPageSize}
-        total={filteredHistory.length}
-        totalPages={historyTotalPages}
-        disabled={pagerDisabled}
-        onPageChange={setHistoryPage}
-        onPageSizeChange={(size) => {
-          setHistoryPageSize(size);
-          setHistoryPage(1);
-        }}
-        pageSizeOptions={PAGE_SIZE_OPTIONS}
-      />
+      {error ? null : (
+        <ListPaginationFooter
+          page={historyCurrentPage}
+          pageSize={historyPageSize}
+          total={filteredHistory.length}
+          totalPages={historyTotalPages}
+          disabled={pagerDisabled}
+          onPageChange={setHistoryPage}
+          onPageSizeChange={(size) => {
+            setHistoryPageSize(size);
+            setHistoryPage(1);
+          }}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+        />
+      )}
 
       {/* {isDev ? (
         <div className="flex justify-start">

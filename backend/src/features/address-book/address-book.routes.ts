@@ -27,7 +27,7 @@ addressBookRouter.post("/", requireRole("admin"), (req, res) => {
   if (label.length > 80) return validationFailed(res, "label must be 80 characters or fewer", { label: "label must be 80 characters or fewer" }, { ok: false });
   if (!address) return validationFailed(res, "address is required", { address: "address is required" }, { ok: false });
   if (!isMinimaAddress(address)) {
-    return badRequest(res, "address must start with Mx or 0x", { field: "address" }, { ok: false });
+    return badRequest(res, "address must be a valid Minima Mx or 0x address", { field: "address" }, { ok: false });
   }
 
   const existing = getAddressBookEntryByAddress(address);
@@ -67,7 +67,7 @@ addressBookRouter.patch("/:id", requireRole("admin"), (req, res) => {
       return validationFailed(res, "address cannot be empty", { address: "address cannot be empty" }, { ok: false });
     }
     if (!isMinimaAddress(address)) {
-      return badRequest(res, "address must start with Mx or 0x", { field: "address" }, { ok: false });
+      return badRequest(res, "address must be a valid Minima Mx or 0x address", { field: "address" }, { ok: false });
     }
     const existing = getAddressBookEntryByAddress(address);
     if (existing && existing.id !== id) {

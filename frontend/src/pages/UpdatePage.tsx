@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { ButtonRow } from "../components/patterns/ButtonRow";
-import { ErrorAlert } from "../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../components/patterns/ErrorContentState";
+import { LoadingState } from "../components/patterns/LoadingState";
+import { describeLoadFailure } from "../lib/errors";
 import { Page } from "../components/patterns/Page";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { ErrorText } from "../components/ui/ErrorText";
-import { LoadingDots } from "../components/ui/LoadingDots";
 import { Pill } from "../components/ui/Pill";
 import { ChangelogPreview } from "../features/update/ChangelogPreview";
 import { getUpdateStatus, startUpdateApply } from "../features/update/updateApi";
@@ -56,21 +57,16 @@ export function UpdatePage() {
     >
       <Card className="gap-detail-close flex w-full flex-col">
         {loading ? (
-          <div className="gap-detail-next flex items-center">
-            <LoadingDots />
-            <span className="type-body text-text-secondary">Checking for updates…</span>
-          </div>
+          <LoadingState
+            title="Checking for updates"
+            description="This should take a few seconds."
+          />
         ) : loadError ? (
-          <ErrorAlert
-            title="Couldn't check for updates"
-            action={
-              <Button variant="secondary" size="sm" onClick={load}>
-                Retry
-              </Button>
-            }
-          >
-            {loadError}
-          </ErrorAlert>
+          <ErrorContentState
+            title="Update status isn't available"
+            description={describeLoadFailure(loadError)}
+            onRetry={load}
+          />
         ) : status ? (
           <>
             <div className="gap-detail-tight flex flex-col">

@@ -3,35 +3,65 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Cable, Check, Workflow } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { APP_NAME } from "../../app/names";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { listAutomationWorkflows } from "../automation/automationApi";
 import { listDataSources } from "../data-sources/dataSourcesApi";
 import { cx } from "../../lib/cx";
 
+type NextActionState =
+  | { status: "loading" }
+  | { status: "ready"; deviceCount: number; workflowCount: number }
+  | { status: "error" };
+
 export function DashboardNextAction() {
   const navigate = useNavigate();
-  const [deviceCount, setDeviceCount] = useState<number | null>(null);
-  const [workflowCount, setWorkflowCount] = useState<number | null>(null);
+  const [state, setState] = useState<NextActionState>({ status: "loading" });
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
+    setState({ status: "loading" });
     Promise.all([
-      listDataSources()
-        .then((res) => res.items.length)
-        .catch(() => 0),
-      listAutomationWorkflows()
-        .then((res) => res.items.filter((workflow) => !workflow.archived).length)
-        .catch(() => 0),
-    ]).then(([devices, workflows]) => {
-      setDeviceCount(devices);
-      setWorkflowCount(workflows);
-    });
-  }, []);
+      listDataSources().then((res) => res.items.length),
+      listAutomationWorkflows().then(
+        (res) => res.items.filter((workflow) => !workflow.archived).length,
+      ),
+    ])
+      .then(([deviceCount, workflowCount]) => {
+        setState({ status: "ready", deviceCount, workflowCount });
+      })
+      .catch(() => setState({ status: "error" }));
+  }, [loadAttempt]);
 
-  if (deviceCount === null || workflowCount === null) return null;
+  if (state.status === "loading") {
+    return (
+      <Card className="w-full">
+        <LoadingState
+          title="Checking your next step"
+          description="This should take a few seconds."
+          className="min-h-48 rounded-none border-0 bg-transparent p-0"
+        />
+      </Card>
+    );
+  }
 
-  const hasDevices = deviceCount > 0;
-  const hasWorkflows = workflowCount > 0;
+  if (state.status === "error") {
+    return (
+      <Card className="w-full">
+        <ErrorContentState
+          title="Your next step isn't available"
+          description="Edge Studio couldn't check your devices and workflows."
+          className="min-h-48 rounded-none border-0 bg-transparent p-0"
+          onRetry={() => setLoadAttempt((attempt) => attempt + 1)}
+        />
+      </Card>
+    );
+  }
+
+  const hasDevices = state.deviceCount > 0;
+  const hasWorkflows = state.workflowCount > 0;
   if (hasDevices && hasWorkflows) return null;
 
   const step = hasDevices ? 2 : 1;

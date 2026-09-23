@@ -2,6 +2,8 @@
 
 # Phase 9 — Correctness hardening from the unit-test audit
 
+**Detailed implementation plan:** [Task 707 — Correctness Hardening From The Unit-Test Audit](./707-correctness-hardening-from-the-unit-test-audit.md)
+
 **Covers:** three of the four non-review items from the archived
 `high-risk-business-logic-hardening.md`. Its fourth — the onboarding TOTP QR retry loop — remains
 dormant and is outside this branch. It must be fixed and tested before any future TOTP re-enablement.

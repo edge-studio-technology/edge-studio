@@ -30,6 +30,7 @@ function renderPanel(props: Partial<React.ComponentProps<typeof StampFilePanel>>
       file={null}
       setFile={vi.fn()}
       busy={false}
+      loading={false}
       onStamp={vi.fn()}
       resultRecord={null}
       resultDetails={undefined}
@@ -65,6 +66,13 @@ describe("StampFilePanel", () => {
     renderPanel({ file, busy: true });
 
     expect(screen.getByRole("button", { name: "Stamp file" })).toBeDisabled();
+  });
+
+  it("shows a loading state and hides the result while stamping", () => {
+    renderPanel({ loading: true, resultRecord: record() });
+
+    expect(screen.getByText("Stamping your file")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Stamp result")).not.toBeInTheDocument();
   });
 
   it("does not show a stamp result when resultRecord is null", () => {

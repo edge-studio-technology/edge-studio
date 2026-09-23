@@ -20,6 +20,7 @@ const infoOnDarkButtonClass =
 
 export function WalletHero({
   loading,
+  unavailable = false,
   totalMinima,
   disabled,
   onSend,
@@ -28,6 +29,7 @@ export function WalletHero({
   // onCreateToken,
 }: {
   loading: boolean;
+  unavailable?: boolean;
   totalMinima: string;
   disabled: boolean;
   onSend: () => void;
@@ -35,7 +37,7 @@ export function WalletHero({
   onInfo: () => void;
   // onCreateToken: () => void;
 }) {
-  const balanceBusy = loading || disabled;
+  const balanceBusy = loading;
 
   return (
     <section className="rounded-soft p-pad-tight border-stroke-always-white bg-surface-inverse text-text-inverse before:bg-surface-accent-hover after:bg-surface-accent relative w-full overflow-hidden border before:absolute before:-top-20 before:-right-10 before:size-[260px] before:rounded-full before:opacity-30 before:blur-[64px] after:absolute after:right-40 after:-bottom-28 after:size-[260px] after:rounded-full after:opacity-30 after:blur-[64px]">
@@ -52,10 +54,12 @@ export function WalletHero({
             <MinimaIcon size={32} className="text-icon-inverse shrink-0" />
             <span
               className="type-heading text-text-inverse min-w-0 break-all"
-              title={balanceBusy ? undefined : totalMinima}
+              title={balanceBusy || unavailable ? undefined : totalMinima}
             >
               {balanceBusy ? (
                 <LoadingDots className="scale-125" />
+              ) : unavailable ? (
+                "Unavailable"
               ) : (
                 formatMinimaAmount(totalMinima, 12)
               )}

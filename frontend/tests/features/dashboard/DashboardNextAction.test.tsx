@@ -75,13 +75,13 @@ describe("DashboardNextAction", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders nothing while counts are loading", () => {
+  it("renders an accessible placeholder while counts are loading", () => {
     listDataSources.mockReturnValue(new Promise(() => {}));
     listAutomationWorkflows.mockReturnValue(new Promise(() => {}));
 
-    const { container } = renderNextAction();
+    renderNextAction();
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByRole("status")).toHaveTextContent("Checking your next step");
   });
 
   it("renders nothing once at least one device and one enabled workflow exist", async () => {
@@ -146,12 +146,43 @@ describe("DashboardNextAction", () => {
     expect(await screen.findByText("Create your first workflow")).toBeInTheDocument();
   });
 
-  it("defaults both counts to 0 when the underlying requests fail", async () => {
+  it("shows an error instead of onboarding when the devices request fails", async () => {
     listDataSources.mockRejectedValue(new Error("boom"));
+    listAutomationWorkflows.mockResolvedValue({ items: [workflow()] });
+
+    renderNextAction();
+
+    expect(await screen.findByText("Your next step isn't available")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+    expect(screen.queryByText("Connect a device to get started")).not.toBeInTheDocument();
+    expect(screen.queryByText("Create your first workflow")).not.toBeInTheDocument();
+  });
+
+  it("recovers from a failed load through Retry", async () => {
+    listDataSources
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValueOnce({ items: [] });
+    listAutomationWorkflows.mockResolvedValue({ items: [] });
+
+    renderNextAction();
+
+    expect(await screen.findByText("Your next step isn't available")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(await screen.findByText("Connect a device to get started")).toBeInTheDocument();
+    expect(screen.queryByText("Your next step isn't available")).not.toBeInTheDocument();
+  });
+
+  it("shows an error instead of onboarding when the workflows request fails", async () => {
+    listDataSources.mockResolvedValue({ items: [dataSource()] });
     listAutomationWorkflows.mockRejectedValue(new Error("boom"));
 
     renderNextAction();
 
-    expect(await screen.findByText("Connect a device to get started")).toBeInTheDocument();
+    expect(await screen.findByText("Your next step isn't available")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+    expect(screen.queryByText("Connect a device to get started")).not.toBeInTheDocument();
+    expect(screen.queryByText("Create your first workflow")).not.toBeInTheDocument();
   });
 });

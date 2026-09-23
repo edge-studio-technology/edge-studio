@@ -3,9 +3,13 @@ import type { ReactNode } from "react";
 import { Button } from "../ui/Button";
 import { cx } from "../../lib/cx";
 
-/** Shared panel shell for the empty / loading content states. Keep in sync with `LoadingState`. */
+/**
+ * Shared panel shell for the empty / loading / error content states. It stands in for a whole
+ * content region, so it is always `w-full` — `Page` lays its children out with `items-start`,
+ * which would otherwise shrink the panel to its text width.
+ */
 export const contentStatePanelClass =
-  "border-stroke-secondary bg-surface-primary rounded-soft p-pad-relaxed gap-detail-near flex flex-col items-center justify-center border text-center";
+  "border-stroke-secondary bg-surface-primary rounded-soft p-pad-relaxed gap-detail-near flex w-full flex-col items-center justify-center border text-center";
 
 /**
  * Empty content state: bare glyph, bold title, description, optional action button, on a
