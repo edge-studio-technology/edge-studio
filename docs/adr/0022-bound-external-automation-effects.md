@@ -3,6 +3,10 @@
 **Status:** Accepted
 **Date:** 2026-09-17
 
+The retention classification in this record is amended by
+[ADR 0023](./0023-classify-stored-records-before-applying-retention.md). Its other decisions remain
+accepted.
+
 ## Context
 
 Webhook and MQTT ingestion cross an untrusted boundary into data-source recording and automation
