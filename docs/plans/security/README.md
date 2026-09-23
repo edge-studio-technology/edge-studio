@@ -43,7 +43,7 @@ notes, and tests. This index carries only what's shared across all of them.
 | 4 | Fix the install-time trust chain | Done (2026-09-09) | [phase-4-install-time-trust-chain.md](./phase-4-install-time-trust-chain.md) |
 | 5 | Resource limits | Done (2026-09-09) | [phase-5-resource-limits.md](./phase-5-resource-limits.md) |
 | 6 | Fail closed on weak config | Split: [12] implemented in task 704; [6] image pinning remains open | [phase-6-fail-closed-on-weak-config.md](./phase-6-fail-closed-on-weak-config.md) |
-| 7 | Retention, redaction, budgets | Not started | [phase-7-retention-redaction-budgets.md](./phase-7-retention-redaction-budgets.md) |
+| 7 | Retention, redaction, budgets | Implemented in task 705 (unreleased) | [phase-7-retention-redaction-budgets.md](./phase-7-retention-redaction-budgets.md) |
 | 8 | V1 sign-off remainder | Done (2026-09-18) | [706-v1-sign-off-remainder.md](./706-v1-sign-off-remainder.md) |
 | 9 | Correctness hardening from the unit-test audit | Done (2026-09-21) | [707-correctness-hardening-from-the-unit-test-audit.md](./707-correctness-hardening-from-the-unit-test-audit.md) |
 
@@ -162,7 +162,7 @@ Defaults in force:
 | 10 | `APP_SECRET` migration | no migration; installer never shipped the public default — **decided, adr/0021** | 704 | none |
 | 11 | Dev escape hatch | no bypass; every backend startup requires a non-empty value — **decided, adr/0021** | 704 | low |
 | 12 | Image digest pins | manual bump at release, documented in the release doc | separate pinning task | low |
-| 13 | Retention values | 30 days / 10 000 rows / 500-row batches / hourly + startup pass | 7 | low — configurable |
+| 13 | Retention values | workflow runs/block runs: 30 days / 10 000 rows; deleted inbox: 500-row purge batches; reads/proofs preserved — **decided, adr/0023** | 7 | low |
 | 14 | Webhook token rotation | **do not rotate**; fix the logger and the label only | 7 | low now, rises once logs leave the Pi |
 | 15 | Wallet-trigger budget | reject `cooldownSeconds: 0` on `send_transaction` workflows; 10 runs/hour persisted | 7 | medium — the budget counter is a schema change |
 | 16 | CSRF posture | `SameSite=Strict` + JSON/multipart-only; no tokens | 8 | low — already settled in ADR 0010 |

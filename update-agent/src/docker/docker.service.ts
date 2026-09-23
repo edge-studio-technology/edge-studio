@@ -81,6 +81,7 @@ export function createBodyFromInspect(
       RestartPolicy: options?.oneShot ? { Name: "no" } : inspected.HostConfig.RestartPolicy,
       AutoRemove: options?.oneShot ? true : undefined,
       ExtraHosts: inspected.HostConfig.ExtraHosts,
+      LogConfig: { Type: "json-file", Config: { "max-size": "10m", "max-file": "3" } },
       PortBindings: includePortBindings ? inspected.HostConfig.PortBindings : undefined
     },
     NetworkingConfig: {

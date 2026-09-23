@@ -609,3 +609,57 @@ describe("validateAutomationWorkflow", () => {
     assert.equal(result.ok, true);
   });
 });
+
+describe("validateAutomationDraft — transaction cooldown", () => {
+  function transaction(overrides: Partial<DraftBlock> = {}) {
+    return block({ clientId: "pay", type: "send_transaction", config: { recipientAddressBookId: "r1", tokenId: "0x00", amount: "1" }, ...overrides });
+  }
+
+  function webhookStart(config: Record<string, unknown>, overrides: Partial<DraftBlock> = {}) {
+    return block({ clientId: "start", type: "webhook_event_start", config: { sourceId: "hook1", ...config }, ...overrides });
+  }
+
+  beforeEach(() => {
+    getDataSourceMock.mockReturnValue({ id: "hook1", type: "webhook", config: "{}" });
+    getAddressBookEntryByIdMock.mockReturnValue({ id: "r1" });
+  });
+
+  it("errors on the start block when an event-started transaction workflow has a missing, zero, negative, or fractional cooldown", async () => {
+    for (const cooldownSeconds of [undefined, 0, -1, 1.5]) {
+      const result = await validation.validateAutomationDraft([webhookStart({ cooldownSeconds }), transaction()]);
+      const issue = result.errors.find((error) => error.code === "workflow.transaction_cooldown_required");
+      assert.ok(issue, `expected a cooldown error for ${String(cooldownSeconds)}`);
+      assert.equal(issue.blockId, "start");
+      assert.equal(issue.blockType, "webhook_event_start");
+      assert.equal(result.ok, false);
+    }
+  });
+
+  it("accepts a positive whole-second cooldown for every event start type", async () => {
+    for (const [type, sourceType] of [["webhook_event_start", "webhook"], ["mqtt_event_start", "mqtt"], ["gpio_event_start", "gpio-input"]] as const) {
+      getDataSourceMock.mockReturnValue({ id: "src", type: sourceType, config: "{}" });
+      const result = await validation.validateAutomationDraft([block({ clientId: "start", type, config: { sourceId: "src", cooldownSeconds: 1 } }), transaction()]);
+      expectNoError(result, "workflow.transaction_cooldown_required");
+    }
+  });
+
+  it("allows a zero cooldown when there is no enabled transaction or the start is not an event", async () => {
+    expectNoError(await validation.validateAutomationDraft([webhookStart({ cooldownSeconds: 0 })]), "workflow.transaction_cooldown_required");
+    expectNoError(await validation.validateAutomationDraft([webhookStart({ cooldownSeconds: 0 }), transaction({ enabled: false })]), "workflow.transaction_cooldown_required");
+    expectNoError(await validation.validateAutomationDraft([manualStart(), transaction()]), "workflow.transaction_cooldown_required");
+    expectNoError(await validation.validateAutomationDraft([webhookStart({ cooldownSeconds: 0 }, { enabled: false }), transaction()]), "workflow.transaction_cooldown_required");
+  });
+
+  it("applies the same rule to saved workflows", async () => {
+    const workflow = repository.createAutomationWorkflow({
+      name: "Saved transaction workflow",
+      enabled: true,
+      blocks: [
+        { type: "webhook_event_start", config: { sourceId: "hook1", cooldownSeconds: 0 } },
+        { type: "send_transaction", config: { recipientAddressBookId: "r1", tokenId: "0x00", amount: "1" } }
+      ]
+    });
+
+    expectError(await validation.validateAutomationWorkflow(workflow.id), "workflow.transaction_cooldown_required");
+  });
+});

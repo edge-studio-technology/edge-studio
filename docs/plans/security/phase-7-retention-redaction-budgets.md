@@ -4,12 +4,18 @@
 
 **Covers:** [11], [14], [8], GAP-10.
 
-1. Retention/pruning for `automation_runs`, block runs, inbox items, and `data_source_reads`.
-   Unbounded growth from untrusted push events on a Pi's SD card. Concrete, not "add retention":
-   per-table age cap (30 days) and row cap (10 000 rows, oldest first), whichever hits first;
-   pruned in batches of 500 on an hourly scheduler tick so a large backlog never holds a long write
-   lock; plus one prune pass at startup after migrations, since a Pi that was powered off for a
-   month gets no ticks in the interim. Configurable with hard maxima, same pattern as Phase 5.
+**Status:** Implemented by [task 705](./705-retention-redaction-budgets.md); decisions in
+[adr/0022](../../adr/0022-bound-external-automation-effects.md), with stored-record classification
+amended by [adr/0023](../../adr/0023-classify-stored-records-before-applying-retention.md). Workflow
+diagnostics use fixed limits, visible inbox items and data-source reads are preserved, deleted inbox
+items are purged, and webhook tokens are not rotated.
+
+1. Retention/pruning for stored automation records. Workflow runs and block runs use a
+   30-day age cap and 10,000-row cap, oldest first, in repeated 500-row batches at startup and
+   hourly. Visible inbox items and data-source reads are preserved because they are product data;
+   soft-deleted inbox items are physically purged in the same bounded sweep. Integritas history
+   remains until explicit deletion. The deferred data-source lifecycle must address configuration,
+   export, proof-linked reads, quotas, and disk warnings.
 2. The webhook token is a URL path segment, so it is written verbatim to **two** log streams on
    every delivery: `backend/src/middleware/requestLogger.ts` logs `req.originalUrl`, and the
    `frontend` nginx logs the full request line (`frontend/nginx.conf` sets no `access_log`, and it

@@ -30,6 +30,10 @@ import {
   startSessionCleanupScheduler,
   stopSessionCleanupScheduler,
 } from "./features/auth/session.service.js";
+import {
+  startRetentionScheduler,
+  stopRetentionScheduler,
+} from "./features/retention/retention.service.js";
 import { ensureDeviceId } from "./features/status/device.service.js";
 
 runMigrations();
@@ -41,6 +45,7 @@ startMinimaAutoBackupScheduler();
 startMqttIngestion();
 startGpioIngestion();
 startSessionCleanupScheduler();
+startRetentionScheduler();
 
 const app = createApp();
 
@@ -62,6 +67,7 @@ function shutdown() {
   stopGpioIngestion();
   stopGpioOutputHolders();
   stopSessionCleanupScheduler();
+  stopRetentionScheduler();
   db.close();
   process.exit(0);
 }

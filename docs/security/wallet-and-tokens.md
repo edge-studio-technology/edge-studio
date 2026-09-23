@@ -57,8 +57,16 @@ review rated repeated event-driven execution medium; note the bound on it, which
 state: the recipient is a pre-existing address-book entry and the amount is fixed in block config,
 so an attacker who can drive the trigger cannot choose a destination or amount. The exposure is
 repeated payment to an already-trusted address, plus repeated GPIO/network actions — denial of funds
-and device abuse, not theft. Workflow cooldown defaults to `0` (disabled); Phase 7 requires a
-non-zero cooldown or an execution budget for `send_transaction` blocks.
+and device abuse, not theft.
+
+Phase 7 (task 705) bounds that repetition, closing review finding [8]:
+
+- Workflow validation rejects an enabled `send_transaction` block under a GPIO, webhook, or MQTT start whose cooldown is not a whole number of at least 1 second (`workflow.transaction_cooldown_required`). Execution enforces the same rule for event triggers, so a workflow saved before this change cannot bypass it.
+- Every run that reaches a payment, device output, camera, or stamp block reserves one slot of a fixed 10-runs-per-rolling-hour budget per workflow, before the side effect. Reservations persist in SQLite, survive restarts, apply to every trigger type, count once per run, and are kept when the action fails.
+
+Residual: the budget is per workflow, so several transaction workflows each get their own 10 runs,
+and wallet sends are not serialized across workflows. Global aggregate budgets and wallet
+serialization are deferred ([adr/0022](../adr/0022-bound-external-automation-effects.md)).
 
 ## Wallet Debug Clears (admin, non-production)
 

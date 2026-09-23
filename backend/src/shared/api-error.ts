@@ -31,6 +31,10 @@ export function conflict(res: Response, message: string, context?: Record<string
   return sendApiError(res, 409, appError({ type: "conflict", message, context }), extra);
 }
 
+export function tooManyRequests(res: Response, message: string, context?: Record<string, unknown>, extra: Record<string, unknown> = {}) {
+  return sendApiError(res, 429, appError({ type: "rate_limited", message, context }), extra);
+}
+
 export function dependencyUnavailable(res: Response, message: string, nativeMessage?: string, context?: Record<string, unknown>, extra: Record<string, unknown> = {}) {
   return sendApiError(res, 502, systemError({ type: "dependency_unavailable", message, nativeMessage, context }), extra);
 }

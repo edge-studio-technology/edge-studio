@@ -22,7 +22,11 @@ const stringRules: Array<[RegExp, string]> = [
   // Authorization: Bearer <token>
   [/\b(bearer)\s+[^\s"']+/gi, `$1 ${REDACTED}`],
   // mqtt://user:pass@broker:1883
-  [/([a-z][a-z0-9+.-]*:\/\/)([^/\s:@]+):[^/\s@]+@/gi, `$1$2:${REDACTED}@`]
+  [/([a-z][a-z0-9+.-]*:\/\/)([^/\s:@]+):[^/\s@]+@/gi, `$1$2:${REDACTED}@`],
+  // mqtt://token@broker:1883 — username-only userinfo is often the credential itself.
+  [/([a-z][a-z0-9+.-]*:\/\/)[^/\s:@]+@/gi, `$1${REDACTED}@`],
+  // /api/data-source-webhooks/<token> — the webhook bearer token is a path segment.
+  [/(\/api\/data-source-webhooks\/)[^/?#\s"']+/gi, `$1${REDACTED}`]
 ];
 
 export function redactSecrets(value: string): string {

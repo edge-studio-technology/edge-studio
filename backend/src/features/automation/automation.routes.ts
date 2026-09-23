@@ -3,6 +3,10 @@ import path from "node:path";
 import { Router } from "express";
 import { env } from "../../config/env.js";
 import { requireRole } from "../auth/auth.middleware.js";
+import { automationWriteRateLimiter } from "../auth/rate-limit.middleware.js";
+import { getAddressBookEntryById } from "../address-book/address-book.repository.js";
+import { getDataSource } from "../data-sources/dataSources.repository.js";
+import { parseGpioOutputConfig } from "../data-sources/dataSources.service.js";
 import { syncGpioDataSources } from "../data-sources/gpioIngestion.service.js";
 import { syncMqttDataSources } from "../data-sources/mqttIngestion.service.js";
 import { createAutomationBlock, createAutomationWorkflow, deleteAutomationBlock, deleteAutomationWorkflow, duplicateAutomationWorkflow, getAutomationWorkflow, listAutomationBlocks, listAutomationWorkflows, reorderAutomationBlocks, replaceAutomationStartBlock, updateAutomationBlock, updateAutomationWorkflow, type AutomationBlockType } from "./automation.repository.js";
@@ -10,10 +14,12 @@ import { getSerializedAutomationRun, listSerializedAutomationRuns, listSerialize
 import { AUTOMATION_RUN_LIST_STATUSES, countAutomationRuns } from "./automationRuns.repository.js";
 import { countAutomationInboxItems, deleteAutomationInboxItem, getAutomationInboxItem, listAutomationInboxItems, setAutomationInboxItemRead, type AutomationInboxFormat } from "./automationInbox.repository.js";
 import { validateAutomationDraft, validateAutomationWorkflow, type AutomationDraftValidationBlock } from "./automation.validation.js";
-import { badRequest, dependencyUnavailable, notFound, validationFailed } from "../../shared/api-error.js";
+import { badRequest, dependencyUnavailable, notFound, tooManyRequests, validationFailed } from "../../shared/api-error.js";
 import { parseListQuery, toPaginatedResult } from "../../shared/list-query.js";
 
 export const automationRouter = Router();
+
+automationRouter.use(automationWriteRateLimiter);
 
 automationRouter.get("/inbox", (req, res) => {
   const status: "read" | "unread" | "all" = req.query.status === "read" || req.query.status === "unread" || req.query.status === "all" ? req.query.status : "all";
@@ -282,9 +288,14 @@ automationRouter.post("/workflows/:id/run", requireRole("admin"), async (req, re
     return res.json(result);
   } catch (error) {
     const errorWorkflow = error && typeof error === "object" && "workflow" in error ? (error as { workflow: unknown }).workflow : null;
+    if (isBudgetExhausted(error)) return tooManyRequests(res, error.message, { workflowId: workflow.id, nextAvailableAt: error.nextAvailableAt }, { workflow: errorWorkflow });
     return dependencyUnavailable(res, error instanceof Error ? error.message : "Automation workflow failed", error instanceof Error ? error.message : undefined, { workflowId: workflow.id }, { workflow: errorWorkflow });
   }
 });
+
+function isBudgetExhausted(error: unknown): error is Error & { nextAvailableAt: string } {
+  return error instanceof Error && (error as { code?: unknown }).code === "WORKFLOW_RUN_BUDGET_EXHAUSTED";
+}
 
 function defaultManualTriggerPayload(workflowId: string, workflowName: string) {
   return {

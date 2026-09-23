@@ -3,7 +3,7 @@ import { env } from "../../config/env.js";
 import { dataSourceError, errorFromUnknown } from "../../shared/structured-error.js";
 import { listEnabledEventWorkflows, type AutomationWorkflowRecord } from "../automation/automation.repository.js";
 import { recordPushAutomationPayload } from "../automation/automation.service.js";
-import { createDataSourceRead } from "../data-reads/dataReads.repository.js";
+import { createDataSourceRead, dataSourceReference } from "../data-reads/dataReads.repository.js";
 import { listDataSources, updateDataSourceReadResult, type DataSourceRecord } from "./dataSources.repository.js";
 import { parseMqttConfig, processMqttPayload } from "./dataSources.service.js";
 
@@ -67,7 +67,7 @@ function connectMqttSource(source: DataSourceRecord, workflow: AutomationWorkflo
 
   client.on("message", (_topic, payload) => {
     handleMqttMessage(source, workflow, config, payload).catch((error: Error) => {
-      if ("code" in error && (error.code === "WORKFLOW_ALREADY_RUNNING" || error.code === "WORKFLOW_COOLDOWN_ACTIVE" || error.code === "WORKFLOW_EVENT_INACTIVE")) return;
+      if ("code" in error && (error.code === "WORKFLOW_ALREADY_RUNNING" || error.code === "WORKFLOW_COOLDOWN_ACTIVE" || error.code === "WORKFLOW_EVENT_INACTIVE" || error.code === "WORKFLOW_RUN_BUDGET_EXHAUSTED")) return;
       console.error(`MQTT workflow ${workflow.id} failed for source ${source.id}: ${error.message}`);
     });
   });
@@ -79,13 +79,13 @@ function connectMqttSource(source: DataSourceRecord, workflow: AutomationWorkflo
   return client;
 }
 
-function recordMqttIngestFailure(source: DataSourceRecord, workflow: AutomationWorkflowRecord, config: { brokerUrl: string; topic: string }, details: ReturnType<typeof dataSourceError>) {
+function recordMqttIngestFailure(source: DataSourceRecord, workflow: AutomationWorkflowRecord, details: ReturnType<typeof dataSourceError>) {
   updateDataSourceReadResult(source.id, { error: details });
   createDataSourceRead({
     dataSourceId: source.id,
     workflowId: workflow.id,
     sourceName: source.name,
-    sourceUrl: `${config.brokerUrl} ${config.topic}`,
+    sourceUrl: dataSourceReference(source.id),
     triggerType: "mqtt",
     status: "failed",
     error: details,
@@ -98,7 +98,7 @@ async function handleMqttMessage(source: DataSourceRecord, workflow: AutomationW
   // parse an arbitrarily large payload just by publishing it.
   if (payload.byteLength > env.mqttMaxPayloadBytes) {
     const message = `MQTT payload exceeded the ${env.mqttMaxPayloadBytes} byte limit`;
-    recordMqttIngestFailure(source, workflow, config, dataSourceError({
+    recordMqttIngestFailure(source, workflow, dataSourceError({
       type: "invalid_payload",
       message,
       nativeMessage: message,
@@ -111,9 +111,9 @@ async function handleMqttMessage(source: DataSourceRecord, workflow: AutomationW
   try {
     parsed = JSON.parse(payload.toString("utf8")) as unknown;
   } catch (error) {
-    recordMqttIngestFailure(source, workflow, config, dataSourceError({ type: "invalid_payload", ...errorFromUnknown(error, "MQTT payload was not valid JSON", { sourceId: source.id, topic: config.topic }), message: "MQTT payload was not valid JSON" }));
+    recordMqttIngestFailure(source, workflow, dataSourceError({ type: "invalid_payload", ...errorFromUnknown(error, "MQTT payload was not valid JSON", { sourceId: source.id, topic: config.topic }), message: "MQTT payload was not valid JSON" }));
     return;
   }
   const result = processMqttPayload(parsed);
-  await recordPushAutomationPayload({ workflow, dataSource: source, sourceUrl: `${config.brokerUrl} ${config.topic}`, triggerType: "mqtt", result });
+  await recordPushAutomationPayload({ workflow, dataSource: source, triggerType: "mqtt", result });
 }
