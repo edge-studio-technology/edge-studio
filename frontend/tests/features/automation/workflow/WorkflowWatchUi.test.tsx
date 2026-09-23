@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../../helpers/expectRowActionsPinned";
 import {
   WatchRunControls,
   WatchRunHistory,
@@ -337,6 +338,7 @@ describe("WatchRunHistory", () => {
     expect(within(table).getByText("manual")).toBeInTheDocument();
     expect(within(table).getByText("success")).toBeInTheDocument();
     expect(within(table).getByText("1/1")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table"), "Details");
   });
 
   it("calls onSelectRun when 'Show on canvas' is clicked", async () => {

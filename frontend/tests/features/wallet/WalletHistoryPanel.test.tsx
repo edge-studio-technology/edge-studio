@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { WalletHistoryPanel } from "../../../src/features/wallet/WalletHistoryPanel";
 import { ToastProvider } from "../../../src/components/ToastProvider";
 import type { WalletSendHistoryItem } from "../../../src/features/wallet/walletTypes";
@@ -87,6 +88,7 @@ describe("WalletHistoryPanel", () => {
     const table = screen.getByRole("table", { name: "Send history" });
     expect(within(table).getByText("Failed")).toBeInTheDocument();
     expect(within(table).getByText("Submitted")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table"));
   });
 
   it("filters by status", async () => {
