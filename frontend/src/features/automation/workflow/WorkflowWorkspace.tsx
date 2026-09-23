@@ -129,7 +129,7 @@ export function WorkflowWorkspace({
   const [draftBlock, setDraftBlock] = useState<DraftWorkflowBlock | null>(null);
   const [draftRevealErrors, setDraftRevealErrors] = useState(false);
   const inspectorRef = useRef<PersistedBlockInspectorHandle>(null);
-  const nameSaveTimerRef = useRef<number | null>(null);
+  const lastSubmittedNameRef = useRef(workflow.name);
   /** Edit-session pause: pause once per workflow after the first real edit. */
   const editPauseSessionRef = useRef<{
     workflowId: string;
@@ -199,13 +199,8 @@ export function WorkflowWorkspace({
   // Sync local name when switching workflows only — avoid clobbering in-progress typing after auto-save.
   useEffect(() => {
     setWorkflowName(workflow.name);
+    lastSubmittedNameRef.current = workflow.name;
   }, [workflow.id]); // eslint-disable-line react-hooks/exhaustive-deps -- workflow.name intentionally omitted
-
-  useEffect(() => {
-    return () => {
-      if (nameSaveTimerRef.current != null) window.clearTimeout(nameSaveTimerRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     setPausedForEditNotice(false);
@@ -313,29 +308,12 @@ export function WorkflowWorkspace({
 
   const workflowNameError = !workflowName.trim() ? "Workflow name is required." : undefined;
 
-  function clearNameSaveTimer() {
-    if (nameSaveTimerRef.current == null) return;
-    window.clearTimeout(nameSaveTimerRef.current);
-    nameSaveTimerRef.current = null;
-  }
-
   function saveWorkflowNameIfNeeded(nextName = workflowName) {
-    clearNameSaveTimer();
     const trimmed = nextName.trim();
-    if (!trimmed || trimmed === workflow.name) return;
+    if (!trimmed || trimmed === workflow.name || trimmed === lastSubmittedNameRef.current) return;
+    lastSubmittedNameRef.current = trimmed;
     pauseForEditIfNeeded();
     onUpdateWorkflow({ name: trimmed });
-  }
-
-  function scheduleWorkflowNameSave(nextName: string) {
-    clearNameSaveTimer();
-    const trimmed = nextName.trim();
-    if (!trimmed || trimmed === workflow.name) return;
-    nameSaveTimerRef.current = window.setTimeout(() => {
-      nameSaveTimerRef.current = null;
-      pauseForEditIfNeeded();
-      onUpdateWorkflow({ name: trimmed });
-    }, 500);
   }
 
   function pauseForEditIfNeeded() {
@@ -364,9 +342,18 @@ export function WorkflowWorkspace({
               const next = event.target.value;
               setWorkflowName(next);
               if (next.trim() && next.trim() !== workflow.name) pauseForEditIfNeeded();
-              scheduleWorkflowNameSave(next);
             }}
-            onBlur={() => saveWorkflowNameIfNeeded()}
+            onBlur={(event) => saveWorkflowNameIfNeeded(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                saveWorkflowNameIfNeeded(event.currentTarget.value);
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                setWorkflowName(workflow.name);
+              }
+            }}
             placeholder="Workflow name"
             error={workflowNameError}
           />

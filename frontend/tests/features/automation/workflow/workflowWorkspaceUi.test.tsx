@@ -162,6 +162,33 @@ describe("WorkflowValidationPanel", () => {
     expect(screen.getByText(/Missing source/)).toBeInTheDocument();
     expect(screen.getByText("Low balance")).toBeInTheDocument();
   });
+
+  it("does not clip long validation issue lists inside the panel", async () => {
+    render(
+      <WorkflowValidationPanel
+        validation={{
+          ok: false,
+          errors: [
+            { level: "error", code: "recipient", message: "Recipient is required" },
+            { level: "error", code: "amount", message: "Amount is required" },
+            { level: "error", code: "source", message: "Source is required" },
+          ],
+          warnings: [
+            { level: "warning", code: "wallet", message: "Wallet action warning" },
+            { level: "warning", code: "hardware", message: "Hardware action warning" },
+            { level: "warning", code: "review", message: "Review before enabling" },
+          ],
+        }}
+      />,
+    );
+
+    await userEvent.click(screen.getByText("Validation"));
+
+    const panel = screen.getByText("Validation").closest("section");
+    expect(panel).not.toHaveClass("max-h-[320px]");
+    expect(panel).not.toHaveClass("overflow-hidden");
+    expect(screen.getByText("Review before enabling")).toBeInTheDocument();
+  });
 });
 
 describe("SelectedBlockSheet", () => {

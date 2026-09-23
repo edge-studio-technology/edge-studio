@@ -238,16 +238,30 @@ describe("WorkflowWorkspace edit mode", () => {
     ).toBeInTheDocument();
   });
 
-  it("debounce-saves the name 500ms after the last keystroke", async () => {
+  it("does not save the name while typing and commits it on Enter", async () => {
     const onUpdateWorkflow = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({ onUpdateWorkflow });
 
-    await user.type(screen.getByRole("textbox", { name: "Workflow name" }), " v2");
+    const nameField = screen.getByRole("textbox", { name: "Workflow name" });
+    await user.type(nameField, " v2");
     expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ name: "Front gate flow v2" });
 
-    await vi.advanceTimersByTimeAsync(500);
+    await user.keyboard("{Enter}");
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ name: "Front gate flow v2" });
+  });
+
+  it("reverts an uncommitted name edit on Escape", async () => {
+    const onUpdateWorkflow = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({ onUpdateWorkflow });
+
+    const nameField = screen.getByRole("textbox", { name: "Workflow name" });
+    await user.type(nameField, " v2");
+    await user.keyboard("{Escape}");
+
+    expect(nameField).toHaveValue("Front gate flow");
+    expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ name: "Front gate flow v2" });
   });
 
   it("activates a paused workflow via the status button", async () => {
