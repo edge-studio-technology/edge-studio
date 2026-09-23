@@ -1,8 +1,9 @@
 # Responsive Application Plan
 
-**Status:** Planning — open questions pending
+**Status:** Planned — decisions recorded; implementation not started
 **Created:** 2026-09-23
 **Branch:** `feature/667-responsive-application`
+**Decision record:** `docs/adr/0023-responsive-layout-strategy.md`
 **Goal:** Make the whole app usable on Pi/laptop screens down to 1024x768, and on tablet widths, without a phone-first redesign.
 
 ## Tracked Tasks
@@ -20,8 +21,8 @@ OpenProject feature **#667 Responsive application** (status *In specification*).
 | #700 | Dev Task | Fullscreen console hard to exit on tablet | In progress | [7](#7-minima-console-fullscreen-exit-700) |
 | #701 | Dev Task | Settings hard to reach on tablet | In progress | [8](#8-hardware-modal--account-page-701) |
 | #269 | Task | Responsive Layout Regression (Unit Testing) | In progress | [9](#9-responsive-regression-tests-269) |
+| — (new, to add under #667) | Dev Task | Sidebar overlays content when expanded below 1024 | — | [10](#10-sidebar-overlay-below-1024-new-task) |
 
-- [ ] #694 Workflow create/edit
 - [ ] #695 Dashboard metric grid
 - [x] #696 List toolbars — merged as `6c4455e` (#115), already on this branch
 - [ ] #697 Wide tables (spike → decision → implementation)
@@ -29,7 +30,9 @@ OpenProject feature **#667 Responsive application** (status *In specification*).
 - [ ] #699 Dashboard live activity rows
 - [ ] #700 Minima console fullscreen exit
 - [ ] #701 Hardware modal / Account page
+- [ ] Sidebar overlay below 1024 (new task, not yet on OpenProject)
 - [ ] #269 Regression tests
+- [ ] #694 Workflow create/edit — **deferred to last**; blocked on co-worker sync (see [Deferred: workflow workspace](#deferred-workflow-workspace-694))
 
 ## Context
 
@@ -57,9 +60,11 @@ Per-area findings are listed in each section below.
 
 ### 1. Workflow create/edit (#694)
 
+> **Deferred to last.** Do not start until the co-worker sync in [Deferred: workflow workspace](#deferred-workflow-workspace-694) has happened. The approach below is the starting point, to be re-checked against whatever has landed on those files by then.
+
 **Current:** In `WorkflowWorkspaceShell.tsx`, `rightRailClass` is `absolute … w-[360px]` and always rendered. `WorkflowCanvas.tsx` reserves space for it with `pr-[calc(360px+…)]` on the lane and on the status pill, and the shell's `bottom` slot uses `right-[calc(360px+…)]`. `SelectedBlockSheet` (`workflowWorkspaceUi.tsx`) is a portal with `fixed inset-0 z-[70]`, `max-w-[400px]`, and covers the sidebar too. Both `CreateWorkflowWorkspace.tsx` and `WorkflowWorkspace.tsx` use this shell. At 1024 with the sidebar expanded, the canvas gets ~344px.
 
-**Plan:**
+**Plan (ADR 0023):**
 
 - Make the workspace a container (`@container` on `workspaceClass`) and switch rail behaviour on the **workspace width**, not the viewport. This fixes 1024+expanded-sidebar and 768 with one rule.
 - Wide workspace: unchanged. The rail stays pinned and the canvas keeps its right padding.
@@ -72,7 +77,7 @@ Watch mode (`WorkflowWatchUi.tsx`) shares the shell. The ticket keeps it out of 
 
 ### 2. Dashboard metric grid (#695)
 
-`DashboardDevices.tsx:122` uses `grid-cols-2 xl:grid-cols-3`. The ticket asks for `grid-cols-1 md:grid-cols-2 xl:grid-cols-3`. There are **7** cards, not six. At 1024 with the sidebar expanded, `md:` applies but the content is ~624px, so two columns still truncate the wallet amount. **Recommendation:** use a container query on the grid wrapper (`@container` + `@md:grid-cols-2 @4xl:grid-cols-3` or similar) for the same reason as §1. `DashboardDevices.test.tsx` already exists; add a class assertion only if we keep viewport classes.
+`DashboardDevices.tsx:122` uses `grid-cols-2 xl:grid-cols-3`. The ticket asks for `grid-cols-1 md:grid-cols-2 xl:grid-cols-3`. There are **7** cards, not six. At 1024 with the sidebar expanded, `md:` applies but the content is ~624px, so two columns still truncate the wallet amount. **Decision (ADR 0023):** use a container query on the grid wrapper (`@container` + `@md:grid-cols-2 @4xl:grid-cols-3` or similar) for the same reason as §1. `DashboardDevices.test.tsx` already exists; add a class assertion only if we keep viewport classes.
 
 ### 3. List toolbars (#696) — Done
 
@@ -82,7 +87,9 @@ Merged in `6c4455e` and already on this branch. No work planned; spot-check it d
 
 **Current:** Seven tables, not three, set `min-w-245` (980px) when more than three columns are visible: `IntegritasHistoryTable`, `DataReadsHistoryTable`, `AutomationRunsTable`, `AutomationWorkflowsList`, `AutomationInboxTable`, `DataSourcesList`, `WalletHistoryPanel`. With the content widths above, **every one of them scrolls sideways at 1024 and 768**, and even at 1023. Already shipped: a per-table column picker with backend-saved preferences (spike option 3, `docs/plans/archive/table-column-visibility.md`), left/right scroll-edge shadows in `TableWrap`, and column resize. Every table uses the column id `"actions"` for its row-action column. The operator can hide that column.
 
-**Spike recommendation:** option 1+, which is keep the horizontal scroll and make the `actions` column `position: sticky; right: 0` with an opaque background and a left-edge shadow. Build it once in the shared primitives, for example a `sticky` prop on `TableHeaderCell`/`TableCell` in `components/patterns/DataTable.tsx`, and pass it where `column.id === "actions"`. When the operator hides the actions column, nothing is sticky. Move the right-edge scroll gradient so it does not paint over the sticky column. Do **not** make the first column sticky: Integritas has a `select` checkbox column first, and freezing two left columns uses up the width we are trying to free. Options 2 (expand row) and 4 (cards) are a rebuild for a non-goal (phone).
+**Spike decision (ADR 0023):** option 1+, which is keep the horizontal scroll and make the `actions` column `position: sticky; right: 0` with an opaque background and a left-edge shadow. Build it once in the shared primitives, for example a `sticky` prop on `TableHeaderCell`/`TableCell` in `components/patterns/DataTable.tsx`, and pass it where `column.id === "actions"`. When the operator hides the actions column, nothing is sticky. Move the right-edge scroll gradient so it does not paint over the sticky column. Do **not** make the first column sticky: Integritas has a `select` checkbox column first, and freezing two left columns uses up the width we are trying to free. Options 2 (expand row) and 4 (cards) are a rebuild for a non-goal (phone).
+
+Record the decision as a comment on the #697 spike ticket.
 
 Tests: in each table's existing test, assert that the actions cells carry the sticky class, or test it once in a `DataTable` pattern test.
 
@@ -90,7 +97,7 @@ Tests: in each table's existing test, assert that the actions cells carry the st
 
 **Current:** `StatusBar.tsx` shows two status pills (Node, Integritas) on the left, and `Clock` on the right as two pills (`Local …`, `UTC …`) with `shrink-0`. The shell hides the bar on `fullBleed` routes.
 
-**Plan:** add `flex-wrap` to the outer row and give the clock `ml-auto`. The clock drops to a second row only when there is no room, the status pills never wrap within themselves, and the bar never goes past two rows. This keeps the clock visible, which matters for workflow scheduling (frontend rule: "show local and UTC time where scheduling clarity matters"). The ticket's `hidden md:block` would still show the clock at exactly 768 (`md` = 768) and would hide it on phones only. Test: extend `StatusBar.test.tsx` only if we hide something.
+**Decision (ADR 0023):** add `flex-wrap` to the outer row and give the clock `ml-auto`. The clock drops to a second row only when there is no room, the status pills never wrap within themselves, and the bar never goes past two rows. This keeps the clock visible, which matters for workflow scheduling (frontend rule: "show local and UTC time where scheduling clarity matters"). The ticket's `hidden md:block` would still show the clock at exactly 768 (`md` = 768) and would hide it on phones only. Test: extend `StatusBar.test.tsx` only if we hide something.
 
 ### 6. Dashboard live activity rows (#699)
 
@@ -110,39 +117,78 @@ Tests: in each table's existing test, assert that the actions cells carry the st
 
 **Stale premises:** the ticket assumes a "mobile nav visible below lg" (none exists; the sidebar collapses to a rail) and a 375px mobile target (parent: "phone-first is not a goal"). happy-dom does not compute layout, media queries beyond stubbed `matchMedia`, or container queries, so "all screen-level layouts at each viewport" cannot be unit-tested here.
 
-**Proposed rescope:**
+**Rescope (decided; recorded as a ticket comment, description left unchanged):**
 
 - Unit (happy-dom): sidebar collapse at <1024 / expand at ≥1024 via stubbed `matchMedia` (check `AppShellSidebar.test.tsx` covers both), all 9 nav items render with accessible names when collapsed, and the behaviour tests from §1, §4, §7.
 - Manual matrix (documented here, run once before merge): 1280x800, 1024x768 (sidebar expanded and collapsed), 768x1024. Record overflow issues below.
-- Out: 375px and Playwright/visual regression, unless the answer to Q1 changes this.
+- Out: 375px, the mobile-nav items, and Playwright/visual regression.
 
-## Open Questions
+### 10. Sidebar overlay below 1024 (new task)
 
-1. **Target floor.** The parent says the minimum is 1024x768 and phone is not a goal. The children test at 768 wide and #269 says 375. Proposal: **768 wide is the layout floor** (tablet portrait), 1024x768 is the primary target, and below 768 must only "not break" (no fixes planned). OK?
-2. **Container vs viewport queries.** Because 1024+expanded sidebar ≈ 768+collapsed rail, I recommend container queries for the workflow workspace (§1), the metric grid (§2), and possibly the hardware modal (§8). The alternative is viewport `lg:` as the tickets say, which leaves 1024 with the default expanded sidebar broken. Agree?
-3. **Sidebar at 1024.** Should 1024 itself default to the collapsed rail (move `EXPAND_MQ` to `min-width: 1280px`), and/or should a manually expanded sidebar below the threshold **overlay** the content instead of pushing it? Either fixes most issues at the root. This is not in any ticket; add to #667 or leave?
-4. **#694 drawer form.** Right-side overlay drawer with a top-bar "Toolkit" toggle (my recommendation), or a bottom panel? Auto-close after adding a block? The ticket title says "below 360"; I read it as "below 1024". Confirm.
-5. **#697 decision.** Sticky `actions` column only, applied to all 7 `min-w-245` tables through the shared primitive (my recommendation), or only the 3 named tables? Also: sticky first/identity column (not recommended)?
-6. **#698 clock.** Wrap to a second row when cramped (recommended, clock always visible) or hide the clock below a breakpoint as the ticket suggests?
-7. **#269 rescope.** Accept the unit-vs-manual split in §9 and drop the 375/mobile-nav items? If so, I'll update the ticket description after you confirm.
-8. **Plan path convention.** The OpenProject skill says plan docs live at `docs/plans/<ticket>-<slug>.md`. With the new `docs/plans/features/` (and existing `bugs/`), should I update the skill text (plus its `.agents`/`.cursor` counterparts) to point at `docs/plans/{features,bugs}/`?
-9. **Branch overlap.** `origin/workflow-bug-fix` (`5114fbc`, not merged) edits `WorkflowWorkspace.tsx`. Rebase onto it or merge it first if it lands on `dev` before #694 starts. `docs/plans/workflow-redesign.md` (In progress) also lists "mobile/tablet: drawer toolkit, full-screen sheet" as pending. #694 would close that item there too.
+Not in any existing ticket; propose it in a #667 comment; creating the ticket is left to the team. In `AppShellSidebar.tsx` / `AppShell.tsx`, when the viewport is below `EXPAND_MQ` and the operator expands the sidebar, render it as an overlay over `main` (fixed/absolute, keeping the 80px rail's space in the flex flow) instead of widening in flow. Close it on navigation, on Escape, and on a click outside. `EXPAND_MQ` stays at `min-width: 1024px`. Tests: extend `AppShellSidebar.test.tsx` with stubbed `matchMedia` below 1024 so that expanding sets the overlay state and navigation or Escape collapses it.
 
-## Proposed order
+## Decisions
 
-1. Resolve Q1–Q3, which set the approach for everything else.
-2. Quick wins: #695, #698, #699, #700 → verify: unit tests + manual check at matrix sizes.
-3. #697: shared sticky-actions primitive, then apply to tables → verify: table tests + manual horizontal scroll at 768/1024.
-4. #694: workspace container + drawer + sheet → verify: create + edit at 1024 (both sidebar states) and 768, adding a start block, and opening/closing a sheet.
-5. #701: repro, then minimal fix.
-6. #269: tests + manual matrix run; record results here.
+All resolved 2026-09-23; rationale in `docs/adr/0023-responsive-layout-strategy.md`.
+
+1. **Target floor:** 1024x768 is the primary target and 768 wide is the layout floor. Below 768 the app must only "not break"; no dedicated layouts.
+2. **Container vs viewport queries:** container queries for the regions whose width depends on the sidebar (workflow workspace, metric grid, Hardware support modal); viewport breakpoints everywhere else.
+3. **Sidebar:** a sidebar the operator expands below 1024 overlays the content (new task, §10). `EXPAND_MQ` stays at 1024.
+4. **#694 drawer:** a right-side overlay drawer with a top-bar "Toolkit" toggle. It closes after a block is added, on Escape, and on a click outside. The block settings sheet goes full-width. The title "below 360" means "below 1024"; note this in a ticket comment and leave the title unchanged.
+5. **#697:** sticky `actions` column via the shared `DataTable` primitive, applied to all 7 `min-w-245` tables. No sticky first column. `min-w-245` stays.
+6. **#698:** the clock wraps to a second row; it is never hidden.
+7. **#269:** unit tests for behaviour plus a manual viewport matrix. 375px, mobile nav, and Playwright are dropped.
+8. **Plan path convention:** update the OpenProject skill text (plus the `.agents`/`.cursor` counterparts) to `docs/plans/{features,bugs}/<ticket>-<slug>.md`.
+9. **Workflow overlap:** handled by deferring #694 (below).
+
+### OpenProject: comments only
+
+Original ticket fields (title, description, status) are left unchanged so the audit trail is preserved. Decisions and corrections go into each ticket as activity comments, with no @-mentions. Posted 2026-09-23 (activities 4505–4513):
+
+- #667: summary of the audit findings, the decisions, the ADR/plan paths, and a proposed new sub-task (sidebar overlay below 1024).
+- #694: the title means below 1024, not below 360. Container-query drawer approach. Deferred to last pending a co-worker sync.
+- #695: there are 7 cards, not 6. Container query instead of `md:`.
+- #697: spike outcome. Sticky `actions` column on all 7 `min-w-245` tables.
+- #698: the clock wraps to a second row instead of being hidden.
+- #699: the empty-state note is stale (now `EmptyContentState`).
+- #700: labelled Exit button at all widths.
+- #701: verify first; the modal body already scrolls.
+- #269: rescope to unit behaviour tests plus a manual matrix; drop 375px and the mobile nav.
+
+## Deferred: workflow workspace (#694)
+
+Only **#694** edits the workflow create/edit/watch workspace files. Co-workers are active there in other branches, and `docs/plans/workflow-redesign.md` is in progress. So #694 is scheduled **last** and gated on a status check with those co-workers before starting.
+
+Files #694 will touch, all under `frontend/src/features/automation/workflow/`:
+
+- `chrome/WorkflowWorkspaceShell.tsx`: container, drawer, toggle.
+- `canvas/WorkflowCanvas.tsx`: remove the fixed 360px right padding below the breakpoint.
+- `workflowWorkspaceUi.tsx`: `SelectedBlockSheet` full-width.
+- `CreateWorkflowWorkspace.tsx`, `WorkflowWorkspace.tsx`: close the drawer after a block is added (only if the shell can't own this).
+- Tests under `frontend/tests/features/automation/workflow/`.
+
+**Other tasks do not edit workspace files**, but two of them change what the workspace renders:
+
+- §4 sticky actions: changes `components/patterns/DataTable.tsx` / `TableWrap`, which the watch-mode history table (`WorkflowWatchUi.tsx`) uses. The sticky prop is opt-in per cell and that table is not a `min-w-245` table, so there is no file change there. The only visible effect is the edge-shadow adjustment.
+- §10 sidebar overlay: workspace routes render inside `AppShell` (`fullBleed`), so the overlay appears there too. `AppShell.tsx` / `AppShellSidebar.tsx` only; no workspace file changes.
+
+Before starting #694: sync with the co-workers, rebase onto whatever has landed on `dev`, then re-check the plan in §1 against the current shell.
+
+## Order
+
+1. Quick wins: #695, #698, #699, #700 → verify: unit tests + manual check at matrix sizes.
+2. #697: shared sticky-actions primitive, then the 7 tables → verify: table tests + manual horizontal scroll at 768/1024.
+3. §10 sidebar overlay → verify: sidebar tests + manual expand at 768.
+4. #701: repro, then minimal fix.
+5. #269: tests + manual matrix run (excluding workflow create/edit); record results here.
+6. **#694, last**, after the co-worker sync → verify: create + edit + watch at 1024 (sidebar expanded and collapsed) and 768; add a start block, open/close a sheet; rerun the #269 matrix on workflow routes.
 
 ## Docs
 
 - `CHANGELOG.md`: `## [Unreleased] feature/667-responsive-application` with `Changed` entries per user-visible fix.
-- `docs/frontend-design-system.md`: note the sticky table column primitive and the container-query convention if adopted (Q2).
+- `docs/frontend-design-system.md`: note the sticky table column primitive and the container-query convention.
 - `docs/plans/workflow-redesign.md`: mark the mobile/tablet toolkit/sheet item done once #694 lands.
-- ADR only if Q2/Q3 choose container queries or change the sidebar threshold (non-obvious rationale: 1024 content width ≈ 768).
+- ADR: `docs/adr/0023-responsive-layout-strategy.md` (written). Update it if implementation changes a decision.
 - `docs/SESSION.md` / `docs/TASKS.md` via `session-notes`.
 - No README/SECURITY change expected (layout only).
 
