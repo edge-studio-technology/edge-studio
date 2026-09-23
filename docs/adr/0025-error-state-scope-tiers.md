@@ -1,4 +1,4 @@
-# 0022: Error State Scope Tiers
+# 0025: Error State Scope Tiers
 
 **Status:** Accepted
 **Date:** 2026-09-22
