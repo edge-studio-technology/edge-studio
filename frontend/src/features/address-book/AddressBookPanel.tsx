@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Eye, Inbox, Plus, UserPlus } from "lucide-react";
 import {
   DataTable,
@@ -13,27 +13,42 @@ import {
   TableWrap,
 } from "../../components/DataTable";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
-import { DeleteConfirmModal, DeleteProgressModal } from "../../components/patterns/DeleteConfirmModal";
+import {
+  DeleteConfirmModal,
+  DeleteProgressModal,
+} from "../../components/patterns/DeleteConfirmModal";
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
+import { describeLoadFailure } from "../../lib/errors";
 import { LoadingState } from "../../components/patterns/LoadingState";
+import {
+  applyColumnFilters,
+  orderedColumns,
+  TableColumnFilterSummary,
+  TableColumnVisibilityButton,
+  type TableColumnDefinition,
+} from "../../components/patterns/TableColumnVisibility";
+import { TableControls } from "../../components/patterns/TableControls";
 import { Button } from "../../components/ui/Button";
 import { InputField } from "../../components/ui/InputField";
 import { Modal } from "../../components/ui/Modal";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { useToast } from "../../components/ToastProvider";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
+import { formatLocalDateTime } from "../../lib/time";
+import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 import {
   createAddressBookEntry,
   deleteAddressBookEntry,
   listAddressBookEntries,
   updateAddressBookEntry,
 } from "./addressBookApi";
+import { AddContactModal } from "./AddContactModal";
 import type {
   AddressBookEntry,
-  CreateAddressBookEntryInput,
   UpdateAddressBookEntryInput,
 } from "./addressBookTypes";
 
@@ -41,6 +56,14 @@ const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
   value: String(size),
   label: String(size),
 }));
+
+const ADDRESS_BOOK_COLUMNS = [
+  { id: "name", label: "Name", filterable: true },
+  { id: "address", label: "Address", filterable: true },
+  { id: "notes", label: "Notes", filterable: true },
+  { id: "created", label: "Created", defaultVisible: false },
+  { id: "actions", label: "Actions", dataColumn: false },
+] as const satisfies readonly TableColumnDefinition[];
 
 function sortByLabel(entries: AddressBookEntry[]): AddressBookEntry[] {
   return [...entries].sort((a, b) =>
@@ -61,28 +84,46 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
   const [editEntry, setEditEntry] = useState<AddressBookEntry | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AddressBookEntry | null>(null);
   const [deletingEntry, setDeletingEntry] = useState<AddressBookEntry | null>(null);
+  const { visibility, columnOrder, filters, setVisibility, setColumnOrder, setFilters } = useTableColumnVisibility(
+    "address-book",
+    ADDRESS_BOOK_COLUMNS,
+  );
+  const visibleColumns = orderedColumns(ADDRESS_BOOK_COLUMNS, columnOrder).filter(
+    (column) => visibility[column.id],
+  );
 
-  useEffect(() => {
-    listAddressBookEntries()
+  const loadEntries = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    return listAddressBookEntries()
       .then(setEntries)
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load address book."))
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    void loadEntries();
+  }, [loadEntries]);
+
   function upsertEntry(next: AddressBookEntry) {
     setEntries((prev) => sortByLabel([...prev.filter((e) => e.id !== next.id), next]));
   }
 
-  const isLoading = loading || actionsBlocked;
+  const isLoading = loading;
   const trimmedQuery = query.trim().toLowerCase();
-  const filtersActive = Boolean(trimmedQuery);
-  const filteredEntries = entries.filter((entry) => {
+  const filtersActive = Boolean(trimmedQuery || Object.keys(filters).length > 0);
+  const searchFilteredEntries = entries.filter((entry) => {
     if (!trimmedQuery) return true;
     return (
       entry.label.toLowerCase().includes(trimmedQuery) ||
       entry.address.toLowerCase().includes(trimmedQuery) ||
       (entry.notes ?? "").toLowerCase().includes(trimmedQuery)
     );
+  });
+  const filteredEntries = applyColumnFilters(searchFilteredEntries, filters, {
+    name: (entry) => entry.label,
+    address: (entry) => entry.address,
+    notes: (entry) => entry.notes,
   });
   const totalPages = Math.max(1, Math.ceil(filteredEntries.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -115,33 +156,59 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
 
   return (
     <div className="gap-detail-close flex flex-col">
-      <ListFilterBar
-        q={query}
-        searchPlaceholder="Name, address, or notes"
-        disabled={isLoading || entries.length === 0}
-        onQueryChange={(q) => {
-          setQuery(q);
-          setPage(1);
-        }}
-        actions={
-          <Button
-            type="button"
-            iconStart={<Plus aria-hidden />}
-            onClick={() => setAddOpen(true)}
-            disabled={actionsBlocked}
-          >
-            New contact
-          </Button>
-        }
-      />
+      {error ? null : (
+        <TableControls
+          utilities={
+            <TableColumnVisibilityButton
+              tableLabel="Address book"
+              columns={ADDRESS_BOOK_COLUMNS}
+              visibility={visibility}
+              columnOrder={columnOrder}
+              filters={filters}
+              onChange={setVisibility}
+              onOrderChange={setColumnOrder}
+              onFiltersChange={setFilters}
+            />
+          }
+        >
+          <ListFilterBar
+            q={query}
+            searchPlaceholder="Name, address, or notes"
+            disabled={isLoading || entries.length === 0}
+            onQueryChange={(q) => {
+              setQuery(q);
+              setPage(1);
+            }}
+            actions={
+              <Button
+                type="button"
+                iconStart={<Plus aria-hidden />}
+                onClick={() => setAddOpen(true)}
+                disabled={actionsBlocked}
+              >
+                New contact
+              </Button>
+            }
+          />
+        </TableControls>
+      )}
+
+      {error ? null : (
+        <TableColumnFilterSummary
+          columns={ADDRESS_BOOK_COLUMNS}
+          filters={filters}
+          onRemove={(columnId) => setFilters({ ...filters, [columnId]: undefined })}
+          onClear={() => setFilters({})}
+        />
+      )}
 
       {error ? (
-        <ErrorAlert title="Couldn't load address book" className="w-full max-w-none">
-          {error}
-        </ErrorAlert>
-      ) : null}
-
-      {isLoading ? (
+        <ErrorContentState
+          title="Your address book isn't available"
+          description={describeLoadFailure(error)}
+          onRetry={() => void loadEntries()}
+        />
+      ) : isLoading ? (
         <LoadingState
           title="Fetching your contacts"
           description="This should take a few seconds."
@@ -165,51 +232,28 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         <TableWrap>
           <DataTable aria-label="Address book">
             <TableHead>
-              <TableHeaderCell className="w-72">Name</TableHeaderCell>
-              <TableHeaderCell className="w-40">Address</TableHeaderCell>
-              <TableHeaderCell>Notes</TableHeaderCell>
-              <TableHeaderCell className="w-px whitespace-nowrap">Actions</TableHeaderCell>
+              {visibleColumns.map((column) => (
+                <TableHeaderCell
+                  key={column.id}
+                  className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
+                >
+                  {column.label}
+                </TableHeaderCell>
+              ))}
             </TableHead>
             <TableBody>
               {pagedEntries.map((entry) => (
                 <TableRow key={entry.id}>
-                  <TableCell className="min-w-0">
-                    <span className="type-body-em text-text-primary truncate">{entry.label}</span>
-                  </TableCell>
-                  <TableCell className="min-w-0">
-                    <TruncatedHash value={entry.address} />
-                  </TableCell>
-                  <TableCell className="min-w-0">
-                    <span className="type-body text-text-secondary truncate">
-                      {entry.notes || "—"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="w-px whitespace-nowrap">
-                    <RowActions>
-                      <TableIconButton
-                        type="button"
-                        title="View contact"
-                        aria-label={`View ${entry.label}`}
-                        onClick={() => setViewEntry(entry)}
-                      >
-                        <Eye size={16} aria-hidden />
-                      </TableIconButton>
-                      <TableIconMenu
-                        aria-label={`More actions for ${entry.label}`}
-                        items={[
-                          {
-                            label: "Edit",
-                            onClick: () => setEditEntry(entry),
-                          },
-                          {
-                            label: "Remove",
-                            danger: true,
-                            onClick: () => setDeleteTarget(entry),
-                          },
-                        ]}
-                      />
-                    </RowActions>
-                  </TableCell>
+                  {visibleColumns.map((column) => (
+                    <AddressBookCell
+                      key={column.id}
+                      columnId={column.id}
+                      entry={entry}
+                      onView={() => setViewEntry(entry)}
+                      onEdit={() => setEditEntry(entry)}
+                      onDelete={() => setDeleteTarget(entry)}
+                    />
+                  ))}
                 </TableRow>
               ))}
             </TableBody>
@@ -217,22 +261,24 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
         </TableWrap>
       )}
 
-      <ListPaginationFooter
-        page={currentPage}
-        pageSize={pageSize}
-        total={filteredEntries.length}
-        totalPages={totalPages}
-        disabled={isLoading}
-        onPageChange={setPage}
-        onPageSizeChange={(size) => {
-          setPageSize(size);
-          setPage(1);
-        }}
-        pageSizeOptions={PAGE_SIZE_OPTIONS}
-      />
+      {error ? null : (
+        <ListPaginationFooter
+          page={currentPage}
+          pageSize={pageSize}
+          total={filteredEntries.length}
+          totalPages={totalPages}
+          disabled={isLoading}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+        />
+      )}
 
       {addOpen ? (
-        <AddContactForm
+        <AddContactModal
           onSave={async (data) => {
             const entry = await createAddressBookEntry(data);
             upsertEntry(entry);
@@ -280,13 +326,71 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
   );
 }
 
-function ContactDetailModal({
+function AddressBookCell({
+  columnId,
   entry,
-  onClose,
+  onView,
+  onEdit,
+  onDelete,
 }: {
+  columnId: string;
   entry: AddressBookEntry;
-  onClose: () => void;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
+  if (columnId === "name") {
+    return (
+      <TableCell className="min-w-0">
+        <span className="type-body-em text-text-primary truncate">{entry.label}</span>
+      </TableCell>
+    );
+  }
+  if (columnId === "address") {
+    return (
+      <TableCell className="min-w-0">
+        <TruncatedHash value={entry.address} />
+      </TableCell>
+    );
+  }
+  if (columnId === "notes") {
+    return (
+      <TableCell className="min-w-0">
+        <span className="type-body text-text-secondary truncate">{entry.notes || "—"}</span>
+      </TableCell>
+    );
+  }
+  if (columnId === "created") {
+    return (
+      <TableCell className="whitespace-nowrap">
+        <time className="type-meta text-text-secondary" dateTime={entry.created_at}>
+          {formatLocalDateTime(entry.created_at)}
+        </time>
+      </TableCell>
+    );
+  }
+  if (columnId === "actions") {
+    return (
+      <TableCell className="w-px whitespace-nowrap">
+        <RowActions>
+          <TableIconButton type="button" title="View contact" aria-label={`View ${entry.label}`} onClick={onView}>
+            <Eye size={16} aria-hidden />
+          </TableIconButton>
+          <TableIconMenu
+            aria-label={`More actions for ${entry.label}`}
+            items={[
+              { label: "Edit", onClick: onEdit },
+              { label: "Remove", danger: true, onClick: onDelete },
+            ]}
+          />
+        </RowActions>
+      </TableCell>
+    );
+  }
+  return null;
+}
+
+function ContactDetailModal({ entry, onClose }: { entry: AddressBookEntry; onClose: () => void }) {
   return (
     <Modal title={entry.label} description="Saved recipient details." onClose={onClose}>
       <div className="gap-detail-close grid">
@@ -306,112 +410,6 @@ function ContactDetailModal({
           </section>
         ) : null}
       </div>
-    </Modal>
-  );
-}
-
-function AddContactForm({
-  onSave,
-  onCancel,
-}: {
-  onSave: (data: CreateAddressBookEntryInput) => Promise<void>;
-  onCancel: () => void;
-}) {
-  const [label, setLabel] = useState("");
-  const [address, setAddress] = useState("");
-  const [notes, setNotes] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const trimLabel = label.trim();
-    const trimAddress = address.trim();
-    if (!trimLabel) {
-      setFormError("Label is required.");
-      return;
-    }
-    if (trimLabel.length > 80) {
-      setFormError("Label must be 80 characters or fewer.");
-      return;
-    }
-    if (!trimAddress) {
-      setFormError("Address is required.");
-      return;
-    }
-    if (!/^(Mx|0x)/i.test(trimAddress)) {
-      setFormError("Address must start with Mx or 0x.");
-      return;
-    }
-    setFormError(null);
-    setSubmitting(true);
-    try {
-      await onSave({
-        label: trimLabel,
-        address: trimAddress,
-        notes: notes.trim() || null,
-      });
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Could not save contact.");
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <Modal
-      title="New contact"
-      description="Save a recipient for future sends."
-      bodyClassName="min-h-0 flex-1"
-      onClose={onCancel}
-      closeDisabled={submitting}
-      footer={
-        <>
-          <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button type="submit" form="add-contact-form" disabled={submitting}>
-            {submitting ? "Saving…" : "Add contact"}
-          </Button>
-        </>
-      }
-    >
-      <form id="add-contact-form" onSubmit={handleSubmit} className="gap-detail-close grid">
-        <div className="gap-detail-close grid sm:grid-cols-2">
-          <InputField
-            label="Label"
-            description="The label of the contact"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="e.g. Alice"
-            maxLength={80}
-            autoFocus
-            disabled={submitting}
-          />
-          <InputField
-            label="Address"
-            description="The Minima address for the contact"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Mx… or 0x…"
-            autoComplete="off"
-            spellCheck={false}
-            disabled={submitting}
-          />
-        </div>
-        <InputField
-          label="Notes"
-          description="Optional note"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="e.g. Alice's main wallet"
-          disabled={submitting}
-        />
-        {formError ? (
-          <ErrorAlert title="Couldn't save contact" className="w-full max-w-none">
-            {formError}
-          </ErrorAlert>
-        ) : null}
-      </form>
     </Modal>
   );
 }

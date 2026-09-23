@@ -20,9 +20,10 @@ export function SwitchField({
   const autoId = useId();
   const controlId = id ?? autoId;
   const descriptionId = description ? `${controlId}-description` : undefined;
+  const hasLabel = label != null && label !== "";
 
   return (
-    <div className={cx("gap-detail-fine flex min-w-[120px] flex-col items-start", className)}>
+    <div className={cx("gap-detail-fine flex flex-col items-start", hasLabel ? "min-w-[120px]" : "min-w-0", className)}>
       <label
         htmlFor={controlId}
         className={cx(
@@ -30,7 +31,7 @@ export function SwitchField({
           disabled ? "cursor-not-allowed" : "cursor-pointer",
         )}
       >
-        {label != null && label !== "" ? (
+        {hasLabel ? (
           <span
             className={cx(
               "type-body min-w-px flex-1 [overflow-wrap:anywhere]",

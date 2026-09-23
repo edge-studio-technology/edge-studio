@@ -16,9 +16,10 @@
 
 ## In Progress
 
+- [ ] Run the 13-step Brave verification for the completed app-wide empty/loading/error hardening, including tasks #659/#660/#661 plus Integritas, software update/update-agent, and Wallet behavior while Minima is unavailable, before merging to `dev` — see `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
-- [ ] Security hardening V1.5 — close the external-review findings, the V1 sign-off remainder, and the unit-test-audit gaps in one ordered workstream; see `docs/plans/security/README.md`, one file per phase under `docs/plans/security/`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`; task 704 closed finding [12].
+- [ ] Security hardening V1.5 — close the external-review findings and remaining work in one ordered workstream; see `docs/plans/security/README.md`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`; task 704 closed finding [12], task 706 completed Phase 8, and task 707 completed Phase 9.
 - [ ] Add bounded retention, webhook/MQTT credential redaction, persisted workflow run budgets, and rate limits for event-driven security paths — implemented and `npm run check`/Docker build verified on `dev-task/705-retention-redaction-budgets`; audit fixes and multi-batch retention verified; needs remaining manual container/Pi checks and the documented existing-installation log migration — see `docs/plans/security/705-retention-redaction-budgets.md`.
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
@@ -26,7 +27,6 @@
 
 - [ ] Digest-pin the third-party deployment images outside the signed manifest (`minimaglobal/minimacore`, `eclipse-mosquitto:2`, `minimaglobal/minima:dev`, `alpine:3.20`) and document the manual pin-bump procedure — finding [6], split from task 704; see step 3 of `docs/plans/security/phase-6-fail-closed-on-weak-config.md`.
 - [ ] After V1.5 security hardening, make a fresh product decision on whether to retain, redesign, re-enable, or remove TOTP. Removal is not currently approved; `docs/plans/remove-totp.md` is candidate analysis only. See `docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md`.
-- [ ] ~~Address the production-behavior gaps from the high-risk unit-test audit on a separate branch.~~ Folded into `docs/plans/security/` (Phases 1, 3, and 9); the standalone plan is archived.
 - [ ] Cut one release per channel through the updated `release.yml` before the V1.5 security branch ships — installers carrying Phase 4 refuse any runtime bundle published without an `edge-studio-runtime.tar.gz.sig`. See `docs/adr/0016-install-time-bootstrap-trust-set.md`.
 - [ ] On a real device or a local `install.sh` run, confirm end-to-end that `last-applied-manifest.json` gets written and a Feedback submission's `app.version` reflects it (see `docs/adr/0006-app-version-single-source-of-truth.md`).
 - [ ] Implement the hosted feedback receiver endpoint in the Integritas API repo — see `docs/plans/feedback.md` Step 8.
@@ -37,7 +37,7 @@
 - [ ] Post-v1: add seed-phrase-only restore as an option inside `MinimaBackupPanel`, then remove the commented-out `WalletSettingsPanel` from `AuthSettingsPage.tsx`.
 - [ ] Manual check of the update-agent UI Back buttons and the dashboard "Update available" badge across a real update cycle (Pi or local Docker Compose) — this session's fixes were only build/typecheck-verified.
 - [ ] Manual browser check of `update-agent`'s restyled static update-progress page (`update-agent/public/index.html`): black-to-purple gradient background and the white logo below the centered card, matching the login page — not yet manually checked (static HTML, no build step).
-- [ ] Close the unit-test gaps found while retiring old PM-tool QA tickets (automation, devices, ...) — see `docs/plans/legacy-ticket-unit-test-gaps.md`.
+- [ ] Close OpenProject #259 (Node Failure Mode Unit Testing) — the one section of `docs/plans/legacy-ticket-unit-test-gaps.md` left open by #363, deliberately scoped under *Node Management* rather than #363; its `MinimaPage.test.tsx` gap needs re-verifying first.
 - [ ] Add HC-SR501 PIR motion sensor as a first-class GPIO input workflow source - see `docs/plans/pir-motion-sensor-workflows.md`.
 - [ ] Add ESP32 MQTT board onboarding with generated starter firmware - see `docs/plans/esp32-mqtt-sensor-onboarding.md`.
 - [ ] Document the `DEV_MODE` install flag in `README.md`'s runtime-config section and note its manifest-signature-verification bypass in `SECURITY.md`/`docs/security/host-and-infrastructure.md` — flagged during code review, deliberately deferred as a separate concern from the pagination work.
@@ -73,6 +73,13 @@
 
 - [x] Fixed task 705 audit findings: normalized nginx webhook log protection, active-run retention safety, repeated yielding cleanup batches, and fixed log rotation for recreated legacy containers; full checks and Docker builds passed — see `docs/adr/0022-bound-external-automation-effects.md`.
 
+- [x] Closed the regression-testing debt tracked under OpenProject #363 and its children (#213, #218, #225, #242, #287): request-level `sendHttpOutput` assertions, MQTT/GPIO teardown on source deletion, webhook receiver route tests, the Integritas connection check, backup re-auth rejection, wallet import phrase-leak checks, and diagnostics query/tab/pagination tests — see `docs/plans/363-regression-testing-debt.md`.
+
+- [x] Fixed and Raspberry Pi-verified Dashboard next-action and metric-card loading/error states so failed requests no longer appear empty or spin indefinitely — see `docs/plans/bugs/661-dashboard-next-action-and-metric-cards-don-t-treat-errors-as-empty.md`.
+- [x] Completed task 707 correctness hardening: Minima restart setup failures clear stale operation state, wallet/address-book destinations follow Minima's source grammar, and Update Agent Docker stream timeouts settle reliably — see `docs/plans/security/707-correctness-hardening-from-the-unit-test-audit.md`.
+- [x] Added backend-saved column visibility controls to every shared `DataTable` table: a shared table controls shell, cog-button chooser modal, authenticated preferences API, and per-table visibility wiring across Diagnostics, Devices, Workflows, Workflow Inbox, Wallet, Address book, Minima, and workflow watch tables — see `docs/plans/table-column-visibility.md`.
+- [x] Manual browser check of backend-saved column visibility controls on every shared `DataTable` table, including the follow-up fix for diagnostics table width after columns are hidden — see `docs/plans/table-column-visibility.md`.
+- [x] Closed the V1 sign-off remainder with nginx security headers, an accepted documented CSRF posture, unavailable dormant TOTP routes, and a passing two-variant clean-data auth/browser sign-off — see `docs/plans/security/706-v1-sign-off-remainder.md` and `docs/qa/v1-auth-sign-off.md`.
 - [x] Failed closed on an absent or empty `APP_SECRET` before database/background startup and removed the public `dev-change-me` default from every shipped configuration path — see `docs/plans/security/704-fail-closed-on-weak-config.md` and `docs/adr/0021-app-secret-fail-closed-without-migration.md`.
 - [x] Added configurable IPAM to generated release Compose, bound release-mode installer runtime bundles to the signed manifest SHA-256 before any application-directory replacement, and added end-to-end installer regressions for matching/mismatched/tampered/unsigned/invalid-metadata/override/fallback paths plus existing-installation preservation — see `docs/adr/0020-bind-installer-runtime-to-signed-manifest.md`.
 - [x] Added privileged host-agent capability management so Camera, GPIO, I2C sensors, and local MQTT broker support can be enabled/disabled from Devices -> Hardware support after install. Includes prerequisite guidance, retry-safe host-agent actions, signed host-runtime update delivery, workflow/device validation, audit events, and Pi regression fixes — see `docs/plans/host-agent-capability-management.md`.

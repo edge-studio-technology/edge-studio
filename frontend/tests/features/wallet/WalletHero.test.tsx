@@ -35,6 +35,23 @@ describe("WalletHero", () => {
     expect(screen.getByText("10.5")).toBeInTheDocument();
   });
 
+  it("shows unavailable instead of zero after a failed balance load", () => {
+    render(
+      <WalletHero
+        loading={false}
+        unavailable
+        totalMinima="0"
+        disabled
+        onSend={vi.fn()}
+        onReceive={vi.fn()}
+        onInfo={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
   it("disables the action buttons when disabled", () => {
     render(
       <WalletHero

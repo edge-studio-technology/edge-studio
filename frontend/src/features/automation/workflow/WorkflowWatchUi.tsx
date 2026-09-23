@@ -11,13 +11,16 @@ import {
   tableRowClass,
 } from "../../../components/DataTable";
 import { JsonPreview } from "../../../components/JsonPreview";
+import {
+  orderedColumns,
+  TableColumnVisibilityButton,
+  type TableColumnDefinition,
+} from "../../../components/patterns/TableColumnVisibility";
+import { TableControls } from "../../../components/patterns/TableControls";
 import { ScrollArea } from "../../../components/ui/ScrollArea";
 import { formatLocalTime } from "../../../lib/time";
-import type {
-  AutomationBlock,
-  AutomationRun,
-  AutomationWorkflow,
-} from "../automationTypes";
+import { useTableColumnVisibility } from "../../preferences/useTableColumnVisibility";
+import type { AutomationBlock, AutomationRun, AutomationWorkflow } from "../automationTypes";
 import { WorkflowRailHeader, WorkflowRailPanel } from "./chrome/WorkflowRail";
 import {
   blockLabel,
@@ -36,6 +39,15 @@ import {
   mutedText,
   statusRowClass,
 } from "./workflowWorkspaceUi";
+
+const WATCH_RUN_COLUMNS = [
+  { id: "started", label: "Started" },
+  { id: "trigger", label: "Trigger" },
+  { id: "status", label: "Status" },
+  { id: "duration", label: "Duration" },
+  { id: "blocks", label: "Blocks" },
+  { id: "details", label: "Details", dataColumn: false },
+] as const satisfies readonly TableColumnDefinition[];
 
 /** Watch-mode rail: run now + test payload. */
 export function WatchRunControls({
@@ -121,6 +133,63 @@ export function WatchRunControls({
       </RowActions>
     </WorkflowRailPanel>
   );
+}
+
+function WatchRunCell({
+  columnId,
+  run,
+  selectedRunId,
+  rawRunId,
+  onSelectRun,
+  onToggleRaw,
+}: {
+  columnId: string;
+  run: AutomationRun;
+  selectedRunId: string | null;
+  rawRunId: string | null;
+  onSelectRun: (runId: string) => void;
+  onToggleRaw: () => void;
+}) {
+  if (columnId === "started") return <td className={tableCellClass}>{formatLocalTime(run.startedAt)}</td>;
+  if (columnId === "trigger") return <td className={tableCellClass}>{run.triggerType}</td>;
+  if (columnId === "status") {
+    return (
+      <td className={tableCellClass}>
+        <StatusPill status={run.status === "success" ? "good" : run.status === "failed" ? "warn" : "neutral"}>
+          {run.status}
+        </StatusPill>
+      </td>
+    );
+  }
+  if (columnId === "duration") return <td className={tableCellClass}>{formatDuration(run.durationMs)}</td>;
+  if (columnId === "blocks") {
+    return (
+      <td className={tableCellClass}>
+        {run.blocks.filter((block) => block.status === "success").length}/{run.blockCount}
+      </td>
+    );
+  }
+  if (columnId === "details") {
+    return (
+      <td className={tableCellClass}>
+        <RowActions>
+          <Button
+            type="button"
+            variant="secondary"
+            size="xs"
+            disabled={selectedRunId === run.id}
+            onClick={() => onSelectRun(run.id)}
+          >
+            {selectedRunId === run.id ? "Showing" : "Show on canvas"}
+          </Button>
+          <Button type="button" variant="secondary" size="xs" onClick={onToggleRaw}>
+            {rawRunId === run.id ? "Hide raw" : "Raw details"}
+          </Button>
+        </RowActions>
+      </td>
+    );
+  }
+  return null;
 }
 
 /** Watch-mode selected-block sheet: run/block status and output. */
@@ -263,6 +332,13 @@ export function WatchRunHistory({
 }) {
   const [rawRunId, setRawRunId] = useState<string | null>(null);
   const rawRun = runs.find((run) => run.id === rawRunId);
+  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility(
+    "workflow-watch-runs",
+    WATCH_RUN_COLUMNS,
+  );
+  const visibleColumns = orderedColumns(WATCH_RUN_COLUMNS, columnOrder).filter(
+    (column) => visibility[column.id],
+  );
 
   return (
     <Panel>
@@ -278,69 +354,50 @@ export function WatchRunHistory({
       {runs.length === 0 ? (
         <p className={mutedText}>No workflow runs recorded yet.</p>
       ) : (
-        <ScrollArea className="rounded-soft border-stroke-secondary bg-surface-always-white max-h-[150px] border">
-          <TableWrap>
-            <DataTable>
-              <thead>
-                <tr className={tableHeadRowClass}>
-                  <th className={tableHeaderCellClass}>Started</th>
-                  <th className={tableHeaderCellClass}>Trigger</th>
-                  <th className={tableHeaderCellClass}>Status</th>
-                  <th className={tableHeaderCellClass}>Duration</th>
-                  <th className={tableHeaderCellClass}>Blocks</th>
-                  <th className={tableHeaderCellClass}>Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {runs.map((run) => (
-                  <tr key={run.id} className={tableRowClass}>
-                    <td className={tableCellClass}>{formatLocalTime(run.startedAt)}</td>
-                    <td className={tableCellClass}>{run.triggerType}</td>
-                    <td className={tableCellClass}>
-                      <StatusPill
-                        status={
-                          run.status === "success"
-                            ? "good"
-                            : run.status === "failed"
-                              ? "warn"
-                              : "neutral"
-                        }
-                      >
-                        {run.status}
-                      </StatusPill>
-                    </td>
-                    <td className={tableCellClass}>{formatDuration(run.durationMs)}</td>
-                    <td className={tableCellClass}>
-                      {run.blocks.filter((block) => block.status === "success").length}/
-                      {run.blockCount}
-                    </td>
-                    <td className={tableCellClass}>
-                      <RowActions>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="xs"
-                          disabled={selectedRunId === run.id}
-                          onClick={() => onSelectRun(run.id)}
-                        >
-                          {selectedRunId === run.id ? "Showing" : "Show on canvas"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="xs"
-                          onClick={() => setRawRunId(rawRunId === run.id ? null : run.id)}
-                        >
-                          {rawRunId === run.id ? "Hide raw" : "Raw details"}
-                        </Button>
-                      </RowActions>
-                    </td>
+        <div className="grid gap-2">
+          <TableControls
+            utilities={
+              <TableColumnVisibilityButton
+                tableLabel="Historic runs"
+                columns={WATCH_RUN_COLUMNS}
+                visibility={visibility}
+                columnOrder={columnOrder}
+                onChange={setVisibility}
+                onOrderChange={setColumnOrder}
+              />
+            }
+          />
+          <ScrollArea className="rounded-soft border-stroke-secondary bg-surface-always-white max-h-[150px] border">
+            <TableWrap>
+              <DataTable>
+                <thead>
+                  <tr className={tableHeadRowClass}>
+                    {visibleColumns.map((column) => (
+                      <th key={column.id} className={tableHeaderCellClass}>{column.label}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </DataTable>
-          </TableWrap>
-        </ScrollArea>
+                </thead>
+                <tbody>
+                  {runs.map((run) => (
+                    <tr key={run.id} className={tableRowClass}>
+                      {visibleColumns.map((column) => (
+                        <WatchRunCell
+                          key={column.id}
+                          columnId={column.id}
+                          run={run}
+                          selectedRunId={selectedRunId}
+                          rawRunId={rawRunId}
+                          onSelectRun={onSelectRun}
+                          onToggleRaw={() => setRawRunId(rawRunId === run.id ? null : run.id)}
+                        />
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </DataTable>
+            </TableWrap>
+          </ScrollArea>
+        </div>
       )}
       {rawRun && (
         <Panel>

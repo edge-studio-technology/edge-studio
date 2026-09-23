@@ -16,6 +16,14 @@ import { EmptyContentState } from "../../components/patterns/EmptyContentState";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { LoadingState } from "../../components/patterns/LoadingState";
+import {
+  applyColumnFilters,
+  orderedColumns,
+  TableColumnFilterSummary,
+  TableColumnVisibilityButton,
+  type TableColumnDefinition,
+} from "../../components/patterns/TableColumnVisibility";
+import { TableControls } from "../../components/patterns/TableControls";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { JsonPreviewContent } from "../../components/JsonPreview";
 import { Card } from "../../components/ui/Card";
@@ -24,6 +32,7 @@ import { Modal } from "../../components/ui/Modal";
 import { Pill } from "../../components/ui/Pill";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatLocalDateTime } from "../../lib/time";
+import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 import type { AutomationInboxItem } from "./automationTypes";
 import { isImagePreviewContent, textPreviewContent } from "./workflow/workflowHelpers";
 
@@ -39,6 +48,15 @@ const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
   value: String(size),
   label: String(size),
 }));
+
+const INBOX_COLUMNS = [
+  { id: "title", label: "Title", filterable: true },
+  { id: "workflow", label: "Workflow", filterable: true },
+  { id: "format", label: "Format", filterable: true },
+  { id: "created", label: "Created" },
+  { id: "status", label: "Status" },
+  { id: "actions", label: "Actions", dataColumn: false },
+] as const satisfies readonly TableColumnDefinition[];
 
 function inboxMatchesFilter(item: AutomationInboxItem, query: string, filter: InboxFilter) {
   if (filter === "unread" && item.readAt) return false;
@@ -68,10 +86,20 @@ export function AutomationInboxTable({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
   const [detailsItem, setDetailsItem] = useState<AutomationInboxItem | null>(null);
+  const { visibility, columnOrder, filters, setVisibility, setColumnOrder, setFilters } = useTableColumnVisibility("workflow-inbox", INBOX_COLUMNS);
+  const visibleColumns = orderedColumns(INBOX_COLUMNS, columnOrder).filter(
+    (column) => visibility[column.id],
+  );
+  const visibleColumnCount = visibleColumns.length;
 
   const unreadCount = items.filter((item) => !item.readAt).length;
-  const filtersActive = Boolean(query.trim()) || filter !== "all";
-  const filteredItems = items.filter((item) => inboxMatchesFilter(item, query, filter));
+  const filtersActive = Boolean(query.trim()) || filter !== "all" || Object.keys(filters).length > 0;
+  const searchFilteredItems = items.filter((item) => inboxMatchesFilter(item, query, filter));
+  const filteredItems = applyColumnFilters(searchFilteredItems, filters, {
+    title: (item) => item.title,
+    workflow: (item) => item.workflowName,
+    format: (item) => item.format,
+  });
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const pagedItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -105,23 +133,45 @@ export function AutomationInboxTable({
           Local workflow previews stay here even if no browser was open when the workflow ran.
         </p>
 
-        <div className="min-w-0 flex-1 [&>div]:mb-0">
-          <ListFilterBar
-            filter={filter}
-            q={query}
-            filterOptions={STATUS_FILTER_OPTIONS}
-            searchPlaceholder="Title, workflow, or format"
-            disabled={loading || items.length === 0}
-            onFilterChange={(value) => {
-              setFilter(value as InboxFilter);
-              setPage(1);
-            }}
-            onQueryChange={(q) => {
-              setQuery(q);
-              setPage(1);
-            }}
-          />
-        </div>
+        <TableControls
+          utilities={
+            <TableColumnVisibilityButton
+              tableLabel="Workflow Inbox"
+              columns={INBOX_COLUMNS}
+              visibility={visibility}
+              columnOrder={columnOrder}
+              filters={filters}
+              onChange={setVisibility}
+              onOrderChange={setColumnOrder}
+              onFiltersChange={setFilters}
+            />
+          }
+        >
+          <div className="min-w-0 flex-1 [&>div]:mb-0">
+            <ListFilterBar
+              filter={filter}
+              q={query}
+              filterOptions={STATUS_FILTER_OPTIONS}
+              searchPlaceholder="Title, workflow, or format"
+              disabled={loading || items.length === 0}
+              onFilterChange={(value) => {
+                setFilter(value as InboxFilter);
+                setPage(1);
+              }}
+              onQueryChange={(q) => {
+                setQuery(q);
+                setPage(1);
+              }}
+            />
+          </div>
+        </TableControls>
+
+        <TableColumnFilterSummary
+          columns={INBOX_COLUMNS}
+          filters={filters}
+          onRemove={(columnId) => setFilters({ ...filters, [columnId]: undefined })}
+          onClear={() => setFilters({})}
+        />
 
         {loading ? (
           <LoadingState title="Fetching your inbox" description="This should take a few seconds." />
@@ -140,82 +190,26 @@ export function AutomationInboxTable({
           />
         ) : (
           <TableWrap>
-            <DataTable className="table-fixed">
+            <DataTable className={visibleColumnCount > 3 ? "min-w-245" : undefined}>
               <TableHead>
-                <TableHeaderCell className="w-52">Title</TableHeaderCell>
-                <TableHeaderCell className="w-56">Workflow</TableHeaderCell>
-                <TableHeaderCell className="w-28">Format</TableHeaderCell>
-                <TableHeaderCell className="w-40">Created</TableHeaderCell>
-                <TableHeaderCell className="w-32">Status</TableHeaderCell>
-                <TableHeaderCell className="w-28 whitespace-nowrap">Actions</TableHeaderCell>
+                {visibleColumns.map((column) => (
+                  <TableHeaderCell key={column.id}>{column.label}</TableHeaderCell>
+                ))}
               </TableHead>
               <TableBody>
                 {pagedItems.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="min-w-0">
-                      <span className="type-body-em block truncate" title={item.title}>
-                        {item.title}
-                      </span>
-                    </TableCell>
-                    <TableCell className="min-w-0">
-                      <span
-                        className="text-text-secondary block truncate"
-                        title={item.workflowName}
-                      >
-                        {item.workflowName}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Pill>{item.format}</Pill>
-                    </TableCell>
-                    <TableCell>
-                      <time className="text-text-secondary type-meta" dateTime={item.createdAt}>
-                        {formatLocalDateTime(item.createdAt)}
-                      </time>
-                    </TableCell>
-                    <TableCell>
-                      {item.readAt ? (
-                        <Pill tone="neutral" indicator>
-                          Read
-                        </Pill>
-                      ) : (
-                        <Pill tone="warn" indicator>
-                          Unread
-                        </Pill>
-                      )}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <RowActions>
-                        <TableIconButton
-                          type="button"
-                          title="View preview"
-                          aria-label={`View preview for ${item.title}`}
-                          onClick={() => viewItem(item)}
-                        >
-                          {item.readAt ? (
-                            <MailOpen size={16} aria-hidden />
-                          ) : (
-                            <Mail size={16} aria-hidden />
-                          )}
-                        </TableIconButton>
-                        <TableIconMenu
-                          aria-label={`More actions for ${item.title}`}
-                          items={[
-                            {
-                              label: item.readAt ? "Mark unread" : "Mark read",
-                              disabled: busy,
-                              onClick: () => onMarkRead(item, !item.readAt),
-                            },
-                            {
-                              label: "Delete",
-                              danger: true,
-                              disabled: busy,
-                              onClick: () => onDelete(item),
-                            },
-                          ]}
-                        />
-                      </RowActions>
-                    </TableCell>
+                    {visibleColumns.map((column) => (
+                      <InboxCell
+                        key={column.id}
+                        columnId={column.id}
+                        item={item}
+                        busy={busy}
+                        onView={() => viewItem(item)}
+                        onMarkRead={() => onMarkRead(item, !item.readAt)}
+                        onDelete={() => onDelete(item)}
+                      />
+                    ))}
                   </TableRow>
                 ))}
               </TableBody>
@@ -241,6 +235,77 @@ export function AutomationInboxTable({
       {detailsItem && <InboxDetailsModal item={detailsItem} onClose={() => setDetailsItem(null)} />}
     </Card>
   );
+}
+
+function InboxCell({
+  columnId,
+  item,
+  busy,
+  onView,
+  onMarkRead,
+  onDelete,
+}: {
+  columnId: string;
+  item: AutomationInboxItem;
+  busy: boolean;
+  onView: () => void;
+  onMarkRead: () => void;
+  onDelete: () => void;
+}) {
+  if (columnId === "title") {
+    return (
+      <TableCell className="min-w-0">
+        <span className="type-body-em block truncate" title={item.title}>
+          {item.title}
+        </span>
+      </TableCell>
+    );
+  }
+  if (columnId === "workflow") {
+    return (
+      <TableCell className="min-w-0">
+        <span className="text-text-secondary block truncate" title={item.workflowName}>
+          {item.workflowName}
+        </span>
+      </TableCell>
+    );
+  }
+  if (columnId === "format") return <TableCell><Pill>{item.format}</Pill></TableCell>;
+  if (columnId === "created") {
+    return (
+      <TableCell>
+        <time className="text-text-secondary type-meta" dateTime={item.createdAt}>
+          {formatLocalDateTime(item.createdAt)}
+        </time>
+      </TableCell>
+    );
+  }
+  if (columnId === "status") {
+    return (
+      <TableCell>
+        {item.readAt ? <Pill tone="neutral" indicator>Read</Pill> : <Pill tone="warn" indicator>Unread</Pill>}
+      </TableCell>
+    );
+  }
+  if (columnId === "actions") {
+    return (
+      <TableCell className="whitespace-nowrap">
+        <RowActions>
+          <TableIconButton type="button" title="View preview" aria-label={`View preview for ${item.title}`} onClick={onView}>
+            {item.readAt ? <MailOpen size={16} aria-hidden /> : <Mail size={16} aria-hidden />}
+          </TableIconButton>
+          <TableIconMenu
+            aria-label={`More actions for ${item.title}`}
+            items={[
+              { label: item.readAt ? "Mark unread" : "Mark read", disabled: busy, onClick: onMarkRead },
+              { label: "Delete", danger: true, disabled: busy, onClick: onDelete },
+            ]}
+          />
+        </RowActions>
+      </TableCell>
+    );
+  }
+  return null;
 }
 
 /** "View preview" modal — key facts, then the format-specific preview in an expandable disclosure. */

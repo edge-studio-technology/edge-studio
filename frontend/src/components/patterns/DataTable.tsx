@@ -28,14 +28,62 @@ export const tableCellClass =
 
 /** Bordered scroll shell for list tables. Includes a modest min-height (~4 rows). */
 export function TableWrap({ children, className }: { children: ReactNode; className?: string }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollEdges, setScrollEdges] = useState({ left: false, right: false });
+
+  function updateScrollEdges() {
+    const node = scrollRef.current;
+    if (!node) return;
+    const canScrollLeft = node.scrollLeft > 0;
+    const canScrollRight = node.scrollLeft + node.clientWidth < node.scrollWidth - 1;
+    setScrollEdges((current) =>
+      current.left === canScrollLeft && current.right === canScrollRight
+        ? current
+        : { left: canScrollLeft, right: canScrollRight },
+    );
+  }
+
+  useEffect(() => {
+    updateScrollEdges();
+    const node = scrollRef.current;
+    if (!node) return;
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateScrollEdges);
+    resizeObserver?.observe(node);
+    if (node.firstElementChild) resizeObserver?.observe(node.firstElementChild);
+
+    window.addEventListener("resize", updateScrollEdges);
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateScrollEdges);
+    };
+  }, [children]);
+
   return (
     <div
       className={cx(
-        "rounded-loose border-stroke-primary bg-surface-always-white min-h-[280px] overflow-x-auto border",
+        "rounded-loose border-stroke-primary bg-surface-always-white relative min-h-[280px] overflow-hidden border",
         className,
       )}
     >
-      {children}
+      <div ref={scrollRef} className="min-h-[280px] overflow-x-auto" data-table-scroll onScroll={updateScrollEdges}>
+        {children}
+      </div>
+      {scrollEdges.left && (
+        <div
+          aria-hidden="true"
+          data-scroll-edge="left"
+          className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-grey-03/45 via-grey-03/15 to-transparent"
+        />
+      )}
+      {scrollEdges.right && (
+        <div
+          aria-hidden="true"
+          data-scroll-edge="right"
+          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-grey-03/45 via-grey-03/15 to-transparent"
+        />
+      )}
     </div>
   );
 }

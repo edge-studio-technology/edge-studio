@@ -52,11 +52,11 @@ Migration is **incremental**, not a big-bang move:
 
 **Target homes (when migrated)**
 
-| Target         | Components (indicative)                                                                                                                                                                                                                                                                                                                  |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Target         | Components (indicative)                                                                                                                                                                                                                                                                            |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Divider`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots` |
-| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `ListFilterBar`, `ListPaginationFooter`, `ErrorAlert`, `JsonPreview`, `CopyableCode`, `StatusPage`, `EmptyContentState`, `LoadingState`, `BrandLockup`, `MetricCard` |
-| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                                                                   |
+| `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `ListFilterBar`, `ListPaginationFooter`, `ErrorAlert`, `JsonPreview`, `CopyableCode`, `StatusPage`, `EmptyContentState`, `LoadingState`, `BrandLockup`, `MetricCard`                                                            |
+| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                             |
 
 ## Styling Rules
 
@@ -105,6 +105,8 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [ToggleTabs](#toggletabs): segmented toggle
 - `PinField`: segmented PIN / code field
 - `DataTable`: native table shell and row primitives (`TableWrap`, `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`, `TableIconMenu`)
+- `TableControls`: table toolbar shell with a utility slot for controls such as column visibility
+- `TableColumnVisibilityButton`: cog-button column chooser for `DataTable` instances
 - `StatusRow`: label / value / status row
 - [DetailList](#detaillist): label / value detail rows
 - [StatusBar](#statusbar): app shell status chrome
@@ -119,6 +121,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [CopyableCode](#copyablecode): mono value with copy control
 - [EmptyContentState](#emptycontentstate): empty table/content state with icon, title, description, and optional action
 - [LoadingState](#loadingstate): fetching state with spinner (default or slow pace), optional title and description
+- [ErrorContentState](#errorcontentstate): failed-to-load state for a whole table/list/region, with optional retry
 - `FileDropBox`: large drag/drop or click file picker with reject toast, selected-file row, and busy/disabled state
 
 If a shared component needs a new variant, add the smallest variant that matches an existing repeated need. Do not introduce a variant system dependency unless the current component API becomes difficult to maintain.
@@ -129,19 +132,19 @@ These files exist under `frontend/src/components/` with no app call sites. Do no
 
 **Superseded** — use the replacement instead:
 
-| File | Use instead |
-| --- | --- |
-| `CredentialInput.tsx` | `PinField` / `InputField` |
-| `EmptyPage.tsx` | `StatusPage` |
-| `ErrorDetails.tsx` | `ErrorDetailPanel` |
-| `ListPagerFilterBar.tsx` | `ListFilterBar` + `ListPaginationFooter` |
-| `TablePager.tsx` | `Pagination` (via `ListPaginationFooter`) |
-| `ProgressModal.tsx` | `DeleteConfirmModal` / `DeleteProgressModal` |
-| `StatusBadge.tsx` | `Pill` |
-| `StatusDot.tsx` | status bar chrome (no shared replacement) |
-| `patterns/ListDisclosure.tsx` | `DataTable` |
-| `patterns/Table.tsx` | `DataTable` |
-| `ui/Spinner.tsx` | [SpinnerAlt](#spinneralt) |
+| File                          | Use instead                                  |
+| ----------------------------- | -------------------------------------------- |
+| `CredentialInput.tsx`         | `PinField` / `InputField`                    |
+| `EmptyPage.tsx`               | `StatusPage`                                 |
+| `ErrorDetails.tsx`            | `ErrorDetailPanel`                           |
+| `ListPagerFilterBar.tsx`      | `ListFilterBar` + `ListPaginationFooter`     |
+| `TablePager.tsx`              | `Pagination` (via `ListPaginationFooter`)    |
+| `ProgressModal.tsx`           | `DeleteConfirmModal` / `DeleteProgressModal` |
+| `StatusBadge.tsx`             | `Pill`                                       |
+| `StatusDot.tsx`               | status bar chrome (no shared replacement)    |
+| `patterns/ListDisclosure.tsx` | `DataTable`                                  |
+| `patterns/Table.tsx`          | `DataTable`                                  |
+| `ui/Spinner.tsx`              | [SpinnerAlt](#spinneralt)                    |
 
 **No call sites yet** — still the right control when needed:
 
@@ -170,13 +173,15 @@ Wrapping horizontal group for buttons and button-like actions (`frontend/src/com
 
 List toolbar for search and optional status/kind filter (`frontend/src/components/patterns/ListFilterBar.tsx`). Pass primary list actions (New …, Refresh) via `actions` so they stack full-width under the fields below `md` and sit beside them from `md` up — do not wrap a separate `flex-wrap justify-between` row around the bar.
 
-| Prop                | Notes                                                                 |
-| ------------------- | --------------------------------------------------------------------- |
-| `q` / `onQueryChange` | Controlled search string; changes debounce ~300ms                   |
-| `filter` / `onFilterChange` / `filterOptions` | Optional filter select; label is always "Filter"          |
-| `searchPlaceholder` | Search field placeholder                                              |
-| `disabled`          | Disables search and filter                                            |
-| `actions`           | Optional trailing button(s); layout owned by the bar                  |
+When a table also needs utility controls such as column visibility, compose `ListFilterBar` inside `TableControls` and pass utility buttons through `TableControls.utilities`. Keep the table-specific filters/actions owned by the feature table.
+
+| Prop                                          | Notes                                                |
+| --------------------------------------------- | ---------------------------------------------------- |
+| `q` / `onQueryChange`                         | Controlled search string; changes debounce ~300ms    |
+| `filter` / `onFilterChange` / `filterOptions` | Optional filter select; label is always "Filter"     |
+| `searchPlaceholder`                           | Search field placeholder                             |
+| `disabled`                                    | Disables search and filter                           |
+| `actions`                                     | Optional trailing button(s); layout owned by the bar |
 
 ```tsx
 <ListFilterBar
@@ -193,6 +198,30 @@ List toolbar for search and optional status/kind filter (`frontend/src/component
   }
 />
 ```
+
+### TableControls
+
+Shared shell for controls that sit above a `DataTable` (`frontend/src/components/patterns/TableControls.tsx`). Use it to align an existing filter/search/action area with table-level utility controls such as the column chooser.
+
+| Prop        | Notes                                      |
+| ----------- | ------------------------------------------ |
+| `children`  | Existing toolbar/filter content            |
+| `utilities` | Right-side utility controls, usually icons |
+| `className` | Merged onto the outer control row          |
+
+```tsx
+<TableControls utilities={<TableColumnVisibilityButton {...props} />}>
+  <ListFilterBar {...filterProps} />
+</TableControls>
+```
+
+For small tables without filters, render only `utilities`.
+
+### TableColumnVisibilityButton
+
+Cog-button column chooser for `DataTable` instances (`frontend/src/components/patterns/TableColumnVisibility.tsx`). Each table owns its stable column definitions and passes the current visibility map from `useTableColumnVisibility`. At least one data column must remain visible; action/select columns may be hidden.
+
+Column preferences are saved through the backend preferences API and apply to the Edge Studio device.
 
 ### Button
 
@@ -286,7 +315,8 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Use `PinField` for segmented numeric verification / approval codes.
 - Use bare `Input` only when there is no label stack (rare toolbars / search).
 - Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
-- Use `ErrorAlert` for persistent in-page / form-level failures that stay in layout (optional Retry action).
+- Use `ErrorContentState` when a load failure leaves a whole table/list/region with nothing to show — it replaces that content, and that content's own toolbar/pager chrome, in place. Do not stand in a bare `ErrorText` line or a bare `LoadingDots` for these; the trio is the vocabulary for a whole content region.
+- Use `ErrorAlert` for persistent in-page / form-level failures that stay in layout while the surrounding page still works (optional Retry action).
 - Use toast errors for transient action failures that should not occupy page layout.
 
 ### CheckboxField
@@ -372,15 +402,15 @@ Default on: `icon-primary` track + inverse knob. Off: inverse track + `stroke-pr
 
 Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, white panel (`max-w-[600px]`, `rounded-soft`, `p-pad-relaxed`), title, optional description, children in a bordered `surface-primary` scroll body, optional footer action row, close `IconButton`. Prefer this for confirmations and focused forms. Sheet variant is not implemented yet.
 
-| Prop            | Notes                                                    |
-| --------------- | -------------------------------------------------------- |
-| `title`         | Required; `type-title` heading                           |
-| `description`   | Optional body copy under the title (`type-body`)         |
-| `children`      | Optional body slot (forms, lists, custom content)        |
-| `footer`        | Optional right-aligned action row (use shared `Button`s) |
-| `onClose`       | Close handler (X button + Escape unless `closeDisabled`) |
+| Prop            | Notes                                                          |
+| --------------- | -------------------------------------------------------------- |
+| `title`         | Required; `type-title` heading                                 |
+| `description`   | Optional body copy under the title (`type-body`)               |
+| `children`      | Optional body slot (forms, lists, custom content)              |
+| `footer`        | Optional right-aligned action row (use shared `Button`s)       |
+| `onClose`       | Close handler (X button + Escape unless `closeDisabled`)       |
 | `closeDisabled` | Disables close control and Escape (e.g. `DeleteProgressModal`) |
-| `className`     | Merged onto the dialog panel                             |
+| `className`     | Merged onto the dialog panel                                   |
 
 ```tsx
 <Modal
@@ -513,7 +543,7 @@ Back control is `IconButton` ghost compact with ChevronLeft. Count uses `Pill`. 
 
 ### ErrorAlert
 
-In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): white surface, status stroke, 20% feedback wash (same chrome as matching toast tones). Prefer field `error` for per-control validation; prefer toast for transient action failures.
+In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): white surface, status stroke, 20% feedback wash (same chrome as matching toast tones). Prefer field `error` for per-control validation; prefer toast for transient action failures; prefer [ErrorContentState](#errorcontentstate) when the failure leaves a whole region with nothing to render, since a washed alert standing in for missing content reads as a crashed page.
 
 | Prop        | Notes                                                                  |
 | ----------- | ---------------------------------------------------------------------- |
@@ -539,9 +569,9 @@ In-page feedback alert (`frontend/src/components/patterns/ErrorAlert.tsx`): whit
 Minimal, embeddable error breakdown (`frontend/src/components/patterns/ErrorDetailPanel.tsx`): a `DetailList` "Message" row (plus any caller-supplied `extraRows`, e.g. a "Checked at" timestamp), followed by an unlabeled `JsonPreviewContent` block with the raw error. No "Raw" caption above the JSON — the surrounding `Disclosure` title (e.g. "Preview", "Error") already labels the whole section, matching every other JSON block embedded in these modals (payload, run data), so error sections don't get an extra label the non-error ones don't have. Error shapes differ across source types, so everything beyond the message falls back into that raw JSON instead of being guessed at as separate fields. It has no trigger or dialog of its own — compose it inside a caller's own `Modal`/`Disclosure`. This is the shared error body used by the Devices, Integritas, Data reads, and Automation "view details" modals (paired with `DetailList` for the top-level facts and `Disclosure` for the expandable section around it), so a source's error and its raw response render the same way everywhere instead of drifting per feature.
 
 | Prop        | Notes                                                   |
-| ----------- | -------------------------------------------------------- |
-| `error`     | Unknown value; normalized via `normalizeError`            |
-| `extraRows` | Optional additional `DetailRow`s rendered after Message   |
+| ----------- | ------------------------------------------------------- |
+| `error`     | Unknown value; normalized via `normalizeError`          |
+| `extraRows` | Optional additional `DetailRow`s rendered after Message |
 
 ```tsx
 <Disclosure title="Preview">
@@ -553,15 +583,15 @@ Minimal, embeddable error breakdown (`frontend/src/components/patterns/ErrorDeta
 
 Trigger that opens a dialog with pretty-printed JSON (`frontend/src/components/patterns/JsonPreview.tsx`): link or secondary button; modal body uses the same bare-`<pre>` `JsonPreviewContent`, also exported for callers embedding JSON directly inside their own modal/disclosure without a second trigger (e.g. the "view details" modals' payload/data sections). Flat `components/JsonPreview.tsx` re-exports both for now.
 
-| Prop        | Notes                                      |
-| ----------- | ------------------------------------------ |
-| `value`     | JSON-serializable payload                  |
-| `label`     | Trigger copy (default `View JSON`)         |
-| `title`     | Modal title (default `JSON preview`)       |
-| `variant`   | `link` (default) \| `button`               |
-| `icon`      | Optional leading icon when `variant=button`|
-| `disabled`  | Disables the trigger                       |
-| `className` | Merged onto the trigger                    |
+| Prop        | Notes                                       |
+| ----------- | ------------------------------------------- |
+| `value`     | JSON-serializable payload                   |
+| `label`     | Trigger copy (default `View JSON`)          |
+| `title`     | Modal title (default `JSON preview`)        |
+| `variant`   | `link` (default) \| `button`                |
+| `icon`      | Optional leading icon when `variant=button` |
+| `disabled`  | Disables the trigger                        |
+| `className` | Merged onto the trigger                     |
 
 ```tsx
 <JsonPreview label="View" title="Read preview" value={item.preview} />
@@ -591,10 +621,10 @@ Cleanup later: drop `eyebrow` from remaining page call sites, then remove the pr
 
 Brand mark + wordmark (`frontend/src/components/patterns/BrandLockup.tsx`): 32px rounded mark box with the white `BrandMark` glyph, then `APP_NAME` in `type-title`. Prefer this on full-screen brand surfaces (login, onboarding wizard) instead of re-assembling the mark box and wordmark inline. Pair with `BRAND_GRADIENT` (`app/brand.ts`) for the shared black → accent backdrop.
 
-| Prop        | Notes                                                                                                                     |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Prop        | Notes                                                                                                               |
+| ----------- | ------------------------------------------------------------------------------------------------------------------- |
 | `tone`      | `on-light` (default: black mark box, black wordmark) \| `on-dark` (translucent bordered mark box, inverse wordmark) |
-| `className` | Merged onto the lockup row                                                                                                |
+| `className` | Merged onto the lockup row                                                                                          |
 
 ```tsx
 <div style={{ background: BRAND_GRADIENT }}>
@@ -649,16 +679,16 @@ Quieter choice card (`frontend/src/components/patterns/AltOptionCard.tsx`): `sur
 
 Same slots as `OptionCard`, two differences: the glyph has no filled circle, and the card surface is **not** pressable — only the button is. Prefer this for dense grids of options where each option needs one explicit, labelled action; prefer `OptionCard` when the whole card should be one large target.
 
-| Prop          | Notes                                          |
-| ------------- | ---------------------------------------------- |
-| `icon`        | Optional `LucideIcon`, rendered bare at 24px   |
-| `title`       | Required card heading                          |
-| `description` | Optional supporting copy                       |
-| `actionLabel` | Button label                                   |
-| `onClick`     | Button click handler                           |
-| `disabled`    | Disables the action button                     |
-| `children`    | Optional extra content above the button        |
-| `className`   | Merged onto the card shell                     |
+| Prop          | Notes                                        |
+| ------------- | -------------------------------------------- |
+| `icon`        | Optional `LucideIcon`, rendered bare at 24px |
+| `title`       | Required card heading                        |
+| `description` | Optional supporting copy                     |
+| `actionLabel` | Button label                                 |
+| `onClick`     | Button click handler                         |
+| `disabled`    | Disables the action button                   |
+| `children`    | Optional extra content above the button      |
+| `className`   | Merged onto the card shell                   |
 
 ```tsx
 <div className="gap-detail-close grid sm:grid-cols-2 lg:grid-cols-3">
@@ -689,7 +719,7 @@ Mono value chip with a compact copy control (`frontend/src/components/patterns/C
 
 Empty content state (`frontend/src/components/patterns/EmptyContentState.tsx`): centered bare glyph, bold title, description, and an optional `Button` action, on a bordered `surface-primary` panel. Prefer this over a bare "No X yet." string wherever a table or list can be genuinely empty — no rows, no filter matches, nothing saved yet.
 
-**Render it in place of the table/list, not as a row inside it.** Putting it in a `<td colSpan>` leaves empty header chrome above it, which is not the intended state. Pair it with `LoadingState`, which uses the same panel shell (`contentStatePanelClass`, exported here) so the two swap cleanly.
+**Render it in place of the table/list, not as a row inside it.** Putting it in a `<td colSpan>` leaves empty header chrome above it, which is not the intended state. Pair it with `LoadingState` and `ErrorContentState`, which use the same panel shell (`contentStatePanelClass`, exported here) so the three swap cleanly. The shell is `w-full` by design — it stands in for a whole content region, and `Page` lays its children out with `items-start`, which would otherwise shrink the panel to its text width.
 
 | Prop             | Notes                                                                     |
 | ---------------- | ------------------------------------------------------------------------- |
@@ -704,33 +734,35 @@ Empty content state (`frontend/src/components/patterns/EmptyContentState.tsx`): 
 | `className`      | Merged onto the panel                                                     |
 
 ```tsx
-{loading ? (
-  <LoadingState title="Fetching your devices" description="This should take a few seconds." />
-) : items.length === 0 ? (
-  <EmptyContentState
-    icon={Cable}
-    title="Connect your first device"
-    description="Your input sources and output targets will be added to your library here."
-    actionLabel="New device"
-    actionIcon={<Plus aria-hidden />}
-    onAction={onAddDevice}
-  />
-) : (
-  <TableWrap>…</TableWrap>
-)}
+{
+  loading ? (
+    <LoadingState title="Fetching your devices" description="This should take a few seconds." />
+  ) : items.length === 0 ? (
+    <EmptyContentState
+      icon={Cable}
+      title="Connect your first device"
+      description="Your input sources and output targets will be added to your library here."
+      actionLabel="New device"
+      actionIcon={<Plus aria-hidden />}
+      onAction={onAddDevice}
+    />
+  ) : (
+    <TableWrap>…</TableWrap>
+  );
+}
 ```
 
 ### LoadingState
 
 Fetching content state (`frontend/src/components/patterns/LoadingState.tsx`): centered `SpinnerAlt` with an optional bold title and description, on the same panel as `EmptyContentState`. Prefer this over a bare inline spinner wherever a table or list is waiting on its first load, not just a busy row/button. Same placement rule: render it **in place of** the table, not inside it.
 
-| Prop          | Notes                                                                 |
-| ------------- | --------------------------------------------------------------------- |
-| `title`       | Optional bold heading (e.g. "Fetching your devices")                  |
-| `description` | Optional copy under the title                                         |
+| Prop          | Notes                                                                                                                  |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `title`       | Optional bold heading (e.g. "Fetching your devices")                                                                   |
+| `description` | Optional copy under the title                                                                                          |
 | `pace`        | `default` (0.8s cycle) or `slow` (1.6s). Same dial; use `slow` for waits that routinely take longer than a few seconds |
-| `children`    | Optional extra content under the description (actions, dismiss control) |
-| `className`   | Merged onto the panel                                                 |
+| `children`    | Optional extra content under the description (actions, dismiss control)                                                |
+| `className`   | Merged onto the panel                                                                                                  |
 
 ```tsx
 <LoadingState title="Fetching your devices" description="This should take a few seconds." />
@@ -739,6 +771,44 @@ Fetching content state (`frontend/src/components/patterns/LoadingState.tsx`): ce
   title="Preparing your backup"
   description="This can take a minute."
 />
+```
+
+### ErrorContentState
+
+Failed content state (`frontend/src/components/patterns/ErrorContentState.tsx`): centered `AlertCircle` in `icon-error`, bold title, description, optional muted `detail`, and an optional retry button, on the same panel as `EmptyContentState` / `LoadingState`. It is the third member of that trio — use it wherever a fetch failure leaves a table, list, or region with nothing to show, and use `ErrorAlert` only when the surrounding page still works and one slice degraded.
+
+**Render it in place of the content, and hide that content's chrome.** A toolbar, filter bar, or pager left above/below it still implies data that isn't there (`Showing 0 of 0` under a failed fetch asserts an empty result, which is wrong). The panel announces with `role="status"` / `aria-live="polite"` rather than `role="alert"`, matching the `LoadingState` it swaps with.
+
+**Give it a retry wherever the load can be re-run.** A surface whose only recovery is "refresh the page" is the outlier, not the pattern; where no retry callback exists yet, a `loadAttempt` counter in the owning component is usually enough to re-run the effect.
+
+A panel that can both degrade and fail outright picks per render, not per component: fall back to `ErrorAlert` only on the branch where real content is still on screen (see `IntegritasConnectPanel`, `AutomationPage` workspace modes).
+
+Pass `description` through `describeLoadFailure()` (`frontend/src/lib/errors.ts`) so bare browser transport text ("Failed to fetch") becomes service-unreachable copy instead.
+
+| Prop            | Notes                                                    |
+| --------------- | -------------------------------------------------------- |
+| `title`         | Required bold heading naming what is unavailable          |
+| `description`   | Optional copy under the title                             |
+| `detail`        | Optional muted secondary line (e.g. a status code)        |
+| `retryLabel`    | Retry button label (default `"Retry"`)                    |
+| `retryDisabled` | Disables the retry button                                 |
+| `onRetry`       | Retry handler (omit to hide the button)                   |
+| `className`     | Merged onto the panel                                     |
+
+```tsx
+{
+  error ? (
+    <ErrorContentState
+      title="Devices aren't available"
+      description={describeLoadFailure(error)}
+      onRetry={() => void loadDevices()}
+    />
+  ) : loading ? (
+    <LoadingState title="Fetching your devices" description="This should take a few seconds." />
+  ) : (
+    <DevicesList … />
+  );
+}
 ```
 
 ### SpinnerAlt
@@ -754,6 +824,8 @@ Loading indicator (`frontend/src/components/ui/SpinnerAlt.tsx`): eight pins arou
 
 Decorative (`aria-hidden`) by design — always pair it with adjacent text describing what's loading, as `LoadingState` does.
 
+Reserve bare `SpinnerAlt` / `LoadingDots` for **inline value placeholders** — a metric value, a card cell, a QR slot, a busy button — where the surrounding layout is already on screen. A whole table, list, or panel waiting on its first load uses `LoadingState`.
+
 ```tsx
 <SpinnerAlt />
 <SpinnerAlt size="sm" tone="secondary" />
@@ -764,15 +836,15 @@ Decorative (`aria-hidden`) by design — always pair it with adjacent text descr
 
 Label/value detail rows (`frontend/src/components/patterns/DetailList.tsx`): `DetailList` is the `<dl>` wrapper, `DetailRow` is one label/value pair. Prefer this for read-only config/profile detail blocks instead of hand-rolled `<dl>`/`<dt>`/`<dd>` markup.
 
-| Prop (`DetailRow`) | Notes                                                              |
-| ------------------- | ------------------------------------------------------------------- |
-| `label`             | Row label (`ReactNode`)                                             |
-| `value`             | Row value (`ReactNode`)                                             |
-| `mono`              | Monospace value, for technical strings like hosts/IDs (default off) |
-| `className`         | Merged onto the row grid — override to widen the label column       |
+| Prop (`DetailRow`) | Notes                                                               |
+| ------------------ | ------------------------------------------------------------------- |
+| `label`            | Row label (`ReactNode`)                                             |
+| `value`            | Row value (`ReactNode`)                                             |
+| `mono`             | Monospace value, for technical strings like hosts/IDs (default off) |
+| `className`        | Merged onto the row grid — override to widen the label column       |
 
 ```tsx
-<DetailList className="border-t border-stroke-secondary pt-4">
+<DetailList className="border-stroke-secondary border-t pt-4">
   <DetailRow label="Name" value={user.name} />
   <DetailRow label="baseUrl" value={config.baseUrl} mono />
 </DetailList>
@@ -807,10 +879,10 @@ Status bar (`frontend/src/components/StatusBar.tsx`): shell chrome with status T
 
 Hairline rule (`frontend/src/components/ui/Divider.tsx`): 1px `stroke-secondary` separator for splitting content from actions or adjacent sections.
 
-| Prop          | Values                         | Notes                                      |
-| ------------- | ------------------------------ | ------------------------------------------ |
-| `orientation` | `horizontal` \| `vertical`     | Default `horizontal` (`h-px w-full`)       |
-| `className`   | optional                       | Spacing / inset overrides on the separator |
+| Prop          | Values                     | Notes                                      |
+| ------------- | -------------------------- | ------------------------------------------ |
+| `orientation` | `horizontal` \| `vertical` | Default `horizontal` (`h-px w-full`)       |
+| `className`   | optional                   | Spacing / inset overrides on the separator |
 
 Vertical uses `w-px self-stretch` (needs a stretched flex/grid parent). Decorative: `role="separator"` with matching `aria-orientation`.
 
@@ -1043,13 +1115,13 @@ Prefer **semantic** colour tokens, **named type styles**, and **ESDS radius/spac
 
 ### Colour semantics (prefer these)
 
-| Group   | Examples                                                                                                                                        | Role                              |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| Surface | `surface-primary`, `surface-secondary`, `surface-tertiary`, `surface-inverse`, `surface-always-white`, `surface-always-black`, `surface-accent` | Backgrounds and fills             |
+| Group   | Examples                                                                                                                                                             | Role                              |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Surface | `surface-primary`, `surface-secondary`, `surface-tertiary`, `surface-inverse`, `surface-always-white`, `surface-always-black`, `surface-accent`                      | Backgrounds and fills             |
 | Text    | `text-primary`, `text-secondary`, `text-tertiary`, `text-disabled`, `text-inverse`, `text-accent`, `text-accent-hover`, `text-error`, `text-warning`, `text-success` | Foreground colour (not type size) |
-| Icon    | `icon-primary`, `icon-secondary`, `icon-tertiary`, `icon-disabled`, `icon-inverse`, `icon-error`, `icon-warning`, `icon-success`                | Icon colour                       |
-| Stroke  | `stroke-primary`, `stroke-secondary`, `stroke-active`, `stroke-error`, `stroke-warning`, `stroke-success`, `stroke-always-white`                | Borders and dividers              |
-| Overlay | `overlay-light`, `overlay-heavy`                                                                                                                | Scrims / dimmers                  |
+| Icon    | `icon-primary`, `icon-secondary`, `icon-tertiary`, `icon-disabled`, `icon-inverse`, `icon-error`, `icon-warning`, `icon-success`                                     | Icon colour                       |
+| Stroke  | `stroke-primary`, `stroke-secondary`, `stroke-active`, `stroke-error`, `stroke-warning`, `stroke-success`, `stroke-always-white`                                     | Borders and dividers              |
+| Overlay | `overlay-light`, `overlay-heavy`                                                                                                                                     | Scrims / dimmers                  |
 
 Do not use Tailwind opacity modifiers on colour tokens (e.g. `surface-always-white/25`) — add a named token instead.
 

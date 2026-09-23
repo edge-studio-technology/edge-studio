@@ -132,6 +132,7 @@ function renderWorkspace(props: Partial<React.ComponentProps<typeof CreateWorkfl
         onEnabledChange={vi.fn()}
         onCancel={vi.fn()}
         onCreate={vi.fn()}
+        onCreateAddressBookEntry={vi.fn()}
         {...props}
       />
     </MemoryRouter>,
@@ -164,7 +165,7 @@ describe("CreateWorkflowWorkspace", () => {
     expect(onNameChange).toHaveBeenCalled();
   });
 
-  it("keeps Create disabled while validation is pending, enables once it resolves ok", async () => {
+  it("allows Create once a named workflow has at least one block while validation is pending", async () => {
     let resolveValidation!: (value: { item: AutomationValidationResult }) => void;
     validateAutomationDraft.mockReturnValue(
       new Promise((resolve) => {
@@ -173,34 +174,30 @@ describe("CreateWorkflowWorkspace", () => {
     );
     renderWorkspace();
     expect(screen.getByRole("button", { name: "Create workflow" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
+    expect(screen.getByRole("button", { name: "Create workflow" })).not.toBeDisabled();
 
     await act(async () => {
       resolveValidation({ item: okValidation() });
     });
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Create workflow" })).not.toBeDisabled(),
-    );
   });
 
-  it("disables Create and shows an unavailable reason when validation fails to load", async () => {
+  it("keeps Create available when validation fails to load after a block is added", async () => {
     validateAutomationDraft.mockRejectedValue(new Error("network down"));
     renderWorkspace();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Create workflow" })).toHaveAttribute(
-        "title",
-        "Validation is unavailable.",
-      ),
-    );
-    expect(screen.getByRole("button", { name: "Create workflow" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
+    await waitFor(() => expect(validateAutomationDraft).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "Create workflow" })).not.toBeDisabled();
   });
 
-  it("disables Create when the backend reports validation errors", async () => {
+  it("allows Create when the backend reports validation errors", async () => {
     validateAutomationDraft.mockResolvedValue({
       item: { ok: false, errors: [{ code: "x", level: "error", message: "bad" }], warnings: [] },
     });
     renderWorkspace();
+    await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Create workflow" })).toBeDisabled(),
+      expect(screen.getByRole("button", { name: "Create workflow" })).not.toBeDisabled(),
     );
   });
 
@@ -307,11 +304,11 @@ describe("CreateWorkflowWorkspace", () => {
     expect(screen.getByRole("button", { name: "select-manual_start" })).toBeInTheDocument();
   });
 
-  it("does not add a payment block when the address book is empty", async () => {
+  it("adds a payment block when the address book is empty", async () => {
     renderWorkspace();
     await userEvent.click(screen.getByRole("button", { name: "pick-manual-start" }));
     await userEvent.click(screen.getByRole("button", { name: "add-send-transaction" }));
-    expect(screen.queryByRole("button", { name: "select-send_transaction" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "select-send_transaction" })).toBeInTheDocument();
   });
 
   it("disables Reset canvas until a block is added, then clears blocks", async () => {

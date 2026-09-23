@@ -32,6 +32,7 @@ const fetchMock = vi.fn();
 // `backup`/`restoresync` RPC command, which is what used to reach clients verbatim.
 const BACKUP_SECRET = "route-level-leak-canary";
 const ADMIN_PASSWORD = "Abcdef1!";
+const BACKUP_FILE_BYTES = "backup-file-canary-bytes";
 
 let teardown: () => void;
 let db: import("better-sqlite3").Database;
@@ -147,6 +148,35 @@ describe("POST /api/minima/backups/restore", () => {
     assert.ok((fetchMock.mock.calls[0][0] as string).includes(encodeURIComponent(BACKUP_SECRET)));
     assertNoSecret(response);
     monitoring.endMinimaOperation();
+  });
+});
+
+describe("backup re-auth", () => {
+  it("rejects a download with the wrong current password without reading the file", async () => {
+    fs.writeFileSync(path.join(backupsDir, "minima-manual-1.bak"), BACKUP_FILE_BYTES);
+
+    const response = await request(app)
+      .post("/api/minima/backups/minima-manual-1.bak/download")
+      .set("Cookie", cookie)
+      .send({ currentPassword: "wrong-password" });
+
+    assert.equal(response.status, 401);
+    assert.equal(response.body.errorCode, "invalid_credential");
+    assert.equal(response.text.includes(BACKUP_FILE_BYTES), false, "backup bytes returned despite failed re-auth");
+  });
+
+  it("rejects a restore with the wrong current password without calling Minima", async () => {
+    fs.writeFileSync(path.join(backupsDir, "minima-manual-1.bak"), BACKUP_FILE_BYTES);
+    fetchMock.mockImplementation(async (url: string) => minimaResponse(200, url));
+
+    const response = await request(app)
+      .post("/api/minima/backups/restore")
+      .set("Cookie", cookie)
+      .send({ fileName: "minima-manual-1.bak", currentPassword: "wrong-password" });
+
+    assert.equal(response.status, 401);
+    assert.equal(response.body.errorCode, "invalid_credential");
+    assert.equal(fetchMock.mock.calls.length, 0);
   });
 });
 

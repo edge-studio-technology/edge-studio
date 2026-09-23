@@ -184,6 +184,19 @@ describe("syncGpioDataSources", () => {
     assert.equal(spawnMock.mock.calls.length, 1);
   });
 
+  it("kills the watcher when its source is deleted", () => {
+    const source = makeGpioSource();
+    makeGpioWorkflow(source.id);
+    gpioIngestion.syncGpioDataSources();
+    const child = children[0];
+
+    dataSourcesRepo.deleteDataSource(source.id);
+    gpioIngestion.syncGpioDataSources();
+
+    assert.equal(child.kill.mock.calls[0][0], "SIGTERM");
+    assert.equal(spawnMock.mock.calls.length, 1);
+  });
+
   it("records a configuration_invalid error and does not spawn for an invalid config", () => {
     const source = dataSourcesRepo.createDataSource({ name: "Bad GPIO", type: "gpio-input", config: { chip: "not-a-chip", pin: 99 } });
     makeGpioWorkflow(source.id);

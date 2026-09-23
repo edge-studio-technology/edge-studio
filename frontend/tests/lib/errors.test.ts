@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeError, titleFromType } from "../../src/lib/errors";
+import { describeLoadFailure, normalizeError, titleFromType } from "../../src/lib/errors";
 
 describe("titleFromType", () => {
   it("maps known types to friendly titles", () => {
@@ -99,5 +99,43 @@ describe("normalizeError", () => {
   it("falls back to unknown message shape for an object with no message", () => {
     const value = { foo: "bar" };
     expect(normalizeError(value)).toMatchObject({ message: "Unknown error", raw: value });
+  });
+});
+
+describe("describeLoadFailure", () => {
+  it("replaces bare browser transport failures with service-unreachable copy", () => {
+    for (const message of [
+      "Failed to fetch",
+      "NetworkError when attempting to fetch resource.",
+      "Load failed",
+      "fetch failed",
+    ]) {
+      expect(describeLoadFailure(message)).toBe(
+        "Edge Studio couldn't reach the backend service. It may be restarting.",
+      );
+    }
+  });
+
+  it("matches transport failures case-insensitively and inside longer messages", () => {
+    expect(describeLoadFailure(new TypeError("Failed to fetch").message)).toBe(
+      "Edge Studio couldn't reach the backend service. It may be restarting.",
+    );
+    expect(describeLoadFailure("  TypeError: failed to fetch  ")).toBe(
+      "Edge Studio couldn't reach the backend service. It may be restarting.",
+    );
+  });
+
+  it("passes through a real backend message untouched", () => {
+    expect(describeLoadFailure("Minima node is not running.")).toBe("Minima node is not running.");
+  });
+
+  it("reads the message out of a structured error", () => {
+    expect(describeLoadFailure({ errorDetails: { message: "Proof store is locked." } })).toBe(
+      "Proof store is locked.",
+    );
+  });
+
+  it("falls back to the unknown-error message for an unrecognized shape", () => {
+    expect(describeLoadFailure(undefined)).toBe("Unknown error");
   });
 });

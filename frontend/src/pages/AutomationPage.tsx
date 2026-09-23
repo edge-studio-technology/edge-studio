@@ -4,6 +4,8 @@ import { BookOpen } from "lucide-react";
 import { Button, LinkButton } from "../components/Button";
 import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import { ErrorAlert } from "../components/ErrorAlert";
+import { ErrorContentState } from "../components/patterns/ErrorContentState";
+import { describeLoadFailure } from "../lib/errors";
 import { LoadingState } from "../components/patterns/LoadingState";
 import { Page } from "../components/Page";
 import { useToast } from "../components/ToastProvider";
@@ -41,8 +43,14 @@ import type {
   AutomationValidationResult,
   AutomationWorkflow,
 } from "../features/automation/automationTypes";
-import { listAddressBookEntries } from "../features/address-book/addressBookApi";
-import type { AddressBookEntry } from "../features/address-book/addressBookTypes";
+import {
+  createAddressBookEntry,
+  listAddressBookEntries,
+} from "../features/address-book/addressBookApi";
+import type {
+  AddressBookEntry,
+  CreateAddressBookEntryInput,
+} from "../features/address-book/addressBookTypes";
 import { listDataSources } from "../features/data-sources/dataSourcesApi";
 import type { DataSource } from "../features/data-sources/dataSourceTypes";
 import { getWalletStatus } from "../features/wallet/walletApi";
@@ -63,6 +71,12 @@ function automationFlowFromRoute(
   if (params.workflowId && pathname.includes("/watch"))
     return { mode: "watch", workflowId: params.workflowId, runId: params.runId };
   return { mode: "list" };
+}
+
+function sortAddressBook(entries: AddressBookEntry[]): AddressBookEntry[] {
+  return [...entries].sort((a, b) =>
+    a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+  );
 }
 
 export function AutomationPage() {
@@ -104,12 +118,7 @@ export function AutomationPage() {
   const [inboxLoading, setInboxLoading] = useState(true);
 
   useEffect(() => {
-    refresh()
-      .catch((err: Error) => setLoadError(err.message))
-      .finally(() => {
-        setWorkflowsLoading(false);
-        setInboxLoading(false);
-      });
+    void loadPage();
   }, []);
 
   useEffect(() => {
@@ -165,6 +174,20 @@ export function AutomationPage() {
     const workflowId = "workflowId" in flow ? flow.workflowId : null;
     if (workflowId) {
       await refreshWorkspace(workflowId);
+    }
+  }
+
+  async function loadPage() {
+    setWorkflowsLoading(true);
+    setInboxLoading(true);
+    setLoadError(null);
+    try {
+      await refresh();
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Workflow data could not be loaded.");
+    } finally {
+      setWorkflowsLoading(false);
+      setInboxLoading(false);
     }
   }
 
@@ -286,6 +309,15 @@ export function AutomationPage() {
     }
   }
 
+  async function createWorkflowRecipient(data: CreateAddressBookEntryInput) {
+    const entry = await createAddressBookEntry(data);
+    setAddressBook((current) =>
+      sortAddressBook([...current.filter((item) => item.id !== entry.id), entry]),
+    );
+    showToast({ tone: "success", title: "Contact added" });
+    return entry;
+  }
+
   const sourceById = (id: string) => sources.find((source) => source.id === id);
   const activeWorkflowId = flowWorkflowId;
   const workspaceWorkflow = activeWorkflowId
@@ -308,23 +340,19 @@ export function AutomationPage() {
           onEnabledChange={setEnabled}
           onCancel={() => navigateFlow({ mode: "list" })}
           onCreate={submitWorkflow}
+          onCreateAddressBookEntry={createWorkflowRecipient}
         />
         {loadError && (
           <ErrorAlert
-            title="Workflow data could not be loaded"
+            title="Some workflow data couldn't be loaded"
             className="max-w-none"
             action={
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => refresh().catch((err: Error) => setLoadError(err.message))}
-              >
+              <Button type="button" variant="secondary" size="sm" onClick={() => void loadPage()}>
                 Retry
               </Button>
             }
           >
-            {loadError}
+            {describeLoadFailure(loadError)}
           </ErrorAlert>
         )}
       </>
@@ -395,6 +423,13 @@ export function AutomationPage() {
                 "Could not run workflow",
               )
             }
+            onCreateAddressBookEntry={createWorkflowRecipient}
+          />
+        ) : loadError ? (
+          <ErrorContentState
+            title="This workflow isn't available"
+            description={describeLoadFailure(loadError)}
+            onRetry={() => void loadPage()}
           />
         ) : (
           <LoadingState
@@ -402,24 +437,19 @@ export function AutomationPage() {
             description="This should take a few seconds."
           />
         )}
-        {loadError && (
+        {workspaceWorkflow && loadError ? (
           <ErrorAlert
-            title="Workflow data could not be loaded"
+            title="Some workflow data couldn't be loaded"
             className="max-w-none"
             action={
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => refresh().catch((err: Error) => setLoadError(err.message))}
-              >
+              <Button type="button" variant="secondary" size="sm" onClick={() => void loadPage()}>
                 Retry
               </Button>
             }
           >
-            {loadError}
+            {describeLoadFailure(loadError)}
           </ErrorAlert>
-        )}
+        ) : null}
       </>
     );
   }
@@ -435,22 +465,11 @@ export function AutomationPage() {
       }
     >
       {loadError && (
-        <ErrorAlert
-          title="Workflows data could not be loaded"
-          className="max-w-none"
-          action={
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => refresh().catch((err: Error) => setLoadError(err.message))}
-            >
-              Retry
-            </Button>
-          }
-        >
-          {loadError}
-        </ErrorAlert>
+        <ErrorContentState
+          title="Workflows aren't available"
+          description={describeLoadFailure(loadError)}
+          onRetry={() => void loadPage()}
+        />
       )}
 
       {deletingWorkflow && (
@@ -487,47 +506,51 @@ export function AutomationPage() {
         />
       )}
 
-      <AutomationWorkflowsList
-        workflows={workflows}
-        sources={sources}
-        busy={busy}
-        loading={workflowsLoading}
-        onCreate={() => navigateFlow({ mode: "build" })}
-        onEdit={(workflow) => navigateFlow({ mode: "edit", workflowId: workflow.id })}
-        onWatch={(workflow) => navigateFlow({ mode: "watch", workflowId: workflow.id })}
-        onRunNow={(workflow) =>
-          run(() => runAutomationWorkflow(workflow.id), "Could not run workflow")
-        }
-        onToggleEnabled={(workflow) =>
-          run(
-            () => updateAutomationWorkflow(workflow.id, { enabled: !workflow.enabled }),
-            workflow.enabled ? "Could not pause workflow" : "Could not enable workflow",
-          )
-        }
-        onDuplicate={(workflow) =>
-          run(() => duplicateAutomationWorkflow(workflow.id), "Could not duplicate workflow")
-        }
-        onToggleArchive={(workflow) =>
-          run(
-            () => updateAutomationWorkflow(workflow.id, { archived: !workflow.archived }),
-            workflow.archived ? "Could not restore workflow" : "Could not archive workflow",
-          )
-        }
-        onDelete={setDeleteTarget}
-      />
+      {!loadError ? (
+        <AutomationWorkflowsList
+          workflows={workflows}
+          sources={sources}
+          busy={busy}
+          loading={workflowsLoading}
+          onCreate={() => navigateFlow({ mode: "build" })}
+          onEdit={(workflow) => navigateFlow({ mode: "edit", workflowId: workflow.id })}
+          onWatch={(workflow) => navigateFlow({ mode: "watch", workflowId: workflow.id })}
+          onRunNow={(workflow) =>
+            run(() => runAutomationWorkflow(workflow.id), "Could not run workflow")
+          }
+          onToggleEnabled={(workflow) =>
+            run(
+              () => updateAutomationWorkflow(workflow.id, { enabled: !workflow.enabled }),
+              workflow.enabled ? "Could not pause workflow" : "Could not enable workflow",
+            )
+          }
+          onDuplicate={(workflow) =>
+            run(() => duplicateAutomationWorkflow(workflow.id), "Could not duplicate workflow")
+          }
+          onToggleArchive={(workflow) =>
+            run(
+              () => updateAutomationWorkflow(workflow.id, { archived: !workflow.archived }),
+              workflow.archived ? "Could not restore workflow" : "Could not archive workflow",
+            )
+          }
+          onDelete={setDeleteTarget}
+        />
+      ) : null}
 
-      <AutomationInboxTable
-        items={inboxItems}
-        busy={busy}
-        loading={inboxLoading}
-        onMarkRead={(item, read) =>
-          run(
-            () => updateAutomationInboxItem(item.id, { read }),
-            read ? "Could not mark preview read" : "Could not mark preview unread",
-          )
-        }
-        onDelete={setDeleteInboxTarget}
-      />
+      {!loadError ? (
+        <AutomationInboxTable
+          items={inboxItems}
+          busy={busy}
+          loading={inboxLoading}
+          onMarkRead={(item, read) =>
+            run(
+              () => updateAutomationInboxItem(item.id, { read }),
+              read ? "Could not mark preview read" : "Could not mark preview unread",
+            )
+          }
+          onDelete={setDeleteInboxTarget}
+        />
+      ) : null}
     </Page>
   );
 }

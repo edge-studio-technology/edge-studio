@@ -47,10 +47,13 @@ describe("WalletHistoryPanel", () => {
     expect(screen.getByText("Fetching your send history")).toBeInTheDocument();
   });
 
-  it("shows a loading state while actionsBlocked", () => {
+  it("keeps loaded history visible while actions are blocked", () => {
     renderPanel({ actionsBlocked: true });
 
-    expect(screen.getByText("Fetching your send history")).toBeInTheDocument();
+    const table = screen.getByRole("table", { name: "Send history" });
+    expect(table).toBeInTheDocument();
+    expect(within(table).getByText("Submitted")).toBeInTheDocument();
+    expect(screen.queryByText("Fetching your send history")).not.toBeInTheDocument();
   });
 
   it("shows an empty state when there is no history", () => {
@@ -59,16 +62,26 @@ describe("WalletHistoryPanel", () => {
     expect(screen.getByText("No send activity yet")).toBeInTheDocument();
   });
 
-  it("shows an error alert alongside existing content", () => {
-    renderPanel({ error: "could not load history" });
+  it("replaces the table and its chrome with a retryable error state", async () => {
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    renderPanel({ items: [], error: "could not load history", onRefresh });
 
-    expect(screen.getByText("Couldn't load history")).toBeInTheDocument();
+    expect(screen.getByText("Send history isn't available")).toBeInTheDocument();
     expect(screen.getByText("could not load history")).toBeInTheDocument();
+    expect(screen.queryByText("No send activity yet")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Address, token, or txpow ID")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRefresh).toHaveBeenCalledOnce();
   });
 
   it("renders history rows with status pill and truncated address", () => {
     renderPanel({
-      items: [item({ status: "failed" }), item({ id: "2", status: "submitted", toAddress: "Mx2222222222222222" })],
+      items: [
+        item({ status: "failed" }),
+        item({ id: "2", status: "submitted", toAddress: "Mx2222222222222222" }),
+      ],
     });
 
     const table = screen.getByRole("table", { name: "Send history" });

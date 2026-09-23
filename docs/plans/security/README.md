@@ -1,6 +1,6 @@
 # Security Hardening V1.5
 
-**Status:** In progress — Phases 1-5 done; Phase 6 finding [12] split into task 704
+**Status:** In progress — Phases 1-5, 8, and 9 done; Phase 6 finding [12] closed by task 704
 **Created:** 2026-09-04
 **Revised:** 2026-09-04 — second-opinion review folded in: DNS-address pinning on egress, Phase 0 decision gate, non-destructive
 `APP_SECRET` migration, the multipart egress path, global outbound concurrency, and the installer's
@@ -12,6 +12,10 @@ Phases 1-5 can be tracked as reviewable/done while Phases 0 and 6-9 stay open. T
 plan is archived at [archive/security-hardening-v1-5.md](../archive/security-hardening-v1-5.md).
 **Revised:** 2026-09-17 — Phase 6 finding [12] reduced to fail-closed startup in task 704 under
 ADR 0021; finding [6] image pinning split into a separate task.
+**Revised:** 2026-09-18 — Phase 8 completed by task 706 with recorded clean-data production
+Compose auth and browser/header sign-off.
+**Revised:** 2026-09-21 — Phase 9 completed by task 707 with Minima restart-state cleanup,
+source-compatible destination validation, and reliable Update Agent Docker stream timeouts.
 **Branch:** `task/272-security-hardening-v1-5`
 **Goal:** Close the findings from the external V1.5 security review and the V1 security sign-off
 remainder, in one ordered workstream. Phase 9 carries the unit-test audit's production-behaviour
@@ -40,8 +44,8 @@ notes, and tests. This index carries only what's shared across all of them.
 | 5 | Resource limits | Done (2026-09-09) | [phase-5-resource-limits.md](./phase-5-resource-limits.md) |
 | 6 | Fail closed on weak config | Split: [12] implemented in task 704; [6] image pinning remains open | [phase-6-fail-closed-on-weak-config.md](./phase-6-fail-closed-on-weak-config.md) |
 | 7 | Retention, redaction, budgets | Implemented in task 705 (unreleased) | [phase-7-retention-redaction-budgets.md](./phase-7-retention-redaction-budgets.md) |
-| 8 | V1 sign-off remainder | Not started | [phase-8-v1-sign-off-remainder.md](./phase-8-v1-sign-off-remainder.md) |
-| 9 | Correctness hardening from the unit-test audit | Not started | [phase-9-correctness-hardening.md](./phase-9-correctness-hardening.md) |
+| 8 | V1 sign-off remainder | Done (2026-09-18) | [706-v1-sign-off-remainder.md](./706-v1-sign-off-remainder.md) |
+| 9 | Correctness hardening from the unit-test audit | Done (2026-09-21) | [707-correctness-hardening-from-the-unit-test-audit.md](./707-correctness-hardening-from-the-unit-test-audit.md) |
 
 QA and promotion of the completed work in Phases 1-5 uses the
 [Phase 1-5 QA sign-off runbook](../../qa/security-hardening-phases-1-5.md). A pass there approves
@@ -60,7 +64,7 @@ This plan is the single owner of security work for V1.5. It absorbs two earlier 
 - **`high-risk-business-logic-hardening.md`** (2026-09-02) — session revocation is
   [Phase 3](./phase-3-session-lifecycle.md), error sanitization is
   [Phase 1](./phase-1-backup-password-leak.md), and its non-review items are
-  [Phase 9](./phase-9-correctness-hardening.md). Its dormant TOTP retry-loop item remains
+  [Phase 9](./707-correctness-hardening-from-the-unit-test-audit.md). Its dormant TOTP retry-loop item remains
   documented but is outside this branch.
 
 TOTP removal, retention, redesign, or re-enablement is explicitly outside this plan. ADR 0011's
@@ -117,7 +121,7 @@ Absorbed items, with their original IDs so the register and QA backlog stay trac
 | GAP-10 | Rate limits beyond login/setup | 7 |
 | GAP-12 / MINIMA-06 / MINIMA-07 | Routes gated on session but not `requireRole("admin")` | 2 |
 | DEVICE-IO-06 | Output egress controls — HTTP URL validation only; broker allowlists and per-target rate limits stay open | 2 (partial) |
-| WALLET-08 | No server-side Minima address validation | 9 |
+| WALLET-08 | Server-side Minima address validation (closed by task 707) | 9 |
 | high-risk plan | Minima restart operation-lock cleanup | 9 |
 | high-risk plan | Onboarding TOTP QR retry loop | out of scope — dormant; must be fixed before re-enabling TOTP |
 | high-risk plan | Update Agent stream timeout never settles | 9 |
@@ -163,7 +167,7 @@ Defaults in force:
 | 15 | Wallet-trigger budget | reject `cooldownSeconds: 0` on `send_transaction` workflows; 10 runs/hour persisted | 7 | medium — the budget counter is a schema change |
 | 16 | CSRF posture | `SameSite=Strict` + JSON/multipart-only; no tokens | 8 | low — already settled in ADR 0010 |
 | 17 | Dormant TOTP routes | gate all four on `TOTP_ENABLED`; keep the first-admin guard | 8 | low — already settled in ADR 0012 |
-| 18 | Minima address grammar | take it from Minima source/docs; defer WALLET-08 rather than guess | 9 | low |
+| 18 | Minima address grammar | follow Minima source/docs; implemented by task 707 | 9 | low |
 
 Rows 1, 10, 14, and 15 are the ones with real product or operator consequences; the rest are
 technical calls that can be confirmed in bulk. Rows 16 and 17 are already decided by ADR and are

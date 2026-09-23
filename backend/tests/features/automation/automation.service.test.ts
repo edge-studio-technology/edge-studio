@@ -1084,4 +1084,23 @@ describe("automation.service — scheduler", () => {
     const updated = workflowRepo.getAutomationWorkflow(wf.id)!;
     assert.ok(updated.last_run_at);
   });
+
+  it("pauses a due schedule workflow instead of running it when validation fails", async () => {
+    vi.useFakeTimers();
+    const wf = makeWorkflow(
+      [
+        { type: "schedule_start", config: { intervalSeconds: 60 } },
+        { type: "set_variable", config: { variableName: "1bad", variableSource: "custom_json", valueJsonText: "1" } }
+      ],
+      { name: "InvalidDueWorkflow" }
+    );
+    workflowRepo.updateAutomationWorkflow(wf.id, { nextRunAt: new Date(Date.now() - 1000).toISOString() });
+
+    service.startAutomationScheduler();
+    await vi.advanceTimersByTimeAsync(1100);
+
+    const updated = workflowRepo.getAutomationWorkflow(wf.id)!;
+    assert.equal(updated.enabled, 0);
+    assert.equal(updated.last_run_at, null);
+  });
 });

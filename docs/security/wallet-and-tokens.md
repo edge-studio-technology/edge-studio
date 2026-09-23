@@ -4,6 +4,17 @@ Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md#wallet) 
 
 Wallet uses Minima's default single-wallet model (no user-defined labeled accounts; no `fromAccountAddress`/UTXO scoping). Sends and receives operate on the whole node wallet.
 
+## Destination Validation
+
+Wallet sends and address-book create/update operations validate destinations server-side before
+calling Minima or mutating the address book. The shared validator follows Minima's own grammar:
+case-insensitive `0x` values contain one or more hexadecimal digits, while `Mx` values must decode
+to a complete Minima address structure with a valid marker, declared payload length, and SHA3-256
+checksum. It deliberately does not impose a fixed address length derived from examples.
+
+The wallet service repeats this validation so automation's `send_transaction` path cannot bypass
+the HTTP route check. Existing stored address-book rows are not rewritten or canonicalized.
+
 ## Seed Phrase Import (admin)
 
 Risk: `POST /api/wallet/import` accepts a 24-word BIP-39 seed phrase in the JSON request body and calls the Minima `restore` RPC. The phrase travels over the existing HTTP connection.
@@ -35,6 +46,7 @@ Current Controls:
 - Creating/editing transaction blocks requires admin role through the protected automation API.
 - V1 transaction blocks can only send native MINIMA (`tokenid:0x00`); custom token IDs are rejected.
 - Recipients must be selected from the saved address book and are resolved by address book entry id at execution time.
+- Resolved recipients are revalidated by the wallet service before the Minima `send` command is built.
 - The backend validates the amount and checks current sendable native MINIMA balance before calling Minima `send`.
 - The block uses the existing narrow wallet send service, not a generic Minima command proxy.
 - Sends are recorded in wallet send history and audit events with workflow/recipient/amount metadata.

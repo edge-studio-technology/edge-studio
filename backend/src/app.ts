@@ -7,7 +7,10 @@ import { automationRouter } from "./features/automation/automation.routes.js";
 import { dataReadsRouter } from "./features/data-reads/dataReads.routes.js";
 import { filesRouter } from "./features/files/files.routes.js";
 import { feedbackRouter } from "./features/feedback/feedback.routes.js";
-import { dataSourcesRouter, dataSourcesWebhookRouter } from "./features/data-sources/dataSources.routes.js";
+import {
+  dataSourcesRouter,
+  dataSourcesWebhookRouter,
+} from "./features/data-sources/dataSources.routes.js";
 import { debugRouter } from "./features/debug/debug.routes.js";
 import { healthRouter } from "./features/health/health.routes.js";
 import { hostCapabilitiesRouter } from "./features/host-capabilities/hostCapabilities.routes.js";
@@ -17,6 +20,7 @@ import {
   integritasUserRouter,
 } from "./features/integritas-auth/integritas-auth.routes.js";
 import { minimaRouter } from "./features/minima/minima.routes.js";
+import { preferencesRouter } from "./features/preferences/preferences.routes.js";
 import { statusRouter } from "./features/status/status.routes.js";
 import { addressBookRouter } from "./features/address-book/address-book.routes.js";
 import { tokensRouter } from "./features/tokens/tokens.routes.js";
@@ -54,6 +58,7 @@ export function createApp() {
   app.use("/api/wallet", walletRouter);
   app.use("/api/wallet/address-book", addressBookRouter);
   app.use("/api/tokens", tokensRouter);
+  app.use("/api/preferences", preferencesRouter);
   app.use("/api/debug", debugRouter);
 
   app.use(uploadErrorHandler);

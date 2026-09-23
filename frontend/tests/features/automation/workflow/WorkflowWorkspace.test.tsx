@@ -69,6 +69,7 @@ vi.mock("../../../../src/features/automation/workflow/canvas", async (importOrig
     ...actual,
     WorkflowCanvas: (props: {
       blocks: { id: string; type: string }[];
+      validationByBlockId?: Record<string, unknown[]>;
       onSelectBlock: (id: string) => void;
       onMoveBlock: (id: string, direction: -1 | 1) => void;
       onRemoveBlock: (id: string) => void;
@@ -85,6 +86,9 @@ vi.mock("../../../../src/features/automation/workflow/canvas", async (importOrig
             <button type="button" onClick={() => props.onRemoveBlock(block.id)}>
               remove-{block.id}
             </button>
+            {props.validationByBlockId?.[block.id]?.length ? (
+              <span>validation-{block.type}</span>
+            ) : null}
           </div>
         ))}
       </div>
@@ -188,6 +192,7 @@ function renderWorkspace(
         onReorderBlocks={vi.fn()}
         onRunNow={vi.fn()}
         onRunWithPayload={vi.fn()}
+        onCreateAddressBookEntry={vi.fn()}
         {...props}
       />
     </MemoryRouter>,
@@ -305,7 +310,7 @@ describe("WorkflowWorkspace edit mode", () => {
     expect(screen.getByRole("button", { name: "set-valid-draft-config" })).toBeInTheDocument();
   });
 
-  it("keeps the draft sheet open and reveals errors when Done is clicked with an invalid payment", async () => {
+  it("persists the draft payment and closes the sheet even when the payment is incomplete", async () => {
     const onAddBlock = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({
@@ -316,8 +321,32 @@ describe("WorkflowWorkspace edit mode", () => {
     await user.click(screen.getByRole("button", { name: "add-send-transaction" }));
     await user.click(screen.getByRole("button", { name: "set-invalid-draft-config" }));
     await user.click(screen.getByRole("button", { name: "Done" }));
+    expect(onAddBlock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "send_transaction",
+        config: { recipientAddressBookId: "", amount: "" },
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "set-valid-draft-config" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("keeps an invalid draft payment on the canvas after closing the sheet", async () => {
+    const onAddBlock = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      onAddBlock,
+      addressBook: [{ id: "a1", label: "Alice", address: "Mx1" }] as AddressBookEntry[],
+    });
+
+    await user.click(screen.getByRole("button", { name: "add-send-transaction" }));
+    await user.click(screen.getByRole("button", { name: /close send payment/i }));
+
     expect(onAddBlock).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "set-valid-draft-config" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "set-valid-draft-config" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /select-send_transaction-/ })).toBeInTheDocument();
+    expect(screen.getByText("validation-send_transaction")).toBeInTheDocument();
   });
 
   it("persists the draft payment and closes the sheet once valid", async () => {

@@ -34,14 +34,14 @@ afterAll(() => {
 
 let tokenCounter = 0;
 
-function makeWebhookWorkflow(extraBlocks: { type: "control_output"; config: unknown }[] = []) {
+function makeWebhookWorkflow(extraBlocks: { type: "control_output"; config: unknown }[] = [], startConfig: Record<string, unknown> = {}) {
   tokenCounter += 1;
   const webhookToken = `webhook-route-token-${tokenCounter}`;
   const source = dataSources.createDataSource({ name: "Webhook", type: "webhook", config: { webhookToken } });
   const workflow = workflows.createAutomationWorkflow({
     name: "Webhook workflow",
     enabled: true,
-    blocks: [{ type: "webhook_event_start", config: { sourceId: source.id } }, ...extraBlocks]
+    blocks: [{ type: "webhook_event_start", config: { sourceId: source.id, ...startConfig } }, ...extraBlocks]
   });
   return { webhookToken, source, workflow };
 }
@@ -93,5 +93,31 @@ describe("POST /api/data-source-webhooks/:token — rate limit", () => {
 
     const reads = db.prepare("SELECT source_url FROM data_source_reads WHERE data_source_id = ?").all(source.id) as { source_url: string }[];
     assert.deepEqual(reads, [{ source_url: `data-source:${source.id}` }]);
+  });
+
+  it("returns 404 for an unknown token", async () => {
+    const response = await request(app).post("/api/data-source-webhooks/unknown-token").send({ temp: 21 });
+    assert.equal(response.status, 404);
+  });
+
+  it("returns 409 when the source has no enabled workflow", async () => {
+    const { webhookToken, source, workflow } = makeWebhookWorkflow();
+    workflows.updateAutomationWorkflow(workflow.id, { enabled: false });
+
+    const response = await request(app).post("/api/data-source-webhooks/" + webhookToken).send({ temp: 21 });
+
+    assert.equal(response.status, 409);
+    assert.equal(response.body.errorDetails.context.sourceId, source.id);
+  });
+
+  it("returns 202 when a workflow trigger is skipped by its cooldown", async () => {
+    const { webhookToken } = makeWebhookWorkflow([], { cooldownSeconds: 60 });
+
+    assert.equal((await request(app).post("/api/data-source-webhooks/" + webhookToken).send({ temp: 21 })).status, 200);
+    const skipped = await request(app).post("/api/data-source-webhooks/" + webhookToken).send({ temp: 22 });
+
+    assert.equal(skipped.status, 202);
+    assert.equal(skipped.body.skipped, true);
+    assert.match(skipped.body.reason, /cooldown is active/);
   });
 });

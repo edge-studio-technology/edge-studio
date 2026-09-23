@@ -4,285 +4,31 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
-Branch `test/unit-tests-and-ci`. Backend unit test coverage (prior sessions) is done; frontend unit testing harness was set up two sessions ago. This session finished the first three areas of `docs/plans/frontend-unit-tests.md`.
-
-- Completed `lib` coverage (was Partial: only `cx.ts`/`format.ts`): added `paths.ts`, `paginated.ts`, `time.ts` (`formatUtcTime`), `errors.ts` (`normalizeError`/`titleFromType`), `localSettings.ts`, `behaviourSettings.ts`, and `api.ts` (all five HTTP verb helpers plus 401/unauthorized-handler branching, `global.fetch` stubbed via `vi.stubGlobal`). `lib` is now Done.
-- Completed `components/ui` coverage (was Partial: only `Pill.tsx`): added all 25 remaining files — `Button`/`LinkButton`/`IconButton`, `Card`, `CheckboxField`, `Clock`, `Disclosure`, `Divider`, `ErrorText`, `InputField`, `Label`, `LoadingDots`, `Menu`, `Modal`, `Pagination`/`PaginationNumber`, `PinField`, `ProgressBar`, `RadioField`, `ScrollArea`, `SelectField`, `SpinnerAlt`, `SwitchField`, `TabList`, `TextareaField`, `Text` (all 6 exports), `ToggleTabs`, `Tooltip`, `TruncatedHash`. `components/ui` is now Done (26/26 files).
-- Completed `components/patterns` coverage (all 23 files, was Not Started): `AltOptionCard`, `BrandLockup`, `ButtonRow`, `CopyableCode`, `CopyField`, `DataTable` (+ its 8 sub-exports), `DeleteConfirmModal`/`DeleteProgressModal`, `DetailList`/`DetailRow`, `EmptyContentState`, `ErrorAlert`, `ErrorDetailPanel`, `FileDropBox`, `JsonPreview`/`JsonPreviewContent`, `ListDisclosure`, `ListFilterBar`, `ListPaginationFooter`, `LoadingState`, `MetricCard`, `NoticeCard`, `OptionCard`, `Page`, `StatusPage`, `SubSection`. `components/patterns` is now Done.
-- Fixed a real gap in the test harness hit while writing the `lib`/`components/ui` tests: `frontend/tests/setup.ts` never called `@testing-library/react`'s `cleanup()`, so any test file with more than one `render()` leaked DOM nodes across `it` blocks and broke `getByRole`/`getByText` queries. Added a global `afterEach(() => cleanup())` in `setup.ts` — fixes it for every test file, not just the ones touched this session.
-- Worked out three non-obvious patterns now documented in the plan's Conventions section: (1) components whose value is fed back through a controlled prop (`PinField`) need a small `useState` wrapper in the test, not a bare `vi.fn()`; (2) `Tooltip`'s hover open/close delays need `vi.useFakeTimers()` + `fireEvent.mouseEnter`/`mouseLeave` + `act(() => vi.advanceTimersByTime(...))` — `userEvent.hover`/`unhover` deadlocks against fake timers — paired with `afterEach(() => vi.useRealTimers())` so a timed-out test can't leak fake timers into later tests in the same file; (3) `FileDropBox`'s file-rejection path can't be exercised with `userEvent.upload()` since it filters files against the input's `accept` attribute itself — build a `FileList`-like object by hand and fire the change via `fireEvent.change()` instead.
-- Updated `docs/plans/frontend-unit-tests.md`'s Progress table (`lib`/`components/ui`/`components/patterns` → Done with per-file notes) and Conventions/Setup sections with the fixes/patterns above.
-- Verified: `npm run check` (typecheck+test+audit — 773 backend tests/55 files, 249 frontend tests/59 files), `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config`. `npm audit` flagged `nanoid`/`postcss` again, cleared on rerun — same transient registry/advisory-cache blip as prior sessions (installed versions already patched: `nanoid@3.3.18`, `postcss@8.5.26`), not a real regression.
-
-Later same branch, next session:
-
-- Completed flat legacy `components/` coverage (was Not Started). Real tests added for `AppShell.tsx`, `AppShellSidebar.tsx`, `BrandMark.tsx`, `ErrorBoundary.tsx`, `Input.tsx`, `MinimaIcon.tsx`, `ProtectedRoute.tsx`, `StatusBar.tsx`, `StatusRow.tsx`, `Text.tsx` (`MutedText` only — its re-exported `Text`/`ErrorText` are already covered upstream), `ToastProvider.tsx` (11 files, 50 new tests). Skipped as pure re-exports with no logic of their own (confirmed by reading each file, already covered by their `components/ui`/`components/patterns` source tests): `Button.tsx`, `ButtonRow.tsx`, `Card.tsx`, `DataTable.tsx`, `ErrorAlert.tsx`, `JsonPreview.tsx`, `LoadingDots.tsx`, `Modal.tsx`, `Page.tsx`, `Pill.tsx`. `components` (flat legacy) is now Done.
-- Added three new Conventions entries to the plan doc: mocking sibling feature modules directly via `vi.mock` for component tests with unrelated network-backed dependencies (first use in the suite, `AppShell.test.tsx`, which mocks `features/status/statusApi`, `features/update/updateApi`, `features/feedback/FeedbackModal`); the `Object.defineProperty(window, "location", ...)` pattern for testing `window.location.reload()` calls (`ErrorBoundary`); and spying on `console.error` for `componentDidCatch` logging noise.
-- Verified: `npm --prefix frontend run test` (292 passed), `npm --prefix frontend run typecheck` (clean), `npm run check` (backend 773 tests/55 files, frontend 292 tests/70 files, all green), `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config` — all clean. No src files were modified; no bugs found in the components under test.
-- `npm audit` (via `npm run check`) flagged `nanoid<3.3.18` (high) and `postcss<=8.5.22` (moderate) again — but unlike the prior session's note, this did **not** clear on rerun. Checked `backend/package-lock.json` directly: the locked/installed versions really are `nanoid@3.3.16`/`postcss@8.5.19`, below the patched versions, though both are within the semver ranges their parents (`vite`) already allow, so a plain `npm install` would refresh the lockfile to the patched versions. Pre-existing lockfile staleness, unrelated to this session's changes (no dependency files touched) — left as-is, out of scope for a test-only task, but flagging since it contradicts the "transient blip, clears on rerun" characterization logged previously.
-
-Later same branch, next session:
-
-- Marked `app/` Skipped in `docs/plans/frontend-unit-tests.md`: `nav.ts`/`brand.ts`/`names.ts` are static constant/data exports with no branching logic, `types.ts` is types only — nothing to unit test standalone.
-- Worked through `features/*` folders one at a time (each via a background agent following the plan's conventions, one folder per turn): `address-book` (24 tests), `auth` (48), `automation` (266, marked **Partial** — the four large stateful orchestrators `WorkflowBlockInspectors.tsx`/`WorkflowWorkspace.tsx`/`CreateWorkflowWorkspace.tsx`/`WorkflowWatchUi.tsx` are left uncovered, documented in the plan doc), `dashboard` (15), `data-reads` (12), `data-sources` (168, full Done despite size — two new Conventions entries added: `userEvent.setup()`'s clipboard emulation silently overrides a `vi.stubGlobal("navigator", ...)` clipboard mock, and `getByPlaceholderText`/`getByText` normalize whitespace even against `RegExp`), `debug` (1), `feedback` (12), `integritas-auth` (51 — folder is actually `integritas-auth` on disk, not `integritasAuth` as `.claude/rules/frontend.md` states), `integritas` (140 — flagged a non-blocking bug in `StampResult.tsx`, not fixed: its pending-refresh effect can surface more than one toast on a sustained unauthorized-refresh failure because `ToastProvider`'s `showToast` isn't memoized), `minima` (178, full Done), `setup` (57, full Done — TOTP-branch code in `OnboardingWizard.tsx` stays untested since `TOTP_ENABLED = false` makes it unreachable, same rationale as the existing `totpEnabled.test.ts`), `status` (8), `tokens` (3). All verified individually (scoped run, full suite, typecheck) and the plan doc's per-folder row updated to Done/Partial as each landed.
-- Full suite grew from 292 frontend tests (start of this stretch) to 1220 (158 files); backend stayed at 773. `npm --prefix frontend run typecheck` clean throughout; `data-sources` folder additionally verified `npm run check`, both builds, and `docker compose config`.
-- Audited the rest of `docs/TASKS.md`'s "In Progress" section for the same one-line-hides-a-huge-plan problem this frontend-unit-tests item turned out to have: `backend-unit-tests.md` is fully done; `security-checklist.md`, `workflow-redesign.md`, `minima-node-backup-restore.md` are all reasonably bounded (manual-check-heavy, not large unbuilt feature lists); `block-automation-workflows.md` (844 lines, 8 milestones) is the other real offender — several unchecked items are substantial unbuilt code features (configure-block modal, workflow templates, full draft workspace save model, branching/else flow, run-log filters), not just manual verification, sitting behind one TASKS.md bullet. Recommended splitting that line into one bullet per milestone/improvement when it's next picked up — not done yet, awaiting the user's call.
-
-Later same branch, next session:
-
-- Completed the last two folders: `features/update` (23 tests — `changelog.ts`, `updateApi.ts`, `ChangelogPreview.tsx`, `useUpdateStatusRefresh.ts`) and `features/wallet` (86 tests, full Done — no component was large/stateful enough to warrant deferral like the `automation` orchestrators; `walletTypes.ts` skipped as types-only). `docs/plans/frontend-unit-tests.md` Status header now Done — every folder addressed (`features/automation` remains the one Partial row, 4 orchestrators deferred).
-- `frontend/tests/features/wallet/CreateTokenModal.test.tsx`: investigated a suspected bug in the decimal-validation branch, confirmed via temporary (reverted) debug instrumentation that it's unreachable in practice — the input's native `min={0}`/`step={1}` blocks browser/jsdom form submission before the JS check runs — so the test asserts the native attributes instead; documented inline and in the plan doc. No `frontend/src/` file was touched.
-- Frontend suite grew from 1220 tests (158 files) to 1329 tests (175 files). Backend stayed at 773. `npm --prefix frontend run typecheck` and `npm run check` both clean.
-- Moved the "Frontend unit test coverage" line from `docs/TASKS.md`'s `## In Progress` to `## Done`.
-
-Later same branch, next session:
-
-- Closed out `features/automation`'s last Partial gap: added unit tests for all 4 previously-uncovered orchestrator components. `WorkflowWatchUi.tsx` (24 tests, no mocking needed — all three exports are prop-driven). `CreateWorkflowWorkspace.tsx` (16 tests — sibling modules `automationApi`, `WorkflowBlockInspectors`, `canvas`'s `WorkflowCanvas`, `toolkit/WorkflowBlockLibrary` mocked at the boundary, plus `react-router-dom`'s `useBlocker` mocked to a controllable ref since it needs a data router the test tree doesn't have). `WorkflowWorkspace.tsx` (20 tests — same sibling-mocking pattern, real `WorkflowWatchUi` components used unmocked since already covered; covers edit-mode debounce/pause-on-edit/add-block/draft-payment-sheet/move/remove/persisted-inspector-wiring and watch-mode run selection). `WorkflowBlockInspectors.tsx` (39 tests — no mocking needed, purely prop-driven; one test group per block-type config-form branch plus `AttachedStampSettings` and the `PersistedBlockInspector` wrapper's dirty-tracking/`flush()`/enable-disable/remove/attach-stamp behavior).
-- Added one new Conventions entry to the plan doc: mocking `react-router-dom`'s `useBlocker` via `vi.mock` + `importOriginal`, keeping the rest of the module (`Link`, etc.) real under a plain `MemoryRouter`.
-- `docs/plans/frontend-unit-tests.md`: `features/automation` row flipped from Partial to Done; Status header updated to reflect no Partial rows remain anywhere in the plan.
-- Frontend suite grew from 1329 tests (175 files) to 1428 tests (179 files). Backend stayed at 773.
-- Verified: `npm run check` (typecheck+test+audit, backend 773/55 + frontend 1428/179, both clean), `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config` — all clean. `npm audit` still flags the same pre-existing `nanoid`/`postcss` lockfile staleness noted two sessions ago (unrelated, not touched). No `frontend/src/` file was modified — test-only session, no bugs found in the components under test.
-- Updated `docs/TASKS.md`'s Done entry and `CHANGELOG.md`'s `[Unreleased] test/unit-tests-and-ci` line to say `features/automation` (and `update`/`wallet`, previously missing from that changelog line) are now fully covered — `frontend/src/*` unit test coverage is complete.
-
-Later same branch, next session:
-
-- Closed the one real gap flagged by `docs/plans/coverage-criteria.md`: `minima-backup.service.ts`, `minima-backup-scheduler.service.ts`, `minima-console.service.ts`, `minima-console.catalog.ts` were untested and untracked (security-sensitive per `.claude/rules/minima.md` — backup password encryption, console whitelist hard-exclusions). Added 4 new test files (53 tests) mirroring the plan's existing conventions: `node:fs/promises` mocked in full via `vi.mock`+`vi.hoisted` (in-memory fake backup dir, since the real path `/minima-backups` is a fixed host mount the sandbox can't write to) for `minima-backup.service.test.ts`; DB-harness + `vi.mock`'d `minima.service.js`/`minima-backup.service.js`/`minima.rpc.js` for `minima-console.service.test.ts`; `vi.useFakeTimers()`+`vi.resetModules()` per test for `minima-backup-scheduler.service.test.ts` (same pattern as `minima-poll.service.test.ts`); pure data assertions for `minima-console.catalog.test.ts`.
-- Backend coverage rose 78.09% → 84.21% lines (statements 75.78%→81.77%, branches 71.08%→74.47%, functions 77.41%→84.37%), all comfortably above the existing threshold floor (75/73/68/74). `minima-backup-scheduler.service.ts`'s private `runAutoRestartIfDue` is deliberately left uncovered — its only call site is commented out pending automation-restart coordination, same dead-code-skip precedent as `totp.service.ts`.
-- Updated `docs/plans/backend-unit-tests.md`'s `minima` Progress row with the new coverage notes, and `docs/plans/coverage-criteria.md` (numbers table, Known Gaps, Follow-up, Docs sections) to reflect the gap closure — the "revisit the backend threshold floor upward" step is still open, not done automatically as part of this pass.
-- Added a `CHANGELOG.md` line under `[Unreleased] test/unit-tests-and-ci`.
-- Verified: `npm run check` (typecheck+test:coverage+audit — backend 63 files/879 tests all green, frontend/update-agent unchanged and green), `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config` — all clean. `audit:moderate` still fails on the same pre-existing `nanoid`/`postcss` lockfile staleness noted in earlier sessions (unrelated, no dependency files touched).
-
-Later same branch, next session:
-
-- Closed the remaining two `coverage-criteria.md` follow-up items in sequence, each committed separately: (1) raised the backend coverage threshold floor (`backend/vitest.config.ts`) from 75/73/68/74 (lines/statements/branches/functions) to 81/78/71/81, locking in the `minima-backup*`/`minima-console*` gain from last session (commit `f6dbda0`); (2) closed the last real gap in `backend-unit-tests.md`'s `data-sources` row — the six untested hardware/MQTT/host-helper services (`gpioIngestion.service.ts`, `gpioOutput.service.ts`, `mqttIngestion.service.ts`, `mqttOutput.service.ts`, `cameraCapture.service.ts`, `sensorHelper.service.ts`) — with 6 new test files (59 tests).
-- New mocking patterns established for this pass (none existed before in the suite): `mqtt` package mocked via `vi.mock`+`vi.hoisted` with a hand-built fake client (`on`/`publish`/`subscribe`/`end`, manual `emit()` for `connect`/`message`/`error` events, timed via a microtask so handlers are registered before the event fires); `node:child_process`'s `spawn` mocked the same way for a fake child process (`stdout`/`stderr`/`on`/`kill`/`emit`) — notably, the GPIO output holder test needed the fake `spawn` to *not* auto-exit `--mode=signal` (persistent holder) processes the way it does `--mode=time` (one-shot) ones, or the holder self-cleans from the module's `inactiveHolders` map before the test can observe `kill()`; `config/env.js` mocked via `vi.mock`+`vi.hoisted` returning a mutable object so `cameraEnabled`/`sensorsEnabled`/etc. can be toggled per test.
-- `gpioIngestion.service.ts`/`mqttIngestion.service.ts` (the two hardest — module-level watcher/subscription state plus DB-backed source/workflow sync) use the DB harness with real `dataSources.repository.ts`/`automation.repository.ts`, `automation.service.ts`'s `recordPushAutomationPayload` mocked at the boundary; covers sync (spawn/connect, no-op on unchanged config, teardown on disabled workflow, `configuration_invalid` persistence), line/message handling (payload forwarding, debounce, deleted-source no-op, workflow-busy-error swallowing vs. unexpected-error logging via a `console.error` spy), and process/client lifecycle events (stderr/error → `hardware_unavailable`, exit → `source_unavailable` + a stale-exit guard test, MQTT `connection_failed`, non-JSON MQTT payload → `invalid_payload` + a failed `data_source_reads` row).
-- Backend coverage rose 84.21% → 92% lines (statements 81.77%→89.67%, branches 74.47%→79.62%, functions 84.37%→93.03%) — all comfortably above the newly-raised 81/78/71/81 floor, so no further floor change was made in this same pass (left as an explicit open Follow-up item instead, consistent with not auto-raising it as part of the work that earns the gain).
-- `docs/plans/backend-unit-tests.md`'s `data-sources` row flipped Partial → Done with full coverage notes; since every row is now Done except the deliberately-`Skipped` `debug` row, flipped the plan's own header `**Status:**` to Done and archived it to `docs/plans/archive/backend-unit-tests.md` (same precedent as `frontend-unit-tests.md`/`update-agent-unit-tests.md`), fixing the one live pointer to it in `docs/TASKS.md`'s Ideas section. Moved the "Backend unit test coverage" line from `docs/TASKS.md`'s `## In Progress` to `## Done`.
-- `docs/plans/coverage-criteria.md` updated: numbers table (92% lines vs. 81% floor), removed the now-closed `data-sources` bullet from Known Gaps, Follow-up now lists only the still-undecided threshold-floor-raise (again) and supertest-401-smoke-test items.
-- Verified per commit: `npm run test:coverage`/`npm run check` (typecheck+test:coverage+audit — backend 65 files/885 tests all green, frontend/update-agent unchanged and green), `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config` — all clean each time. `audit:moderate` still fails on the same pre-existing `nanoid`/`postcss` lockfile staleness noted in every prior session (unrelated, no dependency files touched).
-
-- Closed the last `coverage-criteria.md` Follow-up item: built the supertest 401-smoke-test proposed in the archived backend plan's "Future Hardening" section (`backend/tests/app.401-smoke.test.ts`), adding `supertest`/`@types/supertest` as backend devDependencies. Rather than manually enumerating every route+method in every router file, the test exploits `src/app.ts`'s actual structure — a single global `app.use(requireAuth)` gates everything registered after it, so `requireAuth` always short-circuits before Express attempts route matching, regardless of whether the exact path/method hit is a real handler. So the test asserts a bare `GET` against each of the 14 protected router mount prefixes returns 401, and separately asserts the 5 documented public entry points (`GET /api/health`, `GET /api/setup/status`, `POST /api/setup/complete`, `POST /api/auth/login`, `POST /api/data-source-webhooks/:token`) do not. The `POST /api/auth/login` check needed care: bad-credential login legitimately also returns 401, so status code alone can't distinguish "blocked by requireAuth" from "login rejected these credentials" — asserted on the response body's error message instead (`"Unauthorized"` vs. `"Invalid credentials"`) to tell them apart. Sanity-checked the test actually catches the regression it's meant to by temporarily commenting out `app.use(requireAuth)` in `src/app.ts` — 13 of 13 protected-prefix checks failed as expected — then reverted (confirmed via `git diff --stat` showing no change).
-- Verified: `npm run check` (backend 66 files/904 tests, frontend/update-agent unchanged, all green — only the pre-existing `nanoid`/`postcss` audit gap failed), `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config`.
-- `docs/plans/coverage-criteria.md`'s Follow-up section now has exactly one open item left (revisit the backend threshold floor again for the 92% number); `docs/TASKS.md`'s coverage-criteria line and Ideas section (removed the now-done supertest-smoke-test idea) updated to match; `CHANGELOG.md` got one line for the new smoke test.
-- Reworded the 3 local (unpushed) commits from this stretch — floor raise, `data-sources` coverage, 401-smoke-test — to single-line subjects with no body/`Co-Authored-By` trailer, per the user's request and the `commit-message` skill's format; used `GIT_SEQUENCE_EDITOR`+`GIT_EDITOR` to reword non-interactively (`git rebase -i`), verified via `git diff <old-tip> <new-tip> --stat` showing zero content difference (message-only rewrite). Confirmed safe to rewrite: `git log origin/test/unit-tests-and-ci` showed the remote tip was still `f02fae4`, so none of the 3 commits had been pushed yet.
-- Closed the plan's last open Follow-up item: raised the backend threshold floor again (statements/branches/functions/lines: 78/71/81/81 → 87/77/90/89) now that lines sit at 92%, keeping the same ~3pt regression margin. Flipped the plan's `**Status:**` to Done and archived it to `docs/plans/archive/coverage-criteria.md` (same precedent as the other unit-test plans); moved the one item it surfaced but didn't own (`verification.md`'s missing `update-agent` build step) to `docs/TASKS.md`'s Ideas section so it isn't lost with the archive, and moved the coverage-criteria line itself from `## In Progress` to `## Done`.
-- Verified: `npm run test:coverage`/`npm run check` clean at the new floor, no other files touched.
-
-Later same branch, next session:
-
-- Audited the high-risk spot-checks from `.temp/reviews/README.md` against the tests and production code, then kept this branch test-only: no `src/`, package, or lock files were changed.
-- Strengthened backend coverage for persisted-secret compatibility and APP_SECRET key dependence; Minima's six-minute operation expiry, compact-quit sequencing, autonomous Docker cycle, RPC-close handling, and background-failure cleanup; and non-native wallet token propagation.
-- Strengthened frontend wallet coverage for non-native token submission at the exact sendable balance, address-book recipient submission, selected-token balance gating, and the blocked-actions state.
-- Replaced the Update Agent Docker client's tautological assertions with exact body-write, timeout-registration, timeout-rejection, request-destruction, and request-end assertions.
-- Recorded production changes that cannot be solved with tests alone in `docs/plans/high-risk-business-logic-hardening.md` and linked it from `docs/TASKS.md`: credential-change session invalidation, outward-error sanitization, Minima pre-background operation cleanup, authoritative Minima address validation, and Update Agent stream-timeout promise settlement.
-- Verified focused suites (backend 56, frontend 16, Update Agent 26), full typecheck and coverage (backend 910, frontend 1432, Update Agent 144), backend/frontend builds, and `docker compose config`. `npm run check` reaches and passes all typecheck/coverage stages but still exits at the same pre-existing `nanoid`/`postcss` audit advisories; no dependency files were changed.
-
-Later same branch, next session:
-
-- Audited the branch (excluding the `dev` merges) for done-ness: full suite green, coverage above every package floor, no `.skip`/`.todo`/`.only`, no stray tests left in `src/`, both builds and `docker compose config` clean. Two real findings: `npm run check` still exits at the `audit:moderate` stage, and `auth.service.ts` sat at 39% lines despite `auth` being a 90% tier in `.claude/rules/testing.md`.
-- Closed that auth gap. `auth.service.ts` 39% → 100% lines, `totp.service.ts` 64% → 100%, `setup.service.ts` 78% → 100%, `features/auth` 73% → 99% lines / 96% branches; backend total 92.7% → 94.68% lines. New tests: `initTotpReset`/`verifyTotpReset` (404/401/400 paths, undecryptable-secret catch, pending-reset lifecycle, audit event, expired-pending), a new `totp.service.test.ts` (secret generation, otpauth URL, QR data URL, token window acceptance/rejection, encrypt/decrypt round-trip, tamper and non-JSON failures), `verifySetupTotp`'s success path, and the `TOTP_ENABLED`-gated branches of `login`, `changePassword`, and `completeSetup`.
-- `TOTP_ENABLED` is a compile-time `false` constant, so those branches are only reachable with `auth.constants.js` mocked: used `vi.resetModules()` + `vi.doMock(..., importOriginal)` inside a trailing `describe`, restoring with `doUnmock`/`resetModules` in `afterAll` (same `loadModule()` precedent as `minima-backup-scheduler.service.test.ts`). The `completeSetup` case additionally builds its own temp database inside that describe, since the flow under test creates the local admin and would otherwise poison the rest of the file.
-- Added `backend/tests/helpers/totp.ts` (`currentToken`/`wrongToken`) so `auth.service` and `setup.service` tests generate codes the way an authenticator app would instead of duplicating the OTP parameters.
-- Did the same for the frontend's `TOTP_ENABLED`-gated branches (same `vi.resetModules()` + `vi.doMock` + dynamic re-import pattern, mocking `features/auth/totpEnabled`): `steps.ts` and `SidebarUserBox` 50% → 100% branches, `ConnectIntegritasStep` → 100%, `ChangeCredentialPanel` 84% → 97% branches / 100% lines, `WelcomeStep` → 100% lines, `OnboardingWizard` 80% → 97% lines (two-factor step: QR request, manual setup key reveal, code verification success/failure, and local-admin creation deferring from the credentials step to the two-factor step). Frontend suite 1459 → 1474 tests.
-- Found a real production bug while writing those: `OnboardingWizard`'s QR effect guards on `qrCode`/`loadingQr` but not `qrError`, so a failing `initTotp()` clears its own error and re-fires every render — an unbounded retry loop with the error never visible (observed 4 calls in ~3s before the assertion timed out). Kept the branch test-only: the test asserts just that Continue stays disabled, with a comment saying the loop is deliberately not asserted, and the fix is recorded in `docs/plans/high-risk-business-logic-hardening.md`. Only reachable if TOTP is re-enabled.
-- Raised the backend coverage floor again (statements/branches/functions/lines: 87/77/90/89 → 92/81/94/94) and the frontend floor (87/85/83/88 → 90/89/87/92), keeping the same regression margin as prior raises.
-- Rewrote `CHANGELOG.md`'s `[Unreleased] test/unit-tests-and-ci` section: the ~45 per-module "unit test coverage for X" bullets named internal files, which `.claude/rules/documenting-work.md` explicitly rules out, so they collapsed into per-package lines. Added the entries that were missing entirely — coverage thresholds enforced by `check`/CI, the dev-to-main PR guard, and the two frontend behavior fixes from commit `92a4c1a` (`AuthProvider`'s bootstrap `catch` and `ToastProvider`'s memoized `showToast`), neither of which had ever been recorded.
-- Dropped the `StampResult.tsx` double-toast item from `docs/TASKS.md`'s Ideas: `92a4c1a` memoized `showToast`, which was the cause.
-- Verified: `npm run typecheck` clean; `npm --prefix backend run test:coverage` (67 files / 966 tests) and `npm --prefix frontend`/`update-agent` coverage (179/1474 and 12/144) all green at the new floors. `npm run check` still exits 1 at `audit:moderate` — being handled separately by the user.
-
-Later same branch, next session:
-
-- Audited the user's "Unit Test Checklist — Integritas Pi" (external ticket, not a repo doc) against the actual test tree: every item had a matching test file except 7. Investigated each of the 7 before deciding whether to write one.
-- Closed 2 real gaps with meaningful new tests: (1) `update-agent/src/auth/auth.middleware.ts`'s `requireAdmin` (no cookie/backend-rejects/non-admin/admin/network-failure branches, 5 tests) — was previously excluded from `update-agent/vitest.config.ts`'s coverage list for no documented reason; removed the exclusion now that it's covered (coverage held at 97.59%/95.2%/96.38%/99.12%, still comfortably above the 95/92/92/96 floor). (2) `scripts/release/sign-manifest.mjs`/`build-manifest.mjs` (11 tests total) — these had zero test infrastructure at all (`scripts/` has no `package.json`/test runner). Added a root-level Vitest harness: `vitest.scripts.config.mts` (root, `.mts` extension to dodge a CJS/ESM config-loader warning since root `package.json` has no `"type": "module"`), `scripts/tests/release/*.test.ts`, root `vitest`/`@vitest/coverage-v8` devDependencies, and a `test:scripts`-equivalent step folded into root `test`/`test:coverage` (so `npm run check` now runs it too).
-- The 2 script tests use `node:child_process` `spawnSync` to invoke the real CLI entrypoint (`node scripts/release/sign-manifest.mjs <args>`) rather than importing the module in-process — first tried dynamic `import()` with a cache-busting query string so v8 coverage could instrument it, but found real v8-provider merge behavior undocumented and inconsistent under Vitest 4.1: `build-manifest.mjs` (whose only throw path never got exercised in that draft) showed correct coverage, while `sign-manifest.mjs` (whose first test intentionally throws via a module-level `throw`) silently vanished from the report entirely across the full suite, though it appeared fine when that file's tests ran alone. Root-caused it as fragile rather than debug further; switched to spawning a real child process instead, which matches how `release.yml` actually invokes these scripts and sidesteps the instrumentation quirk. Consequence: `vitest.scripts.config.mts` carries no `coverage` block and isn't threshold-gated — deliberate, not an oversight, since v8 coverage cannot observe code executed in a separate process.
-- Left 4 of the 7 checklist items without a dedicated test file, each after reading the source: `backend/src/features/auth/rate-limit.middleware.ts` is a bare `express-rate-limit(...)` config call with no branching logic of its own; `backend/src/features/auth/integritas-validation.service.ts` is 100% commented-out dead code (one unused import, no live function); `backend/src/features/integritas/upload.middleware.ts` is a bare `multer({ dest })` config call. All three were already in `backend/vitest.config.ts`'s coverage `exclude` list before this session (confirms it was a prior deliberate call, not new). `backend/src/features/health/health.routes.ts` was also skipped — it's an Express router file, and every `*.routes.ts` in the backend is coverage-excluded and untested by convention (`.claude/rules/testing.md`'s routes/bootstrap non-goal category); the checklist itself calls this item "low priority, thin."
-- Verified: `npm run check` (typecheck + backend/frontend/update-agent `test:coverage` + new root scripts-vitest run, all green — backend 67 files/966 tests unchanged, update-agent now 13 files/149 tests, root scripts 2 files/11 tests; `audit:moderate` now passes clean across all three packages, so the `qs`/`express` blocker two sessions ago is resolved, likely by commit `1742cee` "Updated the dependencies for the package files"), `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config` — all clean.
-- Added one `CHANGELOG.md` line each for the `auth.middleware.ts` coverage and the new scripts test harness, under the existing `[Unreleased] test/unit-tests-and-ci` section.
-
-Later on branch `task/272-security-hardening-v1-5`:
-
-- Reconciled the TOTP scope drift across the V1.5 security plan, removal candidate, ADRs, risk
-  register, QA backlog, README, and task tracking. ADR 0011 is now superseded; ADR 0012 records that
-  this branch only hardens the dormant implementation and leaves its eventual fate undecided.
-- No production code changed. Verification was a documentation reference/status sweep.
-
-Later same branch, next session:
-
-- Implemented Phase 4 of `docs/plans/security-hardening-v1-5.md` — the install-time trust chain, review findings [1] (high) and [4] (medium). Decisions recorded in `docs/adr/0016-install-time-bootstrap-trust-set.md`.
-- `install.sh` now carries the whole bootstrap trust set instead of taking it from the artifact it authenticates: the Ed25519 public key and the verifier source are embedded heredocs written to a private `mktemp -d` on start and removed by an EXIT trap, and `VERIFIER_IMAGE` pins `node:20-bookworm-slim` to its multi-arch OCI index digest (`sha256:2cf067cf…`, resolved from the registry and confirmed to carry arm64/armv7/amd64) instead of the mutable tag.
-- The runtime bundle is now signed and verified before extraction. CI signs `edge-studio-runtime.tar.gz` with the same key as the manifest and publishes `edge-studio-runtime.tar.gz.sig`; `install.sh` fetches both (including on the GitHub-raw fallback path), fails closed if either is missing, and only then extracts. One `verify_ed25519_signature()` serves both the bundle and the manifest.
-- Added `assert_safe_archive_entries()` as defense in depth behind the signature: rejects absolute paths, `..` components, and any entry that is not a regular file or directory. Rejecting non-regular types outright is stricter and simpler than resolving link targets, and costs nothing — the bundle is built from a flat list of regular files.
-- Deleted `scripts/verify-manifest.mjs` and dropped it plus `update-agent/manifest-public-key.pem` from `runtime-bundle-files.json`, so neither the verifier nor the trust anchor travels with anything it authenticates and there is no second copy in `$APP_DIR` for a later change to reach for.
-- Chose behavior tests over a byte-diff fixture: `scripts/tests/install-bootstrap-trust-set.test.ts` (9 tests) extracts the embedded verifier from `install.sh` and asserts what it does — accepts a signed binary artifact, rejects one modified after signing, rejects another key's signature, exits non-zero rather than throwing on unreadable input — plus asserts the digest pin's shape, that the embedded PEM matches `update-agent/manifest-public-key.pem`, and that the bundle list ships neither file. `generate-signing-key.mjs` now prints the two-file rotation reminder.
-- [4] is mitigated and accepted, not closed: `release.yml` publishes `install.sh.sha256` into the manifest repo (a different repository from the `main`-branch raw URL the one-liner uses), `README.md` documents a tag-pinned download-verify-read-run path, and `SECURITY.md` plus `docs/security/host-and-infrastructure.md` record the one-liner as an accepted residual with an immutable signed installer URL as its exit criteria. Consolidated that into the register's existing *One-Line Curl Installer* entry rather than adding a second one; *Update Manifest Signing Key* moved from Partially mitigated to Mitigated.
-- Verified beyond static checks, since this phase is the one most likely to break installs. Built a real runtime bundle, signed it with a throwaway key, served it over local HTTP, and ran `download_runtime_bundle` against it three ways: valid signature extracts the expected 9-file tree; tampered bundle prints the refusal and leaves `APP_DIR` empty; missing `.sig` fails the download and leaves `APP_DIR` empty. Separately exercised `assert_safe_archive_entries()` against purpose-built archives containing a symlink, an absolute path, and a `../` member — all three rejected, a clean archive accepted. Also confirmed the pinned image pulls and verifies on this host.
-- Also verified: `bash -n install.sh`, `bash -n bin/edge-studio`, `docker compose config`, `npm run check` (typecheck + all four coverage suites green), `npm --prefix backend run build`, `npm --prefix frontend run build`, and `release.yml` parses as valid YAML. `audit:moderate` still fails on pre-existing `multer`/`vitest` advisories — confirmed identical on a stashed clean tree, so unrelated to this work.
-- Docs: new ADR 0016; plan Phase 4 marked done with a "How it landed" section and the pre-merge decision rows 7/8 marked implemented; `CHANGELOG.md` under `### Security`; `README.md` (verified install path, installer step list, manifest-key paragraph); `SECURITY.md` (two new guidelines); `docs/security/host-and-infrastructure.md`; the `update-agent` rule in all three of `.agents/`, `.claude/`, `.cursor/`; and a superseded note on `docs/plans/replace-openssl-manifest-verification.md`, which describes the now-deleted standalone verifier.
-
-Later same branch, next session:
-
-- Added `docs/qa/security-hardening-phases-1-5.md`, a repeatable promotion runbook for the completed
-  security phases. It separates source checks, clean-deployment smoke tests, phase-specific abuse
-  cases, staging/Pi checks, cross-phase regression, stop-ship conditions, and the final sign-off
-  record.
-- Linked the runbook from `docs/plans/security/README.md` and made its scope explicit: a pass can
-  approve the recorded next release channel, but cannot replace the parent plan's Phase 0,
-  Phases 6-8, Pi/TLS, and final V1.5 sign-off requirements.
-- Reconciled `docs/TASKS.md` so execution of the runbook against the exact candidate artifacts and
-  a dedicated Pi remains open. No product code changed and no full runtime QA pass was claimed for
-  this documentation-only session.
-- Verified the runbook's focused Phase 3 and Phase 4 rerun commands: the backend auth route suite
-  passed 3 tests, the frontend credential-panel suite passed 14, and the bootstrap trust-set suite
-  passed 8. The bootstrap suite needed an unsandboxed rerun because its child Node verifier process
-  is blocked with `EPERM` inside the workspace sandbox.
-
-Later same branch, Pi QA and Phase 5 proxy fix:
-
-- Manually passed Phases 1-4 on the Pi against `v0.50.0-dev.8`: backup secrets stayed out of API
-  responses and logs, SSRF controls rejected internal/non-HTTP targets while allowing a public API,
-  credential changes invalidated active sessions, and a bad runtime signature stopped installation
-  without disrupting the running app.
-- Found a Phase 5 stop-ship issue: Nginx's default 1 MiB request-body limit rejected uploads before
-  the backend's configurable limit, returning an HTML `413` and an "Unknown error" toast.
-- Fixed the proxy boundary by deriving bounded multipart request headroom from
-  `UPLOAD_MAX_FILE_BYTES` and `UPLOAD_MAX_FIELDS` for the three upload routes only. Both development
-  and generated release Compose pass the same settings to the frontend; Nginx version tokens are
-  disabled. Decision recorded in ADR 0018.
-- Added five script-level regression tests for default/custom/invalid/scientific/signed limit
-  parsing, upload-route scoping, and version-token configuration. Focused backend upload tests passed
-  (10), all backend/frontend/update-agent/script coverage suites passed (2,774 tests), both builds
-  passed, `docker compose config` passed, the frontend image built, its rendered Nginx config passed
-  `nginx -T`, and live headers returned `Server: nginx` without a version. `npm run check` reached its
-  audit step and reported an unrelated moderate Vitest development-tool advisory.
-
-Later same branch, post-merge installer findings:
-
-- Added the main Compose network IPAM block to generated release Compose, using the same configurable
-  subnet and gateway as the backend's internal-destination protections. Generated development
-  Compose resolved custom values consistently through `docker compose config`; all release-script
-  tests passed.
-- Reordered release installation so the signed manifest is fetched, verified, and parsed in the
-  digest-pinned bootstrap Node runtime before the runtime bundle is selected. The signed runtime URL
-  remains overridable for QA, the GitHub Raw transport fallback remains available, and every bundle
-  must pass its detached signature and the signed manifest SHA-256 before archive handling.
-- Moved manifest, bundle, archive validation, and extraction staging outside `APP_DIR`; release-mode
-  failures now occur before the installer creates, cleans, or copies application files. Query-bearing
-  artifact URLs preserve their query when resolving the sibling `.sig` URL. Decision recorded in ADR
-  0020.
-- Added embedded manifest-parser and signature-URL tests. `bash -n install.sh` passed, all 31 script
-  tests passed, the parser and URL resolver passed through the real pinned Docker image, and isolated
-  matching/mismatching hash checks confirmed that only the match reaches replacement while mismatch
-  preserves the existing installation.
-- Committed the installer binding as `3843d6d`, tagged and pushed `v0.41.1-dev.1`, and confirmed the
-  release workflow passed. The GitHub Raw development manifest, runtime SHA-256, installer checksum,
-  and generated Compose IPAM rendering matched; the primary website was still serving the previous
-  development manifest and runtime when checked.
-- Added the full release-installer regression matrix around the real `resolve_images` -> `download_app`
-  sequence with generated Ed25519 signatures and tar archives. It covers matching manifest/bundle
-  success, signed cross-bundle digest mismatch, modified and unsigned bundles, invalid manifest
-  signatures, missing/malformed runtime digests, explicit URL precedence and hash enforcement,
-  hash-bound fallback downloads, and byte/mode preservation of an existing installation on every
-  trust failure. The focused suite passed 24 tests; all release/installer script tests passed 43/43;
-  `bash -n install.sh`, Prettier, and `git diff --check` passed.
-
-Later on branch `dev-task/704-fail-closed-on-weak-config`:
-
-- Removed the public `dev-change-me` default from backend config, checked-in/generated Compose,
-  checked-in/generated `.env.example`, and README examples. Native development now requires an
-  explicit non-empty `APP_SECRET`; `install.sh` remains unchanged and still generates/preserves it.
-- Added a side-effect-free startup guard and moved database/app/scheduler imports behind its
-  boundary, so absent or empty values exit `1` before SQLite, migrations, polling, ingestion, or
-  listening. Tests cover absent, empty, explicitly supplied `dev-change-me`, a strong value, and
-  prove rejected values never invoke the startup callback.
-- Updated the risk register, GAP-04, Phase 6 split/index, SECURITY policy, task plan, README, and
-  changelog. ADR 0021 remains the decision record; finding [6] image pinning remains separate.
-- Verified `npm run check` outside the sandbox (2,842 tests, all coverage floors and audits green),
-  both production builds, `bash -n install.sh`, Compose config with configured/empty values,
-  `docker compose build`, focused tests, compiled fail-closed startup, and `git diff --check`.
-  An isolated live Compose stack reached healthy backend/frontend state with a configured secret;
-  an empty-secret container exited `1` without creating SQLite. Temporary containers/data were
-  removed.
-
-Later on branch `dev-task/705-retention-redaction-budgets` (uncommitted):
-
-- Added `features/retention/`: startup-plus-hourly pruning of automation runs, block runs, inbox
-  items (including soft-deleted), and data source reads past 30 days or 10,000 rows, 500 rows per
-  table per pass, deleting block runs before their runs.
-- Push reads (webhook/MQTT/GPIO) now store `data-source:<id>`; a startup migration scrubs historical
-  `source_url` values. Removed the dead `sourceUrl` argument from `recordPushAutomationPayload()`.
-- `redact.ts` gained webhook-path and username-only userinfo rules; `requestLogger` uses it. nginx
-  logs a masked request URI on both servers, and the webhook location logs only `crit` errors.
-- Added `json-file` rotation (10m × 3) to every Compose service and the release generator; Update
-  Agent now copies `HostConfig.LogConfig` when recreating containers.
-- Added the persisted per-workflow budget (`automation_workflow_budget_events`, 10 runs per rolling
-  hour, reserved before the first privileged block, `429` on manual run/webhook, silent skip on
-  MQTT/GPIO) and the transaction cooldown rule in validation plus an execution guard.
-- Added webhook (60/min per IP+token hash), automation write (30/min, excludes GETs and draft
-  validation), and stamp (10/min) limiters.
-- Tests: retention repo/service, budget repo (limit, rolling expiry, lock contention, reopen),
-  policy, migration scrub, logger, route 429s, service budget/cooldown/source refs, ingestion, and a
-  Docker-based nginx log-redaction test (verified to fail against the old config).
-- Docs: SECURITY.md, risk register, GAP-10, plan index/status, ADR 0022 corrections, CHANGELOG,
-  README, and synced rule bullets.
-- Verified `npm run check` (backend 1217, frontend 1486, update-agent 159, scripts 46 tests; coverage
-  and audits green), both builds, `docker compose config`, `docker compose build`, `git diff --check`.
-
-Audit follow-up on `dev-task/705-retention-redaction-budgets`:
-
-- Fixed nginx access-log masking and error-log suppression for normalized webhook paths, including case variants, encoded separators, repeated slashes, and dot segments; verified synthetic tokens stay out of both log streams in an isolated container.
-- Protected live workflow runs and their block runs during retention using process-local execution IDs; abandoned persisted running rows remain eligible after restart.
-- Changed startup/hourly cleanup to repeat 500-row batches until drained, yielding between batches, preventing overlapping sweeps, and cancelling pending continuations on stop.
-- Applied the fixed 10m × 3 logging policy to containers recreated by Update Agent, including legacy unbounded configurations; documented the verified installer rerun needed for every existing service.
-- Updated ADR 0022, the task plan, security policy/register, README, changelog, and all three Docker rule counterparts.
-- Verified `npm run check` (1,220 backend, 1,486 frontend, 160 Update Agent, 46 script tests; coverage thresholds and all dependency audits passed), all three production builds, `docker compose config --quiet`, `docker compose build`, and `git diff --check`.
+- Merged current `dev` into task 705, preserving retention, redaction, automation budgets, and log rotation alongside newer workflow validation, nginx headers, regression tests, and UI work.
+- Read OpenProject #363 and its six children over the REST API and traced them back to `docs/plans/legacy-ticket-unit-test-gaps.md`, their upstream source.
+- Audited every claimed gap against the current tree before writing anything, and recorded the audit plus three stale ticket premises in `docs/plans/363-regression-testing-debt.md`.
+- Added `sendHttpOutput` assertions for the request URL, method, and serialized body (#213).
+- Added MQTT client and GPIO watcher teardown cases for a deleted source, covering the `DELETE /api/data-sources/:id` path rather than only the disabled-workflow trigger (#218).
+- Added `backend/tests/features/data-sources/dataSources.routes.test.ts` driving the public webhook receiver end to end: 200, unknown token 404, no-enabled-workflow 409, cooldown/inactive 202, and upstream-failure 502 (#218).
+- Added `backend/tests/features/status/statusRoutes.test.ts` for the Integritas connection check — rejected key, upstream error, success, missing key, and TTL cache reuse — isolating the module-level cache with `vi.resetModules()` instead of adding a test-only reset export (#242).
+- Added backup download/restore re-auth rejection cases asserting 401 and that the file read and Minima call never happen (#287).
+- Added wallet import cases proving the seed phrase reaches neither the success body, the audit event, nor a failure body whose upstream message embeds it (#287).
+- Added `frontend/tests/pages/diagnosticsQuery.test.ts` (15 cases) for tab parsing, page/page-size clamping, per-tab status allowlists, search trimming, and search-param round-tripping (#225).
+- Added tab-switching and pagination cases to the existing `frontend/tests/pages/DiagnosticsPage.test.tsx`, resolving the plan's open question rather than treating it as a new decision (#225).
+- Mutation-checked every new assertion by breaking the behavior it targets and confirming only the intended cases fail; source was restored each time.
+- Verified `npm run check` (2,941 tests, 0 audit findings) plus backend and frontend production builds.
 
 ## Next Steps
 
-- Run the complete local sign-off suite, then create and verify the next development tag on the Pi.
-- Execute the Phase 1-5 QA runbook against the exact candidate commit, staging release artifacts,
-  and a dedicated Pi before promotion; Phases 1-5 are implemented but not signed off by this
-  documentation session.
-- Publish a new development build containing the Phase 5 proxy fix, then repeat the 1 MiB/2 MiB Pi
-  upload test and confirm the oversized file returns the backend's JSON `413` with a useful UI error.
-- V1.5 security hardening: task 704's fail-closed `APP_SECRET` work is complete; finding [6] image
-  digest pinning is next. Phase 0's two product decisions stay defaulted to acceptance until the
-  pre-merge decision pass.
-- Before Phase 4 ships, every release channel needs one release through the updated `release.yml` — an installer carrying this change cannot install from a channel whose latest bundle has no `.sig`. Fail-closed by design, but it has to be sequenced.
-- Phase 4 still wants a live root install on a Pi against a staging manifest. The local rehearsal covered the bundle download/verify/extract paths in isolation; it did not run the full `main()`, the manifest fetch, or container start.
-- Implement `docs/plans/high-risk-business-logic-hardening.md` on a separate production-behavior branch; this test branch should not absorb those changes.
-- Continue the V1.5 security decision review with TOTP removal/retention excluded from this branch.
-- The `verification.md` update-agent-build-step gap moved to `docs/TASKS.md`'s Ideas section is still unactioned.
-- `npm audit --audit-level=moderate` is clean again as of this session (verified via `npm run check`) — the `qs`/`express` blocker from two sessions ago no longer reproduces, most likely resolved by commit `1742cee` "Updated the dependencies for the package files".
-- Still open from prior sessions: decide whether to split `docs/TASKS.md`'s `block-automation-workflows` line into per-milestone bullets (see Notes below); fix stale `integritasAuth`/`integritas-auth` doc reference.
-
-- Task 705: run plan manual checks 1-6 on a live stack/Pi (sentinel token in both container logs,
-  SQLite `source_url`, upgrade scrub, retention backlog drain, budget across restart, `docker inspect`
-  log options), then commit.
+- Merge `feature/363-regression-testing-debt` and close #213, #218, #225, #242, #287.
+- Raise the two ticket-state items below with the OpenProject board owner.
 
 ## Notes / Open Questions
 
-- Task 705: the plan/ADR premise that SQLite foreign keys are off was wrong — `better-sqlite3`
-  defaults `foreign_keys = 1`, so cascades are enforced. Explicit deletes were kept; ADR 0022 corrected.
-- Task 705: approved and implemented repeated short batches per sweep. Retention remains eventual: rows can exceed the target between sweeps or when ingestion exceeds cleanup throughput; MQTT has no transport rate limit. Existing deployments still need the documented installer migration and Pi QA.
-- Task 705: workflow validation is advisory on create/update/enable, so the transaction cooldown rule
-  is also enforced at execution time — a deviation from the plan's wording, recorded in ADR 0022.
-- `.agents/rules/automation.md` lacks the "Frontend naming" section that `.claude`/`.cursor` have —
-  pre-existing drift, not fixed.
-
-- The verifier image digest pin is bumped by hand at release. A stale pin means verification runs on an older Node inside a `--network none` container that reads three files, so letting it age between deliberate bumps is acceptable — but nothing reminds anyone to bump it.
-- Signing key rotation now touches two files (`update-agent/manifest-public-key.pem` and the embedded PEM in `install.sh`). The scripts test fails the build if they drift, so this is guarded rather than remembered.
-- The embedded verifier's failure messages still say "Manifest signature verification failed" even when it is judging the runtime bundle. Left byte-identical deliberately — `install.sh` prints an artifact-specific line immediately after, and renaming internals in working crypto code was not worth the churn.
-- `https://edgestudio.technology/manifest/development/` still served the previous development
-  manifest and bundle after `v0.41.1-dev.1` published successfully to the GitHub Raw fallback. Until
-  that origin is refreshed, immediate Pi QA needs explicit GitHub Raw manifest and runtime URLs.
-- TOTP removal is not approved or scheduled. After V1.5, a fresh product decision and ADR must
-  choose whether to retain, redesign, re-enable, or remove it; any implementation then gets its own
-  ticket and branch.
-- ADR 0021 intentionally accepts every deliberately supplied non-empty `APP_SECRET`, including
-  `dev-change-me`; the control removes shipped defaults and rejects missing configuration rather
-  than introducing a strength policy, migration, or development bypass.
-- `docs/TASKS.md`'s `block-automation-workflows` line hides an 844-line plan with several substantial unbuilt code features — recommend splitting it into per-milestone bullets next time it's picked up (see audit above). Not acted on yet; flagged for the user to decide.
-- `.claude/rules/frontend.md` says the Integritas Connect auth folder is `integritasAuth`; it's actually `integritas-auth` on disk. Small doc-drift fix, not made yet.
-- The `StampResult.tsx` double-toast bug is resolved: commit `92a4c1a` memoized `ToastProvider`'s `showToast`, so the pending-refresh effect no longer re-runs on every toast add. Now recorded in `CHANGELOG.md`.
-- `dockerRequestStream()`'s timeout handler sets `settled = true` before `request.destroy(error)` emits the request error, so the guarded error handler cannot reject the promise. The test-only branch now verifies timeout registration but deliberately does not encode the hanging promise as accepted behavior; the fix and rejection test are in the deferred hardening plan.
+- Coverage is deliberately flat: `*.routes.ts` is excluded from backend coverage and `src/pages/**` from frontend coverage, so six of the ten new test groups add no measured coverage. Backend sits at 92.46/82.54/94.5/94.87 and frontend at 90.73/89.6/87.59/92.33, unchanged and above thresholds. The deliverable is behavior pinned, not percentage moved.
+- Three ticket premises had gone stale and are corrected in the plan doc: `wallet.routes.test.ts` already existed, `DiagnosticsPage.test.tsx` already existed as of `6ff998b`, and #363's "60% floor" acceptance criterion is far below the thresholds actually enforced.
+- Two corrections to the plan's own assumptions surfaced while implementing: the webhook failure path returns 502 (`dependencyUnavailable`), not 503, and the 409 `sourceId` lands at `body.errorDetails.context.sourceId`.
+- The wallet import failure case passes because `redact.ts`'s `phrase` rule fires through `sendApiError`; the test asserts the upstream message still reaches the client so it cannot pass vacuously.
+- **#258** is closed `Done`/100% with all six checklist items unticked. Confirmed with the ticket owner: genuinely done, the boxes were just never ticked.
+- **#259 Node Failure Mode Unit Testing** is the one section of `legacy-ticket-unit-test-gaps.md` left open. It is parented under *Node Management*, not #363, and there is a sibling feature #356 *Node Testing*; Confirmed with the ticket owner: that scope is correct and it will be worked separately. One of its four gaps is already stale — `MinimaPage.test.tsx` now exists.
+- No `CHANGELOG.md` entry: test-only, no user- or operator-facing behavior change.

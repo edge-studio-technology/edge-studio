@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -35,6 +35,42 @@ describe("DataTable", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: "Alice" })).toBeInTheDocument();
+  });
+
+  it("shows horizontal overflow indicators only where more content is available", () => {
+    const { container } = render(
+      <TableWrap>
+        <DataTable className="min-w-245">
+          <TableHead>
+            <TableHeaderCell>Name</TableHeaderCell>
+          </TableHead>
+          <TableBody>
+            <TableRow>
+              <TableCell>Alice</TableCell>
+            </TableRow>
+          </TableBody>
+        </DataTable>
+      </TableWrap>,
+    );
+    const scroll = container.querySelector("[data-table-scroll]") as HTMLDivElement;
+
+    Object.defineProperty(scroll, "clientWidth", { configurable: true, value: 300 });
+    Object.defineProperty(scroll, "scrollWidth", { configurable: true, value: 900 });
+
+    scroll.scrollLeft = 0;
+    fireEvent.scroll(scroll);
+    expect(container.querySelector('[data-scroll-edge="left"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-scroll-edge="right"]')).toBeInTheDocument();
+
+    scroll.scrollLeft = 200;
+    fireEvent.scroll(scroll);
+    expect(container.querySelector('[data-scroll-edge="left"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-scroll-edge="right"]')).toBeInTheDocument();
+
+    scroll.scrollLeft = 600;
+    fireEvent.scroll(scroll);
+    expect(container.querySelector('[data-scroll-edge="left"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-scroll-edge="right"]')).not.toBeInTheDocument();
   });
 });
 

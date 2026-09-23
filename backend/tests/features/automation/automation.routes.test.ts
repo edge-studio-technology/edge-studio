@@ -108,3 +108,37 @@ describe("POST /api/automation/workflows/:id/run — run budget", () => {
     assert.equal(response.body.workflow.id, workflow.id);
   });
 });
+
+describe("automation workflow validation routes", () => {
+  it("creates an invalid requested-enabled workflow as paused", async () => {
+    const response = await request(app).post("/api/automation/workflows").send({
+      name: "Invalid draft workflow",
+      enabled: true,
+      blocks: [
+        { type: "manual_start", config: {}, clientId: "start" },
+        { type: "set_variable", config: { variableName: "1bad", variableSource: "custom_json", valueJsonText: "1" }, clientId: "var" }
+      ]
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.item.enabled, false);
+    assert.equal(response.body.item.blocks.length, 2);
+  });
+
+  it("rejects enabling a workflow while validation has errors", async () => {
+    const created = await request(app).post("/api/automation/workflows").send({
+      name: "Invalid workflow",
+      enabled: false,
+      blocks: [
+        { type: "manual_start", config: {}, clientId: "start" },
+        { type: "set_variable", config: { variableName: "1bad", variableSource: "custom_json", valueJsonText: "1" }, clientId: "var" }
+      ]
+    });
+    const workflow = created.body.item;
+
+    const response = await request(app).patch("/api/automation/workflows/" + workflow.id).send({ enabled: true });
+
+    assert.equal(response.status, 400);
+    assert.equal(workflows.getAutomationWorkflow(workflow.id)?.enabled, 0);
+  });
+});

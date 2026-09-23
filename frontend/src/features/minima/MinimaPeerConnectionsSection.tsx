@@ -10,25 +10,42 @@ import {
   TableRow,
 } from "../../components/DataTable";
 import { SubSection } from "../../components/patterns/SubSection";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
+import { describeLoadFailure } from "../../lib/errors";
+import {
+  TableColumnVisibilityButton,
+  type TableColumnDefinition,
+} from "../../components/patterns/TableColumnVisibility";
+import { TableControls } from "../../components/patterns/TableControls";
 import { InputField } from "../../components/ui/InputField";
 import { ScrollArea } from "../../components/ui/ScrollArea";
+import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
+
+const PEER_COLUMNS = [
+  { id: "address", label: "Address" },
+] as const satisfies readonly TableColumnDefinition[];
 
 export function MinimaPeerConnectionsSection({
   peers,
   peersLoading,
+  peersError = null,
   peerslistInput,
   setPeerslistInput,
   busy,
   onAddPeers,
+  onRetry = () => undefined,
 }: {
   peers: MinimaPeersResponse | null;
   peersLoading: boolean;
+  peersError?: string | null;
   peerslistInput: string;
   setPeerslistInput: (value: string) => void;
   busy: boolean;
   onAddPeers: () => void;
+  onRetry?: () => void;
 }) {
   const peerItems = peers?.peers ?? [];
+  const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility("minima-peers", PEER_COLUMNS);
 
   return (
     <SubSection
@@ -56,37 +73,64 @@ export function MinimaPeerConnectionsSection({
         </p>
 
         <div className="grid gap-2">
-          <p className="m-0 text-sm font-medium text-slate-500">Peers ({peerItems.length})</p>
-          <div className="rounded-loose border-stroke-primary bg-surface-always-white overflow-hidden border">
-            <div className="bg-surface-secondary px-margin-tight py-margin-tight type-body-em text-text-primary">
-              Address
-            </div>
-            <ScrollArea stableGutter={false} className="max-h-80">
-              <DataTable aria-label="Peers">
-                <TableBody>
-                  {peerItems.length > 0 ? (
-                    peerItems.map((peer) => (
-                      <TableRow key={peer}>
-                        <TableCell className="min-w-0">
-                          <code className="text-text-primary truncate">{peer}</code>
+          {peersError ? null : (
+            <TableControls
+              utilities={
+                <TableColumnVisibilityButton
+                  tableLabel="Peers"
+                  columns={PEER_COLUMNS}
+                  visibility={visibility}
+                  columnOrder={columnOrder}
+                  onChange={setVisibility}
+                  onOrderChange={setColumnOrder}
+                />
+              }
+            >
+              <p className="m-0 text-sm font-medium text-slate-500">Peers ({peerItems.length})</p>
+            </TableControls>
+          )}
+          {peersError ? (
+            <ErrorContentState
+              title="Peer list isn't available"
+              description={describeLoadFailure(peersError)}
+              onRetry={onRetry}
+            />
+          ) : (
+            <div className="rounded-loose border-stroke-primary bg-surface-always-white overflow-hidden border">
+              {visibility.address && (
+                <div className="bg-surface-secondary px-margin-tight py-margin-tight type-body-em text-text-primary">
+                  Address
+                </div>
+              )}
+              <ScrollArea stableGutter={false} className="max-h-80">
+                <DataTable aria-label="Peers">
+                  <TableBody>
+                    {peerItems.length > 0 ? (
+                      peerItems.map((peer) => (
+                        <TableRow key={peer}>
+                          {visibility.address && (
+                            <TableCell className="min-w-0">
+                              <code className="text-text-primary truncate">{peer}</code>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell>
+                          <EmptyTableState>
+                            {peersLoading
+                              ? "Loading peer list…"
+                              : "No configured peers returned from Minima RPC."}
+                          </EmptyTableState>
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell>
-                        <EmptyTableState>
-                          {peersLoading
-                            ? "Loading peer list…"
-                            : "No configured peers returned from Minima RPC."}
-                        </EmptyTableState>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </DataTable>
-            </ScrollArea>
-          </div>
+                    )}
+                  </TableBody>
+                </DataTable>
+              </ScrollArea>
+            </div>
+          )}
         </div>
       </div>
     </SubSection>

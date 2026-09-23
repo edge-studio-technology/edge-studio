@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardDevices } from "../../../src/features/dashboard/DashboardDevices";
 import type { DeviceStatus } from "../../../src/features/status/statusTypes";
@@ -73,6 +73,7 @@ describe("DashboardDevices", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -158,14 +159,62 @@ describe("DashboardDevices", () => {
     await waitFor(() => expect(screen.getByText("Unavailable")).toBeInTheDocument());
   });
 
-  it("stays in a loading state when the status fetch fails", async () => {
+  it("shows unavailable metrics and stops loading when the initial status fetch fails", async () => {
     getDeviceStatus.mockRejectedValue(new Error("status unreachable"));
     getWalletStatus.mockResolvedValue(walletStatus());
 
     render(<DashboardDevices />);
 
-    await waitFor(() => expect(getDeviceStatus).toHaveBeenCalled());
-    expect(screen.getAllByRole("status", { name: "Loading" }).length).toBeGreaterThan(0);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Device status couldn't be loaded");
+    expect(screen.getAllByText("Unavailable")).toHaveLength(7);
+    expect(screen.queryAllByRole("status", { name: "Loading" })).toHaveLength(0);
     expect(getWalletStatus).not.toHaveBeenCalled();
+  });
+
+  it("retries after a status failure and clears the error after recovery", async () => {
+    vi.useFakeTimers();
+    getDeviceStatus
+      .mockRejectedValueOnce(new Error("status unreachable"))
+      .mockResolvedValueOnce(deviceStatus());
+    getWalletStatus.mockResolvedValue(walletStatus());
+
+    render(<DashboardDevices />);
+
+    await act(async () => {});
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText("pi-1")).toBeInTheDocument();
+    expect(screen.getByText("12.5")).toBeInTheDocument();
+    expect(getDeviceStatus).toHaveBeenCalledTimes(2);
+    expect(getWalletStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the last known metrics visible when a later status refresh fails", async () => {
+    vi.useFakeTimers();
+    getDeviceStatus
+      .mockResolvedValueOnce(deviceStatus())
+      .mockRejectedValueOnce(new Error("status unreachable"));
+    getWalletStatus.mockResolvedValue(walletStatus());
+
+    render(<DashboardDevices />);
+
+    await act(async () => {});
+    expect(screen.getByText("pi-1")).toBeInTheDocument();
+    expect(screen.getByText("12.5")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.getByText("pi-1")).toBeInTheDocument();
+    expect(screen.getByText("12.5")).toBeInTheDocument();
+    expect(screen.queryAllByRole("status", { name: "Loading" })).toHaveLength(0);
+    expect(getWalletStatus).toHaveBeenCalledTimes(1);
   });
 });

@@ -29,6 +29,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
+- Wallet sends and address-book writes now reject malformed Minima destinations using the upstream `0x` and checksummed `Mx` address grammar.
+- Disabled two-factor setup and reset endpoints are no longer exposed while TOTP is off.
+- HTTPS application, proxy, error, and redirect responses now include CSP, clickjacking, MIME-sniffing, and referrer-policy protections.
 - The backend now refuses to start before creating or opening its database when `APP_SECRET` is absent or empty, and shipped configuration no longer supplies a public default.
 - Minima backup and restore responses no longer return the RPC command, the request URL, or the stored backup password.
 - Minima RPC command strings, request URLs, and response bodies are redacted before they reach any API response or log line.
@@ -58,13 +61,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Resource limits are configurable in `.env` and clamped to a supported range, so a limit cannot be configured away; see [docs/adr/0017](docs/adr/0017-outbound-and-upload-resource-limits.md).
 - `multer` updated to 2.3.0, closing advisories for denial of service via crafted multipart field names, file descriptor leaks on aborted uploads, and a file size limit bypass.
 
+### Added
+
+- `ErrorContentState` shared component for load failures that leave a whole region empty (see `docs/frontend-design-system.md`).
+
 ### Changed
 
 - The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; source and generated release Compose files apply the same values to the backend and network IPAM.
+- Tables now provide a cog-button column chooser with backend-saved visibility preferences.
+- Failed loads across Dashboard, Wallet, Devices, Workflows, Diagnostics, Minima, Integritas Connect, and Software update now show a calm in-content error state with Retry instead of a red alert banner.
+- A failed table, list, or region now hides its own filter bar, toolbar, and pager instead of showing controls and counts for data that isn't there.
+- Browser connection failures now read as "Edge Studio couldn't reach the backend service" instead of "Failed to fetch".
+- Dashboard metric cards showing `Unavailable` are no longer coloured as errors.
+- Minima backups, the Minima console whitelist, the receive-address dialog, release notes, and the update check now use the same loading and error states as the rest of the app instead of a bare spinner and a red text line.
+- The Dashboard next-step card, the receive-address dialog, release notes, the Minima console whitelist, and the Minima backup list can now be retried in place instead of requiring a page refresh.
 
 ### Fixed
 
+- Minima restart setup failures now clear the temporary restarting state instead of leaving stale operation status in the UI.
+- Update Agent Docker stream requests now reject reliably when their timeout expires instead of leaving update pulls hanging.
 - List search/filter rows on Devices, Workflows, Address book, and Diagnostics stack with their New/Refresh buttons as one group on tablet and phone.
+- Dashboard next-action and status metric cards now distinguish loading and request failures from legitimate empty or unavailable data.
+- Dashboard Live activity now distinguishes loading, empty, and failed requests, with Retry available after errors.
+- Devices now show an error with Retry when the initial load fails.
+- Diagnostics, Workflows, Wallet, Address book, and Minima status/settings no longer show empty, zero, unavailable, or indefinitely loading content after failed requests.
+- Integritas and software update status checks now settle failures and provide Retry actions.
+- Wallet history and contacts no longer appear to keep loading when Minima actions are unavailable.
 
 ## [0.41.0] 2026-09-14
 
