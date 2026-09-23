@@ -7,8 +7,8 @@ import { sidebarStartCollapsedSetting } from "../lib/behaviourSettings";
 import { APP_NAME } from "../app/brand";
 import { BrandMark } from "./BrandMark";
 
-/** Below this width the sidebar stays collapsed. */
-const EXPAND_MQ = "(min-width: 1024px)";
+/** Below this width the sidebar stays collapsed; must match Tailwind's `lg` breakpoint (guarded by a test). */
+export const EXPAND_MQ = "(min-width: 1024px)";
 const NAV_SCROLL_STEP = 96;
 
 function CollapsibleLabel({

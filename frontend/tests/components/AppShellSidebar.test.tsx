@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AppShellSidebar } from "../../src/components/AppShellSidebar";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { join } from "node:path";
+import { AppShellSidebar, EXPAND_MQ } from "../../src/components/AppShellSidebar";
 
 // happy-dom's default viewport (1024px wide) matches the sidebar's `(min-width: 1024px)`
 // expand breakpoint and the "start collapsed" setting defaults to false, so the sidebar
@@ -116,5 +119,16 @@ describe("AppShellSidebar", () => {
       expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
       expect(screen.queryByTestId("sidebar-backdrop")).not.toBeInTheDocument();
     });
+  });
+
+  it("expands at Tailwind's lg breakpoint so JS and CSS switch at the same width", () => {
+    const pattern = /--breakpoint-lg:\s*([\d.]+)rem/;
+    const appCss = readFileSync(join(process.cwd(), "src/styles.css"), "utf8");
+    const themeCss = readFileSync(
+      createRequire(join(process.cwd(), "package.json")).resolve("tailwindcss/theme.css"),
+      "utf8",
+    );
+    const rem = Number((appCss.match(pattern) ?? themeCss.match(pattern))?.[1]);
+    expect(EXPAND_MQ).toBe(`(min-width: ${rem * 16}px)`);
   });
 });
