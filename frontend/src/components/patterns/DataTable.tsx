@@ -25,9 +25,9 @@ export const tableHeaderCellClass =
 export const tableRowClass = "border-t border-stroke-primary bg-surface-always-white";
 export const tableCellClass =
   "px-margin-tight py-margin-tight type-body text-text-primary align-middle whitespace-nowrap";
-/** Pins a cell to the right edge of a scrolling `TableWrap`; edge shadow shows while more columns sit behind it. */
+/** Pins a cell to the right edge of a scrolling `TableWrap`; divider and edge shadow show while more columns sit behind it. */
 const stickyEndCellClass =
-  "sticky right-0 z-10 bg-inherit group-data-[scroll-right]/table:shadow-[-8px_0_8px_-8px_rgb(0_0_0/0.25)]";
+  "sticky right-0 z-10 bg-inherit group-data-[scroll-right]/table:shadow-[inset_1px_0_0_var(--color-stroke-primary),-8px_0_8px_-8px_rgb(0_0_0/0.25)]";
 
 /** Bordered scroll shell for list tables. Includes a modest min-height (~4 rows). */
 export function TableWrap({ children, className }: { children: ReactNode; className?: string }) {
