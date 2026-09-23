@@ -39,7 +39,8 @@ in the app used them before this decision. happy-dom does not evaluate layout, m
   overlays the content instead of pushing it. The threshold itself stays at 1024.
 - **Sticky row actions.** Wide tables keep horizontal scroll. The `actions` column is
   `position: sticky; right: 0` with an opaque background. This is built once in the shared table
-  primitives and applied to every `min-w-245` table. No first/identity column is frozen.
+  primitives and applied to every table with a row-action column, not only the `min-w-245` ones.
+  No first/identity column is frozen.
 - **Status bar wraps.** The clock drops to a second row when space runs out. It is never hidden,
   because local/UTC time supports workflow scheduling.
 - **Workflow toolkit drawer.** Below the workspace container breakpoint, the toolkit rail becomes a
@@ -77,9 +78,14 @@ in the app used them before this decision. happy-dom does not evaluate layout, m
   must know which regions use which; `docs/frontend-design-system.md` records the convention.
 - Container-query layout switching cannot be unit-tested under happy-dom. It relies on the manual
   viewport matrix.
-- A sticky cell needs an opaque background and its own edge shadow. `TableWrap`'s right-edge
-  scroll gradient must sit left of the sticky column. If the operator hides the actions column
-  through the column picker, nothing is sticky.
+- A sticky cell needs an opaque background. While columns sit behind it, it shows a full-height
+  divider and an edge shadow, which replace `TableWrap`'s right-edge scroll gradient on that table.
+  A divider inset from the row borders was tried and reverted. If the operator hides the actions
+  column through the column picker, nothing is sticky.
+- The divider depends on a scroll-edge signal from the table's scroller. A table outside
+  `TableWrap` must use `useTableScrollEdges()`; Minima backups missed it at first.
+  `expectRowActionsPinned()` in each table's row test fails on a missing scroller or a
+  misplaced `sticky` prop.
 - Sub-768 widths remain best-effort.
 
 ## Where this lives in code
@@ -92,6 +98,7 @@ in the app used them before this decision. happy-dom does not evaluate layout, m
 - `frontend/src/features/automation/workflow/workflowWorkspaceUi.tsx`: `SelectedBlockSheet`.
 - `frontend/src/features/dashboard/DashboardDevices.tsx`: metric grid container.
 - `frontend/src/features/data-sources/DataSourceTemplates.tsx`: Hardware support modal layout.
-- `frontend/src/components/patterns/DataTable.tsx`: sticky cell support, `TableWrap` edge
-  shadows.
+- `frontend/src/components/patterns/DataTable.tsx`: sticky cell support, `useTableScrollEdges()`,
+  `TableWrap` edge shadows.
+- `frontend/tests/helpers/expectRowActionsPinned.ts`: per-table pinning guard.
 - `frontend/src/components/StatusBar.tsx`: wrapping clock row.

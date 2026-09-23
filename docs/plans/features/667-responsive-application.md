@@ -87,11 +87,13 @@ Merged in `6c4455e` and already on this branch. No work planned; spot-check it d
 
 **Current:** Seven tables, not three, set `min-w-245` (980px) when more than three columns are visible: `IntegritasHistoryTable`, `DataReadsHistoryTable`, `AutomationRunsTable`, `AutomationWorkflowsList`, `AutomationInboxTable`, `DataSourcesList`, `WalletHistoryPanel`. With the content widths above, **every one of them scrolls sideways at 1024 and 768**, and even at 1023. Already shipped: a per-table column picker with backend-saved preferences (spike option 3, `docs/plans/archive/table-column-visibility.md`), left/right scroll-edge shadows in `TableWrap`, and column resize. Every table uses the column id `"actions"` for its row-action column. The operator can hide that column.
 
-**Spike decision (ADR 0023):** option 1+, which is keep the horizontal scroll and make the `actions` column `position: sticky; right: 0` with an opaque background and a left-edge shadow. Build it once in the shared primitives, for example a `sticky` prop on `TableHeaderCell`/`TableCell` in `components/patterns/DataTable.tsx`, and pass it where `column.id === "actions"`. When the operator hides the actions column, nothing is sticky. Move the right-edge scroll gradient so it does not paint over the sticky column. Do **not** make the first column sticky: Integritas has a `select` checkbox column first, and freezing two left columns uses up the width we are trying to free. Options 2 (expand row) and 4 (cards) are a rebuild for a non-goal (phone).
+**Spike decision (ADR 0023):** option 1+, which is keep the horizontal scroll and make the `actions` column `position: sticky; right: 0` with an opaque background and a left-edge shadow. Build it once in the shared primitives, for example a `sticky` prop on `TableHeaderCell`/`TableCell` in `components/patterns/DataTable.tsx`, and pass it where `column.id === "actions"`. When the operator hides the actions column, nothing is sticky. ~~Move the right-edge scroll gradient so it does not paint over the sticky column.~~ Built instead: while columns sit behind it, the sticky cell shows a full-height divider and edge shadow, and the right gradient is hidden on that table. Do **not** make the first column sticky: Integritas has a `select` checkbox column first, and freezing two left columns uses up the width we are trying to free. Options 2 (expand row) and 4 (cards) are a rebuild for a non-goal (phone).
 
 Record the decision as a comment on the #697 spike ticket.
 
 Tests: in each table's existing test, assert that the actions cells carry the sticky class, or test it once in a `DataTable` pattern test.
+
+**Built:** a `sticky` prop on `TableHeaderCell`/`TableCell`, applied to all 11 tables with a row-action column: the 7 above plus `WalletAssetsPanel`, `AddressBookPanel`, `MinimaBackupPanel`, and the workflow watch history (`WorkflowWatchUi.tsx`, column `details`). Scroll-edge tracking moved into `useTableScrollEdges()`, which `TableWrap` uses and `MinimaBackupPanel`'s `ScrollArea` spreads directly. Drift fixed on the way: the watch history's raw `<th>/<td>` now use the shared cells. Guard: `frontend/tests/helpers/expectRowActionsPinned.ts`, called in each table's row-render test, fails on a wrong or missing sticky cell or a missing scroller. Left for a separate task because each changes the look: the watch history's double scroller (`ScrollArea` around `TableWrap`), the peers table's `<div>` header, and moving backups onto `TableWrap`.
 
 ### 5. Status bar (#698)
 
@@ -135,7 +137,7 @@ All resolved 2026-09-23; rationale in `docs/adr/0023-responsive-layout-strategy.
 2. **Container vs viewport queries:** container queries for the regions whose width depends on the sidebar (workflow workspace, metric grid, Hardware support modal); viewport breakpoints everywhere else.
 3. **Sidebar:** a sidebar the operator expands below 1024 overlays the content (new task, §10). `EXPAND_MQ` stays at 1024.
 4. **#694 drawer:** a right-side overlay drawer with a top-bar "Toolkit" toggle. It closes after a block is added, on Escape, and on a click outside. The block settings sheet goes full-width. The title "below 360" means "below 1024"; note this in a ticket comment and leave the title unchanged.
-5. **#697:** sticky `actions` column via the shared `DataTable` primitive, applied to all 7 `min-w-245` tables. No sticky first column. `min-w-245` stays.
+5. **#697:** sticky `actions` column via the shared `DataTable` primitive, applied to every table with a row-action column (11, including the 7 `min-w-245` tables). No sticky first column. `min-w-245` stays.
 6. **#698:** the clock wraps to a second row; it is never hidden.
 7. **#269:** unit tests for behaviour plus a manual viewport matrix. 375px, mobile nav, and Playwright are dropped.
 8. **Plan path convention:** update the OpenProject skill text (plus the `.agents`/`.cursor` counterparts) to `docs/plans/{features,bugs}/<ticket>-<slug>.md`.
@@ -148,7 +150,7 @@ Original ticket fields (title, description, status) are left unchanged so the au
 - #667: summary of the audit findings, the decisions, the ADR/plan paths, and a proposed new sub-task (sidebar overlay below 1024).
 - #694: the title means below 1024, not below 360. Container-query drawer approach. Deferred to last pending a co-worker sync.
 - #695: there are 7 cards, not 6. Container query instead of `md:`.
-- #697: spike outcome. Sticky `actions` column on all 7 `min-w-245` tables.
+- #697: spike outcome. Sticky `actions` column on every table with one (11), not only the 7 `min-w-245` tables.
 - #698: the clock wraps to a second row instead of being hidden.
 - #699: the empty-state note is stale (now `EmptyContentState`).
 - #700: labelled Exit button at all widths.
@@ -169,7 +171,7 @@ Files #694 will touch, all under `frontend/src/features/automation/workflow/`:
 
 **Other tasks do not edit workspace files**, but two of them change what the workspace renders:
 
-- §4 sticky actions: changes `components/patterns/DataTable.tsx` / `TableWrap`, which the watch-mode history table (`WorkflowWatchUi.tsx`) uses. The sticky prop is opt-in per cell and that table is not a `min-w-245` table, so there is no file change there. The only visible effect is the edge-shadow adjustment.
+- §4 sticky actions: changes `components/patterns/DataTable.tsx` / `TableWrap`, which the watch-mode history table (`WorkflowWatchUi.tsx`) uses. Its `details` column is pinned too, and its raw cells were moved onto the shared components, so `WorkflowWatchUi.tsx` did change.
 - §10 sidebar overlay: workspace routes render inside `AppShell` (`fullBleed`), so the overlay appears there too. `AppShell.tsx` / `AppShellSidebar.tsx` only; no workspace file changes.
 
 Before starting #694: sync with the co-workers, rebase onto whatever has landed on `dev`, then re-check the plan in §1 against the current shell.
@@ -177,7 +179,7 @@ Before starting #694: sync with the co-workers, rebase onto whatever has landed 
 ## Order
 
 1. Quick wins: #695, #698, #699, #700 → verify: unit tests + manual check at matrix sizes.
-2. #697: shared sticky-actions primitive, then the 7 tables → verify: table tests + manual horizontal scroll at 768/1024.
+2. #697: shared sticky-actions primitive, then every table with row actions → verify: table tests + manual horizontal scroll at 768/1024.
 3. §10 sidebar overlay → verify: sidebar tests + manual expand at 768.
 4. #701: repro, then minimal fix.
 5. #269: tests + manual matrix run (excluding workflow create/edit); record results here.

@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Dashboard live activity rows show the time and status on one line under the message on narrow screens.
 - Minima console toolbar buttons are larger on screens narrower than 1024px.
 - Row actions stay pinned to the right edge of every table while the other columns scroll sideways.
+- A divider and edge shadow mark the pinned row actions while other columns are scrolled behind them.
 
 ## [Unreleased]
 
