@@ -155,7 +155,19 @@ export function WorkflowWorkspace({
   const canAddSendPayment = true;
   const uiValidation = withSoftenedInsufficientBalance(validation);
   const hasValidationErrors = Boolean(uiValidation && uiValidation.errors.length > 0);
-  const validationByBlockId = validationIssuesByBlockId(uiValidation);
+  const validationByBlockId = {
+    ...validationIssuesByBlockId(uiValidation),
+    ...(draftBlock && !canPersistSendTransactionConfig(draftBlock.config)
+      ? {
+          [draftBlock.id]: [
+            {
+              level: "error" as const,
+              message: "Choose an address book recipient and enter a positive amount.",
+            },
+          ],
+        }
+      : {}),
+  };
   const selectedRun =
     mode === "watch" ? (runs.find((run) => run.id === selectedRunId) ?? runs[0]) : undefined;
   const runtimeByBlockId = mode === "watch" ? runtimeByBlockIdFromRun(selectedRun) : {};
@@ -261,6 +273,11 @@ export function WorkflowWorkspace({
     setDraftRevealErrors(false);
   }
 
+  function closeDraftBlockSheet() {
+    setSelectedBlockId("");
+    setDraftRevealErrors(false);
+  }
+
   async function saveDraftBlock() {
     if (!draftBlock) return;
     if (!canPersistSendTransactionConfig(draftBlock.config)) {
@@ -278,7 +295,7 @@ export function WorkflowWorkspace({
 
   function closeSelectedSheet() {
     if (draftSelected) {
-      discardDraftBlock();
+      closeDraftBlockSheet();
       return;
     }
     flushSelectedInspector();
@@ -294,8 +311,7 @@ export function WorkflowWorkspace({
   }
 
   function selectCanvasBlock(id: string) {
-    if (draftBlock && id !== draftBlock.id) discardDraftBlock();
-    if (id !== selectedBlockId && !draftBlock) flushSelectedInspector();
+    if (id !== selectedBlockId && selectedBlock) flushSelectedInspector();
     setSelectedBlockId(id);
   }
 
@@ -511,7 +527,7 @@ export function WorkflowWorkspace({
           sources={sources}
           addressBook={addressBook}
           bottomOverlay={mode === "watch"}
-          selectedBlockId={selectedBlock?.id ?? ""}
+          selectedBlockId={selectedBlockId}
           validationByBlockId={validationByBlockId}
           runtimeByBlockId={runtimeByBlockId}
           onSelectBlock={selectCanvasBlock}
