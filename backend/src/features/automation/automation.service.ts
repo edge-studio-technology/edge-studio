@@ -47,6 +47,7 @@ import {
   listAutomationBlocks,
   listDueScheduleWorkflows,
   updateAutomationBlockRun,
+  updateAutomationWorkflow,
   updateAutomationRunError,
   updateAutomationRunSuccess,
   type AutomationBlockRecord,
@@ -66,6 +67,7 @@ import {
   type AutomationRunRecord,
 } from "./automationRuns.repository.js";
 import { createAutomationInboxItem } from "./automationInbox.repository.js";
+import { validateAutomationWorkflow } from "./automation.validation.js";
 
 type WorkflowTriggerType = "manual" | "schedule" | "webhook" | "mqtt" | "gpio";
 
@@ -1384,9 +1386,18 @@ export function startAutomationScheduler() {
       (workflow) => !runningWorkflowIds.has(workflow.id),
     );
     for (const workflow of due) {
-      executeWorkflow(workflow, { type: "schedule" }).catch((error: Error) =>
-        console.error(`Automation workflow ${workflow.id} failed: ${error.message}`),
-      );
+      validateAutomationWorkflow(workflow.id)
+        .then((validation) => {
+          if (!validation.ok) {
+            updateAutomationWorkflow(workflow.id, { enabled: false, nextRunAt: null });
+            console.error(`Automation workflow ${workflow.id} paused: validation failed`);
+            return undefined;
+          }
+          return executeWorkflow(workflow, { type: "schedule" });
+        })
+        .catch((error: Error) =>
+          console.error(`Automation workflow ${workflow.id} failed: ${error.message}`),
+        );
     }
   }, 1000);
 }

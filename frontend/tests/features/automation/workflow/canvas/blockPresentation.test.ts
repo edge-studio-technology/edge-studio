@@ -122,6 +122,26 @@ describe("blockPresentation: blockPresentation", () => {
     expect(stampPresentation.badges).toEqual(
       expect.arrayContaining([{ label: "Reads parent data" }]),
     );
+
+    const variableCondition = blockPresentation(
+      draft({ type: "if_payload_field_equals", config: { source: "variable" } }),
+      [],
+      [],
+      [],
+    );
+    expect(variableCondition.badges).toEqual(
+      expect.arrayContaining([{ label: "Reads variable" }]),
+    );
+
+    const triggerCondition = blockPresentation(
+      draft({ type: "if_payload_field_equals", config: {} }),
+      [],
+      [],
+      [],
+    );
+    expect(triggerCondition.badges).toEqual(
+      expect.arrayContaining([{ label: "Reads trigger event" }]),
+    );
   });
 
   it("adds a Disabled badge only when enabled is explicitly false", () => {
@@ -155,6 +175,9 @@ describe("blockPresentation: blockPresentation", () => {
     const success = blockPresentation(draft(), [], [], [], { status: "success", durationMs: 250 });
     expect(success.badges).toEqual(expect.arrayContaining([{ label: "success · 250 ms" }]));
 
+    const slowSuccess = blockPresentation(draft(), [], [], [], { status: "success", durationMs: 1200 });
+    expect(slowSuccess.badges).toEqual(expect.arrayContaining([{ label: "success · 1.2 s" }]));
+
     const failed = blockPresentation(draft(), [], [], [], {
       status: "failed",
       durationMs: 10,
@@ -162,6 +185,10 @@ describe("blockPresentation: blockPresentation", () => {
     });
     expect(failed.badges).toEqual(
       expect.arrayContaining([{ label: "Run error", tone: "error", alert: true }]),
+    );
+
+    expect(blockPresentation(draft(), [], [], [], { status: "skipped", durationMs: 1 }).className).toMatch(
+      /opacity-80/,
     );
   });
 });
