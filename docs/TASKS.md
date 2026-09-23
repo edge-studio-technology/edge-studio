@@ -16,15 +16,17 @@
 
 ## In Progress
 
-- [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — all done except #694, which is blocked on a co-worker sync; decisions in `docs/adr/0023-responsive-layout-strategy.md`; see `docs/plans/features/667-responsive-application.md`.
+- [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — all done except #694, which is blocked on a co-worker sync; decisions in `docs/adr/0024-responsive-layout-strategy.md`; see `docs/plans/features/667-responsive-application.md`.
 - [ ] Run the 13-step Brave verification for the completed app-wide empty/loading/error hardening, including tasks #659/#660/#661 plus Integritas, software update/update-agent, and Wallet behavior while Minima is unavailable, before merging to `dev` — see `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
-- [ ] Security hardening V1.5 — close the external-review findings and unit-test-audit gaps in one ordered workstream; see `docs/plans/security/README.md`, one file per phase under `docs/plans/security/`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`; task 704 closed finding [12], and task 706 completed Phase 8.
+- [ ] Security hardening V1.5 — close the external-review findings and remaining work in one ordered workstream; see `docs/plans/security/README.md`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`; task 704 closed finding [12], task 706 completed Phase 8, and task 707 completed Phase 9.
+- [ ] Add bounded workflow-diagnostic retention, webhook/MQTT credential redaction, persisted workflow run budgets, and rate limits for event-driven security paths — category-specific retention from ADR 0023 is implemented and the full check/build/Compose suite passes on `dev-task/705-retention-redaction-budgets`; needs remaining manual container/Pi checks and the documented existing-installation log migration — see `docs/plans/security/705-retention-redaction-budgets.md`.
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
 
+- [ ] Define the product lifecycle for data-source reads and visible automation inbox items, including retention configuration, export, proof-linked reads, storage quotas, and disk-usage warnings — see `docs/adr/0023-classify-stored-records-before-applying-retention.md`.
 - [ ] Digest-pin the third-party deployment images outside the signed manifest (`minimaglobal/minimacore`, `eclipse-mosquitto:2`, `minimaglobal/minima:dev`, `alpine:3.20`) and document the manual pin-bump procedure — finding [6], split from task 704; see step 3 of `docs/plans/security/phase-6-fail-closed-on-weak-config.md`.
 - [ ] After V1.5 security hardening, make a fresh product decision on whether to retain, redesign, re-enable, or remove TOTP. Removal is not currently approved; `docs/plans/remove-totp.md` is candidate analysis only. See `docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md`.
 - [ ] Cut one release per channel through the updated `release.yml` before the V1.5 security branch ships — installers carrying Phase 4 refuse any runtime bundle published without an `edge-studio-runtime.tar.gz.sig`. See `docs/adr/0016-install-time-bootstrap-trust-set.md`.
@@ -71,6 +73,8 @@
 
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
 ## Done
+
+- [x] Fixed task 705 audit findings: normalized nginx webhook log protection, active-run retention safety, repeated yielding cleanup batches, and fixed log rotation for recreated legacy containers; full checks and Docker builds passed — see `docs/adr/0022-bound-external-automation-effects.md`.
 
 - [x] Closed the regression-testing debt tracked under OpenProject #363 and its children (#213, #218, #225, #242, #287): request-level `sendHttpOutput` assertions, MQTT/GPIO teardown on source deletion, webhook receiver route tests, the Integritas connection check, backup re-auth rejection, wallet import phrase-leak checks, and diagnostics query/tab/pagination tests — see `docs/plans/features/363-regression-testing-debt.md`.
 

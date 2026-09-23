@@ -82,6 +82,8 @@ let service: typeof import("../../../src/features/automation/automation.service.
 let workflowRepo: typeof import("../../../src/features/automation/automation.repository.js");
 let dataSourcesRepo: typeof import("../../../src/features/data-sources/dataSources.repository.js");
 let dataReadsRepo: typeof import("../../../src/features/data-reads/dataReads.repository.js");
+let runsRepo: typeof import("../../../src/features/automation/automationRuns.repository.js");
+let db: Awaited<ReturnType<typeof setupTestDatabase>>["db"];
 let integritasRepo: typeof import("../../../src/features/integritas/integritas.repository.js");
 let addressBookRepo: typeof import("../../../src/features/address-book/address-book.repository.js");
 let walletService: typeof import("../../../src/features/wallet/wallet.service.js");
@@ -89,6 +91,8 @@ let walletService: typeof import("../../../src/features/wallet/wallet.service.js
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
   teardown = testDb.teardown;
+  db = testDb.db;
+  runsRepo = await import("../../../src/features/automation/automationRuns.repository.js");
   service = await import("../../../src/features/automation/automation.service.js");
   workflowRepo = await import("../../../src/features/automation/automation.repository.js");
   dataSourcesRepo = await import("../../../src/features/data-sources/dataSources.repository.js");
@@ -429,6 +433,32 @@ describe("automation.service — record_trigger_event", () => {
     const reads = dataReadsRepo.listDataSourceReads({ page: 1, pageSize: 50, q: "Hook" });
     assert.ok(reads.some((r) => r.data_source_id === source.id && r.status === "success"));
   });
+
+  it("stores a credential-free source reference instead of the webhook or broker URL", async () => {
+    const webhookToken = ["webhook", "token", "record"].join("-");
+    const brokerPassword = ["broker", "password", "record"].join("-");
+    const sources = [
+      createSource("webhook", { webhookToken }, "RefHook"),
+      createSource("mqtt", { brokerUrl: `mqtt://sensor:${brokerPassword}@broker.local:1883`, topic: "devices/temp" }, "RefMqtt"),
+      createSource("gpio-input", { chip: "gpiochip0", pin: 17, profile: "pir-motion" }, "RefGpio")
+    ];
+
+    for (const source of sources) {
+      const wf = makeWorkflow([
+        { type: "manual_start", config: {} },
+        { type: "record_trigger_event", config: {} }
+      ]);
+      await service.executeWorkflow(wf, { type: "manual", sourceId: source.id, payload: { a: 1 } });
+      const read = dataReadsRepo.listDataSourceReads({ page: 1, pageSize: 50, q: source.name }).find((r) => r.data_source_id === source.id)!;
+      assert.equal(read.source_url, `data-source:${source.id}`);
+
+      const [run] = runsRepo.listAutomationRunsForWorkflow(wf.id, 1);
+      const recordBlock = runsRepo.listAutomationBlockRuns(run.id).find((block) => block.block_type === "record_trigger_event")!;
+      assert.equal((JSON.parse(recordBlock.output_json!) as { data: { sourceUrl: string } }).data.sourceUrl, `data-source:${source.id}`);
+      const stored = JSON.stringify([read, run, runsRepo.listAutomationBlockRuns(run.id)]);
+      assert.equal(stored.includes(webhookToken) || stored.includes(brokerPassword), false, "a credential was persisted");
+    }
+  });
 });
 
 describe("automation.service — recordPushAutomationPayload", () => {
@@ -438,7 +468,6 @@ describe("automation.service — recordPushAutomationPayload", () => {
     const result = await service.recordPushAutomationPayload({
       workflow: wf,
       dataSource: { id: source.id, name: source.name },
-      sourceUrl: "https://example.com/hook",
       triggerType: "webhook",
       result: { bytesHash: "h1", preview: { ok: true }, canonicalBytes: "{}\n" }
     });
@@ -853,6 +882,179 @@ describe("automation.service — send_transaction", () => {
   });
 });
 
+describe("automation.service — workflow run budget", () => {
+  const WINDOW_MS = 60 * 60 * 1000;
+
+  function budgetEvents(workflowId: string) {
+    return (db.prepare("SELECT COUNT(*) AS n FROM automation_workflow_budget_events WHERE workflow_id = ?").get(workflowId) as { n: number }).n;
+  }
+
+  function fillBudget(workflowId: string, consumedAtMs = Date.now()) {
+    for (let index = 0; index < 10; index += 1) {
+      db.prepare("INSERT INTO automation_workflow_budget_events (run_id, workflow_id, consumed_at) VALUES (?, ?, ?)")
+        .run(`${workflowId}:prefilled-${index}`, workflowId, new Date(consumedAtMs).toISOString());
+    }
+  }
+
+  function ledOutputBlock() {
+    const target = createSource("gpio-output", { chip: "gpiochip0", pin: 4 }, "LED");
+    return { type: "control_output", config: { targetId: target.id, durationMs: 1 } };
+  }
+
+  async function assertBudgetExhausted(promise: Promise<unknown>) {
+    await assert.rejects(promise, (error: unknown) => {
+      assert.equal((error as { code?: string }).code, "WORKFLOW_RUN_BUDGET_EXHAUSTED");
+      assert.match(String((error as { nextAvailableAt?: string }).nextAvailableAt), /^\d{4}-\d{2}-\d{2}T/);
+      return true;
+    });
+  }
+
+  it("allows 10 privileged runs per workflow and blocks the 11th before its side effect", async () => {
+    const wf = makeWorkflow([{ type: "manual_start", config: {} }, ledOutputBlock()]);
+    for (let index = 0; index < 10; index += 1) await service.runAutomationWorkflow(wf.id);
+
+    await assertBudgetExhausted(service.runAutomationWorkflow(wf.id));
+    assert.equal(pulseGpioOutputMock.mock.calls.length, 10);
+    assert.equal(budgetEvents(wf.id), 10);
+
+    const [blockedRun] = runsRepo.listAutomationRunsForWorkflow(wf.id, 1);
+    assert.equal(blockedRun.status, "failed");
+    const outputBlock = runsRepo.listAutomationBlockRuns(blockedRun.id).find((block) => block.block_type === "control_output")!;
+    assert.equal(outputBlock.status, "failed");
+    assert.match(outputBlock.error!, /budget exhausted/);
+  });
+
+  it("keeps budgets independent per workflow", async () => {
+    const exhausted = makeWorkflow([{ type: "manual_start", config: {} }, ledOutputBlock()]);
+    const fresh = makeWorkflow([{ type: "manual_start", config: {} }, ledOutputBlock()]);
+    fillBudget(exhausted.id);
+
+    await assertBudgetExhausted(service.runAutomationWorkflow(exhausted.id));
+    await service.runAutomationWorkflow(fresh.id);
+    assert.equal(budgetEvents(fresh.id), 1);
+  });
+
+  it("does not charge workflows without privileged blocks", async () => {
+    const wf = makeWorkflow([
+      { type: "manual_start", config: {} },
+      { type: "wait", config: { durationMs: 0 } },
+      { type: "show_preview", config: { title: "Hi", previewFormat: "text", contentMode: "custom", contentTemplateText: "x" } }
+    ]);
+    for (let index = 0; index < 12; index += 1) await service.runAutomationWorkflow(wf.id);
+    assert.equal(budgetEvents(wf.id), 0);
+  });
+
+  it("charges once per run even with several privileged blocks", async () => {
+    const wf = makeWorkflow([{ type: "manual_start", config: {} }, ledOutputBlock(), ledOutputBlock()]);
+    await service.runAutomationWorkflow(wf.id);
+    assert.equal(pulseGpioOutputMock.mock.calls.length, 2);
+    assert.equal(budgetEvents(wf.id), 1);
+  });
+
+  it("keeps the charge when the privileged action fails", async () => {
+    pulseGpioOutputMock.mockRejectedValue(new Error("gpio busy"));
+    const wf = makeWorkflow([{ type: "manual_start", config: {} }, ledOutputBlock()]);
+    await assert.rejects(service.runAutomationWorkflow(wf.id), /gpio busy/);
+    assert.equal(budgetEvents(wf.id), 1);
+  });
+
+  it("runs non-privileged blocks before reserving and skips the privileged block when exhausted", async () => {
+    const wf = makeWorkflow([
+      { type: "manual_start", config: {} },
+      { type: "set_variable", config: { variableName: "seen", variableSource: "custom_json", valueJsonText: "true" } },
+      ledOutputBlock()
+    ]);
+    fillBudget(wf.id);
+
+    await assertBudgetExhausted(service.runAutomationWorkflow(wf.id));
+    const [run] = runsRepo.listAutomationRunsForWorkflow(wf.id, 1);
+    const statuses = runsRepo.listAutomationBlockRuns(run.id).map((block) => [block.block_type, block.status]);
+    assert.deepEqual(statuses, [["manual_start", "success"], ["set_variable", "success"], ["control_output", "failed"]]);
+    assert.equal(pulseGpioOutputMock.mock.calls.length, 0);
+  });
+
+  it("frees capacity once reservations leave the rolling hour", async () => {
+    const wf = makeWorkflow([{ type: "manual_start", config: {} }, ledOutputBlock()]);
+    fillBudget(wf.id, Date.now() - WINDOW_MS - 1);
+
+    await service.runAutomationWorkflow(wf.id);
+    assert.equal(budgetEvents(wf.id), 1);
+  });
+
+  it("applies to manual, schedule, webhook, MQTT, and GPIO triggers", async () => {
+    const cases = [
+      { trigger: "manual", start: "manual_start", sourceType: null },
+      { trigger: "schedule", start: "schedule_start", sourceType: null },
+      { trigger: "webhook", start: "webhook_event_start", sourceType: "webhook" },
+      { trigger: "mqtt", start: "mqtt_event_start", sourceType: "mqtt" },
+      { trigger: "gpio", start: "gpio_event_start", sourceType: "gpio-input" }
+    ] as const;
+
+    for (const item of cases) {
+      const source = item.sourceType ? createSource(item.sourceType, {}, `Budget ${item.trigger}`) : null;
+      const startConfig = item.start === "schedule_start" ? { intervalSeconds: 60 } : source ? { sourceId: source.id } : {};
+      const wf = makeWorkflow([{ type: item.start, config: startConfig }, ledOutputBlock()]);
+      fillBudget(wf.id);
+
+      await assertBudgetExhausted(service.executeWorkflow(wf, { type: item.trigger, sourceId: source?.id }));
+    }
+    assert.equal(pulseGpioOutputMock.mock.calls.length, 0);
+  });
+});
+
+describe("automation.service — transaction cooldown guard", () => {
+  function transactionWorkflow(start: { type: string; config: unknown }) {
+    const recipient = makeRecipient();
+    return makeWorkflow([
+      start,
+      { type: "send_transaction", config: { recipientAddressBookId: recipient.id, tokenId: "0x00", amount: "1" } }
+    ]);
+  }
+
+  beforeEach(() => {
+    getWalletStatusMock.mockResolvedValue({
+      checkedAt: "now",
+      tokens: [{ tokenId: "0x00", name: "Minima", confirmed: "10", unconfirmed: "0", sendable: "10", isNative: true }]
+    });
+    sendPaymentMock.mockResolvedValue({ ok: true, txpowId: "tx-guard", status: "sent" });
+  });
+
+  it("rejects an event-triggered transaction workflow without a valid cooldown before any block runs", async () => {
+    for (const cooldownSeconds of [undefined, 0, -1, 0.5]) {
+      const source = createSource("webhook", { webhookToken: `guard-${String(cooldownSeconds)}` }, "GuardHook");
+      const wf = transactionWorkflow({ type: "webhook_event_start", config: { sourceId: source.id, cooldownSeconds } });
+
+      await assert.rejects(service.executeWorkflow(wf, { type: "webhook", sourceId: source.id }), (error: unknown) => {
+        assert.equal((error as { code?: string }).code, "WORKFLOW_TRANSACTION_COOLDOWN_REQUIRED");
+        return true;
+      });
+      assert.equal(runsRepo.listAutomationRunsForWorkflow(wf.id, 1).length, 0);
+    }
+    assert.equal(sendPaymentMock.mock.calls.length, 0);
+  });
+
+  it("allows event-triggered transactions with a cooldown of at least one second", async () => {
+    const source = createSource("mqtt", {}, "GuardMqtt");
+    const wf = transactionWorkflow({ type: "mqtt_event_start", config: { sourceId: source.id, cooldownSeconds: 1 } });
+    await service.executeWorkflow(wf, { type: "mqtt", sourceId: source.id });
+    assert.equal(sendPaymentMock.mock.calls.length, 1);
+  });
+
+  it("does not apply to manual runs or disabled transaction blocks", async () => {
+    const source = createSource("gpio-input", {}, "GuardGpio");
+    const eventWorkflow = transactionWorkflow({ type: "gpio_event_start", config: { sourceId: source.id, cooldownSeconds: 0 } });
+    await service.executeWorkflow(eventWorkflow, { type: "manual", sourceId: source.id });
+
+    const recipient = makeRecipient();
+    const disabledTransaction = makeWorkflow([
+      { type: "gpio_event_start", config: { sourceId: source.id, cooldownSeconds: 0 } },
+      { type: "send_transaction", enabled: false, config: { recipientAddressBookId: recipient.id, tokenId: "0x00", amount: "1" } }
+    ]);
+    await service.executeWorkflow(disabledTransaction, { type: "gpio", sourceId: source.id });
+    assert.equal(sendPaymentMock.mock.calls.length, 1);
+  });
+});
+
 describe("automation.service — scheduler", () => {
   afterEach(() => {
     service.stopAutomationScheduler();
@@ -881,5 +1083,24 @@ describe("automation.service — scheduler", () => {
 
     const updated = workflowRepo.getAutomationWorkflow(wf.id)!;
     assert.ok(updated.last_run_at);
+  });
+
+  it("pauses a due schedule workflow instead of running it when validation fails", async () => {
+    vi.useFakeTimers();
+    const wf = makeWorkflow(
+      [
+        { type: "schedule_start", config: { intervalSeconds: 60 } },
+        { type: "set_variable", config: { variableName: "1bad", variableSource: "custom_json", valueJsonText: "1" } }
+      ],
+      { name: "InvalidDueWorkflow" }
+    );
+    workflowRepo.updateAutomationWorkflow(wf.id, { nextRunAt: new Date(Date.now() - 1000).toISOString() });
+
+    service.startAutomationScheduler();
+    await vi.advanceTimersByTimeAsync(1100);
+
+    const updated = workflowRepo.getAutomationWorkflow(wf.id)!;
+    assert.equal(updated.enabled, 0);
+    assert.equal(updated.last_run_at, null);
   });
 });

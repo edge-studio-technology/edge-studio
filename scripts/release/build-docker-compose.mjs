@@ -22,6 +22,12 @@ const dockerCompose = `# Official edge-studio Docker Compose — ${channel} chan
 # this, update-agent can't find the frontend/backend containers to swap.
 name: edge-studio
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   # One-shot: generates the self-signed HTTPS cert the frontend needs and chowns
   # bind-mounted data dirs to uid 1000 (the "node" user backend/update-agent run
@@ -109,6 +115,7 @@ services:
     expose:
       - "3000"
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       cert-init:
         condition: service_completed_successfully
@@ -132,6 +139,7 @@ services:
       backend:
         condition: service_started
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - integritas
 
@@ -158,6 +166,7 @@ services:
     expose:
       - "8081"
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       cert-init:
         condition: service_completed_successfully
@@ -180,6 +189,7 @@ services:
     volumes:
       - \${MINIMA_DATA_DIR:-./minima}:/home/minima/data
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - integritas
 

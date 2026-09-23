@@ -3,6 +3,7 @@ import type { Response } from "express";
 import fs from "node:fs/promises";
 import { sha3HashHex } from "../../shared/crypto.js";
 import { requireRole } from "../auth/auth.middleware.js";
+import { integritasStampRateLimiter } from "../auth/rate-limit.middleware.js";
 import { badRequest, notFound, sendApiError, unexpected, dependencyUnavailable } from "../../shared/api-error.js";
 import { appError, systemError } from "../../shared/structured-error.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
@@ -108,7 +109,7 @@ integritasRouter.post("/hash", (req, res) => {
   return res.json(hashCanonicalBytes(canonicalBytes));
 });
 
-integritasRouter.post("/stamp", requireRole("admin"), async (req, res) => {
+integritasRouter.post("/stamp", requireRole("admin"), integritasStampRateLimiter, async (req, res) => {
   const apiKey = requireIntegritasApiKey(res);
   if (!apiKey) return;
 
@@ -122,7 +123,7 @@ integritasRouter.post("/stamp", requireRole("admin"), async (req, res) => {
   return res.json(result);
 });
 
-integritasRouter.post("/stamp-file", requireRole("admin"), upload.single("file"), async (req, res) => {
+integritasRouter.post("/stamp-file", requireRole("admin"), integritasStampRateLimiter, upload.single("file"), async (req, res) => {
   // multer has already written the upload to /tmp by the time any of these checks run, so the
   // cleanup has to cover the early returns too, not just the success path.
   const file = req.file;

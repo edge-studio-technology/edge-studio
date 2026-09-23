@@ -109,7 +109,9 @@ of carrying the full rationale inline.
 | [adr/0019-i2c-prerequisite-setup-action.md](./adr/0019-i2c-prerequisite-setup-action.md) | I2C prerequisite setup: fixed Raspberry Pi OS host-agent action with manual fallback |
 | [adr/0020-bind-installer-runtime-to-signed-manifest.md](./adr/0020-bind-installer-runtime-to-signed-manifest.md) | Release installer verifies the runtime bundle against the signed manifest before replacing application files |
 | [adr/0021-app-secret-fail-closed-without-migration.md](./adr/0021-app-secret-fail-closed-without-migration.md) | Backend refuses an empty `APP_SECRET`, `dev-change-me` default removed, no secret migration; operator owns custom values |
-| [adr/0023-responsive-layout-strategy.md](./adr/0023-responsive-layout-strategy.md) | Responsive layout: 768 floor, container queries where sidebar width matters, sidebar overlay below 1024, sticky table actions |
+| [adr/0022-bound-external-automation-effects.md](./adr/0022-bound-external-automation-effects.md) | External automation hardening: initial retention scope, bounded logs, credential-free source history, and a persisted privileged-workflow budget |
+| [adr/0023-classify-stored-records-before-applying-retention.md](./adr/0023-classify-stored-records-before-applying-retention.md) | Retention follows record purpose: bound workflow diagnostics, preserve product and evidence records, and purge user-deleted inbox items |
+| [adr/0024-responsive-layout-strategy.md](./adr/0024-responsive-layout-strategy.md) | Responsive layout: 768 floor, container queries where sidebar width matters, sidebar overlay below 1024, sticky table actions |
 
 ---
 

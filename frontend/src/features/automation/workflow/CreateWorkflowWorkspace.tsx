@@ -102,16 +102,12 @@ export function CreateWorkflowWorkspace({
     : undefined;
   const localErrors = name.trim() ? [] : ["Workflow name is required."];
   const uiValidation = withSoftenedInsufficientBalance(backendValidation);
-  const canCreate = localErrors.length === 0 && Boolean(uiValidation?.ok);
+  const canCreate = localErrors.length === 0 && draftBlocks.length > 0;
   const createBlockedReason = !name.trim()
     ? "Workflow name is required."
-    : uiValidation && !uiValidation.ok
-      ? "Fix validation errors before creating."
-      : backendValidationError
-        ? "Validation is unavailable."
-        : !backendValidation
-          ? "Checking workflow…"
-          : undefined;
+    : draftBlocks.length === 0
+      ? "Add at least one block."
+      : undefined;
   const hasStartBlock = draftBlocks.some((block) => block.type.endsWith("_start"));
   const selectedStartType = draftBlocks.find((block) => block.type.endsWith("_start"))?.type;
   const canAddRecordTriggerEvent = Boolean(

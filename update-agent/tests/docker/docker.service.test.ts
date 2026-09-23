@@ -38,7 +38,8 @@ function baseInspect(overrides: Partial<DockerContainerInspect> = {}): DockerCon
       Devices: [{ PathOnHost: "/dev/gpiochip0", PathInContainer: "/dev/gpiochip0", CgroupPermissions: "rwm" }],
       RestartPolicy: { Name: "unless-stopped" },
       ExtraHosts: ["host.docker.internal:host-gateway"],
-      PortBindings: { "80/tcp": [{ HostPort: "8080" }] }
+      PortBindings: { "80/tcp": [{ HostPort: "8080" }] },
+      LogConfig: { Type: "json-file", Config: { "max-size": "10m", "max-file": "3" } }
     },
     NetworkSettings: {
       Networks: { "edge-studio_default": { Aliases: ["frontend"] } }
@@ -130,11 +131,23 @@ describe("docker.service", () => {
       assert.deepEqual(body.HostConfig.Binds, ["/data:/data"]);
       assert.deepEqual(body.HostConfig.Devices, [{ PathOnHost: "/dev/gpiochip0", PathInContainer: "/dev/gpiochip0", CgroupPermissions: "rwm" }]);
       assert.deepEqual(body.HostConfig.RestartPolicy, { Name: "unless-stopped" });
+      assert.deepEqual(body.HostConfig.LogConfig, { Type: "json-file", Config: { "max-size": "10m", "max-file": "3" } });
       assert.equal(body.HostConfig.AutoRemove, undefined);
       assert.equal(body.HostConfig.PortBindings, undefined);
       assert.deepEqual(body.NetworkingConfig.EndpointsConfig, {
         "edge-studio_default": { Aliases: ["frontend"] }
       });
+    });
+
+    it("applies bounded logging when upgrading legacy containers with unbounded or missing settings", () => {
+      const legacyConfigs: DockerContainerInspect["HostConfig"]["LogConfig"][] = [undefined, { Type: "json-file", Config: {} }, { Type: "json-file", Config: { "max-size": "-1" } }];
+      for (const LogConfig of legacyConfigs) {
+        const inspected = baseInspect();
+        inspected.HostConfig.LogConfig = LogConfig;
+        const body = dockerService.createBodyFromInspect(inspected, "edge-studio/frontend@sha256:new");
+        assert.deepEqual(body.HostConfig.LogConfig, { Type: "json-file", Config: { "max-size": "10m", "max-file": "3" } });
+        assert.equal(inspected.HostConfig.LogConfig, LogConfig);
+      }
     });
 
     it("includes port bindings when includePortBindings is true", () => {

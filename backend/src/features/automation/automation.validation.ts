@@ -8,6 +8,7 @@ import { parseGpioOutputConfig } from "../data-sources/dataSources.service.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
 import { getWalletStatus } from "../wallet/wallet.service.js";
 import { listAutomationBlocks, type AutomationBlockType } from "./automation.repository.js";
+import { isEventStartBlock, isValidTransactionCooldown } from "./automation.policy.js";
 
 export type AutomationValidationIssue = {
   level: "error" | "warning";
@@ -188,6 +189,10 @@ async function validateAutomationBlockGraph(blocks: ValidationBlock[]): Promise<
         addIssue(issues, "warning", "stamp_integritas.no_api_key", "Integritas API key is not configured; this stamp block will fail until a key is saved.", attachedBlock);
       }
     }
+  }
+
+  if (startBlock?.enabled && isEventStartBlock(startBlock.type) && mainBlocks.some((block) => block.enabled && block.type === "send_transaction") && !isValidTransactionCooldown(startConfig.cooldownSeconds)) {
+    addIssue(issues, "error", "workflow.transaction_cooldown_required", "Event-started workflows that send transactions require a cooldown of at least 1 second.", startBlock);
   }
 
   await validateTransactionBalances(blocks.filter((block) => block.enabled), issues);

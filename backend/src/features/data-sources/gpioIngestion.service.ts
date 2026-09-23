@@ -89,7 +89,7 @@ function watchGpioSource(source: DataSourceRecord, workflow: AutomationWorkflowR
   child.stdout.on("data", (chunk: string) => {
     for (const line of chunk.split(/\r?\n/).filter(Boolean)) {
       handleGpioLine(source, workflow, config, line).catch((error: Error) => {
-        if ("code" in error && (error.code === "WORKFLOW_ALREADY_RUNNING" || error.code === "WORKFLOW_COOLDOWN_ACTIVE" || error.code === "WORKFLOW_EVENT_INACTIVE")) return;
+        if ("code" in error && (error.code === "WORKFLOW_ALREADY_RUNNING" || error.code === "WORKFLOW_COOLDOWN_ACTIVE" || error.code === "WORKFLOW_EVENT_INACTIVE" || error.code === "WORKFLOW_RUN_BUDGET_EXHAUSTED")) return;
         console.error(`GPIO workflow ${workflow.id} failed for source ${source.id}: ${error.message}`);
       });
     }
@@ -141,7 +141,7 @@ async function handleGpioLine(source: DataSourceRecord, workflow: AutomationWork
     raw: line
   };
   const result = processGpioPayload(payload);
-  await recordPushAutomationPayload({ workflow, dataSource: source, sourceUrl: sourceUrl(config), triggerType: "gpio", result });
+  await recordPushAutomationPayload({ workflow, dataSource: source, triggerType: "gpio", result });
 }
 
 function gpiomonArgs(config: GpioInputConfig) {
@@ -154,8 +154,4 @@ function parseEdge(line: string) {
   const normalized = line.toLowerCase();
   if (normalized.includes("falling")) return "falling";
   return "rising";
-}
-
-function sourceUrl(config: GpioInputConfig) {
-  return config.profile === "pir-motion" ? `PIR motion ${config.chip} GPIO${config.pin}` : `${config.chip} GPIO${config.pin}`;
 }

@@ -3,7 +3,7 @@
 **Status:** In progress — everything except #694 done; #694 blocked on co-worker sync
 **Created:** 2026-09-23
 **Branch:** `feature/667-responsive-application`
-**Decision record:** `docs/adr/0023-responsive-layout-strategy.md`
+**Decision record:** `docs/adr/0024-responsive-layout-strategy.md`
 **Goal:** Make the whole app usable on Pi/laptop screens down to 1024x768, and on tablet widths, without a phone-first redesign.
 
 ## Tracked Tasks
@@ -64,7 +64,7 @@ Per-area findings are listed in each section below.
 
 **Current:** In `WorkflowWorkspaceShell.tsx`, `rightRailClass` is `absolute … w-[360px]` and always rendered. `WorkflowCanvas.tsx` reserves space for it with `pr-[calc(360px+…)]` on the lane and on the status pill, and the shell's `bottom` slot uses `right-[calc(360px+…)]`. `SelectedBlockSheet` (`workflowWorkspaceUi.tsx`) is a portal with `fixed inset-0 z-[70]`, `max-w-[400px]`, and covers the sidebar too. Both `CreateWorkflowWorkspace.tsx` and `WorkflowWorkspace.tsx` use this shell. At 1024 with the sidebar expanded, the canvas gets ~344px.
 
-**Plan (ADR 0023):**
+**Plan (ADR 0024):**
 
 - Make the workspace a container (`@container` on `workspaceClass`) and switch rail behaviour on the **workspace width**, not the viewport. This fixes 1024+expanded-sidebar and 768 with one rule.
 - Wide workspace: unchanged. The rail stays pinned and the canvas keeps its right padding.
@@ -77,7 +77,7 @@ Watch mode (`WorkflowWatchUi.tsx`) shares the shell. The ticket keeps it out of 
 
 ### 2. Dashboard metric grid (#695)
 
-`DashboardDevices.tsx:122` uses `grid-cols-2 xl:grid-cols-3`. The ticket asks for `grid-cols-1 md:grid-cols-2 xl:grid-cols-3`. There are **7** cards, not six. At 1024 with the sidebar expanded, `md:` applies but the content is ~624px, so two columns still truncate the wallet amount. **Decision (ADR 0023):** use a container query on the grid wrapper (`@container` + `@md:grid-cols-2 @4xl:grid-cols-3` or similar) for the same reason as §1. `DashboardDevices.test.tsx` already exists; add a class assertion only if we keep viewport classes.
+`DashboardDevices.tsx:122` uses `grid-cols-2 xl:grid-cols-3`. The ticket asks for `grid-cols-1 md:grid-cols-2 xl:grid-cols-3`. There are **7** cards, not six. At 1024 with the sidebar expanded, `md:` applies but the content is ~624px, so two columns still truncate the wallet amount. **Decision (ADR 0024):** use a container query on the grid wrapper (`@container` + `@md:grid-cols-2 @4xl:grid-cols-3` or similar) for the same reason as §1. `DashboardDevices.test.tsx` already exists; add a class assertion only if we keep viewport classes.
 
 ### 3. List toolbars (#696) — Done
 
@@ -87,7 +87,7 @@ Merged in `6c4455e` and already on this branch. No work planned; spot-check it d
 
 **Current:** Seven tables, not three, set `min-w-245` (980px) when more than three columns are visible: `IntegritasHistoryTable`, `DataReadsHistoryTable`, `AutomationRunsTable`, `AutomationWorkflowsList`, `AutomationInboxTable`, `DataSourcesList`, `WalletHistoryPanel`. With the content widths above, **every one of them scrolls sideways at 1024 and 768**, and even at 1023. Already shipped: a per-table column picker with backend-saved preferences (spike option 3, `docs/plans/archive/table-column-visibility.md`), left/right scroll-edge shadows in `TableWrap`, and column resize. Every table uses the column id `"actions"` for its row-action column. The operator can hide that column.
 
-**Spike decision (ADR 0023):** option 1+, which is keep the horizontal scroll and make the `actions` column `position: sticky; right: 0` with an opaque background and a left-edge shadow. Build it once in the shared primitives, for example a `sticky` prop on `TableHeaderCell`/`TableCell` in `components/patterns/DataTable.tsx`, and pass it where `column.id === "actions"`. When the operator hides the actions column, nothing is sticky. ~~Move the right-edge scroll gradient so it does not paint over the sticky column.~~ Built instead: while columns sit behind it, the sticky cell shows a full-height divider and edge shadow, and the right gradient is hidden on that table. Do **not** make the first column sticky: Integritas has a `select` checkbox column first, and freezing two left columns uses up the width we are trying to free. Options 2 (expand row) and 4 (cards) are a rebuild for a non-goal (phone).
+**Spike decision (ADR 0024):** option 1+, which is keep the horizontal scroll and make the `actions` column `position: sticky; right: 0` with an opaque background and a left-edge shadow. Build it once in the shared primitives, for example a `sticky` prop on `TableHeaderCell`/`TableCell` in `components/patterns/DataTable.tsx`, and pass it where `column.id === "actions"`. When the operator hides the actions column, nothing is sticky. ~~Move the right-edge scroll gradient so it does not paint over the sticky column.~~ Built instead: while columns sit behind it, the sticky cell shows a full-height divider and edge shadow, and the right gradient is hidden on that table. Do **not** make the first column sticky: Integritas has a `select` checkbox column first, and freezing two left columns uses up the width we are trying to free. Options 2 (expand row) and 4 (cards) are a rebuild for a non-goal (phone).
 
 Record the decision as a comment on the #697 spike ticket.
 
@@ -99,7 +99,7 @@ Tests: in each table's existing test, assert that the actions cells carry the st
 
 **Current:** `StatusBar.tsx` shows two status pills (Node, Integritas) on the left, and `Clock` on the right as two pills (`Local …`, `UTC …`) with `shrink-0`. The shell hides the bar on `fullBleed` routes.
 
-**Decision (ADR 0023):** add `flex-wrap` to the outer row. The clock drops to a second row only when there is no room, left-aligned with the pills, the status pills never wrap within themselves, and the bar never goes past two rows. This keeps the clock visible, which matters for workflow scheduling (frontend rule: "show local and UTC time where scheduling clarity matters"). The ticket's `hidden md:block` would still show the clock at exactly 768 (`md` = 768) and would hide it on phones only. Test: extend `StatusBar.test.tsx` only if we hide something.
+**Decision (ADR 0024):** add `flex-wrap` to the outer row. The clock drops to a second row only when there is no room, left-aligned with the pills, the status pills never wrap within themselves, and the bar never goes past two rows. This keeps the clock visible, which matters for workflow scheduling (frontend rule: "show local and UTC time where scheduling clarity matters"). The ticket's `hidden md:block` would still show the clock at exactly 768 (`md` = 768) and would hide it on phones only. Test: extend `StatusBar.test.tsx` only if we hide something.
 
 ### 6. Dashboard live activity rows (#699)
 
@@ -135,7 +135,7 @@ Not in any existing ticket; propose it in a #667 comment; creating the ticket is
 
 ## Decisions
 
-All resolved 2026-09-23; rationale in `docs/adr/0023-responsive-layout-strategy.md`.
+All resolved 2026-09-23; rationale in `docs/adr/0024-responsive-layout-strategy.md`.
 
 1. **Target floor:** 1024x768 is the primary target and 768 wide is the layout floor. Below 768 the app must only "not break"; no dedicated layouts.
 2. **Container vs viewport queries:** container queries for the regions whose width depends on the sidebar (workflow workspace, metric grid, Hardware support modal); viewport breakpoints everywhere else.
@@ -194,7 +194,7 @@ Before starting #694: sync with the co-workers, rebase onto whatever has landed 
 - `CHANGELOG.md`: `## [Unreleased] feature/667-responsive-application` with `Changed` entries per user-visible fix.
 - `docs/frontend-design-system.md`: note the sticky table column primitive and the container-query convention.
 - `docs/plans/workflow-redesign.md`: mark the mobile/tablet toolkit/sheet item done once #694 lands.
-- ADR: `docs/adr/0023-responsive-layout-strategy.md` (written). Update it if implementation changes a decision.
+- ADR: `docs/adr/0024-responsive-layout-strategy.md` (written). Update it if implementation changes a decision.
 - `docs/SESSION.md` / `docs/TASKS.md` via `session-notes`.
 - No README/SECURITY change expected (layout only).
 

@@ -1,4 +1,4 @@
-# 0023: Responsive Layout Strategy
+# 0024: Responsive Layout Strategy
 
 **Status:** Accepted
 **Date:** 2026-09-23

@@ -3,6 +3,7 @@ import path from "node:path";
 import { Router } from "express";
 import { env } from "../../config/env.js";
 import { requireRole } from "../auth/auth.middleware.js";
+import { automationWriteRateLimiter } from "../auth/rate-limit.middleware.js";
 import { getAddressBookEntryById } from "../address-book/address-book.repository.js";
 import { getDataSource } from "../data-sources/dataSources.repository.js";
 import { parseGpioOutputConfig } from "../data-sources/dataSources.service.js";
@@ -13,10 +14,12 @@ import { getSerializedAutomationRun, listSerializedAutomationRuns, listSerialize
 import { AUTOMATION_RUN_LIST_STATUSES, countAutomationRuns } from "./automationRuns.repository.js";
 import { countAutomationInboxItems, deleteAutomationInboxItem, getAutomationInboxItem, listAutomationInboxItems, setAutomationInboxItemRead, type AutomationInboxFormat } from "./automationInbox.repository.js";
 import { validateAutomationDraft, validateAutomationWorkflow, type AutomationDraftValidationBlock } from "./automation.validation.js";
-import { badRequest, dependencyUnavailable, notFound, validationFailed } from "../../shared/api-error.js";
+import { badRequest, dependencyUnavailable, notFound, tooManyRequests, validationFailed } from "../../shared/api-error.js";
 import { parseListQuery, toPaginatedResult } from "../../shared/list-query.js";
 
 export const automationRouter = Router();
+
+automationRouter.use(automationWriteRateLimiter);
 
 automationRouter.get("/inbox", (req, res) => {
   const status: "read" | "unread" | "all" = req.query.status === "read" || req.query.status === "unread" || req.query.status === "all" ? req.query.status : "all";
@@ -112,7 +115,7 @@ automationRouter.post("/workflows/validate-draft", async (req, res) => {
   res.json({ item: await validateAutomationDraft(blocks) });
 });
 
-automationRouter.post("/workflows", requireRole("admin"), (req, res) => {
+automationRouter.post("/workflows", requireRole("admin"), async (req, res) => {
   const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
   const enabled = Boolean(req.body?.enabled);
 
@@ -121,10 +124,18 @@ automationRouter.post("/workflows", requireRole("admin"), (req, res) => {
   if (!Array.isArray(req.body?.blocks)) return validationFailed(res, "blocks are required", { blocks: "blocks are required" });
   try {
     const blocks = parseWorkflowBlocks(req.body.blocks);
+    const validation = await validateAutomationDraft(blocks.map((block) => ({
+      type: block.type,
+      config: block.config,
+      enabled: block.enabled,
+      parentBlockId: block.parentBlockId,
+      clientId: block.clientId
+    })));
+    const storedEnabled = enabled && validation.ok;
     const workflow = createAutomationWorkflow({
       name,
-      enabled,
-      nextRunAt: enabled ? nextRunAtForBlocks(blocks) : null,
+      enabled: storedEnabled,
+      nextRunAt: storedEnabled ? nextRunAtForBlocks(blocks) : null,
       blocks
     });
     syncMqttDataSources();
@@ -135,11 +146,16 @@ automationRouter.post("/workflows", requireRole("admin"), (req, res) => {
   }
 });
 
-automationRouter.patch("/workflows/:id", requireRole("admin"), (req, res) => {
+automationRouter.patch("/workflows/:id", requireRole("admin"), async (req, res) => {
   const current = getAutomationWorkflow(req.params.id);
   if (!current) return notFound(res, "Automation workflow not found");
   const enabled = typeof req.body?.enabled === "boolean" ? req.body.enabled : undefined;
   const archived = typeof req.body?.archived === "boolean" ? req.body.archived : undefined;
+
+  if (enabled === true) {
+    const validation = await validateAutomationWorkflow(current.id);
+    if (!validation.ok) return validationFailed(res, "Workflow validation failed", undefined, { validation });
+  }
 
   const workflow = updateAutomationWorkflow(req.params.id, {
     name: typeof req.body?.name === "string" ? req.body.name.trim() : undefined,
@@ -272,9 +288,14 @@ automationRouter.post("/workflows/:id/run", requireRole("admin"), async (req, re
     return res.json(result);
   } catch (error) {
     const errorWorkflow = error && typeof error === "object" && "workflow" in error ? (error as { workflow: unknown }).workflow : null;
+    if (isBudgetExhausted(error)) return tooManyRequests(res, error.message, { workflowId: workflow.id, nextAvailableAt: error.nextAvailableAt }, { workflow: errorWorkflow });
     return dependencyUnavailable(res, error instanceof Error ? error.message : "Automation workflow failed", error instanceof Error ? error.message : undefined, { workflowId: workflow.id }, { workflow: errorWorkflow });
   }
 });
+
+function isBudgetExhausted(error: unknown): error is Error & { nextAvailableAt: string } {
+  return error instanceof Error && (error as { code?: unknown }).code === "WORKFLOW_RUN_BUDGET_EXHAUSTED";
+}
 
 function defaultManualTriggerPayload(workflowId: string, workflowName: string) {
   return {
@@ -339,85 +360,53 @@ function parseDraftValidationBlocks(value: unknown): AutomationDraftValidationBl
 function validateBlockConfig(type: AutomationBlockType, config: Record<string, unknown>) {
   if (type === "schedule_start") {
     const intervalSeconds = Number(config.intervalSeconds);
-    if (!Number.isFinite(intervalSeconds) || intervalSeconds < 10) throw new Error("Schedule start requires intervalSeconds of at least 10");
-    config.intervalSeconds = intervalSeconds;
+    if (Number.isFinite(intervalSeconds)) config.intervalSeconds = intervalSeconds;
     return;
   }
 
   if (type === "gpio_event_start" || type === "webhook_event_start" || type === "mqtt_event_start" || type === "fetch_data_source" || type === "capture_camera") {
-    const sourceId = typeof config.sourceId === "string" ? config.sourceId : "";
-    const source = getDataSource(sourceId);
-    if (!source) throw new Error(`${type} requires a valid sourceId`);
-    if (type === "gpio_event_start" && source.type !== "gpio-input") throw new Error("GPIO start requires a GPIO input source");
-    if (type === "webhook_event_start" && source.type !== "webhook") throw new Error("Webhook start requires a webhook source");
-    if (type === "mqtt_event_start" && source.type !== "mqtt") throw new Error("MQTT start requires an MQTT source");
-    if (type === "fetch_data_source" && !isReadableDataSource(source.type)) throw new Error("Fetch block requires a readable data source");
-    if (type === "capture_camera" && source.type !== "pi-camera") throw new Error("Capture camera block requires a Pi Camera device");
+    if (typeof config.sourceId !== "string") config.sourceId = "";
     if (type === "capture_camera") {
       const durationMs = config.durationMs === undefined ? undefined : Number(config.durationMs);
-      if (durationMs !== undefined && (!Number.isFinite(durationMs) || durationMs < 100 || durationMs > 300000)) throw new Error("Capture duration must be between 100 and 300000 ms");
-      if (durationMs !== undefined) config.durationMs = durationMs;
+      if (durationMs !== undefined && Number.isFinite(durationMs)) config.durationMs = durationMs;
     }
     return;
   }
 
   if (type === "wait") {
     const durationMs = Number(config.durationMs);
-    if (!Number.isFinite(durationMs) || durationMs < 0 || durationMs > 60000) throw new Error("Wait block requires durationMs between 0 and 60000");
-    config.durationMs = durationMs;
+    if (Number.isFinite(durationMs)) config.durationMs = durationMs;
   }
 
   if (type === "set_variable") {
-    validateSetVariableConfig(config);
     return;
   }
 
   if (type === "if_payload_field_equals") {
-    validateWorkflowCondition(config);
     return;
   }
 
   if (type === "show_preview") {
-    validateShowPreviewConfig(config);
     return;
   }
 
   if (type === "stamp_integritas") {
-    if (config.condition === undefined || config.condition === null) return;
-    if (typeof config.condition !== "object" || Array.isArray(config.condition)) throw new Error("Stamp condition must be an object");
-    validateFieldCondition(config.condition as Record<string, unknown>, "Stamp condition");
     return;
   }
 
   if (type === "control_output") {
-    const targetId = typeof config.targetId === "string" ? config.targetId : "";
-    const target = getDataSource(targetId);
-    if (!target || !isOutputTarget(target.type)) throw new Error("Control output requires an output target");
-    if (target.type === "gpio-output") {
-      const targetConfig = parseGpioOutputConfig(JSON.parse(target.config) as unknown);
-      if (targetConfig.profile !== "led") throw new Error("Only LED output targets are supported");
-      if (config.action !== "pulse") throw new Error("GPIO output action must be pulse");
-      const durationMs = Number(config.durationMs);
-      if (!Number.isFinite(durationMs) || durationMs < 1 || durationMs > 60000) throw new Error("Pulse duration must be between 1 and 60000 ms");
-      config.durationMs = durationMs;
-      return;
-    }
-    if (target.type === "http-output" && config.action !== "send_request") throw new Error("HTTP output action must be send_request");
-    if (target.type === "mqtt-output" && config.action !== "publish") throw new Error("MQTT output action must be publish");
-    validateOutputBodyConfig(config, target.type);
-    delete config.durationMs;
+    if (typeof config.targetId !== "string") config.targetId = "";
+    const durationMs = Number(config.durationMs);
+    if (Number.isFinite(durationMs)) config.durationMs = durationMs;
     return;
   }
 
   if (type === "send_transaction") {
     const recipientAddressBookId = typeof config.recipientAddressBookId === "string" ? config.recipientAddressBookId : "";
-    if (!recipientAddressBookId || !getAddressBookEntryById(recipientAddressBookId)) throw new Error("Send transaction requires an address book recipient");
     const tokenId = typeof config.tokenId === "string" ? config.tokenId.trim() : "0x00";
-    if (tokenId.toLowerCase() !== "0x00") throw new Error("Send transaction currently supports only native MINIMA tokenid 0x00");
     const amount = typeof config.amount === "string" ? config.amount.trim() : "";
-    if (!isPositiveDecimal(amount)) throw new Error("Send transaction requires a positive amount");
     config.recipientAddressBookId = recipientAddressBookId;
-    config.tokenId = "0x00";
+    config.tokenId = tokenId || "0x00";
     config.amount = amount;
   }
 }
@@ -456,10 +445,6 @@ function isAutomationBlockType(type: string): type is AutomationBlockType {
     || type === "stamp_integritas"
     || type === "control_output"
     || type === "send_transaction";
-}
-
-function isReadableDataSource(type: string) {
-  return type === "json-api" || type === "bme-sensor" || type === "device-system-data";
 }
 
 function serializeAutomationInboxItem(item: { id: string; workflow_id: string | null; workflow_name: string; run_id: string | null; block_id: string | null; title: string; format: string; content_json: string; rendered_text: string | null; created_at: string; read_at: string | null }) {
@@ -510,163 +495,6 @@ function imageContentType(filePath: string) {
   if (ext === ".gif") return "image/gif";
   if (ext === ".webp") return "image/webp";
   return "application/octet-stream";
-}
-
-function validateSetVariableConfig(config: Record<string, unknown>) {
-  const variableName = typeof config.variableName === "string" ? config.variableName.trim() : "";
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(variableName)) throw new Error("Set variable requires a valid variable name");
-  const variableSource = typeof config.variableSource === "string" ? config.variableSource : "custom_json";
-  if (variableSource !== "custom_json" && variableSource !== "trigger_field" && variableSource !== "latest_data_field" && variableSource !== "context_field") throw new Error("Set variable source is invalid");
-  config.variableName = variableName;
-  config.variableSource = variableSource;
-  if (variableSource === "custom_json") {
-    const text = typeof config.valueJsonText === "string" ? config.valueJsonText : "null";
-    try {
-      JSON.parse(text) as unknown;
-    } catch {
-      throw new Error("Variable custom JSON must be valid JSON");
-    }
-    config.valueJsonText = text;
-    delete config.fieldPath;
-    return;
-  }
-  const fieldPath = typeof config.fieldPath === "string" ? config.fieldPath.trim() : "";
-  if (!fieldPath) throw new Error("Set variable field source requires a field path");
-  if (!isSafeFieldPath(fieldPath)) throw new Error("Field path can only contain letters, numbers, underscores, dashes, and dots");
-  config.fieldPath = fieldPath;
-  delete config.valueJsonText;
-}
-
-function isOutputTarget(type: string) {
-  return type === "gpio-output" || type === "http-output" || type === "mqtt-output";
-}
-
-function validateOutputBodyConfig(config: Record<string, unknown>, targetType: string) {
-  const bodyMode = typeof config.bodyMode === "string" ? config.bodyMode : "workflow_context";
-  if (bodyMode !== "custom" && bodyMode !== "workflow_context" && bodyMode !== "trigger_payload" && bodyMode !== "latest_data" && bodyMode !== "latest_data_with_media" && bodyMode !== "multipart_media" && bodyMode !== "none") throw new Error("Output body mode is invalid");
-  if (targetType === "mqtt-output" && bodyMode === "none") throw new Error("MQTT output requires a message body");
-  if (targetType !== "http-output" && bodyMode === "multipart_media") throw new Error("Multipart media upload requires an HTTP output target");
-  config.bodyMode = bodyMode;
-  if (bodyMode === "multipart_media") validateMultipartBodyConfig(config);
-  if (bodyMode === "custom") {
-    const text = typeof config.bodyTemplateText === "string" ? config.bodyTemplateText : JSON.stringify(config.bodyTemplate ?? {});
-    try {
-      JSON.parse(text) as unknown;
-    } catch {
-      throw new Error("Custom output body must be valid JSON");
-    }
-    config.bodyTemplateText = text;
-  } else {
-    delete config.bodyTemplateText;
-    delete config.bodyTemplate;
-  }
-}
-
-function validateMultipartBodyConfig(config: Record<string, unknown>) {
-  const fileField = typeof config.multipartFileField === "string" ? config.multipartFileField.trim() : "file";
-  const jsonField = typeof config.multipartJsonField === "string" ? config.multipartJsonField.trim() : "";
-  if (!fileField) throw new Error("Multipart file field name is required");
-  config.multipartFileField = fileField;
-  if (jsonField) config.multipartJsonField = jsonField;
-  else delete config.multipartJsonField;
-  if (typeof config.multipartJsonText === "string" && config.multipartJsonText.trim()) {
-    try {
-      JSON.parse(config.multipartJsonText) as unknown;
-    } catch {
-      throw new Error("Multipart JSON field must be valid JSON");
-    }
-  } else {
-    delete config.multipartJsonText;
-  }
-}
-
-function validateWorkflowCondition(config: Record<string, unknown>) {
-  const source = typeof config.source === "string" ? config.source : "trigger";
-  if (source !== "trigger" && source !== "variable") throw new Error("Condition block source must be trigger or variable");
-  config.source = source;
-  if (source === "variable") {
-    const variableName = typeof config.variableName === "string" ? config.variableName.trim() : "";
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(variableName)) throw new Error("Condition block requires a valid variable name");
-    config.variableName = variableName;
-    delete config.fieldPath;
-  } else {
-    const fieldPath = typeof config.fieldPath === "string" ? config.fieldPath.trim() : "";
-    if (!fieldPath) throw new Error("Condition block requires a field path");
-    if (!isSafeFieldPath(fieldPath)) throw new Error("Field path can only contain letters, numbers, underscores, dashes, and dots");
-    config.fieldPath = fieldPath;
-    delete config.variableName;
-  }
-  if (!isConditionOperator(config.operator)) throw new Error("Condition block requires a valid operator");
-  if (config.operator !== "exists" && config.operator !== "does_not_exist" && !Object.prototype.hasOwnProperty.call(config, "value")) throw new Error("Condition block requires a compare value");
-}
-
-function validateShowPreviewConfig(config: Record<string, unknown>) {
-  const title = typeof config.title === "string" ? config.title.trim() : "Workflow preview";
-  if (!title || title.length > 120) throw new Error("Show preview title is required and must be 120 characters or less");
-  const format = typeof config.previewFormat === "string" ? config.previewFormat : "text";
-  if (format !== "text" && format !== "json" && format !== "link" && format !== "image") throw new Error("Show preview format is invalid");
-  const contentMode = typeof config.contentMode === "string" ? config.contentMode : "custom";
-  if (contentMode !== "custom" && contentMode !== "workflow_context" && contentMode !== "trigger_payload" && contentMode !== "latest_data") throw new Error("Show preview content source is invalid");
-  config.title = title;
-  config.previewFormat = format;
-  config.contentMode = contentMode;
-  if (format === "image") {
-    const imageSource = typeof config.imageSource === "string" ? config.imageSource : "url";
-    if (imageSource !== "url" && imageSource !== "local_path") throw new Error("Show preview image source is invalid");
-    config.imageSource = imageSource;
-  } else {
-    delete config.imageSource;
-  }
-  if (contentMode === "custom") {
-    const text = typeof config.contentTemplateText === "string" ? config.contentTemplateText : defaultPreviewContent(format as "text" | "json" | "link" | "image");
-    if (format === "json") {
-      try {
-        JSON.parse(text) as unknown;
-      } catch {
-        throw new Error("Show preview JSON content must be valid JSON");
-      }
-    }
-    config.contentTemplateText = text;
-  } else {
-    delete config.contentTemplateText;
-  }
-}
-
-function defaultPreviewContent(format: "text" | "json" | "link" | "image") {
-  if (format === "json") return "{}";
-  if (format === "link") return "https://integritas.technology";
-  if (format === "image") return "https://integritas.technology/favicon.ico";
-  return "Workflow preview";
-}
-
-function isPositiveDecimal(value: string) {
-  if (!/^\d+(\.\d+)?$/.test(value)) return false;
-  return Number(value) > 0;
-}
-
-function isSafeFieldPath(path: string) {
-  return /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/.test(path);
-}
-
-function validateFieldCondition(config: Record<string, unknown>, label: string) {
-  if (config.source !== undefined && config.source !== "trigger" && config.source !== "data") throw new Error(`${label} source must be trigger or data`);
-  const fieldPath = typeof config.fieldPath === "string" ? config.fieldPath.trim() : "";
-  if (!fieldPath) throw new Error(`${label} requires a field path`);
-  if (!isSafeFieldPath(fieldPath)) throw new Error("Field path can only contain letters, numbers, underscores, dashes, and dots");
-  if (!isConditionOperator(config.operator)) throw new Error(`${label} requires a valid operator`);
-  if (config.operator !== "exists" && config.operator !== "does_not_exist" && !Object.prototype.hasOwnProperty.call(config, "value")) throw new Error(`${label} requires a compare value`);
-  config.fieldPath = fieldPath;
-}
-
-function isConditionOperator(value: unknown) {
-  return value === "equals"
-    || value === "not_equals"
-    || value === "greater_than"
-    || value === "greater_than_or_equals"
-    || value === "less_than"
-    || value === "less_than_or_equals"
-    || value === "exists"
-    || value === "does_not_exist";
 }
 
 function limitFromQuery(value: unknown, fallback: number) {

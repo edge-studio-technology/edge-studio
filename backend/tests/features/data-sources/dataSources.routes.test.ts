@@ -1,121 +1,123 @@
 import assert from "node:assert/strict";
 import express from "express";
 import request from "supertest";
-import { beforeEach, describe, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, it, vi } from "vitest";
+import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
-const { findWebhookDataSourceMock, getEnabledAutomationWorkflowForDataSourceMock, recordPushAutomationPayloadMock, processWebhookPayloadMock } = vi.hoisted(() => ({
-  findWebhookDataSourceMock: vi.fn(),
-  getEnabledAutomationWorkflowForDataSourceMock: vi.fn(),
-  recordPushAutomationPayloadMock: vi.fn(),
-  processWebhookPayloadMock: vi.fn()
-}));
-
-vi.mock("../../../src/features/data-sources/dataSources.repository.js", () => ({
-  createDataSource: vi.fn(),
-  deleteDataSource: vi.fn(),
-  findWebhookDataSource: findWebhookDataSourceMock,
-  getDataSource: vi.fn(),
-  listDataSources: vi.fn(() => []),
-  updateDataSource: vi.fn(),
-  updateDataSourceReadResult: vi.fn()
-}));
-vi.mock("../../../src/features/automation/automation.repository.js", () => ({
-  getEnabledAutomationWorkflowForDataSource: getEnabledAutomationWorkflowForDataSourceMock,
-  listAutomationWorkflowsUsingDataSource: vi.fn(() => [])
-}));
-vi.mock("../../../src/features/automation/automation.service.js", () => ({
-  recordPushAutomationPayload: recordPushAutomationPayloadMock
-}));
-vi.mock("../../../src/features/data-reads/dataReads.repository.js", () => ({ createDataSourceRead: vi.fn() }));
-vi.mock("../../../src/features/data-sources/mqttIngestion.service.js", () => ({ syncMqttDataSources: vi.fn() }));
-vi.mock("../../../src/features/data-sources/gpioIngestion.service.js", () => ({ getGpioInputCapability: vi.fn(), syncGpioDataSources: vi.fn() }));
-vi.mock("../../../src/features/data-sources/gpioOutput.service.js", () => ({ pulseGpioOutput: vi.fn() }));
-vi.mock("../../../src/features/data-sources/mqttOutput.service.js", () => ({ publishMqttOutput: vi.fn() }));
-vi.mock("../../../src/features/data-sources/cameraCapture.service.js", () => ({ getCameraCapability: vi.fn() }));
-vi.mock("../../../src/features/data-sources/sensorHelper.service.js", () => ({ getSensorHelperCapability: vi.fn(), readBmeSensorSource: vi.fn() }));
-vi.mock("../../../src/features/auth/auth.middleware.js", () => ({
-  requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next()
-}));
-vi.mock("../../../src/features/data-sources/dataSources.service.js", () => ({
-  parseBmeSensorConfig: vi.fn(),
-  parseDataSourceConfig: vi.fn(),
-  parseDeviceSystemDataConfig: vi.fn(),
-  parseGpioInputConfig: vi.fn(),
-  parseGpioOutputConfig: vi.fn(),
-  parseHttpOutputConfig: vi.fn(),
-  parseJsonApiConfig: vi.fn(),
-  processWebhookPayload: processWebhookPayloadMock,
-  readDeviceSystemDataSource: vi.fn(),
-  readJsonApiSource: vi.fn(),
-  sendHttpOutput: vi.fn(),
-  serializeDataSource: vi.fn()
+vi.mock("../../../src/features/data-sources/dataSources.service.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../src/features/data-sources/dataSources.service.js")>()),
+  sendHttpOutput: vi.fn().mockResolvedValue({ status: 200 })
 }));
 
-const { dataSourcesWebhookRouter } = await import("../../../src/features/data-sources/dataSources.routes.js");
+let teardown: () => void;
+let db: Awaited<ReturnType<typeof setupTestDatabase>>["db"];
+let app: express.Express;
+let workflows: typeof import("../../../src/features/automation/automation.repository.js");
+let dataSources: typeof import("../../../src/features/data-sources/dataSources.repository.js");
 
-function testApp() {
-  const app = express();
+beforeAll(async () => {
+  const testDb = await setupTestDatabase();
+  teardown = testDb.teardown;
+  db = testDb.db;
+  const { dataSourcesWebhookRouter } = await import("../../../src/features/data-sources/dataSources.routes.js");
+  workflows = await import("../../../src/features/automation/automation.repository.js");
+  dataSources = await import("../../../src/features/data-sources/dataSources.repository.js");
+
+  app = express();
   app.use(express.json());
   app.use("/api/data-source-webhooks", dataSourcesWebhookRouter);
-  return app;
+});
+
+afterAll(() => {
+  teardown();
+});
+
+let tokenCounter = 0;
+
+function makeWebhookWorkflow(extraBlocks: { type: "control_output"; config: unknown }[] = [], startConfig: Record<string, unknown> = {}) {
+  tokenCounter += 1;
+  const webhookToken = `webhook-route-token-${tokenCounter}`;
+  const source = dataSources.createDataSource({ name: "Webhook", type: "webhook", config: { webhookToken } });
+  const workflow = workflows.createAutomationWorkflow({
+    name: "Webhook workflow",
+    enabled: true,
+    blocks: [{ type: "webhook_event_start", config: { sourceId: source.id, ...startConfig } }, ...extraBlocks]
+  });
+  return { webhookToken, source, workflow };
 }
 
-const record = { id: "src-1", name: "Webhook Source" };
-const workflow = { id: "wf-1", name: "Webhook Workflow" };
-const result = { bytesHash: "hash-1", preview: { temp: 21 } };
+describe("POST /api/data-source-webhooks/:token — rate limit", () => {
+  it("allows 60 requests per minute per client and source, then returns 429 with rate-limit headers", async () => {
+    const { webhookToken } = makeWebhookWorkflow();
+    for (let index = 0; index < 60; index += 1) {
+      const response = await request(app).post(`/api/data-source-webhooks/${webhookToken}`).send({ index });
+      assert.equal(response.status, 200, `request ${index + 1} failed`);
+      assert.equal(response.headers["ratelimit-limit"], "60");
+    }
 
-describe("webhook receiver route", () => {
-  beforeEach(() => {
-    findWebhookDataSourceMock.mockReset().mockReturnValue(record);
-    getEnabledAutomationWorkflowForDataSourceMock.mockReset().mockReturnValue(workflow);
-    processWebhookPayloadMock.mockReset().mockReturnValue(result);
-    recordPushAutomationPayloadMock.mockReset().mockResolvedValue({ dataSource: record, workflow });
+    const limited = await request(app).post(`/api/data-source-webhooks/${webhookToken}`).send({ index: 61 });
+    assert.equal(limited.status, 429);
+    assert.equal(limited.headers["ratelimit-remaining"], "0");
+    assert.ok(limited.headers["ratelimit-reset"]);
+    assert.equal(limited.body.errorDetails.type, "rate_limited");
+    assert.equal(JSON.stringify(limited.body).includes(webhookToken), false);
+
+    const other = makeWebhookWorkflow();
+    assert.equal((await request(app).post(`/api/data-source-webhooks/${other.webhookToken}`).send({})).status, 200);
+  }, 10_000);
+
+  it("returns 429 without the token when the workflow run budget is exhausted", async () => {
+    const target = dataSources.createDataSource({ name: "HTTP target", type: "http-output", config: { url: "https://example.com/hook", method: "POST" } });
+    const { webhookToken, source, workflow } = makeWebhookWorkflow([
+      { type: "control_output", config: { targetId: target.id, action: "send_request", bodyMode: "none" } }
+    ]);
+    for (let index = 0; index < 10; index += 1) {
+      db.prepare("INSERT INTO automation_workflow_budget_events (run_id, workflow_id, consumed_at) VALUES (?, ?, ?)").run(`${workflow.id}-${index}`, workflow.id, new Date().toISOString());
+    }
+
+    const response = await request(app).post(`/api/data-source-webhooks/${webhookToken}`).send({ ok: true });
+
+    assert.equal(response.status, 429);
+    assert.match(response.body.error as string, /budget exhausted/);
+    assert.equal(response.body.errorDetails.context.sourceId, source.id);
+    assert.match(response.body.errorDetails.context.nextAvailableAt as string, /^\d{4}-\d{2}-\d{2}T/);
+    assert.equal(JSON.stringify(response.body).includes(webhookToken), false);
   });
 
-  it("records the payload and returns the source, workflow and result", async () => {
-    const response = await request(testApp()).post("/api/data-source-webhooks/token-1").send({ temp: 21 });
+  it("records the pushed payload with a source reference, not the tokenised URL", async () => {
+    const { webhookToken, source } = makeWebhookWorkflow();
+    const recordWorkflow = workflows.listEnabledEventWorkflows("webhook_event_start", source.id)[0];
+    workflows.createAutomationBlock(recordWorkflow.id, { type: "record_trigger_event", config: {} });
 
-    assert.equal(response.status, 200);
-    assert.deepEqual(response.body, { item: record, workflow, result });
-    const [input] = recordPushAutomationPayloadMock.mock.calls[0] as [{ sourceUrl: string; triggerType: string }];
-    assert.equal(input.sourceUrl, "/api/data-source-webhooks/token-1");
-    assert.equal(input.triggerType, "webhook");
+    assert.equal((await request(app).post(`/api/data-source-webhooks/${webhookToken}`).send({ temp: 21 })).status, 200);
+
+    const reads = db.prepare("SELECT source_url FROM data_source_reads WHERE data_source_id = ?").all(source.id) as { source_url: string }[];
+    assert.deepEqual(reads, [{ source_url: `data-source:${source.id}` }]);
   });
 
-  it("returns 404 for an unknown token without recording anything", async () => {
-    findWebhookDataSourceMock.mockReturnValue(undefined);
-
-    const response = await request(testApp()).post("/api/data-source-webhooks/nope").send({ temp: 21 });
-
+  it("returns 404 for an unknown token", async () => {
+    const response = await request(app).post("/api/data-source-webhooks/unknown-token").send({ temp: 21 });
     assert.equal(response.status, 404);
-    assert.equal(recordPushAutomationPayloadMock.mock.calls.length, 0);
   });
 
-  it("returns 409 when no enabled workflow exists for the source", async () => {
-    getEnabledAutomationWorkflowForDataSourceMock.mockReturnValue(undefined);
+  it("returns 409 when the source has no enabled workflow", async () => {
+    const { webhookToken, source, workflow } = makeWebhookWorkflow();
+    workflows.updateAutomationWorkflow(workflow.id, { enabled: false });
 
-    const response = await request(testApp()).post("/api/data-source-webhooks/token-1").send({ temp: 21 });
+    const response = await request(app).post("/api/data-source-webhooks/" + webhookToken).send({ temp: 21 });
 
     assert.equal(response.status, 409);
-    assert.equal(response.body.errorDetails.context.sourceId, "src-1");
-    assert.equal(recordPushAutomationPayloadMock.mock.calls.length, 0);
+    assert.equal(response.body.errorDetails.context.sourceId, source.id);
   });
 
-  it("returns 202 skipped when the workflow trigger is ignored", async () => {
-    recordPushAutomationPayloadMock.mockRejectedValue(Object.assign(new Error("Workflow trigger ignored because cooldown is active"), { code: "WORKFLOW_COOLDOWN_ACTIVE" }));
+  it("returns 202 when a workflow trigger is skipped by its cooldown", async () => {
+    const { webhookToken } = makeWebhookWorkflow([], { cooldownSeconds: 60 });
 
-    const response = await request(testApp()).post("/api/data-source-webhooks/token-1").send({ temp: 21 });
+    assert.equal((await request(app).post("/api/data-source-webhooks/" + webhookToken).send({ temp: 21 })).status, 200);
+    const skipped = await request(app).post("/api/data-source-webhooks/" + webhookToken).send({ temp: 22 });
 
-    assert.equal(response.status, 202);
-    assert.equal(response.body.skipped, true);
-    assert.match(response.body.reason, /cooldown is active/);
-  });
-
-  it("returns 502 when recording the payload fails", async () => {
-    recordPushAutomationPayloadMock.mockRejectedValue(new Error("workflow blew up"));
-
-    const response = await request(testApp()).post("/api/data-source-webhooks/token-1").send({ temp: 21 });
-
-    assert.equal(response.status, 502);
+    assert.equal(skipped.status, 202);
+    assert.equal(skipped.body.skipped, true);
+    assert.match(skipped.body.reason, /cooldown is active/);
   });
 });

@@ -37,7 +37,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 - [x] **GAP-08 Session cleanup** — Closed in Phase 3 (unreleased): `startSessionCleanupScheduler()` runs `deleteExpiredSessions()` at startup and hourly, started from `index.ts` after migrations.
 - [ ] **GAP-09 Single-session on login** — New login does not invalidate other sessions (optional for single-admin Pi).
-- [ ] **GAP-10 Rate limits** — Login, setup, and `/api/auth/settings/*` are rate-limited. Integritas stamp, automation, files, etc. are not. **Phase 7.**
+- [x] **GAP-10 Rate limits** — Closed in Phase 7 (task 705, unreleased): webhook ingestion, automation mutations/manual runs, and Integritas stamp creation have one-minute limiters, and MQTT/GPIO are bounded by the persisted workflow run budget. Covered by `automation.routes.test.ts`, `dataSources.routes.test.ts`, `integritas.routes.test.ts`, and `automation.service.test.ts`. Files endpoints remain unlimited.
 - [ ] **GAP-11 Input validation** — No `zod` on auth/setup bodies; manual checks only.
 - [x] **GAP-12 Integritas admin gates** — Closed in Phase 2's admin-gate audit pass (unreleased): `requireRole('admin')` added to stamp, stamp-file, history delete-selected, history poll, and history verify; history reads/export stay session-only. MINIMA-06/07 closed in the same pass, and `tests/app.401-smoke.test.ts` now pins the whole admin-gate matrix.
 - [ ] **GAP-13 Audit hygiene** — Confirm audit rows never contain passwords, TOTP, tokens, or API keys (`login.failure` stores `"failed"` only).
