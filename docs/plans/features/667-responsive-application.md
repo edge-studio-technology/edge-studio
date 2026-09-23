@@ -125,6 +125,10 @@ Tests: in each table's existing test, assert that the actions cells carry the st
 - Manual matrix (documented here, run once before merge): 1280x800, 1024x768 (sidebar expanded and collapsed), 768x1024. Record overflow issues below.
 - Out: 375px, the mobile-nav items, and Playwright/visual regression.
 
+**Built:** `AppShellSidebar.test.tsx` adds an explicit expand at ≥1024 and an accessible name on every `nav` link when collapsed. The below-1024 collapse and overlay tests (§10), the sticky row-action guard (§4), and the console exit/Escape tests (§7) already existed.
+
+**Manual matrix (2026-09-23):** Dashboard, Minima, Wallet, Integritas, Devices, Workflows (list), Diagnostics, Marketplace, and Settings at 1280x800, 1024x768 with the sidebar expanded and collapsed, and 768x1024. No page-level horizontal overflow outside table scrollers, and the status bar stayed on one row everywhere. Workflow create/edit is left for #694.
+
 ### 10. Sidebar overlay below 1024 (new task)
 
 Not in any existing ticket; propose it in a #667 comment; creating the ticket is left to the team. In `AppShellSidebar.tsx` / `AppShell.tsx`, when the viewport is below `EXPAND_MQ` and the operator expands the sidebar, render it as an overlay over `main` (fixed/absolute, keeping the 80px rail's space in the flex flow) instead of widening in flow. Close it on navigation, on Escape, and on a click outside. `EXPAND_MQ` stays at `min-width: 1024px`. Tests: extend `AppShellSidebar.test.tsx` with stubbed `matchMedia` below 1024 so that expanding sets the overlay state and navigation or Escape collapses it.

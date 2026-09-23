@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { AppShellSidebar, EXPAND_MQ } from "../../src/components/AppShellSidebar";
+import { nav } from "../../src/app/nav";
 
 // happy-dom's default viewport (1024px wide) matches the sidebar's `(min-width: 1024px)`
 // expand breakpoint and the "start collapsed" setting defaults to false, so the sidebar
@@ -79,6 +80,18 @@ describe("AppShellSidebar", () => {
       return view;
     }
 
+    it("keeps an accessible name on every nav link when collapsed", () => {
+      stubNarrow();
+      renderSidebar();
+      for (const item of nav) {
+        const href = `/${item.id}`;
+        const link = screen
+          .getAllByRole("link")
+          .find((el) => el.getAttribute("href") === href);
+        expect(link, href).toHaveAccessibleName(new RegExp(item.label));
+      }
+    });
+
     it("starts collapsed with no overlay", () => {
       stubNarrow();
       const { container } = renderSidebar();
@@ -119,6 +132,17 @@ describe("AppShellSidebar", () => {
       expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
       expect(screen.queryByTestId("sidebar-backdrop")).not.toBeInTheDocument();
     });
+  });
+
+  it("starts expanded at 1024 and above", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+    );
+    const { container } = renderSidebar();
+    expect(screen.getByRole("button", { name: "Collapse sidebar" })).toBeInTheDocument();
+    expect(container.querySelector("aside")).not.toHaveAttribute("data-overlay");
+    vi.unstubAllGlobals();
   });
 
   it("expands at Tailwind's lg breakpoint so JS and CSS switch at the same width", () => {
