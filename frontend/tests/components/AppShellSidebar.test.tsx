@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import type { ComponentProps } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppShellSidebar } from "../../src/components/AppShellSidebar";
 
 // happy-dom's default viewport (1024px wide) matches the sidebar's `(min-width: 1024px)`
@@ -57,5 +57,64 @@ describe("AppShellSidebar", () => {
   it("renders an update notice node when given", () => {
     renderSidebar({ updateNotice: <p>Update available</p> });
     expect(screen.getByText("Update available")).toBeInTheDocument();
+  });
+
+  describe("below 1024", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    function stubNarrow() {
+      vi.stubGlobal(
+        "matchMedia",
+        vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+      );
+    }
+
+    function expandNarrow(props?: Partial<ComponentProps<typeof AppShellSidebar>>) {
+      stubNarrow();
+      const view = renderSidebar(props);
+      fireEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
+      return view;
+    }
+
+    it("starts collapsed with no overlay", () => {
+      stubNarrow();
+      const { container } = renderSidebar();
+      expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
+      expect(container.querySelector("aside")).not.toHaveAttribute("data-overlay");
+    });
+
+    it("overlays the page when expanded", () => {
+      const { container } = expandNarrow();
+      expect(container.querySelector("aside")).toHaveAttribute("data-overlay", "true");
+      expect(screen.getByTestId("sidebar-backdrop")).toBeInTheDocument();
+    });
+
+    it("collapses on Escape", () => {
+      expandNarrow();
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
+    });
+
+    it("collapses on a click outside", () => {
+      expandNarrow();
+      fireEvent.click(screen.getByTestId("sidebar-backdrop"));
+      expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
+    });
+
+    it("collapses on navigation", () => {
+      const { rerender } = expandNarrow();
+      rerender(
+        <MemoryRouter>
+          <AppShellSidebar
+            pathname="/wallet"
+            onFeedback={vi.fn()}
+            onSignOut={vi.fn()}
+            version="1.2.3"
+          />
+        </MemoryRouter>,
+      );
+      expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
+      expect(screen.queryByTestId("sidebar-backdrop")).not.toBeInTheDocument();
+    });
   });
 });

@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Minima console toolbar buttons are larger on screens narrower than 1024px.
 - Row actions stay pinned to the right edge of every table while the other columns scroll sideways.
 - A divider and edge shadow mark the pinned row actions while other columns are scrolled behind them.
+- Below 1024px wide, an expanded sidebar overlays the page and closes on navigation, Escape, or a click outside.
 
 ## [Unreleased]
 
