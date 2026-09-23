@@ -29,8 +29,11 @@ export const tableCellClass =
 const stickyEndCellClass =
   "sticky right-0 z-10 bg-inherit group-data-[scroll-right]/table:shadow-[inset_1px_0_0_var(--color-stroke-primary),-8px_0_8px_-8px_rgb(0_0_0/0.25)]";
 
-/** Bordered scroll shell for list tables. Includes a modest min-height (~4 rows). */
-export function TableWrap({ children, className }: { children: ReactNode; className?: string }) {
+/**
+ * Tracks horizontal scroll edges for a table scroller and exposes the signal sticky cells read.
+ * Spread `scrollProps` on the element that scrolls sideways; `TableWrap` does this for you.
+ */
+export function useTableScrollEdges(deps: unknown) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollEdges, setScrollEdges] = useState({ left: false, right: false });
   const [hasStickyEnd, setHasStickyEnd] = useState(false);
@@ -63,7 +66,23 @@ export function TableWrap({ children, className }: { children: ReactNode; classN
       resizeObserver?.disconnect();
       window.removeEventListener("resize", updateScrollEdges);
     };
-  }, [children]);
+  }, [deps]);
+
+  return {
+    scrollEdges,
+    hasStickyEnd,
+    scrollProps: {
+      ref: scrollRef,
+      "data-table-scroll": true,
+      "data-scroll-right": scrollEdges.right || undefined,
+      onScroll: updateScrollEdges,
+    },
+  };
+}
+
+/** Bordered scroll shell for list tables. Includes a modest min-height (~4 rows). */
+export function TableWrap({ children, className }: { children: ReactNode; className?: string }) {
+  const { scrollEdges, hasStickyEnd, scrollProps } = useTableScrollEdges(children);
 
   return (
     <div
@@ -72,13 +91,7 @@ export function TableWrap({ children, className }: { children: ReactNode; classN
         className,
       )}
     >
-      <div
-        ref={scrollRef}
-        className="group/table min-h-[280px] overflow-x-auto"
-        data-table-scroll
-        data-scroll-right={scrollEdges.right || undefined}
-        onScroll={updateScrollEdges}
-      >
+      <div {...scrollProps} className="group/table min-h-[280px] overflow-x-auto">
         {children}
       </div>
       {scrollEdges.left && (

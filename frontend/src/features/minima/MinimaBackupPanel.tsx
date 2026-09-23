@@ -14,6 +14,7 @@ import {
   TableIconButton,
   TableIconMenu,
   TableRow,
+  useTableScrollEdges,
 } from "../../components/DataTable";
 import { Modal } from "../../components/Modal";
 import {
@@ -215,6 +216,7 @@ export function MinimaBackupPanel({
   const [rowRestoreBusy, setRowRestoreBusy] = useState(false);
   const [rowRestoreError, setRowRestoreError] = useState<string | null>(null);
   const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility("minima-backups", BACKUP_COLUMNS);
+  const tableScroll = useTableScrollEdges(backups);
   const visibleColumns = orderedColumns(BACKUP_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
   );
@@ -540,8 +542,9 @@ export function MinimaBackupPanel({
               </p>
             </TableControls>
             <ScrollArea
+              {...tableScroll.scrollProps}
               stableGutter={false}
-              className="rounded-loose border-stroke-primary bg-surface-always-white max-h-80 border"
+              className="group/table rounded-loose border-stroke-primary bg-surface-always-white max-h-80 border"
             >
               <DataTable aria-label="Backups">
                 <TableHead>

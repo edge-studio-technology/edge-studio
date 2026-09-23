@@ -105,7 +105,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [ToggleTabs](#toggletabs): segmented toggle
 - `PinField`: segmented PIN / code field
 - `DataTable`: native table shell and row primitives (`TableWrap`, `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`, `TableIconMenu`)
-  - Pass `sticky` to the `actions` column's `TableHeaderCell` and `TableCell` to pin row actions to the right edge while the table scrolls sideways; cover it with `expectRowActionsPinned()` (`frontend/tests/helpers/`) in the table's row-render test
+  - Pass `sticky` to the `actions` column's `TableHeaderCell` and `TableCell` to pin row actions to the right edge while the table scrolls sideways. The table must sit in `TableWrap`, or spread `useTableScrollEdges().scrollProps` on its own scroller, so the divider and shadow show; cover it with `expectRowActionsPinned()` (`frontend/tests/helpers/`) in the table's row-render test
 - `TableControls`: table toolbar shell with a utility slot for controls such as column visibility
 - `TableColumnVisibilityButton`: cog-button column chooser for `DataTable` instances
 - `StatusRow`: label / value / status row
