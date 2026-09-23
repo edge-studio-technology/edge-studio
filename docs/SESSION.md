@@ -5,7 +5,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 ## Progress
 
 - Read OpenProject #363 and its six children over the REST API and traced them back to `docs/plans/legacy-ticket-unit-test-gaps.md`, their upstream source.
-- Audited every claimed gap against the current tree before writing anything, and recorded the audit plus three stale ticket premises in `docs/plans/363-regression-testing-debt.md`.
+- Audited every claimed gap against the current tree before writing anything, and recorded the audit plus three stale ticket premises in `docs/plans/features/363-regression-testing-debt.md`.
 - Added `sendHttpOutput` assertions for the request URL, method, and serialized body (#213).
 - Added MQTT client and GPIO watcher teardown cases for a deleted source, covering the `DELETE /api/data-sources/:id` path rather than only the disabled-workflow trigger (#218).
 - Added `backend/tests/features/data-sources/dataSources.routes.test.ts` driving the public webhook receiver end to end: 200, unknown token 404, no-enabled-workflow 409, cooldown/inactive 202, and upstream-failure 502 (#218).

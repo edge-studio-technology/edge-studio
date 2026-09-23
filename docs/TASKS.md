@@ -16,6 +16,7 @@
 
 ## In Progress
 
+- [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — planning, open questions pending; see `docs/plans/features/667-responsive-application.md`.
 - [ ] Run the 13-step Brave verification for the completed app-wide empty/loading/error hardening, including tasks #659/#660/#661 plus Integritas, software update/update-agent, and Wallet behavior while Minima is unavailable, before merging to `dev` — see `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
@@ -70,7 +71,7 @@
 
 ## Done
 
-- [x] Closed the regression-testing debt tracked under OpenProject #363 and its children (#213, #218, #225, #242, #287): request-level `sendHttpOutput` assertions, MQTT/GPIO teardown on source deletion, webhook receiver route tests, the Integritas connection check, backup re-auth rejection, wallet import phrase-leak checks, and diagnostics query/tab/pagination tests — see `docs/plans/363-regression-testing-debt.md`.
+- [x] Closed the regression-testing debt tracked under OpenProject #363 and its children (#213, #218, #225, #242, #287): request-level `sendHttpOutput` assertions, MQTT/GPIO teardown on source deletion, webhook receiver route tests, the Integritas connection check, backup re-auth rejection, wallet import phrase-leak checks, and diagnostics query/tab/pagination tests — see `docs/plans/features/363-regression-testing-debt.md`.
 
 - [x] Fixed and Raspberry Pi-verified Dashboard next-action and metric-card loading/error states so failed requests no longer appear empty or spin indefinitely — see `docs/plans/bugs/661-dashboard-next-action-and-metric-cards-don-t-treat-errors-as-empty.md`.
 - [x] Completed task 707 correctness hardening: Minima restart setup failures clear stale operation state, wallet/address-book destinations follow Minima's source grammar, and Update Agent Docker stream timeouts settle reliably — see `docs/plans/security/707-correctness-hardening-from-the-unit-test-audit.md`.
