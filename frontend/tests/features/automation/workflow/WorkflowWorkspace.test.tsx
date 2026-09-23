@@ -223,19 +223,13 @@ describe("WorkflowWorkspace edit mode", () => {
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ name: "New name" });
   });
 
-  it("pauses an enabled workflow once per editing session on the first real edit", async () => {
+  it("does not pause an enabled workflow while typing the name", async () => {
     const onUpdateWorkflow = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({ onUpdateWorkflow, workflow: workflow({ enabled: true }) });
 
     await user.type(screen.getByRole("textbox", { name: "Workflow name" }), "!");
-    expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: false });
-    expect(
-      screen.getByText(
-        "Workflow is paused while editing, enable it again from the workflow list.",
-        { exact: false },
-      ),
-    ).toBeInTheDocument();
+    expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ enabled: false });
   });
 
   it("does not save the name while typing and commits it on Enter", async () => {
@@ -264,12 +258,13 @@ describe("WorkflowWorkspace edit mode", () => {
     expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ name: "Front gate flow v2" });
   });
 
-  it("activates a paused workflow via the status button", async () => {
+  it("resumes a paused workflow via the Resume button", async () => {
     const onUpdateWorkflow = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({ onUpdateWorkflow, workflow: workflow({ enabled: false }) });
 
-    const button = screen.getByRole("button", { name: "Workflow paused" });
+    expect(screen.getByText("Paused while you edit. Resume when you want it to run.")).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Resume" });
     expect(button).not.toBeDisabled();
     await user.click(button);
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: true });
@@ -280,7 +275,7 @@ describe("WorkflowWorkspace edit mode", () => {
       workflow: workflow({ enabled: false }),
       validation: { ok: false, errors: [{ code: "x", level: "error", message: "bad" }], warnings: [] },
     });
-    const button = screen.getByRole("button", { name: "Workflow paused" });
+    const button = screen.getByRole("button", { name: "Resume" });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("title", "Fix validation errors before activating.");
   });

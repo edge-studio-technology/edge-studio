@@ -122,7 +122,6 @@ export function WorkflowWorkspace({
   const [payloadError, setPayloadError] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState(workflow.name);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  const [pausedForEditNotice, setPausedForEditNotice] = useState(false);
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
   const startBlock = mainBlocks[0];
   const [selectedBlockId, setSelectedBlockId] = useState("");
@@ -130,11 +129,6 @@ export function WorkflowWorkspace({
   const [draftRevealErrors, setDraftRevealErrors] = useState(false);
   const inspectorRef = useRef<PersistedBlockInspectorHandle>(null);
   const lastSubmittedNameRef = useRef(workflow.name);
-  /** Edit-session pause: pause once per workflow after the first real edit. */
-  const editPauseSessionRef = useRef<{
-    workflowId: string;
-    didPause: boolean;
-  } | null>(null);
   const selectedBlock = selectedBlockId
     ? mainBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
@@ -177,11 +171,6 @@ export function WorkflowWorkspace({
       : selectedRun
         ? "Viewing historic run"
         : "No run selected";
-  const workflowStateLabel = workflow.archived
-    ? "Archived"
-    : workflow.enabled
-      ? "Workflow active"
-      : "Workflow paused";
   const workflowStateTitle = workflow.archived
     ? "Archived workflows cannot run."
     : workflow.enabled
@@ -201,11 +190,6 @@ export function WorkflowWorkspace({
     setWorkflowName(workflow.name);
     lastSubmittedNameRef.current = workflow.name;
   }, [workflow.id]); // eslint-disable-line react-hooks/exhaustive-deps -- workflow.name intentionally omitted
-
-  useEffect(() => {
-    setPausedForEditNotice(false);
-    editPauseSessionRef.current = { workflowId: workflow.id, didPause: false };
-  }, [workflow.id]);
 
   useEffect(() => {
     if (mode !== "watch") return;
@@ -312,22 +296,12 @@ export function WorkflowWorkspace({
     const trimmed = nextName.trim();
     if (!trimmed || trimmed === workflow.name || trimmed === lastSubmittedNameRef.current) return;
     lastSubmittedNameRef.current = trimmed;
-    pauseForEditIfNeeded();
     onUpdateWorkflow({ name: trimmed });
   }
 
   function pauseForEditIfNeeded() {
-    if (mode !== "edit" || workflow.archived) return;
-    let session = editPauseSessionRef.current;
-    if (!session || session.workflowId !== workflow.id) {
-      session = { workflowId: workflow.id, didPause: false };
-      editPauseSessionRef.current = session;
-    }
-    if (session.didPause) return;
-    session.didPause = true;
-    if (!workflow.enabled) return;
-    setPausedForEditNotice(true);
-    onUpdateWorkflow({ enabled: false });
+    // Workflows are paused before entering Edit from the list. Edit actions should not
+    // implicitly change run state; Resume is the explicit action in the header.
   }
 
   return (
@@ -373,19 +347,18 @@ export function WorkflowWorkspace({
             Back
           </Button>
           {mode === "edit" ? (
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy || workflow.archived || workflow.enabled || hasValidationErrors}
-              title={workflowStateTitle}
-              onClick={() => {
-                setPausedForEditNotice(false);
-                editPauseSessionRef.current = { workflowId: workflow.id, didPause: false };
-                onUpdateWorkflow({ enabled: true });
-              }}
-            >
-              {workflowStateLabel}
-            </Button>
+            <>
+              <WorkflowStatusPill workflow={workflow} />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy || workflow.archived || workflow.enabled || hasValidationErrors}
+                title={workflowStateTitle}
+                onClick={() => onUpdateWorkflow({ enabled: true })}
+              >
+                Resume
+              </Button>
+            </>
           ) : null}
           {/* <Button
             type="button"
@@ -434,10 +407,7 @@ export function WorkflowWorkspace({
           <>
             {mode === "edit" ? (
               <Text.Body className={mutedText}>
-                Changes are saved automatically.
-                {pausedForEditNotice
-                  ? " Workflow is paused while editing, enable it again from the workflow list."
-                  : null}
+                Paused while you edit. Resume when you want it to run.
               </Text.Body>
             ) : null}
             {workflow.archived && (
