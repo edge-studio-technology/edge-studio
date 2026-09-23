@@ -4,6 +4,8 @@ import { Button } from "../../../components/Button";
 import {
   DataTable,
   RowActions,
+  TableCell,
+  TableHeaderCell,
   TableWrap,
   tableCellClass,
   tableHeaderCellClass,
@@ -171,7 +173,7 @@ function WatchRunCell({
   }
   if (columnId === "details") {
     return (
-      <td className={tableCellClass}>
+      <TableCell sticky>
         <RowActions>
           <Button
             type="button"
@@ -186,7 +188,7 @@ function WatchRunCell({
             {rawRunId === run.id ? "Hide raw" : "Raw details"}
           </Button>
         </RowActions>
-      </td>
+      </TableCell>
     );
   }
   return null;
@@ -373,7 +375,11 @@ export function WatchRunHistory({
                 <thead>
                   <tr className={tableHeadRowClass}>
                     {visibleColumns.map((column) => (
-                      <th key={column.id} className={tableHeaderCellClass}>{column.label}</th>
+                      column.id === "details" ? (
+                        <TableHeaderCell key={column.id} sticky>{column.label}</TableHeaderCell>
+                      ) : (
+                        <th key={column.id} className={tableHeaderCellClass}>{column.label}</th>
+                      )
                     ))}
                   </tr>
                 </thead>

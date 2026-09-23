@@ -148,7 +148,7 @@ function BackupCell({
   }
   if (columnId === "actions") {
     return (
-      <TableCell className="w-px whitespace-nowrap">
+      <TableCell sticky className="w-px whitespace-nowrap">
         <RowActions>
           <TableIconButton title="Download" aria-label={`Download ${backup.fileName}`} onClick={onDownload}>
             <Download size={16} aria-hidden />
@@ -548,6 +548,7 @@ export function MinimaBackupPanel({
                   {visibleColumns.map((column) => (
                     <TableHeaderCell
                       key={column.id}
+                      sticky={column.id === "actions"}
                       className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
                     >
                       {column.label}

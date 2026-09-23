@@ -1,6 +1,6 @@
 # Responsive Application Plan
 
-**Status:** In progress — quick wins (#695, #698, #699, #700) done
+**Status:** In progress — quick wins (#695, #698, #699, #700) and #697 sticky table actions done
 **Created:** 2026-09-23
 **Branch:** `feature/667-responsive-application`
 **Decision record:** `docs/adr/0023-responsive-layout-strategy.md`
@@ -25,7 +25,7 @@ OpenProject feature **#667 Responsive application** (status *In specification*).
 
 - [x] #695 Dashboard metric grid
 - [x] #696 List toolbars — merged as `6c4455e` (#115), already on this branch
-- [ ] #697 Wide tables (spike → decision → implementation)
+- [x] #697 Wide tables — sticky row-action column on every table with one: the 7 `min-w-245` tables plus wallet assets, address book, Minima backups, and workflow watch history (§4)
 - [x] #698 Status bar
 - [x] #699 Dashboard live activity rows
 - [x] #700 Minima console fullscreen exit — 40px icon buttons below 1024 (§7)

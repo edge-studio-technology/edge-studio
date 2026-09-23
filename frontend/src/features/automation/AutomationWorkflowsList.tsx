@@ -202,7 +202,7 @@ export function AutomationWorkflowsList({
           <DataTable className={visibleColumnCount > 3 ? "min-w-245" : undefined}>
             <TableHead>
               {visibleColumns.map((column) => (
-                <TableHeaderCell key={column.id} className={workflowHeaderClass(column.id)}>
+                <TableHeaderCell key={column.id} sticky={column.id === "actions"} className={workflowHeaderClass(column.id)}>
                   {column.label}
                 </TableHeaderCell>
               ))}
@@ -348,7 +348,7 @@ function WorkflowCell({
   }
   if (columnId === "actions") {
     return (
-      <TableCell className="w-px whitespace-nowrap">
+      <TableCell sticky className="w-px whitespace-nowrap">
         <RowActions>
           <TableIconButton type="button" disabled={busy} title="Edit workflow" aria-label={`Edit ${workflow.name}`} onClick={onEdit}>
             <Pencil size={16} aria-hidden />

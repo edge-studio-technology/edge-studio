@@ -281,6 +281,7 @@ export function IntegritasHistoryTable({
                   ) : (
                     <TableHeaderCell
                       key={column.id}
+                      sticky={column.id === "actions"}
                       className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
                     >
                       {column.label}
@@ -418,7 +419,7 @@ function ProofHistoryCell({
   }
   if (columnId === "actions") {
     return (
-      <TableCell className="w-px whitespace-nowrap">
+      <TableCell sticky className="w-px whitespace-nowrap">
         <RowActions>
           <TableIconButton
             title="View details"

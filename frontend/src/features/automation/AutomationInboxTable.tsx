@@ -193,7 +193,7 @@ export function AutomationInboxTable({
             <DataTable className={visibleColumnCount > 3 ? "min-w-245" : undefined}>
               <TableHead>
                 {visibleColumns.map((column) => (
-                  <TableHeaderCell key={column.id}>{column.label}</TableHeaderCell>
+                  <TableHeaderCell key={column.id} sticky={column.id === "actions"}>{column.label}</TableHeaderCell>
                 ))}
               </TableHead>
               <TableBody>
@@ -289,7 +289,7 @@ function InboxCell({
   }
   if (columnId === "actions") {
     return (
-      <TableCell className="whitespace-nowrap">
+      <TableCell sticky className="whitespace-nowrap">
         <RowActions>
           <TableIconButton type="button" title="View preview" aria-label={`View preview for ${item.title}`} onClick={onView}>
             {item.readAt ? <MailOpen size={16} aria-hidden /> : <Mail size={16} aria-hidden />}

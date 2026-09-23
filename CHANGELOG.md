@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The status bar clock wraps to a second row on narrow screens instead of crowding the status pills.
 - Dashboard live activity rows show the time and status on one line under the message on narrow screens.
 - Minima console toolbar buttons are larger on screens narrower than 1024px.
+- Row actions stay pinned to the right edge of every table while the other columns scroll sideways.
 
 ## [Unreleased]
 

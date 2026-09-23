@@ -243,6 +243,7 @@ export function WalletHistoryPanel({
               {visibleColumns.map((column) => (
                 <TableHeaderCell
                   key={column.id}
+                  sticky={column.id === "actions"}
                   className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
                 >
                   {column.label}
@@ -366,7 +367,7 @@ function WalletHistoryCell({
   }
   if (columnId === "actions") {
     return (
-      <TableCell className="w-px whitespace-nowrap">
+      <TableCell sticky className="w-px whitespace-nowrap">
         <RowActions>
           <TableIconButton
             type="button"
