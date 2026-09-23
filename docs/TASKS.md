@@ -16,7 +16,7 @@
 
 ## In Progress
 
-- [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — planning, open questions pending; see `docs/plans/features/667-responsive-application.md`.
+- [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — planned, decisions in `docs/adr/0023-responsive-layout-strategy.md`; #694 deferred to last; see `docs/plans/features/667-responsive-application.md`.
 - [ ] Run the 13-step Brave verification for the completed app-wide empty/loading/error hardening, including tasks #659/#660/#661 plus Integritas, software update/update-agent, and Wallet behavior while Minima is unavailable, before merging to `dev` — see `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.

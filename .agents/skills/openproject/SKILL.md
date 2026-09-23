@@ -67,4 +67,4 @@ Set `OPEN_PROJECT_READONLY=true` in `.env.local` to make every write fail closed
 
 - `[#NNN]` in a commit subject is reserved for **merge commits only** — see `.claude/skills/commit-message/SKILL.md`. Plain commits carry no ticket prefix.
 - "Ready for Deployment" (status `22`) is where a finished-but-unmerged task goes. "Done" (`12`) is a closed status — use it for the parent feature once its children are all through.
-- A feature's plan doc lives at `docs/plans/<ticket>-<slug>.md`; keep the ticket and the plan doc in step when you close one out.
+- A ticket's plan doc lives at `docs/plans/features/<ticket>-<slug>.md` (features) or `docs/plans/bugs/<ticket>-<slug>.md` (bugs); keep the ticket and the plan doc in step when you close one out.
