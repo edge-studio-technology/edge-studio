@@ -4,6 +4,15 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] feature/667-responsive-application
+
+### Changed
+
+- Dashboard metric cards switch between one, two, and three columns based on the space available beside the sidebar.
+- The status bar clock wraps to a second row on narrow screens instead of crowding the status pills.
+- Dashboard live activity rows show the time and status on one line under the message on narrow screens.
+- Minima console toolbar buttons are larger on screens narrower than 1024px.
+
 ## [Unreleased]
 
 ### Security

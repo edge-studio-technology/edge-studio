@@ -107,12 +107,14 @@ export function DashboardPage() {
                     {item.message}
                   </p>
                 </div>
-                <time className="type-meta text-text-secondary" dateTime={item.createdAt}>
-                  {formatLocalDateTime(item.createdAt)}
-                </time>
-                <Pill tone={item.tone} indicator>
-                  {item.status}
-                </Pill>
+                <div className="gap-detail-close flex items-center justify-between sm:contents">
+                  <time className="type-meta text-text-secondary" dateTime={item.createdAt}>
+                    {formatLocalDateTime(item.createdAt)}
+                  </time>
+                  <Pill tone={item.tone} indicator>
+                    {item.status}
+                  </Pill>
+                </div>
               </article>
             ))}
           </div>

@@ -1,6 +1,6 @@
 # Responsive Application Plan
 
-**Status:** Planned — decisions recorded; implementation not started
+**Status:** In progress — quick wins (#695, #698, #699, #700) done
 **Created:** 2026-09-23
 **Branch:** `feature/667-responsive-application`
 **Decision record:** `docs/adr/0023-responsive-layout-strategy.md`
@@ -23,12 +23,12 @@ OpenProject feature **#667 Responsive application** (status *In specification*).
 | #269 | Task | Responsive Layout Regression (Unit Testing) | In progress | [9](#9-responsive-regression-tests-269) |
 | — (new, to add under #667) | Dev Task | Sidebar overlays content when expanded below 1024 | — | [10](#10-sidebar-overlay-below-1024-new-task) |
 
-- [ ] #695 Dashboard metric grid
+- [x] #695 Dashboard metric grid
 - [x] #696 List toolbars — merged as `6c4455e` (#115), already on this branch
 - [ ] #697 Wide tables (spike → decision → implementation)
-- [ ] #698 Status bar
-- [ ] #699 Dashboard live activity rows
-- [ ] #700 Minima console fullscreen exit
+- [x] #698 Status bar
+- [x] #699 Dashboard live activity rows
+- [x] #700 Minima console fullscreen exit — 40px icon buttons below 1024 (§7)
 - [ ] #701 Hardware modal / Account page
 - [ ] Sidebar overlay below 1024 (new task, not yet on OpenProject)
 - [ ] #269 Regression tests
@@ -97,7 +97,7 @@ Tests: in each table's existing test, assert that the actions cells carry the st
 
 **Current:** `StatusBar.tsx` shows two status pills (Node, Integritas) on the left, and `Clock` on the right as two pills (`Local …`, `UTC …`) with `shrink-0`. The shell hides the bar on `fullBleed` routes.
 
-**Decision (ADR 0023):** add `flex-wrap` to the outer row and give the clock `ml-auto`. The clock drops to a second row only when there is no room, the status pills never wrap within themselves, and the bar never goes past two rows. This keeps the clock visible, which matters for workflow scheduling (frontend rule: "show local and UTC time where scheduling clarity matters"). The ticket's `hidden md:block` would still show the clock at exactly 768 (`md` = 768) and would hide it on phones only. Test: extend `StatusBar.test.tsx` only if we hide something.
+**Decision (ADR 0023):** add `flex-wrap` to the outer row. The clock drops to a second row only when there is no room, left-aligned with the pills, the status pills never wrap within themselves, and the bar never goes past two rows. This keeps the clock visible, which matters for workflow scheduling (frontend rule: "show local and UTC time where scheduling clarity matters"). The ticket's `hidden md:block` would still show the clock at exactly 768 (`md` = 768) and would hide it on phones only. Test: extend `StatusBar.test.tsx` only if we hide something.
 
 ### 6. Dashboard live activity rows (#699)
 
@@ -105,7 +105,7 @@ Tests: in each table's existing test, assert that the actions cells carry the st
 
 ### 7. Minima console fullscreen exit (#700)
 
-`MinimaConsolePanel.tsx`: fullscreen portals to `document.body`, locks body scroll, and exits via Escape or the icon-only `IconButton` (`aria-label="Exit fullscreen"`, line ~222). **Plan:** when fullscreen, render a labelled `Button` "Exit fullscreen" next to the icon, visible at all widths (simpler than breakpoint-gated, and harmless on desktop). Keep the icon and Escape. No whitelist or RPC change. Test: extend `MinimaConsolePanel` tests so that clicking the labelled button exits and restores `body.style.overflow`.
+**Done (2026-09-23):** the four console toolbar icon buttons stay `compact` (32px) from `lg` up and grow to 40px below `lg` (`max-lg:size-10`) for touch targets. A labelled Exit button was tried and reverted: the other controls are icon-only, so one text button was inconsistent. Escape still exits.
 
 ### 8. Hardware modal / Account page (#701)
 
