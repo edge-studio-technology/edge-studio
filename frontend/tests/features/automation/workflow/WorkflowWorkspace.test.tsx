@@ -310,7 +310,7 @@ describe("WorkflowWorkspace edit mode", () => {
     expect(screen.getByRole("button", { name: "set-valid-draft-config" })).toBeInTheDocument();
   });
 
-  it("keeps the draft sheet open and reveals errors when Done is clicked with an invalid payment", async () => {
+  it("persists the draft payment and closes the sheet even when the payment is incomplete", async () => {
     const onAddBlock = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({
@@ -321,8 +321,15 @@ describe("WorkflowWorkspace edit mode", () => {
     await user.click(screen.getByRole("button", { name: "add-send-transaction" }));
     await user.click(screen.getByRole("button", { name: "set-invalid-draft-config" }));
     await user.click(screen.getByRole("button", { name: "Done" }));
-    expect(onAddBlock).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "set-valid-draft-config" })).toBeInTheDocument();
+    expect(onAddBlock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "send_transaction",
+        config: { recipientAddressBookId: "", amount: "" },
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "set-valid-draft-config" })).not.toBeInTheDocument(),
+    );
   });
 
   it("keeps an invalid draft payment on the canvas after closing the sheet", async () => {

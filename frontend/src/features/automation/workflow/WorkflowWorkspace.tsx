@@ -280,10 +280,6 @@ export function WorkflowWorkspace({
 
   async function saveDraftBlock() {
     if (!draftBlock) return;
-    if (!canPersistSendTransactionConfig(draftBlock.config)) {
-      setDraftRevealErrors(true);
-      return;
-    }
     const draft = draftBlock;
     pauseForEditIfNeeded();
     await onAddBlock({ type: draft.type, config: draft.config });
