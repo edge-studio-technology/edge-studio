@@ -36,7 +36,8 @@ in the app used them before this decision. happy-dom does not evaluate layout, m
   the Dashboard metric grid, and the Hardware support modal switch layout on their own container
   width, not the viewport. Every other surface keeps ordinary viewport breakpoints.
 - **Sidebar overlays below 1024.** A sidebar the operator expands manually below `EXPAND_MQ`
-  overlays the content instead of pushing it. The threshold itself stays at 1024.
+  overlays the content instead of pushing it. The threshold itself stays at 1024, and a unit test
+  fails if `EXPAND_MQ` drifts from Tailwind's `lg` breakpoint.
 - **Sticky row actions.** Wide tables keep horizontal scroll. The `actions` column is
   `position: sticky; right: 0` with an opaque background. This is built once in the shared table
   primitives and applied to every table with a row-action column, not only the `min-w-245` ones.

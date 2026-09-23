@@ -1,6 +1,6 @@
 # Responsive Application Plan
 
-**Status:** In progress — quick wins (#695, #698, #699, #700) and #697 sticky table actions done
+**Status:** In progress — everything except #694 done; #694 blocked on co-worker sync
 **Created:** 2026-09-23
 **Branch:** `feature/667-responsive-application`
 **Decision record:** `docs/adr/0023-responsive-layout-strategy.md`
@@ -12,15 +12,15 @@ OpenProject feature **#667 Responsive application** (status *In specification*).
 
 | Ticket | Type | Title | Status | Section |
 | --- | --- | --- | --- | --- |
-| #694 | Dev Task | Make create/edit workflow usable below 360 | In progress | [1](#1-workflow-createedit-694) |
-| #695 | Dev Task | Dashboard metric cards stack to one column | In progress | [2](#2-dashboard-metric-grid-695) |
+| #694 | Dev Task | Make create/edit workflow usable below 360 | Blocked | [1](#1-workflow-createedit-694) |
+| #695 | Dev Task | Dashboard metric cards stack to one column | Ready for Deployment | [2](#2-dashboard-metric-grid-695) |
 | #696 | Dev Task | List toolbar looks broken on tablet | Done | [3](#3-list-toolbars-696--done) |
-| #697 | Spike | Row actions disappear on tablet | In progress | [4](#4-wide-tables-697) |
-| #698 | Dev Task | Status bar gets too tall on tablet | In progress | [5](#5-status-bar-698) |
-| #699 | Dev Task | Dashboard rows look messy on small screens | In progress | [6](#6-dashboard-live-activity-rows-699) |
-| #700 | Dev Task | Fullscreen console hard to exit on tablet | In progress | [7](#7-minima-console-fullscreen-exit-700) |
-| #701 | Dev Task | Settings hard to reach on tablet | In progress | [8](#8-hardware-modal--account-page-701) |
-| #269 | Task | Responsive Layout Regression (Unit Testing) | In progress | [9](#9-responsive-regression-tests-269) |
+| #697 | Task | Row actions disappear on tablet | Ready for Deployment | [4](#4-wide-tables-697) |
+| #698 | Dev Task | Status bar gets too tall on tablet | Ready for Deployment | [5](#5-status-bar-698) |
+| #699 | Dev Task | Dashboard rows look messy on small screens | Ready for Deployment | [6](#6-dashboard-live-activity-rows-699) |
+| #700 | Dev Task | Fullscreen console hard to exit on tablet | Ready for Deployment | [7](#7-minima-console-fullscreen-exit-700) |
+| #701 | Dev Task | Settings hard to reach on tablet | Done | [8](#8-hardware-modal--account-page-701) |
+| #269 | Task | Responsive Layout Regression (Unit Testing) | Ready for Deployment | [9](#9-responsive-regression-tests-269) |
 | — (new, to add under #667) | Dev Task | Sidebar overlays content when expanded below 1024 | — | [10](#10-sidebar-overlay-below-1024-new-task) |
 
 - [x] #695 Dashboard metric grid
@@ -29,9 +29,9 @@ OpenProject feature **#667 Responsive application** (status *In specification*).
 - [x] #698 Status bar
 - [x] #699 Dashboard live activity rows
 - [x] #700 Minima console fullscreen exit — 40px icon buttons below 1024 (§7)
-- [ ] #701 Hardware modal / Account page
-- [ ] Sidebar overlay below 1024 (new task, not yet on OpenProject)
-- [ ] #269 Regression tests
+- [x] #701 Hardware modal / Account page — verified at 768 and 1024, no change needed (§8)
+- [x] Sidebar overlay below 1024 (new task, not yet on OpenProject) — built, with a test keeping `EXPAND_MQ` in sync with Tailwind's `lg` (§10)
+- [x] #269 Regression tests — unit tests plus the manual matrix (§9)
 - [ ] #694 Workflow create/edit — **deferred to last**; blocked on co-worker sync (see [Deferred: workflow workspace](#deferred-workflow-workspace-694))
 
 ## Context

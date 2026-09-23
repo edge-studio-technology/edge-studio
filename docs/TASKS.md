@@ -16,7 +16,7 @@
 
 ## In Progress
 
-- [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — in progress: #695, #697–#700 done, decisions in `docs/adr/0023-responsive-layout-strategy.md`; #694 deferred to last; see `docs/plans/features/667-responsive-application.md`.
+- [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — all done except #694, which is blocked on a co-worker sync; decisions in `docs/adr/0023-responsive-layout-strategy.md`; see `docs/plans/features/667-responsive-application.md`.
 - [ ] Run the 13-step Brave verification for the completed app-wide empty/loading/error hardening, including tasks #659/#660/#661 plus Integritas, software update/update-agent, and Wallet behavior while Minima is unavailable, before merging to `dev` — see `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
 - [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
@@ -69,6 +69,7 @@
 - [ ] Manual browser check of the `bodyClassName` scroll-pane fixes (progress spinner modal, address book "Edit contact", "Create custom token", "Send payment", Minima console "Confirm whitelist changes"): each should render unboxed (no border/card background) around its content, matching its already-correct sibling, while still fitting without a scrollbar at normal desktop widths.
 - [ ] Manual browser check of the address book contact-actions rework: "View contact" is read-only (no Edit/Delete buttons); kebab "Edit" opens the edit form; kebab "Remove" opens the delete-confirm modal then a progress modal, and the row disappears with a success toast on completion.
 
+- [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
 ## Done
 
 - [x] Closed the regression-testing debt tracked under OpenProject #363 and its children (#213, #218, #225, #242, #287): request-level `sendHttpOutput` assertions, MQTT/GPIO teardown on source deletion, webhook receiver route tests, the Integritas connection check, backup re-auth rejection, wallet import phrase-leak checks, and diagnostics query/tab/pagination tests — see `docs/plans/features/363-regression-testing-debt.md`.
