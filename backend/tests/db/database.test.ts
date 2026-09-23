@@ -104,6 +104,7 @@ describe("runMigrations — retention and budget schema", () => {
 
     const indexes = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'index'").all() as { name: string }[]).map((row) => row.name);
     assert.ok(indexes.includes("idx_automation_block_runs_started"));
+    assert.ok(indexes.includes("idx_automation_inbox_items_deleted"));
     assert.ok(indexes.includes("idx_automation_workflow_budget_events_workflow_consumed"));
   });
 });

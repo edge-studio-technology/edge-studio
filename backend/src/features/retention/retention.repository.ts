@@ -7,12 +7,11 @@ export type RetentionLimits = {
   batchSize: number;
 };
 
-export type RetainedTable = "automation_runs" | "automation_block_runs" | "automation_inbox_items" | "data_source_reads";
+export type RetainedTable = "automation_runs" | "automation_block_runs" | "data_source_reads";
 
 const timestampColumns: Record<RetainedTable, string> = {
   automation_runs: "started_at",
   automation_block_runs: "started_at",
-  automation_inbox_items: "created_at",
   data_source_reads: "created_at"
 };
 
@@ -47,7 +46,7 @@ export function pruneAutomationRuns(limits: RetentionLimits) {
   }).immediate();
 }
 
-/** Deletes one batch of rows, including soft-deleted inbox items. */
+/** Deletes one age/count-limited batch from a retained diagnostics or product-data table. */
 export function pruneRetainedRows(table: Exclude<RetainedTable, "automation_runs">, limits: RetentionLimits) {
   return db.transaction(() => {
     const activeRuns = JSON.stringify(getActiveAutomationRunIds());
@@ -55,4 +54,18 @@ export function pruneRetainedRows(table: Exclude<RetainedTable, "automation_runs
     if (count === 0) return 0;
     return db.prepare(`DELETE FROM ${table} WHERE id IN (${oldestRowsQuery(table)})`).run({ count, activeRuns }).changes;
   }).immediate();
+}
+
+/** Physically deletes one bounded batch of inbox items that the user has already deleted. */
+export function pruneDeletedAutomationInboxItems(batchSize: number) {
+  return db.transaction(() => db.prepare(`
+    DELETE FROM automation_inbox_items
+    WHERE id IN (
+      SELECT id
+      FROM automation_inbox_items
+      WHERE deleted_at IS NOT NULL
+      ORDER BY deleted_at ASC, id ASC
+      LIMIT ?
+    )
+  `).run(batchSize).changes).immediate();
 }

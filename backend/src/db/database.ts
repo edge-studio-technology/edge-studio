@@ -177,6 +177,9 @@ export function runMigrations() {
       ON automation_inbox_items(created_at);
     CREATE INDEX IF NOT EXISTS idx_automation_inbox_items_read_created
       ON automation_inbox_items(read_at, created_at);
+    CREATE INDEX IF NOT EXISTS idx_automation_inbox_items_deleted
+      ON automation_inbox_items(deleted_at, id)
+      WHERE deleted_at IS NOT NULL;
   `);
 
   db.exec(`

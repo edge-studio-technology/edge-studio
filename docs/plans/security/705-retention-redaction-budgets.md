@@ -4,7 +4,14 @@
 
 **Created:** 2026-09-17
 
-**Goal:** Bound untrusted-event storage and repeated privileged workflow execution while removing webhook and MQTT credentials from logs and persisted read history.
+**Goal:** Bound workflow execution diagnostics and repeated privileged workflow execution while removing webhook and MQTT credentials from logs and persisted read history.
+
+**Retention policy amendment (2026-09-23):** The final category-specific lifecycle is recorded in
+[ADR 0023](../../adr/0023-classify-stored-records-before-applying-retention.md), which amends the
+retention portion of [ADR 0022](../../adr/0022-bound-external-automation-effects.md). Workflow runs
+and block runs keep the 30-day/10,000-row policy; visible inbox items and data-source reads are
+preserved; user-deleted inbox items are physically purged; Integritas history remains until explicit
+deletion.
 
 ## Context
 
@@ -19,9 +26,9 @@ The audit confirmed the credential paths described by the ticket:
 - `recordPushAutomationPayload()` accepts a `sourceUrl` argument that none of its execution logic reads.
 - `docker-compose.yml` has no json-file rotation policy, and the release Compose generator must mirror any source Compose change.
 
-The existing session cleanup service provides the startup-plus-hourly scheduler pattern to reuse. Although the schema declares cascades and nullification, the shared SQLite connection does not enable foreign-key enforcement. Pruning must therefore explicitly delete dependent rows, cap all four named tables independently, and physically remove soft-deleted inbox rows. Enabling database-wide foreign-key enforcement is deferred to a separate database-integrity task after existing orphaned rows and all delete paths are audited.
+The existing session cleanup service provides the startup-plus-hourly scheduler pattern to reuse. The SQLite build enforces the declared cascades and nullification, while retention still explicitly deletes dependent block runs so correctness does not depend on that setting. The scheduler applies age/count limits only to workflow diagnostics and physically removes soft-deleted inbox rows.
 
-The ticket deliberately excludes a global cross-workflow budget, global wallet serialization, and webhook-token rotation. [ADR 0022](../../adr/0022-bound-external-automation-effects.md) records those rejected alternatives and the approved per-workflow design. Token rotation remains unjustified while exposure is local to an admin-readable database and Pi-local Docker logs; Docker logs created before this fix will not be rewritten.
+The ticket deliberately excludes a global cross-workflow budget, global wallet serialization, and webhook-token rotation. [ADR 0022](../../adr/0022-bound-external-automation-effects.md) records those rejected alternatives and the approved per-workflow design; [ADR 0023](../../adr/0023-classify-stored-records-before-applying-retention.md) records the later category-specific retention decision. Token rotation remains unjustified while exposure is local to an admin-readable database and Pi-local Docker logs; Docker logs created before this fix will not be rewritten.
 
 ## Approved Decisions
 
@@ -42,13 +49,15 @@ Document these constants in `SECURITY.md` and lock them with tests. Do not claim
 ### 1. Retention repository and scheduler
 
 - Add a small retention repository/service in `backend/src/features/retention/` rather than spreading deletion SQL across the automation and data-read repositories.
-- For `automation_runs`, `automation_block_runs`, `automation_inbox_items`, and `data_source_reads`, delete the oldest eligible rows using both rules:
-  - rows older than 30 days;
-  - rows outside the newest 10,000 rows;
-  - the union is capped to 500 direct rows per table per batch; repeat batches until drained, yielding between them and protecting active executions and their block runs.
-- Use `(timestamp, id)` ordering for deterministic oldest-first deletion. In one transaction, explicitly remove block-run rows belonging to eligible parent runs before removing those parents; do not rely on inactive SQLite cascades. Cap block runs independently as well.
-- Physically delete eligible inbox rows, including rows already soft-deleted through `deleted_at`.
-- Add/confirm timestamp indexes needed by the bounded selects; `automation_block_runs.started_at` currently lacks its own age/cap index.
+- Declare the lifecycle for every category in `retention.policy.ts`:
+  - `automation_runs` and `automation_block_runs`: delete rows older than 30 days or outside the newest 10,000 rows;
+  - `automation_inbox_items`: preserve visible rows and physically purge only rows already soft-deleted through `deleted_at`;
+  - `data_source_reads`: preserve until a separate product lifecycle is approved;
+  - Integritas proof history: retain until explicit user deletion.
+- Cap each active cleanup operation to 500 direct rows per batch; repeat batches until drained, yielding between them and protecting active executions and their block runs.
+- Use `(timestamp, id)` ordering for deterministic oldest-first diagnostic deletion. In one transaction, explicitly remove block-run rows belonging to eligible parent runs before removing those parents. Cap block runs independently as well.
+- Keep the generic age/count repository operation and data-source timestamp indexes tested so a later approved read-history policy can reuse them without enabling deletion now.
+- Add/confirm indexes needed by the bounded selects, including block-run age/cap cleanup and soft-deleted inbox cleanup.
 - Add `startRetentionScheduler()` / `stopRetentionScheduler()` following `features/auth/session.service.ts`: run one guarded pass immediately after migrations, then hourly, log only a static failure message plus redacted error detail, and make start/stop idempotent for tests.
 - Wire start/stop into `backend/src/startup.ts`. Startup and hourly sweeps repeat 500-row batches until drained, with no overlapping sweeps and cancellation on stop.
 
@@ -114,8 +123,10 @@ Document these constants in `SECURITY.md` and lock them with tests. Do not claim
   - 30-day age cutoff, including exact-boundary behavior;
   - 10,000-row cap with deterministic oldest-first deletion;
   - union of age and count eligibility without double counting;
-  - at most 500 direct deletions per table/batch, with multi-batch catch-up and active-run protection;
-  - explicit dependent block-run deletion, independent block-run cap, physical inbox deletion, and idempotent repeated passes;
+  - at most 500 direct deletions per active policy/batch, with multi-batch catch-up and active-run protection;
+  - explicit dependent block-run deletion, independent block-run cap, and idempotent repeated passes;
+  - preservation of visible inbox items and data-source reads, plus bounded physical deletion of user-deleted inbox items;
+  - explicit policy entries preserving Integritas history until user deletion;
   - immediate startup pass, hourly tick, error isolation, and clean stop using fake timers.
 - Database migration tests for live webhook/MQTT/GPIO sources, deleted-source orphan rows, already-safe URLs, idempotency, and absence of original tokens/userinfo after migration.
 - Update `automation.service`, GPIO ingestion, MQTT ingestion, data-source route, and data-read tests to assert stable source references and the removed dead argument.
@@ -131,7 +142,7 @@ Document these constants in `SECURITY.md` and lock them with tests. Do not claim
 - `docs/security/data-sources-and-automation.md`, `docs/security/wallet-and-tokens.md`, and `docs/security/low-priority-and-future.md`: close findings [11], [14], [8], and GAP-10 accurately, including HTTP-vs-MQTT/GPIO rate-limit scope.
 - `docs/qa/gaps.md`: mark GAP-10 covered with the new regression tests.
 - `docs/plans/security/phase-7-retention-redaction-budgets.md` and `docs/plans/security/README.md`: point to this task plan and update status when complete.
-- Keep [ADR 0022](../../adr/0022-bound-external-automation-effects.md) aligned if implementation evidence forces a policy change; do not duplicate its rationale in code comments or the changelog.
+- Keep [ADR 0022](../../adr/0022-bound-external-automation-effects.md) and its retention amendment [ADR 0023](../../adr/0023-classify-stored-records-before-applying-retention.md) aligned with the implementation; do not duplicate their rationale in code comments or the changelog.
 - `README.md` and `.env.example`: update only if retention, budget, rate-limit, or log-rotation settings become operator-configurable.
 - `CHANGELOG.md`: add operator-facing Security/Changed entries under `## [Unreleased] dev-task/705-retention-redaction-budgets`.
 - On completion, use the `session-notes` skill to reconcile `docs/SESSION.md` and `docs/TASKS.md`.
@@ -163,7 +174,7 @@ Manual/container checks:
 1. Send a webhook containing a unique sentinel token through frontend nginx; verify the backend and frontend container logs contain the redacted marker but not the sentinel.
 2. Trigger webhook and credential-bearing MQTT reads; inspect SQLite and verify `source_url` contains only the stable source reference.
 3. Upgrade a database seeded with historical tokenised webhook URLs and MQTT userinfo; verify migration removes the credentials without changing unrelated read rows.
-4. Seed each retained table beyond age/count limits, restart the backend, and verify short batches drain the backlog during the same sweep without deleting active runs or their block runs.
+4. Seed workflow diagnostics beyond age/count limits and soft-deleted inbox rows beyond one batch, restart the backend, and verify the backlogs drain while visible inbox items and data-source reads remain unchanged.
 5. Exhaust a privileged workflow's budget, restart the backend, and verify the next run remains blocked until the rolling window expires.
 6. Confirm Docker reports the configured log rotation options for every Compose service.
 
@@ -175,7 +186,8 @@ Manual/container checks:
 4. Add persisted budget enforcement and cooldown validation.
 5. Add backend/nginx redaction, Docker rotation, and release-generator parity.
 6. Add scoped rate limiters.
-7. Complete focused tests, baseline verification, security docs, changelog, and session/task reconciliation.
+7. Apply ADR 0023's category-specific retention policy and preserve the generic cleanup machinery for later lifecycle work.
+8. Complete focused tests, baseline verification, security docs, changelog, and session/task reconciliation.
 
 ## Estimate
 

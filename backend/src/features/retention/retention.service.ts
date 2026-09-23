@@ -1,27 +1,32 @@
 import { redactSecrets } from "../../shared/redact.js";
-import { pruneAutomationRuns, pruneRetainedRows } from "./retention.repository.js";
+import { RETENTION_INTERVAL_MS, RETENTION_POLICIES } from "./retention.policy.js";
+import { pruneAutomationRuns, pruneDeletedAutomationInboxItems, pruneRetainedRows } from "./retention.repository.js";
 
-export const RETENTION_MAX_AGE_DAYS = 30;
-export const RETENTION_MAX_ROWS = 10_000;
-export const RETENTION_BATCH_SIZE = 500;
-export const RETENTION_INTERVAL_MS = 60 * 60 * 1000;
+export { RETENTION_INTERVAL_MS } from "./retention.policy.js";
 
 let cancelCleanup: (() => void) | null = null;
 let retentionTimer: NodeJS.Timeout | null = null;
 
 export function runRetentionPass(now = Date.now()) {
-  const limits = {
-    cutoffIso: new Date(now - RETENTION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000).toISOString(),
-    maxRows: RETENTION_MAX_ROWS,
-    batchSize: RETENTION_BATCH_SIZE
+  const runPolicy = RETENTION_POLICIES.automationRuns;
+  const blockRunPolicy = RETENTION_POLICIES.automationBlockRuns;
+  const runLimits = {
+    cutoffIso: new Date(now - runPolicy.maxAgeDays * 24 * 60 * 60 * 1000).toISOString(),
+    maxRows: runPolicy.maxRows,
+    batchSize: runPolicy.batchSize
+  };
+  const blockRunLimits = {
+    cutoffIso: new Date(now - blockRunPolicy.maxAgeDays * 24 * 60 * 60 * 1000).toISOString(),
+    maxRows: blockRunPolicy.maxRows,
+    batchSize: blockRunPolicy.batchSize
   };
 
-  const runs = pruneAutomationRuns(limits);
+  const runs = pruneAutomationRuns(runLimits);
   return {
     automationRuns: runs.runs,
-    automationBlockRuns: runs.dependentBlockRuns + pruneRetainedRows("automation_block_runs", limits),
-    automationInboxItems: pruneRetainedRows("automation_inbox_items", limits),
-    dataSourceReads: pruneRetainedRows("data_source_reads", limits)
+    automationBlockRuns: runs.dependentBlockRuns + pruneRetainedRows("automation_block_runs", blockRunLimits),
+    automationInboxItems: pruneDeletedAutomationInboxItems(RETENTION_POLICIES.automationInboxItems.batchSize),
+    dataSourceReads: 0
   };
 }
 

@@ -163,23 +163,23 @@ Current Controls:
 - The bearer token is masked in the backend request log and in the nginx access log on both the HTTPS and HTTP-redirect servers. The webhook location logs only critical nginx errors, because nginx error lines embed the raw request line.
 - Recorded webhook reads store `data-source:<id>`, never the tokenised URL; the upgrade migration rewrote historical rows.
 - Webhook ingestion is limited to 60 requests per minute per client IP and source. The limiter key uses a SHA-256 hash of the token, and the limit is process-local.
-- Automation runs, block runs, inbox items, and reads created by webhook events are pruned after 30 days or beyond 10,000 rows per table.
+- Workflow runs and block runs created by webhook events are pruned after 30 days or beyond 10,000 rows per table. Visible inbox items and data-source reads are preserved; user-deleted inbox items are physically purged.
 - Workflows reaching payment, device output, camera, or stamp blocks are bounded to 10 runs per rolling hour per workflow, persisted across restarts; exhaustion returns `429`.
 
 Residual: Docker logs written before Phase 7 still contain tokens until they rotate out or are
-removed; tokens are not rotated automatically. Startup/hourly sweeps now repeat short 500-row
-batches until drained, yielding between batches and protecting active executions and their blocks.
-The former 500-rows-per-hour ceiling is removed. Rows can still exceed the target between sweeps
-or when ingestion exceeds cleanup throughput; this is not a disk-byte cap. Existing deployments
-need the verified installer rerun documented in README for rotation on every service. Review
-findings [11] and [14].
+removed; tokens are not rotated automatically. Startup/hourly sweeps repeat short 500-row batches
+for workflow diagnostics and deleted inbox rows, yielding between batches and protecting active
+executions and their blocks. Visible inbox items and data-source reads have no automatic storage
+bound until a product lifecycle provides configuration, export, quotas, and disk warnings. Existing
+deployments need the verified installer rerun documented in README for rotation on every service.
+Review findings [11] and [14].
 
 Plan:
 
 - Add optional webhook secret headers/signatures before production use.
 - Add custom/trusted certificate support or documented reverse-proxy TLS for senders that cannot accept self-signed certificates.
 
-Status: **Mitigated (Phase 7, task 705)** for log/read-history token leakage, unbounded event storage, and unbounded privileged repetition. Unsigned bearer-token delivery remains an accepted prototype risk. See [adr/0022](../adr/0022-bound-external-automation-effects.md).
+Status: **Partially mitigated (Phase 7, task 705)** for credential leakage, workflow-diagnostic growth, and privileged repetition. Visible inbox and read-history growth remains an availability risk pending the lifecycle in [adr/0023](../adr/0023-classify-stored-records-before-applying-retention.md). Unsigned bearer-token delivery remains an accepted prototype risk. See [adr/0022](../adr/0022-bound-external-automation-effects.md).
 
 ## MQTT Data Sources
 
@@ -196,7 +196,7 @@ Current Controls:
 - MQTT sources are push-only and do not use scheduled polling intervals.
 - Broker URLs may carry credentials for the live connection, but read history stores `data-source:<id>` instead of the broker URL, and the upgrade migration scrubbed historical rows. Error details redact both `user:password@` and username-only userinfo.
 - MQTT-triggered workflows share the per-workflow run budget (10 runs with payment, device output, camera, or stamp blocks per rolling hour); budget exhaustion is skipped silently. HTTP rate limits do not apply to MQTT.
-- MQTT-created automation history and reads are covered by 30-day / 10,000-row retention.
+- MQTT-created workflow runs and block runs are covered by 30-day / 10,000-row retention. Data-source reads and visible inbox items are preserved; deleted inbox items are physically purged.
 
 Plan:
 

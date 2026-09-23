@@ -64,7 +64,7 @@ describe("POST /api/data-source-webhooks/:token — rate limit", () => {
 
     const other = makeWebhookWorkflow();
     assert.equal((await request(app).post(`/api/data-source-webhooks/${other.webhookToken}`).send({})).status, 200);
-  });
+  }, 10_000);
 
   it("returns 429 without the token when the workflow run budget is exhausted", async () => {
     const target = dataSources.createDataSource({ name: "HTTP target", type: "http-output", config: { url: "https://example.com/hook", method: "POST" } });

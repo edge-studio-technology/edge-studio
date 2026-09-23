@@ -162,7 +162,7 @@ Defaults in force:
 | 10 | `APP_SECRET` migration | no migration; installer never shipped the public default — **decided, adr/0021** | 704 | none |
 | 11 | Dev escape hatch | no bypass; every backend startup requires a non-empty value — **decided, adr/0021** | 704 | low |
 | 12 | Image digest pins | manual bump at release, documented in the release doc | separate pinning task | low |
-| 13 | Retention values | 30 days / 10 000 rows / 500-row batches / hourly + startup pass | 7 | low — configurable |
+| 13 | Retention values | workflow runs/block runs: 30 days / 10 000 rows; deleted inbox: 500-row purge batches; reads/proofs preserved — **decided, adr/0023** | 7 | low |
 | 14 | Webhook token rotation | **do not rotate**; fix the logger and the label only | 7 | low now, rises once logs leave the Pi |
 | 15 | Wallet-trigger budget | reject `cooldownSeconds: 0` on `send_transaction` workflows; 10 runs/hour persisted | 7 | medium — the budget counter is a schema change |
 | 16 | CSRF posture | `SameSite=Strict` + JSON/multipart-only; no tokens | 8 | low — already settled in ADR 0010 |

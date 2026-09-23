@@ -94,15 +94,6 @@ describe("retention.repository — pruneRetainedRows", () => {
     assert.deepEqual(ids("data_source_reads"), ["recent"]);
   });
 
-  it("physically deletes eligible inbox items, including soft-deleted ones", () => {
-    insertInboxItem("old-visible", iso(40 * 24 * 60 * 60 * 1000));
-    insertInboxItem("old-soft-deleted", iso(39 * 24 * 60 * 60 * 1000), iso(38 * 24 * 60 * 60 * 1000));
-    insertInboxItem("recent-soft-deleted", iso(1000), iso(500));
-
-    assert.equal(repo.pruneRetainedRows("automation_inbox_items", generous), 2);
-    assert.deepEqual(ids("automation_inbox_items"), ["recent-soft-deleted"]);
-  });
-
   it("caps block runs independently of their parent runs", () => {
     insertRun("run", iso(1000));
     for (let index = 0; index < 4; index += 1) insertBlockRun(`block-${index}`, "run", iso(1000 - index));
@@ -110,6 +101,21 @@ describe("retention.repository — pruneRetainedRows", () => {
     assert.equal(repo.pruneRetainedRows("automation_block_runs", { ...generous, maxRows: 1 }), 3);
     assert.deepEqual(ids("automation_block_runs"), ["block-3"]);
     assert.deepEqual(ids("automation_runs"), ["run"]);
+  });
+});
+
+describe("retention.repository — pruneDeletedAutomationInboxItems", () => {
+  it("deletes only soft-deleted items in bounded oldest-deletion-first batches", () => {
+    insertInboxItem("old-visible", iso(40 * 24 * 60 * 60 * 1000));
+    insertInboxItem("old-soft-deleted", iso(39 * 24 * 60 * 60 * 1000), iso(38 * 24 * 60 * 60 * 1000));
+    insertInboxItem("recent-visible", iso(1000));
+    insertInboxItem("recent-soft-deleted", iso(1000), iso(500));
+
+    assert.equal(repo.pruneDeletedAutomationInboxItems(1), 1);
+    assert.deepEqual(ids("automation_inbox_items"), ["old-visible", "recent-soft-deleted", "recent-visible"]);
+    assert.equal(repo.pruneDeletedAutomationInboxItems(1), 1);
+    assert.deepEqual(ids("automation_inbox_items"), ["old-visible", "recent-visible"]);
+    assert.equal(repo.pruneDeletedAutomationInboxItems(1), 0);
   });
 });
 

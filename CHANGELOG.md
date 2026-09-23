@@ -8,8 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
-- Automation runs, block runs, inbox items, and data source reads older than 30 days or beyond the newest 10,000 rows per table are deleted in repeated batches of up to 500 direct rows per table until drained at startup and hourly, with active workflow executions protected.
-- Deleted automation inbox items are now permanently removed by retention.
+- Automation runs and block runs older than 30 days or beyond the newest 10,000 rows per table are deleted in repeated batches of up to 500 direct rows until drained at startup and hourly, with active workflow executions protected.
+- Visible automation inbox items and data source read history are preserved from automatic age and row-count deletion.
+- Deleted automation inbox items are permanently removed in repeated batches of up to 500 rows.
+- Integritas proof history remains until explicit user deletion.
 - Webhook, MQTT, and GPIO data source reads record `data-source:<id>` instead of the webhook URL or MQTT broker URL.
 - Existing data source read history is scrubbed of webhook tokens and URL credentials on upgrade.
 - The backend request log and the frontend nginx access log mask the webhook token in `/api/data-source-webhooks/<token>` URLs.

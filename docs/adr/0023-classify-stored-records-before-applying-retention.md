@@ -78,6 +78,8 @@ automation-budget, rate-limit, cooldown, and Docker log-rotation decisions remai
 
 ## Where this lives in code
 
+- `backend/src/features/retention/retention.policy.ts` — explicit lifecycle for every record
+  category.
 - `backend/src/features/retention/retention.service.ts` — scheduled policy application and repeated
   bounded batches.
 - `backend/src/features/retention/retention.repository.ts` — generic oldest-first deletion and active
