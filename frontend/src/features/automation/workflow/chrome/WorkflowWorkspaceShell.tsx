@@ -8,14 +8,14 @@ import { cx } from "../../../../lib/cx";
 const shellClass =
   "@container border-stroke-primary bg-surface-always-white flex h-screen min-h-0 flex-col overflow-hidden border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";
 const topbarClass =
-  "border-stroke-secondary bg-surface-always-white pt-pad-relaxed px-pad-relaxed pb-pad-tight flex flex-col gap-detail-close border-b lg:flex-row lg:items-end lg:justify-between";
+  "border-stroke-secondary bg-surface-always-white pt-pad-relaxed px-pad-relaxed pb-pad-tight flex flex-col gap-detail-close border-b @4xl:flex-row @4xl:items-end @4xl:justify-between";
 /** Full-bleed canvas area. */
 const workspaceClass = "bg-surface-secondary relative min-h-0 flex-1 overflow-hidden";
 const canvasFrameClass = "h-full min-h-0";
 /** Pinned over the canvas when wide; a toggled drawer when narrow. */
 const rightRailClass =
   "z-30 absolute top-pad-tight bottom-pad-tight right-pad-relaxed w-[360px] max-w-[calc(100%-2*var(--spacing-pad-relaxed))] min-h-0 flex-col data-[open=false]:hidden flex @4xl:z-10 @4xl:max-w-none @4xl:data-[open=false]:flex";
-const rowActionsClass = "gap-detail-next flex flex-wrap items-center self-end";
+const rowActionsClass = "gap-detail-next flex flex-wrap items-center self-start @4xl:self-end";
 
 export function WorkflowWorkspaceShell({
   breadcrumbLabel,
@@ -38,7 +38,6 @@ export function WorkflowWorkspaceShell({
   /** Meta status pills. */
   statusStrip?: ReactNode;
   notices?: ReactNode;
-  /** Drawer toggle label below `@4xl`. */
 }) {
   const [railOpen, setRailOpen] = useState(false);
   const hasSheet = Boolean(selectedSheet);
@@ -60,7 +59,7 @@ export function WorkflowWorkspaceShell({
   return (
     <section className={shellClass}>
       <div className={topbarClass}>
-        <div className="gap-detail-close grid min-w-0 flex-1">
+        <div className="gap-detail-close grid min-w-60 flex-1">
           <nav aria-label="Breadcrumb" className="type-body text-text-secondary">
             <Link to="/workflows" className="hover:text-text-primary">
               Workflows
