@@ -108,7 +108,7 @@ export function AltAddDeviceFlow({
         width="wide"
         className={setupDeviceModalClassName}
         footer={
-          <>
+          <div className="flex w-full items-center justify-between gap-detail-next">
             <Button
               variant="ghost"
               disabled={saving}
@@ -123,7 +123,7 @@ export function AltAddDeviceFlow({
             >
               Add device
             </Button>
-          </>
+          </div>
         }
       >
         <AltDeviceForm template={template} fields={fields} />
@@ -144,9 +144,11 @@ export function AltAddDeviceFlow({
             Cancel
           </Button>
         ) : (
-          <Button variant="ghost" iconStart={<ArrowLeft aria-hidden />} onClick={goBack}>
-            Back
-          </Button>
+          <div className="flex w-full items-center justify-start">
+            <Button variant="ghost" iconStart={<ArrowLeft aria-hidden />} onClick={goBack}>
+              Back
+            </Button>
+          </div>
         )
       }
     >
