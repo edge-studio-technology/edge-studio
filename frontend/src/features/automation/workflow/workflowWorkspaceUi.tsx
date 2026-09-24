@@ -202,7 +202,7 @@ export function WorkflowValidationPanel({
     );
 
   return (
-    <Panel className={cx("relative grid", status === "issues" && "max-h-[320px] overflow-hidden")}>
+    <Panel className="relative grid">
       <Disclosure
         title={
           <span className="gap-detail-next flex min-w-0 flex-wrap items-center">
@@ -212,10 +212,7 @@ export function WorkflowValidationPanel({
         }
         defaultOpen={false}
         summaryClassName="items-center"
-        contentClassName={cx(
-          "gap-detail-close grid min-h-0",
-          status === "issues" && "overflow-auto",
-        )}
+        contentClassName="gap-detail-close grid min-h-0"
       >
         <p className={cx(mutedText, "m-0")}>{description}</p>
         {status === "checking" && <p className={cx(mutedText, "m-0")}>Checking workflow…</p>}

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Check } from "lucide-react";
 import { Disclosure } from "../../../../components/ui/Disclosure";
-import { SwitchField } from "../../../../components/ui/SwitchField";
 import { Tooltip } from "../../../../components/ui/Tooltip";
 import { cx } from "../../../../lib/cx";
 import type { DataSource } from "../../../data-sources/dataSourceTypes";
@@ -27,10 +26,6 @@ export function WorkflowBlockLibrary({
   canAddRecordTriggerEvent = true,
   canAddSendPayment = true,
   sources = [],
-  enabled,
-  onEnabledChange,
-  enabledDisabled = false,
-  enabledDisabledReason,
   onSelectStartBlock,
   onAddBlock,
 }: {
@@ -40,26 +35,10 @@ export function WorkflowBlockLibrary({
   canAddRecordTriggerEvent?: boolean;
   canAddSendPayment?: boolean;
   sources?: DataSource[];
-  enabled?: boolean;
-  onEnabledChange?: (value: boolean) => void;
-  enabledDisabled?: boolean;
-  enabledDisabledReason?: string;
   onSelectStartBlock: (type: AutomationBlockType) => void;
   onAddBlock: (type: AutomationBlockType) => void;
 }) {
   const canAddMainBlock = hasStartBlock;
-  // Enable toggle is create-only; edit auto-pauses and re-enable lives on the workflow list.
-  const showEnabled = mode === "build" && enabled !== undefined && onEnabledChange !== undefined;
-  const enableSwitch = showEnabled ? (
-    <SwitchField
-      label="Enable after create"
-      description="Start the workflow as soon as it is created."
-      checked={enabled}
-      disabled={enabledDisabled}
-      onChange={(event) => onEnabledChange(event.target.checked)}
-      className="border-stroke-secondary pb-detail-close pt-detail-close min-w-0 border-t border-b"
-    />
-  ) : null;
 
   function cardDisabledReason(type: AutomationBlockType): string | undefined {
     if (!type.endsWith("_start") && !canAddMainBlock) return NEEDS_START_REASON;
@@ -86,14 +65,6 @@ export function WorkflowBlockLibrary({
             : "Change the start block or add blocks to this workflow. Select a block on the canvas to configure it."
         }
       />
-      {enableSwitch &&
-        (enabledDisabled && enabledDisabledReason ? (
-          <Tooltip title={enabledDisabledReason} placement="left">
-            <span className="block w-full">{enableSwitch}</span>
-          </Tooltip>
-        ) : (
-          enableSwitch
-        ))}
       {(mode === "build" || mode === "edit") && (
         <ToolkitGroup
           key={`start-${hasStartBlock}`}

@@ -120,17 +120,15 @@ function okValidation(): AutomationValidationResult {
 function renderWorkspace(props: Partial<React.ComponentProps<typeof CreateWorkflowWorkspace>> = {}) {
   return render(
     <MemoryRouter>
-      <CreateWorkflowWorkspace
-        name="My workflow"
-        initialName=""
-        enabled={true}
-        sources={[source()]}
-        addressBook={[]}
-        walletStatus={null}
-        busy={false}
-        onNameChange={vi.fn()}
-        onEnabledChange={vi.fn()}
-        onCancel={vi.fn()}
+        <CreateWorkflowWorkspace
+          name="My workflow"
+          initialName=""
+          sources={[source()]}
+          addressBook={[]}
+          walletStatus={null}
+          busy={false}
+          onNameChange={vi.fn()}
+          onCancel={vi.fn()}
         onCreate={vi.fn()}
         onCreateAddressBookEntry={vi.fn()}
         {...props}
@@ -163,6 +161,11 @@ describe("CreateWorkflowWorkspace", () => {
     renderWorkspace({ onNameChange });
     await userEvent.type(screen.getByRole("textbox", { name: "Workflow name" }), "x");
     expect(onNameChange).toHaveBeenCalled();
+  });
+
+  it("does not offer starting the workflow on create", () => {
+    renderWorkspace();
+    expect(screen.queryByRole("switch", { name: "Enable after create" })).not.toBeInTheDocument();
   });
 
   it("allows Create once a named workflow has at least one block while validation is pending", async () => {

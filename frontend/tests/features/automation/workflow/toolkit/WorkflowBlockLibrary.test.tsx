@@ -132,31 +132,10 @@ describe("WorkflowBlockLibrary", () => {
     expect(fetchCard).not.toHaveAttribute("aria-disabled");
   });
 
-  it("shows the enable switch only in build mode with enabled/onEnabledChange given", async () => {
-    const onEnabledChange = vi.fn();
+  it("does not show an enable-on-create switch", () => {
     render(
       <WorkflowBlockLibrary
         hasStartBlock
-        enabled={false}
-        onEnabledChange={onEnabledChange}
-        onSelectStartBlock={() => {}}
-        onAddBlock={() => {}}
-      />,
-    );
-    const toggle = screen.getByRole("switch", { name: "Enable after create" });
-    expect(toggle).not.toBeChecked();
-
-    await userEvent.click(toggle);
-    expect(onEnabledChange).toHaveBeenCalledWith(true);
-  });
-
-  it("does not show the enable switch in edit mode", () => {
-    render(
-      <WorkflowBlockLibrary
-        mode="edit"
-        hasStartBlock
-        enabled={false}
-        onEnabledChange={() => {}}
         onSelectStartBlock={() => {}}
         onAddBlock={() => {}}
       />,

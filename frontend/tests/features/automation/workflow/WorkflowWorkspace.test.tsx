@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,7 +36,9 @@ vi.mock("../../../../src/features/automation/workflow/WorkflowBlockInspectors", 
       onDirty: () => void;
       onAttachStamp: () => void;
       onUpdate: (input: unknown) => void;
+      onUpdateAttached: (blockId: string, input: unknown) => void;
       onDelete: () => void;
+      onDeleteAttached: (blockId: string) => void;
     },
     ref,
   ) {
@@ -48,11 +50,17 @@ vi.mock("../../../../src/features/automation/workflow/WorkflowBlockInspectors", 
         <button type="button" onClick={() => props.onUpdate({ config: { touched: true } })}>
           persisted-update
         </button>
+        <button type="button" onClick={() => props.onUpdateAttached("b-stamp", { config: { touched: true } })}>
+          persisted-update-attached
+        </button>
         <button type="button" onClick={() => props.onAttachStamp()}>
           persisted-attach-stamp
         </button>
         <button type="button" onClick={() => props.onDelete()}>
           persisted-delete
+        </button>
+        <button type="button" onClick={() => props.onDeleteAttached("b-stamp")}>
+          persisted-delete-attached
         </button>
         <button type="button" onClick={() => props.onDirty()}>
           persisted-dirty
@@ -119,7 +127,7 @@ function block(overrides: Partial<AutomationBlock> = {}): AutomationBlock {
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
     type: "manual_start",
-    enabled: true,
+    enabled: false,
     order: 0,
     parentBlockId: null,
     config: {},
@@ -135,7 +143,7 @@ function workflow(overrides: Partial<AutomationWorkflow> = {}): AutomationWorkfl
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
     name: "Front gate flow",
-    enabled: true,
+    enabled: false,
     archived: false,
     lastRunAt: null,
     nextRunAt: null,
@@ -223,39 +231,69 @@ describe("WorkflowWorkspace edit mode", () => {
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ name: "New name" });
   });
 
-  it("pauses an enabled workflow once per editing session on the first real edit", async () => {
+  it("asks before applying the first edit to an enabled workflow", async () => {
     const onUpdateWorkflow = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({ onUpdateWorkflow, workflow: workflow({ enabled: true }) });
 
-    await user.type(screen.getByRole("textbox", { name: "Workflow name" }), "!");
+    const nameField = screen.getByRole("textbox", { name: "Workflow name" });
+    await user.type(nameField, "!");
+
+    const dialog = screen.getByRole("dialog", { name: "Editing will pause this workflow." });
+    expect(dialog).toBeInTheDocument();
+    const backdrop = dialog.parentElement?.parentElement;
+    expect(backdrop).toHaveClass("z-[90]");
+    fireEvent.mouseDown(backdrop!);
+    expect(screen.getByRole("dialog", { name: "Editing will pause this workflow." })).toBeInTheDocument();
+    expect(nameField).toHaveValue("Front gate flow");
+    expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ enabled: false });
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog", { name: "Editing will pause this workflow." })).not.toBeInTheDocument();
+
+    await user.type(nameField, "!");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(nameField).toHaveValue("Front gate flow");
+
+    await user.type(nameField, "!");
+    await user.click(screen.getByRole("button", { name: "Pause and edit" }));
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: false });
-    expect(
-      screen.getByText(
-        "Workflow is paused while editing, enable it again from the workflow list.",
-        { exact: false },
-      ),
-    ).toBeInTheDocument();
+    expect(nameField).toHaveValue("Front gate flow!");
   });
 
-  it("debounce-saves the name 500ms after the last keystroke", async () => {
+  it("does not save the name while typing and commits it on Enter", async () => {
     const onUpdateWorkflow = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({ onUpdateWorkflow });
 
-    await user.type(screen.getByRole("textbox", { name: "Workflow name" }), " v2");
+    const nameField = screen.getByRole("textbox", { name: "Workflow name" });
+    await user.type(nameField, " v2");
     expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ name: "Front gate flow v2" });
 
-    await vi.advanceTimersByTimeAsync(500);
+    await user.keyboard("{Enter}");
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ name: "Front gate flow v2" });
   });
 
-  it("activates a paused workflow via the status button", async () => {
+  it("reverts an uncommitted name edit on Escape", async () => {
+    const onUpdateWorkflow = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({ onUpdateWorkflow });
+
+    const nameField = screen.getByRole("textbox", { name: "Workflow name" });
+    await user.type(nameField, " v2");
+    await user.keyboard("{Escape}");
+
+    expect(nameField).toHaveValue("Front gate flow");
+    expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ name: "Front gate flow v2" });
+  });
+
+  it("resumes a paused workflow via the Resume button", async () => {
     const onUpdateWorkflow = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({ onUpdateWorkflow, workflow: workflow({ enabled: false }) });
 
-    const button = screen.getByRole("button", { name: "Workflow paused" });
+    expect(screen.getByText("Paused while you edit. Resume when you want it to run.")).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Resume" });
     expect(button).not.toBeDisabled();
     await user.click(button);
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: true });
@@ -266,7 +304,7 @@ describe("WorkflowWorkspace edit mode", () => {
       workflow: workflow({ enabled: false }),
       validation: { ok: false, errors: [{ code: "x", level: "error", message: "bad" }], warnings: [] },
     });
-    const button = screen.getByRole("button", { name: "Workflow paused" });
+    const button = screen.getByRole("button", { name: "Resume" });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("title", "Fix validation errors before activating.");
   });
@@ -420,6 +458,9 @@ describe("WorkflowWorkspace edit mode", () => {
     await user.click(screen.getByRole("button", { name: "persisted-update" }));
     expect(onUpdateBlock).toHaveBeenCalledWith("b-wait", { config: { touched: true } });
 
+    await user.click(screen.getByRole("button", { name: "persisted-update-attached" }));
+    expect(onUpdateBlock).toHaveBeenCalledWith("b-stamp", { config: { touched: true } });
+
     await user.click(screen.getByRole("button", { name: "persisted-attach-stamp" }));
     expect(onAddBlock).toHaveBeenCalledWith(
       expect.objectContaining({ type: "stamp_integritas", parentBlockId: "b-wait" }),
@@ -427,6 +468,9 @@ describe("WorkflowWorkspace edit mode", () => {
 
     await user.click(screen.getByRole("button", { name: "persisted-delete" }));
     expect(onDeleteBlock).toHaveBeenCalledWith("b-wait");
+
+    await user.click(screen.getByRole("button", { name: "persisted-delete-attached" }));
+    expect(onDeleteBlock).toHaveBeenCalledWith("b-stamp");
   });
 
   it("shows notices for archived workflows and the last run error", () => {
