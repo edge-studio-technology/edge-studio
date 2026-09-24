@@ -235,6 +235,7 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
               {visibleColumns.map((column) => (
                 <TableHeaderCell
                   key={column.id}
+                  sticky={column.id === "actions"}
                   className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
                 >
                   {column.label}
@@ -371,7 +372,7 @@ function AddressBookCell({
   }
   if (columnId === "actions") {
     return (
-      <TableCell className="w-px whitespace-nowrap">
+      <TableCell sticky className="w-px whitespace-nowrap">
         <RowActions>
           <TableIconButton type="button" title="View contact" aria-label={`View ${entry.label}`} onClick={onView}>
             <Eye size={16} aria-hidden />

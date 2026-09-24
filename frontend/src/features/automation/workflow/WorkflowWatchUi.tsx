@@ -4,11 +4,12 @@ import { Button } from "../../../components/Button";
 import {
   DataTable,
   RowActions,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
   TableWrap,
-  tableCellClass,
-  tableHeaderCellClass,
-  tableHeadRowClass,
-  tableRowClass,
 } from "../../../components/DataTable";
 import { JsonPreview } from "../../../components/JsonPreview";
 import {
@@ -150,28 +151,28 @@ function WatchRunCell({
   onSelectRun: (runId: string) => void;
   onToggleRaw: () => void;
 }) {
-  if (columnId === "started") return <td className={tableCellClass}>{formatLocalTime(run.startedAt)}</td>;
-  if (columnId === "trigger") return <td className={tableCellClass}>{run.triggerType}</td>;
+  if (columnId === "started") return <TableCell>{formatLocalTime(run.startedAt)}</TableCell>;
+  if (columnId === "trigger") return <TableCell>{run.triggerType}</TableCell>;
   if (columnId === "status") {
     return (
-      <td className={tableCellClass}>
+      <TableCell>
         <StatusPill status={run.status === "success" ? "good" : run.status === "failed" ? "warn" : "neutral"}>
           {run.status}
         </StatusPill>
-      </td>
+      </TableCell>
     );
   }
-  if (columnId === "duration") return <td className={tableCellClass}>{formatDuration(run.durationMs)}</td>;
+  if (columnId === "duration") return <TableCell>{formatDuration(run.durationMs)}</TableCell>;
   if (columnId === "blocks") {
     return (
-      <td className={tableCellClass}>
+      <TableCell>
         {run.blocks.filter((block) => block.status === "success").length}/{run.blockCount}
-      </td>
+      </TableCell>
     );
   }
   if (columnId === "details") {
     return (
-      <td className={tableCellClass}>
+      <TableCell sticky>
         <RowActions>
           <Button
             type="button"
@@ -186,7 +187,7 @@ function WatchRunCell({
             {rawRunId === run.id ? "Hide raw" : "Raw details"}
           </Button>
         </RowActions>
-      </td>
+      </TableCell>
     );
   }
   return null;
@@ -370,16 +371,14 @@ export function WatchRunHistory({
           <ScrollArea className="rounded-soft border-stroke-secondary bg-surface-always-white max-h-[150px] border">
             <TableWrap>
               <DataTable>
-                <thead>
-                  <tr className={tableHeadRowClass}>
-                    {visibleColumns.map((column) => (
-                      <th key={column.id} className={tableHeaderCellClass}>{column.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
+                <TableHead>
+                  {visibleColumns.map((column) => (
+                    <TableHeaderCell key={column.id} sticky={column.id === "details"}>{column.label}</TableHeaderCell>
+                  ))}
+                </TableHead>
+                <TableBody>
                   {runs.map((run) => (
-                    <tr key={run.id} className={tableRowClass}>
+                    <TableRow key={run.id}>
                       {visibleColumns.map((column) => (
                         <WatchRunCell
                           key={column.id}
@@ -391,9 +390,9 @@ export function WatchRunHistory({
                           onToggleRaw={() => setRawRunId(rawRunId === run.id ? null : run.id)}
                         />
                       ))}
-                    </tr>
+                    </TableRow>
                   ))}
-                </tbody>
+                </TableBody>
               </DataTable>
             </TableWrap>
           </ScrollArea>

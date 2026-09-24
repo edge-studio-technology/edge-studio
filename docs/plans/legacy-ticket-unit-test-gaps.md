@@ -1,7 +1,7 @@
 # Legacy QA Ticket Unit-Test Gap Follow-Up Plan
 
 **Status:** Closed except *Node Failure Mode Testing*  
-**Closed by:** `feature/363-regression-testing-debt` (OpenProject #363 and children #213, #218, #225, #242, #287) — see `docs/plans/363-regression-testing-debt.md`
+**Closed by:** `feature/363-regression-testing-debt` (OpenProject #363 and children #213, #218, #225, #242, #287) — see `docs/plans/features/363-regression-testing-debt.md`
 **Created:** 2026-09-09
 **Goal:** While retiring old PM-tool QA tickets (automation/devices/etc., written before the naming and architecture settled), catalog the specific unit-test gaps found against today's suite, so a single new ticket/branch can close them.
 

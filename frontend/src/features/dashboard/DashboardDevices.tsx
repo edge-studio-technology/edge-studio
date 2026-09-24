@@ -119,79 +119,83 @@ export function DashboardDevices() {
           Some Dashboard metrics may be unavailable or out of date. We'll try again automatically.
         </ErrorAlert>
       ) : null}
-      <div className="gap-detail-close grid w-full grid-cols-2 xl:grid-cols-3">
-        <MetricCard
-          label="Wallet balance"
-          icon={<MinimaIcon size={20} />}
-          loading={walletLoading && !nodeRestarting}
-          value={
-            walletUnavailable ? (
-              "Unavailable"
-            ) : (
-              <span className="block min-w-0 truncate" title={walletBalance ?? undefined}>
-                {formatMinimaAmount(walletBalance!)}
-              </span>
-            )
-          }
-          description="Primary Pi Wallet"
-          status={walletUnavailable ? unavailableStatus : "neutral"}
-        />
-        <MetricCard
-          label="Node status"
-          loading={statusLoading}
-          value={node ? node.state.charAt(0).toUpperCase() + node.state.slice(1) : "Unavailable"}
-          description="Minima node"
-          status={node ? deviceNodeStatus(node.state) : unavailableStatus}
-        />
-        <MetricCard
-          label="Integritas API"
-          loading={statusLoading}
-          value={
-            !app
-              ? "Unavailable"
-              : app.integritasConnected === null
-                ? "Not configured"
-                : app.integritasConnected
-                  ? "Connected"
-                  : "Unreachable"
-          }
-          description="API connection"
-          status={app ? integritasConnectionStatus(app.integritasConnected) : unavailableStatus}
-        />
-        <MetricCard
-          label="Device"
-          loading={statusLoading}
-          value={device?.hostname ?? "Unavailable"}
-          description={device ? `${device.platform} · ${device.arch}` : undefined}
-          status={device ? "neutral" : unavailableStatus}
-        />
-        <MetricCard
-          label="Device CPU"
-          loading={statusLoading}
-          value={cpuPct ?? "Unavailable"}
-          description={
-            device ? `${device.cpuCount}-core · ${device.loadAvg[0].toFixed(2)} 1m avg` : undefined
-          }
-          status={device ? "neutral" : unavailableStatus}
-        />
-        <MetricCard
-          label="Device Memory"
-          loading={statusLoading}
-          value={device ? formatBytes(device.memory.usedBytes) : "Unavailable"}
-          description={
-            device
-              ? `of ${formatBytes(device.memory.totalBytes)} · ${pct(device.memory.usedBytes, device.memory.totalBytes)} used`
-              : undefined
-          }
-          status={device ? "neutral" : unavailableStatus}
-        />
-        <MetricCard
-          label="Device Disk"
-          loading={statusLoading}
-          value={diskValue ?? "Unavailable"}
-          description={diskDescription}
-          status={device ? "neutral" : unavailableStatus}
-        />
+      <div className="@container w-full">
+        <div className="gap-detail-close grid w-full grid-cols-1 @2xl:grid-cols-2 @3xl:grid-cols-3">
+          <MetricCard
+            label="Wallet balance"
+            icon={<MinimaIcon size={20} />}
+            loading={walletLoading && !nodeRestarting}
+            value={
+              walletUnavailable ? (
+                "Unavailable"
+              ) : (
+                <span className="block min-w-0 truncate" title={walletBalance ?? undefined}>
+                  {formatMinimaAmount(walletBalance!)}
+                </span>
+              )
+            }
+            description="Primary Pi Wallet"
+            status={walletUnavailable ? unavailableStatus : "neutral"}
+          />
+          <MetricCard
+            label="Node status"
+            loading={statusLoading}
+            value={node ? node.state.charAt(0).toUpperCase() + node.state.slice(1) : "Unavailable"}
+            description="Minima node"
+            status={node ? deviceNodeStatus(node.state) : unavailableStatus}
+          />
+          <MetricCard
+            label="Integritas API"
+            loading={statusLoading}
+            value={
+              !app
+                ? "Unavailable"
+                : app.integritasConnected === null
+                  ? "Not configured"
+                  : app.integritasConnected
+                    ? "Connected"
+                    : "Unreachable"
+            }
+            description="API connection"
+            status={app ? integritasConnectionStatus(app.integritasConnected) : unavailableStatus}
+          />
+          <MetricCard
+            label="Device"
+            loading={statusLoading}
+            value={device?.hostname ?? "Unavailable"}
+            description={device ? `${device.platform} · ${device.arch}` : undefined}
+            status={device ? "neutral" : unavailableStatus}
+          />
+          <MetricCard
+            label="Device CPU"
+            loading={statusLoading}
+            value={cpuPct ?? "Unavailable"}
+            description={
+              device
+                ? `${device.cpuCount}-core · ${device.loadAvg[0].toFixed(2)} 1m avg`
+                : undefined
+            }
+            status={device ? "neutral" : unavailableStatus}
+          />
+          <MetricCard
+            label="Device Memory"
+            loading={statusLoading}
+            value={device ? formatBytes(device.memory.usedBytes) : "Unavailable"}
+            description={
+              device
+                ? `of ${formatBytes(device.memory.totalBytes)} · ${pct(device.memory.usedBytes, device.memory.totalBytes)} used`
+                : undefined
+            }
+            status={device ? "neutral" : unavailableStatus}
+          />
+          <MetricCard
+            label="Device Disk"
+            loading={statusLoading}
+            value={diskValue ?? "Unavailable"}
+            description={diskDescription}
+            status={device ? "neutral" : unavailableStatus}
+          />
+        </div>
       </div>
     </>
   );

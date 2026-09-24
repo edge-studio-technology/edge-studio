@@ -149,6 +149,7 @@ export function AutomationRunsTable({
             {visibleColumns.map((column) => (
               <TableHeaderCell
                 key={column.id}
+                sticky={column.id === "actions"}
                 className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
               >
                 {column.label}
@@ -272,7 +273,7 @@ function WorkflowRunCell({
   }
   if (columnId === "actions") {
     return (
-      <TableCell className="w-px whitespace-nowrap">
+      <TableCell sticky className="w-px whitespace-nowrap">
         <RunRowActions run={run} onView={onView} />
       </TableCell>
     );

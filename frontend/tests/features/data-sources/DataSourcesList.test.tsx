@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { ToastProvider } from "../../../src/components/ToastProvider";
 import { DataSourcesList } from "../../../src/features/data-sources/DataSourcesList";
 import type { DataSource } from "../../../src/features/data-sources/dataSourceTypes";
@@ -74,6 +75,7 @@ describe("DataSourcesList", () => {
     expect(within(row).getByText("HTTP JSON Source")).toBeInTheDocument();
     expect(within(row).getByTitle("Input · https://example.com/data.json")).toBeInTheDocument();
     expect(within(row).getByText("No activity")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table"));
   });
 
   it("labels a pi-camera row's direction as Capture", () => {

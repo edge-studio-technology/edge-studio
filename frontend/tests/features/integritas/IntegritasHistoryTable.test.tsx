@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { ToastProvider } from "../../../src/components/ToastProvider";
 import { IntegritasHistoryTable } from "../../../src/features/integritas/IntegritasHistoryTable";
 import type { IntegritasProofRecord } from "../../../src/features/integritas/integritasTypes";
@@ -89,6 +90,7 @@ describe("IntegritasHistoryTable", () => {
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.getByText("Pending")).toBeInTheDocument();
     expect(screen.getByText("Failed")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table"));
   });
 
   it.each([

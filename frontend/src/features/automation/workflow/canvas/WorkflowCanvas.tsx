@@ -20,7 +20,7 @@ const mutedText = "type-meta text-text-secondary";
 const statusPillClass = (good: boolean) => (good ? "good" : "neutral");
 const canvasClass = "h-full min-h-0 overflow-hidden";
 const canvasLaneClass =
-  "relative flex h-full min-h-[360px] flex-col items-center bg-surface-primary bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-grey-03)_32%,transparent)_1px,transparent_1px)] bg-[length:18px_18px] py-pad-relaxed pl-pad-relaxed pr-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] md:min-h-0";
+  "relative flex h-full min-h-[360px] flex-col items-center bg-surface-primary bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-grey-03)_32%,transparent)_1px,transparent_1px)] bg-[length:18px_18px] py-pad-relaxed px-pad-relaxed @4xl:pr-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] md:min-h-0";
 const canvasContentClass =
   "flex min-h-full w-full flex-col items-center [justify-content:safe_center]";
 const canvasEndSpacerClass = "h-[40px] w-px shrink-0";
@@ -75,7 +75,7 @@ export function WorkflowCanvas({
       </div>
       <ScrollArea className={canvasLaneClass}>
         {statusLabel ? (
-          <div className="top-pad-tight absolute right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] z-10">
+          <div className="top-pad-tight right-pad-relaxed @4xl:right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] absolute z-10">
             <Pill tone={statusPillClass(statusGood)}>{statusLabel}</Pill>
           </div>
         ) : null}
@@ -165,7 +165,7 @@ function WorkflowBlockCard({
         if (event.key === "Enter" || event.key === " ") onSelect();
       }}
     >
-      <div className="gap-detail-next grid">
+      <div className="gap-detail-next grid grid-cols-[minmax(0,1fr)]">
         <div className="gap-detail-next flex items-center justify-between">
           <span className="type-meta text-text-secondary uppercase">
             {index === 0 ? "Start" : "Then"}
@@ -189,7 +189,7 @@ function WorkflowBlockCard({
         {/* Title row: category icon badge + title/description */}
         <div className="gap-detail-next flex items-start">
           <WorkflowBlockTypeIcon type={block.type} className="mt-detail-fine" />
-          <div className="gap-detail-tight grid min-w-0 flex-1">
+          <div className="gap-detail-tight grid min-w-0 flex-1 wrap-anywhere">
             <strong className="type-body-em text-text-primary">{presentation.title}</strong>
             <p className="type-body text-text-primary m-0">{presentation.description}</p>
           </div>
@@ -261,7 +261,7 @@ function AttachedBlockCard({
   return (
     <div
       className={cx(
-        "border-stroke-secondary bg-surface-secondary mt-detail-close gap-detail-next rounded-soft p-margin-close grid border",
+        "border-stroke-secondary bg-surface-secondary mt-detail-close gap-detail-next rounded-soft p-margin-close grid grid-cols-[minmax(0,1fr)] border",
         block.enabled === false && "opacity-60",
       )}
     >
@@ -270,7 +270,7 @@ function AttachedBlockCard({
       </span>
       <div className="gap-detail-next flex items-start">
         <WorkflowBlockTypeIcon type={block.type} className="mt-detail-fine" />
-        <div className="gap-detail-tight grid min-w-0 flex-1">
+        <div className="gap-detail-tight grid min-w-0 flex-1 wrap-anywhere">
           <strong className="type-body-em text-text-primary">{presentation.title}</strong>
           <p className="type-body text-text-primary m-0">{presentation.description}</p>
         </div>

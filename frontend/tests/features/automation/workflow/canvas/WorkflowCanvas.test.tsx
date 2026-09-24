@@ -225,6 +225,32 @@ describe("WorkflowCanvas", () => {
     expect(screen.getByText("Attached")).toBeInTheDocument();
   });
 
+  it("keeps long block text inside block and attached cards", () => {
+    render(
+      <WorkflowCanvas
+        mode="build"
+        blocks={[
+          manualStart(),
+          {
+            ...waitBlock(),
+            attachedBlocks: [{ id: "stamp-1", type: "stamp_integritas", config: {} }],
+          },
+        ]}
+        sources={[]}
+        addressBook={[]}
+        selectedBlockId=""
+        onSelectBlock={() => {}}
+        onMoveBlock={() => {}}
+        onRemoveBlock={() => {}}
+      />,
+    );
+    for (const title of ["Manual run", "Stamp data"]) {
+      const text = screen.getByText(title).parentElement;
+      expect(text).toHaveClass("min-w-0", "wrap-anywhere");
+      expect(text?.closest(".grid-cols-\\[minmax\\(0\\,1fr\\)\\]")).not.toBeNull();
+    }
+  });
+
   it("shows validation badges from validationByBlockId", () => {
     render(
       <WorkflowCanvas

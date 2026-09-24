@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { AddressBookPanel } from "../../../src/features/address-book/AddressBookPanel";
 import { ToastProvider } from "../../../src/components/ToastProvider";
 import type { AddressBookEntry } from "../../../src/features/address-book/addressBookTypes";
@@ -86,6 +87,7 @@ describe("AddressBookPanel", () => {
     expect(within(table).getByText("Alice")).toBeInTheDocument();
     expect(within(table).getByText("Work wallet")).toBeInTheDocument();
     expect(within(table).getByText("—")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table", { name: "Address book" }));
   });
 
   it("re-sorts the list by label after adding a contact", async () => {

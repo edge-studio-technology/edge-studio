@@ -147,6 +147,7 @@ export function WalletAssetsPanel({
               {visibleColumns.map((column) => (
                 <TableHeaderCell
                   key={column.id}
+                  sticky={column.id === "actions"}
                   className={column.id === "actions" ? "w-px whitespace-nowrap" : undefined}
                 >
                   {column.label}
@@ -220,7 +221,7 @@ function WalletAssetCell({
   }
   if (columnId === "actions") {
     return (
-      <TableCell className="w-px whitespace-nowrap">
+      <TableCell sticky className="w-px whitespace-nowrap">
         <RowActions>
           <TableIconButton type="button" title="View details" aria-label={`View ${token.name}`} onClick={onView}>
             <Eye size={16} />

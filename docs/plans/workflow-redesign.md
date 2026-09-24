@@ -32,7 +32,7 @@ Implemented in the current working tree:
 Remaining / not yet strict-plan-complete:
 
 - Browser visual QA against the Figma screenshots is still needed for empty, populated, scrolled, selected-block, leave-dialog, watch, and responsive states.
-- Selected-block behavior now covers the right side of the workflow workspace with a full-height sheet over the toolkit/right rail. It is not yet animated/portal-based, and mobile full-screen sheet behavior still needs browser QA.
+- Selected-block behavior now covers the right side of the workflow workspace with a full-height sheet over the toolkit/right rail. It is not yet animated. Tablet widths were checked in #667/#694: the toolkit becomes a drawer on a narrow workspace, and the 400px sheet fills the screen only at 400px or narrower.
 - Edit-mode unsaved-leave confirmation is not implemented. Create mode has leave confirmation; watch mode remains unguarded as planned unless a protected unsaved field is introduced.
 - Drag/drop is not implemented; the workflow keeps existing click-to-add and move controls.
 
@@ -75,7 +75,7 @@ Remaining / not yet strict-plan-complete:
 - Dim the canvas behind the panel for selected-block focus, matching the Figma selected-block state.
 - Use existing inspector components (`DraftBlockInspector`, `PersistedBlockInspector`, `WatchRuntimeInspector`) as the source of behavior and validation, but restyle their wrappers and controls to match the new panel.
 - Use existing ESDS controls where possible: `Button`, `IconButton`, `InputField`, `SelectField`, `TextareaField`, `CheckboxField`, and `Modal`.
-- On mobile/tablet, make the selected-block panel behave as a full-screen modal/sheet instead of preserving the desktop right rail.
+- ~~On mobile/tablet, make the selected-block panel behave as a full-screen modal/sheet instead of preserving the desktop right rail.~~ Done differently in #694: the toolkit rail becomes a drawer on a narrow workspace, and the 400px sheet fills the screen only at 400px or narrower.
 
 **Leave confirmation** — add an unsaved-leave guard for workflow canvas routes:
 

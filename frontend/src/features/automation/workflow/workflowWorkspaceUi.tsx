@@ -268,13 +268,13 @@ export function SelectedBlockSheet({
         }}
       />
       <aside
-        className="bg-surface-always-white border-stroke-secondary absolute inset-y-0 right-0 grid h-full min-h-0 w-full max-w-[400px] grid-rows-[auto_minmax(0,1fr)_auto] border-l shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
+        className="bg-surface-always-white border-stroke-secondary absolute inset-y-0 right-0 grid h-full min-h-0 w-full max-w-[400px] grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] border-l shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
         <div className="px-margin-tight pt-margin-tight pb-detail-close gap-detail-close flex items-start justify-between">
-          <div className="gap-detail-tight grid">
+          <div className="gap-detail-tight grid min-w-0 wrap-anywhere">
             <Text.Title>{title}</Text.Title>
             {description ? <Text.Body>{description}</Text.Body> : null}
           </div>

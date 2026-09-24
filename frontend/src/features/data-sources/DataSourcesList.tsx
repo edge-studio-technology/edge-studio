@@ -218,7 +218,7 @@ export function DataSourcesList({
           <DataTable className={visibleColumnCount > 3 ? "min-w-245" : undefined}>
             <TableHead>
               {visibleColumns.map((column) => (
-                <TableHeaderCell key={column.id} className={deviceHeaderClass(column.id)}>
+                <TableHeaderCell key={column.id} sticky={column.id === "actions"} className={deviceHeaderClass(column.id)}>
                   {column.label}
                 </TableHeaderCell>
               ))}
@@ -390,7 +390,7 @@ function DeviceCell({
       source.type === "http-output" ||
       source.type === "mqtt-output";
     return (
-      <TableCell className="w-24 whitespace-nowrap">
+      <TableCell sticky className="w-24 whitespace-nowrap">
         <RowActions>
           <TableIconButton type="button" disabled={manualReadDisabled} title={disabledHardwareReason ?? "Trigger manually"} aria-label={`Trigger ${source.name} manually`} onClick={onRead}>
             <Play size={16} aria-hidden />

@@ -125,7 +125,7 @@ The branch is not ready for `dev` while an audited in-scope surface is marked un
 
 #### Async-state audit
 
-Error presentation in the table below follows the scope tiers in [docs/adr/0022](../../adr/0022-error-state-scope-tiers.md): an in-content error state when a failure leaves a region with nothing to show, an alert banner when the page still works and one slice degraded.
+Error presentation in the table below follows the scope tiers in [docs/adr/0025](../../adr/0025-error-state-scope-tiers.md): an in-content error state when a failure leaves a region with nothing to show, an alert banner when the page still works and one slice degraded.
 
 | Surface / owner | Loading | Successful empty / N/A | Error | Retry / recovery | Evidence | Disposition |
 | --- | --- | --- | --- | --- | --- | --- |

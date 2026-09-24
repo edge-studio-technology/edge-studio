@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { AutomationWorkflowsList } from "../../../src/features/automation/AutomationWorkflowsList";
 import type { AutomationWorkflow } from "../../../src/features/automation/automationTypes";
 import type { DataSource } from "../../../src/features/data-sources/dataSourceTypes";
@@ -68,6 +69,7 @@ describe("AutomationWorkflowsList", () => {
     expect(within(row).getByText("Front gate flow")).toBeInTheDocument();
     expect(within(row).getByRole("switch")).toBeChecked();
     expect(within(row).getByText("Enabled")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table"));
   });
 
   it("shows 'Never' for a workflow that has not run yet", () => {

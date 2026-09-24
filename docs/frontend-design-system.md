@@ -68,6 +68,7 @@ Migration is **incremental**, not a big-bang move:
 - Keep local class constants unexported and in the component file that uses them.
 - Prefer existing components before creating new ones.
 - Add a shared component only when the same structure or behavior appears in multiple places.
+- Use container queries (`@container` plus `@md:`, `@4xl:`, …) for regions whose width depends on the sidebar, such as the workflow workspace and the Dashboard metric grid; use viewport breakpoints everywhere else. See `docs/adr/0024-responsive-layout-strategy.md`.
 
 ## Shared Components
 
@@ -105,6 +106,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [ToggleTabs](#toggletabs): segmented toggle
 - `PinField`: segmented PIN / code field
 - `DataTable`: native table shell and row primitives (`TableWrap`, `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`, `TableIconMenu`)
+  - Pass `sticky` to the `actions` column's `TableHeaderCell` and `TableCell` to pin row actions to the right edge while the table scrolls sideways. The table must sit in `TableWrap`, or spread `useTableScrollEdges().scrollProps` on its own scroller, so the divider and shadow show; cover it with `expectRowActionsPinned()` (`frontend/tests/helpers/`) in the table's row-render test
 - `TableControls`: table toolbar shell with a utility slot for controls such as column visibility
 - `TableColumnVisibilityButton`: cog-button column chooser for `DataTable` instances
 - `StatusRow`: label / value / status row

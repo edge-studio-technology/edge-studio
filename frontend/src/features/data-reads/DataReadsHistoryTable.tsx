@@ -150,7 +150,7 @@ export function DataReadsHistoryTable({
         >
           <TableHead>
             {visibleColumns.map((column) => (
-              <TableHeaderCell key={column.id}>{column.label}</TableHeaderCell>
+              <TableHeaderCell key={column.id} sticky={column.id === "actions"}>{column.label}</TableHeaderCell>
             ))}
           </TableHead>
           <TableBody>
@@ -245,7 +245,7 @@ function ReadHistoryCell({
   }
   if (columnId === "actions") {
     return (
-      <TableCell className="w-px whitespace-nowrap">
+      <TableCell sticky className="w-px whitespace-nowrap">
         <TableIconButton
           title="View details"
           aria-label={`View details for read at ${formatLocalDateTime(item.createdAt)}`}
