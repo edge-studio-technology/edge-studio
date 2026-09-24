@@ -4,26 +4,6 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] feature/667-responsive-application
-
-### Changed
-
-- Dashboard metric cards switch between one, two, and three columns based on the space available beside the sidebar.
-- The status bar clock wraps to a second row on narrow screens instead of crowding the status pills.
-- Dashboard live activity rows show the time and status on one line under the message on narrow screens.
-- Minima console toolbar buttons are larger on screens narrower than 1024px.
-- Row actions stay pinned to the right edge of every table while the other columns scroll sideways.
-- A divider and edge shadow mark the pinned row actions while other columns are scrolled behind them.
-- Below 1024px wide, an expanded sidebar overlays the page and closes on navigation, Escape, or a click outside.
-- When the workflow workspace is narrow, the toolkit and watch-mode run controls open as a drawer from a Toolkit button in the top bar.
-- The workflow toolkit drawer closes when a block is added, on Escape, or on a click outside.
-
-### Fixed
-
-- Long block descriptions, such as source URLs, no longer push the workflow block settings sheet content out of view.
-- Long block descriptions, such as source URLs, wrap inside workflow canvas block cards instead of overflowing them.
-- The workflow top bar stacks on a narrow workspace with the name field keeping a minimum width and the buttons aligned left.
-
 ## [Unreleased]
 
 ### Security
@@ -92,6 +72,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Dashboard metric cards showing `Unavailable` are no longer coloured as errors.
 - Minima backups, the Minima console whitelist, the receive-address dialog, release notes, and the update check now use the same loading and error states as the rest of the app instead of a bare spinner and a red text line.
 - The Dashboard next-step card, the receive-address dialog, release notes, the Minima console whitelist, and the Minima backup list can now be retried in place instead of requiring a page refresh.
+- Dashboard metric cards switch between one, two, and three columns based on the space available beside the sidebar.
+- The status bar clock wraps to a second row on narrow screens instead of crowding the status pills.
+- Dashboard live activity rows show the time and status on one line under the message on narrow screens.
+- Minima console toolbar buttons are larger on screens narrower than 1024px.
+- Row actions stay pinned to the right edge of every table while the other columns scroll sideways.
+- A divider and edge shadow mark the pinned row actions while other columns are scrolled behind them.
+- Below 1024px wide, an expanded sidebar overlays the page and closes on navigation, Escape, or a click outside.
+- When the workflow workspace is narrow, the toolkit and watch-mode run controls open as a drawer from a Toolkit button in the top bar.
+- The workflow toolkit drawer closes when a block is added, on Escape, or on a click outside.
 
 ### Fixed
 
@@ -104,6 +93,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Diagnostics, Workflows, Wallet, Address book, and Minima status/settings no longer show empty, zero, unavailable, or indefinitely loading content after failed requests.
 - Integritas and software update status checks now settle failures and provide Retry actions.
 - Wallet history and contacts no longer appear to keep loading when Minima actions are unavailable.
+- Long block descriptions, such as source URLs, no longer push the workflow block settings sheet content out of view.
+- Long block descriptions, such as source URLs, wrap inside workflow canvas block cards instead of overflowing them.
+- The workflow top bar stacks on a narrow workspace with the name field keeping a minimum width and the buttons aligned left.
 
 ## [0.41.0] 2026-09-14
 
