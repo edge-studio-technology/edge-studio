@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { WorkflowWorkspaceShell } from "../../../../../src/features/automation/workflow/chrome/WorkflowWorkspaceShell";
@@ -71,5 +71,65 @@ describe("WorkflowWorkspaceShell", () => {
     });
     expect(screen.getByText("Selected sheet")).toBeInTheDocument();
     expect(screen.getByText("Bottom overlay")).toBeInTheDocument();
+  });
+
+  describe("rail drawer", () => {
+    const toggle = () => screen.getByRole("button", { name: "Toolkit" });
+    const rail = () => document.getElementById("workflow-rail");
+
+    it("starts closed and toggles open with aria-expanded", () => {
+      renderShell();
+      expect(toggle()).toHaveAttribute("aria-expanded", "false");
+      expect(rail()).toHaveAttribute("data-open", "false");
+      fireEvent.click(toggle());
+      expect(toggle()).toHaveAttribute("aria-expanded", "true");
+      expect(rail()).toHaveAttribute("data-open", "true");
+      fireEvent.click(toggle());
+      expect(rail()).toHaveAttribute("data-open", "false");
+    });
+
+    it("closes on Escape", () => {
+      renderShell();
+      fireEvent.click(toggle());
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(rail()).toHaveAttribute("data-open", "false");
+    });
+
+    it("closes on a click outside", () => {
+      renderShell();
+      fireEvent.click(toggle());
+      fireEvent.pointerDown(screen.getByTestId("workflow-rail-backdrop"));
+      expect(rail()).toHaveAttribute("data-open", "false");
+      expect(screen.queryByTestId("workflow-rail-backdrop")).not.toBeInTheDocument();
+    });
+
+    it("closes when a block sheet opens, e.g. after adding a block", () => {
+      const props = {
+        breadcrumbLabel: "New workflow",
+        nameControl: <input aria-label="Workflow name" />,
+        canvas: <div>Canvas</div>,
+        rail: <div>Rail</div>,
+      };
+      const { rerender } = render(
+        <MemoryRouter>
+          <WorkflowWorkspaceShell {...props} />
+        </MemoryRouter>,
+      );
+      fireEvent.click(toggle());
+      rerender(
+        <MemoryRouter>
+          <WorkflowWorkspaceShell {...props} selectedSheet={<div>Sheet</div>} />
+        </MemoryRouter>,
+      );
+      expect(rail()).toHaveAttribute("data-open", "false");
+    });
+
+    it("uses the given toggle label", () => {
+      renderShell({ railLabel: "Controls" });
+      expect(screen.getByRole("button", { name: "Controls" })).toHaveAttribute(
+        "aria-controls",
+        "workflow-rail",
+      );
+    });
   });
 });

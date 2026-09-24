@@ -355,6 +355,7 @@ export function WorkflowWorkspace({
   return (
     <WorkflowWorkspaceShell
       breadcrumbLabel={mode === "watch" ? "Watch workflow" : "Edit workflow"}
+      railLabel={mode === "watch" ? "Controls" : undefined}
       nameControl={
         mode === "edit" ? (
           <InputField
