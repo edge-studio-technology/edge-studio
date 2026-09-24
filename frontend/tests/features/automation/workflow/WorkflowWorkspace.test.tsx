@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -239,6 +239,11 @@ describe("WorkflowWorkspace edit mode", () => {
     const nameField = screen.getByRole("textbox", { name: "Workflow name" });
     await user.type(nameField, "!");
 
+    const dialog = screen.getByRole("dialog", { name: "Editing will pause this workflow." });
+    expect(dialog).toBeInTheDocument();
+    const backdrop = dialog.parentElement?.parentElement;
+    expect(backdrop).toHaveClass("z-[90]");
+    fireEvent.mouseDown(backdrop!);
     expect(screen.getByRole("dialog", { name: "Editing will pause this workflow." })).toBeInTheDocument();
     expect(nameField).toHaveValue("Front gate flow");
     expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ enabled: false });

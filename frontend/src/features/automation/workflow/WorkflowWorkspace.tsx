@@ -663,6 +663,8 @@ export function WorkflowWorkspace({
       <Modal
         title="Editing will pause this workflow."
         description="It will not run until you resume it."
+        closeOnOutsideClick={false}
+        layer="top"
         onClose={() => setPendingEditAction(null)}
         closeDisabled={busy}
         footer={
