@@ -197,6 +197,19 @@ describe("SelectedBlockSheet", () => {
     await userEvent.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("keeps long content inside the sheet width", () => {
+    render(
+      <SelectedBlockSheet title="Fetch" description="https://example.com/a/very/long/path" onClose={vi.fn()}>
+        <p>Body</p>
+      </SelectedBlockSheet>,
+    );
+    expect(screen.getByRole("dialog", { name: "Fetch" })).toHaveClass("grid-cols-[minmax(0,1fr)]");
+    expect(screen.getByText("https://example.com/a/very/long/path").parentElement).toHaveClass(
+      "min-w-0",
+      "wrap-anywhere",
+    );
+  });
 });
 
 describe("InspectorSection", () => {
