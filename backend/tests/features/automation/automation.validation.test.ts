@@ -102,6 +102,10 @@ function expectNoError(result: { errors: { code: string }[] }, code: string) {
   assert.ok(!result.errors.some((e) => e.code === code), `did not expect error ${code}, got: ${JSON.stringify(result.errors)}`);
 }
 
+function expectWarning(result: { warnings: { code: string }[] }, code: string) {
+  assert.ok(result.warnings.some((w) => w.code === code), `expected warning ${code}, got: ${JSON.stringify(result.warnings)}`);
+}
+
 describe("validateAutomationDraft — workflow shape", () => {
   it("errors when there are no blocks", async () => {
     const result = await validation.validateAutomationDraft([]);
@@ -533,17 +537,18 @@ describe("validateAutomationDraft — capture_camera", () => {
 });
 
 describe("validateAutomationDraft — send_transaction wallet balance", () => {
-  it("errors when the wallet has no native token", async () => {
+  it("warns when the wallet has no native token", async () => {
     getAddressBookEntryByIdMock.mockReturnValue({ id: "r1", label: "R", address: "0xabc" });
     getWalletStatusMock.mockResolvedValue({ checkedAt: "now", tokens: [] });
     const result = await validation.validateAutomationDraft([
       manualStart(),
       block({ clientId: "2", type: "send_transaction", config: { recipientAddressBookId: "r1", tokenId: "0x00", amount: "1" } })
     ]);
-    expectError(result, "send_transaction.no_native_balance");
+    expectWarning(result, "send_transaction.no_native_balance");
+    assert.equal(result.ok, true);
   });
 
-  it("errors when the amount exceeds the sendable balance", async () => {
+  it("warns when the amount exceeds the sendable balance", async () => {
     getAddressBookEntryByIdMock.mockReturnValue({ id: "r1", label: "R", address: "0xabc" });
     getWalletStatusMock.mockResolvedValue({
       checkedAt: "now",
@@ -553,7 +558,8 @@ describe("validateAutomationDraft — send_transaction wallet balance", () => {
       manualStart(),
       block({ clientId: "2", type: "send_transaction", config: { recipientAddressBookId: "r1", tokenId: "0x00", amount: "5" } })
     ]);
-    expectError(result, "send_transaction.insufficient_balance");
+    expectWarning(result, "send_transaction.insufficient_balance");
+    assert.equal(result.ok, true);
   });
 
   it("passes when the amount is within the sendable balance", async () => {
@@ -569,15 +575,16 @@ describe("validateAutomationDraft — send_transaction wallet balance", () => {
     expectNoError(result, "send_transaction.insufficient_balance");
   });
 
-  it("errors when the wallet balance check throws", async () => {
+  it("warns when the wallet balance check throws", async () => {
     getAddressBookEntryByIdMock.mockReturnValue({ id: "r1", label: "R", address: "0xabc" });
     getWalletStatusMock.mockRejectedValue(new Error("RPC down"));
     const result = await validation.validateAutomationDraft([
       manualStart(),
       block({ clientId: "2", type: "send_transaction", config: { recipientAddressBookId: "r1", tokenId: "0x00", amount: "5" } })
     ]);
-    expectError(result, "send_transaction.wallet_unavailable");
-    assert.match(result.errors.find((e) => e.code === "send_transaction.wallet_unavailable")?.message ?? "", /RPC down/);
+    expectWarning(result, "send_transaction.wallet_unavailable");
+    assert.match(result.warnings.find((w) => w.code === "send_transaction.wallet_unavailable")?.message ?? "", /RPC down/);
+    assert.equal(result.ok, true);
   });
 });
 

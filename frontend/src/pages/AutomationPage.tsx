@@ -93,7 +93,6 @@ export function AutomationPage() {
   const [inboxItems, setInboxItems] = useState<AutomationInboxItem[]>([]);
   const [name, setName] = useState("");
   const [createInitialName, setCreateInitialName] = useState("");
-  const [enabled, setEnabled] = useState(true);
   const flow = useMemo(
     () =>
       automationFlowFromRoute(location.pathname, {
@@ -126,7 +125,6 @@ export function AutomationPage() {
     const nextName = defaultCreateWorkflowName();
     setCreateInitialName(nextName);
     setName(nextName);
-    setEnabled(true);
   }, [flow.mode]);
 
   useEffect(() => {
@@ -217,7 +215,6 @@ export function AutomationPage() {
       const nextName = defaultCreateWorkflowName();
       setCreateInitialName(nextName);
       setName(nextName);
-      setEnabled(true);
       navigate("/workflows/new");
     } else if (nextFlow.mode === "edit")
       navigate(`/workflows/${encodeURIComponent(nextFlow.workflowId)}/edit`);
@@ -291,10 +288,11 @@ export function AutomationPage() {
   ): Promise<boolean> {
     setBusy(true);
     try {
-      const response = await createAutomationWorkflow({ name, enabled, blocks });
+      await createAutomationWorkflow({ name, enabled: false, blocks });
       setName("");
       await refresh();
-      navigateFlow({ mode: "edit", workflowId: response.item.id });
+      showToast({ tone: "success", title: "Workflow created" });
+      navigateFlow({ mode: "list" });
       return true;
     } catch (err) {
       showToast({
@@ -331,13 +329,11 @@ export function AutomationPage() {
         <CreateWorkflowWorkspace
           name={name}
           initialName={createInitialName}
-          enabled={enabled}
           sources={sources}
           addressBook={addressBook}
           walletStatus={walletStatus}
           busy={busy}
           onNameChange={setName}
-          onEnabledChange={setEnabled}
           onCancel={() => navigateFlow({ mode: "list" })}
           onCreate={submitWorkflow}
           onCreateAddressBookEntry={createWorkflowRecipient}

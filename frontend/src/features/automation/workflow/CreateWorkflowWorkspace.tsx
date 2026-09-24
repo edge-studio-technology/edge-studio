@@ -55,26 +55,22 @@ type CreateWorkflowBlocks = {
 export function CreateWorkflowWorkspace({
   name,
   initialName,
-  enabled,
   sources,
   addressBook,
   walletStatus,
   busy,
   onNameChange,
-  onEnabledChange,
   onCancel,
   onCreate,
   onCreateAddressBookEntry,
 }: {
   name: string;
   initialName: string;
-  enabled: boolean;
   sources: DataSource[];
   addressBook: AddressBookEntry[];
   walletStatus: WalletStatus | null;
   busy: boolean;
   onNameChange: (value: string) => void;
-  onEnabledChange: (value: boolean) => void;
   onCancel: () => void;
   /** Return `false` when create fails so leave-blocking stays on. */
   onCreate: (blocks: CreateWorkflowBlocks) => void | boolean | Promise<void | boolean>;
@@ -350,8 +346,6 @@ export function CreateWorkflowWorkspace({
                 canAddRecordTriggerEvent={canAddRecordTriggerEvent}
                 canAddSendPayment
                 sources={sources}
-                enabled={enabled}
-                onEnabledChange={onEnabledChange}
                 onSelectStartBlock={selectStartBlock}
                 onAddBlock={addDraftBlock}
               />
@@ -364,8 +358,8 @@ export function CreateWorkflowWorkspace({
             blocks={draftBlocks}
             sources={sources}
             addressBook={addressBook}
-            statusLabel={enabled ? "Enabled on create" : "Paused on create"}
-            statusGood={enabled}
+            statusLabel="Paused on create"
+            statusGood={false}
             selectedBlockId={selectedBlock?.id ?? ""}
             validationByBlockId={draftValidationByBlockId}
             onSelectBlock={(id) => {
