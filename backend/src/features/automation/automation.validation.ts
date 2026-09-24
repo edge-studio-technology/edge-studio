@@ -402,18 +402,18 @@ async function validateTransactionBalances(blocks: ValidationBlock[], issues: Au
     const wallet = await getWalletStatus();
     const nativeToken = wallet.tokens.find((token) => token.isNative || token.tokenId.toLowerCase() === "0x00");
     if (!nativeToken) {
-      for (const block of transactionBlocks) addIssue(issues, "error", "send_transaction.no_native_balance", "Wallet does not report a native MINIMA balance.", block);
+      for (const block of transactionBlocks) addIssue(issues, "warning", "send_transaction.no_native_balance", "Wallet does not report a native MINIMA balance.", block);
       return;
     }
     for (const block of transactionBlocks) {
       const amount = String(block.config.amount ?? "").trim();
       if (isPositiveDecimal(amount) && compareDecimalStrings(amount, nativeToken.sendable) > 0) {
-        addIssue(issues, "error", "send_transaction.insufficient_balance", `Amount exceeds available balance (${nativeToken.sendable} MINIMA).`, block);
+        addIssue(issues, "warning", "send_transaction.insufficient_balance", `Amount exceeds available balance (${nativeToken.sendable} MINIMA).`, block);
       }
     }
   } catch (error) {
     for (const block of transactionBlocks) {
-      addIssue(issues, "error", "send_transaction.wallet_unavailable", `Wallet balance could not be checked: ${error instanceof Error ? error.message : "unknown error"}.`, block);
+      addIssue(issues, "warning", "send_transaction.wallet_unavailable", `Wallet balance could not be checked: ${error instanceof Error ? error.message : "unknown error"}.`, block);
     }
   }
 }
