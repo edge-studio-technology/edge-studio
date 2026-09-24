@@ -52,7 +52,7 @@ describe("DataSourcesList", () => {
     renderList({ onSetupDevice });
     expect(screen.getByText("Connect your first device")).toBeInTheDocument();
 
-    await userEvent.click(screen.getAllByRole("button", { name: "Setup device" })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: "New device" })[0]);
     expect(onSetupDevice).toHaveBeenCalled();
   });
 

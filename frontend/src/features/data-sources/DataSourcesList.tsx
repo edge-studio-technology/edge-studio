@@ -164,7 +164,7 @@ export function DataSourcesList({
           actions={
             onSetupDevice ? (
               <Button type="button" iconStart={<Plus aria-hidden />} onClick={onSetupDevice}>
-                Setup device
+                New device
               </Button>
             ) : undefined
           }
@@ -189,7 +189,7 @@ export function DataSourcesList({
               ? "Try another direction or search, or clear filters."
               : "Your input sources and output targets will be added to your library here."
           }
-          actionLabel={filtersActive ? "Clear filters" : onSetupDevice ? "Setup device" : undefined}
+          actionLabel={filtersActive ? "Clear filters" : onSetupDevice ? "New device" : undefined}
           actionIcon={filtersActive ? undefined : onSetupDevice ? <Plus aria-hidden /> : undefined}
           actionVariant={filtersActive ? "secondary" : "primary"}
           onAction={filtersActive ? clearFilters : onSetupDevice}

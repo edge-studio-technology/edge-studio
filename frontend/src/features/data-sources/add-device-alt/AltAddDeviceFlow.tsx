@@ -19,6 +19,8 @@ type WizardOption = {
   action: () => void;
 };
 
+const setupDeviceModalClassName = "h-[min(90vh,760px)]";
+
 const environmentalSensorOption: DataSourceTemplate = {
   title: "BME280 / BME680 Environmental Sensor",
   description: "Read temperature, humidity, pressure, and BME680 gas resistance over I2C",
@@ -104,6 +106,7 @@ export function AltAddDeviceFlow({
         closeDisabled={saving}
         onClose={onClose}
         width="wide"
+        className={setupDeviceModalClassName}
         footer={
           <>
             <Button
@@ -133,6 +136,7 @@ export function AltAddDeviceFlow({
       title={<SetupDeviceBreadcrumb step={step} />}
       onClose={onClose}
       width="wide"
+      className={setupDeviceModalClassName}
       bodyClassName="min-h-0 flex-1"
       footer={
         step === "root" ? (
@@ -163,7 +167,7 @@ function SetupDevicePicker({ step, options }: { step: WizardStep; options: Wizar
           <button
             key={option.title}
             type="button"
-            className="border-stroke-secondary bg-surface-primary hover:border-stroke-primary rounded-soft gap-detail-close flex h-full flex-col border p-pad-tight text-left transition-colors"
+            className="border-stroke-secondary bg-surface-primary hover:border-stroke-primary rounded-soft gap-detail-close flex h-full cursor-pointer flex-col border p-pad-tight text-left transition-colors"
             onClick={option.action}
           >
             <option.icon className="text-icon-primary size-6 shrink-0" aria-hidden />

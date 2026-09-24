@@ -441,7 +441,7 @@ export function DataSourcesPage() {
       desc="Add input sources for data and events, and output targets for workflows."
     >
       {/* "Add devices" card disabled for v1 — its actions moved next to the device list's
-      filter bar (Setup device), making this separate card redundant.
+      filter bar (New device), making this separate card redundant.
       <Card className="gap-detail-near grid w-full">
         <div>
           <h2 className="type-title text-text-primary m-0">Add devices</h2>
@@ -451,7 +451,7 @@ export function DataSourcesPage() {
           </p>
         </div>
         <ButtonRow>
-          <Button onClick={() => setSetupDeviceOpen(true)}>Setup device</Button>
+          <Button onClick={() => setSetupDeviceOpen(true)}>New device</Button>
         </ButtonRow>
       </Card> */}
 
