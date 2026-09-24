@@ -15,6 +15,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Row actions stay pinned to the right edge of every table while the other columns scroll sideways.
 - A divider and edge shadow mark the pinned row actions while other columns are scrolled behind them.
 - Below 1024px wide, an expanded sidebar overlays the page and closes on navigation, Escape, or a click outside.
+- When the workflow workspace is narrow, the toolkit and watch-mode run controls open as a drawer from a Toolkit button in the top bar.
+- The workflow toolkit drawer closes when a block is added, on Escape, or on a click outside.
+
+### Fixed
+
+- Long block descriptions, such as source URLs, no longer push the workflow block settings sheet content out of view.
 
 ## [Unreleased]
 

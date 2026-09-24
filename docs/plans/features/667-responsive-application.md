@@ -1,6 +1,6 @@
 # Responsive Application Plan
 
-**Status:** In progress — everything except #694 done; #694 blocked on co-worker sync
+**Status:** Done — all tasks built; #694 awaiting ticket move
 **Created:** 2026-09-23
 **Branch:** `feature/667-responsive-application`
 **Decision record:** `docs/adr/0024-responsive-layout-strategy.md`
@@ -12,7 +12,7 @@ OpenProject feature **#667 Responsive application** (status *In specification*).
 
 | Ticket | Type | Title | Status | Section |
 | --- | --- | --- | --- | --- |
-| #694 | Dev Task | Make create/edit workflow usable below 360 | Blocked | [1](#1-workflow-createedit-694) |
+| #694 | Dev Task | Make create/edit workflow usable below 360 | In progress (built) | [1](#1-workflow-createedit-694) |
 | #695 | Dev Task | Dashboard metric cards stack to one column | Ready for Deployment | [2](#2-dashboard-metric-grid-695) |
 | #696 | Dev Task | List toolbar looks broken on tablet | Done | [3](#3-list-toolbars-696--done) |
 | #697 | Task | Row actions disappear on tablet | Ready for Deployment | [4](#4-wide-tables-697) |
@@ -32,7 +32,7 @@ OpenProject feature **#667 Responsive application** (status *In specification*).
 - [x] #701 Hardware modal / Account page — verified at 768 and 1024, no change needed (§8)
 - [x] Sidebar overlay below 1024 (new task, not yet on OpenProject) — built, with a test keeping `EXPAND_MQ` in sync with Tailwind's `lg` (§10)
 - [x] #269 Regression tests — unit tests plus the manual matrix (§9)
-- [ ] #694 Workflow create/edit — **deferred to last**; blocked on co-worker sync (see [Deferred: workflow workspace](#deferred-workflow-workspace-694))
+- [x] #694 Workflow create/edit — toolkit drawer below the workspace breakpoint (§1)
 
 ## Context
 
@@ -60,7 +60,7 @@ Per-area findings are listed in each section below.
 
 ### 1. Workflow create/edit (#694)
 
-> **Deferred to last.** Do not start until the co-worker sync in [Deferred: workflow workspace](#deferred-workflow-workspace-694) has happened. The approach below is the starting point, to be re-checked against whatever has landed on those files by then.
+> **Deferred to last**, started after the co-worker sync on 2026-09-24.
 
 **Current:** In `WorkflowWorkspaceShell.tsx`, `rightRailClass` is `absolute … w-[360px]` and always rendered. `WorkflowCanvas.tsx` reserves space for it with `pr-[calc(360px+…)]` on the lane and on the status pill, and the shell's `bottom` slot uses `right-[calc(360px+…)]`. `SelectedBlockSheet` (`workflowWorkspaceUi.tsx`) is a portal with `fixed inset-0 z-[70]`, `max-w-[400px]`, and covers the sidebar too. Both `CreateWorkflowWorkspace.tsx` and `WorkflowWorkspace.tsx` use this shell. At 1024 with the sidebar expanded, the canvas gets ~344px.
 
@@ -69,9 +69,11 @@ Per-area findings are listed in each section below.
 - Make the workspace a container (`@container` on `workspaceClass`) and switch rail behaviour on the **workspace width**, not the viewport. This fixes 1024+expanded-sidebar and 768 with one rule.
 - Wide workspace: unchanged. The rail stays pinned and the canvas keeps its right padding.
 - Narrow workspace: the rail becomes a right-side overlay drawer, closed by default. A "Toolkit" toggle button goes in the top-bar actions. The canvas, status pill, and `bottom` slot drop the 360px reservation. The drawer closes after a block is added so the new block is visible.
-- Narrow: `SelectedBlockSheet` becomes `w-full` (no `max-w-[400px]`). It stays a portal because it must cover the drawer.
+- ~~Narrow: `SelectedBlockSheet` becomes `w-full` (no `max-w-[400px]`).~~ Reverted after QA: the sheet keeps `w-full max-w-[400px]`, so it fills the screen only at 400px or narrower. It stays a portal because it must cover the drawer.
 - The only new state is `toolkitOpen` in the shell (or passed from the two workspaces if they need to close it on add). No shared component is needed.
 - Tests: extend `tests/features/automation/workflow/chrome/` and `workflowWorkspaceUi.test.tsx` for the toggle (opens/closes, `aria-expanded`, closes on add). happy-dom does not evaluate container queries, so layout switching is covered by manual QA.
+
+**Built:** `@container` on the shell `<section>`; the rail pins at `@4xl` (896px workspace width) and is a drawer below it, with a `Toolkit` toggle (`aria-expanded`, `aria-controls`) first in the top-bar actions and a backdrop. The shell owns the open state and closes the drawer when a block sheet opens (every add selects the new block), on Escape, and on a backdrop click. The canvas lane, status pill, and `bottom` slot reserve the 360px only at `@4xl`. The watch rail uses the same drawer and label. Also fixed on the way: long sheet descriptions (source URLs) widened the sheet's grid past 400px; the sheet now uses `grid-cols-[minmax(0,1fr)]` and wraps its header text. Tests: 5 drawer tests in `WorkflowWorkspaceShell.test.tsx` and a sheet class guard in `workflowWorkspaceUi.test.tsx`.
 
 Watch mode (`WorkflowWatchUi.tsx`) shares the shell. The ticket keeps it out of scope "unless it shares the same shell and breaks". It does share the shell, so the rail change applies to it automatically. Check it manually; no watch-specific work.
 
@@ -127,7 +129,9 @@ Tests: in each table's existing test, assert that the actions cells carry the st
 
 **Built:** `AppShellSidebar.test.tsx` adds an explicit expand at ≥1024 and an accessible name on every `nav` link when collapsed. The below-1024 collapse and overlay tests (§10), the sticky row-action guard (§4), and the console exit/Escape tests (§7) already existed.
 
-**Manual matrix (2026-09-23):** Dashboard, Minima, Wallet, Integritas, Devices, Workflows (list), Diagnostics, Marketplace, and Settings at 1280x800, 1024x768 with the sidebar expanded and collapsed, and 768x1024. No page-level horizontal overflow outside table scrollers, and the status bar stayed on one row everywhere. Workflow create/edit is left for #694.
+**Manual matrix (2026-09-23):** Dashboard, Minima, Wallet, Integritas, Devices, Workflows (list), Diagnostics, Marketplace, and Settings at 1280x800, 1024x768 with the sidebar expanded and collapsed, and 768x1024. No page-level horizontal overflow outside table scrollers, and the status bar stayed on one row everywhere.
+
+**Workflow routes (2026-09-24, #694):** create, edit, and watch at the same sizes. 1280 and 1024 with the sidebar collapsed: rail pinned, no toggle. 1024 with the sidebar expanded and 768: drawer closed by default, Toolkit toggle shown, canvas without the 360px reservation. Adding a block closes the drawer and opens a 400px sheet. No page-level horizontal overflow.
 
 ### 10. Sidebar overlay below 1024 (new task)
 
@@ -140,7 +144,7 @@ All resolved 2026-09-23; rationale in `docs/adr/0024-responsive-layout-strategy.
 1. **Target floor:** 1024x768 is the primary target and 768 wide is the layout floor. Below 768 the app must only "not break"; no dedicated layouts.
 2. **Container vs viewport queries:** container queries for the regions whose width depends on the sidebar (workflow workspace, metric grid, Hardware support modal); viewport breakpoints everywhere else.
 3. **Sidebar:** a sidebar the operator expands below 1024 overlays the content (new task, §10). `EXPAND_MQ` stays at 1024.
-4. **#694 drawer:** a right-side overlay drawer with a top-bar "Toolkit" toggle. It closes after a block is added, on Escape, and on a click outside. The block settings sheet goes full-width. The title "below 360" means "below 1024"; note this in a ticket comment and leave the title unchanged.
+4. **#694 drawer:** a right-side overlay drawer with a top-bar "Toolkit" toggle. It closes after a block is added, on Escape, and on a click outside. The block settings sheet keeps 400px and fills the screen only when the screen is narrower (changed from full-width after QA). The title "below 360" means "below 1024"; note this in a ticket comment and leave the title unchanged.
 5. **#697:** sticky `actions` column via the shared `DataTable` primitive, applied to every table with a row-action column (11, including the 7 `min-w-245` tables). No sticky first column. `min-w-245` stays.
 6. **#698:** the clock wraps to a second row; it is never hidden.
 7. **#269:** unit tests for behaviour plus a manual viewport matrix. 375px, mobile nav, and Playwright are dropped.

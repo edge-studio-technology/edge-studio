@@ -11,6 +11,10 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Browser sanity-checked every change at 500–1280px, including sidebar overlay close paths, console fullscreen exit, and pinned actions after scrolling on Devices, Workflows, and Diagnostics history.
 - Verified the full frontend suite (1564 tests) and `tsc --noEmit`.
 - Moved #695, #697, #698, #699, #700, #269 to Ready for Deployment and #694 to Blocked; commented the #697 decision and proposed a sidebar-overlay ticket on #667.
+- Built #694: the workflow toolkit (and watch run controls) becomes a drawer with a Toolkit toggle when the workspace is under 896px, closing on block add, Escape, or a click outside; the canvas drops its 360px reservation there.
+- Fixed long block descriptions (source URLs) pushing the block settings sheet content out of view.
+- Kept the block settings sheet at 400px on tablet widths after QA, replacing the planned full-width sheet; updated ADR 0024 and the plan.
+- Checked create, edit, and watch at 1280, 1024 (sidebar expanded and collapsed), and 768 in the browser; workflow tests 332/332 and `tsc` pass.
 - Merged current `dev` into task 705 and confirmed the branch's retention, redaction, migration, budgets, rate limits, and Docker rotation changes remained intact.
 - Audited the task 705 implementation and corrected retention catch-up so repeated 500-row batches drain eligible backlogs in one startup/hourly sweep.
 - Recorded the stored-record classification in ADR 0023, linked the amendment from ADR 0022 and the task plan, and posted the decision and implementation steps to OpenProject #705.
@@ -26,7 +30,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- #694 workflow create/edit, after the co-worker sync.
+- Comment on #694 and move it to Ready for Deployment (awaiting go-ahead).
 - Separate task: table drift left from #697 (watch history double scroller, peers table `<div>` header, backups onto `TableWrap`).
 - Complete the manual container/Pi checks in `docs/plans/security/705-retention-redaction-budgets.md`, including existing-installation Docker log rotation.
 - Define the product lifecycle for preserved data-source reads and visible inbox items, covering configuration, export, proof-linked reads, quotas, and disk warnings.

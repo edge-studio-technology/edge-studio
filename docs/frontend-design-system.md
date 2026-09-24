@@ -68,6 +68,7 @@ Migration is **incremental**, not a big-bang move:
 - Keep local class constants unexported and in the component file that uses them.
 - Prefer existing components before creating new ones.
 - Add a shared component only when the same structure or behavior appears in multiple places.
+- Use container queries (`@container` plus `@md:`, `@4xl:`, …) for regions whose width depends on the sidebar, such as the workflow workspace and the Dashboard metric grid; use viewport breakpoints everywhere else. See `docs/adr/0024-responsive-layout-strategy.md`.
 
 ## Shared Components
 

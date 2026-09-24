@@ -46,7 +46,7 @@ in the app used them before this decision. happy-dom does not evaluate layout, m
   because local/UTC time supports workflow scheduling.
 - **Workflow toolkit drawer.** Below the workspace container breakpoint, the toolkit rail becomes a
   right-side overlay drawer toggled from the top bar. The drawer closes after a block is added. The
-  selected-block sheet goes full-width.
+  selected-block sheet keeps its 400px width and fills the screen only when the screen is narrower.
 - **Tests.** Unit tests cover behaviour: toggles, `aria-expanded`, sticky classes, and sidebar
   `matchMedia`. Layout is verified manually at 1280x800, 1024x768 (sidebar expanded and
   collapsed), and 768x1024.
