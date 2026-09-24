@@ -29,7 +29,6 @@ import {
 } from "../features/data-sources/dataSourcesApi";
 import { buildDeviceConfigInput } from "../features/data-sources/buildDeviceConfig";
 import { AltAddDeviceFlow } from "../features/data-sources/add-device-alt/AltAddDeviceFlow";
-import { ClassicAddDeviceFlow } from "../features/data-sources/add-device-classic/ClassicAddDeviceFlow";
 import { DataSourceForm, isDataSourceFormValid } from "../features/data-sources/DataSourceForm";
 import { DataSourcesList } from "../features/data-sources/DataSourcesList";
 import { LocalServicesCard } from "../features/data-sources/DataSourceTemplates";
@@ -47,8 +46,6 @@ import {
 import { Esp32FirmwareSetup } from "../features/data-sources/Esp32FirmwareSetup";
 import { useDeviceFormFields } from "../features/data-sources/useDeviceFormFields";
 
-/** Flip to "classic" to compare against the previous add-device flow before it is removed. */
-const ADD_DEVICE_FLOW: "alt" | "classic" = "alt";
 const HARDWARE_REFRESH_TIMEOUT_MS = 30000;
 const MQTT_HARDWARE_REFRESH_TIMEOUT_MS = 90000;
 const HARDWARE_REFRESH_INTERVAL_MS = 1000;
@@ -69,7 +66,7 @@ export function DataSourcesPage() {
   const [hostCapabilities, setHostCapabilities] = useState<HostCapability[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
-  const [addDeviceMode, setAddDeviceMode] = useState<"input" | "output" | null>(null);
+  const [setupDeviceOpen, setSetupDeviceOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const editForm = useDeviceFormFields();
@@ -116,7 +113,7 @@ export function DataSourcesPage() {
   }
 
   function handleDeviceCreated(source: DataSource) {
-    setAddDeviceMode(null);
+    setSetupDeviceOpen(false);
     refresh();
     if (getDeviceSetupGuide(source)) setSetupGuideSource(source);
   }
@@ -444,7 +441,7 @@ export function DataSourcesPage() {
       desc="Add input sources for data and events, and output targets for workflows."
     >
       {/* "Add devices" card disabled for v1 — its actions moved next to the device list's
-      filter bar (New input / New output), making this separate card redundant.
+      filter bar (Setup device), making this separate card redundant.
       <Card className="gap-detail-near grid w-full">
         <div>
           <h2 className="type-title text-text-primary m-0">Add devices</h2>
@@ -454,10 +451,7 @@ export function DataSourcesPage() {
           </p>
         </div>
         <ButtonRow>
-          <Button onClick={() => setAddDeviceMode("input")}>Add input source</Button>
-          <Button variant="secondary" onClick={() => setAddDeviceMode("output")}>
-            Add output target
-          </Button>
+          <Button onClick={() => setSetupDeviceOpen(true)}>Setup device</Button>
         </ButtonRow>
       </Card> */}
 
@@ -477,23 +471,13 @@ export function DataSourcesPage() {
         onRefreshHardware={refreshHardwareStatus}
       />
 
-      {ADD_DEVICE_FLOW === "alt" ? (
-        <AltAddDeviceFlow
-          mode={addDeviceMode}
-          capabilities={capabilities}
-          hostCapabilities={hostCapabilities}
-          onClose={() => setAddDeviceMode(null)}
-          onCreated={handleDeviceCreated}
-        />
-      ) : (
-        <ClassicAddDeviceFlow
-          mode={addDeviceMode}
-          capabilities={capabilities}
-          hostCapabilities={hostCapabilities}
-          onClose={() => setAddDeviceMode(null)}
-          onCreated={handleDeviceCreated}
-        />
-      )}
+      <AltAddDeviceFlow
+        open={setupDeviceOpen}
+        capabilities={capabilities}
+        hostCapabilities={hostCapabilities}
+        onClose={() => setSetupDeviceOpen(false)}
+        onCreated={handleDeviceCreated}
+      />
 
       {formOpen && (
         <Modal
@@ -594,8 +578,7 @@ export function DataSourcesPage() {
           onOpenSetupGuide={setSetupGuideSource}
           onEdit={editSource}
           onDelete={setDeleteTarget}
-          onAddInput={() => setAddDeviceMode("input")}
-          onAddOutput={() => setAddDeviceMode("output")}
+          onSetupDevice={() => setSetupDeviceOpen(true)}
         />
       )}
     </Page>
