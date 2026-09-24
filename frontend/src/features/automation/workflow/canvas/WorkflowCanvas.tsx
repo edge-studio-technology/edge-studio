@@ -165,7 +165,7 @@ function WorkflowBlockCard({
         if (event.key === "Enter" || event.key === " ") onSelect();
       }}
     >
-      <div className="gap-detail-next grid">
+      <div className="gap-detail-next grid grid-cols-[minmax(0,1fr)]">
         <div className="gap-detail-next flex items-center justify-between">
           <span className="type-meta text-text-secondary uppercase">
             {index === 0 ? "Start" : "Then"}
@@ -189,7 +189,7 @@ function WorkflowBlockCard({
         {/* Title row: category icon badge + title/description */}
         <div className="gap-detail-next flex items-start">
           <WorkflowBlockTypeIcon type={block.type} className="mt-detail-fine" />
-          <div className="gap-detail-tight grid min-w-0 flex-1">
+          <div className="gap-detail-tight grid min-w-0 flex-1 wrap-anywhere">
             <strong className="type-body-em text-text-primary">{presentation.title}</strong>
             <p className="type-body text-text-primary m-0">{presentation.description}</p>
           </div>
@@ -261,7 +261,7 @@ function AttachedBlockCard({
   return (
     <div
       className={cx(
-        "border-stroke-secondary bg-surface-secondary mt-detail-close gap-detail-next rounded-soft p-margin-close grid border",
+        "border-stroke-secondary bg-surface-secondary mt-detail-close gap-detail-next rounded-soft p-margin-close grid grid-cols-[minmax(0,1fr)] border",
         block.enabled === false && "opacity-60",
       )}
     >
@@ -270,7 +270,7 @@ function AttachedBlockCard({
       </span>
       <div className="gap-detail-next flex items-start">
         <WorkflowBlockTypeIcon type={block.type} className="mt-detail-fine" />
-        <div className="gap-detail-tight grid min-w-0 flex-1">
+        <div className="gap-detail-tight grid min-w-0 flex-1 wrap-anywhere">
           <strong className="type-body-em text-text-primary">{presentation.title}</strong>
           <p className="type-body text-text-primary m-0">{presentation.description}</p>
         </div>
