@@ -123,13 +123,5 @@ describe("WorkflowWorkspaceShell", () => {
       );
       expect(rail()).toHaveAttribute("data-open", "false");
     });
-
-    it("uses the given toggle label", () => {
-      renderShell({ railLabel: "Controls" });
-      expect(screen.getByRole("button", { name: "Controls" })).toHaveAttribute(
-        "aria-controls",
-        "workflow-rail",
-      );
-    });
   });
 });

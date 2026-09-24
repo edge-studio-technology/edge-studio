@@ -27,7 +27,6 @@ export function WorkflowWorkspaceShell({
   bottom,
   statusStrip,
   notices,
-  railLabel = "Toolkit",
 }: {
   breadcrumbLabel: string;
   nameControl: ReactNode;
@@ -40,7 +39,6 @@ export function WorkflowWorkspaceShell({
   statusStrip?: ReactNode;
   notices?: ReactNode;
   /** Drawer toggle label below `@4xl`. */
-  railLabel?: string;
 }) {
   const [railOpen, setRailOpen] = useState(false);
   const hasSheet = Boolean(selectedSheet);
@@ -82,7 +80,7 @@ export function WorkflowWorkspaceShell({
             iconStart={<PanelRight aria-hidden />}
             onClick={() => setRailOpen((open) => !open)}
           >
-            {railLabel}
+            Toolkit
           </Button>
           {actions}
         </div>
