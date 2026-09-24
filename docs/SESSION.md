@@ -14,6 +14,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Built #694: the workflow toolkit (and watch run controls) becomes a drawer with a Toolkit toggle when the workspace is under 896px, closing on block add, Escape, or a click outside; the canvas drops its 360px reservation there.
 - Fixed long block descriptions (source URLs) pushing the block settings sheet content out of view.
 - Kept the block settings sheet at 400px on tablet widths after QA, replacing the planned full-width sheet; updated ADR 0024 and the plan.
+- Stacked the workflow top bar on a narrow workspace (name field min width, buttons aligned left) and made canvas block cards wrap long text.
+- Audited the whole #667 plan against code and in the browser: all 9 routes plus workflow create/edit/watch at 1280/1024/768 with no page overflow, a one-row status bar, pinned row actions, sidebar overlay closing on Escape/navigation, 1/3-column dashboard grid, 40px/32px console buttons, and the hardware modal action visible; `npm run check` and builds pass; merge with `dev` has no conflicts.
 - Checked create, edit, and watch at 1280, 1024 (sidebar expanded and collapsed), and 768 in the browser; workflow tests 332/332 and `tsc` pass.
 - Merged current `dev` into task 705 and confirmed the branch's retention, redaction, migration, budgets, rate limits, and Docker rotation changes remained intact.
 - Audited the task 705 implementation and corrected retention catch-up so repeated 500-row batches drain eligible backlogs in one startup/hourly sweep.

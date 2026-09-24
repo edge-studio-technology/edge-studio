@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Long block descriptions, such as source URLs, no longer push the workflow block settings sheet content out of view.
 - Long block descriptions, such as source URLs, wrap inside workflow canvas block cards instead of overflowing them.
+- The workflow top bar stacks on a narrow workspace with the name field keeping a minimum width and the buttons aligned left.
 
 ## [Unreleased]
 
