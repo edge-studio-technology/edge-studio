@@ -1,6 +1,6 @@
 # Preserve Workflow Runs Plan
 
-**Status:** Not started  
+**Status:** Done  
 **Created:** 2026-09-25  
 **Goal:** Stop the retention scheduler from deleting `automation_runs` and `automation_block_runs`, because workflow Watch mode depends on them.
 

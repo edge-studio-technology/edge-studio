@@ -26,7 +26,6 @@
 
 ## Next
 
-- [ ] Hotfix: stop retention from deleting workflow runs/block runs used by Watch mode (#705 follow-up) — see `docs/plans/hotfix/preserve-workflow-runs.md`.
 - [ ] Define the product lifecycle for data-source reads and visible automation inbox items, including retention configuration, export, proof-linked reads, storage quotas, and disk-usage warnings — see `docs/adr/0023-classify-stored-records-before-applying-retention.md`.
 - [ ] Digest-pin the third-party deployment images outside the signed manifest (`minimaglobal/minimacore`, `eclipse-mosquitto:2`, `minimaglobal/minima:dev`, `alpine:3.20`) and document the manual pin-bump procedure — finding [6], split from task 704; see step 3 of `docs/plans/security/phase-6-fail-closed-on-weak-config.md`.
 - [ ] After V1.5 security hardening, make a fresh product decision on whether to retain, redesign, re-enable, or remove TOTP. Removal is not currently approved; `docs/plans/remove-totp.md` is candidate analysis only. See `docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md`.
@@ -73,8 +72,10 @@
 - [ ] Manual browser check of the address book contact-actions rework: "View contact" is read-only (no Edit/Delete buttons); kebab "Edit" opens the edit form; kebab "Remove" opens the delete-confirm modal then a progress modal, and the row disappears with a success toast on completion.
 
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
+
 ## Done
 
+- [x] Hotfix: stop retention from deleting workflow runs/block runs used by Watch mode (#705 follow-up) — see `docs/plans/hotfix/preserve-workflow-runs.md`.
 - [x] Fixed task 705 audit findings: normalized nginx webhook log protection, active-run retention safety, repeated yielding cleanup batches, and fixed log rotation for recreated legacy containers; full checks and Docker builds passed — see `docs/adr/0022-bound-external-automation-effects.md`.
 
 - [x] Closed the regression-testing debt tracked under OpenProject #363 and its children (#213, #218, #225, #242, #287): request-level `sendHttpOutput` assertions, MQTT/GPIO teardown on source deletion, webhook receiver route tests, the Integritas connection check, backup re-auth rejection, wallet import phrase-leak checks, and diagnostics query/tab/pagination tests — see `docs/plans/features/363-regression-testing-debt.md`.
