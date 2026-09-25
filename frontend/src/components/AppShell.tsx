@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { nav } from "../app/nav";
 import type { StatusOverview, Tone } from "../app/types";
@@ -6,6 +6,8 @@ import { Button } from "./ui/Button";
 import { NoticeCard } from "./patterns/NoticeCard";
 import { getDebugPing } from "../features/debug/debugApi";
 import { FeedbackModal } from "../features/feedback/FeedbackModal";
+import { GuidedTourModal } from "../features/tour/GuidedTourModal";
+import { guidedTourSeenSetting } from "../lib/behaviourSettings";
 import { AppShellSidebar } from "./AppShellSidebar";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { useStatusOverviewRefresh } from "../features/status/useStatusOverviewRefresh";
@@ -97,6 +99,7 @@ export function AppShell({
 
   const { overview, error: statusRefreshError } = useStatusOverviewRefresh();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const tourSeen = useSyncExternalStore(guidedTourSeenSetting.subscribe, guidedTourSeenSetting.get);
 
   const minimaService = findService(overview, "minima");
   const integritasService = findService(overview, "integritas");
@@ -205,6 +208,7 @@ export function AppShell({
           onClose={() => setFeedbackOpen(false)}
         />
       )}
+      {!tourSeen && <GuidedTourModal onClose={() => guidedTourSeenSetting.set(true)} />}
     </div>
   );
 }
