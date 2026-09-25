@@ -12,6 +12,8 @@ import minimaStatusImage from "../../assets/tour/minima-status.png";
 import walletAddressBookImage from "../../assets/tour/wallet-address-book.png";
 import walletBalanceImage from "../../assets/tour/wallet-balance.png";
 import welcomeImage from "../../assets/tour/welcome.png";
+import workflowsCanvasImage from "../../assets/tour/workflows-canvas.png";
+import workflowsListImage from "../../assets/tour/workflows-list.png";
 
 export type TourImage = { src: string; alt: string };
 
@@ -113,11 +115,25 @@ export const tourSteps: TourStep[] = [
       { src: devicesListImage, alt: "Configured devices list with a New device button" },
     ],
   ),
-  navStep("workflows", "Put your devices to work automatically.", [
-    "Choose what starts it",
-    "Add a check if you need one",
-    "Pick what happens, like stamping a reading or switching something on",
-  ]),
+  navStep(
+    "workflows",
+    "Put your devices to work automatically.",
+    [
+      "Choose what starts it",
+      "Add a check if you need one",
+      "Pick what happens, like stamping a reading or switching something on",
+    ],
+    [
+      {
+        src: workflowsCanvasImage,
+        alt: "Workflow canvas with a start block followed by action blocks",
+      },
+      {
+        src: workflowsListImage,
+        alt: "Workflows list with an enabled workflow and a New workflow button",
+      },
+    ],
+  ),
   navStep("diagnostics", "Where to look when something doesn't seem right.", [
     "See every reading your devices sent",
     "See every time a workflow ran",
