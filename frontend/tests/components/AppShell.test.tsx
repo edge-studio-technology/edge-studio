@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "../../src/components/AppShell";
+import { guidedTourSeenSetting } from "../../src/lib/behaviourSettings";
 
 const getStatusOverview = vi.fn();
 const getUpdateStatusSummary = vi.fn();
@@ -49,6 +50,7 @@ describe("AppShell", () => {
   beforeEach(() => {
     getStatusOverview.mockResolvedValue(null);
     getUpdateStatusSummary.mockResolvedValue(null);
+    guidedTourSeenSetting.set(true);
   });
 
   afterEach(() => {
@@ -134,5 +136,33 @@ describe("AppShell", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     expect(screen.queryByText("Update available")).not.toBeInTheDocument();
+  });
+
+  it("does not open the guided tour once it has been seen", async () => {
+    renderShell();
+    await act(async () => {});
+    expect(screen.queryByRole("button", { name: "Skip tour" })).not.toBeInTheDocument();
+  });
+
+  it("opens the guided tour until it is closed, then marks it seen", async () => {
+    guidedTourSeenSetting.set(false);
+    renderShell();
+    await act(async () => {});
+
+    expect(screen.getByRole("dialog", { name: "Welcome to Edge Studio" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Skip tour" }));
+    expect(
+      screen.queryByRole("dialog", { name: "Welcome to Edge Studio" }),
+    ).not.toBeInTheDocument();
+    expect(guidedTourSeenSetting.get()).toBe(true);
+  });
+
+  it("reopens the guided tour when the seen flag is cleared", async () => {
+    renderShell();
+    await act(async () => {});
+
+    act(() => guidedTourSeenSetting.set(false));
+    expect(screen.getByRole("dialog", { name: "Welcome to Edge Studio" })).toBeInTheDocument();
   });
 });

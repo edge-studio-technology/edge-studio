@@ -50,7 +50,11 @@ export function GuidedTourModal({
     >
       <div className="border-stroke-secondary bg-surface-primary rounded-soft aspect-video w-full overflow-hidden border">
         {step.image ? (
-          <img src={step.image} alt={step.imageAlt ?? ""} className="h-full w-full object-cover" />
+          <img
+            src={step.image}
+            alt={step.imageAlt ?? ""}
+            className="h-full w-full object-contain"
+          />
         ) : (
           <div className="gap-detail-next flex h-full flex-col items-center justify-center">
             <Icon aria-hidden className="text-text-disabled size-10" />
@@ -58,7 +62,7 @@ export function GuidedTourModal({
           </div>
         )}
       </div>
-      <p className="type-body text-text-primary m-0">{step.body}</p>
+      <p className="type-body text-text-primary m-0 min-h-[2lh]">{step.body}</p>
     </Modal>
   );
 }
