@@ -3,6 +3,8 @@ import { nav } from "../../app/nav";
 import type { NavId } from "../../app/types";
 import dashboardActivityImage from "../../assets/tour/dashboard-activity.png";
 import dashboardMetricsImage from "../../assets/tour/dashboard-metrics.png";
+import diagnosticsRunDetailsImage from "../../assets/tour/diagnostics-run-details.png";
+import diagnosticsRunsImage from "../../assets/tour/diagnostics-runs.png";
 import devicesListImage from "../../assets/tour/devices-list.png";
 import devicesPickerImage from "../../assets/tour/devices-picker.png";
 import integritasStampImage from "../../assets/tour/integritas-stamp.png";
@@ -134,11 +136,22 @@ export const tourSteps: TourStep[] = [
       },
     ],
   ),
-  navStep("diagnostics", "Where to look when something doesn't seem right.", [
-    "See every reading your devices sent",
-    "See every time a workflow ran",
-    "Get details on anything that failed",
-  ]),
+  navStep(
+    "diagnostics",
+    "Where to look when something doesn't seem right.",
+    [
+      "See every reading your devices sent",
+      "See every time a workflow ran",
+      "Get details on anything that failed",
+    ],
+    [
+      {
+        src: diagnosticsRunDetailsImage,
+        alt: "Failed workflow run details showing the failed block and error message",
+      },
+      { src: diagnosticsRunsImage, alt: "Workflow logs with successful and failed runs" },
+    ],
+  ),
   {
     id: "done",
     title: "You're ready to go",
