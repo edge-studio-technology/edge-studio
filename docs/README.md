@@ -113,6 +113,7 @@ of carrying the full rationale inline.
 | [adr/0023-classify-stored-records-before-applying-retention.md](./adr/0023-classify-stored-records-before-applying-retention.md) | Retention follows record purpose: bound workflow diagnostics, preserve product and evidence records, and purge user-deleted inbox items |
 | [adr/0024-responsive-layout-strategy.md](./adr/0024-responsive-layout-strategy.md) | Responsive layout: 768 floor, container queries where sidebar width matters, sidebar overlay below 1024, sticky table actions |
 | [adr/0025-error-state-scope-tiers.md](./adr/0025-error-state-scope-tiers.md) | Error presentation by scope: `ErrorContentState` for empty regions, `ErrorAlert` for degraded slices, toasts for transient actions, field errors for validation |
+| [adr/0026-preserve-workflow-run-history.md](./adr/0026-preserve-workflow-run-history.md) | Workflow runs and block runs are preserved as Watch-mode history until a lifecycle policy bounds them per workflow |
 
 ---
 
