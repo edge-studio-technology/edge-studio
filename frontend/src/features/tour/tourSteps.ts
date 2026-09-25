@@ -21,41 +21,41 @@ export const tourSteps: TourStep[] = [
   {
     id: "welcome",
     title: "Welcome to Edge Studio",
-    body: "Edge Studio connects your devices, automates what happens with their data, and proves that data on the Minima blockchain through Integritas. This short tour walks through each area.",
+    body: "Edge Studio turns this device into a hub for your sensors and connected equipment. Collect their readings, decide what happens next, and keep a trustworthy record that shows your data hasn't been changed. Here's a quick look around.",
     icon: Compass,
   },
   navStep(
     "dashboard",
-    "See the health of your node, devices, and workflows at a glance, along with the suggested next step.",
+    "Your home screen. See at a glance whether everything is running, follow live activity as it happens, and get a suggested next step. Start here whenever you open Edge Studio.",
   ),
   navStep(
     "node",
-    "Manage your Minima node: check its status and peers, create and restore backups, and use the RPC console.",
+    "Minima is the network Edge Studio uses to keep a permanent, tamper-proof record of your data. Check here that your connection is healthy, and make regular backups so you can recover if something goes wrong.",
   ),
   navStep(
     "wallet",
-    "View balances, send and receive Minima and tokens, and keep an address book of contacts.",
+    "Your wallet holds the coins and tokens that belong to this device. Check your balance, share your address to receive funds, and save the people you pay often in your address book.",
   ),
   navStep(
     "integritas",
-    "Stamp files and data on the blockchain, track proofs as they confirm, and verify them later.",
+    "Integritas proves your data is genuine. Stamp a file to create a proof that it existed and hasn't been altered since, then verify it anytime. Every proof you create is listed here.",
   ),
   navStep(
     "data",
-    "Connect data sources such as sensors, webhooks, MQTT, the camera, and GPIO pins, plus output targets to act on.",
+    "Connect what you want to collect data from, like sensors, cameras, or other apps, and what you want to control, like a light. Add your first device here, then use it in a workflow.",
   ),
   navStep(
     "workflows",
-    "Build automations from blocks: when something happens, check a condition, then act on it.",
+    "Workflows put your devices to work automatically. Choose what starts one, add a check if you need it, then pick what happens, like stamping a reading or switching something on. Build it once and Edge Studio runs it for you.",
   ),
   navStep(
     "diagnostics",
-    "Inspect data reads, workflow runs, and errors to troubleshoot when something doesn't behave as expected.",
+    "When something doesn't look right, look here. See every reading your devices sent and every time a workflow ran, with details on anything that failed.",
   ),
   {
     id: "done",
-    title: "You're all set",
-    body: "Adjust Edge Studio in Settings, where you can also replay this tour under Behaviour. Use the Feedback button in the sidebar to tell us what would help.",
+    title: "You're ready to go",
+    body: "A good first step: add a device, then build a workflow that uses it. You can replay this tour anytime from Settings under Behaviour, and use Feedback in the sidebar to tell us what would help.",
     icon: CircleCheck,
   },
 ];

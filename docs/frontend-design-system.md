@@ -434,7 +434,7 @@ Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, 
 
 #### Modal image frame
 
-For a screenshot or illustration inside a `Modal` (first used by the guided tour, `frontend/src/features/tour/GuidedTourModal.tsx`), use a full-width 16:9 frame: `aspect-video w-full overflow-hidden rounded-soft border border-stroke-secondary bg-surface-primary`. Render the image with `h-full w-full object-contain` so it letterboxes when the modal is height-capped. Until the image exists, fill the same frame with a centered `text-text-disabled` icon and a `type-meta text-text-disabled` caption, so the layout does not shift when the image lands. Pass `bodyScrollable={false}` so the frame is not wrapped in the default bordered scroll body.
+For a screenshot or illustration inside a `Modal` (first used by the guided tour, `frontend/src/features/tour/GuidedTourModal.tsx`), use a full-width 5:2 frame: `aspect-[5/2] w-full overflow-hidden rounded-soft border border-stroke-secondary bg-surface-primary`. Render the image with `h-full w-full object-contain` so it letterboxes if its ratio differs; crop screenshots to 5:2 (for example 1600×640). Until the image exists, fill the same frame with a centered `text-text-disabled` icon and a `type-meta text-text-disabled` caption, so the layout does not shift when the image lands. Pass `bodyScrollable={false}` so the frame is not wrapped in the default bordered scroll body.
 
 ### Tooltip
 

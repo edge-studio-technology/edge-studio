@@ -33,9 +33,10 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Updated retention service tests, added ADR 0026 (amends ADR 0023), removed the #705 run-pruning changelog bullet, and updated SECURITY, the security risk register, and mirrored automation rules.
 - Verified `npm run check` (all suites and coverage thresholds), the backend build, and `docker compose config`.
 - Planned #275 guided tour in `docs/plans/features/275-create-static-app-guided-tour.md` (renamed to match the branch).
-- Built the #275 guided tour: `guidedTourSeenSetting`, 9 tour steps with nav-derived titles/icons, `GuidedTourModal` with a 16:9 screenshot placeholder, auto-open from `AppShell`, and a "Take the tour" replay under Settings → Behaviour.
+- Built the #275 guided tour: `guidedTourSeenSetting`, 9 tour steps with nav-derived titles/icons, `GuidedTourModal` with a 5:2 screenshot placeholder, auto-open from `AppShell`, and a "Take the tour" replay under Settings → Behaviour.
 - Added `GuidedTourModal` and `tourSteps` tests and AppShell tour tests; existing AppShell tests now pre-set the seen flag.
-- Checked the tour in the browser at 1024×768 and 768×600: fits, all close paths mark it seen, backdrop ignored, reload keeps it closed, and replay reopens at step 1. Switched images to `object-contain` and reserved two lines of step text so the modal height stays fixed.
+- Checked the tour in the browser at 1024×768 and 768×600: fits, all close paths mark it seen, backdrop ignored, reload keeps it closed, and replay reopens at step 1. Switched images to `object-contain` and reserved step-text lines so the modal height stays fixed.
+- Shortened the tour image frame to 5:2 and rewrote the step copy in plain language (what each area is for and how to use it, no blockchain/protocol terms); the modal is now 566–582px at 1024×768 and at most 3 text lines at 768 wide.
 - Verified `npm run check` (frontend 1632 tests, all thresholds met) and the frontend build.
 - Added ADR 0027, a changelog section, a README line, and a modal image frame note in the design-system doc.
 

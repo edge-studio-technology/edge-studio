@@ -48,7 +48,7 @@ export function GuidedTourModal({
         </>
       }
     >
-      <div className="border-stroke-secondary bg-surface-primary rounded-soft aspect-video w-full overflow-hidden border">
+      <div className="border-stroke-secondary bg-surface-primary rounded-soft aspect-[5/2] w-full overflow-hidden border">
         {step.image ? (
           <img
             src={step.image}
@@ -62,7 +62,7 @@ export function GuidedTourModal({
           </div>
         )}
       </div>
-      <p className="type-body text-text-primary m-0 min-h-[2lh]">{step.body}</p>
+      <p className="type-body text-text-primary m-0 min-h-[3lh]">{step.body}</p>
     </Modal>
   );
 }

@@ -20,11 +20,12 @@ OpenProject task **#275 Create static App/Guided Tour** (status _In progress_), 
 Deviations from the plan as built:
 
 - No separate "Step X of N" text. `ProgressBar` already shows `X / N` in its pill.
-- Screenshots use `object-contain`, not `object-cover`. At 768×600 the modal's height cap shrinks the frame below 16:9, and letterboxing avoids cropping.
-- Step text reserves two lines (`min-h-[2lh]`) so the modal height and button positions stay fixed across steps.
+- The image frame is 5:2 (`aspect-[5/2]`), not 16:9, to leave room for fuller step text. Screenshots use `object-contain`, so a different ratio letterboxes instead of cropping.
+- Step text reserves three lines (`min-h-[3lh]`) so the modal height and button positions stay fixed across steps.
 - "Take the tour" matches the page's "Check for updates" button (default variant and size, inside `ButtonRow`).
 - No `AuthSettingsPage` test. Pages are excluded from coverage. The replay path is covered by the AppShell "reopens when the seen flag is cleared" test and was checked manually.
 - OpenProject #275 is updated manually by the user.
+- Step copy was rewritten in plain language: each step says what the area is for and how it is used, without technical terms such as blockchain, hash, MQTT, webhook, or GPIO.
 
 ## Context
 

@@ -29,10 +29,15 @@ No design or approved copy exists, and no screenshots are available yet.
 - **Existing installs see it once.** The flag is new, so no stored value means "not seen".
 - **Replay from Settings → Behaviour.** "Take the tour" sets the flag back to `false`, which
   remounts the modal at step 1.
-- **Fixed 16:9 image slot.** Each step reserves an `aspect-video` frame above the text. It shows
-  the step icon and "Screenshot coming soon" until a screenshot is added to the step, so layout
-  does not change when images land. Images use `object-contain` so they letterbox rather than crop
-  when the modal is height-capped.
+- **Fixed 5:2 image slot.** Each step reserves an `aspect-[5/2]` frame above the text, short enough
+  to leave room for a few lines of explanation at the 768px floor. It shows the step icon and
+  "Screenshot coming soon" until a screenshot is added to the step, so layout does not change when
+  images land. Screenshots are cropped to 5:2 and rendered with `object-contain`, so a different
+  ratio letterboxes rather than crops.
+- **Plain-language copy.** Step text says what each area is for and how it is used, and avoids
+  technical terms such as blockchain, hash, RPC, MQTT, webhook, and GPIO. Minima and Integritas
+  stay named because they are sidebar labels, but each is explained by what it does for the user.
+  The step text reserves three lines so the modal height stays fixed across steps.
 - **Backdrop clicks do nothing.** `closeOnOutsideClick={false}` overrides the user's Behaviour
   preference, because an accidental backdrop press would dismiss the tour and mark it seen. X,
   Escape, and Skip tour still close it.
