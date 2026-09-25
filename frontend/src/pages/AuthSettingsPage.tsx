@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
+  Compass,
   Copy,
   Download,
   Eye,
@@ -25,6 +26,7 @@ import { InputField } from "../components/ui/InputField";
 import { SwitchField } from "../components/ui/SwitchField";
 import {
   closeModalOnOutsideClickSetting,
+  guidedTourSeenSetting,
   sidebarStartCollapsedSetting,
 } from "../lib/behaviourSettings";
 import { initTotpReset, verifyTotpReset } from "../features/auth/api";
@@ -338,6 +340,18 @@ export function AuthSettingsPage() {
                 checked={sidebarStartCollapsed}
                 onChange={(e) => sidebarStartCollapsedSetting.set(e.target.checked)}
               />
+            </SubSection>
+
+            <SubSection
+              icon={<Compass size={13} aria-hidden />}
+              title="Guided tour"
+              description="Replay the introduction to Edge Studio's main areas."
+            >
+              <ButtonRow>
+                <Button type="button" onClick={() => guidedTourSeenSetting.set(false)}>
+                  Take the tour
+                </Button>
+              </ButtonRow>
             </SubSection>
           </div>
         </Disclosure>
