@@ -63,7 +63,7 @@ export function GuidedTourModal({
           <img
             src={step.image}
             alt={step.imageAlt ?? ""}
-            className="h-full w-full object-contain"
+            className="h-full w-full object-cover object-top"
           />
         ) : (
           <div className="gap-detail-next flex h-full flex-col items-center justify-center">

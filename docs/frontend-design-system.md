@@ -434,7 +434,7 @@ Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, 
 
 #### Modal image frame
 
-For a screenshot or illustration inside a `Modal` (first used by the guided tour, `frontend/src/features/tour/GuidedTourModal.tsx`), use a full-width 3:1 frame: `aspect-[3/1] w-full overflow-hidden rounded-soft border border-stroke-secondary bg-surface-primary`. Render the image with `h-full w-full object-contain` so it letterboxes if its ratio differs; crop screenshots to 3:1 (for example 1500×500). Until the image exists, fill the same frame with a centered `text-text-disabled` icon and a `type-meta text-text-disabled` caption, so the layout does not shift when the image lands. For a brand slide, fill the frame with `BRAND_GRADIENT` and a centered `BrandLockup tone="on-dark"`. Pass `bodyScrollable={false}` so the frame is not wrapped in the default bordered scroll body.
+For a screenshot or illustration inside a `Modal` (first used by the guided tour, `frontend/src/features/tour/GuidedTourModal.tsx`), use a full-width 3:1 frame: `aspect-[3/1] w-full overflow-hidden rounded-soft border border-stroke-secondary bg-surface-primary`. Render the image with `h-full w-full object-cover object-top` so the top of the screenshot always shows; capture screenshots at 3:1 (for example 1440×480, clipped from the top of the page). Until the image exists, fill the same frame with a centered `text-text-disabled` icon and a `type-meta text-text-disabled` caption, so the layout does not shift when the image lands. For a brand slide, fill the frame with `BRAND_GRADIENT` and a centered `BrandLockup tone="on-dark"`. Pass `bodyScrollable={false}` so the frame is not wrapped in the default bordered scroll body.
 
 ### Tooltip
 

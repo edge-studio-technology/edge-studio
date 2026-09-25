@@ -32,8 +32,8 @@ No design or approved copy exists, and no screenshots are available yet.
 - **Fixed 3:1 image slot.** Each step reserves an `aspect-[3/1]` frame above the text, short enough
   to leave room for the text at the 768px floor. It shows the step icon and "Screenshot coming
   soon" until a screenshot is added to the step, so layout does not change when images land.
-  Screenshots are cropped to 3:1 and rendered with `object-contain`, so a different ratio
-  letterboxes rather than crops. The closing step shows the white Edge Studio lockup on
+  Screenshots are rendered with `object-cover object-top`, so the top of the page always shows and
+  any extra height is cropped from the bottom. The closing step shows the white Edge Studio lockup on
   `BRAND_GRADIENT`, matching the login page, instead of a screenshot.
 - **Plain-language, scannable copy.** Each step has one lead sentence in `type-callout` and three
   short points with accent check icons, not a paragraph, so it can be read at a glance. The copy

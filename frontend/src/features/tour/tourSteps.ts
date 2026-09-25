@@ -1,6 +1,7 @@
 import { CircleCheck, Compass, type LucideIcon } from "lucide-react";
 import { nav } from "../../app/nav";
 import type { NavId } from "../../app/types";
+import welcomeImage from "../../assets/tour/welcome.png";
 
 export type TourStep = {
   id: string;
@@ -30,6 +31,8 @@ export const tourSteps: TourStep[] = [
       "Keep a trustworthy record that shows your data hasn't changed",
     ],
     icon: Compass,
+    image: welcomeImage,
+    imageAlt: "The Edge Studio dashboard with the sidebar collapsed",
   },
   navStep("dashboard", "Your home screen, and the best place to start.", [
     "See at a glance whether everything is running",
