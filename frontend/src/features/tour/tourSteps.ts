@@ -3,6 +3,8 @@ import { nav } from "../../app/nav";
 import type { NavId } from "../../app/types";
 import dashboardActivityImage from "../../assets/tour/dashboard-activity.png";
 import dashboardMetricsImage from "../../assets/tour/dashboard-metrics.png";
+import integritasStampImage from "../../assets/tour/integritas-stamp.png";
+import integritasVerifyImage from "../../assets/tour/integritas-verify.png";
 import minimaBackupsImage from "../../assets/tour/minima-backups.png";
 import minimaStatusImage from "../../assets/tour/minima-status.png";
 import walletAddressBookImage from "../../assets/tour/wallet-address-book.png";
@@ -80,11 +82,22 @@ export const tourSteps: TourStep[] = [
       { src: walletAddressBookImage, alt: "Wallet address book with a New contact button" },
     ],
   ),
-  navStep("integritas", "Proof that your data is genuine.", [
-    "Stamp a file to prove it hasn't been altered",
-    "Verify a proof anytime",
-    "Find every proof you've created in one list",
-  ]),
+  navStep(
+    "integritas",
+    "Proof that your data is genuine.",
+    [
+      "Stamp a file to prove it hasn't been altered",
+      "Verify a proof anytime",
+      "Find every proof you've created in one list",
+    ],
+    [
+      {
+        src: integritasStampImage,
+        alt: "Integritas stamp tab with a sensor readings file ready to stamp",
+      },
+      { src: integritasVerifyImage, alt: "Integritas proof verification showing a full match" },
+    ],
+  ),
   navStep("data", "Connect the things your workflows use.", [
     "Collect data from sensors, cameras, or other apps",
     "Control things like a light",
