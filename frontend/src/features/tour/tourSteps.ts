@@ -3,6 +3,8 @@ import { nav } from "../../app/nav";
 import type { NavId } from "../../app/types";
 import dashboardActivityImage from "../../assets/tour/dashboard-activity.png";
 import dashboardMetricsImage from "../../assets/tour/dashboard-metrics.png";
+import devicesListImage from "../../assets/tour/devices-list.png";
+import devicesPickerImage from "../../assets/tour/devices-picker.png";
 import integritasStampImage from "../../assets/tour/integritas-stamp.png";
 import integritasVerifyImage from "../../assets/tour/integritas-verify.png";
 import minimaBackupsImage from "../../assets/tour/minima-backups.png";
@@ -98,11 +100,19 @@ export const tourSteps: TourStep[] = [
       { src: integritasVerifyImage, alt: "Integritas proof verification showing a full match" },
     ],
   ),
-  navStep("data", "Connect the things your workflows use.", [
-    "Collect data from sensors, cameras, or other apps",
-    "Control things like a light",
-    "Add your first device here, then use it in a workflow",
-  ]),
+  navStep(
+    "data",
+    "Connect the things your workflows use.",
+    [
+      "Collect data from sensors, cameras, or other apps",
+      "Control things like a light",
+      "Add your first device here, then use it in a workflow",
+    ],
+    [
+      { src: devicesPickerImage, alt: "Setup Device picker with Boards, Protocols, and Sensors" },
+      { src: devicesListImage, alt: "Configured devices list with a New device button" },
+    ],
+  ),
   navStep("workflows", "Put your devices to work automatically.", [
     "Choose what starts it",
     "Add a check if you need one",
