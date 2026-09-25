@@ -432,6 +432,10 @@ Modal dialog (`frontend/src/components/ui/Modal.tsx`): centered portal overlay, 
 />
 ```
 
+#### Modal image frame
+
+For a screenshot or illustration inside a `Modal` (first used by the guided tour, `frontend/src/features/tour/GuidedTourModal.tsx`), use a full-width 16:9 frame: `aspect-video w-full overflow-hidden rounded-soft border border-stroke-secondary bg-surface-primary`. Render the image with `h-full w-full object-contain` so it letterboxes when the modal is height-capped. Until the image exists, fill the same frame with a centered `text-text-disabled` icon and a `type-meta text-text-disabled` caption, so the layout does not shift when the image lands. Pass `bodyScrollable={false}` so the frame is not wrapped in the default bordered scroll body.
+
 ### Tooltip
 
 Tooltip (`frontend/src/components/ui/Tooltip.tsx`): dark (default, `surface-inverse-hover` border like the RPC console) or light (`stroke-secondary` border) bubble with matching beak edges so it stays visible on either surface; placement beak (top / bottom / left / right); title, optional body, optional action row.

@@ -4,6 +4,13 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] task/275-create-static-app-guided-tour
+
+### Added
+
+- A guided tour of Edge Studio's main areas opens the first time the app is used in each browser.
+- The guided tour can be skipped at any step and replayed from Settings → Behaviour.
+
 ## [Unreleased]
 
 ### Security

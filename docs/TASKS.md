@@ -16,6 +16,7 @@
 
 ## In Progress
 
+- [ ] Static guided tour (OpenProject #275): built on `task/275-create-static-app-guided-tour` (first-visit modal with 9 steps, seen flag per browser, replay from Settings → Behaviour); needs screenshots in `frontend/src/assets/tour/`, copy review, and merge. Decisions in `docs/adr/0027-static-guided-tour.md`; see `docs/plans/features/275-create-static-app-guided-tour.md`.
 - [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — all built including #694 (toolkit drawer); #694 still needs its ticket move, then merge; decisions in `docs/adr/0024-responsive-layout-strategy.md`; see `docs/plans/features/667-responsive-application.md`.
 - [ ] Run the 13-step Brave verification for the completed app-wide empty/loading/error hardening, including tasks #659/#660/#661 plus Integritas, software update/update-agent, and Wallet behavior while Minima is unavailable, before merging to `dev` — see `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
@@ -26,7 +27,6 @@
 
 ## Next
 
-- [ ] Static guided tour (OpenProject #275): single first-visit modal tour with screenshot slots, stored as seen per browser, and rerunnable from Settings → Behaviour — see `docs/plans/features/275-create-static-app-guided-tour.md`.
 - [ ] Define the product lifecycle for data-source reads and visible automation inbox items, including retention configuration, export, proof-linked reads, storage quotas, and disk-usage warnings — see `docs/adr/0023-classify-stored-records-before-applying-retention.md`.
 - [ ] Digest-pin the third-party deployment images outside the signed manifest (`minimaglobal/minimacore`, `eclipse-mosquitto:2`, `minimaglobal/minima:dev`, `alpine:3.20`) and document the manual pin-bump procedure — finding [6], split from task 704; see step 3 of `docs/plans/security/phase-6-fail-closed-on-weak-config.md`.
 - [ ] After V1.5 security hardening, make a fresh product decision on whether to retain, redesign, re-enable, or remove TOTP. Removal is not currently approved; `docs/plans/remove-totp.md` is candidate analysis only. See `docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md`.

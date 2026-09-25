@@ -1,21 +1,30 @@
 # Static Guided Tour Plan
 
-**Status:** Not started
+**Status:** Built, awaiting screenshots and copy review
 **Created:** 2026-09-25
 **Branch:** `task/275-create-static-app-guided-tour`
-**Decision record:** `docs/adr/0027-static-guided-tour.md` (to write)
+**Decision record:** `docs/adr/0027-static-guided-tour.md`
 **Goal:** Show new users a skippable, rerunnable, static modal tour of Edge Studio's main areas the first time they reach the app shell.
 
 ## Tracked Tasks
 
-OpenProject task **#275 Create static App/Guided Tour** (status *In progress*), under feature **#350 Onboarding & Docu/Info**. The parent's acceptance criterion is "A startup tour or guide is available in the application". Sibling #204 (outgoing Docs link in the sidebar) is separate and not part of this plan.
+OpenProject task **#275 Create static App/Guided Tour** (status _In progress_), under feature **#350 Onboarding & Docu/Info**. The parent's acceptance criterion is "A startup tour or guide is available in the application". Sibling #204 (outgoing Docs link in the sidebar) is separate and not part of this plan.
 
-- [ ] Tour store and step content (§1, §2)
-- [ ] `GuidedTourModal` with image frame and placeholder (§3)
-- [ ] Auto-open from `AppShell` (§4)
-- [ ] Rerun entry under Settings → Behaviour (§5)
-- [ ] Tests (§6)
-- [ ] Docs, ADR, changelog (§Docs)
+- [x] Tour store and step content (§1, §2)
+- [x] `GuidedTourModal` with image frame and placeholder (§3)
+- [x] Auto-open from `AppShell` (§4)
+- [x] Rerun entry under Settings → Behaviour (§5)
+- [x] Tests (§6)
+- [x] Docs, ADR, changelog (§Docs)
+
+Deviations from the plan as built:
+
+- No separate "Step X of N" text. `ProgressBar` already shows `X / N` in its pill.
+- Screenshots use `object-contain`, not `object-cover`. At 768×600 the modal's height cap shrinks the frame below 16:9, and letterboxing avoids cropping.
+- Step text reserves two lines (`min-h-[2lh]`) so the modal height and button positions stay fixed across steps.
+- "Take the tour" matches the page's "Check for updates" button (default variant and size, inside `ButtonRow`).
+- No `AuthSettingsPage` test. Pages are excluded from coverage. The replay path is covered by the AppShell "reopens when the seen flag is cleared" test and was checked manually.
+- OpenProject #275 is updated manually by the user.
 
 ## Context
 
@@ -61,10 +70,10 @@ One boolean drives everything. There is no separate "open" store:
 export type TourStep = {
   id: string;
   title: string;
-  body: string;          // 1–3 short sentences
-  icon: LucideIcon;      // placeholder visual; reuse nav icons
-  image?: string;        // imported asset URL, added later
-  imageAlt?: string;     // required when image is set
+  body: string; // 1–3 short sentences
+  icon: LucideIcon; // placeholder visual; reuse nav icons
+  image?: string; // imported asset URL, added later
+  imageAlt?: string; // required when image is set
 };
 ```
 
@@ -140,7 +149,7 @@ Add a third `SubSection` in the Behaviour `Disclosure`:
 - `docs/adr/0027-static-guided-tour.md` via the `adr` skill: static vs click-through, single vs per-page, per-browser `localStorage` vs per-Pi backend flag. Check `ls docs/adr` for the next free number first.
 - `SECURITY.md`: no change. Client-only, no new exposure.
 - `docs/SESSION.md` / `docs/TASKS.md` via `session-notes` at the end.
-- OpenProject #275: comment with the plan path. Move to *Ready for Deployment* (22) once built and verified.
+- OpenProject #275: comment with the plan path. Move to _Ready for Deployment_ (22) once built and verified.
 
 ## Verification
 

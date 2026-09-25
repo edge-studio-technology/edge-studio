@@ -32,6 +32,12 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Implemented the preserve-workflow-runs hotfix: workflow runs and block runs use the `preserve` retention policy; the retention pass now only purges deleted inbox items.
 - Updated retention service tests, added ADR 0026 (amends ADR 0023), removed the #705 run-pruning changelog bullet, and updated SECURITY, the security risk register, and mirrored automation rules.
 - Verified `npm run check` (all suites and coverage thresholds), the backend build, and `docker compose config`.
+- Planned #275 guided tour in `docs/plans/features/275-create-static-app-guided-tour.md` (renamed to match the branch).
+- Built the #275 guided tour: `guidedTourSeenSetting`, 9 tour steps with nav-derived titles/icons, `GuidedTourModal` with a 16:9 screenshot placeholder, auto-open from `AppShell`, and a "Take the tour" replay under Settings → Behaviour.
+- Added `GuidedTourModal` and `tourSteps` tests and AppShell tour tests; existing AppShell tests now pre-set the seen flag.
+- Checked the tour in the browser at 1024×768 and 768×600: fits, all close paths mark it seen, backdrop ignored, reload keeps it closed, and replay reopens at step 1. Switched images to `object-contain` and reserved two lines of step text so the modal height stays fixed.
+- Verified `npm run check` (frontend 1632 tests, all thresholds met) and the frontend build.
+- Added ADR 0027, a changelog section, a README line, and a modal image frame note in the design-system doc.
 
 ## Next Steps
 
@@ -40,6 +46,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Complete the manual container/Pi checks in `docs/plans/security/705-retention-redaction-budgets.md`, including existing-installation Docker log rotation.
 - Manual check for the hotfix: run a workflow, restart the backend, and confirm Watch mode still shows the run with its block overlays.
 - Define the product lifecycle for preserved workflow runs/block runs (per-workflow bound, ADR 0026), data-source reads, and visible inbox items, covering configuration, export, proof-linked reads, quotas, and disk warnings.
+- #275: add real screenshots to `frontend/src/assets/tour/` and review the draft step copy.
+- #275: user updates OpenProject manually.
 
 ## Notes / Open Questions
 
@@ -49,3 +57,5 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Workflow runs, block runs, data-source reads, and visible inbox items can grow without bound until the follow-up lifecycle is implemented; this remains an availability risk.
 - The historical credential-scrub migration remains idempotent and runs automatically on startup. This change adds only an idempotent deleted-inbox index; no one-time manual database conversion is required.
 - The first two full-check attempts exposed the pre-existing webhook integration-test timeout under suite load. The test passed alone before its timeout was raised and the complete suite passed afterward.
+- #275: frontend branch coverage is 89.23% against an 89% floor.
+- #275: below 768 wide the tour footer wraps Finish onto its own row; mobile is out of scope (768 floor).
