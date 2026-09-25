@@ -20,7 +20,7 @@ OpenProject task **#275 Create static App/Guided Tour** (status _In progress_), 
 Deviations from the plan as built:
 
 - No separate "Step X of N" text. `ProgressBar` already shows `X / N` in its pill.
-- The image frame is 3:1 (`aspect-[3/1]`), not 16:9, to leave room for the step text. Screenshots use `object-cover object-top`, so the top of the page always shows and any overflow is cropped from the bottom. They are captured with Playwright at 1440 wide, clipped to the top 1440×480, with the scrollbar hidden.
+- The image frame is 3:1 (`aspect-[3/1]`), not 16:9, to leave room for the step text. Screenshots use `object-cover object-top`, so the top of the page always shows and any overflow is cropped from the bottom. They are captured with Playwright at 1440 wide, clipped to the top 1440×480, with the scrollbar hidden. A step can have two screenshots (`images`), split diagonally from 55% at the top to 45% at the bottom with a divider in the frame border colour; each is captured at 710×430 from a 1280-wide page, with a 20px page margin on the seam side so both images meet the seam with content, not empty background; sections are narrowed on the page before capture where needed.
 - Step text is a one-sentence lead (`type-callout`) plus three short points with accent check icons, instead of a `type-body` paragraph. Keeping the lead to one line and each point to one line keeps the modal height fixed across steps.
 - The closing step shows the white lockup on `BRAND_GRADIENT` (`brand: true` on the step) instead of a screenshot.
 - "Take the tour" matches the page's "Check for updates" button (default variant and size, inside `ButtonRow`).

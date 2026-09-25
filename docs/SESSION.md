@@ -47,7 +47,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Complete the manual container/Pi checks in `docs/plans/security/705-retention-redaction-budgets.md`, including existing-installation Docker log rotation.
 - Manual check for the hotfix: run a workflow, restart the backend, and confirm Watch mode still shows the run with its block overlays.
 - Define the product lifecycle for preserved workflow runs/block runs (per-workflow bound, ADR 0026), data-source reads, and visible inbox items, covering configuration, export, proof-linked reads, quotas, and disk warnings.
-- #275: add draft screenshots slide by slide (Welcome done, captured with Playwright at 1440×480 from dev data), then recapture every slide with clean, Pi-like values before merge; review the step copy.
+- #275: add draft screenshots slide by slide (Welcome and Dashboard done, captured with Playwright at 1440×480 from dev data), then recapture every slide with clean, Pi-like values before merge; review the step copy.
 - #275: user updates OpenProject manually.
 
 ## Notes / Open Questions

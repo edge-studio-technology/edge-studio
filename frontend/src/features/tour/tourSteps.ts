@@ -1,7 +1,11 @@
 import { CircleCheck, Compass, type LucideIcon } from "lucide-react";
 import { nav } from "../../app/nav";
 import type { NavId } from "../../app/types";
+import dashboardActivityImage from "../../assets/tour/dashboard-activity.png";
+import dashboardMetricsImage from "../../assets/tour/dashboard-metrics.png";
 import welcomeImage from "../../assets/tour/welcome.png";
+
+export type TourImage = { src: string; alt: string };
 
 export type TourStep = {
   id: string;
@@ -9,15 +13,15 @@ export type TourStep = {
   lead: string;
   points: string[];
   icon: LucideIcon;
-  image?: string;
-  imageAlt?: string;
+  /** One image fills the frame; two are split diagonally, first on the left. */
+  images?: TourImage[];
   brand?: boolean;
 };
 
-function navStep(id: NavId, lead: string, points: string[]): TourStep {
+function navStep(id: NavId, lead: string, points: string[], images?: TourImage[]): TourStep {
   const item = nav.find((entry) => entry.id === id);
   if (!item) throw new Error(`Unknown nav item: ${id}`);
-  return { id, title: item.label, lead, points, icon: item.icon };
+  return { id, title: item.label, lead, points, icon: item.icon, images };
 }
 
 export const tourSteps: TourStep[] = [
@@ -31,14 +35,21 @@ export const tourSteps: TourStep[] = [
       "Keep a trustworthy record that shows your data hasn't changed",
     ],
     icon: Compass,
-    image: welcomeImage,
-    imageAlt: "The Edge Studio dashboard with the sidebar collapsed",
+    images: [{ src: welcomeImage, alt: "The Edge Studio dashboard with the sidebar collapsed" }],
   },
-  navStep("dashboard", "Your home screen, and the best place to start.", [
-    "See at a glance whether everything is running",
-    "Follow live activity as it happens",
-    "Get a suggested next step",
-  ]),
+  navStep(
+    "dashboard",
+    "Your home screen, and the best place to start.",
+    [
+      "See at a glance whether everything is running",
+      "Follow live activity as it happens",
+      "Get a suggested next step",
+    ],
+    [
+      { src: dashboardActivityImage, alt: "Dashboard live activity list" },
+      { src: dashboardMetricsImage, alt: "Dashboard status cards for wallet, node, and device" },
+    ],
+  ),
   navStep("node", "The network that keeps a permanent, tamper-proof record of your data.", [
     "Check that your connection is healthy",
     "Make regular backups",

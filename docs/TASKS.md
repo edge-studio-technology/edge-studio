@@ -16,7 +16,7 @@
 
 ## In Progress
 
-- [ ] Static guided tour (OpenProject #275): built on `task/275-create-static-app-guided-tour` (first-visit modal with 9 steps, seen flag per browser, replay from Settings → Behaviour); draft screenshots are being added one slide at a time from dev data (Welcome done); recapture all of them with clean, Pi-like values before merge, then copy review and merge. Decisions in `docs/adr/0027-static-guided-tour.md`; see `docs/plans/features/275-create-static-app-guided-tour.md`.
+- [ ] Static guided tour (OpenProject #275): built on `task/275-create-static-app-guided-tour` (first-visit modal with 9 steps, seen flag per browser, replay from Settings → Behaviour); draft screenshots are being added one slide at a time from dev data (Welcome and Dashboard done); recapture all of them with clean, Pi-like values before merge, then copy review and merge. Decisions in `docs/adr/0027-static-guided-tour.md`; see `docs/plans/features/275-create-static-app-guided-tour.md`.
 - [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — all built including #694 (toolkit drawer); #694 still needs its ticket move, then merge; decisions in `docs/adr/0024-responsive-layout-strategy.md`; see `docs/plans/features/667-responsive-application.md`.
 - [ ] Run the 13-step Brave verification for the completed app-wide empty/loading/error hardening, including tasks #659/#660/#661 plus Integritas, software update/update-agent, and Wallet behavior while Minima is unavailable, before merging to `dev` — see `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.

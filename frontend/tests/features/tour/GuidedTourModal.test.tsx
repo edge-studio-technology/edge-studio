@@ -19,8 +19,7 @@ const steps: TourStep[] = [
     lead: "Second lead.",
     points: ["Only point"],
     icon: Shield,
-    image: "/tour/second.png",
-    imageAlt: "Second screenshot",
+    images: [{ src: "/tour/second.png", alt: "Second screenshot" }],
   },
 ];
 
@@ -107,11 +106,39 @@ describe("GuidedTourModal", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it("shows both screenshots when a step has two images", () => {
+    render(
+      <GuidedTourModal
+        onClose={vi.fn()}
+        steps={[
+          {
+            ...steps[0],
+            images: [
+              { src: "/tour/left.png", alt: "Left screenshot" },
+              { src: "/tour/right.png", alt: "Right screenshot" },
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("img", { name: "Left screenshot" })).toHaveAttribute(
+      "src",
+      "/tour/left.png",
+    );
+    expect(screen.getByRole("img", { name: "Right screenshot" })).toHaveAttribute(
+      "src",
+      "/tour/right.png",
+    );
+    expect(screen.queryByText("Screenshot coming soon")).not.toBeInTheDocument();
+  });
+
   it("shows the brand lockup instead of a screenshot on a brand step", () => {
     render(
       <GuidedTourModal
         onClose={vi.fn()}
-        steps={[{ ...steps[0], brand: true, image: "/tour/ignored.png", imageAlt: "Ignored" }]}
+        steps={[
+          { ...steps[0], brand: true, images: [{ src: "/tour/ignored.png", alt: "Ignored" }] },
+        ]}
       />,
     );
     expect(screen.getByRole("img", { name: "Edge Studio" })).toBeInTheDocument();

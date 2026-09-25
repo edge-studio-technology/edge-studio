@@ -22,8 +22,8 @@ describe("tourSteps", () => {
   });
 
   it("gives every screenshot alt text", () => {
-    for (const step of tourSteps.filter((entry) => entry.image)) {
-      expect(step.imageAlt).toBeTruthy();
+    for (const image of tourSteps.flatMap((step) => step.images ?? [])) {
+      expect(image.alt).toBeTruthy();
     }
   });
 });

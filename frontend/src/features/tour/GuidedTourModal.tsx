@@ -51,7 +51,7 @@ export function GuidedTourModal({
         </>
       }
     >
-      <div className="border-stroke-secondary bg-surface-primary rounded-soft aspect-[3/1] w-full overflow-hidden border">
+      <div className="border-surface-accent bg-surface-primary rounded-soft aspect-[3/1] w-full overflow-hidden border">
         {step.brand ? (
           <div
             className="flex h-full items-center justify-center"
@@ -59,10 +59,39 @@ export function GuidedTourModal({
           >
             <BrandLockup tone="on-dark" size={40} />
           </div>
-        ) : step.image ? (
+        ) : step.images?.length === 2 ? (
+          <div className="bg-surface-always-white relative h-full">
+            <img
+              src={step.images[0].src}
+              alt={step.images[0].alt}
+              className="absolute inset-y-0 left-0 h-full w-[55%] object-cover object-top [clip-path:polygon(0_0,100%_0,81.82%_100%,0_100%)]"
+            />
+            <img
+              src={step.images[1].src}
+              alt={step.images[1].alt}
+              className="absolute inset-y-0 right-0 h-full w-[55%] object-cover object-top [clip-path:polygon(18.18%_0,100%_0,100%_100%,0_100%)]"
+            />
+            <svg
+              aria-hidden
+              className="absolute inset-0 h-full w-full"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            >
+              <line
+                x1="55"
+                y1="0"
+                x2="45"
+                y2="100"
+                className="stroke-surface-accent"
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+          </div>
+        ) : step.images?.length ? (
           <img
-            src={step.image}
-            alt={step.imageAlt ?? ""}
+            src={step.images[0].src}
+            alt={step.images[0].alt}
             className="h-full w-full object-cover object-top"
           />
         ) : (
