@@ -5,6 +5,8 @@ import dashboardActivityImage from "../../assets/tour/dashboard-activity.png";
 import dashboardMetricsImage from "../../assets/tour/dashboard-metrics.png";
 import minimaBackupsImage from "../../assets/tour/minima-backups.png";
 import minimaStatusImage from "../../assets/tour/minima-status.png";
+import walletAddressBookImage from "../../assets/tour/wallet-address-book.png";
+import walletBalanceImage from "../../assets/tour/wallet-balance.png";
 import welcomeImage from "../../assets/tour/welcome.png";
 
 export type TourImage = { src: string; alt: string };
@@ -65,11 +67,19 @@ export const tourSteps: TourStep[] = [
       { src: minimaStatusImage, alt: "Minima node running and sync status cards" },
     ],
   ),
-  navStep("wallet", "The coins and tokens that belong to this device.", [
-    "Check your balance",
-    "Share your address to receive funds",
-    "Save the people you pay often in your address book",
-  ]),
+  navStep(
+    "wallet",
+    "The coins and tokens that belong to this device.",
+    [
+      "Check your balance",
+      "Share your address to receive funds",
+      "Save the people you pay often in your address book",
+    ],
+    [
+      { src: walletBalanceImage, alt: "Wallet balance with Send and Receive buttons" },
+      { src: walletAddressBookImage, alt: "Wallet address book with a New contact button" },
+    ],
+  ),
   navStep("integritas", "Proof that your data is genuine.", [
     "Stamp a file to prove it hasn't been altered",
     "Verify a proof anytime",
