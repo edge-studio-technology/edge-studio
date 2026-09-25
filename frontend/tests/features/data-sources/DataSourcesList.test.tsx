@@ -48,14 +48,13 @@ describe("DataSourcesList", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
-  it("shows an unfiltered empty state prompting to connect a device, with New input/output actions", async () => {
-    const onAddInput = vi.fn();
-    const onAddOutput = vi.fn();
-    renderList({ onAddInput, onAddOutput });
+  it("shows an unfiltered empty state prompting to connect a device, with a setup action", async () => {
+    const onSetupDevice = vi.fn();
+    renderList({ onSetupDevice });
     expect(screen.getByText("Connect your first device")).toBeInTheDocument();
 
-    await userEvent.click(screen.getAllByRole("button", { name: "New input" })[0]);
-    expect(onAddInput).toHaveBeenCalled();
+    await userEvent.click(screen.getAllByRole("button", { name: "New device" })[0]);
+    expect(onSetupDevice).toHaveBeenCalled();
   });
 
   it("shows a filtered empty state with a clear-filters action when search matches nothing", async () => {

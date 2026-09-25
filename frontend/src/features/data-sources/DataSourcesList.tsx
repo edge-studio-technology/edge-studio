@@ -75,8 +75,7 @@ export function DataSourcesList({
   onOpenSetupGuide,
   onEdit,
   onDelete,
-  onAddInput,
-  onAddOutput,
+  onSetupDevice,
 }: {
   items: DataSource[];
   capabilities: DataSourceCapabilities | null;
@@ -88,8 +87,7 @@ export function DataSourcesList({
   onOpenSetupGuide: (source: DataSource) => void;
   onEdit: (source: DataSource) => void;
   onDelete: (source: DataSource) => void;
-  onAddInput?: () => void;
-  onAddOutput?: () => void;
+  onSetupDevice?: () => void;
 }) {
   const [detailsSource, setDetailsSource] = useState<DataSource | null>(null);
   const [direction, setDirection] = useState("");
@@ -164,24 +162,10 @@ export function DataSourcesList({
             setPage(1);
           }}
           actions={
-            onAddInput || onAddOutput ? (
-              <>
-                {onAddInput ? (
-                  <Button type="button" iconStart={<Plus aria-hidden />} onClick={onAddInput}>
-                    New input
-                  </Button>
-                ) : null}
-                {onAddOutput ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    iconStart={<Plus aria-hidden />}
-                    onClick={onAddOutput}
-                  >
-                    New output
-                  </Button>
-                ) : null}
-              </>
+            onSetupDevice ? (
+              <Button type="button" iconStart={<Plus aria-hidden />} onClick={onSetupDevice}>
+                New device
+              </Button>
             ) : undefined
           }
         />
@@ -205,13 +189,10 @@ export function DataSourcesList({
               ? "Try another direction or search, or clear filters."
               : "Your input sources and output targets will be added to your library here."
           }
-          actionLabel={filtersActive ? "Clear filters" : onAddInput ? "New input" : undefined}
-          actionIcon={filtersActive ? undefined : onAddInput ? <Plus aria-hidden /> : undefined}
+          actionLabel={filtersActive ? "Clear filters" : onSetupDevice ? "New device" : undefined}
+          actionIcon={filtersActive ? undefined : onSetupDevice ? <Plus aria-hidden /> : undefined}
           actionVariant={filtersActive ? "secondary" : "primary"}
-          onAction={filtersActive ? clearFilters : onAddInput}
-          secondaryActionLabel={!filtersActive && onAddOutput ? "New output" : undefined}
-          secondaryActionIcon={!filtersActive && onAddOutput ? <Plus aria-hidden /> : undefined}
-          onSecondaryAction={!filtersActive ? onAddOutput : undefined}
+          onAction={filtersActive ? clearFilters : onSetupDevice}
         />
       ) : (
         <TableWrap>
