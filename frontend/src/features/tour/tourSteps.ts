@@ -3,6 +3,8 @@ import { nav } from "../../app/nav";
 import type { NavId } from "../../app/types";
 import dashboardActivityImage from "../../assets/tour/dashboard-activity.png";
 import dashboardMetricsImage from "../../assets/tour/dashboard-metrics.png";
+import minimaBackupsImage from "../../assets/tour/minima-backups.png";
+import minimaStatusImage from "../../assets/tour/minima-status.png";
 import welcomeImage from "../../assets/tour/welcome.png";
 
 export type TourImage = { src: string; alt: string };
@@ -50,11 +52,19 @@ export const tourSteps: TourStep[] = [
       { src: dashboardMetricsImage, alt: "Dashboard status cards for wallet, node, and device" },
     ],
   ),
-  navStep("node", "The network that keeps a permanent, tamper-proof record of your data.", [
-    "Check that your connection is healthy",
-    "Make regular backups",
-    "Restore from a backup if something goes wrong",
-  ]),
+  navStep(
+    "node",
+    "The network that keeps a permanent, tamper-proof record of your data.",
+    [
+      "Check that your connection is healthy",
+      "Make regular backups",
+      "Restore from a backup if something goes wrong",
+    ],
+    [
+      { src: minimaBackupsImage, alt: "Minima node backup and restore settings" },
+      { src: minimaStatusImage, alt: "Minima node running and sync status cards" },
+    ],
+  ),
   navStep("wallet", "The coins and tokens that belong to this device.", [
     "Check your balance",
     "Share your address to receive funds",
