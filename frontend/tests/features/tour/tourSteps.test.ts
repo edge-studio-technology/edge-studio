@@ -3,11 +3,12 @@ import { nav } from "../../../src/app/nav";
 import { tourSteps } from "../../../src/features/tour/tourSteps";
 
 describe("tourSteps", () => {
-  it("has unique ids and non-empty copy for every step", () => {
+  it("has unique ids, a lead, and points for every step", () => {
     expect(new Set(tourSteps.map((step) => step.id)).size).toBe(tourSteps.length);
     for (const step of tourSteps) {
       expect(step.title).not.toBe("");
-      expect(step.body).not.toBe("");
+      expect(step.lead).not.toBe("");
+      expect(step.points.length).toBeGreaterThan(0);
     }
   });
 

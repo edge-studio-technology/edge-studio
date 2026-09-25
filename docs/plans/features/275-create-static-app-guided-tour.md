@@ -20,8 +20,9 @@ OpenProject task **#275 Create static App/Guided Tour** (status _In progress_), 
 Deviations from the plan as built:
 
 - No separate "Step X of N" text. `ProgressBar` already shows `X / N` in its pill.
-- The image frame is 5:2 (`aspect-[5/2]`), not 16:9, to leave room for fuller step text. Screenshots use `object-contain`, so a different ratio letterboxes instead of cropping.
-- Step text reserves three lines (`min-h-[3lh]`) so the modal height and button positions stay fixed across steps.
+- The image frame is 3:1 (`aspect-[3/1]`), not 16:9, to leave room for the step text. Screenshots use `object-contain`, so a different ratio letterboxes instead of cropping.
+- Step text is a one-sentence lead (`type-callout`) plus three short points with accent check icons, instead of a `type-body` paragraph. Keeping the lead to one line and each point to one line keeps the modal height fixed across steps.
+- The closing step shows the white lockup on `BRAND_GRADIENT` (`brand: true` on the step) instead of a screenshot.
 - "Take the tour" matches the page's "Check for updates" button (default variant and size, inside `ButtonRow`).
 - No `AuthSettingsPage` test. Pages are excluded from coverage. The replay path is covered by the AppShell "reopens when the seen flag is cleared" test and was checked manually.
 - OpenProject #275 is updated manually by the user.

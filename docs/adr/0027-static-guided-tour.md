@@ -29,15 +29,18 @@ No design or approved copy exists, and no screenshots are available yet.
 - **Existing installs see it once.** The flag is new, so no stored value means "not seen".
 - **Replay from Settings → Behaviour.** "Take the tour" sets the flag back to `false`, which
   remounts the modal at step 1.
-- **Fixed 5:2 image slot.** Each step reserves an `aspect-[5/2]` frame above the text, short enough
-  to leave room for a few lines of explanation at the 768px floor. It shows the step icon and
-  "Screenshot coming soon" until a screenshot is added to the step, so layout does not change when
-  images land. Screenshots are cropped to 5:2 and rendered with `object-contain`, so a different
-  ratio letterboxes rather than crops.
-- **Plain-language copy.** Step text says what each area is for and how it is used, and avoids
-  technical terms such as blockchain, hash, RPC, MQTT, webhook, and GPIO. Minima and Integritas
-  stay named because they are sidebar labels, but each is explained by what it does for the user.
-  The step text reserves three lines so the modal height stays fixed across steps.
+- **Fixed 3:1 image slot.** Each step reserves an `aspect-[3/1]` frame above the text, short enough
+  to leave room for the text at the 768px floor. It shows the step icon and "Screenshot coming
+  soon" until a screenshot is added to the step, so layout does not change when images land.
+  Screenshots are cropped to 3:1 and rendered with `object-contain`, so a different ratio
+  letterboxes rather than crops. The closing step shows the white Edge Studio lockup on
+  `BRAND_GRADIENT`, matching the login page, instead of a screenshot.
+- **Plain-language, scannable copy.** Each step has one lead sentence in `type-callout` and three
+  short points with accent check icons, not a paragraph, so it can be read at a glance. The copy
+  says what each area is for and how it is used, and avoids technical terms such as blockchain,
+  hash, RPC, MQTT, webhook, and GPIO. Minima and Integritas stay named because they are sidebar
+  labels, but each is explained by what it does for the user. With a one-line lead and single-line
+  points, the modal height stays fixed across steps at 768px and above.
 - **Backdrop clicks do nothing.** `closeOnOutsideClick={false}` overrides the user's Behaviour
   preference, because an accidental backdrop press would dismiss the tour and mark it seen. X,
   Escape, and Skip tour still close it.

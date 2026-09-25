@@ -1,4 +1,7 @@
+import { Check } from "lucide-react";
 import { useState } from "react";
+import { BRAND_GRADIENT } from "../../app/brand";
+import { BrandLockup } from "../../components/patterns/BrandLockup";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { ProgressBar } from "../../components/ui/ProgressBar";
@@ -48,8 +51,15 @@ export function GuidedTourModal({
         </>
       }
     >
-      <div className="border-stroke-secondary bg-surface-primary rounded-soft aspect-[5/2] w-full overflow-hidden border">
-        {step.image ? (
+      <div className="border-stroke-secondary bg-surface-primary rounded-soft aspect-[3/1] w-full overflow-hidden border">
+        {step.brand ? (
+          <div
+            className="flex h-full items-center justify-center"
+            style={{ background: BRAND_GRADIENT }}
+          >
+            <BrandLockup tone="on-dark" size={40} />
+          </div>
+        ) : step.image ? (
           <img
             src={step.image}
             alt={step.imageAlt ?? ""}
@@ -62,7 +72,20 @@ export function GuidedTourModal({
           </div>
         )}
       </div>
-      <p className="type-body text-text-primary m-0 min-h-[3lh]">{step.body}</p>
+      <div className="gap-detail-next flex flex-col">
+        <p className="type-callout text-text-primary m-0">{step.lead}</p>
+        <ul className="gap-detail-close m-0 flex list-none flex-col p-0">
+          {step.points.map((point) => (
+            <li
+              key={point}
+              className="gap-detail-close type-body text-text-primary flex items-start"
+            >
+              <Check aria-hidden className="text-text-accent size-4 shrink-0" />
+              {point}
+            </li>
+          ))}
+        </ul>
+      </div>
     </Modal>
   );
 }

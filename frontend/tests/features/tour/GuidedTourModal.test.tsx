@@ -6,11 +6,18 @@ import { GuidedTourModal } from "../../../src/features/tour/GuidedTourModal";
 import { tourSteps, type TourStep } from "../../../src/features/tour/tourSteps";
 
 const steps: TourStep[] = [
-  { id: "one", title: "First step", body: "First body.", icon: Radio },
+  {
+    id: "one",
+    title: "First step",
+    lead: "First lead.",
+    points: ["First point", "Second point"],
+    icon: Radio,
+  },
   {
     id: "two",
     title: "Second step",
-    body: "Second body.",
+    lead: "Second lead.",
+    points: ["Only point"],
     icon: Shield,
     image: "/tour/second.png",
     imageAlt: "Second screenshot",
@@ -26,7 +33,11 @@ describe("GuidedTourModal", () => {
   it("renders the first step with progress and no Back button", () => {
     renderTour();
     expect(screen.getByRole("dialog", { name: "First step" })).toBeInTheDocument();
-    expect(screen.getByText("First body.")).toBeInTheDocument();
+    expect(screen.getByText("First lead.")).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      "First point",
+      "Second point",
+    ]);
     expect(screen.getByRole("progressbar", { name: "Tour progress" })).toHaveAttribute(
       "aria-valuenow",
       "1",
@@ -94,6 +105,18 @@ describe("GuidedTourModal", () => {
     const backdrop = screen.getByRole("dialog").closest('[role="presentation"]');
     fireEvent.mouseDown(backdrop!);
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("shows the brand lockup instead of a screenshot on a brand step", () => {
+    render(
+      <GuidedTourModal
+        onClose={vi.fn()}
+        steps={[{ ...steps[0], brand: true, image: "/tour/ignored.png", imageAlt: "Ignored" }]}
+      />,
+    );
+    expect(screen.getByRole("img", { name: "Edge Studio" })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Ignored" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Screenshot coming soon")).not.toBeInTheDocument();
   });
 
   it("uses the built-in tour steps by default", () => {
