@@ -46,6 +46,22 @@ describe("MinimaContainerCard", () => {
     expect(screen.getByText("Up 2 hours")).toBeInTheDocument();
   });
 
+  it.each([
+    ["stopped", "Stopped", "Stopped 2 minutes ago"],
+    ["exited", "Exited", "Exited (1) 2 minutes ago"],
+    ["error", "Error", "Container failed to start"],
+  ])("renders %s container state and runtime", (state, label, runtime) => {
+    render(
+      <MinimaContainerCard
+        status={status({ state, status: runtime })}
+        loading={false}
+      />,
+    );
+
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByText(runtime)).toBeInTheDocument();
+  });
+
   it("shows memory usage alone when there is no limit", () => {
     render(
       <MinimaContainerCard

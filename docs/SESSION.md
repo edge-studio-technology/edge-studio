@@ -4,6 +4,17 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Completed #259 final verification: 27 focused frontend tests, 8 backend route tests, `npm run check` (typechecks, coverage suites/thresholds, clean dependency audits), backend/frontend builds, and `docker compose config --quiet` passed. Reconciled the focused/legacy plans and moved the local task to Done; added a completion comment to #259 without changing its status or description.
+- Reviewed the branch changelog: both runtime fixes are recorded. Existing frontend chunk-size and unset Compose image-variable warnings remain; no Docker build or manual browser/live-node check was run for this unit-test task.
+
+- Completed #259 plan step 4: added an authenticated restart-route service-rejection test asserting the normalized structured 502 response; production behavior was unchanged. All 8 backend route tests, backend build, and diff checks passed; full repository verification and ticket reconciliation remain queued for the final milestone.
+
+- Completed #259 plan step 3: added page-owned restart disable/re-enable and actionable failure-toast tests, reproduced the unhandled rejection, and contained it in the direct confirm handler while preserving resync error propagation. All 27 focused frontend tests, frontend typechecking, production build, and diff checks passed; full repository verification remains queued for the final milestone.
+
+- Completed #259 plan step 2: pinned stopped/error dashboard tones, preserved device metrics, stale-wallet clearing/recovery, and 30-second offline versus 3-second restart polling; skipped wallet RPC and cleared the balance for stopped/error nodes. All 24 dashboard/container tests, frontend typechecking, and the frontend production build passed; full repository verification remains queued for the final milestone.
+
+- Completed #259 plan step 1: added table-driven Minima container stopped/exited/error label and runtime assertions; `npm --prefix frontend run test -- MinimaContainerCard` passed all 9 tests. Full checks/builds/Compose validation remain queued for the plan's final verification milestone.
+
 - Built the #667 responsive fixes on `feature/667-responsive-application`: container-query dashboard metric grid (#695), pinned row-action column on all 11 tables with row actions (#697), wrapping status bar (#698), two-line dashboard activity rows (#699), 40px console toolbar buttons below 1024 (#700), and a sidebar that overlays the page when expanded below 1024 (§10), plus a test keeping `EXPAND_MQ` in sync with Tailwind's `lg`.
 - Verified #701 (hardware modal, Account settings) at 768x1024 and 1024x768 with no change needed; commented on the ticket and moved it to Done.
 - Added `AppShellSidebar.test.tsx` cases for expand at ≥1024 and accessible nav-link names when collapsed (#269).
