@@ -1,6 +1,6 @@
 # Node Failure Mode Unit Testing Plan
 
-**Status:** In progress — steps 1–2 complete
+**Status:** In progress — steps 1–3 complete
 **Created:** 2026-09-28  
 **Goal:** Close OpenProject #259 by pinning Minima stopped, exited, error, restart, and restart-failure behavior with focused frontend and backend tests, fixing only the runtime gaps those tests expose.
 
@@ -122,8 +122,8 @@ Acceptance checks:
 
 ### Milestone 2: Restart lifecycle and route failure
 
-- [ ] Add `MinimaPage` restart disable/re-enable coverage.
-- [ ] Add `MinimaPage` restart-failure toast coverage and contain the direct-action rejection.
+- [x] Add `MinimaPage` restart disable/re-enable coverage — controlled restart/status promises verify the page-owned action stays disabled until healthy recovery.
+- [x] Add `MinimaPage` restart-failure toast coverage and contain the direct-action rejection — reproduced the unhandled rejection before the fix; all 27 focused frontend tests passed afterward (2026-09-28).
 - [ ] Add the backend restart-route structured failure case.
 
 ### Milestone 3: Full verification and reconciliation

@@ -137,6 +137,8 @@ export function MinimaPage() {
     setBusy(true);
     try {
       await restartContainer();
+    } catch {
+      // restartContainer already reported the failure through a toast.
     } finally {
       setBusy(false);
     }

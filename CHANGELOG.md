@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Dashboard wallet balance is unavailable and wallet requests are skipped while the Minima node is stopped or errored.
+- Failed Minima restarts show the error toast without an unhandled action error.
 
 ## [Unreleased]
 
