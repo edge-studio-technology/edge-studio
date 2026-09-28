@@ -66,6 +66,7 @@ import {
   mutedText,
 } from "./workflowWorkspaceUi";
 import { ArrowLeftIcon } from "lucide-react";
+import { SpinnerAlt } from "../../../components/ui/SpinnerAlt";
 
 /** Edit/watch workspace for a persisted automation workflow. */
 export function WorkflowWorkspace({
@@ -91,6 +92,7 @@ export function WorkflowWorkspace({
   onRunNow,
   onRunWithPayload,
   onCreateAddressBookEntry,
+  loadingOverlayLabel,
 }: {
   workflow: AutomationWorkflow;
   runs: AutomationRun[];
@@ -118,6 +120,7 @@ export function WorkflowWorkspace({
   onRunNow: () => void;
   onRunWithPayload: (payload: unknown) => void;
   onCreateAddressBookEntry: (data: CreateAddressBookEntryInput) => Promise<AddressBookEntry>;
+  loadingOverlayLabel?: string | null;
 }) {
   const [payloadText, setPayloadText] = useState(() =>
     JSON.stringify(examplePayload(workflow), null, 2),
@@ -628,6 +631,9 @@ export function WorkflowWorkspace({
           </SelectedBlockSheet>
         ) : undefined
       }
+      overlay={
+        loadingOverlayLabel ? <WorkflowLoadingOverlay label={loadingOverlayLabel} /> : undefined
+      }
       bottom={
         mode === "watch" ? (
           <WatchRunHistory
@@ -674,5 +680,16 @@ export function WorkflowWorkspace({
       />
     ) : null}
     </>
+  );
+}
+
+export function WorkflowLoadingOverlay({ label }: { label: string }) {
+  return (
+    <div className="bg-overlay-light grid h-full place-items-center p-pad-relaxed" role="status" aria-live="polite">
+      <div className="rounded-soft border-stroke-secondary bg-surface-always-white gap-detail-next grid min-w-[220px] place-items-center border p-margin-tight shadow-[0_24px_60px_rgba(0,0,0,0.16)]">
+        <SpinnerAlt size="md" />
+        <p className="type-body-em text-text-primary m-0">{label}</p>
+      </div>
+    </div>
   );
 }

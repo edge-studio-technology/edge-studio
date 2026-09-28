@@ -8,6 +8,8 @@ import { AutomationPage } from "../../src/pages/AutomationPage";
 const listDataSources = vi.fn();
 const listAutomationWorkflows = vi.fn();
 const listAutomationInbox = vi.fn();
+const listAutomationWorkflowRuns = vi.fn();
+const getAutomationWorkflowValidation = vi.fn();
 const updateAutomationWorkflow = vi.fn();
 const createAutomationWorkflow = vi.fn();
 
@@ -20,6 +22,8 @@ vi.mock("../../src/features/automation/automationApi", async (importOriginal) =>
   ...(await importOriginal<typeof import("../../src/features/automation/automationApi")>()),
   listAutomationWorkflows: (...args: unknown[]) => listAutomationWorkflows(...args),
   listAutomationInbox: (...args: unknown[]) => listAutomationInbox(...args),
+  listAutomationWorkflowRuns: (...args: unknown[]) => listAutomationWorkflowRuns(...args),
+  getAutomationWorkflowValidation: (...args: unknown[]) => getAutomationWorkflowValidation(...args),
   updateAutomationWorkflow: (...args: unknown[]) => updateAutomationWorkflow(...args),
   createAutomationWorkflow: (...args: unknown[]) => createAutomationWorkflow(...args),
 }));
@@ -67,6 +71,7 @@ function renderPage(initialEntries = ["/workflows"]) {
         <Routes>
           <Route path="/workflows" element={<AutomationPage />} />
           <Route path="/workflows/new" element={<AutomationPage />} />
+          <Route path="/workflows/:workflowId/watch" element={<AutomationPage />} />
           <Route path="/workflows/:workflowId/edit" element={<div>Edit route</div>} />
         </Routes>
       </ToastProvider>
@@ -81,6 +86,8 @@ describe("AutomationPage", () => {
     listAutomationInbox
       .mockReset()
       .mockResolvedValue({ items: [], total: 0, limit: 500, offset: 0 });
+    listAutomationWorkflowRuns.mockReset().mockResolvedValue({ items: [] });
+    getAutomationWorkflowValidation.mockReset().mockResolvedValue({ item: null });
     updateAutomationWorkflow.mockReset().mockResolvedValue({ item: workflow({ enabled: false }) });
     createAutomationWorkflow.mockReset().mockResolvedValue({ item: workflow({ id: "created", enabled: false }) });
   });
@@ -120,5 +127,13 @@ describe("AutomationPage", () => {
     });
     expect(await screen.findByText("Workflow created")).toBeInTheDocument();
     expect(await screen.findByText("Build your first workflow")).toBeInTheDocument();
+  });
+
+  it("keeps the workflow workspace shell visible during a direct watch load", () => {
+    renderPage(["/workflows/w1/watch"]);
+
+    expect(screen.getByText("Watch workflow")).toBeInTheDocument();
+    expect(screen.getByText("Fetching workflow...")).toBeInTheDocument();
+    expect(screen.queryByText("Fetching your workflow")).not.toBeInTheDocument();
   });
 });

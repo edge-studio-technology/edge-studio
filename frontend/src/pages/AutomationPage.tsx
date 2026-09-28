@@ -6,7 +6,6 @@ import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/
 import { ErrorAlert } from "../components/ErrorAlert";
 import { ErrorContentState } from "../components/patterns/ErrorContentState";
 import { describeLoadFailure } from "../lib/errors";
-import { LoadingState } from "../components/patterns/LoadingState";
 import { Page } from "../components/Page";
 import { useToast } from "../components/ToastProvider";
 import {
@@ -34,7 +33,11 @@ import {
 import { AutomationInboxTable } from "../features/automation/AutomationInboxTable";
 import { AutomationWorkflowsList } from "../features/automation/AutomationWorkflowsList";
 import { CreateWorkflowWorkspace } from "../features/automation/workflow/CreateWorkflowWorkspace";
-import { WorkflowWorkspace } from "../features/automation/workflow/WorkflowWorkspace";
+import {
+  WorkflowLoadingOverlay,
+  WorkflowWorkspace,
+} from "../features/automation/workflow/WorkflowWorkspace";
+import { WorkflowWorkspaceShell } from "../features/automation/workflow/chrome/WorkflowWorkspaceShell";
 import type {
   AutomationBlock,
   AutomationBlockType,
@@ -76,6 +79,90 @@ function automationFlowFromRoute(
 function sortAddressBook(entries: AddressBookEntry[]): AddressBookEntry[] {
   return [...entries].sort((a, b) =>
     a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+  );
+}
+
+function WorkflowInitialLoadingShell({
+  mode,
+  onBack,
+}: {
+  mode: "edit" | "watch";
+  onBack: () => void;
+}) {
+  return (
+    <WorkflowWorkspaceShell
+      breadcrumbLabel={mode === "watch" ? "Watch workflow" : "Edit workflow"}
+      railToggleLabel={mode === "watch" ? "Watch controls" : "Toolkit"}
+      nameControl={
+        <div className="gap-detail-tight grid" aria-label="Workflow name loading">
+          <span className="bg-surface-secondary rounded-full h-5 w-56" />
+          <span className="sr-only">Loading workflow name</span>
+        </div>
+      }
+      actions={
+        <Button type="button" variant="secondary" onClick={onBack}>
+          Back
+        </Button>
+      }
+      canvas={<WorkflowCanvasLoadingSkeleton />}
+      rail={<WorkflowRailLoadingSkeleton mode={mode} />}
+      bottom={mode === "watch" ? <WorkflowHistoryLoadingSkeleton /> : undefined}
+      overlay={<WorkflowLoadingOverlay label="Fetching workflow..." />}
+    />
+  );
+}
+
+function WorkflowCanvasLoadingSkeleton() {
+  return (
+    <div className="bg-surface-primary h-full min-h-0 bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-grey-03)_32%,transparent)_1px,transparent_1px)] bg-[length:18px_18px] px-pad-relaxed py-pad-relaxed">
+      <div className="flex min-h-full flex-col items-center justify-center gap-detail-close opacity-60">
+        {[0, 1, 2].map((item) => (
+          <div
+            key={item}
+            className="rounded-soft border-stroke-secondary bg-surface-always-white grid w-full max-w-[520px] gap-detail-next border p-margin-tight shadow-sm"
+          >
+            <span className="bg-surface-secondary h-3 w-16 rounded-full" />
+            <span className="bg-surface-secondary h-5 w-48 rounded-full" />
+            <span className="bg-surface-secondary h-4 w-72 max-w-full rounded-full" />
+            <div className="gap-detail-next flex">
+              <span className="bg-surface-secondary h-6 w-24 rounded-full" />
+              <span className="bg-surface-secondary h-6 w-20 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WorkflowRailLoadingSkeleton({ mode }: { mode: "edit" | "watch" }) {
+  return (
+    <div className="gap-detail-close grid opacity-60">
+      {[mode === "watch" ? "Runtime overview" : "Validation", mode === "watch" ? "Run controls" : "Toolkit"].map(
+        (title) => (
+          <section
+            key={title}
+            className="rounded-soft border-stroke-secondary bg-surface-always-white grid gap-detail-next border p-margin-tight shadow-sm"
+          >
+            <strong className="type-title text-text-primary">{title}</strong>
+            <span className="bg-surface-secondary h-4 w-56 max-w-full rounded-full" />
+            <span className="bg-surface-secondary h-4 w-40 max-w-full rounded-full" />
+          </section>
+        ),
+      )}
+    </div>
+  );
+}
+
+function WorkflowHistoryLoadingSkeleton() {
+  return (
+    <section className="rounded-soft border-stroke-secondary bg-surface-always-white grid w-full gap-detail-next border p-margin-tight opacity-60 shadow-sm">
+      <div className="flex items-center justify-between gap-detail-next">
+        <strong>Selected run</strong>
+        <span className="bg-surface-secondary h-6 w-20 rounded-full" />
+      </div>
+      <span className="bg-surface-secondary h-4 w-80 max-w-full rounded-full" />
+    </section>
   );
 }
 
@@ -420,6 +507,7 @@ export function AutomationPage() {
               )
             }
             onCreateAddressBookEntry={createWorkflowRecipient}
+            loadingOverlayLabel={busy ? "Updating workflow..." : null}
           />
         ) : loadError ? (
           <ErrorContentState
@@ -428,9 +516,9 @@ export function AutomationPage() {
             onRetry={() => void loadPage()}
           />
         ) : (
-          <LoadingState
-            title="Fetching your workflow"
-            description="This should take a few seconds."
+          <WorkflowInitialLoadingShell
+            mode={workspaceMode}
+            onBack={() => navigateFlow({ mode: "list" })}
           />
         )}
         {workspaceWorkflow && loadError ? (
