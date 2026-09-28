@@ -126,7 +126,8 @@ describe("AutomationWorkflowsList", () => {
     expect(onEdit).toHaveBeenCalledWith(wf);
   });
 
-  it("runs now, duplicates, archives, and deletes via the row menu", async () => {
+  it("watches, runs now, duplicates, archives, and deletes via the row menu", async () => {
+    const onWatch = vi.fn();
     const onRunNow = vi.fn();
     const onDuplicate = vi.fn();
     const onToggleArchive = vi.fn();
@@ -134,9 +135,13 @@ describe("AutomationWorkflowsList", () => {
     const wf = workflow();
     render(
       <AutomationWorkflowsList
-        {...baseProps({ workflows: [wf], onRunNow, onDuplicate, onToggleArchive, onDelete })}
+        {...baseProps({ workflows: [wf], onWatch, onRunNow, onDuplicate, onToggleArchive, onDelete })}
       />,
     );
+
+    await userEvent.click(screen.getByRole("button", { name: "More actions for Front gate flow" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Watch" }));
+    expect(onWatch).toHaveBeenCalledWith(wf);
 
     await userEvent.click(screen.getByRole("button", { name: "More actions for Front gate flow" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Run now" }));
