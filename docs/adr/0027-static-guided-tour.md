@@ -38,12 +38,14 @@ No design or approved copy exists, and no screenshots are available yet.
   was tried first and dropped after stakeholder review because two half-images in one frame were
   confusing. The closing step shows the white Edge Studio lockup on
   `BRAND_GRADIENT`, matching the login page, instead of a screenshot.
-- **Plain-language, scannable copy.** Each step has one lead sentence in `type-callout` and three
-  short points with accent check icons, not a paragraph, so it can be read at a glance. The copy
+- **Plain-language, scannable copy.** Each step shows one lead sentence in `type-callout`, not a
+  paragraph, so it can be read at a glance. Each step also carries three short points; they were
+  shown as a checklist with accent check icons until stakeholder review, and are now commented out
+  in `GuidedTourModal` so they can be restored without rewriting the copy. The copy
   says what each area is for and how it is used, and avoids technical terms such as blockchain,
   hash, RPC, MQTT, webhook, and GPIO. Minima and Integritas stay named because they are sidebar
-  labels, but each is explained by what it does for the user. With a one-line lead and single-line
-  points, the modal height stays fixed across steps at 768px and above.
+  labels, but each is explained by what it does for the user. With a one-line lead, the modal height
+  stays fixed across steps at 768px and above.
 - **Backdrop clicks do nothing.** `closeOnOutsideClick={false}` overrides the user's Behaviour
   preference, because an accidental backdrop press would dismiss the tour and mark it seen. X,
   Escape, and Skip tour still close it.

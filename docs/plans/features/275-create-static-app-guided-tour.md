@@ -21,7 +21,7 @@ Deviations from the plan as built:
 
 - No separate "Step X of N" text. `ProgressBar` already shows `X / N` in its pill.
 - The image frame is 3:1 (`aspect-[3/1]`), not 16:9, to leave room for the step text. Screenshots use `object-cover object-top`, so the top of the page always shows and any overflow is cropped from the bottom. A step can have two screenshots (`images`); each fills the frame and they crossfade in order every 4 seconds (0.7s fade, no fade under reduced motion), restarting from the first on each step. Screenshots are 1440×480 PNGs: a 960×320 region of a 1280-wide page (sidebar open, scrollbar hidden) captured headless with Playwright at 1.5× device scale; Welcome is the full 1200×400 app at 1.2×, and Diagnostics workflow logs is a 1116×372 region at 1440/1116× so the tabs and both rows fit.
-- Step text is a one-sentence lead (`type-callout`) plus three short points with accent check icons, instead of a `type-body` paragraph. Keeping the lead to one line and each point to one line keeps the modal height fixed across steps.
+- Step text is a one-sentence lead (`type-callout`) instead of a `type-body` paragraph. Each step also has three short points; the accent-check checklist that showed them is commented out after stakeholder review, kept for a possible return. Keeping the lead to one line keeps the modal height fixed across steps.
 - The closing step shows the white lockup on `BRAND_GRADIENT` (`brand: true` on the step) instead of a screenshot.
 - "Take the tour" matches the page's "Check for updates" button (default variant and size, inside `ButtonRow`).
 - No `AuthSettingsPage` test. Pages are excluded from coverage. The replay path is covered by the AppShell "reopens when the seen flag is cleared" test and was checked manually.

@@ -42,6 +42,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Replaced the tour's diagonal two-screenshot split with a full-frame crossfade after stakeholder feedback: two images alternate every 4s with a 0.7s fade, no controls, restarting on each step; the hidden image is `aria-hidden`.
 - Recaptured all 15 tour screenshots as 1440×480 (960×320 regions at 1.5× from a 1280-wide page, headless Playwright; Welcome is the whole 1200×400 app), ordered overview first then detail; updated ADR 0027 and the plan.
 - After review: recaptured Minima status with the RPC console open, Diagnostics workflow logs with the tabs and both runs (wider region, same output size), and the failed-run details from the top of the modal.
+- Commented out the tour's step checklist (points and check icons) after stakeholder feedback; the points stay in `tourSteps` for a possible return. Updated the modal test, ADR 0027, and the plan.
 - Verified the crossfade in a headless browser at 1024×768 (swap at 4s, back at 8s, reset per step, modal steady at 598px), a fake-timer crossfade test, `npm run check`, and the frontend build.
 
 ## Next Steps

@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+// import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BRAND_GRADIENT } from "../../app/brand";
 import { BrandLockup } from "../../components/patterns/BrandLockup";
@@ -103,6 +103,7 @@ export function GuidedTourModal({
       </div>
       <div className="gap-detail-next flex flex-col">
         <p className="type-callout text-text-primary m-0">{step.lead}</p>
+        {/* Checklist hidden after stakeholder review; points stay in tourSteps for a later revisit.
         <ul className="gap-detail-close m-0 flex list-none flex-col p-0">
           {step.points.map((point) => (
             <li
@@ -114,6 +115,7 @@ export function GuidedTourModal({
             </li>
           ))}
         </ul>
+        */}
       </div>
     </Modal>
   );

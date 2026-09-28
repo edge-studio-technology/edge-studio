@@ -33,10 +33,7 @@ describe("GuidedTourModal", () => {
     renderTour();
     expect(screen.getByRole("dialog", { name: "First step" })).toBeInTheDocument();
     expect(screen.getByText("First lead.")).toBeInTheDocument();
-    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "First point",
-      "Second point",
-    ]);
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "Tour progress" })).toHaveAttribute(
       "aria-valuenow",
       "1",
