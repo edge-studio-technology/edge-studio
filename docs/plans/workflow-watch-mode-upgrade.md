@@ -64,6 +64,7 @@ Implemented:
 - Follow-up watch-mode cleanup removed the repeated workflow-name eyebrow, removed the duplicated workflow status strip from edit/watch workspaces, and aligned the historic-runs count and column chooser with the app's table-header pattern.
 - Watch history now defaults to a compact selected-run navigator with older/newer controls, and can expand into a half-height historic-runs table for browsing.
 - Direct workflow edit/watch loads now keep the workflow workspace chrome, canvas skeleton, rail skeleton, and watch history placeholder in place with a centered loading overlay instead of replacing the whole page with a generic loading card.
+- The workflow loading shell now uses the same button treatment, rail panel shells, and selected-run controls as the loaded watch workspace so loading states preserve component size more closely.
 
 Remaining:
 

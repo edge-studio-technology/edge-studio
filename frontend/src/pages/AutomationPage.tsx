@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { BookOpen } from "lucide-react";
+import { ArrowLeftIcon, BookOpen } from "lucide-react";
 import { Button, LinkButton } from "../components/Button";
 import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import { ErrorAlert } from "../components/ErrorAlert";
@@ -37,6 +37,10 @@ import {
   WorkflowLoadingOverlay,
   WorkflowWorkspace,
 } from "../features/automation/workflow/WorkflowWorkspace";
+import {
+  WorkflowRailHeader,
+  WorkflowRailPanel,
+} from "../features/automation/workflow/chrome/WorkflowRail";
 import { WorkflowWorkspaceShell } from "../features/automation/workflow/chrome/WorkflowWorkspaceShell";
 import type {
   AutomationBlock,
@@ -94,13 +98,15 @@ function WorkflowInitialLoadingShell({
       breadcrumbLabel={mode === "watch" ? "Watch workflow" : "Edit workflow"}
       railToggleLabel={mode === "watch" ? "Watch controls" : "Toolkit"}
       nameControl={
-        <div className="gap-detail-tight grid" aria-label="Workflow name loading">
-          <span className="bg-surface-secondary rounded-full h-5 w-56" />
+        <div aria-label="Workflow name loading">
+          <h1 className="type-title text-text-primary m-0 wrap-anywhere">
+            <span className="bg-surface-secondary inline-block h-5 w-56 rounded-full align-middle" />
+          </h1>
           <span className="sr-only">Loading workflow name</span>
         </div>
       }
       actions={
-        <Button type="button" variant="secondary" onClick={onBack}>
+        <Button type="button" variant="ghost" iconStart={<ArrowLeftIcon />} onClick={onBack}>
           Back
         </Button>
       }
@@ -136,32 +142,93 @@ function WorkflowCanvasLoadingSkeleton() {
 }
 
 function WorkflowRailLoadingSkeleton({ mode }: { mode: "edit" | "watch" }) {
+  if (mode === "watch") {
+    return (
+      <div className="gap-detail-close grid opacity-60">
+        <WorkflowRailPanel className="min-h-[392px]">
+          <WorkflowRailHeader
+            title="Runtime overview"
+            description="Monitor the current workflow state and choose whether live runs should take focus."
+          />
+          <div className="gap-detail-next grid">
+            <SkeletonStatRow />
+            <span className="bg-surface-secondary h-4 w-full rounded-full" />
+          </div>
+          <div className="gap-detail-next grid">
+            <SkeletonStatRow />
+            <SkeletonStatRow />
+            <SkeletonStatRow />
+            <SkeletonStatRow />
+            <SkeletonStatRow />
+          </div>
+          <div className="gap-detail-next grid">
+            <span className="bg-surface-secondary h-5 w-32 rounded-full" />
+            <span className="bg-surface-secondary h-4 w-full rounded-full" />
+            <span className="bg-surface-secondary h-4 w-48 rounded-full" />
+          </div>
+        </WorkflowRailPanel>
+        <WorkflowRailPanel className="min-h-[168px]">
+          <WorkflowRailHeader
+            title="Run controls"
+            description="Run this workflow or test it with a manual trigger payload."
+          />
+          <Button type="button" size="sm" disabled>
+            Run now
+          </Button>
+          <div className="flex items-center justify-between gap-detail-next">
+            <strong className="type-body-em text-text-primary">Test payload</strong>
+            <span className="bg-surface-secondary h-4 w-4 rounded-full" />
+          </div>
+        </WorkflowRailPanel>
+      </div>
+    );
+  }
+
   return (
     <div className="gap-detail-close grid opacity-60">
-      {[mode === "watch" ? "Runtime overview" : "Validation", mode === "watch" ? "Run controls" : "Toolkit"].map(
-        (title) => (
-          <section
-            key={title}
-            className="rounded-soft border-stroke-secondary bg-surface-always-white grid gap-detail-next border p-margin-tight shadow-sm"
-          >
-            <strong className="type-title text-text-primary">{title}</strong>
-            <span className="bg-surface-secondary h-4 w-56 max-w-full rounded-full" />
-            <span className="bg-surface-secondary h-4 w-40 max-w-full rounded-full" />
-          </section>
-        ),
-      )}
+      {["Validation", "Toolkit"].map((title) => (
+        <WorkflowRailPanel key={title}>
+          <WorkflowRailHeader title={title} description={<span className="bg-surface-secondary inline-block h-4 w-56 max-w-full rounded-full" />} />
+          <span className="bg-surface-secondary h-4 w-40 max-w-full rounded-full" />
+        </WorkflowRailPanel>
+      ))}
+    </div>
+  );
+}
+
+function SkeletonStatRow() {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-detail-next border-b border-stroke-secondary py-detail-tight last:border-b-0">
+      <span className="bg-surface-secondary h-4 w-24 rounded-full" />
+      <span className="bg-surface-secondary h-5 w-28 rounded-full" />
     </div>
   );
 }
 
 function WorkflowHistoryLoadingSkeleton() {
   return (
-    <section className="rounded-soft border-stroke-secondary bg-surface-always-white grid w-full gap-detail-next border p-margin-tight opacity-60 shadow-sm">
+    <section className="rounded-soft border-stroke-secondary bg-surface-always-white grid min-h-[168px] w-full gap-detail-next border p-margin-tight opacity-60 shadow-sm">
       <div className="flex items-center justify-between gap-detail-next">
-        <strong>Selected run</strong>
-        <span className="bg-surface-secondary h-6 w-20 rounded-full" />
+        <div>
+          <strong>Selected run</strong>
+          <span className="bg-surface-secondary mt-detail-next block h-4 w-80 max-w-full rounded-full" />
+        </div>
+        <div className="gap-detail-next flex items-center">
+          <span className="bg-surface-secondary h-6 w-20 rounded-full" />
+          <Button type="button" variant="secondary" size="xs" disabled>
+            Expand history
+          </Button>
+        </div>
       </div>
-      <span className="bg-surface-secondary h-4 w-80 max-w-full rounded-full" />
+      <div className="rounded-soft border-stroke-secondary grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-detail-next border p-detail-close">
+        <Button type="button" variant="secondary" size="xs" disabled>
+          Older run
+        </Button>
+        <span className="bg-surface-secondary mx-auto h-5 w-72 max-w-full rounded-full" />
+        <Button type="button" variant="secondary" size="xs" disabled>
+          Newer run
+        </Button>
+      </div>
     </section>
   );
 }
