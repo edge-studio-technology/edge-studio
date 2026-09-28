@@ -1,6 +1,6 @@
 # Workflow Watch Mode Upgrade Plan
 
-**Status:** Not started  
+**Status:** In progress  
 **Created:** 2026-09-25  
 **Goal:** Upgrade Automation watch mode from an early-alpha runtime view into a production-quality live monitoring, historic replay, and workflow debugging experience.
 
@@ -51,6 +51,21 @@ Tasks:
 - Polish edge states, responsive behavior, QA, and docs.
 
 Initial estimate: 5-8 working days.
+
+## Current Status
+
+Implemented:
+
+- Task 1 is documented: user expectations, state model, block states, selected-block detail requirements, recent-runs table requirements, and acceptance criteria.
+- Task 2 started with a watch-mode runtime overview in the rail.
+- Watch mode now shows workflow state, selected-run status, trigger, progress, duration, and run error summary before raw diagnostics.
+- Watch mode now has a `Follow live runs` switch. It follows the newest run by default, turns off when the user selects a historic run, and can jump back to the latest run.
+
+Remaining:
+
+- Canvas runtime visualization and replay controls are not implemented yet.
+- Run-history/debugging flow is still at the existing recent-runs table plus raw details level.
+- Browser QA against live workflow runs is still needed.
 
 ## Task 1: State Model And Acceptance Criteria
 

@@ -27,7 +27,12 @@ import {
   PersistedBlockInspector,
   type PersistedBlockInspectorHandle,
 } from "./WorkflowBlockInspectors";
-import { WatchRunControls, WatchRuntimeInspector, WatchRunHistory } from "./WorkflowWatchUi";
+import {
+  WatchRunControls,
+  WatchRuntimeInspector,
+  WatchRunHistory,
+  WatchRuntimeOverview,
+} from "./WorkflowWatchUi";
 import {
   automationBlockToCanvasBlock,
   draftBlockDescription,
@@ -123,6 +128,7 @@ export function WorkflowWorkspace({
   const [payloadError, setPayloadError] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState(workflow.name);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [followLiveRuns, setFollowLiveRuns] = useState(true);
   const [pendingEditAction, setPendingEditAction] = useState<(() => unknown | Promise<unknown>) | null>(null);
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
   const startBlock = mainBlocks[0];
@@ -167,6 +173,7 @@ export function WorkflowWorkspace({
   };
   const selectedRun =
     mode === "watch" ? (runs.find((run) => run.id === selectedRunId) ?? runs[0]) : undefined;
+  const latestRun = mode === "watch" ? runs[0] : undefined;
   const runtimeByBlockId = mode === "watch" ? runtimeByBlockIdFromRun(selectedRun) : {};
   const watchRunStatusLabel =
     selectedRun?.status === "running"
@@ -205,13 +212,18 @@ export function WorkflowWorkspace({
       setSelectedRunId(null);
       return;
     }
-    if (initialRunId && runs.some((run) => run.id === initialRunId)) {
+    if (!selectedRunId && initialRunId && runs.some((run) => run.id === initialRunId)) {
       setSelectedRunId(initialRunId);
+      setFollowLiveRuns(initialRunId === runs[0].id);
+      return;
+    }
+    if (followLiveRuns) {
+      if (selectedRunId !== runs[0].id) setSelectedRunId(runs[0].id);
       return;
     }
     if (!selectedRunId || !runs.some((run) => run.id === selectedRunId))
       setSelectedRunId(runs[0].id);
-  }, [initialRunId, mode, runs, selectedRunId]);
+  }, [followLiveRuns, initialRunId, mode, runs, selectedRunId]);
 
   async function addBlockFromLibrary(type: AutomationBlockType) {
     flushSelectedInspector();
@@ -481,6 +493,20 @@ export function WorkflowWorkspace({
               {isWorkflowValidationVisible(uiValidation) ? (
                 <WorkflowValidationPanel validation={uiValidation} />
               ) : null}
+              <WatchRuntimeOverview
+                workflow={workflow}
+                selectedRun={selectedRun}
+                latestRun={latestRun}
+                followLiveRuns={followLiveRuns}
+                hasValidationErrors={hasValidationErrors}
+                onFollowLiveRunsChange={(value) => {
+                  setFollowLiveRuns(value);
+                  if (value && latestRun) {
+                    setSelectedRunId(latestRun.id);
+                    onSelectWatchRun(latestRun.id);
+                  }
+                }}
+              />
               <WatchRunControls
                 workflow={workflow}
                 busy={busy}
@@ -653,6 +679,7 @@ export function WorkflowWorkspace({
             selectedRunId={selectedRun?.id ?? null}
             onSelectRun={(runId) => {
               setSelectedRunId(runId);
+              setFollowLiveRuns(runId === latestRun?.id);
               onSelectWatchRun(runId);
             }}
           />

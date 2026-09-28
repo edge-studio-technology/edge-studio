@@ -19,6 +19,7 @@ import {
 } from "../../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../../components/patterns/TableControls";
 import { ScrollArea } from "../../../components/ui/ScrollArea";
+import { SwitchField } from "../../../components/ui/SwitchField";
 import { formatLocalTime } from "../../../lib/time";
 import { useTableColumnVisibility } from "../../preferences/useTableColumnVisibility";
 import type { AutomationBlock, AutomationRun, AutomationWorkflow } from "../automationTypes";
@@ -40,6 +41,96 @@ import {
   mutedText,
   statusRowClass,
 } from "./workflowWorkspaceUi";
+
+function statusTone(status: AutomationRun["status"] | undefined) {
+  if (status === "success") return "good";
+  if (status === "failed") return "warn";
+  return "neutral";
+}
+
+function workflowStateSummary(workflow: AutomationWorkflow, hasValidationErrors: boolean) {
+  if (workflow.archived) return "Archived workflows cannot run until restored.";
+  if (hasValidationErrors) return "Validation errors must be fixed before this workflow can run.";
+  if (!workflow.enabled) return "Paused. It will not run automatically until resumed.";
+  return "Active and ready for incoming triggers.";
+}
+
+function runProgressLabel(run: AutomationRun | undefined) {
+  if (!run) return "No run selected";
+  const completedBlocks = run.blocks.filter((block) => block.status === "success").length;
+  if (run.status === "running") return `${completedBlocks}/${run.blockCount} blocks completed`;
+  if (run.status === "failed") return `${completedBlocks}/${run.blockCount} blocks completed before failure`;
+  return `${completedBlocks}/${run.blockCount} blocks completed`;
+}
+
+/** Watch-mode overview: workflow state, selected run, and live-follow control. */
+export function WatchRuntimeOverview({
+  workflow,
+  selectedRun,
+  latestRun,
+  followLiveRuns,
+  hasValidationErrors,
+  onFollowLiveRunsChange,
+}: {
+  workflow: AutomationWorkflow;
+  selectedRun: AutomationRun | undefined;
+  latestRun: AutomationRun | undefined;
+  followLiveRuns: boolean;
+  hasValidationErrors: boolean;
+  onFollowLiveRunsChange: (value: boolean) => void;
+}) {
+  const viewingLatestRun = Boolean(selectedRun && latestRun && selectedRun.id === latestRun.id);
+  const latestRunAvailable = Boolean(latestRun && selectedRun && latestRun.id !== selectedRun.id);
+  const selectedRunLabel = selectedRun
+    ? viewingLatestRun
+      ? selectedRun.status === "running"
+        ? "Following live run"
+        : "Viewing latest run"
+      : "Viewing historic run"
+    : "No run selected";
+
+  return (
+    <WorkflowRailPanel className={formGridClass}>
+      <WorkflowRailHeader
+        title="Runtime overview"
+        description="Monitor the current workflow state and choose whether live runs should take focus."
+      />
+      <div className="gap-detail-next grid">
+        <RuntimeStat
+          label="Workflow"
+          value={<StatusPill status={workflow.archived || hasValidationErrors ? "warn" : workflow.enabled ? "good" : "neutral"}>{workflow.archived ? "Archived" : workflow.enabled ? "Active" : "Paused"}</StatusPill>}
+        />
+        <p className={`${mutedText} m-0`}>{workflowStateSummary(workflow, hasValidationErrors)}</p>
+      </div>
+      <div className="gap-detail-next grid">
+        <RuntimeStat
+          label="Selected run"
+          value={<StatusPill status={statusTone(selectedRun?.status)}>{selectedRunLabel}</StatusPill>}
+        />
+        {selectedRun ? (
+          <>
+            <RuntimeStat label="Started" value={formatLocalTime(selectedRun.startedAt)} />
+            <RuntimeStat label="Trigger" value={selectedRun.triggerType} />
+            <RuntimeStat label="Progress" value={runProgressLabel(selectedRun)} />
+            <RuntimeStat label="Duration" value={formatDuration(selectedRun.durationMs)} />
+          </>
+        ) : (
+          <p className={`${mutedText} m-0`}>Run the workflow or choose a recent run below.</p>
+        )}
+        {selectedRun?.error ? <p className={`${errorText} m-0`}>{selectedRun.error}</p> : null}
+      </div>
+      <SwitchField
+        label="Follow live runs"
+        description="When enabled, the canvas follows the newest run automatically. Turn it off while inspecting history."
+        checked={followLiveRuns}
+        onChange={(event) => onFollowLiveRunsChange(event.currentTarget.checked)}
+      />
+      {latestRunAvailable && !followLiveRuns ? (
+        <p className={`${mutedText} m-0`}>Latest run available. Turn on follow live runs to jump back.</p>
+      ) : null}
+    </WorkflowRailPanel>
+  );
+}
 
 const WATCH_RUN_COLUMNS = [
   { id: "started", label: "Started" },
@@ -156,7 +247,7 @@ function WatchRunCell({
   if (columnId === "status") {
     return (
       <TableCell>
-        <StatusPill status={run.status === "success" ? "good" : run.status === "failed" ? "warn" : "neutral"}>
+        <StatusPill status={statusTone(run.status)}>
           {run.status}
         </StatusPill>
       </TableCell>
@@ -405,15 +496,7 @@ export function WatchRunHistory({
               <strong>Raw workflow run JSON</strong>
               <p className={mutedText}>Full stored run payload for diagnostics.</p>
             </div>
-            <StatusPill
-              status={
-                rawRun.status === "success"
-                  ? "good"
-                  : rawRun.status === "failed"
-                    ? "warn"
-                    : "neutral"
-              }
-            >
+            <StatusPill status={statusTone(rawRun.status)}>
               {rawRun.status}
             </StatusPill>
           </div>

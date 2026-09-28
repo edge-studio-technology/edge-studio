@@ -6,6 +6,7 @@ import { expectRowActionsPinned } from "../../../helpers/expectRowActionsPinned"
 import {
   WatchRunControls,
   WatchRunHistory,
+  WatchRuntimeOverview,
   WatchRuntimeInspector,
 } from "../../../../src/features/automation/workflow/WorkflowWatchUi";
 import type {
@@ -186,6 +187,59 @@ describe("WatchRunControls", () => {
   it("shows a payload error message when set", () => {
     renderControls({ payloadError: "Payload must be valid JSON" });
     expect(screen.getByText("Payload must be valid JSON")).toBeInTheDocument();
+  });
+});
+
+describe("WatchRuntimeOverview", () => {
+  function renderOverview(props: Partial<React.ComponentProps<typeof WatchRuntimeOverview>> = {}) {
+    return render(
+      <WatchRuntimeOverview
+        workflow={workflow({ enabled: true })}
+        selectedRun={run()}
+        latestRun={run()}
+        followLiveRuns={true}
+        hasValidationErrors={false}
+        onFollowLiveRunsChange={vi.fn()}
+        {...props}
+      />,
+    );
+  }
+
+  it("summarizes the workflow and selected run", () => {
+    renderOverview();
+    expect(screen.getByText("Runtime overview")).toBeInTheDocument();
+    expect(screen.getByText("Active and ready for incoming triggers.")).toBeInTheDocument();
+    expect(screen.getByText("Viewing latest run")).toBeInTheDocument();
+    expect(screen.getByText("1/1 blocks completed")).toBeInTheDocument();
+    expect(screen.getByText("manual")).toBeInTheDocument();
+  });
+
+  it("shows failed progress and the run error", () => {
+    renderOverview({
+      selectedRun: run({ status: "failed", error: "Camera failed", blockCount: 2 }),
+      latestRun: run({ status: "failed", error: "Camera failed", blockCount: 2 }),
+    });
+    expect(screen.getByText("1/2 blocks completed before failure")).toBeInTheDocument();
+    expect(screen.getByText("Camera failed")).toBeInTheDocument();
+  });
+
+  it("calls onFollowLiveRunsChange when the switch changes", async () => {
+    const onFollowLiveRunsChange = vi.fn();
+    renderOverview({ followLiveRuns: false, onFollowLiveRunsChange });
+    await userEvent.click(screen.getByRole("switch", { name: "Follow live runs" }));
+    expect(onFollowLiveRunsChange).toHaveBeenCalledWith(true);
+  });
+
+  it("shows when the latest run is available while inspecting history", () => {
+    renderOverview({
+      selectedRun: run({ id: "old-run" }),
+      latestRun: run({ id: "new-run" }),
+      followLiveRuns: false,
+    });
+    expect(screen.getByText("Viewing historic run")).toBeInTheDocument();
+    expect(
+      screen.getByText("Latest run available. Turn on follow live runs to jump back."),
+    ).toBeInTheDocument();
   });
 });
 

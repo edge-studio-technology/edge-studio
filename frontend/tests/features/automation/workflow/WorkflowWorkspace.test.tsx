@@ -529,6 +529,25 @@ describe("WorkflowWorkspace watch mode", () => {
   it("shows Run controls in the rail instead of the block library", () => {
     renderWorkspace({ mode: "watch", runs: [run()] });
     expect(screen.getByText("Run controls")).toBeInTheDocument();
+    expect(screen.getByText("Runtime overview")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "add-wait" })).not.toBeInTheDocument();
+  });
+
+  it("turns off live follow when selecting a historic run and can jump back to latest", async () => {
+    const onSelectWatchRun = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      runs: [run({ id: "latest" }), run({ id: "historic" })],
+      onSelectWatchRun,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Show on canvas" }));
+    expect(screen.getByRole("switch", { name: "Follow live runs" })).not.toBeChecked();
+    expect(screen.getAllByText("Viewing historic run").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("switch", { name: "Follow live runs" }));
+    expect(onSelectWatchRun).toHaveBeenLastCalledWith("latest");
+    expect(screen.getByText("Viewing latest run")).toBeInTheDocument();
   });
 });
