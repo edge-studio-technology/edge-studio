@@ -39,6 +39,10 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Shortened the tour image frame to 3:1 and rewrote the step copy in plain language (no blockchain/protocol terms) as a lead sentence plus three short points; the closing step shows the brand lockup on the brand gradient. The modal is a steady 598px at 1024×768 and 577px at 768 wide.
 - Verified `npm run check` (frontend 1632 tests, all thresholds met) and the frontend build.
 - Added ADR 0027, a changelog section, a README line, and a modal image frame note in the design-system doc.
+- Replaced the tour's diagonal two-screenshot split with a full-frame crossfade after stakeholder feedback: two images alternate every 4s with a 0.7s fade, no controls, restarting on each step; the hidden image is `aria-hidden`.
+- Recaptured all 15 tour screenshots as 1440×480 (960×320 regions at 1.5× from a 1280-wide page, headless Playwright; Welcome is the whole 1200×400 app), ordered overview first then detail; updated ADR 0027 and the plan.
+- After review: recaptured Minima status with the RPC console open, Diagnostics workflow logs with the tabs and both runs (wider region, same output size), and the failed-run details from the top of the modal.
+- Verified the crossfade in a headless browser at 1024×768 (swap at 4s, back at 8s, reset per step, modal steady at 598px), a fake-timer crossfade test, `npm run check`, and the frontend build.
 
 ## Next Steps
 
@@ -47,7 +51,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Complete the manual container/Pi checks in `docs/plans/security/705-retention-redaction-budgets.md`, including existing-installation Docker log rotation.
 - Manual check for the hotfix: run a workflow, restart the backend, and confirm Watch mode still shows the run with its block overlays.
 - Define the product lifecycle for preserved workflow runs/block runs (per-workflow bound, ADR 0026), data-source reads, and visible inbox items, covering configuration, export, proof-linked reads, quotas, and disk warnings.
-- #275: draft screenshots are in for every slide (captured with Playwright at 1440×480 from dev data), then recapture every slide with clean, Pi-like values before merge; review the step copy.
+- #275: stakeholder review of the crossfade; screenshots still use dev data (e.g. `ab78a7a5beb5 · linux x64`, a backup-password warning above the backups list) — recapture with clean, Pi-like values before merge; review the step copy.
 - #275: user updates OpenProject manually.
 
 ## Notes / Open Questions

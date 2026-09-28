@@ -1,11 +1,44 @@
 import { Check } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BRAND_GRADIENT } from "../../app/brand";
 import { BrandLockup } from "../../components/patterns/BrandLockup";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { ProgressBar } from "../../components/ui/ProgressBar";
-import { tourSteps, type TourStep } from "./tourSteps";
+import { cx } from "../../lib/cx";
+import { tourSteps, type TourImage, type TourStep } from "./tourSteps";
+
+const TOUR_IMAGE_INTERVAL_MS = 4000;
+
+function TourImages({ images }: { images: TourImage[] }) {
+  const [shown, setShown] = useState(0);
+
+  useEffect(() => {
+    if (images.length < 2) return;
+    const timer = setInterval(
+      () => setShown((index) => (index + 1) % images.length),
+      TOUR_IMAGE_INTERVAL_MS,
+    );
+    return () => clearInterval(timer);
+  }, [images.length]);
+
+  return (
+    <div className="relative h-full">
+      {images.map((image, index) => (
+        <img
+          key={image.src}
+          src={image.src}
+          alt={image.alt}
+          aria-hidden={index !== shown}
+          className={cx(
+            "absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-700 motion-reduce:transition-none",
+            index === shown ? "opacity-100" : "opacity-0",
+          )}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function GuidedTourModal({
   onClose,
@@ -59,41 +92,8 @@ export function GuidedTourModal({
           >
             <BrandLockup tone="on-dark" size={40} />
           </div>
-        ) : step.images?.length === 2 ? (
-          <div className="bg-surface-always-white relative h-full">
-            <img
-              src={step.images[0].src}
-              alt={step.images[0].alt}
-              className="absolute inset-y-0 left-0 h-full w-[55%] object-cover object-top [clip-path:polygon(0_0,100%_0,81.82%_100%,0_100%)]"
-            />
-            <img
-              src={step.images[1].src}
-              alt={step.images[1].alt}
-              className="absolute inset-y-0 right-0 h-full w-[55%] object-cover object-top [clip-path:polygon(18.18%_0,100%_0,100%_100%,0_100%)]"
-            />
-            <svg
-              aria-hidden
-              className="absolute inset-0 h-full w-full"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-            >
-              <line
-                x1="55"
-                y1="0"
-                x2="45"
-                y2="100"
-                className="stroke-surface-accent"
-                strokeWidth="1"
-                vectorEffect="non-scaling-stroke"
-              />
-            </svg>
-          </div>
         ) : step.images?.length ? (
-          <img
-            src={step.images[0].src}
-            alt={step.images[0].alt}
-            className="h-full w-full object-cover object-top"
-          />
+          <TourImages key={step.id} images={step.images} />
         ) : (
           <div className="gap-detail-next flex h-full flex-col items-center justify-center">
             <Icon aria-hidden className="text-text-disabled size-10" />

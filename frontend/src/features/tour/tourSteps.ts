@@ -25,7 +25,7 @@ export type TourStep = {
   lead: string;
   points: string[];
   icon: LucideIcon;
-  /** One image fills the frame; two are split diagonally, first on the left. */
+  /** Each image fills the frame; two or more crossfade in order on a timer. */
   images?: TourImage[];
   brand?: boolean;
 };
@@ -47,7 +47,7 @@ export const tourSteps: TourStep[] = [
       "Keep a trustworthy record that shows your data hasn't changed",
     ],
     icon: Compass,
-    images: [{ src: welcomeImage, alt: "The Edge Studio dashboard with the sidebar collapsed" }],
+    images: [{ src: welcomeImage, alt: "The Edge Studio dashboard with the sidebar open" }],
   },
   navStep(
     "dashboard",
@@ -58,8 +58,8 @@ export const tourSteps: TourStep[] = [
       "Get a suggested next step",
     ],
     [
-      { src: dashboardActivityImage, alt: "Dashboard live activity list" },
       { src: dashboardMetricsImage, alt: "Dashboard status cards for wallet, node, and device" },
+      { src: dashboardActivityImage, alt: "Dashboard live activity list" },
     ],
   ),
   navStep(
@@ -71,8 +71,8 @@ export const tourSteps: TourStep[] = [
       "Restore from a backup if something goes wrong",
     ],
     [
-      { src: minimaBackupsImage, alt: "Minima node backup and restore settings" },
-      { src: minimaStatusImage, alt: "Minima node running and sync status cards" },
+      { src: minimaStatusImage, alt: "Minima node status cards above the open RPC console" },
+      { src: minimaBackupsImage, alt: "Minima node backups list with download actions" },
     ],
   ),
   navStep(
@@ -113,8 +113,8 @@ export const tourSteps: TourStep[] = [
       "Add your first device here, then use it in a workflow",
     ],
     [
-      { src: devicesPickerImage, alt: "Setup Device picker with Boards, Protocols, and Sensors" },
       { src: devicesListImage, alt: "Configured devices list with a New device button" },
+      { src: devicesPickerImage, alt: "Setup Device picker with Boards, Protocols, and Sensors" },
     ],
   ),
   navStep(
@@ -127,12 +127,12 @@ export const tourSteps: TourStep[] = [
     ],
     [
       {
-        src: workflowsCanvasImage,
-        alt: "Workflow canvas with a start block followed by action blocks",
-      },
-      {
         src: workflowsListImage,
         alt: "Workflows list with an enabled workflow and a New workflow button",
+      },
+      {
+        src: workflowsCanvasImage,
+        alt: "Workflow canvas with a start block followed by action blocks",
       },
     ],
   ),
@@ -145,11 +145,11 @@ export const tourSteps: TourStep[] = [
       "Get details on anything that failed",
     ],
     [
+      { src: diagnosticsRunsImage, alt: "Diagnostics tabs and workflow logs with successful and failed runs" },
       {
         src: diagnosticsRunDetailsImage,
-        alt: "Failed workflow run details showing the failed block and error message",
+        alt: "Failed workflow run details with its trigger, status, and duration",
       },
-      { src: diagnosticsRunsImage, alt: "Workflow logs with successful and failed runs" },
     ],
   ),
   {

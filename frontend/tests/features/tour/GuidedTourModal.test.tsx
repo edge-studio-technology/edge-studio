@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Radio, Shield } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
@@ -106,30 +106,36 @@ describe("GuidedTourModal", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("shows both screenshots when a step has two images", () => {
-    render(
-      <GuidedTourModal
-        onClose={vi.fn()}
-        steps={[
-          {
-            ...steps[0],
-            images: [
-              { src: "/tour/left.png", alt: "Left screenshot" },
-              { src: "/tour/right.png", alt: "Right screenshot" },
-            ],
-          },
-        ]}
-      />,
-    );
-    expect(screen.getByRole("img", { name: "Left screenshot" })).toHaveAttribute(
-      "src",
-      "/tour/left.png",
-    );
-    expect(screen.getByRole("img", { name: "Right screenshot" })).toHaveAttribute(
-      "src",
-      "/tour/right.png",
-    );
-    expect(screen.queryByText("Screenshot coming soon")).not.toBeInTheDocument();
+  it("crossfades between two screenshots on a timer", () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <GuidedTourModal
+          onClose={vi.fn()}
+          steps={[
+            {
+              ...steps[0],
+              images: [
+                { src: "/tour/first.png", alt: "First screenshot" },
+                { src: "/tour/second.png", alt: "Second screenshot" },
+              ],
+            },
+          ]}
+        />,
+      );
+      expect(screen.getByRole("img", { name: "First screenshot" })).toHaveClass("opacity-100");
+      expect(screen.queryByRole("img", { name: "Second screenshot" })).not.toBeInTheDocument();
+
+      act(() => vi.advanceTimersByTime(4000));
+      expect(screen.getByRole("img", { name: "Second screenshot" })).toHaveClass("opacity-100");
+      expect(screen.queryByRole("img", { name: "First screenshot" })).not.toBeInTheDocument();
+
+      act(() => vi.advanceTimersByTime(4000));
+      expect(screen.getByRole("img", { name: "First screenshot" })).toHaveClass("opacity-100");
+      expect(screen.queryByText("Screenshot coming soon")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("shows the brand lockup instead of a screenshot on a brand step", () => {
