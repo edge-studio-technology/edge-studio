@@ -18,7 +18,6 @@ import {
   TableColumnVisibilityButton,
   type TableColumnDefinition,
 } from "../../../components/patterns/TableColumnVisibility";
-import { TableControls } from "../../../components/patterns/TableControls";
 import { ScrollArea } from "../../../components/ui/ScrollArea";
 import { SwitchField } from "../../../components/ui/SwitchField";
 import { formatLocalTime } from "../../../lib/time";
@@ -445,24 +444,22 @@ export function WatchRunHistory({
             Choose a run to visualize on the canvas, or expand raw JSON for diagnostics.
           </p>
         </div>
-        <StatusPill status="neutral">{runs.length} run(s)</StatusPill>
+        <div className="gap-detail-next flex shrink-0 items-center justify-end">
+          <StatusPill status="neutral">{runs.length} run(s)</StatusPill>
+          <TableColumnVisibilityButton
+            tableLabel="Historic runs"
+            columns={WATCH_RUN_COLUMNS}
+            visibility={visibility}
+            columnOrder={columnOrder}
+            onChange={setVisibility}
+            onOrderChange={setColumnOrder}
+          />
+        </div>
       </div>
       {runs.length === 0 ? (
         <p className={mutedText}>No workflow runs recorded yet.</p>
       ) : (
         <div className="grid gap-2">
-          <TableControls
-            utilities={
-              <TableColumnVisibilityButton
-                tableLabel="Historic runs"
-                columns={WATCH_RUN_COLUMNS}
-                visibility={visibility}
-                columnOrder={columnOrder}
-                onChange={setVisibility}
-                onOrderChange={setColumnOrder}
-              />
-            }
-          />
           <ScrollArea className="rounded-soft border-stroke-secondary bg-surface-always-white max-h-[150px] border">
             <TableWrap>
               <DataTable>

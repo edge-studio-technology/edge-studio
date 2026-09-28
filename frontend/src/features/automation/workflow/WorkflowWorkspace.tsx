@@ -54,21 +54,17 @@ import {
   runtimeByBlockIdFromRun,
   validationIssuesByBlockId,
   withSoftenedInsufficientBalance,
-  workflowIntervalSeconds,
   missingDeviceLibraryReason,
 } from "./workflowHelpers";
 import {
   BlockHelpDisclosure,
   SelectedBlockSheet,
-  StatusPill,
   WorkflowStatusPill,
-  WorkflowStatusStrip,
   WorkflowValidationPanel,
   errorText,
   isWorkflowValidationVisible,
   mutedText,
 } from "./workflowWorkspaceUi";
-import { formatLocalTime } from "../../../lib/time";
 import { ArrowLeftIcon } from "lucide-react";
 
 /** Edit/watch workspace for a persisted automation workflow. */
@@ -176,12 +172,6 @@ export function WorkflowWorkspace({
     mode === "watch" ? (runs.find((run) => run.id === selectedRunId) ?? runs[0]) : undefined;
   const latestRun = mode === "watch" ? runs[0] : undefined;
   const runtimeByBlockId = mode === "watch" ? runtimeByBlockIdFromRun(selectedRun) : {};
-  const watchRunStatusLabel =
-    selectedRun?.status === "running"
-      ? "Live updating"
-      : selectedRun
-        ? "Viewing historic run"
-        : "No run selected";
   const workflowStateTitle = workflow.archived
     ? "Archived workflows cannot run."
     : workflow.enabled
@@ -374,8 +364,7 @@ export function WorkflowWorkspace({
             error={workflowNameError}
           />
         ) : (
-          <div aria-label="Workflow name" className="gap-detail-tight grid">
-            <span className="type-meta text-text-secondary uppercase">Workflow</span>
+          <div aria-label="Workflow name">
             <h1 className="type-title text-text-primary m-0 wrap-anywhere">{workflow.name}</h1>
           </div>
         )
@@ -405,47 +394,7 @@ export function WorkflowWorkspace({
               </Button>
             </>
           ) : null}
-          {/* <Button
-            type="button"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => onNavigateMode(mode === "watch" ? "edit" : "watch")}
-          >
-            {mode === "watch" ? "Open in edit" : "Open in watch"}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={busy || hasValidationErrors || workflow.archived}
-            onClick={onRunNow}
-          >
-            Run now
-          </Button> */}
         </>
-      }
-      statusStrip={
-        <WorkflowStatusStrip>
-          {mode === "watch" ? (
-            <>
-              <WorkflowStatusPill workflow={workflow} />
-              <StatusPill status={selectedRun?.status === "running" ? "good" : "neutral"}>
-                {watchRunStatusLabel}
-              </StatusPill>
-            </>
-          ) : null}
-          <StatusPill status="neutral">Blocks {workflow.blocks.length}</StatusPill>
-          <StatusPill status="neutral">
-            Last run {workflow.lastRunAt ? formatLocalTime(workflow.lastRunAt) : "Never"}
-          </StatusPill>
-          <StatusPill status="neutral">
-            Next{" "}
-            {workflow.nextRunAt
-              ? formatLocalTime(workflow.nextRunAt)
-              : workflowIntervalSeconds(workflow) > 0
-                ? "Paused"
-                : "On incoming data"}
-          </StatusPill>
-        </WorkflowStatusStrip>
       }
       notices={
         mode === "edit" || workflow.archived || workflow.lastError ? (

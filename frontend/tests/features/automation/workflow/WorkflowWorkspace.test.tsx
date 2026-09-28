@@ -483,14 +483,14 @@ describe("WorkflowWorkspace edit mode", () => {
     expect(screen.getByText("Last run failed: boom")).toBeInTheDocument();
   });
 
-  it("shows block/last-run/next-run status pills", () => {
+  it("does not render the old block/last-run/next-run status strip", () => {
     renderWorkspace({
       workflow: workflow({
         blocks: [block(), block({ id: "b-wait", type: "wait" })],
         lastRunAt: "2026-08-01T00:00:00.000Z",
       }),
     });
-    expect(screen.getByText("Blocks 2")).toBeInTheDocument();
+    expect(screen.queryByText("Blocks 2")).not.toBeInTheDocument();
   });
 });
 
@@ -502,7 +502,7 @@ describe("WorkflowWorkspace watch mode", () => {
       runs: [run()],
       onSelectWatchRun,
     });
-    expect(screen.getByText("Viewing historic run")).toBeInTheDocument();
+    expect(screen.getByText("Viewing latest run")).toBeInTheDocument();
   });
 
   it("calls onSelectWatchRun when a different run is chosen from history", async () => {
