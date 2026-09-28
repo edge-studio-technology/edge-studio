@@ -168,8 +168,8 @@ const loadingWorkflow: AutomationWorkflow = {
   ],
 };
 
-const loadingRun: AutomationRun = {
-  id: "loading-run",
+const loadingSelectedRun: AutomationRun = {
+  id: "loading-selected-run",
   workflowId: loadingWorkflow.id,
   workflowName: loadingWorkflow.name,
   startedAt: LOADING_DATE,
@@ -184,7 +184,7 @@ const loadingRun: AutomationRun = {
   blocks: [
     {
       id: "loading-run-start",
-      runId: "loading-run",
+      runId: "loading-selected-run",
       workflowId: loadingWorkflow.id,
       blockId: "loading-start",
       order: 0,
@@ -200,7 +200,7 @@ const loadingRun: AutomationRun = {
     },
     {
       id: "loading-run-fetch",
-      runId: "loading-run",
+      runId: "loading-selected-run",
       workflowId: loadingWorkflow.id,
       blockId: "loading-fetch",
       order: 1,
@@ -216,7 +216,7 @@ const loadingRun: AutomationRun = {
     },
     {
       id: "loading-run-preview",
-      runId: "loading-run",
+      runId: "loading-selected-run",
       workflowId: loadingWorkflow.id,
       blockId: "loading-preview",
       order: 2,
@@ -231,6 +231,18 @@ const loadingRun: AutomationRun = {
       error: null,
     },
   ],
+};
+
+const loadingLatestRun: AutomationRun = {
+  ...loadingSelectedRun,
+  id: "loading-latest-run",
+  startedAt: "2026-01-01T00:01:00.000Z",
+  durationMs: 301,
+  blocks: loadingSelectedRun.blocks.map((block) => ({
+    ...block,
+    id: `${block.id}-latest`,
+    runId: "loading-latest-run",
+  })),
 };
 
 function WorkflowInitialLoadingShell({
@@ -267,7 +279,7 @@ function WorkflowInitialLoadingShell({
 
 function WorkflowLoadingCanvas() {
   return (
-    <div className="opacity-60">
+    <div className="h-full min-h-0 translate-y-[30px] opacity-60">
       <WorkflowCanvas
         mode="watch"
         blocks={loadingWorkflow.blocks.map((block) => ({
@@ -283,7 +295,7 @@ function WorkflowLoadingCanvas() {
         selectedBlockId=""
         bottomOverlay
         runtimeByBlockId={Object.fromEntries(
-          loadingRun.blocks
+          loadingSelectedRun.blocks
             .filter((block) => block.blockId)
             .map((block) => [
               block.blockId!,
@@ -304,9 +316,9 @@ function WorkflowRailLoadingSkeleton({ mode }: { mode: "edit" | "watch" }) {
       <div className="gap-detail-close grid opacity-60">
         <WatchRuntimeOverview
           workflow={loadingWorkflow}
-          selectedRun={loadingRun}
-          latestRun={loadingRun}
-          followLiveRuns
+          selectedRun={loadingSelectedRun}
+          latestRun={loadingLatestRun}
+          followLiveRuns={false}
           hasValidationErrors={false}
           onFollowLiveRunsChange={() => undefined}
         />
@@ -342,8 +354,8 @@ function WorkflowHistoryLoadingSkeleton() {
   return (
     <div className="opacity-60">
       <WatchRunHistory
-        runs={[loadingRun]}
-        selectedRunId={loadingRun.id}
+        runs={[loadingLatestRun, loadingSelectedRun]}
+        selectedRunId={loadingSelectedRun.id}
         onSelectRun={() => undefined}
       />
     </div>
