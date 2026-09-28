@@ -37,10 +37,16 @@ import {
   WorkflowLoadingOverlay,
   WorkflowWorkspace,
 } from "../features/automation/workflow/WorkflowWorkspace";
+import { WorkflowCanvas } from "../features/automation/workflow/canvas";
 import {
   WorkflowRailHeader,
   WorkflowRailPanel,
 } from "../features/automation/workflow/chrome/WorkflowRail";
+import {
+  WatchRunControls,
+  WatchRunHistory,
+  WatchRuntimeOverview,
+} from "../features/automation/workflow/WorkflowWatchUi";
 import { WorkflowWorkspaceShell } from "../features/automation/workflow/chrome/WorkflowWorkspaceShell";
 import type {
   AutomationBlock,
@@ -86,6 +92,147 @@ function sortAddressBook(entries: AddressBookEntry[]): AddressBookEntry[] {
   );
 }
 
+const LOADING_DATE = "2026-01-01T00:00:00.000Z";
+
+const loadingSource: DataSource = {
+  id: "loading-source",
+  createdAt: LOADING_DATE,
+  updatedAt: LOADING_DATE,
+  name: "Loading data source",
+  type: "device-system-data",
+  status: "unknown",
+  description: null,
+  config: {},
+  lastReadAt: null,
+  lastError: null,
+  lastPreview: null,
+  lastHash: null,
+};
+
+const loadingWorkflow: AutomationWorkflow = {
+  id: "loading-workflow",
+  createdAt: LOADING_DATE,
+  updatedAt: LOADING_DATE,
+  name: "Loading workflow",
+  enabled: true,
+  archived: false,
+  lastRunAt: LOADING_DATE,
+  nextRunAt: null,
+  lastHash: null,
+  lastProofId: null,
+  lastError: null,
+  blocks: [
+    {
+      id: "loading-start",
+      workflowId: "loading-workflow",
+      createdAt: LOADING_DATE,
+      updatedAt: LOADING_DATE,
+      type: "manual_start",
+      enabled: true,
+      order: 0,
+      parentBlockId: null,
+      config: {},
+      lastRunAt: LOADING_DATE,
+      lastError: null,
+    },
+    {
+      id: "loading-fetch",
+      workflowId: "loading-workflow",
+      createdAt: LOADING_DATE,
+      updatedAt: LOADING_DATE,
+      type: "fetch_data_source",
+      enabled: true,
+      order: 1,
+      parentBlockId: null,
+      config: { sourceId: loadingSource.id },
+      lastRunAt: LOADING_DATE,
+      lastError: null,
+    },
+    {
+      id: "loading-preview",
+      workflowId: "loading-workflow",
+      createdAt: LOADING_DATE,
+      updatedAt: LOADING_DATE,
+      type: "show_preview",
+      enabled: true,
+      order: 2,
+      parentBlockId: null,
+      config: {
+        title: "Loading preview",
+        previewFormat: "json",
+        contentMode: "latest_data",
+      },
+      lastRunAt: LOADING_DATE,
+      lastError: null,
+    },
+  ],
+};
+
+const loadingRun: AutomationRun = {
+  id: "loading-run",
+  workflowId: loadingWorkflow.id,
+  workflowName: loadingWorkflow.name,
+  startedAt: LOADING_DATE,
+  finishedAt: LOADING_DATE,
+  status: "success",
+  triggerType: "manual",
+  triggerSourceId: null,
+  triggerPayload: null,
+  durationMs: 301,
+  blockCount: 3,
+  error: null,
+  blocks: [
+    {
+      id: "loading-run-start",
+      runId: "loading-run",
+      workflowId: loadingWorkflow.id,
+      blockId: "loading-start",
+      order: 0,
+      blockType: "manual_start",
+      blockLabel: "Manual run",
+      startedAt: LOADING_DATE,
+      finishedAt: LOADING_DATE,
+      status: "success",
+      durationMs: 9,
+      input: null,
+      output: null,
+      error: null,
+    },
+    {
+      id: "loading-run-fetch",
+      runId: "loading-run",
+      workflowId: loadingWorkflow.id,
+      blockId: "loading-fetch",
+      order: 1,
+      blockType: "fetch_data_source",
+      blockLabel: "Fetch data source",
+      startedAt: LOADING_DATE,
+      finishedAt: LOADING_DATE,
+      status: "success",
+      durationMs: 208,
+      input: null,
+      output: null,
+      error: null,
+    },
+    {
+      id: "loading-run-preview",
+      runId: "loading-run",
+      workflowId: loadingWorkflow.id,
+      blockId: "loading-preview",
+      order: 2,
+      blockType: "show_preview",
+      blockLabel: "Show preview",
+      startedAt: LOADING_DATE,
+      finishedAt: LOADING_DATE,
+      status: "success",
+      durationMs: 75,
+      input: null,
+      output: null,
+      error: null,
+    },
+  ],
+};
+
 function WorkflowInitialLoadingShell({
   mode,
   onBack,
@@ -110,7 +257,7 @@ function WorkflowInitialLoadingShell({
           Back
         </Button>
       }
-      canvas={<WorkflowCanvasLoadingSkeleton />}
+      canvas={<WorkflowLoadingCanvas />}
       rail={<WorkflowRailLoadingSkeleton mode={mode} />}
       bottom={mode === "watch" ? <WorkflowHistoryLoadingSkeleton /> : undefined}
       overlay={<WorkflowLoadingOverlay label="Fetching workflow..." />}
@@ -118,25 +265,35 @@ function WorkflowInitialLoadingShell({
   );
 }
 
-function WorkflowCanvasLoadingSkeleton() {
+function WorkflowLoadingCanvas() {
   return (
-    <div className="bg-surface-primary h-full min-h-0 bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-grey-03)_32%,transparent)_1px,transparent_1px)] bg-[length:18px_18px] px-pad-relaxed py-pad-relaxed">
-      <div className="flex min-h-full flex-col items-center justify-center gap-detail-close opacity-60">
-        {[0, 1, 2].map((item) => (
-          <div
-            key={item}
-            className="rounded-soft border-stroke-secondary bg-surface-always-white grid w-full max-w-[520px] gap-detail-next border p-margin-tight shadow-sm"
-          >
-            <span className="bg-surface-secondary h-3 w-16 rounded-full" />
-            <span className="bg-surface-secondary h-5 w-48 rounded-full" />
-            <span className="bg-surface-secondary h-4 w-72 max-w-full rounded-full" />
-            <div className="gap-detail-next flex">
-              <span className="bg-surface-secondary h-6 w-24 rounded-full" />
-              <span className="bg-surface-secondary h-6 w-20 rounded-full" />
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="opacity-60">
+      <WorkflowCanvas
+        mode="watch"
+        blocks={loadingWorkflow.blocks.map((block) => ({
+          id: block.id,
+          type: block.type,
+          config: block.config,
+          enabled: block.enabled,
+          lastRunAt: block.lastRunAt,
+          lastError: block.lastError,
+        }))}
+        sources={[loadingSource]}
+        addressBook={[]}
+        selectedBlockId=""
+        bottomOverlay
+        runtimeByBlockId={Object.fromEntries(
+          loadingRun.blocks
+            .filter((block) => block.blockId)
+            .map((block) => [
+              block.blockId!,
+              { status: block.status, durationMs: block.durationMs, error: block.error },
+            ]),
+        )}
+        onSelectBlock={() => undefined}
+        onMoveBlock={() => undefined}
+        onRemoveBlock={() => undefined}
+      />
     </div>
   );
 }
@@ -145,41 +302,26 @@ function WorkflowRailLoadingSkeleton({ mode }: { mode: "edit" | "watch" }) {
   if (mode === "watch") {
     return (
       <div className="gap-detail-close grid opacity-60">
-        <WorkflowRailPanel className="min-h-[392px]">
-          <WorkflowRailHeader
-            title="Runtime overview"
-            description="Monitor the current workflow state and choose whether live runs should take focus."
-          />
-          <div className="gap-detail-next grid">
-            <SkeletonStatRow />
-            <span className="bg-surface-secondary h-4 w-full rounded-full" />
-          </div>
-          <div className="gap-detail-next grid">
-            <SkeletonStatRow />
-            <SkeletonStatRow />
-            <SkeletonStatRow />
-            <SkeletonStatRow />
-            <SkeletonStatRow />
-          </div>
-          <div className="gap-detail-next grid">
-            <span className="bg-surface-secondary h-5 w-32 rounded-full" />
-            <span className="bg-surface-secondary h-4 w-full rounded-full" />
-            <span className="bg-surface-secondary h-4 w-48 rounded-full" />
-          </div>
-        </WorkflowRailPanel>
-        <WorkflowRailPanel className="min-h-[168px]">
-          <WorkflowRailHeader
-            title="Run controls"
-            description="Run this workflow or test it with a manual trigger payload."
-          />
-          <Button type="button" size="sm" disabled>
-            Run now
-          </Button>
-          <div className="flex items-center justify-between gap-detail-next">
-            <strong className="type-body-em text-text-primary">Test payload</strong>
-            <span className="bg-surface-secondary h-4 w-4 rounded-full" />
-          </div>
-        </WorkflowRailPanel>
+        <WatchRuntimeOverview
+          workflow={loadingWorkflow}
+          selectedRun={loadingRun}
+          latestRun={loadingRun}
+          followLiveRuns
+          hasValidationErrors={false}
+          onFollowLiveRunsChange={() => undefined}
+        />
+        <WatchRunControls
+          workflow={loadingWorkflow}
+          busy
+          hasValidationErrors={false}
+          payloadText="{}"
+          payloadError={null}
+          onPayloadTextChange={() => undefined}
+          onPayloadError={() => undefined}
+          onResetPayload={() => undefined}
+          onRunNow={() => undefined}
+          onRunWithPayload={() => undefined}
+        />
       </div>
     );
   }
@@ -196,40 +338,15 @@ function WorkflowRailLoadingSkeleton({ mode }: { mode: "edit" | "watch" }) {
   );
 }
 
-function SkeletonStatRow() {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-detail-next border-b border-stroke-secondary py-detail-tight last:border-b-0">
-      <span className="bg-surface-secondary h-4 w-24 rounded-full" />
-      <span className="bg-surface-secondary h-5 w-28 rounded-full" />
-    </div>
-  );
-}
-
 function WorkflowHistoryLoadingSkeleton() {
   return (
-    <section className="rounded-soft border-stroke-secondary bg-surface-always-white grid min-h-[168px] w-full gap-detail-next border p-margin-tight opacity-60 shadow-sm">
-      <div className="flex items-center justify-between gap-detail-next">
-        <div>
-          <strong>Selected run</strong>
-          <span className="bg-surface-secondary mt-detail-next block h-4 w-80 max-w-full rounded-full" />
-        </div>
-        <div className="gap-detail-next flex items-center">
-          <span className="bg-surface-secondary h-6 w-20 rounded-full" />
-          <Button type="button" variant="secondary" size="xs" disabled>
-            Expand history
-          </Button>
-        </div>
-      </div>
-      <div className="rounded-soft border-stroke-secondary grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-detail-next border p-detail-close">
-        <Button type="button" variant="secondary" size="xs" disabled>
-          Older run
-        </Button>
-        <span className="bg-surface-secondary mx-auto h-5 w-72 max-w-full rounded-full" />
-        <Button type="button" variant="secondary" size="xs" disabled>
-          Newer run
-        </Button>
-      </div>
-    </section>
+    <div className="opacity-60">
+      <WatchRunHistory
+        runs={[loadingRun]}
+        selectedRunId={loadingRun.id}
+        onSelectRun={() => undefined}
+      />
+    </div>
   );
 }
 
