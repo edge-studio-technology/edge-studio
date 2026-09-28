@@ -12,6 +12,7 @@ import {
   TableWrap,
 } from "../../../components/DataTable";
 import { JsonPreview } from "../../../components/JsonPreview";
+import { Disclosure } from "../../../components/ui/Disclosure";
 import {
   orderedColumns,
   TableColumnVisibilityButton,
@@ -185,44 +186,47 @@ export function WatchRunControls({
       >
         Run now
       </Button>
-      <div className="gap-detail-next grid">
-        <strong className="type-body-em text-text-primary">Test payload</strong>
-        <p className={mutedText}>This payload is used only for a manual test run.</p>
-      </div>
-      <label>
-        Trigger payload
-        <textarea
-          rows={12}
-          value={payloadText}
-          onChange={(event) => onPayloadTextChange(event.target.value)}
-        />
-      </label>
-      {payloadError && <p className={errorText}>{payloadError}</p>}
-      <RowActions>
-        <Button
-          type="button"
-          variant="secondary"
-          size="xs"
-          disabled={busy}
-          onClick={onResetPayload}
-        >
-          Reset example
-        </Button>
-        <Button
-          type="button"
-          size="xs"
-          disabled={busy || hasValidationErrors || workflow.archived}
-          onClick={() => {
-            try {
-              onRunWithPayload(JSON.parse(payloadText) as unknown);
-            } catch (error) {
-              onPayloadError(error instanceof Error ? error.message : "Payload must be valid JSON");
-            }
-          }}
-        >
-          Run with payload
-        </Button>
-      </RowActions>
+      <Disclosure
+        title="Test payload"
+        defaultOpen={false}
+        contentClassName="gap-detail-next"
+      >
+        <p className={`${mutedText} m-0`}>This payload is used only for a manual test run.</p>
+        <label>
+          Trigger payload
+          <textarea
+            rows={8}
+            value={payloadText}
+            onChange={(event) => onPayloadTextChange(event.target.value)}
+          />
+        </label>
+        {payloadError && <p className={errorText}>{payloadError}</p>}
+        <RowActions>
+          <Button
+            type="button"
+            variant="secondary"
+            size="xs"
+            disabled={busy}
+            onClick={onResetPayload}
+          >
+            Reset example
+          </Button>
+          <Button
+            type="button"
+            size="xs"
+            disabled={busy || hasValidationErrors || workflow.archived}
+            onClick={() => {
+              try {
+                onRunWithPayload(JSON.parse(payloadText) as unknown);
+              } catch (error) {
+                onPayloadError(error instanceof Error ? error.message : "Payload must be valid JSON");
+              }
+            }}
+          >
+            Run with payload
+          </Button>
+        </RowActions>
+      </Disclosure>
     </WorkflowRailPanel>
   );
 }

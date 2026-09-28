@@ -132,6 +132,10 @@ describe("WatchRunControls", () => {
     expect(onRunNow).toHaveBeenCalled();
   });
 
+  async function openRunControlsPayload() {
+    await userEvent.click(screen.getByText("Test payload"));
+  }
+
   it("disables Run now and shows a message for an archived workflow", () => {
     renderControls({ workflow: workflow({ archived: true }) });
     expect(
@@ -140,16 +144,18 @@ describe("WatchRunControls", () => {
     expect(screen.getByRole("button", { name: "Run now" })).toBeDisabled();
   });
 
-  it("shows a validation error message and disables running", () => {
+  it("shows a validation error message and disables running", async () => {
     renderControls({ hasValidationErrors: true });
     expect(screen.getByText("Fix validation errors before running.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Run now" })).toBeDisabled();
+    await openRunControlsPayload();
     expect(screen.getByRole("button", { name: "Run with payload" })).toBeDisabled();
   });
 
-  it("disables actions while busy", () => {
+  it("disables actions while busy", async () => {
     renderControls({ busy: true });
     expect(screen.getByRole("button", { name: "Run now" })).toBeDisabled();
+    await openRunControlsPayload();
     expect(screen.getByRole("button", { name: "Reset example" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Run with payload" })).toBeDisabled();
   });
@@ -157,6 +163,7 @@ describe("WatchRunControls", () => {
   it("calls onPayloadTextChange when the textarea changes", async () => {
     const onPayloadTextChange = vi.fn();
     renderControls({ onPayloadTextChange });
+    await openRunControlsPayload();
     await userEvent.type(screen.getByLabelText("Trigger payload"), "x");
     expect(onPayloadTextChange).toHaveBeenCalled();
   });
@@ -164,6 +171,7 @@ describe("WatchRunControls", () => {
   it("calls onResetPayload when Reset example is clicked", async () => {
     const onResetPayload = vi.fn();
     renderControls({ onResetPayload });
+    await openRunControlsPayload();
     await userEvent.click(screen.getByRole("button", { name: "Reset example" }));
     expect(onResetPayload).toHaveBeenCalled();
   });
@@ -171,6 +179,7 @@ describe("WatchRunControls", () => {
   it("parses the payload text as JSON and calls onRunWithPayload", async () => {
     const onRunWithPayload = vi.fn();
     renderControls({ payloadText: '{"foo":"bar"}', onRunWithPayload });
+    await openRunControlsPayload();
     await userEvent.click(screen.getByRole("button", { name: "Run with payload" }));
     expect(onRunWithPayload).toHaveBeenCalledWith({ foo: "bar" });
   });
@@ -179,6 +188,7 @@ describe("WatchRunControls", () => {
     const onPayloadError = vi.fn();
     const onRunWithPayload = vi.fn();
     renderControls({ payloadText: "not json", onPayloadError, onRunWithPayload });
+    await openRunControlsPayload();
     await userEvent.click(screen.getByRole("button", { name: "Run with payload" }));
     expect(onRunWithPayload).not.toHaveBeenCalled();
     expect(onPayloadError).toHaveBeenCalledWith(expect.stringContaining("JSON"));

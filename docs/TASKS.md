@@ -16,7 +16,7 @@
 
 ## In Progress
 
-- [ ] Upgrade Automation watch mode into a production-quality live monitoring, historic replay, and workflow debugging experience — Task 2 runtime overview started; see `docs/plans/workflow-watch-mode-upgrade.md`.
+- [ ] Upgrade Automation watch mode into a production-quality live monitoring, historic replay, and workflow debugging experience — Task 2 runtime overview and Task 2.5 UX cleanup implemented; see `docs/plans/workflow-watch-mode-upgrade.md`.
 - [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — all built including #694 (toolkit drawer); #694 still needs its ticket move, then merge; decisions in `docs/adr/0024-responsive-layout-strategy.md`; see `docs/plans/features/667-responsive-application.md`.
 - [ ] Run the 13-step Brave verification for the completed app-wide empty/loading/error hardening, including tasks #659/#660/#661 plus Integritas, software update/update-agent, and Wallet behavior while Minima is unavailable, before merging to `dev` — see `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
 - [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.

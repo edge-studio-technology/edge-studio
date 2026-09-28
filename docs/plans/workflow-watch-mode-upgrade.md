@@ -60,6 +60,7 @@ Implemented:
 - Task 2 started with a watch-mode runtime overview in the rail.
 - Watch mode now shows workflow state, selected-run status, trigger, progress, duration, and run error summary before raw diagnostics.
 - Watch mode now has a `Follow live runs` switch. It follows the newest run by default, turns off when the user selects a historic run, and can jump back to the latest run.
+- Task 2.5 watch-mode UX cleanup: watch canvas cards no longer show edit/remove/move controls, the manual test payload is collapsed by default, the right rail scrolls independently, mobile rail toggle copy says `Watch controls`, and watch mode presents the workflow name as read-only title text instead of an input.
 
 Remaining:
 

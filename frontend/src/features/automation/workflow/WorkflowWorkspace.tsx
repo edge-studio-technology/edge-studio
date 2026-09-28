@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
 import { InputField } from "../../../components/ui/InputField";
+import { ScrollArea } from "../../../components/ui/ScrollArea";
 import { Text } from "../../../components/Text";
 import type {
   AddressBookEntry,
@@ -344,6 +345,7 @@ export function WorkflowWorkspace({
     <>
     <WorkflowWorkspaceShell
       breadcrumbLabel={mode === "watch" ? "Watch workflow" : "Edit workflow"}
+      railToggleLabel={mode === "watch" ? "Watch controls" : "Toolkit"}
       nameControl={
         mode === "edit" ? (
           <InputField
@@ -372,7 +374,10 @@ export function WorkflowWorkspace({
             error={workflowNameError}
           />
         ) : (
-          <InputField aria-label="Workflow name" value={workflow.name} readOnly />
+          <div aria-label="Workflow name" className="gap-detail-tight grid">
+            <span className="type-meta text-text-secondary uppercase">Workflow</span>
+            <h1 className="type-title text-text-primary m-0 wrap-anywhere">{workflow.name}</h1>
+          </div>
         )
       }
       actions={
@@ -466,7 +471,7 @@ export function WorkflowWorkspace({
         ) : undefined
       }
       rail={
-        <aside className="gap-detail-close flex h-full min-h-0 flex-col">
+        <div className="flex h-full min-h-0 flex-col">
           {mode === "edit" ? (
             <>
               {isWorkflowValidationVisible(uiValidation) ? (
@@ -489,7 +494,8 @@ export function WorkflowWorkspace({
               </div>
             </>
           ) : (
-            <>
+            <ScrollArea className="min-h-0 flex-1">
+              <div className="gap-detail-close grid pb-detail-close">
               {isWorkflowValidationVisible(uiValidation) ? (
                 <WorkflowValidationPanel validation={uiValidation} />
               ) : null}
@@ -525,9 +531,10 @@ export function WorkflowWorkspace({
                 onRunNow={onRunNow}
                 onRunWithPayload={onRunWithPayload}
               />
-            </>
+              </div>
+            </ScrollArea>
           )}
-        </aside>
+        </div>
       }
       canvas={
         <WorkflowCanvas

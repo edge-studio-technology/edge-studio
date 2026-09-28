@@ -23,6 +23,7 @@ export function WorkflowWorkspaceShell({
   actions,
   canvas,
   rail,
+  railToggleLabel = "Toolkit",
   selectedSheet,
   bottom,
   statusStrip,
@@ -33,6 +34,7 @@ export function WorkflowWorkspaceShell({
   actions?: ReactNode;
   canvas: ReactNode;
   rail: ReactNode;
+  railToggleLabel?: string;
   selectedSheet?: ReactNode;
   bottom?: ReactNode;
   /** Meta status pills. */
@@ -79,7 +81,7 @@ export function WorkflowWorkspaceShell({
             iconStart={<PanelRight aria-hidden />}
             onClick={() => setRailOpen((open) => !open)}
           >
-            Toolkit
+            {railToggleLabel}
           </Button>
           {actions}
         </div>

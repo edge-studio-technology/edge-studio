@@ -60,6 +60,7 @@ export function WorkflowCanvas({
   onRemoveBlock: (id: string) => void;
 }) {
   const isBuild = mode === "build";
+  const isWatch = mode === "watch";
   const actionLabels = isBuild
     ? { up: "Up", down: "Down", remove: "Remove" }
     : { up: "Move up", down: "Move down", remove: "Remove" };
@@ -70,7 +71,9 @@ export function WorkflowCanvas({
         <p>
           {isBuild
             ? "This is the starter chain that will be created."
-            : "Select a block to edit or inspect it. Move and remove actions apply immediately."}
+            : isWatch
+              ? "Select a block to inspect its run details."
+              : "Select a block to edit it. Move and remove actions apply immediately."}
         </p>
       </div>
       <ScrollArea className={canvasLaneClass}>
@@ -105,6 +108,7 @@ export function WorkflowCanvas({
               selected={block.id === selectedBlockId}
               canMoveUp={index > 1}
               canMoveDown={index > 0 && index < blocks.length - 1}
+              readOnly={isWatch}
               actionLabels={actionLabels}
               validationIssues={validationByBlockId[block.id] ?? []}
               runtime={runtimeByBlockId[block.id]}
@@ -129,6 +133,7 @@ function WorkflowBlockCard({
   selected,
   canMoveUp,
   canMoveDown,
+  readOnly,
   actionLabels,
   validationIssues,
   runtime,
@@ -144,6 +149,7 @@ function WorkflowBlockCard({
   selected: boolean;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  readOnly: boolean;
   actionLabels: { up: string; down: string; remove: string };
   validationIssues: WorkflowCanvasValidationIssue[];
   runtime?: WorkflowCanvasRuntimeState;
@@ -153,7 +159,7 @@ function WorkflowBlockCard({
   onRemove: () => void;
 }) {
   const presentation = blockPresentation(block, sources, addressBook, validationIssues, runtime);
-  const showActions = !block.type.endsWith("_start");
+  const showActions = !readOnly && !block.type.endsWith("_start");
   const showFooter = presentation.badges.length > 0 || showActions;
   return (
     <div
