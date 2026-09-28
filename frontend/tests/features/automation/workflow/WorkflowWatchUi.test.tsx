@@ -396,8 +396,18 @@ describe("WatchRunHistory", () => {
     expect(screen.getByText("0 run(s)")).toBeInTheDocument();
   });
 
-  it("renders a row per run with trigger, status, and block counts", () => {
+  it("defaults to a collapsed selected-run navigator", () => {
+    render(<WatchRunHistory runs={[run()]} selectedRunId="r1" onSelectRun={vi.fn()} />);
+    expect(screen.getByText("Selected run")).toBeInTheDocument();
+    expect(screen.getByTestId("collapsed-run-history")).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Older run/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Newer run/ })).toBeDisabled();
+  });
+
+  it("expands to a table with a row per run", async () => {
     render(<WatchRunHistory runs={[run()]} selectedRunId={null} onSelectRun={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: /Expand history/ }));
     const table = screen.getByRole("table");
     expect(within(table).getByText("manual")).toBeInTheDocument();
     expect(within(table).getByText("success")).toBeInTheDocument();
@@ -408,13 +418,32 @@ describe("WatchRunHistory", () => {
   it("calls onSelectRun when 'Show on canvas' is clicked", async () => {
     const onSelectRun = vi.fn();
     render(<WatchRunHistory runs={[run()]} selectedRunId={null} onSelectRun={onSelectRun} />);
+    await userEvent.click(screen.getByRole("button", { name: /Expand history/ }));
     await userEvent.click(screen.getByRole("button", { name: "Show on canvas" }));
     expect(onSelectRun).toHaveBeenCalledWith("r1");
   });
 
-  it("shows 'Showing' and disables the button for the selected run", () => {
+  it("shows 'Showing' and disables the button for the selected run", async () => {
     render(<WatchRunHistory runs={[run()]} selectedRunId="r1" onSelectRun={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: /Expand history/ }));
     expect(screen.getByRole("button", { name: "Showing" })).toBeDisabled();
+  });
+
+  it("navigates to older and newer runs from collapsed mode", async () => {
+    const onSelectRun = vi.fn();
+    render(
+      <WatchRunHistory
+        runs={[run({ id: "newer" }), run({ id: "current" }), run({ id: "older" })]}
+        selectedRunId="current"
+        onSelectRun={onSelectRun}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Older run/ }));
+    expect(onSelectRun).toHaveBeenCalledWith("older");
+
+    await userEvent.click(screen.getByRole("button", { name: /Newer run/ }));
+    expect(onSelectRun).toHaveBeenCalledWith("newer");
   });
 
   it("toggles raw run JSON details", async () => {

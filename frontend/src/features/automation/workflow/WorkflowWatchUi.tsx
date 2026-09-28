@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../../components/Button";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import {
   DataTable,
   RowActions,
@@ -426,6 +427,11 @@ export function WatchRunHistory({
   onSelectRun: (runId: string) => void;
 }) {
   const [rawRunId, setRawRunId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const selectedRun = runs.find((run) => run.id === selectedRunId) ?? runs[0];
+  const selectedRunIndex = selectedRun ? runs.findIndex((run) => run.id === selectedRun.id) : -1;
+  const newerRun = selectedRunIndex > 0 ? runs[selectedRunIndex - 1] : undefined;
+  const olderRun = selectedRunIndex >= 0 && selectedRunIndex < runs.length - 1 ? runs[selectedRunIndex + 1] : undefined;
   const rawRun = runs.find((run) => run.id === rawRunId);
   const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility(
     "workflow-watch-runs",
@@ -439,28 +445,41 @@ export function WatchRunHistory({
     <Panel>
       <div className={statusRowClass}>
         <div>
-          <strong>Historic runs</strong>
+          <strong>{expanded ? "Historic runs" : "Selected run"}</strong>
           <p className={mutedText}>
-            Choose a run to visualize on the canvas, or expand raw JSON for diagnostics.
+            {expanded
+              ? "Choose a run to visualize on the canvas, or expand raw JSON for diagnostics."
+              : "Use older/newer to step through recent runs, or expand history to browse the table."}
           </p>
         </div>
         <div className="gap-detail-next flex shrink-0 items-center justify-end">
           <StatusPill status="neutral">{runs.length} run(s)</StatusPill>
-          <TableColumnVisibilityButton
-            tableLabel="Historic runs"
-            columns={WATCH_RUN_COLUMNS}
-            visibility={visibility}
-            columnOrder={columnOrder}
-            onChange={setVisibility}
-            onOrderChange={setColumnOrder}
-          />
+          {expanded ? (
+            <TableColumnVisibilityButton
+              tableLabel="Historic runs"
+              columns={WATCH_RUN_COLUMNS}
+              visibility={visibility}
+              columnOrder={columnOrder}
+              onChange={setVisibility}
+              onOrderChange={setColumnOrder}
+            />
+          ) : null}
+          <Button
+            type="button"
+            variant="secondary"
+            size="xs"
+            iconStart={expanded ? <ChevronDown aria-hidden /> : <ChevronUp aria-hidden />}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? "Collapse" : "Expand history"}
+          </Button>
         </div>
       </div>
       {runs.length === 0 ? (
         <p className={mutedText}>No workflow runs recorded yet.</p>
-      ) : (
-        <div className="grid gap-2">
-          <ScrollArea className="rounded-soft border-stroke-secondary bg-surface-always-white max-h-[150px] border">
+      ) : expanded ? (
+        <div className="grid gap-2" data-testid="expanded-run-history">
+          <ScrollArea className="rounded-soft border-stroke-secondary bg-surface-always-white max-h-[50vh] border">
             <TableWrap>
               <DataTable>
                 <TableHead>
@@ -488,6 +507,58 @@ export function WatchRunHistory({
               </DataTable>
             </TableWrap>
           </ScrollArea>
+        </div>
+      ) : (
+        <div className="rounded-soft border-stroke-secondary bg-surface-always-white grid gap-detail-next border p-detail-close" data-testid="collapsed-run-history">
+          <div className="gap-detail-next grid grid-cols-[auto_minmax(0,1fr)_auto] items-center">
+            <Button
+              type="button"
+              variant="secondary"
+              size="xs"
+              disabled={!olderRun}
+              iconStart={<ChevronLeft aria-hidden />}
+              onClick={() => olderRun && onSelectRun(olderRun.id)}
+            >
+              Older run
+            </Button>
+            <div className="gap-detail-next flex min-w-0 flex-wrap items-center justify-center text-center">
+              <StatusPill status={statusTone(selectedRun?.status)}>
+                {selectedRun?.status ?? "No run"}
+              </StatusPill>
+              {selectedRun ? (
+                <>
+                  <span className="type-meta text-text-secondary">{formatLocalTime(selectedRun.startedAt)}</span>
+                  <span className="type-meta text-text-secondary">{selectedRun.triggerType}</span>
+                  <span className="type-meta text-text-secondary">{formatDuration(selectedRun.durationMs)}</span>
+                  <span className="type-meta text-text-secondary">
+                    {selectedRun.blocks.filter((block) => block.status === "success").length}/{selectedRun.blockCount} blocks
+                  </span>
+                </>
+              ) : null}
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="xs"
+              disabled={!newerRun}
+              iconStart={<ChevronRight aria-hidden />}
+              onClick={() => newerRun && onSelectRun(newerRun.id)}
+            >
+              Newer run
+            </Button>
+          </div>
+          {selectedRun ? (
+            <RowActions>
+              <Button
+                type="button"
+                variant="secondary"
+                size="xs"
+                onClick={() => setRawRunId(rawRunId === selectedRun.id ? null : selectedRun.id)}
+              >
+                {rawRunId === selectedRun.id ? "Hide raw" : "Raw details"}
+              </Button>
+            </RowActions>
+          ) : null}
         </div>
       )}
       {rawRun && (

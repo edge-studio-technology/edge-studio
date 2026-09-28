@@ -67,6 +67,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automation watch mode now has a runtime overview with selected-run progress and a `Follow live runs` switch.
 - Automation watch mode now hides edit-only canvas controls, collapses manual test payload controls by default, and presents the workflow name as read-only title text.
 - Automation workflow workspaces no longer show the duplicated status-pill strip under the top bar, and watch-mode historic-run controls now align with the app's table header pattern.
+- Automation watch history now defaults to a compact selected-run navigator and can expand into a taller historic-runs table.
 - The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; source and generated release Compose files apply the same values to the backend and network IPAM.
 - Tables now provide a cog-button column chooser with backend-saved visibility preferences.
 - Failed loads across Dashboard, Wallet, Devices, Workflows, Diagnostics, Minima, Integritas Connect, and Software update now show a calm in-content error state with Retry instead of a red alert banner.

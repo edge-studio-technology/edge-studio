@@ -514,7 +514,7 @@ describe("WorkflowWorkspace watch mode", () => {
       onSelectWatchRun,
     });
 
-    await user.click(screen.getByRole("button", { name: "Show on canvas" }));
+    await user.click(screen.getByRole("button", { name: /Older run/ }));
     expect(onSelectWatchRun).toHaveBeenCalledWith("r2");
   });
 
@@ -542,7 +542,7 @@ describe("WorkflowWorkspace watch mode", () => {
       onSelectWatchRun,
     });
 
-    await user.click(screen.getByRole("button", { name: "Show on canvas" }));
+    await user.click(screen.getByRole("button", { name: /Older run/ }));
     expect(screen.getByRole("switch", { name: "Follow live runs" })).not.toBeChecked();
     expect(screen.getAllByText("Viewing historic run").length).toBeGreaterThan(0);
 
