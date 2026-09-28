@@ -27,6 +27,14 @@ vi.mock("node:fs/promises", async () => {
 });
 
 const fetchMock = vi.fn();
+const { restartMinimaContainer } = vi.hoisted(() => ({ restartMinimaContainer: vi.fn() }));
+
+vi.mock("../../../src/features/minima/minima.service.js", async () => {
+  const real = await vi.importActual<typeof import("../../../src/features/minima/minima.service.js")>(
+    "../../../src/features/minima/minima.service.js"
+  );
+  return { ...real, restartMinimaContainer };
+});
 
 // The password the finding is about: it is stored encrypted, then interpolated into the
 // `backup`/`restoresync` RPC command, which is what used to reach clients verbatim.
@@ -88,12 +96,29 @@ afterAll(() => {
 
 beforeEach(() => {
   fetchMock.mockReset();
+  restartMinimaContainer.mockReset();
   vi.stubGlobal("fetch", fetchMock);
   fs.rmSync(backupsDir, { recursive: true, force: true });
   fs.mkdirSync(backupsDir, { recursive: true });
   db.prepare("DELETE FROM settings WHERE key IN ('minima_backup_password_enc', 'minima_console_whitelist')").run();
   backupService.setBackupPassword(BACKUP_SECRET);
   monitoring.endMinimaOperation();
+});
+
+describe("POST /api/minima/restart", () => {
+  it("returns a normalized structured dependency error when the restart service rejects", async () => {
+    restartMinimaContainer.mockRejectedValue(new Error("fetch failed"));
+
+    const response = await request(app).post("/api/minima/restart").set("Cookie", cookie);
+
+    assert.equal(restartMinimaContainer.mock.calls.length, 1);
+    assert.equal(response.status, 502);
+    assert.equal(response.body.ok, false);
+    assert.equal(response.body.error, "Minima RPC is temporarily unreachable");
+    assert.equal(response.body.errorDetails.domain, "system");
+    assert.equal(response.body.errorDetails.type, "dependency_unavailable");
+    assert.equal(response.body.errorDetails.message, response.body.error);
+  });
 });
 
 describe("POST /api/minima/backups", () => {
