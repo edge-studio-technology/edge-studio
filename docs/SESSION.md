@@ -4,6 +4,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Completed #259 final verification: 27 focused frontend tests, 8 backend route tests, `npm run check` (typechecks, coverage suites/thresholds, clean dependency audits), backend/frontend builds, and `docker compose config --quiet` passed. Reconciled the focused/legacy plans and moved the local task to Done; added a completion comment to #259 without changing its status or description.
+- Reviewed the branch changelog: both runtime fixes are recorded. Existing frontend chunk-size and unset Compose image-variable warnings remain; no Docker build or manual browser/live-node check was run for this unit-test task.
+
 - Completed #259 plan step 4: added an authenticated restart-route service-rejection test asserting the normalized structured 502 response; production behavior was unchanged. All 8 backend route tests, backend build, and diff checks passed; full repository verification and ticket reconciliation remain queued for the final milestone.
 
 - Completed #259 plan step 3: added page-owned restart disable/re-enable and actionable failure-toast tests, reproduced the unhandled rejection, and contained it in the direct confirm handler while preserving resync error propagation. All 27 focused frontend tests, frontend typechecking, production build, and diff checks passed; full repository verification remains queued for the final milestone.
@@ -42,8 +45,6 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Verified `npm run check` (all suites and coverage thresholds), the backend build, and `docker compose config`.
 
 ## Next Steps
-
-- Continue #259 with the final milestone: full repository checks, builds, Compose validation, and documentation/ticket reconciliation (`docs/plans/259-node-failure-mode-unit-testing.md`).
 
 - Comment on #694 and move it to Ready for Deployment (awaiting go-ahead).
 - Separate task: table drift left from #697 (watch history double scroller, peers table `<div>` header, backups onto `TableWrap`).

@@ -39,7 +39,6 @@
 - [ ] Post-v1: add seed-phrase-only restore as an option inside `MinimaBackupPanel`, then remove the commented-out `WalletSettingsPanel` from `AuthSettingsPage.tsx`.
 - [ ] Manual check of the update-agent UI Back buttons and the dashboard "Update available" badge across a real update cycle (Pi or local Docker Compose) — this session's fixes were only build/typecheck-verified.
 - [ ] Manual browser check of `update-agent`'s restyled static update-progress page (`update-agent/public/index.html`): black-to-purple gradient background and the white logo below the centered card, matching the login page — not yet manually checked (static HTML, no build step).
-- [ ] Close OpenProject #259 (Node Failure Mode Unit Testing) — steps 1–4 complete: container/dashboard failure-state coverage, page-owned restart lifecycle/failure handling, and structured backend restart failure (27 focused frontend tests and 8 backend route tests passed); final verification and reconciliation remain in `docs/plans/259-node-failure-mode-unit-testing.md`.
 - [ ] Add HC-SR501 PIR motion sensor as a first-class GPIO input workflow source - see `docs/plans/pir-motion-sensor-workflows.md`.
 - [ ] Add ESP32 MQTT board onboarding with generated starter firmware - see `docs/plans/esp32-mqtt-sensor-onboarding.md`.
 - [ ] Document the `DEV_MODE` install flag in `README.md`'s runtime-config section and note its manifest-signature-verification bypass in `SECURITY.md`/`docs/security/host-and-infrastructure.md` — flagged during code review, deliberately deferred as a separate concern from the pagination work.
@@ -76,6 +75,7 @@
 ## Done
 
 - [x] Hotfix: stop retention from deleting workflow runs/block runs used by Watch mode (#705 follow-up) — see `docs/plans/hotfix/preserve-workflow-runs.md`.
+- [x] Completed #259 implementation and verification: Minima failure-state/restart tests, offline dashboard wallet handling, and contained restart rejection; focused tests, full checks, builds, and Compose validation passed. Added a ticket comment only; status unchanged — see `docs/plans/259-node-failure-mode-unit-testing.md`.
 - [x] Fixed task 705 audit findings: normalized nginx webhook log protection, active-run retention safety, repeated yielding cleanup batches, and fixed log rotation for recreated legacy containers; full checks and Docker builds passed — see `docs/adr/0022-bound-external-automation-effects.md`.
 
 - [x] Closed the regression-testing debt tracked under OpenProject #363 and its children (#213, #218, #225, #242, #287): request-level `sendHttpOutput` assertions, MQTT/GPIO teardown on source deletion, webhook receiver route tests, the Integritas connection check, backup re-auth rejection, wallet import phrase-leak checks, and diagnostics query/tab/pagination tests — see `docs/plans/features/363-regression-testing-debt.md`.

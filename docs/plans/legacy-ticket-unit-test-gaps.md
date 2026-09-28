@@ -1,7 +1,7 @@
 # Legacy QA Ticket Unit-Test Gap Follow-Up Plan
 
-**Status:** Closed except *Node Failure Mode Testing*  
-**Closed by:** `feature/363-regression-testing-debt` (OpenProject #363 and children #213, #218, #225, #242, #287) — see `docs/plans/features/363-regression-testing-debt.md`
+**Status:** Complete — all identified unit-test gaps verified
+**Completed by:** `feature/363-regression-testing-debt` (#363 and children; see `docs/plans/features/363-regression-testing-debt.md`) and `dev-task/259-node-failure-mode-unit-testing` (#259; see `docs/plans/259-node-failure-mode-unit-testing.md`).
 **Created:** 2026-09-09
 **Goal:** While retiring old PM-tool QA tickets (automation/devices/etc., written before the naming and architecture settled), catalog the specific unit-test gaps found against today's suite, so a single new ticket/branch can close them.
 
@@ -175,9 +175,11 @@ app doesn't implement — not gaps, since there's nothing to test.
 
 ### Node Failure Mode Testing ticket
 
-**Still open.** Tracked as OpenProject #259 under *Node Management*, not under #363 — a deliberate scope split,
-confirmed with the ticket owner, to be worked separately. Gap 3 below needs re-verification before it is worked:
-`frontend/tests/pages/MinimaPage.test.tsx` now exists (commit `6ff998b`).
+**Complete (2026-09-28).** #259 was implemented separately under *Node Management*;
+see [the focused plan](259-node-failure-mode-unit-testing.md). Container failure copy, dashboard tones/offline
+wallet behavior, page-owned restart lifecycle/failure toast, and the structured restart-route 502 are covered.
+Focused tests, full checks, builds, and Compose validation passed. Ticket update is comment-only.
+The original audit below is retained as historical context; its missing-test claims are now resolved.
 
 Backend restart-failure handling is solid already: `minima.service.test.ts:115-126` covers the RPC-fails-but-
 container-stopped case, and `:328-341` covers clearing the operation marker when a background restart fails.

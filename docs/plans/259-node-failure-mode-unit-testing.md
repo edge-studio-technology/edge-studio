@@ -1,6 +1,6 @@
 # Node Failure Mode Unit Testing Plan
 
-**Status:** In progress — steps 1–4 complete; final verification pending
+**Status:** Complete — implementation and final verification passed (2026-09-28)
 **Created:** 2026-09-28  
 **Goal:** Close OpenProject #259 by pinning Minima stopped, exited, error, restart, and restart-failure behavior with focused frontend and backend tests, fixing only the runtime gaps those tests expose.
 
@@ -82,7 +82,7 @@ This remains a narrow regression task. It does not redesign Minima status presen
 - `docs/SESSION.md`: record the tests added, the two small runtime fixes, commands run, and any skipped checks.
 - `CHANGELOG.md`: add a `Fixed` entry under `## [Unreleased] dev-task/259-node-failure-mode-unit-testing` for the Dashboard no longer requesting/showing wallet data while the Minima node is stopped or errored. Do not add changelog detail for test-only additions.
 - `README.md`, `SECURITY.md`, Docker/configuration docs: no changes expected because the API, configuration, deployment, and security boundaries do not change.
-- OpenProject #259: after the suite passes, reconcile the stale “new `MinimaPage.test.tsx`” and container-card “styling” wording in a ticket comment before moving the task to Ready for Deployment; do not claim a new styling contract was added.
+- OpenProject #259: reconcile the stale “new `MinimaPage.test.tsx`” and container-card “styling” wording in a completion comment only; leave status and description unchanged per user instruction.
 
 ## Verification
 
@@ -128,7 +128,9 @@ Acceptance checks:
 
 ### Milestone 3: Full verification and reconciliation
 
-- [ ] Run focused tests, full checks, builds, and Compose validation.
-- [ ] Reconcile `CHANGELOG.md`, `docs/SESSION.md`, `docs/TASKS.md`, and the legacy gap plan.
-- [ ] Comment on and move OpenProject #259 only after all acceptance checks pass.
+- [x] Run focused tests, full checks, builds, and Compose validation — 27 focused frontend tests and 8 backend route tests passed; `npm run check` passed all typechecks, coverage suites/thresholds, and dependency audits; both production builds and `docker compose config --quiet` passed (2026-09-28).
+- [x] Reconcile `CHANGELOG.md`, `docs/SESSION.md`, `docs/TASKS.md`, and the legacy gap plan — existing branch changelog covers both runtime fixes; no test-only entry needed.
+- [x] Add a completion comment to OpenProject #259; leave ticket status and description unchanged per user instruction.
+
+Verification notes: existing frontend >500 kB chunk warning and unset Compose image-variable warnings remain. No container-impacting changes, so no Docker build was required. No manual browser/live-node check was run for this unit-test task.
 
