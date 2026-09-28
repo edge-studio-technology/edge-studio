@@ -4,13 +4,6 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] dev-task/259-node-failure-mode-unit-testing
-
-### Fixed
-
-- Dashboard wallet balance is unavailable and wallet requests are skipped while the Minima node is stopped or errored.
-- Failed Minima restarts show the error toast without an unhandled action error.
-
 ## [Unreleased]
 
 ### Security
@@ -66,6 +59,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- A guided tour of Edge Studio's main areas opens the first time the app is used in each browser.
+- The guided tour can be skipped at any step and replayed from Settings → Behaviour.
 - `ErrorContentState` shared component for load failures that leave a whole region empty (see `docs/frontend-design-system.md`).
 
 ### Changed
@@ -90,6 +85,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Dashboard wallet balance is unavailable and wallet requests are skipped while the Minima node is stopped or errored.
+- Failed Minima restarts show the error toast without an unhandled action error.
 - Minima restart setup failures now clear the temporary restarting state instead of leaving stale operation status in the UI.
 - Update Agent Docker stream requests now reject reliably when their timeout expires instead of leaving update pulls hanging.
 - List search/filter rows on Devices, Workflows, Address book, and Diagnostics stack with their New/Refresh buttons as one group on tablet and phone.

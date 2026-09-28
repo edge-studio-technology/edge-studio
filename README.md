@@ -414,6 +414,8 @@ On first launch with an empty database, Edge Studio shows a setup wizard:
 
 After setup, sign in with the chosen PIN or password. You can switch credential types later in Settings. There is a single local admin account (no username to enter), and only its bcrypt hash is stored. Sessions persist across browser reloads until logout or expiry.
 
+The first time you open Edge Studio in a browser, a short guided tour introduces the main areas. Skip it at any step, or replay it from Settings → Behaviour.
+
 Changing the PIN/password (or resetting two-factor authentication) signs out every session, including the browser making the change, and returns you to the login screen. Expired sessions are also swept from the database at backend startup and hourly.
 
 TOTP is disabled through `TOTP_ENABLED = false` in the backend and frontend auth constants. Its

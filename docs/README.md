@@ -114,6 +114,7 @@ of carrying the full rationale inline.
 | [adr/0024-responsive-layout-strategy.md](./adr/0024-responsive-layout-strategy.md) | Responsive layout: 768 floor, container queries where sidebar width matters, sidebar overlay below 1024, sticky table actions |
 | [adr/0025-error-state-scope-tiers.md](./adr/0025-error-state-scope-tiers.md) | Error presentation by scope: `ErrorContentState` for empty regions, `ErrorAlert` for degraded slices, toasts for transient actions, field errors for validation |
 | [adr/0026-preserve-workflow-run-history.md](./adr/0026-preserve-workflow-run-history.md) | Workflow runs and block runs are preserved as Watch-mode history until a lifecycle policy bounds them per workflow |
+| [adr/0027-static-guided-tour.md](./adr/0027-static-guided-tour.md) | First-visit guided tour is a static single modal, marked seen per browser in `localStorage`, and replayed from Settings → Behaviour |
 
 ---
 

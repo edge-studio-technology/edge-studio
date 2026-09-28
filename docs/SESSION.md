@@ -4,6 +4,10 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Verified the merged #275 branch: `npm run check` passed 3,116 tests, coverage thresholds, type checks, and clean dependency audits; backend/frontend production builds and `docker compose config --quiet` passed. Fresh browser verification during review remained inconclusive because the isolated session rendered a blank page.
+
+- Merged current `dev` into #275 and resolved the changelog conflict by consolidating the #259 and #275 entries under the global `Unreleased` section at the user's request.
+
 - Completed #259 final verification: 27 focused frontend tests, 8 backend route tests, `npm run check` (typechecks, coverage suites/thresholds, clean dependency audits), backend/frontend builds, and `docker compose config --quiet` passed. Reconciled the focused/legacy plans and moved the local task to Done; added a completion comment to #259 without changing its status or description.
 - Reviewed the branch changelog: both runtime fixes are recorded. Existing frontend chunk-size and unset Compose image-variable warnings remain; no Docker build or manual browser/live-node check was run for this unit-test task.
 
@@ -43,6 +47,18 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Implemented the preserve-workflow-runs hotfix: workflow runs and block runs use the `preserve` retention policy; the retention pass now only purges deleted inbox items.
 - Updated retention service tests, added ADR 0026 (amends ADR 0023), removed the #705 run-pruning changelog bullet, and updated SECURITY, the security risk register, and mirrored automation rules.
 - Verified `npm run check` (all suites and coverage thresholds), the backend build, and `docker compose config`.
+- Planned #275 guided tour in `docs/plans/features/275-create-static-app-guided-tour.md` (renamed to match the branch).
+- Built the #275 guided tour: `guidedTourSeenSetting`, 9 tour steps with nav-derived titles/icons, `GuidedTourModal` with a screenshot placeholder, auto-open from `AppShell`, and a "Take the tour" replay under Settings → Behaviour.
+- Added `GuidedTourModal` and `tourSteps` tests and AppShell tour tests; existing AppShell tests now pre-set the seen flag.
+- Checked the tour in the browser at 1024×768 and 768×600: fits, all close paths mark it seen, backdrop ignored, reload keeps it closed, and replay reopens at step 1. Switched images to `object-contain` and reserved step-text lines so the modal height stays fixed.
+- Shortened the tour image frame to 3:1 and rewrote the step copy in plain language (no blockchain/protocol terms) as a lead sentence plus three short points; the closing step shows the brand lockup on the brand gradient. The modal is a steady 598px at 1024×768 and 577px at 768 wide.
+- Verified `npm run check` (frontend 1632 tests, all thresholds met) and the frontend build.
+- Added ADR 0027, a changelog section, a README line, and a modal image frame note in the design-system doc.
+- Replaced the tour's diagonal two-screenshot split with a full-frame crossfade after stakeholder feedback: two images alternate every 4s with a 0.7s fade, no controls, restarting on each step; the hidden image is `aria-hidden`.
+- Recaptured all 15 tour screenshots as 1440×480 (960×320 regions at 1.5× from a 1280-wide page, headless Playwright; Welcome is the whole 1200×400 app), ordered overview first then detail; updated ADR 0027 and the plan.
+- After review: recaptured Minima status with the RPC console open, Diagnostics workflow logs with the tabs and both runs (wider region, same output size), and the failed-run details from the top of the modal.
+- Commented out the tour's step checklist (points and check icons) after stakeholder feedback; the points stay in `tourSteps` for a possible return. Updated the modal test, ADR 0027, and the plan.
+- Verified the crossfade in a headless browser at 1024×768 (swap at 4s, back at 8s, reset per step, modal steady at 598px), a fake-timer crossfade test, `npm run check`, and the frontend build.
 
 ## Next Steps
 
@@ -51,6 +67,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Complete the manual container/Pi checks in `docs/plans/security/705-retention-redaction-budgets.md`, including existing-installation Docker log rotation.
 - Manual check for the hotfix: run a workflow, restart the backend, and confirm Watch mode still shows the run with its block overlays.
 - Define the product lifecycle for preserved workflow runs/block runs (per-workflow bound, ADR 0026), data-source reads, and visible inbox items, covering configuration, export, proof-linked reads, quotas, and disk warnings.
+- #275: stakeholder review of the crossfade; screenshots still use dev data (e.g. `ab78a7a5beb5 · linux x64`, a backup-password warning above the backups list) — recapture with clean, Pi-like values before merge; review the step copy.
+- #275: user updates OpenProject manually.
 
 ## Notes / Open Questions
 
@@ -60,3 +78,5 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Workflow runs, block runs, data-source reads, and visible inbox items can grow without bound until the follow-up lifecycle is implemented; this remains an availability risk.
 - The historical credential-scrub migration remains idempotent and runs automatically on startup. This change adds only an idempotent deleted-inbox index; no one-time manual database conversion is required.
 - The first two full-check attempts exposed the pre-existing webhook integration-test timeout under suite load. The test passed alone before its timeout was raised and the complete suite passed afterward.
+- #275: frontend branch coverage is 89.23% against an 89% floor.
+- #275: below 768 wide the tour footer wraps Finish onto its own row; mobile is out of scope (768 floor).
