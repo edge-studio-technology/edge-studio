@@ -404,9 +404,9 @@ function BlockHelpList({ title, items }: { title: string; items: string[] }) {
 
 export function RuntimeStat({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="border-stroke-secondary gap-detail-close py-detail-tight flex items-center justify-between border-b last:border-b-0">
+    <div className="border-stroke-secondary gap-detail-close py-detail-tight grid grid-cols-[minmax(0,1fr)_minmax(7.5rem,auto)] items-center border-b last:border-b-0">
       <span className="type-meta text-text-secondary">{label}</span>
-      <strong className="type-meta text-text-primary text-right">{value}</strong>
+      <strong className="type-meta text-text-primary min-w-0 justify-self-end text-right">{value}</strong>
     </div>
   );
 }

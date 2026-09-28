@@ -279,7 +279,7 @@ function WorkflowInitialLoadingShell({
 
 function WorkflowLoadingCanvas() {
   return (
-    <div className="h-full min-h-0 translate-y-[30px] opacity-60">
+    <div className="h-full min-h-0 opacity-60">
       <WorkflowCanvas
         mode="watch"
         blocks={loadingWorkflow.blocks.map((block) => ({
