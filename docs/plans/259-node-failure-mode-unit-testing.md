@@ -1,6 +1,6 @@
 # Node Failure Mode Unit Testing Plan
 
-**Status:** In progress — step 1 complete
+**Status:** In progress — steps 1–2 complete
 **Created:** 2026-09-28  
 **Goal:** Close OpenProject #259 by pinning Minima stopped, exited, error, restart, and restart-failure behavior with focused frontend and backend tests, fixing only the runtime gaps those tests expose.
 
@@ -117,8 +117,8 @@ Acceptance checks:
 ### Milestone 1: Failure-state rendering and dashboard behavior
 
 - [x] Add `MinimaContainerCard` stopped/exited/error copy cases — verified with `npm --prefix frontend run test -- MinimaContainerCard` (9 tests passed, 2026-09-28).
-- [ ] Add Dashboard stopped/error tone and wallet-degradation cases.
-- [ ] Stop wallet RPC for stopped/error nodes while preserving the intended polling cadence.
+- [x] Add Dashboard stopped/error tone and wallet-degradation cases — includes stale-balance clearing, recovery, preserved device metrics, and polling cadence (15 dashboard tests passed, 2026-09-28).
+- [x] Stop wallet RPC for stopped/error nodes while preserving the intended polling cadence.
 
 ### Milestone 2: Restart lifecycle and route failure
 

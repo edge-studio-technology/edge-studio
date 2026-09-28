@@ -4,6 +4,12 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] dev-task/259-node-failure-mode-unit-testing
+
+### Fixed
+
+- Dashboard wallet balance is unavailable and wallet requests are skipped while the Minima node is stopped or errored.
+
 ## [Unreleased]
 
 ### Security

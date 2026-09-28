@@ -4,6 +4,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Completed #259 plan step 2: pinned stopped/error dashboard tones, preserved device metrics, stale-wallet clearing/recovery, and 30-second offline versus 3-second restart polling; skipped wallet RPC and cleared the balance for stopped/error nodes. All 24 dashboard/container tests, frontend typechecking, and the frontend production build passed; full repository verification remains queued for the final milestone.
+
 - Completed #259 plan step 1: added table-driven Minima container stopped/exited/error label and runtime assertions; `npm --prefix frontend run test -- MinimaContainerCard` passed all 9 tests. Full checks/builds/Compose validation remain queued for the plan's final verification milestone.
 
 - Built the #667 responsive fixes on `feature/667-responsive-application`: container-query dashboard metric grid (#695), pinned row-action column on all 11 tables with row actions (#697), wrapping status bar (#698), two-line dashboard activity rows (#699), 40px console toolbar buttons below 1024 (#700), and a sidebar that overlays the page when expanded below 1024 (§10), plus a test keeping `EXPAND_MQ` in sync with Tailwind's `lg`.
@@ -37,7 +39,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- Continue #259 with step 2: dashboard stopped/error status tones and offline wallet behavior (`docs/plans/259-node-failure-mode-unit-testing.md`).
+- Continue #259 with step 3: page-owned restart lifecycle and failure toast (`docs/plans/259-node-failure-mode-unit-testing.md`).
 
 - Comment on #694 and move it to Ready for Deployment (awaiting go-ahead).
 - Separate task: table drift left from #697 (watch history double scroller, peers table `<div>` header, backups onto `TableWrap`).
