@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../../components/Button";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
@@ -140,6 +140,17 @@ const WATCH_RUN_COLUMNS = [
   { id: "duration", label: "Duration" },
   { id: "blocks", label: "Blocks" },
   { id: "details", label: "Details", dataColumn: false },
+] as const satisfies readonly TableColumnDefinition[];
+
+const WATCH_RUN_SUMMARY_FIELDS = [
+  { id: "status", label: "Status" },
+  { id: "started", label: "Started" },
+  { id: "trigger", label: "Trigger" },
+  { id: "duration", label: "Duration" },
+  { id: "blocks", label: "Blocks" },
+  { id: "finished", label: "Finished", defaultVisible: false },
+  { id: "runId", label: "Run ID", defaultVisible: false },
+  { id: "error", label: "Error", defaultVisible: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
 /** Watch-mode rail: run now + test payload. */
@@ -286,6 +297,40 @@ function WatchRunCell({
     );
   }
   return null;
+}
+
+function successfulBlockCount(run: AutomationRun) {
+  return run.blocks.filter((block) => block.status === "success").length;
+}
+
+function WatchRunSummaryCard({ fieldId, run }: { fieldId: string; run: AutomationRun }) {
+  let value: ReactNode = "-";
+  let valueClassName = "type-body-em text-text-primary";
+
+  if (fieldId === "status") {
+    value = <StatusPill status={statusTone(run.status)}>{run.status}</StatusPill>;
+    valueClassName = "";
+  } else if (fieldId === "started") value = formatLocalTime(run.startedAt);
+  else if (fieldId === "finished") value = run.finishedAt ? formatLocalTime(run.finishedAt) : "Still running";
+  else if (fieldId === "trigger") value = run.triggerType;
+  else if (fieldId === "duration") value = formatDuration(run.durationMs);
+  else if (fieldId === "blocks") value = `${successfulBlockCount(run)}/${run.blockCount}`;
+  else if (fieldId === "runId") {
+    value = run.id;
+    valueClassName = "type-meta text-text-primary font-mono";
+  } else if (fieldId === "error") {
+    value = run.error ?? "No error";
+    valueClassName = run.error ? "type-body-em text-text-error" : "type-body-em text-text-secondary";
+  }
+
+  const label = WATCH_RUN_SUMMARY_FIELDS.find((field) => field.id === fieldId)?.label ?? fieldId;
+
+  return (
+    <div className="border-stroke-secondary bg-surface-secondary gap-detail-fine grid min-w-0 rounded-soft border p-detail-next">
+      <span className="type-meta text-text-secondary uppercase">{label}</span>
+      <span className={valueClassName}>{value}</span>
+    </div>
+  );
 }
 
 /** Watch-mode selected-block sheet: run/block status and output. */
@@ -437,8 +482,17 @@ export function WatchRunHistory({
     "workflow-watch-runs",
     WATCH_RUN_COLUMNS,
   );
+  const {
+    visibility: summaryVisibility,
+    columnOrder: summaryColumnOrder,
+    setVisibility: setSummaryVisibility,
+    setColumnOrder: setSummaryColumnOrder,
+  } = useTableColumnVisibility("workflow-watch-run-summary", WATCH_RUN_SUMMARY_FIELDS);
   const visibleColumns = orderedColumns(WATCH_RUN_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
+  );
+  const visibleSummaryFields = orderedColumns(WATCH_RUN_SUMMARY_FIELDS, summaryColumnOrder).filter(
+    (field) => summaryVisibility[field.id],
   );
 
   return (
@@ -462,6 +516,17 @@ export function WatchRunHistory({
               columnOrder={columnOrder}
               onChange={setVisibility}
               onOrderChange={setColumnOrder}
+            />
+          ) : runs.length > 0 ? (
+            <TableColumnVisibilityButton
+              tableLabel="Selected run summary"
+              controlLabel="Choose fields for Selected run summary"
+              description="Choose which summary fields are shown. At least one field must remain visible."
+              columns={WATCH_RUN_SUMMARY_FIELDS}
+              visibility={summaryVisibility}
+              columnOrder={summaryColumnOrder}
+              onChange={setSummaryVisibility}
+              onOrderChange={setSummaryColumnOrder}
             />
           ) : null}
           <Button
@@ -510,45 +575,35 @@ export function WatchRunHistory({
         </div>
       ) : (
         <div className="rounded-soft border-stroke-secondary bg-surface-always-white grid gap-detail-next border p-detail-close" data-testid="collapsed-run-history">
-          <div className="gap-detail-next grid grid-cols-[auto_minmax(0,1fr)_auto] items-center">
-            <Button
-              type="button"
-              variant="secondary"
-              size="xs"
-              disabled={!olderRun}
-              iconStart={<ChevronLeft aria-hidden />}
-              onClick={() => olderRun && onSelectRun(olderRun.id)}
-            >
-              Older run
-            </Button>
-            <div className="gap-detail-next flex min-w-0 flex-wrap items-center justify-center text-center">
-              <StatusPill status={statusTone(selectedRun?.status)}>
-                {selectedRun?.status ?? "No run"}
-              </StatusPill>
-              {selectedRun ? (
-                <>
-                  <span className="type-meta text-text-secondary">{formatLocalTime(selectedRun.startedAt)}</span>
-                  <span className="type-meta text-text-secondary">{selectedRun.triggerType}</span>
-                  <span className="type-meta text-text-secondary">{formatDuration(selectedRun.durationMs)}</span>
-                  <span className="type-meta text-text-secondary">
-                    {selectedRun.blocks.filter((block) => block.status === "success").length}/{selectedRun.blockCount} blocks
-                  </span>
-                </>
+          <div className="gap-detail-next flex flex-wrap items-center justify-between">
+            <div className="gap-detail-next flex flex-wrap items-center">
+              <Button
+                type="button"
+                variant="secondary"
+                size="xs"
+                disabled={!olderRun}
+                iconStart={<ChevronLeft aria-hidden />}
+                onClick={() => olderRun && onSelectRun(olderRun.id)}
+              >
+                Older run
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="xs"
+                disabled={!newerRun}
+                iconStart={<ChevronRight aria-hidden />}
+                onClick={() => newerRun && onSelectRun(newerRun.id)}
+              >
+                Newer run
+              </Button>
+              {selectedRunIndex >= 0 ? (
+                <span className="type-meta text-text-secondary">
+                  Run {selectedRunIndex + 1} of {runs.length}
+                </span>
               ) : null}
             </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="xs"
-              disabled={!newerRun}
-              iconStart={<ChevronRight aria-hidden />}
-              onClick={() => newerRun && onSelectRun(newerRun.id)}
-            >
-              Newer run
-            </Button>
-          </div>
-          {selectedRun ? (
-            <RowActions>
+            {selectedRun ? (
               <Button
                 type="button"
                 variant="secondary"
@@ -557,7 +612,14 @@ export function WatchRunHistory({
               >
                 {rawRunId === selectedRun.id ? "Hide raw" : "Raw details"}
               </Button>
-            </RowActions>
+            ) : null}
+          </div>
+          {selectedRun ? (
+            <div className="grid gap-detail-next [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))]">
+              {visibleSummaryFields.map((field) => (
+                <WatchRunSummaryCard key={field.id} fieldId={field.id} run={selectedRun} />
+              ))}
+            </div>
           ) : null}
         </div>
       )}

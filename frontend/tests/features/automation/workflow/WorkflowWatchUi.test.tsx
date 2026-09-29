@@ -403,6 +403,23 @@ describe("WatchRunHistory", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Older run/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Newer run/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Choose fields for Selected run summary" })).toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeInTheDocument();
+    expect(screen.getByText("Started")).toBeInTheDocument();
+    expect(screen.getByText("Trigger")).toBeInTheDocument();
+    expect(screen.getByText("Duration")).toBeInTheDocument();
+    expect(screen.getByText("Blocks")).toBeInTheDocument();
+  });
+
+  it("opens compact summary field settings from collapsed mode", async () => {
+    render(<WatchRunHistory runs={[run()]} selectedRunId="r1" onSelectRun={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Choose fields for Selected run summary" }));
+
+    expect(screen.getByRole("dialog", { name: "Choose fields for Selected run summary" })).toBeInTheDocument();
+    expect(screen.getByText("Finished")).toBeInTheDocument();
+    expect(screen.getByText("Run ID")).toBeInTheDocument();
+    expect(screen.getByText("Error")).toBeInTheDocument();
   });
 
   it("expands to a table with a row per run", async () => {

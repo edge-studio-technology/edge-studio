@@ -71,6 +71,7 @@ Implemented:
 - Workspace refresh loading now keeps the real loaded workflow, blocks, rail panels, selected run, and history mounted with only the loading overlay; the placeholder shell is reserved for true no-data initial loads.
 - Last-known workspace snapshots are cached per session so route reload/refresh gaps preserve real block summaries and selected historic-run messaging instead of briefly showing loading placeholder content.
 - The loading overlay now covers the full workflow workspace shell, including the header and rail, instead of only the canvas/body region.
+- The collapsed selected-run history view now presents run data as labeled mini-cards and includes a cogwheel for choosing and ordering compact summary fields.
 
 Remaining:
 

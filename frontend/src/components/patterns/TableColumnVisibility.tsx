@@ -127,6 +127,8 @@ export function TableColumnVisibilityButton({
   onOrderChange,
   onFiltersChange,
   disabled = false,
+  controlLabel,
+  description,
 }: {
   tableLabel: string;
   columns: readonly TableColumnDefinition[];
@@ -137,6 +139,8 @@ export function TableColumnVisibilityButton({
   onOrderChange?: (next: TableColumnOrder) => void;
   onFiltersChange?: (next: TableColumnFilters) => void;
   disabled?: boolean;
+  controlLabel?: string;
+  description?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [movedColumnId, setMovedColumnId] = useState<string | null>(null);
@@ -192,8 +196,8 @@ export function TableColumnVisibilityButton({
       <IconButton
         type="button"
         variant="secondary"
-        aria-label={`Choose columns for ${tableLabel}`}
-        title={`Choose columns for ${tableLabel}`}
+        aria-label={controlLabel ?? `Choose columns for ${tableLabel}`}
+        title={controlLabel ?? `Choose columns for ${tableLabel}`}
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
@@ -201,8 +205,8 @@ export function TableColumnVisibilityButton({
       </IconButton>
       {open ? (
         <Modal
-          title={`Choose columns for ${tableLabel}`}
-          description="Choose which table columns are shown. At least one data column must remain visible."
+          title={controlLabel ?? `Choose columns for ${tableLabel}`}
+          description={description ?? "Choose which table columns are shown. At least one data column must remain visible."}
           onClose={() => setOpen(false)}
           bodyClassName="min-h-0"
           bodyScrollable={false}
