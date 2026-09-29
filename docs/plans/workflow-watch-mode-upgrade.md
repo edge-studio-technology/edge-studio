@@ -76,6 +76,7 @@ Implemented:
 - Trigger payload JSON editing moved into a modal; the run controls rail now shows a compact read-only payload preview with edit/reset/test actions.
 - The trigger payload rail preview is clickable, truncates only on full JSON lines with an ellipsis, and keeps reset inside the edit modal.
 - Workflow run raw details now open directly in a modal instead of adding an inline panel below the run history table.
+- Watch selected-block inspection now shows friendly input/result summaries first, with raw JSON actions kept secondary for diagnostics.
 
 Remaining:
 

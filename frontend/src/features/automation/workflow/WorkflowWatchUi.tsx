@@ -344,7 +344,7 @@ export function WatchRunControls({
             <label className="gap-detail-tight grid">
               <span className="type-body-em text-text-primary">Trigger payload</span>
               <textarea
-                className="min-h-[360px] font-mono"
+                className="border-stroke-secondary bg-surface-secondary rounded-soft min-h-[360px] border p-detail-next font-mono"
                 value={draftPayloadText}
                 onChange={(event) => {
                   setDraftPayloadText(event.target.value);
@@ -449,6 +449,54 @@ function WatchRunSummaryCard({ fieldId, run }: { fieldId: string; run: Automatio
   );
 }
 
+function isPresentRunValue(value: unknown) {
+  return value !== null && value !== undefined;
+}
+
+function shortRunValue(value: unknown) {
+  if (value === null) return "null";
+  if (value === undefined) return "undefined";
+  if (typeof value === "string") return value || "Empty string";
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return `${value.length} item${value.length === 1 ? "" : "s"}`;
+  if (typeof value === "object") return `${Object.keys(value).length} field${Object.keys(value).length === 1 ? "" : "s"}`;
+  return String(value);
+}
+
+function RunValueSummary({ value }: { value: unknown }) {
+  if (!isPresentRunValue(value)) return null;
+  if (Array.isArray(value)) {
+    return (
+      <div className="border-stroke-secondary bg-surface-secondary rounded-soft border p-detail-next">
+        <span className="type-body-em text-text-primary">Array with {shortRunValue(value)}</span>
+      </div>
+    );
+  }
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>).slice(0, 5);
+    return (
+      <div className="border-stroke-secondary bg-surface-secondary rounded-soft border p-detail-next">
+        <dl className="gap-detail-tight grid m-0">
+          {entries.map(([key, entryValue]) => (
+            <div key={key} className="gap-detail-next grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+              <dt className="type-meta text-text-secondary truncate">{key}</dt>
+              <dd className="type-meta text-text-primary m-0 truncate font-mono">{shortRunValue(entryValue)}</dd>
+            </div>
+          ))}
+        </dl>
+        {Object.keys(value as Record<string, unknown>).length > entries.length ? (
+          <p className={`${mutedText} m-0 mt-detail-tight`}>More fields available in raw JSON.</p>
+        ) : null}
+      </div>
+    );
+  }
+  return (
+    <div className="border-stroke-secondary bg-surface-secondary rounded-soft border p-detail-next">
+      <span className="type-body-em text-text-primary font-mono">{shortRunValue(value)}</span>
+    </div>
+  );
+}
+
 /** Watch-mode selected-block sheet: run/block status and output. */
 export function WatchRuntimeInspector({
   selectedBlock,
@@ -532,18 +580,39 @@ export function WatchRuntimeInspector({
         )}
       </InspectorSection>
       <InspectorSection
-        title="Output"
-        description="Payload saved by this block during the selected run."
+        title="Input"
+        description="Data this block received during the selected run."
       >
-        {latestBlockRun?.output !== null && latestBlockRun?.output !== undefined ? (
-          <JsonPreview
-            value={latestBlockRun.output}
-            label="View output JSON"
-            variant="button"
-            className="w-full"
-          />
+        {isPresentRunValue(latestBlockRun?.input) ? (
+          <div className="gap-detail-next grid">
+            <RunValueSummary value={latestBlockRun?.input} />
+            <JsonPreview
+              value={latestBlockRun?.input}
+              label="View input JSON"
+              variant="button"
+              className="w-full"
+            />
+          </div>
         ) : (
-          <p className={mutedText}>No output recorded for the latest selected-block run.</p>
+          <p className={mutedText}>No input recorded for the latest selected-block run.</p>
+        )}
+      </InspectorSection>
+      <InspectorSection
+        title="Result"
+        description="Data this block produced during the selected run."
+      >
+        {isPresentRunValue(latestBlockRun?.output) ? (
+          <div className="gap-detail-next grid">
+            <RunValueSummary value={latestBlockRun?.output} />
+            <JsonPreview
+              value={latestBlockRun?.output}
+              label="View result JSON"
+              variant="button"
+              className="w-full"
+            />
+          </div>
+        ) : (
+          <p className={mutedText}>No result recorded for the latest selected-block run.</p>
         )}
       </InspectorSection>
       {(readId || proofId || onCloseSelectedBlock) && (
@@ -745,10 +814,7 @@ export function WatchRunHistory({
           width="wide"
           onClose={() => setRawRunId(null)}
         >
-          <div className="gap-detail-next grid">
-            <StatusPill status={statusTone(rawRunForModal.status)}>{rawRunForModal.status}</StatusPill>
-            <JsonPreviewContent value={rawRunForModal} />
-          </div>
+          <JsonPreviewContent value={rawRunForModal} />
         </Modal>
       ) : null}
     </Panel>

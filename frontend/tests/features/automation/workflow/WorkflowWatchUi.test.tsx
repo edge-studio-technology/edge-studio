@@ -363,27 +363,37 @@ describe("WatchRuntimeInspector", () => {
     expect(screen.getByText("run boom")).toBeInTheDocument();
   });
 
-  it("shows output JSON preview when the latest block run has output", () => {
+  it("shows friendly input and result summaries before raw JSON actions", () => {
     render(
       <WatchRuntimeInspector
         selectedBlock={block()}
-        latestBlockRun={blockRun({ output: { foo: "bar" } })}
+        latestBlockRun={blockRun({ input: { source: "trigger", active: true }, output: { foo: "bar" } })}
         selectedRun={undefined}
       />,
     );
-    expect(screen.getByRole("button", { name: "View output JSON" })).toBeInTheDocument();
+    expect(screen.getByText("Input")).toBeInTheDocument();
+    expect(screen.getByText("Result")).toBeInTheDocument();
+    expect(screen.getByText("source")).toBeInTheDocument();
+    expect(screen.getByText("trigger")).toBeInTheDocument();
+    expect(screen.getByText("foo")).toBeInTheDocument();
+    expect(screen.getByText("bar")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View input JSON" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View result JSON" })).toBeInTheDocument();
   });
 
-  it("shows a fallback message when there is no output", () => {
+  it("shows fallback messages when there is no input or result", () => {
     render(
       <WatchRuntimeInspector
         selectedBlock={block()}
-        latestBlockRun={blockRun({ output: null })}
+        latestBlockRun={blockRun({ input: null, output: null })}
         selectedRun={undefined}
       />,
     );
     expect(
-      screen.getByText("No output recorded for the latest selected-block run."),
+      screen.getByText("No input recorded for the latest selected-block run."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("No result recorded for the latest selected-block run."),
     ).toBeInTheDocument();
   });
 
