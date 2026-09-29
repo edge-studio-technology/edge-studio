@@ -72,6 +72,7 @@ function renderPage(initialEntries = ["/workflows"]) {
           <Route path="/workflows" element={<AutomationPage />} />
           <Route path="/workflows/new" element={<AutomationPage />} />
           <Route path="/workflows/:workflowId/watch" element={<AutomationPage />} />
+          <Route path="/workflows/:workflowId/watch/:runId" element={<AutomationPage />} />
           <Route path="/workflows/:workflowId/edit" element={<div>Edit route</div>} />
         </Routes>
       </ToastProvider>
@@ -81,6 +82,7 @@ function renderPage(initialEntries = ["/workflows"]) {
 
 describe("AutomationPage", () => {
   beforeEach(() => {
+    window.sessionStorage.clear();
     listDataSources.mockReset().mockResolvedValue({ items: [] });
     listAutomationWorkflows.mockReset().mockResolvedValue({ items: [] });
     listAutomationInbox
@@ -135,5 +137,85 @@ describe("AutomationPage", () => {
     expect(screen.getByText("Watch workflow")).toBeInTheDocument();
     expect(screen.getByText("Fetching workflow...")).toBeInTheDocument();
     expect(screen.queryByText("Fetching your workflow")).not.toBeInTheDocument();
+  });
+
+  it("keeps the last loaded watch workspace content visible while refreshing", async () => {
+    listAutomationWorkflows
+      .mockResolvedValueOnce({
+        items: [
+          workflow({
+            blocks: [
+              {
+                id: "b-preview",
+                workflowId: "w1",
+                createdAt: "2026-08-01T00:00:00.000Z",
+                updatedAt: "2026-08-01T00:00:00.000Z",
+                type: "show_preview",
+                enabled: true,
+                order: 0,
+                parentBlockId: null,
+                config: {
+                  previewFormat: "json",
+                  title: "Device System Data latest data",
+                  contentMode: "latest_data",
+                },
+                lastRunAt: null,
+                lastError: null,
+              },
+            ],
+          }),
+        ],
+      })
+      .mockImplementationOnce(() => new Promise(() => undefined));
+    listAutomationWorkflowRuns.mockResolvedValue({
+      items: [
+        {
+          id: "r2",
+          workflowId: "w1",
+          workflowName: "Front gate flow",
+          startedAt: "2026-08-01T00:01:00.000Z",
+          finishedAt: "2026-08-01T00:01:01.000Z",
+          status: "success",
+          triggerType: "manual",
+          triggerSourceId: null,
+          triggerPayload: null,
+          durationMs: 1000,
+          blockCount: 1,
+          error: null,
+          blocks: [],
+        },
+        {
+          id: "r1",
+          workflowId: "w1",
+          workflowName: "Front gate flow",
+          startedAt: "2026-08-01T00:00:00.000Z",
+          finishedAt: "2026-08-01T00:00:01.000Z",
+          status: "success",
+          triggerType: "manual",
+          triggerSourceId: null,
+          triggerPayload: null,
+          durationMs: 1000,
+          blockCount: 1,
+          error: null,
+          blocks: [],
+        },
+      ],
+    });
+
+    const { unmount } = renderPage(["/workflows/w1/watch/r1"]);
+
+    expect(await screen.findByText(/Device System Data latest data/)).toBeInTheDocument();
+    expect(
+      await screen.findByText("Latest run available. Turn on follow live runs to jump back."),
+    ).toBeInTheDocument();
+
+    unmount();
+    renderPage(["/workflows/w1/watch/r1"]);
+
+    expect(screen.getByText(/Device System Data latest data/)).toBeInTheDocument();
+    expect(
+      await screen.findByText("Latest run available. Turn on follow live runs to jump back."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Loading preview")).not.toBeInTheDocument();
   });
 });

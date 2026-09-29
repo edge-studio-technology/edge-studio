@@ -74,6 +74,37 @@ type AutomationPageFlow =
   | { mode: "build" }
   | { mode: "edit" | "watch"; workflowId: string; runId?: string };
 
+type WorkspaceSnapshot = {
+  workflow: AutomationWorkflow;
+  runs: AutomationRun[];
+  validation: AutomationValidationResult | null;
+  sources: DataSource[];
+  addressBook: AddressBookEntry[];
+  walletStatus: WalletStatus | null;
+};
+
+const WORKSPACE_SNAPSHOT_KEY = "automation:last-workspace";
+
+function readWorkspaceSnapshot(workflowId: string | null): WorkspaceSnapshot | null {
+  if (!workflowId) return null;
+  try {
+    const raw = window.sessionStorage.getItem(WORKSPACE_SNAPSHOT_KEY);
+    if (!raw) return null;
+    const snapshot = JSON.parse(raw) as WorkspaceSnapshot;
+    return snapshot.workflow?.id === workflowId ? snapshot : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeWorkspaceSnapshot(snapshot: WorkspaceSnapshot) {
+  try {
+    window.sessionStorage.setItem(WORKSPACE_SNAPSHOT_KEY, JSON.stringify(snapshot));
+  } catch {
+    // Best-effort UI continuity only.
+  }
+}
+
 function automationFlowFromRoute(
   pathname: string,
   params: Readonly<Record<string, string | undefined>>,
@@ -391,6 +422,9 @@ export function AutomationPage() {
     null,
   );
   const [workspaceRefreshing, setWorkspaceRefreshing] = useState(false);
+  const [workspaceSnapshot, setWorkspaceSnapshot] = useState<WorkspaceSnapshot | null>(() =>
+    readWorkspaceSnapshot(flowWorkflowId),
+  );
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingWorkflow, setDeletingWorkflow] = useState<AutomationWorkflow | null>(null);
@@ -403,6 +437,10 @@ export function AutomationPage() {
   useEffect(() => {
     void loadPage();
   }, []);
+
+  useEffect(() => {
+    setWorkspaceSnapshot(readWorkspaceSnapshot(flowWorkflowId));
+  }, [flowWorkflowId]);
 
   useEffect(() => {
     if (flow.mode !== "build") return;
@@ -606,12 +644,39 @@ export function AutomationPage() {
     return entry;
   }
 
-  const sourceById = (id: string) => sources.find((source) => source.id === id);
   const activeWorkflowId = flowWorkflowId;
   const workspaceWorkflow = activeWorkflowId
     ? (workflows.find((workflow) => workflow.id === activeWorkflowId) ?? null)
     : null;
   const workspaceMode = flow.mode === "edit" || flow.mode === "watch" ? flow.mode : null;
+  const canUseWorkspaceSnapshot =
+    !workspaceWorkflow && Boolean(workspaceSnapshot) && (workflowsLoading || workspaceRefreshing || busy);
+  const displayedWorkspace = workspaceWorkflow
+    ? {
+        workflow: workspaceWorkflow,
+        runs: workspaceRuns,
+        validation: workspaceValidation,
+        sources,
+        addressBook,
+        walletStatus,
+      }
+    : canUseWorkspaceSnapshot
+      ? workspaceSnapshot
+      : null;
+
+  useEffect(() => {
+    if (!workspaceWorkflow) return;
+    const nextSnapshot = {
+      workflow: workspaceWorkflow,
+      runs: workspaceRuns,
+      validation: workspaceValidation,
+      sources,
+      addressBook,
+      walletStatus,
+    } satisfies WorkspaceSnapshot;
+    setWorkspaceSnapshot(nextSnapshot);
+    writeWorkspaceSnapshot(nextSnapshot);
+  }, [addressBook, sources, walletStatus, workspaceRuns, workspaceValidation, workspaceWorkflow]);
 
   if (flow.mode === "build") {
     return (
@@ -648,70 +713,76 @@ export function AutomationPage() {
   if (workspaceMode) {
     return (
       <>
-        {workspaceWorkflow ? (
+        {displayedWorkspace ? (
           <WorkflowWorkspace
-            workflow={workspaceWorkflow}
-            runs={workspaceRuns}
-            validation={workspaceValidation}
-            source={sourceById(workflowPrimarySourceId(workspaceWorkflow))}
-            sources={sources}
-            addressBook={addressBook}
-            walletStatus={walletStatus}
+            workflow={displayedWorkspace.workflow}
+            runs={displayedWorkspace.runs}
+            validation={displayedWorkspace.validation}
+            source={displayedWorkspace.sources.find(
+              (source) => source.id === workflowPrimarySourceId(displayedWorkspace.workflow),
+            )}
+            sources={displayedWorkspace.sources}
+            addressBook={displayedWorkspace.addressBook}
+            walletStatus={displayedWorkspace.walletStatus}
             busy={busy}
             mode={workspaceMode}
             initialRunId={flow.mode === "watch" ? flow.runId : undefined}
             onBack={() => navigateFlow({ mode: "list" })}
             onNavigateMode={(nextMode) =>
-              navigateFlow({ mode: nextMode, workflowId: workspaceWorkflow.id })
+              navigateFlow({ mode: nextMode, workflowId: displayedWorkspace.workflow.id })
             }
             onSelectWatchRun={(runId) =>
-              navigateFlow({ mode: "watch", workflowId: workspaceWorkflow.id, runId })
+              navigateFlow({ mode: "watch", workflowId: displayedWorkspace.workflow.id, runId })
             }
             onAddBlock={(input) =>
-              run(() => addAutomationBlock(workspaceWorkflow.id, input), "Could not add block")
+              run(() => addAutomationBlock(displayedWorkspace.workflow.id, input), "Could not add block")
             }
             onReplaceStartBlock={(input) =>
               run(
-                () => replaceAutomationStartBlock(workspaceWorkflow.id, input),
+                () => replaceAutomationStartBlock(displayedWorkspace.workflow.id, input),
                 "Could not change start block",
               )
             }
             onDeleteBlock={(blockId) =>
               run(
-                () => deleteAutomationBlock(workspaceWorkflow.id, blockId),
+                () => deleteAutomationBlock(displayedWorkspace.workflow.id, blockId),
                 "Could not delete block",
               )
             }
             onUpdateBlock={(blockId, input) =>
               run(
-                () => updateAutomationBlock(workspaceWorkflow.id, blockId, input),
+                () => updateAutomationBlock(displayedWorkspace.workflow.id, blockId, input),
                 "Could not save block",
               )
             }
             onUpdateWorkflow={(input) =>
               run(
-                () => updateAutomationWorkflow(workspaceWorkflow.id, input),
+                () => updateAutomationWorkflow(displayedWorkspace.workflow.id, input),
                 "Could not save workflow",
               )
             }
             onReorderBlocks={(blockIds) =>
               run(
-                () => reorderAutomationBlocks(workspaceWorkflow.id, blockIds),
+                () => reorderAutomationBlocks(displayedWorkspace.workflow.id, blockIds),
                 "Could not move block",
               )
             }
             onRunNow={() =>
-              run(() => runWorkflowAndSelectLatest(workspaceWorkflow.id), "Could not run workflow")
+              run(() => runWorkflowAndSelectLatest(displayedWorkspace.workflow.id), "Could not run workflow")
             }
             onRunWithPayload={(payload) =>
               run(
-                () => runWorkflowAndSelectLatest(workspaceWorkflow.id, payload),
+                () => runWorkflowAndSelectLatest(displayedWorkspace.workflow.id, payload),
                 "Could not run workflow",
               )
             }
             onCreateAddressBookEntry={createWorkflowRecipient}
             loadingOverlayLabel={
-              busy ? "Updating workflow..." : workspaceRefreshing ? "Fetching workflow..." : null
+              busy
+                ? "Updating workflow..."
+                : workspaceRefreshing || !workspaceWorkflow
+                  ? "Fetching workflow..."
+                  : null
             }
           />
         ) : loadError ? (
@@ -726,7 +797,7 @@ export function AutomationPage() {
             onBack={() => navigateFlow({ mode: "list" })}
           />
         )}
-        {workspaceWorkflow && loadError ? (
+        {displayedWorkspace && loadError ? (
           <ErrorAlert
             title="Some workflow data couldn't be loaded"
             className="max-w-none"
