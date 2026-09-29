@@ -260,7 +260,7 @@ function ReadHistoryCell({
 }
 
 /** "View details" modal — key facts, then the preview/error in an expandable disclosure. */
-function ReadDetailsModal({ item, onClose }: { item: DataSourceRead; onClose: () => void }) {
+export function ReadDetailsModal({ item, onClose }: { item: DataSourceRead; onClose: () => void }) {
   return (
     <Modal title="Read details" onClose={onClose}>
       <div className="gap-detail-near grid">

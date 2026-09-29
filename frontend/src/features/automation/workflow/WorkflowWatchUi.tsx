@@ -15,6 +15,9 @@ import {
 import { JsonPreview, JsonPreviewContent } from "../../../components/JsonPreview";
 import { Modal } from "../../../components/ui/Modal";
 import { Disclosure } from "../../../components/ui/Disclosure";
+import { ReadDetailsModal } from "../../data-reads/DataReadsHistoryTable";
+import { getDataSourceRead } from "../../data-reads/dataReadsApi";
+import type { DataSourceRead } from "../../data-reads/dataReadTypes";
 import {
   orderedColumns,
   TableColumnVisibilityButton,
@@ -84,6 +87,10 @@ function eventTriggerLabel(workflow: AutomationWorkflow) {
   if (startBlock?.type === "webhook_event_start") return "webhook trigger";
   if (startBlock?.type === "mqtt_event_start") return "MQTT trigger";
   return "trigger";
+}
+
+function blockCreatesDataRead(block: AutomationBlock | undefined) {
+  return block?.type === "fetch_data_source" || block?.type === "capture_camera";
 }
 
 function clippedPayloadPreview(payloadText: string, maxLines = 8) {
@@ -548,6 +555,10 @@ export function WatchRuntimeInspector({
 }) {
   const readId = readIdFromOutput(latestBlockRun?.output);
   const proofId = proofIdFromOutput(latestBlockRun?.output);
+  const showReadDiagnostics = Boolean(readId && blockCreatesDataRead(selectedBlock));
+  const [readDetails, setReadDetails] = useState<DataSourceRead | null>(null);
+  const [readDetailsLoading, setReadDetailsLoading] = useState(false);
+  const [readDetailsError, setReadDetailsError] = useState<string | null>(null);
   const blockRunStatus = latestBlockRun
     ? latestBlockRun.status
     : selectedBlock?.lastRunAt
@@ -652,15 +663,34 @@ export function WatchRuntimeInspector({
           <p className={mutedText}>No result recorded for the latest selected-block run.</p>
         )}
       </InspectorSection>
-      {(readId || proofId || onCloseSelectedBlock) && (
+      {(showReadDiagnostics || proofId || onCloseSelectedBlock) && (
         <InspectorSection title="Diagnostics">
+          {readDetailsError ? <p className={errorText}>{readDetailsError}</p> : null}
           <RowActions>
-            {readId && (
+            {showReadDiagnostics && readId && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={readDetailsLoading}
+                onClick={() => {
+                  setReadDetailsLoading(true);
+                  setReadDetailsError(null);
+                  getDataSourceRead(readId)
+                    .then((response) => setReadDetails(response.item))
+                    .catch((error: Error) => setReadDetailsError(error.message))
+                    .finally(() => setReadDetailsLoading(false));
+                }}
+              >
+                {readDetailsLoading ? "Opening read..." : "Open read"}
+              </Button>
+            )}
+            {showReadDiagnostics && readId && (
               <Link
                 className="type-meta rounded-loose bg-surface-secondary px-detail-close text-text-primary hover:border-stroke-primary inline-flex h-8 items-center border border-transparent no-underline"
                 to={diagnosticsLink("reads", readId)}
               >
-                Open read
+                Open in diagnostics
               </Link>
             )}
             {proofId && (
@@ -679,6 +709,9 @@ export function WatchRuntimeInspector({
           </RowActions>
         </InspectorSection>
       )}
+      {readDetails ? (
+        <ReadDetailsModal item={readDetails} onClose={() => setReadDetails(null)} />
+      ) : null}
     </div>
   );
 }

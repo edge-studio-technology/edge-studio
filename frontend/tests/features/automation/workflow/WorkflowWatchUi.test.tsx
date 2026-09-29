@@ -15,6 +15,12 @@ import type {
   AutomationWorkflow,
 } from "../../../../src/features/automation/automationTypes";
 
+const getDataSourceRead = vi.hoisted(() => vi.fn());
+
+vi.mock("../../../../src/features/data-reads/dataReadsApi", () => ({
+  getDataSourceRead: (...args: unknown[]) => getDataSourceRead(...args),
+}));
+
 function workflow(overrides: Partial<AutomationWorkflow> = {}): AutomationWorkflow {
   return {
     id: "w1",
@@ -434,21 +440,71 @@ describe("WatchRuntimeInspector", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows diagnostics links for read and proof ids and a close button", async () => {
+  it("opens read details for blocks that fetch device data", async () => {
+    getDataSourceRead.mockResolvedValue({
+      item: {
+        id: "read-1",
+        createdAt: "2026-08-01T00:00:00.000Z",
+        dataSourceId: "source-1",
+        workflowId: "w1",
+        integritasProofId: null,
+        sourceName: "Device System Data",
+        sourceUrl: "device-system-data:local",
+        triggerType: "automation",
+        status: "success",
+        hash: null,
+        preview: { cpu: 1 },
+        error: null,
+        triggerSourceId: null,
+        triggerPayload: null,
+        blockId: "b1",
+      },
+    });
+    render(
+      <MemoryRouter>
+        <WatchRuntimeInspector
+          selectedBlock={block({ type: "fetch_data_source" })}
+          latestBlockRun={blockRun({ output: { readId: "read-1" } })}
+          selectedRun={undefined}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: "Open in diagnostics" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("q=read-1"),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Open read" }));
+    expect(await screen.findByRole("dialog", { name: "Read details" })).toBeInTheDocument();
+    expect(screen.getByText("Device System Data")).toBeInTheDocument();
+  });
+
+  it("does not show read diagnostics for blocks that only consume prior read data", () => {
+    render(
+      <MemoryRouter>
+        <WatchRuntimeInspector
+          selectedBlock={block({ type: "show_preview" })}
+          latestBlockRun={blockRun({ output: { readId: "read-1" } })}
+          selectedRun={undefined}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole("button", { name: "Open read" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Open in diagnostics" })).not.toBeInTheDocument();
+  });
+
+  it("shows proof diagnostics and a close button", async () => {
     const onCloseSelectedBlock = vi.fn();
     render(
       <MemoryRouter>
         <WatchRuntimeInspector
           selectedBlock={block()}
-          latestBlockRun={blockRun({ output: { readId: "read-1", proofId: "proof-1" } })}
+          latestBlockRun={blockRun({ output: { proofId: "proof-1" } })}
           selectedRun={undefined}
           onCloseSelectedBlock={onCloseSelectedBlock}
         />
       </MemoryRouter>,
-    );
-    expect(screen.getByRole("link", { name: "Open read" })).toHaveAttribute(
-      "href",
-      expect.stringContaining("q=read-1"),
     );
     expect(screen.getByRole("link", { name: "Open proof" })).toHaveAttribute(
       "href",
