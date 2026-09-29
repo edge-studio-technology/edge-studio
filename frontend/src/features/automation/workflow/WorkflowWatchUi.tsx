@@ -12,7 +12,7 @@ import {
   TableRow,
   TableWrap,
 } from "../../../components/DataTable";
-import { JsonPreview } from "../../../components/JsonPreview";
+import { JsonPreview, JsonPreviewContent } from "../../../components/JsonPreview";
 import { Modal } from "../../../components/ui/Modal";
 import { Disclosure } from "../../../components/ui/Disclosure";
 import {
@@ -747,7 +747,7 @@ export function WatchRunHistory({
         >
           <div className="gap-detail-next grid">
             <StatusPill status={statusTone(rawRunForModal.status)}>{rawRunForModal.status}</StatusPill>
-            <JsonPreview value={rawRunForModal} />
+            <JsonPreviewContent value={rawRunForModal} />
           </div>
         </Modal>
       ) : null}

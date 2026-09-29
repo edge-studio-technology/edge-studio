@@ -503,6 +503,8 @@ describe("WatchRunHistory", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Raw details" }));
     expect(screen.getByRole("dialog", { name: "Raw workflow run JSON" })).toBeInTheDocument();
+    expect(screen.getByText(/"workflowName": "Front gate flow"/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View JSON" })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByText("Raw workflow run JSON")).not.toBeInTheDocument();
