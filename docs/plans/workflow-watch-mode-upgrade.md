@@ -73,6 +73,7 @@ Implemented:
 - The loading overlay now covers the full workflow workspace shell, including the header and rail, instead of only the canvas/body region.
 - The collapsed selected-run history view now presents run data as labeled mini-cards and includes a cogwheel for choosing and ordering compact summary fields.
 - Event-triggered workflows now show a single expanded trigger-payload test control in watch mode instead of a misleading `Run now` action; manual/schedule workflows keep `Run now` plus an optional custom payload test.
+- Trigger payload JSON editing moved into a modal; the run controls rail now shows a compact read-only payload preview with edit/reset/test actions.
 
 Remaining:
 

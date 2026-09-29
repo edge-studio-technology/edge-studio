@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -160,12 +160,16 @@ describe("WatchRunControls", () => {
     expect(screen.getByRole("button", { name: "Run test payload" })).toBeDisabled();
   });
 
-  it("calls onPayloadTextChange when the textarea changes", async () => {
+  it("edits payload text from a modal and saves it", async () => {
     const onPayloadTextChange = vi.fn();
     renderControls({ onPayloadTextChange });
     await openRunControlsPayload();
-    await userEvent.type(screen.getByLabelText("Trigger payload"), "x");
-    expect(onPayloadTextChange).toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Edit payload" }));
+    fireEvent.change(screen.getByLabelText("Trigger payload"), {
+      target: { value: '{"foo":"bar"}' },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Save payload" }));
+    expect(onPayloadTextChange).toHaveBeenCalledWith('{"foo":"bar"}');
   });
 
   it("calls onResetPayload when Reset example is clicked", async () => {
@@ -206,7 +210,8 @@ describe("WatchRunControls", () => {
 
     expect(screen.queryByRole("button", { name: "Run now" })).not.toBeInTheDocument();
     expect(screen.getByText("Test GPIO trigger")).toBeInTheDocument();
-    expect(screen.getByLabelText("Trigger payload")).toBeInTheDocument();
+    expect(screen.getByText("Payload preview")).toBeInTheDocument();
+    expect(screen.getByText('{"active":true}')).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Test with this payload" }));
 
     expect(onRunNow).not.toHaveBeenCalled();

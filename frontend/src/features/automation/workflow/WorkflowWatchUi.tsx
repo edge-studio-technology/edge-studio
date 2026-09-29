@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../../components/Button";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
@@ -13,6 +13,7 @@ import {
   TableWrap,
 } from "../../../components/DataTable";
 import { JsonPreview } from "../../../components/JsonPreview";
+import { Modal } from "../../../components/ui/Modal";
 import { Disclosure } from "../../../components/ui/Disclosure";
 import {
   orderedColumns,
@@ -83,6 +84,12 @@ function eventTriggerLabel(workflow: AutomationWorkflow) {
   if (startBlock?.type === "webhook_event_start") return "webhook trigger";
   if (startBlock?.type === "mqtt_event_start") return "MQTT trigger";
   return "trigger";
+}
+
+function clippedPayloadPreview(payloadText: string) {
+  const trimmed = payloadText.trim();
+  if (!trimmed) return "{}";
+  return trimmed.length > 360 ? `${trimmed.slice(0, 360)}\n...` : trimmed;
 }
 
 /** Watch-mode overview: workflow state, selected run, and live-follow control. */
@@ -205,6 +212,40 @@ export function WatchRunControls({
     ? "This simulates the trigger for a manual test run. It does not fire the real external event."
     : "Use this when trigger-dependent blocks need specific payload data for a manual test run.";
   const payloadRunLabel = eventTriggered ? "Test with this payload" : "Run test payload";
+  const [payloadModalOpen, setPayloadModalOpen] = useState(false);
+  const [draftPayloadText, setDraftPayloadText] = useState(payloadText);
+  const [draftPayloadError, setDraftPayloadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (payloadModalOpen) setDraftPayloadText(payloadText);
+  }, [payloadModalOpen, payloadText]);
+
+  function openPayloadModal() {
+    setDraftPayloadText(payloadText);
+    setDraftPayloadError(null);
+    setPayloadModalOpen(true);
+  }
+
+  function savePayloadDraft() {
+    try {
+      JSON.parse(draftPayloadText) as unknown;
+      onPayloadTextChange(draftPayloadText);
+      onPayloadError(null);
+      setDraftPayloadError(null);
+      setPayloadModalOpen(false);
+    } catch (error) {
+      setDraftPayloadError(error instanceof Error ? error.message : "Payload must be valid JSON");
+    }
+  }
+
+  function runWithCurrentPayload() {
+    try {
+      onRunWithPayload(JSON.parse(payloadText) as unknown);
+    } catch (error) {
+      onPayloadError(error instanceof Error ? error.message : "Payload must be valid JSON");
+      openPayloadModal();
+    }
+  }
 
   return (
     <WorkflowRailPanel className={formGridClass}>
@@ -241,14 +282,17 @@ export function WatchRunControls({
         contentClassName="gap-detail-next"
       >
         <p className={`${mutedText} m-0`}>{payloadDescription}</p>
-        <label>
-          Trigger payload
-          <textarea
-            rows={8}
-            value={payloadText}
-            onChange={(event) => onPayloadTextChange(event.target.value)}
-          />
-        </label>
+        <div className="gap-detail-tight grid">
+          <div className="gap-detail-next flex items-center justify-between">
+            <strong className="type-body-em text-text-primary">Payload preview</strong>
+            <Button type="button" variant="secondary" size="xs" onClick={openPayloadModal}>
+              Edit payload
+            </Button>
+          </div>
+          <pre className="border-stroke-secondary bg-surface-secondary type-meta text-text-primary max-h-36 overflow-hidden whitespace-pre-wrap rounded-soft border p-detail-next font-mono">
+            {clippedPayloadPreview(payloadText)}
+          </pre>
+        </div>
         {payloadError && <p className={errorText}>{payloadError}</p>}
         <RowActions>
           <Button
@@ -264,18 +308,58 @@ export function WatchRunControls({
             type="button"
             size="xs"
             disabled={busy || hasValidationErrors || workflow.archived}
-            onClick={() => {
-              try {
-                onRunWithPayload(JSON.parse(payloadText) as unknown);
-              } catch (error) {
-                onPayloadError(error instanceof Error ? error.message : "Payload must be valid JSON");
-              }
-            }}
+            onClick={runWithCurrentPayload}
           >
             {payloadRunLabel}
           </Button>
         </RowActions>
       </Disclosure>
+      {payloadModalOpen ? (
+        <Modal
+          title="Edit trigger payload"
+          description={payloadDescription}
+          width="wide"
+          bodyScrollable={false}
+          onClose={() => setPayloadModalOpen(false)}
+          footer={
+            <RowActions>
+              <Button type="button" variant="secondary" onClick={() => setPayloadModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => {
+                  onResetPayload();
+                  setDraftPayloadText(payloadText);
+                  setDraftPayloadError(null);
+                }}
+              >
+                Reset example
+              </Button>
+              <Button type="button" onClick={savePayloadDraft}>
+                Save payload
+              </Button>
+            </RowActions>
+          }
+        >
+          <div className="gap-detail-next grid">
+            <label className="gap-detail-tight grid">
+              <span className="type-body-em text-text-primary">Trigger payload</span>
+              <textarea
+                className="min-h-[360px] font-mono"
+                value={draftPayloadText}
+                onChange={(event) => {
+                  setDraftPayloadText(event.target.value);
+                  setDraftPayloadError(null);
+                }}
+              />
+            </label>
+            {draftPayloadError ? <p className={errorText}>{draftPayloadError}</p> : null}
+          </div>
+        </Modal>
+      ) : null}
     </WorkflowRailPanel>
   );
 }

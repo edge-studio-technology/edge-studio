@@ -78,6 +78,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automation workspace loading overlays now cover the full workflow page chrome instead of only the canvas area.
 - Automation watch selected-run compact history now uses labeled summary cards with configurable field visibility and order.
 - Automation watch run controls now treat GPIO, webhook, and MQTT workflows as trigger-payload tests instead of showing a misleading `Run now` action.
+- Automation watch trigger payload JSON is now edited in a modal, with the rail showing a compact payload preview instead of an inline editor.
 - The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; source and generated release Compose files apply the same values to the backend and network IPAM.
 - Tables now provide a cog-button column chooser with backend-saved visibility preferences.
 - Failed loads across Dashboard, Wallet, Devices, Workflows, Diagnostics, Minima, Integritas Connect, and Software update now show a calm in-content error state with Retry instead of a red alert banner.
