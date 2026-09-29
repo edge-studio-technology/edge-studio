@@ -70,6 +70,7 @@ Implemented:
 - The watch loading placeholder no longer offsets the canvas block stack, and runtime stat rows use a stable right-side value column.
 - Workspace refresh loading now keeps the real loaded workflow, blocks, rail panels, selected run, and history mounted with only the loading overlay; the placeholder shell is reserved for true no-data initial loads.
 - Last-known workspace snapshots are cached per session so route reload/refresh gaps preserve real block summaries and selected historic-run messaging instead of briefly showing loading placeholder content.
+- The loading overlay now covers the full workflow workspace shell, including the header and rail, instead of only the canvas/body region.
 
 Remaining:
 

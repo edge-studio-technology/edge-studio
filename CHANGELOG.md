@@ -75,6 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automation watch loading placeholders no longer offset the canvas block stack, and runtime overview stat values align more consistently between loading and loaded states.
 - Automation workflow refresh loading now keeps the real loaded workspace mounted and applies only the loading overlay.
 - Automation watch refreshes preserve the last loaded block summaries and selected-run messaging instead of briefly swapping to loading placeholder text.
+- Automation workspace loading overlays now cover the full workflow page chrome instead of only the canvas area.
 - The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; source and generated release Compose files apply the same values to the backend and network IPAM.
 - Tables now provide a cog-button column chooser with backend-saved visibility preferences.
 - Failed loads across Dashboard, Wallet, Devices, Workflows, Diagnostics, Minima, Integritas Connect, and Software update now show a calm in-content error state with Retry instead of a red alert banner.

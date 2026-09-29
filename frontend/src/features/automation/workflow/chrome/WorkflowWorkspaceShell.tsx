@@ -6,7 +6,7 @@ import { cx } from "../../../../lib/cx";
 
 /** Container: the rail pins at `@4xl` and becomes a drawer below it. */
 const shellClass =
-  "@container border-stroke-primary bg-surface-always-white flex h-screen min-h-0 flex-col overflow-hidden border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";
+  "@container border-stroke-primary bg-surface-always-white relative flex h-screen min-h-0 flex-col overflow-hidden border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";
 const topbarClass =
   "border-stroke-secondary bg-surface-always-white pt-pad-relaxed px-pad-relaxed pb-pad-tight flex flex-col gap-detail-close border-b @4xl:flex-row @4xl:items-end @4xl:justify-between";
 /** Full-bleed canvas area. */
@@ -108,13 +108,13 @@ export function WorkflowWorkspaceShell({
           {rail}
         </aside>
         {selectedSheet}
-        {overlay ? <div className="absolute inset-0 z-20">{overlay}</div> : null}
         {bottom ? (
           <div className="left-pad-tight bottom-pad-tight md:left-detail-near md:bottom-detail-near right-pad-tight @4xl:right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] absolute z-10">
             {bottom}
           </div>
         ) : null}
       </div>
+      {overlay ? <div className="absolute inset-0 z-50">{overlay}</div> : null}
     </section>
   );
 }
