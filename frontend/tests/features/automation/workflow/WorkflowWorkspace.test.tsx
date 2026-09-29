@@ -242,7 +242,7 @@ describe("WorkflowWorkspace edit mode", () => {
     const dialog = screen.getByRole("dialog", { name: "Editing will pause this workflow." });
     expect(dialog).toBeInTheDocument();
     const backdrop = dialog.parentElement?.parentElement;
-    expect(backdrop).toHaveClass("z-[90]");
+    expect(backdrop).toHaveClass("z-[100]");
     fireEvent.mouseDown(backdrop!);
     expect(screen.getByRole("dialog", { name: "Editing will pause this workflow." })).toBeInTheDocument();
     expect(nameField).toHaveValue("Front gate flow");

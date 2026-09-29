@@ -463,6 +463,35 @@ function shortRunValue(value: unknown) {
   return String(value);
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isEmptyContextField(key: string, value: unknown) {
+  if (value === null || value === undefined) return true;
+  if (key === "stopped" && value === false) return true;
+  if (isPlainRecord(value) && Object.keys(value).length === 0) return true;
+  return false;
+}
+
+function meaningfulObjectEntries(value: Record<string, unknown>) {
+  return Object.entries(value).filter(([key, entryValue]) => !isEmptyContextField(key, entryValue));
+}
+
+function shortRunFieldValue(key: string, value: unknown) {
+  if (key === "trigger" && isPlainRecord(value)) {
+    const type = typeof value.type === "string" ? value.type : "trigger";
+    const payload = value.payload;
+    return isPresentRunValue(payload) ? `${type} · payload ${shortRunValue(payload)}` : type;
+  }
+  if (key === "data" && isPlainRecord(value)) {
+    if (typeof value.sourceName === "string") return value.sourceName;
+    if (typeof value.readId === "string") return `Read ${value.readId}`;
+    if (typeof value.hash === "string") return `Hash ${value.hash}`;
+  }
+  return shortRunValue(value);
+}
+
 function RunValueSummary({ value }: { value: unknown }) {
   if (!isPresentRunValue(value)) return null;
   if (Array.isArray(value)) {
@@ -473,18 +502,26 @@ function RunValueSummary({ value }: { value: unknown }) {
     );
   }
   if (typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>).slice(0, 5);
+    const meaningfulEntries = meaningfulObjectEntries(value as Record<string, unknown>);
+    const entries = meaningfulEntries.slice(0, 5);
+    if (entries.length === 0) {
+      return (
+        <div className="border-stroke-secondary bg-surface-secondary rounded-soft border p-detail-next">
+          <p className={`${mutedText} m-0`}>No meaningful context fields recorded.</p>
+        </div>
+      );
+    }
     return (
       <div className="border-stroke-secondary bg-surface-secondary rounded-soft border p-detail-next">
         <dl className="gap-detail-tight grid m-0">
           {entries.map(([key, entryValue]) => (
             <div key={key} className="gap-detail-next grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
               <dt className="type-meta text-text-secondary truncate">{key}</dt>
-              <dd className="type-meta text-text-primary m-0 truncate font-mono">{shortRunValue(entryValue)}</dd>
+              <dd className="type-meta text-text-primary m-0 truncate font-mono">{shortRunFieldValue(key, entryValue)}</dd>
             </div>
           ))}
         </dl>
-        {Object.keys(value as Record<string, unknown>).length > entries.length ? (
+        {meaningfulEntries.length > entries.length ? (
           <p className={`${mutedText} m-0 mt-detail-tight`}>More fields available in raw JSON.</p>
         ) : null}
       </div>

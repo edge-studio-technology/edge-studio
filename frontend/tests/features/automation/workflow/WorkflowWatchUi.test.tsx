@@ -381,6 +381,43 @@ describe("WatchRuntimeInspector", () => {
     expect(screen.getByRole("button", { name: "View result JSON" })).toBeInTheDocument();
   });
 
+  it("hides null workflow-context fields in input and result summaries", () => {
+    render(
+      <WatchRuntimeInspector
+        selectedBlock={block()}
+        latestBlockRun={blockRun({
+          input: {
+            trigger: { type: "manual", payload: { active: true, source: "run-now" } },
+            data: null,
+            output: null,
+            hash: null,
+            proofId: null,
+            stopped: false,
+            variables: {},
+          },
+          output: {
+            trigger: { type: "manual", payload: { active: true, source: "run-now" } },
+            data: null,
+            output: null,
+            hash: null,
+            proofId: null,
+            stopped: false,
+            variables: {},
+          },
+        })}
+        selectedRun={undefined}
+      />,
+    );
+
+    expect(screen.getAllByText("trigger")).toHaveLength(2);
+    expect(screen.getAllByText("manual · payload 2 fields")).toHaveLength(2);
+    expect(screen.queryByText("data")).not.toBeInTheDocument();
+    expect(screen.queryByText("output")).not.toBeInTheDocument();
+    expect(screen.queryByText("hash")).not.toBeInTheDocument();
+    expect(screen.queryByText("proofId")).not.toBeInTheDocument();
+    expect(screen.queryByText("variables")).not.toBeInTheDocument();
+  });
+
   it("shows fallback messages when there is no input or result", () => {
     render(
       <WatchRuntimeInspector

@@ -22,6 +22,20 @@ describe("Modal", () => {
     expect(screen.getByText("Body content")).toBeInTheDocument();
   });
 
+  it("renders above page overlays by default", () => {
+    render(<Modal title="Title" onClose={vi.fn()} />);
+    const backdrop = document.body.querySelector<HTMLElement>('[role="presentation"]');
+
+    expect(backdrop).toHaveClass("z-[90]");
+  });
+
+  it("supports a higher top layer for intentionally stacked dialogs", () => {
+    render(<Modal title="Title" onClose={vi.fn()} layer="top" />);
+    const backdrop = document.body.querySelector<HTMLElement>('[role="presentation"]');
+
+    expect(backdrop).toHaveClass("z-[100]");
+  });
+
   it("calls onClose when the close button is clicked", async () => {
     const onClose = vi.fn();
     render(<Modal title="Title" onClose={onClose} />);

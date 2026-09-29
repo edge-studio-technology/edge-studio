@@ -77,6 +77,8 @@ Implemented:
 - The trigger payload rail preview is clickable, truncates only on full JSON lines with an ellipsis, and keeps reset inside the edit modal.
 - Workflow run raw details now open directly in a modal instead of adding an inline panel below the run history table.
 - Watch selected-block inspection now shows friendly input/result summaries first, with raw JSON actions kept secondary for diagnostics.
+- Shared modals now render above page/workspace overlays by default (`z-[90]`), with `layer="top"` reserved for intentionally stacked dialogs (`z-[100]`).
+- Watch selected-block input/result summaries now filter null/empty workflow context fields and surface meaningful trigger/data/output fields first.
 
 Remaining:
 
