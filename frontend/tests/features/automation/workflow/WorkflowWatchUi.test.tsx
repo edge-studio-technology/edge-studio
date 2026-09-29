@@ -497,14 +497,14 @@ describe("WatchRunHistory", () => {
     expect(onSelectRun).toHaveBeenCalledWith("newer");
   });
 
-  it("toggles raw run JSON details", async () => {
+  it("opens raw run JSON details in a modal", async () => {
     render(<WatchRunHistory runs={[run()]} selectedRunId={null} onSelectRun={vi.fn()} />);
     expect(screen.queryByText("Raw workflow run JSON")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Raw details" }));
-    expect(screen.getByText("Raw workflow run JSON")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Raw workflow run JSON" })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Hide raw" }));
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByText("Raw workflow run JSON")).not.toBeInTheDocument();
   });
 });

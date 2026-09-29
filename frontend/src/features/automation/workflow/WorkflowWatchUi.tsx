@@ -364,16 +364,14 @@ function WatchRunCell({
   columnId,
   run,
   selectedRunId,
-  rawRunId,
   onSelectRun,
-  onToggleRaw,
+  onOpenRaw,
 }: {
   columnId: string;
   run: AutomationRun;
   selectedRunId: string | null;
-  rawRunId: string | null;
   onSelectRun: (runId: string) => void;
-  onToggleRaw: () => void;
+  onOpenRaw: () => void;
 }) {
   if (columnId === "started") return <TableCell>{formatLocalTime(run.startedAt)}</TableCell>;
   if (columnId === "trigger") return <TableCell>{run.triggerType}</TableCell>;
@@ -407,8 +405,8 @@ function WatchRunCell({
           >
             {selectedRunId === run.id ? "Showing" : "Show on canvas"}
           </Button>
-          <Button type="button" variant="secondary" size="xs" onClick={onToggleRaw}>
-            {rawRunId === run.id ? "Hide raw" : "Raw details"}
+          <Button type="button" variant="secondary" size="xs" onClick={onOpenRaw}>
+            Raw details
           </Button>
         </RowActions>
       </TableCell>
@@ -579,7 +577,7 @@ export function WatchRuntimeInspector({
   );
 }
 
-/** Watch-mode bottom panel: historic runs table + raw JSON. */
+/** Watch-mode bottom panel: historic runs table + raw JSON diagnostics. */
 export function WatchRunHistory({
   runs,
   selectedRunId,
@@ -595,7 +593,7 @@ export function WatchRunHistory({
   const selectedRunIndex = selectedRun ? runs.findIndex((run) => run.id === selectedRun.id) : -1;
   const newerRun = selectedRunIndex > 0 ? runs[selectedRunIndex - 1] : undefined;
   const olderRun = selectedRunIndex >= 0 && selectedRunIndex < runs.length - 1 ? runs[selectedRunIndex + 1] : undefined;
-  const rawRun = runs.find((run) => run.id === rawRunId);
+  const rawRunForModal = runs.find((run) => run.id === rawRunId);
   const { visibility, columnOrder, setVisibility, setColumnOrder } = useTableColumnVisibility(
     "workflow-watch-runs",
     WATCH_RUN_COLUMNS,
@@ -620,7 +618,7 @@ export function WatchRunHistory({
           <strong>{expanded ? "Historic runs" : "Selected run"}</strong>
           <p className={mutedText}>
             {expanded
-              ? "Choose a run to visualize on the canvas, or expand raw JSON for diagnostics."
+              ? "Choose a run to visualize on the canvas, or open raw JSON for diagnostics."
               : "Use older/newer to step through recent runs, or expand history to browse the table."}
           </p>
         </div>
@@ -679,9 +677,8 @@ export function WatchRunHistory({
                           columnId={column.id}
                           run={run}
                           selectedRunId={selectedRunId}
-                          rawRunId={rawRunId}
                           onSelectRun={onSelectRun}
-                          onToggleRaw={() => setRawRunId(rawRunId === run.id ? null : run.id)}
+                          onOpenRaw={() => setRawRunId(run.id)}
                         />
                       ))}
                     </TableRow>
@@ -726,9 +723,9 @@ export function WatchRunHistory({
                 type="button"
                 variant="secondary"
                 size="xs"
-                onClick={() => setRawRunId(rawRunId === selectedRun.id ? null : selectedRun.id)}
+                onClick={() => setRawRunId(selectedRun.id)}
               >
-                {rawRunId === selectedRun.id ? "Hide raw" : "Raw details"}
+                Raw details
               </Button>
             ) : null}
           </div>
@@ -741,20 +738,19 @@ export function WatchRunHistory({
           ) : null}
         </div>
       )}
-      {rawRun && (
-        <Panel>
-          <div className={statusRowClass}>
-            <div>
-              <strong>Raw workflow run JSON</strong>
-              <p className={mutedText}>Full stored run payload for diagnostics.</p>
-            </div>
-            <StatusPill status={statusTone(rawRun.status)}>
-              {rawRun.status}
-            </StatusPill>
+      {rawRunForModal ? (
+        <Modal
+          title="Raw workflow run JSON"
+          description="Full stored run payload for diagnostics."
+          width="wide"
+          onClose={() => setRawRunId(null)}
+        >
+          <div className="gap-detail-next grid">
+            <StatusPill status={statusTone(rawRunForModal.status)}>{rawRunForModal.status}</StatusPill>
+            <JsonPreview value={rawRunForModal} />
           </div>
-          <JsonPreview value={rawRun} />
-        </Panel>
-      )}
+        </Modal>
+      ) : null}
     </Panel>
   );
 }
