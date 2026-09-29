@@ -156,7 +156,7 @@ describe("WatchRunControls", () => {
     renderControls({ busy: true });
     expect(screen.getByRole("button", { name: "Run now" })).toBeDisabled();
     await openRunControlsPayload();
-    expect(screen.getByRole("button", { name: "Reset example" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Reset example" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Run test payload" })).toBeDisabled();
   });
 
@@ -172,10 +172,20 @@ describe("WatchRunControls", () => {
     expect(onPayloadTextChange).toHaveBeenCalledWith('{"foo":"bar"}');
   });
 
+  it("opens the payload editor when the preview is clicked", async () => {
+    renderControls({ payloadText: '{"foo":"bar"}' });
+    await openRunControlsPayload();
+
+    await userEvent.click(screen.getByRole("button", { name: '{"foo":"bar"}' }));
+
+    expect(screen.getByRole("dialog", { name: "Edit trigger payload" })).toBeInTheDocument();
+  });
+
   it("calls onResetPayload when Reset example is clicked", async () => {
     const onResetPayload = vi.fn();
     renderControls({ onResetPayload });
     await openRunControlsPayload();
+    await userEvent.click(screen.getByRole("button", { name: "Edit payload" }));
     await userEvent.click(screen.getByRole("button", { name: "Reset example" }));
     expect(onResetPayload).toHaveBeenCalled();
   });
@@ -212,7 +222,7 @@ describe("WatchRunControls", () => {
     expect(screen.getByText("Test GPIO trigger")).toBeInTheDocument();
     expect(screen.getByText("Payload preview")).toBeInTheDocument();
     expect(screen.getByText('{"active":true}')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Test with this payload" }));
+    await userEvent.click(screen.getByRole("button", { name: "Run with this payload" }));
 
     expect(onRunNow).not.toHaveBeenCalled();
     expect(onRunWithPayload).toHaveBeenCalledWith({ active: true });

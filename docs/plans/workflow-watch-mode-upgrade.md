@@ -74,6 +74,7 @@ Implemented:
 - The collapsed selected-run history view now presents run data as labeled mini-cards and includes a cogwheel for choosing and ordering compact summary fields.
 - Event-triggered workflows now show a single expanded trigger-payload test control in watch mode instead of a misleading `Run now` action; manual/schedule workflows keep `Run now` plus an optional custom payload test.
 - Trigger payload JSON editing moved into a modal; the run controls rail now shows a compact read-only payload preview with edit/reset/test actions.
+- The trigger payload rail preview is clickable, truncates only on full JSON lines with an ellipsis, and keeps reset inside the edit modal.
 
 Remaining:
 

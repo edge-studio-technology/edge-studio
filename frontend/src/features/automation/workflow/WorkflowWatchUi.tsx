@@ -86,10 +86,11 @@ function eventTriggerLabel(workflow: AutomationWorkflow) {
   return "trigger";
 }
 
-function clippedPayloadPreview(payloadText: string) {
+function clippedPayloadPreview(payloadText: string, maxLines = 8) {
   const trimmed = payloadText.trim();
   if (!trimmed) return "{}";
-  return trimmed.length > 360 ? `${trimmed.slice(0, 360)}\n...` : trimmed;
+  const lines = trimmed.split(/\r?\n/);
+  return lines.length > maxLines ? [...lines.slice(0, maxLines - 1), "..."].join("\n") : trimmed;
 }
 
 /** Watch-mode overview: workflow state, selected run, and live-follow control. */
@@ -211,7 +212,7 @@ export function WatchRunControls({
   const payloadDescription = eventTriggered
     ? "This simulates the trigger for a manual test run. It does not fire the real external event."
     : "Use this when trigger-dependent blocks need specific payload data for a manual test run.";
-  const payloadRunLabel = eventTriggered ? "Test with this payload" : "Run test payload";
+  const payloadRunLabel = eventTriggered ? "Run with this payload" : "Run test payload";
   const [payloadModalOpen, setPayloadModalOpen] = useState(false);
   const [draftPayloadText, setDraftPayloadText] = useState(payloadText);
   const [draftPayloadError, setDraftPayloadError] = useState<string | null>(null);
@@ -289,21 +290,16 @@ export function WatchRunControls({
               Edit payload
             </Button>
           </div>
-          <pre className="border-stroke-secondary bg-surface-secondary type-meta text-text-primary max-h-36 overflow-hidden whitespace-pre-wrap rounded-soft border p-detail-next font-mono">
+          <button
+            type="button"
+            className="border-stroke-secondary bg-surface-secondary type-meta text-text-primary hover:border-stroke-primary w-full cursor-pointer rounded-soft border p-detail-next text-left font-mono whitespace-pre-wrap transition-colors"
+            onClick={openPayloadModal}
+          >
             {clippedPayloadPreview(payloadText)}
-          </pre>
+          </button>
         </div>
         {payloadError && <p className={errorText}>{payloadError}</p>}
         <RowActions>
-          <Button
-            type="button"
-            variant="secondary"
-            size="xs"
-            disabled={busy}
-            onClick={onResetPayload}
-          >
-            Reset example
-          </Button>
           <Button
             type="button"
             size="xs"
