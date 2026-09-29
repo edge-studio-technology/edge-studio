@@ -68,6 +68,7 @@ Implemented:
 - The watch loading shell now renders the real watch canvas, runtime overview, run controls, and selected-run navigator with placeholder data under the overlay instead of custom approximation skeletons.
 - The watch loading placeholder now mirrors a historic selected run with a newer latest run so the latest-run notice, runtime overview height, selected-run controls, and canvas block stack position stay closer to the loaded state.
 - The watch loading placeholder no longer offsets the canvas block stack, and runtime stat rows use a stable right-side value column.
+- Workspace refresh loading now keeps the real loaded workflow, blocks, rail panels, selected run, and history mounted with only the loading overlay; the placeholder shell is reserved for true no-data initial loads.
 
 Remaining:
 

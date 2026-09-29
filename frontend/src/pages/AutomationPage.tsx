@@ -390,6 +390,7 @@ export function AutomationPage() {
   const [workspaceValidation, setWorkspaceValidation] = useState<AutomationValidationResult | null>(
     null,
   );
+  const [workspaceRefreshing, setWorkspaceRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingWorkflow, setDeletingWorkflow] = useState<AutomationWorkflow | null>(null);
@@ -454,6 +455,7 @@ export function AutomationPage() {
     setLoadError(null);
     const workflowId = "workflowId" in flow ? flow.workflowId : null;
     if (workflowId) {
+      setWorkspaceRefreshing(true);
       await refreshWorkspace(workflowId);
     }
   }
@@ -473,14 +475,19 @@ export function AutomationPage() {
   }
 
   async function refreshWorkspace(workflowId: string) {
-    const [runs, validation] = await Promise.all([
-      listAutomationWorkflowRuns(workflowId, 10),
-      getAutomationWorkflowValidation(workflowId),
-    ]);
-    setWorkspaceRuns(runs.items);
-    setWorkspaceValidation(validation.item);
-    setLoadError(null);
-    return runs.items;
+    setWorkspaceRefreshing(true);
+    try {
+      const [runs, validation] = await Promise.all([
+        listAutomationWorkflowRuns(workflowId, 10),
+        getAutomationWorkflowValidation(workflowId),
+      ]);
+      setWorkspaceRuns(runs.items);
+      setWorkspaceValidation(validation.item);
+      setLoadError(null);
+      return runs.items;
+    } finally {
+      setWorkspaceRefreshing(false);
+    }
   }
 
   async function runWorkflowAndSelectLatest(workflowId: string, payload?: unknown) {
@@ -703,7 +710,9 @@ export function AutomationPage() {
               )
             }
             onCreateAddressBookEntry={createWorkflowRecipient}
-            loadingOverlayLabel={busy ? "Updating workflow..." : null}
+            loadingOverlayLabel={
+              busy ? "Updating workflow..." : workspaceRefreshing ? "Fetching workflow..." : null
+            }
           />
         ) : loadError ? (
           <ErrorContentState
