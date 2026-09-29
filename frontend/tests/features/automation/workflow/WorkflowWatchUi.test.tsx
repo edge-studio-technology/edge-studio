@@ -133,7 +133,7 @@ describe("WatchRunControls", () => {
   });
 
   async function openRunControlsPayload() {
-    await userEvent.click(screen.getByText("Test payload"));
+    await userEvent.click(screen.getByText("Test with custom payload"));
   }
 
   it("disables Run now and shows a message for an archived workflow", () => {
@@ -149,7 +149,7 @@ describe("WatchRunControls", () => {
     expect(screen.getByText("Fix validation errors before running.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Run now" })).toBeDisabled();
     await openRunControlsPayload();
-    expect(screen.getByRole("button", { name: "Run with payload" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Run test payload" })).toBeDisabled();
   });
 
   it("disables actions while busy", async () => {
@@ -157,7 +157,7 @@ describe("WatchRunControls", () => {
     expect(screen.getByRole("button", { name: "Run now" })).toBeDisabled();
     await openRunControlsPayload();
     expect(screen.getByRole("button", { name: "Reset example" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Run with payload" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Run test payload" })).toBeDisabled();
   });
 
   it("calls onPayloadTextChange when the textarea changes", async () => {
@@ -180,7 +180,7 @@ describe("WatchRunControls", () => {
     const onRunWithPayload = vi.fn();
     renderControls({ payloadText: '{"foo":"bar"}', onRunWithPayload });
     await openRunControlsPayload();
-    await userEvent.click(screen.getByRole("button", { name: "Run with payload" }));
+    await userEvent.click(screen.getByRole("button", { name: "Run test payload" }));
     expect(onRunWithPayload).toHaveBeenCalledWith({ foo: "bar" });
   });
 
@@ -189,9 +189,28 @@ describe("WatchRunControls", () => {
     const onRunWithPayload = vi.fn();
     renderControls({ payloadText: "not json", onPayloadError, onRunWithPayload });
     await openRunControlsPayload();
-    await userEvent.click(screen.getByRole("button", { name: "Run with payload" }));
+    await userEvent.click(screen.getByRole("button", { name: "Run test payload" }));
     expect(onRunWithPayload).not.toHaveBeenCalled();
     expect(onPayloadError).toHaveBeenCalledWith(expect.stringContaining("JSON"));
+  });
+
+  it("uses a single expanded trigger payload test for event workflows", async () => {
+    const onRunNow = vi.fn();
+    const onRunWithPayload = vi.fn();
+    renderControls({
+      workflow: workflow({ blocks: [block({ type: "gpio_event_start" })] }),
+      payloadText: '{"active":true}',
+      onRunNow,
+      onRunWithPayload,
+    });
+
+    expect(screen.queryByRole("button", { name: "Run now" })).not.toBeInTheDocument();
+    expect(screen.getByText("Test GPIO trigger")).toBeInTheDocument();
+    expect(screen.getByLabelText("Trigger payload")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Test with this payload" }));
+
+    expect(onRunNow).not.toHaveBeenCalled();
+    expect(onRunWithPayload).toHaveBeenCalledWith({ active: true });
   });
 
   it("shows a payload error message when set", () => {

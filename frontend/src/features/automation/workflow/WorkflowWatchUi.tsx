@@ -64,6 +64,27 @@ function runProgressLabel(run: AutomationRun | undefined) {
   return `${completedBlocks}/${run.blockCount} blocks completed`;
 }
 
+function isEventTriggeredWorkflow(workflow: AutomationWorkflow) {
+  const startBlock = workflow.blocks
+    .filter((block) => !block.parentBlockId)
+    .sort((a, b) => a.order - b.order)[0];
+  return (
+    startBlock?.type === "gpio_event_start" ||
+    startBlock?.type === "webhook_event_start" ||
+    startBlock?.type === "mqtt_event_start"
+  );
+}
+
+function eventTriggerLabel(workflow: AutomationWorkflow) {
+  const startBlock = workflow.blocks
+    .filter((block) => !block.parentBlockId)
+    .sort((a, b) => a.order - b.order)[0];
+  if (startBlock?.type === "gpio_event_start") return "GPIO trigger";
+  if (startBlock?.type === "webhook_event_start") return "webhook trigger";
+  if (startBlock?.type === "mqtt_event_start") return "MQTT trigger";
+  return "trigger";
+}
+
 /** Watch-mode overview: workflow state, selected run, and live-follow control. */
 export function WatchRuntimeOverview({
   workflow,
@@ -177,11 +198,23 @@ export function WatchRunControls({
   onRunNow: () => void;
   onRunWithPayload: (payload: unknown) => void;
 }) {
+  const eventTriggered = isEventTriggeredWorkflow(workflow);
+  const triggerLabel = eventTriggerLabel(workflow);
+  const payloadDisclosureTitle = eventTriggered ? `Test ${triggerLabel}` : "Test with custom payload";
+  const payloadDescription = eventTriggered
+    ? "This simulates the trigger for a manual test run. It does not fire the real external event."
+    : "Use this when trigger-dependent blocks need specific payload data for a manual test run.";
+  const payloadRunLabel = eventTriggered ? "Test with this payload" : "Run test payload";
+
   return (
     <WorkflowRailPanel className={formGridClass}>
       <WorkflowRailHeader
         title="Run controls"
-        description="Run this workflow or test it with a manual trigger payload."
+        description={
+          eventTriggered
+            ? "Test this event-triggered workflow with simulated trigger payload data."
+            : "Run this workflow or test it with a custom trigger payload."
+        }
       />
       {workflow.archived && (
         <p className={mutedText}>
@@ -189,20 +222,25 @@ export function WatchRunControls({
         </p>
       )}
       {hasValidationErrors && <p className={errorText}>Fix validation errors before running.</p>}
-      <Button
-        type="button"
-        size="sm"
-        disabled={busy || hasValidationErrors || workflow.archived}
-        onClick={onRunNow}
-      >
-        Run now
-      </Button>
+      {!eventTriggered ? (
+        <>
+          <Button
+            type="button"
+            size="sm"
+            disabled={busy || hasValidationErrors || workflow.archived}
+            onClick={onRunNow}
+          >
+            Run now
+          </Button>
+          <p className={`${mutedText} m-0`}>Runs this workflow immediately.</p>
+        </>
+      ) : null}
       <Disclosure
-        title="Test payload"
-        defaultOpen={false}
+        title={payloadDisclosureTitle}
+        defaultOpen={eventTriggered}
         contentClassName="gap-detail-next"
       >
-        <p className={`${mutedText} m-0`}>This payload is used only for a manual test run.</p>
+        <p className={`${mutedText} m-0`}>{payloadDescription}</p>
         <label>
           Trigger payload
           <textarea
@@ -234,7 +272,7 @@ export function WatchRunControls({
               }
             }}
           >
-            Run with payload
+            {payloadRunLabel}
           </Button>
         </RowActions>
       </Disclosure>
