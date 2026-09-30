@@ -575,6 +575,33 @@ function DomainBlockResultSummary({
   const outputContext = contextRecord(blockRun.output);
   const blockOutput = nestedOutput(blockRun.output);
 
+  if (block.type.endsWith("_start") && outputContext) {
+    const trigger = contextRecord(outputContext.trigger);
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Action", value: "Started workflow" },
+          { label: "Trigger", value: typeof trigger?.type === "string" ? trigger.type : blockRun.blockType },
+          { label: "Payload", value: isPresentRunValue(trigger?.payload) ? shortRunValue(trigger?.payload) : "No payload" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "record_trigger_event" && outputContext) {
+    const data = contextRecord(outputContext.data);
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Action", value: "Recorded trigger event" },
+          { label: "Source", value: typeof data?.sourceName === "string" ? data.sourceName : "Trigger source" },
+          { label: "Read", value: typeof data?.readId === "string" ? data.readId : "No read id" },
+          { label: "Hash", value: typeof outputContext.hash === "string" ? outputContext.hash : "No hash" },
+        ]}
+      />
+    );
+  }
+
   if ((block.type === "fetch_data_source" || block.type === "capture_camera") && outputContext) {
     const data = contextRecord(outputContext.data);
     return (
@@ -597,6 +624,18 @@ function DomainBlockResultSummary({
           { label: "Title", value: typeof blockOutput.title === "string" ? blockOutput.title : "Workflow preview" },
           { label: "Format", value: typeof blockOutput.format === "string" ? blockOutput.format : "Unknown" },
           { label: "Inbox item", value: typeof blockOutput.inboxItemId === "string" ? blockOutput.inboxItemId : "No inbox id" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "set_variable" && blockOutput) {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Action", value: "Set variable" },
+          { label: "Name", value: typeof blockOutput.name === "string" ? blockOutput.name : "Unnamed" },
+          { label: "Value", value: shortRunValue(blockOutput.value) },
         ]}
       />
     );
@@ -642,16 +681,49 @@ function DomainBlockResultSummary({
     );
   }
 
+  if (block.type === "control_output" && blockOutput) {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Action", value: typeof blockOutput.action === "string" ? blockOutput.action : "Sent output" },
+          { label: "Result", value: shortRunValue(blockOutput) },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "send_transaction" && blockOutput) {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Action", value: "Sent transaction" },
+          { label: "Recipient", value: typeof blockOutput.recipientLabel === "string" ? blockOutput.recipientLabel : "Recipient" },
+          { label: "Amount", value: typeof blockOutput.amount === "string" ? `${blockOutput.amount} MINIMA` : "Unknown amount" },
+          { label: "TxPoW", value: typeof blockOutput.txpowId === "string" ? blockOutput.txpowId : "No TxPoW" },
+        ]}
+      />
+    );
+  }
+
   return null;
 }
 
 function hasDomainBlockResult(block: AutomationBlock, blockRun: AutomationRun["blocks"][number]) {
+  if (block.type.endsWith("_start") && contextRecord(blockRun.output)) return true;
   if (block.type === "wait") return true;
-  if ((block.type === "fetch_data_source" || block.type === "capture_camera") && contextRecord(blockRun.output)) return true;
+  if (
+    (block.type === "fetch_data_source" ||
+      block.type === "capture_camera" ||
+      block.type === "record_trigger_event") &&
+    contextRecord(blockRun.output)
+  ) return true;
   if (
     (block.type === "show_preview" ||
       block.type === "stamp_integritas" ||
-      block.type === "if_payload_field_equals") &&
+      block.type === "if_payload_field_equals" ||
+      block.type === "set_variable" ||
+      block.type === "control_output" ||
+      block.type === "send_transaction") &&
     nestedOutput(blockRun.output)
   ) return true;
   return false;

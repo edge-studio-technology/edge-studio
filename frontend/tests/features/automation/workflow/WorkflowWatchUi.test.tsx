@@ -376,7 +376,7 @@ describe("WatchRuntimeInspector", () => {
   it("shows friendly input and result summaries before raw JSON actions", () => {
     render(
       <WatchRuntimeInspector
-        selectedBlock={block()}
+        selectedBlock={block({ type: "control_output" })}
         latestBlockRun={blockRun({ input: { source: "trigger", active: true }, output: { foo: "bar" } })}
         selectedRun={undefined}
       />,
@@ -437,10 +437,91 @@ describe("WatchRuntimeInspector", () => {
     expect(screen.getByText("inbox-1")).toBeInTheDocument();
   });
 
+  it("summarizes start block results with trigger details", () => {
+    render(
+      <WatchRuntimeInspector
+        selectedBlock={block({ type: "mqtt_event_start" })}
+        latestBlockRun={blockRun({
+          output: {
+            trigger: { type: "mqtt", payload: { temperature: 21.5 } },
+          },
+        })}
+        selectedRun={undefined}
+      />,
+    );
+
+    expect(screen.getByText("Started workflow")).toBeInTheDocument();
+    expect(screen.getByText("mqtt")).toBeInTheDocument();
+    expect(screen.getByText("1 field")).toBeInTheDocument();
+  });
+
+  it("summarizes record trigger event results", () => {
+    render(
+      <MemoryRouter>
+        <WatchRuntimeInspector
+          selectedBlock={block({ type: "record_trigger_event" })}
+          latestBlockRun={blockRun({
+            output: {
+              data: { sourceName: "MQTT Subscriber", readId: "read-1" },
+              hash: "hash-1",
+            },
+          })}
+          selectedRun={undefined}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Recorded trigger event")).toBeInTheDocument();
+    expect(screen.getByText("MQTT Subscriber")).toBeInTheDocument();
+    expect(screen.getByText("read-1")).toBeInTheDocument();
+  });
+
+  it("summarizes set variable results", () => {
+    render(
+      <WatchRuntimeInspector
+        selectedBlock={block({ type: "set_variable" })}
+        latestBlockRun={blockRun({
+          output: {
+            output: { action: "set_variable", name: "message", value: "Button pressed" },
+          },
+        })}
+        selectedRun={undefined}
+      />,
+    );
+
+    expect(screen.getAllByText("Set variable").length).toBeGreaterThan(0);
+    expect(screen.getByText("message")).toBeInTheDocument();
+    expect(screen.getByText("Button pressed")).toBeInTheDocument();
+  });
+
+  it("summarizes send transaction results", () => {
+    render(
+      <WatchRuntimeInspector
+        selectedBlock={block({ type: "send_transaction" })}
+        latestBlockRun={blockRun({
+          output: {
+            output: {
+              action: "sent_transaction",
+              recipientLabel: "Alice",
+              amount: "1.25",
+              txpowId: "0xabc",
+            },
+          },
+        })}
+        selectedRun={undefined}
+      />,
+    );
+
+    expect(screen.getByText("Sent transaction")).toBeInTheDocument();
+    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(screen.getByText("1.25 MINIMA")).toBeInTheDocument();
+    expect(screen.getByText("0xabc")).toBeInTheDocument();
+  });
+
   it("hides null workflow-context fields in input and result summaries", () => {
     render(
       <WatchRuntimeInspector
-        selectedBlock={block()}
+        selectedBlock={block({ type: "control_output" })}
         latestBlockRun={blockRun({
           input: {
             trigger: { type: "manual", payload: { active: true, source: "run-now" } },
