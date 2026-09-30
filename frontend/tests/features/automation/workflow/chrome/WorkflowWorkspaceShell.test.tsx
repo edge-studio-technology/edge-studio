@@ -73,7 +73,7 @@ describe("WorkflowWorkspaceShell", () => {
     });
     expect(screen.getByText("Selected sheet")).toBeInTheDocument();
     expect(screen.getByText("Selected backdrop").parentElement).toHaveClass("z-[60]");
-    expect(screen.getByText("Left overlay").parentElement).toHaveClass("z-[65]");
+    expect(screen.getByText("Left overlay").parentElement).toHaveClass("z-[65]", "left-1/2", "-translate-x-1/2");
     expect(screen.getByText("Bottom overlay").parentElement).toHaveClass("z-[65]");
   });
 

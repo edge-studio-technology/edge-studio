@@ -550,9 +550,9 @@ describe("WorkflowWorkspace watch mode", () => {
     });
 
     expect(screen.getByText("selected-block-none")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
     expect(screen.getByText("selected-block-b-start")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
     expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument();
   });
 
@@ -570,9 +570,9 @@ describe("WorkflowWorkspace watch mode", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Play" }));
-    vi.advanceTimersByTime(1200);
+    vi.advanceTimersByTime(1500);
     await waitFor(() => expect(screen.getByText("selected-block-b-start")).toBeInTheDocument());
-    vi.advanceTimersByTime(1200);
+    vi.advanceTimersByTime(1500);
     await waitFor(() => expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument());
   });
 

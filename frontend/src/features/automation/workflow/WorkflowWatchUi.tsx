@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../../components/Button";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Pause, Play } from "lucide-react";
 import {
   DataTable,
   RowActions,
@@ -162,10 +162,8 @@ export function WatchReplayControls({
   stepCount,
   currentStepIndex,
   playing,
-  stepDurationMs,
   onFollowLiveRunsChange,
   onPlayingChange,
-  onStepDurationChange,
   onSelectStep,
 }: {
   selectedRun: AutomationRun | undefined;
@@ -174,10 +172,8 @@ export function WatchReplayControls({
   stepCount: number;
   currentStepIndex: number;
   playing: boolean;
-  stepDurationMs: number;
   onFollowLiveRunsChange: (value: boolean) => void;
   onPlayingChange: (playing: boolean) => void;
-  onStepDurationChange: (value: number) => void;
   onSelectStep: (index: number) => void;
 }) {
   const hasSteps = Boolean(selectedRun && stepCount > 0);
@@ -186,76 +182,64 @@ export function WatchReplayControls({
   const latestRunAvailable = Boolean(latestRun && selectedRun && latestRun.id !== selectedRun.id);
   const title = followLiveRuns ? "Play live" : "Replay run";
   return (
-    <WorkflowRailPanel className={formGridClass}>
-      <WorkflowRailHeader
-        title={title}
-        description={followLiveRuns ? "Follow the latest run and play through its blocks." : "Step through the selected run at a fixed readable pace."}
-      />
+    <WorkflowRailPanel className="gap-detail-next grid p-detail-next">
+      <div className="gap-detail-next flex items-start justify-between">
+        <div className="min-w-0">
+          <strong className="type-callout text-text-primary block truncate">{title}</strong>
+          <p className={`${mutedText} m-0`}>1.5s per block</p>
+        </div>
+        <StatusPill status="neutral">
+          {hasSteps ? (selectedStep ? `${selectedStep}/${stepCount}` : `${stepCount}`) : viewingLatestRun ? "Waiting" : "No steps"}
+        </StatusPill>
+      </div>
       <SwitchField
         label="Follow latest run"
-        description="New runs take focus automatically and play through their blocks."
         checked={followLiveRuns}
         onChange={(event) => onFollowLiveRunsChange(event.currentTarget.checked)}
       />
       {latestRunAvailable && !followLiveRuns ? (
         <p className={`${mutedText} m-0`}>Latest run available. Turn on follow latest run to jump back.</p>
       ) : null}
-      <div className={statusRowClass}>
-        <span className={mutedText}>Step</span>
-        <StatusPill status="neutral">
-          {hasSteps ? (selectedStep ? `${selectedStep}/${stepCount}` : `${stepCount} steps`) : viewingLatestRun ? "Waiting" : "No steps"}
-        </StatusPill>
-      </div>
-      <label className="gap-detail-tight grid">
-        <span className={mutedText}>Step duration</span>
-        <select
-          className="border-stroke-secondary bg-surface-always-white rounded-loose h-9 border px-detail-next type-body text-text-primary"
-          value={stepDurationMs}
-          onChange={(event) => onStepDurationChange(Number(event.currentTarget.value))}
-        >
-          <option value={800}>0.8s</option>
-          <option value={1200}>1.2s</option>
-          <option value={2000}>2s</option>
-          <option value={3000}>3s</option>
-          <option value={5000}>5s</option>
-        </select>
-      </label>
       <div className="gap-detail-next grid grid-cols-4">
         <Button
           type="button"
           variant="secondary"
           size="sm"
+          aria-label="Previous step"
           disabled={!hasSteps || currentStepIndex <= 0}
           onClick={() => onSelectStep(Math.max(0, currentStepIndex - 1))}
         >
-          Previous
+          <ChevronLeft aria-hidden className="size-4" />
         </Button>
         <Button
           type="button"
           variant="primary"
           size="sm"
+          aria-label="Play"
           disabled={!hasSteps || playing}
           onClick={() => onPlayingChange(true)}
         >
-          Play
+          <Play aria-hidden className="size-4" />
         </Button>
         <Button
           type="button"
           variant="secondary"
           size="sm"
+          aria-label="Pause"
           disabled={!playing}
           onClick={() => onPlayingChange(false)}
         >
-          Pause
+          <Pause aria-hidden className="size-4" />
         </Button>
         <Button
           type="button"
           variant="secondary"
           size="sm"
+          aria-label="Next step"
           disabled={!hasSteps || currentStepIndex >= stepCount - 1}
           onClick={() => onSelectStep(currentStepIndex < 0 ? 0 : Math.min(stepCount - 1, currentStepIndex + 1))}
         >
-          Next
+          <ChevronRight aria-hidden className="size-4" />
         </Button>
       </div>
     </WorkflowRailPanel>

@@ -255,10 +255,8 @@ describe("WatchReplayControls", () => {
         stepCount={0}
         currentStepIndex={-1}
         playing={false}
-        stepDurationMs={1200}
         onFollowLiveRunsChange={vi.fn()}
         onPlayingChange={vi.fn()}
-        onStepDurationChange={vi.fn()}
         onSelectStep={vi.fn()}
       />,
     );
@@ -277,18 +275,16 @@ describe("WatchReplayControls", () => {
         stepCount={3}
         currentStepIndex={1}
         playing={false}
-        stepDurationMs={1200}
         onFollowLiveRunsChange={vi.fn()}
         onPlayingChange={vi.fn()}
-        onStepDurationChange={vi.fn()}
         onSelectStep={onSelectStep}
       />,
     );
 
     expect(screen.getByText("2/3")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Previous" }));
+    await userEvent.click(screen.getByRole("button", { name: "Previous step" }));
     expect(onSelectStep).toHaveBeenCalledWith(0);
-    await userEvent.click(screen.getByRole("button", { name: "Next" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step" }));
     expect(onSelectStep).toHaveBeenCalledWith(2);
   });
 
@@ -302,10 +298,8 @@ describe("WatchReplayControls", () => {
         stepCount={2}
         currentStepIndex={0}
         playing={false}
-        stepDurationMs={1200}
         onFollowLiveRunsChange={vi.fn()}
         onPlayingChange={onPlayingChange}
-        onStepDurationChange={vi.fn()}
         onSelectStep={vi.fn()}
       />,
     );
@@ -316,9 +310,8 @@ describe("WatchReplayControls", () => {
     expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
   });
 
-  it("changes follow-live and step duration settings", async () => {
+  it("changes follow-live setting", async () => {
     const onFollowLiveRunsChange = vi.fn();
-    const onStepDurationChange = vi.fn();
     render(
       <WatchReplayControls
         selectedRun={run({ id: "old-run" })}
@@ -327,10 +320,8 @@ describe("WatchReplayControls", () => {
         stepCount={2}
         currentStepIndex={0}
         playing={false}
-        stepDurationMs={1200}
         onFollowLiveRunsChange={onFollowLiveRunsChange}
         onPlayingChange={vi.fn()}
-        onStepDurationChange={onStepDurationChange}
         onSelectStep={vi.fn()}
       />,
     );
@@ -339,8 +330,7 @@ describe("WatchReplayControls", () => {
     expect(screen.getByText("Latest run available. Turn on follow latest run to jump back.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("switch", { name: "Follow latest run" }));
     expect(onFollowLiveRunsChange).toHaveBeenCalledWith(true);
-    await userEvent.selectOptions(screen.getByLabelText("Step duration"), "2000");
-    expect(onStepDurationChange).toHaveBeenCalledWith(2000);
+    expect(screen.getByText("1.5s per block")).toBeInTheDocument();
   });
 });
 

@@ -131,7 +131,6 @@ export function WorkflowWorkspace({
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [followLiveRuns, setFollowLiveRuns] = useState(true);
   const [replayPlaying, setReplayPlaying] = useState(false);
-  const [replayStepDurationMs, setReplayStepDurationMs] = useState(1200);
   const previousSelectedRunIdRef = useRef<string | null>(null);
   const [pendingEditAction, setPendingEditAction] = useState<(() => unknown | Promise<unknown>) | null>(null);
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
@@ -253,9 +252,9 @@ export function WorkflowWorkspace({
       }
       const nextBlockId = replaySteps[nextIndex].blockId;
       if (nextBlockId) setSelectedBlockId(nextBlockId);
-    }, replayStepDurationMs);
+    }, 1500);
     return () => window.clearTimeout(timeout);
-  }, [mode, replayPlaying, replayStepDurationMs, replaySteps, selectedBlockId]);
+  }, [mode, replayPlaying, replaySteps, selectedBlockId]);
 
   function selectReplayStep(index: number) {
     const blockId = replaySteps[index]?.blockId;
@@ -565,7 +564,6 @@ export function WorkflowWorkspace({
             stepCount={replaySteps.length}
             currentStepIndex={replayStepIndex}
             playing={replayPlaying}
-            stepDurationMs={replayStepDurationMs}
             onFollowLiveRunsChange={(value) => {
               setFollowLiveRuns(value);
               if (value && latestRun) {
@@ -577,7 +575,6 @@ export function WorkflowWorkspace({
               }
             }}
             onPlayingChange={setReplayPlaying}
-            onStepDurationChange={setReplayStepDurationMs}
             onSelectStep={selectReplayStep}
           />
         ) : undefined
