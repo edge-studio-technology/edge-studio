@@ -847,7 +847,7 @@ describe("WatchRunHistory", () => {
 
     const selectedRunSummary = screen.getByTestId("collapsed-run-history");
     expect(selectedRunSummary).toHaveClass("workflow-replay-selected-run");
-    expect(selectedRunSummary.querySelector(".workflow-replay-border-dot")).not.toBeNull();
+    expect(selectedRunSummary.querySelector(".workflow-replay-loop-dot")).not.toBeNull();
   });
 
   it("opens compact summary field settings from collapsed mode", async () => {

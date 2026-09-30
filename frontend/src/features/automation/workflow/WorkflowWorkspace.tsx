@@ -270,6 +270,20 @@ export function WorkflowWorkspace({
     setSelectedBlockId(blockId);
   }
 
+  function setReplayPlayingFromControls(playing: boolean) {
+    if (!playing) {
+      setReplayPlaying(false);
+      return;
+    }
+
+    const currentIndex = replaySteps.findIndex((block) => block.blockId === selectedBlockId);
+    if (currentIndex < 0 || currentIndex >= replaySteps.length - 1) {
+      const firstBlockId = replaySteps[0]?.blockId;
+      if (firstBlockId) setSelectedBlockId(firstBlockId);
+    }
+    setReplayPlaying(true);
+  }
+
   async function addBlockFromLibrary(type: AutomationBlockType) {
     flushSelectedInspector();
     // Send payment must be configured before the API will accept it — open a local draft sheet.
@@ -601,7 +615,7 @@ export function WorkflowWorkspace({
                 setReplayPlaying(false);
               }
             }}
-            onPlayingChange={setReplayPlaying}
+            onPlayingChange={setReplayPlayingFromControls}
             onSelectStep={selectReplayStep}
           />
         ) : undefined

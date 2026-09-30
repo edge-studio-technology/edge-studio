@@ -590,10 +590,28 @@ describe("WorkflowWorkspace watch mode", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Play" }));
-    vi.advanceTimersByTime(1500);
-    await waitFor(() => expect(screen.getByText("selected-block-b-start")).toBeInTheDocument());
+    expect(screen.getByText("selected-block-b-start")).toBeInTheDocument();
     vi.advanceTimersByTime(1500);
     await waitFor(() => expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument());
+  });
+
+  it("restarts replay from the first block when Play is pressed on the last block", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ blocks: [block(), block({ id: "b-wait", type: "wait", order: 1 })] }),
+      runs: [run({
+        blocks: [
+          { id: "br-start", runId: "r1", workflowId: "w1", blockId: "b-start", order: 0, blockType: "manual_start", blockLabel: "Start", startedAt: "2026-08-01T00:00:00.000Z", finishedAt: "2026-08-01T00:00:00.100Z", status: "success", durationMs: 100, input: {}, output: {}, error: null },
+          { id: "br-wait", runId: "r1", workflowId: "w1", blockId: "b-wait", order: 1, blockType: "wait", blockLabel: "Wait", startedAt: "2026-08-01T00:00:00.100Z", finishedAt: "2026-08-01T00:00:00.600Z", status: "success", durationMs: 500, input: {}, output: {}, error: null },
+        ],
+      })],
+    });
+
+    await user.click(screen.getByRole("button", { name: "select-wait-b-wait" }));
+    expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    expect(screen.getByText("selected-block-b-start")).toBeInTheDocument();
   });
 
   it("pauses playback when the user selects another block", async () => {

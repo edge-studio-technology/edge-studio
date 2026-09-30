@@ -212,7 +212,45 @@
   }
 }
 
-@keyframes workflow-replay-border-dot {
+@keyframes workflow-replay-block-dot-clockwise {
+  0% {
+    top: 0;
+    left: 50%;
+  }
+  25% {
+    top: 0;
+    left: 100%;
+  }
+  75% {
+    top: 100%;
+    left: 100%;
+  }
+  100% {
+    top: 100%;
+    left: 50%;
+  }
+}
+
+@keyframes workflow-replay-block-dot-counterclockwise {
+  0% {
+    top: 0;
+    left: 50%;
+  }
+  25% {
+    top: 0;
+    left: 0;
+  }
+  75% {
+    top: 100%;
+    left: 0;
+  }
+  100% {
+    top: 100%;
+    left: 50%;
+  }
+}
+
+@keyframes workflow-replay-loop-dot {
   0% {
     top: 0;
     left: 50%;
@@ -239,24 +277,32 @@
   }
 }
 
-.workflow-replay-border-dot {
+.workflow-replay-border-dot,
+.workflow-replay-loop-dot {
   position: absolute;
   z-index: 2;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
-  background: var(--color-surface-accent);
+  background: radial-gradient(circle, var(--color-surface-always-white) 0 18%, color-mix(in srgb, var(--color-surface-accent) 45%, transparent) 42%, transparent 72%);
   box-shadow:
-    0 0 0 2px var(--color-surface-always-white),
-    0 0 14px color-mix(in srgb, var(--color-surface-accent) 80%, transparent),
-    0 0 28px color-mix(in srgb, var(--color-surface-accent) 50%, transparent);
+    0 0 0 3px color-mix(in srgb, var(--color-surface-accent) 32%, transparent),
+    0 0 16px color-mix(in srgb, var(--color-surface-accent) 80%, transparent),
+    0 0 30px color-mix(in srgb, var(--color-surface-accent) 55%, transparent);
   pointer-events: none;
   transform: translate(-50%, -50%);
-  animation: workflow-replay-border-dot 1.5s linear infinite;
+}
+
+.workflow-replay-border-dot {
+  animation: workflow-replay-block-dot-clockwise 1.5s linear infinite;
 }
 
 .workflow-replay-border-dot-reverse {
-  animation-direction: reverse;
+  animation-name: workflow-replay-block-dot-counterclockwise;
+}
+
+.workflow-replay-loop-dot {
+  animation: workflow-replay-loop-dot 1.5s linear infinite;
 }
 
 .workflow-replay-active-block::before {
@@ -281,7 +327,8 @@
 @media (prefers-reduced-motion: reduce) {
   .onboarding-enter,
   .onboarding-enter-stagger > *,
-  .workflow-replay-border-dot {
+  .workflow-replay-border-dot,
+  .workflow-replay-loop-dot {
     animation: none !important;
   }
 }
