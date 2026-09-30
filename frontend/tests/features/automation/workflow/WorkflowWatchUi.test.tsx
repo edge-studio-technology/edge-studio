@@ -328,9 +328,9 @@ describe("WatchReplayControls", () => {
 
     expect(screen.getByText("Replay run")).toBeInTheDocument();
     expect(screen.getByText("Latest run available. Turn on follow latest run to jump back.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("switch", { name: "Follow latest run" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Follow latest run" }));
     expect(onFollowLiveRunsChange).toHaveBeenCalledWith(true);
-    expect(screen.getByText("1.5s per block")).toBeInTheDocument();
+    expect(screen.getByText("1.5s/block")).toBeInTheDocument();
   });
 });
 

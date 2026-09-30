@@ -606,10 +606,10 @@ describe("WorkflowWorkspace watch mode", () => {
     });
 
     await user.click(screen.getByRole("button", { name: /Older run/ }));
-    expect(screen.getByRole("switch", { name: "Follow latest run" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Follow latest run" })).not.toBeChecked();
     expect(screen.getAllByText("Viewing historic run").length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole("switch", { name: "Follow latest run" }));
+    await user.click(screen.getByRole("checkbox", { name: "Follow latest run" }));
     expect(onSelectWatchRun).toHaveBeenLastCalledWith("latest");
     expect(screen.getByText("Viewing latest run")).toBeInTheDocument();
   });

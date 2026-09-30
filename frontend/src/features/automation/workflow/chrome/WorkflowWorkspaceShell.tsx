@@ -24,6 +24,7 @@ export function WorkflowWorkspaceShell({
   canvas,
   rail,
   railToggleLabel = "Toolkit",
+  toolbar,
   selectedSheet,
   selectedBackdrop,
   leftOverlay,
@@ -38,6 +39,7 @@ export function WorkflowWorkspaceShell({
   canvas: ReactNode;
   rail: ReactNode;
   railToggleLabel?: string;
+  toolbar?: ReactNode;
   selectedSheet?: ReactNode;
   selectedBackdrop?: ReactNode;
   leftOverlay?: ReactNode;
@@ -98,6 +100,11 @@ export function WorkflowWorkspaceShell({
           {notices}
         </div>
       )}
+      {toolbar ? (
+        <div className="border-stroke-secondary bg-surface-primary px-pad-relaxed py-detail-tight border-b">
+          {toolbar}
+        </div>
+      ) : null}
       <div className={workspaceClass}>
         <div className={canvasFrameClass}>{canvas}</div>
         {railOpen ? (

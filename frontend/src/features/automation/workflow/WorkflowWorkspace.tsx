@@ -236,7 +236,7 @@ export function WorkflowWorkspace({
     if (mode !== "watch") return;
     const previousRunId = previousSelectedRunIdRef.current;
     previousSelectedRunIdRef.current = selectedRun?.id ?? null;
-    if (!selectedRun || !followLiveRuns || selectedRun.id === previousRunId) return;
+    if (!selectedRun || !previousRunId || !followLiveRuns || selectedRun.id === previousRunId) return;
     setSelectedBlockId("");
     setReplayPlaying(true);
   }, [followLiveRuns, mode, selectedRun?.id]);
@@ -555,7 +555,7 @@ export function WorkflowWorkspace({
           }}
         />
       }
-      leftOverlay={
+      toolbar={
         mode === "watch" ? (
           <WatchReplayControls
             selectedRun={selectedRun}

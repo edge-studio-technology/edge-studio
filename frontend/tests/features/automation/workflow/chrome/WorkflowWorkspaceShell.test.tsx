@@ -37,6 +37,11 @@ describe("WorkflowWorkspaceShell", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
   });
 
+  it("renders a toolbar row above the canvas when given", () => {
+    renderShell({ toolbar: <div>Playback toolbar</div> });
+    expect(screen.getByText("Playback toolbar").parentElement).toHaveClass("border-b");
+  });
+
   it("renders a status strip and notices row only when either is given", () => {
     const { rerender } = render(
       <MemoryRouter>

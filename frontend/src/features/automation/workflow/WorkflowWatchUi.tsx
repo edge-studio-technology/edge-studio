@@ -24,7 +24,6 @@ import {
   type TableColumnDefinition,
 } from "../../../components/patterns/TableColumnVisibility";
 import { ScrollArea } from "../../../components/ui/ScrollArea";
-import { SwitchField } from "../../../components/ui/SwitchField";
 import { formatLocalTime } from "../../../lib/time";
 import { useTableColumnVisibility } from "../../preferences/useTableColumnVisibility";
 import type { AutomationBlock, AutomationRun, AutomationWorkflow } from "../automationTypes";
@@ -182,25 +181,18 @@ export function WatchReplayControls({
   const latestRunAvailable = Boolean(latestRun && selectedRun && latestRun.id !== selectedRun.id);
   const title = followLiveRuns ? "Play live" : "Replay run";
   return (
-    <WorkflowRailPanel className="gap-detail-next grid p-detail-next">
-      <div className="gap-detail-next flex items-start justify-between">
-        <div className="min-w-0">
-          <strong className="type-callout text-text-primary block truncate">{title}</strong>
-          <p className={`${mutedText} m-0`}>1.5s per block</p>
-        </div>
+    <div className="gap-detail-next flex min-w-0 flex-wrap items-center justify-center">
+      <div className="gap-detail-tight flex min-w-0 items-center">
+        <strong className="type-callout text-text-primary truncate">{title}</strong>
+        <span className={mutedText}>1.5s/block</span>
         <StatusPill status="neutral">
           {hasSteps ? (selectedStep ? `${selectedStep}/${stepCount}` : `${stepCount}`) : viewingLatestRun ? "Waiting" : "No steps"}
         </StatusPill>
       </div>
-      <SwitchField
-        label="Follow latest run"
-        checked={followLiveRuns}
-        onChange={(event) => onFollowLiveRunsChange(event.currentTarget.checked)}
-      />
       {latestRunAvailable && !followLiveRuns ? (
         <p className={`${mutedText} m-0`}>Latest run available. Turn on follow latest run to jump back.</p>
       ) : null}
-      <div className="gap-detail-next grid grid-cols-4">
+      <div className="gap-detail-next flex items-center">
         <Button
           type="button"
           variant="secondary"
@@ -242,7 +234,16 @@ export function WatchReplayControls({
           <ChevronRight aria-hidden className="size-4" />
         </Button>
       </div>
-    </WorkflowRailPanel>
+      <label className="gap-detail-tight type-meta text-text-secondary flex items-center">
+        <input
+          type="checkbox"
+          className="accent-current"
+          checked={followLiveRuns}
+          onChange={(event) => onFollowLiveRunsChange(event.currentTarget.checked)}
+        />
+        Follow latest run
+      </label>
+    </div>
   );
 }
 
