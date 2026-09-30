@@ -625,8 +625,9 @@ function DomainBlockInputSummary({
     return (
       <SummaryRows
         rows={[
-          { label: "Input", value: "Workflow trigger" },
+          { label: "Input", value: "Received trigger" },
           { label: "Trigger", value: typeof trigger?.type === "string" ? trigger.type : blockRun.blockType },
+          { label: "Source", value: typeof trigger?.sourceId === "string" ? trigger.sourceId : "No source" },
           { label: "Payload", value: isPresentRunValue(trigger?.payload) ? shortRunValue(trigger?.payload) : "No payload" },
         ]}
       />
@@ -777,9 +778,10 @@ function DomainBlockResultSummary({
     return (
       <SummaryRows
         rows={[
-          { label: "Action", value: "Started workflow" },
+          { label: "Action", value: "Initialized run context" },
           { label: "Trigger", value: typeof trigger?.type === "string" ? trigger.type : blockRun.blockType },
-          { label: "Payload", value: isPresentRunValue(trigger?.payload) ? shortRunValue(trigger?.payload) : "No payload" },
+          { label: "Data read", value: contextRecord(outputContext.data)?.readId ? "Available" : "Not created yet" },
+          { label: "Variables", value: isPresentRunValue(outputContext.variables) ? shortRunValue(outputContext.variables) : "No variables" },
         ]}
       />
     );
@@ -1034,7 +1036,7 @@ export function WatchRuntimeInspector({
             <DomainBlockInputSummary block={selectedBlock} blockRun={latestBlockRun} />
             <JsonPreview
               value={latestBlockRun.input}
-              label="View input JSON"
+              label="View pre-block context"
               variant="button"
               className="w-full"
             />
@@ -1044,7 +1046,7 @@ export function WatchRuntimeInspector({
             <RunValueSummary value={latestBlockRun?.input} />
             <JsonPreview
               value={latestBlockRun?.input}
-              label="View input JSON"
+              label="View pre-block context"
               variant="button"
               className="w-full"
             />
@@ -1066,7 +1068,7 @@ export function WatchRuntimeInspector({
             <DomainBlockResultSummary block={selectedBlock} blockRun={latestBlockRun} />
             <JsonPreview
               value={latestBlockRun.output}
-              label="View result JSON"
+              label="View post-block context"
               variant="button"
               className="w-full"
             />
@@ -1076,7 +1078,7 @@ export function WatchRuntimeInspector({
             <RunValueSummary value={latestBlockRun?.output} />
             <JsonPreview
               value={latestBlockRun?.output}
-              label="View result JSON"
+              label="View post-block context"
               variant="button"
               className="w-full"
             />

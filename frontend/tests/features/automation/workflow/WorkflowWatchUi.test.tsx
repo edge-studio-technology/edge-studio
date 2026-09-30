@@ -388,8 +388,8 @@ describe("WatchRuntimeInspector", () => {
     expect(screen.getByText("Trigger payload")).toBeInTheDocument();
     expect(screen.getByText("foo")).toBeInTheDocument();
     expect(screen.getByText("bar")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View input JSON" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View result JSON" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View pre-block context" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View post-block context" })).toBeInTheDocument();
   });
 
   it("summarizes fetch data source results with source, read, and hash", () => {
@@ -438,22 +438,31 @@ describe("WatchRuntimeInspector", () => {
     expect(screen.getByText("inbox-1")).toBeInTheDocument();
   });
 
-  it("summarizes start block results with trigger details", () => {
+  it("summarizes start block input separately from run-context result", () => {
     render(
       <WatchRuntimeInspector
         selectedBlock={block({ type: "mqtt_event_start" })}
         latestBlockRun={blockRun({
+          input: {
+            trigger: { type: "mqtt", sourceId: "source-1", payload: { temperature: 21.5 } },
+            variables: {},
+          },
           output: {
-            trigger: { type: "mqtt", payload: { temperature: 21.5 } },
+            trigger: { type: "mqtt", sourceId: "source-1", payload: { temperature: 21.5 } },
+            variables: {},
           },
         })}
         selectedRun={undefined}
       />,
     );
 
-    expect(screen.getByText("Started workflow")).toBeInTheDocument();
-    expect(screen.getByText("mqtt")).toBeInTheDocument();
+    expect(screen.getByText("Received trigger")).toBeInTheDocument();
+    expect(screen.getByText("Initialized run context")).toBeInTheDocument();
+    expect(screen.getAllByText("mqtt")).toHaveLength(2);
+    expect(screen.getByText("source-1")).toBeInTheDocument();
     expect(screen.getByText("1 field")).toBeInTheDocument();
+    expect(screen.getByText("Not created yet")).toBeInTheDocument();
+    expect(screen.getByText("0 fields")).toBeInTheDocument();
   });
 
   it("summarizes record trigger event results", () => {
