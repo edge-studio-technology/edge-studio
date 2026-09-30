@@ -564,6 +564,19 @@ export function WorkflowWorkspace({
           />
         ) : undefined
       }
+      selectedBackdrop={
+        draftSelected || selectedBlock ? (
+          <div
+            className="bg-overlay-light h-full w-full"
+            aria-hidden
+            onPointerDown={closeSelectedSheet}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              closeSelectedSheet();
+            }}
+          />
+        ) : undefined
+      }
       selectedSheet={
         draftSelected && mode === "edit" ? (
           <SelectedBlockSheet
@@ -574,6 +587,7 @@ export function WorkflowWorkspace({
                 amount, then Done to add this block.
               </>
             }
+            backdrop={false}
             onClose={closeSelectedSheet}
             footer={
               <Button
@@ -613,6 +627,7 @@ export function WorkflowWorkspace({
                 ? "Latest run details for this block."
                 : draftBlockDescription(selectedBlock, sources, addressBook)
             }
+            backdrop={false}
             onClose={closeSelectedSheet}
             footer={
               mode === "edit" ? (

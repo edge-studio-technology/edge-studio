@@ -64,15 +64,17 @@ describe("WorkflowWorkspaceShell", () => {
     expect(screen.getByText("Status strip")).toBeInTheDocument();
   });
 
-  it("renders the selected block sheet, left overlay, and bottom overlay when given", () => {
+  it("renders the selected block sheet, backdrop, left overlay, and bottom overlay when given", () => {
     renderShell({
+      selectedBackdrop: <div>Selected backdrop</div>,
       selectedSheet: <div>Selected sheet</div>,
       leftOverlay: <div>Left overlay</div>,
       bottom: <div>Bottom overlay</div>,
     });
     expect(screen.getByText("Selected sheet")).toBeInTheDocument();
+    expect(screen.getByText("Selected backdrop").parentElement).toHaveClass("z-[60]");
     expect(screen.getByText("Left overlay").parentElement).toHaveClass("z-[65]");
-    expect(screen.getByText("Bottom overlay")).toBeInTheDocument();
+    expect(screen.getByText("Bottom overlay").parentElement).toHaveClass("z-[65]");
   });
 
   describe("rail drawer", () => {

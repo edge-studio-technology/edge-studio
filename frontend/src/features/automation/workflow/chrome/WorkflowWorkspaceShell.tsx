@@ -25,6 +25,7 @@ export function WorkflowWorkspaceShell({
   rail,
   railToggleLabel = "Toolkit",
   selectedSheet,
+  selectedBackdrop,
   leftOverlay,
   overlay,
   bottom,
@@ -38,6 +39,7 @@ export function WorkflowWorkspaceShell({
   rail: ReactNode;
   railToggleLabel?: string;
   selectedSheet?: ReactNode;
+  selectedBackdrop?: ReactNode;
   leftOverlay?: ReactNode;
   overlay?: ReactNode;
   bottom?: ReactNode;
@@ -109,6 +111,7 @@ export function WorkflowWorkspaceShell({
         <aside id="workflow-rail" data-open={railOpen} className={rightRailClass}>
           {rail}
         </aside>
+        {selectedBackdrop ? <div className="absolute inset-0 z-[60]">{selectedBackdrop}</div> : null}
         {leftOverlay ? (
           <div className="left-pad-tight top-pad-tight md:left-detail-near md:top-detail-near absolute z-[65] w-[min(340px,calc(100%-2*var(--spacing-pad-tight)))]">
             {leftOverlay}
@@ -116,7 +119,7 @@ export function WorkflowWorkspaceShell({
         ) : null}
         {selectedSheet}
         {bottom ? (
-          <div className="left-pad-tight bottom-pad-tight md:left-detail-near md:bottom-detail-near right-pad-tight @4xl:right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] absolute z-10">
+          <div className="left-pad-tight bottom-pad-tight md:left-detail-near md:bottom-detail-near right-pad-tight @4xl:right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] absolute z-[65]">
             {bottom}
           </div>
         ) : null}

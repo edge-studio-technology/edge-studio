@@ -239,12 +239,14 @@ export function SelectedBlockSheet({
   children,
   onClose,
   footer,
+  backdrop = true,
 }: {
   title: string;
   description?: ReactNode;
   children: ReactNode;
   onClose: () => void;
   footer?: ReactNode;
+  backdrop?: boolean;
 }) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -258,15 +260,17 @@ export function SelectedBlockSheet({
 
   return createPortal(
     <>
-      <div
-        className="bg-overlay-light fixed inset-0 z-[60]"
-        aria-hidden
-        onPointerDown={onClose}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          onClose();
-        }}
-      />
+      {backdrop ? (
+        <div
+          className="bg-overlay-light fixed inset-0 z-[60]"
+          aria-hidden
+          onPointerDown={onClose}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            onClose();
+          }}
+        />
+      ) : null}
       <aside
         className="bg-surface-always-white border-stroke-secondary fixed inset-y-0 right-0 z-[70] grid h-full min-h-0 w-full max-w-[400px] grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] border-l shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
         role="dialog"
