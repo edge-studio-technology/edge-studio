@@ -565,6 +565,203 @@ function SummaryRows({ rows }: { rows: { label: string; value: ReactNode }[] }) 
   );
 }
 
+function inputContextValue(inputContext: Record<string, unknown> | null, source: string | undefined, path: string | undefined) {
+  if (!inputContext) return undefined;
+  if (source === "variable") return contextRecord(inputContext.variables)?.[String(path ?? "")];
+  if (source === "data") return getPathValue(contextRecord(inputContext.data)?.result, path);
+  return getPathValue(contextRecord(inputContext.trigger)?.payload, path);
+}
+
+function getPathValue(value: unknown, path: string | undefined) {
+  if (!path?.trim()) return undefined;
+  let current = value;
+  for (const part of path.split(".")) {
+    if (
+      current === null ||
+      typeof current !== "object" ||
+      !Object.prototype.hasOwnProperty.call(current, part)
+    ) return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
+function variableSourceLabel(source: AutomationBlock["config"]["variableSource"]) {
+  if (source === "trigger_field") return "Trigger field";
+  if (source === "latest_data_field") return "Latest data field";
+  if (source === "context_field") return "Workflow context field";
+  return "Custom JSON";
+}
+
+function previewContentLabel(mode: AutomationBlock["config"]["contentMode"]) {
+  if (mode === "workflow_context") return "Workflow context";
+  if (mode === "trigger_payload") return "Trigger payload";
+  if (mode === "latest_data") return "Latest data";
+  return "Custom content";
+}
+
+function outputBodyLabel(mode: AutomationBlock["config"]["bodyMode"]) {
+  if (mode === "custom") return "Custom JSON";
+  if (mode === "trigger_payload") return "Trigger payload";
+  if (mode === "latest_data") return "Latest data";
+  if (mode === "latest_data_with_media") return "Latest data + media";
+  if (mode === "multipart_media") return "Multipart media";
+  if (mode === "none") return "No body";
+  return "Workflow context";
+}
+
+function DomainBlockInputSummary({
+  block,
+  blockRun,
+}: {
+  block: AutomationBlock;
+  blockRun: AutomationRun["blocks"][number];
+}) {
+  const inputContext = contextRecord(blockRun.input);
+  const trigger = contextRecord(inputContext?.trigger);
+  const data = contextRecord(inputContext?.data);
+
+  if (block.type.endsWith("_start")) {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Input", value: "Workflow trigger" },
+          { label: "Trigger", value: typeof trigger?.type === "string" ? trigger.type : blockRun.blockType },
+          { label: "Payload", value: isPresentRunValue(trigger?.payload) ? shortRunValue(trigger?.payload) : "No payload" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "record_trigger_event") {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Input", value: "Trigger payload" },
+          { label: "Trigger", value: typeof trigger?.type === "string" ? trigger.type : "trigger" },
+          { label: "Payload", value: isPresentRunValue(trigger?.payload) ? shortRunValue(trigger?.payload) : "No payload" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "fetch_data_source" || block.type === "capture_camera") {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Input", value: block.type === "capture_camera" ? "Camera source" : "Data source" },
+          { label: "Source ID", value: block.config.sourceId ?? "Not selected" },
+          { label: "Trigger", value: typeof trigger?.type === "string" ? trigger.type : "trigger" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "set_variable") {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Variable", value: block.config.variableName ?? "Unnamed" },
+          { label: "Source", value: variableSourceLabel(block.config.variableSource) },
+          { label: block.config.variableSource === "custom_json" ? "Configured value" : "Field", value: block.config.variableSource === "custom_json" ? shortRunValue(block.config.valueJsonText) : block.config.fieldPath ?? "Not set" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "if_payload_field_equals") {
+    const source = block.config.source === "variable" ? "variable" : "trigger";
+    const path = source === "variable" ? block.config.variableName : block.config.fieldPath;
+    const actual = inputContextValue(inputContext, source, path);
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Source", value: source === "variable" ? "Variable" : "Trigger payload" },
+          { label: source === "variable" ? "Variable" : "Field", value: path ?? "Not set" },
+          { label: "Expected", value: block.config.operator === "exists" || block.config.operator === "does_not_exist" ? block.config.operator : shortRunValue(block.config.value) },
+          { label: "Actual", value: actual === undefined ? "Missing" : shortRunValue(actual) },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "wait") {
+    return <SummaryRows rows={[{ label: "Configured wait", value: formatDuration(Number(block.config.durationMs ?? 1000)) }]} />;
+  }
+
+  if (block.type === "show_preview") {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Content", value: previewContentLabel(block.config.contentMode) },
+          { label: "Title", value: block.config.title ?? "Workflow preview" },
+          { label: "Latest data", value: typeof data?.sourceName === "string" ? data.sourceName : "No data selected" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "stamp_integritas") {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Input", value: "Latest hash" },
+          { label: "Hash", value: typeof inputContext?.hash === "string" ? inputContext.hash : "No hash" },
+          { label: "Source", value: typeof data?.sourceName === "string" ? data.sourceName : "Workflow data" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "control_output") {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Target ID", value: block.config.targetId ?? "Not selected" },
+          { label: "Action", value: block.config.action ?? "pulse" },
+          { label: "Body", value: outputBodyLabel(block.config.bodyMode) },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "send_transaction") {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Recipient ID", value: block.config.recipientAddressBookId ?? "Not selected" },
+          { label: "Token", value: block.config.tokenId ?? "0x00" },
+          { label: "Amount", value: block.config.amount ? `${block.config.amount} MINIMA` : "Not set" },
+        ]}
+      />
+    );
+  }
+
+  return null;
+}
+
+function hasDomainBlockInput(block: AutomationBlock, blockRun: AutomationRun["blocks"][number]) {
+  return Boolean(contextRecord(blockRun.input) && DomainInputBlockTypes.has(block.type));
+}
+
+const DomainInputBlockTypes = new Set<string>([
+  "manual_start",
+  "schedule_start",
+  "gpio_event_start",
+  "webhook_event_start",
+  "mqtt_event_start",
+  "record_trigger_event",
+  "fetch_data_source",
+  "capture_camera",
+  "set_variable",
+  "if_payload_field_equals",
+  "wait",
+  "show_preview",
+  "stamp_integritas",
+  "control_output",
+  "send_transaction",
+]);
+
 function DomainBlockResultSummary({
   block,
   blockRun,
@@ -832,6 +1029,16 @@ export function WatchRuntimeInspector({
           <p className={mutedText}>{skippedBlockMessage}</p>
         ) : blockNotReached ? (
           <p className={mutedText}>{noBlockRunMessage}</p>
+        ) : selectedBlock && latestBlockRun && hasDomainBlockInput(selectedBlock, latestBlockRun) ? (
+          <div className="gap-detail-next grid">
+            <DomainBlockInputSummary block={selectedBlock} blockRun={latestBlockRun} />
+            <JsonPreview
+              value={latestBlockRun.input}
+              label="View input JSON"
+              variant="button"
+              className="w-full"
+            />
+          </div>
         ) : isPresentRunValue(latestBlockRun?.input) ? (
           <div className="gap-detail-next grid">
             <RunValueSummary value={latestBlockRun?.input} />

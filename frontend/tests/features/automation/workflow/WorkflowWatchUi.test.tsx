@@ -376,15 +376,16 @@ describe("WatchRuntimeInspector", () => {
   it("shows friendly input and result summaries before raw JSON actions", () => {
     render(
       <WatchRuntimeInspector
-        selectedBlock={block({ type: "control_output" })}
+        selectedBlock={block({ type: "control_output", config: { targetId: "target-1", action: "publish", bodyMode: "trigger_payload" } })}
         latestBlockRun={blockRun({ input: { source: "trigger", active: true }, output: { foo: "bar" } })}
         selectedRun={undefined}
       />,
     );
     expect(screen.getByText("Input")).toBeInTheDocument();
     expect(screen.getByText("Result")).toBeInTheDocument();
-    expect(screen.getByText("source")).toBeInTheDocument();
-    expect(screen.getByText("trigger")).toBeInTheDocument();
+    expect(screen.getByText("Target ID")).toBeInTheDocument();
+    expect(screen.getByText("target-1")).toBeInTheDocument();
+    expect(screen.getByText("Trigger payload")).toBeInTheDocument();
     expect(screen.getByText("foo")).toBeInTheDocument();
     expect(screen.getByText("bar")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "View input JSON" })).toBeInTheDocument();
@@ -481,6 +482,9 @@ describe("WatchRuntimeInspector", () => {
       <WatchRuntimeInspector
         selectedBlock={block({ type: "set_variable" })}
         latestBlockRun={blockRun({
+          input: {
+            trigger: { type: "manual", payload: { message: "Button pressed" } },
+          },
           output: {
             output: { action: "set_variable", name: "message", value: "Button pressed" },
           },
@@ -492,6 +496,37 @@ describe("WatchRuntimeInspector", () => {
     expect(screen.getAllByText("Set variable").length).toBeGreaterThan(0);
     expect(screen.getByText("message")).toBeInTheDocument();
     expect(screen.getByText("Button pressed")).toBeInTheDocument();
+  });
+
+  it("summarizes condition input with expected and actual values", () => {
+    render(
+      <WatchRuntimeInspector
+        selectedBlock={block({
+          type: "if_payload_field_equals",
+          config: { source: "trigger", fieldPath: "event.kind", operator: "equals", value: "doorbell" },
+        })}
+        latestBlockRun={blockRun({
+          input: {
+            trigger: { type: "webhook", payload: { event: { kind: "doorbell" } } },
+          },
+          output: {
+            output: {
+              fieldPath: "event.kind",
+              operator: "equals",
+              expected: "doorbell",
+              actual: "doorbell",
+              matched: true,
+            },
+          },
+        })}
+        selectedRun={undefined}
+      />,
+    );
+
+    expect(screen.getByText("Trigger payload")).toBeInTheDocument();
+    expect(screen.getAllByText("event.kind")).toHaveLength(2);
+    expect(screen.getAllByText("doorbell")).toHaveLength(2);
+    expect(screen.getByText("Matched")).toBeInTheDocument();
   });
 
   it("summarizes send transaction results", () => {
@@ -518,7 +553,7 @@ describe("WatchRuntimeInspector", () => {
     expect(screen.getByText("0xabc")).toBeInTheDocument();
   });
 
-  it("hides null workflow-context fields in input and result summaries", () => {
+  it("hides null workflow-context fields in generic result summaries", () => {
     render(
       <WatchRuntimeInspector
         selectedBlock={block({ type: "control_output" })}
@@ -546,8 +581,8 @@ describe("WatchRuntimeInspector", () => {
       />,
     );
 
-    expect(screen.getAllByText("trigger")).toHaveLength(2);
-    expect(screen.getAllByText("manual · payload 2 fields")).toHaveLength(2);
+    expect(screen.getByText("trigger")).toBeInTheDocument();
+    expect(screen.getByText("manual · payload 2 fields")).toBeInTheDocument();
     expect(screen.queryByText("data")).not.toBeInTheDocument();
     expect(screen.queryByText("output")).not.toBeInTheDocument();
     expect(screen.queryByText("hash")).not.toBeInTheDocument();

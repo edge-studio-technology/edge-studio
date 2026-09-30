@@ -87,6 +87,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automation watch block diagnostics now open device read details for data-fetching blocks only, with diagnostics navigation kept as a separate action.
 - Automation watch block inspection now explains skipped and not-reached blocks more clearly when input/result data is absent.
 - Automation watch block results now show domain-aware summaries for start triggers, trigger-event records, variables, output controls, transactions, data fetches, previews, stamps, conditions, and wait steps before raw JSON.
+- Automation watch block inputs now show block-specific consumed/configured values, reducing overlap between input and result summaries.
 - The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; source and generated release Compose files apply the same values to the backend and network IPAM.
 - Tables now provide a cog-button column chooser with backend-saved visibility preferences.
 - Failed loads across Dashboard, Wallet, Devices, Workflows, Diagnostics, Minima, Integritas Connect, and Software update now show a calm in-content error state with Retry instead of a red alert banner.

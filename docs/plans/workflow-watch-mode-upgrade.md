@@ -82,6 +82,7 @@ Implemented:
 - Watch selected-block diagnostics now show read details only for blocks that create device reads, with a separate diagnostics-tab link.
 - Watch selected-block input/result empty states now distinguish skipped blocks, not-reached blocks, and runs stopped by earlier failures.
 - Watch selected-block result summaries now include domain-aware cards for start triggers, trigger-event records, variable changes, output controls, transactions, fetch/camera reads, preview creation, Integritas stamping, payload conditions, and wait blocks.
+- Watch selected-block input summaries now show block-specific consumed/configured data, so inputs focus on what the block used and results focus on what the block produced.
 
 Remaining:
 
