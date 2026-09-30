@@ -558,6 +558,7 @@ export function WorkflowWorkspace({
           addressBook={addressBook}
           bottomOverlay={mode === "watch"}
           selectedBlockId={selectedBlockId}
+          replayActiveBlockId={replayPlaying ? selectedBlockId : undefined}
           validationByBlockId={validationByBlockId}
           runtimeByBlockId={runtimeByBlockId}
           onSelectBlock={selectCanvasBlock}
@@ -742,6 +743,7 @@ export function WorkflowWorkspace({
           <WatchRunHistory
             runs={runs}
             selectedRunId={selectedRun?.id ?? null}
+            replayPlaying={replayPlaying}
             onSelectRun={(runId) => {
               setSelectedRunId(runId);
               setFollowLiveRuns(runId === latestRun?.id);

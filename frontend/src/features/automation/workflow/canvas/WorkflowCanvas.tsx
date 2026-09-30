@@ -36,6 +36,7 @@ export function WorkflowCanvas({
   sources,
   addressBook,
   selectedBlockId,
+  replayActiveBlockId,
   statusLabel,
   statusGood = false,
   bottomOverlay = false,
@@ -50,6 +51,7 @@ export function WorkflowCanvas({
   sources: DataSource[];
   addressBook: AddressBookEntry[];
   selectedBlockId: string;
+  replayActiveBlockId?: string;
   statusLabel?: string;
   statusGood?: boolean;
   bottomOverlay?: boolean;
@@ -112,6 +114,8 @@ export function WorkflowCanvas({
               actionLabels={actionLabels}
               validationIssues={validationByBlockId[block.id] ?? []}
               runtime={runtimeByBlockId[block.id]}
+              replayActive={block.id === replayActiveBlockId}
+              replayDirection={index % 2 === 0 ? "clockwise" : "counterclockwise"}
               onSelect={() => onSelectBlock(block.id)}
               onMoveUp={() => onMoveBlock(block.id, -1)}
               onMoveDown={() => onMoveBlock(block.id, 1)}
@@ -137,6 +141,8 @@ function WorkflowBlockCard({
   actionLabels,
   validationIssues,
   runtime,
+  replayActive,
+  replayDirection,
   onSelect,
   onMoveUp,
   onMoveDown,
@@ -153,6 +159,8 @@ function WorkflowBlockCard({
   actionLabels: { up: string; down: string; remove: string };
   validationIssues: WorkflowCanvasValidationIssue[];
   runtime?: WorkflowCanvasRuntimeState;
+  replayActive: boolean;
+  replayDirection: "clockwise" | "counterclockwise";
   onSelect: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
@@ -163,7 +171,12 @@ function WorkflowBlockCard({
   const showFooter = presentation.badges.length > 0 || showActions;
   return (
     <div
-      className={cx(blockBaseClass, presentation.className, selected && selectedBlockClass)}
+      className={cx(
+        blockBaseClass,
+        presentation.className,
+        selected && selectedBlockClass,
+        replayActive && "workflow-replay-active-block",
+      )}
       data-workflow-block-id={block.id}
       onClick={onSelect}
       role="button"
@@ -172,6 +185,15 @@ function WorkflowBlockCard({
         if (event.key === "Enter" || event.key === " ") onSelect();
       }}
     >
+      {replayActive ? (
+        <span
+          className={cx(
+            "workflow-replay-border-dot",
+            replayDirection === "counterclockwise" && "workflow-replay-border-dot-reverse",
+          )}
+          aria-hidden
+        />
+      ) : null}
       <div className="gap-detail-next grid grid-cols-[minmax(0,1fr)]">
         <div className="gap-detail-next flex items-center justify-between">
           <span className="type-meta text-text-secondary uppercase">

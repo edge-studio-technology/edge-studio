@@ -212,6 +212,58 @@
   }
 }
 
+@keyframes workflow-replay-border-dot {
+  0% {
+    top: 0;
+    left: 50%;
+  }
+  12.5% {
+    top: 0;
+    left: 100%;
+  }
+  37.5% {
+    top: 100%;
+    left: 100%;
+  }
+  62.5% {
+    top: 100%;
+    left: 0;
+  }
+  87.5% {
+    top: 0;
+    left: 0;
+  }
+  100% {
+    top: 0;
+    left: 50%;
+  }
+}
+
+.workflow-replay-border-dot {
+  position: absolute;
+  z-index: 2;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-surface-accent);
+  box-shadow:
+    0 0 0 2px var(--color-surface-always-white),
+    0 0 14px color-mix(in srgb, var(--color-surface-accent) 80%, transparent),
+    0 0 28px color-mix(in srgb, var(--color-surface-accent) 50%, transparent);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: workflow-replay-border-dot 1.5s linear infinite;
+}
+
+.workflow-replay-border-dot-reverse {
+  animation-direction: reverse;
+}
+
+.workflow-replay-active-block::before {
+  background: var(--color-surface-accent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--color-surface-accent) 70%, transparent);
+}
+
 .table-column-option-moved {
   animation: table-column-option-moved 160ms ease-out;
 }
@@ -228,7 +280,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .onboarding-enter,
-  .onboarding-enter-stagger > * {
+  .onboarding-enter-stagger > *,
+  .workflow-replay-border-dot {
     animation: none !important;
   }
 }

@@ -27,6 +27,7 @@ import { ScrollArea } from "../../../components/ui/ScrollArea";
 import { formatLocalTime } from "../../../lib/time";
 import { useTableColumnVisibility } from "../../preferences/useTableColumnVisibility";
 import type { AutomationBlock, AutomationRun, AutomationWorkflow } from "../automationTypes";
+import { cx } from "../../../lib/cx";
 import { WorkflowRailHeader, WorkflowRailPanel } from "./chrome/WorkflowRail";
 import {
   blockLabel,
@@ -1219,10 +1220,12 @@ export function WatchRuntimeInspector({
 export function WatchRunHistory({
   runs,
   selectedRunId,
+  replayPlaying = false,
   onSelectRun,
 }: {
   runs: AutomationRun[];
   selectedRunId: string | null;
+  replayPlaying?: boolean;
   onSelectRun: (runId: string) => void;
 }) {
   const [rawRunId, setRawRunId] = useState<string | null>(null);
@@ -1327,7 +1330,14 @@ export function WatchRunHistory({
           </ScrollArea>
         </div>
       ) : (
-        <div className="rounded-soft border-stroke-secondary bg-surface-always-white grid gap-detail-next border p-detail-close" data-testid="collapsed-run-history">
+        <div
+          className={cx(
+            "rounded-soft border-stroke-secondary bg-surface-always-white relative grid gap-detail-next border p-detail-close",
+            replayPlaying && selectedRun && "workflow-replay-selected-run",
+          )}
+          data-testid="collapsed-run-history"
+        >
+          {replayPlaying && selectedRun ? <span className="workflow-replay-border-dot" aria-hidden /> : null}
           <div className="gap-detail-next flex flex-wrap items-center justify-between">
             <div className="gap-detail-next flex flex-wrap items-center">
               <Button

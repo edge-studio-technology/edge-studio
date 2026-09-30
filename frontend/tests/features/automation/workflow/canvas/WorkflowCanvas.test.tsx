@@ -117,6 +117,27 @@ describe("WorkflowCanvas", () => {
     expect(screen.getByText("Manual run").closest('[role="button"]')).toHaveClass("z-[65]");
   });
 
+  it("marks the replay-active block with a moving border dot", () => {
+    render(
+      <WorkflowCanvas
+        mode="watch"
+        blocks={[manualStart(), waitBlock()]}
+        sources={[]}
+        addressBook={[]}
+        selectedBlockId="b2"
+        replayActiveBlockId="b2"
+        onSelectBlock={() => {}}
+        onMoveBlock={() => {}}
+        onRemoveBlock={() => {}}
+      />,
+    );
+
+    const waitCard = screen.getByText("Wait").closest('[role="button"]');
+    expect(waitCard).toHaveClass("workflow-replay-active-block");
+    expect(waitCard?.querySelector(".workflow-replay-border-dot")).not.toBeNull();
+    expect(waitCard?.querySelector(".workflow-replay-border-dot-reverse")).not.toBeNull();
+  });
+
   it("selects a block via keyboard Enter", async () => {
     const onSelectBlock = vi.fn();
     render(
