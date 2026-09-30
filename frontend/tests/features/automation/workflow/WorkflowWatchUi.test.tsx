@@ -6,6 +6,7 @@ import { expectRowActionsPinned } from "../../../helpers/expectRowActionsPinned"
 import {
   WatchRunControls,
   WatchRunHistory,
+  WatchReplayControls,
   WatchRuntimeOverview,
   WatchRuntimeInspector,
 } from "../../../../src/features/automation/workflow/WorkflowWatchUi";
@@ -241,6 +242,44 @@ describe("WatchRunControls", () => {
   it("shows a payload error message when set", () => {
     renderControls({ payloadError: "Payload must be valid JSON" });
     expect(screen.getByText("Payload must be valid JSON")).toBeInTheDocument();
+  });
+});
+
+describe("WatchReplayControls", () => {
+  it("shows an empty replay state when no run is selected", () => {
+    render(
+      <WatchReplayControls
+        selectedRun={undefined}
+        stepCount={0}
+        currentStepIndex={-1}
+        playing={false}
+        onPlayingChange={vi.fn()}
+        onSelectStep={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("No steps")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Play" })).toBeDisabled();
+  });
+
+  it("selects previous and next replay steps", async () => {
+    const onSelectStep = vi.fn();
+    render(
+      <WatchReplayControls
+        selectedRun={run()}
+        stepCount={3}
+        currentStepIndex={1}
+        playing={false}
+        onPlayingChange={vi.fn()}
+        onSelectStep={onSelectStep}
+      />,
+    );
+
+    expect(screen.getByText("2/3")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Previous" }));
+    expect(onSelectStep).toHaveBeenCalledWith(0);
+    await userEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(onSelectStep).toHaveBeenCalledWith(2);
   });
 });
 

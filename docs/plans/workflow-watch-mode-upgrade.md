@@ -83,10 +83,11 @@ Implemented:
 - Watch selected-block input/result empty states now distinguish skipped blocks, not-reached blocks, and runs stopped by earlier failures.
 - Watch selected-block result summaries now include domain-aware cards for start triggers, trigger-event records, variable changes, output controls, transactions, fetch/camera reads, preview creation, Integritas stamping, payload conditions, and wait blocks.
 - Watch selected-block input summaries now show block-specific consumed/configured data, so inputs focus on what the block used and results focus on what the block produced.
+- Watch mode now has basic replay controls that step through selected-run blocks and can play them forward at a fixed readable pace.
 
 Remaining:
 
-- Canvas runtime visualization and replay controls are not implemented yet.
+- Canvas replay is implemented as fixed-pace block selection; deeper animation polish is still pending.
 - Run-history/debugging flow is still at the existing recent-runs table plus raw details level.
 - Browser QA against live workflow runs is still needed.
 

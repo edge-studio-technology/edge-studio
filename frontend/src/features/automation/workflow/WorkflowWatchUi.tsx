@@ -169,6 +169,68 @@ export function WatchRuntimeOverview({
   );
 }
 
+export function WatchReplayControls({
+  selectedRun,
+  stepCount,
+  currentStepIndex,
+  playing,
+  onPlayingChange,
+  onSelectStep,
+}: {
+  selectedRun: AutomationRun | undefined;
+  stepCount: number;
+  currentStepIndex: number;
+  playing: boolean;
+  onPlayingChange: (playing: boolean) => void;
+  onSelectStep: (index: number) => void;
+}) {
+  const hasSteps = Boolean(selectedRun && stepCount > 0);
+  const selectedStep = currentStepIndex >= 0 ? currentStepIndex + 1 : null;
+  return (
+    <WorkflowRailPanel className={formGridClass}>
+      <WorkflowRailHeader
+        title="Replay"
+        description="Step through the selected run at a fixed readable pace."
+      />
+      <div className={statusRowClass}>
+        <span className={mutedText}>Step</span>
+        <StatusPill status="neutral">
+          {hasSteps ? (selectedStep ? `${selectedStep}/${stepCount}` : `${stepCount} steps`) : "No steps"}
+        </StatusPill>
+      </div>
+      <div className="gap-detail-next grid grid-cols-3">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={!hasSteps || currentStepIndex <= 0}
+          onClick={() => onSelectStep(Math.max(0, currentStepIndex - 1))}
+        >
+          Previous
+        </Button>
+        <Button
+          type="button"
+          variant={playing ? "secondary" : "primary"}
+          size="sm"
+          disabled={!hasSteps}
+          onClick={() => onPlayingChange(!playing)}
+        >
+          {playing ? "Pause" : "Play"}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={!hasSteps || currentStepIndex >= stepCount - 1}
+          onClick={() => onSelectStep(currentStepIndex < 0 ? 0 : Math.min(stepCount - 1, currentStepIndex + 1))}
+        >
+          Next
+        </Button>
+      </div>
+    </WorkflowRailPanel>
+  );
+}
+
 const WATCH_RUN_COLUMNS = [
   { id: "started", label: "Started" },
   { id: "trigger", label: "Trigger" },
