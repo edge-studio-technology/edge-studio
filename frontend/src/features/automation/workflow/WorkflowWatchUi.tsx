@@ -1337,7 +1337,11 @@ export function WatchRunHistory({
           )}
           data-testid="collapsed-run-history"
         >
-          {replayPlaying && selectedRun ? <span className="workflow-replay-loop-dot" aria-hidden /> : null}
+          {replayPlaying && selectedRun ? (
+            <span className="workflow-replay-loop-track" aria-hidden>
+              <span className="workflow-replay-loop-dot" />
+            </span>
+          ) : null}
           <div className="gap-detail-next flex flex-wrap items-center justify-between">
             <div className="gap-detail-next flex flex-wrap items-center">
               <Button

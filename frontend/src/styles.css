@@ -216,18 +216,22 @@
   0% {
     top: 0;
     left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   25% {
     top: 0;
     left: 100%;
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   75% {
     top: 100%;
     left: 100%;
+    transform: translate(-50%, -50%) rotate(90deg);
   }
   100% {
     top: 100%;
     left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
   }
 }
 
@@ -235,18 +239,22 @@
   0% {
     top: 0;
     left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   25% {
     top: 0;
     left: 0;
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   75% {
     top: 100%;
     left: 0;
+    transform: translate(-50%, -50%) rotate(90deg);
   }
   100% {
     top: 100%;
     left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
   }
 }
 
@@ -254,26 +262,32 @@
   0% {
     top: 0;
     left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   12.5% {
     top: 0;
     left: 100%;
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   37.5% {
     top: 100%;
     left: 100%;
+    transform: translate(-50%, -50%) rotate(90deg);
   }
   62.5% {
     top: 100%;
     left: 0;
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   87.5% {
     top: 0;
     left: 0;
+    transform: translate(-50%, -50%) rotate(90deg);
   }
   100% {
     top: 0;
     left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
   }
 }
 
@@ -281,14 +295,14 @@
 .workflow-replay-loop-dot {
   position: absolute;
   z-index: 2;
-  width: 12px;
-  height: 12px;
+  width: 46px;
+  height: 7px;
   border-radius: 999px;
-  background: radial-gradient(circle, var(--color-surface-always-white) 0 18%, color-mix(in srgb, var(--color-surface-accent) 45%, transparent) 42%, transparent 72%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-stroke-success) 65%, transparent) 24%, var(--color-surface-always-white) 50%, color-mix(in srgb, var(--color-stroke-success) 65%, transparent) 76%, transparent);
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--color-surface-accent) 32%, transparent),
-    0 0 16px color-mix(in srgb, var(--color-surface-accent) 80%, transparent),
-    0 0 30px color-mix(in srgb, var(--color-surface-accent) 55%, transparent);
+    0 0 0 2px color-mix(in srgb, var(--color-stroke-success) 30%, transparent),
+    0 0 14px color-mix(in srgb, var(--color-stroke-success) 85%, transparent),
+    0 0 30px color-mix(in srgb, var(--color-stroke-success) 60%, transparent);
   pointer-events: none;
   transform: translate(-50%, -50%);
 }
@@ -305,9 +319,30 @@
   animation: workflow-replay-loop-dot 1.5s linear infinite;
 }
 
+.workflow-replay-loop-track {
+  position: absolute;
+  inset: -1px;
+  z-index: 3;
+  overflow: visible;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
 .workflow-replay-active-block::before {
-  background: var(--color-surface-accent);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--color-surface-accent) 70%, transparent);
+  background: var(--color-stroke-success);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--color-stroke-success) 70%, transparent);
+}
+
+.workflow-replay-active-block,
+.workflow-replay-selected-run {
+  border-color: var(--color-stroke-success);
+  box-shadow:
+    0 0 0 1px var(--color-stroke-success),
+    0 0 20px color-mix(in srgb, var(--color-stroke-success) 22%, transparent);
+}
+
+.workflow-replay-selected-run {
+  overflow: visible;
 }
 
 .table-column-option-moved {
