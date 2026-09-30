@@ -100,6 +100,23 @@ describe("WorkflowCanvas", () => {
     expect(onSelectBlock).toHaveBeenCalledWith("b1");
   });
 
+  it("raises the selected block above workspace overlays", () => {
+    render(
+      <WorkflowCanvas
+        mode="watch"
+        blocks={[manualStart()]}
+        sources={[]}
+        addressBook={[]}
+        selectedBlockId="b1"
+        onSelectBlock={() => {}}
+        onMoveBlock={() => {}}
+        onRemoveBlock={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("Manual run").closest('[role="button"]')).toHaveClass("z-[65]");
+  });
+
   it("selects a block via keyboard Enter", async () => {
     const onSelectBlock = vi.fn();
     render(

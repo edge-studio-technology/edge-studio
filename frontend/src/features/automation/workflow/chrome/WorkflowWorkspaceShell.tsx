@@ -25,6 +25,7 @@ export function WorkflowWorkspaceShell({
   rail,
   railToggleLabel = "Toolkit",
   selectedSheet,
+  leftOverlay,
   overlay,
   bottom,
   statusStrip,
@@ -37,6 +38,7 @@ export function WorkflowWorkspaceShell({
   rail: ReactNode;
   railToggleLabel?: string;
   selectedSheet?: ReactNode;
+  leftOverlay?: ReactNode;
   overlay?: ReactNode;
   bottom?: ReactNode;
   /** Meta status pills. */
@@ -107,6 +109,11 @@ export function WorkflowWorkspaceShell({
         <aside id="workflow-rail" data-open={railOpen} className={rightRailClass}>
           {rail}
         </aside>
+        {leftOverlay ? (
+          <div className="left-pad-tight top-pad-tight md:left-detail-near md:top-detail-near absolute z-[65] w-[min(340px,calc(100%-2*var(--spacing-pad-tight)))]">
+            {leftOverlay}
+          </div>
+        ) : null}
         {selectedSheet}
         {bottom ? (
           <div className="left-pad-tight bottom-pad-tight md:left-detail-near md:bottom-detail-near right-pad-tight @4xl:right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] absolute z-10">

@@ -84,6 +84,7 @@ Implemented:
 - Watch selected-block result summaries now include domain-aware cards for start triggers, trigger-event records, variable changes, output controls, transactions, fetch/camera reads, preview creation, Integritas stamping, payload conditions, and wait blocks.
 - Watch selected-block input summaries now show block-specific consumed/configured data, so inputs focus on what the block used and results focus on what the block produced.
 - Watch mode now has basic replay controls that step through selected-run blocks and can play them forward at a fixed readable pace.
+- Watch replay controls now sit on the left side of the canvas and stay above the selected-block backdrop along with the focused block.
 
 Remaining:
 

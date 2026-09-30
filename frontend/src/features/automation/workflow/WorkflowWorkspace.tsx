@@ -499,14 +499,6 @@ export function WorkflowWorkspace({
                   }
                 }}
               />
-              <WatchReplayControls
-                selectedRun={selectedRun}
-                stepCount={replaySteps.length}
-                currentStepIndex={replayStepIndex}
-                playing={replayPlaying}
-                onPlayingChange={setReplayPlaying}
-                onSelectStep={selectReplayStep}
-              />
               <WatchRunControls
                 workflow={workflow}
                 busy={busy}
@@ -559,6 +551,18 @@ export function WorkflowWorkspace({
             }
           }}
         />
+      }
+      leftOverlay={
+        mode === "watch" ? (
+          <WatchReplayControls
+            selectedRun={selectedRun}
+            stepCount={replaySteps.length}
+            currentStepIndex={replayStepIndex}
+            playing={replayPlaying}
+            onPlayingChange={setReplayPlaying}
+            onSelectStep={selectReplayStep}
+          />
+        ) : undefined
       }
       selectedSheet={
         draftSelected && mode === "edit" ? (
