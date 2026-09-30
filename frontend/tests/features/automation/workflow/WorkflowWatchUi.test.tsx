@@ -214,7 +214,7 @@ describe("WatchRunControls", () => {
     expect(onPayloadError).toHaveBeenCalledWith(expect.stringContaining("JSON"));
   });
 
-  it("uses a single expanded trigger payload test for event workflows", async () => {
+  it("uses a single collapsed trigger payload test for event workflows", async () => {
     const onRunNow = vi.fn();
     const onRunWithPayload = vi.fn();
     renderControls({
@@ -225,7 +225,11 @@ describe("WatchRunControls", () => {
     });
 
     expect(screen.queryByRole("button", { name: "Run now" })).not.toBeInTheDocument();
-    expect(screen.getByText("Test GPIO trigger")).toBeInTheDocument();
+    const triggerSummary = screen.getByText("Test GPIO trigger");
+    expect(triggerSummary).toBeInTheDocument();
+    expect(triggerSummary.closest("details")).not.toHaveAttribute("open");
+    await userEvent.click(triggerSummary);
+    expect(triggerSummary.closest("details")).toHaveAttribute("open");
     expect(screen.getByText("Payload preview")).toBeInTheDocument();
     expect(screen.getByText('{"active":true}')).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Run with this payload" }));
@@ -387,6 +391,52 @@ describe("WatchRuntimeInspector", () => {
     expect(screen.getByRole("button", { name: "View result JSON" })).toBeInTheDocument();
   });
 
+  it("summarizes fetch data source results with source, read, and hash", () => {
+    render(
+      <MemoryRouter>
+        <WatchRuntimeInspector
+          selectedBlock={block({ type: "fetch_data_source" })}
+          latestBlockRun={blockRun({
+            output: {
+              data: { sourceName: "Device System Data", readId: "read-1" },
+              hash: "hash-1",
+            },
+          })}
+          selectedRun={undefined}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Fetched latest data")).toBeInTheDocument();
+    expect(screen.getByText("Device System Data")).toBeInTheDocument();
+    expect(screen.getByText("read-1")).toBeInTheDocument();
+    expect(screen.getByText("hash-1")).toBeInTheDocument();
+  });
+
+  it("summarizes show preview results with preview details", () => {
+    render(
+      <WatchRuntimeInspector
+        selectedBlock={block({ type: "show_preview" })}
+        latestBlockRun={blockRun({
+          output: {
+            output: {
+              action: "show_preview",
+              inboxItemId: "inbox-1",
+              title: "Device System Data latest data",
+              format: "json",
+            },
+          },
+        })}
+        selectedRun={undefined}
+      />,
+    );
+
+    expect(screen.getByText("Created preview")).toBeInTheDocument();
+    expect(screen.getByText("Device System Data latest data")).toBeInTheDocument();
+    expect(screen.getByText("json")).toBeInTheDocument();
+    expect(screen.getByText("inbox-1")).toBeInTheDocument();
+  });
+
   it("hides null workflow-context fields in input and result summaries", () => {
     render(
       <WatchRuntimeInspector
@@ -438,6 +488,43 @@ describe("WatchRuntimeInspector", () => {
     expect(
       screen.getByText("No result recorded for the latest selected-block run."),
     ).toBeInTheDocument();
+  });
+
+  it("explains when a block was skipped", () => {
+    render(
+      <WatchRuntimeInspector
+        selectedBlock={block()}
+        latestBlockRun={blockRun({ status: "skipped", input: null, output: null })}
+        selectedRun={run()}
+      />,
+    );
+
+    expect(screen.getAllByText("This block was skipped during the selected run.")).toHaveLength(2);
+  });
+
+  it("explains when a failed run stopped before the selected block", () => {
+    render(
+      <WatchRuntimeInspector
+        selectedBlock={block()}
+        latestBlockRun={null}
+        selectedRun={run({ status: "failed", error: "Earlier block failed" })}
+      />,
+    );
+
+    expect(screen.getByText("Not reached")).toBeInTheDocument();
+    expect(screen.getAllByText("The selected run stopped before this block could execute.")).toHaveLength(2);
+  });
+
+  it("explains when a selected block was not reached in the selected run", () => {
+    render(
+      <WatchRuntimeInspector
+        selectedBlock={block()}
+        latestBlockRun={null}
+        selectedRun={run({ status: "success" })}
+      />,
+    );
+
+    expect(screen.getAllByText("This block was not reached in the selected run.")).toHaveLength(2);
   });
 
   it("opens read details for blocks that fetch device data", async () => {

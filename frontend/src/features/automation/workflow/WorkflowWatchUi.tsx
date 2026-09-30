@@ -286,7 +286,7 @@ export function WatchRunControls({
       ) : null}
       <Disclosure
         title={payloadDisclosureTitle}
-        defaultOpen={eventTriggered}
+        defaultOpen={false}
         contentClassName="gap-detail-next"
       >
         <p className={`${mutedText} m-0`}>{payloadDescription}</p>
@@ -541,6 +541,122 @@ function RunValueSummary({ value }: { value: unknown }) {
   );
 }
 
+function contextRecord(value: unknown): Record<string, unknown> | null {
+  return isPlainRecord(value) ? value : null;
+}
+
+function nestedOutput(value: unknown): Record<string, unknown> | null {
+  const context = contextRecord(value);
+  return context && isPlainRecord(context.output) ? context.output : null;
+}
+
+function SummaryRows({ rows }: { rows: { label: string; value: ReactNode }[] }) {
+  return (
+    <div className="border-stroke-secondary bg-surface-secondary rounded-soft border p-detail-next">
+      <dl className="gap-detail-tight grid m-0">
+        {rows.map((row) => (
+          <div key={row.label} className="gap-detail-next grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+            <dt className="type-meta text-text-secondary truncate">{row.label}</dt>
+            <dd className="type-meta text-text-primary m-0 truncate font-mono">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function DomainBlockResultSummary({
+  block,
+  blockRun,
+}: {
+  block: AutomationBlock;
+  blockRun: AutomationRun["blocks"][number];
+}) {
+  const outputContext = contextRecord(blockRun.output);
+  const blockOutput = nestedOutput(blockRun.output);
+
+  if ((block.type === "fetch_data_source" || block.type === "capture_camera") && outputContext) {
+    const data = contextRecord(outputContext.data);
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Action", value: block.type === "capture_camera" ? "Captured image" : "Fetched latest data" },
+          { label: "Source", value: typeof data?.sourceName === "string" ? data.sourceName : "Unknown source" },
+          { label: "Read", value: typeof data?.readId === "string" ? data.readId : "No read id" },
+          { label: "Hash", value: typeof outputContext.hash === "string" ? outputContext.hash : "No hash" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "show_preview" && blockOutput) {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Action", value: "Created preview" },
+          { label: "Title", value: typeof blockOutput.title === "string" ? blockOutput.title : "Workflow preview" },
+          { label: "Format", value: typeof blockOutput.format === "string" ? blockOutput.format : "Unknown" },
+          { label: "Inbox item", value: typeof blockOutput.inboxItemId === "string" ? blockOutput.inboxItemId : "No inbox id" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "stamp_integritas" && outputContext) {
+    const action = typeof blockOutput?.action === "string" ? blockOutput.action : blockRun.status;
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Action", value: action },
+          { label: "Hash", value: typeof outputContext.hash === "string" ? outputContext.hash : "No hash" },
+          { label: "Proof", value: typeof outputContext.proofId === "string" ? outputContext.proofId : "No proof" },
+          { label: "Proof UID", value: typeof blockOutput?.proofUid === "string" ? blockOutput.proofUid : "No proof UID" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "if_payload_field_equals" && blockOutput) {
+    const matched = blockOutput.matched === true;
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Condition", value: matched ? "Matched" : "Did not match" },
+          { label: "Field", value: typeof blockOutput.fieldPath === "string" ? blockOutput.fieldPath : "Unknown field" },
+          { label: "Operator", value: typeof blockOutput.operator === "string" ? blockOutput.operator : "Unknown" },
+          { label: "Action", value: typeof blockOutput.action === "string" ? blockOutput.action : matched ? "continued" : "stopped" },
+        ]}
+      />
+    );
+  }
+
+  if (block.type === "wait") {
+    return (
+      <SummaryRows
+        rows={[
+          { label: "Action", value: "Waited" },
+          { label: "Configured", value: formatDuration(Number(block.config.durationMs ?? 1000)) },
+          { label: "Actual", value: formatDuration(blockRun.durationMs) },
+        ]}
+      />
+    );
+  }
+
+  return null;
+}
+
+function hasDomainBlockResult(block: AutomationBlock, blockRun: AutomationRun["blocks"][number]) {
+  if (block.type === "wait") return true;
+  if ((block.type === "fetch_data_source" || block.type === "capture_camera") && contextRecord(blockRun.output)) return true;
+  if (
+    (block.type === "show_preview" ||
+      block.type === "stamp_integritas" ||
+      block.type === "if_payload_field_equals") &&
+    nestedOutput(blockRun.output)
+  ) return true;
+  return false;
+}
+
 /** Watch-mode selected-block sheet: run/block status and output. */
 export function WatchRuntimeInspector({
   selectedBlock,
@@ -559,8 +675,13 @@ export function WatchRuntimeInspector({
   const [readDetails, setReadDetails] = useState<DataSourceRead | null>(null);
   const [readDetailsLoading, setReadDetailsLoading] = useState(false);
   const [readDetailsError, setReadDetailsError] = useState<string | null>(null);
+  const blockWasSkipped = latestBlockRun?.status === "skipped";
+  const blockNotReached = Boolean(selectedBlock && selectedRun && !latestBlockRun);
+  const blockStoppedBeforeRun = blockNotReached && selectedRun?.status === "failed";
   const blockRunStatus = latestBlockRun
     ? latestBlockRun.status
+    : blockNotReached
+      ? "Not reached"
     : selectedBlock?.lastRunAt
       ? "No run details"
       : "Not run yet";
@@ -576,6 +697,10 @@ export function WatchRuntimeInspector({
       : selectedRun?.status === "failed"
         ? "warn"
         : "neutral";
+  const noBlockRunMessage = blockStoppedBeforeRun
+    ? "The selected run stopped before this block could execute."
+    : "This block was not reached in the selected run.";
+  const skippedBlockMessage = "This block was skipped during the selected run.";
 
   return (
     <div className="gap-detail-close grid">
@@ -631,7 +756,11 @@ export function WatchRuntimeInspector({
         title="Input"
         description="Data this block received during the selected run."
       >
-        {isPresentRunValue(latestBlockRun?.input) ? (
+        {blockWasSkipped ? (
+          <p className={mutedText}>{skippedBlockMessage}</p>
+        ) : blockNotReached ? (
+          <p className={mutedText}>{noBlockRunMessage}</p>
+        ) : isPresentRunValue(latestBlockRun?.input) ? (
           <div className="gap-detail-next grid">
             <RunValueSummary value={latestBlockRun?.input} />
             <JsonPreview
@@ -649,7 +778,21 @@ export function WatchRuntimeInspector({
         title="Result"
         description="Data this block produced during the selected run."
       >
-        {isPresentRunValue(latestBlockRun?.output) ? (
+        {blockWasSkipped ? (
+          <p className={mutedText}>{skippedBlockMessage}</p>
+        ) : blockNotReached ? (
+          <p className={mutedText}>{noBlockRunMessage}</p>
+        ) : selectedBlock && latestBlockRun && hasDomainBlockResult(selectedBlock, latestBlockRun) ? (
+          <div className="gap-detail-next grid">
+            <DomainBlockResultSummary block={selectedBlock} blockRun={latestBlockRun} />
+            <JsonPreview
+              value={latestBlockRun.output}
+              label="View result JSON"
+              variant="button"
+              className="w-full"
+            />
+          </div>
+        ) : isPresentRunValue(latestBlockRun?.output) ? (
           <div className="gap-detail-next grid">
             <RunValueSummary value={latestBlockRun?.output} />
             <JsonPreview

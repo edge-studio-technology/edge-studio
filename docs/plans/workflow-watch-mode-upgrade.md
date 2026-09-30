@@ -79,6 +79,9 @@ Implemented:
 - Watch selected-block inspection now shows friendly input/result summaries first, with raw JSON actions kept secondary for diagnostics.
 - Shared modals now render above page/workspace overlays by default (`z-[90]`), with `layer="top"` reserved for intentionally stacked dialogs (`z-[100]`).
 - Watch selected-block input/result summaries now filter null/empty workflow context fields and surface meaningful trigger/data/output fields first.
+- Watch selected-block diagnostics now show read details only for blocks that create device reads, with a separate diagnostics-tab link.
+- Watch selected-block input/result empty states now distinguish skipped blocks, not-reached blocks, and runs stopped by earlier failures.
+- Watch selected-block result summaries now include domain-aware cards for fetch/camera reads, preview creation, Integritas stamping, payload conditions, and wait blocks.
 
 Remaining:
 
