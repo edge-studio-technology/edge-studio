@@ -29,7 +29,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Verified 21 focused retention/database tests and backend typechecking.
 - Verified `npm run check`: backend 1,262 tests, frontend 1,596, Update Agent 163, scripts 46, all coverage thresholds met, and all dependency audits clean.
 - Verified backend/frontend production builds, `docker compose config`, and `docker compose build` for backend, frontend, and Update Agent.
-- Upgraded Automation watch-mode block debugging with domain-aware input/result summaries, replay controls, canvas focus layering, a toolbar above the canvas, centered run-status messaging, no auto-play for the already-loaded latest run, and pause-on-manual-block-selection behavior.
+- Upgraded Automation watch-mode block debugging with domain-aware input/result summaries, replay controls, canvas focus layering, a toolbar above the canvas, centered run-status messaging, direct block-to-block detail switching through the overlay, no auto-play for the already-loaded latest run, and pause-on-manual-block-selection behavior.
 - Verified the Automation watch-mode changes with `npm --prefix frontend run test -- WorkflowWatchUi WorkflowWorkspace WorkflowWorkspaceShell`, `npm --prefix frontend run test -- WorkflowWatchUi WorkflowWorkspace AutomationPage DataReadsHistoryTable`, and `npm --prefix frontend run build`.
 
 ## Next Steps

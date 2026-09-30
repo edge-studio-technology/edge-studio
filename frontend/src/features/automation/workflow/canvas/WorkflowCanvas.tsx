@@ -164,6 +164,7 @@ function WorkflowBlockCard({
   return (
     <div
       className={cx(blockBaseClass, presentation.className, selected && selectedBlockClass)}
+      data-workflow-block-id={block.id}
       onClick={onSelect}
       role="button"
       tabIndex={0}

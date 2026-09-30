@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
 import { InputField } from "../../../components/ui/InputField";
@@ -360,6 +360,24 @@ export function WorkflowWorkspace({
     setSelectedBlockId(id);
   }
 
+  function handleSelectedBackdropPointerDown(event: PointerEvent<HTMLDivElement>) {
+    const backdrop = event.currentTarget;
+    const previousPointerEvents = backdrop.style.pointerEvents;
+    backdrop.style.pointerEvents = "none";
+    const target = document.elementFromPoint(event.clientX, event.clientY);
+    backdrop.style.pointerEvents = previousPointerEvents;
+
+    const blockElement = target instanceof Element ? target.closest<HTMLElement>("[data-workflow-block-id]") : null;
+    const blockId = blockElement?.dataset.workflowBlockId;
+    if (blockId && canvasBlocks.some((block) => block.id === blockId)) {
+      event.preventDefault();
+      selectCanvasBlock(blockId);
+      return;
+    }
+
+    closeSelectedSheet();
+  }
+
   const workflowNameError = !workflowName.trim() ? "Workflow name is required." : undefined;
 
   function saveWorkflowNameIfNeeded(nextName = workflowName) {
@@ -590,9 +608,10 @@ export function WorkflowWorkspace({
       selectedBackdrop={
         draftSelected || selectedBlock ? (
           <div
-            className="bg-overlay-light h-full w-full"
+            className="bg-overlay-light pointer-events-auto h-full w-full"
             aria-hidden
-            onPointerDown={closeSelectedSheet}
+            data-testid="workflow-selected-backdrop"
+            onPointerDown={handleSelectedBackdropPointerDown}
             onContextMenu={(event) => {
               event.preventDefault();
               closeSelectedSheet();

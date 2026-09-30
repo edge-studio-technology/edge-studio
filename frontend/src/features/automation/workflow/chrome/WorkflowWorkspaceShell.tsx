@@ -118,7 +118,7 @@ export function WorkflowWorkspaceShell({
         <aside id="workflow-rail" data-open={railOpen} className={rightRailClass}>
           {rail}
         </aside>
-        {selectedBackdrop ? <div className="absolute inset-0 z-[60]">{selectedBackdrop}</div> : null}
+        {selectedBackdrop ? <div className="pointer-events-none absolute inset-0 z-[60]">{selectedBackdrop}</div> : null}
         {leftOverlay ? (
           <div className="top-pad-tight left-1/2 absolute z-[65] w-[min(320px,calc(100%-2*var(--spacing-pad-tight)))] -translate-x-1/2">
             {leftOverlay}

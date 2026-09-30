@@ -87,7 +87,7 @@ vi.mock("../../../../src/features/automation/workflow/canvas", async (importOrig
         <span>selected-block-{props.selectedBlockId || "none"}</span>
         {props.blocks.map((block) => (
           <div key={block.id}>
-            <button type="button" onClick={() => props.onSelectBlock(block.id)}>
+            <button type="button" data-workflow-block-id={block.id} onClick={() => props.onSelectBlock(block.id)}>
               select-{block.type}-{block.id}
             </button>
             <button type="button" onClick={() => props.onMoveBlock(block.id, -1)}>
@@ -526,6 +526,26 @@ describe("WorkflowWorkspace watch mode", () => {
 
     await user.click(screen.getByRole("button", { name: "select-manual_start-b-start" }));
     expect(screen.getByText("Start manually runtime")).toBeInTheDocument();
+  });
+
+  it("switches selected block details when clicking another block through the backdrop", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ blocks: [block(), block({ id: "b-wait", type: "wait", order: 1 })] }),
+      runs: [run()],
+    });
+
+    await user.click(screen.getByRole("button", { name: "select-manual_start-b-start" }));
+    expect(screen.getByText("Start manually runtime")).toBeInTheDocument();
+
+    const waitBlock = screen.getByRole("button", { name: "select-wait-b-wait" });
+    const elementFromPoint = vi.spyOn(document, "elementFromPoint").mockReturnValue(waitBlock);
+    fireEvent.pointerDown(screen.getByTestId("workflow-selected-backdrop"), { clientX: 1, clientY: 1 });
+
+    expect(screen.getByText("Wait runtime")).toBeInTheDocument();
+    expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument();
+    elementFromPoint.mockRestore();
   });
 
   it("shows Run controls in the rail instead of the block library", () => {
