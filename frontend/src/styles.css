@@ -296,19 +296,19 @@
   position: absolute;
   z-index: 2;
   width: 46px;
-  height: 7px;
+  height: 3px;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-stroke-success) 65%, transparent) 24%, var(--color-surface-always-white) 50%, color-mix(in srgb, var(--color-stroke-success) 65%, transparent) 76%, transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-stroke-success) 75%, transparent) 20%, var(--color-surface-always-white) 50%, color-mix(in srgb, var(--color-stroke-success) 75%, transparent) 80%, transparent);
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--color-stroke-success) 30%, transparent),
-    0 0 14px color-mix(in srgb, var(--color-stroke-success) 85%, transparent),
-    0 0 30px color-mix(in srgb, var(--color-stroke-success) 60%, transparent);
+    0 0 5px color-mix(in srgb, var(--color-stroke-success) 95%, transparent),
+    0 0 18px color-mix(in srgb, var(--color-stroke-success) 70%, transparent),
+    0 0 32px color-mix(in srgb, var(--color-stroke-success) 45%, transparent);
   pointer-events: none;
   transform: translate(-50%, -50%);
 }
 
 .workflow-replay-border-dot {
-  animation: workflow-replay-block-dot-clockwise 1.5s linear infinite;
+  animation: workflow-replay-block-dot-clockwise 1.5s cubic-bezier(0.45, 0, 0.25, 1) infinite;
 }
 
 .workflow-replay-border-dot-reverse {
@@ -321,7 +321,7 @@
 
 .workflow-replay-loop-track {
   position: absolute;
-  inset: -1px;
+  inset: -2px;
   z-index: 3;
   overflow: visible;
   border-radius: inherit;

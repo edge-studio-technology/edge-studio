@@ -845,9 +845,10 @@ describe("WatchRunHistory", () => {
   it("marks the collapsed selected run summary while replay is playing", () => {
     render(<WatchRunHistory runs={[run()]} selectedRunId="r1" replayPlaying onSelectRun={vi.fn()} />);
 
-    const selectedRunSummary = screen.getByTestId("collapsed-run-history");
-    expect(selectedRunSummary).toHaveClass("workflow-replay-selected-run");
-    expect(selectedRunSummary.querySelector(".workflow-replay-loop-dot")).not.toBeNull();
+    const selectedRunPanel = screen.getByText("Selected run").closest("section");
+    expect(selectedRunPanel).toHaveClass("workflow-replay-selected-run");
+    expect(selectedRunPanel?.querySelector(".workflow-replay-loop-track > .workflow-replay-loop-dot")).not.toBeNull();
+    expect(screen.getByTestId("collapsed-run-history")).not.toHaveClass("workflow-replay-selected-run");
   });
 
   it("opens compact summary field settings from collapsed mode", async () => {

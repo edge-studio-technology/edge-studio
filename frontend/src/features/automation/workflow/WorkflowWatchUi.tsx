@@ -1253,7 +1253,12 @@ export function WatchRunHistory({
   );
 
   return (
-    <Panel>
+    <Panel className={cx("relative", replayPlaying && selectedRun && "workflow-replay-selected-run")}>
+      {replayPlaying && selectedRun ? (
+        <span className="workflow-replay-loop-track" aria-hidden>
+          <span className="workflow-replay-loop-dot" />
+        </span>
+      ) : null}
       <div className={statusRowClass}>
         <div>
           <strong>{expanded ? "Historic runs" : "Selected run"}</strong>
@@ -1331,17 +1336,9 @@ export function WatchRunHistory({
         </div>
       ) : (
         <div
-          className={cx(
-            "rounded-soft border-stroke-secondary bg-surface-always-white relative grid gap-detail-next border p-detail-close",
-            replayPlaying && selectedRun && "workflow-replay-selected-run",
-          )}
+          className="rounded-soft border-stroke-secondary bg-surface-always-white relative grid gap-detail-next border p-detail-close"
           data-testid="collapsed-run-history"
         >
-          {replayPlaying && selectedRun ? (
-            <span className="workflow-replay-loop-track" aria-hidden>
-              <span className="workflow-replay-loop-dot" />
-            </span>
-          ) : null}
           <div className="gap-detail-next flex flex-wrap items-center justify-between">
             <div className="gap-detail-next flex flex-wrap items-center">
               <Button
