@@ -252,6 +252,7 @@ describe("WatchReplayControls", () => {
         selectedRun={undefined}
         latestRun={undefined}
         followLiveRuns={false}
+        message="No run selected"
         stepCount={0}
         currentStepIndex={-1}
         playing={false}
@@ -261,7 +262,7 @@ describe("WatchReplayControls", () => {
       />,
     );
 
-    expect(screen.getByText("No steps")).toBeInTheDocument();
+    expect(screen.getByText("No run selected")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Play" })).toBeDisabled();
   });
 
@@ -272,6 +273,7 @@ describe("WatchReplayControls", () => {
         selectedRun={run()}
         latestRun={run()}
         followLiveRuns={false}
+        message="Run completed - 2026-08-01 00:00:00 - 2026-08-01 00:00:01"
         stepCount={3}
         currentStepIndex={1}
         playing={false}
@@ -281,7 +283,7 @@ describe("WatchReplayControls", () => {
       />,
     );
 
-    expect(screen.getByText("2/3")).toBeInTheDocument();
+    expect(screen.getByText("Run completed - 2026-08-01 00:00:00 - 2026-08-01 00:00:01")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Previous step" }));
     expect(onSelectStep).toHaveBeenCalledWith(0);
     await userEvent.click(screen.getByRole("button", { name: "Next step" }));
@@ -295,6 +297,7 @@ describe("WatchReplayControls", () => {
         selectedRun={run()}
         latestRun={run()}
         followLiveRuns
+        message="Latest run completed - 2026-08-01 00:00:00 - 2026-08-01 00:00:01"
         stepCount={2}
         currentStepIndex={0}
         playing={false}
@@ -305,6 +308,7 @@ describe("WatchReplayControls", () => {
     );
 
     expect(screen.getByText("Play live")).toBeInTheDocument();
+    expect(screen.getByText("Latest run completed - 2026-08-01 00:00:00 - 2026-08-01 00:00:01")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Play" }));
     expect(onPlayingChange).toHaveBeenCalledWith(true);
     expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
@@ -317,6 +321,7 @@ describe("WatchReplayControls", () => {
         selectedRun={run({ id: "old-run" })}
         latestRun={run({ id: "new-run" })}
         followLiveRuns={false}
+        message="Run completed - 2026-08-01 00:00:00 - 2026-08-01 00:00:01"
         stepCount={2}
         currentStepIndex={0}
         playing={false}
@@ -330,7 +335,7 @@ describe("WatchReplayControls", () => {
     expect(screen.getByText("Latest run available. Turn on follow latest run to jump back.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("checkbox", { name: "Follow latest run" }));
     expect(onFollowLiveRunsChange).toHaveBeenCalledWith(true);
-    expect(screen.getByText("1.5s/block")).toBeInTheDocument();
+    expect(screen.getByText("Run completed - 2026-08-01 00:00:00 - 2026-08-01 00:00:01")).toBeInTheDocument();
   });
 });
 

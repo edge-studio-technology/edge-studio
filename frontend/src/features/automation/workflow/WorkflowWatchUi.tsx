@@ -158,6 +158,7 @@ export function WatchReplayControls({
   selectedRun,
   latestRun,
   followLiveRuns,
+  message,
   stepCount,
   currentStepIndex,
   playing,
@@ -168,6 +169,7 @@ export function WatchReplayControls({
   selectedRun: AutomationRun | undefined;
   latestRun: AutomationRun | undefined;
   followLiveRuns: boolean;
+  message: string;
   stepCount: number;
   currentStepIndex: number;
   playing: boolean;
@@ -176,23 +178,12 @@ export function WatchReplayControls({
   onSelectStep: (index: number) => void;
 }) {
   const hasSteps = Boolean(selectedRun && stepCount > 0);
-  const selectedStep = currentStepIndex >= 0 ? currentStepIndex + 1 : null;
-  const viewingLatestRun = Boolean(selectedRun && latestRun && selectedRun.id === latestRun.id);
   const latestRunAvailable = Boolean(latestRun && selectedRun && latestRun.id !== selectedRun.id);
   const title = followLiveRuns ? "Play live" : "Replay run";
   return (
-    <div className="gap-detail-next flex min-w-0 flex-wrap items-center justify-center">
-      <div className="gap-detail-tight flex min-w-0 items-center">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-detail-next">
+      <div className="gap-detail-next flex min-w-0 flex-wrap items-center">
         <strong className="type-callout text-text-primary truncate">{title}</strong>
-        <span className={mutedText}>1.5s/block</span>
-        <StatusPill status="neutral">
-          {hasSteps ? (selectedStep ? `${selectedStep}/${stepCount}` : `${stepCount}`) : viewingLatestRun ? "Waiting" : "No steps"}
-        </StatusPill>
-      </div>
-      {latestRunAvailable && !followLiveRuns ? (
-        <p className={`${mutedText} m-0`}>Latest run available. Turn on follow latest run to jump back.</p>
-      ) : null}
-      <div className="gap-detail-next flex items-center">
         <Button
           type="button"
           variant="secondary"
@@ -233,16 +224,22 @@ export function WatchReplayControls({
         >
           <ChevronRight aria-hidden className="size-4" />
         </Button>
+        <label className="gap-detail-tight type-meta text-text-secondary flex items-center">
+          <input
+            type="checkbox"
+            className="accent-current"
+            checked={followLiveRuns}
+            onChange={(event) => onFollowLiveRunsChange(event.currentTarget.checked)}
+          />
+          Follow latest run
+        </label>
       </div>
-      <label className="gap-detail-tight type-meta text-text-secondary flex items-center">
-        <input
-          type="checkbox"
-          className="accent-current"
-          checked={followLiveRuns}
-          onChange={(event) => onFollowLiveRunsChange(event.currentTarget.checked)}
-        />
-        Follow latest run
-      </label>
+      <p className="type-body-em text-text-primary m-0 min-w-0 truncate text-center">{message}</p>
+      <div className="min-w-0 justify-self-end">
+        {latestRunAvailable && !followLiveRuns ? (
+          <p className={`${mutedText} m-0 truncate`}>Latest run available. Turn on follow latest run to jump back.</p>
+        ) : null}
+      </div>
     </div>
   );
 }

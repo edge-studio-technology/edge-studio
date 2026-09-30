@@ -131,6 +131,7 @@ export function WorkflowWorkspace({
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [followLiveRuns, setFollowLiveRuns] = useState(true);
   const [replayPlaying, setReplayPlaying] = useState(false);
+  const [newLiveRunId, setNewLiveRunId] = useState<string | null>(null);
   const previousSelectedRunIdRef = useRef<string | null>(null);
   const [pendingEditAction, setPendingEditAction] = useState<(() => unknown | Promise<unknown>) | null>(null);
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
@@ -179,6 +180,11 @@ export function WorkflowWorkspace({
   const latestRun = mode === "watch" ? runs[0] : undefined;
   const replaySteps = mode === "watch" && selectedRun ? selectedRun.blocks.filter((block) => block.blockId) : [];
   const replayStepIndex = replaySteps.findIndex((block) => block.blockId === selectedBlockId);
+  const playbackMessage = playbackStatusMessage(selectedRun, {
+    followingLive: followLiveRuns,
+    isNewLiveRun: Boolean(selectedRun && selectedRun.id === newLiveRunId),
+    playing: replayPlaying,
+  });
   const runtimeByBlockId = mode === "watch" ? runtimeByBlockIdFromRun(selectedRun) : {};
   const workflowStateTitle = workflow.archived
     ? "Archived workflows cannot run."
@@ -237,6 +243,7 @@ export function WorkflowWorkspace({
     const previousRunId = previousSelectedRunIdRef.current;
     previousSelectedRunIdRef.current = selectedRun?.id ?? null;
     if (!selectedRun || !previousRunId || !followLiveRuns || selectedRun.id === previousRunId) return;
+    setNewLiveRunId(selectedRun.id);
     setSelectedBlockId("");
     setReplayPlaying(true);
   }, [followLiveRuns, mode, selectedRun?.id]);
@@ -561,6 +568,7 @@ export function WorkflowWorkspace({
             selectedRun={selectedRun}
             latestRun={latestRun}
             followLiveRuns={followLiveRuns}
+            message={playbackMessage}
             stepCount={replaySteps.length}
             currentStepIndex={replayStepIndex}
             playing={replayPlaying}
@@ -568,7 +576,7 @@ export function WorkflowWorkspace({
               setFollowLiveRuns(value);
               if (value && latestRun) {
                 setSelectedRunId(latestRun.id);
-                setReplayPlaying(true);
+                setReplayPlaying(false);
                 onSelectWatchRun(latestRun.id);
               } else {
                 setReplayPlaying(false);
@@ -768,4 +776,38 @@ export function WorkflowLoadingOverlay({ label }: { label: string }) {
       </div>
     </div>
   );
+}
+
+function playbackStatusMessage(
+  run: AutomationRun | undefined,
+  options: { followingLive: boolean; isNewLiveRun: boolean; playing: boolean },
+) {
+  if (!run) return "No run selected";
+  const started = formatPlaybackDateTime(run.startedAt);
+  const finished = run.finishedAt ? formatPlaybackDateTime(run.finishedAt) : null;
+
+  if (options.isNewLiveRun) {
+    if (options.playing || !finished) return `New run playing - ${started}`;
+    return `New run completed - ${started} - ${finished}`;
+  }
+
+  if (!options.followingLive) {
+    if (options.playing) return `Replaying run - ${started}`;
+    if (finished) return `Run completed - ${started} - ${finished}`;
+    return `Run selected - ${started}`;
+  }
+
+  if (finished) return `Latest run completed - ${started} - ${finished}`;
+  return `Latest run active - ${started}`;
+}
+
+function formatPlaybackDateTime(value: string) {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
