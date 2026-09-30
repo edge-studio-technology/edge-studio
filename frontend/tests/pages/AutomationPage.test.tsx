@@ -206,7 +206,7 @@ describe("AutomationPage", () => {
 
     expect(await screen.findByText(/Device System Data latest data/)).toBeInTheDocument();
     expect(
-      await screen.findByText("Latest run available. Turn on follow live runs to jump back."),
+      await screen.findByText("Latest run available. Turn on follow latest run to jump back."),
     ).toBeInTheDocument();
 
     unmount();
@@ -214,7 +214,7 @@ describe("AutomationPage", () => {
 
     expect(screen.getByText(/Device System Data latest data/)).toBeInTheDocument();
     expect(
-      await screen.findByText("Latest run available. Turn on follow live runs to jump back."),
+      await screen.findByText("Latest run available. Turn on follow latest run to jump back."),
     ).toBeInTheDocument();
     expect(screen.queryByText("Loading preview")).not.toBeInTheDocument();
   });

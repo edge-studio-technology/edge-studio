@@ -105,19 +105,14 @@ export function WatchRuntimeOverview({
   workflow,
   selectedRun,
   latestRun,
-  followLiveRuns,
   hasValidationErrors,
-  onFollowLiveRunsChange,
 }: {
   workflow: AutomationWorkflow;
   selectedRun: AutomationRun | undefined;
   latestRun: AutomationRun | undefined;
-  followLiveRuns: boolean;
   hasValidationErrors: boolean;
-  onFollowLiveRunsChange: (value: boolean) => void;
 }) {
   const viewingLatestRun = Boolean(selectedRun && latestRun && selectedRun.id === latestRun.id);
-  const latestRunAvailable = Boolean(latestRun && selectedRun && latestRun.id !== selectedRun.id);
   const selectedRunLabel = selectedRun
     ? viewingLatestRun
       ? selectedRun.status === "running"
@@ -156,49 +151,76 @@ export function WatchRuntimeOverview({
         )}
         {selectedRun?.error ? <p className={`${errorText} m-0`}>{selectedRun.error}</p> : null}
       </div>
-      <SwitchField
-        label="Follow live runs"
-        description="When enabled, the canvas follows the newest run automatically. Turn it off while inspecting history."
-        checked={followLiveRuns}
-        onChange={(event) => onFollowLiveRunsChange(event.currentTarget.checked)}
-      />
-      {latestRunAvailable && !followLiveRuns ? (
-        <p className={`${mutedText} m-0`}>Latest run available. Turn on follow live runs to jump back.</p>
-      ) : null}
     </WorkflowRailPanel>
   );
 }
 
 export function WatchReplayControls({
   selectedRun,
+  latestRun,
+  followLiveRuns,
   stepCount,
   currentStepIndex,
   playing,
+  stepDurationMs,
+  onFollowLiveRunsChange,
   onPlayingChange,
+  onStepDurationChange,
   onSelectStep,
 }: {
   selectedRun: AutomationRun | undefined;
+  latestRun: AutomationRun | undefined;
+  followLiveRuns: boolean;
   stepCount: number;
   currentStepIndex: number;
   playing: boolean;
+  stepDurationMs: number;
+  onFollowLiveRunsChange: (value: boolean) => void;
   onPlayingChange: (playing: boolean) => void;
+  onStepDurationChange: (value: number) => void;
   onSelectStep: (index: number) => void;
 }) {
   const hasSteps = Boolean(selectedRun && stepCount > 0);
   const selectedStep = currentStepIndex >= 0 ? currentStepIndex + 1 : null;
+  const viewingLatestRun = Boolean(selectedRun && latestRun && selectedRun.id === latestRun.id);
+  const latestRunAvailable = Boolean(latestRun && selectedRun && latestRun.id !== selectedRun.id);
+  const title = followLiveRuns ? "Play live" : "Replay run";
   return (
     <WorkflowRailPanel className={formGridClass}>
       <WorkflowRailHeader
-        title="Replay"
-        description="Step through the selected run at a fixed readable pace."
+        title={title}
+        description={followLiveRuns ? "Follow the latest run and play through its blocks." : "Step through the selected run at a fixed readable pace."}
       />
+      <SwitchField
+        label="Follow latest run"
+        description="New runs take focus automatically and play through their blocks."
+        checked={followLiveRuns}
+        onChange={(event) => onFollowLiveRunsChange(event.currentTarget.checked)}
+      />
+      {latestRunAvailable && !followLiveRuns ? (
+        <p className={`${mutedText} m-0`}>Latest run available. Turn on follow latest run to jump back.</p>
+      ) : null}
       <div className={statusRowClass}>
         <span className={mutedText}>Step</span>
         <StatusPill status="neutral">
-          {hasSteps ? (selectedStep ? `${selectedStep}/${stepCount}` : `${stepCount} steps`) : "No steps"}
+          {hasSteps ? (selectedStep ? `${selectedStep}/${stepCount}` : `${stepCount} steps`) : viewingLatestRun ? "Waiting" : "No steps"}
         </StatusPill>
       </div>
-      <div className="gap-detail-next grid grid-cols-3">
+      <label className="gap-detail-tight grid">
+        <span className={mutedText}>Step duration</span>
+        <select
+          className="border-stroke-secondary bg-surface-always-white rounded-loose h-9 border px-detail-next type-body text-text-primary"
+          value={stepDurationMs}
+          onChange={(event) => onStepDurationChange(Number(event.currentTarget.value))}
+        >
+          <option value={800}>0.8s</option>
+          <option value={1200}>1.2s</option>
+          <option value={2000}>2s</option>
+          <option value={3000}>3s</option>
+          <option value={5000}>5s</option>
+        </select>
+      </label>
+      <div className="gap-detail-next grid grid-cols-4">
         <Button
           type="button"
           variant="secondary"
@@ -210,12 +232,21 @@ export function WatchReplayControls({
         </Button>
         <Button
           type="button"
-          variant={playing ? "secondary" : "primary"}
+          variant="primary"
           size="sm"
-          disabled={!hasSteps}
-          onClick={() => onPlayingChange(!playing)}
+          disabled={!hasSteps || playing}
+          onClick={() => onPlayingChange(true)}
         >
-          {playing ? "Pause" : "Play"}
+          Play
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={!playing}
+          onClick={() => onPlayingChange(false)}
+        >
+          Pause
         </Button>
         <Button
           type="button"

@@ -250,10 +250,15 @@ describe("WatchReplayControls", () => {
     render(
       <WatchReplayControls
         selectedRun={undefined}
+        latestRun={undefined}
+        followLiveRuns={false}
         stepCount={0}
         currentStepIndex={-1}
         playing={false}
+        stepDurationMs={1200}
+        onFollowLiveRunsChange={vi.fn()}
         onPlayingChange={vi.fn()}
+        onStepDurationChange={vi.fn()}
         onSelectStep={vi.fn()}
       />,
     );
@@ -267,10 +272,15 @@ describe("WatchReplayControls", () => {
     render(
       <WatchReplayControls
         selectedRun={run()}
+        latestRun={run()}
+        followLiveRuns={false}
         stepCount={3}
         currentStepIndex={1}
         playing={false}
+        stepDurationMs={1200}
+        onFollowLiveRunsChange={vi.fn()}
         onPlayingChange={vi.fn()}
+        onStepDurationChange={vi.fn()}
         onSelectStep={onSelectStep}
       />,
     );
@@ -281,6 +291,57 @@ describe("WatchReplayControls", () => {
     await userEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(onSelectStep).toHaveBeenCalledWith(2);
   });
+
+  it("keeps play and pause as separate actions", async () => {
+    const onPlayingChange = vi.fn();
+    render(
+      <WatchReplayControls
+        selectedRun={run()}
+        latestRun={run()}
+        followLiveRuns
+        stepCount={2}
+        currentStepIndex={0}
+        playing={false}
+        stepDurationMs={1200}
+        onFollowLiveRunsChange={vi.fn()}
+        onPlayingChange={onPlayingChange}
+        onStepDurationChange={vi.fn()}
+        onSelectStep={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Play live")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Play" }));
+    expect(onPlayingChange).toHaveBeenCalledWith(true);
+    expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+  });
+
+  it("changes follow-live and step duration settings", async () => {
+    const onFollowLiveRunsChange = vi.fn();
+    const onStepDurationChange = vi.fn();
+    render(
+      <WatchReplayControls
+        selectedRun={run({ id: "old-run" })}
+        latestRun={run({ id: "new-run" })}
+        followLiveRuns={false}
+        stepCount={2}
+        currentStepIndex={0}
+        playing={false}
+        stepDurationMs={1200}
+        onFollowLiveRunsChange={onFollowLiveRunsChange}
+        onPlayingChange={vi.fn()}
+        onStepDurationChange={onStepDurationChange}
+        onSelectStep={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Replay run")).toBeInTheDocument();
+    expect(screen.getByText("Latest run available. Turn on follow latest run to jump back.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("switch", { name: "Follow latest run" }));
+    expect(onFollowLiveRunsChange).toHaveBeenCalledWith(true);
+    await userEvent.selectOptions(screen.getByLabelText("Step duration"), "2000");
+    expect(onStepDurationChange).toHaveBeenCalledWith(2000);
+  });
 });
 
 describe("WatchRuntimeOverview", () => {
@@ -290,9 +351,7 @@ describe("WatchRuntimeOverview", () => {
         workflow={workflow({ enabled: true })}
         selectedRun={run()}
         latestRun={run()}
-        followLiveRuns={true}
         hasValidationErrors={false}
-        onFollowLiveRunsChange={vi.fn()}
         {...props}
       />,
     );
@@ -316,23 +375,12 @@ describe("WatchRuntimeOverview", () => {
     expect(screen.getByText("Camera failed")).toBeInTheDocument();
   });
 
-  it("calls onFollowLiveRunsChange when the switch changes", async () => {
-    const onFollowLiveRunsChange = vi.fn();
-    renderOverview({ followLiveRuns: false, onFollowLiveRunsChange });
-    await userEvent.click(screen.getByRole("switch", { name: "Follow live runs" }));
-    expect(onFollowLiveRunsChange).toHaveBeenCalledWith(true);
-  });
-
   it("shows when the latest run is available while inspecting history", () => {
     renderOverview({
       selectedRun: run({ id: "old-run" }),
       latestRun: run({ id: "new-run" }),
-      followLiveRuns: false,
     });
     expect(screen.getByText("Viewing historic run")).toBeInTheDocument();
-    expect(
-      screen.getByText("Latest run available. Turn on follow live runs to jump back."),
-    ).toBeInTheDocument();
   });
 });
 

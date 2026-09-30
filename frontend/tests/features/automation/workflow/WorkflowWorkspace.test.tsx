@@ -532,7 +532,7 @@ describe("WorkflowWorkspace watch mode", () => {
     renderWorkspace({ mode: "watch", runs: [run()] });
     expect(screen.getByText("Run controls")).toBeInTheDocument();
     expect(screen.getByText("Runtime overview")).toBeInTheDocument();
-    expect(screen.getByText("Replay")).toBeInTheDocument();
+    expect(screen.getByText("Play live")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "add-wait" })).not.toBeInTheDocument();
   });
 
@@ -576,6 +576,26 @@ describe("WorkflowWorkspace watch mode", () => {
     await waitFor(() => expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument());
   });
 
+  it("pauses playback when the user selects another block", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ blocks: [block(), block({ id: "b-wait", type: "wait", order: 1 })] }),
+      runs: [run({
+        blocks: [
+          { id: "br-start", runId: "r1", workflowId: "w1", blockId: "b-start", order: 0, blockType: "manual_start", blockLabel: "Start", startedAt: "2026-08-01T00:00:00.000Z", finishedAt: "2026-08-01T00:00:00.100Z", status: "success", durationMs: 100, input: {}, output: {}, error: null },
+          { id: "br-wait", runId: "r1", workflowId: "w1", blockId: "b-wait", order: 1, blockType: "wait", blockLabel: "Wait", startedAt: "2026-08-01T00:00:00.100Z", finishedAt: "2026-08-01T00:00:00.600Z", status: "success", durationMs: 500, input: {}, output: {}, error: null },
+        ],
+      })],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    expect(screen.getByRole("button", { name: "Pause" })).not.toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "select-wait-b-wait" }));
+    expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+    expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument();
+  });
+
   it("turns off live follow when selecting a historic run and can jump back to latest", async () => {
     const onSelectWatchRun = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -586,10 +606,10 @@ describe("WorkflowWorkspace watch mode", () => {
     });
 
     await user.click(screen.getByRole("button", { name: /Older run/ }));
-    expect(screen.getByRole("switch", { name: "Follow live runs" })).not.toBeChecked();
+    expect(screen.getByRole("switch", { name: "Follow latest run" })).not.toBeChecked();
     expect(screen.getAllByText("Viewing historic run").length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole("switch", { name: "Follow live runs" }));
+    await user.click(screen.getByRole("switch", { name: "Follow latest run" }));
     expect(onSelectWatchRun).toHaveBeenLastCalledWith("latest");
     expect(screen.getByText("Viewing latest run")).toBeInTheDocument();
   });

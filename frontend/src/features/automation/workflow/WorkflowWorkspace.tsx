@@ -131,6 +131,8 @@ export function WorkflowWorkspace({
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [followLiveRuns, setFollowLiveRuns] = useState(true);
   const [replayPlaying, setReplayPlaying] = useState(false);
+  const [replayStepDurationMs, setReplayStepDurationMs] = useState(1200);
+  const previousSelectedRunIdRef = useRef<string | null>(null);
   const [pendingEditAction, setPendingEditAction] = useState<(() => unknown | Promise<unknown>) | null>(null);
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
   const startBlock = mainBlocks[0];
@@ -232,6 +234,15 @@ export function WorkflowWorkspace({
   }, [selectedRun?.id]);
 
   useEffect(() => {
+    if (mode !== "watch") return;
+    const previousRunId = previousSelectedRunIdRef.current;
+    previousSelectedRunIdRef.current = selectedRun?.id ?? null;
+    if (!selectedRun || !followLiveRuns || selectedRun.id === previousRunId) return;
+    setSelectedBlockId("");
+    setReplayPlaying(true);
+  }, [followLiveRuns, mode, selectedRun?.id]);
+
+  useEffect(() => {
     if (!replayPlaying || mode !== "watch" || replaySteps.length === 0) return;
     const timeout = window.setTimeout(() => {
       const currentIndex = replaySteps.findIndex((block) => block.blockId === selectedBlockId);
@@ -242,9 +253,9 @@ export function WorkflowWorkspace({
       }
       const nextBlockId = replaySteps[nextIndex].blockId;
       if (nextBlockId) setSelectedBlockId(nextBlockId);
-    }, 1200);
+    }, replayStepDurationMs);
     return () => window.clearTimeout(timeout);
-  }, [mode, replayPlaying, replaySteps, selectedBlockId]);
+  }, [mode, replayPlaying, replayStepDurationMs, replaySteps, selectedBlockId]);
 
   function selectReplayStep(index: number) {
     const blockId = replaySteps[index]?.blockId;
@@ -339,6 +350,7 @@ export function WorkflowWorkspace({
 
   function selectCanvasBlock(id: string) {
     if (id !== selectedBlockId && selectedBlock) flushSelectedInspector();
+    if (mode === "watch") setReplayPlaying(false);
     setSelectedBlockId(id);
   }
 
@@ -489,15 +501,7 @@ export function WorkflowWorkspace({
                 workflow={workflow}
                 selectedRun={selectedRun}
                 latestRun={latestRun}
-                followLiveRuns={followLiveRuns}
                 hasValidationErrors={hasValidationErrors}
-                onFollowLiveRunsChange={(value) => {
-                  setFollowLiveRuns(value);
-                  if (value && latestRun) {
-                    setSelectedRunId(latestRun.id);
-                    onSelectWatchRun(latestRun.id);
-                  }
-                }}
               />
               <WatchRunControls
                 workflow={workflow}
@@ -556,10 +560,24 @@ export function WorkflowWorkspace({
         mode === "watch" ? (
           <WatchReplayControls
             selectedRun={selectedRun}
+            latestRun={latestRun}
+            followLiveRuns={followLiveRuns}
             stepCount={replaySteps.length}
             currentStepIndex={replayStepIndex}
             playing={replayPlaying}
+            stepDurationMs={replayStepDurationMs}
+            onFollowLiveRunsChange={(value) => {
+              setFollowLiveRuns(value);
+              if (value && latestRun) {
+                setSelectedRunId(latestRun.id);
+                setReplayPlaying(true);
+                onSelectWatchRun(latestRun.id);
+              } else {
+                setReplayPlaying(false);
+              }
+            }}
             onPlayingChange={setReplayPlaying}
+            onStepDurationChange={setReplayStepDurationMs}
             onSelectStep={selectReplayStep}
           />
         ) : undefined

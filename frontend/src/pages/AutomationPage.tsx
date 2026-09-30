@@ -349,9 +349,7 @@ function WorkflowRailLoadingSkeleton({ mode }: { mode: "edit" | "watch" }) {
           workflow={loadingWorkflow}
           selectedRun={loadingSelectedRun}
           latestRun={loadingLatestRun}
-          followLiveRuns={false}
           hasValidationErrors={false}
-          onFollowLiveRunsChange={() => undefined}
         />
         <WatchRunControls
           workflow={loadingWorkflow}

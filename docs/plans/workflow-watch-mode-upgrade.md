@@ -85,6 +85,7 @@ Implemented:
 - Watch selected-block input summaries now show block-specific consumed/configured data, so inputs focus on what the block used and results focus on what the block produced.
 - Watch mode now has basic replay controls that step through selected-run blocks and can play them forward at a fixed readable pace.
 - Watch replay controls now sit on the left side of the canvas, with the selected-block backdrop rendered inside the workspace so the replay controls and focused block stay above it.
+- Watch playback now owns the follow-latest-run behavior, uses `Play live`/`Replay run` copy, offers a step-duration selector, and pauses when the user clicks a different block.
 
 Remaining:
 
