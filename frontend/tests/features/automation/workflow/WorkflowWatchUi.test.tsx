@@ -252,7 +252,7 @@ describe("WatchReplayControls", () => {
         selectedRun={undefined}
         latestRun={undefined}
         followLiveRuns={false}
-        message="No run selected"
+        message="No runs yet"
         stepCount={0}
         currentStepIndex={-1}
         playing={false}
@@ -262,8 +262,9 @@ describe("WatchReplayControls", () => {
       />,
     );
 
-    expect(screen.getByText("No run selected")).toBeInTheDocument();
+    expect(screen.getByText("No runs yet")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Play" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Follow latest run" })).toBeDisabled();
   });
 
   it("selects previous and next replay steps", async () => {
@@ -376,6 +377,12 @@ describe("WatchRuntimeOverview", () => {
       latestRun: run({ id: "new-run" }),
     });
     expect(screen.getByText("Viewing historic run")).toBeInTheDocument();
+  });
+
+  it("shows a distinct empty state when the workflow has never run", () => {
+    renderOverview({ selectedRun: undefined, latestRun: undefined });
+    expect(screen.getByText("No runs yet")).toBeInTheDocument();
+    expect(screen.getByText("Run the workflow to see runtime details here.")).toBeInTheDocument();
   });
 });
 
@@ -824,7 +831,9 @@ describe("WatchRunHistory", () => {
   it("shows an empty state with no runs", () => {
     render(<WatchRunHistory runs={[]} selectedRunId={null} onSelectRun={vi.fn()} />);
     expect(screen.getByText("No workflow runs recorded yet.")).toBeInTheDocument();
+    expect(screen.getByText("Run the workflow to inspect its results here.")).toBeInTheDocument();
     expect(screen.getByText("0 run(s)")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Expand history" })).toBeDisabled();
   });
 
   it("defaults to a collapsed selected-run navigator", () => {

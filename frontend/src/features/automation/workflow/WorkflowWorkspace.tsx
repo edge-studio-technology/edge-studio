@@ -841,7 +841,7 @@ function playbackStatusMessage(
   run: AutomationRun | undefined,
   options: { followingLive: boolean; isNewLiveRun: boolean; playing: boolean },
 ) {
-  if (!run) return "No run selected";
+  if (!run) return "No runs yet";
   const started = formatPlaybackDateTime(run.startedAt);
   const finished = run.finishedAt ? formatPlaybackDateTime(run.finishedAt) : null;
 

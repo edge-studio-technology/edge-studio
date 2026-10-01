@@ -118,7 +118,9 @@ export function WatchRuntimeOverview({
         ? "Following live run"
         : "Viewing latest run"
       : "Viewing historic run"
-    : "No run selected";
+    : latestRun
+      ? "No run selected"
+      : "No runs yet";
 
   return (
     <WorkflowRailPanel className={formGridClass}>
@@ -146,7 +148,9 @@ export function WatchRuntimeOverview({
             <RuntimeStat label="Duration" value={formatDuration(selectedRun.durationMs)} />
           </>
         ) : (
-          <p className={`${mutedText} m-0`}>Run the workflow or choose a recent run below.</p>
+          <p className={`${mutedText} m-0`}>
+            {latestRun ? "Choose a run from history below." : "Run the workflow to see runtime details here."}
+          </p>
         )}
         {selectedRun?.error ? <p className={`${errorText} m-0`}>{selectedRun.error}</p> : null}
       </div>
@@ -223,11 +227,12 @@ export function WatchReplayControls({
         >
           <ChevronRight aria-hidden className="size-4" />
         </Button>
-        <label className="gap-detail-tight type-meta text-text-primary flex cursor-pointer items-center">
+        <label className={`gap-detail-tight type-meta text-text-primary flex items-center ${latestRun ? "cursor-pointer" : "cursor-not-allowed"}`}>
           <input
             type="checkbox"
-            className="cursor-pointer accent-current"
+            className={latestRun ? "cursor-pointer accent-current" : "accent-current"}
             checked={followLiveRuns}
+            disabled={!latestRun}
             onChange={(event) => onFollowLiveRunsChange(event.currentTarget.checked)}
           />
           Follow latest run
@@ -1258,7 +1263,9 @@ export function WatchRunHistory({
           <p className={mutedText}>
             {expanded
               ? "Choose a run to visualize on the canvas, or open raw JSON for diagnostics."
-              : "Use older/newer to step through recent runs, or expand history to browse the table."}
+              : runs.length === 0
+                ? "Run the workflow to inspect its results here."
+                : "Use older/newer to step through recent runs, or expand history to browse the table."}
           </p>
         </div>
         <div className="gap-detail-next flex shrink-0 items-center justify-end">
@@ -1284,11 +1291,12 @@ export function WatchRunHistory({
               onOrderChange={setSummaryColumnOrder}
             />
           ) : null}
-          <Button
-            type="button"
-            variant="secondary"
-            size="xs"
-            iconStart={expanded ? <ChevronDown aria-hidden /> : <ChevronUp aria-hidden />}
+            <Button
+              type="button"
+              variant="secondary"
+              size="xs"
+              disabled={runs.length === 0}
+              iconStart={expanded ? <ChevronDown aria-hidden /> : <ChevronUp aria-hidden />}
             onClick={() => setExpanded((value) => !value)}
           >
             {expanded ? "Collapse" : "Expand history"}
