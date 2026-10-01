@@ -193,6 +193,12 @@ export function WorkflowWorkspace({
     isNewLiveRun: Boolean(selectedRun && selectedRun.id === newLiveRunId),
     playing: replayPlaying,
   });
+  const replayOverlayActive = Boolean(
+    mode === "watch" &&
+      replayPlaying &&
+      newLiveRunId &&
+      selectedRun?.id === newLiveRunId,
+  );
   const runtimeByBlockId = mode === "watch" ? runtimeByBlockIdFromRun(selectedRun) : {};
   const workflowStateTitle = workflow.archived
     ? "Archived workflows cannot run."
@@ -657,7 +663,13 @@ export function WorkflowWorkspace({
         ) : undefined
       }
       selectedBackdrop={
-        draftSelected || selectedBlock ? (
+        replayOverlayActive ? (
+          <div
+            className="bg-overlay-light pointer-events-none h-full w-full"
+            aria-hidden
+            data-testid="workflow-replay-backdrop"
+          />
+        ) : draftSelected || selectedBlock ? (
           <div
             className="bg-overlay-light pointer-events-auto h-full w-full"
             aria-hidden
