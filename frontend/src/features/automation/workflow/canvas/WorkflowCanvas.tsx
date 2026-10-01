@@ -176,6 +176,7 @@ function WorkflowBlockCard({
         presentation.className,
         selected && selectedBlockClass,
         replayActive && "workflow-replay-active-block",
+        replayActive && replayDirection === "counterclockwise" && "workflow-replay-active-block-reverse",
       )}
       data-workflow-block-id={block.id}
       onClick={onSelect}
@@ -185,15 +186,6 @@ function WorkflowBlockCard({
         if (event.key === "Enter" || event.key === " ") onSelect();
       }}
     >
-      {replayActive ? (
-        <span
-          className={cx(
-            "workflow-replay-border-dot",
-            replayDirection === "counterclockwise" && "workflow-replay-border-dot-reverse",
-          )}
-          aria-hidden
-        />
-      ) : null}
       <div className="gap-detail-next grid grid-cols-[minmax(0,1fr)]">
         <div className="gap-detail-next flex items-center justify-between">
           <span className="type-meta text-text-secondary uppercase">

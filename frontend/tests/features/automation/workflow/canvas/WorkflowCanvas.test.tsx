@@ -133,9 +133,7 @@ describe("WorkflowCanvas", () => {
     );
 
     const waitCard = screen.getByText("Wait").closest('[role="button"]');
-    expect(waitCard).toHaveClass("workflow-replay-active-block");
-    expect(waitCard?.querySelector(".workflow-replay-border-dot")).not.toBeNull();
-    expect(waitCard?.querySelector(".workflow-replay-border-dot-reverse")).not.toBeNull();
+    expect(waitCard).toHaveClass("workflow-replay-active-block", "workflow-replay-active-block-reverse");
   });
 
   it("selects a block via keyboard Enter", async () => {

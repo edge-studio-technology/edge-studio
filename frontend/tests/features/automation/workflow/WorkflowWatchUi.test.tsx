@@ -847,7 +847,6 @@ describe("WatchRunHistory", () => {
 
     const selectedRunPanel = screen.getByText("Selected run").closest("section");
     expect(selectedRunPanel).toHaveClass("workflow-replay-selected-run");
-    expect(selectedRunPanel?.querySelector(".workflow-replay-loop-track > .workflow-replay-loop-dot")).not.toBeNull();
     expect(screen.getByTestId("collapsed-run-history")).not.toHaveClass("workflow-replay-selected-run");
   });
 

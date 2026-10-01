@@ -1254,11 +1254,6 @@ export function WatchRunHistory({
 
   return (
     <Panel className={cx("relative", replayPlaying && selectedRun && "workflow-replay-selected-run")}>
-      {replayPlaying && selectedRun ? (
-        <span className="workflow-replay-loop-track" aria-hidden>
-          <span className="workflow-replay-loop-dot" />
-        </span>
-      ) : null}
       <div className={statusRowClass}>
         <div>
           <strong>{expanded ? "Historic runs" : "Selected run"}</strong>

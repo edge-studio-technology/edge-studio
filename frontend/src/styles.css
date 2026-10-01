@@ -212,120 +212,60 @@
   }
 }
 
-@keyframes workflow-replay-block-dot-clockwise {
-  0% {
-    top: 0;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(0deg);
+@keyframes workflow-replay-border-clockwise {
+  from {
+    transform: rotate(-90deg);
   }
-  25% {
-    top: 0;
-    left: 100%;
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  75% {
-    top: 100%;
-    left: 100%;
-    transform: translate(-50%, -50%) rotate(90deg);
-  }
-  100% {
-    top: 100%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(0deg);
+  to {
+    transform: rotate(90deg);
   }
 }
 
-@keyframes workflow-replay-block-dot-counterclockwise {
-  0% {
-    top: 0;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(0deg);
+@keyframes workflow-replay-border-counterclockwise {
+  from {
+    transform: rotate(-90deg);
   }
-  25% {
-    top: 0;
-    left: 0;
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  75% {
-    top: 100%;
-    left: 0;
-    transform: translate(-50%, -50%) rotate(90deg);
-  }
-  100% {
-    top: 100%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(0deg);
+  to {
+    transform: rotate(-270deg);
   }
 }
 
-@keyframes workflow-replay-loop-dot {
-  0% {
-    top: 0;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(0deg);
+@keyframes workflow-replay-border-loop {
+  from {
+    transform: rotate(0deg);
   }
-  12.5% {
-    top: 0;
-    left: 100%;
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  37.5% {
-    top: 100%;
-    left: 100%;
-    transform: translate(-50%, -50%) rotate(90deg);
-  }
-  62.5% {
-    top: 100%;
-    left: 0;
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  87.5% {
-    top: 0;
-    left: 0;
-    transform: translate(-50%, -50%) rotate(90deg);
-  }
-  100% {
-    top: 0;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(0deg);
+  to {
+    transform: rotate(360deg);
   }
 }
 
-.workflow-replay-border-dot,
-.workflow-replay-loop-dot {
-  position: absolute;
-  z-index: 2;
-  width: 46px;
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-stroke-success) 75%, transparent) 20%, var(--color-surface-always-white) 50%, color-mix(in srgb, var(--color-stroke-success) 75%, transparent) 80%, transparent);
-  box-shadow:
-    0 0 5px color-mix(in srgb, var(--color-stroke-success) 95%, transparent),
-    0 0 18px color-mix(in srgb, var(--color-stroke-success) 70%, transparent),
-    0 0 32px color-mix(in srgb, var(--color-stroke-success) 45%, transparent);
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-}
-
-.workflow-replay-border-dot {
-  animation: workflow-replay-block-dot-clockwise 1.5s cubic-bezier(0.45, 0, 0.25, 1) infinite;
-}
-
-.workflow-replay-border-dot-reverse {
-  animation-name: workflow-replay-block-dot-counterclockwise;
-}
-
-.workflow-replay-loop-dot {
-  animation: workflow-replay-loop-dot 1.5s linear infinite;
-}
-
-.workflow-replay-loop-track {
+.workflow-replay-active-block::after,
+.workflow-replay-selected-run::after {
+  content: "";
   position: absolute;
   inset: -2px;
-  z-index: 3;
-  overflow: visible;
+  z-index: 2;
   border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(from 0deg, transparent 0 70deg, color-mix(in srgb, var(--color-stroke-success) 65%, transparent) 82deg, var(--color-surface-always-white) 95deg, color-mix(in srgb, var(--color-stroke-success) 70%, transparent) 108deg, transparent 132deg 360deg);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-stroke-success) 75%, transparent));
   pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.workflow-replay-active-block::after {
+  animation: workflow-replay-border-clockwise 1.5s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+.workflow-replay-active-block-reverse::after {
+  animation-name: workflow-replay-border-counterclockwise;
+}
+
+.workflow-replay-selected-run::after {
+  animation: workflow-replay-border-loop 1.5s linear infinite;
 }
 
 .workflow-replay-active-block::before {
@@ -362,8 +302,8 @@
 @media (prefers-reduced-motion: reduce) {
   .onboarding-enter,
   .onboarding-enter-stagger > *,
-  .workflow-replay-border-dot,
-  .workflow-replay-loop-dot {
+  .workflow-replay-active-block::after,
+  .workflow-replay-selected-run::after {
     animation: none !important;
   }
 }
