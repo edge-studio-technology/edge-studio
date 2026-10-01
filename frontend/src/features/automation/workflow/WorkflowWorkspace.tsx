@@ -510,11 +510,12 @@ export function WorkflowWorkspace({
         mode === "edit" || workflow.archived || workflow.lastError ? (
           <>
             {mode === "edit" ? (
-              !workflow.enabled ? (
-                <Text.Body className={mutedText}>
-                  Paused while you edit. Resume when you want it to run.
-                </Text.Body>
-              ) : null
+              <Text.Body
+                className={`${mutedText} min-h-[1.2em] ${workflow.enabled ? "invisible" : ""}`}
+                aria-hidden={workflow.enabled}
+              >
+                Paused while you edit. Resume when you want it to run.
+              </Text.Body>
             ) : null}
             {workflow.archived && (
               <p className={mutedText}>
@@ -593,7 +594,7 @@ export function WorkflowWorkspace({
           blocks={canvasBlocks}
           sources={sources}
           addressBook={addressBook}
-          bottomOverlay={mode === "watch"}
+           bottomOverlay={mode === "watch" || mode === "edit"}
           selectedBlockId={selectedBlockId}
           replayActiveBlockId={replayPlaying ? selectedBlockId : undefined}
           validationByBlockId={validationByBlockId}

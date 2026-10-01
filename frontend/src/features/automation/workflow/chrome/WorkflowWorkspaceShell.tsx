@@ -8,14 +8,15 @@ import { cx } from "../../../../lib/cx";
 const shellClass =
   "@container border-stroke-primary bg-surface-always-white relative flex h-screen min-h-0 flex-col overflow-hidden border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";
 const topbarClass =
-  "border-stroke-secondary bg-surface-always-white pt-pad-relaxed px-pad-relaxed pb-pad-tight grid gap-detail-close border-b @4xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] @4xl:items-end";
+  "border-stroke-secondary bg-surface-always-white relative pt-pad-relaxed px-pad-relaxed pb-pad-tight grid gap-detail-close border-b @4xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] @4xl:items-end";
 /** Full-bleed canvas area. */
 const workspaceClass = "bg-surface-secondary relative min-h-0 flex-1 overflow-hidden";
 const canvasFrameClass = "h-full min-h-0";
 /** Pinned over the canvas when wide; a toggled drawer when narrow. */
 const rightRailClass =
   "z-30 absolute top-pad-tight bottom-pad-tight right-pad-relaxed w-[360px] max-w-[calc(100%-2*var(--spacing-pad-relaxed))] min-h-0 flex-col data-[open=false]:hidden flex @4xl:z-10 @4xl:max-w-none @4xl:data-[open=false]:flex";
-const centerActionsClass = "gap-detail-next flex flex-wrap items-center self-start @4xl:justify-self-center";
+const centerActionsClass =
+  "gap-detail-next flex flex-wrap items-center self-start @4xl:absolute @4xl:left-[calc(50%-180px)] @4xl:-translate-x-1/2";
 const rowActionsClass = "gap-detail-next flex flex-wrap items-center self-start @4xl:justify-self-end";
 
 export function WorkflowWorkspaceShell({
@@ -105,7 +106,7 @@ export function WorkflowWorkspaceShell({
         </div>
       )}
       {toolbar ? (
-        <div className="border-stroke-secondary bg-surface-primary px-pad-relaxed py-detail-tight border-b">
+         <div className="border-stroke-secondary bg-surface-primary px-pad-relaxed py-detail-tight border-b @4xl:pr-[calc(360px+var(--spacing-pad-relaxed))]">
           {toolbar}
         </div>
       ) : null}
