@@ -17,7 +17,8 @@ const rightRailClass =
   "z-30 absolute top-pad-tight bottom-pad-tight right-pad-relaxed w-[360px] max-w-[calc(100%-2*var(--spacing-pad-relaxed))] min-h-0 flex-col data-[open=false]:hidden flex @4xl:z-10 @4xl:max-w-none @4xl:data-[open=false]:flex";
 const centerActionsClass =
   "gap-detail-next flex flex-wrap items-center self-start @4xl:absolute @4xl:left-[calc(50%-180px)] @4xl:-translate-x-1/2";
-const rowActionsClass = "gap-detail-next flex flex-wrap items-center self-start @4xl:justify-self-end";
+const rowActionsClass =
+  "gap-detail-next flex flex-wrap items-center self-start @4xl:col-start-3 @4xl:justify-self-end";
 
 export function WorkflowWorkspaceShell({
   breadcrumbLabel,
@@ -81,7 +82,7 @@ export function WorkflowWorkspaceShell({
             {" > "}
             <strong className="text-text-primary">{breadcrumbLabel}</strong>
           </nav>
-          <div className="max-w-[360px]">{nameControl}</div>
+          <div className="flex min-h-[44px] max-w-[360px] items-center">{nameControl}</div>
         </div>
         {centerActions ? <div className={centerActionsClass}>{centerActions}</div> : <div />}
         <div className={cx("relative z-10", rowActionsClass)}>
@@ -100,13 +101,13 @@ export function WorkflowWorkspaceShell({
         </div>
       </div>
       {(statusStrip || notices) && (
-        <div className="border-stroke-secondary bg-surface-primary gap-detail-close px-pad-relaxed py-pad-tight grid border-b">
+         <div className="border-stroke-secondary bg-surface-primary gap-detail-close px-pad-relaxed py-pad-tight grid min-h-[48px] items-center border-b">
           {statusStrip}
           {notices}
         </div>
       )}
       {toolbar ? (
-         <div className="border-stroke-secondary bg-surface-primary px-pad-relaxed py-detail-tight border-b @4xl:pr-[calc(360px+var(--spacing-pad-relaxed))]">
+         <div className="border-stroke-secondary bg-surface-primary px-pad-relaxed py-detail-tight flex min-h-[48px] items-center border-b @4xl:pr-[calc(360px+var(--spacing-pad-relaxed))]">
           {toolbar}
         </div>
       ) : null}
