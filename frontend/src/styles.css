@@ -260,11 +260,11 @@
     from var(--workflow-replay-angle),
     transparent 0deg,
     transparent 250deg,
-    color-mix(in srgb, var(--color-stroke-success) 35%, transparent) 300deg,
-    color-mix(in srgb, var(--color-stroke-success) 80%, transparent) 340deg,
+    color-mix(in srgb, var(--workflow-replay-color) 35%, transparent) 300deg,
+    color-mix(in srgb, var(--workflow-replay-color) 80%, transparent) 340deg,
     var(--color-surface-always-white) 360deg
   );
-  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color-stroke-success) 80%, transparent));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--workflow-replay-color) 80%, transparent));
   pointer-events: none;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
@@ -276,28 +276,45 @@
   animation: workflow-replay-border-clockwise 1.5s linear forwards;
 }
 
+.workflow-replay-active-block {
+  --workflow-replay-color: var(--color-stroke-active);
+  border-color: var(--workflow-replay-color);
+  box-shadow:
+    0 0 0 1px var(--workflow-replay-color),
+    0 0 20px color-mix(in srgb, var(--workflow-replay-color) 22%, transparent);
+}
+
+.workflow-replay-active-block-success {
+  --workflow-replay-color: var(--color-stroke-success);
+}
+
+.workflow-replay-active-block-failed {
+  --workflow-replay-color: var(--color-stroke-error);
+}
+
+.workflow-replay-active-block-running {
+  --workflow-replay-color: #4f9cff;
+}
+
+.workflow-replay-active-block-skipped {
+  --workflow-replay-color: var(--color-grey-05);
+}
+
 .workflow-replay-active-block-reverse::after {
   animation-name: workflow-replay-border-counterclockwise;
   background: conic-gradient(
     from var(--workflow-replay-angle),
     var(--color-surface-always-white) 0deg,
-    color-mix(in srgb, var(--color-stroke-success) 80%, transparent) 20deg,
-    color-mix(in srgb, var(--color-stroke-success) 35%, transparent) 60deg,
+    color-mix(in srgb, var(--workflow-replay-color) 80%, transparent) 20deg,
+    color-mix(in srgb, var(--workflow-replay-color) 35%, transparent) 60deg,
     transparent 110deg,
     transparent 360deg
   );
 }
 
 .workflow-replay-active-block::before {
-  background: var(--color-stroke-success);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--color-stroke-success) 70%, transparent);
-}
-
-.workflow-replay-active-block {
-  border-color: var(--color-stroke-success);
-  box-shadow:
-    0 0 0 1px var(--color-stroke-success),
-    0 0 20px color-mix(in srgb, var(--color-stroke-success) 22%, transparent);
+  background: var(--workflow-replay-color);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--workflow-replay-color) 70%, transparent);
 }
 
 .table-column-option-moved {

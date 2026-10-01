@@ -126,6 +126,7 @@ describe("WorkflowCanvas", () => {
         addressBook={[]}
         selectedBlockId="b2"
         replayActiveBlockId="b2"
+        runtimeByBlockId={{ b2: { status: "failed", durationMs: 12 } }}
         onSelectBlock={() => {}}
         onMoveBlock={() => {}}
         onRemoveBlock={() => {}}
@@ -133,7 +134,11 @@ describe("WorkflowCanvas", () => {
     );
 
     const waitCard = screen.getByText("Wait").closest('[role="button"]');
-    expect(waitCard).toHaveClass("workflow-replay-active-block", "workflow-replay-active-block-reverse");
+    expect(waitCard).toHaveClass(
+      "workflow-replay-active-block",
+      "workflow-replay-active-block-failed",
+      "workflow-replay-active-block-reverse",
+    );
   });
 
   it("selects a block via keyboard Enter", async () => {

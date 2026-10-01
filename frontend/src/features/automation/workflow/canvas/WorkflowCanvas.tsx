@@ -178,6 +178,7 @@ function WorkflowBlockCard({
         presentation.className,
         selected && selectedBlockClass,
         replayActive && "workflow-replay-active-block",
+        replayActive && `workflow-replay-active-block-${runtime?.status ?? "neutral"}`,
         replayActive && replayDirection === "counterclockwise" && "workflow-replay-active-block-reverse",
       )}
       data-workflow-block-id={block.id}
