@@ -60,13 +60,12 @@ import {
 import {
   BlockHelpDisclosure,
   SelectedBlockSheet,
-  WorkflowStatusPill,
   WorkflowValidationPanel,
   errorText,
   isWorkflowValidationVisible,
   mutedText,
 } from "./workflowWorkspaceUi";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, Eye, Pencil } from "lucide-react";
 import { SpinnerAlt } from "../../../components/ui/SpinnerAlt";
 
 /** Edit/watch workspace for a persisted automation workflow. */
@@ -460,6 +459,30 @@ export function WorkflowWorkspace({
           </div>
         )
       }
+      centerActions={
+        <>
+          <Button
+            type="button"
+            variant={workflow.enabled ? "primary" : "secondary"}
+            disabled={busy || workflow.archived || (!workflow.enabled && hasValidationErrors)}
+            title={workflow.enabled ? "Pause workflow" : workflowStateTitle}
+            aria-pressed={workflow.enabled}
+            onClick={() => onUpdateWorkflow({ enabled: !workflow.enabled })}
+          >
+            {workflow.enabled ? "Enabled" : "Paused"}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={busy}
+            aria-label={mode === "watch" ? "Edit workflow" : "Watch workflow"}
+            title={mode === "watch" ? "Edit workflow" : "Watch workflow"}
+            onClick={() => onNavigateMode(mode === "watch" ? "edit" : "watch")}
+          >
+            {mode === "watch" ? <Pencil aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
+          </Button>
+        </>
+      }
       actions={
         <>
           <Button
@@ -471,36 +494,6 @@ export function WorkflowWorkspace({
           >
             Back
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => onNavigateMode(mode === "watch" ? "edit" : "watch")}
-          >
-            {mode === "watch" ? "Edit workflow" : "Watch workflow"}
-          </Button>
-          <WorkflowStatusPill workflow={workflow} />
-          {workflow.enabled ? (
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy || workflow.archived}
-              title={workflow.archived ? workflowStateTitle : "Pause workflow"}
-              onClick={() => onUpdateWorkflow({ enabled: false })}
-            >
-              Pause workflow
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy || workflow.archived || hasValidationErrors}
-              title={workflowStateTitle}
-              onClick={() => onUpdateWorkflow({ enabled: true })}
-            >
-              Resume workflow
-            </Button>
-          )}
         </>
       }
       notices={

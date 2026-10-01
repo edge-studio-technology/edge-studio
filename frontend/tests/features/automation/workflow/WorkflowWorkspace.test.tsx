@@ -289,13 +289,13 @@ describe("WorkflowWorkspace edit mode", () => {
     expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ name: "Front gate flow v2" });
   });
 
-  it("resumes a paused workflow via the Resume button", async () => {
+  it("resumes a paused workflow via the state toggle", async () => {
     const onUpdateWorkflow = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({ onUpdateWorkflow, workflow: workflow({ enabled: false }) });
 
     expect(screen.getByText("Paused while you edit. Resume when you want it to run.")).toBeInTheDocument();
-    const button = screen.getByRole("button", { name: "Resume workflow" });
+    const button = screen.getByRole("button", { name: "Paused" });
     expect(button).not.toBeDisabled();
     await user.click(button);
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: true });
@@ -306,7 +306,7 @@ describe("WorkflowWorkspace edit mode", () => {
       workflow: workflow({ enabled: false }),
       validation: { ok: false, errors: [{ code: "x", level: "error", message: "bad" }], warnings: [] },
     });
-    const button = screen.getByRole("button", { name: "Resume workflow" });
+    const button = screen.getByRole("button", { name: "Paused" });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("title", "Fix validation errors before activating.");
   });
@@ -584,7 +584,7 @@ describe("WorkflowWorkspace watch mode", () => {
       onUpdateWorkflow,
     });
 
-    await user.click(screen.getByRole("button", { name: "Pause workflow" }));
+    await user.click(screen.getByRole("button", { name: "Enabled" }));
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: false });
 
     rerender(
@@ -615,7 +615,7 @@ describe("WorkflowWorkspace watch mode", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole("button", { name: "Resume workflow" }));
+    await user.click(screen.getByRole("button", { name: "Paused" }));
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: true });
   });
 

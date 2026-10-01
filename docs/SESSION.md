@@ -34,7 +34,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Updated replay playback so pressing Play from the last run block restarts playback at the first block.
 - Changed Automation watch playback so follow-latest defaults off, manually enabling it jumps to the latest run without starting playback, and the toolbar title stays fixed as `Replay` to avoid shifting controls.
 - Added quiet watch-mode run polling so new runs can appear and auto-play when follow-latest is already enabled without showing the full workflow loading overlay.
-- Added header edit/watch mode switching and workflow pause/resume controls in watch mode, with explicit `Pause workflow` / `Resume workflow` labels to avoid conflicting with replay pause.
+- Redesigned workflow header controls so the center contains an `Enabled`/`Paused` toggle and icon-only edit/watch switch, while the right side keeps only Back.
 - Verified the Automation watch-mode changes with `npm --prefix frontend run test -- WorkflowWatchUi WorkflowWorkspace WorkflowWorkspaceShell`, `npm --prefix frontend run test -- WorkflowWatchUi WorkflowWorkspace AutomationPage DataReadsHistoryTable`, and `npm --prefix frontend run build`.
 
 ## Next Steps
