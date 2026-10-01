@@ -69,9 +69,11 @@ import { ArrowLeftIcon, Eye, Pencil } from "lucide-react";
 import { SpinnerAlt } from "../../../components/ui/SpinnerAlt";
 
 const workflowToggleBaseClass =
-  "h-10 gap-detail-next rounded-full px-detail-next type-body-em disabled:cursor-not-allowed disabled:opacity-60";
-const workflowToggleEnabledClass = `${workflowToggleBaseClass} border-stroke-active bg-surface-inverse text-text-inverse enabled:hover:bg-surface-inverse-hover`;
-const workflowTogglePausedClass = `${workflowToggleBaseClass} border-stroke-primary bg-surface-secondary text-text-primary enabled:hover:border-stroke-active`;
+  "group h-10 gap-detail-next rounded-full px-detail-next type-body-em disabled:cursor-not-allowed disabled:opacity-60";
+const workflowToggleEnabledClass = `${workflowToggleBaseClass} border-[#009966] bg-[#dcf7ec] text-[#006b49] enabled:hover:border-stroke-primary enabled:hover:bg-surface-secondary enabled:hover:text-text-primary`;
+const workflowTogglePausedClass = `${workflowToggleBaseClass} border-stroke-primary bg-surface-secondary text-text-primary enabled:hover:border-[#009966] enabled:hover:bg-[#dcf7ec] enabled:hover:text-[#006b49]`;
+const workflowToggleEnabledKnobClass = "block size-6 rounded-full bg-[#009966] shadow-sm transition-colors group-hover:bg-grey-04";
+const workflowTogglePausedKnobClass = "block size-6 rounded-full bg-grey-04 shadow-sm transition-colors group-hover:bg-[#009966]";
 
 /** Edit/watch workspace for a persisted automation workflow. */
 export function WorkflowWorkspace({
@@ -475,9 +477,9 @@ export function WorkflowWorkspace({
             aria-pressed={workflow.enabled}
             onClick={() => onUpdateWorkflow({ enabled: !workflow.enabled })}
           >
-            {!workflow.enabled ? <span className="block size-6 rounded-full bg-surface-always-white shadow-sm" aria-hidden /> : null}
+            {!workflow.enabled ? <span className={workflowTogglePausedKnobClass} aria-hidden /> : null}
             <span className="min-w-16 text-center">{workflow.enabled ? "Enabled" : "Paused"}</span>
-            {workflow.enabled ? <span className="bg-surface-secondary block size-6 rounded-full shadow-sm" aria-hidden /> : null}
+            {workflow.enabled ? <span className={workflowToggleEnabledKnobClass} aria-hidden /> : null}
           </Button>
           <Button
             type="button"
