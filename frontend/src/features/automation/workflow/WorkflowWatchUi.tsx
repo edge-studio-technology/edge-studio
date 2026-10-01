@@ -233,7 +233,7 @@ export function WatchReplayControls({
           Follow latest run
         </label>
       </div>
-      <p className="type-body-em text-text-primary m-0 min-w-0 truncate text-center @4xl:absolute @4xl:left-[calc(50%-180px)] @4xl:-translate-x-1/2 @4xl:w-max">{message}</p>
+      <p className="type-body-em text-text-primary m-0 min-w-0 truncate text-center @4xl:absolute @4xl:left-[calc(50%_-_180px)] @4xl:-translate-x-1/2 @4xl:w-max">{message}</p>
       <div className="min-w-0 justify-self-end">
         {latestRunAvailable && !followLiveRuns ? (
           <p className={`${mutedText} m-0 truncate`}>Latest run available. Turn on follow latest run to jump back.</p>
