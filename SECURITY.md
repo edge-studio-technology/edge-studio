@@ -44,6 +44,20 @@ Several of the findings are open as of this writing; the register entries say wh
 phase they are addressed. This is a prototype on a trusted LAN — treat the register, not this page,
 as the current state.
 
+## Default Network Exposure
+
+The default Compose installation publishes the HTTPS frontend on TCP `8080` and Minima peer-to-peer traffic on TCP `9003` on the host interfaces. Minima RPC on TCP `9005` is bound to `127.0.0.1`; keep that binding local. The backend and update-agent are accessed through the frontend proxy rather than separate host-published ports. Port values can be changed by installation configuration.
+
+The optional MQTT broker publishes TCP `1883` when enabled. This connection is not TLS-encrypted; keep it on a trusted network. Do not forward the web interface or MQTT broker through an internet-facing router. Minima peer traffic is distinct from administrative RPC access and does not justify exposing RPC, the Docker socket, or host helpers. Publishing a Docker port does not itself configure router port forwarding.
+
+The user-facing [Advanced networking guide](https://github.com/edge-studio-technology/edge-studio/wiki/Advanced-Networking) explains these defaults and the self-signed certificate warning. These details do not extend supported use beyond the trusted-LAN deployment described above.
+
+## Installer Checksum Limits
+
+The documented `sha256sum -c install.sh.sha256` check establishes that the downloaded installer matches the published checksum. The checksum is fetched from the manifests repository, but it is not a detached signature or an independently distributed trust anchor. An attacker able to replace both the installer and its checksum can pass this check. The installer remains the starting point of trust for the subsequent signature and runtime-bundle checks.
+
+The documented checksum URL tracks the current release; an installer from an older tag may therefore fail to match. Use the corresponding current release tag, inspect the script, and do not run it if the check fails. Neither a matching checksum nor pinning a tag removes the bootstrap trust limitation described in Guidelines.
+
 ## Reporting A Vulnerability
 
 Open a private security advisory or contact a maintainer directly. Include reproduction steps, affected version, and potential impact.

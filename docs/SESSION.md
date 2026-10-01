@@ -4,6 +4,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Published wiki commit `d7f4ca6` and confirmed the remote revision and rendered GitHub alerts on Hardware, Getting Started, Backup, and Advanced Networking pages. Updated the user wiki guidance for headings, GitHub alerts, first-file stamping, networking, checksum trust, CLI logs, and temporary manual backup/restore; repository security clarifications are on `chore/wiki-user-guidance`. Checked local wiki links, all 16 Bash blocks, diffs, and a synthetic SQLite/.env archive round trip. No application code changed; full app tests/builds and real-Pi recovery were not run.
+
 - Verified the merged #275 branch: `npm run check` passed 3,116 tests, coverage thresholds, type checks, and clean dependency audits; backend/frontend production builds and `docker compose config --quiet` passed. Fresh browser verification during review remained inconclusive because the isolated session rendered a blank page.
 
 - Merged current `dev` into #275 and resolved the changelog conflict by consolidating the #259 and #275 entries under the global `Unreleased` section at the user's request.

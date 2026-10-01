@@ -4,6 +4,13 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] chore/wiki-user-guidance
+
+### Changed
+
+- Clarified default network exposure and installer checksum limitations in the security policy and user wiki.
+- Updated wiki installation, first-proof, backup, and troubleshooting guidance with explicit commands and callouts.
+
 ## [Unreleased]
 
 ### Security
