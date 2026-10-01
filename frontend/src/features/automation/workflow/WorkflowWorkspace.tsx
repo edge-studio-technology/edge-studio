@@ -379,6 +379,7 @@ export function WorkflowWorkspace({
   }
 
   function closeSelectedSheet() {
+    if (mode === "watch") setReplayPlaying(false);
     if (draftSelected) {
       closeDraftBlockSheet();
       return;
