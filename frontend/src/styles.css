@@ -3,6 +3,12 @@
 @import "@fontsource/hanken-grotesk/latin-600.css";
 @import "@fontsource/azeret-mono/latin-400.css";
 
+@property --workflow-replay-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
 @theme {
   /* ESDS typography primitives */
   --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
@@ -214,28 +220,19 @@
 
 @keyframes workflow-replay-border-clockwise {
   from {
-    transform: rotate(-90deg);
+    --workflow-replay-angle: 0deg;
   }
   to {
-    transform: rotate(90deg);
+    --workflow-replay-angle: 360deg;
   }
 }
 
 @keyframes workflow-replay-border-counterclockwise {
   from {
-    transform: rotate(-90deg);
+    --workflow-replay-angle: 360deg;
   }
   to {
-    transform: rotate(-270deg);
-  }
-}
-
-@keyframes workflow-replay-border-loop {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
+    --workflow-replay-angle: 0deg;
   }
 }
 
@@ -247,8 +244,15 @@
   z-index: 2;
   border-radius: inherit;
   padding: 2px;
-  background: conic-gradient(from 0deg, transparent 0 70deg, color-mix(in srgb, var(--color-stroke-success) 65%, transparent) 82deg, var(--color-surface-always-white) 95deg, color-mix(in srgb, var(--color-stroke-success) 70%, transparent) 108deg, transparent 132deg 360deg);
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-stroke-success) 75%, transparent));
+  background: conic-gradient(
+    from var(--workflow-replay-angle),
+    transparent 0deg,
+    transparent 250deg,
+    color-mix(in srgb, var(--color-stroke-success) 35%, transparent) 300deg,
+    color-mix(in srgb, var(--color-stroke-success) 80%, transparent) 340deg,
+    var(--color-surface-always-white) 360deg
+  );
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color-stroke-success) 80%, transparent));
   pointer-events: none;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
@@ -257,15 +261,23 @@
 }
 
 .workflow-replay-active-block::after {
-  animation: workflow-replay-border-clockwise 1.5s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  animation: workflow-replay-border-clockwise 1.5s linear infinite;
 }
 
 .workflow-replay-active-block-reverse::after {
   animation-name: workflow-replay-border-counterclockwise;
+  background: conic-gradient(
+    from var(--workflow-replay-angle),
+    var(--color-surface-always-white) 0deg,
+    color-mix(in srgb, var(--color-stroke-success) 80%, transparent) 20deg,
+    color-mix(in srgb, var(--color-stroke-success) 35%, transparent) 60deg,
+    transparent 110deg,
+    transparent 360deg
+  );
 }
 
 .workflow-replay-selected-run::after {
-  animation: workflow-replay-border-loop 1.5s linear infinite;
+  animation: workflow-replay-border-clockwise 1.5s linear infinite;
 }
 
 .workflow-replay-active-block::before {
