@@ -137,6 +137,7 @@ export function WorkflowWorkspace({
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [followLiveRuns, setFollowLiveRuns] = useState(false);
   const [replayPlaying, setReplayPlaying] = useState(false);
+  const [replayHighlightBlockId, setReplayHighlightBlockId] = useState<string | undefined>();
   const [newLiveRunId, setNewLiveRunId] = useState<string | null>(null);
   const previousSelectedRunIdRef = useRef<string | null>(null);
   const suppressNextLiveAutoplayRef = useRef(false);
@@ -239,6 +240,17 @@ export function WorkflowWorkspace({
   useEffect(() => {
     if (mode !== "watch") setReplayPlaying(false);
   }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "watch" || !replayPlaying || !selectedBlockId) {
+      setReplayHighlightBlockId(undefined);
+      return;
+    }
+
+    setReplayHighlightBlockId(selectedBlockId);
+    const timeout = window.setTimeout(() => setReplayHighlightBlockId(undefined), 1500);
+    return () => window.clearTimeout(timeout);
+  }, [mode, replayPlaying, selectedBlockId]);
 
   useEffect(() => {
     setReplayPlaying(false);
@@ -596,7 +608,7 @@ export function WorkflowWorkspace({
           addressBook={addressBook}
            bottomOverlay={mode === "watch" || mode === "edit"}
           selectedBlockId={selectedBlockId}
-          replayActiveBlockId={replayPlaying ? selectedBlockId : undefined}
+           replayActiveBlockId={replayHighlightBlockId}
           validationByBlockId={validationByBlockId}
           runtimeByBlockId={runtimeByBlockId}
           onSelectBlock={selectCanvasBlock}
