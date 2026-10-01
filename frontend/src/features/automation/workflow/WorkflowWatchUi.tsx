@@ -27,7 +27,6 @@ import { ScrollArea } from "../../../components/ui/ScrollArea";
 import { formatLocalTime } from "../../../lib/time";
 import { useTableColumnVisibility } from "../../preferences/useTableColumnVisibility";
 import type { AutomationBlock, AutomationRun, AutomationWorkflow } from "../automationTypes";
-import { cx } from "../../../lib/cx";
 import { WorkflowRailHeader, WorkflowRailPanel } from "./chrome/WorkflowRail";
 import {
   blockLabel,
@@ -180,11 +179,10 @@ export function WatchReplayControls({
 }) {
   const hasSteps = Boolean(selectedRun && stepCount > 0);
   const latestRunAvailable = Boolean(latestRun && selectedRun && latestRun.id !== selectedRun.id);
-  const title = followLiveRuns ? "Play live" : "Replay run";
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-detail-next">
       <div className="gap-detail-next flex min-w-0 flex-wrap items-center">
-        <strong className="type-callout text-text-primary truncate">{title}</strong>
+        <strong className="type-callout text-text-primary w-20 shrink-0 truncate">Replay</strong>
         <Button
           type="button"
           variant="secondary"
@@ -225,10 +223,10 @@ export function WatchReplayControls({
         >
           <ChevronRight aria-hidden className="size-4" />
         </Button>
-        <label className="gap-detail-tight type-meta text-text-secondary flex items-center">
+        <label className="gap-detail-tight type-meta text-text-primary flex cursor-pointer items-center">
           <input
             type="checkbox"
-            className="accent-current"
+            className="cursor-pointer accent-current"
             checked={followLiveRuns}
             onChange={(event) => onFollowLiveRunsChange(event.currentTarget.checked)}
           />
@@ -1253,7 +1251,7 @@ export function WatchRunHistory({
   );
 
   return (
-    <Panel className={cx("relative", replayPlaying && selectedRun && "workflow-replay-selected-run")}>
+    <Panel>
       <div className={statusRowClass}>
         <div>
           <strong>{expanded ? "Historic runs" : "Selected run"}</strong>

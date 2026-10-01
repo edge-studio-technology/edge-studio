@@ -236,17 +236,7 @@
   }
 }
 
-@keyframes workflow-replay-border-loop {
-  from {
-    --workflow-replay-angle: 0deg;
-  }
-  to {
-    --workflow-replay-angle: 360deg;
-  }
-}
-
-.workflow-replay-active-block::after,
-.workflow-replay-selected-run::after {
+.workflow-replay-active-block::after {
   content: "";
   position: absolute;
   inset: -2px;
@@ -285,25 +275,16 @@
   );
 }
 
-.workflow-replay-selected-run::after {
-  animation: workflow-replay-border-loop 1.5s linear infinite;
-}
-
 .workflow-replay-active-block::before {
   background: var(--color-stroke-success);
   box-shadow: 0 0 14px color-mix(in srgb, var(--color-stroke-success) 70%, transparent);
 }
 
-.workflow-replay-active-block,
-.workflow-replay-selected-run {
+.workflow-replay-active-block {
   border-color: var(--color-stroke-success);
   box-shadow:
     0 0 0 1px var(--color-stroke-success),
     0 0 20px color-mix(in srgb, var(--color-stroke-success) 22%, transparent);
-}
-
-.workflow-replay-selected-run {
-  overflow: visible;
 }
 
 .table-column-option-moved {
@@ -323,8 +304,7 @@
 @media (prefers-reduced-motion: reduce) {
   .onboarding-enter,
   .onboarding-enter-stagger > *,
-  .workflow-replay-active-block::after,
-  .workflow-replay-selected-run::after {
+  .workflow-replay-active-block::after {
     animation: none !important;
   }
 }

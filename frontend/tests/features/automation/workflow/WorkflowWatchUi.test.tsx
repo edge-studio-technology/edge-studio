@@ -307,7 +307,7 @@ describe("WatchReplayControls", () => {
       />,
     );
 
-    expect(screen.getByText("Play live")).toBeInTheDocument();
+    expect(screen.getByText("Replay")).toBeInTheDocument();
     expect(screen.getByText("Latest run completed - 2026-08-01 00:00:00 - 2026-08-01 00:00:01")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Play" }));
     expect(onPlayingChange).toHaveBeenCalledWith(true);
@@ -331,7 +331,7 @@ describe("WatchReplayControls", () => {
       />,
     );
 
-    expect(screen.getByText("Replay run")).toBeInTheDocument();
+    expect(screen.getByText("Replay")).toBeInTheDocument();
     expect(screen.getByText("Latest run available. Turn on follow latest run to jump back.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("checkbox", { name: "Follow latest run" }));
     expect(onFollowLiveRunsChange).toHaveBeenCalledWith(true);
@@ -842,11 +842,11 @@ describe("WatchRunHistory", () => {
     expect(screen.getByText("Blocks")).toBeInTheDocument();
   });
 
-  it("marks the collapsed selected run summary while replay is playing", () => {
+  it("keeps the collapsed selected run summary unanimated while replay is playing", () => {
     render(<WatchRunHistory runs={[run()]} selectedRunId="r1" replayPlaying onSelectRun={vi.fn()} />);
 
     const selectedRunPanel = screen.getByText("Selected run").closest("section");
-    expect(selectedRunPanel).toHaveClass("workflow-replay-selected-run");
+    expect(selectedRunPanel).not.toHaveClass("workflow-replay-selected-run");
     expect(screen.getByTestId("collapsed-run-history")).not.toHaveClass("workflow-replay-selected-run");
   });
 

@@ -129,10 +129,11 @@ export function WorkflowWorkspace({
   const [payloadError, setPayloadError] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState(workflow.name);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  const [followLiveRuns, setFollowLiveRuns] = useState(true);
+  const [followLiveRuns, setFollowLiveRuns] = useState(false);
   const [replayPlaying, setReplayPlaying] = useState(false);
   const [newLiveRunId, setNewLiveRunId] = useState<string | null>(null);
   const previousSelectedRunIdRef = useRef<string | null>(null);
+  const suppressNextLiveAutoplayRef = useRef(false);
   const [pendingEditAction, setPendingEditAction] = useState<(() => unknown | Promise<unknown>) | null>(null);
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
   const startBlock = mainBlocks[0];
@@ -219,7 +220,6 @@ export function WorkflowWorkspace({
     }
     if (!selectedRunId && initialRunId && runs.some((run) => run.id === initialRunId)) {
       setSelectedRunId(initialRunId);
-      setFollowLiveRuns(initialRunId === runs[0].id);
       return;
     }
     if (followLiveRuns) {
@@ -243,6 +243,10 @@ export function WorkflowWorkspace({
     const previousRunId = previousSelectedRunIdRef.current;
     previousSelectedRunIdRef.current = selectedRun?.id ?? null;
     if (!selectedRun || !previousRunId || !followLiveRuns || selectedRun.id === previousRunId) return;
+    if (suppressNextLiveAutoplayRef.current) {
+      suppressNextLiveAutoplayRef.current = false;
+      return;
+    }
     setNewLiveRunId(selectedRun.id);
     setSelectedBlockId("");
     setReplayPlaying(true);
@@ -608,6 +612,7 @@ export function WorkflowWorkspace({
             onFollowLiveRunsChange={(value) => {
               setFollowLiveRuns(value);
               if (value && latestRun) {
+                suppressNextLiveAutoplayRef.current = true;
                 setSelectedRunId(latestRun.id);
                 setReplayPlaying(false);
                 onSelectWatchRun(latestRun.id);

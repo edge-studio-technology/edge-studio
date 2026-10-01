@@ -552,7 +552,7 @@ describe("WorkflowWorkspace watch mode", () => {
     renderWorkspace({ mode: "watch", runs: [run()] });
     expect(screen.getByText("Run controls")).toBeInTheDocument();
     expect(screen.getByText("Runtime overview")).toBeInTheDocument();
-    expect(screen.getByText("Play live")).toBeInTheDocument();
+    expect(screen.getByText("Replay")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "add-wait" })).not.toBeInTheDocument();
   });
 
@@ -650,5 +650,20 @@ describe("WorkflowWorkspace watch mode", () => {
     await user.click(screen.getByRole("checkbox", { name: "Follow latest run" }));
     expect(onSelectWatchRun).toHaveBeenLastCalledWith("latest");
     expect(screen.getByText("Viewing latest run")).toBeInTheDocument();
+  });
+
+  it("does not start playback when follow latest run is turned on manually", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ blocks: [block(), block({ id: "b-wait", type: "wait", order: 1 })] }),
+      runs: [run({ id: "latest" }), run({ id: "historic" })],
+    });
+
+    await user.click(screen.getByRole("button", { name: /Older run/ }));
+    await user.click(screen.getByRole("checkbox", { name: "Follow latest run" }));
+
+    expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+    expect(screen.getByText("selected-block-none")).toBeInTheDocument();
   });
 });

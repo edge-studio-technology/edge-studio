@@ -32,6 +32,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Upgraded Automation watch-mode block debugging with domain-aware input/result summaries, replay controls, canvas focus layering, a toolbar above the canvas, centered run-status messaging, direct block-to-block detail switching through the overlay, no auto-play for the already-loaded latest run, and pause-on-manual-block-selection behavior.
 - Added replay animations for Automation watch playback: a glowing border-worm travels from the active block's top midpoint to bottom midpoint over the 1.5-second step interval, alternates direction by block order, and loops around the selected-run summary's outer border while replay is playing.
 - Updated replay playback so pressing Play from the last run block restarts playback at the first block.
+- Changed Automation watch playback so follow-latest defaults off, manually enabling it jumps to the latest run without starting playback, and the toolbar title stays fixed as `Replay` to avoid shifting controls.
 - Verified the Automation watch-mode changes with `npm --prefix frontend run test -- WorkflowWatchUi WorkflowWorkspace WorkflowWorkspaceShell`, `npm --prefix frontend run test -- WorkflowWatchUi WorkflowWorkspace AutomationPage DataReadsHistoryTable`, and `npm --prefix frontend run build`.
 
 ## Next Steps
