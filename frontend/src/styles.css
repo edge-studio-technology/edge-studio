@@ -260,7 +260,7 @@
 }
 
 .workflow-replay-active-block::after {
-  animation: workflow-replay-border-clockwise 1.5s linear infinite;
+  animation: workflow-replay-border-clockwise 1.5s linear forwards;
 }
 
 .workflow-replay-active-block-reverse::after {
