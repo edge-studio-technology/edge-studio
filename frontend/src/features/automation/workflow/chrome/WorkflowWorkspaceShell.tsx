@@ -16,7 +16,7 @@ const canvasFrameClass = "h-full min-h-0";
 const rightRailClass =
   "z-30 absolute top-pad-tight bottom-pad-tight right-pad-relaxed w-[360px] max-w-[calc(100%-2*var(--spacing-pad-relaxed))] min-h-0 flex-col data-[open=false]:hidden flex @4xl:z-10 @4xl:max-w-none @4xl:data-[open=false]:flex";
 const centerActionsClass =
-  "gap-detail-next flex flex-wrap items-center self-start @4xl:absolute @4xl:left-[calc(50%-180px)] @4xl:-translate-x-1/2";
+  "gap-detail-next flex flex-wrap items-center self-center @4xl:absolute @4xl:left-[calc(50%-180px)] @4xl:-translate-x-1/2";
 const rowActionsClass =
   "gap-detail-next flex flex-wrap items-center self-start @4xl:col-start-3 @4xl:justify-self-end";
 
@@ -107,7 +107,7 @@ export function WorkflowWorkspaceShell({
         </div>
       )}
       {toolbar ? (
-         <div className="border-stroke-secondary bg-surface-primary px-pad-relaxed py-detail-tight flex min-h-[48px] items-center border-b @4xl:pr-[calc(360px+var(--spacing-pad-relaxed))]">
+         <div className="border-stroke-secondary bg-surface-primary px-pad-relaxed py-detail-tight flex min-h-[48px] items-center border-b">
           {toolbar}
         </div>
       ) : null}

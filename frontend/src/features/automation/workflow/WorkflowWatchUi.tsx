@@ -180,7 +180,7 @@ export function WatchReplayControls({
   const hasSteps = Boolean(selectedRun && stepCount > 0);
   const latestRunAvailable = Boolean(latestRun && selectedRun && latestRun.id !== selectedRun.id);
   return (
-    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-detail-next">
+    <div className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-detail-next">
       <div className="gap-detail-next flex min-w-0 flex-wrap items-center">
         <strong className="type-callout text-text-primary w-20 shrink-0 truncate">Replay</strong>
         <Button
@@ -233,7 +233,7 @@ export function WatchReplayControls({
           Follow latest run
         </label>
       </div>
-      <p className="type-body-em text-text-primary m-0 min-w-0 truncate text-center">{message}</p>
+      <p className="type-body-em text-text-primary m-0 min-w-0 truncate text-center @4xl:absolute @4xl:left-[calc(50%-180px)] @4xl:-translate-x-1/2 @4xl:w-max">{message}</p>
       <div className="min-w-0 justify-self-end">
         {latestRunAvailable && !followLiveRuns ? (
           <p className={`${mutedText} m-0 truncate`}>Latest run available. Turn on follow latest run to jump back.</p>
