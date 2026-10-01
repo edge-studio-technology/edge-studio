@@ -648,7 +648,7 @@ describe("WorkflowWorkspace watch mode", () => {
     expect(screen.getAllByText("Viewing historic run").length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("checkbox", { name: "Follow latest run" }));
-    expect(onSelectWatchRun).toHaveBeenLastCalledWith("latest");
+    expect(onSelectWatchRun).not.toHaveBeenCalledWith("latest");
     expect(screen.getByText("Viewing latest run")).toBeInTheDocument();
   });
 

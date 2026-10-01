@@ -458,16 +458,13 @@ export function AutomationPage() {
 
   useEffect(() => {
     if (flow.mode !== "watch") return;
-    const selectedRun = workspaceRuns.find((run) => run.id === flowRunId) ?? workspaceRuns[0];
-    const shouldPoll = selectedRun?.status === "running" || workspaceRuns[0]?.status === "running";
-    if (!shouldPoll) return;
+    if (!flowWorkflowId) return;
 
     const interval = window.setInterval(() => {
-      if (flowWorkflowId)
-        refreshWorkspace(flowWorkflowId).catch((err: Error) => setLoadError(err.message));
-    }, 2000);
+      refreshWorkspaceRuns(flowWorkflowId).catch((err: Error) => setLoadError(err.message));
+    }, 3000);
     return () => window.clearInterval(interval);
-  }, [flow.mode, flowRunId, flowWorkflowId, workspaceRuns]);
+  }, [flow.mode, flowWorkflowId]);
 
   async function refresh() {
     const [sourceResponse, workflowResponse, inboxResponse, addressBookResponse, walletResponse] =
@@ -524,6 +521,13 @@ export function AutomationPage() {
     } finally {
       setWorkspaceRefreshing(false);
     }
+  }
+
+  async function refreshWorkspaceRuns(workflowId: string) {
+    const runs = await listAutomationWorkflowRuns(workflowId, 10);
+    setWorkspaceRuns(runs.items);
+    setLoadError(null);
+    return runs.items;
   }
 
   async function runWorkflowAndSelectLatest(workflowId: string, payload?: unknown) {

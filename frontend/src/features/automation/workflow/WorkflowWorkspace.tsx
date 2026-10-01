@@ -615,7 +615,6 @@ export function WorkflowWorkspace({
                 suppressNextLiveAutoplayRef.current = true;
                 setSelectedRunId(latestRun.id);
                 setReplayPlaying(false);
-                onSelectWatchRun(latestRun.id);
               } else {
                 setReplayPlaying(false);
               }
