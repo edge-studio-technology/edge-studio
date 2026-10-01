@@ -70,8 +70,8 @@ import { SpinnerAlt } from "../../../components/ui/SpinnerAlt";
 
 const workflowToggleBaseClass =
   "group h-10 gap-detail-next rounded-full px-detail-next type-body-em disabled:cursor-not-allowed disabled:opacity-60";
-const workflowToggleEnabledClass = `${workflowToggleBaseClass} border-[#009966] bg-[#dcf7ec] text-[#006b49] enabled:hover:border-stroke-primary enabled:hover:bg-surface-secondary enabled:hover:text-text-primary`;
-const workflowTogglePausedClass = `${workflowToggleBaseClass} border-stroke-primary bg-surface-secondary text-text-primary enabled:hover:border-[#009966] enabled:hover:bg-[#dcf7ec] enabled:hover:text-[#006b49]`;
+const workflowToggleEnabledClass = `${workflowToggleBaseClass} !border-[#009966] !bg-[#dcf7ec] !text-[#006b49] enabled:hover:!border-stroke-primary enabled:hover:!bg-surface-secondary enabled:hover:!text-text-primary`;
+const workflowTogglePausedClass = `${workflowToggleBaseClass} !border-stroke-primary !bg-surface-secondary !text-text-primary enabled:hover:!border-[#009966] enabled:hover:!bg-[#dcf7ec] enabled:hover:!text-[#006b49]`;
 const workflowToggleEnabledKnobClass = "block size-6 rounded-full bg-[#009966] shadow-sm transition-colors group-hover:bg-grey-04";
 const workflowTogglePausedKnobClass = "block size-6 rounded-full bg-grey-04 shadow-sm transition-colors group-hover:bg-[#009966]";
 
