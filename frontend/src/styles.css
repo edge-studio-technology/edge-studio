@@ -223,7 +223,7 @@
     --workflow-replay-angle: 0deg;
   }
   to {
-    --workflow-replay-angle: 360deg;
+    --workflow-replay-angle: 180deg;
   }
 }
 
@@ -232,7 +232,16 @@
     --workflow-replay-angle: 360deg;
   }
   to {
+    --workflow-replay-angle: 180deg;
+  }
+}
+
+@keyframes workflow-replay-border-loop {
+  from {
     --workflow-replay-angle: 0deg;
+  }
+  to {
+    --workflow-replay-angle: 360deg;
   }
 }
 
@@ -277,7 +286,7 @@
 }
 
 .workflow-replay-selected-run::after {
-  animation: workflow-replay-border-clockwise 1.5s linear infinite;
+  animation: workflow-replay-border-loop 1.5s linear infinite;
 }
 
 .workflow-replay-active-block::before {
