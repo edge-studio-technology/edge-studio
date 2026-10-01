@@ -92,6 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automation watch replay controls and the focused block now stay above the selected-block backdrop by rendering that backdrop inside the workflow workspace.
 - Automation watch playback now sits in a toolbar above the canvas, uses compact icon controls with centered run-status messaging, quietly polls for new runs, defaults follow-latest off, allows direct block-to-block detail switching through the overlay, avoids auto-playing already-loaded runs, and pauses playback when the user manually selects another block.
 - Automation watch playback now restarts from the first block when Play is pressed at the end of a run and animates each active block with a 1.5-second glowing border-worm pass.
+- Automation workflow headers now include edit/watch mode switching and workflow pause/resume controls in watch mode.
 - The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; source and generated release Compose files apply the same values to the backend and network IPAM.
 - Tables now provide a cog-button column chooser with backend-saved visibility preferences.
 - Failed loads across Dashboard, Wallet, Devices, Workflows, Diagnostics, Minima, Integritas Connect, and Software update now show a calm in-content error state with Retry instead of a red alert banner.

@@ -471,20 +471,36 @@ export function WorkflowWorkspace({
           >
             Back
           </Button>
-          {mode === "edit" ? (
-            <>
-              <WorkflowStatusPill workflow={workflow} />
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={busy || workflow.archived || workflow.enabled || hasValidationErrors}
-                title={workflowStateTitle}
-                onClick={() => onUpdateWorkflow({ enabled: true })}
-              >
-                Resume
-              </Button>
-            </>
-          ) : null}
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => onNavigateMode(mode === "watch" ? "edit" : "watch")}
+          >
+            {mode === "watch" ? "Edit workflow" : "Watch workflow"}
+          </Button>
+          <WorkflowStatusPill workflow={workflow} />
+          {workflow.enabled ? (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy || workflow.archived}
+              title={workflow.archived ? workflowStateTitle : "Pause workflow"}
+              onClick={() => onUpdateWorkflow({ enabled: false })}
+            >
+              Pause workflow
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy || workflow.archived || hasValidationErrors}
+              title={workflowStateTitle}
+              onClick={() => onUpdateWorkflow({ enabled: true })}
+            >
+              Resume workflow
+            </Button>
+          )}
         </>
       }
       notices={

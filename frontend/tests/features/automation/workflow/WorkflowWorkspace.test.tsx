@@ -295,7 +295,7 @@ describe("WorkflowWorkspace edit mode", () => {
     renderWorkspace({ onUpdateWorkflow, workflow: workflow({ enabled: false }) });
 
     expect(screen.getByText("Paused while you edit. Resume when you want it to run.")).toBeInTheDocument();
-    const button = screen.getByRole("button", { name: "Resume" });
+    const button = screen.getByRole("button", { name: "Resume workflow" });
     expect(button).not.toBeDisabled();
     await user.click(button);
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: true });
@@ -306,9 +306,18 @@ describe("WorkflowWorkspace edit mode", () => {
       workflow: workflow({ enabled: false }),
       validation: { ok: false, errors: [{ code: "x", level: "error", message: "bad" }], warnings: [] },
     });
-    const button = screen.getByRole("button", { name: "Resume" });
+    const button = screen.getByRole("button", { name: "Resume workflow" });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("title", "Fix validation errors before activating.");
+  });
+
+  it("navigates from edit mode to watch mode from the header", async () => {
+    const onNavigateMode = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({ onNavigateMode });
+
+    await user.click(screen.getByRole("button", { name: "Watch workflow" }));
+    expect(onNavigateMode).toHaveBeenCalledWith("watch");
   });
 
   it("skips adding a block that needs a missing device", async () => {
@@ -554,6 +563,60 @@ describe("WorkflowWorkspace watch mode", () => {
     expect(screen.getByText("Runtime overview")).toBeInTheDocument();
     expect(screen.getByText("Replay")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "add-wait" })).not.toBeInTheDocument();
+  });
+
+  it("navigates from watch mode to edit mode from the header", async () => {
+    const onNavigateMode = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({ mode: "watch", runs: [run()], onNavigateMode });
+
+    await user.click(screen.getByRole("button", { name: "Edit workflow" }));
+    expect(onNavigateMode).toHaveBeenCalledWith("edit");
+  });
+
+  it("pauses and resumes the workflow from the watch header", async () => {
+    const onUpdateWorkflow = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const { rerender } = renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ enabled: true }),
+      runs: [run()],
+      onUpdateWorkflow,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Pause workflow" }));
+    expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: false });
+
+    rerender(
+      <MemoryRouter>
+        <WorkflowWorkspace
+          workflow={workflow({ enabled: false })}
+          runs={[run()]}
+          validation={null}
+          source={undefined}
+          sources={[]}
+          addressBook={[]}
+          walletStatus={null}
+          busy={false}
+          mode="watch"
+          onBack={vi.fn()}
+          onNavigateMode={vi.fn()}
+          onSelectWatchRun={vi.fn()}
+          onAddBlock={vi.fn()}
+          onReplaceStartBlock={vi.fn()}
+          onDeleteBlock={vi.fn()}
+          onUpdateBlock={vi.fn()}
+          onUpdateWorkflow={onUpdateWorkflow}
+          onReorderBlocks={vi.fn()}
+          onRunNow={vi.fn()}
+          onRunWithPayload={vi.fn()}
+          onCreateAddressBookEntry={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Resume workflow" }));
+    expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: true });
   });
 
   it("steps through selected run blocks with replay next", async () => {
