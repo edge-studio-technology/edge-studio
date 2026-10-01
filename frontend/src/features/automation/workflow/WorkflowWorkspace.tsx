@@ -195,7 +195,6 @@ export function WorkflowWorkspace({
   });
   const replayOverlayActive = Boolean(
     mode === "watch" &&
-      replayPlaying &&
       newLiveRunId &&
       selectedRun?.id === newLiveRunId,
   );
@@ -665,7 +664,7 @@ export function WorkflowWorkspace({
       selectedBackdrop={
         replayOverlayActive ? (
           <div
-            className="bg-overlay-light pointer-events-none h-full w-full"
+            className="workflow-replay-backdrop bg-overlay-light pointer-events-none h-full w-full"
             aria-hidden
             data-testid="workflow-replay-backdrop"
           />

@@ -236,6 +236,19 @@
   }
 }
 
+@keyframes workflow-replay-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.workflow-replay-backdrop {
+  animation: workflow-replay-backdrop-in 500ms ease-out both;
+}
+
 .workflow-replay-active-block::after {
   content: "";
   position: absolute;
@@ -304,6 +317,7 @@
 @media (prefers-reduced-motion: reduce) {
   .onboarding-enter,
   .onboarding-enter-stagger > *,
+  .workflow-replay-backdrop,
   .workflow-replay-active-block::after {
     animation: none !important;
   }
