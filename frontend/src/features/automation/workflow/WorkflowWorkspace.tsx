@@ -150,16 +150,56 @@ export function WorkflowWorkspace({
   const inspectorRef = useRef<PersistedBlockInspectorHandle>(null);
   const lastSubmittedNameRef = useRef(workflow.name);
   const editPauseConfirmedRef = useRef(false);
+  const selectedRun =
+    mode === "watch" ? (runs.find((run) => run.id === selectedRunId) ?? runs[0]) : undefined;
+  const latestRun = mode === "watch" ? runs[0] : undefined;
+  const persistedCanvasBlocks = mainBlocks.map((block) =>
+    automationBlockToCanvasBlock(block, workflow.blocks),
+  );
+  const historicalBlocks =
+    mode === "watch" && selectedRun
+      ? selectedRun.blocks
+          .filter(
+            (block) =>
+              block.blockId && !workflow.blocks.some((workflowBlock) => workflowBlock.id === block.blockId),
+          )
+          .map((block) => ({
+            id: block.blockId as string,
+            workflowId: workflow.id,
+            createdAt: block.startedAt,
+            updatedAt: block.finishedAt ?? block.startedAt,
+            type: block.blockType as AutomationBlockType,
+            config: {},
+            enabled: true,
+            order: block.order,
+            parentBlockId: null,
+            lastRunAt: block.finishedAt ?? block.startedAt,
+            lastError: block.error,
+          }))
+      : [];
+  const replayBlockOrder = new Map(
+    selectedRun?.blocks
+      .filter((block) => block.blockId)
+      .map((block) => [block.blockId as string, block.order]) ?? [],
+  );
+  const replayCanvasBlocks = [...persistedCanvasBlocks, ...historicalBlocks].sort(
+    (left, right) =>
+      (replayBlockOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+      (replayBlockOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+  );
   const selectedBlock = selectedBlockId
-    ? mainBlocks.find((block) => block.id === selectedBlockId)
+    ? mainBlocks.find((block) => block.id === selectedBlockId) ??
+      historicalBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
   const draftSelected = draftBlock && selectedBlockId === draftBlock.id ? draftBlock : null;
 
   // Saved workflow blocks, plus an unsaved Send payment draft while its options sheet is open.
-  const persistedCanvasBlocks = mainBlocks.map((block) =>
-    automationBlockToCanvasBlock(block, workflow.blocks),
-  );
-  const canvasBlocks = draftBlock ? [...persistedCanvasBlocks, draftBlock] : persistedCanvasBlocks;
+  const canvasBlocks =
+    mode === "watch"
+      ? replayCanvasBlocks
+      : draftBlock
+        ? [...persistedCanvasBlocks, draftBlock]
+        : persistedCanvasBlocks;
   const canAddRecordTriggerEvent = Boolean(
     startBlock &&
     (startBlock.type === "gpio_event_start" ||
@@ -183,9 +223,6 @@ export function WorkflowWorkspace({
         }
       : {}),
   };
-  const selectedRun =
-    mode === "watch" ? (runs.find((run) => run.id === selectedRunId) ?? runs[0]) : undefined;
-  const latestRun = mode === "watch" ? runs[0] : undefined;
   const replaySteps = mode === "watch" && selectedRun ? selectedRun.blocks.filter((block) => block.blockId) : [];
   const replayStepIndex = replaySteps.findIndex((block) => block.blockId === selectedBlockId);
   const playbackMessage = playbackStatusMessage(selectedRun, {
@@ -210,8 +247,12 @@ export function WorkflowWorkspace({
   useEffect(() => {
     if (!selectedBlockId) return;
     if (draftBlock?.id === selectedBlockId) return;
+    if (mode === "watch") {
+      if (!replayCanvasBlocks.some((block) => block.id === selectedBlockId)) setSelectedBlockId("");
+      return;
+    }
     if (!mainBlocks.some((block) => block.id === selectedBlockId)) setSelectedBlockId("");
-  }, [mainBlocks, draftBlock, selectedBlockId]);
+  }, [mainBlocks, mode, replayCanvasBlocks, draftBlock, selectedBlockId]);
 
   // Sync local name when switching workflows only — avoid clobbering in-progress typing after auto-save.
   useEffect(() => {
