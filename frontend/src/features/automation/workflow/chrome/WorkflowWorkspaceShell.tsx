@@ -6,7 +6,7 @@ import { cx } from "../../../../lib/cx";
 
 /** Container: the rail pins at `@4xl` and becomes a drawer below it. */
 const shellClass =
-  "@container border-stroke-primary bg-surface-always-white relative flex h-screen min-h-0 flex-col overflow-hidden border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";
+  "@container [--workflow-rail:360px] [--workflow-center-shift:calc((var(--workflow-rail)_+_var(--spacing-pad-tight))_/_2)] border-stroke-primary bg-surface-always-white relative flex h-screen min-h-0 flex-col overflow-hidden border shadow-[0_24px_60px_rgba(0,0,0,0.12)]";
 const topbarClass =
   "border-stroke-secondary bg-surface-always-white relative pt-pad-relaxed px-pad-relaxed pb-pad-tight grid gap-detail-close border-b @4xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] @4xl:items-end";
 /** Full-bleed canvas area. */
@@ -14,9 +14,9 @@ const workspaceClass = "bg-surface-secondary relative min-h-0 flex-1 overflow-hi
 const canvasFrameClass = "h-full min-h-0";
 /** Pinned over the canvas when wide; a toggled drawer when narrow. */
 const rightRailClass =
-  "z-30 absolute top-pad-tight bottom-pad-tight right-pad-relaxed w-[360px] max-w-[calc(100%-2*var(--spacing-pad-relaxed))] min-h-0 flex-col data-[open=false]:hidden flex @4xl:z-10 @4xl:max-w-none @4xl:data-[open=false]:flex";
+  "z-30 absolute top-pad-tight bottom-pad-tight right-pad-relaxed w-[var(--workflow-rail)] max-w-[calc(100%-2*var(--spacing-pad-relaxed))] min-h-0 flex-col data-[open=false]:hidden flex @4xl:z-10 @4xl:max-w-none @4xl:data-[open=false]:flex";
 const centerActionsClass =
-  "gap-detail-next flex flex-wrap items-center self-center @4xl:absolute @4xl:left-1/2 @4xl:-ml-[180px] @4xl:-translate-x-1/2";
+  "gap-detail-next flex flex-wrap items-center self-center @4xl:absolute @4xl:left-[calc(50%_-_var(--workflow-center-shift))] @4xl:-translate-x-1/2";
 const rowActionsClass =
   "gap-detail-next flex flex-wrap items-center self-start @4xl:col-start-3 @4xl:justify-self-end";
 
@@ -107,7 +107,7 @@ export function WorkflowWorkspaceShell({
         </div>
       )}
       {toolbar ? (
-         <div className="border-stroke-secondary bg-surface-primary px-pad-relaxed py-detail-tight flex min-h-[48px] items-center border-b">
+         <div className="border-stroke-secondary bg-surface-primary px-pad-relaxed py-detail-tight flex min-h-[48px] w-full items-center border-b">
           {toolbar}
         </div>
       ) : null}
@@ -132,7 +132,7 @@ export function WorkflowWorkspaceShell({
         ) : null}
         {selectedSheet}
         {bottom ? (
-          <div className="left-pad-tight bottom-pad-tight md:left-detail-near md:bottom-detail-near right-pad-tight @4xl:right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] absolute z-[65]">
+          <div className="left-pad-tight bottom-pad-tight md:left-detail-near md:bottom-detail-near right-pad-tight @4xl:right-[calc(var(--workflow-rail)_+_var(--spacing-pad-relaxed)_+_var(--spacing-pad-tight))] absolute z-[65]">
             {bottom}
           </div>
         ) : null}
