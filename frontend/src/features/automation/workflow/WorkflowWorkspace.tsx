@@ -46,6 +46,7 @@ import { WorkflowWorkspaceShell } from "./chrome/WorkflowWorkspaceShell";
 import { WorkflowBlockLibrary } from "./toolkit/WorkflowBlockLibrary";
 import {
   blockLabel,
+  blockRunBlockId,
   blockRunForBlock,
   canPersistSendTransactionConfig,
   createDraftBlock,
@@ -161,10 +162,11 @@ export function WorkflowWorkspace({
       ? selectedRun.blocks
           .filter(
             (block) =>
-              block.blockId && !workflow.blocks.some((workflowBlock) => workflowBlock.id === block.blockId),
+              blockRunBlockId(block) &&
+              !workflow.blocks.some((workflowBlock) => workflowBlock.id === blockRunBlockId(block)),
           )
           .map((block) => ({
-            id: block.blockId as string,
+            id: blockRunBlockId(block) as string,
             workflowId: workflow.id,
             createdAt: block.startedAt,
             updatedAt: block.finishedAt ?? block.startedAt,
@@ -179,8 +181,8 @@ export function WorkflowWorkspace({
       : [];
   const replayBlockOrder = new Map(
     selectedRun?.blocks
-      .filter((block) => block.blockId)
-      .map((block) => [block.blockId as string, block.order]) ?? [],
+      .filter((block) => blockRunBlockId(block))
+      .map((block) => [blockRunBlockId(block) as string, block.order]) ?? [],
   );
   const replayCanvasBlocks = [...persistedCanvasBlocks, ...historicalBlocks].sort(
     (left, right) =>
@@ -223,8 +225,11 @@ export function WorkflowWorkspace({
         }
       : {}),
   };
-  const replaySteps = mode === "watch" && selectedRun ? selectedRun.blocks.filter((block) => block.blockId) : [];
-  const replayStepIndex = replaySteps.findIndex((block) => block.blockId === selectedBlockId);
+  const replaySteps =
+    mode === "watch" && selectedRun
+      ? selectedRun.blocks.filter((block) => blockRunBlockId(block))
+      : [];
+  const replayStepIndex = replaySteps.findIndex((block) => blockRunBlockId(block) === selectedBlockId);
   const playbackMessage = playbackStatusMessage(selectedRun, {
     followingLive: followLiveRuns,
     isNewLiveRun: Boolean(selectedRun && selectedRun.id === newLiveRunId),
@@ -319,20 +324,20 @@ export function WorkflowWorkspace({
   useEffect(() => {
     if (!replayPlaying || mode !== "watch" || replaySteps.length === 0) return;
     const timeout = window.setTimeout(() => {
-      const currentIndex = replaySteps.findIndex((block) => block.blockId === selectedBlockId);
+      const currentIndex = replaySteps.findIndex((block) => blockRunBlockId(block) === selectedBlockId);
       const nextIndex = currentIndex < 0 ? 0 : currentIndex + 1;
       if (nextIndex >= replaySteps.length) {
         setReplayPlaying(false);
         return;
       }
-      const nextBlockId = replaySteps[nextIndex].blockId;
+      const nextBlockId = blockRunBlockId(replaySteps[nextIndex]);
       if (nextBlockId) setSelectedBlockId(nextBlockId);
     }, 1500);
     return () => window.clearTimeout(timeout);
   }, [mode, replayPlaying, replaySteps, selectedBlockId]);
 
   function selectReplayStep(index: number) {
-    const blockId = replaySteps[index]?.blockId;
+    const blockId = replaySteps[index] ? blockRunBlockId(replaySteps[index]) : null;
     if (!blockId) return;
     setReplayPlaying(false);
     setSelectedBlockId(blockId);
@@ -344,9 +349,9 @@ export function WorkflowWorkspace({
       return;
     }
 
-    const currentIndex = replaySteps.findIndex((block) => block.blockId === selectedBlockId);
+    const currentIndex = replaySteps.findIndex((block) => blockRunBlockId(block) === selectedBlockId);
     if (currentIndex < 0 || currentIndex >= replaySteps.length - 1) {
-      const firstBlockId = replaySteps[0]?.blockId;
+      const firstBlockId = replaySteps[0] ? blockRunBlockId(replaySteps[0]) : null;
       if (firstBlockId) setSelectedBlockId(firstBlockId);
     }
     setReplayPlaying(true);

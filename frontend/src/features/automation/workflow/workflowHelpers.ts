@@ -224,8 +224,9 @@ export function runtimeByBlockIdFromRun(
   const result: Record<string, WorkflowCanvasRuntimeState> = {};
   if (!run) return result;
   for (const block of run.blocks) {
-    if (!block.blockId) continue;
-    result[block.blockId] = {
+    const blockId = blockRunBlockId(block);
+    if (!blockId) continue;
+    result[blockId] = {
       status: block.status,
       durationMs: block.durationMs,
       error: block.error,
@@ -236,7 +237,17 @@ export function runtimeByBlockIdFromRun(
 
 export function blockRunForBlock(run: AutomationRun | undefined, blockId: string | null) {
   if (!run || !blockId) return null;
-  return run.blocks.find((block) => block.blockId === blockId) ?? null;
+  return run.blocks.find((block) => blockRunBlockId(block) === blockId) ?? null;
+}
+
+/** Some failed block-run records omit blockId but preserve it in error context. */
+export function blockRunBlockId(block: AutomationRun["blocks"][number]) {
+  if (block.blockId) return block.blockId;
+  if (!block.errorDetails || typeof block.errorDetails !== "object") return null;
+  const context = (block.errorDetails as { context?: unknown }).context;
+  if (!context || typeof context !== "object") return null;
+  const blockId = (context as { blockId?: unknown }).blockId;
+  return typeof blockId === "string" ? blockId : null;
 }
 
 export function diagnosticsLink(tab: "proofs" | "reads", id: string) {
