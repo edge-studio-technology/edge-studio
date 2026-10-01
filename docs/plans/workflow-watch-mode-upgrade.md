@@ -57,7 +57,7 @@ Initial estimate: 5-8 working days.
 Implemented:
 
 - Task 1 is documented: user expectations, state model, block states, selected-block detail requirements, recent-runs table requirements, and acceptance criteria.
-- Task 2 started with a watch-mode runtime overview in the rail.
+- Task 2 is implemented with a watch-mode runtime overview, live-follow behavior, and selected-run state handling.
 - Watch mode now shows workflow state, selected-run status, trigger, progress, duration, and run error summary before raw diagnostics.
 - Watch mode now has a `Follow live runs` switch. It follows the newest run by default, turns off when the user selects a historic run, and can jump back to the latest run.
 - Task 2.5 watch-mode UX cleanup: watch canvas cards no longer show edit/remove/move controls, the manual test payload is collapsed by default, the right rail scrolls independently, mobile rail toggle copy says `Watch controls`, and watch mode presents the workflow name as read-only title text instead of an input.
@@ -86,11 +86,12 @@ Implemented:
 - Watch mode now has basic replay controls that step through selected-run blocks and can play them forward at a fixed readable pace.
 - Watch replay controls now sit on the left side of the canvas, with the selected-block backdrop rendered inside the workspace so the replay controls and focused block stay above it.
 - Watch playback now sits in a thin toolbar row above the canvas, uses compact icon controls with a fixed 1.5-second step duration, does not auto-play the already-loaded latest run on entry, and pauses when the user clicks a different block.
+- Watch replay now animates the active block with a one-shot 1.5-second border-worm effect, uses runtime status colors, and keeps the live-run overlay visible until dismissed.
+- Historic replay now renders only the blocks recorded by the selected run, restores deleted blocks from run metadata, and recovers omitted block IDs from failed-block error context when available.
 
 Remaining:
 
-- Canvas replay is implemented as fixed-pace block selection; deeper animation polish is still pending.
-- Run-history/debugging flow is still at the existing recent-runs table plus raw details level.
+- No additional run-history redesign is planned for this pass beyond the recent-runs navigator/table and secondary raw details flow.
 - Browser QA against live workflow runs is still needed.
 
 ## Task 1: State Model And Acceptance Criteria

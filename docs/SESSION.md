@@ -32,6 +32,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Upgraded Automation watch-mode block debugging with domain-aware input/result summaries, replay controls, canvas focus layering, a toolbar above the canvas, centered run-status messaging, direct block-to-block detail switching through the overlay, no auto-play for the already-loaded latest run, and pause-on-manual-block-selection behavior.
 - Added replay animations for Automation watch playback: a glowing border-worm travels from the active block's top midpoint to bottom midpoint over the 1.5-second step interval, alternates direction by block order, and loops around the selected-run summary's outer border while replay is playing.
 - Updated replay playback so pressing Play from the last run block restarts playback at the first block.
+- Fixed historic replay to render only the selected run's recorded blocks, restore deleted blocks from run metadata, and recover missing block IDs from failed-block error context.
+- Added status-colored one-shot replay animation and persistent live-run focus overlay behavior.
 - Changed Automation watch playback so follow-latest defaults off, manually enabling it jumps to the latest run without starting playback, and the toolbar title stays fixed as `Replay` to avoid shifting controls.
 - Added quiet watch-mode run polling so new runs can appear and auto-play when follow-latest is already enabled without showing the full workflow loading overlay.
 - Redesigned workflow header controls so the center contains a pill-shaped `Enabled`/`Paused` toggle and icon-only edit/watch switch, while the right side keeps only Back.
@@ -44,6 +46,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Complete the manual container/Pi checks in `docs/plans/security/705-retention-redaction-budgets.md`, including existing-installation Docker log rotation.
 - Define the product lifecycle for preserved data-source reads and visible inbox items, covering configuration, export, proof-linked reads, quotas, and disk warnings.
 - Browser QA Automation watch mode playback/status copy and toolbar layout from screenshots or a local browser session.
+- Browser QA historic replay with edited workflows, including deleted blocks and failed records with omitted block IDs.
 
 ## Notes / Open Questions
 

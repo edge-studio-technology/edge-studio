@@ -92,6 +92,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automation watch replay controls and the focused block now stay above the selected-block backdrop by rendering that backdrop inside the workflow workspace.
 - Automation watch playback now sits in a toolbar above the canvas, uses compact icon controls with centered run-status messaging, quietly polls for new runs, defaults follow-latest off, allows direct block-to-block detail switching through the overlay, avoids auto-playing already-loaded runs, and pauses playback when the user manually selects another block.
 - Automation watch playback now restarts from the first block when Play is pressed at the end of a run and animates each active block with a 1.5-second glowing border-worm pass.
+- Automation watch historic replay now shows only the blocks recorded by the selected run, including deleted blocks reconstructed from historical run data.
+- Automation watch replay animation now follows each block's runtime status color and keeps the live-run focus overlay visible until dismissed.
 - Automation workflow headers now center a pill-shaped enabled/paused toggle and icon-only edit/watch mode switch, leaving Back as the right-side action.
 - The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; source and generated release Compose files apply the same values to the backend and network IPAM.
 - Tables now provide a cog-button column chooser with backend-saved visibility preferences.
