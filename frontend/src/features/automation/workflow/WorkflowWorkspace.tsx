@@ -68,6 +68,11 @@ import {
 import { ArrowLeftIcon, Eye, Pencil } from "lucide-react";
 import { SpinnerAlt } from "../../../components/ui/SpinnerAlt";
 
+const workflowToggleBaseClass =
+  "h-10 gap-detail-next rounded-full border-transparent px-detail-next type-body-em disabled:cursor-not-allowed disabled:opacity-60";
+const workflowToggleEnabledClass = `${workflowToggleBaseClass} bg-surface-inverse text-text-inverse enabled:hover:bg-surface-inverse-hover`;
+const workflowTogglePausedClass = `${workflowToggleBaseClass} bg-surface-secondary text-text-primary enabled:hover:border-stroke-primary`;
+
 /** Edit/watch workspace for a persisted automation workflow. */
 export function WorkflowWorkspace({
   workflow,
@@ -463,13 +468,15 @@ export function WorkflowWorkspace({
         <>
           <Button
             type="button"
-            variant={workflow.enabled ? "primary" : "secondary"}
+            variant="ghost"
+            className={workflow.enabled ? workflowToggleEnabledClass : workflowTogglePausedClass}
             disabled={busy || workflow.archived || (!workflow.enabled && hasValidationErrors)}
             title={workflow.enabled ? "Pause workflow" : workflowStateTitle}
             aria-pressed={workflow.enabled}
             onClick={() => onUpdateWorkflow({ enabled: !workflow.enabled })}
           >
-            {workflow.enabled ? "Enabled" : "Paused"}
+            <span className="min-w-16 text-center">{workflow.enabled ? "Enabled" : "Paused"}</span>
+            <span className="bg-surface-always-white block size-6 rounded-full" aria-hidden />
           </Button>
           <Button
             type="button"
