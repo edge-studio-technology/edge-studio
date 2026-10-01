@@ -179,16 +179,16 @@ export function WorkflowWorkspace({
             lastError: block.error,
           }))
       : [];
-  const replayBlockOrder = new Map(
-    selectedRun?.blocks
-      .filter((block) => blockRunBlockId(block))
-      .map((block) => [blockRunBlockId(block) as string, block.order]) ?? [],
-  );
-  const replayCanvasBlocks = [...persistedCanvasBlocks, ...historicalBlocks].sort(
-    (left, right) =>
-      (replayBlockOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
-      (replayBlockOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER),
-  );
+  const historicalBlockById = new Map(historicalBlocks.map((block) => [block.id, block]));
+  const replayCanvasBlocks = selectedRun && selectedRun.blocks.length > 0
+    ? selectedRun.blocks.flatMap((runBlock) => {
+        const blockId = blockRunBlockId(runBlock);
+        if (!blockId) return [];
+        const currentBlock = persistedCanvasBlocks.find((block) => block.id === blockId);
+        const historicalBlock = historicalBlockById.get(blockId);
+        return currentBlock ? [currentBlock] : historicalBlock ? [historicalBlock] : [];
+      })
+    : persistedCanvasBlocks;
   const selectedBlock = selectedBlockId
     ? mainBlocks.find((block) => block.id === selectedBlockId) ??
       historicalBlocks.find((block) => block.id === selectedBlockId)
