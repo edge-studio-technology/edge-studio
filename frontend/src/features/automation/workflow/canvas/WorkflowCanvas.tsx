@@ -105,6 +105,7 @@ export function WorkflowCanvas({
               key={block.id}
               block={block}
               index={index}
+              mode={mode}
               sources={sources}
               addressBook={addressBook}
               selected={block.id === selectedBlockId}
@@ -132,6 +133,7 @@ export function WorkflowCanvas({
 function WorkflowBlockCard({
   block,
   index,
+  mode,
   sources,
   addressBook,
   selected,
@@ -150,6 +152,7 @@ function WorkflowBlockCard({
 }: {
   block: DraftWorkflowBlock;
   index: number;
+  mode: WorkflowCanvasMode;
   sources: DataSource[];
   addressBook: AddressBookEntry[];
   selected: boolean;
@@ -166,9 +169,8 @@ function WorkflowBlockCard({
   onMoveDown: () => void;
   onRemove: () => void;
 }) {
-  const presentation = blockPresentation(block, sources, addressBook, validationIssues, runtime);
+  const presentation = blockPresentation(block, sources, addressBook, validationIssues, runtime, mode);
   const showActions = !readOnly && !block.type.endsWith("_start");
-  const showFooter = presentation.badges.length > 0 || showActions;
   return (
     <div
       className={cx(
@@ -187,7 +189,7 @@ function WorkflowBlockCard({
       }}
     >
       <div className="gap-detail-next grid grid-cols-[minmax(0,1fr)]">
-        <div className="gap-detail-next flex items-center justify-between">
+        <div className="gap-detail-next flex min-h-8 items-center justify-between">
           <span className="type-meta text-text-secondary uppercase">
             {index === 0 ? "Start" : "Then"}
           </span>
@@ -225,46 +227,44 @@ function WorkflowBlockCard({
         />
       ))}
       {/* Footer: pills left, move up/down right */}
-      {showFooter && (
-        <div className="mt-detail-close gap-detail-next grid min-w-0">
-          <Divider />
-          <div className="gap-detail-next flex min-w-0 items-start">
-            <div className="min-w-0 flex-1">
-              <WorkflowBadges badges={presentation.badges} />
-            </div>
-            {showActions && (
-              <div className="gap-detail-next flex shrink-0 items-center">
-                <IconButton
-                  type="button"
-                  variant="secondary"
-                  size="compact"
-                  aria-label={actionLabels.up}
-                  disabled={!canMoveUp}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onMoveUp();
-                  }}
-                >
-                  <ChevronUp aria-hidden />
-                </IconButton>
-                <IconButton
-                  type="button"
-                  variant="secondary"
-                  size="compact"
-                  aria-label={actionLabels.down}
-                  disabled={!canMoveDown}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onMoveDown();
-                  }}
-                >
-                  <ChevronDown aria-hidden />
-                </IconButton>
-              </div>
-            )}
+      <div className="mt-detail-close gap-detail-next grid min-w-0">
+        <Divider />
+        <div className="gap-detail-next flex min-h-8 min-w-0 items-center">
+          <div className="min-w-0 flex-1">
+            <WorkflowBadges badges={presentation.badges} />
           </div>
+          {showActions && (
+            <div className="gap-detail-next flex shrink-0 items-center">
+              <IconButton
+                type="button"
+                variant="secondary"
+                size="compact"
+                aria-label={actionLabels.up}
+                disabled={!canMoveUp}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onMoveUp();
+                }}
+              >
+                <ChevronUp aria-hidden />
+              </IconButton>
+              <IconButton
+                type="button"
+                variant="secondary"
+                size="compact"
+                aria-label={actionLabels.down}
+                disabled={!canMoveDown}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onMoveDown();
+                }}
+              >
+                <ChevronDown aria-hidden />
+              </IconButton>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
