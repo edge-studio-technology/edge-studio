@@ -18,16 +18,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Error details and logs now also redact URL credentials given as a username only, such as `mqtt://token@broker`.
 - Every Docker Compose service rotates its container logs at 10 MB, keeping 3 files, in both the source and release Compose files.
 - Update Agent applies the fixed 10 MB × 3 log policy to replacement containers, including upgrades from unbounded logging.
-- A workflow run that reaches a payment, device output, camera capture, or Integritas stamp block uses one slot of a budget of 10 runs per rolling hour per workflow, and further runs fail with `429` until a slot frees up.
+- A workflow run that reaches a payment, device output, camera capture, or Integritas stamp block uses one slot of a budget of 1,000 runs per rolling hour per workflow, and further runs fail with `429` until a slot frees up.
 - The workflow run budget is stored in the database, survives backend restarts, and applies to manual, scheduled, webhook, MQTT, and GPIO runs.
 - Webhook, MQTT, or GPIO workflows with an enabled payment block must have a cooldown of at least 1 second, both when validated and when triggered.
 - Webhook ingestion is rate-limited to 60 requests per minute per client and source.
 - Automation changes and manual workflow runs are rate-limited to 30 requests per minute per client.
 - Integritas stamp creation is rate-limited to 10 requests per minute per client.
-- See [ADR 0022](docs/adr/0022-bound-external-automation-effects.md), [ADR 0023](docs/adr/0023-classify-stored-records-before-applying-retention.md), and `SECURITY.md`.
+- See [ADR 0022](docs/adr/0022-bound-external-automation-effects.md), [ADR 0023](docs/adr/0023-classify-stored-records-before-applying-retention.md), [ADR 0028](docs/adr/0028-raise-workflow-run-budget.md), and `SECURITY.md`.
 - Wallet sends and address-book writes now reject malformed Minima destinations using the upstream `0x` and checksummed `Mx` address grammar.
 - Disabled two-factor setup and reset endpoints are no longer exposed while TOTP is off.
 - HTTPS application, proxy, error, and redirect responses now include CSP, clickjacking, MIME-sniffing, and referrer-policy protections.
+- Backend `multer` updated to 2.4.0 and `ip-address` to 10.7.3.
 - The backend now refuses to start before creating or opening its database when `APP_SECRET` is absent or empty, and shipped configuration no longer supplies a public default.
 - Minima backup and restore responses no longer return the RPC command, the request URL, or the stored backup password.
 - Minima RPC command strings, request URLs, and response bodies are redacted before they reach any API response or log line.

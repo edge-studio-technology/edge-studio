@@ -1,7 +1,7 @@
 import type { AutomationBlockType } from "./automation.repository.js";
 
 // Fixed security policy; not operator-configurable. See docs/adr/0022-bound-external-automation-effects.md.
-export const WORKFLOW_RUN_BUDGET_MAX_RUNS = 10;
+export const WORKFLOW_RUN_BUDGET_MAX_RUNS = 1000;
 export const WORKFLOW_RUN_BUDGET_WINDOW_MS = 60 * 60 * 1000;
 
 export const PRIVILEGED_AUTOMATION_BLOCK_TYPES: ReadonlySet<AutomationBlockType> = new Set<AutomationBlockType>([

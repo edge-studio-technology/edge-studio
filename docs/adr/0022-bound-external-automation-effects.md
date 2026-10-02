@@ -4,8 +4,8 @@
 **Date:** 2026-09-17
 
 The retention classification in this record is amended by
-[ADR 0023](./0023-classify-stored-records-before-applying-retention.md). Its other decisions remain
-accepted.
+[ADR 0023](./0023-classify-stored-records-before-applying-retention.md). The run budget value is
+amended by [ADR 0028](./0028-raise-workflow-run-budget.md). Its other decisions remain accepted.
 
 ## Context
 

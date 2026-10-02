@@ -164,7 +164,7 @@ Current Controls:
 - Recorded webhook reads store `data-source:<id>`, never the tokenised URL; the upgrade migration rewrote historical rows.
 - Webhook ingestion is limited to 60 requests per minute per client IP and source. The limiter key uses a SHA-256 hash of the token, and the limit is process-local.
 - Workflow runs, block runs, visible inbox items, and data-source reads created by webhook events are preserved; user-deleted inbox items are physically purged.
-- Workflows reaching payment, device output, camera, or stamp blocks are bounded to 10 runs per rolling hour per workflow, persisted across restarts; exhaustion returns `429`.
+- Workflows reaching payment, device output, camera, or stamp blocks are bounded to 1,000 runs per rolling hour per workflow, persisted across restarts; exhaustion returns `429`.
 
 Residual: Docker logs written before Phase 7 still contain tokens until they rotate out or are
 removed; tokens are not rotated automatically. Startup/hourly sweeps repeat short 500-row batches
@@ -194,7 +194,7 @@ Current Controls:
 - MQTT payloads must parse as JSON before they update source preview/hash.
 - MQTT sources are push-only and do not use scheduled polling intervals.
 - Broker URLs may carry credentials for the live connection, but read history stores `data-source:<id>` instead of the broker URL, and the upgrade migration scrubbed historical rows. Error details redact both `user:password@` and username-only userinfo.
-- MQTT-triggered workflows share the per-workflow run budget (10 runs with payment, device output, camera, or stamp blocks per rolling hour); budget exhaustion is skipped silently. HTTP rate limits do not apply to MQTT.
+- MQTT-triggered workflows share the per-workflow run budget (1,000 runs with payment, device output, camera, or stamp blocks per rolling hour); budget exhaustion is skipped silently. HTTP rate limits do not apply to MQTT.
 - MQTT-created workflow runs, block runs, data-source reads, and visible inbox items are preserved; deleted inbox items are physically purged.
 
 Plan:
