@@ -8,7 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
-- Automation runs and block runs older than 30 days or beyond the newest 10,000 rows per table are deleted in repeated batches of up to 500 direct rows until drained at startup and hourly, with active workflow executions protected.
 - Visible automation inbox items and data source read history are preserved from automatic age and row-count deletion.
 - Deleted automation inbox items are permanently removed in repeated batches of up to 500 rows.
 - Integritas proof history remains until explicit user deletion.
@@ -60,6 +59,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- A guided tour of Edge Studio's main areas opens the first time the app is used in each browser.
+- The guided tour can be skipped at any step and replayed from Settings → Behaviour.
 - `ErrorContentState` shared component for load failures that leave a whole region empty (see `docs/frontend-design-system.md`).
 
 ### Changed
@@ -118,6 +119,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automation watch proof diagnostics now appear on the data-fetch block that produces the proof, not downstream preview blocks that only consume it.
 - Automation watch replay now treats attached Integritas stamp blocks as part of their parent block instead of replaying them as separate canvas steps.
 - Automation watch historic canvases now keep eligible not-yet-reached workflow blocks visible, roll attached-block failures up to their visible parent, and keep replay steps limited to executed top-level blocks.
+- Dashboard wallet balance is unavailable and wallet requests are skipped while the Minima node is stopped or errored.
+- Failed Minima restarts show the error toast without an unhandled action error.
 - Minima restart setup failures now clear the temporary restarting state instead of leaving stale operation status in the UI.
 - Update Agent Docker stream requests now reject reliably when their timeout expires instead of leaving update pulls hanging.
 - List search/filter rows on Devices, Workflows, Address book, and Diagnostics stack with their New/Refresh buttons as one group on tablet and phone.

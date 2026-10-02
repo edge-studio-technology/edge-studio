@@ -150,6 +150,82 @@ describe("DashboardDevices", () => {
     expect(getWalletStatus).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["stopped", "Stopped", "text-text-warning"],
+    ["error", "Error", "text-text-error"],
+  ] as const)("skips wallet RPC and preserves device metrics when the node is %s", async (state, label, tone) => {
+    vi.useFakeTimers();
+    getDeviceStatus.mockResolvedValue(deviceStatus({ node: { state, lastCheckedAt: null } }));
+    getWalletStatus.mockResolvedValue(walletStatus());
+
+    render(<DashboardDevices />);
+    await act(async () => {});
+
+    expect(screen.getByText(label)).toHaveClass(tone);
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(screen.queryAllByRole("status", { name: "Loading" })).toHaveLength(0);
+    expect(getWalletStatus).not.toHaveBeenCalled();
+    expect(screen.getByText("pi-1")).toBeInTheDocument();
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(screen.getByText("50%")).toBeInTheDocument();
+    expect(screen.getByText("4.0 GB")).toBeInTheDocument();
+    expect(screen.getByText("40.0 GB")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(29_999);
+    });
+    expect(getDeviceStatus).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(getDeviceStatus).toHaveBeenCalledTimes(2);
+    expect(getWalletStatus).not.toHaveBeenCalled();
+  });
+
+  it.each(["stopped", "error"] as const)("clears the stale wallet balance on %s and reloads it after recovery", async (state) => {
+    vi.useFakeTimers();
+    getDeviceStatus
+      .mockResolvedValueOnce(deviceStatus())
+      .mockResolvedValueOnce(deviceStatus({ node: { state, lastCheckedAt: null } }))
+      .mockResolvedValue(deviceStatus());
+    getWalletStatus.mockResolvedValue(walletStatus());
+
+    render(<DashboardDevices />);
+    await act(async () => {});
+    expect(screen.getByText("12.5")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(screen.queryByText("12.5")).not.toBeInTheDocument();
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(getWalletStatus).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(screen.getByText("12.5")).toBeInTheDocument();
+    expect(getWalletStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it("polls restarting nodes again after three seconds without fetching the wallet", async () => {
+    vi.useFakeTimers();
+    getDeviceStatus.mockResolvedValue(deviceStatus({ node: { state: "restarting", lastCheckedAt: null } }));
+
+    render(<DashboardDevices />);
+    await act(async () => {});
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_999);
+    });
+    expect(getDeviceStatus).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(getDeviceStatus).toHaveBeenCalledTimes(2);
+    expect(getWalletStatus).not.toHaveBeenCalled();
+  });
+
   it("marks wallet unavailable when the wallet fetch fails", async () => {
     getDeviceStatus.mockResolvedValue(deviceStatus());
     getWalletStatus.mockRejectedValue(new Error("wallet unreachable"));

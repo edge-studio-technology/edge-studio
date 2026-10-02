@@ -9,3 +9,5 @@ export const sidebarStartCollapsedSetting = createLocalBooleanSetting(
   "sidebar-start-collapsed",
   false,
 );
+
+export const guidedTourSeenSetting = createLocalBooleanSetting("guided-tour-seen", false);
