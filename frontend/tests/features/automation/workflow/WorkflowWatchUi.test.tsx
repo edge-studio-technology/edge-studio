@@ -795,12 +795,12 @@ describe("WatchRuntimeInspector", () => {
     expect(screen.queryByRole("link", { name: "Open in diagnostics" })).not.toBeInTheDocument();
   });
 
-  it("shows proof diagnostics and a close button", async () => {
+    it("shows proof diagnostics on the fetch block and a close button", async () => {
     const onCloseSelectedBlock = vi.fn();
     render(
       <MemoryRouter>
         <WatchRuntimeInspector
-          selectedBlock={block()}
+          selectedBlock={block({ type: "fetch_data_source" })}
           latestBlockRun={blockRun({ output: { proofId: "proof-1" } })}
           selectedRun={undefined}
           onCloseSelectedBlock={onCloseSelectedBlock}
@@ -812,8 +812,22 @@ describe("WatchRuntimeInspector", () => {
       expect.stringContaining("q=proof-1"),
     );
     await userEvent.click(screen.getByRole("button", { name: "Close inspector" }));
-    expect(onCloseSelectedBlock).toHaveBeenCalled();
-  });
+      expect(onCloseSelectedBlock).toHaveBeenCalled();
+    });
+
+    it("does not show proof diagnostics for a downstream preview block", () => {
+      render(
+        <MemoryRouter>
+          <WatchRuntimeInspector
+            selectedBlock={block({ type: "show_preview" })}
+            latestBlockRun={blockRun({ output: { proofId: "proof-1" } })}
+            selectedRun={undefined}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(screen.queryByRole("link", { name: "Open proof" })).not.toBeInTheDocument();
+    });
 
   it("does not show the diagnostics section when there is nothing to show", () => {
     render(

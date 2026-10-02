@@ -1020,7 +1020,8 @@ export function WatchRuntimeInspector({
   onCloseSelectedBlock?: () => void;
 }) {
   const readId = readIdFromOutput(latestBlockRun?.output);
-  const proofId = proofIdFromOutput(latestBlockRun?.output);
+  const proofId =
+    selectedBlock?.type === "fetch_data_source" ? proofIdFromOutput(latestBlockRun?.output) : null;
   const showReadDiagnostics = Boolean(readId && blockCreatesDataRead(selectedBlock));
   const [readDetails, setReadDetails] = useState<DataSourceRead | null>(null);
   const [readDetailsLoading, setReadDetailsLoading] = useState(false);
