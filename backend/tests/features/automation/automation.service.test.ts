@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
+import { WORKFLOW_RUN_BUDGET_MAX_RUNS } from "../../../src/features/automation/automation.policy.js";
 
 const {
   readJsonApiSourceMock,
@@ -889,11 +890,13 @@ describe("automation.service — workflow run budget", () => {
     return (db.prepare("SELECT COUNT(*) AS n FROM automation_workflow_budget_events WHERE workflow_id = ?").get(workflowId) as { n: number }).n;
   }
 
-  function fillBudget(workflowId: string, consumedAtMs = Date.now()) {
-    for (let index = 0; index < 10; index += 1) {
-      db.prepare("INSERT INTO automation_workflow_budget_events (run_id, workflow_id, consumed_at) VALUES (?, ?, ?)")
-        .run(`${workflowId}:prefilled-${index}`, workflowId, new Date(consumedAtMs).toISOString());
-    }
+  function fillBudget(workflowId: string, consumedAtMs = Date.now(), count = WORKFLOW_RUN_BUDGET_MAX_RUNS) {
+    const insert = db.prepare("INSERT INTO automation_workflow_budget_events (run_id, workflow_id, consumed_at) VALUES (?, ?, ?)");
+    db.transaction(() => {
+      for (let index = 0; index < count; index += 1) {
+        insert.run(`${workflowId}:prefilled-${index}`, workflowId, new Date(consumedAtMs).toISOString());
+      }
+    })();
   }
 
   function ledOutputBlock() {
@@ -909,13 +912,14 @@ describe("automation.service — workflow run budget", () => {
     });
   }
 
-  it("allows 10 privileged runs per workflow and blocks the 11th before its side effect", async () => {
+  it("allows the budgeted privileged runs per workflow and blocks the next before its side effect", async () => {
     const wf = makeWorkflow([{ type: "manual_start", config: {} }, ledOutputBlock()]);
-    for (let index = 0; index < 10; index += 1) await service.runAutomationWorkflow(wf.id);
+    fillBudget(wf.id, Date.now(), WORKFLOW_RUN_BUDGET_MAX_RUNS - 1);
+    await service.runAutomationWorkflow(wf.id);
 
     await assertBudgetExhausted(service.runAutomationWorkflow(wf.id));
-    assert.equal(pulseGpioOutputMock.mock.calls.length, 10);
-    assert.equal(budgetEvents(wf.id), 10);
+    assert.equal(pulseGpioOutputMock.mock.calls.length, 1);
+    assert.equal(budgetEvents(wf.id), WORKFLOW_RUN_BUDGET_MAX_RUNS);
 
     const [blockedRun] = runsRepo.listAutomationRunsForWorkflow(wf.id, 1);
     assert.equal(blockedRun.status, "failed");
