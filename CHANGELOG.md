@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Wallet sends and address-book writes now reject malformed Minima destinations using the upstream `0x` and checksummed `Mx` address grammar.
 - Disabled two-factor setup and reset endpoints are no longer exposed while TOTP is off.
 - HTTPS application, proxy, error, and redirect responses now include CSP, clickjacking, MIME-sniffing, and referrer-policy protections.
-- Backend dependencies `multer` and `ip-address` updated to clear moderate npm audit advisories.
+- Backend `multer` updated to 2.4.0 and `ip-address` to 10.7.3.
 - The backend now refuses to start before creating or opening its database when `APP_SECRET` is absent or empty, and shipped configuration no longer supplies a public default.
 - Minima backup and restore responses no longer return the RPC command, the request URL, or the stored backup password.
 - Minima RPC command strings, request URLs, and response bodies are redacted before they reach any API response or log line.
