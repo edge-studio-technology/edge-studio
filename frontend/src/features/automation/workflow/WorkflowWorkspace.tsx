@@ -182,13 +182,13 @@ export function WorkflowWorkspace({
       : [];
   const historicalBlockById = new Map(historicalBlocks.map((block) => [block.id, block]));
   const replayCanvasBlocks = selectedRun && selectedRun.blocks.length > 0
-    ? selectedRun.blocks.flatMap((runBlock) => {
-        const blockId = blockRunBlockId(runBlock);
-        if (!blockId) return [];
-        const currentBlock = persistedCanvasBlocks.find((block) => block.id === blockId);
-        const historicalBlock = historicalBlockById.get(blockId);
-        return currentBlock ? [currentBlock] : historicalBlock ? [historicalBlock] : [];
-      })
+    ? [
+        ...persistedCanvasBlocks.filter((block) => {
+          const workflowBlock = mainBlocks.find((item) => item.id === block.id);
+          return workflowBlock && new Date(workflowBlock.createdAt).getTime() <= new Date(selectedRun.startedAt).getTime();
+        }),
+        ...historicalBlocks,
+      ]
     : persistedCanvasBlocks;
   const selectedBlock = selectedBlockId
     ? mainBlocks.find((block) => block.id === selectedBlockId) ??
@@ -246,7 +246,8 @@ export function WorkflowWorkspace({
       newLiveRunId &&
       selectedRun?.id === newLiveRunId,
   );
-  const runtimeByBlockId = mode === "watch" ? runtimeByBlockIdFromRun(selectedRun) : {};
+  const runtimeByBlockId =
+    mode === "watch" ? runtimeByBlockIdFromRun(selectedRun, workflow.blocks) : {};
   const workflowStateTitle = workflow.archived
     ? "Archived workflows cannot run."
     : workflow.enabled
@@ -847,7 +848,7 @@ export function WorkflowWorkspace({
             ) : (
               <WatchRuntimeInspector
                 selectedBlock={selectedBlock}
-                latestBlockRun={blockRunForBlock(selectedRun, selectedBlock.id)}
+                latestBlockRun={blockRunForBlock(selectedRun, selectedBlock.id, workflow.blocks)}
                 selectedRun={selectedRun}
               />
             )}

@@ -220,24 +220,46 @@ export function withSoftenedInsufficientBalance(
 
 export function runtimeByBlockIdFromRun(
   run: AutomationRun | undefined,
+  workflowBlocks: AutomationBlock[] = [],
 ): Record<string, WorkflowCanvasRuntimeState> {
   const result: Record<string, WorkflowCanvasRuntimeState> = {};
   if (!run) return result;
+  const parentByBlockId = new Map(
+    workflowBlocks
+      .filter((block) => block.parentBlockId)
+      .map((block) => [block.id, block.parentBlockId as string]),
+  );
   for (const block of run.blocks) {
     const blockId = blockRunBlockId(block);
     if (!blockId) continue;
-    result[blockId] = {
+    const visibleBlockId = parentByBlockId.get(blockId) ?? blockId;
+    const nextRuntime = {
       status: block.status,
       durationMs: block.durationMs,
       error: block.error,
     };
+    const previousRuntime = result[visibleBlockId];
+    if (!previousRuntime || nextRuntime.status === "failed") result[visibleBlockId] = nextRuntime;
   }
   return result;
 }
 
-export function blockRunForBlock(run: AutomationRun | undefined, blockId: string | null) {
+export function blockRunForBlock(
+  run: AutomationRun | undefined,
+  blockId: string | null,
+  workflowBlocks: AutomationBlock[] = [],
+) {
   if (!run || !blockId) return null;
-  return run.blocks.find((block) => blockRunBlockId(block) === blockId) ?? null;
+  const directRun = run.blocks.find((block) => blockRunBlockId(block) === blockId);
+  const attachedIds = new Set(
+    workflowBlocks
+      .filter((block) => block.parentBlockId === blockId)
+      .map((block) => block.id),
+  );
+  const attachedFailure = run.blocks.find(
+    (block) => attachedIds.has(blockRunBlockId(block) ?? "") && block.status === "failed",
+  );
+  return attachedFailure ?? directRun ?? null;
 }
 
 /** Some failed block-run records omit blockId but preserve it in error context. */
