@@ -206,6 +206,8 @@ describe("SelectedBlockSheet", () => {
     );
     const dialog = screen.getByRole("dialog", { name: "Wait" });
     expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveClass("z-[70]");
+    expect(document.querySelector(".z-\\[60\\]")).toBeInTheDocument();
     expect(screen.getByText("Configure the wait block.")).toBeInTheDocument();
     expect(screen.getByText("Body")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();

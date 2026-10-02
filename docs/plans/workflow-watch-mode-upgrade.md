@@ -1,0 +1,178 @@
+# Workflow Watch Mode Upgrade Plan
+
+**Status:** In progress  
+**Created:** 2026-09-25  
+**Goal:** Upgrade Automation watch mode from an early-alpha runtime view into a production-quality live monitoring, historic replay, and workflow debugging experience.
+
+## Context
+
+The current Automation watch mode has already received visual UX work as part of the workflow canvas redesign, but the product experience is still too shallow compared with the level of polish now present across the rest of the app. Users should be able to understand what a workflow is doing now, what happened in past runs, and what each block contributed without needing to inspect raw JSON first.
+
+This plan is intentionally broader than the existing workflow redesign plan. The redesign focuses on canvas layout and visual parity; this upgrade defines the expected watch-mode behavior and interaction model.
+
+## Target User Experience
+
+Watch mode should let the user:
+
+- Visualize live running workflows.
+- Auto-follow live runs by default.
+- Turn off auto-follow when inspecting historic runs, so a new live run does not interrupt them.
+- Browse a table of historic runs for the selected workflow.
+- Select any historic run from the table and view it on the canvas.
+- Replay historic runs on the canvas.
+- Use replay controls: play, pause, next step, previous step.
+- Use a fixed readable replay speed instead of the original recorded timing.
+- Click any workflow block to inspect that block's runtime step.
+- See a friendly summary first: status, input/output preview, timing, result, and plain-English errors.
+- Access raw logs/results secondarily, not as the primary view.
+- Focus the run history table on recent runs: status, trigger/source, timestamp, duration, and result.
+
+## Product Decisions
+
+- Watch mode should auto-follow live runs by default.
+- The user should have a visible `Follow live runs` toggle.
+- Selecting a historic run should turn off auto-follow, or otherwise make it clear the user is now inspecting history.
+- If a new live run starts while auto-follow is off, show a non-disruptive indication such as `New run available` rather than switching away from the selected historic run.
+- Historic replay should support play/pause and previous/next step controls.
+- Replay should use a fixed readable animation speed for the first production-quality version.
+- Step/block inspection should prioritize friendly summaries over raw JSON.
+- The historic runs table should optimize for recent runs rather than advanced search/filtering in the first pass.
+
+## Project Board Breakdown
+
+Feature: Production-quality Automation Watch Mode
+
+Tasks:
+
+- Define watch-mode user expectations and state model.
+- Upgrade workflow status summary and live/runtime overview.
+- Improve canvas block runtime visualization.
+- Improve run history and debugging/details flow.
+- Polish edge states, responsive behavior, QA, and docs.
+
+Initial estimate: 5-8 working days.
+
+## Current Status
+
+Implemented:
+
+- Task 1 is documented: user expectations, state model, block states, selected-block detail requirements, recent-runs table requirements, and acceptance criteria.
+- Task 2 is implemented with a watch-mode runtime overview, live-follow behavior, and selected-run state handling.
+- Watch mode now shows workflow state, selected-run status, trigger, progress, duration, and run error summary before raw diagnostics.
+- Watch mode now has a `Follow live runs` switch. It follows the newest run by default, turns off when the user selects a historic run, and can jump back to the latest run.
+- Task 2.5 watch-mode UX cleanup: watch canvas cards no longer show edit/remove/move controls, the manual test payload is collapsed by default, the right rail scrolls independently, mobile rail toggle copy says `Watch controls`, and watch mode presents the workflow name as read-only title text instead of an input.
+- Follow-up watch-mode cleanup removed the repeated workflow-name eyebrow, removed the duplicated workflow status strip from edit/watch workspaces, and aligned the historic-runs count and column chooser with the app's table-header pattern.
+- Watch history now defaults to a compact selected-run navigator with older/newer controls, and can expand into a half-height historic-runs table for browsing.
+- Direct workflow edit/watch loads now keep the workflow workspace chrome, canvas skeleton, rail skeleton, and watch history placeholder in place with a centered loading overlay instead of replacing the whole page with a generic loading card.
+- The workflow loading shell now uses the same button treatment, rail panel shells, and selected-run controls as the loaded watch workspace so loading states preserve component size more closely.
+- The watch loading shell now renders the real watch canvas, runtime overview, run controls, and selected-run navigator with placeholder data under the overlay instead of custom approximation skeletons.
+- The watch loading placeholder now mirrors a historic selected run with a newer latest run so the latest-run notice, runtime overview height, selected-run controls, and canvas block stack position stay closer to the loaded state.
+- The watch loading placeholder no longer offsets the canvas block stack, and runtime stat rows use a stable right-side value column.
+- Workspace refresh loading now keeps the real loaded workflow, blocks, rail panels, selected run, and history mounted with only the loading overlay; the placeholder shell is reserved for true no-data initial loads.
+- Last-known workspace snapshots are cached per session so route reload/refresh gaps preserve real block summaries and selected historic-run messaging instead of briefly showing loading placeholder content.
+- The loading overlay now covers the full workflow workspace shell, including the header and rail, instead of only the canvas/body region.
+- The collapsed selected-run history view now presents run data as labeled mini-cards and includes a cogwheel for choosing and ordering compact summary fields.
+- Event-triggered workflows now show a single expanded trigger-payload test control in watch mode instead of a misleading `Run now` action; manual/schedule workflows keep `Run now` plus an optional custom payload test.
+- Trigger payload JSON editing moved into a modal; the run controls rail now shows a compact read-only payload preview with edit/reset/test actions.
+- The trigger payload rail preview is clickable, truncates only on full JSON lines with an ellipsis, and keeps reset inside the edit modal.
+- Workflow run raw details now open directly in a modal instead of adding an inline panel below the run history table.
+- Watch selected-block inspection now shows friendly input/result summaries first, with raw JSON actions kept secondary for diagnostics.
+- Shared modals now render above page/workspace overlays by default (`z-[90]`), with `layer="top"` reserved for intentionally stacked dialogs (`z-[100]`).
+- Watch selected-block input/result summaries now filter null/empty workflow context fields and surface meaningful trigger/data/output fields first.
+- Watch selected-block diagnostics now show read details only for blocks that create device reads, with a separate diagnostics-tab link.
+- Watch selected-block input/result empty states now distinguish skipped blocks, not-reached blocks, and runs stopped by earlier failures.
+- Watch selected-block result summaries now include domain-aware cards for start triggers, trigger-event records, variable changes, output controls, transactions, fetch/camera reads, preview creation, Integritas stamping, payload conditions, and wait blocks.
+- Watch selected-block input summaries now show block-specific consumed/configured data, so inputs focus on what the block used and results focus on what the block produced.
+- Watch mode now has basic replay controls that step through selected-run blocks and can play them forward at a fixed readable pace.
+- Watch replay controls now sit on the left side of the canvas, with the selected-block backdrop rendered inside the workspace so the replay controls and focused block stay above it.
+- Watch playback now sits in a thin toolbar row above the canvas, uses compact icon controls with a fixed 1.5-second step duration, does not auto-play the already-loaded latest run on entry, and pauses when the user clicks a different block.
+- Watch replay now animates the active block with a one-shot 1.5-second border-worm effect, uses runtime status colors, and keeps the live-run overlay visible until dismissed.
+- Historic replay now renders only the blocks recorded by the selected run, restores deleted blocks from run metadata, and recovers omitted block IDs from failed-block error context when available.
+
+Remaining:
+
+- No additional run-history redesign is planned for this pass beyond the recent-runs navigator/table and secondary raw details flow.
+- Browser QA against live workflow runs is still needed.
+
+## Task 1: State Model And Acceptance Criteria
+
+Task 1 should produce the acceptance criteria for implementation before code changes begin.
+
+Define these states:
+
+- `live`: watch mode is following the current or latest live run.
+- `historic-selected`: the user selected a past run from the table.
+- `replaying`: a selected run is playing through its blocks at fixed speed.
+- `paused`: replay is paused on a specific block/step.
+- `step-inspect`: the user clicked a block to inspect its runtime details.
+
+Define these block runtime states:
+
+- Not reached.
+- Current/running.
+- Succeeded.
+- Skipped.
+- Failed.
+- Waiting/blocked, if backend data supports it.
+
+Define the selected block detail panel content:
+
+- Block name and type.
+- Runtime status.
+- Started/finished time or duration, where available.
+- Trigger/input summary.
+- Output/action summary.
+- Plain-English error explanation if failed.
+- Secondary access to raw JSON, logs, diagnostics, proof links, or read details where available.
+
+Define the recent runs table columns:
+
+- Status.
+- Trigger/source.
+- Started at.
+- Duration.
+- Result summary.
+- Actions such as view, replay, or details.
+
+Task 1 acceptance criteria:
+
+- Watch mode has documented behavior for live auto-follow and the `Follow live runs` toggle.
+- Historic run replay has documented controls: play/pause, previous step, next step.
+- Canvas block runtime states are defined.
+- Step detail panel content is defined, prioritizing friendly summaries over raw JSON.
+- Recent runs table columns and selection behavior are defined.
+- Edge cases are listed: no runs, active live run, failed run, skipped blocks, viewing history while a new live run starts.
+
+Estimated effort for Task 1: 0.5-1 day.
+
+## Frontend Changes
+
+Likely implementation areas:
+
+- `frontend/src/pages/AutomationPage.tsx` for route composition and watch-mode orchestration.
+- `frontend/src/features/automation/workflow/WorkflowWorkspace.tsx` for watch-mode run selection and canvas state.
+- `frontend/src/features/automation/workflow/WorkflowWatchUi.tsx` for run controls, runtime inspector, and run history UI.
+- `frontend/src/features/automation/workflow/canvas/WorkflowCanvas.tsx` for runtime block highlighting and replay presentation.
+- Existing automation API helpers and run-display helpers for shaping friendly run summaries.
+
+Prefer extending the existing watch-mode components before introducing new abstractions. Keep edit/build behavior unchanged unless required by shared canvas changes.
+
+## Docs
+
+Update these once implementation starts or lands:
+
+- `docs/TASKS.md` for status changes.
+- `docs/plans/workflow-redesign.md` if visual redesign scope or watch-mode completion status changes.
+- `CHANGELOG.md` when user-facing watch-mode improvements land.
+
+## Verification
+
+Before completing implementation tasks:
+
+1. Run `npm --prefix frontend run build`.
+2. Run relevant frontend tests for automation workflow/watch components.
+3. Manually check live watch behavior with auto-follow on.
+4. Manually check inspecting history with auto-follow off and a new run available.
+5. Manually check replay controls: play, pause, previous step, next step.
+6. Manually check block selection and friendly step details for success, skipped, and failed states where available.
+7. Manually check no-runs, loading, error, invalid workflow, archived workflow, desktop, and narrow viewport states.

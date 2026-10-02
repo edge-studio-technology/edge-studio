@@ -37,6 +37,16 @@ describe("WorkflowWorkspaceShell", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
   });
 
+  it("renders centered actions when given", () => {
+    renderShell({ centerActions: <button type="button">Enabled</button> });
+    expect(screen.getByRole("button", { name: "Enabled" })).toBeInTheDocument();
+  });
+
+  it("renders a toolbar row above the canvas when given", () => {
+    renderShell({ toolbar: <div>Playback toolbar</div> });
+    expect(screen.getByText("Playback toolbar").parentElement).toHaveClass("border-b");
+  });
+
   it("renders a status strip and notices row only when either is given", () => {
     const { rerender } = render(
       <MemoryRouter>
@@ -64,13 +74,17 @@ describe("WorkflowWorkspaceShell", () => {
     expect(screen.getByText("Status strip")).toBeInTheDocument();
   });
 
-  it("renders the selected block sheet and bottom overlay when given", () => {
+  it("renders the selected block sheet, backdrop, left overlay, and bottom overlay when given", () => {
     renderShell({
+      selectedBackdrop: <div>Selected backdrop</div>,
       selectedSheet: <div>Selected sheet</div>,
+      leftOverlay: <div>Left overlay</div>,
       bottom: <div>Bottom overlay</div>,
     });
     expect(screen.getByText("Selected sheet")).toBeInTheDocument();
-    expect(screen.getByText("Bottom overlay")).toBeInTheDocument();
+    expect(screen.getByText("Selected backdrop").parentElement).toHaveClass("z-[60]");
+    expect(screen.getByText("Left overlay").parentElement).toHaveClass("z-[65]", "left-1/2", "-translate-x-1/2");
+    expect(screen.getByText("Bottom overlay").parentElement).toHaveClass("z-[65]");
   });
 
   describe("rail drawer", () => {

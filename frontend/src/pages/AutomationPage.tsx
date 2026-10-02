@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { BookOpen } from "lucide-react";
+import { ArrowLeftIcon, BookOpen } from "lucide-react";
 import { Button, LinkButton } from "../components/Button";
 import { DeleteConfirmModal, DeleteProgressModal } from "../components/patterns/DeleteConfirmModal";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { ErrorContentState } from "../components/patterns/ErrorContentState";
 import { describeLoadFailure } from "../lib/errors";
-import { LoadingState } from "../components/patterns/LoadingState";
 import { Page } from "../components/Page";
 import { useToast } from "../components/ToastProvider";
 import {
@@ -34,7 +33,21 @@ import {
 import { AutomationInboxTable } from "../features/automation/AutomationInboxTable";
 import { AutomationWorkflowsList } from "../features/automation/AutomationWorkflowsList";
 import { CreateWorkflowWorkspace } from "../features/automation/workflow/CreateWorkflowWorkspace";
-import { WorkflowWorkspace } from "../features/automation/workflow/WorkflowWorkspace";
+import {
+  WorkflowLoadingOverlay,
+  WorkflowWorkspace,
+} from "../features/automation/workflow/WorkflowWorkspace";
+import { WorkflowCanvas } from "../features/automation/workflow/canvas";
+import {
+  WorkflowRailHeader,
+  WorkflowRailPanel,
+} from "../features/automation/workflow/chrome/WorkflowRail";
+import {
+  WatchRunControls,
+  WatchRunHistory,
+  WatchRuntimeOverview,
+} from "../features/automation/workflow/WorkflowWatchUi";
+import { WorkflowWorkspaceShell } from "../features/automation/workflow/chrome/WorkflowWorkspaceShell";
 import type {
   AutomationBlock,
   AutomationBlockType,
@@ -61,6 +74,37 @@ type AutomationPageFlow =
   | { mode: "build" }
   | { mode: "edit" | "watch"; workflowId: string; runId?: string };
 
+type WorkspaceSnapshot = {
+  workflow: AutomationWorkflow;
+  runs: AutomationRun[];
+  validation: AutomationValidationResult | null;
+  sources: DataSource[];
+  addressBook: AddressBookEntry[];
+  walletStatus: WalletStatus | null;
+};
+
+const WORKSPACE_SNAPSHOT_KEY = "automation:last-workspace";
+
+function readWorkspaceSnapshot(workflowId: string | null): WorkspaceSnapshot | null {
+  if (!workflowId) return null;
+  try {
+    const raw = window.sessionStorage.getItem(WORKSPACE_SNAPSHOT_KEY);
+    if (!raw) return null;
+    const snapshot = JSON.parse(raw) as WorkspaceSnapshot;
+    return snapshot.workflow?.id === workflowId ? snapshot : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeWorkspaceSnapshot(snapshot: WorkspaceSnapshot) {
+  try {
+    window.sessionStorage.setItem(WORKSPACE_SNAPSHOT_KEY, JSON.stringify(snapshot));
+  } catch {
+    // Best-effort UI continuity only.
+  }
+}
+
 function automationFlowFromRoute(
   pathname: string,
   params: Readonly<Record<string, string | undefined>>,
@@ -76,6 +120,274 @@ function automationFlowFromRoute(
 function sortAddressBook(entries: AddressBookEntry[]): AddressBookEntry[] {
   return [...entries].sort((a, b) =>
     a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+  );
+}
+
+const LOADING_DATE = "2026-01-01T00:00:00.000Z";
+
+const loadingSource: DataSource = {
+  id: "loading-source",
+  createdAt: LOADING_DATE,
+  updatedAt: LOADING_DATE,
+  name: "Loading data source",
+  type: "device-system-data",
+  status: "unknown",
+  description: null,
+  config: {},
+  lastReadAt: null,
+  lastError: null,
+  lastPreview: null,
+  lastHash: null,
+};
+
+const loadingWorkflow: AutomationWorkflow = {
+  id: "loading-workflow",
+  createdAt: LOADING_DATE,
+  updatedAt: LOADING_DATE,
+  name: "Loading workflow",
+  enabled: true,
+  archived: false,
+  lastRunAt: LOADING_DATE,
+  nextRunAt: null,
+  lastHash: null,
+  lastProofId: null,
+  lastError: null,
+  blocks: [
+    {
+      id: "loading-start",
+      workflowId: "loading-workflow",
+      createdAt: LOADING_DATE,
+      updatedAt: LOADING_DATE,
+      type: "manual_start",
+      enabled: true,
+      order: 0,
+      parentBlockId: null,
+      config: {},
+      lastRunAt: LOADING_DATE,
+      lastError: null,
+    },
+    {
+      id: "loading-fetch",
+      workflowId: "loading-workflow",
+      createdAt: LOADING_DATE,
+      updatedAt: LOADING_DATE,
+      type: "fetch_data_source",
+      enabled: true,
+      order: 1,
+      parentBlockId: null,
+      config: { sourceId: loadingSource.id },
+      lastRunAt: LOADING_DATE,
+      lastError: null,
+    },
+    {
+      id: "loading-preview",
+      workflowId: "loading-workflow",
+      createdAt: LOADING_DATE,
+      updatedAt: LOADING_DATE,
+      type: "show_preview",
+      enabled: true,
+      order: 2,
+      parentBlockId: null,
+      config: {
+        title: "Loading preview",
+        previewFormat: "json",
+        contentMode: "latest_data",
+      },
+      lastRunAt: LOADING_DATE,
+      lastError: null,
+    },
+  ],
+};
+
+const loadingSelectedRun: AutomationRun = {
+  id: "loading-selected-run",
+  workflowId: loadingWorkflow.id,
+  workflowName: loadingWorkflow.name,
+  startedAt: LOADING_DATE,
+  finishedAt: LOADING_DATE,
+  status: "success",
+  triggerType: "manual",
+  triggerSourceId: null,
+  triggerPayload: null,
+  durationMs: 301,
+  blockCount: 3,
+  error: null,
+  blocks: [
+    {
+      id: "loading-run-start",
+      runId: "loading-selected-run",
+      workflowId: loadingWorkflow.id,
+      blockId: "loading-start",
+      order: 0,
+      blockType: "manual_start",
+      blockLabel: "Manual run",
+      startedAt: LOADING_DATE,
+      finishedAt: LOADING_DATE,
+      status: "success",
+      durationMs: 9,
+      input: null,
+      output: null,
+      error: null,
+    },
+    {
+      id: "loading-run-fetch",
+      runId: "loading-selected-run",
+      workflowId: loadingWorkflow.id,
+      blockId: "loading-fetch",
+      order: 1,
+      blockType: "fetch_data_source",
+      blockLabel: "Fetch data source",
+      startedAt: LOADING_DATE,
+      finishedAt: LOADING_DATE,
+      status: "success",
+      durationMs: 208,
+      input: null,
+      output: null,
+      error: null,
+    },
+    {
+      id: "loading-run-preview",
+      runId: "loading-selected-run",
+      workflowId: loadingWorkflow.id,
+      blockId: "loading-preview",
+      order: 2,
+      blockType: "show_preview",
+      blockLabel: "Show preview",
+      startedAt: LOADING_DATE,
+      finishedAt: LOADING_DATE,
+      status: "success",
+      durationMs: 75,
+      input: null,
+      output: null,
+      error: null,
+    },
+  ],
+};
+
+const loadingLatestRun: AutomationRun = {
+  ...loadingSelectedRun,
+  id: "loading-latest-run",
+  startedAt: "2026-01-01T00:01:00.000Z",
+  durationMs: 301,
+  blocks: loadingSelectedRun.blocks.map((block) => ({
+    ...block,
+    id: `${block.id}-latest`,
+    runId: "loading-latest-run",
+  })),
+};
+
+function WorkflowInitialLoadingShell({
+  mode,
+  onBack,
+}: {
+  mode: "edit" | "watch";
+  onBack: () => void;
+}) {
+  return (
+    <WorkflowWorkspaceShell
+      breadcrumbLabel={mode === "watch" ? "Watch workflow" : "Edit workflow"}
+      railToggleLabel={mode === "watch" ? "Watch controls" : "Toolkit"}
+      nameControl={
+        <div aria-label="Workflow name loading">
+          <h1 className="type-title text-text-primary m-0 wrap-anywhere">
+            <span className="bg-surface-secondary inline-block h-5 w-56 rounded-full align-middle" />
+          </h1>
+          <span className="sr-only">Loading workflow name</span>
+        </div>
+      }
+      actions={
+        <Button type="button" variant="ghost" iconStart={<ArrowLeftIcon />} onClick={onBack}>
+          Back
+        </Button>
+      }
+      canvas={<WorkflowLoadingCanvas />}
+      rail={<WorkflowRailLoadingSkeleton mode={mode} />}
+      bottom={mode === "watch" ? <WorkflowHistoryLoadingSkeleton /> : undefined}
+      overlay={<WorkflowLoadingOverlay label="Fetching workflow..." />}
+    />
+  );
+}
+
+function WorkflowLoadingCanvas() {
+  return (
+    <div className="h-full min-h-0 opacity-60">
+      <WorkflowCanvas
+        mode="watch"
+        blocks={loadingWorkflow.blocks.map((block) => ({
+          id: block.id,
+          type: block.type,
+          config: block.config,
+          enabled: block.enabled,
+          lastRunAt: block.lastRunAt,
+          lastError: block.lastError,
+        }))}
+        sources={[loadingSource]}
+        addressBook={[]}
+        selectedBlockId=""
+        bottomOverlay
+        runtimeByBlockId={Object.fromEntries(
+          loadingSelectedRun.blocks
+            .filter((block) => block.blockId)
+            .map((block) => [
+              block.blockId!,
+              { status: block.status, durationMs: block.durationMs, error: block.error },
+            ]),
+        )}
+        onSelectBlock={() => undefined}
+        onMoveBlock={() => undefined}
+        onRemoveBlock={() => undefined}
+      />
+    </div>
+  );
+}
+
+function WorkflowRailLoadingSkeleton({ mode }: { mode: "edit" | "watch" }) {
+  if (mode === "watch") {
+    return (
+      <div className="gap-detail-close grid opacity-60">
+        <WatchRuntimeOverview
+          workflow={loadingWorkflow}
+          selectedRun={loadingSelectedRun}
+          latestRun={loadingLatestRun}
+          hasValidationErrors={false}
+        />
+        <WatchRunControls
+          workflow={loadingWorkflow}
+          busy
+          hasValidationErrors={false}
+          payloadText="{}"
+          payloadError={null}
+          onPayloadTextChange={() => undefined}
+          onPayloadError={() => undefined}
+          onResetPayload={() => undefined}
+          onRunNow={() => undefined}
+          onRunWithPayload={() => undefined}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="gap-detail-close grid opacity-60">
+      {["Validation", "Toolkit"].map((title) => (
+        <WorkflowRailPanel key={title}>
+          <WorkflowRailHeader title={title} description={<span className="bg-surface-secondary inline-block h-4 w-56 max-w-full rounded-full" />} />
+          <span className="bg-surface-secondary h-4 w-40 max-w-full rounded-full" />
+        </WorkflowRailPanel>
+      ))}
+    </div>
+  );
+}
+
+function WorkflowHistoryLoadingSkeleton() {
+  return (
+    <div className="opacity-60">
+      <WatchRunHistory
+        runs={[loadingLatestRun, loadingSelectedRun]}
+        selectedRunId={loadingSelectedRun.id}
+        onSelectRun={() => undefined}
+      />
+    </div>
   );
 }
 
@@ -107,6 +419,10 @@ export function AutomationPage() {
   const [workspaceValidation, setWorkspaceValidation] = useState<AutomationValidationResult | null>(
     null,
   );
+  const [workspaceRefreshing, setWorkspaceRefreshing] = useState(false);
+  const [workspaceSnapshot, setWorkspaceSnapshot] = useState<WorkspaceSnapshot | null>(() =>
+    readWorkspaceSnapshot(flowWorkflowId),
+  );
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingWorkflow, setDeletingWorkflow] = useState<AutomationWorkflow | null>(null);
@@ -119,6 +435,10 @@ export function AutomationPage() {
   useEffect(() => {
     void loadPage();
   }, []);
+
+  useEffect(() => {
+    setWorkspaceSnapshot(readWorkspaceSnapshot(flowWorkflowId));
+  }, [flowWorkflowId]);
 
   useEffect(() => {
     if (flow.mode !== "build") return;
@@ -138,16 +458,13 @@ export function AutomationPage() {
 
   useEffect(() => {
     if (flow.mode !== "watch") return;
-    const selectedRun = workspaceRuns.find((run) => run.id === flowRunId) ?? workspaceRuns[0];
-    const shouldPoll = selectedRun?.status === "running" || workspaceRuns[0]?.status === "running";
-    if (!shouldPoll) return;
+    if (!flowWorkflowId) return;
 
     const interval = window.setInterval(() => {
-      if (flowWorkflowId)
-        refreshWorkspace(flowWorkflowId).catch((err: Error) => setLoadError(err.message));
-    }, 2000);
+      refreshWorkspaceRuns(flowWorkflowId).catch((err: Error) => setLoadError(err.message));
+    }, 3000);
     return () => window.clearInterval(interval);
-  }, [flow.mode, flowRunId, flowWorkflowId, workspaceRuns]);
+  }, [flow.mode, flowWorkflowId]);
 
   async function refresh() {
     const [sourceResponse, workflowResponse, inboxResponse, addressBookResponse, walletResponse] =
@@ -171,6 +488,7 @@ export function AutomationPage() {
     setLoadError(null);
     const workflowId = "workflowId" in flow ? flow.workflowId : null;
     if (workflowId) {
+      setWorkspaceRefreshing(true);
       await refreshWorkspace(workflowId);
     }
   }
@@ -190,12 +508,24 @@ export function AutomationPage() {
   }
 
   async function refreshWorkspace(workflowId: string) {
-    const [runs, validation] = await Promise.all([
-      listAutomationWorkflowRuns(workflowId, 10),
-      getAutomationWorkflowValidation(workflowId),
-    ]);
+    setWorkspaceRefreshing(true);
+    try {
+      const [runs, validation] = await Promise.all([
+        listAutomationWorkflowRuns(workflowId, 10),
+        getAutomationWorkflowValidation(workflowId),
+      ]);
+      setWorkspaceRuns(runs.items);
+      setWorkspaceValidation(validation.item);
+      setLoadError(null);
+      return runs.items;
+    } finally {
+      setWorkspaceRefreshing(false);
+    }
+  }
+
+  async function refreshWorkspaceRuns(workflowId: string) {
+    const runs = await listAutomationWorkflowRuns(workflowId, 10);
     setWorkspaceRuns(runs.items);
-    setWorkspaceValidation(validation.item);
     setLoadError(null);
     return runs.items;
   }
@@ -316,12 +646,39 @@ export function AutomationPage() {
     return entry;
   }
 
-  const sourceById = (id: string) => sources.find((source) => source.id === id);
   const activeWorkflowId = flowWorkflowId;
   const workspaceWorkflow = activeWorkflowId
     ? (workflows.find((workflow) => workflow.id === activeWorkflowId) ?? null)
     : null;
   const workspaceMode = flow.mode === "edit" || flow.mode === "watch" ? flow.mode : null;
+  const canUseWorkspaceSnapshot =
+    !workspaceWorkflow && Boolean(workspaceSnapshot) && (workflowsLoading || workspaceRefreshing || busy);
+  const displayedWorkspace = workspaceWorkflow
+    ? {
+        workflow: workspaceWorkflow,
+        runs: workspaceRuns,
+        validation: workspaceValidation,
+        sources,
+        addressBook,
+        walletStatus,
+      }
+    : canUseWorkspaceSnapshot
+      ? workspaceSnapshot
+      : null;
+
+  useEffect(() => {
+    if (!workspaceWorkflow) return;
+    const nextSnapshot = {
+      workflow: workspaceWorkflow,
+      runs: workspaceRuns,
+      validation: workspaceValidation,
+      sources,
+      addressBook,
+      walletStatus,
+    } satisfies WorkspaceSnapshot;
+    setWorkspaceSnapshot(nextSnapshot);
+    writeWorkspaceSnapshot(nextSnapshot);
+  }, [addressBook, sources, walletStatus, workspaceRuns, workspaceValidation, workspaceWorkflow]);
 
   if (flow.mode === "build") {
     return (
@@ -358,68 +715,77 @@ export function AutomationPage() {
   if (workspaceMode) {
     return (
       <>
-        {workspaceWorkflow ? (
+        {displayedWorkspace ? (
           <WorkflowWorkspace
-            workflow={workspaceWorkflow}
-            runs={workspaceRuns}
-            validation={workspaceValidation}
-            source={sourceById(workflowPrimarySourceId(workspaceWorkflow))}
-            sources={sources}
-            addressBook={addressBook}
-            walletStatus={walletStatus}
+            workflow={displayedWorkspace.workflow}
+            runs={displayedWorkspace.runs}
+            validation={displayedWorkspace.validation}
+            source={displayedWorkspace.sources.find(
+              (source) => source.id === workflowPrimarySourceId(displayedWorkspace.workflow),
+            )}
+            sources={displayedWorkspace.sources}
+            addressBook={displayedWorkspace.addressBook}
+            walletStatus={displayedWorkspace.walletStatus}
             busy={busy}
             mode={workspaceMode}
             initialRunId={flow.mode === "watch" ? flow.runId : undefined}
             onBack={() => navigateFlow({ mode: "list" })}
             onNavigateMode={(nextMode) =>
-              navigateFlow({ mode: nextMode, workflowId: workspaceWorkflow.id })
+              navigateFlow({ mode: nextMode, workflowId: displayedWorkspace.workflow.id })
             }
             onSelectWatchRun={(runId) =>
-              navigateFlow({ mode: "watch", workflowId: workspaceWorkflow.id, runId })
+              navigateFlow({ mode: "watch", workflowId: displayedWorkspace.workflow.id, runId })
             }
             onAddBlock={(input) =>
-              run(() => addAutomationBlock(workspaceWorkflow.id, input), "Could not add block")
+              run(() => addAutomationBlock(displayedWorkspace.workflow.id, input), "Could not add block")
             }
             onReplaceStartBlock={(input) =>
               run(
-                () => replaceAutomationStartBlock(workspaceWorkflow.id, input),
+                () => replaceAutomationStartBlock(displayedWorkspace.workflow.id, input),
                 "Could not change start block",
               )
             }
             onDeleteBlock={(blockId) =>
               run(
-                () => deleteAutomationBlock(workspaceWorkflow.id, blockId),
+                () => deleteAutomationBlock(displayedWorkspace.workflow.id, blockId),
                 "Could not delete block",
               )
             }
             onUpdateBlock={(blockId, input) =>
               run(
-                () => updateAutomationBlock(workspaceWorkflow.id, blockId, input),
+                () => updateAutomationBlock(displayedWorkspace.workflow.id, blockId, input),
                 "Could not save block",
               )
             }
             onUpdateWorkflow={(input) =>
               run(
-                () => updateAutomationWorkflow(workspaceWorkflow.id, input),
+                () => updateAutomationWorkflow(displayedWorkspace.workflow.id, input),
                 "Could not save workflow",
               )
             }
             onReorderBlocks={(blockIds) =>
               run(
-                () => reorderAutomationBlocks(workspaceWorkflow.id, blockIds),
+                () => reorderAutomationBlocks(displayedWorkspace.workflow.id, blockIds),
                 "Could not move block",
               )
             }
             onRunNow={() =>
-              run(() => runWorkflowAndSelectLatest(workspaceWorkflow.id), "Could not run workflow")
+              run(() => runWorkflowAndSelectLatest(displayedWorkspace.workflow.id), "Could not run workflow")
             }
             onRunWithPayload={(payload) =>
               run(
-                () => runWorkflowAndSelectLatest(workspaceWorkflow.id, payload),
+                () => runWorkflowAndSelectLatest(displayedWorkspace.workflow.id, payload),
                 "Could not run workflow",
               )
             }
             onCreateAddressBookEntry={createWorkflowRecipient}
+            loadingOverlayLabel={
+              busy
+                ? "Updating workflow..."
+                : workspaceRefreshing || !workspaceWorkflow
+                  ? "Fetching workflow..."
+                  : null
+            }
           />
         ) : loadError ? (
           <ErrorContentState
@@ -428,12 +794,12 @@ export function AutomationPage() {
             onRetry={() => void loadPage()}
           />
         ) : (
-          <LoadingState
-            title="Fetching your workflow"
-            description="This should take a few seconds."
+          <WorkflowInitialLoadingShell
+            mode={workspaceMode}
+            onBack={() => navigateFlow({ mode: "list" })}
           />
         )}
-        {workspaceWorkflow && loadError ? (
+        {displayedWorkspace && loadError ? (
           <ErrorAlert
             title="Some workflow data couldn't be loaded"
             className="max-w-none"

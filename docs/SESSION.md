@@ -44,6 +44,18 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Verified 21 focused retention/database tests and backend typechecking.
 - Verified `npm run check`: backend 1,262 tests, frontend 1,596, Update Agent 163, scripts 46, all coverage thresholds met, and all dependency audits clean.
 - Verified backend/frontend production builds, `docker compose config`, and `docker compose build` for backend, frontend, and Update Agent.
+- Upgraded Automation watch-mode block debugging with domain-aware input/result summaries, replay controls, canvas focus layering, a toolbar above the canvas, centered run-status messaging, direct block-to-block detail switching through the overlay, no auto-play for the already-loaded latest run, and pause-on-manual-block-selection behavior.
+- Added replay animations for Automation watch playback: a glowing border-worm travels from the active block's top midpoint to bottom midpoint over the 1.5-second step interval, alternates direction by block order, and loops around the selected-run summary's outer border while replay is playing.
+- Updated replay playback so pressing Play from the last run block restarts playback at the first block.
+- Fixed historic replay to render only the selected run's recorded blocks, restore deleted blocks from run metadata, and recover missing block IDs from failed-block error context.
+- Added status-colored one-shot replay animation and persistent live-run focus overlay behavior.
+- Moved the Automation watch `Open proof` diagnostic link from downstream preview blocks to the producing data-fetch block.
+- Fixed replay sequences containing attached Integritas stamp blocks so the stamp is not animated as a separate canvas step.
+- Fixed failed stamp runs so the visible fetch block receives the failed runtime state while downstream not-reached blocks remain visible and replay does not select the hidden stamp step.
+- Changed Automation watch playback so follow-latest defaults off, manually enabling it jumps to the latest run without starting playback, and the toolbar title stays fixed as `Replay` to avoid shifting controls.
+- Added quiet watch-mode run polling so new runs can appear and auto-play when follow-latest is already enabled without showing the full workflow loading overlay.
+- Redesigned workflow header controls so the center contains a pill-shaped `Enabled`/`Paused` toggle and icon-only edit/watch switch, while the right side keeps only Back.
+- Verified the Automation watch-mode changes with `npm --prefix frontend run test -- WorkflowWatchUi WorkflowWorkspace WorkflowWorkspaceShell`, `npm --prefix frontend run test -- WorkflowWatchUi WorkflowWorkspace AutomationPage DataReadsHistoryTable`, and `npm --prefix frontend run build`.
 - Implemented the preserve-workflow-runs hotfix: workflow runs and block runs use the `preserve` retention policy; the retention pass now only purges deleted inbox items.
 - Updated retention service tests, added ADR 0026 (amends ADR 0023), removed the #705 run-pruning changelog bullet, and updated SECURITY, the security risk register, and mirrored automation rules.
 - Verified `npm run check` (all suites and coverage thresholds), the backend build, and `docker compose config`.
@@ -65,6 +77,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Comment on #694 and move it to Ready for Deployment (awaiting go-ahead).
 - Separate task: table drift left from #697 (watch history double scroller, peers table `<div>` header, backups onto `TableWrap`).
 - Complete the manual container/Pi checks in `docs/plans/security/705-retention-redaction-budgets.md`, including existing-installation Docker log rotation.
+- Define the product lifecycle for preserved data-source reads and visible inbox items, covering configuration, export, proof-linked reads, quotas, and disk warnings.
+- Browser QA Automation watch mode playback/status copy and toolbar layout from screenshots or a local browser session.
+- Browser QA historic replay with edited workflows, including deleted blocks and failed records with omitted block IDs.
 - Manual check for the hotfix: run a workflow, restart the backend, and confirm Watch mode still shows the run with its block overlays.
 - Define the product lifecycle for preserved workflow runs/block runs (per-workflow bound, ADR 0026), data-source reads, and visible inbox items, covering configuration, export, proof-linked reads, quotas, and disk warnings.
 - #275: stakeholder review of the crossfade; screenshots still use dev data (e.g. `ab78a7a5beb5 · linux x64`, a backup-password warning above the backups list) — recapture with clean, Pi-like values before merge; review the step copy.

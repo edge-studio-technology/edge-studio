@@ -104,4 +104,17 @@ describe("Tooltip", () => {
     );
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
   });
+
+  it.each(["top", "bottom", "left", "right"] as const)(
+    "positions an open tooltip with %s placement",
+    (placement) => {
+      render(
+        <Tooltip title="Hint" placement={placement} open>
+          <button>Trigger</button>
+        </Tooltip>,
+      );
+
+      expect(screen.getByRole("tooltip")).toBeInTheDocument();
+    },
+  );
 });

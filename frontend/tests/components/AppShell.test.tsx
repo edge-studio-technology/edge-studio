@@ -95,6 +95,39 @@ describe("AppShell", () => {
     expect(within(statusBar).getByText("Integritas disconnected")).toBeInTheDocument();
   });
 
+  it("shows fallback details for services without a specific error", async () => {
+    getStatusOverview.mockResolvedValue({
+      generatedAt: "2026-08-20T00:00:00.000Z",
+      services: [
+        { name: "minima", ok: false, status: "error" },
+        { name: "integritas", ok: true, status: "ok" },
+      ],
+    });
+
+    const user = userEvent.setup();
+    renderShell();
+    const statusBar = screen.getByRole("status", { name: "System status" });
+
+    await user.hover(await within(statusBar).findByText("Node offline"));
+    expect(await screen.findByText("Something went wrong during the last check.")).toBeInTheDocument();
+  });
+
+  it("shows the normalized state for a degraded service", async () => {
+    getStatusOverview.mockResolvedValue({
+      generatedAt: "2026-08-20T00:00:00.000Z",
+      services: [
+        { name: "minima", ok: false, status: "degraded" },
+        { name: "integritas", ok: true, status: "ok" },
+      ],
+    });
+
+    const user = userEvent.setup();
+    renderShell();
+    const statusBar = screen.getByRole("status", { name: "System status" });
+    await user.hover(await within(statusBar).findByText("Node offline"));
+    expect(await screen.findByText("Current state: degraded.")).toBeInTheDocument();
+  });
+
   it("opens the feedback modal with the current page path/label and closes it", async () => {
     renderShell();
     await act(async () => {});

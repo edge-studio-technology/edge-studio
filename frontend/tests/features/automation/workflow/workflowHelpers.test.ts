@@ -63,6 +63,7 @@ import {
   blockLabel,
   blockShortLabel,
   blockRunForBlock,
+  blockRunBlockId,
   WORKFLOW_INTERVAL_OPTIONS,
 } from "../../../../src/features/automation/workflow/workflowHelpers";
 
@@ -522,6 +523,65 @@ describe("workflowHelpers", () => {
       expect(blockRunForBlock(theRun, "missing")).toBeNull();
       expect(blockRunForBlock(undefined, "b1")).toBeNull();
       expect(blockRunForBlock(theRun, null)).toBeNull();
+    });
+
+    it("folds an attached failed block into its visible parent", () => {
+      const theRun = run({
+        blocks: [
+          {
+            id: "br-fetch",
+            runId: "r1",
+            workflowId: "w1",
+            blockId: "b-fetch",
+            order: 1,
+            blockType: "fetch_data_source",
+            blockLabel: "Fetch data source",
+            startedAt: "2026-08-01T00:00:00.000Z",
+            finishedAt: "2026-08-01T00:00:01.000Z",
+            status: "success",
+            durationMs: 1000,
+            input: null,
+            output: null,
+            error: null,
+          },
+          {
+            id: "br-stamp",
+            runId: "r1",
+            workflowId: "w1",
+            blockId: "b-stamp",
+            order: 1,
+            blockType: "stamp_integritas",
+            blockLabel: "Stamp data",
+            startedAt: "2026-08-01T00:00:01.000Z",
+            finishedAt: "2026-08-01T00:00:01.100Z",
+            status: "failed",
+            durationMs: 100,
+            input: null,
+            output: null,
+            error: "Budget exhausted",
+          },
+        ],
+      });
+      const blocks = [
+        { id: "b-fetch", parentBlockId: null },
+        { id: "b-stamp", parentBlockId: "b-fetch" },
+      ] as AutomationBlock[];
+
+      expect(runtimeByBlockIdFromRun(theRun, blocks)["b-fetch"]).toMatchObject({
+        status: "failed",
+        error: "Budget exhausted",
+      });
+      expect(blockRunForBlock(theRun, "b-fetch", blocks)?.id).toBe("br-stamp");
+    });
+
+    it("recovers a missing block ID from block error context", () => {
+      const blockRun = {
+        blockId: null,
+        errorDetails: { context: { blockId: "b-stamp" } },
+      } as AutomationRun["blocks"][number];
+
+      expect(blockRunBlockId(blockRun)).toBe("b-stamp");
+      expect(blockRunBlockId({ blockId: null, errorDetails: null } as AutomationRun["blocks"][number])).toBeNull();
     });
   });
 
