@@ -239,6 +239,24 @@ describe("WatchRunControls", () => {
     expect(onRunWithPayload).toHaveBeenCalledWith({ active: true });
   });
 
+  it.each([
+    ["webhook_event_start", "Test webhook trigger"],
+    ["mqtt_event_start", "Test MQTT trigger"],
+  ] as const)("labels %s event payload tests", async (type, label) => {
+    renderControls({ workflow: workflow({ blocks: [block({ type })] }) });
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Run now" })).not.toBeInTheDocument();
+  });
+
+  it("shows invalid JSON when saving the payload editor draft", async () => {
+    renderControls();
+    await openRunControlsPayload();
+    await userEvent.click(screen.getByRole("button", { name: "Edit payload" }));
+    fireEvent.change(screen.getByLabelText("Trigger payload"), { target: { value: "{" } });
+    await userEvent.click(screen.getByRole("button", { name: "Save payload" }));
+    expect(screen.getByText(/Unexpected end|JSON/)).toBeInTheDocument();
+  });
+
   it("shows a payload error message when set", () => {
     renderControls({ payloadError: "Payload must be valid JSON" });
     expect(screen.getByText("Payload must be valid JSON")).toBeInTheDocument();
@@ -377,6 +395,29 @@ describe("WatchRuntimeOverview", () => {
       latestRun: run({ id: "new-run" }),
     });
     expect(screen.getByText("Viewing historic run")).toBeInTheDocument();
+  });
+
+  it("covers archived, validation, paused, live, and empty runtime states", () => {
+    const { rerender } = renderOverview({
+      workflow: workflow({ archived: true, enabled: true }),
+      selectedRun: undefined,
+      latestRun: undefined,
+      hasValidationErrors: true,
+    });
+    expect(screen.getByText("Archived workflows cannot run until restored.")).toBeInTheDocument();
+    expect(screen.getByText("No runs yet")).toBeInTheDocument();
+
+    rerender(
+      <WatchRuntimeOverview
+        workflow={workflow({ enabled: false })}
+        selectedRun={run({ status: "running", blocks: [blockRun({ status: "success" }), blockRun({ status: "running" })], blockCount: 2 })}
+        latestRun={run({ status: "running" })}
+        hasValidationErrors={false}
+      />,
+    );
+    expect(screen.getByText("Paused. It will not run automatically until resumed.")).toBeInTheDocument();
+    expect(screen.getByText("Following live run")).toBeInTheDocument();
+    expect(screen.getByText("1/2 blocks completed")).toBeInTheDocument();
   });
 
   it("shows a distinct empty state when the workflow has never run", () => {
