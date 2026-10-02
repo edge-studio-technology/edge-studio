@@ -57,10 +57,14 @@ export function DashboardDevices() {
           setStatusLoading(false);
           setStatusError(false);
 
-          if (nextStatus.node.state === "restarting") {
-            setWalletLoading(true);
+          const nodeRestarting = nextStatus.node.state === "restarting";
+          if (nodeRestarting || nextStatus.node.state === "stopped" || nextStatus.node.state === "error") {
+            setWalletLoading(nodeRestarting);
             setWalletBalance(null);
-            timer = window.setTimeout(tick, STATUS_RESTARTING_INTERVAL_MS);
+            timer = window.setTimeout(
+              tick,
+              nodeRestarting ? STATUS_RESTARTING_INTERVAL_MS : DASHBOARD_POLL_INTERVAL_MS,
+            );
             return;
           }
 

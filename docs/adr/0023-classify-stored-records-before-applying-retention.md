@@ -3,6 +3,9 @@
 **Status:** Accepted
 **Date:** 2026-09-23
 
+The classification of workflow runs and block runs in this record is amended by
+[ADR 0026](./0026-preserve-workflow-run-history.md). Its other decisions remain accepted.
+
 ## Context
 
 ADR 0022 introduced one retention policy for `automation_runs`, `automation_block_runs`,

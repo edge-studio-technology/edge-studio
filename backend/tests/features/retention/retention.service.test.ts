@@ -2,17 +2,17 @@ import assert from "node:assert/strict";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
-const repositoryMock = vi.hoisted(() => ({ failNextRunsPass: null as Error | null }));
+const repositoryMock = vi.hoisted(() => ({ failNextInboxPass: null as Error | null }));
 
 vi.mock("../../../src/features/retention/retention.repository.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../src/features/retention/retention.repository.js")>();
   return {
     ...actual,
-    pruneAutomationRuns: (limits: Parameters<typeof actual.pruneAutomationRuns>[0]) => {
-      const error = repositoryMock.failNextRunsPass;
-      repositoryMock.failNextRunsPass = null;
+    pruneDeletedAutomationInboxItems: (batchSize: number) => {
+      const error = repositoryMock.failNextInboxPass;
+      repositoryMock.failNextInboxPass = null;
       if (error) throw error;
-      return actual.pruneAutomationRuns(limits);
+      return actual.pruneDeletedAutomationInboxItems(batchSize);
     }
   };
 });
@@ -39,7 +39,7 @@ afterAll(() => {
 
 beforeEach(() => {
   db.exec("DELETE FROM automation_inbox_items; DELETE FROM automation_block_runs; DELETE FROM automation_runs; DELETE FROM data_source_reads; DELETE FROM integritas_proofs;");
-  repositoryMock.failNextRunsPass = null;
+  repositoryMock.failNextInboxPass = null;
 });
 
 afterEach(() => {
@@ -73,8 +73,8 @@ function seed(total: number, old: number, deletedInboxItems = 0, now = NOW) {
 describe("retention.service — policy", () => {
   it("declares the approved policy for every stored record category", () => {
     assert.deepEqual(policy.RETENTION_POLICIES, {
-      automationRuns: { strategy: "age-and-count", maxAgeDays: 30, maxRows: 10_000, batchSize: 500 },
-      automationBlockRuns: { strategy: "age-and-count", maxAgeDays: 30, maxRows: 10_000, batchSize: 500 },
+      automationRuns: { strategy: "preserve" },
+      automationBlockRuns: { strategy: "preserve" },
       automationInboxItems: { strategy: "deleted-only", batchSize: 500 },
       dataSourceReads: { strategy: "preserve" },
       integritasProofs: { strategy: "explicit-deletion" }
@@ -82,34 +82,22 @@ describe("retention.service — policy", () => {
     assert.equal(service.RETENTION_INTERVAL_MS, 60 * 60 * 1000);
   });
 
-  it("bounds workflow diagnostics while preserving visible inbox items and data-source reads", () => {
+  it("preserves workflow runs, block runs, visible inbox items, and data-source reads beyond 10,000 rows", () => {
     seed(10_700, 0);
 
-    assert.deepEqual(service.runRetentionPass(NOW), {
-      automationRuns: 500,
-      // 500 block runs go with their runs; the block-run cap then removes the 200 still over 10,000.
-      automationBlockRuns: 700,
-      automationInboxItems: 0,
-      dataSourceReads: 0
-    });
-    assert.equal(count("automation_runs"), 10_200);
-    assert.equal(count("automation_inbox_items"), 10_700);
-    assert.equal(count("data_source_reads"), 10_700);
-
-    assert.deepEqual(service.runRetentionPass(NOW), { automationRuns: 200, automationBlockRuns: 0, automationInboxItems: 0, dataSourceReads: 0 });
-    assert.deepEqual(service.runRetentionPass(NOW), { automationRuns: 0, automationBlockRuns: 0, automationInboxItems: 0, dataSourceReads: 0 });
-    assert.equal(count("automation_runs"), 10_000);
-    assert.equal(count("automation_block_runs"), 10_000);
+    assert.deepEqual(service.runRetentionPass(), { automationRuns: 0, automationBlockRuns: 0, automationInboxItems: 0, dataSourceReads: 0 });
+    assert.equal(count("automation_runs"), 10_700);
+    assert.equal(count("automation_block_runs"), 10_700);
     assert.equal(count("automation_inbox_items"), 10_700);
     assert.equal(count("data_source_reads"), 10_700);
   });
 
-  it("applies the age limit only to workflow diagnostics", () => {
-    seed(20, 5);
+  it("preserves workflow runs and block runs older than 30 days", () => {
+    seed(20, 20);
 
-    assert.deepEqual(service.runRetentionPass(NOW), { automationRuns: 5, automationBlockRuns: 5, automationInboxItems: 0, dataSourceReads: 0 });
-    assert.equal(count("automation_runs"), 15);
-    assert.equal(count("automation_block_runs"), 15);
+    assert.deepEqual(service.runRetentionPass(), { automationRuns: 0, automationBlockRuns: 0, automationInboxItems: 0, dataSourceReads: 0 });
+    assert.equal(count("automation_runs"), 20);
+    assert.equal(count("automation_block_runs"), 20);
     assert.equal(count("automation_inbox_items"), 20);
     assert.equal(count("data_source_reads"), 20);
   });
@@ -118,7 +106,7 @@ describe("retention.service — policy", () => {
     const old = new Date(NOW - 40 * DAY_MS).toISOString();
     db.prepare("INSERT INTO integritas_proofs (id, created_at, updated_at, hash, proof_status) VALUES ('proof-old', ?, ?, 'hash', 'confirmed')").run(old, old);
 
-    service.runRetentionPass(NOW);
+    service.runRetentionPass();
 
     assert.equal(count("integritas_proofs"), 1);
   });
@@ -126,33 +114,33 @@ describe("retention.service — policy", () => {
   it("physically purges user-deleted inbox items in bounded batches", () => {
     seed(700, 0, 700);
 
-    assert.equal(service.runRetentionPass(NOW).automationInboxItems, 500);
+    assert.equal(service.runRetentionPass().automationInboxItems, 500);
     assert.equal(count("automation_inbox_items"), 200);
-    assert.equal(service.runRetentionPass(NOW).automationInboxItems, 200);
+    assert.equal(service.runRetentionPass().automationInboxItems, 200);
     assert.equal(count("automation_inbox_items"), 0);
   });
 });
 
 describe("retention.service — scheduler", () => {
-  it("yields between bounded batches and drains active cleanup policies before the next hourly tick", async () => {
+  it("yields between bounded batches and drains deleted inbox items before the next hourly tick", async () => {
     vi.useFakeTimers({ now: NOW });
     seed(10_000, 1700, 1700);
 
     service.startRetentionScheduler();
-    assert.equal(count("automation_runs"), 9_500);
+    assert.equal(count("automation_runs"), 10_000);
     assert.equal(count("automation_inbox_items"), 9_500);
     assert.equal(count("data_source_reads"), 10_000);
 
     await vi.advanceTimersByTimeAsync(10);
-    assert.equal(count("automation_runs"), 8_300);
-    assert.equal(count("automation_block_runs"), 8_300);
+    assert.equal(count("automation_runs"), 10_000);
+    assert.equal(count("automation_block_runs"), 10_000);
     assert.equal(count("automation_inbox_items"), 8_300);
     assert.equal(count("data_source_reads"), 10_000);
 
     db.exec("DELETE FROM automation_inbox_items; DELETE FROM automation_block_runs; DELETE FROM automation_runs; DELETE FROM data_source_reads; DELETE FROM integritas_proofs;");
     seed(10, 10, 10);
     await vi.advanceTimersByTimeAsync(service.RETENTION_INTERVAL_MS);
-    assert.equal(count("automation_runs"), 0);
+    assert.equal(count("automation_runs"), 10);
     assert.equal(count("automation_inbox_items"), 0);
     assert.equal(count("data_source_reads"), 10);
   });
@@ -162,15 +150,15 @@ describe("retention.service — scheduler", () => {
     seed(1700, 1700, 1700);
     service.startRetentionScheduler();
     service.startRetentionScheduler();
-    assert.equal(count("automation_runs"), 1200);
+    assert.equal(count("automation_runs"), 1700);
     assert.equal(count("automation_inbox_items"), 1200);
     service.stopRetentionScheduler();
     await vi.advanceTimersByTimeAsync(10);
-    assert.equal(count("automation_runs"), 1200);
+    assert.equal(count("automation_runs"), 1700);
     assert.equal(count("automation_inbox_items"), 1200);
     service.startRetentionScheduler();
     await vi.advanceTimersByTimeAsync(10);
-    assert.equal(count("automation_runs"), 0);
+    assert.equal(count("automation_runs"), 1700);
     assert.equal(count("automation_inbox_items"), 0);
     assert.equal(count("data_source_reads"), 1700);
   });
@@ -191,7 +179,7 @@ describe("retention.service — scheduler", () => {
     vi.useFakeTimers({ now: NOW });
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const secret = ["broker", "password"].join("-");
-    repositoryMock.failNextRunsPass = new Error(`database is locked mqtt://sensor:${secret}@broker.local`);
+    repositoryMock.failNextInboxPass = new Error(`database is locked mqtt://sensor:${secret}@broker.local`);
     seed(10, 10, 10);
 
     service.startRetentionScheduler();
@@ -202,7 +190,7 @@ describe("retention.service — scheduler", () => {
     assert.equal(JSON.stringify(errorSpy.mock.calls).includes(secret), false);
 
     vi.advanceTimersByTime(service.RETENTION_INTERVAL_MS);
-    assert.equal(count("automation_runs"), 0);
+    assert.equal(count("automation_runs"), 10);
     assert.equal(count("automation_inbox_items"), 0);
     assert.equal(count("data_source_reads"), 10);
     assert.equal(errorSpy.mock.calls.length, 1);
