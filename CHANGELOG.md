@@ -116,6 +116,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Automation watch proof diagnostics now appear on the data-fetch block that produces the proof, not downstream preview blocks that only consume it.
+- Automation watch replay now treats attached Integritas stamp blocks as part of their parent block instead of replaying them as separate canvas steps.
 - Minima restart setup failures now clear the temporary restarting state instead of leaving stale operation status in the UI.
 - Update Agent Docker stream requests now reject reliably when their timeout expires instead of leaving update pulls hanging.
 - List search/filter rows on Devices, Workflows, Address book, and Diagnostics stack with their New/Refresh buttons as one group on tablet and phone.

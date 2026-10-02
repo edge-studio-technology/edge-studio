@@ -35,6 +35,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Fixed historic replay to render only the selected run's recorded blocks, restore deleted blocks from run metadata, and recover missing block IDs from failed-block error context.
 - Added status-colored one-shot replay animation and persistent live-run focus overlay behavior.
 - Moved the Automation watch `Open proof` diagnostic link from downstream preview blocks to the producing data-fetch block.
+- Fixed replay sequences containing attached Integritas stamp blocks so the stamp is not animated as a separate canvas step.
 - Changed Automation watch playback so follow-latest defaults off, manually enabling it jumps to the latest run without starting playback, and the toolbar title stays fixed as `Replay` to avoid shifting controls.
 - Added quiet watch-mode run polling so new runs can appear and auto-play when follow-latest is already enabled without showing the full workflow loading overlay.
 - Redesigned workflow header controls so the center contains a pill-shaped `Enabled`/`Paused` toggle and icon-only edit/watch switch, while the right side keeps only Back.

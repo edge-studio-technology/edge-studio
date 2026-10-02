@@ -639,6 +639,55 @@ describe("WorkflowWorkspace watch mode", () => {
     expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument();
   });
 
+  it("treats an attached stamp as part of its parent replay step", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const runBlock = (id: string, type: AutomationBlock["type"], order: number) => ({
+      id: `run-${id}`,
+      runId: "r1",
+      workflowId: "w1",
+      blockId: id,
+      order,
+      blockType: type,
+      blockLabel: type,
+      startedAt: "2026-08-01T00:00:00.000Z",
+      finishedAt: "2026-08-01T00:00:00.100Z",
+      status: "success" as const,
+      durationMs: 100,
+      input: {},
+      output: {},
+      error: null,
+      errorDetails: null,
+    });
+
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({
+        blocks: [
+          block(),
+          block({ id: "b-fetch", type: "fetch_data_source", order: 1 }),
+          block({ id: "b-stamp", type: "stamp_integritas", order: 1, parentBlockId: "b-fetch" }),
+          block({ id: "b-preview", type: "show_preview", order: 2 }),
+        ],
+      }),
+      runs: [
+        run({
+          blocks: [
+            runBlock("b-start", "manual_start", 0),
+            runBlock("b-fetch", "fetch_data_source", 1),
+            runBlock("b-stamp", "stamp_integritas", 1),
+            runBlock("b-preview", "show_preview", 2),
+          ],
+        }),
+      ],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.getByText("selected-block-b-fetch")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.getByText("selected-block-b-preview")).toBeInTheDocument();
+  });
+
   it("plays replay steps at a fixed pace", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({

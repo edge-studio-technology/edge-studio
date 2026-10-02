@@ -163,6 +163,7 @@ export function WorkflowWorkspace({
           .filter(
             (block) =>
               blockRunBlockId(block) &&
+              block.blockType !== "stamp_integritas" &&
               !workflow.blocks.some((workflowBlock) => workflowBlock.id === blockRunBlockId(block)),
           )
           .map((block) => ({
@@ -227,7 +228,12 @@ export function WorkflowWorkspace({
   };
   const replaySteps =
     mode === "watch" && selectedRun
-      ? selectedRun.blocks.filter((block) => blockRunBlockId(block))
+      ? selectedRun.blocks.filter((block) => {
+          const blockId = blockRunBlockId(block);
+          if (!blockId || block.blockType === "stamp_integritas") return false;
+          const workflowBlock = workflow.blocks.find((item) => item.id === blockId);
+          return !workflowBlock?.parentBlockId;
+        })
       : [];
   const replayStepIndex = replaySteps.findIndex((block) => blockRunBlockId(block) === selectedBlockId);
   const playbackMessage = playbackStatusMessage(selectedRun, {
