@@ -10,8 +10,8 @@ import {
 } from "../../../src/features/automation/automation.policy.js";
 
 describe("automation.policy", () => {
-  it("fixes the workflow run budget at 10 runs per rolling hour", () => {
-    assert.equal(WORKFLOW_RUN_BUDGET_MAX_RUNS, 10);
+  it("fixes the workflow run budget at 1000 runs per rolling hour", () => {
+    assert.equal(WORKFLOW_RUN_BUDGET_MAX_RUNS, 1000);
     assert.equal(WORKFLOW_RUN_BUDGET_WINDOW_MS, 60 * 60 * 1000);
   });
 

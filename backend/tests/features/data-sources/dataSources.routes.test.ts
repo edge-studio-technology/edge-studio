@@ -3,6 +3,7 @@ import express from "express";
 import request from "supertest";
 import { afterAll, beforeAll, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
+import { WORKFLOW_RUN_BUDGET_MAX_RUNS } from "../../../src/features/automation/automation.policy.js";
 
 vi.mock("../../../src/features/data-sources/dataSources.service.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/features/data-sources/dataSources.service.js")>()),
@@ -71,9 +72,10 @@ describe("POST /api/data-source-webhooks/:token — rate limit", () => {
     const { webhookToken, source, workflow } = makeWebhookWorkflow([
       { type: "control_output", config: { targetId: target.id, action: "send_request", bodyMode: "none" } }
     ]);
-    for (let index = 0; index < 10; index += 1) {
-      db.prepare("INSERT INTO automation_workflow_budget_events (run_id, workflow_id, consumed_at) VALUES (?, ?, ?)").run(`${workflow.id}-${index}`, workflow.id, new Date().toISOString());
-    }
+    const insert = db.prepare("INSERT INTO automation_workflow_budget_events (run_id, workflow_id, consumed_at) VALUES (?, ?, ?)");
+    db.transaction(() => {
+      for (let index = 0; index < WORKFLOW_RUN_BUDGET_MAX_RUNS; index += 1) insert.run(`${workflow.id}-${index}`, workflow.id, new Date().toISOString());
+    })();
 
     const response = await request(app).post(`/api/data-source-webhooks/${webhookToken}`).send({ ok: true });
 

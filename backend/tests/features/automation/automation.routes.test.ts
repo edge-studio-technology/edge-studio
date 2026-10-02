@@ -3,6 +3,7 @@ import express from "express";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
+import { WORKFLOW_RUN_BUDGET_MAX_RUNS } from "../../../src/features/automation/automation.policy.js";
 
 // The router is mounted without the global auth gate, so requireRole must not 401 the request.
 vi.mock("../../../src/features/auth/auth.middleware.js", () => ({
@@ -94,9 +95,10 @@ describe("POST /api/automation/workflows/:id/run — run budget", () => {
       ]
     });
     const consumedAt = new Date().toISOString();
-    for (let index = 0; index < 10; index += 1) {
-      db.prepare("INSERT INTO automation_workflow_budget_events (run_id, workflow_id, consumed_at) VALUES (?, ?, ?)").run(`prefilled-${index}`, workflow.id, consumedAt);
-    }
+    const insert = db.prepare("INSERT INTO automation_workflow_budget_events (run_id, workflow_id, consumed_at) VALUES (?, ?, ?)");
+    db.transaction(() => {
+      for (let index = 0; index < WORKFLOW_RUN_BUDGET_MAX_RUNS; index += 1) insert.run(`prefilled-${index}`, workflow.id, consumedAt);
+    })();
 
     const response = await request(app).post(`/api/automation/workflows/${workflow.id}/run`).send({});
 
