@@ -36,6 +36,7 @@ import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { InputField } from "../../components/ui/InputField";
+import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { ScrollArea } from "../../components/ui/ScrollArea";
 import { formatLocalDateTime } from "../../lib/time";
 import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
@@ -133,7 +134,7 @@ function BackupCell({
   if (columnId === "file") {
     return (
       <TableCell className="min-w-0">
-        <span className="type-body-em text-text-primary block truncate">{backup.fileName}</span>
+        <CopyableTruncatedText value={backup.fileName} emphasis />
       </TableCell>
     );
   }

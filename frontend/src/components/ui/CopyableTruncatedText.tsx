@@ -6,11 +6,17 @@ export function CopyableTruncatedText({
   display,
   className,
   mono = false,
+  emphasis = false,
+  meta = false,
+  tone = "primary",
 }: {
   value: string;
   display?: string;
   className?: string;
   mono?: boolean;
+  emphasis?: boolean;
+  meta?: boolean;
+  tone?: "primary" | "secondary" | "error";
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -24,9 +30,9 @@ export function CopyableTruncatedText({
     <button
       type="button"
       className={cx(
-        mono ? "type-mono" : "type-body",
-        "inline-block max-w-full cursor-copy truncate rounded-tight border-0 p-0 text-left align-top transition-colors",
-        copied ? "bg-feedback-positive/10 text-text-success" : "bg-transparent",
+        mono ? "type-mono" : meta ? "type-meta" : emphasis ? "type-body-em" : "type-body",
+        "inline-block max-w-full cursor-copy self-start truncate rounded-tight border-0 p-0 text-left align-top transition-colors",
+        copied ? "bg-feedback-positive/10 text-text-success" : tone === "secondary" ? "bg-transparent text-text-secondary" : tone === "error" ? "bg-transparent text-text-error" : "bg-transparent text-text-primary",
         className,
       )}
       title={value}

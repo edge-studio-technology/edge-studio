@@ -256,14 +256,14 @@ function InboxCell({
   if (columnId === "title") {
     return (
       <TableCell className="min-w-0">
-        <CopyableTruncatedText value={item.title} className="type-body-em text-text-primary" />
+        <CopyableTruncatedText value={item.title} emphasis />
       </TableCell>
     );
   }
   if (columnId === "workflow") {
     return (
       <TableCell className="min-w-0">
-        <CopyableTruncatedText value={item.workflowName} className="text-text-secondary" />
+        <CopyableTruncatedText value={item.workflowName} tone="secondary" />
       </TableCell>
     );
   }

@@ -212,7 +212,7 @@ function WorkflowRunCell({
   if (columnId === "workflow") {
     return (
       <TableCell className="max-w-56 min-w-0">
-        <CopyableTruncatedText value={run.workflowName} className="type-body-em text-text-primary" />
+        <CopyableTruncatedText value={run.workflowName} emphasis />
       </TableCell>
     );
   }
@@ -251,7 +251,7 @@ function WorkflowRunCell({
     return (
       <TableCell className="max-w-44 min-w-0">
         {run.triggerSourceId ? (
-          <CopyableTruncatedText value={run.triggerSourceId} mono className="text-text-primary" />
+          <CopyableTruncatedText value={run.triggerSourceId} mono />
         ) : (
           <span className="text-text-secondary">None</span>
         )}
@@ -261,14 +261,14 @@ function WorkflowRunCell({
   if (columnId === "error") {
     return (
       <TableCell className="max-w-64 min-w-0">
-        {run.error ? <CopyableTruncatedText value={run.error} className="text-text-error" /> : <span className="text-text-secondary">None</span>}
+        {run.error ? <CopyableTruncatedText value={run.error} tone="error" /> : <span className="text-text-secondary">None</span>}
       </TableCell>
     );
   }
   if (columnId === "runId") {
     return (
       <TableCell className="max-w-44 min-w-0">
-        <CopyableTruncatedText value={run.id} mono className="text-text-primary" />
+        <CopyableTruncatedText value={run.id} mono />
       </TableCell>
     );
   }

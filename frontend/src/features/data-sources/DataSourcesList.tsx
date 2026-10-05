@@ -324,16 +324,16 @@ function DeviceCell({
   if (columnId === "name") {
     return (
       <TableCell className="min-w-0 whitespace-normal">
-        <CopyableTruncatedText value={source.name} className="type-body-em text-text-primary" />
-        {source.description && <CopyableTruncatedText value={source.description} className="type-meta text-text-secondary mt-detail-next" />}
+        <CopyableTruncatedText value={source.name} emphasis />
+        {source.description && <CopyableTruncatedText value={source.description} meta tone="secondary" className="mt-detail-next" />}
       </TableCell>
     );
   }
   if (columnId === "details") {
     return (
       <TableCell className="min-w-0 whitespace-normal">
-        <CopyableTruncatedText value={typeLabel} className="type-body-em text-text-primary" />
-        <CopyableTruncatedText value={`${sourceDirection(source)} · ${endpoint ?? "—"}`} className="type-meta text-text-secondary mt-detail-next" />
+        <CopyableTruncatedText value={typeLabel} emphasis />
+        <CopyableTruncatedText value={`${sourceDirection(source)} · ${endpoint ?? "—"}`} meta tone="secondary" className="mt-detail-next" />
       </TableCell>
     );
   }
@@ -348,7 +348,8 @@ function DeviceCell({
           <CopyableTruncatedText
             value={usedByWorkflows.map((workflow) => workflow.name).join(", ")}
             display={`${usedByWorkflows.length} ${usedByWorkflows.length === 1 ? "workflow" : "workflows"}`}
-            className="type-meta text-text-secondary"
+            meta
+            tone="secondary"
           />
         ) : <span className="text-text-secondary">None</span>}
       </TableCell>

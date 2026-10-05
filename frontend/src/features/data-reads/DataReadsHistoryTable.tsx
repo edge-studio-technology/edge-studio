@@ -194,8 +194,8 @@ function ReadHistoryCell({
     return (
       <TableCell className="max-w-56 min-w-0">
         <div className="gap-detail-tight flex min-w-0 flex-col">
-          <CopyableTruncatedText value={item.sourceName} className="type-body-em text-text-primary" />
-          <CopyableTruncatedText value={item.sourceUrl} mono className="text-text-secondary" />
+          <CopyableTruncatedText value={item.sourceName} emphasis />
+          <CopyableTruncatedText value={item.sourceUrl} mono tone="secondary" />
         </div>
       </TableCell>
     );

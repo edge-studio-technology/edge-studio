@@ -358,7 +358,7 @@ function WalletHistoryCell({
       </TableCell>
     );
   }
-  if (columnId === "token") return <TableCell className="max-w-48 min-w-0"><CopyableTruncatedText value={entry.tokenName} className="text-text-primary" /></TableCell>;
+  if (columnId === "token") return <TableCell className="max-w-48 min-w-0"><CopyableTruncatedText value={entry.tokenName} /></TableCell>;
   if (columnId === "txpow") {
     return (
       <TableCell className="max-w-48 min-w-0">

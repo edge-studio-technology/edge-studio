@@ -344,7 +344,7 @@ function AddressBookCell({
   if (columnId === "name") {
     return (
       <TableCell className="min-w-0">
-        <CopyableTruncatedText value={entry.label} className="type-body-em text-text-primary" />
+        <CopyableTruncatedText value={entry.label} emphasis />
       </TableCell>
     );
   }
@@ -358,7 +358,7 @@ function AddressBookCell({
   if (columnId === "notes") {
     return (
       <TableCell className="min-w-0">
-        {entry.notes ? <CopyableTruncatedText value={entry.notes} className="text-text-secondary" /> : <span className="text-text-secondary">—</span>}
+        {entry.notes ? <CopyableTruncatedText value={entry.notes} tone="secondary" /> : <span className="text-text-secondary">—</span>}
       </TableCell>
     );
   }

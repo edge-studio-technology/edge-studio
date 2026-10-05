@@ -295,8 +295,8 @@ function WorkflowCell({
   if (columnId === "name") {
     return (
       <TableCell className="min-w-0">
-        <CopyableTruncatedText value={workflow.name} className="type-body-em text-text-primary" />
-        {inlineError && <CopyableTruncatedText value={inlineError} className="type-meta text-text-error mt-detail-next" />}
+        <CopyableTruncatedText value={workflow.name} emphasis />
+        {inlineError && <CopyableTruncatedText value={inlineError} meta tone="error" className="mt-detail-next" />}
         {workflow.archived && <p className="type-meta text-text-secondary mt-detail-next m-0">Archived, does not run until restored.</p>}
       </TableCell>
     );
@@ -325,7 +325,7 @@ function WorkflowCell({
   if (columnId === "source") {
     return (
       <TableCell className="min-w-0">
-        <CopyableTruncatedText value={sourceName(workflowPrimarySourceId(workflow))} className="text-text-primary" />
+        <CopyableTruncatedText value={sourceName(workflowPrimarySourceId(workflow))} />
         <p className="type-meta text-text-secondary mt-detail-next m-0">
           {workflowIntervalSeconds(workflow) > 0 ? formatInterval(workflowIntervalSeconds(workflow)) : "Event driven"}
         </p>
@@ -336,7 +336,7 @@ function WorkflowCell({
     return (
       <TableCell className="min-w-0">
         <span>{workflow.blocks.length}</span>
-        <CopyableTruncatedText value={summarizeBlocks(workflow)} className="type-meta text-text-secondary mt-detail-next" />
+        <CopyableTruncatedText value={summarizeBlocks(workflow)} meta tone="secondary" className="mt-detail-next" />
       </TableCell>
     );
   }

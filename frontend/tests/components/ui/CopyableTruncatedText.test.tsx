@@ -18,4 +18,10 @@ describe("CopyableTruncatedText", () => {
     expect(writeText).toHaveBeenCalledWith("Full workflow name");
     expect(screen.getByRole("button", { name: "Copied Full workflow name" })).toHaveTextContent("Copied");
   });
+
+  it("applies the requested table text role", () => {
+    render(<CopyableTruncatedText value="Failed run" meta tone="error" />);
+
+    expect(screen.getByRole("button", { name: "Copy Failed run" })).toHaveClass("type-meta", "text-text-error");
+  });
 });

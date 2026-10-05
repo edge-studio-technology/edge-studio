@@ -18,6 +18,7 @@ import {
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
 import { InputField } from "../../components/ui/InputField";
+import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { ScrollArea } from "../../components/ui/ScrollArea";
 import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 
@@ -110,7 +111,7 @@ export function MinimaPeerConnectionsSection({
                         <TableRow key={peer}>
                           {visibility.address && (
                             <TableCell className="min-w-0">
-                              <code className="text-text-primary truncate">{peer}</code>
+                              <CopyableTruncatedText value={peer} mono />
                             </TableCell>
                           )}
                         </TableRow>

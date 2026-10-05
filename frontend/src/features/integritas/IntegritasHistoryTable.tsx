@@ -377,7 +377,7 @@ function ProofHistoryCell({
   if (columnId === "uid") {
     return (
       <TableCell className="max-w-40 min-w-0">
-        {record.proof_uid ? <CopyableTruncatedText value={record.proof_uid} mono className="text-text-secondary" /> : "—"}
+        {record.proof_uid ? <CopyableTruncatedText value={record.proof_uid} mono tone="secondary" /> : "—"}
       </TableCell>
     );
   }
@@ -398,7 +398,7 @@ function ProofHistoryCell({
   if (columnId === "fileName") {
     return (
       <TableCell className="max-w-56 min-w-0">
-        {record.file_name ? <CopyableTruncatedText value={record.file_name} className="text-text-primary" /> : "—"}
+        {record.file_name ? <CopyableTruncatedText value={record.file_name} /> : "—"}
       </TableCell>
     );
   }

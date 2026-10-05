@@ -21,6 +21,7 @@ import {
   type TableColumnDefinition,
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
+import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatMinimaAmount } from "../../lib/format";
 import { AssetDetailModal } from "./AssetDetailModal";
@@ -207,7 +208,7 @@ function WalletAssetCell({
       <TableCell className="min-w-0">
         <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
           <TokenGlyph isNative={token.isNative} />
-          <span className="truncate">{token.name}</span>
+          <CopyableTruncatedText value={token.name} />
         </span>
       </TableCell>
     );

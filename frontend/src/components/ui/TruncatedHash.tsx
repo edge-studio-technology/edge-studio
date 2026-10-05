@@ -16,7 +16,7 @@ export function TruncatedHash({ value, className }: { value: string; className?:
     <button
       type="button"
       className={cx(
-        "type-mono inline-block max-w-full cursor-copy overflow-hidden rounded-tight border-0 p-0 text-left text-ellipsis whitespace-nowrap align-top transition-colors",
+        "type-mono inline-block max-w-full cursor-copy self-start overflow-hidden rounded-tight border-0 p-0 text-left text-ellipsis whitespace-nowrap align-top transition-colors",
         copied ? "bg-feedback-positive/10 text-text-success" : "bg-transparent text-text-secondary",
         className,
       )}
