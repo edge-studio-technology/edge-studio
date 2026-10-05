@@ -28,6 +28,9 @@
 
 ## Next
 
+- [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
+- [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.
+
 - [ ] Verify the wiki’s temporary application-data backup/restore procedure on a real Pi with the same app version and unchanged runtime configuration; implement an integrated Edge Studio backup/restore feature separately.
 
 - [ ] Define the product lifecycle for data-source reads and visible automation inbox items, including retention configuration, export, proof-linked reads, storage quotas, and disk-usage warnings — see `docs/adr/0023-classify-stored-records-before-applying-retention.md`.
@@ -77,6 +80,8 @@
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
 
 ## Done
+
+- [x] Increased the shared Integritas timeout default from 15 seconds to 5 minutes across backend and deployment configuration, extended Integritas frontend proxy waits, and added default/override tests; configuration/Integritas tests, typechecks, builds, and Compose validation passed; full-check and Docker-build limitations recorded in SESSION.
 
 - [x] Hotfix: stop retention from deleting workflow runs/block runs used by Watch mode (#705 follow-up) — see `docs/plans/hotfix/preserve-workflow-runs.md`.
 - [x] Completed #259 implementation and verification: Minima failure-state/restart tests, offline dashboard wallet handling, and contained restart rejection; focused tests, full checks, builds, and Compose validation passed. Added a ticket comment only; status unchanged — see `docs/plans/259-node-failure-mode-unit-testing.md`.
