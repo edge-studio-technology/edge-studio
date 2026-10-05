@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach, vi } from "vitest";
 import * as assert from "node:assert/strict";
 import { getUpdateStatus } from "../../src/status/status.service.js";
-import type { ServiceStatus } from "../../src/status/status.service.js";
+import type { InstalledBuilds, ServiceStatus } from "../../src/status/status.service.js";
 
 const mockEnv = { manifestUrl: "https://primary.example.com/release/manifest.json", manifestPublicKey: "test-key", statusPollIntervalMs: 1000 };
 vi.mock("../../src/config/env.js", () => ({ env: mockEnv }));
@@ -12,6 +12,7 @@ let refreshCachedStatus: typeof import("../../src/status/status-poller.js").refr
 let startStatusPoller: typeof import("../../src/status/status-poller.js").startStatusPoller;
 
 const services: ServiceStatus[] = [{ service: "frontend", currentImage: "sha256:a", targetImage: "sha256:a", upToDate: true }];
+const installedBuilds: InstalledBuilds = { frontend: { version: "v1.0.0", revision: "abc" }, backend: null, "update-agent": null };
 
 describe("status-poller", () => {
   beforeEach(async () => {
@@ -23,7 +24,8 @@ describe("status-poller", () => {
     (getUpdateStatus as any).mockResolvedValue({
       manifest: { frontend: "sha256:a", backend: "sha256:b", updateAgent: "sha256:c", hostRuntime: { url: "https://example.com/edge-studio-host-runtime.tar.gz", sha256: "a".repeat(64) }, version: "1.2.3", createdAt: "2026-08-01T00:00:00.000Z" },
       services,
-      currentVersion: "1.0.0"
+      currentVersion: "1.0.0",
+      installedBuilds
     });
     const mod = await import("../../src/status/status-poller.js");
     getCachedStatus = mod.getCachedStatus;
@@ -52,7 +54,8 @@ describe("status-poller", () => {
         checkedAt: "2026-08-21T12:00:00.000Z",
         services,
         currentVersion: "1.0.0",
-        availableVersion: "1.2.3"
+        availableVersion: "1.2.3",
+        installedBuilds
       });
     });
 
@@ -71,7 +74,8 @@ describe("status-poller", () => {
       (getUpdateStatus as any).mockResolvedValue({
         manifest: { frontend: "sha256:x", backend: "sha256:b", updateAgent: "sha256:c", hostRuntime: { url: "https://example.com/edge-studio-host-runtime.tar.gz", sha256: "b".repeat(64) }, version: "1.3.0", createdAt: "2026-08-02T00:00:00.000Z" },
         services: [],
-        currentVersion: "1.2.3"
+        currentVersion: "1.2.3",
+        installedBuilds
       });
 
       await refreshCachedStatus();

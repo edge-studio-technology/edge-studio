@@ -1,6 +1,6 @@
 import { env } from "../config/env.js";
 import { dockerRequest, dockerRequestStream, type DockerProgressLine } from "./docker.client.js";
-import type { DockerContainerInspect, DockerContainerSummary, DockerImageSummary } from "./docker.types.js";
+import type { DockerContainerInspect, DockerContainerSummary, DockerImageInspect, DockerImageSummary } from "./docker.types.js";
 
 const composeProject = "edge-studio";
 
@@ -19,6 +19,11 @@ export async function getComposeServiceContainer(serviceName: string): Promise<D
 
 export function inspectContainer(containerId: string): Promise<DockerContainerInspect> {
   return dockerRequest<DockerContainerInspect>("GET", `/containers/${containerId}/json`);
+}
+
+// Read build labels from the image, not the container. See docs/adr/0029-verified-version-identity.md.
+export function inspectImage(imageId: string): Promise<DockerImageInspect> {
+  return dockerRequest<DockerImageInspect>("GET", `/images/${imageId}/json`);
 }
 
 export function pullImageByDigest(imageRef: string, onProgress?: (line: DockerProgressLine) => void): Promise<void> {

@@ -58,7 +58,7 @@ export async function applyUpdates(): Promise<ServiceUpdateResult[]> {
   // failure must remain retryable against the same manifest.
   const anyFailed = results.some((result) => !result.updated && result.reason !== "already up to date");
   if (!anyFailed) {
-    await recordAppliedManifest(manifest.createdAt, manifest.version);
+    await recordAppliedManifest(manifest.createdAt, manifest.version, { frontend: manifest.frontend, backend: manifest.backend });
   }
 
   // Fire-and-forget: launched after everything else succeeds, runs
