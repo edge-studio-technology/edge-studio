@@ -324,16 +324,20 @@ function DeviceCell({
   if (columnId === "name") {
     return (
       <TableCell className="min-w-0 whitespace-normal">
-        <CopyableTruncatedText value={source.name} emphasis />
-        {source.description && <CopyableTruncatedText value={source.description} meta tone="secondary" className="mt-detail-next" />}
+        <div className="gap-detail-tight flex min-w-0 flex-col">
+          <CopyableTruncatedText value={source.name} emphasis />
+          {source.description && <CopyableTruncatedText value={source.description} meta tone="secondary" />}
+        </div>
       </TableCell>
     );
   }
   if (columnId === "details") {
     return (
       <TableCell className="min-w-0 whitespace-normal">
-        <CopyableTruncatedText value={typeLabel} emphasis />
-        <CopyableTruncatedText value={`${sourceDirection(source)} · ${endpoint ?? "—"}`} meta tone="secondary" className="mt-detail-next" />
+        <div className="gap-detail-tight flex min-w-0 flex-col">
+          <CopyableTruncatedText value={typeLabel} emphasis />
+          <CopyableTruncatedText value={`${sourceDirection(source)} · ${endpoint ?? "—"}`} meta tone="secondary" />
+        </div>
       </TableCell>
     );
   }

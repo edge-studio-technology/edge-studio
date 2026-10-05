@@ -295,9 +295,11 @@ function WorkflowCell({
   if (columnId === "name") {
     return (
       <TableCell className="min-w-0">
-        <CopyableTruncatedText value={workflow.name} emphasis />
-        {inlineError && <CopyableTruncatedText value={inlineError} meta tone="error" className="mt-detail-next" />}
-        {workflow.archived && <p className="type-meta text-text-secondary mt-detail-next m-0">Archived, does not run until restored.</p>}
+        <div className="gap-detail-tight flex min-w-0 flex-col">
+          <CopyableTruncatedText value={workflow.name} emphasis />
+          {inlineError && <CopyableTruncatedText value={inlineError} meta tone="error" />}
+          {workflow.archived && <p className="type-meta text-text-secondary m-0">Archived, does not run until restored.</p>}
+        </div>
       </TableCell>
     );
   }
@@ -325,18 +327,22 @@ function WorkflowCell({
   if (columnId === "source") {
     return (
       <TableCell className="min-w-0">
-        <CopyableTruncatedText value={sourceName(workflowPrimarySourceId(workflow))} />
-        <p className="type-meta text-text-secondary mt-detail-next m-0">
-          {workflowIntervalSeconds(workflow) > 0 ? formatInterval(workflowIntervalSeconds(workflow)) : "Event driven"}
-        </p>
+        <div className="gap-detail-tight flex min-w-0 flex-col">
+          <CopyableTruncatedText value={sourceName(workflowPrimarySourceId(workflow))} />
+          <p className="type-meta text-text-secondary m-0">
+            {workflowIntervalSeconds(workflow) > 0 ? formatInterval(workflowIntervalSeconds(workflow)) : "Event driven"}
+          </p>
+        </div>
       </TableCell>
     );
   }
   if (columnId === "blocks") {
     return (
       <TableCell className="min-w-0">
-        <span>{workflow.blocks.length}</span>
-        <CopyableTruncatedText value={summarizeBlocks(workflow)} meta tone="secondary" className="mt-detail-next" />
+        <div className="gap-detail-tight flex min-w-0 flex-col">
+          <span>{workflow.blocks.length}</span>
+          <CopyableTruncatedText value={summarizeBlocks(workflow)} meta tone="secondary" />
+        </div>
       </TableCell>
     );
   }
