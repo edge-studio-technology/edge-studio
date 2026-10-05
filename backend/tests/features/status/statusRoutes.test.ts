@@ -13,7 +13,9 @@ vi.mock("../../../src/config/env.js", () => ({
     integritasBaseUrl: "https://integritas.example",
     integritasRequestId: "req-1",
     databasePath: "/data/test.db",
-    hostFilesRoot: "/host-files"
+    hostFilesRoot: "/host-files",
+    buildVersion: "v1.2.3-dev+abc1234",
+    buildCommit: "abc1234"
   }
 }));
 vi.mock("../../../src/shared/http.js", () => ({ fetchJsonWithTimeout: fetchJsonWithTimeoutMock }));
@@ -60,6 +62,15 @@ describe("status routes integritas connection check", () => {
     const integritas = (response.body.services as { name: string; ok: boolean; status: string }[]).find((service) => service.name === "integritas");
     assert.equal(integritas?.ok, false);
     assert.equal(integritas?.status, "HTTP 403");
+  });
+
+  it("reports the backend build identity on the overview", async () => {
+    fetchJsonWithTimeoutMock.mockResolvedValue(okResponse(200, { status: "ok" }));
+
+    const response = await request(await loadStatusApp()).get("/api/status/overview");
+
+    const backend = (response.body.services as { name: string; details?: { build?: unknown } }[]).find((service) => service.name === "backend");
+    assert.deepEqual(backend?.details?.build, { version: "v1.2.3-dev+abc1234", commit: "abc1234" });
   });
 
   it("reports integritasConnected true when the health check succeeds", async () => {
