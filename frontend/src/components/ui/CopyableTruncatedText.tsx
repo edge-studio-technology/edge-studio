@@ -32,7 +32,7 @@ export function CopyableTruncatedText({
       className={cx(
         mono ? "type-mono" : meta ? "type-meta" : emphasis ? "type-body-em" : "type-body",
         "relative inline-block max-w-full cursor-copy self-start rounded-tight border-0 p-0 text-left align-top transition-colors",
-        copied ? "bg-feedback-positive/10 text-text-success" : tone === "secondary" ? "bg-transparent text-text-secondary" : tone === "error" ? "bg-transparent text-text-error" : "bg-transparent text-text-primary",
+        copied ? "bg-transparent text-text-success" : tone === "secondary" ? "bg-transparent text-text-secondary" : tone === "error" ? "bg-transparent text-text-error" : "bg-transparent text-text-primary",
         className,
       )}
       title={value}
@@ -40,7 +40,7 @@ export function CopyableTruncatedText({
       onClick={handleCopy}
     >
       <span className={cx("block truncate", copied && "invisible")}>{display ?? value}</span>
-      {copied && <span className="absolute top-0 left-0 w-max">Copied</span>}
+      {copied && <span className="bg-feedback-positive/10 absolute top-0 left-0 w-max rounded-tight">Copied</span>}
     </button>
   );
 }

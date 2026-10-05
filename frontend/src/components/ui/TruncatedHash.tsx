@@ -17,7 +17,7 @@ export function TruncatedHash({ value, className }: { value: string; className?:
       type="button"
       className={cx(
         "type-mono relative inline-block max-w-full cursor-copy self-start rounded-tight border-0 p-0 text-left align-top transition-colors",
-        copied ? "bg-feedback-positive/10 text-text-success" : "bg-transparent text-text-secondary",
+        copied ? "bg-transparent text-text-success" : "bg-transparent text-text-secondary",
         className,
       )}
       title={value}
@@ -25,7 +25,7 @@ export function TruncatedHash({ value, className }: { value: string; className?:
       onClick={handleCopy}
     >
       <span className={cx("block overflow-hidden text-ellipsis whitespace-nowrap", copied && "invisible")}>{shortHash(value)}</span>
-      {copied && <span className="absolute top-0 left-0 w-max">Copied</span>}
+      {copied && <span className="bg-feedback-positive/10 absolute top-0 left-0 w-max rounded-tight">Copied</span>}
     </button>
   );
 }
