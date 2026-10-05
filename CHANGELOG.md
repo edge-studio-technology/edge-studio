@@ -73,6 +73,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Automation watch mode now has a runtime overview with selected-run progress and a `Follow live runs` switch.
+- Automation watch mode now hides edit-only canvas controls, collapses manual test payload controls by default, and presents the workflow name as read-only title text.
+- Automation workflow workspaces no longer show the duplicated status-pill strip under the top bar, and watch-mode historic-run controls now align with the app's table header pattern.
+- Automation watch history now defaults to a compact selected-run navigator and can expand into a taller historic-runs table.
+- Automation workflow edit/watch deep links now keep the workspace layout visible while the initial workflow data loads.
+- Automation workflow loading placeholders now preserve the loaded watch workspace button, rail-panel, and selected-run control sizing more closely.
+- Automation watch loading placeholders now use the real watch canvas, rail, and selected-run components with placeholder data under the loading overlay.
+- Automation watch loading placeholders now keep the latest-run notice and selected-run navigator shape closer to the loaded historic-run view.
+- Automation watch loading placeholders no longer offset the canvas block stack, and runtime overview stat values align more consistently between loading and loaded states.
+- Automation workflow refresh loading now keeps the real loaded workspace mounted and applies only the loading overlay.
+- Automation watch refreshes preserve the last loaded block summaries and selected-run messaging instead of briefly swapping to loading placeholder text.
+- Automation workspace loading overlays now cover the full workflow page chrome instead of only the canvas area.
+- Automation watch selected-run compact history now uses labeled summary cards with configurable field visibility and order.
+- Automation watch run controls now treat GPIO, webhook, and MQTT workflows as trigger-payload tests instead of showing a misleading `Run now` action.
+- Automation watch trigger payload JSON is now edited in a modal, with the rail showing a compact payload preview instead of an inline editor.
+- Automation watch trigger payload previews are clickable, line-clipped with an ellipsis, and keep reset actions inside the edit modal.
+- Automation watch raw run details now open in a modal instead of expanding an inline panel below run history.
+- Automation watch block inspection now summarizes block input and result data before offering raw JSON diagnostics.
+- Shared modals now render above page and workflow loading overlays by default, preventing dialogs from appearing dimmed behind active overlays.
+- Automation watch block input/result summaries now hide null workflow-context fields and emphasize meaningful trigger/data/output values.
+- Automation watch block diagnostics now open device read details for data-fetching blocks only, with diagnostics navigation kept as a separate action.
+- Automation watch block inspection now explains skipped and not-reached blocks more clearly when input/result data is absent.
+- Automation watch block results now show domain-aware summaries for start triggers, trigger-event records, variables, output controls, transactions, data fetches, previews, stamps, conditions, and wait steps before raw JSON.
+- Automation watch block inputs now show block-specific consumed/configured values, reducing overlap between input and result summaries.
+- Automation watch mode now includes replay controls for previous/next block steps and fixed-pace play/pause through the selected run.
+- Automation watch replay controls and the focused block now stay above the selected-block backdrop by rendering that backdrop inside the workflow workspace.
+- Automation watch playback now sits in a toolbar above the canvas, uses compact icon controls with centered run-status messaging, quietly polls for new runs, defaults follow-latest off, allows direct block-to-block detail switching through the overlay, avoids auto-playing already-loaded runs, and pauses playback when the user manually selects another block.
+- Automation watch playback now restarts from the first block when Play is pressed at the end of a run and animates each active block with a 1.5-second glowing border-worm pass.
+- Automation watch historic replay now shows only the blocks recorded by the selected run, including deleted blocks reconstructed from historical run data.
+- Automation watch replay animation now follows each block's runtime status color and keeps the live-run focus overlay visible until dismissed.
+- Automation workflow headers now center a pill-shaped enabled/paused toggle and icon-only edit/watch mode switch, leaving Back as the right-side action.
 - The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; source and generated release Compose files apply the same values to the backend and network IPAM.
 - Tables now provide a cog-button column chooser with backend-saved visibility preferences.
 - Failed loads across Dashboard, Wallet, Devices, Workflows, Diagnostics, Minima, Integritas Connect, and Software update now show a calm in-content error state with Retry instead of a red alert banner.
@@ -93,6 +124,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Automation watch proof diagnostics now appear on the data-fetch block that produces the proof, not downstream preview blocks that only consume it.
+- Automation watch replay now treats attached Integritas stamp blocks as part of their parent block instead of replaying them as separate canvas steps.
+- Automation watch historic canvases now keep eligible not-yet-reached workflow blocks visible, roll attached-block failures up to their visible parent, and keep replay steps limited to executed top-level blocks.
 - Dashboard wallet balance is unavailable and wallet requests are skipped while the Minima node is stopped or errored.
 - Failed Minima restarts show the error toast without an unhandled action error.
 - Minima restart setup failures now clear the temporary restarting state instead of leaving stale operation status in the UI.

@@ -7,6 +7,7 @@ import { blockSummary } from "../workflowBlockSummaries";
 import type {
   DraftWorkflowBlock,
   WorkflowCanvasBlock,
+  WorkflowCanvasMode,
   WorkflowCanvasRuntimeState,
   WorkflowCanvasValidationIssue,
 } from "./types";
@@ -23,6 +24,7 @@ export function blockPresentation(
   addressBook: AddressBookEntry[],
   validationIssues: WorkflowCanvasValidationIssue[],
   runtime?: WorkflowCanvasRuntimeState,
+  mode?: WorkflowCanvasMode,
 ) {
   const validationErrors = validationIssues.filter((issue) => issue.level === "error");
   const validationWarnings = validationIssues.filter((issue) => issue.level === "warning");
@@ -40,11 +42,14 @@ export function blockPresentation(
       tone: "warn",
       alert: true,
     });
-  for (const label of capabilityBadges(block)) badges.push({ label });
+  if (mode !== "watch") {
+    for (const label of capabilityBadges(block)) badges.push({ label });
+  }
   // Only surface Disabled — Enabled is the default and would noise every card.
   if (block.enabled === false) badges.push({ label: "Disabled", tone: "neutral", alert: true });
-  if (block.lastRunAt) badges.push({ label: `Ran ${new Date(block.lastRunAt).toLocaleString()}` });
-  if (block.lastError) badges.push({ label: "Error", tone: "error", alert: true });
+  if (mode !== "edit" && block.lastRunAt)
+    badges.push({ label: `Ran ${new Date(block.lastRunAt).toLocaleString()}` });
+  if (mode !== "edit" && block.lastError) badges.push({ label: "Error", tone: "error", alert: true });
   if (runtime)
     badges.push({
       label:

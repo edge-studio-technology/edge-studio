@@ -223,6 +223,7 @@ export function AutomationWorkflowsList({
                         sourceName={sourceName}
                         onToggleEnabled={() => onToggleEnabled(workflow)}
                         onEdit={() => onEdit(workflow)}
+                        onWatch={() => onWatch(workflow)}
                         onRunNow={() => onRunNow(workflow)}
                         onDuplicate={() => onDuplicate(workflow)}
                         onToggleArchive={() => onToggleArchive(workflow)}
@@ -271,6 +272,7 @@ function WorkflowCell({
   sourceName,
   onToggleEnabled,
   onEdit,
+  onWatch,
   onRunNow,
   onDuplicate,
   onToggleArchive,
@@ -283,6 +285,7 @@ function WorkflowCell({
   sourceName: (id: string) => string;
   onToggleEnabled: () => void;
   onEdit: () => void;
+  onWatch: () => void;
   onRunNow: () => void;
   onDuplicate: () => void;
   onToggleArchive: () => void;
@@ -356,6 +359,7 @@ function WorkflowCell({
           <TableIconMenu
             aria-label={`More actions for ${workflow.name}`}
             items={[
+              { label: "Watch", disabled: busy, onClick: onWatch },
               { label: "Run now", disabled: busy || workflow.archived, onClick: onRunNow },
               { label: "Duplicate", disabled: busy, onClick: onDuplicate },
               { label: workflow.archived ? "Restore" : "Archive", disabled: busy, onClick: onToggleArchive },

@@ -59,6 +59,8 @@ function unlockBodyScroll() {
 
 /**
  * Dialog: title + optional description, bordered scroll body, footer, close IconButton.
+ * Default modals must render above page/workspace overlays; use `layer="top"` only for
+ * intentionally stacked app-level dialogs.
  * `width` picks the max-width track; default is 800px, "wide" is 960px.
  */
 export function Modal({
@@ -129,7 +131,7 @@ export function Modal({
     <div
       className={cx(
         "bg-overlay-heavy px-pad-tight py-pad-tight fixed inset-0 grid place-items-center",
-        layer === "top" ? "z-[90]" : "z-50",
+        layer === "top" ? "z-[100]" : "z-[90]",
       )}
       role="presentation"
       onMouseDown={handleBackdropMouseDown}
