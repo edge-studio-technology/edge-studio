@@ -22,6 +22,7 @@ import {
 import { readBmeSensorSource } from "../data-sources/sensorHelper.service.js";
 import {
   createDataSourceRead,
+  dataSourceReference,
   linkDataSourceReadProof,
 } from "../data-reads/dataReads.repository.js";
 import { createProofRecord } from "../integritas/integritas.repository.js";
@@ -47,6 +48,7 @@ import {
   listAutomationBlocks,
   listDueScheduleWorkflows,
   updateAutomationBlockRun,
+  updateAutomationWorkflow,
   updateAutomationRunError,
   updateAutomationRunSuccess,
   type AutomationBlockRecord,
@@ -66,6 +68,15 @@ import {
   type AutomationRunRecord,
 } from "./automationRuns.repository.js";
 import { createAutomationInboxItem } from "./automationInbox.repository.js";
+import { reserveWorkflowRunBudget } from "./automationBudget.repository.js";
+import {
+  isEventStartBlock,
+  isPrivilegedAutomationBlock,
+  isValidTransactionCooldown,
+  WORKFLOW_RUN_BUDGET_MAX_RUNS,
+  WORKFLOW_RUN_BUDGET_WINDOW_MS,
+} from "./automation.policy.js";
+import { validateAutomationWorkflow } from "./automation.validation.js";
 
 type WorkflowTriggerType = "manual" | "schedule" | "webhook" | "mqtt" | "gpio";
 
@@ -94,6 +105,7 @@ type WorkflowContext = {
   proofId?: string | null;
   output?: unknown;
   stopped?: boolean;
+  budgetReserved?: boolean;
   variables: Record<string, unknown>;
 };
 
@@ -257,6 +269,7 @@ export async function executeWorkflow(
   const mainBlocks = blocks.filter((block) => !block.parent_block_id);
   if (mainBlocks.length === 0) throw new Error("Automation workflow has no blocks");
   validateStartBlock(mainBlocks[0], trigger);
+  enforceTransactionCooldown(mainBlocks[0], mainBlocks, trigger);
   enforceEventStartLimits(latestWorkflow, mainBlocks[0], trigger);
   markEventWorkflowAccepted(latestWorkflow.id, mainBlocks[0], trigger);
 
@@ -322,7 +335,6 @@ export async function executeWorkflow(
 export async function recordPushAutomationPayload(input: {
   workflow: AutomationWorkflowRecord;
   dataSource: { id: string; name: string };
-  sourceUrl: string;
   triggerType: "webhook" | "mqtt" | "gpio";
   result: ReadResult;
 }) {
@@ -350,6 +362,39 @@ function validateStartBlock(block: AutomationBlockRecord, trigger: WorkflowConte
     throw new Error(`Workflow starts with ${block.type}, not ${expectedType}`);
   if (trigger.sourceId && config.sourceId !== trigger.sourceId)
     throw new Error("Workflow trigger source did not match the incoming event");
+}
+
+function enforceTransactionCooldown(
+  startBlock: AutomationBlockRecord,
+  mainBlocks: AutomationBlockRecord[],
+  trigger: WorkflowContext["trigger"],
+) {
+  if (trigger.type === "manual" || trigger.type === "schedule" || !isEventStartBlock(startBlock.type))
+    return;
+  if (!mainBlocks.some((block) => block.type === "send_transaction")) return;
+  const config = JSON.parse(startBlock.config_json) as { cooldownSeconds?: unknown };
+  if (isValidTransactionCooldown(config.cooldownSeconds)) return;
+  throw Object.assign(
+    new Error("Event-started workflows that send transactions require a cooldown of at least 1 second"),
+    { code: "WORKFLOW_TRANSACTION_COOLDOWN_REQUIRED" },
+  );
+}
+
+function reserveRunBudget(workflowId: string, runId: string) {
+  const reservation = reserveWorkflowRunBudget({
+    workflowId,
+    runId,
+    nowMs: Date.now(),
+    maxRuns: WORKFLOW_RUN_BUDGET_MAX_RUNS,
+    windowMs: WORKFLOW_RUN_BUDGET_WINDOW_MS,
+  });
+  if (reservation.ok) return;
+  throw Object.assign(
+    new Error(
+      `Workflow run budget exhausted (${WORKFLOW_RUN_BUDGET_MAX_RUNS} runs with device, camera, stamp, or payment actions per hour); next run allowed after ${reservation.nextAvailableAt}`,
+    ),
+    { code: "WORKFLOW_RUN_BUDGET_EXHAUSTED", nextAvailableAt: reservation.nextAvailableAt },
+  );
 }
 
 function enforceEventStartLimits(
@@ -459,6 +504,10 @@ async function executeBlock(
       finishAutomationBlockRun(blockRun.id, { status: "success", output: contextSummary(context) });
       return;
     }
+    if (isPrivilegedAutomationBlock(block.type) && !context.budgetReserved) {
+      reserveRunBudget(workflow.id, runId);
+      context.budgetReserved = true;
+    }
     if (block.type === "record_trigger_event") await recordTriggerEvent(workflow, block, context);
     else if (block.type === "fetch_data_source")
       await fetchDataSource(workflow, block, context, String(config.sourceId ?? ""));
@@ -534,11 +583,12 @@ function recordTriggerEvent(
   if (!source) throw new Error("Trigger data source not found");
   const payload = context.trigger.payload ?? {};
   const result = hashPayload(payload);
+  const sourceUrl = dataSourceReference(source.id);
   const read = createDataSourceRead({
     dataSourceId: source.id,
     workflowId: workflow.id,
     sourceName: source.name,
-    sourceUrl: sourceUrlForRecord(source),
+    sourceUrl,
     triggerType: context.trigger.type,
     status: "success",
     hash: result.bytesHash,
@@ -551,7 +601,7 @@ function recordTriggerEvent(
   context.data = {
     sourceId: source.id,
     sourceName: source.name,
-    sourceUrl: sourceUrlForRecord(source),
+    sourceUrl,
     result,
     readId: read.id,
   };
@@ -890,12 +940,6 @@ function nextScheduleRunAt(block: AutomationBlockRecord, previousNextRunAt: stri
 
 function sourceUrlForRecord(source: { type: string; config: string }) {
   const config = JSON.parse(source.config) as Record<string, unknown>;
-  if (source.type === "gpio-input")
-    return config.profile === "pir-motion"
-      ? `PIR motion ${config.chip ?? "gpiochip0"} GPIO${config.pin ?? "?"}`
-      : `${config.chip ?? "gpiochip0"} GPIO${config.pin ?? "?"}`;
-  if (source.type === "mqtt") return `${config.brokerUrl ?? "MQTT"} ${config.topic ?? ""}`;
-  if (source.type === "webhook") return `/api/data-source-webhooks/${config.webhookToken ?? ""}`;
   if (source.type === "pi-camera") return `pi-camera:${config.mode ?? "photo"}`;
   if (source.type === "bme-sensor")
     return `${config.sensor ?? "bme280"}:i2c-${config.bus ?? 1}:${config.address ?? "0x76"}`;
@@ -1384,9 +1428,18 @@ export function startAutomationScheduler() {
       (workflow) => !runningWorkflowIds.has(workflow.id),
     );
     for (const workflow of due) {
-      executeWorkflow(workflow, { type: "schedule" }).catch((error: Error) =>
-        console.error(`Automation workflow ${workflow.id} failed: ${error.message}`),
-      );
+      validateAutomationWorkflow(workflow.id)
+        .then((validation) => {
+          if (!validation.ok) {
+            updateAutomationWorkflow(workflow.id, { enabled: false, nextRunAt: null });
+            console.error(`Automation workflow ${workflow.id} paused: validation failed`);
+            return undefined;
+          }
+          return executeWorkflow(workflow, { type: "schedule" });
+        })
+        .catch((error: Error) =>
+          console.error(`Automation workflow ${workflow.id} failed: ${error.message}`),
+        );
     }
   }, 1000);
 }

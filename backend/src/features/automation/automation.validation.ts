@@ -8,6 +8,7 @@ import { parseGpioOutputConfig } from "../data-sources/dataSources.service.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
 import { getWalletStatus } from "../wallet/wallet.service.js";
 import { listAutomationBlocks, type AutomationBlockType } from "./automation.repository.js";
+import { isEventStartBlock, isValidTransactionCooldown } from "./automation.policy.js";
 
 export type AutomationValidationIssue = {
   level: "error" | "warning";
@@ -188,6 +189,10 @@ async function validateAutomationBlockGraph(blocks: ValidationBlock[]): Promise<
         addIssue(issues, "warning", "stamp_integritas.no_api_key", "Integritas API key is not configured; this stamp block will fail until a key is saved.", attachedBlock);
       }
     }
+  }
+
+  if (startBlock?.enabled && isEventStartBlock(startBlock.type) && mainBlocks.some((block) => block.enabled && block.type === "send_transaction") && !isValidTransactionCooldown(startConfig.cooldownSeconds)) {
+    addIssue(issues, "error", "workflow.transaction_cooldown_required", "Event-started workflows that send transactions require a cooldown of at least 1 second.", startBlock);
   }
 
   await validateTransactionBalances(blocks.filter((block) => block.enabled), issues);
@@ -402,18 +407,18 @@ async function validateTransactionBalances(blocks: ValidationBlock[], issues: Au
     const wallet = await getWalletStatus();
     const nativeToken = wallet.tokens.find((token) => token.isNative || token.tokenId.toLowerCase() === "0x00");
     if (!nativeToken) {
-      for (const block of transactionBlocks) addIssue(issues, "error", "send_transaction.no_native_balance", "Wallet does not report a native MINIMA balance.", block);
+      for (const block of transactionBlocks) addIssue(issues, "warning", "send_transaction.no_native_balance", "Wallet does not report a native MINIMA balance.", block);
       return;
     }
     for (const block of transactionBlocks) {
       const amount = String(block.config.amount ?? "").trim();
       if (isPositiveDecimal(amount) && compareDecimalStrings(amount, nativeToken.sendable) > 0) {
-        addIssue(issues, "error", "send_transaction.insufficient_balance", `Amount exceeds available balance (${nativeToken.sendable} MINIMA).`, block);
+        addIssue(issues, "warning", "send_transaction.insufficient_balance", `Amount exceeds available balance (${nativeToken.sendable} MINIMA).`, block);
       }
     }
   } catch (error) {
     for (const block of transactionBlocks) {
-      addIssue(issues, "error", "send_transaction.wallet_unavailable", `Wallet balance could not be checked: ${error instanceof Error ? error.message : "unknown error"}.`, block);
+      addIssue(issues, "warning", "send_transaction.wallet_unavailable", `Wallet balance could not be checked: ${error instanceof Error ? error.message : "unknown error"}.`, block);
     }
   }
 }

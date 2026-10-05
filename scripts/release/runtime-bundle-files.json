@@ -5,8 +5,6 @@
   "docker-compose.release.yml",
   "bin/edge-studio",
   "scripts/generate-tls-cert.sh",
-  "scripts/verify-manifest.mjs",
-  "update-agent/manifest-public-key.pem",
   "host-agent/edge_studio_host_agent.py",
   "camera-helper/edge_studio_camera_helper.py",
   "sensor-helper/edge_studio_sensor_helper.py",

@@ -32,8 +32,8 @@ ENABLE_SENSORS_INPUT="${ENABLE_SENSORS-}"
 SENSOR_HELPER_TOKEN_INPUT="${SENSOR_HELPER_TOKEN-}"
 SENSOR_HELPER_PORT_INPUT="${SENSOR_HELPER_PORT-}"
 SENSOR_READ_TIMEOUT_MS_INPUT="${SENSOR_READ_TIMEOUT_MS-}"
-INTEGRITAS_DOCKER_SUBNET_INPUT="${INTEGRITAS_DOCKER_SUBNET-}"
-INTEGRITAS_DOCKER_GATEWAY_INPUT="${INTEGRITAS_DOCKER_GATEWAY-}"
+EDGE_STUDIO_DOCKER_SUBNET_INPUT="${EDGE_STUDIO_DOCKER_SUBNET-}"
+EDGE_STUDIO_DOCKER_GATEWAY_INPUT="${EDGE_STUDIO_DOCKER_GATEWAY-}"
 MINIMA_DATA_DIR_INPUT="${MINIMA_DATA_DIR-}"
 UPDATE_AGENT_STATE_DIR_INPUT="${UPDATE_AGENT_STATE_DIR-}"
 MINIMA_P2P_PORT_INPUT="${MINIMA_P2P_PORT-}"
@@ -70,8 +70,8 @@ ENABLE_SENSORS="${ENABLE_SENSORS:-false}"
 SENSOR_HELPER_TOKEN="${SENSOR_HELPER_TOKEN:-}"
 SENSOR_HELPER_PORT="${SENSOR_HELPER_PORT:-38181}"
 SENSOR_READ_TIMEOUT_MS="${SENSOR_READ_TIMEOUT_MS:-5000}"
-INTEGRITAS_DOCKER_SUBNET="${INTEGRITAS_DOCKER_SUBNET:-172.30.0.0/24}"
-INTEGRITAS_DOCKER_GATEWAY="${INTEGRITAS_DOCKER_GATEWAY:-172.30.0.1}"
+EDGE_STUDIO_DOCKER_SUBNET="${EDGE_STUDIO_DOCKER_SUBNET:-172.30.0.0/24}"
+EDGE_STUDIO_DOCKER_GATEWAY="${EDGE_STUDIO_DOCKER_GATEWAY:-172.30.0.1}"
 MINIMA_DATA_DIR="${MINIMA_DATA_DIR:-./minima}"
 UPDATE_AGENT_STATE_DIR="${UPDATE_AGENT_STATE_DIR:-./update-agent-state}"
 MINIMA_P2P_PORT="${MINIMA_P2P_PORT:-9003}"
@@ -84,6 +84,14 @@ MANIFEST_URL="${MANIFEST_URL:-$DEFAULT_MANIFEST_URL}"
 RUNTIME_BUNDLE_URL="${RUNTIME_BUNDLE_URL:-}"
 DEV_MODE="${DEV_MODE:-false}"
 COMPOSE_FILE_NAME="docker-compose.yml"
+
+# Install-time bootstrap trust set. The Ed25519 public key, the verifier source, and the
+# verifier's runtime are all pinned here rather than taken from the runtime bundle they
+# authenticate. See docs/adr/0016-install-time-bootstrap-trust-set.md.
+VERIFIER_IMAGE="node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0"
+BOOTSTRAP_DIR=""
+MANIFEST_HOST_RUNTIME_URL=""
+MANIFEST_HOST_RUNTIME_SHA256=""
 
 APT_PACKAGES=(
   curl
@@ -157,6 +165,197 @@ verify_docker() {
     echo "Try: apt-get install -y docker-compose-plugin"
     exit 1
   fi
+}
+
+cleanup_bootstrap_trust_set() {
+  if [ -n "$BOOTSTRAP_DIR" ]; then
+    rm -rf "$BOOTSTRAP_DIR"
+  fi
+}
+
+# On key rotation, update the embedded PEM below to match update-agent/manifest-public-key.pem;
+# scripts/tests/install-bootstrap-trust-set.test.ts fails the build if the two drift apart.
+write_bootstrap_trust_set() {
+  BOOTSTRAP_DIR="$(mktemp -d)"
+  chmod 700 "$BOOTSTRAP_DIR"
+  trap cleanup_bootstrap_trust_set EXIT
+
+  cat > "$BOOTSTRAP_DIR/manifest-public-key.pem" <<'MANIFEST_PUBLIC_KEY_PEM'
+-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEA+M2QEMrLOqZuqMlIZ6/QJPSRJoNgKSVEYqVGOYDHg9o=
+-----END PUBLIC KEY-----
+MANIFEST_PUBLIC_KEY_PEM
+
+  cat > "$BOOTSTRAP_DIR/verify-manifest.mjs" <<'VERIFY_MANIFEST_MJS'
+import { readFileSync } from "node:fs";
+import { verify } from "node:crypto";
+
+const [manifestPath, signaturePath, publicKeyPath] = process.argv.slice(2);
+
+if (!manifestPath || !signaturePath || !publicKeyPath) {
+  console.error("Usage: verify-manifest.mjs <manifest-path> <signature-b64-path> <public-key-pem-path>");
+  process.exit(1);
+}
+
+try {
+  const manifestBytes = readFileSync(manifestPath);
+  const signatureBase64 = readFileSync(signaturePath, "utf8").trim();
+  const signature = Buffer.from(signatureBase64, "base64");
+  const publicKeyPem = readFileSync(publicKeyPath, "utf8");
+
+  const valid = verify(null, manifestBytes, { key: publicKeyPem, format: "pem" }, signature);
+  if (!valid) {
+    console.error("Manifest signature verification failed");
+    process.exit(1);
+  }
+} catch (error) {
+  console.error(`Manifest verification error: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
+VERIFY_MANIFEST_MJS
+
+  cat > "$BOOTSTRAP_DIR/parse-manifest.mjs" <<'PARSE_MANIFEST_MJS'
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const [manifestPath, outputDir] = process.argv.slice(2);
+
+if (!manifestPath || !outputDir) {
+  console.error("Usage: parse-manifest.mjs <manifest-path> <output-directory>");
+  process.exit(1);
+}
+
+function requiredString(value, field) {
+  if (typeof value !== "string" || value.length === 0 || /[\0\r\n]/.test(value)) {
+    throw new Error(`${field} must be a non-empty single-line string`);
+  }
+  return value;
+}
+
+try {
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  if (!manifest || typeof manifest !== "object" || !manifest.hostRuntime || typeof manifest.hostRuntime !== "object") {
+    throw new Error("hostRuntime must be an object");
+  }
+
+  const hostRuntimeUrl = new URL(requiredString(manifest.hostRuntime.url, "hostRuntime.url"));
+  if (hostRuntimeUrl.protocol !== "https:" && hostRuntimeUrl.protocol !== "http:") {
+    throw new Error("hostRuntime.url must use HTTP or HTTPS");
+  }
+
+  const hostRuntimeSha256 = requiredString(manifest.hostRuntime.sha256, "hostRuntime.sha256");
+  if (!/^[a-fA-F0-9]{64}$/.test(hostRuntimeSha256)) {
+    throw new Error("hostRuntime.sha256 must be a 64-character hexadecimal digest");
+  }
+
+  const createdAt = requiredString(manifest.createdAt, "createdAt");
+  if (Number.isNaN(Date.parse(createdAt))) {
+    throw new Error("createdAt must be a valid date");
+  }
+
+  const fields = {
+    frontend: requiredString(manifest.frontend, "frontend"),
+    backend: requiredString(manifest.backend, "backend"),
+    "update-agent": requiredString(manifest.updateAgent, "updateAgent"),
+    version: requiredString(manifest.version, "version"),
+    "created-at": createdAt,
+    "host-runtime-url": hostRuntimeUrl.toString(),
+    "host-runtime-sha256": hostRuntimeSha256.toLowerCase()
+  };
+
+  for (const [name, value] of Object.entries(fields)) {
+    writeFileSync(join(outputDir, name), value, { flag: "wx" });
+  }
+} catch (error) {
+  console.error(`Manifest validation error: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
+PARSE_MANIFEST_MJS
+
+  cat > "$BOOTSTRAP_DIR/signature-url.mjs" <<'SIGNATURE_URL_MJS'
+const [value] = process.argv.slice(2);
+
+if (!value) {
+  console.error("Usage: signature-url.mjs <artifact-url>");
+  process.exit(1);
+}
+
+try {
+  const url = new URL(value);
+  url.pathname += ".sig";
+  process.stdout.write(url.toString());
+} catch (error) {
+  console.error(`Artifact URL error: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
+SIGNATURE_URL_MJS
+}
+
+verify_ed25519_signature() {
+  local target_file="$1"
+  local signature_file="$2"
+
+  docker run --rm --network none \
+    -v "$BOOTSTRAP_DIR/verify-manifest.mjs:/verify-manifest.mjs:ro" \
+    -v "$BOOTSTRAP_DIR/manifest-public-key.pem:/manifest-public-key.pem:ro" \
+    -v "$target_file:/signed-artifact:ro" \
+    -v "$signature_file:/signed-artifact.sig:ro" \
+    "$VERIFIER_IMAGE" node /verify-manifest.mjs /signed-artifact /signed-artifact.sig /manifest-public-key.pem
+}
+
+parse_verified_manifest() {
+  local manifest_file="$1"
+  local output_dir="$BOOTSTRAP_DIR/manifest-fields"
+
+  mkdir "$output_dir"
+  if ! docker run --rm --network none \
+    -v "$BOOTSTRAP_DIR/parse-manifest.mjs:/parse-manifest.mjs:ro" \
+    -v "$manifest_file:/manifest.json:ro" \
+    -v "$output_dir:/manifest-fields" \
+    "$VERIFIER_IMAGE" node /parse-manifest.mjs /manifest.json /manifest-fields; then
+    echo "Signed manifest contains invalid release metadata. Refusing to install."
+    exit 1
+  fi
+
+  FRONTEND_IMAGE="$(<"$output_dir/frontend")"
+  BACKEND_IMAGE="$(<"$output_dir/backend")"
+  UPDATE_AGENT_IMAGE="$(<"$output_dir/update-agent")"
+  MANIFEST_VERSION="$(<"$output_dir/version")"
+  MANIFEST_CREATED_AT="$(<"$output_dir/created-at")"
+  MANIFEST_HOST_RUNTIME_URL="$(<"$output_dir/host-runtime-url")"
+  MANIFEST_HOST_RUNTIME_SHA256="$(<"$output_dir/host-runtime-sha256")"
+}
+
+signature_url() {
+  local artifact_url="$1"
+
+  docker run --rm --network none \
+    -v "$BOOTSTRAP_DIR/signature-url.mjs:/signature-url.mjs:ro" \
+    "$VERIFIER_IMAGE" node /signature-url.mjs "$artifact_url"
+}
+
+# Defense in depth behind the bundle signature: refuse an archive that could write outside the
+# extraction directory, or that carries anything other than regular files and directories.
+assert_safe_archive_entries() {
+  local archive_file="$1"
+  local entry
+  local line
+
+  while IFS= read -r entry; do
+    case "$entry" in
+      "") continue ;;
+      /*) echo "Runtime bundle rejected: absolute path entry '$entry'"; exit 1 ;;
+      ..|../*|*/..|*/../*) echo "Runtime bundle rejected: parent directory entry '$entry'"; exit 1 ;;
+    esac
+  done < <(tar -tzf "$archive_file")
+
+  while IFS= read -r line; do
+    case "$line" in
+      "") continue ;;
+      -*|d*) ;;
+      *) echo "Runtime bundle rejected: entry is not a regular file or directory: $line"; exit 1 ;;
+    esac
+  done < <(tar -tvzf "$archive_file")
 }
 
 prepare_app_directory() {
@@ -239,8 +438,8 @@ load_existing_config() {
   SENSOR_HELPER_TOKEN="${SENSOR_HELPER_TOKEN_INPUT:-${SENSOR_HELPER_TOKEN:-}}"
   SENSOR_HELPER_PORT="${SENSOR_HELPER_PORT_INPUT:-${SENSOR_HELPER_PORT:-38181}}"
   SENSOR_READ_TIMEOUT_MS="${SENSOR_READ_TIMEOUT_MS_INPUT:-${SENSOR_READ_TIMEOUT_MS:-5000}}"
-  INTEGRITAS_DOCKER_SUBNET="${INTEGRITAS_DOCKER_SUBNET_INPUT:-${INTEGRITAS_DOCKER_SUBNET:-172.30.0.0/24}}"
-  INTEGRITAS_DOCKER_GATEWAY="${INTEGRITAS_DOCKER_GATEWAY_INPUT:-${INTEGRITAS_DOCKER_GATEWAY:-172.30.0.1}}"
+  EDGE_STUDIO_DOCKER_SUBNET="${EDGE_STUDIO_DOCKER_SUBNET_INPUT:-${EDGE_STUDIO_DOCKER_SUBNET:-172.30.0.0/24}}"
+  EDGE_STUDIO_DOCKER_GATEWAY="${EDGE_STUDIO_DOCKER_GATEWAY_INPUT:-${EDGE_STUDIO_DOCKER_GATEWAY:-172.30.0.1}}"
   MINIMA_DATA_DIR="${MINIMA_DATA_DIR_INPUT:-${MINIMA_DATA_DIR:-./minima}}"
   UPDATE_AGENT_STATE_DIR="${UPDATE_AGENT_STATE_DIR_INPUT:-${UPDATE_AGENT_STATE_DIR:-./update-agent-state}}"
   MINIMA_P2P_PORT="${MINIMA_P2P_PORT_INPUT:-${MINIMA_P2P_PORT:-9003}}"
@@ -425,14 +624,7 @@ derive_runtime_bundle_url() {
   if [ -n "$RUNTIME_BUNDLE_URL" ]; then
     return
   fi
-
-  case "$MANIFEST_URL" in
-    */manifest.json) RUNTIME_BUNDLE_URL="${MANIFEST_URL%/manifest.json}/edge-studio-runtime.tar.gz" ;;
-    *)
-      echo "RUNTIME_BUNDLE_URL is not set and could not be derived from MANIFEST_URL=$MANIFEST_URL"
-      exit 1
-      ;;
-  esac
+  RUNTIME_BUNDLE_URL="$MANIFEST_HOST_RUNTIME_URL"
 }
 
 clean_app_directory() {
@@ -464,41 +656,69 @@ download_full_repo() {
   log "Downloading $APP_REPO_URL ($APP_BRANCH)"
   git clone --depth 1 --branch "$APP_BRANCH" "$APP_REPO_URL" "$tmp_dir"
 
+  prepare_app_directory
   clean_app_directory
   cp -a "$tmp_dir/." "$APP_DIR/"
   chmod 755 "$APP_DIR"
   rm -rf "$tmp_dir"
 
-  log "install.sh version: $(fetch_manifest_field "$APP_DIR/package.json" version)"
+  log "install.sh version: $(fetch_package_version "$APP_DIR/package.json")"
 }
 
 download_runtime_bundle() {
   local tmp_dir
   local bundle_file
+  local signature_file
+  local fallback_bundle_url
+  local actual_sha256
+  local signature_url_value
 
   derive_runtime_bundle_url
+  fallback_bundle_url="${MANIFEST_FALLBACK_URL%/manifest.json}/edge-studio-runtime.tar.gz"
   tmp_dir="$(mktemp -d)"
   bundle_file="$tmp_dir/edge-studio-runtime.tar.gz"
+  signature_file="$tmp_dir/edge-studio-runtime.tar.gz.sig"
 
   log "Downloading runtime bundle from $RUNTIME_BUNDLE_URL"
-  if ! curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file"; then
-    if [ -n "$RUNTIME_BUNDLE_URL_INPUT" ] || [ "$MANIFEST_URL" = "$MANIFEST_FALLBACK_URL" ]; then
-      echo "Failed to download runtime bundle from $RUNTIME_BUNDLE_URL"
+  signature_url_value="$(signature_url "$RUNTIME_BUNDLE_URL")"
+  if ! curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file" \
+    || ! curl -fsSL "$signature_url_value" -o "$signature_file"; then
+    if [ -n "$RUNTIME_BUNDLE_URL_INPUT" ] || [ "$RUNTIME_BUNDLE_URL" = "$fallback_bundle_url" ]; then
+      echo "Failed to download runtime bundle or its signature from $RUNTIME_BUNDLE_URL"
       exit 1
     fi
-    RUNTIME_BUNDLE_URL="${MANIFEST_FALLBACK_URL%/manifest.json}/edge-studio-runtime.tar.gz"
+    RUNTIME_BUNDLE_URL="$fallback_bundle_url"
     log "Retrying runtime bundle download from fallback $RUNTIME_BUNDLE_URL"
+    signature_url_value="$(signature_url "$RUNTIME_BUNDLE_URL")"
     curl -fsSL "$RUNTIME_BUNDLE_URL" -o "$bundle_file"
+    curl -fsSL "$signature_url_value" -o "$signature_file"
   fi
+
+  log "Verifying runtime bundle signature"
+  if ! verify_ed25519_signature "$bundle_file" "$signature_file"; then
+    echo "Runtime bundle signature verification failed. Refusing to extract untrusted files."
+    rm -rf "$tmp_dir"
+    exit 1
+  fi
+
+  read -r actual_sha256 _ < <(sha256sum "$bundle_file")
+  if [ "$actual_sha256" != "$MANIFEST_HOST_RUNTIME_SHA256" ]; then
+    echo "Runtime bundle SHA-256 does not match the signed manifest. Refusing to extract untrusted files."
+    rm -rf "$tmp_dir"
+    exit 1
+  fi
+
+  assert_safe_archive_entries "$bundle_file"
   tar -xzf "$bundle_file" -C "$tmp_dir"
 
+  prepare_app_directory
   clean_app_directory
-  rm -f "$bundle_file"
+  rm -f "$bundle_file" "$signature_file"
   cp -a "$tmp_dir/." "$APP_DIR/"
   chmod 755 "$APP_DIR"
   rm -rf "$tmp_dir"
 
-  log "install.sh version: $(fetch_manifest_field "$APP_DIR/package.json" version)"
+  log "install.sh version: $(fetch_package_version "$APP_DIR/package.json")"
 }
 
 download_app() {
@@ -509,10 +729,9 @@ download_app() {
   fi
 }
 
-fetch_manifest_field() {
-  local manifest_file="$1"
-  local field="$2"
-  grep -o "\"${field}\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "$manifest_file" \
+fetch_package_version() {
+  local package_file="$1"
+  grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$package_file" \
     | head -n1 \
     | sed -E 's/.*:[[:space:]]*"([^"]*)"$/\1/'
 }
@@ -537,52 +756,35 @@ fetch_and_verify_manifest() {
     exit 1
   fi
 
-  local public_key_file="$APP_DIR/update-agent/manifest-public-key.pem"
-  if [ ! -f "$public_key_file" ]; then
-    echo "Manifest public key not found at $public_key_file"
-    exit 1
-  fi
-
   log "Fetching update manifest from $MANIFEST_URL"
 
-  local manifest_file="$APP_DIR/.manifest.json"
-  local signature_file="$APP_DIR/.manifest.json.sig"
+  local manifest_file="$BOOTSTRAP_DIR/manifest.json"
+  local signature_file="$BOOTSTRAP_DIR/manifest.json.sig"
   local fetch_url="$MANIFEST_URL"
+  local signature_url_value
 
-  if ! curl -fsSL "$fetch_url" -o "$manifest_file" || ! curl -fsSL "${fetch_url}.sig" -o "$signature_file"; then
+  signature_url_value="$(signature_url "$fetch_url")"
+  if ! curl -fsSL "$fetch_url" -o "$manifest_file" || ! curl -fsSL "$signature_url_value" -o "$signature_file"; then
     if [ "$MANIFEST_URL" = "$MANIFEST_FALLBACK_URL" ]; then
       echo "Failed to fetch manifest from $fetch_url"
       exit 1
     fi
     fetch_url="$MANIFEST_FALLBACK_URL"
     log "Failed to fetch manifest from $MANIFEST_URL, retrying from fallback $fetch_url"
+    signature_url_value="$(signature_url "$fetch_url")"
     curl -fsSL "$fetch_url" -o "$manifest_file"
-    curl -fsSL "${fetch_url}.sig" -o "$signature_file"
+    curl -fsSL "$signature_url_value" -o "$signature_file"
   fi
 
-  if ! docker run --rm --network none \
-    -v "$APP_DIR/scripts/verify-manifest.mjs:/verify-manifest.mjs:ro" \
-    -v "$manifest_file:/manifest.json:ro" \
-    -v "$signature_file:/manifest.json.sig:ro" \
-    -v "$public_key_file:/manifest-public-key.pem:ro" \
-    node:20-bookworm-slim node /verify-manifest.mjs /manifest.json /manifest.json.sig /manifest-public-key.pem; then
+  if ! verify_ed25519_signature "$manifest_file" "$signature_file"; then
     echo "Manifest signature verification failed. Refusing to install untrusted images."
     rm -f "$manifest_file" "$signature_file"
     exit 1
   fi
 
-  FRONTEND_IMAGE="$(fetch_manifest_field "$manifest_file" frontend)"
-  BACKEND_IMAGE="$(fetch_manifest_field "$manifest_file" backend)"
-  UPDATE_AGENT_IMAGE="$(fetch_manifest_field "$manifest_file" updateAgent)"
-  MANIFEST_VERSION="$(fetch_manifest_field "$manifest_file" version)"
-  MANIFEST_CREATED_AT="$(fetch_manifest_field "$manifest_file" createdAt)"
+  parse_verified_manifest "$manifest_file"
 
   rm -f "$manifest_file" "$signature_file"
-
-  if [ -z "$FRONTEND_IMAGE" ] || [ -z "$BACKEND_IMAGE" ] || [ -z "$UPDATE_AGENT_IMAGE" ]; then
-    echo "Manifest is missing frontend, backend, or update-agent image digest."
-    exit 1
-  fi
 
   log "Manifest verified. frontend=$FRONTEND_IMAGE backend=$BACKEND_IMAGE update-agent=$UPDATE_AGENT_IMAGE"
 }
@@ -648,7 +850,7 @@ ENABLE_GPIO=$enable_gpio_runtime
 GPIO_GID=$GPIO_GID
 ENABLE_CAMERA=$enable_camera_runtime
 CAMERA_CAPTURE_DIR=$CAMERA_CAPTURE_DIR
-CAMERA_HELPER_URL=http://$INTEGRITAS_DOCKER_GATEWAY:$CAMERA_HELPER_PORT
+CAMERA_HELPER_URL=http://$EDGE_STUDIO_DOCKER_GATEWAY:$CAMERA_HELPER_PORT
 CAMERA_HELPER_TOKEN=$CAMERA_HELPER_TOKEN
 CAMERA_HELPER_PORT=$CAMERA_HELPER_PORT
 CAMERA_MAX_DURATION_SECONDS=$CAMERA_MAX_DURATION_SECONDS
@@ -656,19 +858,19 @@ CAMERA_RETENTION_DAYS=$CAMERA_RETENTION_DAYS
 CAMERA_PHOTO_COMMAND=$CAMERA_PHOTO_COMMAND
 CAMERA_VIDEO_COMMAND=$CAMERA_VIDEO_COMMAND
 ENABLE_SENSORS=$enable_sensors_runtime
-SENSOR_HELPER_URL=http://$INTEGRITAS_DOCKER_GATEWAY:$SENSOR_HELPER_PORT
+SENSOR_HELPER_URL=http://$EDGE_STUDIO_DOCKER_GATEWAY:$SENSOR_HELPER_PORT
 SENSOR_HELPER_TOKEN=$SENSOR_HELPER_TOKEN
 SENSOR_HELPER_PORT=$SENSOR_HELPER_PORT
 SENSOR_READ_TIMEOUT_MS=$SENSOR_READ_TIMEOUT_MS
-INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
-INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
+EDGE_STUDIO_DOCKER_SUBNET=$EDGE_STUDIO_DOCKER_SUBNET
+EDGE_STUDIO_DOCKER_GATEWAY=$EDGE_STUDIO_DOCKER_GATEWAY
 ENABLE_MQTT_BROKER=$enable_mqtt_broker_runtime
 DEV_MODE=$DEV_MODE
 COMPOSE_PROFILES=$compose_profiles_joined
 MQTT_PUBLIC_HOST=$MQTT_PUBLIC_HOST
 MQTT_PUBLIC_PORT=$MQTT_PUBLIC_PORT
 MQTT_INTERNAL_URL=mqtt://mqtt:1883
-HOST_AGENT_URL=http://$INTEGRITAS_DOCKER_GATEWAY:$HOST_AGENT_PORT
+HOST_AGENT_URL=http://$EDGE_STUDIO_DOCKER_GATEWAY:$HOST_AGENT_PORT
 HOST_AGENT_TOKEN=$HOST_AGENT_TOKEN
 HOST_AGENT_PORT=$HOST_AGENT_PORT
 HOST_CAPABILITY_DEBUG=$HOST_CAPABILITY_DEBUG
@@ -724,9 +926,9 @@ Environment=HOST_AGENT_PORT=$HOST_AGENT_PORT
 Environment=HOST_AGENT_TOKEN=$HOST_AGENT_TOKEN
 Environment=HOST_CAPABILITY_DEBUG=$HOST_CAPABILITY_DEBUG
 Environment=HOST_HELPER_USER=$helper_user
-Environment=INTEGRITAS_DOCKER_SUBNET=$INTEGRITAS_DOCKER_SUBNET
-Environment=INTEGRITAS_DOCKER_GATEWAY=$INTEGRITAS_DOCKER_GATEWAY
-ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $HOST_AGENT_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $INTEGRITAS_DOCKER_SUBNET -p tcp --dport $HOST_AGENT_PORT -j ACCEPT; fi'
+Environment=EDGE_STUDIO_DOCKER_SUBNET=$EDGE_STUDIO_DOCKER_SUBNET
+Environment=EDGE_STUDIO_DOCKER_GATEWAY=$EDGE_STUDIO_DOCKER_GATEWAY
+ExecStartPre=+/bin/sh -c 'if command -v iptables >/dev/null 2>&1; then iptables -C INPUT -s $EDGE_STUDIO_DOCKER_SUBNET -p tcp --dport $HOST_AGENT_PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -s $EDGE_STUDIO_DOCKER_SUBNET -p tcp --dport $HOST_AGENT_PORT -j ACCEPT; fi'
 ExecStart=/usr/bin/python3 $APP_DIR/host-agent/edge_studio_host_agent.py
 Restart=on-failure
 RestartSec=2
@@ -811,11 +1013,11 @@ ensure_compose_network() {
   fi
 
   current_gateway="$(docker network inspect edge-studio --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || true)"
-  if [ "$current_gateway" = "$INTEGRITAS_DOCKER_GATEWAY" ]; then
+  if [ "$current_gateway" = "$EDGE_STUDIO_DOCKER_GATEWAY" ]; then
     return
   fi
 
-  log "Recreating Docker network edge-studio with gateway $INTEGRITAS_DOCKER_GATEWAY"
+  log "Recreating Docker network edge-studio with gateway $EDGE_STUDIO_DOCKER_GATEWAY"
   compose down
   docker network rm edge-studio >/dev/null 2>&1 || true
 }
@@ -859,7 +1061,7 @@ main() {
   install_apt_dependencies
   install_docker_if_missing
   verify_docker
-  prepare_app_directory
+  write_bootstrap_trust_set
   load_existing_config
   ensure_app_secret
   ensure_host_agent_token
@@ -871,8 +1073,8 @@ main() {
   normalize_sensor_config
   normalize_dev_mode
   normalize_host_capability_debug
-  download_app
   resolve_images
+  download_app
   prepare_runtime_directories
   record_applied_manifest
   write_env_file

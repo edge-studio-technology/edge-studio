@@ -70,6 +70,22 @@ let monitoring: typeof import("../../../src/features/minima/minima-monitoring.js
 let userId: string;
 const PASSWORD = "Abcdef1!";
 
+// The finding: runMinimaPathCommand's result carries the full command and the URL built
+// from it, both of which contain the backup password. These helpers reproduce that envelope
+// so the assertions prove the service does not forward it, rather than assuming it cannot.
+const BACKUP_SECRET = "leak-me-not-9000";
+
+function leakyRpcResult(command: string) {
+  const source = `http://minima:9005/${encodeURIComponent(command)}`;
+  return { ok: true, status: 200, source, command, body: { status: true, params: { command } } };
+}
+
+function assertNoBackupSecret(value: unknown) {
+  const serialized = JSON.stringify(value);
+  assert.equal(serialized.includes(BACKUP_SECRET), false, `plaintext backup password in ${serialized}`);
+  assert.equal(serialized.includes(encodeURIComponent(BACKUP_SECRET)), false, `encoded backup password in ${serialized}`);
+}
+
 function seedBackup(name: string, createdAt: string) {
   fsState.set(name, { size: 100, mtime: new Date(createdAt), kind: "file" });
 }
@@ -240,6 +256,39 @@ describe("createBackup", () => {
     assert.equal(monitoring.isMinimaOperationInProgress(), false);
   });
 
+  it("returns a purpose-built DTO that never carries the RPC command or source", async () => {
+    backupService.setBackupPassword(BACKUP_SECRET);
+    seedBackup("minima-manual-1.bak", "2026-01-01T00:00:00.000Z");
+    runMinimaPathCommandMock.mockImplementation(async (command: string) => leakyRpcResult(command));
+
+    const result = await backupService.createBackup();
+
+    assert.deepEqual(Object.keys(result).sort(), ["auto", "createdAt", "fileName", "ok", "sizeBytes", "status"]);
+    assertNoBackupSecret(result);
+    monitoring.endMinimaOperation();
+  });
+
+  it("reports the written file's size and created-at, and null when the file is not on disk yet", async () => {
+    backupService.setBackupPassword(BACKUP_SECRET);
+    runMinimaPathCommandMock.mockImplementation(async (command: string) => {
+      const fileName = /file:backups\/(\S+)/.exec(command)?.[1] ?? "";
+      seedBackup(fileName, "2026-02-02T00:00:00.000Z");
+      return leakyRpcResult(command);
+    });
+
+    const written = await backupService.createBackup();
+    assert.equal(written.sizeBytes, 100);
+    assert.equal(written.createdAt, "2026-02-02T00:00:00.000Z");
+    monitoring.endMinimaOperation();
+
+    fsState.clear();
+    runMinimaPathCommandMock.mockImplementation(async (command: string) => leakyRpcResult(command));
+    const missing = await backupService.createBackup();
+    assert.equal(missing.sizeBytes, null);
+    assert.equal(missing.createdAt, null);
+    monitoring.endMinimaOperation();
+  });
+
   it("prunes the oldest backup once the list exceeds MAX_BACKUPS", async () => {
     backupService.setBackupPassword("super-secret");
     for (let i = 0; i < 21; i++) {
@@ -292,6 +341,18 @@ describe("restoreBackup", () => {
 
     const command = runMinimaPathCommandMock.mock.calls[0][0] as string;
     assert.equal(command.includes("password:"), false);
+    monitoring.endMinimaOperation();
+  });
+
+  it("returns a purpose-built DTO that never carries the RPC command or source", async () => {
+    seedBackup("minima-manual-1.bak", "2026-01-01T00:00:00.000Z");
+    backupService.setBackupPassword(BACKUP_SECRET);
+    runMinimaPathCommandMock.mockImplementation(async (command: string) => leakyRpcResult(command));
+
+    const result = await backupService.restoreBackup({ fileName: "minima-manual-1.bak" });
+
+    assert.deepEqual(Object.keys(result).sort(), ["fileName", "ok", "status"]);
+    assertNoBackupSecret(result);
     monitoring.endMinimaOperation();
   });
 

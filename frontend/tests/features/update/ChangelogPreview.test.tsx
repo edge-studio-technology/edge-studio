@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ChangelogEntry } from "../../../src/features/update/changelog";
 
@@ -33,16 +34,29 @@ describe("ChangelogPreview", () => {
 
     render(<ChangelogPreview />);
 
-    expect(screen.getByText("Loading changelog…")).toBeInTheDocument();
+    expect(screen.getByText("Fetching release notes")).toBeInTheDocument();
   });
 
-  it("shows an error alert when the fetch fails", async () => {
-    fetchChangelog.mockRejectedValue(new Error("network down"));
+  it("replaces the changelog with a retryable error state and recovers through Retry", async () => {
+    const retry = deferred<string>();
+    fetchChangelog
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockReturnValueOnce(retry.promise);
+    parseChangelog.mockReturnValue([
+      { version: "[1.2.0]", categories: [{ name: "Fixed", items: ["Recovered"] }] },
+    ]);
 
     render(<ChangelogPreview />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load changelog");
+    expect(await screen.findByText("Release notes aren't available")).toBeInTheDocument();
     expect(screen.getByText("Couldn't load the changelog from GitHub.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(screen.getByText("Fetching release notes")).toBeInTheDocument();
+    retry.resolve("raw markdown");
+    expect(await screen.findByText("Recovered")).toBeInTheDocument();
+    expect(fetchChangelog).toHaveBeenCalledTimes(2);
   });
 
   it("renders parsed entries with the first one open and later ones closed", async () => {

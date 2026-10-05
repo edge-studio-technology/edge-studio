@@ -20,7 +20,7 @@ const mutedText = "type-meta text-text-secondary";
 const statusPillClass = (good: boolean) => (good ? "good" : "neutral");
 const canvasClass = "h-full min-h-0 overflow-hidden";
 const canvasLaneClass =
-  "relative flex h-full min-h-[360px] flex-col items-center bg-surface-primary bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-grey-03)_32%,transparent)_1px,transparent_1px)] bg-[length:18px_18px] py-pad-relaxed pl-pad-relaxed pr-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] md:min-h-0";
+  "relative flex h-full min-h-[360px] flex-col items-center bg-surface-primary bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-grey-03)_32%,transparent)_1px,transparent_1px)] bg-[length:18px_18px] py-pad-relaxed px-pad-relaxed @4xl:pr-[calc(var(--workflow-rail)_+_var(--spacing-pad-relaxed)_+_var(--spacing-pad-tight))] md:min-h-0";
 const canvasContentClass =
   "flex min-h-full w-full flex-col items-center [justify-content:safe_center]";
 const canvasEndSpacerClass = "h-[40px] w-px shrink-0";
@@ -28,7 +28,7 @@ const emptyCanvasClass =
   "border-stroke-primary bg-surface-secondary text-text-primary grid min-h-[180px] w-full max-w-[520px] place-items-center rounded-soft border border-dashed p-margin-relaxed text-center";
 const blockBaseClass =
   "relative w-full max-w-[520px] cursor-pointer rounded-soft border p-margin-tight text-text-primary transition-[border-color,box-shadow] before:absolute before:left-1/2 before:top-[-25px] before:hidden before:h-[24px] before:w-px before:-translate-x-1/2 before:bg-stroke-active focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:outline-none [&+&]:mt-detail-near [&+&]:before:block";
-const selectedBlockClass = "border-stroke-active shadow-[0_0_0_1px_var(--color-stroke-active)]";
+const selectedBlockClass = "z-[65] border-stroke-active shadow-[0_0_0_1px_var(--color-stroke-active)]";
 
 export function WorkflowCanvas({
   mode,
@@ -36,6 +36,7 @@ export function WorkflowCanvas({
   sources,
   addressBook,
   selectedBlockId,
+  replayActiveBlockId,
   statusLabel,
   statusGood = false,
   bottomOverlay = false,
@@ -50,6 +51,7 @@ export function WorkflowCanvas({
   sources: DataSource[];
   addressBook: AddressBookEntry[];
   selectedBlockId: string;
+  replayActiveBlockId?: string;
   statusLabel?: string;
   statusGood?: boolean;
   bottomOverlay?: boolean;
@@ -60,6 +62,7 @@ export function WorkflowCanvas({
   onRemoveBlock: (id: string) => void;
 }) {
   const isBuild = mode === "build";
+  const isWatch = mode === "watch";
   const actionLabels = isBuild
     ? { up: "Up", down: "Down", remove: "Remove" }
     : { up: "Move up", down: "Move down", remove: "Remove" };
@@ -70,12 +73,14 @@ export function WorkflowCanvas({
         <p>
           {isBuild
             ? "This is the starter chain that will be created."
-            : "Select a block to edit or inspect it. Move and remove actions apply immediately."}
+            : isWatch
+              ? "Select a block to inspect its run details."
+              : "Select a block to edit it. Move and remove actions apply immediately."}
         </p>
       </div>
       <ScrollArea className={canvasLaneClass}>
         {statusLabel ? (
-          <div className="top-pad-tight absolute right-[calc(360px+var(--spacing-pad-relaxed)+var(--spacing-pad-tight))] z-10">
+          <div className="top-pad-tight right-pad-relaxed @4xl:right-[calc(var(--workflow-rail)_+_var(--spacing-pad-relaxed)_+_var(--spacing-pad-tight))] absolute z-10">
             <Pill tone={statusPillClass(statusGood)}>{statusLabel}</Pill>
           </div>
         ) : null}
@@ -100,14 +105,18 @@ export function WorkflowCanvas({
               key={block.id}
               block={block}
               index={index}
+              mode={mode}
               sources={sources}
               addressBook={addressBook}
               selected={block.id === selectedBlockId}
               canMoveUp={index > 1}
               canMoveDown={index > 0 && index < blocks.length - 1}
+              readOnly={isWatch}
               actionLabels={actionLabels}
               validationIssues={validationByBlockId[block.id] ?? []}
               runtime={runtimeByBlockId[block.id]}
+              replayActive={block.id === replayActiveBlockId}
+              replayDirection={index % 2 === 0 ? "clockwise" : "counterclockwise"}
               onSelect={() => onSelectBlock(block.id)}
               onMoveUp={() => onMoveBlock(block.id, -1)}
               onMoveDown={() => onMoveBlock(block.id, 1)}
@@ -124,14 +133,18 @@ export function WorkflowCanvas({
 function WorkflowBlockCard({
   block,
   index,
+  mode,
   sources,
   addressBook,
   selected,
   canMoveUp,
   canMoveDown,
+  readOnly,
   actionLabels,
   validationIssues,
   runtime,
+  replayActive,
+  replayDirection,
   onSelect,
   onMoveUp,
   onMoveDown,
@@ -139,25 +152,36 @@ function WorkflowBlockCard({
 }: {
   block: DraftWorkflowBlock;
   index: number;
+  mode: WorkflowCanvasMode;
   sources: DataSource[];
   addressBook: AddressBookEntry[];
   selected: boolean;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  readOnly: boolean;
   actionLabels: { up: string; down: string; remove: string };
   validationIssues: WorkflowCanvasValidationIssue[];
   runtime?: WorkflowCanvasRuntimeState;
+  replayActive: boolean;
+  replayDirection: "clockwise" | "counterclockwise";
   onSelect: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onRemove: () => void;
 }) {
-  const presentation = blockPresentation(block, sources, addressBook, validationIssues, runtime);
-  const showActions = !block.type.endsWith("_start");
-  const showFooter = presentation.badges.length > 0 || showActions;
+  const presentation = blockPresentation(block, sources, addressBook, validationIssues, runtime, mode);
+  const showActions = !readOnly && !block.type.endsWith("_start");
   return (
     <div
-      className={cx(blockBaseClass, presentation.className, selected && selectedBlockClass)}
+      className={cx(
+        blockBaseClass,
+        presentation.className,
+        selected && selectedBlockClass,
+        replayActive && "workflow-replay-active-block",
+        replayActive && `workflow-replay-active-block-${runtime?.status ?? "neutral"}`,
+        replayActive && replayDirection === "counterclockwise" && "workflow-replay-active-block-reverse",
+      )}
+      data-workflow-block-id={block.id}
       onClick={onSelect}
       role="button"
       tabIndex={0}
@@ -165,8 +189,8 @@ function WorkflowBlockCard({
         if (event.key === "Enter" || event.key === " ") onSelect();
       }}
     >
-      <div className="gap-detail-next grid">
-        <div className="gap-detail-next flex items-center justify-between">
+      <div className="gap-detail-next grid grid-cols-[minmax(0,1fr)]">
+        <div className="gap-detail-next flex min-h-8 items-center justify-between">
           <span className="type-meta text-text-secondary uppercase">
             {index === 0 ? "Start" : "Then"}
           </span>
@@ -189,7 +213,7 @@ function WorkflowBlockCard({
         {/* Title row: category icon badge + title/description */}
         <div className="gap-detail-next flex items-start">
           <WorkflowBlockTypeIcon type={block.type} className="mt-detail-fine" />
-          <div className="gap-detail-tight grid min-w-0 flex-1">
+          <div className="gap-detail-tight grid min-w-0 flex-1 wrap-anywhere">
             <strong className="type-body-em text-text-primary">{presentation.title}</strong>
             <p className="type-body text-text-primary m-0">{presentation.description}</p>
           </div>
@@ -204,46 +228,44 @@ function WorkflowBlockCard({
         />
       ))}
       {/* Footer: pills left, move up/down right */}
-      {showFooter && (
-        <div className="mt-detail-close gap-detail-next grid min-w-0">
-          <Divider />
-          <div className="gap-detail-next flex min-w-0 items-start">
-            <div className="min-w-0 flex-1">
-              <WorkflowBadges badges={presentation.badges} />
-            </div>
-            {showActions && (
-              <div className="gap-detail-next flex shrink-0 items-center">
-                <IconButton
-                  type="button"
-                  variant="secondary"
-                  size="compact"
-                  aria-label={actionLabels.up}
-                  disabled={!canMoveUp}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onMoveUp();
-                  }}
-                >
-                  <ChevronUp aria-hidden />
-                </IconButton>
-                <IconButton
-                  type="button"
-                  variant="secondary"
-                  size="compact"
-                  aria-label={actionLabels.down}
-                  disabled={!canMoveDown}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onMoveDown();
-                  }}
-                >
-                  <ChevronDown aria-hidden />
-                </IconButton>
-              </div>
-            )}
+      <div className="mt-detail-close gap-detail-next grid min-w-0">
+        <Divider />
+        <div className="gap-detail-next flex min-h-8 min-w-0 items-center">
+          <div className="min-w-0 flex-1">
+            <WorkflowBadges badges={presentation.badges} />
           </div>
+          {showActions && (
+            <div className="gap-detail-next flex shrink-0 items-center">
+              <IconButton
+                type="button"
+                variant="secondary"
+                size="compact"
+                aria-label={actionLabels.up}
+                disabled={!canMoveUp}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onMoveUp();
+                }}
+              >
+                <ChevronUp aria-hidden />
+              </IconButton>
+              <IconButton
+                type="button"
+                variant="secondary"
+                size="compact"
+                aria-label={actionLabels.down}
+                disabled={!canMoveDown}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onMoveDown();
+                }}
+              >
+                <ChevronDown aria-hidden />
+              </IconButton>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -261,7 +283,7 @@ function AttachedBlockCard({
   return (
     <div
       className={cx(
-        "border-stroke-secondary bg-surface-secondary mt-detail-close gap-detail-next rounded-soft p-margin-close grid border",
+        "border-stroke-secondary bg-surface-secondary mt-detail-close gap-detail-next rounded-soft p-margin-close grid grid-cols-[minmax(0,1fr)] border",
         block.enabled === false && "opacity-60",
       )}
     >
@@ -270,7 +292,7 @@ function AttachedBlockCard({
       </span>
       <div className="gap-detail-next flex items-start">
         <WorkflowBlockTypeIcon type={block.type} className="mt-detail-fine" />
-        <div className="gap-detail-tight grid min-w-0 flex-1">
+        <div className="gap-detail-tight grid min-w-0 flex-1 wrap-anywhere">
           <strong className="type-body-em text-text-primary">{presentation.title}</strong>
           <p className="type-body text-text-primary m-0">{presentation.description}</p>
         </div>

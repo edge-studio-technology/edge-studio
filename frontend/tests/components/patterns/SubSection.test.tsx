@@ -15,4 +15,15 @@ describe("SubSection", () => {
     expect(screen.getByText("More options")).toBeInTheDocument();
     expect(screen.getByText("Body")).toBeInTheDocument();
   });
+
+  it("omits the optional description", () => {
+    render(
+      <SubSection icon={<span data-testid="icon" />} title="Advanced">
+        <p>Body</p>
+      </SubSection>,
+    );
+
+    expect(screen.getByText("Advanced")).toBeInTheDocument();
+    expect(screen.queryByText("More options")).not.toBeInTheDocument();
+  });
 });

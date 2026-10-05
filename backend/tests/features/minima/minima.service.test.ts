@@ -340,6 +340,33 @@ describe("restartMinimaContainer", () => {
     assert.match(String(consoleError.mock.calls[0][1]), /inspect failed/);
   });
 
+  it("clears the operation marker when container lookup fails", async () => {
+    const lookupError = new Error("container lookup failed");
+    getComposeServiceContainerMock.mockRejectedValue(lookupError);
+
+    await assert.rejects(() => minimaService.restartMinimaContainer(), (error) => error === lookupError);
+
+    assert.equal(minimaMonitoring.isMinimaOperationInProgress(), false);
+    assert.equal(getContainerRestartBaselineMock.mock.calls.length, 0);
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
+    assert.equal(waitForContainerRestartMock.mock.calls.length, 0);
+    assert.equal(startComposeServiceMock.mock.calls.length, 0);
+    assert.equal(restartComposeServiceMock.mock.calls.length, 0);
+  });
+
+  it("clears the operation marker when reading the restart baseline fails", async () => {
+    const baselineError = new Error("restart baseline failed");
+    getContainerRestartBaselineMock.mockRejectedValue(baselineError);
+
+    await assert.rejects(() => minimaService.restartMinimaContainer(), (error) => error === baselineError);
+
+    assert.equal(minimaMonitoring.isMinimaOperationInProgress(), false);
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
+    assert.equal(waitForContainerRestartMock.mock.calls.length, 0);
+    assert.equal(startComposeServiceMock.mock.calls.length, 0);
+    assert.equal(restartComposeServiceMock.mock.calls.length, 0);
+  });
+
   it("throws when the container can't be found", async () => {
     getComposeServiceContainerMock.mockResolvedValue(null);
     await assert.rejects(() => minimaService.restartMinimaContainer(), /Docker container not found/);

@@ -3,11 +3,13 @@ import { afterAll, beforeAll, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
 let teardown: () => void;
+let db: Awaited<ReturnType<typeof setupTestDatabase>>["db"];
 let repo: typeof import("../../../src/features/automation/automation.repository.js");
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
   teardown = testDb.teardown;
+  db = testDb.db;
   repo = await import("../../../src/features/automation/automation.repository.js");
 });
 
@@ -108,6 +110,15 @@ describe("automation.repository — workflow CRUD", () => {
 
     assert.equal(repo.getAutomationWorkflow(workflow.id), undefined);
     assert.equal(repo.getAutomationBlock(block.id), undefined);
+  });
+
+  it("deleteAutomationWorkflow removes the workflow's budget events", () => {
+    const workflow = repo.createAutomationWorkflow({ name: "Budgeted", enabled: true, blocks: [{ type: "manual_start", config: {} }] });
+    db.prepare("INSERT INTO automation_workflow_budget_events (run_id, workflow_id, consumed_at) VALUES ('run-1', ?, ?)").run(workflow.id, new Date().toISOString());
+
+    repo.deleteAutomationWorkflow(workflow.id);
+
+    assert.equal((db.prepare("SELECT COUNT(*) AS n FROM automation_workflow_budget_events WHERE workflow_id = ?").get(workflow.id) as { n: number }).n, 0);
   });
 });
 

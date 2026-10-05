@@ -28,15 +28,58 @@ describe("build-docker-compose.mjs", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("writes update-agent host-agent wiring and the public manifest URL", () => {
+  it("writes network protection settings, update-agent host-agent wiring, and the public manifest URL", () => {
     const result = spawnSync(process.execPath, [scriptPath, manifestPath, "development", dir], { encoding: "utf8" });
 
     assert.equal(result.status, 0);
     const compose = readFileSync(join(dir, "docker-compose.yml"), "utf8");
     const envExample = readFileSync(join(dir, ".env.example"), "utf8");
+    assert.match(
+      compose,
+      /EDGE_STUDIO_DOCKER_SUBNET: \$\{EDGE_STUDIO_DOCKER_SUBNET:-172\.30\.0\.0\/24\}/,
+    );
+    assert.match(
+      compose,
+      /EDGE_STUDIO_DOCKER_GATEWAY: \$\{EDGE_STUDIO_DOCKER_GATEWAY:-172\.30\.0\.1\}/,
+    );
+    assert.match(
+      compose,
+      /ipam:\n      config:\n        - subnet: \$\{EDGE_STUDIO_DOCKER_SUBNET:-172\.30\.0\.0\/24\}\n          gateway: \$\{EDGE_STUDIO_DOCKER_GATEWAY:-172\.30\.0\.1\}/,
+    );
     assert.match(compose, /HOST_AGENT_URL: \$\{HOST_AGENT_URL:-http:\/\/host\.docker\.internal:38182\}/);
     assert.match(compose, /HOST_AGENT_TOKEN: \$\{HOST_AGENT_TOKEN:-\}/);
     assert.match(envExample, /MANIFEST_URL=https:\/\/edgestudio\.technology\/manifest\/development\/manifest\.json/);
     assert.match(envExample, /HOST_AGENT_URL=http:\/\/host\.docker\.internal:38182/);
+    assert.match(envExample, /^EDGE_STUDIO_DOCKER_SUBNET=172\.30\.0\.0\/24$/m);
+    assert.match(envExample, /^EDGE_STUDIO_DOCKER_GATEWAY=172\.30\.0\.1$/m);
+    assert.match(compose, /APP_SECRET: \$\{APP_SECRET:-\}/);
+    assert.match(envExample, /^APP_SECRET=$/m);
+    assert.doesNotMatch(compose, /dev-change-me/);
+    assert.doesNotMatch(envExample, /dev-change-me/);
+  });
+
+  it("applies bounded json-file log rotation to every long-running service", () => {
+    const result = spawnSync(process.execPath, [scriptPath, manifestPath, "development", dir], { encoding: "utf8" });
+
+    assert.equal(result.status, 0);
+    const compose = readFileSync(join(dir, "docker-compose.yml"), "utf8");
+    assert.match(compose, /x-logging: &default-logging\n  driver: json-file\n  options:\n    max-size: "10m"\n    max-file: "3"\n/);
+    for (const service of ["backend", "frontend", "update-agent", "minima"]) {
+      assert.match(serviceBlock(compose, service), /\n    logging: \*default-logging\n/, service);
+    }
+  });
+
+  it("keeps the same log rotation policy as the source docker-compose.yml", () => {
+    const source = readFileSync(join(process.cwd(), "docker-compose.yml"), "utf8");
+    assert.match(source, /x-logging: &default-logging\n  driver: json-file\n  options:\n    max-size: "10m"\n    max-file: "3"\n/);
+    for (const service of ["backend", "frontend", "minima", "mqtt", "update-agent"]) {
+      assert.match(serviceBlock(source, service), /\n    logging: \*default-logging\n/, service);
+    }
   });
 });
+
+function serviceBlock(compose: string, service: string) {
+  const match = compose.match(new RegExp(`\\n  ${service}:\\n([\\s\\S]*?)(?=\\n  [a-z-]+:\\n|\\nnetworks:)`));
+  assert.ok(match, `service ${service} not found`);
+  return match[1];
+}

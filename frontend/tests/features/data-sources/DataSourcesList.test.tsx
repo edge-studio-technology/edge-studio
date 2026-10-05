@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { ToastProvider } from "../../../src/components/ToastProvider";
 import { DataSourcesList } from "../../../src/features/data-sources/DataSourcesList";
 import type { DataSource } from "../../../src/features/data-sources/dataSourceTypes";
@@ -47,14 +48,13 @@ describe("DataSourcesList", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
-  it("shows an unfiltered empty state prompting to connect a device, with New input/output actions", async () => {
-    const onAddInput = vi.fn();
-    const onAddOutput = vi.fn();
-    renderList({ onAddInput, onAddOutput });
+  it("shows an unfiltered empty state prompting to connect a device, with a setup action", async () => {
+    const onSetupDevice = vi.fn();
+    renderList({ onSetupDevice });
     expect(screen.getByText("Connect your first device")).toBeInTheDocument();
 
-    await userEvent.click(screen.getAllByRole("button", { name: "New input" })[0]);
-    expect(onAddInput).toHaveBeenCalled();
+    await userEvent.click(screen.getAllByRole("button", { name: "New device" })[0]);
+    expect(onSetupDevice).toHaveBeenCalled();
   });
 
   it("shows a filtered empty state with a clear-filters action when search matches nothing", async () => {
@@ -74,6 +74,7 @@ describe("DataSourcesList", () => {
     expect(within(row).getByText("HTTP JSON Source")).toBeInTheDocument();
     expect(within(row).getByTitle("Input · https://example.com/data.json")).toBeInTheDocument();
     expect(within(row).getByText("No activity")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table"));
   });
 
   it("labels a pi-camera row's direction as Capture", () => {

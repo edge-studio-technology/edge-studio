@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { MinimaConsoleCatalogEntry } from "../../app/types";
-import { LoadingDots } from "../../components/ui/LoadingDots";
-import { ErrorText } from "../../components/ui/ErrorText";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
+import { LoadingState } from "../../components/patterns/LoadingState";
+import { describeLoadFailure } from "../../lib/errors";
 import { useToast } from "../../components/ToastProvider";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
@@ -147,9 +148,11 @@ export function MinimaConsoleWhitelistModal({ onClose }: { onClose: () => void }
   const [currentPassword, setCurrentPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadError(null);
     getConsoleWhitelist()
       .then((whitelist) => {
         if (cancelled) return;
@@ -163,7 +166,7 @@ export function MinimaConsoleWhitelistModal({ onClose }: { onClose: () => void }
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadAttempt]);
 
   function toggleKey(key: string) {
     setEnabledKeys((current) => {
@@ -257,8 +260,19 @@ export function MinimaConsoleWhitelistModal({ onClose }: { onClose: () => void }
           ) : null
         }
       >
-        {loadError && <ErrorText>{loadError}</ErrorText>}
-        {!catalog && !loadError && <LoadingDots />}
+        {loadError && (
+          <ErrorContentState
+            title="Command list isn't available"
+            description={describeLoadFailure(loadError)}
+            onRetry={() => setLoadAttempt((attempt) => attempt + 1)}
+          />
+        )}
+        {!catalog && !loadError && (
+          <LoadingState
+            title="Fetching the command list"
+            description="This should take a few seconds."
+          />
+        )}
         {catalog && (
           <div className="gap-detail-next grid">
             <CommandSection

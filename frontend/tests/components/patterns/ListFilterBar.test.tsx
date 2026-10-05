@@ -44,4 +44,16 @@ describe("ListFilterBar", () => {
       expect(onQueryChange).toHaveBeenCalledWith("abc");
     });
   });
+
+  it("renders optional actions alongside the fields", () => {
+    render(
+      <ListFilterBar
+        q=""
+        onQueryChange={vi.fn()}
+        actions={<button type="button">New item</button>}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "New item" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Search")).toBeInTheDocument();
+  });
 });

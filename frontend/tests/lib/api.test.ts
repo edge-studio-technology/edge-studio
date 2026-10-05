@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { deleteJson, getJson, patchJson, postForm, postJson, setUnauthorizedHandler } from "../../src/lib/api";
+import { deleteJson, getJson, patchJson, postForm, postJson, putJson, setUnauthorizedHandler } from "../../src/lib/api";
 
 function jsonResponse(body: unknown, init: { status?: number; url?: string } = {}) {
   return {
@@ -72,6 +72,19 @@ describe("lib/api", () => {
     });
   });
 
+  it("putJson sends a JSON body with the PUT method", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
+
+    await putJson("/api/thing", { a: 1 });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/thing", {
+      credentials: "include",
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ a: 1 }),
+    });
+  });
+
   it("deleteJson omits headers/body when no body is given", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
 
@@ -82,6 +95,19 @@ describe("lib/api", () => {
       method: "DELETE",
       headers: undefined,
       body: undefined,
+    });
+  });
+
+  it("deleteJson sends a JSON body when provided", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
+
+    await deleteJson("/api/thing", { a: 1 });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/thing", {
+      credentials: "include",
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ a: 1 }),
     });
   });
 

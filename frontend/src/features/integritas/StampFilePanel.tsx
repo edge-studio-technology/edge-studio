@@ -1,6 +1,7 @@
 import { ButtonRow } from "../../components/ButtonRow";
 import { Button } from "../../components/ui/Button";
 import { FileDropBox } from "../../components/patterns/FileDropBox";
+import { LoadingState } from "../../components/patterns/LoadingState";
 import { StampResult } from "./StampResult";
 import type { IntegritasProofRecord } from "./integritasTypes";
 
@@ -8,6 +9,7 @@ export function StampFilePanel({
   file,
   setFile,
   busy,
+  loading,
   onStamp,
   resultRecord,
   resultDetails,
@@ -16,6 +18,7 @@ export function StampFilePanel({
   file: File | null;
   setFile: (file: File | null) => void;
   busy: boolean;
+  loading: boolean;
   onStamp: () => void;
   resultRecord: IntegritasProofRecord | null;
   resultDetails: unknown;
@@ -29,7 +32,13 @@ export function StampFilePanel({
           Stamp file
         </Button>
       </ButtonRow>
-      {resultRecord ? (
+      {loading ? (
+        <LoadingState
+          title="Stamping your file"
+          description="This should take a few seconds."
+          className="min-h-64"
+        />
+      ) : resultRecord ? (
         <StampResult
           record={resultRecord}
           technicalDetails={resultDetails ?? undefined}

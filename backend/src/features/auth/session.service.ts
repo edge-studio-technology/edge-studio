@@ -5,12 +5,17 @@ import {
   createSessionRow,
   deleteSessionByTokenHash,
   deleteAllUserSessions as deleteAllUserSessionsRepo,
+  deleteExpiredSessions,
   findSessionByTokenHash,
   findUserById,
   updateSessionLastSeen
 } from "./auth.repository.js";
 import { LOCAL_ADMIN_DISPLAY_NAME } from "./auth.constants.js";
 import type { SessionUser } from "./auth.types.js";
+
+const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+
+let sessionCleanup: NodeJS.Timeout | null = null;
 
 function sessionMaxAgeMs() {
   return env.sessionMaxAgeDays * 24 * 60 * 60 * 1000;
@@ -70,12 +75,41 @@ export function deleteAllUserSessions(userId: string) {
   deleteAllUserSessionsRepo(userId);
 }
 
-export function sessionCookieOptions() {
+/** Cookie attributes without `maxAge`; `res.clearCookie` sets its own expiry. */
+export function sessionClearCookieOptions() {
   return {
     httpOnly: true,
     secure: env.cookieSecure,
     sameSite: env.cookieSameSite,
-    path: "/",
+    path: "/"
+  } as const;
+}
+
+export function sessionCookieOptions() {
+  return {
+    ...sessionClearCookieOptions(),
     maxAge: sessionMaxAgeMs()
   } as const;
+}
+
+export function startSessionCleanupScheduler() {
+  if (sessionCleanup) return;
+
+  const sweep = () => {
+    try {
+      deleteExpiredSessions();
+    } catch (error) {
+      console.error("Session cleanup failed:", error instanceof Error ? error.message : error);
+    }
+  };
+
+  sweep();
+  sessionCleanup = setInterval(sweep, SESSION_CLEANUP_INTERVAL_MS);
+}
+
+export function stopSessionCleanupScheduler() {
+  if (sessionCleanup) {
+    clearInterval(sessionCleanup);
+    sessionCleanup = null;
+  }
 }

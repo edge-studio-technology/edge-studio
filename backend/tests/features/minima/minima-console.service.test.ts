@@ -201,6 +201,39 @@ describe("runConsoleCommand", () => {
     assert.deepEqual(createBackupMock.mock.calls[0][0], { auto: false });
   });
 
+  // Finding [10]: the whitelist keys on the first token, so the mutating argument forms of a
+  // read-enabled verb must resolve to their own, default-disabled entry.
+  it("runs a default-enabled tokens read but refuses tokens action:import", async () => {
+    runMinimaPathCommandMock.mockResolvedValue({ status: true });
+
+    await consoleService.runConsoleCommand(userId, "tokens");
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 1);
+
+    await assert.rejects(
+      consoleService.runConsoleCommand(userId, "tokens action:import data:0x123"),
+      /Command not permitted/
+    );
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 1);
+  });
+
+  it("refuses maxcontacts action:add while allowing action:list", async () => {
+    runMinimaPathCommandMock.mockResolvedValue({ status: true });
+
+    await consoleService.runConsoleCommand(userId, "maxcontacts action:list");
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 1);
+
+    await assert.rejects(
+      consoleService.runConsoleCommand(userId, "maxcontacts action:add contact:MAX#abc"),
+      /Command not permitted/
+    );
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 1);
+  });
+
+  it("refuses cointrack by default now that it is classified as a write", async () => {
+    await assert.rejects(consoleService.runConsoleCommand(userId, "cointrack enable:true coinid:0x00"), /Command not permitted/);
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
+  });
+
   it("dispatches restoresync via restoreBackup with the parsed file name and password", async () => {
     await consoleService.updateConsoleWhitelist(userId, { enabledKeys: ["status", "restoresync"], currentPassword: PASSWORD });
     restoreBackupMock.mockResolvedValue({ ok: true });

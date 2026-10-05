@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { WorkflowWorkspaceShell } from "../../../../../src/features/automation/workflow/chrome/WorkflowWorkspaceShell";
@@ -37,6 +37,16 @@ describe("WorkflowWorkspaceShell", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
   });
 
+  it("renders centered actions when given", () => {
+    renderShell({ centerActions: <button type="button">Enabled</button> });
+    expect(screen.getByRole("button", { name: "Enabled" })).toBeInTheDocument();
+  });
+
+  it("renders a toolbar row above the canvas when given", () => {
+    renderShell({ toolbar: <div>Playback toolbar</div> });
+    expect(screen.getByText("Playback toolbar").parentElement).toHaveClass("border-b");
+  });
+
   it("renders a status strip and notices row only when either is given", () => {
     const { rerender } = render(
       <MemoryRouter>
@@ -64,12 +74,68 @@ describe("WorkflowWorkspaceShell", () => {
     expect(screen.getByText("Status strip")).toBeInTheDocument();
   });
 
-  it("renders the selected block sheet and bottom overlay when given", () => {
+  it("renders the selected block sheet, backdrop, left overlay, and bottom overlay when given", () => {
     renderShell({
+      selectedBackdrop: <div>Selected backdrop</div>,
       selectedSheet: <div>Selected sheet</div>,
+      leftOverlay: <div>Left overlay</div>,
       bottom: <div>Bottom overlay</div>,
     });
     expect(screen.getByText("Selected sheet")).toBeInTheDocument();
-    expect(screen.getByText("Bottom overlay")).toBeInTheDocument();
+    expect(screen.getByText("Selected backdrop").parentElement).toHaveClass("z-[60]");
+    expect(screen.getByText("Left overlay").parentElement).toHaveClass("z-[65]", "left-1/2", "-translate-x-1/2");
+    expect(screen.getByText("Bottom overlay").parentElement).toHaveClass("z-[65]");
+  });
+
+  describe("rail drawer", () => {
+    const toggle = () => screen.getByRole("button", { name: "Toolkit" });
+    const rail = () => document.getElementById("workflow-rail");
+
+    it("starts closed and toggles open with aria-expanded", () => {
+      renderShell();
+      expect(toggle()).toHaveAttribute("aria-expanded", "false");
+      expect(rail()).toHaveAttribute("data-open", "false");
+      fireEvent.click(toggle());
+      expect(toggle()).toHaveAttribute("aria-expanded", "true");
+      expect(rail()).toHaveAttribute("data-open", "true");
+      fireEvent.click(toggle());
+      expect(rail()).toHaveAttribute("data-open", "false");
+    });
+
+    it("closes on Escape", () => {
+      renderShell();
+      fireEvent.click(toggle());
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(rail()).toHaveAttribute("data-open", "false");
+    });
+
+    it("closes on a click outside", () => {
+      renderShell();
+      fireEvent.click(toggle());
+      fireEvent.pointerDown(screen.getByTestId("workflow-rail-backdrop"));
+      expect(rail()).toHaveAttribute("data-open", "false");
+      expect(screen.queryByTestId("workflow-rail-backdrop")).not.toBeInTheDocument();
+    });
+
+    it("closes when a block sheet opens, e.g. after adding a block", () => {
+      const props = {
+        breadcrumbLabel: "New workflow",
+        nameControl: <input aria-label="Workflow name" />,
+        canvas: <div>Canvas</div>,
+        rail: <div>Rail</div>,
+      };
+      const { rerender } = render(
+        <MemoryRouter>
+          <WorkflowWorkspaceShell {...props} />
+        </MemoryRouter>,
+      );
+      fireEvent.click(toggle());
+      rerender(
+        <MemoryRouter>
+          <WorkflowWorkspaceShell {...props} selectedSheet={<div>Sheet</div>} />
+        </MemoryRouter>,
+      );
+      expect(rail()).toHaveAttribute("data-open", "false");
+    });
   });
 });

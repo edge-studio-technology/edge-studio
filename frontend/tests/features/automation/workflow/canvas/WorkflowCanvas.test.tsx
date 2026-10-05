@@ -100,6 +100,47 @@ describe("WorkflowCanvas", () => {
     expect(onSelectBlock).toHaveBeenCalledWith("b1");
   });
 
+  it("raises the selected block above workspace overlays", () => {
+    render(
+      <WorkflowCanvas
+        mode="watch"
+        blocks={[manualStart()]}
+        sources={[]}
+        addressBook={[]}
+        selectedBlockId="b1"
+        onSelectBlock={() => {}}
+        onMoveBlock={() => {}}
+        onRemoveBlock={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("Manual run").closest('[role="button"]')).toHaveClass("z-[65]");
+  });
+
+  it("marks the replay-active block with a moving border dot", () => {
+    render(
+      <WorkflowCanvas
+        mode="watch"
+        blocks={[manualStart(), waitBlock()]}
+        sources={[]}
+        addressBook={[]}
+        selectedBlockId="b2"
+        replayActiveBlockId="b2"
+        runtimeByBlockId={{ b2: { status: "failed", durationMs: 12 } }}
+        onSelectBlock={() => {}}
+        onMoveBlock={() => {}}
+        onRemoveBlock={() => {}}
+      />,
+    );
+
+    const waitCard = screen.getByText("Wait").closest('[role="button"]');
+    expect(waitCard).toHaveClass(
+      "workflow-replay-active-block",
+      "workflow-replay-active-block-failed",
+      "workflow-replay-active-block-reverse",
+    );
+  });
+
   it("selects a block via keyboard Enter", async () => {
     const onSelectBlock = vi.fn();
     render(
@@ -166,7 +207,7 @@ describe("WorkflowCanvas", () => {
     expect(onMoveBlock).toHaveBeenCalledWith("b2", 1);
   });
 
-  it("uses 'Move up'/'Move down' action labels in edit/watch mode", () => {
+  it("uses 'Move up'/'Move down' action labels in edit mode", () => {
     render(
       <WorkflowCanvas
         mode="edit"
@@ -181,6 +222,24 @@ describe("WorkflowCanvas", () => {
     );
     expect(screen.getByRole("button", { name: "Move up" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Move down" })).toBeInTheDocument();
+  });
+
+  it("does not show edit actions in watch mode", () => {
+    render(
+      <WorkflowCanvas
+        mode="watch"
+        blocks={[manualStart(), waitBlock()]}
+        sources={[]}
+        addressBook={[]}
+        selectedBlockId=""
+        onSelectBlock={() => {}}
+        onMoveBlock={() => {}}
+        onRemoveBlock={() => {}}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Move up" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Move down" })).not.toBeInTheDocument();
   });
 
   it("disables move up on the first movable block and move down on the last block", () => {
@@ -223,6 +282,32 @@ describe("WorkflowCanvas", () => {
     );
     expect(screen.getByText("Stamp data")).toBeInTheDocument();
     expect(screen.getByText("Attached")).toBeInTheDocument();
+  });
+
+  it("keeps long block text inside block and attached cards", () => {
+    render(
+      <WorkflowCanvas
+        mode="build"
+        blocks={[
+          manualStart(),
+          {
+            ...waitBlock(),
+            attachedBlocks: [{ id: "stamp-1", type: "stamp_integritas", config: {} }],
+          },
+        ]}
+        sources={[]}
+        addressBook={[]}
+        selectedBlockId=""
+        onSelectBlock={() => {}}
+        onMoveBlock={() => {}}
+        onRemoveBlock={() => {}}
+      />,
+    );
+    for (const title of ["Manual run", "Stamp data"]) {
+      const text = screen.getByText(title).parentElement;
+      expect(text).toHaveClass("min-w-0", "wrap-anywhere");
+      expect(text?.closest(".grid-cols-\\[minmax\\(0\\,1fr\\)\\]")).not.toBeNull();
+    }
   });
 
   it("shows validation badges from validationByBlockId", () => {

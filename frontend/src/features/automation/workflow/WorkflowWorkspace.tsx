@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { Button } from "../../../components/Button";
+import { Modal } from "../../../components/Modal";
 import { InputField } from "../../../components/ui/InputField";
+import { ScrollArea } from "../../../components/ui/ScrollArea";
 import { Text } from "../../../components/Text";
-import type { AddressBookEntry } from "../../address-book/addressBookTypes";
+import type {
+  AddressBookEntry,
+  CreateAddressBookEntryInput,
+} from "../../address-book/addressBookTypes";
 import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { WalletStatus } from "../../wallet/walletTypes";
 import {
@@ -23,7 +28,13 @@ import {
   PersistedBlockInspector,
   type PersistedBlockInspectorHandle,
 } from "./WorkflowBlockInspectors";
-import { WatchRunControls, WatchRuntimeInspector, WatchRunHistory } from "./WorkflowWatchUi";
+import {
+  WatchRunControls,
+  WatchReplayControls,
+  WatchRuntimeInspector,
+  WatchRunHistory,
+  WatchRuntimeOverview,
+} from "./WorkflowWatchUi";
 import {
   automationBlockToCanvasBlock,
   draftBlockDescription,
@@ -35,6 +46,7 @@ import { WorkflowWorkspaceShell } from "./chrome/WorkflowWorkspaceShell";
 import { WorkflowBlockLibrary } from "./toolkit/WorkflowBlockLibrary";
 import {
   blockLabel,
+  blockRunBlockId,
   blockRunForBlock,
   canPersistSendTransactionConfig,
   createDraftBlock,
@@ -44,22 +56,25 @@ import {
   runtimeByBlockIdFromRun,
   validationIssuesByBlockId,
   withSoftenedInsufficientBalance,
-  workflowIntervalSeconds,
   missingDeviceLibraryReason,
 } from "./workflowHelpers";
 import {
   BlockHelpDisclosure,
   SelectedBlockSheet,
-  StatusPill,
-  WorkflowStatusPill,
-  WorkflowStatusStrip,
   WorkflowValidationPanel,
   errorText,
   isWorkflowValidationVisible,
   mutedText,
 } from "./workflowWorkspaceUi";
-import { formatLocalTime } from "../../../lib/time";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, Eye, Pencil } from "lucide-react";
+import { SpinnerAlt } from "../../../components/ui/SpinnerAlt";
+
+const workflowToggleBaseClass =
+  "group h-10 gap-detail-next rounded-full px-detail-next type-body-em disabled:cursor-not-allowed disabled:opacity-60";
+const workflowToggleEnabledClass = `${workflowToggleBaseClass} !border-[#009966] !bg-[#dcf7ec] !text-[#006b49] enabled:hover:!border-stroke-primary enabled:hover:!bg-surface-secondary enabled:hover:!text-text-primary`;
+const workflowTogglePausedClass = `${workflowToggleBaseClass} !border-stroke-primary !bg-surface-secondary !text-text-primary enabled:hover:!border-[#009966] enabled:hover:!bg-[#dcf7ec] enabled:hover:!text-[#006b49]`;
+const workflowToggleEnabledKnobClass = "block size-6 rounded-full bg-[#009966] shadow-sm transition-colors group-hover:bg-grey-04";
+const workflowTogglePausedKnobClass = "block size-6 rounded-full bg-grey-04 shadow-sm transition-colors group-hover:bg-[#009966]";
 
 /** Edit/watch workspace for a persisted automation workflow. */
 export function WorkflowWorkspace({
@@ -84,6 +99,8 @@ export function WorkflowWorkspace({
   onReorderBlocks,
   onRunNow,
   onRunWithPayload,
+  onCreateAddressBookEntry,
+  loadingOverlayLabel,
 }: {
   workflow: AutomationWorkflow;
   runs: AutomationRun[];
@@ -106,10 +123,12 @@ export function WorkflowWorkspace({
   ) => void | Promise<{ item: AutomationBlock } | undefined>;
   onDeleteBlock: (blockId: string) => void;
   onUpdateBlock: (blockId: string, input: Parameters<typeof updateAutomationBlock>[2]) => void;
-  onUpdateWorkflow: (input: Parameters<typeof updateAutomationWorkflow>[1]) => void;
+  onUpdateWorkflow: (input: Parameters<typeof updateAutomationWorkflow>[1]) => void | Promise<unknown>;
   onReorderBlocks: (blockIds: string[]) => void;
   onRunNow: () => void;
   onRunWithPayload: (payload: unknown) => void;
+  onCreateAddressBookEntry: (data: CreateAddressBookEntryInput) => Promise<AddressBookEntry>;
+  loadingOverlayLabel?: string | null;
 }) {
   const [payloadText, setPayloadText] = useState(() =>
     JSON.stringify(examplePayload(workflow), null, 2),
@@ -117,29 +136,73 @@ export function WorkflowWorkspace({
   const [payloadError, setPayloadError] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState(workflow.name);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  const [pausedForEditNotice, setPausedForEditNotice] = useState(false);
+  const [followLiveRuns, setFollowLiveRuns] = useState(false);
+  const [replayPlaying, setReplayPlaying] = useState(false);
+  const [replayHighlightBlockId, setReplayHighlightBlockId] = useState<string | undefined>();
+  const [newLiveRunId, setNewLiveRunId] = useState<string | null>(null);
+  const previousSelectedRunIdRef = useRef<string | null>(null);
+  const suppressNextLiveAutoplayRef = useRef(false);
+  const [pendingEditAction, setPendingEditAction] = useState<(() => unknown | Promise<unknown>) | null>(null);
   const mainBlocks = workflow.blocks.filter((block) => !block.parentBlockId);
   const startBlock = mainBlocks[0];
   const [selectedBlockId, setSelectedBlockId] = useState("");
   const [draftBlock, setDraftBlock] = useState<DraftWorkflowBlock | null>(null);
   const [draftRevealErrors, setDraftRevealErrors] = useState(false);
   const inspectorRef = useRef<PersistedBlockInspectorHandle>(null);
-  const nameSaveTimerRef = useRef<number | null>(null);
-  /** Edit-session pause: pause once per workflow after the first real edit. */
-  const editPauseSessionRef = useRef<{
-    workflowId: string;
-    didPause: boolean;
-  } | null>(null);
+  const lastSubmittedNameRef = useRef(workflow.name);
+  const editPauseConfirmedRef = useRef(false);
+  const selectedRun =
+    mode === "watch" ? (runs.find((run) => run.id === selectedRunId) ?? runs[0]) : undefined;
+  const latestRun = mode === "watch" ? runs[0] : undefined;
+  const persistedCanvasBlocks = mainBlocks.map((block) =>
+    automationBlockToCanvasBlock(block, workflow.blocks),
+  );
+  const historicalBlocks =
+    mode === "watch" && selectedRun
+      ? selectedRun.blocks
+          .filter(
+            (block) =>
+              blockRunBlockId(block) &&
+              block.blockType !== "stamp_integritas" &&
+              !workflow.blocks.some((workflowBlock) => workflowBlock.id === blockRunBlockId(block)),
+          )
+          .map((block) => ({
+            id: blockRunBlockId(block) as string,
+            workflowId: workflow.id,
+            createdAt: block.startedAt,
+            updatedAt: block.finishedAt ?? block.startedAt,
+            type: block.blockType as AutomationBlockType,
+            config: {},
+            enabled: true,
+            order: block.order,
+            parentBlockId: null,
+            lastRunAt: block.finishedAt ?? block.startedAt,
+            lastError: block.error,
+          }))
+      : [];
+  const historicalBlockById = new Map(historicalBlocks.map((block) => [block.id, block]));
+  const replayCanvasBlocks = selectedRun && selectedRun.blocks.length > 0
+    ? [
+        ...persistedCanvasBlocks.filter((block) => {
+          const workflowBlock = mainBlocks.find((item) => item.id === block.id);
+          return workflowBlock && new Date(workflowBlock.createdAt).getTime() <= new Date(selectedRun.startedAt).getTime();
+        }),
+        ...historicalBlocks,
+      ]
+    : persistedCanvasBlocks;
   const selectedBlock = selectedBlockId
-    ? mainBlocks.find((block) => block.id === selectedBlockId)
+    ? mainBlocks.find((block) => block.id === selectedBlockId) ??
+      historicalBlocks.find((block) => block.id === selectedBlockId)
     : undefined;
   const draftSelected = draftBlock && selectedBlockId === draftBlock.id ? draftBlock : null;
 
   // Saved workflow blocks, plus an unsaved Send payment draft while its options sheet is open.
-  const persistedCanvasBlocks = mainBlocks.map((block) =>
-    automationBlockToCanvasBlock(block, workflow.blocks),
-  );
-  const canvasBlocks = draftBlock ? [...persistedCanvasBlocks, draftBlock] : persistedCanvasBlocks;
+  const canvasBlocks =
+    mode === "watch"
+      ? replayCanvasBlocks
+      : draftBlock
+        ? [...persistedCanvasBlocks, draftBlock]
+        : persistedCanvasBlocks;
   const canAddRecordTriggerEvent = Boolean(
     startBlock &&
     (startBlock.type === "gpio_event_start" ||
@@ -147,24 +210,44 @@ export function WorkflowWorkspace({
       startBlock.type === "mqtt_event_start") &&
     !mainBlocks.some((block) => block.type === "record_trigger_event"),
   );
-  const canAddSendPayment = addressBook.length > 0;
+  const canAddSendPayment = true;
   const uiValidation = withSoftenedInsufficientBalance(validation);
   const hasValidationErrors = Boolean(uiValidation && uiValidation.errors.length > 0);
-  const validationByBlockId = validationIssuesByBlockId(uiValidation);
-  const selectedRun =
-    mode === "watch" ? (runs.find((run) => run.id === selectedRunId) ?? runs[0]) : undefined;
-  const runtimeByBlockId = mode === "watch" ? runtimeByBlockIdFromRun(selectedRun) : {};
-  const watchRunStatusLabel =
-    selectedRun?.status === "running"
-      ? "Live updating"
-      : selectedRun
-        ? "Viewing historic run"
-        : "No run selected";
-  const workflowStateLabel = workflow.archived
-    ? "Archived"
-    : workflow.enabled
-      ? "Workflow active"
-      : "Workflow paused";
+  const validationByBlockId = {
+    ...validationIssuesByBlockId(uiValidation),
+    ...(draftBlock && !canPersistSendTransactionConfig(draftBlock.config)
+      ? {
+          [draftBlock.id]: [
+            {
+              level: "error" as const,
+              message: "Choose an address book recipient and enter a positive amount.",
+            },
+          ],
+        }
+      : {}),
+  };
+  const replaySteps =
+    mode === "watch" && selectedRun
+      ? selectedRun.blocks.filter((block) => {
+          const blockId = blockRunBlockId(block);
+          if (!blockId || block.blockType === "stamp_integritas") return false;
+          const workflowBlock = workflow.blocks.find((item) => item.id === blockId);
+          return !workflowBlock?.parentBlockId;
+        })
+      : [];
+  const replayStepIndex = replaySteps.findIndex((block) => blockRunBlockId(block) === selectedBlockId);
+  const playbackMessage = playbackStatusMessage(selectedRun, {
+    followingLive: followLiveRuns,
+    isNewLiveRun: Boolean(selectedRun && selectedRun.id === newLiveRunId),
+    playing: replayPlaying,
+  });
+  const replayOverlayActive = Boolean(
+    mode === "watch" &&
+      newLiveRunId &&
+      selectedRun?.id === newLiveRunId,
+  );
+  const runtimeByBlockId =
+    mode === "watch" ? runtimeByBlockIdFromRun(selectedRun, workflow.blocks) : {};
   const workflowStateTitle = workflow.archived
     ? "Archived workflows cannot run."
     : workflow.enabled
@@ -176,24 +259,23 @@ export function WorkflowWorkspace({
   useEffect(() => {
     if (!selectedBlockId) return;
     if (draftBlock?.id === selectedBlockId) return;
+    if (mode === "watch") {
+      if (!replayCanvasBlocks.some((block) => block.id === selectedBlockId)) setSelectedBlockId("");
+      return;
+    }
     if (!mainBlocks.some((block) => block.id === selectedBlockId)) setSelectedBlockId("");
-  }, [mainBlocks, draftBlock, selectedBlockId]);
+  }, [mainBlocks, mode, replayCanvasBlocks, draftBlock, selectedBlockId]);
 
   // Sync local name when switching workflows only — avoid clobbering in-progress typing after auto-save.
   useEffect(() => {
     setWorkflowName(workflow.name);
+    lastSubmittedNameRef.current = workflow.name;
+    editPauseConfirmedRef.current = false;
   }, [workflow.id]); // eslint-disable-line react-hooks/exhaustive-deps -- workflow.name intentionally omitted
 
   useEffect(() => {
-    return () => {
-      if (nameSaveTimerRef.current != null) window.clearTimeout(nameSaveTimerRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    setPausedForEditNotice(false);
-    editPauseSessionRef.current = { workflowId: workflow.id, didPause: false };
-  }, [workflow.id]);
+    if (workflow.enabled) editPauseConfirmedRef.current = false;
+  }, [workflow.enabled]);
 
   useEffect(() => {
     if (mode !== "watch") return;
@@ -201,50 +283,125 @@ export function WorkflowWorkspace({
       setSelectedRunId(null);
       return;
     }
-    if (initialRunId && runs.some((run) => run.id === initialRunId)) {
+    if (!selectedRunId && initialRunId && runs.some((run) => run.id === initialRunId)) {
       setSelectedRunId(initialRunId);
+      return;
+    }
+    if (followLiveRuns) {
+      if (selectedRunId !== runs[0].id) setSelectedRunId(runs[0].id);
       return;
     }
     if (!selectedRunId || !runs.some((run) => run.id === selectedRunId))
       setSelectedRunId(runs[0].id);
-  }, [initialRunId, mode, runs, selectedRunId]);
+  }, [followLiveRuns, initialRunId, mode, runs, selectedRunId]);
+
+  useEffect(() => {
+    if (mode !== "watch") setReplayPlaying(false);
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "watch" || !replayPlaying || !selectedBlockId) {
+      setReplayHighlightBlockId(undefined);
+      return;
+    }
+
+    setReplayHighlightBlockId(selectedBlockId);
+    const timeout = window.setTimeout(() => setReplayHighlightBlockId(undefined), 1500);
+    return () => window.clearTimeout(timeout);
+  }, [mode, replayPlaying, selectedBlockId]);
+
+  useEffect(() => {
+    setReplayPlaying(false);
+  }, [selectedRun?.id]);
+
+  useEffect(() => {
+    if (mode !== "watch") return;
+    const previousRunId = previousSelectedRunIdRef.current;
+    previousSelectedRunIdRef.current = selectedRun?.id ?? null;
+    if (!selectedRun || !previousRunId || !followLiveRuns || selectedRun.id === previousRunId) return;
+    if (suppressNextLiveAutoplayRef.current) {
+      suppressNextLiveAutoplayRef.current = false;
+      return;
+    }
+    setNewLiveRunId(selectedRun.id);
+    setSelectedBlockId("");
+    setReplayPlaying(true);
+  }, [followLiveRuns, mode, selectedRun?.id]);
+
+  useEffect(() => {
+    if (!replayPlaying || mode !== "watch" || replaySteps.length === 0) return;
+    const timeout = window.setTimeout(() => {
+      const currentIndex = replaySteps.findIndex((block) => blockRunBlockId(block) === selectedBlockId);
+      const nextIndex = currentIndex < 0 ? 0 : currentIndex + 1;
+      if (nextIndex >= replaySteps.length) {
+        setReplayPlaying(false);
+        return;
+      }
+      const nextBlockId = blockRunBlockId(replaySteps[nextIndex]);
+      if (nextBlockId) setSelectedBlockId(nextBlockId);
+    }, 1500);
+    return () => window.clearTimeout(timeout);
+  }, [mode, replayPlaying, replaySteps, selectedBlockId]);
+
+  function selectReplayStep(index: number) {
+    const blockId = replaySteps[index] ? blockRunBlockId(replaySteps[index]) : null;
+    if (!blockId) return;
+    setReplayPlaying(false);
+    setSelectedBlockId(blockId);
+  }
+
+  function setReplayPlayingFromControls(playing: boolean) {
+    if (!playing) {
+      setReplayPlaying(false);
+      return;
+    }
+
+    const currentIndex = replaySteps.findIndex((block) => blockRunBlockId(block) === selectedBlockId);
+    if (currentIndex < 0 || currentIndex >= replaySteps.length - 1) {
+      const firstBlockId = replaySteps[0] ? blockRunBlockId(replaySteps[0]) : null;
+      if (firstBlockId) setSelectedBlockId(firstBlockId);
+    }
+    setReplayPlaying(true);
+  }
 
   async function addBlockFromLibrary(type: AutomationBlockType) {
     flushSelectedInspector();
     // Send payment must be configured before the API will accept it — open a local draft sheet.
     if (type === "send_transaction") {
-      if (!canAddSendPayment) return;
-      pauseForEditIfNeeded();
-      const draft = createDraftBlock(type, sources);
-      setDraftRevealErrors(false);
-      setDraftBlock(draft);
-      setSelectedBlockId(draft.id);
+      requestEditAction(() => {
+        const draft = createDraftBlock(type, sources);
+        setDraftRevealErrors(false);
+        setDraftBlock(draft);
+        setSelectedBlockId(draft.id);
+      });
       return;
     }
     // Avoid API toast when the toolkit card should already be disabled for missing devices.
     if (missingDeviceLibraryReason(type, sources)) return;
-    setDraftRevealErrors(false);
-    setDraftBlock(null);
-    pauseForEditIfNeeded();
-    const result = await onAddBlock({
-      type,
-      config: defaultEditBlockConfig(type, sources, addressBook),
+    requestEditAction(async () => {
+      setDraftRevealErrors(false);
+      setDraftBlock(null);
+      const result = await onAddBlock({
+        type,
+        config: defaultEditBlockConfig(type, sources, addressBook),
+      });
+      if (result?.item && !result.item.parentBlockId) setSelectedBlockId(result.item.id);
     });
-    if (result?.item && !result.item.parentBlockId) setSelectedBlockId(result.item.id);
   }
 
   async function replaceStartBlockFromLibrary(type: AutomationBlockType) {
     if (type === startBlock?.type) return;
     if (missingDeviceLibraryReason(type, sources)) return;
     flushSelectedInspector();
-    setDraftRevealErrors(false);
-    setDraftBlock(null);
-    pauseForEditIfNeeded();
-    const result = await onReplaceStartBlock({
-      type,
-      config: defaultEditBlockConfig(type, sources, addressBook),
+    requestEditAction(async () => {
+      setDraftRevealErrors(false);
+      setDraftBlock(null);
+      const result = await onReplaceStartBlock({
+        type,
+        config: defaultEditBlockConfig(type, sources, addressBook),
+      });
+      setSelectedBlockId(result?.item.id ?? "");
     });
-    setSelectedBlockId(result?.item.id ?? "");
   }
 
   function flushSelectedInspector() {
@@ -257,24 +414,27 @@ export function WorkflowWorkspace({
     setDraftRevealErrors(false);
   }
 
+  function closeDraftBlockSheet() {
+    setSelectedBlockId("");
+    setDraftRevealErrors(false);
+  }
+
   async function saveDraftBlock() {
     if (!draftBlock) return;
-    if (!canPersistSendTransactionConfig(draftBlock.config)) {
-      setDraftRevealErrors(true);
-      return;
-    }
     const draft = draftBlock;
-    pauseForEditIfNeeded();
-    await onAddBlock({ type: draft.type, config: draft.config });
-    setDraftRevealErrors(false);
-    setDraftBlock(null);
-    // Done means finish adding — don't reopen the persisted inspector for the new block.
-    setSelectedBlockId("");
+    requestEditAction(async () => {
+      await onAddBlock({ type: draft.type, config: draft.config });
+      setDraftRevealErrors(false);
+      setDraftBlock(null);
+      // Done means finish adding — don't reopen the persisted inspector for the new block.
+      setSelectedBlockId("");
+    });
   }
 
   function closeSelectedSheet() {
+    if (mode === "watch") setReplayPlaying(false);
     if (draftSelected) {
-      discardDraftBlock();
+      closeDraftBlockSheet();
       return;
     }
     flushSelectedInspector();
@@ -290,55 +450,60 @@ export function WorkflowWorkspace({
   }
 
   function selectCanvasBlock(id: string) {
-    if (draftBlock && id !== draftBlock.id) discardDraftBlock();
-    if (id !== selectedBlockId && !draftBlock) flushSelectedInspector();
+    if (id !== selectedBlockId && selectedBlock) flushSelectedInspector();
+    if (mode === "watch") setReplayPlaying(false);
     setSelectedBlockId(id);
+  }
+
+  function handleSelectedBackdropPointerDown(event: PointerEvent<HTMLDivElement>) {
+    const backdrop = event.currentTarget;
+    const previousPointerEvents = backdrop.style.pointerEvents;
+    backdrop.style.pointerEvents = "none";
+    const target = document.elementFromPoint(event.clientX, event.clientY);
+    backdrop.style.pointerEvents = previousPointerEvents;
+
+    const blockElement = target instanceof Element ? target.closest<HTMLElement>("[data-workflow-block-id]") : null;
+    const blockId = blockElement?.dataset.workflowBlockId;
+    if (blockId && canvasBlocks.some((block) => block.id === blockId)) {
+      event.preventDefault();
+      selectCanvasBlock(blockId);
+      return;
+    }
+
+    closeSelectedSheet();
   }
 
   const workflowNameError = !workflowName.trim() ? "Workflow name is required." : undefined;
 
-  function clearNameSaveTimer() {
-    if (nameSaveTimerRef.current == null) return;
-    window.clearTimeout(nameSaveTimerRef.current);
-    nameSaveTimerRef.current = null;
-  }
-
   function saveWorkflowNameIfNeeded(nextName = workflowName) {
-    clearNameSaveTimer();
     const trimmed = nextName.trim();
-    if (!trimmed || trimmed === workflow.name) return;
-    pauseForEditIfNeeded();
-    onUpdateWorkflow({ name: trimmed });
+    if (!trimmed || trimmed === workflow.name || trimmed === lastSubmittedNameRef.current) return;
+    lastSubmittedNameRef.current = trimmed;
+    requestEditAction(() => onUpdateWorkflow({ name: trimmed }));
   }
 
-  function scheduleWorkflowNameSave(nextName: string) {
-    clearNameSaveTimer();
-    const trimmed = nextName.trim();
-    if (!trimmed || trimmed === workflow.name) return;
-    nameSaveTimerRef.current = window.setTimeout(() => {
-      nameSaveTimerRef.current = null;
-      pauseForEditIfNeeded();
-      onUpdateWorkflow({ name: trimmed });
-    }, 500);
-  }
-
-  function pauseForEditIfNeeded() {
-    if (mode !== "edit" || workflow.archived) return;
-    let session = editPauseSessionRef.current;
-    if (!session || session.workflowId !== workflow.id) {
-      session = { workflowId: workflow.id, didPause: false };
-      editPauseSessionRef.current = session;
+  function requestEditAction(action: () => unknown | Promise<unknown>) {
+    if (mode === "edit" && workflow.enabled && !workflow.archived && !editPauseConfirmedRef.current) {
+      setPendingEditAction(() => action);
+      return;
     }
-    if (session.didPause) return;
-    session.didPause = true;
-    if (!workflow.enabled) return;
-    setPausedForEditNotice(true);
-    onUpdateWorkflow({ enabled: false });
+    void action();
+  }
+
+  async function confirmPauseAndEdit() {
+    const action = pendingEditAction;
+    if (!action) return;
+    await onUpdateWorkflow({ enabled: false });
+    editPauseConfirmedRef.current = true;
+    setPendingEditAction(null);
+    await action();
   }
 
   return (
+    <>
     <WorkflowWorkspaceShell
       breadcrumbLabel={mode === "watch" ? "Watch workflow" : "Edit workflow"}
+      railToggleLabel={mode === "watch" ? "Watch controls" : "Toolkit"}
       nameControl={
         mode === "edit" ? (
           <InputField
@@ -346,17 +511,58 @@ export function WorkflowWorkspace({
             value={workflowName}
             onChange={(event) => {
               const next = event.target.value;
+              if (next.trim() && next.trim() !== workflow.name) {
+                requestEditAction(() => setWorkflowName(next));
+                return;
+              }
               setWorkflowName(next);
-              if (next.trim() && next.trim() !== workflow.name) pauseForEditIfNeeded();
-              scheduleWorkflowNameSave(next);
             }}
-            onBlur={() => saveWorkflowNameIfNeeded()}
+            onBlur={(event) => saveWorkflowNameIfNeeded(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                saveWorkflowNameIfNeeded(event.currentTarget.value);
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                setWorkflowName(workflow.name);
+              }
+            }}
             placeholder="Workflow name"
             error={workflowNameError}
           />
         ) : (
-          <InputField aria-label="Workflow name" value={workflow.name} readOnly />
+          <div aria-label="Workflow name">
+            <h1 className="type-title text-text-primary m-0 wrap-anywhere">{workflow.name}</h1>
+          </div>
         )
+      }
+      centerActions={
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            className={workflow.enabled ? workflowToggleEnabledClass : workflowTogglePausedClass}
+            disabled={busy || workflow.archived || (!workflow.enabled && hasValidationErrors)}
+            title={workflow.enabled ? "Pause workflow" : workflowStateTitle}
+            aria-pressed={workflow.enabled}
+            onClick={() => onUpdateWorkflow({ enabled: !workflow.enabled })}
+          >
+            {!workflow.enabled ? <span className={workflowTogglePausedKnobClass} aria-hidden /> : null}
+            <span className="min-w-16 text-center">{workflow.enabled ? "Enabled" : "Paused"}</span>
+            {workflow.enabled ? <span className={workflowToggleEnabledKnobClass} aria-hidden /> : null}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={busy}
+            aria-label={mode === "watch" ? "Edit workflow" : "Watch workflow"}
+            title={mode === "watch" ? "Edit workflow" : "Watch workflow"}
+            onClick={() => onNavigateMode(mode === "watch" ? "edit" : "watch")}
+          >
+            {mode === "watch" ? <Pencil aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
+          </Button>
+        </>
       }
       actions={
         <>
@@ -369,72 +575,17 @@ export function WorkflowWorkspace({
           >
             Back
           </Button>
-          {mode === "edit" ? (
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy || workflow.archived || workflow.enabled || hasValidationErrors}
-              title={workflowStateTitle}
-              onClick={() => {
-                setPausedForEditNotice(false);
-                editPauseSessionRef.current = { workflowId: workflow.id, didPause: false };
-                onUpdateWorkflow({ enabled: true });
-              }}
-            >
-              {workflowStateLabel}
-            </Button>
-          ) : null}
-          {/* <Button
-            type="button"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => onNavigateMode(mode === "watch" ? "edit" : "watch")}
-          >
-            {mode === "watch" ? "Open in edit" : "Open in watch"}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={busy || hasValidationErrors || workflow.archived}
-            onClick={onRunNow}
-          >
-            Run now
-          </Button> */}
         </>
-      }
-      statusStrip={
-        <WorkflowStatusStrip>
-          {mode === "watch" ? (
-            <>
-              <WorkflowStatusPill workflow={workflow} />
-              <StatusPill status={selectedRun?.status === "running" ? "good" : "neutral"}>
-                {watchRunStatusLabel}
-              </StatusPill>
-            </>
-          ) : null}
-          <StatusPill status="neutral">Blocks {workflow.blocks.length}</StatusPill>
-          <StatusPill status="neutral">
-            Last run {workflow.lastRunAt ? formatLocalTime(workflow.lastRunAt) : "Never"}
-          </StatusPill>
-          <StatusPill status="neutral">
-            Next{" "}
-            {workflow.nextRunAt
-              ? formatLocalTime(workflow.nextRunAt)
-              : workflowIntervalSeconds(workflow) > 0
-                ? "Paused"
-                : "On incoming data"}
-          </StatusPill>
-        </WorkflowStatusStrip>
       }
       notices={
         mode === "edit" || workflow.archived || workflow.lastError ? (
           <>
             {mode === "edit" ? (
-              <Text.Body className={mutedText}>
-                Changes are saved automatically.
-                {pausedForEditNotice
-                  ? " Workflow is paused while editing, enable it again from the workflow list."
-                  : null}
+              <Text.Body
+                className={`${mutedText} min-h-[1.2em] ${workflow.enabled ? "invisible" : ""}`}
+                aria-hidden={workflow.enabled}
+              >
+                Paused while you edit. Resume when you want it to run.
               </Text.Body>
             ) : null}
             {workflow.archived && (
@@ -451,7 +602,7 @@ export function WorkflowWorkspace({
         ) : undefined
       }
       rail={
-        <aside className="gap-detail-close flex h-full min-h-0 flex-col">
+        <div className="flex h-full min-h-0 flex-col">
           {mode === "edit" ? (
             <>
               {isWorkflowValidationVisible(uiValidation) ? (
@@ -474,10 +625,17 @@ export function WorkflowWorkspace({
               </div>
             </>
           ) : (
-            <>
+            <ScrollArea className="min-h-0 flex-1">
+              <div className="gap-detail-close grid pb-detail-close">
               {isWorkflowValidationVisible(uiValidation) ? (
                 <WorkflowValidationPanel validation={uiValidation} />
               ) : null}
+              <WatchRuntimeOverview
+                workflow={workflow}
+                selectedRun={selectedRun}
+                latestRun={latestRun}
+                hasValidationErrors={hasValidationErrors}
+              />
               <WatchRunControls
                 workflow={workflow}
                 busy={busy}
@@ -496,9 +654,10 @@ export function WorkflowWorkspace({
                 onRunNow={onRunNow}
                 onRunWithPayload={onRunWithPayload}
               />
-            </>
+              </div>
+            </ScrollArea>
           )}
-        </aside>
+        </div>
       }
       canvas={
         <WorkflowCanvas
@@ -506,16 +665,16 @@ export function WorkflowWorkspace({
           blocks={canvasBlocks}
           sources={sources}
           addressBook={addressBook}
-          bottomOverlay={mode === "watch"}
-          selectedBlockId={selectedBlock?.id ?? ""}
+           bottomOverlay={mode === "watch" || mode === "edit"}
+          selectedBlockId={selectedBlockId}
+           replayActiveBlockId={replayHighlightBlockId}
           validationByBlockId={validationByBlockId}
           runtimeByBlockId={runtimeByBlockId}
           onSelectBlock={selectCanvasBlock}
           onMoveBlock={(blockId, direction) => {
             const index = mainBlocks.findIndex((block) => block.id === blockId);
             if (index > 0) {
-              pauseForEditIfNeeded();
-              onReorderBlocks(moveBlock(mainBlocks, index, index + direction));
+              requestEditAction(() => onReorderBlocks(moveBlock(mainBlocks, index, index + direction)));
             }
           }}
           onRemoveBlock={(blockId) => {
@@ -526,11 +685,60 @@ export function WorkflowWorkspace({
             const block = mainBlocks.find((item) => item.id === blockId);
             if (block && !block.type.endsWith("_start")) {
               if (blockId === selectedBlockId) flushSelectedInspector();
-              pauseForEditIfNeeded();
-              onDeleteBlock(block.id);
+              requestEditAction(() => onDeleteBlock(block.id));
             }
           }}
         />
+      }
+      toolbar={
+        mode === "watch" ? (
+          <WatchReplayControls
+            selectedRun={selectedRun}
+            latestRun={latestRun}
+            followLiveRuns={followLiveRuns}
+            message={playbackMessage}
+            stepCount={replaySteps.length}
+            currentStepIndex={replayStepIndex}
+            playing={replayPlaying}
+            onFollowLiveRunsChange={(value) => {
+              setFollowLiveRuns(value);
+              if (value && latestRun) {
+                suppressNextLiveAutoplayRef.current = true;
+                setSelectedRunId(latestRun.id);
+                setReplayPlaying(false);
+              } else {
+                setReplayPlaying(false);
+              }
+            }}
+            onPlayingChange={setReplayPlayingFromControls}
+            onSelectStep={selectReplayStep}
+          />
+        ) : undefined
+      }
+      selectedBackdrop={
+        replayOverlayActive ? (
+          <div
+            className="workflow-replay-backdrop bg-overlay-light pointer-events-auto h-full w-full"
+            aria-hidden
+            data-testid="workflow-replay-backdrop"
+            onPointerDown={() => {
+              setNewLiveRunId(null);
+              setSelectedBlockId("");
+              setReplayPlaying(false);
+            }}
+          />
+        ) : draftSelected || selectedBlock ? (
+          <div
+            className="bg-overlay-light pointer-events-auto h-full w-full"
+            aria-hidden
+            data-testid="workflow-selected-backdrop"
+            onPointerDown={handleSelectedBackdropPointerDown}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              closeSelectedSheet();
+            }}
+          />
+        ) : undefined
       }
       selectedSheet={
         draftSelected && mode === "edit" ? (
@@ -542,6 +750,7 @@ export function WorkflowWorkspace({
                 amount, then Done to add this block.
               </>
             }
+            backdrop={false}
             onClose={closeSelectedSheet}
             footer={
               <Button
@@ -562,6 +771,7 @@ export function WorkflowWorkspace({
                 addressBook={addressBook}
                 walletStatus={walletStatus}
                 revealSendPaymentErrors={draftRevealErrors}
+                onCreateAddressBookEntry={onCreateAddressBookEntry}
                 onChange={(config) => {
                   setDraftBlock((current) => (current ? { ...current, config } : current));
                 }}
@@ -580,6 +790,7 @@ export function WorkflowWorkspace({
                 ? "Latest run details for this block."
                 : draftBlockDescription(selectedBlock, sources, addressBook)
             }
+            backdrop={false}
             onClose={closeSelectedSheet}
             footer={
               mode === "edit" ? (
@@ -610,56 +821,134 @@ export function WorkflowWorkspace({
                   addressBook={addressBook}
                   walletStatus={walletStatus}
                   busy={busy}
-                  onDirty={pauseForEditIfNeeded}
+                  onCreateAddressBookEntry={onCreateAddressBookEntry}
+                  onDirty={() => requestEditAction(() => undefined)}
                   onAttachStamp={() => {
-                    pauseForEditIfNeeded();
-                    onAddBlock({
+                    requestEditAction(() => onAddBlock({
                       type: "stamp_integritas",
                       config: {},
                       parentBlockId: selectedBlock.id,
-                    })
+                    }));
                   }}
                   onUpdate={(input) => {
-                    pauseForEditIfNeeded();
-                    onUpdateBlock(selectedBlock.id, input);
+                    requestEditAction(() => onUpdateBlock(selectedBlock.id, input));
                   }}
                   onUpdateAttached={(blockId, input) => {
-                    pauseForEditIfNeeded();
-                    onUpdateBlock(blockId, input);
+                    requestEditAction(() => onUpdateBlock(blockId, input));
                   }}
                   onDelete={() => {
                     if (selectedBlock.type.endsWith("_start")) return;
-                    pauseForEditIfNeeded();
-                    onDeleteBlock(selectedBlock.id);
+                    requestEditAction(() => onDeleteBlock(selectedBlock.id));
                   }}
                   onDeleteAttached={(blockId) => {
-                    pauseForEditIfNeeded();
-                    onDeleteBlock(blockId);
+                    requestEditAction(() => onDeleteBlock(blockId));
                   }}
                 />
               </div>
             ) : (
               <WatchRuntimeInspector
                 selectedBlock={selectedBlock}
-                latestBlockRun={blockRunForBlock(selectedRun, selectedBlock.id)}
+                latestBlockRun={blockRunForBlock(selectedRun, selectedBlock.id, workflow.blocks)}
                 selectedRun={selectedRun}
               />
             )}
           </SelectedBlockSheet>
         ) : undefined
       }
+      overlay={
+        loadingOverlayLabel ? <WorkflowLoadingOverlay label={loadingOverlayLabel} /> : undefined
+      }
       bottom={
         mode === "watch" ? (
           <WatchRunHistory
             runs={runs}
             selectedRunId={selectedRun?.id ?? null}
+            replayPlaying={replayPlaying}
             onSelectRun={(runId) => {
               setSelectedRunId(runId);
+              setFollowLiveRuns(runId === latestRun?.id);
               onSelectWatchRun(runId);
             }}
           />
         ) : undefined
       }
     />
+    {pendingEditAction ? (
+      <Modal
+        title="Editing will pause this workflow."
+        description="It will not run until you resume it."
+        closeOnOutsideClick={false}
+        layer="top"
+        onClose={() => setPendingEditAction(null)}
+        closeDisabled={busy}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              onClick={() => setPendingEditAction(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={busy}
+              onClick={() => void confirmPauseAndEdit()}
+            >
+              Pause and edit
+            </Button>
+          </>
+        }
+      />
+    ) : null}
+    </>
   );
+}
+
+export function WorkflowLoadingOverlay({ label }: { label: string }) {
+  return (
+    <div className="bg-overlay-light grid h-full place-items-center p-pad-relaxed" role="status" aria-live="polite">
+      <div className="rounded-soft border-stroke-secondary bg-surface-always-white gap-detail-next grid min-w-[220px] place-items-center border p-margin-tight shadow-[0_24px_60px_rgba(0,0,0,0.16)]">
+        <SpinnerAlt size="md" />
+        <p className="type-body-em text-text-primary m-0">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function playbackStatusMessage(
+  run: AutomationRun | undefined,
+  options: { followingLive: boolean; isNewLiveRun: boolean; playing: boolean },
+) {
+  if (!run) return "No runs yet";
+  const started = formatPlaybackDateTime(run.startedAt);
+  const finished = run.finishedAt ? formatPlaybackDateTime(run.finishedAt) : null;
+
+  if (options.isNewLiveRun) {
+    if (options.playing || !finished) return `New run playing - ${started}`;
+    return `New run completed - ${started} - ${finished}`;
+  }
+
+  if (!options.followingLive) {
+    if (options.playing) return `Replaying run - ${started}`;
+    if (finished) return `Run completed - ${started} - ${finished}`;
+    return `Run selected - ${started}`;
+  }
+
+  if (finished) return `Latest run completed - ${started} - ${finished}`;
+  return `Latest run active - ${started}`;
+}
+
+function formatPlaybackDateTime(value: string) {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }

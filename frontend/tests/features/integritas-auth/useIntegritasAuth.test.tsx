@@ -110,6 +110,36 @@ describe("useIntegritasAuth", () => {
     expect(result.current.status).toBeNull();
   });
 
+  it("re-enters loading and clears the error while retrying a failed status fetch", async () => {
+    let resolveRetry!: (value: { status: "unauthenticated" }) => void;
+    getIntegritasAuthStatus
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockImplementationOnce(
+        () => new Promise((resolve) => {
+          resolveRetry = resolve;
+        }),
+      );
+
+    const { result } = renderHook(() => useIntegritasAuth());
+    await waitFor(() => expect(result.current.error).toBe("boom"));
+
+    let retryPromise!: Promise<void>;
+    act(() => {
+      retryPromise = result.current.refresh();
+    });
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.error).toBeNull();
+
+    await act(async () => {
+      resolveRetry({ status: "unauthenticated" });
+      await retryPromise;
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.status).toEqual({ status: "unauthenticated" });
+  });
+
   it("clears status and shows the reconnect message when the status fetch hits a token decrypt failure", async () => {
     const decryptError = Object.assign(new Error("bad token"), { errorCode: "TOKEN_DECRYPT_FAILED" });
     getIntegritasAuthStatus.mockRejectedValueOnce(decryptError).mockResolvedValueOnce({ status: "unauthenticated" });

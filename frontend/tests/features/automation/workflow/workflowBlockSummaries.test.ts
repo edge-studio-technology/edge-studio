@@ -76,6 +76,14 @@ describe("workflowBlockSummaries: blockSummary", () => {
     expect(result.fields[2]).toEqual({ label: "Cooldown", value: "Off" });
   });
 
+  it("gpio_event_start reports inactive-only as No", () => {
+    const result = blockSummary(
+      { type: "gpio_event_start", config: { activeOnly: false } },
+      emptyContext,
+    );
+    expect(result.fields[1]).toEqual({ label: "Active only", value: "No" });
+  });
+
   it("webhook_event_start and mqtt_event_start show source + cooldown (no active-only)", () => {
     const webhook = source({ id: "wh-1", name: "Prod webhook", type: "webhook" });
     const result = blockSummary(
@@ -134,6 +142,33 @@ describe("workflowBlockSummaries: blockSummary", () => {
     ]);
   });
 
+  it.each([
+    ["latest_data_field", "latest data field"],
+    ["context_field", "context field"],
+  ] as const)("set_variable labels %s", (variableSource, sourceLabel) => {
+    expect(
+      blockSummary(
+        { type: "set_variable", config: { variableSource, fieldPath: "value" } },
+        emptyContext,
+      ).fields,
+    ).toEqual([
+      { label: "Variable", value: "variable" },
+      { label: "Source", value: sourceLabel },
+      { label: "Field", value: "value" },
+    ]);
+  });
+
+  it("set_variable shortens long custom JSON values", () => {
+    const result = blockSummary(
+      {
+        type: "set_variable",
+        config: { variableSource: "custom_json", valueJsonText: "x".repeat(60) },
+      },
+      emptyContext,
+    );
+    expect(result.fields[2]).toEqual({ label: "Value", value: `${"x".repeat(45)}...` });
+  });
+
   it("if_payload_field_equals includes the compare value when the operator needs one", () => {
     const result = blockSummary(
       {
@@ -162,6 +197,25 @@ describe("workflowBlockSummaries: blockSummary", () => {
     ]);
   });
 
+  it("if_payload_field_equals formats missing, string, and no-value operators", () => {
+    const missingValueFields = blockSummary(
+      { type: "if_payload_field_equals", config: { operator: "not_equals" } },
+      emptyContext,
+    ).fields;
+    expect(missingValueFields[missingValueFields.length - 1]).toEqual({ label: "Value", value: "value not set" });
+    const stringValueFields = blockSummary(
+      { type: "if_payload_field_equals", config: { operator: "greater_than", value: "10" } },
+      emptyContext,
+    ).fields;
+    expect(stringValueFields[stringValueFields.length - 1]).toEqual({ label: "Value", value: "10" });
+    expect(
+      blockSummary(
+        { type: "if_payload_field_equals", config: { operator: "does_not_exist" } },
+        emptyContext,
+      ).fields,
+    ).toHaveLength(3);
+  });
+
   it("wait formats sub-second and multi-second durations", () => {
     expect(blockSummary({ type: "wait", config: { durationMs: 500 } }, emptyContext).fields).toEqual([
       { label: "Duration", value: "500 ms" },
@@ -171,6 +225,9 @@ describe("workflowBlockSummaries: blockSummary", () => {
     ]);
     expect(blockSummary({ type: "wait", config: { durationMs: 1500 } }, emptyContext).fields).toEqual([
       { label: "Duration", value: "1.5 s" },
+    ]);
+    expect(blockSummary({ type: "wait", config: { durationMs: Number.NaN } }, emptyContext).fields).toEqual([
+      { label: "Duration", value: "not set" },
     ]);
   });
 
@@ -186,6 +243,23 @@ describe("workflowBlockSummaries: blockSummary", () => {
       { label: "Format", value: "JSON" },
       { label: "Title", value: "My preview" },
       { label: "Content source", value: "latest data" },
+    ]);
+  });
+
+  it.each([
+    ["link", "workflow_context", "Link", "workflow context"],
+    ["image", "trigger_payload", "Image", "trigger payload"],
+    ["text", "custom", "Text", "custom content"],
+  ] as const)("show_preview labels %s/%s", (previewFormat, contentMode, format, mode) => {
+    expect(
+      blockSummary(
+        { type: "show_preview", config: { previewFormat, contentMode, title: " " } },
+        emptyContext,
+      ).fields,
+    ).toEqual([
+      { label: "Format", value: format },
+      { label: "Title", value: "Workflow preview" },
+      { label: "Content source", value: mode },
     ]);
   });
 
@@ -220,6 +294,26 @@ describe("workflowBlockSummaries: blockSummary", () => {
     ]);
   });
 
+  it.each([
+    ["publish", "trigger_payload", "Publish", "trigger payload"],
+    ["send_request", "latest_data", "Send request", "latest data"],
+    ["send_request", "latest_data_with_media", "Send request", "latest data + media"],
+    ["send_request", "multipart_media", "Send request", "multipart media"],
+    ["send_request", "none", "Send request", "no body"],
+    ["send_request", "workflow_context", "Send request", "workflow context"],
+  ] as const)("control_output labels %s/%s", (action, bodyMode, actionLabel, payloadLabel) => {
+    expect(
+      blockSummary(
+        { type: "control_output", config: { action, bodyMode } },
+        emptyContext,
+      ).fields,
+    ).toEqual([
+      { label: "Target", value: "Not selected" },
+      { label: "Action", value: actionLabel },
+      { label: "Payload", value: payloadLabel },
+    ]);
+  });
+
   it("send_transaction resolves the recipient label from the address book", () => {
     const recipient = contact({ id: "c1", label: "Alice" });
     const result = blockSummary(
@@ -230,6 +324,15 @@ describe("workflowBlockSummaries: blockSummary", () => {
       { label: "Recipient", value: "Alice" },
       { label: "Amount", value: "0.5" },
     ]);
+  });
+
+  it("send_transaction falls back to recipient address when label is missing", () => {
+    const recipient = contact({ id: "c1", label: undefined, address: "Mx999" });
+    const result = blockSummary(
+      { type: "send_transaction", config: { recipientAddressBookId: "c1", amount: "1" } },
+      { sources: [], addressBook: [recipient] },
+    );
+    expect(result.fields[0]).toEqual({ label: "Recipient", value: "Mx999" });
   });
 
   it("send_transaction falls back to placeholders when unset", () => {

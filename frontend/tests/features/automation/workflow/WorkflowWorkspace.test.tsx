@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,7 +36,9 @@ vi.mock("../../../../src/features/automation/workflow/WorkflowBlockInspectors", 
       onDirty: () => void;
       onAttachStamp: () => void;
       onUpdate: (input: unknown) => void;
+      onUpdateAttached: (blockId: string, input: unknown) => void;
       onDelete: () => void;
+      onDeleteAttached: (blockId: string) => void;
     },
     ref,
   ) {
@@ -48,11 +50,17 @@ vi.mock("../../../../src/features/automation/workflow/WorkflowBlockInspectors", 
         <button type="button" onClick={() => props.onUpdate({ config: { touched: true } })}>
           persisted-update
         </button>
+        <button type="button" onClick={() => props.onUpdateAttached("b-stamp", { config: { touched: true } })}>
+          persisted-update-attached
+        </button>
         <button type="button" onClick={() => props.onAttachStamp()}>
           persisted-attach-stamp
         </button>
         <button type="button" onClick={() => props.onDelete()}>
           persisted-delete
+        </button>
+        <button type="button" onClick={() => props.onDeleteAttached("b-stamp")}>
+          persisted-delete-attached
         </button>
         <button type="button" onClick={() => props.onDirty()}>
           persisted-dirty
@@ -69,14 +77,17 @@ vi.mock("../../../../src/features/automation/workflow/canvas", async (importOrig
     ...actual,
     WorkflowCanvas: (props: {
       blocks: { id: string; type: string }[];
+      selectedBlockId: string;
+      validationByBlockId?: Record<string, unknown[]>;
       onSelectBlock: (id: string) => void;
       onMoveBlock: (id: string, direction: -1 | 1) => void;
       onRemoveBlock: (id: string) => void;
     }) => (
       <div>
+        <span>selected-block-{props.selectedBlockId || "none"}</span>
         {props.blocks.map((block) => (
           <div key={block.id}>
-            <button type="button" onClick={() => props.onSelectBlock(block.id)}>
+            <button type="button" data-workflow-block-id={block.id} onClick={() => props.onSelectBlock(block.id)}>
               select-{block.type}-{block.id}
             </button>
             <button type="button" onClick={() => props.onMoveBlock(block.id, -1)}>
@@ -85,6 +96,9 @@ vi.mock("../../../../src/features/automation/workflow/canvas", async (importOrig
             <button type="button" onClick={() => props.onRemoveBlock(block.id)}>
               remove-{block.id}
             </button>
+            {props.validationByBlockId?.[block.id]?.length ? (
+              <span>validation-{block.type}</span>
+            ) : null}
           </div>
         ))}
       </div>
@@ -115,7 +129,7 @@ function block(overrides: Partial<AutomationBlock> = {}): AutomationBlock {
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
     type: "manual_start",
-    enabled: true,
+    enabled: false,
     order: 0,
     parentBlockId: null,
     config: {},
@@ -131,7 +145,7 @@ function workflow(overrides: Partial<AutomationWorkflow> = {}): AutomationWorkfl
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
     name: "Front gate flow",
-    enabled: true,
+    enabled: false,
     archived: false,
     lastRunAt: null,
     nextRunAt: null,
@@ -188,6 +202,7 @@ function renderWorkspace(
         onReorderBlocks={vi.fn()}
         onRunNow={vi.fn()}
         onRunWithPayload={vi.fn()}
+        onCreateAddressBookEntry={vi.fn()}
         {...props}
       />
     </MemoryRouter>,
@@ -218,39 +233,69 @@ describe("WorkflowWorkspace edit mode", () => {
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ name: "New name" });
   });
 
-  it("pauses an enabled workflow once per editing session on the first real edit", async () => {
+  it("asks before applying the first edit to an enabled workflow", async () => {
     const onUpdateWorkflow = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({ onUpdateWorkflow, workflow: workflow({ enabled: true }) });
 
-    await user.type(screen.getByRole("textbox", { name: "Workflow name" }), "!");
+    const nameField = screen.getByRole("textbox", { name: "Workflow name" });
+    await user.type(nameField, "!");
+
+    const dialog = screen.getByRole("dialog", { name: "Editing will pause this workflow." });
+    expect(dialog).toBeInTheDocument();
+    const backdrop = dialog.parentElement?.parentElement;
+    expect(backdrop).toHaveClass("z-[100]");
+    fireEvent.mouseDown(backdrop!);
+    expect(screen.getByRole("dialog", { name: "Editing will pause this workflow." })).toBeInTheDocument();
+    expect(nameField).toHaveValue("Front gate flow");
+    expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ enabled: false });
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog", { name: "Editing will pause this workflow." })).not.toBeInTheDocument();
+
+    await user.type(nameField, "!");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(nameField).toHaveValue("Front gate flow");
+
+    await user.type(nameField, "!");
+    await user.click(screen.getByRole("button", { name: "Pause and edit" }));
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: false });
-    expect(
-      screen.getByText(
-        "Workflow is paused while editing, enable it again from the workflow list.",
-        { exact: false },
-      ),
-    ).toBeInTheDocument();
+    expect(nameField).toHaveValue("Front gate flow!");
   });
 
-  it("debounce-saves the name 500ms after the last keystroke", async () => {
+  it("does not save the name while typing and commits it on Enter", async () => {
     const onUpdateWorkflow = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({ onUpdateWorkflow });
 
-    await user.type(screen.getByRole("textbox", { name: "Workflow name" }), " v2");
+    const nameField = screen.getByRole("textbox", { name: "Workflow name" });
+    await user.type(nameField, " v2");
     expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ name: "Front gate flow v2" });
 
-    await vi.advanceTimersByTimeAsync(500);
+    await user.keyboard("{Enter}");
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ name: "Front gate flow v2" });
   });
 
-  it("activates a paused workflow via the status button", async () => {
+  it("reverts an uncommitted name edit on Escape", async () => {
+    const onUpdateWorkflow = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({ onUpdateWorkflow });
+
+    const nameField = screen.getByRole("textbox", { name: "Workflow name" });
+    await user.type(nameField, " v2");
+    await user.keyboard("{Escape}");
+
+    expect(nameField).toHaveValue("Front gate flow");
+    expect(onUpdateWorkflow).not.toHaveBeenCalledWith({ name: "Front gate flow v2" });
+  });
+
+  it("resumes a paused workflow via the state toggle", async () => {
     const onUpdateWorkflow = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({ onUpdateWorkflow, workflow: workflow({ enabled: false }) });
 
-    const button = screen.getByRole("button", { name: "Workflow paused" });
+    expect(screen.getByText("Paused while you edit. Resume when you want it to run.")).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Paused" });
     expect(button).not.toBeDisabled();
     await user.click(button);
     expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: true });
@@ -261,9 +306,18 @@ describe("WorkflowWorkspace edit mode", () => {
       workflow: workflow({ enabled: false }),
       validation: { ok: false, errors: [{ code: "x", level: "error", message: "bad" }], warnings: [] },
     });
-    const button = screen.getByRole("button", { name: "Workflow paused" });
+    const button = screen.getByRole("button", { name: "Paused" });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("title", "Fix validation errors before activating.");
+  });
+
+  it("navigates from edit mode to watch mode from the header", async () => {
+    const onNavigateMode = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({ onNavigateMode });
+
+    await user.click(screen.getByRole("button", { name: "Watch workflow" }));
+    expect(onNavigateMode).toHaveBeenCalledWith("watch");
   });
 
   it("skips adding a block that needs a missing device", async () => {
@@ -305,7 +359,7 @@ describe("WorkflowWorkspace edit mode", () => {
     expect(screen.getByRole("button", { name: "set-valid-draft-config" })).toBeInTheDocument();
   });
 
-  it("keeps the draft sheet open and reveals errors when Done is clicked with an invalid payment", async () => {
+  it("persists the draft payment and closes the sheet even when the payment is incomplete", async () => {
     const onAddBlock = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWorkspace({
@@ -316,8 +370,32 @@ describe("WorkflowWorkspace edit mode", () => {
     await user.click(screen.getByRole("button", { name: "add-send-transaction" }));
     await user.click(screen.getByRole("button", { name: "set-invalid-draft-config" }));
     await user.click(screen.getByRole("button", { name: "Done" }));
+    expect(onAddBlock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "send_transaction",
+        config: { recipientAddressBookId: "", amount: "" },
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "set-valid-draft-config" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("keeps an invalid draft payment on the canvas after closing the sheet", async () => {
+    const onAddBlock = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      onAddBlock,
+      addressBook: [{ id: "a1", label: "Alice", address: "Mx1" }] as AddressBookEntry[],
+    });
+
+    await user.click(screen.getByRole("button", { name: "add-send-transaction" }));
+    await user.click(screen.getByRole("button", { name: /close send payment/i }));
+
     expect(onAddBlock).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "set-valid-draft-config" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "set-valid-draft-config" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /select-send_transaction-/ })).toBeInTheDocument();
+    expect(screen.getByText("validation-send_transaction")).toBeInTheDocument();
   });
 
   it("persists the draft payment and closes the sheet once valid", async () => {
@@ -391,6 +469,9 @@ describe("WorkflowWorkspace edit mode", () => {
     await user.click(screen.getByRole("button", { name: "persisted-update" }));
     expect(onUpdateBlock).toHaveBeenCalledWith("b-wait", { config: { touched: true } });
 
+    await user.click(screen.getByRole("button", { name: "persisted-update-attached" }));
+    expect(onUpdateBlock).toHaveBeenCalledWith("b-stamp", { config: { touched: true } });
+
     await user.click(screen.getByRole("button", { name: "persisted-attach-stamp" }));
     expect(onAddBlock).toHaveBeenCalledWith(
       expect.objectContaining({ type: "stamp_integritas", parentBlockId: "b-wait" }),
@@ -398,6 +479,9 @@ describe("WorkflowWorkspace edit mode", () => {
 
     await user.click(screen.getByRole("button", { name: "persisted-delete" }));
     expect(onDeleteBlock).toHaveBeenCalledWith("b-wait");
+
+    await user.click(screen.getByRole("button", { name: "persisted-delete-attached" }));
+    expect(onDeleteBlock).toHaveBeenCalledWith("b-stamp");
   });
 
   it("shows notices for archived workflows and the last run error", () => {
@@ -410,14 +494,14 @@ describe("WorkflowWorkspace edit mode", () => {
     expect(screen.getByText("Last run failed: boom")).toBeInTheDocument();
   });
 
-  it("shows block/last-run/next-run status pills", () => {
+  it("does not render the old block/last-run/next-run status strip", () => {
     renderWorkspace({
       workflow: workflow({
         blocks: [block(), block({ id: "b-wait", type: "wait" })],
         lastRunAt: "2026-08-01T00:00:00.000Z",
       }),
     });
-    expect(screen.getByText("Blocks 2")).toBeInTheDocument();
+    expect(screen.queryByText("Blocks 2")).not.toBeInTheDocument();
   });
 });
 
@@ -429,7 +513,7 @@ describe("WorkflowWorkspace watch mode", () => {
       runs: [run()],
       onSelectWatchRun,
     });
-    expect(screen.getByText("Viewing historic run")).toBeInTheDocument();
+    expect(screen.getByText("Viewing latest run")).toBeInTheDocument();
   });
 
   it("calls onSelectWatchRun when a different run is chosen from history", async () => {
@@ -441,7 +525,7 @@ describe("WorkflowWorkspace watch mode", () => {
       onSelectWatchRun,
     });
 
-    await user.click(screen.getByRole("button", { name: "Show on canvas" }));
+    await user.click(screen.getByRole("button", { name: /Older run/ }));
     expect(onSelectWatchRun).toHaveBeenCalledWith("r2");
   });
 
@@ -453,9 +537,265 @@ describe("WorkflowWorkspace watch mode", () => {
     expect(screen.getByText("Start manually runtime")).toBeInTheDocument();
   });
 
+  it("switches selected block details when clicking another block through the backdrop", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ blocks: [block(), block({ id: "b-wait", type: "wait", order: 1 })] }),
+      runs: [run()],
+    });
+
+    await user.click(screen.getByRole("button", { name: "select-manual_start-b-start" }));
+    expect(screen.getByText("Start manually runtime")).toBeInTheDocument();
+
+    const waitBlock = screen.getByRole("button", { name: "select-wait-b-wait" });
+    const elementFromPoint = vi.spyOn(document, "elementFromPoint").mockReturnValue(waitBlock);
+    fireEvent.pointerDown(screen.getByTestId("workflow-selected-backdrop"), { clientX: 1, clientY: 1 });
+
+    expect(screen.getByText("Wait runtime")).toBeInTheDocument();
+    expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument();
+    elementFromPoint.mockRestore();
+  });
+
   it("shows Run controls in the rail instead of the block library", () => {
     renderWorkspace({ mode: "watch", runs: [run()] });
     expect(screen.getByText("Run controls")).toBeInTheDocument();
+    expect(screen.getByText("Runtime overview")).toBeInTheDocument();
+    expect(screen.getByText("Replay")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "add-wait" })).not.toBeInTheDocument();
+  });
+
+  it("navigates from watch mode to edit mode from the header", async () => {
+    const onNavigateMode = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({ mode: "watch", runs: [run()], onNavigateMode });
+
+    await user.click(screen.getByRole("button", { name: "Edit workflow" }));
+    expect(onNavigateMode).toHaveBeenCalledWith("edit");
+  });
+
+  it("pauses and resumes the workflow from the watch header", async () => {
+    const onUpdateWorkflow = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const { rerender } = renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ enabled: true }),
+      runs: [run()],
+      onUpdateWorkflow,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Enabled" }));
+    expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: false });
+
+    rerender(
+      <MemoryRouter>
+        <WorkflowWorkspace
+          workflow={workflow({ enabled: false })}
+          runs={[run()]}
+          validation={null}
+          source={undefined}
+          sources={[]}
+          addressBook={[]}
+          walletStatus={null}
+          busy={false}
+          mode="watch"
+          onBack={vi.fn()}
+          onNavigateMode={vi.fn()}
+          onSelectWatchRun={vi.fn()}
+          onAddBlock={vi.fn()}
+          onReplaceStartBlock={vi.fn()}
+          onDeleteBlock={vi.fn()}
+          onUpdateBlock={vi.fn()}
+          onUpdateWorkflow={onUpdateWorkflow}
+          onReorderBlocks={vi.fn()}
+          onRunNow={vi.fn()}
+          onRunWithPayload={vi.fn()}
+          onCreateAddressBookEntry={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Paused" }));
+    expect(onUpdateWorkflow).toHaveBeenCalledWith({ enabled: true });
+  });
+
+  it("steps through selected run blocks with replay next", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ blocks: [block(), block({ id: "b-wait", type: "wait", order: 1 })] }),
+      runs: [run({
+        blocks: [
+          { id: "br-start", runId: "r1", workflowId: "w1", blockId: "b-start", order: 0, blockType: "manual_start", blockLabel: "Start", startedAt: "2026-08-01T00:00:00.000Z", finishedAt: "2026-08-01T00:00:00.100Z", status: "success", durationMs: 100, input: {}, output: {}, error: null },
+          { id: "br-wait", runId: "r1", workflowId: "w1", blockId: "b-wait", order: 1, blockType: "wait", blockLabel: "Wait", startedAt: "2026-08-01T00:00:00.100Z", finishedAt: "2026-08-01T00:00:00.600Z", status: "success", durationMs: 500, input: {}, output: {}, error: null },
+        ],
+      })],
+    });
+
+    expect(screen.getByText("selected-block-none")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.getByText("selected-block-b-start")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument();
+  });
+
+  it("treats an attached stamp as part of its parent replay step", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const runBlock = (id: string, type: AutomationBlock["type"], order: number) => ({
+      id: `run-${id}`,
+      runId: "r1",
+      workflowId: "w1",
+      blockId: id,
+      order,
+      blockType: type,
+      blockLabel: type,
+      startedAt: "2026-08-01T00:00:00.000Z",
+      finishedAt: "2026-08-01T00:00:00.100Z",
+      status: "success" as const,
+      durationMs: 100,
+      input: {},
+      output: {},
+      error: null,
+      errorDetails: null,
+    });
+
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({
+        blocks: [
+          block(),
+          block({ id: "b-fetch", type: "fetch_data_source", order: 1 }),
+          block({ id: "b-stamp", type: "stamp_integritas", order: 1, parentBlockId: "b-fetch" }),
+          block({ id: "b-preview", type: "show_preview", order: 2 }),
+        ],
+      }),
+      runs: [
+        run({
+          blocks: [
+            runBlock("b-start", "manual_start", 0),
+            runBlock("b-fetch", "fetch_data_source", 1),
+            runBlock("b-stamp", "stamp_integritas", 1),
+            runBlock("b-preview", "show_preview", 2),
+          ],
+        }),
+      ],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.getByText("selected-block-b-fetch")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.getByText("selected-block-b-preview")).toBeInTheDocument();
+  });
+
+  it("plays replay steps at a fixed pace", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ blocks: [block(), block({ id: "b-wait", type: "wait", order: 1 })] }),
+      runs: [run({
+        blocks: [
+          { id: "br-start", runId: "r1", workflowId: "w1", blockId: "b-start", order: 0, blockType: "manual_start", blockLabel: "Start", startedAt: "2026-08-01T00:00:00.000Z", finishedAt: "2026-08-01T00:00:00.100Z", status: "success", durationMs: 100, input: {}, output: {}, error: null },
+          { id: "br-wait", runId: "r1", workflowId: "w1", blockId: "b-wait", order: 1, blockType: "wait", blockLabel: "Wait", startedAt: "2026-08-01T00:00:00.100Z", finishedAt: "2026-08-01T00:00:00.600Z", status: "success", durationMs: 500, input: {}, output: {}, error: null },
+        ],
+      })],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    expect(screen.getByText("selected-block-b-start")).toBeInTheDocument();
+    vi.advanceTimersByTime(1500);
+    await waitFor(() => expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument());
+  });
+
+  it("restarts replay from the first block when Play is pressed on the last block", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ blocks: [block(), block({ id: "b-wait", type: "wait", order: 1 })] }),
+      runs: [run({
+        blocks: [
+          { id: "br-start", runId: "r1", workflowId: "w1", blockId: "b-start", order: 0, blockType: "manual_start", blockLabel: "Start", startedAt: "2026-08-01T00:00:00.000Z", finishedAt: "2026-08-01T00:00:00.100Z", status: "success", durationMs: 100, input: {}, output: {}, error: null },
+          { id: "br-wait", runId: "r1", workflowId: "w1", blockId: "b-wait", order: 1, blockType: "wait", blockLabel: "Wait", startedAt: "2026-08-01T00:00:00.100Z", finishedAt: "2026-08-01T00:00:00.600Z", status: "success", durationMs: 500, input: {}, output: {}, error: null },
+        ],
+      })],
+    });
+
+    await user.click(screen.getByRole("button", { name: "select-wait-b-wait" }));
+    expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    expect(screen.getByText("selected-block-b-start")).toBeInTheDocument();
+  });
+
+  it("pauses playback when the user selects another block", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ blocks: [block(), block({ id: "b-wait", type: "wait", order: 1 })] }),
+      runs: [run({
+        blocks: [
+          { id: "br-start", runId: "r1", workflowId: "w1", blockId: "b-start", order: 0, blockType: "manual_start", blockLabel: "Start", startedAt: "2026-08-01T00:00:00.000Z", finishedAt: "2026-08-01T00:00:00.100Z", status: "success", durationMs: 100, input: {}, output: {}, error: null },
+          { id: "br-wait", runId: "r1", workflowId: "w1", blockId: "b-wait", order: 1, blockType: "wait", blockLabel: "Wait", startedAt: "2026-08-01T00:00:00.100Z", finishedAt: "2026-08-01T00:00:00.600Z", status: "success", durationMs: 500, input: {}, output: {}, error: null },
+        ],
+      })],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    expect(screen.getByRole("button", { name: "Pause" })).not.toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "select-wait-b-wait" }));
+    expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+    expect(screen.getByText("selected-block-b-wait")).toBeInTheDocument();
+  });
+
+  it("stops replay when the selected-block backdrop is clicked", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ blocks: [block(), block({ id: "b-wait", type: "wait", order: 1 })] }),
+      runs: [run({
+        blocks: [
+          { id: "br-start", runId: "r1", workflowId: "w1", blockId: "b-start", order: 0, blockType: "manual_start", blockLabel: "Start", startedAt: "2026-08-01T00:00:00.000Z", finishedAt: "2026-08-01T00:00:00.100Z", status: "success", durationMs: 100, input: {}, output: {}, error: null },
+          { id: "br-wait", runId: "r1", workflowId: "w1", blockId: "b-wait", order: 1, blockType: "wait", blockLabel: "Wait", startedAt: "2026-08-01T00:00:00.100Z", finishedAt: "2026-08-01T00:00:00.600Z", status: "success", durationMs: 500, input: {}, output: {}, error: null },
+        ],
+      })],
+    });
+
+    await user.click(screen.getByRole("button", { name: "select-manual_start-b-start" }));
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    expect(screen.getByRole("button", { name: "Pause" })).not.toBeDisabled();
+    fireEvent.pointerDown(screen.getByTestId("workflow-selected-backdrop"));
+    expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+  });
+
+  it("turns off live follow when selecting a historic run and can jump back to latest", async () => {
+    const onSelectWatchRun = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      runs: [run({ id: "latest" }), run({ id: "historic" })],
+      onSelectWatchRun,
+    });
+
+    await user.click(screen.getByRole("button", { name: /Older run/ }));
+    expect(screen.getByRole("checkbox", { name: "Follow latest run" })).not.toBeChecked();
+    expect(screen.getAllByText("Viewing historic run").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("checkbox", { name: "Follow latest run" }));
+    expect(onSelectWatchRun).not.toHaveBeenCalledWith("latest");
+    expect(screen.getByText("Viewing latest run")).toBeInTheDocument();
+  });
+
+  it("does not start playback when follow latest run is turned on manually", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWorkspace({
+      mode: "watch",
+      workflow: workflow({ blocks: [block(), block({ id: "b-wait", type: "wait", order: 1 })] }),
+      runs: [run({ id: "latest" }), run({ id: "historic" })],
+    });
+
+    await user.click(screen.getByRole("button", { name: /Older run/ }));
+    await user.click(screen.getByRole("checkbox", { name: "Follow latest run" }));
+
+    expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+    expect(screen.getByText("selected-block-none")).toBeInTheDocument();
   });
 });

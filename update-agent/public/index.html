@@ -125,6 +125,13 @@
     color: var(--color-core-black);
   }
 
+  .button-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
   .hidden {
     display: none;
   }
@@ -140,7 +147,22 @@
 
     <div class="content">
       <div class="card">
-        <div id="view-updating">
+        <div id="view-checking">
+          <svg class="spinner" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4" style="animation-delay: -0.7s" />
+            <path d="m16.2 7.8 2.9-2.9" style="animation-delay: -0.6s" />
+            <path d="M18 12h4" style="animation-delay: -0.5s" />
+            <path d="m16.2 16.2 2.9 2.9" style="animation-delay: -0.4s" />
+            <path d="M12 18v4" style="animation-delay: -0.3s" />
+            <path d="m4.9 19.1 2.9-2.9" style="animation-delay: -0.2s" />
+            <path d="M2 12h4" style="animation-delay: -0.1s" />
+            <path d="m4.9 4.9 2.9 2.9" style="animation-delay: 0s" />
+          </svg>
+          <h1>Checking update status…</h1>
+          <p>Confirming whether an update is in progress.</p>
+        </div>
+
+        <div id="view-updating" class="hidden">
           <svg class="spinner" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2v4" style="animation-delay: -0.7s" />
             <path d="m16.2 7.8 2.9-2.9" style="animation-delay: -0.6s" />
@@ -161,9 +183,12 @@
         </div>
 
         <div id="view-failure" class="hidden">
-          <h1 class="error-text">Update failed</h1>
+          <h1 id="failure-title" class="error-text">Update failed</h1>
           <p id="failure-message">The update did not complete. Affected services were rolled back to their previous version.</p>
-          <p>Redirecting…</p>
+          <div class="button-row">
+            <button id="retry-status" class="button-link" type="button">Retry status check</button>
+            <a class="button-link" href="/update">Back to Update</a>
+          </div>
         </div>
 
         <div id="view-idle" class="hidden">

@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { AutomationInboxTable } from "../../../src/features/automation/AutomationInboxTable";
 import type { AutomationInboxItem } from "../../../src/features/automation/automationTypes";
 
@@ -66,6 +67,7 @@ describe("AutomationInboxTable", () => {
     expect(within(table).getByText("Front gate flow")).toBeInTheDocument();
     expect(within(table).getByText("text")).toBeInTheDocument();
     expect(within(table).getByText("Read")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table"));
   });
 
   it("filters items by title/workflow/format text", async () => {

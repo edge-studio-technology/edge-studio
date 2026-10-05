@@ -10,7 +10,7 @@ description: Use when a change involves non-obvious "why" worth preserving — r
 ## Process
 
 1. Read an existing ADR (e.g. `docs/adr/0001-minima-graceful-node-restart.md`) to match this repo's exact format.
-2. Write `docs/adr/<NNNN>-<kebab-case-slug>.md`, numbered one past the highest existing file, with:
+2. Write `docs/adr/<NNNN>-<kebab-case-slug>.md`, numbered one past the highest existing file on both the current branch and `origin/dev` (run `git fetch` first), with:
    - `# <NNNN>: <Title>`
    - `**Status:** Accepted` (or `Proposed`/`Superseded`)
    - `**Date:** <YYYY-MM-DD>`

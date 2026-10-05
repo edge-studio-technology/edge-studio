@@ -3,6 +3,12 @@
 @import "@fontsource/hanken-grotesk/latin-600.css";
 @import "@fontsource/azeret-mono/latin-400.css";
 
+@property --workflow-replay-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
 @theme {
   /* ESDS typography primitives */
   --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
@@ -201,6 +207,120 @@
   }
 }
 
+@keyframes table-column-option-moved {
+  from {
+    background-color: color-mix(in srgb, var(--color-surface-secondary) 85%, transparent);
+    transform: translateY(-2px);
+  }
+  to {
+    background-color: transparent;
+    transform: translateY(0);
+  }
+}
+
+@keyframes workflow-replay-border-clockwise {
+  from {
+    --workflow-replay-angle: 0deg;
+  }
+  to {
+    --workflow-replay-angle: 180deg;
+  }
+}
+
+@keyframes workflow-replay-border-counterclockwise {
+  from {
+    --workflow-replay-angle: 360deg;
+  }
+  to {
+    --workflow-replay-angle: 180deg;
+  }
+}
+
+@keyframes workflow-replay-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.workflow-replay-backdrop {
+  animation: workflow-replay-backdrop-in 500ms ease-out both;
+}
+
+.workflow-replay-active-block::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--workflow-replay-angle),
+    transparent 0deg,
+    transparent 250deg,
+    color-mix(in srgb, var(--workflow-replay-color) 35%, transparent) 300deg,
+    color-mix(in srgb, var(--workflow-replay-color) 80%, transparent) 340deg,
+    var(--color-surface-always-white) 360deg
+  );
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--workflow-replay-color) 80%, transparent));
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.workflow-replay-active-block::after {
+  animation: workflow-replay-border-clockwise 1.5s linear forwards;
+}
+
+.workflow-replay-active-block {
+  --workflow-replay-color: var(--color-stroke-active);
+  border-color: var(--workflow-replay-color);
+  box-shadow:
+    0 0 0 1px var(--workflow-replay-color),
+    0 0 20px color-mix(in srgb, var(--workflow-replay-color) 22%, transparent);
+}
+
+.workflow-replay-active-block-success {
+  --workflow-replay-color: var(--color-stroke-success);
+}
+
+.workflow-replay-active-block-failed {
+  --workflow-replay-color: var(--color-stroke-error);
+}
+
+.workflow-replay-active-block-running {
+  --workflow-replay-color: #4f9cff;
+}
+
+.workflow-replay-active-block-skipped {
+  --workflow-replay-color: var(--color-grey-05);
+}
+
+.workflow-replay-active-block-reverse::after {
+  animation-name: workflow-replay-border-counterclockwise;
+  background: conic-gradient(
+    from var(--workflow-replay-angle),
+    var(--color-surface-always-white) 0deg,
+    color-mix(in srgb, var(--workflow-replay-color) 80%, transparent) 20deg,
+    color-mix(in srgb, var(--workflow-replay-color) 35%, transparent) 60deg,
+    transparent 110deg,
+    transparent 360deg
+  );
+}
+
+.workflow-replay-active-block::before {
+  background: var(--workflow-replay-color);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--workflow-replay-color) 70%, transparent);
+}
+
+.table-column-option-moved {
+  animation: table-column-option-moved 160ms ease-out;
+}
+
 /* Spinner: each pin fades from lit to dim, staggered around the dial. */
 @keyframes spinner-pin {
   from {
@@ -213,7 +333,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .onboarding-enter,
-  .onboarding-enter-stagger > * {
+  .onboarding-enter-stagger > *,
+  .workflow-replay-backdrop,
+  .workflow-replay-active-block::after {
     animation: none !important;
   }
 }

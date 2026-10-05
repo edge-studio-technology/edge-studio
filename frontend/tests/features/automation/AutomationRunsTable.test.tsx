@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { AutomationRunsTable } from "../../../src/features/automation/AutomationRunsTable";
 import type { AutomationRun } from "../../../src/features/automation/automationTypes";
 
@@ -77,6 +78,7 @@ describe("AutomationRunsTable", () => {
     expect(within(table).getByText("Success")).toBeInTheDocument();
     expect(within(table).getByText("1.0 s")).toBeInTheDocument();
     expect(within(table).getByText("1/2")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table", { name: "Workflow logs" }));
   });
 
   it("hides the Workflow column in compact mode", () => {

@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { AutomationWorkflowsList } from "../../../src/features/automation/AutomationWorkflowsList";
 import type { AutomationWorkflow } from "../../../src/features/automation/automationTypes";
 import type { DataSource } from "../../../src/features/data-sources/dataSourceTypes";
@@ -68,6 +69,7 @@ describe("AutomationWorkflowsList", () => {
     expect(within(row).getByText("Front gate flow")).toBeInTheDocument();
     expect(within(row).getByRole("switch")).toBeChecked();
     expect(within(row).getByText("Enabled")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table"));
   });
 
   it("shows 'Never' for a workflow that has not run yet", () => {
@@ -124,7 +126,8 @@ describe("AutomationWorkflowsList", () => {
     expect(onEdit).toHaveBeenCalledWith(wf);
   });
 
-  it("runs now, duplicates, archives, and deletes via the row menu", async () => {
+  it("watches, runs now, duplicates, archives, and deletes via the row menu", async () => {
+    const onWatch = vi.fn();
     const onRunNow = vi.fn();
     const onDuplicate = vi.fn();
     const onToggleArchive = vi.fn();
@@ -132,9 +135,13 @@ describe("AutomationWorkflowsList", () => {
     const wf = workflow();
     render(
       <AutomationWorkflowsList
-        {...baseProps({ workflows: [wf], onRunNow, onDuplicate, onToggleArchive, onDelete })}
+        {...baseProps({ workflows: [wf], onWatch, onRunNow, onDuplicate, onToggleArchive, onDelete })}
       />,
     );
+
+    await userEvent.click(screen.getByRole("button", { name: "More actions for Front gate flow" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Watch" }));
+    expect(onWatch).toHaveBeenCalledWith(wf);
 
     await userEvent.click(screen.getByRole("button", { name: "More actions for Front gate flow" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Run now" }));

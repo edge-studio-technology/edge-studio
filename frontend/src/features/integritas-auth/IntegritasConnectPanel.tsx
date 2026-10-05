@@ -4,9 +4,13 @@ import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { Card } from "../../components/Card";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
-import { ErrorText, MutedText } from "../../components/Text";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
+import { ErrorContentState } from "../../components/patterns/ErrorContentState";
+import { LoadingState } from "../../components/patterns/LoadingState";
+import { MutedText } from "../../components/Text";
 import type { IntegritasConfig, Tone } from "../../app/types";
 import { getJson } from "../../lib/api";
+import { describeLoadFailure } from "../../lib/errors";
 import type { UseIntegritasAuthResult } from "./useIntegritasAuth";
 import { hasConnectedProfile, type IntegritasAuthStatusKind } from "./integritasAuthApi";
 
@@ -39,7 +43,7 @@ export function IntegritasConnectPanel({
   bare?: boolean;
   auth: UseIntegritasAuthResult;
 }) {
-  const { status, loading, starting, error, notice, start, openVerification } = auth;
+  const { status, loading, starting, error, notice, refresh, start, openVerification } = auth;
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
 
   const kind = status?.status;
@@ -54,12 +58,25 @@ export function IntegritasConnectPanel({
     <>
       {!bare && <h3 style={{ margin: 0 }}>Integritas Connect</h3>}
 
-      {loading && !status && <MutedText className="m-0">Checking connection…</MutedText>}
+      {loading && !status && (
+        <LoadingState
+          title="Checking your Integritas connection"
+          description="This should take a few seconds."
+        />
+      )}
 
-      {error && (
-        <ErrorText className="m-0" style={{ marginBottom: 12 }}>
-          {error}
-        </ErrorText>
+      {error && !status && (
+        <ErrorContentState
+          title="Integritas Connect status isn't available"
+          description={describeLoadFailure(error)}
+          onRetry={() => void refresh()}
+        />
+      )}
+
+      {error && status && (
+        <ErrorAlert title="Integritas Connect error" className="w-full max-w-none">
+          {describeLoadFailure(error)}
+        </ErrorAlert>
       )}
 
       {notice && !error && (

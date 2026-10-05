@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { ToastProvider } from "../../../src/components/ToastProvider";
 import { MinimaBackupPanel } from "../../../src/features/minima/MinimaBackupPanel";
 
@@ -72,12 +73,19 @@ describe("MinimaBackupPanel", () => {
     expect(screen.getByText("minima-manual-1.bak")).toBeInTheDocument();
     expect(screen.getByText("2.0 KB")).toBeInTheDocument();
     expect(screen.getByText("5.0 MB")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table"));
   });
 
-  it("shows a list error when the initial fetch fails", async () => {
-    listMinimaBackups.mockRejectedValue(new Error("list down"));
+  it("replaces the backup list with a retryable error state when the initial fetch fails", async () => {
+    listMinimaBackups.mockRejectedValueOnce(new Error("list down")).mockResolvedValueOnce(backups);
     renderPanel();
-    expect(await screen.findByText("list down")).toBeInTheDocument();
+
+    expect(await screen.findByText("Backup list isn't available")).toBeInTheDocument();
+    expect(screen.getByText("list down")).toBeInTheDocument();
+    expect(screen.queryByText("None yet.")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByText("5.0 MB")).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no backups", async () => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterAll, beforeAll, describe, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
 let teardown: () => void;
@@ -105,5 +105,58 @@ describe("sessionCookieOptions", () => {
     assert.equal(options.path, "/");
     assert.equal(options.sameSite, "strict");
     assert.equal(options.maxAge, 7 * 24 * 60 * 60 * 1000);
+  });
+
+  it("omits maxAge from the clear-cookie options so the expiry is not overwritten", () => {
+    const options = sessionService.sessionClearCookieOptions();
+    assert.equal(options.httpOnly, true);
+    assert.equal(options.path, "/");
+    assert.equal(options.sameSite, "strict");
+    assert.equal("maxAge" in options, false);
+  });
+});
+
+describe("startSessionCleanupScheduler", () => {
+  afterEach(() => {
+    sessionService.stopSessionCleanupScheduler();
+    vi.useRealTimers();
+  });
+
+  function countSessions() {
+    return (db.prepare("SELECT COUNT(*) AS n FROM sessions").get() as { n: number }).n;
+  }
+
+  function insertExpiredSession(tokenHash: string) {
+    createSessionRow({ userId, tokenHash, expiresAt: new Date(Date.now() - 1000).toISOString() });
+  }
+
+  it("sweeps expired sessions immediately and again on each interval tick", () => {
+    vi.useFakeTimers();
+    db.prepare("DELETE FROM sessions").run();
+    insertExpiredSession("sweep-now");
+    const live = sessionService.createSession(userId);
+
+    sessionService.startSessionCleanupScheduler();
+    assert.equal(countSessions(), 1);
+    assert.ok(sessionService.validateSession(live));
+
+    insertExpiredSession("sweep-on-tick");
+    assert.equal(countSessions(), 2);
+
+    vi.advanceTimersByTime(60 * 60 * 1000);
+    assert.equal(countSessions(), 1);
+  });
+
+  it("is a no-op when already started and stops cleanly", () => {
+    vi.useFakeTimers();
+    sessionService.startSessionCleanupScheduler();
+    sessionService.startSessionCleanupScheduler();
+
+    sessionService.stopSessionCleanupScheduler();
+    db.prepare("DELETE FROM sessions").run();
+    insertExpiredSession("after-stop");
+
+    vi.advanceTimersByTime(2 * 60 * 60 * 1000);
+    assert.equal(countSessions(), 1);
   });
 });

@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { WalletAssetsPanel } from "../../../src/features/wallet/WalletAssetsPanel";
 import type { TokenBalance } from "../../../src/features/wallet/walletTypes";
 
@@ -48,6 +49,7 @@ describe("WalletAssetsPanel", () => {
     expect(within(table).getByText("Minima")).toBeInTheDocument();
     expect(within(table).getByText("Widget")).toBeInTheDocument();
     expect(within(table).getByText("3.5")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table"));
   });
 
   it("filters by asset kind", async () => {

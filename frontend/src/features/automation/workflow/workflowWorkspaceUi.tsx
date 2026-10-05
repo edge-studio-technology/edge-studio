@@ -202,7 +202,7 @@ export function WorkflowValidationPanel({
     );
 
   return (
-    <Panel className={cx("relative grid", status === "issues" && "max-h-[320px] overflow-hidden")}>
+    <Panel className="relative grid">
       <Disclosure
         title={
           <span className="gap-detail-next flex min-w-0 flex-wrap items-center">
@@ -212,10 +212,7 @@ export function WorkflowValidationPanel({
         }
         defaultOpen={false}
         summaryClassName="items-center"
-        contentClassName={cx(
-          "gap-detail-close grid min-h-0",
-          status === "issues" && "overflow-auto",
-        )}
+        contentClassName="gap-detail-close grid min-h-0"
       >
         <p className={cx(mutedText, "m-0")}>{description}</p>
         {status === "checking" && <p className={cx(mutedText, "m-0")}>Checking workflow…</p>}
@@ -242,12 +239,14 @@ export function SelectedBlockSheet({
   children,
   onClose,
   footer,
+  backdrop = true,
 }: {
   title: string;
   description?: ReactNode;
   children: ReactNode;
   onClose: () => void;
   footer?: ReactNode;
+  backdrop?: boolean;
 }) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -260,24 +259,26 @@ export function SelectedBlockSheet({
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[70]">
-      <div
-        className="bg-overlay-light absolute inset-0"
-        aria-hidden
-        onPointerDown={onClose}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          onClose();
-        }}
-      />
+    <>
+      {backdrop ? (
+        <div
+          className="bg-overlay-light fixed inset-0 z-[60]"
+          aria-hidden
+          onPointerDown={onClose}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            onClose();
+          }}
+        />
+      ) : null}
       <aside
-        className="bg-surface-always-white border-stroke-secondary absolute inset-y-0 right-0 grid h-full min-h-0 w-full max-w-[400px] grid-rows-[auto_minmax(0,1fr)_auto] border-l shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
+        className="bg-surface-always-white border-stroke-secondary fixed inset-y-0 right-0 z-[70] grid h-full min-h-0 w-full max-w-[400px] grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] border-l shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
         <div className="px-margin-tight pt-margin-tight pb-detail-close gap-detail-close flex items-start justify-between">
-          <div className="gap-detail-tight grid">
+          <div className="gap-detail-tight grid min-w-0 wrap-anywhere">
             <Text.Title>{title}</Text.Title>
             {description ? <Text.Body>{description}</Text.Body> : null}
           </div>
@@ -298,7 +299,7 @@ export function SelectedBlockSheet({
           </div>
         )}
       </aside>
-    </div>,
+    </>,
     document.body,
   );
 }
@@ -407,9 +408,9 @@ function BlockHelpList({ title, items }: { title: string; items: string[] }) {
 
 export function RuntimeStat({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="border-stroke-secondary gap-detail-close py-detail-tight flex items-center justify-between border-b last:border-b-0">
+    <div className="border-stroke-secondary gap-detail-close py-detail-tight grid grid-cols-[minmax(0,1fr)_minmax(7.5rem,auto)] items-center border-b last:border-b-0">
       <span className="type-meta text-text-secondary">{label}</span>
-      <strong className="type-meta text-text-primary text-right">{value}</strong>
+      <strong className="type-meta text-text-primary min-w-0 justify-self-end text-right">{value}</strong>
     </div>
   );
 }

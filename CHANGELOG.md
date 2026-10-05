@@ -4,6 +4,147 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased]
+
+## [0.42.1] 2026-10-05
+
+### Changed
+
+- Clarified default network exposure and installer checksum limitations in the security policy and user wiki.
+- Updated wiki installation, first-proof, backup, and troubleshooting guidance with explicit commands and callouts.
+
+## [0.42.0] 2026-10-05
+
+### Security
+
+- Visible automation inbox items and data source read history are preserved from automatic age and row-count deletion.
+- Deleted automation inbox items are permanently removed in repeated batches of up to 500 rows.
+- Integritas proof history remains until explicit user deletion.
+- Webhook, MQTT, and GPIO data source reads record `data-source:<id>` instead of the webhook URL or MQTT broker URL.
+- Existing data source read history is scrubbed of webhook tokens and URL credentials on upgrade.
+- The backend request log and the frontend nginx access log mask the webhook token in `/api/data-source-webhooks/<token>` URLs.
+- Nginx masks normalized webhook paths and logs only critical errors for webhook requests, including case variants and encoded or repeated slashes.
+- Error details and logs now also redact URL credentials given as a username only, such as `mqtt://token@broker`.
+- Every Docker Compose service rotates its container logs at 10 MB, keeping 3 files, in both the source and release Compose files.
+- Update Agent applies the fixed 10 MB × 3 log policy to replacement containers, including upgrades from unbounded logging.
+- A workflow run that reaches a payment, device output, camera capture, or Integritas stamp block uses one slot of a budget of 1,000 runs per rolling hour per workflow, and further runs fail with `429` until a slot frees up.
+- The workflow run budget is stored in the database, survives backend restarts, and applies to manual, scheduled, webhook, MQTT, and GPIO runs.
+- Webhook, MQTT, or GPIO workflows with an enabled payment block must have a cooldown of at least 1 second, both when validated and when triggered.
+- Webhook ingestion is rate-limited to 60 requests per minute per client and source.
+- Automation changes and manual workflow runs are rate-limited to 30 requests per minute per client.
+- Integritas stamp creation is rate-limited to 10 requests per minute per client.
+- See [ADR 0022](docs/adr/0022-bound-external-automation-effects.md), [ADR 0023](docs/adr/0023-classify-stored-records-before-applying-retention.md), [ADR 0028](docs/adr/0028-raise-workflow-run-budget.md), and `SECURITY.md`.
+- Wallet sends and address-book writes now reject malformed Minima destinations using the upstream `0x` and checksummed `Mx` address grammar.
+- Disabled two-factor setup and reset endpoints are no longer exposed while TOTP is off.
+- HTTPS application, proxy, error, and redirect responses now include CSP, clickjacking, MIME-sniffing, and referrer-policy protections.
+- Backend `multer` updated to 2.4.0 and `ip-address` to 10.7.3.
+- The backend now refuses to start before creating or opening its database when `APP_SECRET` is absent or empty, and shipped configuration no longer supplies a public default.
+- Minima backup and restore responses no longer return the RPC command, the request URL, or the stored backup password.
+- Minima RPC command strings, request URLs, and response bodies are redacted before they reach any API response or log line.
+- Backend API error responses and persisted error records redact secret command arguments, bearer tokens, credentials embedded in URLs such as MQTT broker URLs, and secret-looking fields.
+- Data source and HTTP output target URLs are rejected when they point at Edge Studio's own container network, its gateway, a container service name, loopback, or a link-local address, and when they use a scheme other than `http` or `https`.
+- Data source and HTTP output URLs are re-checked when they are fetched, not only when they are saved, and the checked address is pinned to the connection so a changed DNS answer cannot redirect the request onto an internal service.
+- Redirects on data source and HTTP output requests are followed one hop at a time and re-checked against the same rules, up to a hop limit.
+- Camera and sensor host helper URLs come from install-time configuration and are exempt from these checks; see [docs/adr/0014](docs/adr/0014-egress-url-policy-for-operator-supplied-urls.md).
+- Minima console commands are classified by their arguments rather than by verb alone: `tokens action:import`, `maxcontacts action:add`, and `maxcontacts action:remove` are now disabled by default and must be enabled in the console whitelist, and `cointrack` is treated as a mutating command.
+- Unrecognized `action:` values on Minima console commands are refused by default rather than accepted as reads.
+- Changing the admin PIN/password or resetting two-factor authentication now signs out every session, including the one making the change, and the browser returns to the login screen.
+- Expired sessions are deleted by a backend sweep at startup and hourly, instead of only when the session is next used.
+- `POST /api/minima/config` and `POST /api/minima/megammrsync/resync` now require an admin role.
+- Integritas stamping, file stamping, history deletion, proof polling, and proof verification now require an admin role.
+- The installer verifies the runtime bundle's Ed25519 signature and signed-manifest SHA-256 before extracting it or replacing application files.
+- The installer carries its own copy of the manifest public key and of the signature verifier instead of taking them from the runtime bundle, and runs the verifier on a digest-pinned Node image instead of a mutable tag.
+- The installer rejects runtime bundle entries with absolute or `..` paths, and entries that are not regular files or directories.
+- Releases publish `edge-studio-runtime.tar.gz.sig` and `install.sh.sha256` alongside the manifest.
+- `README.md` documents a verified install path — tag-pinned installer, published checksum, read before running — alongside the one-liner, which `SECURITY.md` now records as an accepted residual risk.
+- Data source reads and HTTP output requests now stop at a response size cap (`EGRESS_MAX_RESPONSE_BYTES`, default 5 MB), counted on decompressed bytes and enforced while the response is still arriving.
+- Outbound requests to operator-supplied URLs share a global concurrency limit (`EGRESS_MAX_CONCURRENT`, default 4) with a bounded queue (`EGRESS_QUEUE_LIMIT`, default 32); requests past the queue are rejected instead of waiting indefinitely.
+- Outbound request deadlines are capped at 60 seconds regardless of the configured per-target timeout.
+- MQTT messages larger than `MQTT_MAX_PAYLOAD_BYTES` (default 256 KB) are rejected before parsing and recorded as a failed read.
+- File uploads for stamping and Minima backup restore use the configured backend size limit through the HTTPS proxy and return a JSON `413` when oversized.
+- Nginx-generated responses no longer disclose the installed Nginx version.
+- `POST /api/integritas/stamp-file` and `POST /api/integritas/verify-proof-file` delete the uploaded temporary file when the request is rejected for a missing Integritas link, not only on the success path.
+- Resource limits are configurable in `.env` and clamped to a supported range, so a limit cannot be configured away; see [docs/adr/0017](docs/adr/0017-outbound-and-upload-resource-limits.md).
+- `multer` updated to 2.3.0, closing advisories for denial of service via crafted multipart field names, file descriptor leaks on aborted uploads, and a file size limit bypass.
+
+### Added
+
+- A guided tour of Edge Studio's main areas opens the first time the app is used in each browser.
+- The guided tour can be skipped at any step and replayed from Settings → Behaviour.
+- `ErrorContentState` shared component for load failures that leave a whole region empty (see `docs/frontend-design-system.md`).
+
+### Changed
+
+- Table values now use shared primary, secondary, error, emphasis, meta, and monospace text roles to keep formatting and copy feedback consistent across tables.
+- Automation watch mode now has a runtime overview with selected-run progress and a `Follow live runs` switch.
+- Automation watch mode now hides edit-only canvas controls, collapses manual test payload controls by default, and presents the workflow name as read-only title text.
+- Automation workflow workspaces no longer show the duplicated status-pill strip under the top bar, and watch-mode historic-run controls now align with the app's table header pattern.
+- Automation watch history now defaults to a compact selected-run navigator and can expand into a taller historic-runs table.
+- Automation workflow edit/watch deep links now keep the workspace layout visible while the initial workflow data loads.
+- Automation workflow loading placeholders now preserve the loaded watch workspace button, rail-panel, and selected-run control sizing more closely.
+- Automation watch loading placeholders now use the real watch canvas, rail, and selected-run components with placeholder data under the loading overlay.
+- Automation watch loading placeholders now keep the latest-run notice and selected-run navigator shape closer to the loaded historic-run view.
+- Automation watch loading placeholders no longer offset the canvas block stack, and runtime overview stat values align more consistently between loading and loaded states.
+- Automation workflow refresh loading now keeps the real loaded workspace mounted and applies only the loading overlay.
+- Automation watch refreshes preserve the last loaded block summaries and selected-run messaging instead of briefly swapping to loading placeholder text.
+- Automation workspace loading overlays now cover the full workflow page chrome instead of only the canvas area.
+- Automation watch selected-run compact history now uses labeled summary cards with configurable field visibility and order.
+- Automation watch run controls now treat GPIO, webhook, and MQTT workflows as trigger-payload tests instead of showing a misleading `Run now` action.
+- Automation watch trigger payload JSON is now edited in a modal, with the rail showing a compact payload preview instead of an inline editor.
+- Automation watch trigger payload previews are clickable, line-clipped with an ellipsis, and keep reset actions inside the edit modal.
+- Automation watch raw run details now open in a modal instead of expanding an inline panel below run history.
+- Automation watch block inspection now summarizes block input and result data before offering raw JSON diagnostics.
+- Shared modals now render above page and workflow loading overlays by default, preventing dialogs from appearing dimmed behind active overlays.
+- Automation watch block input/result summaries now hide null workflow-context fields and emphasize meaningful trigger/data/output values.
+- Automation watch block diagnostics now open device read details for data-fetching blocks only, with diagnostics navigation kept as a separate action.
+- Automation watch block inspection now explains skipped and not-reached blocks more clearly when input/result data is absent.
+- Automation watch block results now show domain-aware summaries for start triggers, trigger-event records, variables, output controls, transactions, data fetches, previews, stamps, conditions, and wait steps before raw JSON.
+- Automation watch block inputs now show block-specific consumed/configured values, reducing overlap between input and result summaries.
+- Automation watch mode now includes replay controls for previous/next block steps and fixed-pace play/pause through the selected run.
+- Automation watch replay controls and the focused block now stay above the selected-block backdrop by rendering that backdrop inside the workflow workspace.
+- Automation watch playback now sits in a toolbar above the canvas, uses compact icon controls with centered run-status messaging, quietly polls for new runs, defaults follow-latest off, allows direct block-to-block detail switching through the overlay, avoids auto-playing already-loaded runs, and pauses playback when the user manually selects another block.
+- Automation watch playback now restarts from the first block when Play is pressed at the end of a run and animates each active block with a 1.5-second glowing border-worm pass.
+- Automation watch historic replay now shows only the blocks recorded by the selected run, including deleted blocks reconstructed from historical run data.
+- Automation watch replay animation now follows each block's runtime status color and keeps the live-run focus overlay visible until dismissed.
+- Automation workflow headers now center a pill-shaped enabled/paused toggle and icon-only edit/watch mode switch, leaving Back as the right-side action.
+- The backend accepts `EDGE_STUDIO_DOCKER_SUBNET` and `EDGE_STUDIO_DOCKER_GATEWAY` so it can recognize its own container network; source and generated release Compose files apply the same values to the backend and network IPAM.
+- Tables now provide a cog-button column chooser with backend-saved visibility preferences.
+- Failed loads across Dashboard, Wallet, Devices, Workflows, Diagnostics, Minima, Integritas Connect, and Software update now show a calm in-content error state with Retry instead of a red alert banner.
+- A failed table, list, or region now hides its own filter bar, toolbar, and pager instead of showing controls and counts for data that isn't there.
+- Browser connection failures now read as "Edge Studio couldn't reach the backend service" instead of "Failed to fetch".
+- Dashboard metric cards showing `Unavailable` are no longer coloured as errors.
+- Minima backups, the Minima console whitelist, the receive-address dialog, release notes, and the update check now use the same loading and error states as the rest of the app instead of a bare spinner and a red text line.
+- The Dashboard next-step card, the receive-address dialog, release notes, the Minima console whitelist, and the Minima backup list can now be retried in place instead of requiring a page refresh.
+- Dashboard metric cards switch between one, two, and three columns based on the space available beside the sidebar.
+- The status bar clock wraps to a second row on narrow screens instead of crowding the status pills.
+- Dashboard live activity rows show the time and status on one line under the message on narrow screens.
+- Minima console toolbar buttons are larger on screens narrower than 1024px.
+- Row actions stay pinned to the right edge of every table while the other columns scroll sideways.
+- A divider and edge shadow mark the pinned row actions while other columns are scrolled behind them.
+- Below 1024px wide, an expanded sidebar overlays the page and closes on navigation, Escape, or a click outside.
+- When the workflow workspace is narrow, the toolkit and watch-mode run controls open as a drawer from a Toolkit button in the top bar.
+- The workflow toolkit drawer closes when a block is added, on Escape, or on a click outside.
+
+### Fixed
+
+- Automation watch proof diagnostics now appear on the data-fetch block that produces the proof, not downstream preview blocks that only consume it.
+- Automation watch replay now treats attached Integritas stamp blocks as part of their parent block instead of replaying them as separate canvas steps.
+- Automation watch historic canvases now keep eligible not-yet-reached workflow blocks visible, roll attached-block failures up to their visible parent, and keep replay steps limited to executed top-level blocks.
+- Dashboard wallet balance is unavailable and wallet requests are skipped while the Minima node is stopped or errored.
+- Failed Minima restarts show the error toast without an unhandled action error.
+- Minima restart setup failures now clear the temporary restarting state instead of leaving stale operation status in the UI.
+- Update Agent Docker stream requests now reject reliably when their timeout expires instead of leaving update pulls hanging.
+- List search/filter rows on Devices, Workflows, Address book, and Diagnostics stack with their New/Refresh buttons as one group on tablet and phone.
+- Dashboard next-action and status metric cards now distinguish loading and request failures from legitimate empty or unavailable data.
+- Dashboard Live activity now distinguishes loading, empty, and failed requests, with Retry available after errors.
+- Devices now show an error with Retry when the initial load fails.
+- Diagnostics, Workflows, Wallet, Address book, and Minima status/settings no longer show empty, zero, unavailable, or indefinitely loading content after failed requests.
+- Integritas and software update status checks now settle failures and provide Retry actions.
+- Wallet history and contacts no longer appear to keep loading when Minima actions are unavailable.
+- Long block descriptions, such as source URLs, no longer push the workflow block settings sheet content out of view.
+- Long block descriptions, such as source URLs, wrap inside workflow canvas block cards instead of overflowing them.
+- The workflow top bar stacks on a narrow workspace with the name field keeping a minimum width and the buttons aligned left.
+
 ## [0.41.0] 2026-09-14
 
 ### Added

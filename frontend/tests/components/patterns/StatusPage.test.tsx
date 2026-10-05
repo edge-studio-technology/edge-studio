@@ -18,4 +18,11 @@ describe("StatusPage", () => {
     expect(screen.getByText("This page does not exist.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Go home" })).toBeInTheDocument();
   });
+
+  it("omits optional description and action", () => {
+    render(<StatusPage icon={Info} title="Coming soon" />);
+
+    expect(screen.getByRole("heading", { name: "Coming soon" })).toBeInTheDocument();
+    expect(screen.queryByText("This page does not exist.")).not.toBeInTheDocument();
+  });
 });

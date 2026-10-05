@@ -9,6 +9,7 @@ import {
   forbidden,
   notFound,
   sendApiError,
+  tooManyRequests,
   unauthorized,
   unexpected,
   validationFailed
@@ -91,6 +92,17 @@ describe("status-specific helpers", () => {
     assert.deepEqual((calls.json as { errorDetails: { context?: unknown } }).errorDetails.context, { id: "1" });
   });
 
+  it("tooManyRequests sends 429 as an app error with context", () => {
+    const { res, calls } = mockResponse();
+    tooManyRequests(res, "slow down", { nextAvailableAt: "2026-09-17T12:00:00.000Z" });
+    assert.equal(calls.status, 429);
+    const body = calls.json as { error: string; errorDetails: { domain: string; type: string; context?: Record<string, unknown> } };
+    assert.equal(body.error, "slow down");
+    assert.equal(body.errorDetails.domain, "app");
+    assert.equal(body.errorDetails.type, "rate_limited");
+    assert.deepEqual(body.errorDetails.context, { nextAvailableAt: "2026-09-17T12:00:00.000Z" });
+  });
+
   it("dependencyUnavailable sends 502 as a system error with nativeMessage", () => {
     const { res, calls } = mockResponse();
     dependencyUnavailable(res, "minima down", "ECONNREFUSED");
@@ -152,5 +164,41 @@ describe("apiErrorFromStatus", () => {
     const body = calls.json as { errorDetails: { domain: string; type: string } };
     assert.equal(body.errorDetails.domain, "system");
     assert.equal(body.errorDetails.type, "unexpected");
+  });
+});
+
+// The finding this covers: dependencyUnavailable(res, msg, native, ctx, extra) spreads
+// `extra` into the body, and call sites passed whole upstream RPC results through it.
+describe("secret redaction in the response body", () => {
+  const SECRET = "api-error-canary";
+
+  it("redacts an upstream result spread through extra", () => {
+    const { res, calls } = mockResponse();
+    const command = `backup file:backups/a.bak password:"${SECRET}"`;
+
+    dependencyUnavailable(res, "Backup failed", undefined, undefined, {
+      ok: false,
+      command,
+      source: `http://minima:9005/${encodeURIComponent(command)}`
+    });
+
+    const serialized = JSON.stringify(calls.json);
+    assert.equal(serialized.includes(SECRET), false);
+    assert.equal(serialized.includes(encodeURIComponent(SECRET)), false);
+    assert.equal((calls.json as { ok: boolean }).ok, false);
+  });
+
+  it("redacts a secret carried in the error message itself", () => {
+    const { res, calls } = mockResponse();
+    sendApiError(res, 500, appError({ type: "unexpected", message: `password:"${SECRET}"` }));
+    assert.equal(JSON.stringify(calls.json).includes(SECRET), false);
+  });
+
+  it("leaves an ordinary error body untouched", () => {
+    const { res, calls } = mockResponse();
+    badRequest(res, "fileName is required", undefined, { ok: false });
+    const body = calls.json as { error: string; ok: boolean };
+    assert.equal(body.error, "fileName is required");
+    assert.equal(body.ok, false);
   });
 });

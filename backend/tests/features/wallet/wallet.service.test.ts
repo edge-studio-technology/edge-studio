@@ -66,6 +66,14 @@ describe("sendPayment", () => {
     assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
   });
 
+  it("rejects a malformed prefix-matching address before calling Minima RPC", async () => {
+    await assert.rejects(
+      walletService.sendPayment({ address: "0xnot-hex", amount: "1" }),
+      /valid Minima Mx or 0x address/
+    );
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
+  });
+
   it("throws when the amount is not a positive number", async () => {
     await assert.rejects(walletService.sendPayment({ address: "0xabc", amount: "0" }), /positive number/);
     await assert.rejects(walletService.sendPayment({ address: "0xabc", amount: "-1" }), /positive number/);

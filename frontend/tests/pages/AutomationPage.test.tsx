@@ -1,0 +1,221 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ToastProvider } from "../../src/components/ToastProvider";
+import { AutomationPage } from "../../src/pages/AutomationPage";
+
+const listDataSources = vi.fn();
+const listAutomationWorkflows = vi.fn();
+const listAutomationInbox = vi.fn();
+const listAutomationWorkflowRuns = vi.fn();
+const getAutomationWorkflowValidation = vi.fn();
+const updateAutomationWorkflow = vi.fn();
+const createAutomationWorkflow = vi.fn();
+
+vi.mock("../../src/features/data-sources/dataSourcesApi", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/features/data-sources/dataSourcesApi")>()),
+  listDataSources: (...args: unknown[]) => listDataSources(...args),
+}));
+
+vi.mock("../../src/features/automation/automationApi", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/features/automation/automationApi")>()),
+  listAutomationWorkflows: (...args: unknown[]) => listAutomationWorkflows(...args),
+  listAutomationInbox: (...args: unknown[]) => listAutomationInbox(...args),
+  listAutomationWorkflowRuns: (...args: unknown[]) => listAutomationWorkflowRuns(...args),
+  getAutomationWorkflowValidation: (...args: unknown[]) => getAutomationWorkflowValidation(...args),
+  updateAutomationWorkflow: (...args: unknown[]) => updateAutomationWorkflow(...args),
+  createAutomationWorkflow: (...args: unknown[]) => createAutomationWorkflow(...args),
+}));
+
+vi.mock("../../src/features/automation/workflow/CreateWorkflowWorkspace", () => ({
+  CreateWorkflowWorkspace: (props: {
+    onCreate: (blocks: { type: "manual_start"; config: Record<string, never> }[]) => void;
+  }) => (
+    <button type="button" onClick={() => props.onCreate([{ type: "manual_start", config: {} }])}>
+      submit-create
+    </button>
+  ),
+}));
+
+vi.mock("../../src/features/address-book/addressBookApi", () => ({
+  listAddressBookEntries: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("../../src/features/wallet/walletApi", () => ({
+  getWalletStatus: vi.fn().mockResolvedValue(null),
+}));
+
+function workflow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "w1",
+    createdAt: "2026-08-01T00:00:00.000Z",
+    updatedAt: "2026-08-01T00:00:00.000Z",
+    name: "Front gate flow",
+    enabled: true,
+    archived: false,
+    lastRunAt: null,
+    nextRunAt: null,
+    lastHash: null,
+    lastProofId: null,
+    lastError: null,
+    blocks: [],
+    ...overrides,
+  };
+}
+
+function renderPage(initialEntries = ["/workflows"]) {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <ToastProvider>
+        <Routes>
+          <Route path="/workflows" element={<AutomationPage />} />
+          <Route path="/workflows/new" element={<AutomationPage />} />
+          <Route path="/workflows/:workflowId/watch" element={<AutomationPage />} />
+          <Route path="/workflows/:workflowId/watch/:runId" element={<AutomationPage />} />
+          <Route path="/workflows/:workflowId/edit" element={<div>Edit route</div>} />
+        </Routes>
+      </ToastProvider>
+    </MemoryRouter>,
+  );
+}
+
+describe("AutomationPage", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    listDataSources.mockReset().mockResolvedValue({ items: [] });
+    listAutomationWorkflows.mockReset().mockResolvedValue({ items: [] });
+    listAutomationInbox
+      .mockReset()
+      .mockResolvedValue({ items: [], total: 0, limit: 500, offset: 0 });
+    listAutomationWorkflowRuns.mockReset().mockResolvedValue({ items: [] });
+    getAutomationWorkflowValidation.mockReset().mockResolvedValue({ item: null });
+    updateAutomationWorkflow.mockReset().mockResolvedValue({ item: workflow({ enabled: false }) });
+    createAutomationWorkflow.mockReset().mockResolvedValue({ item: workflow({ id: "created", enabled: false }) });
+  });
+
+  it("replaces failed workflow data with a retryable error instead of empty lists", async () => {
+    listAutomationWorkflows.mockRejectedValueOnce(new Error("workflows down"));
+    renderPage();
+
+    expect(await screen.findByText("Workflows aren't available")).toBeInTheDocument();
+    expect(screen.queryByText("Build your first workflow")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    await waitFor(() => expect(listAutomationWorkflows).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Build your first workflow")).toBeInTheDocument();
+  });
+
+  it("opens edit directly from the list without pausing", async () => {
+    listAutomationWorkflows.mockResolvedValue({ items: [workflow()] });
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Edit Front gate flow" }));
+
+    expect(updateAutomationWorkflow).not.toHaveBeenCalled();
+    expect(await screen.findByText("Edit route")).toBeInTheDocument();
+  });
+
+  it("creates workflows paused, shows a success toast, and returns to the list", async () => {
+    renderPage(["/workflows/new"]);
+
+    await userEvent.click(await screen.findByRole("button", { name: "submit-create" }));
+
+    expect(createAutomationWorkflow).toHaveBeenCalledWith({
+      name: expect.any(String),
+      enabled: false,
+      blocks: [{ type: "manual_start", config: {} }],
+    });
+    expect(await screen.findByText("Workflow created")).toBeInTheDocument();
+    expect(await screen.findByText("Build your first workflow")).toBeInTheDocument();
+  });
+
+  it("keeps the workflow workspace shell visible during a direct watch load", () => {
+    renderPage(["/workflows/w1/watch"]);
+
+    expect(screen.getByText("Watch workflow")).toBeInTheDocument();
+    expect(screen.getByText("Fetching workflow...")).toBeInTheDocument();
+    expect(screen.queryByText("Fetching your workflow")).not.toBeInTheDocument();
+  });
+
+  it("keeps the last loaded watch workspace content visible while refreshing", async () => {
+    listAutomationWorkflows
+      .mockResolvedValueOnce({
+        items: [
+          workflow({
+            blocks: [
+              {
+                id: "b-preview",
+                workflowId: "w1",
+                createdAt: "2026-08-01T00:00:00.000Z",
+                updatedAt: "2026-08-01T00:00:00.000Z",
+                type: "show_preview",
+                enabled: true,
+                order: 0,
+                parentBlockId: null,
+                config: {
+                  previewFormat: "json",
+                  title: "Device System Data latest data",
+                  contentMode: "latest_data",
+                },
+                lastRunAt: null,
+                lastError: null,
+              },
+            ],
+          }),
+        ],
+      })
+      .mockImplementationOnce(() => new Promise(() => undefined));
+    listAutomationWorkflowRuns.mockResolvedValue({
+      items: [
+        {
+          id: "r2",
+          workflowId: "w1",
+          workflowName: "Front gate flow",
+          startedAt: "2026-08-01T00:01:00.000Z",
+          finishedAt: "2026-08-01T00:01:01.000Z",
+          status: "success",
+          triggerType: "manual",
+          triggerSourceId: null,
+          triggerPayload: null,
+          durationMs: 1000,
+          blockCount: 1,
+          error: null,
+          blocks: [],
+        },
+        {
+          id: "r1",
+          workflowId: "w1",
+          workflowName: "Front gate flow",
+          startedAt: "2026-08-01T00:00:00.000Z",
+          finishedAt: "2026-08-01T00:00:01.000Z",
+          status: "success",
+          triggerType: "manual",
+          triggerSourceId: null,
+          triggerPayload: null,
+          durationMs: 1000,
+          blockCount: 1,
+          error: null,
+          blocks: [],
+        },
+      ],
+    });
+
+    const { unmount } = renderPage(["/workflows/w1/watch/r1"]);
+
+    expect(await screen.findByText(/Device System Data latest data/)).toBeInTheDocument();
+    expect(
+      await screen.findByText("Latest run available. Turn on follow latest run to jump back."),
+    ).toBeInTheDocument();
+
+    unmount();
+    renderPage(["/workflows/w1/watch/r1"]);
+
+    expect(screen.getByText(/Device System Data latest data/)).toBeInTheDocument();
+    expect(
+      await screen.findByText("Latest run available. Turn on follow latest run to jump back."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Loading preview")).not.toBeInTheDocument();
+  });
+});

@@ -4,6 +4,17 @@ Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md#wallet) 
 
 Wallet uses Minima's default single-wallet model (no user-defined labeled accounts; no `fromAccountAddress`/UTXO scoping). Sends and receives operate on the whole node wallet.
 
+## Destination Validation
+
+Wallet sends and address-book create/update operations validate destinations server-side before
+calling Minima or mutating the address book. The shared validator follows Minima's own grammar:
+case-insensitive `0x` values contain one or more hexadecimal digits, while `Mx` values must decode
+to a complete Minima address structure with a valid marker, declared payload length, and SHA3-256
+checksum. It deliberately does not impose a fixed address length derived from examples.
+
+The wallet service repeats this validation so automation's `send_transaction` path cannot bypass
+the HTTP route check. Existing stored address-book rows are not rewritten or canonicalized.
+
 ## Seed Phrase Import (admin)
 
 Risk: `POST /api/wallet/import` accepts a 24-word BIP-39 seed phrase in the JSON request body and calls the Minima `restore` RPC. The phrase travels over the existing HTTP connection.
@@ -35,11 +46,27 @@ Current Controls:
 - Creating/editing transaction blocks requires admin role through the protected automation API.
 - V1 transaction blocks can only send native MINIMA (`tokenid:0x00`); custom token IDs are rejected.
 - Recipients must be selected from the saved address book and are resolved by address book entry id at execution time.
+- Resolved recipients are revalidated by the wallet service before the Minima `send` command is built.
 - The backend validates the amount and checks current sendable native MINIMA balance before calling Minima `send`.
 - The block uses the existing narrow wallet send service, not a generic Minima command proxy.
 - Sends are recorded in wallet send history and audit events with workflow/recipient/amount metadata.
 
-Status: Accepted prototype risk. Use only on trusted local workflows and treat enabled event-triggered transaction workflows as funds-moving automation.
+Status: **Accepted, with one scheduled mitigation (Phase 7).** Use only on trusted local workflows
+and treat enabled event-triggered transaction workflows as funds-moving automation. The external
+review rated repeated event-driven execution medium; note the bound on it, which the review did not
+state: the recipient is a pre-existing address-book entry and the amount is fixed in block config,
+so an attacker who can drive the trigger cannot choose a destination or amount. The exposure is
+repeated payment to an already-trusted address, plus repeated GPIO/network actions — denial of funds
+and device abuse, not theft.
+
+Phase 7 (task 705) bounds that repetition, closing review finding [8]:
+
+- Workflow validation rejects an enabled `send_transaction` block under a GPIO, webhook, or MQTT start whose cooldown is not a whole number of at least 1 second (`workflow.transaction_cooldown_required`). Execution enforces the same rule for event triggers, so a workflow saved before this change cannot bypass it.
+- Every run that reaches a payment, device output, camera, or stamp block reserves one slot of a fixed 1,000-runs-per-rolling-hour budget per workflow, before the side effect. Reservations persist in SQLite, survive restarts, apply to every trigger type, count once per run, and are kept when the action fails.
+
+Residual: the budget is per workflow, so several transaction workflows each get their own 1,000 runs,
+and wallet sends are not serialized across workflows. Global aggregate budgets and wallet
+serialization are deferred ([adr/0022](../adr/0022-bound-external-automation-effects.md)).
 
 ## Wallet Debug Clears (admin, non-production)
 

@@ -27,6 +27,7 @@ export function IntegritasPage() {
   const { showToast } = useToast();
   const integritasAuth = useIntegritasAuth({ refreshProfileOnConnected: true });
   const integritasKind = integritasAuth.status?.status;
+  const integritasStatusUnavailable = Boolean(integritasAuth.error && !integritasAuth.status);
   const [tab, setTab] = useState<IntegritasTab>("stamp");
   const [stampUpload, setStampUpload] = useState<File | null>(null);
   const [verifyUpload, setVerifyUpload] = useState<File | null>(null);
@@ -63,10 +64,20 @@ export function IntegritasPage() {
             <span className="gap-detail-close flex flex-wrap items-center">
               <h2 className="type-title text-text-primary m-0">Integritas Connect</h2>
               <Pill
-                tone={integritasKind ? integritasStatusTone[integritasKind] : "neutral"}
+                tone={
+                  integritasStatusUnavailable
+                    ? "error"
+                    : integritasKind
+                      ? integritasStatusTone[integritasKind]
+                      : "neutral"
+                }
                 indicator
               >
-                {integritasKind ? integritasStatusLabel[integritasKind] : "Checking…"}
+                {integritasStatusUnavailable
+                  ? "Unavailable"
+                  : integritasKind
+                    ? integritasStatusLabel[integritasKind]
+                    : "Checking…"}
               </Pill>
             </span>
           }
@@ -102,6 +113,7 @@ export function IntegritasPage() {
               }
             }}
             busy={busyAction !== null}
+            loading={busyAction === "stamp"}
             resultRecord={stampResultRecord}
             resultDetails={stampResultDetails}
             onClearResult={() => {

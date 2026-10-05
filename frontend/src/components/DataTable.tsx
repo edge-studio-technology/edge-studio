@@ -15,5 +15,6 @@ export {
   tableHeaderCellClass,
   tableHeadRowClass,
   tableRowClass,
+  useTableScrollEdges,
 } from "./patterns/DataTable";
 export type { RowOverflowMenuItem } from "./patterns/DataTable";

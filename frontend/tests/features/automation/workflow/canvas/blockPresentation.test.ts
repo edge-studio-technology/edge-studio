@@ -122,6 +122,26 @@ describe("blockPresentation: blockPresentation", () => {
     expect(stampPresentation.badges).toEqual(
       expect.arrayContaining([{ label: "Reads parent data" }]),
     );
+
+    const variableCondition = blockPresentation(
+      draft({ type: "if_payload_field_equals", config: { source: "variable" } }),
+      [],
+      [],
+      [],
+    );
+    expect(variableCondition.badges).toEqual(
+      expect.arrayContaining([{ label: "Reads variable" }]),
+    );
+
+    const triggerCondition = blockPresentation(
+      draft({ type: "if_payload_field_equals", config: {} }),
+      [],
+      [],
+      [],
+    );
+    expect(triggerCondition.badges).toEqual(
+      expect.arrayContaining([{ label: "Reads trigger event" }]),
+    );
   });
 
   it("adds a Disabled badge only when enabled is explicitly false", () => {
@@ -148,12 +168,30 @@ describe("blockPresentation: blockPresentation", () => {
     );
   });
 
+  it("keeps edit metadata focused on configuration and watch metadata focused on runtime", () => {
+    const dataBlock = draft({
+      type: "fetch_data_source",
+      config: { sourceId: "source-1" },
+      lastRunAt: "2026-08-01T00:00:00.000Z",
+    });
+    const editPresentation = blockPresentation(dataBlock, [], [], [], undefined, "edit");
+    const watchPresentation = blockPresentation(dataBlock, [], [], [], { status: "success", durationMs: 250 }, "watch");
+
+    expect(editPresentation.badges.some((badge) => badge.label.startsWith("Ran "))).toBe(false);
+    expect(editPresentation.badges.some((badge) => badge.label === "Provides latest data")).toBe(true);
+    expect(watchPresentation.badges.some((badge) => badge.label === "Provides latest data")).toBe(false);
+    expect(watchPresentation.badges).toEqual(expect.arrayContaining([{ label: "success · 250 ms" }]));
+  });
+
   it("adds a runtime status badge with duration, and a run-error badge on runtime failure", () => {
     const running = blockPresentation(draft(), [], [], [], { status: "running", durationMs: null });
     expect(running.badges).toEqual(expect.arrayContaining([{ label: "running" }]));
 
     const success = blockPresentation(draft(), [], [], [], { status: "success", durationMs: 250 });
     expect(success.badges).toEqual(expect.arrayContaining([{ label: "success · 250 ms" }]));
+
+    const slowSuccess = blockPresentation(draft(), [], [], [], { status: "success", durationMs: 1200 });
+    expect(slowSuccess.badges).toEqual(expect.arrayContaining([{ label: "success · 1.2 s" }]));
 
     const failed = blockPresentation(draft(), [], [], [], {
       status: "failed",
@@ -162,6 +200,10 @@ describe("blockPresentation: blockPresentation", () => {
     });
     expect(failed.badges).toEqual(
       expect.arrayContaining([{ label: "Run error", tone: "error", alert: true }]),
+    );
+
+    expect(blockPresentation(draft(), [], [], [], { status: "skipped", durationMs: 1 }).className).toMatch(
+      /opacity-80/,
     );
   });
 });

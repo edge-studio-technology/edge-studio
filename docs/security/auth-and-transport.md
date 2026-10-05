@@ -1,6 +1,6 @@
 # Auth And Transport Risks
 
-Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md#auth) · [plans/security-checklist.md](../plans/security-checklist.md)
+Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md#auth) · [plans/security/](../plans/security/README.md)
 
 ## Unauthenticated LAN Access (mitigated, residual TLS trust risk)
 
@@ -12,13 +12,34 @@ Controls (V1):
 
 - Login required for all `/api/*` routes except health, setup, and login.
 - HttpOnly + `SameSite=Strict` session cookies with `Secure` on the default HTTPS deploy; token hashes stored in SQLite.
-- TOTP required at setup and login.
+- Single-factor password/PIN is the currently shipped local-admin control. TOTP is implemented but disabled (`TOTP_ENABLED = false`); whether it is later retained, redesigned, re-enabled, or removed is deliberately undecided and outside V1.5 hardening ([adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md)). The backend flag gates enforcement and all four TOTP route registrations: setup init/verify return `404`, while settings init/verify pass through the global auth gate before an authenticated request receives `404`.
 - Login/setup rate limiting and generic login errors.
 - Self-signed TLS encrypts browser-to-Pi traffic by default.
+- Nginx adds a restrictive Content Security Policy, clickjacking protection, MIME-sniffing
+  protection, and a no-referrer policy to redirects, application responses, proxied responses, and
+  errors.
 
-Residual gap: Self-signed certificates do not prove server identity. CSRF tokens are a follow-up (`SameSite=Strict` is the V1 baseline). Custom trusted certificates or operator-managed reverse-proxy TLS are planned for a later release.
+Task 706's production Compose sign-off verified both clean-data onboarding variants, session
+persistence and cookie attributes, generic auth failures, setup immutability, disabled TOTP route
+responses, nginx headers, and browser CSP compatibility. See
+[the recorded sign-off](../qa/v1-auth-sign-off.md).
+
+Residual gap: Self-signed certificates do not prove server identity. Custom trusted certificates or operator-managed reverse-proxy TLS are planned for a later release.
 
 Status: Partially mitigated; see `docs/qa/gaps.md` (GAP-01) for follow-up items (HSTS, custom certs).
+
+## CSRF Posture (accepted V1 residual risk)
+
+V1 intentionally does not use CSRF tokens. Session cookies are `HttpOnly` and
+`SameSite=Strict`, and `Secure` in the default HTTPS deployment. Browser mutations use JSON or
+multipart bodies rather than simple form bodies.
+
+This is an accepted residual risk for the trusted-LAN, single-admin V1 threat model. Revisit the
+decision before public-internet or multi-tenant use, cross-site browser integrations, loosening
+`SameSite`, or accepting simple form content types. See
+[ADR 0010](../adr/0010-security-review-audit-verdict.md).
+
+Status: Accepted for V1; no CSRF-token follow-up is planned within the current threat model.
 
 ## Self-Signed HTTPS UI
 
@@ -32,7 +53,7 @@ Current Controls:
 - Nginx terminates TLS; `COOKIE_SECURE=true` on the default Docker deploy.
 - Certificates stored under `DATA_DIR/certs`; regenerate with `INTEGRITAS_TLS_FORCE=1 bash scripts/generate-tls-cert.sh` after a LAN IP change.
 
-Plan: See `docs/plans/security-checklist.md` for V2+ custom-certificate/HSTS work.
+Plan: Custom certificates and HSTS stay out of scope for V1.5 — see [plans/security/](../plans/security/README.md#out-of-scope-for-v15).
 
 Status: Mitigated for passive sniffing; residual self-signed trust risk documented.
 
@@ -51,6 +72,33 @@ Controls (V1):
 
 Status: Mitigated.
 
+## Session Lifecycle On Credential Change
+
+Risk: A stolen or shared session cookie survived the credential change made to lock the attacker
+out. Password change and TOTP reset rewrote the stored credential but left every existing session
+row valid, so revocation was impossible short of waiting out the 7-day cookie lifetime or deleting
+rows by hand.
+
+Impact: An admin who suspects compromise cannot end the attacker's access. Expired session rows also
+accumulated in SQLite indefinitely, since the only deletion path was a validation attempt against
+that specific row.
+
+Controls:
+
+- `POST /api/auth/settings/password` and `POST /api/auth/settings/totp/verify` delete every session
+  for the user on success, including the caller's own, and clear the caller's session cookie on the
+  way out. The frontend signs out and returns to the login screen after showing the confirmation.
+- Sessions are only revoked once the credential change has actually been applied; a rejected change
+  leaves existing sessions alone.
+- An hourly backend scheduler (started from `index.ts`, plus one sweep at startup) deletes sessions
+  past their absolute expiry.
+
+Residual gap: A new login still does not invalidate other sessions (GAP-09). Sessions that are past
+the idle timeout but not past absolute expiry are rejected and deleted on their next use rather than
+by the sweep, so such rows can sit in the table until then.
+
+Status: **Mitigated (Phase 3, 2026-09-09).** Review finding [9]; GAP-08 and GAP-17.
+
 ## `APP_SECRET` Dependency
 
 Risk: Encrypted local secrets (Integritas API key, TOTP, Connect tokens) can only be decrypted with the same `APP_SECRET` from `.env`. If `APP_SECRET` is lost or changed, stored secrets are unrecoverable. If `.env` leaks together with the database, encrypted secrets can be decrypted.
@@ -64,4 +112,9 @@ Plan:
 - Add backup/restore documentation.
 - Consider integrating OS keyring, TPM, age/sops, or user-provided passphrase for stronger production secret handling.
 
-Status: Partially mitigated by installer preservation. Production design open. See GAP-04 in `qa/gaps.md`.
+Status: **Mitigated (task 704, 2026-09-17), with production secret storage still open.** The backend
+refuses to start before database or background-service initialization when `APP_SECRET` is absent
+or empty. `install.sh` generates `openssl rand -hex 32` for a fresh install and preserves existing
+values during upgrades. Operator-supplied non-empty values remain accepted by policy; no migration
+or secret rotation was added. Production secret design (keyring/TPM/age/sops/passphrase) remains
+open and is not in V1.5. See [ADR 0021](../adr/0021-app-secret-fail-closed-without-migration.md).

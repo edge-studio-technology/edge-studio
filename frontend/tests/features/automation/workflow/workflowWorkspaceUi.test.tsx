@@ -162,6 +162,33 @@ describe("WorkflowValidationPanel", () => {
     expect(screen.getByText(/Missing source/)).toBeInTheDocument();
     expect(screen.getByText("Low balance")).toBeInTheDocument();
   });
+
+  it("does not clip long validation issue lists inside the panel", async () => {
+    render(
+      <WorkflowValidationPanel
+        validation={{
+          ok: false,
+          errors: [
+            { level: "error", code: "recipient", message: "Recipient is required" },
+            { level: "error", code: "amount", message: "Amount is required" },
+            { level: "error", code: "source", message: "Source is required" },
+          ],
+          warnings: [
+            { level: "warning", code: "wallet", message: "Wallet action warning" },
+            { level: "warning", code: "hardware", message: "Hardware action warning" },
+            { level: "warning", code: "review", message: "Review before enabling" },
+          ],
+        }}
+      />,
+    );
+
+    await userEvent.click(screen.getByText("Validation"));
+
+    const panel = screen.getByText("Validation").closest("section");
+    expect(panel).not.toHaveClass("max-h-[320px]");
+    expect(panel).not.toHaveClass("overflow-hidden");
+    expect(screen.getByText("Review before enabling")).toBeInTheDocument();
+  });
 });
 
 describe("SelectedBlockSheet", () => {
@@ -179,6 +206,8 @@ describe("SelectedBlockSheet", () => {
     );
     const dialog = screen.getByRole("dialog", { name: "Wait" });
     expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveClass("z-[70]");
+    expect(document.querySelector(".z-\\[60\\]")).toBeInTheDocument();
     expect(screen.getByText("Configure the wait block.")).toBeInTheDocument();
     expect(screen.getByText("Body")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
@@ -196,6 +225,19 @@ describe("SelectedBlockSheet", () => {
     );
     await userEvent.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("keeps long content inside the sheet width", () => {
+    render(
+      <SelectedBlockSheet title="Fetch" description="https://example.com/a/very/long/path" onClose={vi.fn()}>
+        <p>Body</p>
+      </SelectedBlockSheet>,
+    );
+    expect(screen.getByRole("dialog", { name: "Fetch" })).toHaveClass("grid-cols-[minmax(0,1fr)]");
+    expect(screen.getByText("https://example.com/a/very/long/path").parentElement).toHaveClass(
+      "min-w-0",
+      "wrap-anywhere",
+    );
   });
 });
 

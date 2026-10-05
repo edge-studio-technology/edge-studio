@@ -31,7 +31,7 @@ function prettyJson(value: unknown): string {
   return JSON.stringify(value, null, 2).replace(/\\n/g, "\n");
 }
 
-// Minima RPC results are wrapped as { ok, status, source, command, body: { ...,
+// Minima RPC results are wrapped as { ok, status, command, body: { ...,
 // response } }. The `response` field is the part an operator actually cares about;
 // everything else is envelope/metadata worth keeping around but not front-and-center.
 function extractResponse(payload: unknown): { response: unknown; envelope: unknown } {
@@ -74,6 +74,9 @@ function ConsoleResult({ payload }: { payload: unknown }) {
     </div>
   );
 }
+
+// Compact (32px) from lg up; 40px touch targets below.
+const toolbarIconClass = "max-lg:size-10";
 
 export function MinimaConsolePanel({
   disabled,
@@ -205,13 +208,19 @@ export function MinimaConsolePanel({
         body="Type a Minima RPC command and press Enter, e.g. status. Only commands enabled in the whitelist (gear icon) will run."
         placement="bottom"
       >
-        <IconButton aria-label="RPC console instructions" size="compact" variant="secondary">
+        <IconButton
+          aria-label="RPC console instructions"
+          size="compact"
+          className={toolbarIconClass}
+          variant="secondary"
+        >
           <Info />
         </IconButton>
       </Tooltip>
       <IconButton
         aria-label="Clear scrollback"
         size="compact"
+        className={toolbarIconClass}
         variant="secondary"
         disabled={entries.length === 0 || running}
         onClick={() => setEntries([])}
@@ -221,6 +230,7 @@ export function MinimaConsolePanel({
       <IconButton
         aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
         size="compact"
+        className={toolbarIconClass}
         variant="secondary"
         onClick={() => setFullscreen((value) => !value)}
       >
@@ -229,6 +239,7 @@ export function MinimaConsolePanel({
       <IconButton
         aria-label="Edit console command whitelist"
         size="compact"
+        className={toolbarIconClass}
         variant="secondary"
         onClick={onEditWhitelist}
       >

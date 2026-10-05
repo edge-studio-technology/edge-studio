@@ -98,7 +98,6 @@ export type MinimaConfig = { megammrHost: string; megammrHostSource: "database" 
 export type MinimaCommandResult = {
   ok: boolean;
   status?: number;
-  source: string;
   command?: string;
   body?: unknown;
   error?: string;
@@ -107,7 +106,6 @@ export type MinimaPeersResponse = {
   ok: boolean;
   count: number | null;
   peers: string[];
-  source?: string;
   command?: string;
   error?: string;
 };
@@ -129,10 +127,20 @@ export type MinimaConsoleWhitelist = {
   catalog: MinimaConsoleCatalogEntry[];
   enabledKeys: string[];
 };
-export type MinimaConsoleRunResult = MinimaCommandResult;
 export type MinimaBackupEntry = { fileName: string; sizeBytes: number; createdAt: string };
 export type MinimaBackupListResponse = MinimaBackupEntry[];
-export type MinimaBackupCreateResult = MinimaCommandResult & { fileName: string; auto: boolean };
+// Backup/restore responses are purpose-built DTOs, not the raw RPC envelope — the command
+// string carries the backup password, so it never reaches the client.
+export type MinimaBackupCreateResult = {
+  ok: boolean;
+  status: number;
+  fileName: string;
+  auto: boolean;
+  sizeBytes: number | null;
+  createdAt: string | null;
+};
+export type MinimaBackupRestoreResult = { ok: boolean; status: number; fileName: string };
+export type MinimaConsoleRunResult = MinimaCommandResult | MinimaBackupCreateResult | MinimaBackupRestoreResult;
 export type MinimaAutoBackupResponse = { autoBackupEnabled: boolean };
 export type MinimaBackupPasswordResponse = { hasPassword: boolean };
 export type IntegritasConfig = {

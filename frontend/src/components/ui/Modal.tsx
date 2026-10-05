@@ -59,6 +59,8 @@ function unlockBodyScroll() {
 
 /**
  * Dialog: title + optional description, bordered scroll body, footer, close IconButton.
+ * Default modals must render above page/workspace overlays; use `layer="top"` only for
+ * intentionally stacked app-level dialogs.
  * `width` picks the max-width track; default is 800px, "wide" is 960px.
  */
 export function Modal({
@@ -70,6 +72,10 @@ export function Modal({
   closeDisabled = false,
   className,
   bodyClassName,
+  bodyStableGutter = true,
+  bodyScrollable = true,
+  closeOnOutsideClick,
+  layer = "default",
   width = "default",
 }: {
   title: string | ReactNode;
@@ -80,14 +86,19 @@ export function Modal({
   closeDisabled?: boolean;
   className?: string;
   bodyClassName?: string;
+  bodyStableGutter?: boolean;
+  bodyScrollable?: boolean;
+  closeOnOutsideClick?: boolean;
+  layer?: "default" | "top";
   width?: "default" | "wide";
 }) {
   const titleId = useId();
   const descriptionId = useId();
-  const closeOnOutsideClick = useSyncExternalStore(
+  const closeOnOutsideClickSettingValue = useSyncExternalStore(
     closeModalOnOutsideClickSetting.subscribe,
     closeModalOnOutsideClickSetting.get,
   );
+  const effectiveCloseOnOutsideClick = closeOnOutsideClick ?? closeOnOutsideClickSettingValue;
 
   useEffect(() => {
     lockBodyScroll();
@@ -99,10 +110,12 @@ export function Modal({
   useEffect(() => {
     if (closeDisabled) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      onClose();
     }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => document.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [closeDisabled, onClose]);
 
   // Fires on press (mousedown), not click/release, so a text selection or drag that starts
@@ -110,13 +123,16 @@ export function Modal({
   // when the press lands on the backdrop itself — the safety-zone wrapper's padding around the
   // dialog absorbs presses near the edge so they don't bubble up as a backdrop target.
   function handleBackdropMouseDown(event: MouseEvent<HTMLDivElement>) {
-    if (closeDisabled || !closeOnOutsideClick) return;
+    if (closeDisabled || !effectiveCloseOnOutsideClick) return;
     if (event.target === event.currentTarget) onClose();
   }
 
   return createPortal(
     <div
-      className="bg-overlay-heavy px-pad-tight py-pad-tight fixed inset-0 z-50 grid place-items-center"
+      className={cx(
+        "bg-overlay-heavy px-pad-tight py-pad-tight fixed inset-0 grid place-items-center",
+        layer === "top" ? "z-[100]" : "z-[90]",
+      )}
       role="presentation"
       onMouseDown={handleBackdropMouseDown}
     >
@@ -154,8 +170,9 @@ export function Modal({
               ) : null}
             </div>
 
-            {children ? (
+            {children && bodyScrollable ? (
               <ScrollArea
+                stableGutter={bodyStableGutter}
                 className={
                   bodyClassName ??
                   "border-stroke-secondary bg-surface-primary rounded-soft p-pad-close min-h-0 flex-1 border"
@@ -163,6 +180,8 @@ export function Modal({
               >
                 {children}
               </ScrollArea>
+            ) : children ? (
+              <div className={bodyClassName}>{children}</div>
             ) : null}
 
             {footer ? (

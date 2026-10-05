@@ -1,5 +1,5 @@
 import { createRef } from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -310,12 +310,55 @@ describe("DraftBlockInspector control_output", () => {
 });
 
 describe("DraftBlockInspector send_transaction", () => {
-  it("shows a required-contact message and a disabled recipient select with no address book", () => {
-    renderInspector(draftBlock("send_transaction"));
+  it("offers recipient creation when the address book is empty", () => {
+    renderInspector(draftBlock("send_transaction"), {
+      onCreateAddressBookEntry: vi.fn(),
+    });
     expect(
-      screen.getByText("You need to create an address book contact first."),
+      screen.getByText("Create a recipient now, or choose a saved contact later."),
     ).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Address book recipient" })).toBeDisabled();
+    const select = screen.getByRole("combobox", { name: "Address book recipient" });
+    expect(select).toBeEnabled();
+    expect(within(select).getByRole("option", { name: "Create new recipient" })).toBeInTheDocument();
+  });
+
+  it("creates a new recipient from the dropdown and selects it", async () => {
+    const onChange = vi.fn();
+    const onCreateAddressBookEntry = vi.fn(async () =>
+      addressBookEntry({ id: "a2", label: "Bob", address: "Mx2" }),
+    );
+    renderInspector(draftBlock("send_transaction", { amount: "1" }), {
+      onChange,
+      onCreateAddressBookEntry,
+    });
+
+    await userEvent.selectOptions(
+      screen.getByRole("combobox", { name: "Address book recipient" }),
+      "__create_new_recipient__",
+    );
+    const dialog = screen.getByRole("dialog", { name: "New contact" });
+    const backdrop = dialog.closest('[role="presentation"]');
+    expect(backdrop).not.toBeNull();
+    fireEvent.mouseDown(backdrop!);
+    expect(screen.getByRole("dialog", { name: "New contact" })).toBeInTheDocument();
+
+    await userEvent.type(within(dialog).getByRole("textbox", { name: "Label" }), "Bob");
+    await userEvent.type(within(dialog).getByRole("textbox", { name: "Address" }), "Mx2");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Add contact" }));
+
+    await waitFor(() => {
+      expect(onCreateAddressBookEntry).toHaveBeenCalledWith({
+        label: "Bob",
+        address: "Mx2",
+        notes: null,
+      });
+    });
+    expect(onChange).toHaveBeenCalledWith({
+      amount: "1",
+      recipientAddressBookId: "a2",
+      tokenId: "0x00",
+    });
+    expect(screen.queryByRole("dialog", { name: "New contact" })).not.toBeInTheDocument();
   });
 
   it("shows the sendable native balance and reports amount changes", async () => {

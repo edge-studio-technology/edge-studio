@@ -21,6 +21,11 @@ export type DataSourceReadRecord = {
   block_id: string | null;
 };
 
+/** Credential-free `source_url` for push sources (webhook, MQTT, GPIO) — never their config URL. */
+export function dataSourceReference(dataSourceId: string) {
+  return `data-source:${dataSourceId}`;
+}
+
 export const DATA_READ_LIST_STATUSES = ["success", "failed"] as const;
 
 export type DataReadListQuery = ParsedListQuery;

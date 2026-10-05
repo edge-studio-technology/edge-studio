@@ -5,7 +5,6 @@ import { parseMegammrResyncResult, resyncToastForResult } from "../../../src/fea
 function result(overrides: Partial<MinimaCommandResult> = {}): MinimaCommandResult {
   return {
     ok: true,
-    source: "minima",
     ...overrides,
   };
 }

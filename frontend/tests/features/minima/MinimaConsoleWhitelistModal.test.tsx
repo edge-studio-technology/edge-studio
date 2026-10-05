@@ -33,7 +33,31 @@ describe("MinimaConsoleWhitelistModal", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows a loading state, then renders read/write sections once loaded", async () => {
+  it("replaces the command list with a retryable error state when the fetch fails", async () => {
+    getConsoleWhitelist
+      .mockRejectedValueOnce(new Error("whitelist down"))
+      .mockResolvedValueOnce({ catalog, enabledKeys: ["status"] });
+    renderModal();
+
+    expect(await screen.findByText("Command list isn't available")).toBeInTheDocument();
+    expect(screen.getByText("whitelist down")).toBeInTheDocument();
+    expect(screen.queryByText("Read")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(await screen.findByText("Read")).toBeInTheDocument();
+    expect(screen.queryByText("Command list isn't available")).not.toBeInTheDocument();
+  });
+
+  it("shows a loading state while the catalog request is in flight", () => {
+    getConsoleWhitelist.mockReturnValue(new Promise(() => {}));
+    renderModal();
+
+    expect(screen.getByText("Fetching the command list")).toBeInTheDocument();
+    expect(screen.queryByText("Read")).not.toBeInTheDocument();
+  });
+
+  it("renders read/write sections once loaded", async () => {
     getConsoleWhitelist.mockResolvedValue({ catalog, enabledKeys: ["status", "peers"] });
     renderModal();
 

@@ -85,6 +85,7 @@ export function WalletPage() {
 
       <WalletHero
         loading={loading}
+        unavailable={Boolean(error)}
         totalMinima={totalMinima}
         disabled={actionsBlocked}
         onSend={() => setSendOpen(true)}

@@ -220,23 +220,56 @@ export function withSoftenedInsufficientBalance(
 
 export function runtimeByBlockIdFromRun(
   run: AutomationRun | undefined,
+  workflowBlocks: AutomationBlock[] = [],
 ): Record<string, WorkflowCanvasRuntimeState> {
   const result: Record<string, WorkflowCanvasRuntimeState> = {};
   if (!run) return result;
+  const parentByBlockId = new Map(
+    workflowBlocks
+      .filter((block) => block.parentBlockId)
+      .map((block) => [block.id, block.parentBlockId as string]),
+  );
   for (const block of run.blocks) {
-    if (!block.blockId) continue;
-    result[block.blockId] = {
+    const blockId = blockRunBlockId(block);
+    if (!blockId) continue;
+    const visibleBlockId = parentByBlockId.get(blockId) ?? blockId;
+    const nextRuntime = {
       status: block.status,
       durationMs: block.durationMs,
       error: block.error,
     };
+    const previousRuntime = result[visibleBlockId];
+    if (!previousRuntime || nextRuntime.status === "failed") result[visibleBlockId] = nextRuntime;
   }
   return result;
 }
 
-export function blockRunForBlock(run: AutomationRun | undefined, blockId: string | null) {
+export function blockRunForBlock(
+  run: AutomationRun | undefined,
+  blockId: string | null,
+  workflowBlocks: AutomationBlock[] = [],
+) {
   if (!run || !blockId) return null;
-  return run.blocks.find((block) => block.blockId === blockId) ?? null;
+  const directRun = run.blocks.find((block) => blockRunBlockId(block) === blockId);
+  const attachedIds = new Set(
+    workflowBlocks
+      .filter((block) => block.parentBlockId === blockId)
+      .map((block) => block.id),
+  );
+  const attachedFailure = run.blocks.find(
+    (block) => attachedIds.has(blockRunBlockId(block) ?? "") && block.status === "failed",
+  );
+  return attachedFailure ?? directRun ?? null;
+}
+
+/** Some failed block-run records omit blockId but preserve it in error context. */
+export function blockRunBlockId(block: AutomationRun["blocks"][number]) {
+  if (block.blockId) return block.blockId;
+  if (!block.errorDetails || typeof block.errorDetails !== "object") return null;
+  const context = (block.errorDetails as { context?: unknown }).context;
+  if (!context || typeof context !== "object") return null;
+  const blockId = (context as { blockId?: unknown }).blockId;
+  return typeof blockId === "string" ? blockId : null;
 }
 
 export function diagnosticsLink(tab: "proofs" | "reads", id: string) {

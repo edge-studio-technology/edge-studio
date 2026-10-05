@@ -1,6 +1,7 @@
 import QRCode from "qrcode";
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { db } from "../../db/database.js";
+import { isMinimaAddress } from "../../shared/minima-address.js";
 import { parseAddressResponse, parseBalanceResponse, parseImportResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
 import type {
   ImportWalletResult,
@@ -29,6 +30,7 @@ export async function getReceiveAddress(): Promise<ReceiveAddress> {
 
 export async function sendPayment({ address, amount, tokenId = "0x00" }: SendPaymentRequest): Promise<SendPaymentResult> {
   if (!address.trim()) throw new Error("Address is required");
+  if (!isMinimaAddress(address)) throw new Error("Address must be a valid Minima Mx or 0x address");
   const parsed = Number(amount);
   if (!Number.isFinite(parsed) || parsed <= 0) throw new Error("Amount must be a positive number");
   const result = await runMinimaPathCommand(`send amount:${amount} address:${address} tokenid:${tokenId}`, 10_000);

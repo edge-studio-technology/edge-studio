@@ -72,6 +72,12 @@ export function dockerRequestStream(
     let trailing = "";
     let lastBody = "";
 
+    const rejectOnce = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+
     const request = http.request(
       { socketPath: env.dockerSocketPath, path: pathName, method: "POST" },
       (response) => {
@@ -90,8 +96,7 @@ export function dockerRequestStream(
             try {
               const parsed = JSON.parse(line) as DockerProgressLine;
               if (parsed.error) {
-                settled = true;
-                reject(new Error(parsed.error));
+                rejectOnce(new Error(parsed.error));
                 request.destroy();
                 return;
               }
@@ -105,8 +110,7 @@ export function dockerRequestStream(
         response.on("end", () => {
           if (settled) return;
           if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300) {
-            settled = true;
-            reject(new Error(`Docker API POST ${pathName} returned HTTP ${response.statusCode}: ${lastBody}`));
+            rejectOnce(new Error(`Docker API POST ${pathName} returned HTTP ${response.statusCode}: ${lastBody}`));
             return;
           }
           settled = true;
@@ -115,15 +119,12 @@ export function dockerRequestStream(
       }
     );
 
-    request.on("error", (error) => {
-      if (settled) return;
-      settled = true;
-      reject(error);
-    });
+    request.on("error", rejectOnce);
     request.setTimeout(timeoutMs, () => {
       if (settled) return;
-      settled = true;
-      request.destroy(new Error(`Docker API POST ${pathName} timed out`));
+      const error = new Error(`Docker API POST ${pathName} timed out`);
+      rejectOnce(error);
+      request.destroy(error);
     });
     request.end();
   });

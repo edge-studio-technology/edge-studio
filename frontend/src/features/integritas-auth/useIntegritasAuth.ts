@@ -82,7 +82,11 @@ export function useIntegritasAuth(options?: UseIntegritasAuthOptions): UseIntegr
     return popup;
   }, []);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       // Candidate status — applied after optional profile enrich.
       let next = await getIntegritasAuthStatus();
@@ -210,7 +214,7 @@ export function useIntegritasAuth(options?: UseIntegritasAuthOptions): UseIntegr
     if (!enabled || status?.status !== "pending") return;
 
     const interval = window.setInterval(() => {
-      void refresh();
+      void refresh(false);
     }, POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
   }, [enabled, status?.status, refresh]);

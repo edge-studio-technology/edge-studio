@@ -25,17 +25,89 @@ export const tableHeaderCellClass =
 export const tableRowClass = "border-t border-stroke-primary bg-surface-always-white";
 export const tableCellClass =
   "px-margin-tight py-margin-tight type-body text-text-primary align-middle whitespace-nowrap";
+/** Pins a cell to the right edge of a scrolling `TableWrap`; divider and edge shadow show while more columns sit behind it. */
+const stickyEndCellClass =
+  "sticky right-0 z-10 bg-inherit group-data-[scroll-right]/table:shadow-[inset_1px_0_0_var(--color-stroke-primary),-8px_0_8px_-8px_rgb(0_0_0/0.25)]";
+
+/**
+ * Tracks horizontal scroll edges for a table scroller and exposes the signal sticky cells read.
+ * Spread `scrollProps` on the element that scrolls sideways; `TableWrap` does this for you.
+ */
+export function useTableScrollEdges(deps: unknown) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollEdges, setScrollEdges] = useState({ left: false, right: false });
+  const [hasStickyEnd, setHasStickyEnd] = useState(false);
+
+  function updateScrollEdges() {
+    const node = scrollRef.current;
+    if (!node) return;
+    setHasStickyEnd(node.querySelector("[data-sticky-end]") !== null);
+    const canScrollLeft = node.scrollLeft > 0;
+    const canScrollRight = node.scrollLeft + node.clientWidth < node.scrollWidth - 1;
+    setScrollEdges((current) =>
+      current.left === canScrollLeft && current.right === canScrollRight
+        ? current
+        : { left: canScrollLeft, right: canScrollRight },
+    );
+  }
+
+  useEffect(() => {
+    updateScrollEdges();
+    const node = scrollRef.current;
+    if (!node) return;
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateScrollEdges);
+    resizeObserver?.observe(node);
+    if (node.firstElementChild) resizeObserver?.observe(node.firstElementChild);
+
+    window.addEventListener("resize", updateScrollEdges);
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateScrollEdges);
+    };
+  }, [deps]);
+
+  return {
+    scrollEdges,
+    hasStickyEnd,
+    scrollProps: {
+      ref: scrollRef,
+      "data-table-scroll": true,
+      "data-scroll-right": scrollEdges.right || undefined,
+      onScroll: updateScrollEdges,
+    },
+  };
+}
 
 /** Bordered scroll shell for list tables. Includes a modest min-height (~4 rows). */
 export function TableWrap({ children, className }: { children: ReactNode; className?: string }) {
+  const { scrollEdges, hasStickyEnd, scrollProps } = useTableScrollEdges(children);
+
   return (
     <div
       className={cx(
-        "rounded-loose border-stroke-primary bg-surface-always-white min-h-[280px] overflow-x-auto border",
+        "rounded-loose border-stroke-primary bg-surface-always-white relative min-h-[280px] overflow-hidden border",
         className,
       )}
     >
-      {children}
+      <div {...scrollProps} className="group/table min-h-[280px] overflow-x-auto">
+        {children}
+      </div>
+      {scrollEdges.left && (
+        <div
+          aria-hidden="true"
+          data-scroll-edge="left"
+          className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-grey-03/45 via-grey-03/15 to-transparent"
+        />
+      )}
+      {scrollEdges.right && !hasStickyEnd && (
+        <div
+          aria-hidden="true"
+          data-scroll-edge="right"
+          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-grey-03/45 via-grey-03/15 to-transparent"
+        />
+      )}
     </div>
   );
 }
@@ -92,10 +164,15 @@ export function TableRow({
 export function TableHeaderCell({
   children,
   className,
+  sticky = false,
   ...props
-}: ThHTMLAttributes<HTMLTableCellElement>) {
+}: ThHTMLAttributes<HTMLTableCellElement> & { sticky?: boolean }) {
   return (
-    <th className={cx(tableHeaderCellClass, className)} {...props}>
+    <th
+      className={cx(tableHeaderCellClass, sticky && stickyEndCellClass, className)}
+      data-sticky-end={sticky || undefined}
+      {...props}
+    >
       {children}
     </th>
   );
@@ -104,10 +181,15 @@ export function TableHeaderCell({
 export function TableCell({
   children,
   className,
+  sticky = false,
   ...props
-}: TdHTMLAttributes<HTMLTableCellElement>) {
+}: TdHTMLAttributes<HTMLTableCellElement> & { sticky?: boolean }) {
   return (
-    <td className={cx(tableCellClass, className)} {...props}>
+    <td
+      className={cx(tableCellClass, sticky && stickyEndCellClass, className)}
+      data-sticky-end={sticky || undefined}
+      {...props}
+    >
       {children}
     </td>
   );

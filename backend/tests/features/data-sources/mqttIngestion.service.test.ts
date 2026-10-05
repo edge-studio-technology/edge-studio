@@ -37,6 +37,7 @@ let dataSourcesRepo: typeof import("../../../src/features/data-sources/dataSourc
 let automationRepo: typeof import("../../../src/features/automation/automation.repository.js");
 let dataReadsRepo: typeof import("../../../src/features/data-reads/dataReads.repository.js");
 let mqttIngestion: typeof import("../../../src/features/data-sources/mqttIngestion.service.js");
+let env: typeof import("../../../src/config/env.js")["env"];
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
@@ -46,6 +47,7 @@ beforeAll(async () => {
   automationRepo = await import("../../../src/features/automation/automation.repository.js");
   dataReadsRepo = await import("../../../src/features/data-reads/dataReads.repository.js");
   mqttIngestion = await import("../../../src/features/data-sources/mqttIngestion.service.js");
+  ({ env } = await import("../../../src/config/env.js"));
 });
 
 afterAll(() => {
@@ -135,6 +137,19 @@ describe("syncMqttDataSources", () => {
     assert.equal(mqttMock.connect.mock.calls.length, 1);
   });
 
+  it("ends the client when its source is deleted", () => {
+    const source = makeMqttSource();
+    makeMqttWorkflow(source.id);
+    mqttIngestion.syncMqttDataSources();
+    const client = clients[0];
+
+    dataSourcesRepo.deleteDataSource(source.id);
+    mqttIngestion.syncMqttDataSources();
+
+    assert.equal(client.end.mock.calls[0][0], true);
+    assert.equal(mqttMock.connect.mock.calls.length, 1);
+  });
+
   it("records a configuration_invalid error and does not connect for an invalid config", () => {
     const source = dataSourcesRepo.createDataSource({ name: "Bad MQTT", type: "mqtt", config: {} });
     makeMqttWorkflow(source.id);
@@ -195,6 +210,25 @@ describe("MQTT message handling", () => {
     assert.equal(call.dataSource.id, source.id);
     assert.equal(call.triggerType, "mqtt");
     assert.deepEqual(call.result.preview, { temp: 21.5 });
+    assert.equal("sourceUrl" in call, false);
+  });
+
+  it("records failed reads with a source reference instead of the credential-bearing broker URL", async () => {
+    const brokerPassword = ["broker", "password"].join("-");
+    const source = makeMqttSource({ brokerUrl: `mqtt://sensor:${brokerPassword}@broker.local:1883` });
+    makeMqttWorkflow(source.id);
+    mqttIngestion.syncMqttDataSources();
+    const client = clients[0];
+
+    client.emit("message", "sensors/temp", Buffer.from("not json"));
+    client.emit("message", "sensors/temp", Buffer.from(`{"blob":"${"x".repeat(env.mqttMaxPayloadBytes)}"}`));
+    await flush();
+
+    const reads = dataReadsRepo.listDataSourceReads({ page: 1, pageSize: 10 });
+    assert.equal(reads.length, 2);
+    for (const read of reads) assert.equal(read.source_url, `data-source:${source.id}`);
+    assert.equal(JSON.stringify(reads).includes(brokerPassword), false);
+    assert.equal(mqttMock.connect.mock.calls[0][0], `mqtt://sensor:${brokerPassword}@broker.local:1883`);
   });
 
   it("records an invalid_payload error and a failed data-source read for non-JSON messages", async () => {
@@ -216,6 +250,41 @@ describe("MQTT message handling", () => {
     assert.equal(reads[0].status, "failed");
   });
 
+  it("rejects an oversized payload before parsing it, and records the failed read", async () => {
+    const source = makeMqttSource();
+    makeMqttWorkflow(source.id);
+    mqttIngestion.syncMqttDataSources();
+    const client = clients[0];
+
+    // Valid JSON, so only the size check can reject it.
+    const oversized = `{"blob":"${"x".repeat(env.mqttMaxPayloadBytes)}"}`;
+    client.emit("message", "sensors/temp", Buffer.from(oversized));
+    await flush();
+
+    assert.equal(automationServiceMock.recordPushAutomationPayload.mock.calls.length, 0);
+    const updated = dataSourcesRepo.getDataSource(source.id)!;
+    const error = JSON.parse(updated.last_error!) as { type: string; message: string };
+    assert.equal(error.type, "invalid_payload");
+    assert.match(error.message, /byte limit/);
+
+    const reads = dataReadsRepo.listDataSourceReads({ page: 1, pageSize: 10 });
+    assert.equal(reads.length, 1);
+    assert.equal(reads[0].status, "failed");
+  });
+
+  it("accepts a payload right at the size limit", async () => {
+    const source = makeMqttSource();
+    makeMqttWorkflow(source.id);
+    mqttIngestion.syncMqttDataSources();
+    const client = clients[0];
+
+    const padding = "x".repeat(env.mqttMaxPayloadBytes - '{"blob":""}'.length);
+    client.emit("message", "sensors/temp", Buffer.from(`{"blob":"${padding}"}`));
+    await flush();
+
+    assert.equal(automationServiceMock.recordPushAutomationPayload.mock.calls.length, 1);
+  });
+
   it("swallows workflow-busy errors without logging", async () => {
     const source = makeMqttSource();
     makeMqttWorkflow(source.id);
@@ -230,6 +299,22 @@ describe("MQTT message handling", () => {
     client.emit("message", "sensors/temp", Buffer.from(JSON.stringify({ a: 1 })));
     await flush();
 
+    assert.equal((console.error as ReturnType<typeof vi.fn>).mock.calls.length, 0);
+  });
+
+  it("swallows run-budget exhaustion without logging", async () => {
+    const source = makeMqttSource();
+    makeMqttWorkflow(source.id);
+    automationServiceMock.recordPushAutomationPayload.mockReset().mockRejectedValue(
+      Object.assign(new Error("Workflow run budget exhausted"), { code: "WORKFLOW_RUN_BUDGET_EXHAUSTED" })
+    );
+    mqttIngestion.syncMqttDataSources();
+    const client = clients[0];
+
+    client.emit("message", "sensors/temp", Buffer.from(JSON.stringify({ a: 1 })));
+    await flush();
+
+    assert.equal(automationServiceMock.recordPushAutomationPayload.mock.calls.length, 1);
     assert.equal((console.error as ReturnType<typeof vi.fn>).mock.calls.length, 0);
   });
 

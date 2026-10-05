@@ -1,0 +1,35 @@
+#!/bin/sh
+
+# Derive the upload-route request limit from the backend settings. See ADR 0018.
+EDGE_STUDIO_UPLOAD_MAX_REQUEST_BYTES="$({
+  awk \
+    -v raw_file_bytes="${UPLOAD_MAX_FILE_BYTES:-}" \
+    -v raw_field_count="${UPLOAD_MAX_FIELDS:-}" '
+      BEGIN {
+        mb = 1048576
+        max_safe_integer = 9007199254740991
+
+        decimal_number = "^[[:space:]]*[+-]?(([0-9]+([.][0-9]*)?)|([.][0-9]+))([eE][+-]?[0-9]+)?[[:space:]]*$"
+
+        file_bytes = raw_file_bytes
+        if (file_bytes !~ decimal_number) file_bytes = 100 * mb
+        else file_bytes += 0
+        if (file_bytes < mb) file_bytes = mb
+        if (file_bytes > max_safe_integer) file_bytes = max_safe_integer
+        file_bytes = int(file_bytes)
+
+        field_count = raw_field_count
+        if (field_count !~ decimal_number) field_count = 8
+        else field_count += 0
+        if (field_count < 1) field_count = 1
+        if (field_count > 64) field_count = 64
+        field_count = int(field_count)
+
+        field_bytes = field_count * mb
+        part_headers = (field_count + 1) * 16384
+        framing_reserve = 65536
+        printf "%.0f\n", file_bytes + field_bytes + part_headers + framing_reserve
+      }
+    '
+})"
+export EDGE_STUDIO_UPLOAD_MAX_REQUEST_BYTES

@@ -49,12 +49,40 @@ describe("IntegritasConnectPanel", () => {
 
   it("shows a checking indicator while loading with no status yet", () => {
     render(<IntegritasConnectPanel auth={makeAuth({ loading: true, status: null })} />);
-    expect(screen.getByText("Checking connection…")).toBeInTheDocument();
+    expect(screen.getByText("Checking your Integritas connection")).toBeInTheDocument();
   });
 
-  it("shows an error message when present", () => {
-    render(<IntegritasConnectPanel auth={makeAuth({ error: "Failed to load Integritas status" })} />);
+  it("shows a retryable error state when there is no status to fall back on", async () => {
+    const refresh = vi.fn();
+    render(
+      <IntegritasConnectPanel
+        auth={makeAuth({ error: "Failed to load Integritas status", refresh })}
+      />,
+    );
+
+    expect(screen.getByText("Integritas Connect status isn't available")).toBeInTheDocument();
     expect(screen.getByText("Failed to load Integritas status")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(refresh).toHaveBeenCalledOnce();
+  });
+
+  it("degrades to a banner alert when a status is already on screen", () => {
+    render(
+      <IntegritasConnectPanel
+        auth={makeAuth({
+          error: "Usage sync failed",
+          status: { status: "unauthenticated" } as never,
+        })}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Integritas Connect error");
+    expect(screen.getByText("Usage sync failed")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Integritas Connect status isn't available"),
+    ).not.toBeInTheDocument();
   });
 
   it("shows a notice when present and there is no error", () => {

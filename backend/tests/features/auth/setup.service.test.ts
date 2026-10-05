@@ -120,6 +120,13 @@ describe("after the local admin is created", () => {
     );
   });
 
+  it("verifySetupTotp is guarded before validating the token", async () => {
+    await assert.rejects(
+      () => setupService.verifySetupTotp("not-a-token"),
+      (error: unknown) => error instanceof setupService.SetupError && error.status === 403
+    );
+  });
+
   it("completeSetup is guarded against re-running setup", async () => {
     await assert.rejects(
       () => setupService.completeSetup({ password: VALID_PASSWORD }),

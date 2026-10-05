@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "../../src/components/AppShell";
+import { guidedTourSeenSetting } from "../../src/lib/behaviourSettings";
 
 const getStatusOverview = vi.fn();
 const getUpdateStatusSummary = vi.fn();
@@ -49,6 +50,7 @@ describe("AppShell", () => {
   beforeEach(() => {
     getStatusOverview.mockResolvedValue(null);
     getUpdateStatusSummary.mockResolvedValue(null);
+    guidedTourSeenSetting.set(true);
   });
 
   afterEach(() => {
@@ -93,6 +95,39 @@ describe("AppShell", () => {
     expect(within(statusBar).getByText("Integritas disconnected")).toBeInTheDocument();
   });
 
+  it("shows fallback details for services without a specific error", async () => {
+    getStatusOverview.mockResolvedValue({
+      generatedAt: "2026-08-20T00:00:00.000Z",
+      services: [
+        { name: "minima", ok: false, status: "error" },
+        { name: "integritas", ok: true, status: "ok" },
+      ],
+    });
+
+    const user = userEvent.setup();
+    renderShell();
+    const statusBar = screen.getByRole("status", { name: "System status" });
+
+    await user.hover(await within(statusBar).findByText("Node offline"));
+    expect(await screen.findByText("Something went wrong during the last check.")).toBeInTheDocument();
+  });
+
+  it("shows the normalized state for a degraded service", async () => {
+    getStatusOverview.mockResolvedValue({
+      generatedAt: "2026-08-20T00:00:00.000Z",
+      services: [
+        { name: "minima", ok: false, status: "degraded" },
+        { name: "integritas", ok: true, status: "ok" },
+      ],
+    });
+
+    const user = userEvent.setup();
+    renderShell();
+    const statusBar = screen.getByRole("status", { name: "System status" });
+    await user.hover(await within(statusBar).findByText("Node offline"));
+    expect(await screen.findByText("Current state: degraded.")).toBeInTheDocument();
+  });
+
   it("opens the feedback modal with the current page path/label and closes it", async () => {
     renderShell();
     await act(async () => {});
@@ -134,5 +169,33 @@ describe("AppShell", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     expect(screen.queryByText("Update available")).not.toBeInTheDocument();
+  });
+
+  it("does not open the guided tour once it has been seen", async () => {
+    renderShell();
+    await act(async () => {});
+    expect(screen.queryByRole("button", { name: "Skip tour" })).not.toBeInTheDocument();
+  });
+
+  it("opens the guided tour until it is closed, then marks it seen", async () => {
+    guidedTourSeenSetting.set(false);
+    renderShell();
+    await act(async () => {});
+
+    expect(screen.getByRole("dialog", { name: "Welcome to Edge Studio" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Skip tour" }));
+    expect(
+      screen.queryByRole("dialog", { name: "Welcome to Edge Studio" }),
+    ).not.toBeInTheDocument();
+    expect(guidedTourSeenSetting.get()).toBe(true);
+  });
+
+  it("reopens the guided tour when the seen flag is cleared", async () => {
+    renderShell();
+    await act(async () => {});
+
+    act(() => guidedTourSeenSetting.set(false));
+    expect(screen.getByRole("dialog", { name: "Welcome to Edge Studio" })).toBeInTheDocument();
   });
 });

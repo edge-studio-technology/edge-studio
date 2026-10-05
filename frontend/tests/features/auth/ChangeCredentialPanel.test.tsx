@@ -5,6 +5,8 @@ import { ChangeCredentialPanel } from "../../../src/features/auth/ChangeCredenti
 
 const changePassword = vi.fn();
 
+const SUCCESS_TEXT = "Credential changed. Signing you out — log in again with your new PIN or password.";
+
 vi.mock("../../../src/features/auth/api", () => ({
   changePassword: (...args: unknown[]) => changePassword(...args),
 }));
@@ -41,7 +43,7 @@ describe("ChangeCredentialPanel", () => {
       currentPassword: "111111",
       newPassword: "222222",
     });
-    expect(await screen.findByText("Credential changed successfully.")).toBeInTheDocument();
+    expect(await screen.findByText(SUCCESS_TEXT)).toBeInTheDocument();
     expect(screen.getByLabelText("Current PIN or password")).toHaveValue("");
   });
 
@@ -83,7 +85,7 @@ describe("ChangeCredentialPanel", () => {
       currentPassword: "old-pass",
       newPassword: "Abcdef1!",
     });
-    expect(await screen.findByText("Credential changed successfully.")).toBeInTheDocument();
+    expect(await screen.findByText(SUCCESS_TEXT)).toBeInTheDocument();
   });
 
   it("shows a mismatch error for the password confirmation field", async () => {
@@ -94,6 +96,34 @@ describe("ChangeCredentialPanel", () => {
     await userEvent.type(screen.getByLabelText("Confirm new password"), "Different1!");
 
     expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
+  });
+
+  it("calls onCredentialChanged once the change succeeds", async () => {
+    changePassword.mockResolvedValue({ success: true, sessionsRevoked: true });
+    const onCredentialChanged = vi.fn();
+    render(<ChangeCredentialPanel onCredentialChanged={onCredentialChanged} />);
+
+    await userEvent.type(screen.getByLabelText("Current PIN or password"), "111111");
+    await userEvent.type(screen.getByLabelText("New PIN"), "222222");
+    await userEvent.type(screen.getByLabelText("Confirm new PIN"), "222222");
+    await userEvent.click(screen.getByRole("button", { name: "Change credential" }));
+
+    expect(await screen.findByText(SUCCESS_TEXT)).toBeInTheDocument();
+    expect(onCredentialChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not call onCredentialChanged when the change fails", async () => {
+    changePassword.mockRejectedValue(new Error("wrong current credential"));
+    const onCredentialChanged = vi.fn();
+    render(<ChangeCredentialPanel onCredentialChanged={onCredentialChanged} />);
+
+    await userEvent.type(screen.getByLabelText("Current PIN or password"), "111111");
+    await userEvent.type(screen.getByLabelText("New PIN"), "222222");
+    await userEvent.type(screen.getByLabelText("Confirm new PIN"), "222222");
+    await userEvent.click(screen.getByRole("button", { name: "Change credential" }));
+
+    expect(await screen.findByText("wrong current credential")).toBeInTheDocument();
+    expect(onCredentialChanged).not.toHaveBeenCalled();
   });
 
   it("shows the API error and does not clear the form when the request fails", async () => {
@@ -187,7 +217,7 @@ describe("ChangeCredentialPanel with TOTP enabled", () => {
       newPassword: "222222",
       totpToken: "123456",
     });
-    expect(await screen.findByText("Credential changed successfully.")).toBeInTheDocument();
+    expect(await screen.findByText(SUCCESS_TEXT)).toBeInTheDocument();
     expect(screen.getByLabelText("2FA code")).toHaveValue("");
   });
 });

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { closeModalOnOutsideClickSetting, sidebarStartCollapsedSetting } from "../../src/lib/behaviourSettings";
+import {
+  closeModalOnOutsideClickSetting,
+  guidedTourSeenSetting,
+  sidebarStartCollapsedSetting,
+} from "../../src/lib/behaviourSettings";
 
 describe("closeModalOnOutsideClickSetting", () => {
   beforeEach(() => {
@@ -18,5 +22,21 @@ describe("sidebarStartCollapsedSetting", () => {
 
   it("defaults to false", () => {
     expect(sidebarStartCollapsedSetting.get()).toBe(false);
+  });
+});
+
+describe("guidedTourSeenSetting", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("defaults to false", () => {
+    expect(guidedTourSeenSetting.get()).toBe(false);
+  });
+
+  it("persists under the guided-tour-seen key", () => {
+    guidedTourSeenSetting.set(true);
+    expect(window.localStorage.getItem("edge-studio:guided-tour-seen")).toBe("true");
+    expect(guidedTourSeenSetting.get()).toBe(true);
   });
 });

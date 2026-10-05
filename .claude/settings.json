@@ -29,7 +29,19 @@
       "Bash(npm --prefix frontend run typecheck*)",
       "Bash(npm --prefix frontend run build*)",
       "Bash(npm --prefix frontend run dev*)",
-      "Bash(npm --prefix frontend audit*)"
+      "Bash(npm --prefix frontend audit*)",
+      "Bash(scripts/dev/openproject.sh get*)",
+      "Bash(./scripts/dev/openproject.sh get*)",
+      "Bash(scripts/dev/openproject.sh wp*)",
+      "Bash(./scripts/dev/openproject.sh wp*)",
+      "Bash(scripts/dev/openproject.sh children*)",
+      "Bash(./scripts/dev/openproject.sh children*)",
+      "Bash(scripts/dev/openproject.sh statuses*)",
+      "Bash(./scripts/dev/openproject.sh statuses*)",
+      "Bash(scripts/dev/openproject.sh boards*)",
+      "Bash(./scripts/dev/openproject.sh boards*)",
+      "Bash(scripts/dev/openproject.sh sprint*)",
+      "Bash(./scripts/dev/openproject.sh sprint*)"
     ],
     "deny": [
       "Bash(git push --force*)",
@@ -51,7 +63,14 @@
       "Bash(docker volume rm*)",
       "Bash(docker compose down -v*)",
       "Bash(docker compose* down -v*)",
-      "Bash(npm publish*)"
+      "Bash(npm publish*)",
+      "Bash(scripts/dev/openproject.sh delete*)",
+      "Bash(./scripts/dev/openproject.sh delete*)",
+      "Bash(curl*-X DELETE*)",
+      "Bash(curl*-XDELETE*)",
+      "Bash(curl*--request DELETE*)",
+      "Bash(cat*.env.local)",
+      "Bash(cat*.env.local *)"
     ]
   }
 }

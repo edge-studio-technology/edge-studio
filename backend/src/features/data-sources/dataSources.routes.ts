@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { env } from "../../config/env.js";
-import { badRequest, conflict, dependencyUnavailable, notFound } from "../../shared/api-error.js";
+import { badRequest, conflict, dependencyUnavailable, notFound, tooManyRequests } from "../../shared/api-error.js";
 import { requireRole } from "../auth/auth.middleware.js";
+import { webhookRateLimiter } from "../auth/rate-limit.middleware.js";
 import { createDataSourceRead } from "../data-reads/dataReads.repository.js";
 import { getEnabledAutomationWorkflowForDataSource, listAutomationWorkflowsUsingDataSource } from "../automation/automation.repository.js";
 import { recordPushAutomationPayload } from "../automation/automation.service.js";
@@ -17,7 +18,7 @@ import { getSensorHelperCapability, readBmeSensorSource } from "./sensorHelper.s
 export const dataSourcesRouter = Router();
 export const dataSourcesWebhookRouter = Router();
 
-dataSourcesWebhookRouter.post("/:token", async (req, res) => {
+dataSourcesWebhookRouter.post("/:token", webhookRateLimiter, async (req, res) => {
   const record = findWebhookDataSource(req.params.token);
   if (!record) return notFound(res, "Webhook data source not found");
   const workflow = getEnabledAutomationWorkflowForDataSource(record.id);
@@ -25,11 +26,15 @@ dataSourcesWebhookRouter.post("/:token", async (req, res) => {
 
   try {
     const result = processWebhookPayload(req.body);
-    const response = await recordPushAutomationPayload({ workflow, dataSource: record, sourceUrl: `/api/data-source-webhooks/${req.params.token}`, triggerType: "webhook", result });
+    const response = await recordPushAutomationPayload({ workflow, dataSource: record, triggerType: "webhook", result });
     return res.json({ item: response.dataSource, workflow: response.workflow, result });
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && (error.code === "WORKFLOW_COOLDOWN_ACTIVE" || error.code === "WORKFLOW_EVENT_INACTIVE")) {
       return res.status(202).json({ skipped: true, reason: error instanceof Error ? error.message : "Workflow trigger ignored" });
+    }
+    if (error && typeof error === "object" && "code" in error && error.code === "WORKFLOW_RUN_BUDGET_EXHAUSTED") {
+      const nextAvailableAt = "nextAvailableAt" in error ? error.nextAvailableAt : undefined;
+      return tooManyRequests(res, error instanceof Error ? error.message : "Workflow run budget exhausted", { sourceId: record.id, nextAvailableAt });
     }
     const message = error instanceof Error ? error.message : "Failed to record webhook payload";
     return dependencyUnavailable(res, message, error instanceof Error ? error.message : undefined, { sourceId: record.id });

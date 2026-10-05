@@ -3,6 +3,12 @@ import { db } from "../../db/database.js";
 import type { ParsedListQuery } from "../../shared/list-query.js";
 import { serializeStructuredError, type StructuredError } from "../../shared/structured-error.js";
 
+const activeRunIds = new Set<string>();
+
+export function getActiveAutomationRunIds() {
+  return [...activeRunIds];
+}
+
 export type AutomationRunRecord = {
   id: string;
   workflow_id: string | null;
@@ -41,10 +47,12 @@ export function createAutomationRun(input: { workflowId: string; workflowName: s
     INSERT INTO automation_runs (id, workflow_id, workflow_name, started_at, status, trigger_type, trigger_source_id, trigger_payload_json, block_count)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, input.workflowId, input.workflowName, new Date().toISOString(), "running", input.triggerType, input.triggerSourceId ?? null, input.triggerPayload === undefined ? null : JSON.stringify(input.triggerPayload), input.blockCount);
+  activeRunIds.add(id);
   return getAutomationRun(id)!;
 }
 
 export function finishAutomationRun(id: string, input: { status: "success" | "failed"; error?: string | StructuredError | null }) {
+  activeRunIds.delete(id);
   const run = getAutomationRun(id);
   if (!run) return undefined;
   const finishedAt = new Date().toISOString();

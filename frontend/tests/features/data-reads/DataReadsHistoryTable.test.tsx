@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { ToastProvider } from "../../../src/components/ToastProvider";
 import { DataReadsHistoryTable } from "../../../src/features/data-reads/DataReadsHistoryTable";
 import type { DataSourceRead } from "../../../src/features/data-reads/dataReadTypes";
@@ -112,6 +113,7 @@ describe("DataReadsHistoryTable", () => {
     expect(screen.getByText("Failed")).toBeInTheDocument();
     expect(screen.getByText("No hash")).toBeInTheDocument();
     expect(screen.getByText("No proof")).toBeInTheDocument();
+    expectRowActionsPinned(screen.getByRole("table"));
   });
 
   it("opens the details modal with hash, proof link, and JSON preview", async () => {
