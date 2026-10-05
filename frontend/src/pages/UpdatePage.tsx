@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { ButtonRow } from "../components/patterns/ButtonRow";
+import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { ErrorContentState } from "../components/patterns/ErrorContentState";
 import { LoadingState } from "../components/patterns/LoadingState";
 import { describeLoadFailure } from "../lib/errors";
@@ -49,6 +50,14 @@ export function UpdatePage() {
 
   const outOfDate = status?.services.filter((service) => !service.upToDate) ?? [];
   const upToDate = Boolean(status) && outOfDate.length === 0;
+  const availableVersion = status?.manifest.version;
+  // An older update-agent can still report the target version as current while
+  // frontend/backend run other images. See docs/adr/0029-verified-version-identity.md.
+  const mismatched =
+    !upToDate &&
+    (status?.currentVersion == null ||
+      (status.currentVersion === availableVersion &&
+        outOfDate.some((service) => service.service !== "update-agent")));
 
   return (
     <Page
@@ -78,12 +87,17 @@ export function UpdatePage() {
                   {upToDate ? "Current" : "Update"}
                 </Pill>
               </div>
+              {mismatched ? (
+                <ErrorAlert status="warning">This installation doesn't match a release.</ErrorAlert>
+              ) : null}
               <p className="type-body text-text-secondary m-0 mb-2">
                 {upToDate
-                  ? `Running version ${status.currentVersion ?? status.manifest.version}.`
-                  : status.currentVersion
-                    ? `${status.currentVersion} → ${status.manifest.version}`
-                    : `Version ${status.manifest.version} is available.`}
+                  ? `Running version ${status.currentVersion ?? availableVersion}.`
+                  : mismatched
+                    ? `Version ${availableVersion} is available.`
+                    : status.currentVersion === availableVersion
+                      ? `Running version ${availableVersion}. The update service is still updating itself.`
+                      : `${status.currentVersion} → ${availableVersion}`}
               </p>
               <ButtonRow>
                 {!upToDate ? (
