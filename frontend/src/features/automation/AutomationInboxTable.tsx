@@ -27,6 +27,7 @@ import { TableControls } from "../../components/patterns/TableControls";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { JsonPreviewContent } from "../../components/JsonPreview";
 import { Card } from "../../components/ui/Card";
+import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { Disclosure } from "../../components/ui/Disclosure";
 import { Modal } from "../../components/ui/Modal";
 import { Pill } from "../../components/ui/Pill";
@@ -255,18 +256,14 @@ function InboxCell({
   if (columnId === "title") {
     return (
       <TableCell className="min-w-0">
-        <span className="type-body-em block truncate" title={item.title}>
-          {item.title}
-        </span>
+        <CopyableTruncatedText value={item.title} emphasis />
       </TableCell>
     );
   }
   if (columnId === "workflow") {
     return (
       <TableCell className="min-w-0">
-        <span className="text-text-secondary block truncate" title={item.workflowName}>
-          {item.workflowName}
-        </span>
+        <CopyableTruncatedText value={item.workflowName} tone="secondary" />
       </TableCell>
     );
   }

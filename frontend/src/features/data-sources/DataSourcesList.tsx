@@ -31,6 +31,7 @@ import {
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
 import { Button } from "../../components/ui/Button";
+import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { Disclosure } from "../../components/ui/Disclosure";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
@@ -323,18 +324,16 @@ function DeviceCell({
   if (columnId === "name") {
     return (
       <TableCell className="min-w-0 whitespace-normal">
-        <span className="type-body-em block truncate" title={source.name}>{source.name}</span>
-        {source.description && <p className="type-meta text-text-secondary mt-detail-next m-0 truncate" title={source.description}>{source.description}</p>}
+        <CopyableTruncatedText value={source.name} emphasis />
+        {source.description && <CopyableTruncatedText value={source.description} meta tone="secondary" className="mt-detail-next" />}
       </TableCell>
     );
   }
   if (columnId === "details") {
     return (
       <TableCell className="min-w-0 whitespace-normal">
-        <span className="type-body-em text-text-primary block truncate" title={typeLabel}>{typeLabel}</span>
-        <p className="type-meta text-text-secondary mt-detail-next m-0 truncate" title={`${sourceDirection(source)} · ${endpoint ?? "—"}`}>
-          {sourceDirection(source)} · <code className="type-mono">{endpoint ?? "—"}</code>
-        </p>
+        <CopyableTruncatedText value={typeLabel} emphasis />
+        <CopyableTruncatedText value={`${sourceDirection(source)} · ${endpoint ?? "—"}`} meta tone="secondary" className="mt-detail-next" />
       </TableCell>
     );
   }
@@ -346,9 +345,12 @@ function DeviceCell({
     return (
       <TableCell className="max-w-44 min-w-0">
         {usedByWorkflows.length > 0 ? (
-          <span className="type-meta text-text-secondary block truncate" title={usedByWorkflows.map((workflow) => workflow.name).join(", ")}>
-            {usedByWorkflows.length} {usedByWorkflows.length === 1 ? "workflow" : "workflows"}
-          </span>
+          <CopyableTruncatedText
+            value={usedByWorkflows.map((workflow) => workflow.name).join(", ")}
+            display={`${usedByWorkflows.length} ${usedByWorkflows.length === 1 ? "workflow" : "workflows"}`}
+            meta
+            tone="secondary"
+          />
         ) : <span className="text-text-secondary">None</span>}
       </TableCell>
     );

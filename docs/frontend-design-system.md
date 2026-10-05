@@ -121,6 +121,7 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [ScrollArea](#scrollarea): thin ESDS-token scrollbar container
 - [JsonPreview](#jsonpreview): trigger that opens a modal with pretty-printed JSON
 - [CopyableCode](#copyablecode): mono value with copy control
+- `CopyableTruncatedText`: copyable table value with primary, secondary, error, emphasis, meta, and monospace text roles
 - [EmptyContentState](#emptycontentstate): empty table/content state with icon, title, description, and optional action
 - [LoadingState](#loadingstate): fetching state with spinner (default or slow pace), optional title and description
 - [ErrorContentState](#errorcontentstate): failed-to-load state for a whole table/list/region, with optional retry

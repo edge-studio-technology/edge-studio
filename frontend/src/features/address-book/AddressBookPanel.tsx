@@ -33,6 +33,7 @@ import {
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
 import { Button } from "../../components/ui/Button";
+import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { InputField } from "../../components/ui/InputField";
 import { Modal } from "../../components/ui/Modal";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
@@ -343,7 +344,7 @@ function AddressBookCell({
   if (columnId === "name") {
     return (
       <TableCell className="min-w-0">
-        <span className="type-body-em text-text-primary truncate">{entry.label}</span>
+        <CopyableTruncatedText value={entry.label} emphasis />
       </TableCell>
     );
   }
@@ -357,7 +358,7 @@ function AddressBookCell({
   if (columnId === "notes") {
     return (
       <TableCell className="min-w-0">
-        <span className="type-body text-text-secondary truncate">{entry.notes || "—"}</span>
+        {entry.notes ? <CopyableTruncatedText value={entry.notes} tone="secondary" /> : <span className="text-text-secondary">—</span>}
       </TableCell>
     );
   }

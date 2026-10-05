@@ -12,6 +12,7 @@ import {
   TableWrap,
 } from "../../components/patterns/DataTable";
 import { Button } from "../../components/ui/Button";
+import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
@@ -357,7 +358,7 @@ function WalletHistoryCell({
       </TableCell>
     );
   }
-  if (columnId === "token") return <TableCell className="max-w-48 min-w-0"><span className="block truncate" title={entry.tokenName}>{entry.tokenName}</span></TableCell>;
+  if (columnId === "token") return <TableCell className="max-w-48 min-w-0"><CopyableTruncatedText value={entry.tokenName} /></TableCell>;
   if (columnId === "txpow") {
     return (
       <TableCell className="max-w-48 min-w-0">

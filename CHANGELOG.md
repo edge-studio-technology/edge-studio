@@ -73,6 +73,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Table values now use shared primary, secondary, error, emphasis, meta, and monospace text roles to keep formatting and copy feedback consistent across tables.
 - Automation watch mode now has a runtime overview with selected-run progress and a `Follow live runs` switch.
 - Automation watch mode now hides edit-only canvas controls, collapses manual test payload controls by default, and presents the workflow name as read-only title text.
 - Automation workflow workspaces no longer show the duplicated status-pill strip under the top bar, and watch-mode historic-run controls now align with the app's table header pattern.

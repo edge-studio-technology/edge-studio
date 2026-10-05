@@ -29,6 +29,7 @@ import { Disclosure } from "../../components/ui/Disclosure";
 import { Modal } from "../../components/ui/Modal";
 import { Text } from "../../components/ui/Text";
 import { Pill } from "../../components/ui/Pill";
+import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { DEFAULT_PAGE_SIZE } from "../../lib/paginated";
 import { formatLocalDateTime } from "../../lib/time";
@@ -193,10 +194,8 @@ function ReadHistoryCell({
     return (
       <TableCell className="max-w-56 min-w-0">
         <div className="gap-detail-tight flex min-w-0 flex-col">
-          <span className="type-body-em text-text-primary truncate">{item.sourceName}</span>
-          <code className="type-mono text-text-secondary block truncate" title={item.sourceUrl}>
-            {item.sourceUrl}
-          </code>
+          <CopyableTruncatedText value={item.sourceName} emphasis />
+          <CopyableTruncatedText value={item.sourceUrl} mono tone="secondary" />
         </div>
       </TableCell>
     );
