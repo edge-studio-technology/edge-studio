@@ -25,7 +25,7 @@ export function CopyableTruncatedText({
       type="button"
       className={cx(
         mono ? "type-mono" : "type-body",
-        "block min-w-0 max-w-full cursor-copy truncate rounded-tight border-0 p-0 text-left transition-colors",
+        "inline-block max-w-full cursor-copy truncate rounded-tight border-0 p-0 text-left align-top transition-colors",
         copied ? "bg-feedback-positive/10 text-text-success" : "bg-transparent",
         className,
       )}
