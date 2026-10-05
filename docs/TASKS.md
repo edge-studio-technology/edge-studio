@@ -28,6 +28,7 @@
 
 ## Next
 
+- [ ] Verified version identity: report the installed release only when running images match the recorded manifest, bake build identity into every image, record the version in `install.sh` only after containers start — see `docs/plans/hotfix/hotfix-version-identity.md`.
 - [ ] Verify the wiki’s temporary application-data backup/restore procedure on a real Pi with the same app version and unchanged runtime configuration; implement an integrated Edge Studio backup/restore feature separately.
 
 - [ ] Define the product lifecycle for data-source reads and visible automation inbox items, including retention configuration, export, proof-linked reads, storage quotas, and disk-usage warnings — see `docs/adr/0023-classify-stored-records-before-applying-retention.md`.
