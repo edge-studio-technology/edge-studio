@@ -28,6 +28,8 @@
 
 ## Next
 
+- [ ] Verify the wiki’s temporary application-data backup/restore procedure on a real Pi with the same app version and unchanged runtime configuration; implement an integrated Edge Studio backup/restore feature separately.
+
 - [ ] Define the product lifecycle for data-source reads and visible automation inbox items, including retention configuration, export, proof-linked reads, storage quotas, and disk-usage warnings — see `docs/adr/0023-classify-stored-records-before-applying-retention.md`.
 - [ ] Digest-pin the third-party deployment images outside the signed manifest (`minimaglobal/minimacore`, `eclipse-mosquitto:2`, `minimaglobal/minima:dev`, `alpine:3.20`) and document the manual pin-bump procedure — finding [6], split from task 704; see step 3 of `docs/plans/security/phase-6-fail-closed-on-weak-config.md`.
 - [ ] After V1.5 security hardening, make a fresh product decision on whether to retain, redesign, re-enable, or remove TOTP. Removal is not currently approved; `docs/plans/remove-totp.md` is candidate analysis only. See `docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md`.
