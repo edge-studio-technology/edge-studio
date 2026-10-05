@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [Unreleased] hotfix/update-agent-redirect-bug
+
+### Fixed
+
+- Opening `/update` directly, reloading it, or using "Back to Update" from the update progress page no longer redirects to the URL without the UI port.
+
 ## [0.42.1] 2026-10-05
 
 ### Changed
