@@ -17,7 +17,10 @@ export async function fetchChangelog(): Promise<string> {
   return response.text();
 }
 
-/** Parses the leading `limit` `## [version]` sections of a Keep-a-Changelog-formatted file. */
+/**
+ * Parses the leading `limit` released `## [version]` sections of a Keep-a-Changelog-formatted
+ * file. `## [Unreleased] ...` sections are skipped and don't count toward `limit`.
+ */
 export function parseChangelog(markdown: string, limit = 3): ChangelogEntry[] {
   const entries: ChangelogEntry[] = [];
   let current: ChangelogEntry | null = null;
@@ -26,6 +29,11 @@ export function parseChangelog(markdown: string, limit = 3): ChangelogEntry[] {
   for (const line of markdown.split("\n")) {
     const versionMatch = /^##\s+(.+)$/.exec(line);
     if (versionMatch) {
+      if (/^\[unreleased\]/i.test(versionMatch[1].trim())) {
+        current = null;
+        currentCategory = null;
+        continue;
+      }
       if (entries.length >= limit) break;
       current = { version: versionMatch[1].trim(), categories: [] };
       currentCategory = null;

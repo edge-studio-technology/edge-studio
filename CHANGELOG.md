@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Release tags without a pre-release suffix must match the root `package.json` version.
 - The installer records the installed release only after the containers start.
 - `DEV_MODE` installs remove the previous release's version record and update-agent container.
+- The Update page's release notes no longer show unreleased changelog sections.
 
 ## [Unreleased] hotfix/update-agent-redirect-bug
 

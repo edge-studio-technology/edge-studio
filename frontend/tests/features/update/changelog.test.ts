@@ -67,6 +67,32 @@ describe("parseChangelog", () => {
     expect(entries).toEqual([{ version: "[1.0.0]", categories: [{ name: "Added", items: ["Thing"] }] }]);
   });
 
+  it("skips Unreleased sections without counting them toward the limit", () => {
+    const markdown = [
+      "## [Unreleased]",
+      "## [Unreleased] hotfix/version-identity",
+      "### Changed",
+      "- Not released yet",
+      "## [3.0.0] 2026-10-05",
+      "### Fixed",
+      "- Released fix",
+      "## [unreleased] lowercase-branch",
+      "### Added",
+      "- Also not released",
+      "## [2.0.0]",
+      "## [1.0.0]",
+      "## [0.9.0]",
+    ].join("\n");
+
+    const entries = parseChangelog(markdown);
+
+    expect(entries).toEqual([
+      { version: "[3.0.0] 2026-10-05", categories: [{ name: "Fixed", items: ["Released fix"] }] },
+      { version: "[2.0.0]", categories: [] },
+      { version: "[1.0.0]", categories: [] },
+    ]);
+  });
+
   it("defaults to a limit of 3 versions", () => {
     const markdown = ["## [4.0.0]", "## [3.0.0]", "## [2.0.0]", "## [1.0.0]"].join("\n");
 
