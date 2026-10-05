@@ -16,7 +16,7 @@ export function TruncatedHash({ value, className }: { value: string; className?:
     <button
       type="button"
       className={cx(
-        "type-mono relative inline-block max-w-full cursor-copy self-start overflow-hidden rounded-tight border-0 p-0 text-left text-ellipsis whitespace-nowrap align-top transition-colors",
+        "type-mono relative inline-block max-w-full cursor-copy self-start rounded-tight border-0 p-0 text-left align-top transition-colors",
         copied ? "bg-feedback-positive/10 text-text-success" : "bg-transparent text-text-secondary",
         className,
       )}
@@ -24,8 +24,8 @@ export function TruncatedHash({ value, className }: { value: string; className?:
       aria-label={copied ? `Copied ${value}` : `Copy ${value}`}
       onClick={handleCopy}
     >
-      <span className={copied ? "invisible" : undefined}>{shortHash(value)}</span>
-      {copied && <span className="absolute inset-0">Copied</span>}
+      <span className={cx("block overflow-hidden text-ellipsis whitespace-nowrap", copied && "invisible")}>{shortHash(value)}</span>
+      {copied && <span className="absolute top-0 left-0 w-max">Copied</span>}
     </button>
   );
 }
