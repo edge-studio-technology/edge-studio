@@ -26,6 +26,7 @@ import {
 import { TableControls } from "../../components/patterns/TableControls";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
+import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { SwitchField } from "../../components/ui/SwitchField";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import type { DataSource } from "../data-sources/dataSourceTypes";
@@ -294,8 +295,8 @@ function WorkflowCell({
   if (columnId === "name") {
     return (
       <TableCell className="min-w-0">
-        <span className="type-body-em block truncate" title={workflow.name}>{workflow.name}</span>
-        {inlineError && <p className="type-meta text-text-error mt-detail-next m-0 truncate" title={inlineError}>{inlineError}</p>}
+        <CopyableTruncatedText value={workflow.name} className="type-body-em text-text-primary" />
+        {inlineError && <CopyableTruncatedText value={inlineError} className="type-meta text-text-error mt-detail-next" />}
         {workflow.archived && <p className="type-meta text-text-secondary mt-detail-next m-0">Archived, does not run until restored.</p>}
       </TableCell>
     );
@@ -324,7 +325,7 @@ function WorkflowCell({
   if (columnId === "source") {
     return (
       <TableCell className="min-w-0">
-        <span className="block truncate">{sourceName(workflowPrimarySourceId(workflow))}</span>
+        <CopyableTruncatedText value={sourceName(workflowPrimarySourceId(workflow))} className="text-text-primary" />
         <p className="type-meta text-text-secondary mt-detail-next m-0">
           {workflowIntervalSeconds(workflow) > 0 ? formatInterval(workflowIntervalSeconds(workflow)) : "Event driven"}
         </p>
@@ -335,7 +336,7 @@ function WorkflowCell({
     return (
       <TableCell className="min-w-0">
         <span>{workflow.blocks.length}</span>
-        <p className="type-meta text-text-secondary mt-detail-next m-0 truncate">{summarizeBlocks(workflow)}</p>
+        <CopyableTruncatedText value={summarizeBlocks(workflow)} className="type-meta text-text-secondary mt-detail-next" />
       </TableCell>
     );
   }

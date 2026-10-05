@@ -28,6 +28,7 @@ import {
 import { TableControls } from "../../components/patterns/TableControls";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
+import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { Disclosure } from "../../components/ui/Disclosure";
 import { Modal } from "../../components/ui/Modal";
 import { Pill } from "../../components/ui/Pill";
@@ -376,9 +377,7 @@ function ProofHistoryCell({
   if (columnId === "uid") {
     return (
       <TableCell className="max-w-40 min-w-0">
-        <code className="type-mono text-text-secondary block truncate" title={record.proof_uid ?? undefined}>
-          {record.proof_uid ?? "—"}
-        </code>
+        {record.proof_uid ? <CopyableTruncatedText value={record.proof_uid} mono className="text-text-secondary" /> : "—"}
       </TableCell>
     );
   }
@@ -399,9 +398,7 @@ function ProofHistoryCell({
   if (columnId === "fileName") {
     return (
       <TableCell className="max-w-56 min-w-0">
-        <span className="block truncate" title={record.file_name ?? undefined}>
-          {record.file_name ?? "—"}
-        </span>
+        {record.file_name ? <CopyableTruncatedText value={record.file_name} className="text-text-primary" /> : "—"}
       </TableCell>
     );
   }

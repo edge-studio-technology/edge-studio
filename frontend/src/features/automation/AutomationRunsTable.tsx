@@ -25,6 +25,7 @@ import {
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
 import { Pill } from "../../components/ui/Pill";
+import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { formatLocalDateTime } from "../../lib/time";
 import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
 import { AutomationRunInspectModal } from "./AutomationRunInspectModal";
@@ -211,7 +212,7 @@ function WorkflowRunCell({
   if (columnId === "workflow") {
     return (
       <TableCell className="max-w-56 min-w-0">
-        <span className="type-body-em text-text-primary block truncate">{run.workflowName}</span>
+        <CopyableTruncatedText value={run.workflowName} className="type-body-em text-text-primary" />
       </TableCell>
     );
   }
@@ -250,7 +251,7 @@ function WorkflowRunCell({
     return (
       <TableCell className="max-w-44 min-w-0">
         {run.triggerSourceId ? (
-          <code className="type-mono block truncate" title={run.triggerSourceId}>{run.triggerSourceId}</code>
+          <CopyableTruncatedText value={run.triggerSourceId} mono className="text-text-primary" />
         ) : (
           <span className="text-text-secondary">None</span>
         )}
@@ -260,14 +261,14 @@ function WorkflowRunCell({
   if (columnId === "error") {
     return (
       <TableCell className="max-w-64 min-w-0">
-        {run.error ? <span className="text-text-error block truncate" title={run.error}>{run.error}</span> : <span className="text-text-secondary">None</span>}
+        {run.error ? <CopyableTruncatedText value={run.error} className="text-text-error" /> : <span className="text-text-secondary">None</span>}
       </TableCell>
     );
   }
   if (columnId === "runId") {
     return (
       <TableCell className="max-w-44 min-w-0">
-        <code className="type-mono block truncate" title={run.id}>{run.id}</code>
+        <CopyableTruncatedText value={run.id} mono className="text-text-primary" />
       </TableCell>
     );
   }
