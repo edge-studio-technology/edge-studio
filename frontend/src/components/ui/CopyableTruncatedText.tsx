@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cx } from "../../lib/cx";
 
 export function CopyableTruncatedText({
@@ -11,8 +12,12 @@ export function CopyableTruncatedText({
   className?: string;
   mono?: boolean;
 }) {
+  const [copied, setCopied] = useState(false);
+
   async function handleCopy() {
     await navigator.clipboard?.writeText(value);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
   }
 
   return (
@@ -20,14 +25,15 @@ export function CopyableTruncatedText({
       type="button"
       className={cx(
         mono ? "type-mono" : "type-body",
-        "block min-w-0 max-w-full cursor-copy truncate border-0 bg-transparent p-0 text-left",
+        "block min-w-0 max-w-full cursor-copy truncate rounded-tight border-0 p-0 text-left transition-colors",
+        copied ? "bg-feedback-positive/10 text-text-success" : "bg-transparent",
         className,
       )}
       title={value}
-      aria-label={`Copy ${value}`}
+      aria-label={copied ? `Copied ${value}` : `Copy ${value}`}
       onClick={handleCopy}
     >
-      {display ?? value}
+      {copied ? "Copied" : display ?? value}
     </button>
   );
 }

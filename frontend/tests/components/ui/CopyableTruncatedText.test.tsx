@@ -15,7 +15,7 @@ describe("CopyableTruncatedText", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Copy Full workflow name" }));
 
-    expect(screen.getByText("1 workflow")).toBeInTheDocument();
     expect(writeText).toHaveBeenCalledWith("Full workflow name");
+    expect(screen.getByRole("button", { name: "Copied Full workflow name" })).toHaveTextContent("Copied");
   });
 });

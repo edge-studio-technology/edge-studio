@@ -33,5 +33,6 @@ describe("TruncatedHash", () => {
     await userEvent.click(screen.getByRole("button", { name: `Copy ${value}` }));
 
     expect(writeText).toHaveBeenCalledWith(value);
+    expect(screen.getByRole("button", { name: `Copied ${value}` })).toHaveTextContent("Copied");
   });
 });
