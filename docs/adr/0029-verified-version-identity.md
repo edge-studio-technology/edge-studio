@@ -75,10 +75,12 @@ device reports the build identity baked into its images.
    `update-agent` → `{ version, revision }` or `null`), read from image labels through one new
    read-only Docker call (`GET /images/{id}/json`).
 5. **UI copy follows the verified state.** With `currentVersion` set: `vX → vY`. Without it, the
-   Update page says the installed build doesn't match a release (listing `installedBuilds`) and
-   offers the update as a repair. The sidebar notice says "Version vY is ready to install" only
+   Update page shows a warning that the installation doesn't match a release, followed by
+   "Version vY is available." Per-service build labels are not listed there: an unchanged image
+   keeps its original label, so a list would show older versions next to a correct release. The sidebar notice says "Version vY is ready to install" only
    when `availableVersion` differs from `currentVersion`. The sidebar version label falls back to
-   the backend build version. New status fields are optional in the frontend, so a new frontend
+   the backend's own build version (from `/api/status/overview`, so it works without
+   `update-agent`). New status fields are optional in the frontend, so a new frontend
    tolerates an old `update-agent` during the first update.
 6. **`DEV_MODE` cleans up.** `install.sh` removes the stale state file and any leftover
    `update-agent` container, since no signed release describes a from-source build.

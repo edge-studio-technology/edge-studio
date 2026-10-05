@@ -1,6 +1,6 @@
 # Verified Version Identity Plan
 
-**Status:** Not started  
+**Status:** In progress  
 **Created:** 2026-10-05  
 **Goal:** Report the installed release version only when the running images prove it, and give every build (release or dev) a baked version identity, without requiring users to rerun `install.sh`.
 
@@ -54,13 +54,12 @@ Decisions (rationale in `docs/adr/0029-verified-version-identity.md`, which amen
 
 ## Frontend changes
 
-- `frontend/src/app/types.ts`: optional `installedBuilds?` on `UpdateStatus` / `UpdateStatusSummary`, because an old `update-agent` omits it during the first update.
 - `frontend/src/pages/UpdatePage.tsx`:
   - Not up to date with `currentVersion`: `vX → vY`.
-  - Not up to date without it: "This installation doesn't match a release" plus the installed builds when known, with button copy for repair/install `vY`.
+  - Not up to date without it: a warning alert "This installation doesn't match a release." followed by "Version vY is available." No per-service build list.
 - `frontend/src/components/AppShell.tsx`:
   - Show the notice "Version vY is ready to install" only when `availableVersion !== currentVersion`. Otherwise use repair copy, e.g. "Installation doesn't match vY".
-  - Sidebar version label: `currentVersion ?? installedBuilds.backend?.version ?? null`.
+  - Sidebar version label: `currentVersion ??` the backend build from `/api/status/overview` (works in `DEV_MODE`, where `update-agent` is removed).
 
 ## Backend changes
 
