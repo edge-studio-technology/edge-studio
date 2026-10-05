@@ -17,6 +17,7 @@ describe("CopyableTruncatedText", () => {
 
     expect(writeText).toHaveBeenCalledWith("Full workflow name");
     expect(screen.getByRole("button", { name: "Copied Full workflow name" })).toHaveTextContent("Copied");
+    expect(screen.getByText("1 workflow")).toHaveClass("invisible");
   });
 
   it("applies the requested table text role", () => {

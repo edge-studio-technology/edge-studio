@@ -31,7 +31,7 @@ export function CopyableTruncatedText({
       type="button"
       className={cx(
         mono ? "type-mono" : meta ? "type-meta" : emphasis ? "type-body-em" : "type-body",
-        "inline-block max-w-full cursor-copy self-start truncate rounded-tight border-0 p-0 text-left align-top transition-colors",
+        "relative inline-block max-w-full cursor-copy self-start truncate rounded-tight border-0 p-0 text-left align-top transition-colors",
         copied ? "bg-feedback-positive/10 text-text-success" : tone === "secondary" ? "bg-transparent text-text-secondary" : tone === "error" ? "bg-transparent text-text-error" : "bg-transparent text-text-primary",
         className,
       )}
@@ -39,7 +39,8 @@ export function CopyableTruncatedText({
       aria-label={copied ? `Copied ${value}` : `Copy ${value}`}
       onClick={handleCopy}
     >
-      {copied ? "Copied" : display ?? value}
+      <span className={copied ? "invisible" : undefined}>{display ?? value}</span>
+      {copied && <span className="absolute inset-0">Copied</span>}
     </button>
   );
 }

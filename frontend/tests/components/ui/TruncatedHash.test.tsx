@@ -34,5 +34,6 @@ describe("TruncatedHash", () => {
 
     expect(writeText).toHaveBeenCalledWith(value);
     expect(screen.getByRole("button", { name: `Copied ${value}` })).toHaveTextContent("Copied");
+    expect(screen.getByText(`${value.slice(0, 8)}…${value.slice(-6)}`)).toHaveClass("invisible");
   });
 });
