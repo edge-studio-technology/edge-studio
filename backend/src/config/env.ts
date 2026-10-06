@@ -72,7 +72,7 @@ export const env = {
   integritasConnectBaseUrl: process.env.INTEGRITAS_CONNECT_BASE_URL ?? "https://integritas.technology",
   integritasBaseUrl: process.env.INTEGRITAS_BASE_URL ?? "https://integritas.technology/core",
   integritasRequestId: process.env.INTEGRITAS_REQUEST_ID ?? "edge-studio",
-  integritasRequestTimeoutMs: Number(process.env.INTEGRITAS_REQUEST_TIMEOUT_MS ?? 15000),
+  integritasRequestTimeoutMs: Number(process.env.INTEGRITAS_REQUEST_TIMEOUT_MS ?? 300000),
   integritasPollIntervalSeconds: Number(process.env.INTEGRITAS_POLL_INTERVAL_SECONDS ?? 30),
   integritasProofPollTimeoutMinutes: Number(process.env.INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES ?? 5),
   integritasDevicePollIntervalSeconds: Number(process.env.INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS ?? 5),

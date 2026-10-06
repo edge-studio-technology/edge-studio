@@ -13,6 +13,19 @@ afterEach(() => {
   vi.resetModules();
 });
 
+describe("Integritas timeout configuration", () => {
+  it("defaults to five minutes per request attempt", async () => {
+    vi.stubEnv("INTEGRITAS_REQUEST_TIMEOUT_MS", undefined);
+    const env = await loadEnv({});
+    assert.equal(env.integritasRequestTimeoutMs, 300000);
+  });
+
+  it("honours an explicit operator timeout", async () => {
+    const env = await loadEnv({ INTEGRITAS_REQUEST_TIMEOUT_MS: "60000" });
+    assert.equal(env.integritasRequestTimeoutMs, 60000);
+  });
+});
+
 describe("resource limit configuration", () => {
   it("uses the documented defaults when nothing is set", async () => {
     const env = await loadEnv({});

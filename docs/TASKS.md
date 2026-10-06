@@ -28,6 +28,9 @@
 
 ## Next
 
+- [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
+- [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.
+
 - [ ] Release the version identity hotfix as `v0.42.2`: bump `package.json` and date the `Unreleased` changelog section on a release branch after PR #143 merges to `dev`, then `dev` → `main` and tag.
 - [ ] Stop other values from the previous `.env` (for example a hand-added `UPDATE_DRY_RUN`) leaking into the installer's compose run; only `COMPOSE_PROFILES` is unset after `load_existing_config` in `install.sh`.
 - [ ] Verify the wiki’s temporary application-data backup/restore procedure on a real Pi with the same app version and unchanged runtime configuration; implement an integrated Edge Studio backup/restore feature separately.
@@ -78,6 +81,10 @@
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
 
 ## Done
+
+- [x] Fixed npm audit advisories with patch-only lockfile updates for `proxy-addr`, `source-map-js`, and root `brace-expansion`; all four audits are clean, typechecks/builds and frontend/Update Agent coverage passed; existing backend and Windows script-test limitations are recorded in SESSION.
+
+- [x] Increased the shared Integritas timeout default from 15 seconds to 5 minutes across backend and deployment configuration, extended Integritas frontend proxy waits, and added default/override tests; configuration/Integritas tests, typechecks, builds, and Compose validation passed; full-check and Docker-build limitations recorded in SESSION.
 
 - [x] Verified version identity (PR #143): the installed release is reported only when running images match the recorded manifest, every image carries build labels, and `install.sh` records the version after containers start; Pi-verified on `v0.42.2-dev.1` across fresh install, `DEV_MODE` → normal reinstall, and a `v0.42.1` → dev update — see `docs/plans/hotfix/hotfix-version-identity.md`.
 - [x] Confirmed on a Pi that `last-applied-manifest.json` is written and a Feedback submission's `app.version` reflects it; delivery to Integritas succeeded with `app.build` — see `docs/adr/0006-app-version-single-source-of-truth.md`.
