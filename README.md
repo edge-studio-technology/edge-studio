@@ -778,6 +778,8 @@ POST /api/wallet/receive-address
 
 `GET /api/wallet/history?limit=N` returns recent send activity recorded in SQLite when payments are submitted.
 
+Address-book contacts are stored in SQLite and exposed through `GET`/`POST /api/wallet/address-book` and `PATCH`/`DELETE /api/wallet/address-book/:id`. Each returned entry includes `isLocalDevice`, a boolean identifying the app's local-wallet contact; existing and manually created contacts default to `false`. The app-owned contact is separate from manual contacts and may share their destination. Manual copies retain their IDs, fields, and edit/delete controls; exact-address duplicates between manual contacts remain disallowed. Automatic local-contact initialization and managed-contact edit/removal controls are not enabled yet.
+
 `POST /api/wallet/receive-address` samples a random address from the 64-address pool (API retained; primary UI shows per-account addresses in the account detail modal).
 
 Custom token APIs:

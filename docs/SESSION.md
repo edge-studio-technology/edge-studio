@@ -4,6 +4,14 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Corrected #206 step 1 for the user's clarified QoL direction: `ensureLocalAddressBookEntry()` now skips an existing feature contact or creates its own row, never adopting/replacing user contacts or inspecting them during selection. Replaced global address uniqueness with ordinary-contact-only uniqueness through a transactional migration; exact duplicate local/manual destinations coexist, and manual copies retain independent create/edit/delete behavior. Preserved IDs, fields, markers, and workflow references in upgrade tests; replaced adoption tests with the new policy and real-database route regressions. Reproduced 10 failures before the fix; 81 focused tests and `npm run check` (3,238 tests: backend 1,295; frontend 1,720; Update Agent 171; scripts 52), coverage thresholds, typechecks, clean audits, both builds, Compose config, and diff checks passed. Recorded ADR 0030 and updated plan/README/security/changelog/task docs. No automatic initializer, managed mutation guards, reroll, or wallet-replacement behavior was added; live-node verification remains open.
+
+- Clarified #206 initialization with the user: check only for the feature's own app-managed self-contact, skip creation if it exists, otherwise create it; never change manually added contacts. Updated the plan accordingly. Address-collision handling remains a technical follow-up; adoption code/tests have not yet been revised or integrated.
+
+- Revised #206's plan after the user objected to locking user-created contacts: restrictions apply only to a separate app-created contact, and ordinary contacts must retain their data and permissions. Step 1's adoption code/tests still need revision; no runtime initializer exists. Requested a choice between an unused wallet address and a separate managed contact sharing the same destination; the latter requires changing the unique-address constraint. Application code was not changed during this discussion.
+
+- Implemented #206 step 1: repeatable local-marker migration, partial unique index, boolean DTO mapping, validated Mx/hex comparison, atomic metadata-preserving adoption/insertion and marker replacement, and strict default/simple scripts parsing. Added migration/alias/idempotency/rollback tests and a source-shaped RPC-boundary fixture; all 76 focused backend tests passed. `npm run check` passed 3,235 tests (backend 1,292; frontend 1,720; Update Agent 171; scripts 52), coverage thresholds, typechecks, and clean dependency audits; backend/frontend builds, Compose validation, and diff checks passed. Existing frontend chunk-size/Compose image-variable warnings remain. Local Minima RPC refused connections; deployed response, browser, and Pi checks remain open. No automatic initialization, API guards, or UI changes were added; updated README/changelog and the plan/task tracker to match.
+
 - Clarified #206's contact policy: only notes are editable; label/name, address, and local marker are protected, and deletion is disabled. Updated the plan's API/UI requirements and verification cases; application implementation has not started.
 
 - Audited OpenProject #206, its discussion, and the current address-book/wallet/startup/Minima/automation code against `e3c52cf8`; saved the proposed implementation in `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`. Recorded the managed-contact policy as provisional after the user requested a follow-up discussion. Application implementation has not started; OpenProject was read only.
@@ -90,7 +98,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- #206: discuss wallet-replacement behavior, confirm the deployed Minima `scripts` response, and settle the saved implementation plan before application coding.
+- #206 step 2: add check/create initialization through the poller/list path, coalesced discovery, creation audit, and managed-contact API guards; confirm a deployed `scripts` response. Step 1 now follows the separate-contact/duplicate-destination rule and passes full verification. Discuss wallet replacement separately before enabling it.
 - Deploy the longer Integritas timeout and verify a slow PDF verification on the Pi; change any explicit `INTEGRITAS_REQUEST_TIMEOUT_MS=15000` override to `300000` and recreate the backend/frontend containers. Rerun Docker builds with the engine available and investigate the Minima backup-restore fallback test failure separately.
 
 - Comment on #694 and move it to Ready for Deployment (awaiting go-ahead).
@@ -107,7 +115,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Notes / Open Questions
 
-- #206: only notes are editable; label/name and address are protected and removal is disabled. Wallet-replacement behavior remains proposed. Upstream `getaddress` chooses randomly; the proposed contact uses one stable address. Preserve old contact IDs/payment destinations across wallet replacement and verify the proposed `scripts` parser against the deployed image before finalizing it.
+- #206 initialization checks for the feature's own app-managed contact, skips creation if present, and creates it if missing; manually added contacts remain untouched even with the same destination. Adoption and automatic marker replacement are removed (ADR 0030); uniqueness remains between ordinary contacts only. Notes-only editing, protected label/name/address, and no removal apply only to the app-created contact, with guards still to be built. Wallet replacement remains a separate pending decision. A reroll action was raised as an optional follow-up; recommendation is to defer it, require an explicit action, and define workflow-reference behavior before implementation. Verify the scripts parser against the deployed image; the local RPC port refused connections.
 
 - The sidebar overlay has no OpenProject ticket yet; the team was asked on #667 to create one.
 - The host agent isn't configured locally, so the hardware modal was only checked in its all-disabled state.

@@ -12,7 +12,7 @@
 
 ## Current Focus
 
-- [ ] Plan the default local Minima wallet contact (OpenProject #206) — audit and proposed implementation complete; only notes editable, label/address protected, no removal; wallet-replacement behavior to be discussed; application implementation not started; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`.
+- [ ] Implement the default local Minima wallet contact (OpenProject #206) — step 1 revised: check for the feature's own contact, skip if present, otherwise create a separate row; identical local/manual destinations allowed, user contacts untouched; 81 focused tests/full check (3,238 tests), builds, and Compose passed; step 2 initialization/API guards and step 3 UI remain; live RPC and wallet replacement open; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md` and ADR 0030.
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
@@ -186,6 +186,8 @@
 - [x] Address book "Edit contact" now supports editing the Mx/0x address itself (previously label/notes only, address shown read-only) — added `address` support through `updateAddressBookEntry` (repository + `PATCH /api/wallet/address-book/:id`, same format/uniqueness validation as create) and the frontend `EditContactForm`/`UpdateAddressBookEntryInput` — branch `ui/global-style-realignment`, `npm run check`/backend+frontend build/`docker compose config` verified, no manual browser check yet.
 
 ## Ideas
+
+- [ ] Consider an explicit “Change receive address” action for the app-owned local contact after #206's core feature; define old-destination and workflow-reference behavior before implementing rerolling.
 
 - [ ] `.claude/rules/verification.md` (and `.agents/`/`.cursor/` counterparts) still list `npm --prefix backend run build`/`npm --prefix frontend run build` without an `update-agent` build step — pre-existing gap noticed while working on `docs/plans/archive/coverage-criteria.md`, unrelated to it, not yet actioned.
 - [ ] Split the `docs/TASKS.md` "Block automation workflows" line into one bullet per milestone/improvement in `docs/plans/block-automation-workflows.md` (844 lines, 8 milestones) — several unchecked items are substantial unbuilt code features (configure-block modal, workflow templates, full draft workspace save model, branching/else flow, run-log filters), not just manual checks, currently hidden behind one line the way the frontend-unit-tests line used to hide ~20 folders.

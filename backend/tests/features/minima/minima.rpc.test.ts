@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { fetchMinimaStatus, runMinimaPathCommand } from "../../../src/features/minima/minima.rpc.js";
-import { parseBalanceResponse } from "../../../src/features/wallet/wallet.parse.js";
+import { parseBalanceResponse, parseLocalWalletAddressesResponse } from "../../../src/features/wallet/wallet.parse.js";
 import { parseTokenCreateResponse } from "../../../src/features/tokens/tokens.parse.js";
 
 const fetchMock = vi.fn();
@@ -48,6 +48,23 @@ describe("fetchMinimaStatus", () => {
 });
 
 describe("runMinimaPathCommand", () => {
+  it("preserves default/simple address data through the scripts RPC and parser", async () => {
+    // Source-shaped fixture; deployed-node capture remains part of ticket #206 verification.
+    const miniaddress = "MxG086U24F17MT50Y6VUPBPD6VJKTYVMR71WRSYURYUVZDN1VMG25FF39M0458A";
+    const body = { status: true, response: [{
+      script: "RETURN SIGNEDBY(0xABCD)",
+      address: "0xDE111E13DBA5054DFF657969BF3A76BFB6CE196F95F6EBEFE1B70FED0115EF1A",
+      miniaddress, default: true, simple: true, publickey: "0xABCD", track: true
+    }] };
+    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify(body)));
+
+    const result = await runMinimaPathCommand("scripts");
+
+    assert.equal(fetchMock.mock.calls[0][0], "http://127.0.0.1:9005/scripts");
+    assert.equal(result.ok, true);
+    assert.deepEqual(parseLocalWalletAddressesResponse(result.body), [miniaddress]);
+  });
+
   it("builds the request path from a simple command", async () => {
     fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify({ status: true })));
 

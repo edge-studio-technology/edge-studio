@@ -50,6 +50,7 @@ function addressBookEntry(overrides: Partial<AddressBookEntry> = {}): AddressBoo
     address: "Mx1",
     notes: null,
     created_at: "2026-08-01T00:00:00.000Z",
+    isLocalDevice: false,
     ...overrides,
   };
 }

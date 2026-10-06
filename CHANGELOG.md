@@ -4,7 +4,15 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased]
+## [Unreleased] task/206-add-the-devices-own-node-address-to-the-addressbook-by-default
+
+### Added
+
+- Address-book API entries include an `isLocalDevice` boolean.
+
+### Changed
+
+- Manually saved contacts may share the app-managed local contact's destination while retaining their own IDs and edit/delete controls.
 
 ## [0.42.2] 2026-10-06
 

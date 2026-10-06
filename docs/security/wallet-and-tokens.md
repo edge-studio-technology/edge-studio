@@ -15,6 +15,21 @@ checksum. It deliberately does not impose a fixed address length derived from ex
 The wallet service repeats this validation so automation's `send_transaction` path cannot bypass
 the HTTP route check. Existing stored address-book rows are not rewritten or canonicalized.
 
+## Local Address-Book Identity
+
+The local-contact persistence foundation stores an explicit, server-owned `isLocalDevice` marker.
+Initialization creates a separate app contact or returns the already marked entry unchanged; it
+never promotes a manually saved contact based on its name or destination. A manual contact may
+share the same destination and retains its ID, fields, and edit/delete controls. Manual-contact
+uniqueness checks exclude the app-owned row; workflow recipients still resolve by contact ID.
+
+The migration preserves existing rows and workflow references, allows a local/manual address pair,
+and retains exact-address uniqueness between manual contacts and a single local marker.
+Automatic initialization and managed-contact mutation guards are not connected yet; those remain
+the next implementation step. Wallet replacement and a possible reroll action are separate
+decisions; normal initialization does not change an existing contact's destination.
+See [ADR 0030](../adr/0030-app-owned-local-address-book-contact.md).
+
 ## Seed Phrase Import (admin)
 
 Risk: `POST /api/wallet/import` accepts a 24-word BIP-39 seed phrase in the JSON request body and calls the Minima `restore` RPC. The phrase travels over the existing HTTP connection.

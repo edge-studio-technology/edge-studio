@@ -92,6 +92,7 @@ function contact(overrides: Partial<AddressBookEntry> = {}): AddressBookEntry {
     address: "Mx1234",
     notes: null,
     created_at: "2026-08-01T00:00:00.000Z",
+    isLocalDevice: false,
     ...overrides,
   };
 }

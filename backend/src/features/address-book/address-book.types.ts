@@ -4,6 +4,7 @@ export type AddressBookEntry = {
   address: string;
   notes: string | null;
   created_at: string;
+  isLocalDevice: boolean;
 };
 
 export type CreateAddressBookEntryInput = {
@@ -14,5 +15,6 @@ export type CreateAddressBookEntryInput = {
 
 export type UpdateAddressBookEntryInput = {
   label?: string;
+  address?: string;
   notes?: string | null;
 };

@@ -117,6 +117,7 @@ of carrying the full rationale inline.
 | [adr/0027-static-guided-tour.md](./adr/0027-static-guided-tour.md) | First-visit guided tour is a static single modal, marked seen per browser in `localStorage`, and replayed from Settings → Behaviour |
 | [adr/0028-raise-workflow-run-budget.md](./adr/0028-raise-workflow-run-budget.md) | Per-workflow run budget raised from 10 to an interim 1,000 privileged runs per rolling hour |
 | [adr/0029-verified-version-identity.md](./adr/0029-verified-version-identity.md) | Installed release version reported only when running image digests match the recorded manifest; images carry a baked build identity for dev and mismatched builds |
+| [adr/0030-app-owned-local-address-book-contact.md](./adr/0030-app-owned-local-address-book-contact.md) | Separate app-owned local contact; check/create only; manual contacts stay untouched and may share its destination |
 
 ---
 

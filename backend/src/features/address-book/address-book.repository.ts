@@ -1,33 +1,74 @@
 import crypto from "node:crypto";
 import { db } from "../../db/database.js";
+import { canonicalMinimaAddress } from "../../shared/minima-address.js";
 import type { AddressBookEntry } from "./address-book.types.js";
 
+type AddressBookRow = Omit<AddressBookEntry, "isLocalDevice"> & { is_local_device: number };
+
+function mapEntry({ is_local_device, ...entry }: AddressBookRow): AddressBookEntry {
+  return { ...entry, isLocalDevice: is_local_device === 1 };
+}
+
 export function listAddressBookEntries(): AddressBookEntry[] {
-  return db.prepare(`
-    SELECT id, label, address, notes, created_at
+  const rows = db.prepare(`
+    SELECT id, label, address, notes, created_at, is_local_device
     FROM address_book
     ORDER BY label COLLATE NOCASE ASC
-  `).all() as AddressBookEntry[];
+  `).all() as AddressBookRow[];
+  return rows.map(mapEntry);
 }
 
 export function getAddressBookEntryById(id: string): AddressBookEntry | null {
   const row = db.prepare(`
-    SELECT id, label, address, notes, created_at
+    SELECT id, label, address, notes, created_at, is_local_device
     FROM address_book
     WHERE id = ?
     LIMIT 1
-  `).get(id) as AddressBookEntry | undefined;
-  return row ?? null;
+  `).get(id) as AddressBookRow | undefined;
+  return row ? mapEntry(row) : null;
 }
 
+/** Finds an ordinary contact for manual-contact uniqueness checks. */
 export function getAddressBookEntryByAddress(address: string): AddressBookEntry | null {
   const row = db.prepare(`
-    SELECT id, label, address, notes, created_at
+    SELECT id, label, address, notes, created_at, is_local_device
     FROM address_book
-    WHERE address = ?
+    WHERE address = ? AND is_local_device = 0
     LIMIT 1
-  `).get(address) as AddressBookEntry | undefined;
-  return row ?? null;
+  `).get(address) as AddressBookRow | undefined;
+  return row ? mapEntry(row) : null;
+}
+
+export function getLocalAddressBookEntry(): AddressBookEntry | null {
+  const row = db.prepare(`
+    SELECT id, label, address, notes, created_at, is_local_device
+    FROM address_book WHERE is_local_device = 1
+  `).get() as AddressBookRow | undefined;
+  return row ? mapEntry(row) : null;
+}
+
+export function ensureLocalAddressBookEntry(addresses: readonly string[]): {
+  entry: AddressBookEntry;
+  changed: boolean;
+} | null {
+  return db.transaction(() => {
+    const local = getLocalAddressBookEntry();
+    if (local) return { entry: local, changed: false };
+    if (addresses.length === 0) return null;
+
+    const candidates = addresses.map((address) => {
+      const canonical = canonicalMinimaAddress(address);
+      if (canonical === null) throw new Error("Invalid local wallet address");
+      return { address: address.trim(), canonical };
+    }).sort((a, b) => a.canonical.localeCompare(b.canonical) || a.address.localeCompare(b.address));
+
+    const id = crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO address_book (id, label, address, notes, created_at, is_local_device)
+      VALUES (?, 'This device', ?, NULL, ?, 1)
+    `).run(id, candidates[0].address, new Date().toISOString());
+    return { entry: getAddressBookEntryById(id)!, changed: true };
+  }).immediate();
 }
 
 export function insertAddressBookEntry(input: {

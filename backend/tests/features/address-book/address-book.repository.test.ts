@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
-import { afterAll, beforeAll, describe, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
 let teardown: () => void;
 let repo: typeof import("../../../src/features/address-book/address-book.repository.js");
+let db: Awaited<ReturnType<typeof setupTestDatabase>>["db"];
+
+const HEX_ADDRESS = "0xDE111E13DBA5054DFF657969BF3A76BFB6CE196F95F6EBEFE1B70FED0115EF1A";
+const MX_ADDRESS = "MxG086U24F17MT50Y6VUPBPD6VJKTYVMR71WRSYURYUVZDN1VMG25FF39M0458A";
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
   teardown = testDb.teardown;
+  db = testDb.db;
   repo = await import("../../../src/features/address-book/address-book.repository.js");
 });
 
@@ -23,11 +28,105 @@ describe("insertAddressBookEntry", () => {
     assert.equal(entry.address, "Mx01ALICE");
     assert.equal(entry.notes, "friend");
     assert.ok(entry.created_at);
+    assert.equal(entry.isLocalDevice, false);
   });
 
   it("allows null notes", () => {
     const entry = repo.insertAddressBookEntry({ label: "Bob", address: "Mx02BOB", notes: null });
     assert.equal(entry.notes, null);
+  });
+});
+
+describe("ensureLocalAddressBookEntry", () => {
+  beforeEach(() => {
+    db.prepare("DELETE FROM address_book").run();
+  });
+
+  it("creates one app contact and skips subsequent initialization regardless of pool changes", () => {
+    assert.equal(repo.getLocalAddressBookEntry(), null);
+    const result = repo.ensureLocalAddressBookEntry([MX_ADDRESS, "0x01"]);
+    assert.ok(result);
+    assert.equal(result.changed, true);
+    assert.equal(result.entry.label, "This device");
+    assert.equal(result.entry.address, "0x01");
+    assert.equal(result.entry.notes, null);
+    assert.equal(result.entry.isLocalDevice, true);
+
+    for (const pool of [["0x01", MX_ADDRESS], ["0x02"], [], ["invalid"]]) {
+      assert.deepEqual(repo.ensureLocalAddressBookEntry(pool), { entry: result.entry, changed: false });
+    }
+    assert.deepEqual(repo.getLocalAddressBookEntry(), result.entry);
+    assert.deepEqual(repo.listAddressBookEntries(), [result.entry]);
+  });
+
+  it("creates its own contact even when the user saved the exact same address and name", () => {
+    const saved = repo.insertAddressBookEntry({ label: "This device", address: MX_ADDRESS, notes: "Mine" });
+    const result = repo.ensureLocalAddressBookEntry([MX_ADDRESS])!;
+    assert.notEqual(result.entry.id, saved.id);
+    assert.equal(result.entry.address, saved.address);
+    assert.equal(result.entry.isLocalDevice, true);
+    assert.deepEqual(repo.getAddressBookEntryById(saved.id), saved);
+    assert.equal(repo.listAddressBookEntries().length, 2);
+    assert.deepEqual(repo.getAddressBookEntryByAddress(MX_ADDRESS), saved);
+  });
+
+  it("ignores user-created Mx/hex/case aliases and keeps the normal selection", () => {
+    const mx = repo.insertAddressBookEntry({ label: "My Mx", address: MX_ADDRESS.toLowerCase(), notes: "Keep" });
+    const hex = repo.insertAddressBookEntry({ label: "My hex", address: HEX_ADDRESS, notes: null });
+    const result = repo.ensureLocalAddressBookEntry([HEX_ADDRESS])!;
+    assert.equal(result.entry.address, HEX_ADDRESS);
+    assert.notEqual(result.entry.id, hex.id);
+    assert.deepEqual(repo.getAddressBookEntryById(mx.id), mx);
+    assert.deepEqual(repo.getAddressBookEntryById(hex.id), hex);
+    assert.equal(repo.listAddressBookEntries().length, 3);
+  });
+
+  it("still creates its own contact when every wallet candidate is manually saved", () => {
+    const first = repo.insertAddressBookEntry({ label: "First", address: "0x01", notes: null });
+    const second = repo.insertAddressBookEntry({ label: "Second", address: "0x02", notes: "Saved" });
+    const result = repo.ensureLocalAddressBookEntry(["0x02", "0x01"])!;
+    assert.equal(result.entry.address, "0x01");
+    assert.notEqual(result.entry.id, first.id);
+    assert.deepEqual(repo.getAddressBookEntryById(first.id), first);
+    assert.deepEqual(repo.getAddressBookEntryById(second.id), second);
+    assert.equal(repo.listAddressBookEntries().filter((entry) => entry.isLocalDevice).length, 1);
+  });
+
+  it("allows manual contacts sharing the destination to be edited and removed independently", () => {
+    const local = repo.ensureLocalAddressBookEntry([MX_ADDRESS])!.entry;
+    const manual = repo.insertAddressBookEntry({ label: "My contact", address: MX_ADDRESS, notes: null });
+    const edited = repo.updateAddressBookEntry(manual.id, { label: "Renamed", notes: "Edited" });
+    assert.deepEqual(edited, { ...manual, label: "Renamed", notes: "Edited" });
+    assert.equal(repo.deleteAddressBookEntry(manual.id), true);
+    assert.deepEqual(repo.getLocalAddressBookEntry(), local);
+    assert.equal(repo.getAddressBookEntryByAddress(MX_ADDRESS), null);
+  });
+
+  it("does nothing with an empty or invalid pool before the first contact exists", () => {
+    assert.equal(repo.ensureLocalAddressBookEntry([]), null);
+    assert.throws(() => repo.ensureLocalAddressBookEntry(["0x01", "invalid"]), /Invalid local wallet address/);
+    assert.deepEqual(repo.listAddressBookEntries(), []);
+  });
+
+  it("rolls back a failed managed insertion without changing a saved contact", () => {
+    const manual = repo.insertAddressBookEntry({ label: "Mine", address: MX_ADDRESS, notes: "Saved" });
+    db.exec(`CREATE TRIGGER fail_local_insert BEFORE INSERT ON address_book
+      WHEN NEW.is_local_device = 1 BEGIN SELECT RAISE(ABORT, 'local insert failed'); END;`);
+    try {
+      assert.throws(() => repo.ensureLocalAddressBookEntry([MX_ADDRESS]), /local insert failed/);
+      assert.deepEqual(repo.listAddressBookEntries(), [manual]);
+    } finally {
+      db.exec("DROP TRIGGER fail_local_insert");
+    }
+    assert.equal(repo.ensureLocalAddressBookEntry([MX_ADDRESS])?.entry.isLocalDevice, true);
+  });
+
+  it("enforces one local marker and retains the exact-address duplicate rule between manual contacts", () => {
+    repo.ensureLocalAddressBookEntry([MX_ADDRESS]);
+    const manual = repo.insertAddressBookEntry({ label: "Mine", address: MX_ADDRESS, notes: null });
+    assert.throws(() => repo.insertAddressBookEntry({ label: "Duplicate", address: MX_ADDRESS, notes: null }), /UNIQUE/);
+    assert.throws(() => db.prepare("UPDATE address_book SET is_local_device = 1 WHERE id = ?").run(manual.id), /UNIQUE/);
+    assert.equal(repo.getAddressBookEntryById(manual.id)?.isLocalDevice, false);
   });
 });
 
