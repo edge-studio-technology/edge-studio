@@ -4,6 +4,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Audited OpenProject #206, its discussion, and the current address-book/wallet/startup/Minima/automation code against `e3c52cf8`; saved the proposed implementation in `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`. Recorded the managed-contact policy as provisional after the user requested a follow-up discussion. Application implementation has not started; OpenProject was read only.
+- Verified #206's unchanged baseline with 71 backend tests across 6 files and 150 frontend tests across 5 files. Backend route tests passed after rerunning with local socket access; no full checks/builds, browser QA, or live-node verification ran for this planning work.
+
 - Published wiki commit `d7f4ca6` and confirmed the remote revision and rendered GitHub alerts on Hardware, Getting Started, Backup, and Advanced Networking pages. Updated the user wiki guidance for headings, GitHub alerts, first-file stamping, networking, checksum trust, CLI logs, and temporary manual backup/restore; repository security clarifications are on `chore/wiki-user-guidance`. Checked local wiki links, all 16 Bash blocks, diffs, and a synthetic SQLite/.env archive round trip. No application code changed; full app tests/builds and real-Pi recovery were not run.
 
 - Verified the merged #275 branch: `npm run check` passed 3,116 tests, coverage thresholds, type checks, and clean dependency audits; backend/frontend production builds and `docker compose config --quiet` passed. Fresh browser verification during review remained inconclusive because the isolated session rendered a blank page.
@@ -81,6 +84,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
+- #206: discuss the provisional contact policy, confirm the deployed Minima `scripts` response, and settle the saved implementation plan before application coding.
+
 - Comment on #694 and move it to Ready for Deployment (awaiting go-ahead).
 - Separate task: table drift left from #697 (watch history double scroller, peers table `<div>` header, backups onto `TableWrap`).
 - Complete the manual container/Pi checks in `docs/plans/security/705-retention-redaction-budgets.md`, including existing-installation Docker log rotation.
@@ -94,6 +99,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - PR #143: review and merge to `dev`; then a separate release branch bumps `package.json` to `0.42.2`, dates the changelog, merges `dev` → `main`, and tags `v0.42.2`.
 
 ## Notes / Open Questions
+
+- #206: contact edit/removal and wallet-replacement policy remains provisional. Upstream `getaddress` chooses randomly; the proposed contact uses one stable address. Preserve old contact IDs/payment destinations across wallet replacement and verify the proposed `scripts` parser against the deployed image before finalizing it.
 
 - The sidebar overlay has no OpenProject ticket yet; the team was asked on #667 to create one.
 - The host agent isn't configured locally, so the hardware modal was only checked in its all-disabled state.
