@@ -6,8 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## [Unreleased] hotfix/version-identity
-
 ### Added
 
 - Frontend, backend, and update-agent images carry their build version and commit as image labels.
@@ -27,6 +25,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Reinstalling after switching to or from `DEV_MODE` now starts or stops the update-agent for the new install mode.
+
+### Security
+
+- Updated `proxy-addr` and `source-map-js` to versions that fix published advisories.
 
 ## [Unreleased] hotfix/update-agent-redirect-bug
 

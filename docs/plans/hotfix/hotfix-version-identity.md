@@ -85,7 +85,7 @@ Decisions (rationale in `docs/adr/0029-verified-version-identity.md`, which amen
 ## Docs
 
 - ADR 0029 status flips to `Accepted` when merged. ADR 0006 already carries the amendment note.
-- `CHANGELOG.md` under `## [Unreleased] hotfix/version-identity`: verified version display, build identity in images, `install.sh` version recording order, `DEV_MODE` cleanup.
+- `CHANGELOG.md` under `## [Unreleased]`: verified version display, build identity in images, `install.sh` version recording order, `DEV_MODE` cleanup.
 - `README.md`: update section (what "doesn't match a release" means), `DEV_MODE` build identity.
 - `SECURITY.md`: `update-agent` gains a read-only image-inspect Docker call.
 - `.agents/rules/update-agent.md`, `.claude/rules/update-agent.md`, `.cursor/rules/update-agent.mdc`: the state file now carries `images`, `currentVersion` is verified against running images, and labels are read from images. Apply identical changes to all three.
