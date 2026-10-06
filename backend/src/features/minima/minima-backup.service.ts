@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { runWalletReplacement } from "../address-book/wallet-replacement.service.js";
 import path from "node:path";
 import { findUserById } from "../auth/auth.repository.js";
 import { verifyPassword } from "../auth/password.service.js";
@@ -195,8 +196,9 @@ export async function restoreBackup({ fileName, password }: { fileName: string; 
   beginMinimaOperation("restore");
   try {
     // Same reason as createBackup — the command carries the password.
-    const result = await runMinimaPathCommand(command, 60000);
-    return { ok: result.ok, status: result.status, fileName };
+    const result = await runWalletReplacement(() => runMinimaPathCommand(command, 60000));
+    const body = result.body as { status?: unknown } | null;
+    return { ok: result.ok && body?.status === true, status: result.status, fileName };
   } catch (error) {
     endMinimaOperation();
     throw error;

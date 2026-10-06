@@ -5,6 +5,7 @@ export type AddressBookEntry = {
   notes: string | null;
   created_at: string;
   isLocalDevice: boolean;
+  isLocalDevicePending: boolean;
 };
 
 export type CreateAddressBookEntryInput = {

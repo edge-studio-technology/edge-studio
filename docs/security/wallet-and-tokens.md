@@ -18,7 +18,7 @@ the HTTP route check. Existing stored address-book rows are not rewritten or can
 ## Local Address-Book Identity
 
 The local contact stores an explicit, server-owned `isLocalDevice` marker.
-Initialization creates a separate app contact or returns the already marked entry unchanged; it
+Ordinary initialization creates a separate app contact or returns the verified marked entry unchanged; it
 never promotes a manually saved contact based on its name or destination. A manual contact may
 share the same destination and retains its ID, fields, and edit/delete controls. Manual-contact
 uniqueness checks exclude the app-owned row; workflow recipients still resolve by contact ID.
@@ -27,18 +27,32 @@ The migration preserves existing rows and workflow references, allows a local/ma
 and retains exact-address uniqueness between manual contacts and a single local marker.
 The existing health poller initializes the contact when the node is running; authenticated listing
 also makes a bounded best-effort attempt while it is missing. Concurrent attempts share the same
-discovery promise. Only the fixed read-only `scripts` RPC is used, and validated default/simple
+discovery promise. Initial discovery uses the fixed read-only `scripts` RPC, and validated default/simple
 address pairs are projected to public destinations; no seed/private-key commands are called.
 Discovery failures preserve saved contacts, while database failures remain HTTP errors. Once the
-contact exists, initialization skips RPC and never rotates its destination. Actual creation emits
+contact exists and is verified, ordinary initialization skips RPC and keeps its destination. Actual creation emits
 one `address-book.local.create` audit event with the contact ID, label, and public address.
 
 PATCH/DELETE guards use the stored marker: the app contact allows notes edits but rejects name or
 address changes and deletion with structured conflicts. Unchanged name/address values are accepted
 even when a manual copy shares the destination. Client-supplied markers cannot forge or remove local
-identity. Existing auth/admin gates remain; manual copies retain independent CRUD. Frontend identity
-and protected form/action presentation remain step 3. Wallet replacement is a separate pending
-decision, and reroll is out of scope.
+identity. Existing auth/admin gates remain; manual copies retain independent CRUD. Frontend identity and protected form/action presentation are implemented.
+
+App-controlled restore/import/reset operations durably mark local verification pending before
+mutation dispatch; ordinary outages/restarts do not. Verification uses the fixed read-only
+`checkrestore` and `scripts` commands, requiring explicit readiness and valid default/simple
+receive addresses. A revision guard discards stale discovery and verification waits for active
+replacement requests. Durable uncertainty starts before dispatch and survives a backend restart
+mid-request; it becomes a normal verification attempt only after the RPC returns. Pending local recipients fail payment resolution; workflow resolution is
+rechecked after balance awaits, and manual payment requests selecting a contact submit its ID.
+External address-only sends and user-created copies remain independent.
+
+Verified replacement changes only the managed address, preserving ID, metadata, and manual rows.
+The address update, pending-state clearing, and `address-book.local.replace` audit with old/new
+public destinations are atomic. No backup contact or key material is stored. Ambiguous RPC failures
+keep a still-old destination blocked; a different verified destination or a subsequent completed
+replacement resolves it. Direct changes outside Edge Studio are outside detection scope. Reroll
+is out of scope; manual wallet-replacement verification/signoff remains pending.
 See [ADR 0030](../adr/0030-app-owned-local-address-book-contact.md).
 
 ## Seed Phrase Import (admin)

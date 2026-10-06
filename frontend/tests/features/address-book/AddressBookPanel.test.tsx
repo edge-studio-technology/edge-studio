@@ -31,6 +31,7 @@ function entry(overrides: Partial<AddressBookEntry> = {}): AddressBookEntry {
     notes: null,
     created_at: "2026-08-01T00:00:00.000Z",
     isLocalDevice: false,
+    isLocalDevicePending: false,
     ...overrides,
   };
 }
@@ -49,6 +50,22 @@ describe("AddressBookPanel", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it("hides the unverified address and refreshes the pending contact until verification completes", async () => {
+    const local = entry({ id: "local", label: "This device", address: "0x01", isLocalDevice: true, isLocalDevicePending: true });
+    listAddressBookEntries.mockResolvedValueOnce([local])
+      .mockResolvedValueOnce([{ ...local, address: "0x02", isLocalDevicePending: false }]);
+    vi.useFakeTimers();
+    await act(async () => { renderPanel(); });
+    expect(screen.getByText("Verifying wallet")).toBeInTheDocument();
+    expect(screen.queryByText("0x01")).not.toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    expect(screen.queryByText("Verifying wallet")).not.toBeInTheDocument();
+    expect(screen.getByText("0x02")).toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    expect(listAddressBookEntries).toHaveBeenCalledTimes(2);
   });
 
   it.each([null, "Updated note"])("protects the managed controls and saves only notes (%s)", async (notes) => {

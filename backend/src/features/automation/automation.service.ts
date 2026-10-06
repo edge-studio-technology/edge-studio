@@ -3,7 +3,7 @@ import {
   getDataSource,
   updateDataSourceReadResult,
 } from "../data-sources/dataSources.repository.js";
-import { getAddressBookEntryById } from "../address-book/address-book.repository.js";
+import { getAddressBookPaymentRecipient } from "../address-book/address-book.repository.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { pulseGpioOutput } from "../data-sources/gpioOutput.service.js";
 import { publishMqttOutput } from "../data-sources/mqttOutput.service.js";
@@ -1310,8 +1310,8 @@ async function sendTransaction(
   context: WorkflowContext,
   workflow: AutomationWorkflowRecord,
 ) {
-  const recipient = config.recipientAddressBookId
-    ? getAddressBookEntryById(config.recipientAddressBookId)
+  let recipient = config.recipientAddressBookId
+    ? getAddressBookPaymentRecipient(config.recipientAddressBookId)
     : null;
   if (!recipient) throw new Error("Send transaction recipient was not found in the address book");
 
@@ -1330,6 +1330,7 @@ async function sendTransaction(
   if (compareDecimalStrings(amount, nativeToken.sendable) > 0)
     throw new Error(`Amount exceeds available balance (${nativeToken.sendable} MINIMA)`);
 
+  recipient = getAddressBookPaymentRecipient(recipient.id);
   const result = await sendPayment({ address: recipient.address, amount, tokenId: "0x00" });
   recordWalletSendHistory({
     toAddress: recipient.address,

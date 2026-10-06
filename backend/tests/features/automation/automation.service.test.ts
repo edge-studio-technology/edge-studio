@@ -802,6 +802,40 @@ describe("automation.service — control_output", () => {
 });
 
 describe("automation.service — send_transaction", () => {
+  it("rechecks local recipient availability after awaiting the wallet balance", async () => {
+    const local = addressBookRepo.ensureLocalAddressBookEntry(["0x01"])!.entry;
+    const wf = makeWorkflow([
+      { type: "manual_start", config: {} },
+      { type: "send_transaction", config: { recipientAddressBookId: local.id, amount: "1" } }
+    ]);
+    getWalletStatusMock.mockImplementation(async () => {
+      addressBookRepo.markLocalWalletVerificationPending();
+      return { tokens: [{ tokenId: "0x00", isNative: true, sendable: "10" }] };
+    });
+    try {
+      await assert.rejects(service.runAutomationWorkflow(wf.id), /awaiting wallet verification/);
+      assert.equal(sendPaymentMock.mock.calls.length, 0);
+    } finally {
+      addressBookRepo.reconcileLocalAddressBookEntry(["0x01"], addressBookRepo.getLocalWalletVerificationRevision());
+    }
+  });
+
+  it("follows the updated local address through the same workflow reference", async () => {
+    const local = addressBookRepo.ensureLocalAddressBookEntry(["0x01"])!.entry;
+    const wf = makeWorkflow([
+      { type: "manual_start", config: {} },
+      { type: "send_transaction", config: { recipientAddressBookId: local.id, amount: "1" } }
+    ]);
+    getWalletStatusMock.mockImplementation(async () => {
+      addressBookRepo.markLocalWalletVerificationPending();
+      addressBookRepo.reconcileLocalAddressBookEntry(["0x02"], addressBookRepo.getLocalWalletVerificationRevision());
+      return { tokens: [{ tokenId: "0x00", isNative: true, sendable: "10" }] };
+    });
+    sendPaymentMock.mockResolvedValue({ ok: true, txpowId: "tx-new", status: "sent" });
+    await service.runAutomationWorkflow(wf.id);
+    assert.equal(sendPaymentMock.mock.calls[0][0].address, "0x02");
+    assert.equal(addressBookRepo.getLocalAddressBookEntry()!.id, local.id);
+  });
   it("throws when the recipient is not found", async () => {
     const wf = makeWorkflow([
       { type: "manual_start", config: {} },

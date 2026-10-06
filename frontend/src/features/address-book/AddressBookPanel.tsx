@@ -120,6 +120,12 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
     if (previous === null || (previous && !actionsBlocked)) void loadEntries();
   }, [actionsBlocked, loadEntries]);
 
+  useEffect(() => {
+    if (actionsBlocked || !entries.some((entry) => entry.isLocalDevicePending)) return;
+    const timer = window.setTimeout(() => void loadEntries(), 30_000);
+    return () => window.clearTimeout(timer);
+  }, [actionsBlocked, entries, loadEntries]);
+
   function upsertEntry(next: AddressBookEntry) {
     setEntries((prev) => sortByLabel([...prev.filter((e) => e.id !== next.id), next]));
   }
@@ -361,6 +367,7 @@ function AddressBookCell({
         <div className="gap-detail-next flex min-w-0 flex-wrap items-center">
           <CopyableTruncatedText value={entry.label} emphasis />
           {entry.isLocalDevice ? <Pill>Local device</Pill> : null}
+          {entry.isLocalDevicePending ? <Pill tone="warn">Verifying wallet</Pill> : null}
         </div>
       </TableCell>
     );
@@ -368,7 +375,9 @@ function AddressBookCell({
   if (columnId === "address") {
     return (
       <TableCell className="min-w-0">
-        <TruncatedHash value={entry.address} />
+        {entry.isLocalDevicePending
+          ? <span className="text-text-secondary">Awaiting wallet verification</span>
+          : <TruncatedHash value={entry.address} />}
       </TableCell>
     );
   }
@@ -418,7 +427,9 @@ function ContactDetailModal({ entry, onClose }: { entry: AddressBookEntry; onClo
           <p className="type-meta text-text-secondary m-0" id="contact-address-label">
             Address
           </p>
-          <CopyableCode value={entry.address} />
+          {entry.isLocalDevicePending
+            ? <p className="type-body text-text-secondary m-0">Awaiting wallet verification. This contact is unavailable for payments.</p>
+            : <CopyableCode value={entry.address} />}
         </section>
 
         {entry.notes ? (
@@ -518,7 +529,7 @@ function EditContactForm({
           <InputField
             label="Address"
             description="The Minima address for the contact"
-            value={address}
+            value={entry.isLocalDevicePending ? "Awaiting wallet verification" : address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Mx… or 0x…"
             autoComplete="off"

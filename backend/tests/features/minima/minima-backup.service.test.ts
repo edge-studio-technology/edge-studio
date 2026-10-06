@@ -115,6 +115,7 @@ afterAll(() => {
 
 beforeEach(() => {
   fsState.clear();
+  db.prepare("DELETE FROM settings WHERE key='address_book_local_wallet_verification'").run();
   db.prepare("DELETE FROM settings WHERE key IN ('minima_backup_password_enc', 'minima_auto_backup_enabled')").run();
   for (const fn of Object.values(fsMock)) fn.mockClear();
   runMinimaPathCommandMock.mockReset();
@@ -304,8 +305,23 @@ describe("createBackup", () => {
 });
 
 describe("restoreBackup", () => {
+  it("protects the managed recipient before restore dispatch and rejects RPC-level failure", async () => {
+    const repo = await import("../../../src/features/address-book/address-book.repository.js");
+    const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
+    seedBackup("minima-manual-1.bak", "2026-01-01T00:00:00.000Z");
+    runMinimaPathCommandMock.mockImplementation(async () => {
+      assert.throws(() => repo.getAddressBookPaymentRecipient(local.id), /awaiting/);
+      return { ok: true, status: 200, body: { status: false } };
+    });
+    assert.equal((await backupService.restoreBackup({ fileName: "minima-manual-1.bak" })).ok, false);
+    assert.equal(repo.getLocalAddressBookEntry()!.isLocalDevicePending, true);
+    monitoring.endMinimaOperation();
+  });
+
   it("rejects a missing backup file", async () => {
+    const repo = await import("../../../src/features/address-book/address-book.repository.js");
     await assert.rejects(() => backupService.restoreBackup({ fileName: "missing.bak" }));
+    assert.equal(repo.getLocalWalletVerificationRevision(), "");
   });
 
   it("uses an explicit password over the stored one", async () => {

@@ -20,6 +20,7 @@ export type ReceiveAddress = {
 };
 
 export type SendPaymentRequest = {
+  recipientAddressBookId?: string;
   address: string;
   amount: string;
   tokenId?: string;

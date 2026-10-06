@@ -51,6 +51,7 @@ function addressBookEntry(overrides: Partial<AddressBookEntry> = {}): AddressBoo
     notes: null,
     created_at: "2026-08-01T00:00:00.000Z",
     isLocalDevice: false,
+    isLocalDevicePending: false,
     ...overrides,
   };
 }
@@ -311,6 +312,17 @@ describe("DraftBlockInspector control_output", () => {
 });
 
 describe("DraftBlockInspector send_transaction", () => {
+  it("makes the pending local recipient unavailable without changing an existing workflow reference", () => {
+    const onChange = vi.fn();
+    renderInspector(draftBlock("send_transaction", { recipientAddressBookId: "local", amount: "1" }), {
+      onChange,
+      addressBook: [addressBookEntry({ id: "local", label: "This device", isLocalDevice: true, isLocalDevicePending: true }), addressBookEntry()],
+    });
+    expect(screen.getByRole("option", { name: /verifying wallet/ })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Alice" })).toBeEnabled();
+    expect(screen.getByRole("combobox", { name: "Address book recipient" })).toHaveValue("local");
+    expect(onChange).not.toHaveBeenCalled();
+  });
   it("identifies the local contact and selects its ID only when explicitly chosen", async () => {
     const onChange = vi.fn();
     renderInspector(draftBlock("send_transaction", { amount: "1" }), {

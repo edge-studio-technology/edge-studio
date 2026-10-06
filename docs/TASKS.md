@@ -12,7 +12,7 @@
 
 ## Current Focus
 
-- [ ] Implement the default local Minima wallet contact (OpenProject #206) — step 1 committed/Pi-verified; steps 2–3 backend initialization/protection and frontend identity, notes-only controls, recovery reload, and recipient selection implemented; 187 focused/full check (3,273 tests), builds, and Compose passed; wallet-replacement policy and authenticated browser/Pi checks for steps 2–3 remain; reroll out of scope; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-step-1-pi.md`, and ADR 0030.
+- [ ] Final manual verification/signoff for the default local Minima wallet contact (OpenProject #206) — steps 1–4 implemented; 207 backend/190 frontend focused tests and full check (3,304 tests), builds, and Compose passed; step 4 committed locally; deploy completed branch and run Pi/Playwright plus disposable wallet-replacement checks; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-step-1-pi.md`, and ADR 0030.
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
@@ -82,6 +82,8 @@
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
 
 ## Done
+
+- [x] #206 step 4 implementation: app-controlled wallet replacement refreshes only the managed address, preserves manual rows/metadata/workflow IDs, records atomic public-address audit, blocks pending recipients, and resolves current destinations at send time; 207 backend/190 frontend focused tests and full check (3,304 tests), both builds, and Compose passed. Deployment/manual signoff remains under the parent feature.
 
 - [x] #206 step 3 frontend identity and protection: Local device row/details/selector labels, notes-only managed form and no Remove, recovery reload, distinct contact selection for duplicate destinations, and ordinary-only workflow defaults; 187 focused/full check (3,273 tests), builds, and Compose verified. Live browser/Pi verification remains under the parent feature.
 

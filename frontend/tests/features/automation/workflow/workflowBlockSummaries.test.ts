@@ -29,6 +29,7 @@ function contact(overrides: Partial<AddressBookEntry> = {}): AddressBookEntry {
     notes: null,
     created_at: "2026-08-01T00:00:00.000Z",
     isLocalDevice: false,
+    isLocalDevicePending: false,
     ...overrides,
   };
 }

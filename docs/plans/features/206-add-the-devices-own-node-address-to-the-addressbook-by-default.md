@@ -1,6 +1,6 @@
 # Local Device Address Book Contact Plan
 
-**Status:** Step 1 committed and Pi-verified; steps 2–3 backend initialization/API guards and frontend behavior implemented and locally verified; authenticated browser/Pi verification of steps 2–3 and step 4 remain
+**Status:** Steps 1–4 implemented and locally verified; ready for final manual Pi/Playwright testing and signoff; only step 1 has been Pi-verified
 **Created:** 2026-10-06
 **Branch:** `task/206-add-the-devices-own-node-address-to-the-addressbook-by-default`
 **Audit baseline:** `e3c52cf8` (clean working tree before this planning session)
@@ -41,23 +41,23 @@ README's Wallet section still documents labeled-account endpoints absent from th
 
 ## Proposed behavior
 
-The following uses the clarified notes-only policy for a separate app-owned contact. Steps 1–3 implement check/create persistence, initialization, API protection, and UI behavior; wallet-replacement decisions and final live verification remain ahead.
+The following uses the clarified notes-only policy for a separate app-owned contact. Steps 1–4 implement check/create persistence, initialization, API protection, UI behavior, and wallet-replacement verification. Final live testing and signoff remain ahead.
 
 - The app creates its own contact labeled **This device**, with a separate **Local device** indicator that remains visible after editing or clearing notes. User-created contacts retain their existing fields and edit/removal permissions.
 - New and existing installations receive the contact automatically once Minima can supply default addresses, whether or not anyone has opened Wallet.
-- A previously created app contact stays unchanged during initialization. Node/backend restarts, receive-address refreshes, and wallet-address ordering or pool changes do not automatically select a new one.
+- A previously created, verified app contact stays unchanged during ordinary initialization. Node/backend restarts, receive-address refreshes, and wallet-address ordering or pool changes do not automatically select a new one.
 - Normal initialization checks for the feature's own app-managed self-contact. If present, skip creation; if missing, create one. A user-created contact with a wallet address does not satisfy that check and must not be adopted, locked, or otherwise changed.
 - The app contact may share even the exact same destination with a manually added contact. Manual contacts are ignored during initial selection; no alternate address is selected merely to avoid the user's entries. Manual copies stay editable/removable. Preserve the current exact-address duplicate rule between ordinary contacts.
 - Only notes remain editable. The API rejects changing the managed label/name or address, or deleting the contact. Unchanged label/address values submitted by an older client are allowed. Clients cannot designate their own contacts as local.
 - An unavailable node, initializing wallet, empty response, timeout, or malformed response creates nothing and clears nothing. Retry on the existing health cadence. Address-book reads still return saved contacts.
-- Wallet replacement is a separate pending policy. The current initializer does not demote or replace an existing app contact. Any future replacement handling must preserve manual contacts and define how existing workflow references and the previous destination are handled before being enabled.
+- After an app-controlled wallet replacement, verify the saved local address against the current wallet. Keep it if still owned (including Mx/hex aliases); otherwise update only the managed address, preserving ID, name, notes, creation time, and all manual contacts. Workflows intentionally follow the current wallet through the same contact ID. Record old/new public addresses in the audit log; do not create a backup recipient. Persist a pending-verification state before replacement dispatch and block payments through the managed contact until verification succeeds. Ordinary outages never invalidate a ready contact.
 
 ## Backend changes
 
 ### 1. Local identity and atomic persistence
 
 - Add `is_local_device INTEGER NOT NULL DEFAULT 0` through `ensureColumn` in `database.ts`, plus a partial unique index for the true marker. Rebuild the legacy table transactionally to remove global address uniqueness, copy every field/ID, and add an exact-address unique index applying only to ordinary rows. Existing contacts start as ordinary recipients; migrations do not call RPC.
-- Add an API boolean `isLocalDevice` to the backend/frontend `AddressBookEntry` types. Map the SQLite integer consistently in list and lookup results, keeping existing fields and the array response shape.
+- Add API booleans `isLocalDevice` and `isLocalDevicePending` to the backend/frontend `AddressBookEntry` types. Map the SQLite integer consistently in list and lookup results, keeping existing fields and the array response shape.
 - Use one immediate repository transaction: return the marked app contact unchanged if present; otherwise validate the supplied wallet pool, select deterministically, and insert a separate **This device** row with its own ID. Never look up ordinary rows for adoption, and never promote or demote any row during initialization. Keep database work synchronous and atomic.
 - Extend the existing address helper with canonical comparison based on validated Mx payload/hex bytes. Use it to validate parser pairs and deterministically order initial candidates without rewriting saved addresses.
 - Keep every existing ordinary Mx/0x alias row, its references, and its permissions intact; historical contact merging is separate work. Manual uniqueness lookups exclude the managed row so a user can create or edit their own copy of the same destination.
@@ -92,7 +92,19 @@ The following uses the clarified notes-only policy for a separate app-owned cont
 1. **Persistence for check-own-contact/create-if-missing, duplicate destinations, and live RPC shape.** Code committed and verified locally and on the dev Pi; authenticated browser CRUD checks pending. Verify separate creation, skipping an existing feature contact, alias handling, repeatable migration, stable IDs, one marker, and unchanged user metadata/permissions.
 2. **Add initialization, poller/list integration, and API guards.** Implemented and locally verified: 116 focused tests, full check (3,265 tests), backend/frontend builds, and Compose config passed. Covered creation without visiting Wallet, offline startup/retry, concurrent attempts, unchanged-poll idempotency, protected mutations, and continued health monitoring after an initialization failure.
 3. **Add UI identity/protection and update payment consumers.** Implemented and locally verified: 187 focused tests, full check (3,273 tests), backend/frontend builds, and Compose config passed. Covered notes edits/clears, persistent local identity with hidden Notes, read-only fields/no removal, recovery reload including stale responses, ordinary controls, duplicate destinations, and explicit local-recipient selection.
-4. **Settle wallet-replacement behavior and update docs.** Decide how a restored wallet affects the app contact before claiming restored-wallet ownership handling. Keep normal initialization check/create-only and preserve manual contacts and existing payment references. Run the full checks below before marking implementation complete.
+4. **Implement agreed wallet-replacement behavior and update docs.** Implemented and locally verified with 207 backend/190 frontend focused tests, full check (3,304 tests), builds, and Compose config. Accepted on 2026-10-06: preserve the app contact ID/metadata and manual rows, update its address only after replacement verification, and intentionally let workflows follow the current wallet. Use an audit record rather than a backup contact; block the managed recipient while verification is pending. Manual Pi/Playwright testing, live restore/restart verification, and signoff remain the final milestone.
+
+## Wallet-replacement implementation (step 4)
+
+- Reuse SQLite settings for a durable pending-verification revision; expose pending status on the managed contact without a new contact or changing ordinary rows. Writes are server-owned.
+- Mark pending before a supported mutation is dispatched: backup `restoresync`, seed import, and whitelisted console `restore`/`reset` (console `restoresync` already uses the backup service). Hold verification while replacement RPC is in flight. Do not invalidate on ordinary restart/resync, failed validation, or a missing backup file.
+- The persisted revision starts uncertain until the replacement RPC returns, preserving protection if the backend restarts during dispatch.
+- A discovery attempt captures the persisted revision; its result cannot apply after another replacement changes the revision. Empty/invalid/offline discovery preserves pending state and the old address as historical data, unavailable for payment; retry through the existing poller/list path. Pending state survives backend restart.
+- After replacement, a validated default/simple address pool either confirms the existing address canonically or supplies a deterministic new address. Atomically update only the managed address and clear pending status. Audit actual changes with contact ID and old/new public destinations. No automatic backup contact or reroll action is added.
+- Send-payment selection submits a contact ID so the backend resolves the current saved destination and rejects pending recipients, including dialogs opened before replacement. Direct external-address sends and manual copies remain under user control. Automation checks the contact before and again after its asynchronous balance fetch, immediately before send dispatch.
+- Seed-bearing archive/MySQL/MegaMMR console commands also use the same invalidation path. A replacement RPC exception makes completion uncertain; if discovery still shows the old address, keep it blocked until a subsequent completed replacement is verified. A verified different destination can resolve uncertainty.
+- Scope covers replacements requested through Edge Studio. Replacing wallet files or making RPC calls outside the app does not notify this event-driven mechanism; do not claim automatic detection of out-of-band mutations.
+- Final manual signoff must use a disposable wallet/node for replacement tests and must not send real funds merely to check selectors.
 
 ## Tests
 
@@ -122,7 +134,14 @@ The following uses the clarified notes-only policy for a separate app-owned cont
 - Added local identity to send-payment and workflow options. Send-payment options now use contact IDs internally to distinguish duplicate destinations, resolving the selected contact to its unchanged saved address for payment. The shared select control is unchanged. New workflow payment blocks skip the managed contact when choosing an ordinary default, or leave the recipient blank; explicit selection of the local contact remains available.
 - Reproduced six failures against the previous UI, then passed 187 focused tests across four frontend files. `npm run check` passed 3,273 tests (backend 1,322; frontend 1,728; Update Agent 171; scripts 52), coverage thresholds, typechecks, and clean dependency audits. Backend/frontend production builds, Compose config, and diff checks passed; existing frontend chunk-size and unset Compose image warnings remain. No step 3 deployment or authenticated browser test ran; the Pi report covers step 1 only. Wallet replacement and reroll behavior were not added.
 
-The existing baseline and remaining acceptance checks below continue to apply. Wallet-replacement policy and final live verification remain open.
+### Step 4 implementation progress (2026-10-06)
+
+- Amended ADR 0030 and the plan before implementation to record the agreed current-wallet identity and intentional workflow-following behavior, preserving manual contacts and using audit history rather than backup recipients.
+- Reused SQLite settings for durable pending revisions, exposed `isLocalDevicePending`, and connected replacement dispatch to backup restore, seed import, console restore/reset, and seed-bearing archive/MySQL/MegaMMR commands. No schema migration or scheduler was added. In-flight guards, strict read-only restore-state checks, canonical membership comparison, and revision checks protect verification; ambiguous exceptions retain protection for still-old pools.
+- Verification preserves same-wallet address text, or updates only the managed address while retaining its ID/metadata. The update, flag clearing, and public old/new audit are atomic, including rollback on audit failure. Send-payment contact IDs resolve on the backend; automation rechecks after balance awaits. Pending destinations are hidden/disabled and an available-node table retries pending verification every 30 seconds.
+- Passed 207 focused backend tests across eight files and 190 focused frontend tests across four files. `npm run check` passed 3,304 tests (backend 1,350; frontend 1,731; Update Agent 171; scripts 52), typechecks, coverage thresholds, and clean dependency audits. Both production builds, Compose config, and diff checks passed; existing chunk-size/unset image-variable warnings remain. Updated README/changelog/security/task/session docs. Step 4 is committed locally and has not been deployed or manually signed off.
+
+The existing baseline and remaining acceptance checks below continue to apply. Wallet-replacement behavior is implemented and locally verified; final live verification and signoff remain open.
 
 - Database/repository: existing-install migration; repeated migrations; separate app-contact creation even with duplicate destinations; unique marker; existing user rows remain ordinary with unchanged metadata/IDs; skip an existing managed entry regardless of supplied pool changes.
 - Address-book service: empty/invalid/RPC-failure responses before creation; retry after node readiness; repeated calls do not add contacts; in-flight coalescing; an existing marker skips discovery; changing RPC ordering does not rotate the selected address.
@@ -137,8 +156,8 @@ After implementation:
 
 - `README.md`: document automatic managed contact, readiness/retry, edit restrictions, offline behavior, and wallet-replacement behavior; reconcile the affected stale Wallet section.
 - `CHANGELOG.md`: add a branch-specific Unreleased Added entry for the default local-device contact and a Changed entry for its protection if useful.
-- `SECURITY.md` / `docs/security/wallet-and-tokens.md`: document server-owned local identity and that wallet replacement preserves payment destinations and references.
-- [ADR 0030](../../adr/0030-app-owned-local-address-book-contact.md) records separate app ownership, check/create initialization, and scoped uniqueness. Record any subsequently accepted wallet-replacement policy separately before enabling it.
+- `SECURITY.md` / `docs/security/wallet-and-tokens.md`: document server-owned local identity, pending-payment protection, preserved manual destinations/contact references, and the managed reference following the verified current wallet.
+- [ADR 0030](../../adr/0030-app-owned-local-address-book-contact.md) records separate app ownership, check/create initialization, and scoped uniqueness. The dated amendment records the accepted replacement, payment-following, pending-state, audit, and failure policy.
 - Reconcile this plan, `docs/TASKS.md`, and `docs/SESSION.md` when the work is actually built and verified. OpenProject comments/status updates are separate actions; no ticket fields were changed during this audit.
 
 ## Verification
@@ -168,13 +187,18 @@ Manual verification with a disposable database and test node:
 4. Start with Minima stopped, then start it: confirm saved contacts remain accessible and initialization retries successfully.
 5. Edit/clear notes; attempt protected label/address/delete operations through both UI and API; confirm ordinary contacts still work normally.
 6. Open Send payment and workflow recipient selection: confirm the local marker and explicit-selection behavior, without submitting a payment merely to test this UI.
-7. After settling wallet-replacement behavior, verify it on a disposable node and confirm manual contacts and workflow references are preserved; the current initializer does not replace an existing app contact.
+7. Restore the same wallet on a disposable node: pending is visible during restore; the same contact ID/address/notes becomes ready without an address-change audit event.
+8. Restore a different disposable wallet: verify only the app contact's address changes, ID/name/notes/creation time and all manual rows remain unchanged, no backup contact appears, and one `address-book.local.replace` event contains the public old/new destinations.
+9. During pending verification, submit a contact-ID payment request with amount `0` (no valid send): expect `409`. Repeat with a manual copy: expect ordinary amount validation, not local-contact blocking. Do not submit a valid funded payment solely for this check.
+10. Keep a send dialog/workflow editor open across replacement; confirm pending options and that the contact ID resolves to the current destination. Automated tests cover wallet-balance await races without real payments.
+11. Start replacement with the node unavailable or interrupt its RPC response: confirm the old destination stays unavailable, pending survives backend restart, and retry verifies a different destination or a subsequently completed replacement. Confirm normal restart/outage alone does not invalidate a ready contact.
+12. Verify the deployed node supports the strict `checkrestore` flags and that ready verification clears the UI status. Record the deployed commit/build, screenshots, test cleanup, any gaps, and the user's signoff. External wallet changes outside Edge Studio are outside this detection scope.
 
 ## Scope and remaining uncertainty
 
 This is a small extension of the current address book, independent of #270 Rework Wallet Service V2. It does not add multi-wallet support, change the Receive QR rotation, create key material, merge historical alias contacts, or change installation topology.
 
-The notes-only managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The deployed Minima response is verified and backend initialization/protection plus identity UI are implemented; authenticated browser/Pi checks for steps 2–3 and wallet-replacement policy remain.
+The notes-only managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The deployed Minima response is verified and backend initialization/protection plus identity UI are implemented; authenticated browser/Pi checks of the completed feature and manual signoff remain.
 
 ## Contact policy
 

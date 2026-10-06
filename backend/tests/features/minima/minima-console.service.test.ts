@@ -56,6 +56,7 @@ afterAll(() => {
 
 beforeEach(() => {
   db.prepare("DELETE FROM settings WHERE key = 'minima_console_whitelist'").run();
+  db.prepare("DELETE FROM settings WHERE key = 'address_book_local_wallet_verification'").run();
   resyncMegammrMock.mockReset();
   addMinimaPeersMock.mockReset();
   createBackupMock.mockReset();
@@ -64,6 +65,26 @@ beforeEach(() => {
 });
 
 describe("getConsoleWhitelist", () => {
+  for (const command of ['restore file:test.bak', 'reset action:restore file:test.bak', 'archive action:import phrase:"test seed"', 'mysql action:resync phrase:"test seed"', 'megammr action:import phrase:"test seed"']) {
+    it(`marks pending before dispatching ${command.split(" ")[0]}`, async () => {
+      const repo = await import("../../../src/features/address-book/address-book.repository.js");
+      const verb = command.split(" ")[0];
+      db.prepare("INSERT INTO settings (key,value) VALUES ('minima_console_whitelist',?)").run(JSON.stringify([verb]));
+      runMinimaPathCommandMock.mockImplementation(async () => {
+        assert.ok(repo.getLocalWalletVerificationRevision());
+        return { ok: true, status: 200, body: { status: true } };
+      });
+      await consoleService.runConsoleCommand(userId, command);
+    });
+  }
+
+  it("does not mark pending for ordinary reads or a rejected replacement command", async () => {
+    const repo = await import("../../../src/features/address-book/address-book.repository.js");
+    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, body: {} });
+    await consoleService.runConsoleCommand(userId, "status");
+    await assert.rejects(consoleService.runConsoleCommand(userId, "restore file:test.bak"), /not permitted/);
+    assert.equal(repo.getLocalWalletVerificationRevision(), "");
+  });
   it("defaults to only read-only commands enabled when nothing is stored", () => {
     const { catalog, enabledKeys } = consoleService.getConsoleWhitelist();
     assert.ok(enabledKeys.includes("status"));

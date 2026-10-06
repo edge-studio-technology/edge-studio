@@ -12,10 +12,14 @@ vi.mock("../../../src/features/minima/minima.rpc.js", () => ({
 
 let teardown: () => void;
 let walletService: typeof import("../../../src/features/wallet/wallet.service.js");
+let repo: typeof import("../../../src/features/address-book/address-book.repository.js");
+let db: import("better-sqlite3").Database;
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
   teardown = testDb.teardown;
+  db = testDb.db;
+  repo = await import("../../../src/features/address-book/address-book.repository.js");
   walletService = await import("../../../src/features/wallet/wallet.service.js");
 });
 
@@ -25,6 +29,22 @@ afterAll(() => {
 
 beforeEach(() => {
   runMinimaPathCommandMock.mockReset();
+  db.prepare("DELETE FROM address_book").run();
+  db.prepare("DELETE FROM settings WHERE key='address_book_local_wallet_verification'").run();
+});
+
+describe("wallet import recipient protection", () => {
+  it("makes the local recipient unavailable before seed import dispatch and preserves manual copies", async () => {
+    const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
+    const manual = repo.insertAddressBookEntry({ label: "Mine", address: local.address, notes: null });
+    runMinimaPathCommandMock.mockImplementation(async () => {
+      assert.throws(() => repo.getAddressBookPaymentRecipient(local.id), /awaiting/);
+      assert.deepEqual(repo.getAddressBookPaymentRecipient(manual.id), manual);
+      return { ok: true, status: 200, body: { status: true } };
+    });
+    await walletService.importWallet("test seed");
+    assert.equal(repo.getLocalAddressBookEntry()!.isLocalDevicePending, true);
+  });
 });
 
 describe("getWalletStatus", () => {

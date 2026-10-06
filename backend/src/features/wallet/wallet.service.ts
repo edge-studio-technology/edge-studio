@@ -1,4 +1,5 @@
 import QRCode from "qrcode";
+import { runWalletReplacement } from "../address-book/wallet-replacement.service.js";
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { db } from "../../db/database.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
@@ -22,6 +23,13 @@ export async function getLocalWalletAddresses(): Promise<string[]> {
   const result = await runMinimaPathCommand("scripts");
   if (!result.ok) throw new Error(`Minima RPC error: HTTP ${result.status}`);
   return parseLocalWalletAddressesResponse(result.body);
+}
+
+export async function isLocalWalletReadyForVerification(): Promise<boolean> {
+  const result = await runMinimaPathCommand("checkrestore");
+  const body = result.body as { status?: unknown; response?: { restoring?: unknown; shuttingdown?: unknown; complete?: unknown } } | null;
+  return result.ok && body?.status === true && body.response?.restoring === false
+    && body.response.shuttingdown === false && body.response.complete === false;
 }
 
 // Returns one of the 64 pre-created default wallet addresses at random.
@@ -51,7 +59,7 @@ export async function getPaymentStatus(txpowId: string): Promise<PaymentStatus> 
 // Restores wallet from a 24-word seed phrase via Minima restore RPC.
 // The phrase must never be logged — do not pass it to recordAuditEvent detail.
 export async function importWallet(phrase: string): Promise<ImportWalletResult> {
-  const result = await runMinimaPathCommand(`restore phrase:"${phrase}"`, 30_000);
+  const result = await runWalletReplacement(() => runMinimaPathCommand(`restore phrase:"${phrase}"`, 30_000));
   if (!result.ok) throw new Error(`Minima RPC error: HTTP ${result.status}`);
   return parseImportResponse(result.body);
 }

@@ -64,7 +64,8 @@ export function SendPaymentModal({
     isPositiveDecimal(amount) &&
     compareDecimalStrings(amount.trim(), availableSendable) > 0,
   );
-  const canSubmit = !exceedsBalance && !submitting && !actionsBlocked;
+  const canSubmit = !exceedsBalance && !submitting && !actionsBlocked
+    && !contacts.find((contact) => contact.id === contactId)?.isLocalDevicePending;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -85,6 +86,7 @@ export function SendPaymentModal({
     setSubmitting(true);
     try {
       const result = await sendPaymentApi({
+        ...(addressMode === "address-book" ? { recipientAddressBookId: contactId } : {}),
         address: address.trim(),
         amount: amount.trim(),
         tokenId,
@@ -178,7 +180,9 @@ export function SendPaymentModal({
               placeholder="Select a contact…"
               options={contacts.map((contact) => ({
                 value: contact.id,
-                label: contact.isLocalDevice ? `${contact.label} (Local device)` : contact.label,
+                label: contact.isLocalDevicePending ? `${contact.label} (Local device — verifying wallet)`
+                  : contact.isLocalDevice ? `${contact.label} (Local device)` : contact.label,
+                disabled: contact.isLocalDevicePending,
               }))}
             />
           )}
