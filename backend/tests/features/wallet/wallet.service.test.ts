@@ -60,6 +60,25 @@ describe("getReceiveAddress", () => {
   });
 });
 
+describe("getLocalWalletAddresses", () => {
+  it("rejects transport failure even when the body claims RPC success", async () => {
+    runMinimaPathCommandMock.mockResolvedValue({ ok: false, status: 503, body: { status: true, response: [] } });
+    await assert.rejects(walletService.getLocalWalletAddresses(), /Minima RPC error: HTTP 503/);
+    assert.equal(runMinimaPathCommandMock.mock.calls[0][0], "scripts");
+  });
+
+  it("requires RPC success and returns only validated default receive addresses", async () => {
+    const miniaddress = "MxG086U24F17MT50Y6VUPBPD6VJKTYVMR71WRSYURYUVZDN1VMG25FF39M0458A";
+    runMinimaPathCommandMock.mockResolvedValueOnce({ ok: true, status: 200, body: { status: false, response: [] } });
+    await assert.rejects(walletService.getLocalWalletAddresses(), /successful scripts response/);
+    runMinimaPathCommandMock.mockResolvedValueOnce({ ok: true, status: 200, body: { status: true, response: [{
+      address: "0xDE111E13DBA5054DFF657969BF3A76BFB6CE196F95F6EBEFE1B70FED0115EF1A",
+      miniaddress, default: true, simple: true, publickey: "0xABCD", script: "RETURN SIGNEDBY(0xABCD)"
+    }] } });
+    assert.deepEqual(await walletService.getLocalWalletAddresses(), [miniaddress]);
+  });
+});
+
 describe("sendPayment", () => {
   it("throws when the address is blank", async () => {
     await assert.rejects(walletService.sendPayment({ address: "  ", amount: "1" }), /Address is required/);

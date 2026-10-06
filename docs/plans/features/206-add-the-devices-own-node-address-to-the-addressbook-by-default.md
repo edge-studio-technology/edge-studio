@@ -1,6 +1,6 @@
 # Local Device Address Book Contact Plan
 
-**Status:** Step 1 committed and verified on the dev Pi, including live RPC and restart persistence; authenticated browser checks pending; steps 2–4 not started
+**Status:** Step 1 committed and Pi-verified; step 2 backend initialization/API guards implemented and locally verified; authenticated browser checks, step 2 Pi verification, and steps 3–4 remain
 **Created:** 2026-10-06
 **Branch:** `task/206-add-the-devices-own-node-address-to-the-addressbook-by-default`
 **Audit baseline:** `e3c52cf8` (clean working tree before this planning session)
@@ -10,7 +10,7 @@
 
 [OpenProject #206](https://openproject.privateprivate.org/work_packages/206), “Add the devices own node address to the addressbook by default”, is an In progress task under #322 Wallet Service. Its description requires automatic insertion during device/address-book initialization, duplicate prevention, and identification as the local device. The ticket has no attachments, dependency relations, or substantive implementation discussion. Its current estimate is 1 hour / 1 story point.
 
-The user clarified the contact policy after reviewing the audit: **managed contact; only notes editable; label/name, address, and local-device marker protected; cannot be removed.** The earlier draft allowed label edits; this clarification supersedes that behavior. Step 1's persistence/parser foundation is implemented; automatic initialization and protections remain for steps 2–3.
+The user clarified the contact policy after reviewing the audit: **managed contact; only notes editable; label/name, address, and local-device marker protected; cannot be removed.** The earlier draft allowed label edits; this clarification supersedes that behavior. The persistence/parser foundation and automatic backend initialization/API protections are implemented; frontend identity and control presentation remain step 3.
 
 After reviewing step 1, the user clarified the initialization rule: **check whether this feature's app-created self-contact exists; if present, skip creation; otherwise create it; never touch manually added contacts.** The existence check uses the stored app-owned marker, not a matching address or label on a user contact. Restrictions apply only to the app-created managed contact. Sharing a destination with a manual contact is explicitly allowed. Step 1 now implements this rule and migrates global address uniqueness to ordinary-contact-only uniqueness. [ADR 0030](../../adr/0030-app-owned-local-address-book-contact.md) records the decision.
 
@@ -90,7 +90,7 @@ The following uses the clarified notes-only policy for a separate app-owned cont
 ## Implementation order and acceptance checks
 
 1. **Persistence for check-own-contact/create-if-missing, duplicate destinations, and live RPC shape.** Code committed and verified locally and on the dev Pi; authenticated browser CRUD checks pending. Verify separate creation, skipping an existing feature contact, alias handling, repeatable migration, stable IDs, one marker, and unchanged user metadata/permissions.
-2. **Add initialization, poller/list integration, and API guards.** Verify creation without visiting Wallet, offline startup/retry, concurrent attempts, unchanged-poll idempotency, protected mutations, and continued health monitoring after an initialization failure.
+2. **Add initialization, poller/list integration, and API guards.** Implemented and locally verified: 116 focused tests, full check (3,265 tests), backend/frontend builds, and Compose config passed. Covered creation without visiting Wallet, offline startup/retry, concurrent attempts, unchanged-poll idempotency, protected mutations, and continued health monitoring after an initialization failure.
 3. **Add UI identity/protection and update payment consumers.** Verify notes-only editing, persistent local identity, protected fields/actions, recovery reload, ordinary CRUD, and explicit local-recipient selection.
 4. **Settle wallet-replacement behavior and update docs.** Decide how a restored wallet affects the app contact before claiming restored-wallet ownership handling. Keep normal initialization check/create-only and preserve manual contacts and existing payment references. Run the full checks below before marking implementation complete.
 
@@ -106,7 +106,16 @@ The following uses the clarified notes-only policy for a separate app-owned cont
 - Local RPC verification at `127.0.0.1:9005` initially returned connection refused. Subsequent dev-Pi deployment of `39e5ccd3` with `DEV_MODE=true` confirmed the compiled parser accepts the deployed node's 64 default/simple receive addresses. Live migration, exact duplicate creation, skipped initialization, repeat migration, and backend restart checks passed; [Pi verification](../../qa/206-step-1-pi.md) records scope and cleanup.
 - Revised focused backend checks: **81 tests passed across 6 files** (repository, routes, migrations, comparison, wallet parser, RPC boundary). `npm run check` passed **3,238 tests** (backend 1,295; frontend 1,720; Update Agent 171; scripts 52), coverage thresholds, typechecks, and clean dependency audits. Backend/frontend production builds, Compose configuration, and diff checks passed. Existing frontend chunk-size and unset Compose image-variable warnings remain. Subsequent Pi verification passed the live foundation checks; Playwright MCP reached the login page, with authenticated CRUD still pending.
 
-The existing baseline and remaining acceptance checks below continue to apply; no scheduler, API protection, or UI behavior has been added in step 1.
+### Step 2 implementation progress (2026-10-06)
+
+- Added `getLocalWalletAddresses()` using the existing five-second RPC transport and fixed `scripts` command, requiring transport and RPC success and returning only validated public receive destinations.
+- Added coalesced initialization that returns an existing app contact before discovery; only upstream discovery/parsing failures become a best-effort no-op. Local database errors propagate. Actual creation emits one `address-book.local.create` audit event; unchanged calls do not emit another event.
+- Connected initialization to running-node health polls, including the existing nonblocking startup poll and interval retry. Its separate error boundary preserves stall detection and auto-resync handling after initialization failure. No new scheduler/configuration was added.
+- Connected authenticated list requests to the same bounded attempt. Offline/malformed discovery still returns the saved array; database failures return a structured 500. Existing contacts make reads database-only.
+- Added stored-marker PATCH/DELETE guards: notes edits/clears and unchanged name/address values work, protected changes/removal return actionable structured 409 conflicts, and client marker fields are ignored. Matching manual contacts remain ordinary and independently editable/removable.
+- Verified 116 focused backend tests across seven files, including the real RPC/parser/database/audit path, concurrent list requests, a contact appearing during discovery, immediate startup/cadence retry, discovery timeout/failure recovery, database errors, manual copies, and protected API operations. `npm run check` passed 3,265 tests (backend 1,322; frontend 1,720; Update Agent 171; scripts 52), coverage thresholds, typechecks, and clean dependency audits. Backend/frontend production builds, Compose config, and diff checks passed; existing frontend chunk-size and unset Compose image warnings remain. No step 2 Pi deployment or authenticated browser test ran; the earlier Pi report covers step 1 only.
+
+The existing baseline and remaining acceptance checks below continue to apply. Frontend controls and wallet-replacement policy remain unimplemented.
 
 - Database/repository: existing-install migration; repeated migrations; separate app-contact creation even with duplicate destinations; unique marker; existing user rows remain ordinary with unchanged metadata/IDs; skip an existing managed entry regardless of supplied pool changes.
 - Address-book service: empty/invalid/RPC-failure responses before creation; retry after node readiness; repeated calls do not add contacts; in-flight coalescing; an existing marker skips discovery; changing RPC ordering does not rotate the selected address.
@@ -152,13 +161,13 @@ Manual verification with a disposable database and test node:
 4. Start with Minima stopped, then start it: confirm saved contacts remain accessible and initialization retries successfully.
 5. Edit/clear notes; attempt protected label/address/delete operations through both UI and API; confirm ordinary contacts still work normally.
 6. Open Send payment and workflow recipient selection: confirm the local marker and explicit-selection behavior, without submitting a payment merely to test this UI.
-7. After settling wallet-replacement behavior, verify it on a disposable node and confirm manual contacts and workflow references are preserved; the current step 1 initializer does not replace an existing app contact.
+7. After settling wallet-replacement behavior, verify it on a disposable node and confirm manual contacts and workflow references are preserved; the current initializer does not replace an existing app contact.
 
 ## Scope and remaining uncertainty
 
 This is a small extension of the current address book, independent of #270 Rework Wallet Service V2. It does not add multi-wallet support, change the Receive QR rotation, create key material, merge historical alias contacts, or change installation topology.
 
-The notes-only managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The deployed Minima response is now verified; initialization, protections, identity UI, authenticated browser checks, and wallet-replacement policy remain.
+The notes-only managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The deployed Minima response is verified and backend initialization/protection are implemented; identity UI, authenticated browser/step 2 Pi checks, and wallet-replacement policy remain.
 
 ## Contact policy
 

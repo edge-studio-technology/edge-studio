@@ -51,15 +51,17 @@ Automation resolves recipients by contact ID, so preserving IDs and destinations
   data creates nothing.
 - Rerolling is not implemented. A future explicit change-address action must define what happens
   to workflow references that resolve the managed contact's destination by ID.
-- Startup/API integration and managed-contact mutation guards remain step 2; this decision records
-  the implemented persistence foundation, not a completed end-to-end feature.
+- Startup/API integration and managed-contact mutation guards are implemented in step 2; frontend
+  identity and control presentation remain step 3. This is not a completed end-to-end feature.
 
 ## Where this lives in code
 
 - `backend/src/db/database.ts` — legacy table migration and scoped unique indexes.
 - `backend/src/features/address-book/address-book.repository.ts` — check/create transaction and
   ordinary-contact address lookup.
-- `backend/src/features/address-book/address-book.routes.ts` — manual CRUD by contact ID.
+- `backend/src/features/address-book/address-book.service.ts` — coalesced initialization and creation audit.
+- `backend/src/features/address-book/address-book.routes.ts` — best-effort listing and guarded CRUD by contact ID.
+- `backend/src/features/minima/minima-poll.service.ts` — automatic initialization and retry.
 - `backend/src/features/automation/automation.service.ts` — recipient lookup by contact ID.
 - `backend/tests/db/database.test.ts` and `backend/tests/features/address-book/` — migration,
   repeated initialization, independent CRUD, and duplicate-destination regression checks.

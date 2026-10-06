@@ -1,4 +1,5 @@
 import { env } from "../../config/env.js";
+import { initializeLocalAddressBookEntry } from "../address-book/address-book.service.js";
 import {
   canAutoResync,
   detectStall,
@@ -19,6 +20,14 @@ export async function pollMinimaHealth() {
   try {
     const status = await getMinimaNodeStatus();
     recordPollerCheck(status.checkedAt, status.state);
+
+    if (status.state === "running") {
+      try {
+        await initializeLocalAddressBookEntry();
+      } catch {
+        console.error("Minima health poller: local address-book initialization failed");
+      }
+    }
 
     if (!detectStall(status)) return;
 

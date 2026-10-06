@@ -8,7 +8,8 @@ const {
   detectStallMock,
   recordAutoResyncMock,
   recordPollerCheckMock,
-  recordStallDetectedMock
+  recordStallDetectedMock,
+  initializeLocalAddressBookEntryMock
 } = vi.hoisted(() => ({
   getMinimaNodeStatusMock: vi.fn(),
   resyncMegammrMock: vi.fn(),
@@ -16,7 +17,12 @@ const {
   detectStallMock: vi.fn(),
   recordAutoResyncMock: vi.fn(),
   recordPollerCheckMock: vi.fn(),
-  recordStallDetectedMock: vi.fn()
+  recordStallDetectedMock: vi.fn(),
+  initializeLocalAddressBookEntryMock: vi.fn()
+}));
+
+vi.mock("../../../src/features/address-book/address-book.service.js", () => ({
+  initializeLocalAddressBookEntry: initializeLocalAddressBookEntryMock
 }));
 
 vi.mock("../../../src/features/minima/minima.service.js", () => ({
@@ -33,10 +39,12 @@ vi.mock("../../../src/features/minima/minima-monitoring.js", () => ({
 }));
 
 let pollMinimaHealth: typeof import("../../../src/features/minima/minima-poll.service.js").pollMinimaHealth;
+let startMinimaHealthPoller: typeof import("../../../src/features/minima/minima-poll.service.js").startMinimaHealthPoller;
+let stopMinimaHealthPoller: typeof import("../../../src/features/minima/minima-poll.service.js").stopMinimaHealthPoller;
 
 async function loadModule() {
   vi.resetModules();
-  ({ pollMinimaHealth } = await import("../../../src/features/minima/minima-poll.service.js"));
+  ({ pollMinimaHealth, startMinimaHealthPoller, stopMinimaHealthPoller } = await import("../../../src/features/minima/minima-poll.service.js"));
 }
 
 beforeEach(async () => {
@@ -48,10 +56,13 @@ beforeEach(async () => {
   recordAutoResyncMock.mockReset();
   recordPollerCheckMock.mockReset();
   recordStallDetectedMock.mockReset();
+  initializeLocalAddressBookEntryMock.mockReset().mockResolvedValue(null);
   await loadModule();
 });
 
 afterEach(() => {
+  stopMinimaHealthPoller();
+  vi.useRealTimers();
   delete process.env.MINIMA_AUTO_RESYNC;
 });
 
@@ -62,7 +73,21 @@ const baseStatus = {
 };
 
 describe("pollMinimaHealth", () => {
-  it("records the poller check and does nothing else when no stall is detected", async () => {
+  it("starts immediately without blocking startup and retries initialization on the health interval", async () => {
+    vi.useFakeTimers();
+    getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
+    detectStallMock.mockReturnValue(false);
+    initializeLocalAddressBookEntryMock.mockRejectedValueOnce(new Error("database unavailable")).mockResolvedValueOnce(null);
+    startMinimaHealthPoller();
+    assert.equal(getMinimaNodeStatusMock.mock.calls.length, 1);
+    await vi.advanceTimersByTimeAsync(0);
+    assert.equal(initializeLocalAddressBookEntryMock.mock.calls.length, 1);
+    await vi.advanceTimersByTimeAsync(60_000);
+    assert.equal(initializeLocalAddressBookEntryMock.mock.calls.length, 2);
+    assert.equal(recordPollerCheckMock.mock.calls.length, 2);
+  });
+
+  it("initializes a local contact without visiting Wallet on a running-node health poll", async () => {
     getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
     detectStallMock.mockReturnValue(false);
 
@@ -72,6 +97,28 @@ describe("pollMinimaHealth", () => {
     assert.equal(recordPollerCheckMock.mock.calls[0][1], baseStatus.state);
     assert.equal(recordStallDetectedMock.mock.calls.length, 0);
     assert.equal(resyncMegammrMock.mock.calls.length, 0);
+    assert.equal(initializeLocalAddressBookEntryMock.mock.calls.length, 1);
+  });
+
+  for (const state of ["stopped", "error", "restarting"] as const) {
+    it(`skips initialization while the node is ${state} and retries when running`, async () => {
+      getMinimaNodeStatusMock.mockResolvedValueOnce({ ...baseStatus, state }).mockResolvedValueOnce(baseStatus);
+      detectStallMock.mockReturnValue(false);
+      await pollMinimaHealth();
+      assert.equal(initializeLocalAddressBookEntryMock.mock.calls.length, 0);
+      await pollMinimaHealth();
+      assert.equal(initializeLocalAddressBookEntryMock.mock.calls.length, 1);
+    });
+  }
+
+  it("retries initialization on later polls after a failure", async () => {
+    getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
+    detectStallMock.mockReturnValue(false);
+    initializeLocalAddressBookEntryMock.mockRejectedValueOnce(new Error("database unavailable")).mockResolvedValueOnce(null);
+    await assert.doesNotReject(pollMinimaHealth());
+    await pollMinimaHealth();
+    assert.equal(initializeLocalAddressBookEntryMock.mock.calls.length, 2);
+    assert.equal(recordPollerCheckMock.mock.calls.length, 2);
   });
 
   it("records a stall but does not auto-resync while MINIMA_AUTO_RESYNC is unset", async () => {
@@ -142,6 +189,18 @@ describe("pollMinimaHealth with auto-resync enabled", () => {
 
     assert.equal(resyncMegammrMock.mock.calls.length, 1);
     assert.equal(recordAutoResyncMock.mock.calls[0][0], "MegaMMR sync fininshed.. please restart");
+  });
+
+  it("still detects stalls and performs auto-resync after contact initialization fails", async () => {
+    getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
+    detectStallMock.mockReturnValue(true);
+    canAutoResyncMock.mockReturnValue(true);
+    initializeLocalAddressBookEntryMock.mockRejectedValue(new Error("local contact failed"));
+    resyncMegammrMock.mockResolvedValue({ ok: true, body: { status: true, response: { message: "resync completed" } } });
+    await pollMinimaHealth();
+    assert.equal(recordStallDetectedMock.mock.calls.length, 1);
+    assert.equal(resyncMegammrMock.mock.calls.length, 1);
+    assert.equal(recordAutoResyncMock.mock.calls[0][0], "resync completed");
   });
 
   it("records the failure when resync throws", async () => {

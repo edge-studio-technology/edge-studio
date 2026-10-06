@@ -9,10 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Address-book API entries include an `isLocalDevice` boolean.
+- The address book automatically adds a persistent This device contact when the local wallet becomes available.
 
 ### Changed
 
 - Manually saved contacts may share the app-managed local contact's destination while retaining their own IDs and edit/delete controls.
+- The This device contact allows notes edits and rejects name/address changes and deletion through the API.
 
 ## [0.42.2] 2026-10-06
 

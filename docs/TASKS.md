@@ -12,7 +12,7 @@
 
 ## Current Focus
 
-- [ ] Implement the default local Minima wallet contact (OpenProject #206) — step 1 committed as `39e5ccd3`: separate app contact, duplicate destinations allowed, manual contacts untouched; 81 focused/full check (3,238 tests), builds, Compose, DEV_MODE Pi deployment, live RPC, migration, and restart checks passed; authenticated Playwright CRUD pending login access; steps 2–3 and wallet-replacement policy remain; reroll out of scope; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-step-1-pi.md`, and ADR 0030.
+- [ ] Implement the default local Minima wallet contact (OpenProject #206) — step 1 committed/Pi-verified; step 2 initialization, creation audit, poller/list retry, and notes-only API guards implemented; 116 focused/full check (3,265 tests), builds, and Compose passed; step 3 UI, wallet-replacement policy, and authenticated browser/step 2 Pi checks remain; reroll out of scope; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-step-1-pi.md`, and ADR 0030.
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
@@ -82,6 +82,8 @@
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
 
 ## Done
+
+- [x] #206 step 2 backend initialization and protection: shared read-only discovery, startup/poller/list retry, creation audit, notes-only managed-contact PATCH and protected DELETE; 116 focused/full check (3,265 tests), builds, and Compose verified. Frontend and live step 2 verification remain under the parent feature.
 
 - [x] Fixed npm audit advisories with patch-only lockfile updates for `proxy-addr`, `source-map-js`, and root `brace-expansion`; all four audits are clean, typechecks/builds and frontend/Update Agent coverage passed; existing backend and Windows script-test limitations are recorded in SESSION.
 

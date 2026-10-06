@@ -2,7 +2,7 @@ import QRCode from "qrcode";
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { db } from "../../db/database.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
-import { parseAddressResponse, parseBalanceResponse, parseImportResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
+import { parseAddressResponse, parseBalanceResponse, parseImportResponse, parseLocalWalletAddressesResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
 import type {
   ImportWalletResult,
   PaymentStatus,
@@ -16,6 +16,12 @@ import type {
 export async function getWalletStatus(): Promise<WalletStatus> {
   const result = await runMinimaPathCommand("balance");
   return parseBalanceResponse(result.body);
+}
+
+export async function getLocalWalletAddresses(): Promise<string[]> {
+  const result = await runMinimaPathCommand("scripts");
+  if (!result.ok) throw new Error(`Minima RPC error: HTTP ${result.status}`);
+  return parseLocalWalletAddressesResponse(result.body);
 }
 
 // Returns one of the 64 pre-created default wallet addresses at random.
