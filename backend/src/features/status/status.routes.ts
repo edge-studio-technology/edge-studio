@@ -2,6 +2,7 @@ import { Router } from "express";
 import { env } from "../../config/env.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
 import { fetchJsonWithTimeout } from "../../shared/http.js";
+import { getBuildIdentity } from "../../shared/build-identity.js";
 import { getMinimaNodeStatus } from "../minima/minima.service.js";
 import { dockerServiceResources, diskUsage } from "./docker.service.js";
 import { getDeviceInfo } from "./device.service.js";
@@ -95,6 +96,7 @@ statusRouter.get("/overview", async (_req, res) => {
       status: "ok",
       details: {
         service: "edge-studio-backend",
+        build: getBuildIdentity(),
         databasePath: env.databasePath,
         integritasApiKeyConfigured: Boolean(getIntegritasApiKey())
       }

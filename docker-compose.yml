@@ -8,6 +8,9 @@ services:
   backend:
     build:
       context: ./backend
+      args:
+        EDGE_STUDIO_VERSION: ${EDGE_STUDIO_BUILD_VERSION:-unknown}
+        EDGE_STUDIO_COMMIT: ${EDGE_STUDIO_BUILD_COMMIT:-unknown}
     image: ${BACKEND_IMAGE}
     environment:
       TZ: ${TZ:-UTC}
@@ -85,6 +88,9 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        EDGE_STUDIO_VERSION: ${EDGE_STUDIO_BUILD_VERSION:-unknown}
+        EDGE_STUDIO_COMMIT: ${EDGE_STUDIO_BUILD_COMMIT:-unknown}
     image: ${FRONTEND_IMAGE}
     environment:
       UPLOAD_MAX_FILE_BYTES: ${UPLOAD_MAX_FILE_BYTES:-104857600}
@@ -137,6 +143,9 @@ services:
   update-agent:
     build:
       context: ./update-agent
+      args:
+        EDGE_STUDIO_VERSION: ${EDGE_STUDIO_BUILD_VERSION:-unknown}
+        EDGE_STUDIO_COMMIT: ${EDGE_STUDIO_BUILD_COMMIT:-unknown}
     image: ${UPDATE_AGENT_IMAGE}
     profiles:
       - update-agent

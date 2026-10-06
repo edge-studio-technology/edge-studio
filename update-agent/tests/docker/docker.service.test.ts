@@ -89,6 +89,17 @@ describe("docker.service", () => {
     });
   });
 
+  describe("inspectImage", () => {
+    it("requests the image's inspect endpoint", async () => {
+      (dockerRequest as any).mockResolvedValue({ Id: "sha256:abc", Config: { Labels: { "org.opencontainers.image.version": "v1.2.3" } } });
+
+      const image = await dockerService.inspectImage("sha256:abc");
+
+      assert.deepEqual((dockerRequest as any).mock.calls[0], ["GET", "/images/sha256:abc/json"]);
+      assert.equal(image.Config?.Labels?.["org.opencontainers.image.version"], "v1.2.3");
+    });
+  });
+
   describe("pullImageByDigest", () => {
     it("streams the pull with the image ref URL-encoded and the configured timeout", async () => {
       (dockerRequestStream as any).mockResolvedValue(undefined);

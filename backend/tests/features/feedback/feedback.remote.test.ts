@@ -21,7 +21,7 @@ function jsonResponse(status: number, body: unknown) {
 const metadata = {
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
-  app: { name: "edge-studio" as const, version: "1.0.0" },
+  app: { name: "edge-studio" as const, version: "1.0.0", build: null },
   user: { id: "user-1", displayName: "Admin", role: "admin" },
   device: null,
   integritasAccount: { userId: null }

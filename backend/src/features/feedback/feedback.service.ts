@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { env } from "../../config/env.js";
 import { db } from "../../db/database.js";
+import { getBuildIdentity, type BuildIdentity } from "../../shared/build-identity.js";
 import { fetchJsonWithTimeout } from "../../shared/http.js";
 import type { SessionUser } from "../auth/auth.types.js";
 import { getIntegritasAuth } from "../integritas-auth/integritas-auth.repository.js";
@@ -109,6 +110,7 @@ export type FeedbackDocument = {
     app: {
       name: "edge-studio";
       version: string;
+      build: BuildIdentity | null;
     };
     user: {
       id: string;
@@ -454,7 +456,8 @@ function buildMetadata(user: SessionUser, createdAt: string, updatedAt: string):
     updatedAt,
     app: {
       name: "edge-studio",
-      version: getAppVersion()
+      version: getAppVersion(),
+      build: getBuildIdentity()
     },
     user: {
       id: user.id,

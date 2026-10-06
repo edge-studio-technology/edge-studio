@@ -17,6 +17,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check production tag matches package.json version
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            *-*) ;;
+            *)
+              expected="v$(node -p "require('./package.json').version")"
+              if [ "${GITHUB_REF_NAME}" != "${expected}" ]; then
+                echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version (${expected})"
+                exit 1
+              fi
+              ;;
+          esac
+
       - name: Find previous release tag
         id: prev-tag
         run: |
@@ -94,6 +107,9 @@ jobs:
           push: true
           platforms: linux/arm64,linux/arm/v7,linux/amd64 # TEMP: amd64 for Docker Desktop tester builds, revert once no longer needed
           tags: ghcr.io/${{ github.repository_owner }}/edge-studio-frontend:${{ github.ref_name }}
+          build-args: |
+            EDGE_STUDIO_VERSION=${{ github.ref_name }}
+            EDGE_STUDIO_COMMIT=${{ github.sha }}
 
       - name: Resolve frontend digest ref
         if: needs.changes.outputs.frontend == 'true'
@@ -109,6 +125,9 @@ jobs:
           push: true
           platforms: linux/arm64,linux/arm/v7,linux/amd64 # TEMP: amd64 for Docker Desktop tester builds, revert once no longer needed
           tags: ghcr.io/${{ github.repository_owner }}/edge-studio-backend:${{ github.ref_name }}
+          build-args: |
+            EDGE_STUDIO_VERSION=${{ github.ref_name }}
+            EDGE_STUDIO_COMMIT=${{ github.sha }}
 
       - name: Resolve backend digest ref
         if: needs.changes.outputs.backend == 'true'
@@ -124,6 +143,9 @@ jobs:
           push: true
           platforms: linux/arm64,linux/arm/v7,linux/amd64 # TEMP: amd64 for Docker Desktop tester builds, revert once no longer needed
           tags: ghcr.io/${{ github.repository_owner }}/edge-studio-update-agent:${{ github.ref_name }}
+          build-args: |
+            EDGE_STUDIO_VERSION=${{ github.ref_name }}
+            EDGE_STUDIO_COMMIT=${{ github.sha }}
 
       - name: Resolve update-agent digest ref
         if: needs.changes.outputs.update-agent == 'true'

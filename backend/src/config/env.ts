@@ -65,6 +65,8 @@ const databasePath = resolveDatabasePath();
 
 export const env = {
   port: Number(process.env.PORT ?? 3000),
+  buildVersion: process.env.EDGE_STUDIO_BUILD_VERSION ?? "unknown",
+  buildCommit: process.env.EDGE_STUDIO_BUILD_COMMIT ?? "unknown",
   hostFilesRoot: resolveHostFilesRoot(),
   minimaStatusUrl: resolveMinimaStatusUrl(),
   integritasConnectBaseUrl: process.env.INTEGRITAS_CONNECT_BASE_URL ?? "https://integritas.technology",
