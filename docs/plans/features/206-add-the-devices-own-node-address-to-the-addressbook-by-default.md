@@ -1,6 +1,6 @@
 # Local Device Address Book Contact Plan
 
-**Status:** Step 1 revised and verified for separate app-contact creation and duplicate destinations; live RPC verification pending; steps 2–4 not started
+**Status:** Step 1 committed and verified on the dev Pi, including live RPC and restart persistence; authenticated browser checks pending; steps 2–4 not started
 **Created:** 2026-10-06
 **Branch:** `task/206-add-the-devices-own-node-address-to-the-addressbook-by-default`
 **Audit baseline:** `e3c52cf8` (clean working tree before this planning session)
@@ -89,7 +89,7 @@ The following uses the clarified notes-only policy for a separate app-owned cont
 
 ## Implementation order and acceptance checks
 
-1. **Persistence for check-own-contact/create-if-missing, duplicate destinations, and live RPC shape.** Code revised and verified; live response confirmation pending. Verify separate creation, skipping an existing feature contact, alias handling, repeatable migration, stable IDs, one marker, and unchanged user metadata/permissions.
+1. **Persistence for check-own-contact/create-if-missing, duplicate destinations, and live RPC shape.** Code committed and verified locally and on the dev Pi; authenticated browser CRUD checks pending. Verify separate creation, skipping an existing feature contact, alias handling, repeatable migration, stable IDs, one marker, and unchanged user metadata/permissions.
 2. **Add initialization, poller/list integration, and API guards.** Verify creation without visiting Wallet, offline startup/retry, concurrent attempts, unchanged-poll idempotency, protected mutations, and continued health monitoring after an initialization failure.
 3. **Add UI identity/protection and update payment consumers.** Verify notes-only editing, persistent local identity, protected fields/actions, recovery reload, ordinary CRUD, and explicit local-recipient selection.
 4. **Settle wallet-replacement behavior and update docs.** Decide how a restored wallet affects the app contact before claiming restored-wallet ownership handling. Keep normal initialization check/create-only and preserve manual contacts and existing payment references. Run the full checks below before marking implementation complete.
@@ -103,8 +103,8 @@ The following uses the clarified notes-only policy for a separate app-owned cont
 - Revised `ensureLocalAddressBookEntry()` to check only for the marked app contact and return it unchanged if present, regardless of the supplied pool. Otherwise it validates candidates, orders by canonical address then address text, and inserts a distinct **This device** row. Adoption and automatic marker replacement are removed. The result reports the entry and whether creation occurred.
 - Added a strict `scripts` parser accepting only explicit RPC success, an array, boolean flags, and matching validated hex/Mx pairs for default/simple entries. It projects only Mx destinations and rejects malformed candidate data. Added a source-shaped fixture through the real RPC/redaction/parser boundary; it is not a deployed-node recording.
 - Added repository and real-database route regressions for identical addresses/names, aliases, fully saved pools, skipped initialization, rollback, independent manual create/edit/delete, and retained manual duplicate validation. First reproduced 10 failures against the old adoption/global-uniqueness behavior, then made the revised tests pass. No runtime initializer or managed-contact guards are connected yet.
-- Local RPC verification at `127.0.0.1:9005` returned connection refused. Upstream `scripts`, `ScriptRow`, and hexadecimal decoding source were rechecked; deployed-image confirmation remains open.
-- Revised focused backend checks: **81 tests passed across 6 files** (repository, routes, migrations, comparison, wallet parser, RPC boundary). `npm run check` passed **3,238 tests** (backend 1,295; frontend 1,720; Update Agent 171; scripts 52), coverage thresholds, typechecks, and clean dependency audits. Backend/frontend production builds, Compose configuration, and diff checks passed. Existing frontend chunk-size and unset Compose image-variable warnings remain; no browser or live-node/Pi verification was completed.
+- Local RPC verification at `127.0.0.1:9005` initially returned connection refused. Subsequent dev-Pi deployment of `39e5ccd3` with `DEV_MODE=true` confirmed the compiled parser accepts the deployed node's 64 default/simple receive addresses. Live migration, exact duplicate creation, skipped initialization, repeat migration, and backend restart checks passed; [Pi verification](../../qa/206-step-1-pi.md) records scope and cleanup.
+- Revised focused backend checks: **81 tests passed across 6 files** (repository, routes, migrations, comparison, wallet parser, RPC boundary). `npm run check` passed **3,238 tests** (backend 1,295; frontend 1,720; Update Agent 171; scripts 52), coverage thresholds, typechecks, and clean dependency audits. Backend/frontend production builds, Compose configuration, and diff checks passed. Existing frontend chunk-size and unset Compose image-variable warnings remain. Subsequent Pi verification passed the live foundation checks; Playwright MCP reached the login page, with authenticated CRUD still pending.
 
 The existing baseline and remaining acceptance checks below continue to apply; no scheduler, API protection, or UI behavior has been added in step 1.
 
@@ -158,7 +158,7 @@ Manual verification with a disposable database and test node:
 
 This is a small extension of the current address book, independent of #270 Rework Wallet Service V2. It does not add multi-wallet support, change the Receive QR rotation, create key material, merge historical alias contacts, or change installation topology.
 
-The notes-only managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The remaining technical gate is the `scripts` response on the actually deployed Minima image.
+The notes-only managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The deployed Minima response is now verified; initialization, protections, identity UI, authenticated browser checks, and wallet-replacement policy remain.
 
 ## Contact policy
 
@@ -172,4 +172,4 @@ The ticket requires automatic addition, duplicate prevention, and local identifi
 
 The initialization rule is settled: check for this feature's own contact, skip creation if present, create it if missing, and leave manually added contacts untouched. Sharing a destination is allowed and implemented through scoped uniqueness. Wallet-replacement behavior remains separate from normal initialization. The existing rotating Receive QR can legitimately show a different address from this stable contact; documentation should explain that both belong to the same wallet at creation.
 
-The user raised an optional reroll action. Recommendation: consider it as a follow-up after the core feature, with an explicit user action and defined workflow-reference behavior; do not add it or automatically rotate addresses in this step.
+The user explicitly agreed to keep reroll out of scope. Any future action requires separate scope and defined workflow-reference behavior; do not add it or automatically rotate addresses in #206.

@@ -12,7 +12,7 @@
 
 ## Current Focus
 
-- [ ] Implement the default local Minima wallet contact (OpenProject #206) — step 1 revised: check for the feature's own contact, skip if present, otherwise create a separate row; identical local/manual destinations allowed, user contacts untouched; 81 focused tests/full check (3,238 tests), builds, and Compose passed; step 2 initialization/API guards and step 3 UI remain; live RPC and wallet replacement open; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md` and ADR 0030.
+- [ ] Implement the default local Minima wallet contact (OpenProject #206) — step 1 committed as `39e5ccd3`: separate app contact, duplicate destinations allowed, manual contacts untouched; 81 focused/full check (3,238 tests), builds, Compose, DEV_MODE Pi deployment, live RPC, migration, and restart checks passed; authenticated Playwright CRUD pending login access; steps 2–3 and wallet-replacement policy remain; reroll out of scope; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-step-1-pi.md`, and ADR 0030.
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
