@@ -28,14 +28,14 @@
 
 ## Next
 
-- [ ] Verified version identity: report the installed release only when running images match the recorded manifest, bake build identity into every image, record the version in `install.sh` only after containers start — see `docs/plans/hotfix/hotfix-version-identity.md`.
+- [ ] Release the version identity hotfix as `v0.42.2`: bump `package.json` and date the `Unreleased` changelog section on a release branch after PR #143 merges to `dev`, then `dev` → `main` and tag.
+- [ ] Stop other values from the previous `.env` (for example a hand-added `UPDATE_DRY_RUN`) leaking into the installer's compose run; only `COMPOSE_PROFILES` is unset after `load_existing_config` in `install.sh`.
 - [ ] Verify the wiki’s temporary application-data backup/restore procedure on a real Pi with the same app version and unchanged runtime configuration; implement an integrated Edge Studio backup/restore feature separately.
 
 - [ ] Define the product lifecycle for data-source reads and visible automation inbox items, including retention configuration, export, proof-linked reads, storage quotas, and disk-usage warnings — see `docs/adr/0023-classify-stored-records-before-applying-retention.md`.
 - [ ] Digest-pin the third-party deployment images outside the signed manifest (`minimaglobal/minimacore`, `eclipse-mosquitto:2`, `minimaglobal/minima:dev`, `alpine:3.20`) and document the manual pin-bump procedure — finding [6], split from task 704; see step 3 of `docs/plans/security/phase-6-fail-closed-on-weak-config.md`.
 - [ ] After V1.5 security hardening, make a fresh product decision on whether to retain, redesign, re-enable, or remove TOTP. Removal is not currently approved; `docs/plans/remove-totp.md` is candidate analysis only. See `docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md`.
 - [ ] Cut one release per channel through the updated `release.yml` before the V1.5 security branch ships — installers carrying Phase 4 refuse any runtime bundle published without an `edge-studio-runtime.tar.gz.sig`. See `docs/adr/0016-install-time-bootstrap-trust-set.md`.
-- [ ] On a real device or a local `install.sh` run, confirm end-to-end that `last-applied-manifest.json` gets written and a Feedback submission's `app.version` reflects it (see `docs/adr/0006-app-version-single-source-of-truth.md`).
 - [ ] Implement the hosted feedback receiver endpoint in the Integritas API repo — see `docs/plans/feedback.md` Step 8.
 - [ ] Manual browser check of the rebuilt Automation "Workflows" table (`AutomationWorkflowsList.tsx`): filter/search, pagination, pause/play, the overflow menu's six actions, and the delete flow now going through confirm → progress modal instead of deleting immediately.
 - [ ] Manual browser check of the rebuilt Automation inbox table (`AutomationInboxTable.tsx`): now full width (previously a bare `<section>` missing `w-full`); filter (All/Unread/Read) + search; the "View preview" modal for each of the four preview formats (text/json/link/image); "Mark read/unread"; and Delete now going through confirm → progress modal instead of deleting immediately.
@@ -79,6 +79,8 @@
 
 ## Done
 
+- [x] Verified version identity (PR #143): the installed release is reported only when running images match the recorded manifest, every image carries build labels, and `install.sh` records the version after containers start; Pi-verified on `v0.42.2-dev.1` across fresh install, `DEV_MODE` → normal reinstall, and a `v0.42.1` → dev update — see `docs/plans/hotfix/hotfix-version-identity.md`.
+- [x] Confirmed on a Pi that `last-applied-manifest.json` is written and a Feedback submission's `app.version` reflects it; delivery to Integritas succeeded with `app.build` — see `docs/adr/0006-app-version-single-source-of-truth.md`.
 - [x] Hotfix: stop retention from deleting workflow runs/block runs used by Watch mode (#705 follow-up) — see `docs/plans/hotfix/preserve-workflow-runs.md`.
 - [x] Completed #259 implementation and verification: Minima failure-state/restart tests, offline dashboard wallet handling, and contained restart rejection; focused tests, full checks, builds, and Compose validation passed. Added a ticket comment only; status unchanged — see `docs/plans/259-node-failure-mode-unit-testing.md`.
 - [x] Fixed task 705 audit findings: normalized nginx webhook log protection, active-run retention safety, repeated yielding cleanup batches, and fixed log rotation for recreated legacy containers; full checks and Docker builds passed — see `docs/adr/0022-bound-external-automation-effects.md`.

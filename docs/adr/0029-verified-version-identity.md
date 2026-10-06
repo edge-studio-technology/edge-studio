@@ -1,6 +1,6 @@
 # 0029: Verified Version Identity (Running Images Over Recorded Claims)
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-10-05
 
 Amends [ADR 0006](./0006-app-version-single-source-of-truth.md): the state file remains the

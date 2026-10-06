@@ -1,6 +1,6 @@
 # Verified Version Identity Plan
 
-**Status:** In progress  
+**Status:** Done  
 **Created:** 2026-10-05  
 **Goal:** Report the installed release version only when the running images prove it, and give every build (release or dev) a baked version identity, without requiring users to rerun `install.sh`.
 
