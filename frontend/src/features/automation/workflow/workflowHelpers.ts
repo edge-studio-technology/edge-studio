@@ -124,7 +124,7 @@ export function defaultEditBlockConfig(
 ): AutomationBlock["config"] {
   const config = defaultDraftConfig(type, sources);
   if (type === "send_transaction")
-    return { ...config, recipientAddressBookId: addressBook[0]?.id ?? "" };
+    return { ...config, recipientAddressBookId: addressBook.find((entry) => !entry.isLocalDevice)?.id ?? "" };
   return config;
 }
 

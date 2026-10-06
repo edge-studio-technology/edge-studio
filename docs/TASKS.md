@@ -12,7 +12,7 @@
 
 ## Current Focus
 
-- [ ] Implement the default local Minima wallet contact (OpenProject #206) — step 1 committed/Pi-verified; step 2 initialization, creation audit, poller/list retry, and notes-only API guards implemented; 116 focused/full check (3,265 tests), builds, and Compose passed; step 3 UI, wallet-replacement policy, and authenticated browser/step 2 Pi checks remain; reroll out of scope; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-step-1-pi.md`, and ADR 0030.
+- [ ] Implement the default local Minima wallet contact (OpenProject #206) — step 1 committed/Pi-verified; steps 2–3 backend initialization/protection and frontend identity, notes-only controls, recovery reload, and recipient selection implemented; 187 focused/full check (3,273 tests), builds, and Compose passed; wallet-replacement policy and authenticated browser/Pi checks for steps 2–3 remain; reroll out of scope; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-step-1-pi.md`, and ADR 0030.
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
@@ -83,7 +83,9 @@
 
 ## Done
 
-- [x] #206 step 2 backend initialization and protection: shared read-only discovery, startup/poller/list retry, creation audit, notes-only managed-contact PATCH and protected DELETE; 116 focused/full check (3,265 tests), builds, and Compose verified. Frontend and live step 2 verification remain under the parent feature.
+- [x] #206 step 3 frontend identity and protection: Local device row/details/selector labels, notes-only managed form and no Remove, recovery reload, distinct contact selection for duplicate destinations, and ordinary-only workflow defaults; 187 focused/full check (3,273 tests), builds, and Compose verified. Live browser/Pi verification remains under the parent feature.
+
+- [x] #206 step 2 backend initialization and protection: shared read-only discovery, startup/poller/list retry, creation audit, notes-only managed-contact PATCH and protected DELETE; 116 focused/full check (3,265 tests), builds, and Compose verified. Live step 2 verification remains under the parent feature.
 
 - [x] Fixed npm audit advisories with patch-only lockfile updates for `proxy-addr`, `source-map-js`, and root `brace-expansion`; all four audits are clean, typechecks/builds and frontend/Update Agent coverage passed; existing backend and Windows script-test limitations are recorded in SESSION.
 

@@ -619,7 +619,10 @@ export function DraftBlockInspector({
 
   if (block.type === "send_transaction") {
     const recipientOptions = [
-      ...addressBook.map((entry) => ({ value: entry.id, label: entry.label })),
+      ...addressBook.map((entry) => ({
+        value: entry.id,
+        label: entry.isLocalDevice ? `${entry.label} (Local device)` : entry.label,
+      })),
       ...(onCreateAddressBookEntry
         ? [{ value: CREATE_RECIPIENT_VALUE, label: "Create new recipient" }]
         : []),

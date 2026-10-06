@@ -311,6 +311,23 @@ describe("DraftBlockInspector control_output", () => {
 });
 
 describe("DraftBlockInspector send_transaction", () => {
+  it("identifies the local contact and selects its ID only when explicitly chosen", async () => {
+    const onChange = vi.fn();
+    renderInspector(draftBlock("send_transaction", { amount: "1" }), {
+      onChange,
+      addressBook: [
+        addressBookEntry({ id: "local", label: "This device", isLocalDevice: true }),
+        addressBookEntry({ id: "manual", label: "This device" }),
+      ],
+    });
+    const select = screen.getByRole("combobox", { name: "Address book recipient" });
+    expect(select).toHaveValue("");
+    expect(onChange).not.toHaveBeenCalled();
+    expect(within(select).getByRole("option", { name: "This device (Local device)" })).toHaveValue("local");
+    expect(within(select).getByRole("option", { name: "This device" })).toHaveValue("manual");
+    await userEvent.selectOptions(select, "local");
+    expect(onChange).toHaveBeenCalledWith({ amount: "1", recipientAddressBookId: "local", tokenId: "0x00" });
+  });
   it("offers recipient creation when the address book is empty", () => {
     renderInspector(draftBlock("send_transaction"), {
       onCreateAddressBookEntry: vi.fn(),

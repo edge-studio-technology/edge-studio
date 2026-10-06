@@ -317,6 +317,12 @@ describe("workflowHelpers", () => {
   });
 
   describe("defaultEditBlockConfig", () => {
+    it("skips the local contact when choosing an ordinary default recipient", () => {
+      const local = contact({ id: "local", isLocalDevice: true });
+      expect(defaultEditBlockConfig("send_transaction", [], [local, contact({ id: "manual" })])
+        .recipientAddressBookId).toBe("manual");
+      expect(defaultEditBlockConfig("send_transaction", [], [local]).recipientAddressBookId).toBe("");
+    });
     it("adds the first address book recipient for send_transaction", () => {
       const config = defaultEditBlockConfig("send_transaction", [], [contact({ id: "c9" })]);
       expect(config).toEqual({

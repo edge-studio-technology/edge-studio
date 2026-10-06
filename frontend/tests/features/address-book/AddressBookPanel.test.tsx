@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
@@ -16,6 +16,11 @@ vi.mock("../../../src/features/address-book/addressBookApi", () => ({
   createAddressBookEntry: (...args: unknown[]) => createAddressBookEntry(...args),
   updateAddressBookEntry: (...args: unknown[]) => updateAddressBookEntry(...args),
   deleteAddressBookEntry: (...args: unknown[]) => deleteAddressBookEntry(...args),
+}));
+
+vi.mock("../../../src/features/preferences/tableColumnPreferencesApi", () => ({
+  getTableColumnPreferences: async () => ({}),
+  saveTableColumnPreferences: async (preferences: unknown) => preferences,
 }));
 
 function entry(overrides: Partial<AddressBookEntry> = {}): AddressBookEntry {
@@ -44,6 +49,81 @@ describe("AddressBookPanel", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it.each([null, "Updated note"])("protects the managed controls and saves only notes (%s)", async (notes) => {
+    const local = entry({ id: "local", label: "This device", isLocalDevice: true, notes: "Old note" });
+    listAddressBookEntries.mockResolvedValue([
+      local,
+      entry({ id: "manual", label: "This device", address: local.address }),
+    ]);
+    updateAddressBookEntry.mockResolvedValue({ ...local, notes });
+    renderPanel();
+    const table = await screen.findByRole("table", { name: "Address book" });
+    const localRow = within(table).getByText("Local device").closest("tr")!;
+    const manualRow = within(table).getAllByRole("row")[2];
+    await userEvent.click(within(localRow).getByRole("button", { name: "More actions for This device" }));
+    expect(screen.queryByRole("menuitem", { name: "Remove" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
+    const dialog = screen.getByRole("dialog", { name: "Edit contact" });
+    expect(within(dialog).getByLabelText("Label")).toHaveAttribute("readonly");
+    expect(within(dialog).getByLabelText("Address")).toHaveAttribute("readonly");
+    await userEvent.type(within(dialog).getByLabelText("Label"), "Changed");
+    await userEvent.type(within(dialog).getByLabelText("Address"), "0xabc");
+    expect(within(dialog).getByLabelText("Label")).toHaveValue(local.label);
+    expect(within(dialog).getByLabelText("Address")).toHaveValue(local.address);
+    await userEvent.clear(within(dialog).getByLabelText("Notes"));
+    if (notes) await userEvent.type(within(dialog).getByLabelText("Notes"), `  ${notes}  `);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(updateAddressBookEntry).toHaveBeenCalledWith("local", { notes }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(within(table).getByText("Local device")).toBeInTheDocument();
+    await userEvent.click(within(localRow).getByRole("button", { name: "View This device" }));
+    expect(within(screen.getByRole("dialog", { name: "This device" })).getByText("Local device")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(within(manualRow).getByRole("button", { name: "More actions for This device" }));
+    expect(screen.getByRole("menuitem", { name: "Remove" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
+    expect(screen.getByLabelText("Label")).not.toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Address")).not.toHaveAttribute("readonly");
+    expect(deleteAddressBookEntry).not.toHaveBeenCalled();
+  });
+
+  it("keeps local identity visible when the Notes column is hidden", async () => {
+    listAddressBookEntries.mockResolvedValue([entry({ label: "This device", isLocalDevice: true, notes: "Wallet note" })]);
+    renderPanel();
+    const table = await screen.findByRole("table", { name: "Address book" });
+    await userEvent.click(screen.getByRole("button", { name: "Choose columns for Address book" }));
+    await userEvent.click(screen.getByRole("switch", { name: "Notes" }));
+    expect(within(table).queryByText("Wallet note")).not.toBeInTheDocument();
+    expect(within(table).getByText("Local device")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("switch", { name: "Notes" }));
+    expect(within(table).getByText("Wallet note")).toBeInTheDocument();
+  });
+
+  it("reloads on node recovery, keeps the user's search, and skips unchanged/offline status", async () => {
+    const local = entry({ id: "local", label: "This device", isLocalDevice: true });
+    listAddressBookEntries.mockResolvedValueOnce([entry()]).mockResolvedValueOnce([entry(), local]);
+    const { rerender } = renderPanel(true);
+    await screen.findByRole("table", { name: "Address book" });
+    await userEvent.type(screen.getByLabelText("Search"), "This device");
+    rerender(<AddressBookPanel actionsBlocked={false} />);
+    expect(await screen.findByText("Local device")).toBeInTheDocument();
+    expect(screen.getByLabelText("Search")).toHaveValue("This device");
+    rerender(<AddressBookPanel actionsBlocked={false} />);
+    rerender(<AddressBookPanel actionsBlocked={true} />);
+    expect(listAddressBookEntries).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not let an earlier offline load overwrite the recovery response", async () => {
+    let resolveOffline!: (entries: AddressBookEntry[]) => void;
+    listAddressBookEntries.mockImplementationOnce(() => new Promise((resolve) => { resolveOffline = resolve; }))
+      .mockResolvedValueOnce([entry({ label: "This device", isLocalDevice: true })]);
+    const { rerender } = renderPanel(true);
+    rerender(<AddressBookPanel actionsBlocked={false} />);
+    await screen.findByText("Local device");
+    await act(async () => resolveOffline([]));
+    expect(screen.getByText("Local device")).toBeInTheDocument();
   });
 
   it("shows a loading state while fetching, then the empty state when there are no contacts", async () => {

@@ -52,7 +52,7 @@ Automation resolves recipients by contact ID, so preserving IDs and destinations
 - Rerolling is not implemented. A future explicit change-address action must define what happens
   to workflow references that resolve the managed contact's destination by ID.
 - Startup/API integration and managed-contact mutation guards are implemented in step 2; frontend
-  identity and control presentation remain step 3. This is not a completed end-to-end feature.
+  identity and control presentation are implemented in step 3. Final live verification remains open.
 
 ## Where this lives in code
 
