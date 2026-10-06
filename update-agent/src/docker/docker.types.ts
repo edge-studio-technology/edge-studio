@@ -36,3 +36,8 @@ export type DockerImageSummary = {
   RepoDigests?: string[];
   Created: number;
 };
+
+export type DockerImageInspect = {
+  Id: string;
+  Config?: { Labels?: Record<string, string> | null } | null;
+};

@@ -6,11 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## [Unreleased] hotfix/update-agent-redirect-bug
+### Added
+
+- Frontend, backend, and update-agent images carry their build version and commit as image labels.
+- Feedback submissions include the backend build version and commit.
+- From-source (`DEV_MODE`) installs show a `v<version>-dev+<commit>` build version in the sidebar.
+
+### Changed
+
+- The installed version is shown only when the running frontend and backend images match the recorded release.
+- The Update page shows "This installation doesn't match a release" instead of the same version on both sides of the arrow.
+- The sidebar update notice says "Installation doesn't match vX" when the recorded version equals the available version.
+- Release tags without a pre-release suffix must match the root `package.json` version.
+- The installer records the installed release only after the containers start.
+- `DEV_MODE` installs remove the previous release's version record and update-agent container.
+- The Update page's release notes no longer show unreleased changelog sections.
 
 ### Fixed
 
+- Reinstalling after switching to or from `DEV_MODE` now starts or stops the update-agent for the new install mode.
 - Opening `/update` directly, reloading it, or using "Back to Update" from the update progress page no longer redirects to the URL without the UI port.
+
+### Security
+
+- Updated `proxy-addr` and `source-map-js` to versions that fix published advisories.
 
 ## [0.42.1] 2026-10-05
 

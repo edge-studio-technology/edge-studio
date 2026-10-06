@@ -171,6 +171,46 @@ describe("AppShell", () => {
     expect(screen.queryByText("Update available")).not.toBeInTheDocument();
   });
 
+  it("shows repair copy when the reported version equals the available version but services are behind", async () => {
+    getUpdateStatusSummary.mockResolvedValue({
+      checkedAt: "2026-08-20T00:00:00.000Z",
+      services: [{ service: "frontend", currentImage: "a", targetImage: "b", upToDate: false }],
+      currentVersion: "1.1.0",
+      availableVersion: "1.1.0",
+    });
+
+    renderShell();
+    expect(await screen.findByText("Installation doesn't match 1.1.0.")).toBeInTheDocument();
+    expect(screen.queryByText("Version 1.1.0 is ready to install.")).not.toBeInTheDocument();
+  });
+
+  it("shows the verified version in the sidebar over the backend build", async () => {
+    getStatusOverview.mockResolvedValue({
+      generatedAt: "2026-08-20T00:00:00.000Z",
+      services: [{ name: "backend", ok: true, status: "ok", details: { build: { version: "v1.1.0-dev+abc1234", commit: "abc1234" } } }],
+    });
+    getUpdateStatusSummary.mockResolvedValue({
+      checkedAt: "2026-08-20T00:00:00.000Z",
+      services: [],
+      currentVersion: "v1.1.0",
+      availableVersion: "v1.1.0",
+    });
+
+    renderShell();
+    expect(await screen.findByText("v1.1.0")).toBeInTheDocument();
+    expect(screen.queryByText("v1.1.0-dev+abc1234")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the backend build version in the sidebar without a verified version", async () => {
+    getStatusOverview.mockResolvedValue({
+      generatedAt: "2026-08-20T00:00:00.000Z",
+      services: [{ name: "backend", ok: true, status: "ok", details: { build: { version: "v1.1.0-dev+abc1234", commit: "abc1234" } } }],
+    });
+
+    renderShell();
+    expect(await screen.findByText("v1.1.0-dev+abc1234")).toBeInTheDocument();
+  });
+
   it("does not open the guided tour once it has been seen", async () => {
     renderShell();
     await act(async () => {});

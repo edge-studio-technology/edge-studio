@@ -102,6 +102,7 @@ export function AppShell({
   const tourSeen = useSyncExternalStore(guidedTourSeenSetting.subscribe, guidedTourSeenSetting.get);
 
   const minimaService = findService(overview, "minima");
+  const backendBuild = (findService(overview, "backend")?.details as { build?: { version: string } | null } | undefined)?.build;
   const integritasService = findService(overview, "integritas");
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -166,7 +167,7 @@ export function AppShell({
         pathname={pathname}
         onFeedback={() => setFeedbackOpen(true)}
         onSignOut={onSignOut}
-        version={appVersion}
+        version={appVersion ?? backendBuild?.version ?? null}
         updateNotice={
           showUpdateNotice ? (
             <NoticeCard
@@ -183,7 +184,9 @@ export function AppShell({
               }
               onDismiss={() => setDismissedUpdateVersion(availableVersion)}
             >
-              {`Version ${availableVersion} is ready to install.`}
+              {availableVersion === appVersion
+                ? `Installation doesn't match ${availableVersion}.`
+                : `Version ${availableVersion} is ready to install.`}
             </NoticeCard>
           ) : null
         }

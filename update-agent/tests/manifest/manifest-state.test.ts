@@ -4,11 +4,19 @@ import { mkdtemp, rm, readFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 
+const images = { frontend: "repo/frontend@sha256:f", backend: "repo/backend@sha256:b" };
+
+async function writeStateFile(dir: string, contents: string) {
+  const { writeFile, mkdir } = await import("node:fs/promises");
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, "last-applied-manifest.json"), contents);
+}
+
 describe("manifest-state", () => {
   let stateDir: string;
   let originalStateDir: string | undefined;
   let getLastAppliedManifestTimestamp: typeof import("../../src/manifest/manifest-state.js").getLastAppliedManifestTimestamp;
-  let getLastAppliedVersion: typeof import("../../src/manifest/manifest-state.js").getLastAppliedVersion;
+  let getLastAppliedManifest: typeof import("../../src/manifest/manifest-state.js").getLastAppliedManifest;
   let recordAppliedManifest: typeof import("../../src/manifest/manifest-state.js").recordAppliedManifest;
 
   beforeEach(async () => {
@@ -19,7 +27,7 @@ describe("manifest-state", () => {
     vi.resetModules();
     const mod = await import("../../src/manifest/manifest-state.js");
     getLastAppliedManifestTimestamp = mod.getLastAppliedManifestTimestamp;
-    getLastAppliedVersion = mod.getLastAppliedVersion;
+    getLastAppliedManifest = mod.getLastAppliedManifest;
     recordAppliedManifest = mod.recordAppliedManifest;
   });
 
@@ -35,60 +43,63 @@ describe("manifest-state", () => {
     });
 
     it("returns the parsed epoch ms of createdAt after a recorded apply", async () => {
-      await recordAppliedManifest("2026-08-01T00:00:00.000Z", "1.2.3");
+      await recordAppliedManifest("2026-08-01T00:00:00.000Z", "1.2.3", images);
 
       assert.equal(await getLastAppliedManifestTimestamp(), Date.parse("2026-08-01T00:00:00.000Z"));
     });
 
     it("returns null when the state file has no createdAt field", async () => {
-      await recordAppliedManifest("", "1.2.3");
+      await recordAppliedManifest("", "1.2.3", images);
 
       assert.equal(await getLastAppliedManifestTimestamp(), null);
     });
 
     it("returns null when createdAt is not a parseable date", async () => {
-      await recordAppliedManifest("not-a-date", "1.2.3");
+      await recordAppliedManifest("not-a-date", "1.2.3", images);
 
       assert.equal(await getLastAppliedManifestTimestamp(), null);
     });
 
     it("returns null when the state file contains invalid JSON", async () => {
-      const { writeFile, mkdir } = await import("node:fs/promises");
-      await mkdir(stateDir, { recursive: true });
-      await writeFile(path.join(stateDir, "last-applied-manifest.json"), "not json");
+      await writeStateFile(stateDir, "not json");
 
       assert.equal(await getLastAppliedManifestTimestamp(), null);
     });
   });
 
-  describe("getLastAppliedVersion", () => {
+  describe("getLastAppliedManifest", () => {
     it("returns null when no state file exists", async () => {
-      assert.equal(await getLastAppliedVersion(), null);
+      assert.equal(await getLastAppliedManifest(), null);
     });
 
-    it("returns the recorded version", async () => {
-      await recordAppliedManifest("2026-08-01T00:00:00.000Z", "1.2.3");
+    it("returns the recorded createdAt, version, and images", async () => {
+      await recordAppliedManifest("2026-08-01T00:00:00.000Z", "1.2.3", images);
 
-      assert.equal(await getLastAppliedVersion(), "1.2.3");
+      assert.deepEqual(await getLastAppliedManifest(), { createdAt: "2026-08-01T00:00:00.000Z", version: "1.2.3", images });
     });
 
-    it("returns null when the state file has no version field", async () => {
-      const { writeFile, mkdir } = await import("node:fs/promises");
-      await mkdir(stateDir, { recursive: true });
-      await writeFile(
-        path.join(stateDir, "last-applied-manifest.json"),
-        JSON.stringify({ createdAt: "2026-08-01T00:00:00.000Z" })
-      );
+    it("reads a legacy file without images as images: null", async () => {
+      await writeStateFile(stateDir, JSON.stringify({ createdAt: "2026-08-01T00:00:00.000Z", version: "1.2.3" }));
 
-      assert.equal(await getLastAppliedVersion(), null);
+      assert.deepEqual(await getLastAppliedManifest(), { createdAt: "2026-08-01T00:00:00.000Z", version: "1.2.3", images: null });
+    });
+
+    it("treats incomplete images as images: null", async () => {
+      await writeStateFile(stateDir, JSON.stringify({ createdAt: "2026-08-01T00:00:00.000Z", version: "1.2.3", images: { frontend: "repo/frontend@sha256:f" } }));
+
+      assert.equal((await getLastAppliedManifest())?.images, null);
+    });
+
+    it("returns null fields when the state file has no createdAt or version", async () => {
+      await writeStateFile(stateDir, JSON.stringify({}));
+
+      assert.deepEqual(await getLastAppliedManifest(), { createdAt: null, version: null, images: null });
     });
 
     it("returns null when the state file contains invalid JSON", async () => {
-      const { writeFile, mkdir } = await import("node:fs/promises");
-      await mkdir(stateDir, { recursive: true });
-      await writeFile(path.join(stateDir, "last-applied-manifest.json"), "not json");
+      await writeStateFile(stateDir, "not json");
 
-      assert.equal(await getLastAppliedVersion(), null);
+      assert.equal(await getLastAppliedManifest(), null);
     });
   });
 
@@ -99,24 +110,24 @@ describe("manifest-state", () => {
       vi.resetModules();
       const mod = await import("../../src/manifest/manifest-state.js");
 
-      await mod.recordAppliedManifest("2026-08-01T00:00:00.000Z", "1.2.3");
+      await mod.recordAppliedManifest("2026-08-01T00:00:00.000Z", "1.2.3", images);
 
-      assert.equal(await mod.getLastAppliedVersion(), "1.2.3");
+      assert.equal((await mod.getLastAppliedManifest())?.version, "1.2.3");
     });
 
-    it("writes createdAt and version as formatted JSON", async () => {
-      await recordAppliedManifest("2026-08-01T00:00:00.000Z", "1.2.3");
+    it("writes createdAt, version, and images as formatted JSON", async () => {
+      await recordAppliedManifest("2026-08-01T00:00:00.000Z", "1.2.3", images);
 
       const raw = await readFile(path.join(stateDir, "last-applied-manifest.json"), "utf8");
-      assert.deepEqual(JSON.parse(raw), { createdAt: "2026-08-01T00:00:00.000Z", version: "1.2.3" });
+      assert.deepEqual(JSON.parse(raw), { createdAt: "2026-08-01T00:00:00.000Z", version: "1.2.3", images });
     });
 
     it("overwrites a previously recorded manifest", async () => {
-      await recordAppliedManifest("2026-08-01T00:00:00.000Z", "1.2.3");
+      await recordAppliedManifest("2026-08-01T00:00:00.000Z", "1.2.3", images);
 
-      await recordAppliedManifest("2026-08-02T00:00:00.000Z", "1.3.0");
+      await recordAppliedManifest("2026-08-02T00:00:00.000Z", "1.3.0", images);
 
-      assert.equal(await getLastAppliedVersion(), "1.3.0");
+      assert.equal((await getLastAppliedManifest())?.version, "1.3.0");
       assert.equal(await getLastAppliedManifestTimestamp(), Date.parse("2026-08-02T00:00:00.000Z"));
     });
   });

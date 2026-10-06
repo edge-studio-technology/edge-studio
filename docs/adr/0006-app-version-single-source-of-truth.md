@@ -3,6 +3,9 @@
 **Status:** Accepted
 **Date:** 2026-08-11
 
+How the installed version is verified and reported is amended by
+[ADR 0029](./0029-verified-version-identity.md). Its other decisions remain accepted.
+
 ## Context
 
 The Feedback service (`backend/src/features/feedback/feedback.service.ts`) records an `app.version`

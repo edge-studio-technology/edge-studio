@@ -73,6 +73,11 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - After review: recaptured Minima status with the RPC console open, Diagnostics workflow logs with the tabs and both runs (wider region, same output size), and the failed-run details from the top of the modal.
 - Commented out the tour's step checklist (points and check icons) after stakeholder feedback; the points stay in `tourSteps` for a possible return. Updated the modal test, ADR 0027, and the plan.
 - Verified the crossfade in a headless browser at 1024×768 (swap at 4s, back at 8s, reset per step, modal steady at 598px), a fake-timer crossfade test, `npm run check`, and the frontend build.
+- Implemented verified version identity on `hotfix/version-identity` (ADR 0029, now Accepted): image build labels, verified `currentVersion` with self-heal of old state files, backend build identity in feedback/status, the "doesn't match a release" Update page warning, `install.sh` recording after `start_app`, and `DEV_MODE` cleanup. The Update page's "What's new" now skips `[Unreleased]` changelog sections.
+- Found on the Pi that reinstalls exported the previous `.env`'s `COMPOSE_PROFILES` into compose, so a normal install after a `DEV_MODE` one kept a stale `:dev` update-agent that rejected newer manifests. Reproduced it, fixed it with `unset COMPOSE_PROFILES` plus a scripts test, and confirmed the fix on the Pi.
+- Fixed new `proxy-addr`/`source-map-js` audit advisories (lockfiles only) and moved this branch's and #141's changelog entries under the shared `Unreleased` section.
+- Verified `npm run check` (backend 1270, frontend 1720, update-agent 171, scripts 52; 0 vulnerabilities), backend/frontend builds, `docker compose config`, and `bash -n install.sh`. Pi 5 checks on dev build `v0.42.2-dev.1`: fresh install, `DEV_MODE` → normal reinstall, a `v0.42.1` → dev update through the old update-agent (self-update plus state-file self-heal), and a Feedback submission delivered to Integritas with `app.build`.
+- Opened PR #143 to `dev`.
 
 ## Next Steps
 
@@ -86,6 +91,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Define the product lifecycle for preserved workflow runs/block runs (per-workflow bound, ADR 0026), data-source reads, and visible inbox items, covering configuration, export, proof-linked reads, quotas, and disk warnings.
 - #275: stakeholder review of the crossfade; screenshots still use dev data (e.g. `ab78a7a5beb5 · linux x64`, a backup-password warning above the backups list) — recapture with clean, Pi-like values before merge; review the step copy.
 - #275: user updates OpenProject manually.
+- PR #143: review and merge to `dev`; then a separate release branch bumps `package.json` to `0.42.2`, dates the changelog, merges `dev` → `main`, and tags `v0.42.2`.
 
 ## Notes / Open Questions
 
@@ -97,3 +103,5 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - The first two full-check attempts exposed the pre-existing webhook integration-test timeout under suite load. The test passed alone before its timeout was raised and the complete suite passed afterward.
 - #275: frontend branch coverage is 89.23% against an 89% floor.
 - #275: below 768 wide the tour footer wraps Finish onto its own row; mobile is out of scope (768 floor).
+- Version identity: only `COMPOSE_PROFILES` is kept out of the installer's compose environment. Other old `.env` values (e.g. a hand-added `UPDATE_DRY_RUN`) can still leak into one install run; deferred until it comes up.
+- The dev Pi (`devpi5`, 192.168.0.108) has an SSH key from this session (`~/.ssh/id_ed25519_devpi5`) and currently runs `v0.42.2-dev.1` on the development manifest.

@@ -19,6 +19,10 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY public ./public
 COPY manifest-public-key.pem ./
+ARG EDGE_STUDIO_VERSION=unknown
+ARG EDGE_STUDIO_COMMIT=unknown
+LABEL org.opencontainers.image.version=$EDGE_STUDIO_VERSION \
+  org.opencontainers.image.revision=$EDGE_STUDIO_COMMIT
 USER node
 EXPOSE 8081
 CMD ["npm", "start"]

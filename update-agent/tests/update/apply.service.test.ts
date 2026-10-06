@@ -110,7 +110,7 @@ describe("apply.service", () => {
 
       await applyUpdates();
 
-      assert.deepEqual((recordAppliedManifest as any).mock.calls[0], [m.createdAt, m.version]);
+      assert.deepEqual((recordAppliedManifest as any).mock.calls[0], [m.createdAt, m.version, { frontend: m.frontend, backend: m.backend }]);
       assert.deepEqual((launchSelfUpdate as any).mock.calls[0], [m.updateAgent]);
     });
 
