@@ -4,15 +4,9 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] truncated-copy2
+## [Unreleased]
 
-### Security
-
-- Updated `proxy-addr` to 2.0.8, `source-map-js` to 1.2.2, and root tooling `brace-expansion` to 5.0.12 to address IP-spoofing and denial-of-service advisories.
-
-### Changed
-
-- Integritas requests now default to a 5-minute timeout per attempt, with a 16-minute frontend proxy wait for Integritas operations.
+## [0.42.2] 2026-10-06
 
 ### Added
 
@@ -22,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Integritas requests now default to a 5-minute timeout per attempt, with a 16-minute frontend proxy wait for Integritas operations.
 - The installed version is shown only when the running frontend and backend images match the recorded release.
 - The Update page shows "This installation doesn't match a release" instead of the same version on both sides of the arrow.
 - The sidebar update notice says "Installation doesn't match vX" when the recorded version equals the available version.
@@ -37,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
-- Updated `proxy-addr` and `source-map-js` to versions that fix published advisories.
+- Updated `proxy-addr` to 2.0.8, `source-map-js` to 1.2.2, and root tooling `brace-expansion` to 5.0.12 to address IP-spoofing and denial-of-service advisories.
 
 ## [0.42.1] 2026-10-05
 
