@@ -81,6 +81,8 @@
 
 ## Done
 
+- [x] Fixed npm audit advisories with patch-only lockfile updates for `proxy-addr`, `source-map-js`, and root `brace-expansion`; all four audits are clean, typechecks/builds and frontend/Update Agent coverage passed; existing backend and Windows script-test limitations are recorded in SESSION.
+
 - [x] Increased the shared Integritas timeout default from 15 seconds to 5 minutes across backend and deployment configuration, extended Integritas frontend proxy waits, and added default/override tests; configuration/Integritas tests, typechecks, builds, and Compose validation passed; full-check and Docker-build limitations recorded in SESSION.
 
 - [x] Hotfix: stop retention from deleting workflow runs/block runs used by Watch mode (#705 follow-up) — see `docs/plans/hotfix/preserve-workflow-runs.md`.

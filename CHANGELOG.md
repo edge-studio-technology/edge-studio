@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] truncated-copy2
 
+### Security
+
+- Updated `proxy-addr` to 2.0.8, `source-map-js` to 1.2.2, and root tooling `brace-expansion` to 5.0.12 to address IP-spoofing and denial-of-service advisories.
+
 ### Changed
 
 - Integritas requests now default to a 5-minute timeout per attempt, with a 16-minute frontend proxy wait for Integritas operations.
