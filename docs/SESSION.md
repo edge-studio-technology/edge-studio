@@ -4,6 +4,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Clarified #206's contact policy: only notes are editable; label/name, address, and local marker are protected, and deletion is disabled. Updated the plan's API/UI requirements and verification cases; application implementation has not started.
+
 - Audited OpenProject #206, its discussion, and the current address-book/wallet/startup/Minima/automation code against `e3c52cf8`; saved the proposed implementation in `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`. Recorded the managed-contact policy as provisional after the user requested a follow-up discussion. Application implementation has not started; OpenProject was read only.
 - Verified #206's unchanged baseline with 71 backend tests across 6 files and 150 frontend tests across 5 files. Backend route tests passed after rerunning with local socket access; no full checks/builds, browser QA, or live-node verification ran for this planning work.
 
@@ -88,7 +90,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- #206: discuss the provisional contact policy, confirm the deployed Minima `scripts` response, and settle the saved implementation plan before application coding.
+- #206: discuss wallet-replacement behavior, confirm the deployed Minima `scripts` response, and settle the saved implementation plan before application coding.
 - Deploy the longer Integritas timeout and verify a slow PDF verification on the Pi; change any explicit `INTEGRITAS_REQUEST_TIMEOUT_MS=15000` override to `300000` and recreate the backend/frontend containers. Rerun Docker builds with the engine available and investigate the Minima backup-restore fallback test failure separately.
 
 - Comment on #694 and move it to Ready for Deployment (awaiting go-ahead).
@@ -105,7 +107,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Notes / Open Questions
 
-- #206: contact edit/removal and wallet-replacement policy remains provisional. Upstream `getaddress` chooses randomly; the proposed contact uses one stable address. Preserve old contact IDs/payment destinations across wallet replacement and verify the proposed `scripts` parser against the deployed image before finalizing it.
+- #206: only notes are editable; label/name and address are protected and removal is disabled. Wallet-replacement behavior remains proposed. Upstream `getaddress` chooses randomly; the proposed contact uses one stable address. Preserve old contact IDs/payment destinations across wallet replacement and verify the proposed `scripts` parser against the deployed image before finalizing it.
 
 - The sidebar overlay has no OpenProject ticket yet; the team was asked on #667 to create one.
 - The host agent isn't configured locally, so the hardware modal was only checked in its all-disabled state.

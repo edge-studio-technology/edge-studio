@@ -12,7 +12,7 @@
 
 ## Current Focus
 
-- [ ] Plan the default local Minima wallet contact (OpenProject #206) — audit and proposed implementation complete; managed-contact policy provisional and to be discussed; application implementation not started; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`.
+- [ ] Plan the default local Minima wallet contact (OpenProject #206) — audit and proposed implementation complete; only notes editable, label/address protected, no removal; wallet-replacement behavior to be discussed; application implementation not started; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`.
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
