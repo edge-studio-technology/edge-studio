@@ -173,7 +173,7 @@ MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES=30
 INTEGRITAS_CONNECT_BASE_URL=https://integritas.technology
 INTEGRITAS_BASE_URL=https://integritas.technology/core
 INTEGRITAS_REQUEST_ID=edge-studio
-INTEGRITAS_REQUEST_TIMEOUT_MS=15000
+INTEGRITAS_REQUEST_TIMEOUT_MS=300000
 INTEGRITAS_POLL_INTERVAL_SECONDS=30
 INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES=5
 INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS=5
@@ -191,11 +191,13 @@ UPDATE_AGENT_STATE_DIR=./update-agent-state
 
 The installer sets `COOKIE_SECURE=true` for the default HTTPS Docker deploy. Use `COOKIE_SECURE=false` only for native `npm run dev` (HTTP on port 5173).
 
+`INTEGRITAS_REQUEST_TIMEOUT_MS` defaults to 300000 (5 minutes per attempt). Transient stamp, status, and verification failures can make up to three attempts; the frontend proxy allows 16 minutes for Integritas requests. Existing installations with an explicit `INTEGRITAS_REQUEST_TIMEOUT_MS=15000` in `.env` must change it to `300000` and recreate the backend container to use the longer timeout.
+
 `HOST_FILES_DIR` is mounted into the backend container as `/host-files:ro`. The `:ro` flag is intentional for this prototype.
 
 `TZ` sets the backend container's timezone (default `UTC`). Set it to the Pi's real local timezone (e.g. `Europe/Amsterdam`) so the nightly Minima auto-backup (00:30) lands at actual local night.
 
-`MINIMA_DATA_DIR` is mounted into the Minima container as `/home/minima/data` so node data survives container restarts and updates. `MINIMA_BACKUP_DIR` is a separate host path `update-agent` copies that data into before a Minima update, and restores from if the update fails its health check. `UPDATE_AGENT_STATE_DIR` persists `update-agent`'s own bookkeeping (the last successfully applied manifest's timestamp and version, used to reject replayed/downgraded manifests) across container restarts. `install.sh` also writes an initial `last-applied-manifest.json` there at install time, and it's mounted read-only into the backend container (`/update-agent-state`) as the single source of truth for the app version shown in feedback submissions, falling back to `package.json`'s version only if that file isn't present yet (e.g. native dev).
+`MINIMA_DATA_DIR` is mounted into the Minima container as `/home/minima/data` so node data survives container restarts and updates. `MINIMA_BACKUP_DIR` is a separate host path `update-agent` copies that data into before a Minima update, and restores from if the update fails its health check. `UPDATE_AGENT_STATE_DIR` persists `update-agent`'s own bookkeeping (the last successfully applied manifest's timestamp, version, and frontend/backend image digests, used to reject replayed/downgraded manifests and to verify the installed version) across container restarts. `install.sh` also writes an initial `last-applied-manifest.json` there once the containers have started, and it's mounted read-only into the backend container (`/update-agent-state`) as the app version shown in feedback submissions. Feedback also carries the backend image's own build version and commit.
 
 `MINIMA_RPC_BIND` defaults to `127.0.0.1`, which means Minima RPC is only exposed on the Pi itself. Set it to `0.0.0.0` only on a trusted network.
 
@@ -587,6 +589,8 @@ You can override the branch:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo APP_BRANCH=main bash
 ```
+
+The sidebar and Update page show a release version only when the running frontend and backend images match the release `update-agent` last recorded. If they don't (for example after an interrupted install), the Update page warns "This installation doesn't match a release" and "Update now" brings the device back to the available release. `DEV_MODE=true` installs label their images `v<package.json version>-dev+<commit>`, show that build version in the sidebar, and remove any previous release's `last-applied-manifest.json` and `update-agent` container.
 
 Existing installations upgrading from before task 705 need a one-time rerun of the [verified installer](#verified-install-recommended) to apply the 10 MB × 3 container-log policy to every service, including Minima and the optional MQTT broker. This recreates containers and briefly interrupts service while preserving data. Image-only updates apply the fixed logging policy only to containers recreated by the new Update Agent; they do not refresh the installed Compose file or recreate every service. Do not use an old source Compose checkout to perform this migration: it can rebuild older application images over an image-only update.
 

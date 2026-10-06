@@ -35,8 +35,8 @@ Split ownership by path shape, not by introducing a new prefix:
   a job — it only polls `GET /update/apply` — so landing there with nothing running (bookmark,
   reload, direct URL) just shows an idle "nothing to update right now" state with a link back to
   `/update`, instead of doing anything.
-- `nginx.conf`'s old `location = /update { rewrite ^ /update/ last; }` block was deleted so bare
-  `/update` falls through to the SPA's `location /` (`try_files ... /index.html`); the existing
+- `nginx.conf`'s old `location = /update { rewrite ^ /update/ last; }` block was replaced with
+  `location = /update { try_files /index.html =404; }` so bare `/update` serves the SPA; the existing
   `location /update/` prefix block is unchanged. The Vite dev proxy
   (`frontend/vite.config.ts`) mirrors this with a regex key `"^/update/"` (requires the trailing
   slash) instead of a plain `"/update"` prefix match, so native dev keeps the same bare-vs-slash
@@ -71,6 +71,19 @@ Split ownership by path shape, not by introducing a new prefix:
   `/update/` without ever visiting `/update` first sees only the idle "waitroom" state, never
   service-level detail.
 
+## Amendment (2026-10-05): exact-match `/update` block is required
+
+The original change deleted the bare `/update` block and relied on fallthrough to `location /`.
+That fallthrough never happens: for a prefix location ending in `/` that uses `proxy_pass`, nginx
+answers the slash-less URI (`/update`) with its own 301 to `/update/`. nginx builds that absolute
+`Location` from the container's listen port (443, so omitted), not the published
+`${FRONTEND_PORT:-8080}`, sending the browser to an unreachable origin. Any full-page load of bare
+`/update` hit it: the waitroom's "Back to Update" links, reloads, and bookmarks. Even with the port
+kept, the redirect landed on `update-agent`'s idle page instead of the SPA. An exact-match
+`location = /update` wins over the prefix block and serves `index.html` directly.
+`absolute_redirect off` was not used: it would fix the port but still redirect to the waitroom.
+`scripts/tests/frontend-nginx-update-route.test.ts` pins the behavior against the real nginx image.
+
 ## Where this lives in code
 
 - `frontend/src/pages/UpdatePage.tsx`, `frontend/src/features/update/updateApi.ts` — status
@@ -78,6 +91,6 @@ Split ownership by path shape, not by introducing a new prefix:
 - `frontend/src/App.tsx` — the `/update` route registration.
 - `frontend/src/components/AppShell.tsx`, `frontend/src/pages/AuthSettingsPage.tsx` — in-app
   `navigate("/update")` call sites.
-- `frontend/nginx.conf` — the `location /update/` prefix proxy (bare `/update` block removed).
+- `frontend/nginx.conf` — the `location /update/` prefix proxy and the exact `location = /update` SPA block.
 - `frontend/vite.config.ts` — the `"^/update/"` dev-proxy key.
 - `update-agent/public/index.html`, `update-agent/public/app.js` — the trimmed waitroom page.

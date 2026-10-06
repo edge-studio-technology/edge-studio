@@ -53,4 +53,72 @@ describe("UpdatePage", () => {
     expect(await screen.findByText("Up to date")).toBeInTheDocument();
     expect(getUpdateStatus).toHaveBeenCalledTimes(2);
   });
+
+  it("shows the verified current version and the target version", async () => {
+    getUpdateStatus.mockResolvedValue({
+      ...currentStatus,
+      services: [{ ...currentStatus.services[0], currentImage: "frontend@sha256:0", upToDate: false }],
+      currentVersion: "1.2.2",
+    });
+
+    render(<UpdatePage />);
+
+    expect(await screen.findByText("1.2.2 → 1.2.3")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Update now" })).toBeInTheDocument();
+  });
+
+  it("warns instead of showing vX → vX when the reported version equals the target", async () => {
+    getUpdateStatus.mockResolvedValue({
+      ...currentStatus,
+      services: [{ ...currentStatus.services[0], currentImage: "frontend@sha256:0", upToDate: false }],
+      currentVersion: "1.2.3",
+    });
+
+    render(<UpdatePage />);
+
+    expect(await screen.findByText("This installation doesn't match a release.")).toBeInTheDocument();
+    expect(screen.getByText("Version 1.2.3 is available.")).toBeInTheDocument();
+    expect(screen.queryByText("1.2.3 → 1.2.3")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Update now" })).toBeInTheDocument();
+  });
+
+  it("warns when no verified version is reported", async () => {
+    getUpdateStatus.mockResolvedValue({
+      ...currentStatus,
+      services: [{ ...currentStatus.services[0], currentImage: "frontend@sha256:0", upToDate: false }],
+      currentVersion: null,
+    });
+
+    render(<UpdatePage />);
+
+    expect(await screen.findByText("This installation doesn't match a release.")).toBeInTheDocument();
+    expect(screen.getByText("Version 1.2.3 is available.")).toBeInTheDocument();
+  });
+
+  it("does not warn when the verified version is behind the target", async () => {
+    getUpdateStatus.mockResolvedValue({
+      ...currentStatus,
+      services: [{ ...currentStatus.services[0], currentImage: "frontend@sha256:0", upToDate: false }],
+      currentVersion: "1.2.2",
+    });
+
+    render(<UpdatePage />);
+
+    expect(await screen.findByText("1.2.2 → 1.2.3")).toBeInTheDocument();
+    expect(screen.queryByText("This installation doesn't match a release.")).not.toBeInTheDocument();
+  });
+
+  it("reports the running version while only the update service is still updating itself", async () => {
+    getUpdateStatus.mockResolvedValue({
+      ...currentStatus,
+      services: [
+        ...currentStatus.services,
+        { service: "update-agent", currentImage: "update-agent@sha256:0", targetImage: "update-agent@sha256:1", upToDate: false },
+      ],
+    });
+
+    render(<UpdatePage />);
+
+    expect(await screen.findByText("Running version 1.2.3. The update service is still updating itself.")).toBeInTheDocument();
+  });
 });

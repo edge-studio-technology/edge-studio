@@ -134,6 +134,31 @@ describe("getEmptyFeedbackDocument", () => {
     assert.equal(doc.metadata.createdAt, "2026-01-01T00:00:00.000Z");
   });
 
+  it("includes the baked build identity when the image has one", async () => {
+    const { env } = await import("../../../src/config/env.js");
+    const original = { version: env.buildVersion, commit: env.buildCommit };
+    env.buildVersion = "v1.2.3-dev+abc1234";
+    env.buildCommit = "abc1234";
+    try {
+      const doc = service.getEmptyFeedbackDocument(user);
+      assert.deepEqual(doc.metadata.app.build, { version: "v1.2.3-dev+abc1234", commit: "abc1234" });
+    } finally {
+      env.buildVersion = original.version;
+      env.buildCommit = original.commit;
+    }
+  });
+
+  it("reports a null build identity for an unlabelled build", async () => {
+    const { env } = await import("../../../src/config/env.js");
+    const original = env.buildVersion;
+    env.buildVersion = "unknown";
+    try {
+      assert.equal(service.getEmptyFeedbackDocument(user).metadata.app.build, null);
+    } finally {
+      env.buildVersion = original;
+    }
+  });
+
   it("falls back to a null integritas user id when not connected", () => {
     getIntegritasAuthMock.mockReturnValue(null);
     const doc = service.getEmptyFeedbackDocument(user);

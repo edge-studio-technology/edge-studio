@@ -8,6 +8,9 @@ services:
   backend:
     build:
       context: ./backend
+      args:
+        EDGE_STUDIO_VERSION: ${EDGE_STUDIO_BUILD_VERSION:-unknown}
+        EDGE_STUDIO_COMMIT: ${EDGE_STUDIO_BUILD_COMMIT:-unknown}
     image: ${BACKEND_IMAGE}
     environment:
       TZ: ${TZ:-UTC}
@@ -18,7 +21,7 @@ services:
       INTEGRITAS_BASE_URL: ${INTEGRITAS_BASE_URL:-https://integritas.technology/core}
       INTEGRITAS_API_KEY: ${INTEGRITAS_API_KEY:-}
       INTEGRITAS_REQUEST_ID: ${INTEGRITAS_REQUEST_ID:-edge-studio}
-      INTEGRITAS_REQUEST_TIMEOUT_MS: ${INTEGRITAS_REQUEST_TIMEOUT_MS:-15000}
+      INTEGRITAS_REQUEST_TIMEOUT_MS: ${INTEGRITAS_REQUEST_TIMEOUT_MS:-300000}
       INTEGRITAS_POLL_INTERVAL_SECONDS: ${INTEGRITAS_POLL_INTERVAL_SECONDS:-30}
       INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES: ${INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES:-5}
       INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS: ${INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS:-5}
@@ -85,6 +88,9 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        EDGE_STUDIO_VERSION: ${EDGE_STUDIO_BUILD_VERSION:-unknown}
+        EDGE_STUDIO_COMMIT: ${EDGE_STUDIO_BUILD_COMMIT:-unknown}
     image: ${FRONTEND_IMAGE}
     environment:
       UPLOAD_MAX_FILE_BYTES: ${UPLOAD_MAX_FILE_BYTES:-104857600}
@@ -137,6 +143,9 @@ services:
   update-agent:
     build:
       context: ./update-agent
+      args:
+        EDGE_STUDIO_VERSION: ${EDGE_STUDIO_BUILD_VERSION:-unknown}
+        EDGE_STUDIO_COMMIT: ${EDGE_STUDIO_BUILD_COMMIT:-unknown}
     image: ${UPDATE_AGENT_IMAGE}
     profiles:
       - update-agent

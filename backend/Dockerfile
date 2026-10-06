@@ -22,6 +22,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends gpiod \
 COPY package.json package-lock.json* ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+ARG EDGE_STUDIO_VERSION=unknown
+ARG EDGE_STUDIO_COMMIT=unknown
+LABEL org.opencontainers.image.version=$EDGE_STUDIO_VERSION \
+  org.opencontainers.image.revision=$EDGE_STUDIO_COMMIT
+ENV EDGE_STUDIO_BUILD_VERSION=$EDGE_STUDIO_VERSION \
+  EDGE_STUDIO_BUILD_COMMIT=$EDGE_STUDIO_COMMIT
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \

@@ -83,6 +83,8 @@ INTEGRITAS_REQUEST_ID="${INTEGRITAS_REQUEST_ID:-edge-studio}"
 MANIFEST_URL="${MANIFEST_URL:-$DEFAULT_MANIFEST_URL}"
 RUNTIME_BUNDLE_URL="${RUNTIME_BUNDLE_URL:-}"
 DEV_MODE="${DEV_MODE:-false}"
+EDGE_STUDIO_BUILD_VERSION=""
+EDGE_STUDIO_BUILD_COMMIT=""
 COMPOSE_FILE_NAME="docker-compose.yml"
 
 # Install-time bootstrap trust set. The Ed25519 public key, the verifier source, and the
@@ -412,6 +414,8 @@ load_existing_config() {
   # shellcheck disable=SC1091
   . "$APP_DIR/.env"
   set +a
+  # write_env_file recomputes the profiles; an exported old value would override the new .env in compose.
+  unset COMPOSE_PROFILES
 
   HOST_FILES_DIR="${HOST_FILES_DIR_INPUT:-${HOST_FILES_DIR:-/home/pi}}"
   FRONTEND_PORT="${FRONTEND_PORT_INPUT:-${FRONTEND_PORT:-8080}}"
@@ -655,6 +659,8 @@ download_full_repo() {
 
   log "Downloading $APP_REPO_URL ($APP_BRANCH)"
   git clone --depth 1 --branch "$APP_BRANCH" "$APP_REPO_URL" "$tmp_dir"
+  EDGE_STUDIO_BUILD_COMMIT="$(git -C "$tmp_dir" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+  EDGE_STUDIO_BUILD_VERSION="v$(fetch_package_version "$tmp_dir/package.json")-dev+$EDGE_STUDIO_BUILD_COMMIT"
 
   prepare_app_directory
   clean_app_directory
@@ -789,6 +795,16 @@ fetch_and_verify_manifest() {
   log "Manifest verified. frontend=$FRONTEND_IMAGE backend=$BACKEND_IMAGE update-agent=$UPDATE_AGENT_IMAGE"
 }
 
+resolve_update_agent_state_dir() {
+  case "$UPDATE_AGENT_STATE_DIR" in
+    /*) echo "$UPDATE_AGENT_STATE_DIR" ;;
+    ./*) echo "$APP_DIR/${UPDATE_AGENT_STATE_DIR#./}" ;;
+    *) echo "$APP_DIR/$UPDATE_AGENT_STATE_DIR" ;;
+  esac
+}
+
+# Runs after start_app, so the file only names a release whose images are running.
+# See docs/adr/0029-verified-version-identity.md.
 record_applied_manifest() {
   if [ -z "$MANIFEST_VERSION" ] || [ -z "$MANIFEST_CREATED_AT" ]; then
     echo "Manifest is missing version or createdAt; skipping last-applied-manifest.json write."
@@ -796,17 +812,17 @@ record_applied_manifest() {
   fi
 
   local resolved_update_agent_state_dir
-  case "$UPDATE_AGENT_STATE_DIR" in
-    /*) resolved_update_agent_state_dir="$UPDATE_AGENT_STATE_DIR" ;;
-    ./*) resolved_update_agent_state_dir="$APP_DIR/${UPDATE_AGENT_STATE_DIR#./}" ;;
-    *) resolved_update_agent_state_dir="$APP_DIR/$UPDATE_AGENT_STATE_DIR" ;;
-  esac
+  resolved_update_agent_state_dir="$(resolve_update_agent_state_dir)"
 
   mkdir -p "$resolved_update_agent_state_dir"
   cat > "$resolved_update_agent_state_dir/last-applied-manifest.json" <<EOF
 {
   "createdAt": "$MANIFEST_CREATED_AT",
-  "version": "$MANIFEST_VERSION"
+  "version": "$MANIFEST_VERSION",
+  "images": {
+    "frontend": "$FRONTEND_IMAGE",
+    "backend": "$BACKEND_IMAGE"
+  }
 }
 EOF
   chown -R 1000:1000 "$resolved_update_agent_state_dir"
@@ -866,6 +882,8 @@ EDGE_STUDIO_DOCKER_SUBNET=$EDGE_STUDIO_DOCKER_SUBNET
 EDGE_STUDIO_DOCKER_GATEWAY=$EDGE_STUDIO_DOCKER_GATEWAY
 ENABLE_MQTT_BROKER=$enable_mqtt_broker_runtime
 DEV_MODE=$DEV_MODE
+EDGE_STUDIO_BUILD_VERSION=$EDGE_STUDIO_BUILD_VERSION
+EDGE_STUDIO_BUILD_COMMIT=$EDGE_STUDIO_BUILD_COMMIT
 COMPOSE_PROFILES=$compose_profiles_joined
 MQTT_PUBLIC_HOST=$MQTT_PUBLIC_HOST
 MQTT_PUBLIC_PORT=$MQTT_PUBLIC_PORT
@@ -1003,6 +1021,13 @@ start_app() {
   fi
   ensure_compose_network
   compose up -d
+
+  # No signed release describes a from-source build, so drop the previous release's
+  # state file and update-agent. See docs/adr/0029-verified-version-identity.md.
+  if is_truthy "$DEV_MODE"; then
+    rm -f "$(resolve_update_agent_state_dir)/last-applied-manifest.json"
+    compose --profile update-agent rm -sf update-agent
+  fi
 }
 
 ensure_compose_network() {
@@ -1076,13 +1101,13 @@ main() {
   resolve_images
   download_app
   prepare_runtime_directories
-  record_applied_manifest
   write_env_file
   install_host_agent
   apply_hardware_shortcuts_via_host_agent
   generate_tls_cert
   install_cli
   start_app
+  record_applied_manifest
   print_success_message
 }
 
