@@ -173,7 +173,7 @@ MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES=30
 INTEGRITAS_CONNECT_BASE_URL=https://integritas.technology
 INTEGRITAS_BASE_URL=https://integritas.technology/core
 INTEGRITAS_REQUEST_ID=edge-studio
-INTEGRITAS_REQUEST_TIMEOUT_MS=15000
+INTEGRITAS_REQUEST_TIMEOUT_MS=300000
 INTEGRITAS_POLL_INTERVAL_SECONDS=30
 INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES=5
 INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS=5
@@ -190,6 +190,8 @@ UPDATE_AGENT_STATE_DIR=./update-agent-state
 ```
 
 The installer sets `COOKIE_SECURE=true` for the default HTTPS Docker deploy. Use `COOKIE_SECURE=false` only for native `npm run dev` (HTTP on port 5173).
+
+`INTEGRITAS_REQUEST_TIMEOUT_MS` defaults to 300000 (5 minutes per attempt). Transient stamp, status, and verification failures can make up to three attempts; the frontend proxy allows 16 minutes for Integritas requests. Existing installations with an explicit `INTEGRITAS_REQUEST_TIMEOUT_MS=15000` in `.env` must change it to `300000` and recreate the backend container to use the longer timeout.
 
 `HOST_FILES_DIR` is mounted into the backend container as `/host-files:ro`. The `:ro` flag is intentional for this prototype.
 
