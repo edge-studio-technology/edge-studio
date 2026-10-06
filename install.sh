@@ -414,6 +414,8 @@ load_existing_config() {
   # shellcheck disable=SC1091
   . "$APP_DIR/.env"
   set +a
+  # write_env_file recomputes the profiles; an exported old value would override the new .env in compose.
+  unset COMPOSE_PROFILES
 
   HOST_FILES_DIR="${HOST_FILES_DIR_INPUT:-${HOST_FILES_DIR:-/home/pi}}"
   FRONTEND_PORT="${FRONTEND_PORT_INPUT:-${FRONTEND_PORT:-8080}}"

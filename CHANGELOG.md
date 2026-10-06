@@ -24,6 +24,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `DEV_MODE` installs remove the previous release's version record and update-agent container.
 - The Update page's release notes no longer show unreleased changelog sections.
 
+### Fixed
+
+- Reinstalling after switching to or from `DEV_MODE` now starts or stops the update-agent for the new install mode.
+
 ## [Unreleased] hotfix/update-agent-redirect-bug
 
 ### Fixed
