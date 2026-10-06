@@ -10,14 +10,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Integritas requests now default to a 5-minute timeout per attempt, with a 16-minute frontend proxy wait for Integritas operations.
 
-## [Unreleased] chore/wiki-user-guidance
+## [Unreleased] hotfix/update-agent-redirect-bug
+
+### Fixed
+
+- Opening `/update` directly, reloading it, or using "Back to Update" from the update progress page no longer redirects to the URL without the UI port.
+
+## [0.42.1] 2026-10-05
 
 ### Changed
 
 - Clarified default network exposure and installer checksum limitations in the security policy and user wiki.
 - Updated wiki installation, first-proof, backup, and troubleshooting guidance with explicit commands and callouts.
-
-## [Unreleased]
 
 ## [0.42.0] 2026-10-05
 
