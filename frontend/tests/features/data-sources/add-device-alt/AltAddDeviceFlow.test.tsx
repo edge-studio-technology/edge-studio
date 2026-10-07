@@ -73,6 +73,19 @@ describe("AltAddDeviceFlow", () => {
     expect(screen.getByRole("button", { name: /Outbound/ })).toBeInTheDocument();
   });
 
+  it("uses Previous step within provisioning and Back to return to the device picker", async () => {
+    renderFlow();
+    await chooseRestApiSource();
+    await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
+
+    expect(screen.getByRole("button", { name: "Previous step (1)" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Previous step (1)" }));
+    expect(screen.getByRole("button", { name: "Next step (2)" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByRole("button", { name: /REST API/ })).toBeInTheDocument();
+  });
+
   it("shows boards and sensor template choices", async () => {
     renderFlow();
     await userEvent.click(screen.getByRole("button", { name: /Boards/ }));

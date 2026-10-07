@@ -52,14 +52,14 @@ export function AltDeviceForm({
   return (
     <section className="grid min-h-full min-w-0 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
       <ProvisioningTimeline currentStep={currentStep} fields={fields} />
-      <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-t p-detail-next lg:border-t-0 lg:border-l">
+      <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-t p-detail-next pl-6 lg:border-t-0 lg:border-l">
         <div className="min-w-0">
           {currentStep === "type" && <DeviceTypeStep template={template} />}
           {currentStep === "name" && <NameStep fields={fields} />}
           {currentStep === "setup" && <SetupFields fields={fields} />}
           {currentStep === "review" && <ReviewStep template={template} fields={fields} />}
         </div>
-        {action ? <div className="mt-auto flex justify-end pt-detail-next">{action}</div> : null}
+        {action ? <div className="mt-auto pt-detail-next">{action}</div> : null}
       </div>
     </section>
   );

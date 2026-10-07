@@ -94,11 +94,8 @@ export function AltAddDeviceFlow({
 
   function goBack() {
     if (template) {
-      if (provisioningStepIndex > 0) {
-        setProvisioningStepIndex((current) => current - 1);
-        return;
-      }
       setTemplate(null);
+      setProvisioningStepIndex(0);
       return;
     }
     setStep(parentStep(step));
@@ -114,6 +111,10 @@ export function AltAddDeviceFlow({
     if (!isFinalProvisioningStep) setProvisioningStepIndex((current) => current + 1);
   }
 
+  function goToPreviousProvisioningStep() {
+    if (provisioningStepIndex > 0) setProvisioningStepIndex((current) => current - 1);
+  }
+
   if (template && provisioningStep) {
     return (
       <Modal
@@ -122,7 +123,7 @@ export function AltAddDeviceFlow({
         onClose={onClose}
         width="wide"
         className={setupDeviceModalClassName}
-        bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0 pl-3"
+        bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0"
         footer={
           <div className="flex w-full items-center justify-between gap-detail-next">
             <Button
@@ -151,10 +152,25 @@ export function AltAddDeviceFlow({
           fields={fields}
           currentStep={provisioningStep.id}
           action={
-            !isFinalProvisioningStep ? (
-              <Button disabled={saving || !canContinue} onClick={goNext}>
-                Next step ({provisioningStepIndex + 2})
-              </Button>
+            provisioningStepIndex > 0 || !isFinalProvisioningStep ? (
+              <div className="flex items-center justify-between gap-detail-next">
+                {provisioningStepIndex > 0 ? (
+                  <Button
+                    variant="secondary"
+                    disabled={saving}
+                    onClick={goToPreviousProvisioningStep}
+                  >
+                    Previous step ({provisioningStepIndex})
+                  </Button>
+                ) : (
+                  <span />
+                )}
+                {!isFinalProvisioningStep ? (
+                  <Button disabled={saving || !canContinue} onClick={goNext}>
+                    Next step ({provisioningStepIndex + 2})
+                  </Button>
+                ) : null}
+              </div>
             ) : undefined
           }
         />
