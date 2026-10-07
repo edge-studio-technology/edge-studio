@@ -12,7 +12,7 @@
 
 ## Current Focus
 
-- [ ] Final manual verification/signoff for the default local Minima wallet contact (OpenProject #206) — steps 1–4 implemented and locally verified; committed naming revision `90c38ead` rebuilt/deployed from source with DEV_MODE=true, healthy services and automatic wallet-owned contact creation confirmed; resolve deployed Minima's missing `checkrestore` RPC, then finish authenticated Pi/Playwright and disposable wallet-replacement checks; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-completed-branch-pi-deployment.md`, and ADR 0030.
+- [ ] Final manual verification/signoff for the default local Minima wallet contact (OpenProject #206) — steps 1–4 implemented and locally verified; committed naming revision `90c38ead` rebuilt/deployed from source with DEV_MODE=true, healthy services and automatic wallet-owned contact creation confirmed; authenticated live Pi/Playwright contact CRUD, duplicate independence, persistence, and API protection passed; resolve deployed Minima's missing `checkrestore` RPC, then finish wallet/payment acceptance and disposable wallet-replacement checks; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-completed-branch-pi-deployment.md`, and ADR 0030.
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
@@ -82,6 +82,8 @@
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
 
 ## Done
+
+- [x] #206 authenticated live contact-flow QA on the deployed Pi in visible WSL Chromium: managed name/notes edits persisted, address/deletion controls and API guards held, same-address ordinary contact add/edit/delete passed, and both original contacts were restored exactly. Wallet replacement/payments and final feature signoff remain open; see the deployment QA report.
 
 - [x] #206 editable managed-contact name: default new contacts to the dashboard hostname once, preserve existing/user-selected names, allow validated name/notes edits, and retain address/deletion/marker protections; 65 backend/190 frontend focused tests, full check (3,308 tests), builds/Compose, and local Playwright passed; deployed healthy dirty source build on the Pi. Naming revision committed as `90c38ead` and rebuilt/deployed from committed source on the Pi; authenticated feature signoff remains pending.
 

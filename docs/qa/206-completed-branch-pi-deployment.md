@@ -47,8 +47,19 @@ Committed the naming revision as `90c38ead1a07cb22141882a272e1616a4a53a1af`, tra
 
 Backed up SQLite/configuration to `/home/devpi5/edge-studio-206-backup-90c38ead`. Compared all saved fields of both contacts against the pre-install snapshot; names, notes, IDs, addresses, timestamps, and markers were unchanged. APP_SECRET, host-agent token, data paths, and frontend port remained unchanged. DEV_MODE=true, SQLite quick_check, and HTTPS health passed. Minima/MQTT stayed running. Installer log: `/home/devpi5/206-90c38ead-install.log`. No authenticated browser mutations, wallet replacement, or payments ran.
 
+## Authenticated live contact-flow check (2026-10-07)
+
+Used a visible Playwright-controlled Linux Chromium window on WSL against the real Pi at `https://192.168.0.108:8080`, logged in through the normal UI with user-provided credentials, and confirmed served version `v0.42.2-dev+90c38ead`. No API fixtures or authentication bypass were used.
+
+- Managed contact: Remove absent, address disabled, name/notes enabled. Renamed to a temporary QA name and added notes; both persisted after reload, with the same ID/address/marker and visible Local device pill. Restored the original name/notes through the UI.
+- Ordinary contact: created a temporary contact sharing the managed address, confirmed Remove and editable address, changed its name/address/notes, and deleted it through the confirmation dialog. The existing user-created contact was not edited.
+- Authenticated direct PATCH of the managed address and DELETE both returned structured 409 responses. Compared all returned fields of both original contacts before/after; contents matched exactly and no temporary contact remained. Contact-row restoration does not undo audit history from these actions.
+- Playwright's ordinary-contact Edit click initially timed out with the menu outside the viewport at the default window size. Enlarging the viewport to 1440×1000 and reopening the menu allowed the normal click and remaining flow to complete. Recorded as a positioning observation; no UI changes were made.
+
+Wallet replacement, pending recovery, payments, and workflow recipient behavior were not exercised in this check. The missing-checkrestore compatibility issue below still prevents final feature signoff.
+
 ## Compatibility issue and remaining verification
 
 The deployed Minima image returns HTTP 200 with `status: false` and `error: "Command not found"` for the fixed read-only `checkrestore` RPC. The step 4 readiness helper consequently returns false. Normal automatic contact creation succeeds, but after an app-controlled wallet replacement the managed contact would remain pending and unavailable as a payment recipient until this compatibility issue is resolved.
 
-No wallet replacement, payment, credential change, or authenticated browser test was performed. Resolve readiness verification against this deployed Minima version, then complete the [plan's manual acceptance checks](../plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md) and user signoff using a disposable wallet for replacement tests.
+Authenticated contact CRUD/protection checks passed as recorded above. No wallet replacement, payment, or credential change was performed. Resolve readiness verification against this deployed Minima version, then complete the [plan's manual acceptance checks](../plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md) and user signoff using a disposable wallet for replacement tests.
