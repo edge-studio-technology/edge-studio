@@ -151,6 +151,8 @@ Approved and implemented name/notes editing while retaining the protected addres
 
 Reproduced four backend/two frontend failures before implementation. All 65 focused backend/190 frontend tests and full check (3,308 tests), typechecks, coverage thresholds, clean audits, both builds, and Compose passed. Local Playwright fixtures confirmed name/notes-only saves and managed/manual controls. Deployed the uncommitted modified source to the Pi as `v0.42.2-dev+a7ddc75e.rename.dirty`; services and HTTPS health passed, source checksums matched, and the existing This device name/ID remained unchanged. Authenticated Pi CRUD, wallet replacement, and signoff remain ahead; the separate missing-checkrestore compatibility issue remains open.
 
+The naming revision was subsequently committed as `90c38ead` and rebuilt on the Pi through its DEV_MODE installer. Both healthy app images report `v0.42.2-dev+90c38ead` with matching revision labels and installed Git HEAD. All saved fields of both existing contacts and critical configuration were preserved; SQLite integrity and HTTPS health passed. The final manual checks below and the missing-checkrestore compatibility issue remain open.
+
 The existing baseline and remaining acceptance checks below continue to apply. Wallet-replacement behavior is implemented and locally verified; final live verification and signoff remain open.
 
 - Database/repository: existing-install migration; repeated migrations; separate app-contact creation even with duplicate destinations; unique marker; existing user rows remain ordinary with unchanged metadata/IDs; skip an existing managed entry regardless of supplied pool changes.

@@ -41,6 +41,12 @@ The user approved editable name/notes and a one-time dashboard-hostname default 
 
 No schema migration, authenticated Pi rename/delete attempt, wallet replacement, or payment was performed. Existing contacts can now be renamed manually; the default hostname applies only to a newly created managed contact.
 
+## Committed-source rebuild (2026-10-07)
+
+Committed the naming revision as `90c38ead1a07cb22141882a272e1616a4a53a1af`, transferred it as a Git bundle, and reran that commit's installer with DEV_MODE=true and the feature branch/local bare source repository. Both app images were built from source; installer exit code was 0. Installed Git HEAD matches the commit, both image revisions are `90c38ead`, and both healthy services report `v0.42.2-dev+90c38ead`, replacing the dirty build labels.
+
+Backed up SQLite/configuration to `/home/devpi5/edge-studio-206-backup-90c38ead`. Compared all saved fields of both contacts against the pre-install snapshot; names, notes, IDs, addresses, timestamps, and markers were unchanged. APP_SECRET, host-agent token, data paths, and frontend port remained unchanged. DEV_MODE=true, SQLite quick_check, and HTTPS health passed. Minima/MQTT stayed running. Installer log: `/home/devpi5/206-90c38ead-install.log`. No authenticated browser mutations, wallet replacement, or payments ran.
+
 ## Compatibility issue and remaining verification
 
 The deployed Minima image returns HTTP 200 with `status: false` and `error: "Command not found"` for the fixed read-only `checkrestore` RPC. The step 4 readiness helper consequently returns false. Normal automatic contact creation succeeds, but after an app-controlled wallet replacement the managed contact would remain pending and unavailable as a payment recipient until this compatibility issue is resolved.
