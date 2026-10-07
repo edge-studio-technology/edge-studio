@@ -297,7 +297,14 @@ def cmd_collect(api, args):
 # --- cleanup -----------------------------------------------------------------
 
 def cmd_cleanup(api, _args):
-    for workflow in bench_items(api, "/automation/workflows"):
+    workflows = bench_items(api, "/automation/workflows")
+    # Disable first and let in-flight runs (a stamp can take seconds) finish, so deleting
+    # doesn't pull rows out from under a run that is still writing its results.
+    for workflow in workflows:
+        api.call("PATCH", "/automation/workflows/" + workflow["id"], {"enabled": False})
+    if workflows:
+        time.sleep(30)
+    for workflow in workflows:
         api.call("DELETE", "/automation/workflows/" + workflow["id"])
         print("deleted workflow", workflow["name"])
     for source in bench_items(api, "/data-sources"):
