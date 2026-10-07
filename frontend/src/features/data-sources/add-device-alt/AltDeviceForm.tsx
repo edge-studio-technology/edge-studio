@@ -86,17 +86,16 @@ function isAltDeviceSetupValid(fields: DeviceFormFields) {
 function ProvisioningTimeline({ currentStep, fields }: { currentStep: AltDeviceProvisioningStep; fields: DeviceFormFields }) {
   const currentIndex = provisioningSteps.findIndex((step) => step.id === currentStep);
   return (
-    <ol className="bg-surface-secondary m-0 flex h-full list-none flex-col p-detail-next">
+    <ol className="bg-surface-secondary m-0 flex h-full list-none flex-col px-detail-next py-pad-relaxed">
       {provisioningSteps.map((step, index) => {
         const complete = index < currentIndex || (index === currentIndex && isAltDeviceStepValid(fields, step.id));
         const active = step.id === currentStep;
         const isLast = index === provisioningSteps.length - 1;
         return (
-          <li key={step.id} className={`gap-detail-tight relative grid grid-cols-[auto_minmax(0,1fr)] items-start ${isLast ? "flex-none" : "flex-1"}`}>
-            {!isLast && <span className="bg-stroke-secondary absolute top-8 bottom-0 left-4 w-px" aria-hidden />}
-            <span className="z-10 grid justify-items-center">
+          <li key={step.id} className={`gap-detail-tight grid grid-cols-[auto_minmax(0,1fr)] items-start ${isLast ? "flex-none" : "flex-1"}`}>
+            <span className="grid h-full grid-rows-[auto_minmax(0,1fr)] justify-items-center">
               <span
-                className={`grid size-8 place-items-center rounded-full border type-body-em ${
+                className={`z-10 grid size-8 place-items-center rounded-full border type-body-em ${
                   active
                     ? "border-stroke-active bg-surface-primary text-text-primary"
                     : complete
@@ -106,6 +105,7 @@ function ProvisioningTimeline({ currentStep, fields }: { currentStep: AltDeviceP
               >
                 {complete && !active ? "✓" : index + 1}
               </span>
+              {!isLast && <span className="bg-grey-04 my-detail-tight block h-full w-px" aria-hidden />}
             </span>
             <span>
               <span className={`type-body-em block ${active || complete ? "text-text-primary" : "text-text-secondary"}`}>{step.title}</span>
