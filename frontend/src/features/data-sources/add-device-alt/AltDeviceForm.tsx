@@ -2,6 +2,7 @@ import { Pill } from "../../../components/Pill";
 import { DetailList, DetailRow } from "../../../components/patterns/DetailList";
 import { InputField } from "../../../components/ui/InputField";
 import { SelectField } from "../../../components/ui/SelectField";
+import type { ReactNode } from "react";
 import type { DataSourceTemplate } from "../dataSourceTypes";
 import type { DeviceFormFields } from "../useDeviceFormFields";
 
@@ -41,19 +42,22 @@ export function AltDeviceForm({
   template,
   fields,
   currentStep,
+  action,
 }: {
   template: DataSourceTemplate;
   fields: DeviceFormFields;
   currentStep: AltDeviceProvisioningStep;
+  action?: ReactNode;
 }) {
   return (
-    <section className="grid min-h-full min-w-0 lg:grid-cols-[260px_minmax(0,1fr)]">
+    <section className="grid min-h-full min-w-0 overflow-hidden rounded-soft lg:grid-cols-[260px_minmax(0,1fr)]">
       <ProvisioningTimeline currentStep={currentStep} fields={fields} />
-      <div className="border-stroke-secondary min-w-0 border-t pt-detail-next lg:border-t-0 lg:border-l lg:pt-0 lg:pl-detail-next">
+      <div className="border-stroke-secondary bg-surface-primary grid min-w-0 content-start border-t p-detail-next lg:border-t-0 lg:border-l">
         {currentStep === "type" && <DeviceTypeStep template={template} />}
         {currentStep === "name" && <NameStep fields={fields} />}
         {currentStep === "setup" && <SetupFields fields={fields} />}
         {currentStep === "review" && <ReviewStep template={template} fields={fields} />}
+        {action ? <div className="mt-detail-near flex justify-end">{action}</div> : null}
       </div>
     </section>
   );
@@ -80,7 +84,7 @@ function isAltDeviceSetupValid(fields: DeviceFormFields) {
 function ProvisioningTimeline({ currentStep, fields }: { currentStep: AltDeviceProvisioningStep; fields: DeviceFormFields }) {
   const currentIndex = provisioningSteps.findIndex((step) => step.id === currentStep);
   return (
-    <ol className="m-0 grid h-full list-none p-0 pb-detail-next lg:pr-detail-next">
+    <ol className="bg-surface-secondary m-0 grid h-full list-none p-detail-next">
       {provisioningSteps.map((step, index) => {
         const complete = index < currentIndex || (index === currentIndex && isAltDeviceStepValid(fields, step.id));
         const active = step.id === currentStep;

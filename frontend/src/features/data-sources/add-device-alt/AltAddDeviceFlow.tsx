@@ -140,14 +140,23 @@ export function AltAddDeviceFlow({
                 Add device
               </Button>
             ) : (
-              <Button disabled={saving || !canContinue} onClick={goNext}>
-                Next step ({provisioningStepIndex + 2})
-              </Button>
+              <span aria-hidden />
             )}
           </div>
         }
       >
-        <AltDeviceForm template={template} fields={fields} currentStep={provisioningStep.id} />
+        <AltDeviceForm
+          template={template}
+          fields={fields}
+          currentStep={provisioningStep.id}
+          action={
+            !isFinalProvisioningStep ? (
+              <Button disabled={saving || !canContinue} onClick={goNext}>
+                Next step ({provisioningStepIndex + 2})
+              </Button>
+            ) : undefined
+          }
+        />
       </Modal>
     );
   }
