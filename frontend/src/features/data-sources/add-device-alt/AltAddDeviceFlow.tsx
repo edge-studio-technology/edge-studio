@@ -141,7 +141,7 @@ export function AltAddDeviceFlow({
               </Button>
             ) : (
               <Button disabled={saving || !canContinue} onClick={goNext}>
-                Continue
+                Next step ({provisioningStepIndex + 2})
               </Button>
             )}
           </div>

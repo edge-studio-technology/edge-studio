@@ -57,11 +57,11 @@ describe("AltAddDeviceFlow", () => {
     await chooseRestApiSource();
 
     expect(screen.getAllByText("Select device type").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Next step (2)" })).toBeEnabled();
 
-    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
     expect(screen.getByLabelText("Name")).toHaveValue("HTTP JSON Source");
-    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Next step (3)" })).toBeEnabled();
   });
 
   it("Back returns to the previous setup step", async () => {
@@ -128,7 +128,7 @@ async function chooseRestApiSource() {
 }
 
 async function advanceToReview() {
-  await userEvent.click(screen.getByRole("button", { name: "Continue" }));
-  await userEvent.click(screen.getByRole("button", { name: "Continue" }));
-  await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+  await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
+  await userEvent.click(screen.getByRole("button", { name: "Next step (3)" }));
+  await userEvent.click(screen.getByRole("button", { name: "Next step (4)" }));
 }

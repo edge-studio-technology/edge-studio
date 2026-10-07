@@ -47,9 +47,9 @@ export function AltDeviceForm({
   currentStep: AltDeviceProvisioningStep;
 }) {
   return (
-    <section className="gap-detail-near grid min-w-0 lg:grid-cols-[260px_minmax(0,1fr)]">
+    <section className="grid min-h-full min-w-0 lg:grid-cols-[260px_minmax(0,1fr)]">
       <ProvisioningTimeline currentStep={currentStep} fields={fields} />
-      <div className="border-stroke-secondary bg-surface-primary rounded-soft gap-detail-close grid min-w-0 border p-pad-close">
+      <div className="border-stroke-secondary min-w-0 border-t pt-detail-next lg:border-t-0 lg:border-l lg:pt-0 lg:pl-detail-next">
         {currentStep === "type" && <DeviceTypeStep template={template} />}
         {currentStep === "name" && <NameStep fields={fields} />}
         {currentStep === "setup" && <SetupFields fields={fields} />}
@@ -80,22 +80,26 @@ function isAltDeviceSetupValid(fields: DeviceFormFields) {
 function ProvisioningTimeline({ currentStep, fields }: { currentStep: AltDeviceProvisioningStep; fields: DeviceFormFields }) {
   const currentIndex = provisioningSteps.findIndex((step) => step.id === currentStep);
   return (
-    <ol className="gap-detail-close m-0 grid h-fit list-none p-0">
+    <ol className="m-0 grid h-full list-none p-0 pb-detail-next lg:pr-detail-next">
       {provisioningSteps.map((step, index) => {
         const complete = index < currentIndex || (index === currentIndex && isAltDeviceStepValid(fields, step.id));
         const active = step.id === currentStep;
+        const isLast = index === provisioningSteps.length - 1;
         return (
-          <li key={step.id} className="gap-detail-tight grid grid-cols-[auto_minmax(0,1fr)] items-start">
-            <span
-              className={`grid size-8 place-items-center rounded-full border type-body-em ${
-                active
-                  ? "border-stroke-active bg-surface-primary text-text-primary"
-                  : complete
-                    ? "border-stroke-success bg-feedback-positive text-core-white"
-                    : "border-stroke-secondary bg-surface-secondary text-text-tertiary"
-              }`}
-            >
-              {complete && !active ? "✓" : index + 1}
+          <li key={step.id} className="gap-detail-tight grid min-h-24 grid-cols-[auto_minmax(0,1fr)] items-start last:min-h-0">
+            <span className="grid h-full grid-rows-[auto_minmax(0,1fr)] justify-items-center">
+              <span
+                className={`grid size-8 place-items-center rounded-full border type-body-em ${
+                  active
+                    ? "border-stroke-active bg-surface-primary text-text-primary"
+                    : complete
+                      ? "border-stroke-success bg-feedback-positive text-core-white"
+                      : "border-stroke-secondary bg-surface-secondary text-text-tertiary"
+                }`}
+              >
+                {complete && !active ? "✓" : index + 1}
+              </span>
+              {!isLast && <span className="bg-stroke-secondary my-detail-tight w-px" aria-hidden />}
             </span>
             <span>
               <span className={`type-body-em block ${active ? "text-text-primary" : "text-text-secondary"}`}>{step.title}</span>
