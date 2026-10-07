@@ -4,27 +4,20 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] task/206-add-the-devices-own-node-address-to-the-addressbook-by-default
+## [Unreleased]
 
 ### Added
 
-- Address-book API entries include an `isLocalDevice` boolean.
-- The address book automatically adds a persistent local contact named after the dashboard device hostname when the local wallet becomes available.
-- The local contact shows a Local device indicator in the address book, contact details, and payment recipient selectors.
-- Wallet replacement updates the local contact's address while preserving its ID, notes, and workflow references, with old/new public destinations recorded in the audit log.
+- The address book automatically adds a persistent contact named after the device, marked Local device, with editable name/notes and protected address/deletion.
 
 ### Changed
 
-- Manually saved contacts may share the app-managed local contact's destination while retaining their own IDs and edit/delete controls.
-- The local contact allows name and notes edits and rejects manual address changes and deletion through the API.
-- The local contact's edit form visibly disables its protected address field and its menu omits Remove.
-- The address book reloads on node recovery, and new workflow payment blocks choose only ordinary contacts as their default recipient.
-- Local recipients awaiting wallet-replacement verification are unavailable for payment and display their verification status.
-- Payments selecting an address-book contact resolve its current destination on the backend.
+- User-created contacts remain independent and may share the local contact's address.
+- App-controlled wallet replacement verifies and updates the local contact, preserves its details and workflow references, and blocks payments through it until verification completes.
 
 ### Fixed
 
-- Local-contact verification after wallet replacement supports Minima core versions without `checkrestore`.
+- Address-book payments resolve the current saved destination, including after wallet replacement on older Minima versions.
 
 ## [0.42.2] 2026-10-06
 
