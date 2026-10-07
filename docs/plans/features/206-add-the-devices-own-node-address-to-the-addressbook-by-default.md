@@ -27,7 +27,7 @@ After reviewing step 1, the user clarified the initialization rule: **check whet
 | Wallet RPC | `wallet.service.ts:getReceiveAddress()` calls `getaddress`, parses it, and generates a QR image. `parseAddressResponse()` accepts either address representation. | Use a narrow public-address discovery helper with strict success/shape checks; no QR generation is needed for seeding. |
 | Startup | `backend/src/index.ts` validates APP_SECRET and imports `startup.ts`; `startup.ts` runs migrations, ensures a device UUID, and starts the Minima health poller. | Initialization belongs after migrations through the existing poller, rather than a new blocking startup dependency or setup-wizard requirement. |
 | Retry lifecycle | `minima-poll.service.ts` runs immediately and then every configured health interval (default 60 seconds), with overlap prevention. | Initialize a missing app contact when the node is running; isolate initialization failures from stall/resync monitoring. |
-| Address-book UI | `AddressBookPanel.tsx` provides table filtering/pagination, copy/view, editable contact fields, and confirmed removal. It loads once on mount or explicit error retry. | Show persistent local identity, protect the label/address, hide removal, and account for initialization after node recovery. |
+| Address-book UI | `AddressBookPanel.tsx` provides table filtering/pagination, copy/view, editable contact fields, and confirmed removal. It loads once on mount or explicit error retry. | Show persistent local identity, protect the address, allow name/notes edits, hide removal, and account for initialization after node recovery. |
 | Payment consumers | `SendPaymentModal.tsx` and workflow recipient selectors consume the same address-book API. Workflow execution resolves `recipientAddressBookId` at runtime. | Show local identity in selectors without changing recipient IDs or payment behavior. |
 | Automation defaults | `workflowHelpers.ts:defaultEditBlockConfig()` currently selects `addressBook[0]` for a new payment block in the editor. | Avoid implicitly selecting the newly seeded local contact; keep a blank recipient when it is the only entry. |
 | Existing tests | SQLite repository tests, address validation tests, wallet service/parser tests, health-poller tests, and frontend table/payment/automation tests are available. | Extend these around initialization, protection, aliases, retry, and restore behavior. |
@@ -41,7 +41,7 @@ README's Wallet section still documents labeled-account endpoints absent from th
 
 ## Proposed behavior
 
-The following uses the revised editable-name policy for a separate app-owned contact. Steps 1–4 implement check/create persistence, initialization, API protection, UI behavior, and wallet-replacement verification. Final live testing and signoff remain ahead.
+The following uses the revised editable-name policy for a separate app-owned contact. Steps 1–4 implement check/create persistence, initialization, API protection, UI behavior, and wallet-replacement verification. Contact-flow live testing passed; wallet-replacement acceptance and signoff remain open.
 
 - The app creates its own contact named after the dashboard device hostname, with a separate **Local device** indicator that remains visible after editing or clearing notes. User-created contacts retain their existing fields and edit/removal permissions.
 - New and existing installations receive the contact automatically once Minima can supply default addresses, whether or not anyone has opened Wallet.
@@ -58,7 +58,7 @@ The following uses the revised editable-name policy for a separate app-owned con
 
 - Add `is_local_device INTEGER NOT NULL DEFAULT 0` through `ensureColumn` in `database.ts`, plus a partial unique index for the true marker. Rebuild the legacy table transactionally to remove global address uniqueness, copy every field/ID, and add an exact-address unique index applying only to ordinary rows. Existing contacts start as ordinary recipients; migrations do not call RPC.
 - Add API booleans `isLocalDevice` and `isLocalDevicePending` to the backend/frontend `AddressBookEntry` types. Map the SQLite integer consistently in list and lookup results, keeping existing fields and the array response shape.
-- Use one immediate repository transaction: return the marked app contact unchanged if present; otherwise validate the supplied wallet pool, select deterministically, and insert a separate **This device** row with its own ID. Never look up ordinary rows for adoption, and never promote or demote any row during initialization. Keep database work synchronous and atomic.
+- Use one immediate repository transaction: return the marked app contact unchanged if present; otherwise validate the supplied wallet pool, select deterministically, and insert a separate row named after the dashboard device hostname with its own ID. Never look up ordinary rows for adoption, and never promote or demote any row during initialization. Keep database work synchronous and atomic.
 - Extend the existing address helper with canonical comparison based on validated Mx payload/hex bytes. Use it to validate parser pairs and deterministically order initial candidates without rewriting saved addresses.
 - Keep every existing ordinary Mx/0x alias row, its references, and its permissions intact; historical contact merging is separate work. Manual uniqueness lookups exclude the managed row so a user can create or edit their own copy of the same destination.
 
@@ -89,10 +89,7 @@ The following uses the revised editable-name policy for a separate app-owned con
 
 ## Implementation order and acceptance checks
 
-1. **Persistence for check-own-contact/create-if-missing, duplicate destinations, and live RPC shape.** Code committed and verified locally and on the dev Pi; authenticated browser CRUD checks pending. Verify separate creation, skipping an existing feature contact, alias handling, repeatable migration, stable IDs, one marker, and unchanged user metadata/permissions.
-2. **Add initialization, poller/list integration, and API guards.** Implemented and locally verified: 116 focused tests, full check (3,265 tests), backend/frontend builds, and Compose config passed. Covered creation without visiting Wallet, offline startup/retry, concurrent attempts, unchanged-poll idempotency, protected mutations, and continued health monitoring after an initialization failure.
-3. **Add UI identity/protection and update payment consumers.** Implemented and locally verified: 187 focused tests, full check (3,273 tests), backend/frontend builds, and Compose config passed. Covered notes edits/clears, persistent local identity with hidden Notes, read-only fields/no removal, recovery reload including stale responses, ordinary controls, duplicate destinations, and explicit local-recipient selection.
-4. **Implement agreed wallet-replacement behavior and update docs.** Implemented and locally verified with 207 backend/190 frontend focused tests, full check (3,304 tests), builds, and Compose config. Accepted on 2026-10-06: preserve the app contact ID/metadata and manual rows, update its address only after replacement verification, and intentionally let workflows follow the current wallet. Use an audit record rather than a backup contact; block the managed recipient while verification is pending. Manual Pi/Playwright testing, live restore/restart verification, and signoff remain the final milestone.
+Steps 1–4 are implemented: persistence/migration, initialization/API protection, frontend identity/recipient controls, and wallet-replacement handling. Automated verification and live Pi contact-flow checks passed; deployed-node compatibility and wallet-replacement acceptance remain open.
 
 ## Wallet-replacement implementation (step 4)
 
@@ -108,59 +105,9 @@ The following uses the revised editable-name policy for a separate app-owned con
 
 ## Tests
 
-### Step 1 implementation progress (2026-10-06)
+Automated coverage includes migration preservation, alias parsing, separate duplicate destinations, idempotent initialization, startup/retry, concurrency, API guards, editable names/notes, local identity/selectors, wallet-replacement revisions, audit rollback, and pending payment protection. The latest full check passed 3,308 tests; typechecks, coverage thresholds, audits, production builds, and Compose configuration passed.
 
-- Added the repeatable `is_local_device` migration, a partial unique index enforcing one true marker, and ordinary-contact-only address uniqueness. The transactional legacy-table migration preserves all contact fields and IDs, existing markers, and workflow references. Repository reads expose `isLocalDevice` as a boolean; backend/frontend contracts match.
-- Added validated Mx/hex byte comparison, including case, whitespace, odd hex nibbles, and preserved leading bytes. Saved address text is never rewritten.
-- Revised `ensureLocalAddressBookEntry()` to check only for the marked app contact and return it unchanged if present, regardless of the supplied pool. Otherwise it validates candidates, orders by canonical address then address text, and inserts a distinct **This device** row. Adoption and automatic marker replacement are removed. The result reports the entry and whether creation occurred.
-- Added a strict `scripts` parser accepting only explicit RPC success, an array, boolean flags, and matching validated hex/Mx pairs for default/simple entries. It projects only Mx destinations and rejects malformed candidate data. Added a source-shaped fixture through the real RPC/redaction/parser boundary; it is not a deployed-node recording.
-- Added repository and real-database route regressions for identical addresses/names, aliases, fully saved pools, skipped initialization, rollback, independent manual create/edit/delete, and retained manual duplicate validation. First reproduced 10 failures against the old adoption/global-uniqueness behavior, then made the revised tests pass. No runtime initializer or managed-contact guards are connected yet.
-- Local RPC verification at `127.0.0.1:9005` initially returned connection refused. Subsequent dev-Pi deployment of `39e5ccd3` with `DEV_MODE=true` confirmed the compiled parser accepts the deployed node's 64 default/simple receive addresses. Live migration, exact duplicate creation, skipped initialization, repeat migration, and backend restart checks passed; [Pi verification](../../qa/206-step-1-pi.md) records scope and cleanup.
-- Revised focused backend checks: **81 tests passed across 6 files** (repository, routes, migrations, comparison, wallet parser, RPC boundary). `npm run check` passed **3,238 tests** (backend 1,295; frontend 1,720; Update Agent 171; scripts 52), coverage thresholds, typechecks, and clean dependency audits. Backend/frontend production builds, Compose configuration, and diff checks passed. Existing frontend chunk-size and unset Compose image-variable warnings remain. Subsequent Pi verification passed the live foundation checks; Playwright MCP reached the login page, with authenticated CRUD still pending.
-
-### Step 2 implementation progress (2026-10-06)
-
-- Added `getLocalWalletAddresses()` using the existing five-second RPC transport and fixed `scripts` command, requiring transport and RPC success and returning only validated public receive destinations.
-- Added coalesced initialization that returns an existing app contact before discovery; only upstream discovery/parsing failures become a best-effort no-op. Local database errors propagate. Actual creation emits one `address-book.local.create` audit event; unchanged calls do not emit another event.
-- Connected initialization to running-node health polls, including the existing nonblocking startup poll and interval retry. Its separate error boundary preserves stall detection and auto-resync handling after initialization failure. No new scheduler/configuration was added.
-- Connected authenticated list requests to the same bounded attempt. Offline/malformed discovery still returns the saved array; database failures return a structured 500. Existing contacts make reads database-only.
-- Added stored-marker PATCH/DELETE guards: notes edits/clears and unchanged name/address values work, protected changes/removal return actionable structured 409 conflicts, and client marker fields are ignored. Matching manual contacts remain ordinary and independently editable/removable.
-- Verified 116 focused backend tests across seven files, including the real RPC/parser/database/audit path, concurrent list requests, a contact appearing during discovery, immediate startup/cadence retry, discovery timeout/failure recovery, database errors, manual copies, and protected API operations. `npm run check` passed 3,265 tests (backend 1,322; frontend 1,720; Update Agent 171; scripts 52), coverage thresholds, typechecks, and clean dependency audits. Backend/frontend production builds, Compose config, and diff checks passed; existing frontend chunk-size and unset Compose image warnings remain. No step 2 Pi deployment or authenticated browser test ran; the earlier Pi report covers step 1 only.
-
-### Step 3 implementation progress (2026-10-06)
-
-- Added the Local device indicator in the name cell and details, using the existing Pill. It remains visible after notes edits/clears and when Notes is hidden. Managed forms show explanatory copy and read-only name/address, focus Notes, and submit only notes; the managed menu omits Remove. Manual contacts with the same label/address keep ordinary controls.
-- Reused the page's existing `actionsBlocked` transition to reload an open table when Minima becomes available, without browser RPC or a new poller. Search/preferences remain intact; an older load cannot overwrite the latest recovery response.
-- Added local identity to send-payment and workflow options. Send-payment options now use contact IDs internally to distinguish duplicate destinations, resolving the selected contact to its unchanged saved address for payment. The shared select control is unchanged. New workflow payment blocks skip the managed contact when choosing an ordinary default, or leave the recipient blank; explicit selection of the local contact remains available.
-- Reproduced six failures against the previous UI, then passed 187 focused tests across four frontend files. `npm run check` passed 3,273 tests (backend 1,322; frontend 1,728; Update Agent 171; scripts 52), coverage thresholds, typechecks, and clean dependency audits. Backend/frontend production builds, Compose config, and diff checks passed; existing frontend chunk-size and unset Compose image warnings remain. No step 3 deployment or authenticated browser test ran; the Pi report covers step 1 only. Wallet replacement and reroll behavior were not added.
-
-### Step 4 implementation progress (2026-10-06)
-
-- Amended ADR 0030 and the plan before implementation to record the agreed current-wallet identity and intentional workflow-following behavior, preserving manual contacts and using audit history rather than backup recipients.
-- Reused SQLite settings for durable pending revisions, exposed `isLocalDevicePending`, and connected replacement dispatch to backup restore, seed import, console restore/reset, and seed-bearing archive/MySQL/MegaMMR commands. No schema migration or scheduler was added. In-flight guards, strict read-only restore-state checks, canonical membership comparison, and revision checks protect verification; ambiguous exceptions retain protection for still-old pools.
-- Verification preserves same-wallet address text, or updates only the managed address while retaining its ID/metadata. The update, flag clearing, and public old/new audit are atomic, including rollback on audit failure. Send-payment contact IDs resolve on the backend; automation rechecks after balance awaits. Pending destinations are hidden/disabled and an available-node table retries pending verification every 30 seconds.
-- Passed 207 focused backend tests across eight files and 190 focused frontend tests across four files. `npm run check` passed 3,304 tests (backend 1,350; frontend 1,731; Update Agent 171; scripts 52), typechecks, coverage thresholds, and clean dependency audits. Both production builds, Compose config, and diff checks passed; existing chunk-size/unset image-variable warnings remain. Updated README/changelog/security/task/session docs. Step 4 is committed locally and has not been deployed or manually signed off.
-
-### Completed-branch deployment (2026-10-07)
-
-Rebuilt and deployed `a7ddc75e` with `DEV_MODE=true` on the dev Pi. Both app services are healthy, report the expected revision, and retain the existing critical configuration. Automatic initialization created one wallet-owned managed contact and one creation audit from the empty address book. HTTPS health and the Playwright login page passed. A subsequent UI follow-up visibly disabled the managed name/address fields and deployed an uncommitted `a7ddc75e-dirty` source build; local Playwright fixtures confirmed protected/manual controls. The deployed Minima image rejects `checkrestore` with `Command not found`; pending wallet-replacement verification cannot complete with this RPC on this device. Resolve that compatibility issue before replacement acceptance/signoff. No wallet replacement, payments, or authenticated Pi browser checks ran. See [deployment evidence](../../qa/206-completed-branch-pi-deployment.md).
-
-### Editable-name amendment implementation (2026-10-07)
-
-Approved and implemented name/notes editing while retaining the protected address, marker, and deletion. New contacts default to `os.hostname()`, matching the dashboard hostname, only when inserted. Existing This device and user-selected names are preserved through hostname changes, initialization, and wallet replacement; no migration is required. The name field is enabled/focused, the address stays visibly disabled, and Local device identity/hidden Remove survive a rename. ADR 0030 records the revised policy.
-
-Reproduced four backend/two frontend failures before implementation. All 65 focused backend/190 frontend tests and full check (3,308 tests), typechecks, coverage thresholds, clean audits, both builds, and Compose passed. Local Playwright fixtures confirmed name/notes-only saves and managed/manual controls. Deployed the uncommitted modified source to the Pi as `v0.42.2-dev+a7ddc75e.rename.dirty`; services and HTTPS health passed, source checksums matched, and the existing This device name/ID remained unchanged. Authenticated Pi CRUD, wallet replacement, and signoff remain ahead; the separate missing-checkrestore compatibility issue remains open.
-
-The naming revision was subsequently committed as `90c38ead` and rebuilt on the Pi through its DEV_MODE installer. Both healthy app images report `v0.42.2-dev+90c38ead` with matching revision labels and installed Git HEAD. All saved fields of both existing contacts and critical configuration were preserved; SQLite integrity and HTTPS health passed. The final manual checks below and the missing-checkrestore compatibility issue remain open.
-
-The existing baseline and remaining acceptance checks below continue to apply. Wallet-replacement behavior is implemented and locally verified; final live verification and signoff remain open.
-
-- Database/repository: existing-install migration; repeated migrations; separate app-contact creation even with duplicate destinations; unique marker; existing user rows remain ordinary with unchanged metadata/IDs; skip an existing managed entry regardless of supplied pool changes.
-- Address-book service: empty/invalid/RPC-failure responses before creation; retry after node readiness; repeated calls do not add contacts; in-flight coalescing; an existing marker skips discovery; changing RPC ordering does not rotate the selected address.
-- Minima health poller: initialization runs on healthy, nonstalled status; unavailable states skip it; initialization failure does not suppress stall detection or resync.
-- Routes: offline list returns saved data; initialization failure does not become a whole-table failure; managed notes edits succeed; managed label/address changes and deletion fail; unchanged label/address values are compatible even with a manual copy; user contacts retain ordinary CRUD when sharing the managed destination; exact-address manual duplicates remain rejected; client identity fields cannot forge a managed entry.
-- Frontend: local identity in row/detail/selectors, persistent identity after notes edits, read-only label/address and no removal, recovery loading, ordinary actions, existing search/pagination, explicit payment selection, and no implicit local-recipient default.
-- Include a recorded `scripts` response through the real RPC/parsing boundary in `minima.rpc.test.ts`, alongside service tests, so response handling is exercised beyond a mocked RPC helper.
+Pi upgrade and clean app/wallet installations plus authenticated Playwright contact flows passed. The deployed Minima version lacks `checkrestore`, so wallet-replacement acceptance remains blocked. See the [QA summary](../../qa/206-completed-branch-pi-deployment.md) for current evidence and gaps.
 
 ## Docs
 
@@ -174,13 +121,7 @@ After implementation:
 
 ## Verification
 
-Baseline checks run during this planning session, against unchanged application code:
-
-- Backend: 6 focused test files, **71 tests passed** (address-book repository/routes, wallet service/parser, Minima health poller, address validation). The initial sandbox run could not bind Supertest's local socket; rerunning with socket access passed.
-- Frontend: 5 focused test files, **150 tests passed** (address-book panel/API, receive QR, send-payment modal, workflow helpers).
-- No full repository check, builds, browser QA, or live Minima/Pi verification was run for this documentation-only audit.
-
-After implementation, run the focused tests above, then:
+Commands for implementation changes:
 
 ```bash
 npm run check
@@ -210,7 +151,7 @@ Manual verification with a disposable database and test node:
 
 This is a small extension of the current address book, independent of #270 Rework Wallet Service V2. It does not add multi-wallet support, change the Receive QR rotation, create key material, merge historical alias contacts, or change installation topology.
 
-The managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The deployed Minima response is verified and backend initialization/protection plus identity UI are implemented; authenticated browser/Pi checks of the completed feature and manual signoff remain.
+The managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The deployed Minima response is verified and backend initialization/protection plus identity UI are implemented; wallet-replacement compatibility/acceptance and final signoff remain.
 
 ## Contact policy
 

@@ -12,7 +12,7 @@
 
 ## Current Focus
 
-- [ ] Final manual verification/signoff for the default local Minima wallet contact (OpenProject #206) — steps 1–4 implemented and locally verified; committed naming revision `90c38ead` rebuilt/deployed from source with DEV_MODE=true, healthy services and automatic wallet-owned contact creation confirmed; authenticated live Pi/Playwright contact CRUD, duplicate independence, persistence, and API protection passed; resolve deployed Minima's missing `checkrestore` RPC, then finish wallet/payment acceptance and disposable wallet-replacement checks; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-completed-branch-pi-deployment.md`, and ADR 0030.
+- [ ] #206 final signoff — fix deployed Minima compatibility (`checkrestore` unavailable), then verify wallet replacement and pending payments; see [plan](plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md) and [QA summary](qa/206-completed-branch-pi-deployment.md).
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
@@ -83,17 +83,7 @@
 
 ## Done
 
-- [x] #206 authenticated live contact-flow QA on the deployed Pi in visible WSL Chromium: managed name/notes edits persisted, address/deletion controls and API guards held, same-address ordinary contact add/edit/delete passed, and both original contacts were restored exactly. Wallet replacement/payments and final feature signoff remain open; see the deployment QA report.
-
-- [x] #206 editable managed-contact name: default new contacts to the dashboard hostname once, preserve existing/user-selected names, allow validated name/notes edits, and retain address/deletion/marker protections; 65 backend/190 frontend focused tests, full check (3,308 tests), builds/Compose, and local Playwright passed; deployed healthy dirty source build on the Pi. Naming revision committed as `90c38ead` and rebuilt/deployed from committed source on the Pi; authenticated feature signoff remains pending.
-
-- [x] #206 protected-contact UX follow-up: visibly disabled managed name/address fields with editable Notes, hidden managed Remove, and unchanged manual controls; 22 panel tests, full check (3,304 tests), builds/Compose, and local Playwright fixtures passed; deployed healthy dirty source build on the dev Pi. Committed locally; final authenticated feature signoff remains pending.
-
-- [x] #206 step 4 implementation: app-controlled wallet replacement refreshes only the managed address, preserves manual rows/metadata/workflow IDs, records atomic public-address audit, blocks pending recipients, and resolves current destinations at send time; 207 backend/190 frontend focused tests and full check (3,304 tests), both builds, and Compose passed. Deployment/manual signoff remains under the parent feature.
-
-- [x] #206 step 3 frontend identity and protection: Local device row/details/selector labels, notes-only managed form and no Remove, recovery reload, distinct contact selection for duplicate destinations, and ordinary-only workflow defaults; 187 focused/full check (3,273 tests), builds, and Compose verified. Live browser/Pi verification remains under the parent feature.
-
-- [x] #206 step 2 backend initialization and protection: shared read-only discovery, startup/poller/list retry, creation audit, notes-only managed-contact PATCH and protected DELETE; 116 focused/full check (3,265 tests), builds, and Compose verified. Live step 2 verification remains under the parent feature.
+- [x] #206 implementation and contact-flow verification — full checks/builds passed; Pi upgrade, clean app/wallet installation, default naming, protections, ordinary CRUD, and restart persistence verified. Wallet-replacement acceptance remains open; see the QA summary.
 
 - [x] Fixed npm audit advisories with patch-only lockfile updates for `proxy-addr`, `source-map-js`, and root `brace-expansion`; all four audits are clean, typechecks/builds and frontend/Update Agent coverage passed; existing backend and Windows script-test limitations are recorded in SESSION.
 
