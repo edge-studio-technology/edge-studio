@@ -52,14 +52,16 @@ describe("AltAddDeviceFlow", () => {
     expect(props.onClose).toHaveBeenCalled();
   });
 
-  it("selecting a protocol device moves to the configure step with a filled name", async () => {
+  it("selecting a protocol device starts the provisioning steps", async () => {
     renderFlow();
     await chooseRestApiSource();
 
-    expect(screen.getByRole("button", { name: "Add device" })).toBeInTheDocument();
+    expect(screen.getAllByText("Select device type").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByLabelText("Name")).toHaveValue("HTTP JSON Source");
-    // json-api template comes with a default url, so the form should already be valid.
-    expect(screen.getByRole("button", { name: "Add device" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
   });
 
   it("Back returns to the previous setup step", async () => {
@@ -90,6 +92,7 @@ describe("AltAddDeviceFlow", () => {
     createDataSource.mockResolvedValue({ item: created });
     const { props } = renderFlow();
     await chooseRestApiSource();
+    await advanceToReview();
 
     await userEvent.click(screen.getByRole("button", { name: "Add device" }));
 
@@ -108,6 +111,7 @@ describe("AltAddDeviceFlow", () => {
     createDataSource.mockRejectedValue(new Error("Network error"));
     const { props } = renderFlow();
     await chooseRestApiSource();
+    await advanceToReview();
 
     await userEvent.click(screen.getByRole("button", { name: "Add device" }));
 
@@ -121,4 +125,10 @@ async function chooseRestApiSource() {
   await userEvent.click(screen.getByRole("button", { name: /Protocols/ }));
   await userEvent.click(screen.getByRole("button", { name: /Inbound/ }));
   await userEvent.click(screen.getByRole("button", { name: /REST API/ }));
+}
+
+async function advanceToReview() {
+  await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+  await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+  await userEvent.click(screen.getByRole("button", { name: "Continue" }));
 }

@@ -7,7 +7,7 @@ import { buildDeviceConfigInput } from "../buildDeviceConfig";
 import { createDataSource } from "../dataSourcesApi";
 import type { DataSource, DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../dataSourceTypes";
 import { useDeviceFormFields } from "../useDeviceFormFields";
-import { AltDeviceForm, isAltDeviceFormValid } from "./AltDeviceForm";
+import { AltDeviceForm, altDeviceProvisioningSteps, isAltDeviceFormValid, isAltDeviceStepValid } from "./AltDeviceForm";
 import { inputTemplates, outputTemplates, resolveTemplateConfig, templateIcon } from "../DataSourceTemplates";
 
 type WizardStep = "root" | "boards" | "protocols" | "protocol-inbound" | "protocol-outbound" | "sensors" | "sensor-templates";
@@ -47,6 +47,7 @@ export function AltAddDeviceFlow({
   const { showToast } = useToast();
   const [step, setStep] = useState<WizardStep>("root");
   const [template, setTemplate] = useState<DataSourceTemplate | null>(null);
+  const [provisioningStepIndex, setProvisioningStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const { fields, reset, fillFromTemplate } = useDeviceFormFields();
 
@@ -54,6 +55,7 @@ export function AltAddDeviceFlow({
     if (!open) return;
     setStep("root");
     setTemplate(null);
+    setProvisioningStepIndex(0);
     reset();
     // Reset only when a fresh open is requested, not on every field change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,6 +67,7 @@ export function AltAddDeviceFlow({
     const resolved = { ...next, config: resolveTemplateConfig(next, capabilities) };
     fillFromTemplate(resolved);
     setTemplate(resolved);
+    setProvisioningStepIndex(0);
   }
 
   async function handleSubmit() {
@@ -91,6 +94,10 @@ export function AltAddDeviceFlow({
 
   function goBack() {
     if (template) {
+      if (provisioningStepIndex > 0) {
+        setProvisioningStepIndex((current) => current - 1);
+        return;
+      }
       setTemplate(null);
       return;
     }
@@ -98,11 +105,19 @@ export function AltAddDeviceFlow({
   }
 
   const options = stepOptions(step, setStep, selectTemplate);
+  const provisioningSteps = altDeviceProvisioningSteps();
+  const provisioningStep = provisioningSteps[provisioningStepIndex];
+  const isFinalProvisioningStep = provisioningStepIndex === provisioningSteps.length - 1;
+  const canContinue = provisioningStep ? isAltDeviceStepValid(fields, provisioningStep.id) : false;
 
-  if (template) {
+  function goNext() {
+    if (!isFinalProvisioningStep) setProvisioningStepIndex((current) => current + 1);
+  }
+
+  if (template && provisioningStep) {
     return (
       <Modal
-        title={<SetupDeviceBreadcrumb step={step} final="Add device" />}
+        title={<SetupDeviceBreadcrumb step={step} final={provisioningStep.title} />}
         closeDisabled={saving}
         onClose={onClose}
         width="wide"
@@ -117,16 +132,22 @@ export function AltAddDeviceFlow({
             >
               Back
             </Button>
-            <Button
-              disabled={saving || !isAltDeviceFormValid(fields)}
-              onClick={() => void handleSubmit()}
-            >
-              Add device
-            </Button>
+            {isFinalProvisioningStep ? (
+              <Button
+                disabled={saving || !isAltDeviceFormValid(fields)}
+                onClick={() => void handleSubmit()}
+              >
+                Add device
+              </Button>
+            ) : (
+              <Button disabled={saving || !canContinue} onClick={goNext}>
+                Continue
+              </Button>
+            )}
           </div>
         }
       >
-        <AltDeviceForm template={template} fields={fields} />
+        <AltDeviceForm template={template} fields={fields} currentStep={provisioningStep.id} />
       </Modal>
     );
   }
