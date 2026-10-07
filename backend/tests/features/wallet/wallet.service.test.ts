@@ -2,8 +2,12 @@ import assert from "node:assert/strict";
 import { afterAll, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
-const { runMinimaPathCommandMock } = vi.hoisted(() => ({
-  runMinimaPathCommandMock: vi.fn()
+const { runMinimaPathCommandMock, getContainerMock, inspectMock } = vi.hoisted(() => ({
+  runMinimaPathCommandMock: vi.fn(), getContainerMock: vi.fn(), inspectMock: vi.fn()
+}));
+
+vi.mock("../../../src/features/status/docker.service.js", () => ({
+  getComposeServiceContainer: getContainerMock, inspectContainer: inspectMock
 }));
 
 vi.mock("../../../src/features/minima/minima.rpc.js", () => ({
@@ -29,8 +33,87 @@ afterAll(() => {
 
 beforeEach(() => {
   runMinimaPathCommandMock.mockReset();
+  getContainerMock.mockReset();
+  inspectMock.mockReset();
   db.prepare("DELETE FROM address_book").run();
   db.prepare("DELETE FROM settings WHERE key='address_book_local_wallet_verification'").run();
+});
+
+describe("wallet replacement readiness", () => {
+  const started = Date.parse("2026-10-07T10:00:00Z");
+  const revision = `replacement@${started}`;
+  const missing = { status: false, error: "Command not found" };
+
+  beforeEach(() => {
+    runMinimaPathCommandMock.mockResolvedValueOnce({ ok: true, body: missing })
+      .mockResolvedValue({ ok: true, body: { status: true, response: { locked: false } } });
+    getContainerMock.mockResolvedValue({ Id: "minima" });
+    inspectMock.mockResolvedValue({ State: { Running: true, StartedAt: "2026-10-07T10:00:01Z" } });
+  });
+
+  it("verifies legacy nodes only after a later node start and successful unlocked status", async () => {
+    assert.equal(await walletService.isLocalWalletReadyForVerification(revision), true);
+    assert.deepEqual(runMinimaPathCommandMock.mock.calls.map(call => call[0]), ["checkrestore", "status"]);
+    assert.equal(getContainerMock.mock.calls[0][0], "minima");
+  });
+
+  it("uses supported restore flags without requiring a legacy restart timestamp", async () => {
+    runMinimaPathCommandMock.mockReset().mockResolvedValue({ ok: true, body: {
+      status: true, response: { restoring: false, shuttingdown: false, complete: false }
+    } });
+    assert.equal(await walletService.isLocalWalletReadyForVerification("old-revision"), true);
+    assert.equal(getContainerMock.mock.calls.length, 0);
+  });
+
+  it("propagates Docker discovery failure so initialization can retry without re-enabling a recipient", async () => {
+    getContainerMock.mockRejectedValue(new Error("Docker unavailable"));
+    await assert.rejects(walletService.isLocalWalletReadyForVerification(revision), /Docker unavailable/);
+  });
+
+  for (const state of [
+    { Running: true, StartedAt: "2026-10-07T09:59:59Z" },
+    { Running: true, StartedAt: "2026-10-07T10:00:00Z" },
+    { Running: true, StartedAt: "invalid" },
+    { Running: false, StartedAt: "2026-10-07T10:00:01Z" }
+  ]) {
+    it(`keeps legacy recipients blocked for node state ${JSON.stringify(state)}`, async () => {
+      inspectMock.mockResolvedValue({ State: state });
+      assert.equal(await walletService.isLocalWalletReadyForVerification(revision), false);
+      assert.equal(runMinimaPathCommandMock.mock.calls.length, 1);
+    });
+  }
+
+  it("does not infer readiness when the dispatch timestamp or container is missing", async () => {
+    assert.equal(await walletService.isLocalWalletReadyForVerification("old-revision"), false);
+    runMinimaPathCommandMock.mockResolvedValueOnce({ ok: true, body: missing });
+    getContainerMock.mockResolvedValue(null);
+    assert.equal(await walletService.isLocalWalletReadyForVerification(revision), false);
+  });
+
+  for (const result of [
+    { ok: false, body: missing },
+    { ok: true, body: { status: false, error: "Restoring" } },
+    { ok: true, body: { status: true, response: {} } },
+    { ok: true, body: { status: true, response: { restoring: true, shuttingdown: false, complete: false } } }
+  ]) {
+    it(`does not fall back for unrelated failure or malformed supported state ${JSON.stringify(result)}`, async () => {
+      runMinimaPathCommandMock.mockReset().mockResolvedValue(result);
+      assert.equal(await walletService.isLocalWalletReadyForVerification(revision), false);
+      assert.equal(getContainerMock.mock.calls.length, 0);
+    });
+  }
+
+  for (const result of [
+    { ok: false, body: { status: true, response: { locked: false } } },
+    { ok: true, body: { status: false, response: { locked: false } } },
+    { ok: true, body: { status: true, response: { locked: true } } },
+    { ok: true, body: { status: true, response: {} } }
+  ]) {
+    it(`rejects unsafe status after a legacy node restart ${JSON.stringify(result)}`, async () => {
+      runMinimaPathCommandMock.mockResolvedValueOnce(result);
+      assert.equal(await walletService.isLocalWalletReadyForVerification(revision), false);
+    });
+  }
 });
 
 describe("wallet import recipient protection", () => {

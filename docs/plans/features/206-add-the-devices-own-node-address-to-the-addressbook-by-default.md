@@ -1,6 +1,6 @@
 # Local Device Address Book Contact Plan
 
-**Status:** Steps 1–4 implemented and locally verified; completed branch deployed on the Pi on 2026-10-07 with healthy services and automatic contact creation; deployed Minima lacks `checkrestore`, requiring a compatibility fix before wallet-replacement acceptance and final signoff
+**Status:** Steps 1–4 implemented; automated verification, Pi installation/contact flows, and live same/different-wallet backup restores passed; awaiting commit and user signoff.
 **Created:** 2026-10-06
 **Branch:** `task/206-add-the-devices-own-node-address-to-the-addressbook-by-default`
 **Audit baseline:** `e3c52cf8` (clean working tree before this planning session)
@@ -41,7 +41,7 @@ README's Wallet section still documents labeled-account endpoints absent from th
 
 ## Proposed behavior
 
-The following uses the revised editable-name policy for a separate app-owned contact. Steps 1–4 implement check/create persistence, initialization, API protection, UI behavior, and wallet-replacement verification. Contact-flow live testing passed; wallet-replacement acceptance and signoff remain open.
+The following uses the revised editable-name policy for a separate app-owned contact. Steps 1–4 implement check/create persistence, initialization, API protection, UI behavior, and wallet-replacement verification. Contact-flow live testing passed; live backup wallet-replacement checks passed; user signoff remains open.
 
 - The app creates its own contact named after the dashboard device hostname, with a separate **Local device** indicator that remains visible after editing or clearing notes. User-created contacts retain their existing fields and edit/removal permissions.
 - New and existing installations receive the contact automatically once Minima can supply default addresses, whether or not anyone has opened Wallet.
@@ -89,7 +89,7 @@ The following uses the revised editable-name policy for a separate app-owned con
 
 ## Implementation order and acceptance checks
 
-Steps 1–4 are implemented: persistence/migration, initialization/API protection, frontend identity/recipient controls, and wallet-replacement handling. Automated verification and live Pi contact-flow checks passed; deployed-node compatibility and wallet-replacement acceptance remain open.
+Steps 1–4 are implemented: persistence/migration, initialization/API protection, frontend identity/recipient controls, and wallet-replacement handling. Automated verification and live Pi contact-flow checks passed; legacy-node compatibility and live backup wallet replacement passed; user signoff remains open.
 
 ## Wallet-replacement implementation (step 4)
 
@@ -105,9 +105,9 @@ Steps 1–4 are implemented: persistence/migration, initialization/API protectio
 
 ## Tests
 
-Automated coverage includes migration preservation, alias parsing, separate duplicate destinations, idempotent initialization, startup/retry, concurrency, API guards, editable names/notes, local identity/selectors, wallet-replacement revisions, audit rollback, and pending payment protection. The latest full check passed 3,308 tests; typechecks, coverage thresholds, audits, production builds, and Compose configuration passed.
+Automated coverage includes migration preservation, alias parsing, separate duplicate destinations, idempotent initialization, startup/retry, concurrency, API guards, editable names/notes, local identity/selectors, wallet-replacement revisions, audit rollback, and pending payment protection. The latest full check passed 3,326 tests; typechecks, coverage thresholds, audits, production builds, and Compose configuration passed.
 
-Pi upgrade and clean app/wallet installations plus authenticated Playwright contact flows passed. The deployed Minima version lacks `checkrestore`, so wallet-replacement acceptance remains blocked. See the [QA summary](../../qa/206-completed-branch-pi-deployment.md) for current evidence and gaps.
+Pi upgrade and clean app/wallet installations plus authenticated Playwright contact flows passed. The deployed core lacks `checkrestore`; its verified fallback requires a running node started after the persisted dispatch time, successful unlocked status, and valid wallet addresses. See the [QA summary](../../qa/206-completed-branch-pi-deployment.md) for current evidence and gaps.
 
 ## Docs
 
@@ -145,13 +145,13 @@ Manual verification with a disposable database and test node:
 9. During pending verification, submit a contact-ID payment request with amount `0` (no valid send): expect `409`. Repeat with a manual copy: expect ordinary amount validation, not local-contact blocking. Do not submit a valid funded payment solely for this check.
 10. Keep a send dialog/workflow editor open across replacement; confirm pending options and that the contact ID resolves to the current destination. Automated tests cover wallet-balance await races without real payments.
 11. Start replacement with the node unavailable or interrupt its RPC response: confirm the old destination stays unavailable, pending survives backend restart, and retry verifies a different destination or a subsequently completed replacement. Confirm normal restart/outage alone does not invalidate a ready contact.
-12. Verify the deployed node supports the strict `checkrestore` flags and that ready verification clears the UI status. Record the deployed commit/build, screenshots, test cleanup, any gaps, and the user's signoff. External wallet changes outside Edge Studio are outside this detection scope.
+12. Verify supported `checkrestore` flags or the legacy post-dispatch restart/status fallback, and that ready verification clears the UI status. Record the deployed commit/build, screenshots, test cleanup, any gaps, and the user's signoff. External wallet changes outside Edge Studio are outside this detection scope.
 
 ## Scope and remaining uncertainty
 
 This is a small extension of the current address book, independent of #270 Rework Wallet Service V2. It does not add multi-wallet support, change the Receive QR rotation, create key material, merge historical alias contacts, or change installation topology.
 
-The managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The deployed Minima response is verified and backend initialization/protection plus identity UI are implemented; wallet-replacement compatibility/acceptance and final signoff remain.
+The managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The deployed Minima response is verified and backend initialization/protection plus identity UI are implemented; live backup wallet replacement passed; final signoff remains.
 
 ## Contact policy
 

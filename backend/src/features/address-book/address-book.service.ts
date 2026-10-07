@@ -20,7 +20,7 @@ async function createLocalContact(): Promise<AddressBookEntry | null> {
   const revision = getLocalWalletVerificationRevision();
   let addresses: string[];
   try {
-    if (revision && !await isLocalWalletReadyForVerification()) return null;
+    if (revision && !await isLocalWalletReadyForVerification(revision)) return null;
     addresses = await getLocalWalletAddresses();
   } catch {
     return null;

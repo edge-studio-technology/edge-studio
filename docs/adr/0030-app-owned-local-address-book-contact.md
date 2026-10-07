@@ -74,6 +74,11 @@ address under the local identity is misleading. An address alone is not a wallet
   may resolve uncertainty. Failed validation before dispatch does not mark pending.
 - Readiness uses the fixed [checkrestore command](https://github.com/minima-global/Minima/blob/master/src/org/minima/system/commands/mds/checkrestore.java),
   requiring explicit false restoring/shutting-down/completed-shutdown flags before discovering addresses.
+  The deployed Minima core 1.1.2.6 omits that command and allows ordinary RPC during restore.
+  Only its exact unsupported-command response enables the fallback: persist dispatch time with
+  the pending revision, require a running Docker container started after that time, then require
+  successful unlocked `status` and a validated address pool. Preserve dispatch time when the RPC
+  returns; its completion can arrive after the new node started. Unknown readiness stays blocked.
 - Audit actual changes atomically with the address update, using only contact ID and old/new public addresses. Do not automatically
   create a backup contact. Existing manually saved copies remain user-owned.
 - Manual send requests selecting a saved contact carry its ID, resolved server-side at dispatch;
@@ -90,6 +95,9 @@ address under the local identity is misleading. An address alone is not a wallet
   depend on user additions and would need another policy if all wallet addresses were saved.
 - **Remove all address uniqueness.** Unnecessary; coexistence only requires exempting the one
   app-managed row, while ordinary-contact behavior can remain unchanged.
+- **Treat a successful status call as restore completion.** Rejected because the deployed core
+  can answer during restore; its restore commands shut down the node before taking effect.
+  The fallback therefore needs an observed subsequent start (on the same host clock).
 - **Automatically rotate on every address-pool change.** Rejected. Ordinary initialization remains
   check/create only; the replacement policy below is triggered by app-controlled wallet mutations.
 

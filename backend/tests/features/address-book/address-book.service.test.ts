@@ -6,6 +6,10 @@ const HEX = "0xDE111E13DBA5054DFF657969BF3A76BFB6CE196F95F6EBEFE1B70FED0115EF1A"
 const MX = "MxG086U24F17MT50Y6VUPBPD6VJKTYVMR71WRSYURYUVZDN1VMG25FF39M0458A";
 const scripts = { status: true, response: [{ address: HEX, miniaddress: MX, default: true, simple: true }] };
 const fetchMock = vi.fn();
+const { getContainerMock, inspectMock } = vi.hoisted(() => ({ getContainerMock: vi.fn(), inspectMock: vi.fn() }));
+vi.mock("../../../src/features/status/docker.service.js", () => ({
+  getComposeServiceContainer: getContainerMock, inspectContainer: inspectMock
+}));
 let teardown: () => void;
 let db: Awaited<ReturnType<typeof setupTestDatabase>>["db"];
 let repo: typeof import("../../../src/features/address-book/address-book.repository.js");
@@ -33,10 +37,31 @@ beforeEach(() => {
   db.prepare("DELETE FROM audit_events").run();
   db.prepare("DELETE FROM settings WHERE key='address_book_local_wallet_verification'").run();
   fetchMock.mockReset();
+  getContainerMock.mockReset();
+  inspectMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
 
 describe("wallet replacement verification", () => {
+  it("keeps a legacy node blocked until restart, then replaces only the managed destination", async () => {
+    const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
+    const manual = repo.insertAddressBookEntry({ label: "Mine", address: local.address, notes: "Keep" });
+    await replacement.runWalletReplacement(async () => undefined);
+    getContainerMock.mockResolvedValue({ Id: "minima" });
+    inspectMock.mockResolvedValue({ State: { Running: true, StartedAt: new Date(Date.now() - 1000).toISOString() } });
+    fetchMock.mockImplementation(async (url: string) => response(url.endsWith("/checkrestore")
+      ? { status: false, error: "Command not found" }
+      : url.endsWith("/status") ? { status: true, response: { locked: false } } : scripts));
+    assert.equal(await initialize(), null);
+    assert.equal(repo.getLocalAddressBookEntry()!.isLocalDevicePending, true);
+    assert.equal(fetchMock.mock.calls.length, 1);
+    inspectMock.mockResolvedValue({ State: { Running: true, StartedAt: new Date(Date.now() + 1000).toISOString() } });
+    const updated = await initialize();
+    assert.deepEqual(updated, { ...local, address: MX });
+    assert.deepEqual(repo.getAddressBookEntryById(manual.id), manual);
+    assert.equal((db.prepare("SELECT count(*) AS n FROM audit_events WHERE action='address-book.local.replace'").get() as { n: number }).n, 1);
+  });
+
   function discover() {
     fetchMock.mockImplementation(async (url: string) => response(url.endsWith("/checkrestore") ? ready : scripts));
   }

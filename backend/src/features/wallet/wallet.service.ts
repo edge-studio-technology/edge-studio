@@ -3,6 +3,7 @@ import { runWalletReplacement } from "../address-book/wallet-replacement.service
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { db } from "../../db/database.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
+import { getComposeServiceContainer, inspectContainer } from "../status/docker.service.js";
 import { parseAddressResponse, parseBalanceResponse, parseImportResponse, parseLocalWalletAddressesResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
 import type {
   ImportWalletResult,
@@ -25,9 +26,20 @@ export async function getLocalWalletAddresses(): Promise<string[]> {
   return parseLocalWalletAddressesResponse(result.body);
 }
 
-export async function isLocalWalletReadyForVerification(): Promise<boolean> {
+export async function isLocalWalletReadyForVerification(revision: string): Promise<boolean> {
   const result = await runMinimaPathCommand("checkrestore");
-  const body = result.body as { status?: unknown; response?: { restoring?: unknown; shuttingdown?: unknown; complete?: unknown } } | null;
+  const body = result.body as { status?: unknown; error?: unknown; response?: { restoring?: unknown; shuttingdown?: unknown; complete?: unknown } } | null;
+  if (result.ok && body?.status === false && body.error === "Command not found") {
+    const dispatchedAt = Number(revision.split("@")[1]);
+    if (!Number.isFinite(dispatchedAt) || dispatchedAt <= 0) return false;
+    const container = await getComposeServiceContainer("minima");
+    if (!container) return false;
+    const { State } = await inspectContainer(container.Id);
+    if (!State.Running || !(Date.parse(State.StartedAt) > dispatchedAt)) return false;
+    const status = await runMinimaPathCommand("status");
+    const statusBody = status.body as { status?: unknown; response?: { locked?: unknown } } | null;
+    return status.ok && statusBody?.status === true && statusBody.response?.locked === false;
+  }
   return result.ok && body?.status === true && body.response?.restoring === false
     && body.response.shuttingdown === false && body.response.complete === false;
 }

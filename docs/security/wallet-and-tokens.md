@@ -41,7 +41,9 @@ identity. Existing auth/admin gates remain; manual copies retain independent CRU
 App-controlled restore/import/reset operations durably mark local verification pending before
 mutation dispatch; ordinary outages/restarts do not. Verification uses the fixed read-only
 `checkrestore` and `scripts` commands, requiring explicit readiness and valid default/simple
-receive addresses. A revision guard discards stale discovery and verification waits for active
+receive addresses. If `checkrestore` is unsupported, verification requires a running Minima
+container started after the persisted dispatch time and successful unlocked `status`; an
+unavailable or malformed readiness signal keeps the contact pending. A revision guard discards stale discovery and verification waits for active
 replacement requests. Durable uncertainty starts before dispatch and survives a backend restart
 mid-request; it becomes a normal verification attempt only after the RPC returns. Pending local recipients fail payment resolution; workflow resolution is
 rechecked after balance awaits, and manual payment requests selecting a contact submit its ID.
@@ -52,7 +54,7 @@ The address update, pending-state clearing, and `address-book.local.replace` aud
 public destinations are atomic. No backup contact or key material is stored. Ambiguous RPC failures
 keep a still-old destination blocked; a different verified destination or a subsequent completed
 replacement resolves it. Direct changes outside Edge Studio are outside detection scope. Reroll
-is out of scope; manual wallet-replacement verification/signoff remains pending.
+is out of scope. Live backup wallet-replacement verification passed; user signoff remains.
 See [ADR 0030](../adr/0030-app-owned-local-address-book-contact.md).
 
 ## Seed Phrase Import (admin)

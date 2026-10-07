@@ -4,8 +4,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
-- Implemented #206's separate app-owned local contact, automatic initialization, editable name/notes, protected address/deletion, and pending wallet-replacement handling; preserved user contacts and references. Full check passed 3,308 tests, with builds, typechecks, coverage, dependency audits, and Compose verification.
-- Verified #206 on the dev Pi through upgrade and clean app/wallet source installations plus authenticated Playwright contact flows. Default naming, duplicate-safe creation, managed protections, ordinary CRUD, and restart persistence passed. Pi runs `v0.42.2-dev+eb237911`; test contacts and approved temporary backups/source files were removed. See [QA summary](qa/206-completed-branch-pi-deployment.md) for results and the unresolved wallet-replacement compatibility issue.
+- Implemented #206's separate app-owned local contact, automatic initialization, editable name/notes, protected address/deletion, and pending wallet-replacement handling with a legacy-Minima restart/status fallback; preserved user contacts and references. Full check passed 3,326 tests, with builds, typechecks, coverage, dependency audits, and Compose verification.
+- Verified #206 on the dev Pi through upgrade and clean app/wallet source installations plus authenticated Playwright contact flows. Default naming, duplicate-safe creation, managed protections, ordinary CRUD, restart persistence, and headless same/different-wallet backup restores passed. Pending protection survived backend restart; metadata/manual contacts and ownership/audits were verified. Original wallet/name/notes restored and test fixtures removed. Pi runs the healthy uncommitted `ef54f4ec.readiness.dirty` build; see [QA summary](qa/206-completed-branch-pi-deployment.md).
 
 - Applied non-breaking npm audit fixes across all four lockfiles: `proxy-addr` 2.0.8, `source-map-js` 1.2.2, and root `brace-expansion` 5.0.12; no application code or package dependency ranges changed. Root/backend/frontend/Update Agent audits report zero vulnerabilities. Repository typechecks and all three production builds passed; frontend coverage (1711 tests) and Update Agent coverage (163 tests) passed. `npm run check` still stopped on the previously recorded Minima restore fallback failure (1264 backend tests passed, 1 failed). Script verification had 19 passes, 26 failures, and 3 skips, with missing sh/openssl, Windows Bash path handling, and CRLF-sensitive assertions; no script fixes or Docker builds were included.
 
@@ -88,7 +88,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- #206: fix compatibility with the deployed Minima version (missing `checkrestore`), finish wallet-replacement/pending-payment acceptance, and obtain signoff; see the plan and QA summary.
+- #206: commit the verified compatibility fix, obtain user signoff, and prepare the PR to dev.
 - Deploy the longer Integritas timeout and verify a slow PDF verification on the Pi; change any explicit `INTEGRITAS_REQUEST_TIMEOUT_MS=15000` override to `300000` and recreate the backend/frontend containers. Rerun Docker builds with the engine available and investigate the Minima backup-restore fallback test failure separately.
 
 - Comment on #694 and move it to Ready for Deployment (awaiting go-ahead).
@@ -116,4 +116,4 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - #275: frontend branch coverage is 89.23% against an 89% floor.
 - #275: below 768 wide the tour footer wraps Finish onto its own row; mobile is out of scope (768 floor).
 - Version identity: only `COMPOSE_PROFILES` is kept out of the installer's compose environment. Other old `.env` values (e.g. a hand-added `UPDATE_DRY_RUN`) can still leak into one install run; deferred until it comes up.
-- Dev Pi: `devpi5@192.168.0.108`, SSH key `~/.ssh/id_ed25519_devpi5`, DEV_MODE build `v0.42.2-dev+eb237911`. Fresh app/wallet installed; Integritas connected; hardware options disabled. Historical #206 backups were deleted with user approval.
+- Dev Pi: `devpi5@192.168.0.108`, SSH key `~/.ssh/id_ed25519_devpi5`, DEV_MODE test build `v0.42.2-dev+ef54f4ec.readiness.dirty` (uncommitted fix). Fresh app/wallet installed; Integritas connected; hardware options disabled. Historical #206 backups were deleted with user approval.

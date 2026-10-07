@@ -13,8 +13,8 @@ export function getLocalWalletVerificationRevision(): string {
   return getSetting(verificationSetting);
 }
 
-export function markLocalWalletVerificationPending(uncertain = false): string {
-  const revision = `${uncertain ? "uncertain:" : ""}${crypto.randomUUID()}`;
+export function markLocalWalletVerificationPending(uncertain = false, dispatchedAt = Date.now()): string {
+  const revision = `${uncertain ? "uncertain:" : ""}${crypto.randomUUID()}@${dispatchedAt}`;
   saveSetting(verificationSetting, revision);
   return revision;
 }

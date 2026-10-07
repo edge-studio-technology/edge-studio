@@ -22,6 +22,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Local recipients awaiting wallet-replacement verification are unavailable for payment and display their verification status.
 - Payments selecting an address-book contact resolve its current destination on the backend.
 
+### Fixed
+
+- Local-contact verification after wallet replacement supports Minima core versions without `checkrestore`.
+
 ## [0.42.2] 2026-10-06
 
 ### Added

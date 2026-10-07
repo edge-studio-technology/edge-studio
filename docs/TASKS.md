@@ -12,7 +12,7 @@
 
 ## Current Focus
 
-- [ ] #206 final signoff — fix deployed Minima compatibility (`checkrestore` unavailable), then verify wallet replacement and pending payments; see [plan](plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md) and [QA summary](qa/206-completed-branch-pi-deployment.md).
+- [ ] #206 final signoff/PR — legacy-Minima compatibility and live backup wallet replacement verified; commit the fix and obtain signoff; see [plan](plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md) and [QA summary](qa/206-completed-branch-pi-deployment.md).
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
@@ -83,7 +83,7 @@
 
 ## Done
 
-- [x] #206 implementation and contact-flow verification — full checks/builds passed; Pi upgrade, clean app/wallet installation, default naming, protections, ordinary CRUD, and restart persistence verified. Wallet-replacement acceptance remains open; see the QA summary.
+- [x] #206 implementation and contact-flow verification — full checks/builds passed; Pi upgrade, clean app/wallet installation, default naming, protections, ordinary CRUD, restart persistence, and same/different-wallet backup restores with pending-payment protection verified; see the QA summary.
 
 - [x] Fixed npm audit advisories with patch-only lockfile updates for `proxy-addr`, `source-map-js`, and root `brace-expansion`; all four audits are clean, typechecks/builds and frontend/Update Agent coverage passed; existing backend and Windows script-test limitations are recorded in SESSION.
 
