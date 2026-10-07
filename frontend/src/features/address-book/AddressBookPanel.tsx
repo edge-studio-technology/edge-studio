@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Eye, Inbox, Plus, UserPlus } from "lucide-react";
 import {
   DataTable,
@@ -36,6 +36,7 @@ import { Button } from "../../components/ui/Button";
 import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { InputField } from "../../components/ui/InputField";
 import { Modal } from "../../components/ui/Modal";
+import { Pill } from "../../components/ui/Pill";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { useToast } from "../../components/ToastProvider";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
@@ -85,6 +86,8 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
   const [editEntry, setEditEntry] = useState<AddressBookEntry | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AddressBookEntry | null>(null);
   const [deletingEntry, setDeletingEntry] = useState<AddressBookEntry | null>(null);
+  const previousActionsBlocked = useRef<boolean | null>(null);
+  const loadRequest = useRef(0);
   const { visibility, columnOrder, filters, setVisibility, setColumnOrder, setFilters } = useTableColumnVisibility(
     "address-book",
     ADDRESS_BOOK_COLUMNS,
@@ -94,17 +97,34 @@ export function AddressBookPanel({ actionsBlocked }: { actionsBlocked: boolean }
   );
 
   const loadEntries = useCallback(() => {
+    const request = ++loadRequest.current;
     setLoading(true);
     setError(null);
     return listAddressBookEntries()
-      .then(setEntries)
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load address book."))
-      .finally(() => setLoading(false));
+      .then((next) => {
+        if (request === loadRequest.current) setEntries(next);
+      })
+      .catch((err) => {
+        if (request === loadRequest.current) {
+          setError(err instanceof Error ? err.message : "Failed to load address book.");
+        }
+      })
+      .finally(() => {
+        if (request === loadRequest.current) setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
-    void loadEntries();
-  }, [loadEntries]);
+    const previous = previousActionsBlocked.current;
+    previousActionsBlocked.current = actionsBlocked;
+    if (previous === null || (previous && !actionsBlocked)) void loadEntries();
+  }, [actionsBlocked, loadEntries]);
+
+  useEffect(() => {
+    if (actionsBlocked || !entries.some((entry) => entry.isLocalDevicePending)) return;
+    const timer = window.setTimeout(() => void loadEntries(), 30_000);
+    return () => window.clearTimeout(timer);
+  }, [actionsBlocked, entries, loadEntries]);
 
   function upsertEntry(next: AddressBookEntry) {
     setEntries((prev) => sortByLabel([...prev.filter((e) => e.id !== next.id), next]));
@@ -344,14 +364,20 @@ function AddressBookCell({
   if (columnId === "name") {
     return (
       <TableCell className="min-w-0">
-        <CopyableTruncatedText value={entry.label} emphasis />
+        <div className="gap-detail-next flex min-w-0 flex-wrap items-center">
+          <CopyableTruncatedText value={entry.label} emphasis />
+          {entry.isLocalDevice ? <Pill>Local device</Pill> : null}
+          {entry.isLocalDevicePending ? <Pill tone="warn">Verifying wallet</Pill> : null}
+        </div>
       </TableCell>
     );
   }
   if (columnId === "address") {
     return (
       <TableCell className="min-w-0">
-        <TruncatedHash value={entry.address} />
+        {entry.isLocalDevicePending
+          ? <span className="text-text-secondary">Awaiting wallet verification</span>
+          : <TruncatedHash value={entry.address} />}
       </TableCell>
     );
   }
@@ -382,7 +408,7 @@ function AddressBookCell({
             aria-label={`More actions for ${entry.label}`}
             items={[
               { label: "Edit", onClick: onEdit },
-              { label: "Remove", danger: true, onClick: onDelete },
+              ...(!entry.isLocalDevice ? [{ label: "Remove", danger: true, onClick: onDelete }] : []),
             ]}
           />
         </RowActions>
@@ -396,11 +422,14 @@ function ContactDetailModal({ entry, onClose }: { entry: AddressBookEntry; onClo
   return (
     <Modal title={entry.label} description="Saved recipient details." onClose={onClose}>
       <div className="gap-detail-close grid">
+        {entry.isLocalDevice ? <Pill>Local device</Pill> : null}
         <section className="gap-detail-next flex flex-col" aria-labelledby="contact-address-label">
           <p className="type-meta text-text-secondary m-0" id="contact-address-label">
             Address
           </p>
-          <CopyableCode value={entry.address} />
+          {entry.isLocalDevicePending
+            ? <p className="type-body text-text-secondary m-0">Awaiting wallet verification. This contact is unavailable for payments.</p>
+            : <CopyableCode value={entry.address} />}
         </section>
 
         {entry.notes ? (
@@ -454,7 +483,9 @@ function EditContactForm({
     setFormError(null);
     setSubmitting(true);
     try {
-      await onSave({ label: trimLabel, address: trimAddress, notes: notes.trim() || null });
+      await onSave(entry.isLocalDevice
+        ? { label: trimLabel, notes: notes.trim() || null }
+        : { label: trimLabel, address: trimAddress, notes: notes.trim() || null });
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Could not update contact.");
       setSubmitting(false);
@@ -479,6 +510,11 @@ function EditContactForm({
       }
     >
       <form id="edit-contact-form" onSubmit={handleSubmit} className="gap-detail-close grid">
+        {entry.isLocalDevice ? (
+          <p className="type-body text-text-secondary m-0">
+            The app manages this contact's address. You can edit its name and notes.
+          </p>
+        ) : null}
         <div className="gap-detail-close grid sm:grid-cols-2">
           <InputField
             label="Label"
@@ -492,12 +528,13 @@ function EditContactForm({
           <InputField
             label="Address"
             description="The Minima address for the contact"
-            value={address}
+            value={entry.isLocalDevicePending ? "Awaiting wallet verification" : address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Mx… or 0x…"
             autoComplete="off"
             spellCheck={false}
-            disabled={submitting}
+            readOnly={entry.isLocalDevice}
+            disabled={submitting || entry.isLocalDevice}
           />
         </div>
         <InputField

@@ -1,3 +1,4 @@
+import { canonicalMinimaAddress } from "../../shared/minima-address.js";
 import type {
   ImportWalletResult,
   PaymentStatus,
@@ -74,6 +75,32 @@ export function parseAddressResponse(body: unknown): Omit<ReceiveAddress, "qrDat
   if (!miniAddress && !address) throw new Error("Minima did not return an address");
   const publicKey = typeof response?.publickey === "string" ? response.publickey : undefined;
   return { miniAddress: miniAddress || address, address: address || miniAddress, publicKey };
+}
+
+export function parseLocalWalletAddressesResponse(body: unknown): string[] {
+  const record = asRecord(body);
+  if (record?.status !== true || !Array.isArray(record.response)) {
+    throw new Error("Minima did not return a successful scripts response");
+  }
+
+  const addresses: string[] = [];
+  for (const raw of record.response) {
+    const item = asRecord(raw);
+    if (!item || typeof item.default !== "boolean" || typeof item.simple !== "boolean") {
+      throw new Error("Minima returned malformed script flags");
+    }
+    if (!item.default || !item.simple) continue;
+
+    const address = typeof item.address === "string" ? item.address.trim() : "";
+    const miniAddress = typeof item.miniaddress === "string" ? item.miniaddress.trim() : "";
+    const canonical = canonicalMinimaAddress(address);
+    if (!canonical || !/^0x/i.test(address) || !/^mx/i.test(miniAddress) ||
+      canonicalMinimaAddress(miniAddress) !== canonical) {
+      throw new Error("Minima returned invalid local wallet address data");
+    }
+    addresses.push(miniAddress);
+  }
+  return addresses;
 }
 
 export function parseSendResponse(body: unknown): SendPaymentResult {

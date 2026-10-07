@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- The address book automatically adds a persistent contact named after the device, marked Local device, with editable name/notes and protected address/deletion.
+
+### Changed
+
+- User-created contacts remain independent and may share the local contact's address.
+- App-controlled wallet replacement verifies and updates the local contact, preserves its details and workflow references, and blocks payments through it until verification completes.
+
+### Fixed
+
+- Address-book payments resolve the current saved destination, including after wallet replacement on older Minima versions.
+
 ## [0.42.2] 2026-10-06
 
 ### Added

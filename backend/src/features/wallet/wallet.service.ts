@@ -1,8 +1,10 @@
 import QRCode from "qrcode";
+import { runWalletReplacement } from "../address-book/wallet-replacement.service.js";
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { db } from "../../db/database.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
-import { parseAddressResponse, parseBalanceResponse, parseImportResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
+import { getComposeServiceContainer, inspectContainer } from "../status/docker.service.js";
+import { parseAddressResponse, parseBalanceResponse, parseImportResponse, parseLocalWalletAddressesResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
 import type {
   ImportWalletResult,
   PaymentStatus,
@@ -16,6 +18,30 @@ import type {
 export async function getWalletStatus(): Promise<WalletStatus> {
   const result = await runMinimaPathCommand("balance");
   return parseBalanceResponse(result.body);
+}
+
+export async function getLocalWalletAddresses(): Promise<string[]> {
+  const result = await runMinimaPathCommand("scripts");
+  if (!result.ok) throw new Error(`Minima RPC error: HTTP ${result.status}`);
+  return parseLocalWalletAddressesResponse(result.body);
+}
+
+export async function isLocalWalletReadyForVerification(revision: string): Promise<boolean> {
+  const result = await runMinimaPathCommand("checkrestore");
+  const body = result.body as { status?: unknown; error?: unknown; response?: { restoring?: unknown; shuttingdown?: unknown; complete?: unknown } } | null;
+  if (result.ok && body?.status === false && body.error === "Command not found") {
+    const dispatchedAt = Number(revision.split("@")[1]);
+    if (!Number.isFinite(dispatchedAt) || dispatchedAt <= 0) return false;
+    const container = await getComposeServiceContainer("minima");
+    if (!container) return false;
+    const { State } = await inspectContainer(container.Id);
+    if (!State.Running || !(Date.parse(State.StartedAt) > dispatchedAt)) return false;
+    const status = await runMinimaPathCommand("status");
+    const statusBody = status.body as { status?: unknown; response?: { locked?: unknown } } | null;
+    return status.ok && statusBody?.status === true && statusBody.response?.locked === false;
+  }
+  return result.ok && body?.status === true && body.response?.restoring === false
+    && body.response.shuttingdown === false && body.response.complete === false;
 }
 
 // Returns one of the 64 pre-created default wallet addresses at random.
@@ -45,7 +71,7 @@ export async function getPaymentStatus(txpowId: string): Promise<PaymentStatus> 
 // Restores wallet from a 24-word seed phrase via Minima restore RPC.
 // The phrase must never be logged — do not pass it to recordAuditEvent detail.
 export async function importWallet(phrase: string): Promise<ImportWalletResult> {
-  const result = await runMinimaPathCommand(`restore phrase:"${phrase}"`, 30_000);
+  const result = await runWalletReplacement(() => runMinimaPathCommand(`restore phrase:"${phrase}"`, 30_000));
   if (!result.ok) throw new Error(`Minima RPC error: HTTP ${result.status}`);
   return parseImportResponse(result.body);
 }

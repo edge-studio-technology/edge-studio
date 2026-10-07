@@ -6,6 +6,7 @@ import { excludedConsoleCommandVerbs, minimaConsoleCatalog, type ConsoleCommandE
 import { createBackup, restoreBackup } from "./minima-backup.service.js";
 import { addMinimaPeers, resyncMegammr } from "./minima.service.js";
 import { runMinimaPathCommand } from "./minima.rpc.js";
+import { runWalletReplacement } from "../address-book/wallet-replacement.service.js";
 
 const whitelistSetting = "minima_console_whitelist";
 
@@ -111,7 +112,11 @@ export async function runConsoleCommand(userId: string | undefined, rawInput: st
     const fileName = (fileMatch?.[1] ?? "").replace(/^backups\//, "");
     result = await restoreBackup({ fileName, password: passwordMatch?.[1] });
   } else {
-    result = await runMinimaPathCommand(command);
+    const replacesWallet = entry.verb === "restore" || entry.verb === "reset"
+      || (["archive", "mysql", "megammr"].includes(entry.verb) && /\bphrase\s*:/i.test(command));
+    result = replacesWallet
+      ? await runWalletReplacement(() => runMinimaPathCommand(command))
+      : await runMinimaPathCommand(command);
   }
 
   recordAuditEvent("minima.console.run", { userId, detail: entry.verb });

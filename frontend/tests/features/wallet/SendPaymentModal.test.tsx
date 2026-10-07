@@ -70,6 +70,49 @@ describe("SendPaymentModal", () => {
     vi.restoreAllMocks();
   });
 
+  it("disables an unverified local recipient while keeping its manual copy selectable", async () => {
+    const common = { label: "This device", address: "MxShared", notes: null, created_at: "2026-08-01T00:00:00.000Z" };
+    listAddressBookEntries.mockResolvedValue([
+      { ...common, id: "local", isLocalDevice: true, isLocalDevicePending: true },
+      { ...common, id: "manual", isLocalDevice: false, isLocalDevicePending: false },
+    ]);
+    renderModal();
+    await userEvent.click(screen.getByRole("tab", { name: "Address book" }));
+    expect(await screen.findByRole("option", { name: /verifying wallet/ })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "This device" })).toBeEnabled();
+    await userEvent.selectOptions(screen.getByLabelText("Recipient address"), "local");
+    expect(screen.getByLabelText("Recipient address")).toHaveValue("");
+    expect(sendPayment).not.toHaveBeenCalled();
+    await userEvent.selectOptions(screen.getByLabelText("Recipient address"), "manual");
+    expect(screen.getByLabelText("Recipient address")).toHaveValue("manual");
+  });
+
+  it("shows distinct local/manual options sharing a destination and requires explicit selection", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const common = { label: "This device", address: "MxShared", notes: null, created_at: "2026-08-01T00:00:00.000Z" };
+    listAddressBookEntries.mockResolvedValue([
+      { ...common, id: "local", isLocalDevice: true },
+      { ...common, id: "manual", isLocalDevice: false },
+    ]);
+    renderModal();
+    await userEvent.click(screen.getByRole("tab", { name: "Address book" }));
+    const localOption = await screen.findByRole("option", { name: "This device (Local device)" });
+    expect(screen.getByRole("option", { name: "This device" })).toHaveValue("manual");
+    expect(screen.getByLabelText("Recipient address")).toHaveValue("");
+    await userEvent.type(screen.getByLabelText("Amount"), "1");
+    await userEvent.click(screen.getByRole("button", { name: "Send payment" }));
+    expect(await screen.findByText("Address is required.")).toBeInTheDocument();
+    expect(sendPayment).not.toHaveBeenCalled();
+    sendPayment.mockResolvedValue({ ok: true, status: "sent" });
+    await userEvent.selectOptions(screen.getByLabelText("Recipient address"), "manual");
+    expect(screen.getByLabelText("Recipient address")).toHaveValue("manual");
+    await userEvent.selectOptions(screen.getByLabelText("Recipient address"), localOption);
+    expect(screen.getByLabelText("Recipient address")).toHaveValue("local");
+    await userEvent.click(screen.getByRole("button", { name: "Send payment" }));
+    await waitFor(() => expect(sendPayment).toHaveBeenCalledWith(expect.objectContaining({ address: "MxShared", recipientAddressBookId: "local" })));
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
   it("renders token options from the wallet status", async () => {
     renderModal();
 
@@ -166,13 +209,14 @@ describe("SendPaymentModal", () => {
     await waitFor(() => expect(listAddressBookEntries).toHaveBeenCalled());
 
     await userEvent.click(screen.getByRole("tab", { name: "Address book" }));
-    await userEvent.selectOptions(screen.getByLabelText("Recipient address"), "MxAlice");
+    await userEvent.selectOptions(screen.getByLabelText("Recipient address"), "1");
     await userEvent.type(screen.getByLabelText("Amount"), "1");
     await userEvent.click(screen.getByRole("button", { name: "Send payment" }));
 
     await waitFor(() => {
       expect(sendPayment).toHaveBeenCalledWith({
         address: "MxAlice",
+        recipientAddressBookId: "1",
         amount: "1",
         tokenId: "0x00",
         tokenName: "Minima",

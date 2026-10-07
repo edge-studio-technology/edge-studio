@@ -35,6 +35,7 @@ export function SendPaymentModal({
   const [formError, setFormError] = useState<string | null>(null);
   const [addressMode, setAddressMode] = useState<AddressMode>("external");
   const [contacts, setContacts] = useState<AddressBookEntry[]>([]);
+  const [contactId, setContactId] = useState("");
 
   useEffect(() => {
     listAddressBookEntries()
@@ -63,7 +64,8 @@ export function SendPaymentModal({
     isPositiveDecimal(amount) &&
     compareDecimalStrings(amount.trim(), availableSendable) > 0,
   );
-  const canSubmit = !exceedsBalance && !submitting && !actionsBlocked;
+  const canSubmit = !exceedsBalance && !submitting && !actionsBlocked
+    && !contacts.find((contact) => contact.id === contactId)?.isLocalDevicePending;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -84,6 +86,7 @@ export function SendPaymentModal({
     setSubmitting(true);
     try {
       const result = await sendPaymentApi({
+        ...(addressMode === "address-book" ? { recipientAddressBookId: contactId } : {}),
         address: address.trim(),
         amount: amount.trim(),
         tokenId,
@@ -148,6 +151,7 @@ export function SendPaymentModal({
               onChange={(mode) => {
                 setAddressMode(mode);
                 setAddress("");
+                setContactId("");
                 setFormError(null);
               }}
             />
@@ -168,12 +172,17 @@ export function SendPaymentModal({
             <SelectField
               id="send-contact"
               className="min-w-0"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              value={contactId}
+              onChange={(e) => {
+                setContactId(e.target.value);
+                setAddress(contacts.find((contact) => contact.id === e.target.value)?.address ?? "");
+              }}
               placeholder="Select a contact…"
               options={contacts.map((contact) => ({
-                value: contact.address,
-                label: contact.label,
+                value: contact.id,
+                label: contact.isLocalDevicePending ? `${contact.label} (Local device — verifying wallet)`
+                  : contact.isLocalDevice ? `${contact.label} (Local device)` : contact.label,
+                disabled: contact.isLocalDevicePending,
               }))}
             />
           )}

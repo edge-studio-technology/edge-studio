@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { badRequest, conflict, notFound, validationFailed } from "../../shared/api-error.js";
+import { badRequest, conflict, notFound, unexpected, validationFailed } from "../../shared/api-error.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
+import { initializeLocalAddressBookEntry } from "./address-book.service.js";
 import {
   deleteAddressBookEntry,
   getAddressBookEntryByAddress,
@@ -14,8 +15,13 @@ import {
 
 export const addressBookRouter = Router();
 
-addressBookRouter.get("/", (_req, res) => {
-  res.json(listAddressBookEntries());
+addressBookRouter.get("/", async (_req, res) => {
+  try {
+    await initializeLocalAddressBookEntry();
+    res.json(listAddressBookEntries());
+  } catch {
+    return unexpected(res, "Could not load the address book. Please try again.");
+  }
 });
 
 addressBookRouter.post("/", requireRole("admin"), (req, res) => {
@@ -56,6 +62,10 @@ addressBookRouter.patch("/:id", requireRole("admin"), (req, res) => {
         : null
       : undefined;
 
+  if (entry.isLocalDevice && address !== undefined && address !== entry.address) {
+    return conflict(res, "The local device address cannot be changed manually. You can edit its name and notes.", { id }, { ok: false });
+  }
+
   if (label !== undefined && !label) {
     return validationFailed(res, "label cannot be empty", { label: "label cannot be empty" }, { ok: false });
   }
@@ -69,7 +79,7 @@ addressBookRouter.patch("/:id", requireRole("admin"), (req, res) => {
     if (!isMinimaAddress(address)) {
       return badRequest(res, "address must be a valid Minima Mx or 0x address", { field: "address" }, { ok: false });
     }
-    const existing = getAddressBookEntryByAddress(address);
+    const existing = entry.isLocalDevice ? null : getAddressBookEntryByAddress(address);
     if (existing && existing.id !== id) {
       return conflict(res, "address already exists in address book", { address }, { ok: false });
     }
@@ -88,6 +98,10 @@ addressBookRouter.delete("/:id", requireRole("admin"), (req, res) => {
 
   const entry = getAddressBookEntryById(id);
   if (!entry) return notFound(res, "entry not found", { ok: false });
+
+  if (entry.isLocalDevice) {
+    return conflict(res, "This device is managed by the app and cannot be deleted.", { id }, { ok: false });
+  }
 
   deleteAddressBookEntry(id);
   recordAuditEvent("address-book.delete", {

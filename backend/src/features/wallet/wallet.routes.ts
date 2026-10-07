@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { env } from "../../config/env.js";
-import { badRequest, dependencyUnavailable, forbidden, unexpected, validationFailed } from "../../shared/api-error.js";
+import { badRequest, conflict, dependencyUnavailable, forbidden, unexpected, validationFailed } from "../../shared/api-error.js";
+import { AddressBookRecipientError, getAddressBookPaymentRecipient } from "../address-book/address-book.repository.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
@@ -29,7 +30,16 @@ walletRouter.post("/receive-address", requireRole("admin"), async (req, res) => 
 });
 
 walletRouter.post("/send-payment", requireRole("admin"), async (req, res) => {
-  const address = typeof req.body?.address === "string" ? req.body.address.trim() : "";
+  let address = typeof req.body?.address === "string" ? req.body.address.trim() : "";
+  const recipientId = typeof req.body?.recipientAddressBookId === "string" ? req.body.recipientAddressBookId.trim() : "";
+  if (recipientId) {
+    try {
+      address = getAddressBookPaymentRecipient(recipientId).address;
+    } catch (error) {
+      if (error instanceof AddressBookRecipientError) return conflict(res, error.message, { recipientId }, { ok: false });
+      return unexpected(res, "Could not load the payment recipient. Please try again.");
+    }
+  }
   const amount = typeof req.body?.amount === "string" ? req.body.amount.trim() : "";
   const tokenId = typeof req.body?.tokenId === "string" ? req.body.tokenId.trim() : "0x00";
   const tokenName = typeof req.body?.tokenName === "string" ? req.body.tokenName.trim() : "";

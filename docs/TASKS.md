@@ -12,6 +12,7 @@
 
 ## Current Focus
 
+- [ ] #206 final signoff/PR — legacy-Minima compatibility and live backup wallet replacement verified; commit the fix and obtain signoff; see [plan](plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md) and [QA summary](qa/206-completed-branch-pi-deployment.md).
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
@@ -81,6 +82,8 @@
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
 
 ## Done
+
+- [x] #206 implementation and contact-flow verification — full checks/builds passed; Pi upgrade, clean app/wallet installation, default naming, protections, ordinary CRUD, restart persistence, and same/different-wallet backup restores with pending-payment protection verified; see the QA summary.
 
 - [x] Fixed npm audit advisories with patch-only lockfile updates for `proxy-addr`, `source-map-js`, and root `brace-expansion`; all four audits are clean, typechecks/builds and frontend/Update Agent coverage passed; existing backend and Windows script-test limitations are recorded in SESSION.
 
@@ -185,6 +188,8 @@
 - [x] Address book "Edit contact" now supports editing the Mx/0x address itself (previously label/notes only, address shown read-only) — added `address` support through `updateAddressBookEntry` (repository + `PATCH /api/wallet/address-book/:id`, same format/uniqueness validation as create) and the frontend `EditContactForm`/`UpdateAddressBookEntryInput` — branch `ui/global-style-realignment`, `npm run check`/backend+frontend build/`docker compose config` verified, no manual browser check yet.
 
 ## Ideas
+
+- [ ] Consider an explicit “Change receive address” action for the app-owned local contact after #206's core feature; define old-destination and workflow-reference behavior before implementing rerolling.
 
 - [ ] `.claude/rules/verification.md` (and `.agents/`/`.cursor/` counterparts) still list `npm --prefix backend run build`/`npm --prefix frontend run build` without an `update-agent` build step — pre-existing gap noticed while working on `docs/plans/archive/coverage-criteria.md`, unrelated to it, not yet actioned.
 - [ ] Split the `docs/TASKS.md` "Block automation workflows" line into one bullet per milestone/improvement in `docs/plans/block-automation-workflows.md` (844 lines, 8 milestones) — several unchecked items are substantial unbuilt code features (configure-block modal, workflow templates, full draft workspace save model, branching/else flow, run-log filters), not just manual checks, currently hidden behind one line the way the frontend-unit-tests line used to hide ~20 folders.

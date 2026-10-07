@@ -759,12 +759,10 @@ POST /api/minima/backups/auto
 
 `GET /api/minima/backups/password` returns `{ "hasPassword": boolean }` (never the password itself). `POST /api/minima/backups/password` accepts `{ "backupPassword": string, "currentPassword": string }`, requires re-entering the admin PIN/password, and must be called before any backup can be created. `GET /api/minima/backups` returns a single array of backups (filenames still distinguish trigger source, `minima-manual-<ts>.bak` / `minima-auto-<ts>.bak`) under the shared `/minima-backups` volume. `POST /api/minima/backups` takes no body — it always creates a manual backup using the stored password and calls Minima `backup file:backups/<generated-name>.bak password:"<stored>"`; once the combined list exceeds 20, the oldest backup is deleted automatically. `POST /api/minima/backups/:fileName/download` requires `{ "currentPassword": string }`; every tracked backup is downloadable, since all of them share the same real, admin-chosen password. `POST /api/minima/backups/restore` also requires `{ "currentPassword": string }` and accepts either `{ "fileName": string }` for an existing tracked backup (uses the stored password automatically) or a multipart upload (`file` field, optional `password` override for a foreign `.bak` with different protection) — an uploaded file is deleted from the shared folder after the restore attempt either way, since it isn't a tracked entry. Restore calls Minima `restoresync file:backups/<name>.bak host:<configured-megammr-host>`. `DELETE /api/minima/backups/:fileName` removes a backup file (no re-auth — it only deletes a copy of already-recoverable data). `GET`/`POST /api/minima/backups/auto` read/toggle the backend's own nightly auto-backup scheduler (00:30 on the backend container's clock, not Minima's built-in one); enabling it requires a backup password to already be set, and every auto backup lands in the same shared, 20-backup-capped list as manual ones.
 
-Wallet and account APIs:
+Wallet APIs:
 
 ```http
 GET /api/wallet
-GET /api/wallet/accounts
-POST /api/wallet/accounts
 GET /api/wallet/history
 POST /api/wallet/send-payment
 GET /api/wallet/payment-status/:txpowid
@@ -772,13 +770,23 @@ POST /api/wallet/import
 POST /api/wallet/receive-address
 ```
 
-`POST /api/wallet/accounts` creates a named account label and maps it to one random default address from the node's existing 64-address wallet pool, or labels an existing address when `address` is provided. This does not create new seed material.
-
-`GET /api/wallet/accounts` returns the mapped accounts plus per-address MINIMA/token balances aggregated from Minima `coins relevant:true`, and `unlabeledFunded` for migration.
+`GET /api/wallet` reports balances for the node's single wallet. The address book stores recipient contacts; it does not create labeled wallet accounts.
 
 `GET /api/wallet/history?limit=N` returns recent send activity recorded in SQLite when payments are submitted.
 
-`POST /api/wallet/receive-address` samples a random address from the 64-address pool (API retained; primary UI shows per-account addresses in the account detail modal).
+Address-book contacts are stored in SQLite and exposed through `GET`/`POST /api/wallet/address-book` and `PATCH`/`DELETE /api/wallet/address-book/:id`. Each returned entry includes `isLocalDevice`, a boolean identifying the app's local-wallet contact, and `isLocalDevicePending`, indicating that replacement verification is required; existing and manually created contacts default to `false`. The app-owned contact is separate from manual contacts and may share their destination. Manual copies retain their IDs, fields, and edit/delete controls; exact-address duplicates between manual contacts remain disallowed.
+
+The backend automatically adds one app-managed local contact once Minima supplies valid default wallet addresses. Its initial name is the device hostname shown on the dashboard. Existing names, including **This device**, remain unchanged; initialization and wallet replacement preserve user renames. The dashboard currently shows the backend container hostname, so the contact copies it once rather than following later hostname changes. Initialization runs through the existing immediate health poll and its configured interval, without requiring a visit to Wallet. Listing the address book also makes a best-effort attempt while the contact is missing, with the existing five-second RPC timeout; discovery failures still return saved contacts and retry on a later poll or read. Simultaneous attempts share one discovery request. Once the contact exists and is verified, initialization and listing skip discovery and retain its ID/address across ordinary restarts and node outages. Creation emits one `address-book.local.create` audit event containing only public contact data.
+
+The managed contact's name and notes can be edited. Its edit form visibly disables the address field, and its menu omits Remove. Changing its address manually or deleting it through the API returns a structured `409` conflict. Names use the existing non-empty, 80-character limit. Unchanged address values from older clients are accepted, including when a manual copy shares the address. Client-supplied local markers are ignored.
+
+A **Local device** indicator identifies the contact in its table row and details, independently of notes. Send-payment and workflow recipient selectors also identify it, while manual copies keep their own labels. Selecting the managed contact is explicit: a new workflow payment block defaults to the first ordinary contact, or a blank recipient if only the local contact exists. An open address book reloads when the node becomes available again. After a wallet-replacement request through Edge Studio (backup restore, seed import, console restore/reset, or seed-bearing archive/MySQL/MegaMMR operations), the local contact is marked pending before dispatch. It is unavailable for payment until the node is no longer restoring/shutting down and its public receive-address pool can be verified. On Minima versions without `checkrestore`, wallet-replacement verification requires a subsequent node restart and an unlocked wallet response. If its saved destination still belongs to the wallet, it stays unchanged; otherwise only its address changes. ID, name, notes, creation time, manual contacts, and workflow references are preserved. Workflows referencing This device intentionally follow the refreshed wallet address. Actual changes emit an atomic `address-book.local.replace` audit record with ID and old/new public addresses; no backup contact is created.
+
+The address book hides the pending destination and refreshes it every 30 seconds while the node is available; payment selectors disable it. `POST /api/wallet/send-payment` accepts an optional `recipientAddressBookId` and resolves that ID to the current saved address on the backend, rejecting pending or missing recipients with `409`. The UI sends this ID when a saved contact is selected. External address-only requests and manual copies remain independent.
+
+Empty/invalid/offline discovery keeps the local recipient pending and retries later. Completion remains durably uncertain until the RPC returns, including across a backend restart during replacement. If the RPC throws or times out, a pool still containing the old address is insufficient to confirm completion: the contact stays blocked until a different destination is verified or a subsequent replacement request completes and is verified. Replacing wallet files or calling RPC outside Edge Studio does not notify this mechanism. Reroll is out of scope.
+
+`POST /api/wallet/receive-address` samples a random default address from the wallet pool for the Receive QR view. It can differ from the stable This device destination; both belong to the wallet when verified.
 
 Custom token APIs:
 

@@ -4,9 +4,63 @@ import {
   parseAddressResponse,
   parseBalanceResponse,
   parseImportResponse,
+  parseLocalWalletAddressesResponse,
   parsePaymentStatusResponse,
   parseSendResponse
 } from "../../../src/features/wallet/wallet.parse.js";
+
+const LOCAL_SCRIPT = {
+  address: "0xDE111E13DBA5054DFF657969BF3A76BFB6CE196F95F6EBEFE1B70FED0115EF1A",
+  miniaddress: "MxG086U24F17MT50Y6VUPBPD6VJKTYVMR71WRSYURYUVZDN1VMG25FF39M0458A",
+  default: true,
+  simple: true,
+  track: true,
+  script: "RETURN SIGNEDBY(0xABCD)",
+  publickey: "0xABCD"
+};
+
+describe("parseLocalWalletAddressesResponse", () => {
+  it("projects only default/simple public destinations, ignoring merely tracked scripts", () => {
+    assert.deepEqual(parseLocalWalletAddressesResponse({ status: true, response: [
+      { ...LOCAL_SCRIPT, default: false },
+      { ...LOCAL_SCRIPT, simple: false },
+      LOCAL_SCRIPT
+    ] }), [LOCAL_SCRIPT.miniaddress]);
+  });
+
+  it("accepts case/whitespace aliases and a successful empty pool", () => {
+    assert.deepEqual(parseLocalWalletAddressesResponse({ status: true, response: [{
+      ...LOCAL_SCRIPT, address: ` ${LOCAL_SCRIPT.address.toLowerCase()} `,
+      miniaddress: ` ${LOCAL_SCRIPT.miniaddress.toLowerCase()} `
+    }] }), [LOCAL_SCRIPT.miniaddress.toLowerCase()]);
+    assert.deepEqual(parseLocalWalletAddressesResponse({ status: true, response: [] }), []);
+  });
+
+  it("requires explicit RPC success and an array, even if a failure includes addresses", () => {
+    for (const body of [null, [], {}, { response: [LOCAL_SCRIPT] },
+      { status: false, response: [LOCAL_SCRIPT] }, { status: "true", response: [LOCAL_SCRIPT] },
+      { status: true, response: LOCAL_SCRIPT }]) {
+      assert.throws(() => parseLocalWalletAddressesResponse(body), /successful scripts response/);
+    }
+  });
+
+  it("rejects malformed rows and flags rather than silently accepting an incomplete pool", () => {
+    for (const row of [null, [], { ...LOCAL_SCRIPT, default: 1 },
+      { ...LOCAL_SCRIPT, simple: "true" }, { address: LOCAL_SCRIPT.address }]) {
+      assert.throws(() => parseLocalWalletAddressesResponse({ status: true, response: [LOCAL_SCRIPT, row] }), /malformed script flags/);
+    }
+  });
+
+  it("rejects missing, invalid, checksum-corrupted, or mismatched address pairs", () => {
+    for (const fields of [
+      { address: null }, { address: "0x" }, { miniaddress: null }, { miniaddress: "Mx1234" },
+      { miniaddress: `${LOCAL_SCRIPT.miniaddress.slice(0, -1)}B` },
+      { address: "0x01" }, { address: LOCAL_SCRIPT.miniaddress }, { miniaddress: LOCAL_SCRIPT.address }
+    ]) {
+      assert.throws(() => parseLocalWalletAddressesResponse({ status: true, response: [{ ...LOCAL_SCRIPT, ...fields }] }), /invalid local wallet address data/);
+    }
+  });
+});
 
 describe("parseBalanceResponse", () => {
   it("returns an empty token list when response is not an array", () => {

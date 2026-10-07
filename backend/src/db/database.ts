@@ -323,11 +323,22 @@ export function runMigrations() {
     CREATE TABLE IF NOT EXISTS address_book (
       id         TEXT PRIMARY KEY,
       label      TEXT NOT NULL,
-      address    TEXT NOT NULL UNIQUE,
+      address    TEXT NOT NULL,
       notes      TEXT,
       created_at TEXT NOT NULL
     )
   `);
+
+  db.transaction(() => {
+    ensureColumn("address_book", "is_local_device", "INTEGER NOT NULL DEFAULT 0");
+    migrateAddressBookToAllowLocalContact();
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_address_book_local_device
+        ON address_book(is_local_device) WHERE is_local_device = 1;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_address_book_ordinary_address
+        ON address_book(address) WHERE is_local_device = 0;
+    `);
+  })();
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS integritas_device (
@@ -403,6 +414,31 @@ function resetLegacyAutomationSchema() {
 function ensureColumn(table: string, column: string, definition: string) {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!columns.some((item) => item.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+function migrateAddressBookToAllowLocalContact() {
+  const indexes = db.prepare("PRAGMA index_list(address_book)").all() as { name: string; unique: number; partial: number }[];
+  const hasGlobalAddressConstraint = indexes.some((index) => {
+    if (index.unique !== 1 || index.partial !== 0) return false;
+    const columns = db.prepare("SELECT name FROM pragma_index_info(?)").all(index.name) as { name: string }[];
+    return columns.length === 1 && columns[0].name === "address";
+  });
+  if (!hasGlobalAddressConstraint) return;
+
+  db.exec(`
+    CREATE TABLE address_book_new (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      address TEXT NOT NULL,
+      notes TEXT,
+      created_at TEXT NOT NULL,
+      is_local_device INTEGER NOT NULL DEFAULT 0
+    );
+    INSERT INTO address_book_new (id, label, address, notes, created_at, is_local_device)
+      SELECT id, label, address, notes, created_at, is_local_device FROM address_book;
+    DROP TABLE address_book;
+    ALTER TABLE address_book_new RENAME TO address_book;
+  `);
 }
 
 // Push-source reads store a credential-free `data-source:<id>` reference. Rows whose source is gone

@@ -619,7 +619,12 @@ export function DraftBlockInspector({
 
   if (block.type === "send_transaction") {
     const recipientOptions = [
-      ...addressBook.map((entry) => ({ value: entry.id, label: entry.label })),
+      ...addressBook.map((entry) => ({
+        value: entry.id,
+        label: entry.isLocalDevicePending ? `${entry.label} (Local device — verifying wallet)`
+          : entry.isLocalDevice ? `${entry.label} (Local device)` : entry.label,
+        disabled: entry.isLocalDevicePending,
+      })),
       ...(onCreateAddressBookEntry
         ? [{ value: CREATE_RECIPIENT_VALUE, label: "Create new recipient" }]
         : []),
@@ -634,6 +639,9 @@ export function DraftBlockInspector({
         >
           {addressBook.length === 0 ? (
             <p className={mutedText}>Create a recipient now, or choose a saved contact later.</p>
+          ) : null}
+          {addressBook.some((entry) => entry.isLocalDevicePending) ? (
+            <p className={mutedText}>This device is awaiting wallet verification and is unavailable for payments.</p>
           ) : null}
           <SelectField
             label="Address book recipient"

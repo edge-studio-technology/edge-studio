@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import express from "express";
 import request from "supertest";
-import { beforeEach, describe, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, it, vi } from "vitest";
+import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
 const { sendPaymentMock, importWalletMock } = vi.hoisted(() => ({ sendPaymentMock: vi.fn(), importWalletMock: vi.fn() }));
 
@@ -21,7 +22,18 @@ vi.mock("../../../src/features/auth/auth.middleware.js", () => ({
   requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next()
 }));
 
-const { walletRouter } = await import("../../../src/features/wallet/wallet.routes.js");
+let walletRouter: express.Router;
+let repo: typeof import("../../../src/features/address-book/address-book.repository.js");
+let db: import("better-sqlite3").Database;
+let teardown: () => void;
+beforeAll(async () => {
+  const testDb = await setupTestDatabase();
+  db = testDb.db;
+  teardown = testDb.teardown;
+  repo = await import("../../../src/features/address-book/address-book.repository.js");
+  ({ walletRouter } = await import("../../../src/features/wallet/wallet.routes.js"));
+});
+afterAll(() => teardown());
 
 function testApp() {
   const app = express();
@@ -35,6 +47,44 @@ describe("wallet routes", () => {
     sendPaymentMock.mockReset();
     importWalletMock.mockReset();
     recordAuditEventMock.mockReset();
+    db.prepare("DELETE FROM address_book").run();
+    db.prepare("DELETE FROM settings").run();
+  });
+
+  it("resolves a selected contact to its current address instead of a stale dialog address", async () => {
+    const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
+    repo.markLocalWalletVerificationPending();
+    repo.reconcileLocalAddressBookEntry(["0x02"], repo.getLocalWalletVerificationRevision());
+    sendPaymentMock.mockResolvedValue({ ok: true, status: "sent" });
+    const response = await request(testApp()).post("/api/wallet/send-payment")
+      .send({ address: local.address, recipientAddressBookId: local.id, amount: "1" });
+    assert.equal(response.status, 200);
+    assert.equal(sendPaymentMock.mock.calls[0][0].address, "0x02");
+  });
+
+  it("blocks pending local recipients without blocking manual copies or external addresses", async () => {
+    const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
+    const manual = repo.insertAddressBookEntry({ label: "Mine", address: local.address, notes: null });
+    repo.markLocalWalletVerificationPending();
+    const response = await request(testApp()).post("/api/wallet/send-payment")
+      .send({ address: local.address, recipientAddressBookId: local.id, amount: "1" });
+    assert.equal(response.status, 409);
+    assert.match(response.body.error, /awaiting wallet verification/);
+    assert.equal(sendPaymentMock.mock.calls.length, 0);
+    sendPaymentMock.mockResolvedValue({ ok: true, status: "sent" });
+    for (const recipientAddressBookId of [manual.id, undefined]) {
+      const sent = await request(testApp()).post("/api/wallet/send-payment")
+        .send({ address: local.address, recipientAddressBookId, amount: "1" });
+      assert.equal(sent.status, 200);
+    }
+    assert.equal(sendPaymentMock.mock.calls.length, 2);
+  });
+
+  it("rejects a missing contact ID without falling back to the supplied address", async () => {
+    const response = await request(testApp()).post("/api/wallet/send-payment")
+      .send({ address: "0x01", recipientAddressBookId: "missing", amount: "1" });
+    assert.equal(response.status, 409);
+    assert.equal(sendPaymentMock.mock.calls.length, 0);
   });
 
   it("rejects a malformed prefix-matching recipient before calling sendPayment", async () => {

@@ -108,3 +108,83 @@ describe("runMigrations — retention and budget schema", () => {
     assert.ok(indexes.includes("idx_automation_workflow_budget_events_workflow_consumed"));
   });
 });
+
+describe("runMigrations — local address-book identity", () => {
+  it("upgrades an existing address book without changing saved fields and is repeatable", () => {
+    db.exec(`
+      DROP TABLE address_book;
+      CREATE TABLE address_book (
+        id TEXT PRIMARY KEY, label TEXT NOT NULL, address TEXT NOT NULL UNIQUE,
+        notes TEXT, created_at TEXT NOT NULL
+      );
+      INSERT INTO address_book VALUES ('saved', 'Saved label', '0x01', 'Saved notes', '2026-01-01');
+    `);
+    runMigrations();
+    const rows = db.prepare("SELECT * FROM address_book").all();
+    assert.deepEqual(rows, [{ id: "saved", label: "Saved label", address: "0x01", notes: "Saved notes", created_at: "2026-01-01", is_local_device: 0 }]);
+    db.prepare("UPDATE address_book SET is_local_device = 1 WHERE id = 'saved'").run();
+    runMigrations();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM address_book").all(), [{ ...rows[0] as object, is_local_device: 1 }]);
+
+    const column = (db.prepare("PRAGMA table_info(address_book)").all() as { name: string; notnull: number; dflt_value: string }[])
+      .find((item) => item.name === "is_local_device");
+    assert.equal(column?.notnull, 1);
+    assert.equal(column?.dflt_value, "0");
+    db.exec("INSERT INTO address_book (id, label, address, created_at) VALUES ('ordinary', 'Ordinary', '0x02', '2026-01-02');");
+    assert.throws(() => db.exec("UPDATE address_book SET is_local_device = 1 WHERE id = 'ordinary'"), /UNIQUE/);
+  });
+
+  it("removes legacy global uniqueness while preserving manual contacts and their references", () => {
+    db.exec(`
+      DROP TABLE address_book;
+      CREATE TABLE address_book (
+        id TEXT PRIMARY KEY, label TEXT NOT NULL, address TEXT NOT NULL UNIQUE,
+        notes TEXT, created_at TEXT NOT NULL
+      );
+      INSERT INTO address_book VALUES ('manual', 'My node', '0x01', 'My notes', '2026-01-01');
+      INSERT INTO address_book VALUES ('alias', 'My alias', '0X01', NULL, '2026-01-02');
+      INSERT INTO automation_workflows (id, created_at, updated_at, name, enabled)
+        VALUES ('address-book-migration', '2026-01-01', '2026-01-01', 'Saved workflow', 0);
+      INSERT INTO automation_blocks (id, workflow_id, created_at, updated_at, type, enabled, order_index, config_json)
+        VALUES ('address-book-reference', 'address-book-migration', '2026-01-01', '2026-01-01', 'send_transaction', 1, 0,
+          '{"recipientAddressBookId":"manual"}');
+    `);
+    const original = db.prepare("SELECT * FROM address_book ORDER BY id").all() as object[];
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM address_book ORDER BY id").all(), original.map((row) => ({ ...row, is_local_device: 0 })));
+    assert.deepEqual(db.prepare("SELECT config_json FROM automation_blocks WHERE id = 'address-book-reference'").get(), {
+      config_json: '{"recipientAddressBookId":"manual"}'
+    });
+
+    db.exec(`INSERT INTO address_book (id, label, address, created_at, is_local_device)
+      VALUES ('local', 'This device', '0x01', '2026-01-03', 1);`);
+    const migrated = db.prepare("SELECT * FROM address_book ORDER BY id").all();
+    runMigrations();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM address_book ORDER BY id").all(), migrated);
+    assert.throws(() => db.exec(`INSERT INTO address_book (id, label, address, created_at)
+      VALUES ('duplicate', 'Duplicate manual', '0x01', '2026-01-04');`), /UNIQUE/);
+  });
+
+  it("preserves a local marker from the earlier step 1 schema and supports a later manual copy", () => {
+    db.exec(`
+      DROP TABLE address_book;
+      CREATE TABLE address_book (
+        id TEXT PRIMARY KEY, label TEXT NOT NULL, address TEXT NOT NULL UNIQUE,
+        notes TEXT, created_at TEXT NOT NULL, is_local_device INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO address_book VALUES ('local', 'This device', '0x01', 'Local notes', '2026-01-01', 1);
+      INSERT INTO address_book VALUES ('manual', 'Alice', '0x02', 'Manual notes', '2026-01-02', 0);
+      CREATE UNIQUE INDEX idx_address_book_local_device ON address_book(is_local_device) WHERE is_local_device = 1;
+    `);
+    const original = db.prepare("SELECT * FROM address_book ORDER BY id").all();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM address_book ORDER BY id").all(), original);
+    db.exec("INSERT INTO address_book (id, label, address, created_at) VALUES ('copy', 'My copy', '0x01', '2026-01-03');");
+    const once = db.prepare("SELECT * FROM address_book ORDER BY id").all();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM address_book ORDER BY id").all(), once);
+    assert.equal((db.prepare("SELECT COUNT(*) AS total FROM address_book WHERE is_local_device = 1").get() as { total: number }).total, 1);
+  });
+});
