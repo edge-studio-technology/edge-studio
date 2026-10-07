@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
+import os from "os";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
 let teardown: () => void;
@@ -19,6 +20,8 @@ beforeAll(async () => {
 afterAll(() => {
   teardown();
 });
+
+afterEach(() => vi.restoreAllMocks());
 
 describe("insertAddressBookEntry", () => {
   it("creates and returns the entry with a generated id and timestamp", () => {
@@ -43,11 +46,12 @@ describe("ensureLocalAddressBookEntry", () => {
   });
 
   it("creates one app contact and skips subsequent initialization regardless of pool changes", () => {
+    vi.spyOn(os, "hostname").mockReturnValue("dev-pi");
     assert.equal(repo.getLocalAddressBookEntry(), null);
     const result = repo.ensureLocalAddressBookEntry([MX_ADDRESS, "0x01"]);
     assert.ok(result);
     assert.equal(result.changed, true);
-    assert.equal(result.entry.label, "This device");
+    assert.equal(result.entry.label, "dev-pi");
     assert.equal(result.entry.address, "0x01");
     assert.equal(result.entry.notes, null);
     assert.equal(result.entry.isLocalDevice, true);
@@ -60,7 +64,7 @@ describe("ensureLocalAddressBookEntry", () => {
   });
 
   it("creates its own contact even when the user saved the exact same address and name", () => {
-    const saved = repo.insertAddressBookEntry({ label: "This device", address: MX_ADDRESS, notes: "Mine" });
+    const saved = repo.insertAddressBookEntry({ label: os.hostname(), address: MX_ADDRESS, notes: "Mine" });
     const result = repo.ensureLocalAddressBookEntry([MX_ADDRESS])!;
     assert.notEqual(result.entry.id, saved.id);
     assert.equal(result.entry.address, saved.address);
@@ -68,6 +72,15 @@ describe("ensureLocalAddressBookEntry", () => {
     assert.deepEqual(repo.getAddressBookEntryById(saved.id), saved);
     assert.equal(repo.listAddressBookEntries().length, 2);
     assert.deepEqual(repo.getAddressBookEntryByAddress(MX_ADDRESS), saved);
+  });
+
+  it.each(["This device", "My workshop Pi"])("preserves an existing name (%s) when the hostname changes", (label) => {
+    const hostname = vi.spyOn(os, "hostname").mockReturnValue("old-container");
+    const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
+    const saved = repo.updateAddressBookEntry(local.id, { label, notes: "Keep" })!;
+    hostname.mockReturnValue("new-container");
+    assert.deepEqual(repo.ensureLocalAddressBookEntry(["0x02"]), { entry: saved, changed: false });
+    assert.deepEqual(repo.getLocalAddressBookEntry(), saved);
   });
 
   it("ignores user-created Mx/hex/case aliases and keeps the normal selection", () => {

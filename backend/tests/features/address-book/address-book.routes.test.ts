@@ -166,14 +166,35 @@ describe("address-book routes", () => {
     assert.deepEqual(repo.getAddressBookEntryById(manual.id), manual);
   });
 
-  it("rejects managed name/address changes and deletion using the stored identity", async () => {
+  it("allows managed name and notes edits without changing identity or a matching manual contact", async () => {
+    const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
+    const manual = repo.insertAddressBookEntry({ label: local.label, address: local.address, notes: "Mine" });
+    const renamed = await request(testApp()).patch(`/api/address-book/${local.id}`)
+      .send({ label: "  Workshop Pi  ", notes: "Desk", isLocalDevice: false });
+    assert.equal(renamed.status, 200);
+    assert.deepEqual(renamed.body, { ...local, label: "Workshop Pi", notes: "Desk" });
+    assert.deepEqual(repo.getAddressBookEntryById(manual.id), manual);
+    assert.deepEqual(repo.ensureLocalAddressBookEntry(["0x02"])!.entry, renamed.body);
+    assert.equal((await request(testApp()).delete(`/api/address-book/${local.id}`)).status, 409);
+  });
+
+  it("validates managed names without saving other changes", async () => {
+    const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
+    for (const label of ["", "  ", "x".repeat(81)]) {
+      const response = await request(testApp()).patch(`/api/address-book/${local.id}`).send({ label, notes: "Should not save" });
+      assert.equal(response.status, 400);
+      assert.deepEqual(repo.getLocalAddressBookEntry(), local);
+    }
+  });
+
+  it("rejects managed address changes and deletion using the stored identity", async () => {
     const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
     const app = testApp();
-    for (const input of [{ label: "Renamed" }, { address: "0x02" }, { address: "0xnot-hex" }, { label: "", notes: "Should not save" }, { label: "Renamed", isLocalDevice: false }]) {
+    for (const input of [{ address: "0x02" }, { address: "0xnot-hex" }, { label: "Renamed", address: "0x02", notes: "Should not save", isLocalDevice: false }]) {
       const response = await request(app).patch(`/api/address-book/${local.id}`).send(input);
       assert.equal(response.status, 409);
       assert.equal(response.body.errorDetails.type, "conflict");
-      assert.match(response.body.error, /only notes/i);
+      assert.match(response.body.error, /address cannot be changed/i);
       assert.deepEqual(repo.getLocalAddressBookEntry(), local);
     }
     const removed = await request(app).delete(`/api/address-book/${local.id}`);

@@ -11,6 +11,7 @@ let db: Awaited<ReturnType<typeof setupTestDatabase>>["db"];
 let repo: typeof import("../../../src/features/address-book/address-book.repository.js");
 let initialize: typeof import("../../../src/features/address-book/address-book.service.js")["initializeLocalAddressBookEntry"];
 let replacement: typeof import("../../../src/features/address-book/wallet-replacement.service.js");
+let getDeviceInfo: typeof import("../../../src/features/status/device.service.js")["getDeviceInfo"];
 const ready = { status: true, response: { restoring: false, shuttingdown: false, complete: false } };
 
 function response(body: unknown = scripts, status = 200) {
@@ -24,6 +25,7 @@ beforeAll(async () => {
   repo = await import("../../../src/features/address-book/address-book.repository.js");
   ({ initializeLocalAddressBookEntry: initialize } = await import("../../../src/features/address-book/address-book.service.js"));
   replacement = await import("../../../src/features/address-book/wallet-replacement.service.js");
+  ({ getDeviceInfo } = await import("../../../src/features/status/device.service.js"));
 });
 afterAll(() => teardown());
 beforeEach(() => {
@@ -65,14 +67,14 @@ describe("wallet replacement verification", () => {
 
   it("updates only the app address, preserves references/metadata/manual copies, and audits public destinations once", async () => {
     const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
-    repo.updateAddressBookEntry(local.id, { notes: "Keep these notes" });
+    repo.updateAddressBookEntry(local.id, { label: "My workshop Pi", notes: "Keep these notes" });
     const manual = repo.insertAddressBookEntry({ label: "This device", address: MX, notes: "Mine" });
     await replacement.runWalletReplacement(async () => undefined);
     assert.equal(repo.getLocalAddressBookEntry()!.isLocalDevicePending, true);
     assert.throws(() => repo.getAddressBookPaymentRecipient(local.id), /awaiting wallet verification/);
     discover();
     const updated = await initialize();
-    assert.deepEqual(updated, { ...local, address: MX, notes: "Keep these notes" });
+    assert.deepEqual(updated, { ...local, label: "My workshop Pi", address: MX, notes: "Keep these notes" });
     assert.deepEqual(repo.getAddressBookEntryById(manual.id), manual);
     assert.equal(repo.listAddressBookEntries().length, 2);
     assert.equal(repo.getAddressBookPaymentRecipient(local.id).address, MX);
@@ -171,6 +173,7 @@ describe("initializeLocalAddressBookEntry", () => {
     const local = await initialize();
     assert.ok(local);
     assert.equal(local.isLocalDevice, true);
+    assert.equal(local.label, getDeviceInfo().hostname);
     assert.equal(local.address, MX);
     assert.notEqual(local.id, manual.id);
     assert.deepEqual(repo.getAddressBookEntryById(manual.id), manual);
@@ -179,7 +182,7 @@ describe("initializeLocalAddressBookEntry", () => {
     assert.equal(events.length, 1);
     assert.equal(events[0].action, "address-book.local.create");
     assert.equal(events[0].user_id, null);
-    assert.deepEqual(JSON.parse(events[0].detail), { id: local.id, label: "This device", address: MX });
+    assert.deepEqual(JSON.parse(events[0].detail), { id: local.id, label: local.label, address: MX });
     assert.deepEqual(await initialize(), local);
     assert.equal(fetchMock.mock.calls.length, 1);
     assert.equal((db.prepare("SELECT count(*) AS n FROM audit_events").get() as { n: number }).n, 1);

@@ -484,7 +484,7 @@ function EditContactForm({
     setSubmitting(true);
     try {
       await onSave(entry.isLocalDevice
-        ? { notes: notes.trim() || null }
+        ? { label: trimLabel, notes: notes.trim() || null }
         : { label: trimLabel, address: trimAddress, notes: notes.trim() || null });
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Could not update contact.");
@@ -512,7 +512,7 @@ function EditContactForm({
       <form id="edit-contact-form" onSubmit={handleSubmit} className="gap-detail-close grid">
         {entry.isLocalDevice ? (
           <p className="type-body text-text-secondary m-0">
-            This device is managed by the app. Only notes can be edited.
+            The app manages this contact's address. You can edit its name and notes.
           </p>
         ) : null}
         <div className="gap-detail-close grid sm:grid-cols-2">
@@ -522,9 +522,8 @@ function EditContactForm({
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             maxLength={80}
-            autoFocus={!entry.isLocalDevice}
-            readOnly={entry.isLocalDevice}
-            disabled={submitting || entry.isLocalDevice}
+            autoFocus
+            disabled={submitting}
           />
           <InputField
             label="Address"
@@ -544,7 +543,6 @@ function EditContactForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="e.g. Alice's main wallet"
-          autoFocus={entry.isLocalDevice}
           disabled={submitting}
         />
         {formError ? (

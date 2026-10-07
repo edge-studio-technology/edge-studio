@@ -9,15 +9,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Address-book API entries include an `isLocalDevice` boolean.
-- The address book automatically adds a persistent This device contact when the local wallet becomes available.
+- The address book automatically adds a persistent local contact named after the dashboard device hostname when the local wallet becomes available.
 - The local contact shows a Local device indicator in the address book, contact details, and payment recipient selectors.
 - Wallet replacement updates the local contact's address while preserving its ID, notes, and workflow references, with old/new public destinations recorded in the audit log.
 
 ### Changed
 
 - Manually saved contacts may share the app-managed local contact's destination while retaining their own IDs and edit/delete controls.
-- The This device contact allows notes edits and rejects name/address changes and deletion through the API.
-- The local contact's edit form visibly disables its protected name/address fields and its menu omits Remove.
+- The local contact allows name and notes edits and rejects manual address changes and deletion through the API.
+- The local contact's edit form visibly disables its protected address field and its menu omits Remove.
 - The address book reloads on node recovery, and new workflow payment blocks choose only ordinary contacts as their default recipient.
 - Local recipients awaiting wallet-replacement verification are unavailable for payment and display their verification status.
 - Payments selecting an address-book contact resolve its current destination on the backend.

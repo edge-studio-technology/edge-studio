@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import os from "os";
 import { db } from "../../db/database.js";
 import { canonicalMinimaAddress } from "../../shared/minima-address.js";
 import { deleteSetting, getSetting, saveSetting } from "../settings/settings.repository.js";
@@ -95,8 +96,8 @@ export function ensureLocalAddressBookEntry(addresses: readonly string[]): {
     const id = crypto.randomUUID();
     db.prepare(`
       INSERT INTO address_book (id, label, address, notes, created_at, is_local_device)
-      VALUES (?, 'This device', ?, NULL, ?, 1)
-    `).run(id, candidates[0].address, new Date().toISOString());
+      VALUES (?, ?, ?, NULL, ?, 1)
+    `).run(id, os.hostname(), candidates[0].address, new Date().toISOString());
     return { entry: getAddressBookEntryById(id)!, changed: true };
   }).immediate();
 }

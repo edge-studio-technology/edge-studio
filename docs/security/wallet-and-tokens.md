@@ -33,8 +33,8 @@ Discovery failures preserve saved contacts, while database failures remain HTTP 
 contact exists and is verified, ordinary initialization skips RPC and keeps its destination. Actual creation emits
 one `address-book.local.create` audit event with the contact ID, label, and public address.
 
-PATCH/DELETE guards use the stored marker: the app contact allows notes edits but rejects name or
-address changes and deletion with structured conflicts. Unchanged name/address values are accepted
+PATCH/DELETE guards use the stored marker: the app contact allows validated name and notes edits but rejects manual
+address changes and deletion with structured conflicts. Unchanged address values are accepted
 even when a manual copy shares the destination. Client-supplied markers cannot forge or remove local
 identity. Existing auth/admin gates remain; manual copies retain independent CRUD. Frontend identity and protected form/action presentation are implemented.
 

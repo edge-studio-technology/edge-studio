@@ -83,6 +83,8 @@
 
 ## Done
 
+- [x] #206 editable managed-contact name: default new contacts to the dashboard hostname once, preserve existing/user-selected names, allow validated name/notes edits, and retain address/deletion/marker protections; 65 backend/190 frontend focused tests, full check (3,308 tests), builds/Compose, and local Playwright passed; deployed healthy dirty source build on the Pi. Naming revision committed locally; authenticated feature signoff remains pending.
+
 - [x] #206 protected-contact UX follow-up: visibly disabled managed name/address fields with editable Notes, hidden managed Remove, and unchanged manual controls; 22 panel tests, full check (3,304 tests), builds/Compose, and local Playwright fixtures passed; deployed healthy dirty source build on the dev Pi. Committed locally; final authenticated feature signoff remains pending.
 
 - [x] #206 step 4 implementation: app-controlled wallet replacement refreshes only the managed address, preserves manual rows/metadata/workflow IDs, records atomic public-address audit, blocks pending recipients, and resolves current destinations at send time; 207 backend/190 frontend focused tests and full check (3,304 tests), both builds, and Compose passed. Deployment/manual signoff remains under the parent feature.

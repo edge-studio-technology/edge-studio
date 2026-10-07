@@ -62,11 +62,8 @@ addressBookRouter.patch("/:id", requireRole("admin"), (req, res) => {
         : null
       : undefined;
 
-  if (entry.isLocalDevice && (
-    (label !== undefined && label !== entry.label) ||
-    (address !== undefined && address !== entry.address)
-  )) {
-    return conflict(res, "This device is managed by the app. Only notes can be edited.", { id }, { ok: false });
+  if (entry.isLocalDevice && address !== undefined && address !== entry.address) {
+    return conflict(res, "The local device address cannot be changed manually. You can edit its name and notes.", { id }, { ok: false });
   }
 
   if (label !== undefined && !label) {

@@ -68,13 +68,13 @@ describe("AddressBookPanel", () => {
     expect(listAddressBookEntries).toHaveBeenCalledTimes(2);
   });
 
-  it.each([null, "Updated note"])("protects the managed controls and saves only notes (%s)", async (notes) => {
+  it.each([null, "Updated note"])("protects the managed address and saves name/notes (%s)", async (notes) => {
     const local = entry({ id: "local", label: "This device", isLocalDevice: true, notes: "Old note" });
     listAddressBookEntries.mockResolvedValue([
       local,
       entry({ id: "manual", label: "This device", address: local.address }),
     ]);
-    updateAddressBookEntry.mockResolvedValue({ ...local, notes });
+    updateAddressBookEntry.mockResolvedValue({ ...local, label: "My Pi", notes });
     renderPanel();
     const table = await screen.findByRole("table", { name: "Address book" });
     const localRow = within(table).getByText("Local device").closest("tr")!;
@@ -83,24 +83,25 @@ describe("AddressBookPanel", () => {
     expect(screen.queryByRole("menuitem", { name: "Remove" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
     const dialog = screen.getByRole("dialog", { name: "Edit contact" });
-    expect(within(dialog).getByLabelText("Label")).toHaveAttribute("readonly");
+    expect(within(dialog).getByLabelText("Label")).not.toHaveAttribute("readonly");
     expect(within(dialog).getByLabelText("Address")).toHaveAttribute("readonly");
-    expect(within(dialog).getByLabelText("Label")).toBeDisabled();
+    expect(within(dialog).getByLabelText("Label")).toBeEnabled();
     expect(within(dialog).getByLabelText("Address")).toBeDisabled();
     expect(within(dialog).getByLabelText("Notes")).toBeEnabled();
-    expect(within(dialog).getByLabelText("Notes")).toHaveFocus();
-    await userEvent.type(within(dialog).getByLabelText("Label"), "Changed");
+    expect(within(dialog).getByLabelText("Label")).toHaveFocus();
+    await userEvent.clear(within(dialog).getByLabelText("Label"));
+    await userEvent.type(within(dialog).getByLabelText("Label"), "My Pi");
     await userEvent.type(within(dialog).getByLabelText("Address"), "0xabc");
-    expect(within(dialog).getByLabelText("Label")).toHaveValue(local.label);
+    expect(within(dialog).getByLabelText("Label")).toHaveValue("My Pi");
     expect(within(dialog).getByLabelText("Address")).toHaveValue(local.address);
     await userEvent.clear(within(dialog).getByLabelText("Notes"));
     if (notes) await userEvent.type(within(dialog).getByLabelText("Notes"), `  ${notes}  `);
     await userEvent.click(within(dialog).getByRole("button", { name: "Save changes" }));
-    await waitFor(() => expect(updateAddressBookEntry).toHaveBeenCalledWith("local", { notes }));
+    await waitFor(() => expect(updateAddressBookEntry).toHaveBeenCalledWith("local", { label: "My Pi", notes }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(within(table).getByText("Local device")).toBeInTheDocument();
-    await userEvent.click(within(localRow).getByRole("button", { name: "View This device" }));
-    expect(within(screen.getByRole("dialog", { name: "This device" })).getByText("Local device")).toBeInTheDocument();
+    await userEvent.click(within(localRow).getByRole("button", { name: "View My Pi" }));
+    expect(within(screen.getByRole("dialog", { name: "My Pi" })).getByText("Local device")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(within(manualRow).getByRole("button", { name: "More actions for This device" }));
     expect(screen.getByRole("menuitem", { name: "Remove" })).toBeInTheDocument();

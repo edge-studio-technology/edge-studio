@@ -30,6 +30,17 @@ After the user reported active-looking name/address fields and a visible Remove 
 
 The user's visible Remove action was not reproduced on the current code. Asked for the page URL and whether the row shows Local device; an older open tab is a possibility, not an established cause. Reload the updated frontend before repeating that check. No credentials or authenticated sessions were created.
 
+## Editable-name follow-up (2026-10-07)
+
+The user approved editable name/notes and a one-time dashboard-hostname default for newly created contacts. Existing names remain unchanged. Manual address changes, deletion, and marker changes remain protected; the managed address is visibly disabled and Remove is hidden even after renaming.
+
+- Reproduced four backend and two frontend failures before implementation; 65 focused backend/190 frontend tests and full check passed (3,308 tests), with typechecks, coverage thresholds, clean audits, both builds, and Compose. Tests cover new hostname defaults, existing This device/custom names after hostname changes, validated rename/notes requests, invalid names, protected mixed requests, and name preservation during wallet replacement.
+- Local Playwright fixtures exercised the actual panel: changed This device to Workshop Pi, saved only name/notes, retained Local device identity and hidden Remove, kept the address disabled, and preserved ordinary contact controls. A menu-presence check initially raced React rendering; waiting for the menu confirmed the expected ordinary actions.
+- Backed up backend source files, transferred the three changed production files, and rebuilt/recreated frontend/backend in DEV_MODE. Build log: `/home/devpi5/206-editable-name-build.log`; exit code 0. Both images are healthy and labeled `v0.42.2-dev+a7ddc75e.rename.dirty`; this naming revision was subsequently committed locally.
+- Verified all three local/Pi source checksums and HTTPS health. The existing local contact retained ID `613c09bf-848d-49ae-b896-ef2a2bbacb73`, label This device, and ready state; the new backend container's dashboard hostname is `cc6ff6d5605c`. No existing contact was renamed automatically. Minima/MQTT stayed running.
+
+No schema migration, authenticated Pi rename/delete attempt, wallet replacement, or payment was performed. Existing contacts can now be renamed manually; the default hostname applies only to a newly created managed contact.
+
 ## Compatibility issue and remaining verification
 
 The deployed Minima image returns HTTP 200 with `status: false` and `error: "Command not found"` for the fixed read-only `checkrestore` RPC. The step 4 readiness helper consequently returns false. Normal automatic contact creation succeeds, but after an app-controlled wallet replacement the managed contact would remain pending and unavailable as a payment recipient until this compatibility issue is resolved.

@@ -6,7 +6,8 @@
 ## Context
 
 OpenProject #206 adds a convenient local-wallet recipient to the address book. The contact's
-agreed controls allow notes edits while protecting its name, address, and removal.
+initial controls allowed notes edits while protecting its name, address, and removal; the
+2026-10-07 amendment below allows name edits too.
 The initial implementation adopted an existing wallet-address contact. User review rejected
 this: applying those controls to a user-created contact takes away existing edit/delete rights.
 
@@ -20,7 +21,8 @@ Automation resolves recipients by contact ID, so preserving IDs and destinations
 - `ensureLocalAddressBookEntry()` checks the stored local marker inside an immediate SQLite
   transaction. If present, it returns the contact unchanged without consulting the supplied pool.
 - If missing, it validates and deterministically selects a wallet candidate and inserts a separate
-  **This device** row with the marker set. Selection does not query or modify manual contacts.
+  local-wallet row with the marker set. Its initial name follows the naming amendment below.
+  Selection does not query or modify manual contacts.
 - Initialization never adopts, relabels, edits, demotes, or deletes another contact. A user-created
   row named **This device** does not count as the feature's own contact.
 - Replace global exact-address uniqueness with a partial unique index applying only to ordinary
@@ -31,6 +33,25 @@ Automation resolves recipients by contact ID, so preserving IDs and destinations
   stored field and ID. Already migrated installations skip the rebuild.
 - Manual-contact duplicate checks ignore the managed row. CRUD and workflow resolution continue
   to use each contact's own ID, so a manual copy can be edited or deleted independently.
+
+## Naming amendment (2026-10-07)
+
+The Local device pill and server-owned marker identify the managed recipient independently of
+its name. The user approved editable names after reviewing that identity indicator.
+
+- Default a newly created contact's name to `os.hostname()`, the same hostname displayed on
+  the dashboard. Copy it once; do not continually synchronize it.
+- Allow name and notes edits through the existing validated PATCH contract and edit form.
+  Keep the address visibly disabled, prohibit manual address changes and deletion, and retain
+  the Local device indicator regardless of the chosen name.
+- Preserve every existing name, including This device, and preserve a user-selected name during
+  restart, node recovery, and wallet replacement. No schema migration or relabeling is needed.
+- The dashboard hostname currently belongs to the backend container and can change after a
+  rebuild. A one-time default prevents that change from overwriting a user's contact name.
+
+Locking the name was rejected for the revised policy because local identity is already supplied
+by the marker/pill. Automatically renaming existing contacts or following every hostname change
+was rejected because it would overwrite saved names.
 
 ## Wallet-replacement amendment (2026-10-06)
 

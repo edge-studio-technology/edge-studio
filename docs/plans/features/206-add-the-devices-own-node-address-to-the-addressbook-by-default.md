@@ -10,7 +10,7 @@
 
 [OpenProject #206](https://openproject.privateprivate.org/work_packages/206), “Add the devices own node address to the addressbook by default”, is an In progress task under #322 Wallet Service. Its description requires automatic insertion during device/address-book initialization, duplicate prevention, and identification as the local device. The ticket has no attachments, dependency relations, or substantive implementation discussion. Its current estimate is 1 hour / 1 story point.
 
-The user clarified the contact policy after reviewing the audit: **managed contact; only notes editable; label/name, address, and local-device marker protected; cannot be removed.** The earlier draft allowed label edits; this clarification supersedes that behavior. The persistence/parser foundation, automatic backend initialization/API protections, and frontend identity/control presentation are implemented.
+The current contact policy, approved on 2026-10-07, is **managed contact; name and notes editable; address and local-device marker protected; cannot be removed.** This supersedes the earlier notes-only policy. Newly created contacts copy the dashboard device hostname once; existing names remain unchanged. The persistence/parser foundation, automatic backend initialization/API protections, and frontend identity/control presentation are implemented.
 
 After reviewing step 1, the user clarified the initialization rule: **check whether this feature's app-created self-contact exists; if present, skip creation; otherwise create it; never touch manually added contacts.** The existence check uses the stored app-owned marker, not a matching address or label on a user contact. Restrictions apply only to the app-created managed contact. Sharing a destination with a manual contact is explicitly allowed. Step 1 now implements this rule and migrates global address uniqueness to ordinary-contact-only uniqueness. [ADR 0030](../../adr/0030-app-owned-local-address-book-contact.md) records the decision.
 
@@ -41,14 +41,14 @@ README's Wallet section still documents labeled-account endpoints absent from th
 
 ## Proposed behavior
 
-The following uses the clarified notes-only policy for a separate app-owned contact. Steps 1–4 implement check/create persistence, initialization, API protection, UI behavior, and wallet-replacement verification. Final live testing and signoff remain ahead.
+The following uses the revised editable-name policy for a separate app-owned contact. Steps 1–4 implement check/create persistence, initialization, API protection, UI behavior, and wallet-replacement verification. Final live testing and signoff remain ahead.
 
-- The app creates its own contact labeled **This device**, with a separate **Local device** indicator that remains visible after editing or clearing notes. User-created contacts retain their existing fields and edit/removal permissions.
+- The app creates its own contact named after the dashboard device hostname, with a separate **Local device** indicator that remains visible after editing or clearing notes. User-created contacts retain their existing fields and edit/removal permissions.
 - New and existing installations receive the contact automatically once Minima can supply default addresses, whether or not anyone has opened Wallet.
 - A previously created, verified app contact stays unchanged during ordinary initialization. Node/backend restarts, receive-address refreshes, and wallet-address ordering or pool changes do not automatically select a new one.
 - Normal initialization checks for the feature's own app-managed self-contact. If present, skip creation; if missing, create one. A user-created contact with a wallet address does not satisfy that check and must not be adopted, locked, or otherwise changed.
 - The app contact may share even the exact same destination with a manually added contact. Manual contacts are ignored during initial selection; no alternate address is selected merely to avoid the user's entries. Manual copies stay editable/removable. Preserve the current exact-address duplicate rule between ordinary contacts.
-- Only notes remain editable. The API rejects changing the managed label/name or address, or deleting the contact. Unchanged label/address values submitted by an older client are allowed. Clients cannot designate their own contacts as local.
+- Name and notes remain editable. The API rejects manually changing the managed address or deleting the contact. Unchanged address values submitted by an older client are allowed. Copy the dashboard hostname only on creation; preserve existing names and later user renames through restart and wallet replacement. Clients cannot designate their own contacts as local.
 - An unavailable node, initializing wallet, empty response, timeout, or malformed response creates nothing and clears nothing. Retry on the existing health cadence. Address-book reads still return saved contacts.
 - After an app-controlled wallet replacement, verify the saved local address against the current wallet. Keep it if still owned (including Mx/hex aliases); otherwise update only the managed address, preserving ID, name, notes, creation time, and all manual contacts. Workflows intentionally follow the current wallet through the same contact ID. Record old/new public addresses in the audit log; do not create a backup recipient. Persist a pending-verification state before replacement dispatch and block payments through the managed contact until verification succeeds. Ordinary outages never invalidate a ready contact.
 
@@ -74,14 +74,14 @@ The following uses the clarified notes-only policy for a separate app-owned cont
 
 ### 3. API protection
 
-- In `address-book.routes.ts`, protect label/address changes and DELETE based on the stored marker, not a client value, name, or note. Allow notes edits and unchanged label/address values. Return an actionable structured conflict error for a protected operation.
+- In `address-book.routes.ts`, protect manual address changes and DELETE based on the stored marker, not a client value, name, or note. Allow validated name/notes edits and unchanged address values. Return an actionable structured conflict error for a protected operation.
 - Keep admin checks and ordinary-contact CRUD behavior. Allow manual copies of the managed destination, including exact matches and aliases; retain the previous exact-text uniqueness check between manual contacts. For the managed entry, unchanged address values must not conflict with a separate manual copy.
 - Correct the backend `UpdateAddressBookEntryInput` type's existing missing `address` field while touching that contract.
 
 ## Frontend changes
 
 - In `AddressBookPanel.tsx`, use existing ESDS components to add a Local device indicator in the name cell and contact details. Keep it visible even if Notes is hidden or edited.
-- Retain Edit for the managed contact but render its label/name and address read-only with brief explanatory copy; only Notes can be changed. Remove its Remove action; normal recipients retain their existing controls.
+- Retain Edit for the managed contact but visibly disable its address with brief explanatory copy; name and Notes can be changed. Remove its Remove action; normal recipients retain their existing controls.
 - Reload the list when a previously unavailable node becomes available. The list-handler initialization fallback handles an open table racing the background initializer. Do not add a separate browser RPC or general polling store.
 - Append local-device identity to option labels in `SendPaymentModal.tsx` and `WorkflowBlockInspectors.tsx`. Use contact IDs for both selectors; Send payment resolves the selected ID to the stored address for the existing payment request. This step 3 adjustment keeps duplicate-destination options distinct and avoids a controlled address-valued select showing the wrong contact after selection. Workflow IDs and actual payment destinations remain unchanged.
 - In `workflowHelpers.ts:defaultEditBlockConfig()`, preserve automatic selection of an ordinary recipient while excluding the managed entry from implicit defaults; leave the recipient blank when no ordinary contact exists. The managed entry remains available for explicit selection.
@@ -145,6 +145,12 @@ The following uses the clarified notes-only policy for a separate app-owned cont
 
 Rebuilt and deployed `a7ddc75e` with `DEV_MODE=true` on the dev Pi. Both app services are healthy, report the expected revision, and retain the existing critical configuration. Automatic initialization created one wallet-owned managed contact and one creation audit from the empty address book. HTTPS health and the Playwright login page passed. A subsequent UI follow-up visibly disabled the managed name/address fields and deployed an uncommitted `a7ddc75e-dirty` source build; local Playwright fixtures confirmed protected/manual controls. The deployed Minima image rejects `checkrestore` with `Command not found`; pending wallet-replacement verification cannot complete with this RPC on this device. Resolve that compatibility issue before replacement acceptance/signoff. No wallet replacement, payments, or authenticated Pi browser checks ran. See [deployment evidence](../../qa/206-completed-branch-pi-deployment.md).
 
+### Editable-name amendment implementation (2026-10-07)
+
+Approved and implemented name/notes editing while retaining the protected address, marker, and deletion. New contacts default to `os.hostname()`, matching the dashboard hostname, only when inserted. Existing This device and user-selected names are preserved through hostname changes, initialization, and wallet replacement; no migration is required. The name field is enabled/focused, the address stays visibly disabled, and Local device identity/hidden Remove survive a rename. ADR 0030 records the revised policy.
+
+Reproduced four backend/two frontend failures before implementation. All 65 focused backend/190 frontend tests and full check (3,308 tests), typechecks, coverage thresholds, clean audits, both builds, and Compose passed. Local Playwright fixtures confirmed name/notes-only saves and managed/manual controls. Deployed the uncommitted modified source to the Pi as `v0.42.2-dev+a7ddc75e.rename.dirty`; services and HTTPS health passed, source checksums matched, and the existing This device name/ID remained unchanged. Authenticated Pi CRUD, wallet replacement, and signoff remain ahead; the separate missing-checkrestore compatibility issue remains open.
+
 The existing baseline and remaining acceptance checks below continue to apply. Wallet-replacement behavior is implemented and locally verified; final live verification and signoff remain open.
 
 - Database/repository: existing-install migration; repeated migrations; separate app-contact creation even with duplicate destinations; unique marker; existing user rows remain ordinary with unchanged metadata/IDs; skip an existing managed entry regardless of supplied pool changes.
@@ -189,7 +195,7 @@ Manual verification with a disposable database and test node:
 2. Existing database with wallet addresses already saved as Mx, 0x, or different case: confirm every user contact remains ordinary, editable/removable, and unchanged; the app creates its own row even if the exact same destination is saved. Include a pool with every address already saved.
 3. Restart both services repeatedly and refresh Receive/QR: confirm the managed recipient/address stays stable.
 4. Start with Minima stopped, then start it: confirm saved contacts remain accessible and initialization retries successfully.
-5. Edit/clear notes; attempt protected label/address/delete operations through both UI and API; confirm ordinary contacts still work normally.
+5. Rename the managed contact and edit/clear notes; verify its Local device indicator remains, invalid names are rejected, and existing names survive hostname changes/restarts/wallet replacement; attempt protected address/delete operations through both UI and API; confirm ordinary contacts still work normally.
 6. Open Send payment and workflow recipient selection: confirm the local marker and explicit-selection behavior, without submitting a payment merely to test this UI.
 7. Restore the same wallet on a disposable node: pending is visible during restore; the same contact ID/address/notes becomes ready without an address-change audit event.
 8. Restore a different disposable wallet: verify only the app contact's address changes, ID/name/notes/creation time and all manual rows remain unchanged, no backup contact appears, and one `address-book.local.replace` event contains the public old/new destinations.
@@ -202,7 +208,7 @@ Manual verification with a disposable database and test node:
 
 This is a small extension of the current address book, independent of #270 Rework Wallet Service V2. It does not add multi-wallet support, change the Receive QR rotation, create key material, merge historical alias contacts, or change installation topology.
 
-The notes-only managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The deployed Minima response is verified and backend initialization/protection plus identity UI are implemented; authenticated browser/Pi checks of the completed feature and manual signoff remain.
+The managed-contact policy adds schema, API, and UI work beyond a simple insertion hook. The ticket's one-hour estimate should be reassessed against the migration, alias handling, restore integration, and real-node QA rather than treated as verified effort. The deployed Minima response is verified and backend initialization/protection plus identity UI are implemented; authenticated browser/Pi checks of the completed feature and manual signoff remain.
 
 ## Contact policy
 
@@ -210,7 +216,7 @@ The ticket requires automatic addition, duplicate prevention, and local identifi
 
 | Option | Operator behavior | Implementation consequences |
 | --- | --- | --- |
-| App-owned managed contact (clarified selection) | Only the app-created contact has notes-only editing, a protected name/address, and no removal; user contacts retain control. | Check/create initialization, separate IDs with duplicate destinations allowed, and server-side PATCH/DELETE guards on the managed entry only. |
+| App-owned managed contact (clarified selection) | Only the app-created contact has editable name/notes, a protected address, and no removal; user contacts retain control. | Check/create initialization, separate IDs with duplicate destinations allowed, and server-side PATCH/DELETE guards on the managed entry only. |
 | Seeded normal contact | Automatically added once, then freely editable/removable. | Persist completed initialization so a deliberate deletion is respected; revalidate/clear local identity after address edits or wallet replacement. |
 | Protected address with optional hiding/removal | Address remains app-owned; operator can hide/remove it and restore it later. | Requires a persisted suppression state and a restore action; more UI and state than either option above. |
 
