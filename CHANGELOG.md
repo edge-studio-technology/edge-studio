@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Manually saved contacts may share the app-managed local contact's destination while retaining their own IDs and edit/delete controls.
 - The This device contact allows notes edits and rejects name/address changes and deletion through the API.
-- The local contact's edit form protects its name/address and its menu omits Remove.
+- The local contact's edit form visibly disables its protected name/address fields and its menu omits Remove.
 - The address book reloads on node recovery, and new workflow payment blocks choose only ordinary contacts as their default recipient.
 - Local recipients awaiting wallet-replacement verification are unavailable for payment and display their verification status.
 - Payments selecting an address-book contact resolve its current destination on the backend.

@@ -12,7 +12,7 @@
 
 ## Current Focus
 
-- [ ] Final manual verification/signoff for the default local Minima wallet contact (OpenProject #206) — steps 1–4 implemented; 207 backend/190 frontend focused tests and full check (3,304 tests), builds, and Compose passed; step 4 committed locally; deploy completed branch and run Pi/Playwright plus disposable wallet-replacement checks; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-step-1-pi.md`, and ADR 0030.
+- [ ] Final manual verification/signoff for the default local Minima wallet contact (OpenProject #206) — steps 1–4 implemented and locally verified; completed branch `a7ddc75e` deployed with DEV_MODE=true, healthy services and automatic wallet-owned contact creation confirmed; resolve deployed Minima's missing `checkrestore` RPC, then finish authenticated Pi/Playwright and disposable wallet-replacement checks; see `docs/plans/features/206-add-the-devices-own-node-address-to-the-addressbook-by-default.md`, `docs/qa/206-completed-branch-pi-deployment.md`, and ADR 0030.
 - [ ] Manual browser check of the Minima RPC console whitelist modal fix (checkbox styling, collapsible Read/Write sections) on `main`.
 
 ## In Progress
@@ -82,6 +82,8 @@
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
 
 ## Done
+
+- [x] #206 protected-contact UX follow-up: visibly disabled managed name/address fields with editable Notes, hidden managed Remove, and unchanged manual controls; 22 panel tests, full check (3,304 tests), builds/Compose, and local Playwright fixtures passed; deployed healthy dirty source build on the dev Pi. Committed locally; final authenticated feature signoff remains pending.
 
 - [x] #206 step 4 implementation: app-controlled wallet replacement refreshes only the managed address, preserves manual rows/metadata/workflow IDs, records atomic public-address audit, blocks pending recipients, and resolves current destinations at send time; 207 backend/190 frontend focused tests and full check (3,304 tests), both builds, and Compose passed. Deployment/manual signoff remains under the parent feature.
 

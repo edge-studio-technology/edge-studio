@@ -85,6 +85,10 @@ describe("AddressBookPanel", () => {
     const dialog = screen.getByRole("dialog", { name: "Edit contact" });
     expect(within(dialog).getByLabelText("Label")).toHaveAttribute("readonly");
     expect(within(dialog).getByLabelText("Address")).toHaveAttribute("readonly");
+    expect(within(dialog).getByLabelText("Label")).toBeDisabled();
+    expect(within(dialog).getByLabelText("Address")).toBeDisabled();
+    expect(within(dialog).getByLabelText("Notes")).toBeEnabled();
+    expect(within(dialog).getByLabelText("Notes")).toHaveFocus();
     await userEvent.type(within(dialog).getByLabelText("Label"), "Changed");
     await userEvent.type(within(dialog).getByLabelText("Address"), "0xabc");
     expect(within(dialog).getByLabelText("Label")).toHaveValue(local.label);
@@ -103,6 +107,8 @@ describe("AddressBookPanel", () => {
     await userEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
     expect(screen.getByLabelText("Label")).not.toHaveAttribute("readonly");
     expect(screen.getByLabelText("Address")).not.toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Label")).toBeEnabled();
+    expect(screen.getByLabelText("Address")).toBeEnabled();
     expect(deleteAddressBookEntry).not.toHaveBeenCalled();
   });
 

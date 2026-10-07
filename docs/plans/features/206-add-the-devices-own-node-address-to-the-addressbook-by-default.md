@@ -1,6 +1,6 @@
 # Local Device Address Book Contact Plan
 
-**Status:** Steps 1–4 implemented and locally verified; ready for final manual Pi/Playwright testing and signoff; only step 1 has been Pi-verified
+**Status:** Steps 1–4 implemented and locally verified; completed branch deployed on the Pi on 2026-10-07 with healthy services and automatic contact creation; deployed Minima lacks `checkrestore`, requiring a compatibility fix before wallet-replacement acceptance and final signoff
 **Created:** 2026-10-06
 **Branch:** `task/206-add-the-devices-own-node-address-to-the-addressbook-by-default`
 **Audit baseline:** `e3c52cf8` (clean working tree before this planning session)
@@ -140,6 +140,10 @@ The following uses the clarified notes-only policy for a separate app-owned cont
 - Reused SQLite settings for durable pending revisions, exposed `isLocalDevicePending`, and connected replacement dispatch to backup restore, seed import, console restore/reset, and seed-bearing archive/MySQL/MegaMMR commands. No schema migration or scheduler was added. In-flight guards, strict read-only restore-state checks, canonical membership comparison, and revision checks protect verification; ambiguous exceptions retain protection for still-old pools.
 - Verification preserves same-wallet address text, or updates only the managed address while retaining its ID/metadata. The update, flag clearing, and public old/new audit are atomic, including rollback on audit failure. Send-payment contact IDs resolve on the backend; automation rechecks after balance awaits. Pending destinations are hidden/disabled and an available-node table retries pending verification every 30 seconds.
 - Passed 207 focused backend tests across eight files and 190 focused frontend tests across four files. `npm run check` passed 3,304 tests (backend 1,350; frontend 1,731; Update Agent 171; scripts 52), typechecks, coverage thresholds, and clean dependency audits. Both production builds, Compose config, and diff checks passed; existing chunk-size/unset image-variable warnings remain. Updated README/changelog/security/task/session docs. Step 4 is committed locally and has not been deployed or manually signed off.
+
+### Completed-branch deployment (2026-10-07)
+
+Rebuilt and deployed `a7ddc75e` with `DEV_MODE=true` on the dev Pi. Both app services are healthy, report the expected revision, and retain the existing critical configuration. Automatic initialization created one wallet-owned managed contact and one creation audit from the empty address book. HTTPS health and the Playwright login page passed. A subsequent UI follow-up visibly disabled the managed name/address fields and deployed an uncommitted `a7ddc75e-dirty` source build; local Playwright fixtures confirmed protected/manual controls. The deployed Minima image rejects `checkrestore` with `Command not found`; pending wallet-replacement verification cannot complete with this RPC on this device. Resolve that compatibility issue before replacement acceptance/signoff. No wallet replacement, payments, or authenticated Pi browser checks ran. See [deployment evidence](../../qa/206-completed-branch-pi-deployment.md).
 
 The existing baseline and remaining acceptance checks below continue to apply. Wallet-replacement behavior is implemented and locally verified; final live verification and signoff remain open.
 

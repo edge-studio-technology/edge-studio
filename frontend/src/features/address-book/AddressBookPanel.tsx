@@ -524,7 +524,7 @@ function EditContactForm({
             maxLength={80}
             autoFocus={!entry.isLocalDevice}
             readOnly={entry.isLocalDevice}
-            disabled={submitting}
+            disabled={submitting || entry.isLocalDevice}
           />
           <InputField
             label="Address"
@@ -535,7 +535,7 @@ function EditContactForm({
             autoComplete="off"
             spellCheck={false}
             readOnly={entry.isLocalDevice}
-            disabled={submitting}
+            disabled={submitting || entry.isLocalDevice}
           />
         </div>
         <InputField
