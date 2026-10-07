@@ -50,14 +50,16 @@ export function AltDeviceForm({
   action?: ReactNode;
 }) {
   return (
-    <section className="grid min-h-full min-w-0 overflow-hidden rounded-soft lg:grid-cols-[260px_minmax(0,1fr)]">
+    <section className="grid min-h-full min-w-0 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
       <ProvisioningTimeline currentStep={currentStep} fields={fields} />
-      <div className="border-stroke-secondary bg-surface-primary grid min-w-0 content-start border-t p-detail-next lg:border-t-0 lg:border-l">
-        {currentStep === "type" && <DeviceTypeStep template={template} />}
-        {currentStep === "name" && <NameStep fields={fields} />}
-        {currentStep === "setup" && <SetupFields fields={fields} />}
-        {currentStep === "review" && <ReviewStep template={template} fields={fields} />}
-        {action ? <div className="mt-detail-near flex justify-end">{action}</div> : null}
+      <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-t p-detail-next lg:border-t-0 lg:border-l">
+        <div className="min-w-0">
+          {currentStep === "type" && <DeviceTypeStep template={template} />}
+          {currentStep === "name" && <NameStep fields={fields} />}
+          {currentStep === "setup" && <SetupFields fields={fields} />}
+          {currentStep === "review" && <ReviewStep template={template} fields={fields} />}
+        </div>
+        {action ? <div className="mt-auto flex justify-end pt-detail-next">{action}</div> : null}
       </div>
     </section>
   );
@@ -84,14 +86,15 @@ function isAltDeviceSetupValid(fields: DeviceFormFields) {
 function ProvisioningTimeline({ currentStep, fields }: { currentStep: AltDeviceProvisioningStep; fields: DeviceFormFields }) {
   const currentIndex = provisioningSteps.findIndex((step) => step.id === currentStep);
   return (
-    <ol className="bg-surface-secondary m-0 grid h-full list-none p-detail-next">
+    <ol className="bg-surface-secondary m-0 flex h-full list-none flex-col p-detail-next">
       {provisioningSteps.map((step, index) => {
         const complete = index < currentIndex || (index === currentIndex && isAltDeviceStepValid(fields, step.id));
         const active = step.id === currentStep;
         const isLast = index === provisioningSteps.length - 1;
         return (
-          <li key={step.id} className="gap-detail-tight grid min-h-24 grid-cols-[auto_minmax(0,1fr)] items-start last:min-h-0">
-            <span className="grid h-full grid-rows-[auto_minmax(0,1fr)] justify-items-center">
+          <li key={step.id} className={`gap-detail-tight relative grid grid-cols-[auto_minmax(0,1fr)] items-start ${isLast ? "flex-none" : "flex-1"}`}>
+            {!isLast && <span className="bg-stroke-secondary absolute top-8 bottom-0 left-4 w-px" aria-hidden />}
+            <span className="z-10 grid justify-items-center">
               <span
                 className={`grid size-8 place-items-center rounded-full border type-body-em ${
                   active
@@ -103,11 +106,10 @@ function ProvisioningTimeline({ currentStep, fields }: { currentStep: AltDeviceP
               >
                 {complete && !active ? "✓" : index + 1}
               </span>
-              {!isLast && <span className="bg-stroke-secondary my-detail-tight w-px" aria-hidden />}
             </span>
             <span>
-              <span className={`type-body-em block ${active ? "text-text-primary" : "text-text-secondary"}`}>{step.title}</span>
-              <span className="type-meta text-text-tertiary block">{step.description}</span>
+              <span className={`type-body-em block ${active || complete ? "text-text-primary" : "text-text-secondary"}`}>{step.title}</span>
+              <span className={`type-meta block ${active || complete ? "text-text-secondary" : "text-text-tertiary"}`}>{step.description}</span>
             </span>
           </li>
         );
