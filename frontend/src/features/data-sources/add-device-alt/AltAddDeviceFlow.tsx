@@ -122,7 +122,7 @@ export function AltAddDeviceFlow({
         onClose={onClose}
         width="wide"
         className={setupDeviceModalClassName}
-        bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0"
+        bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0 pl-3"
         footer={
           <div className="flex w-full items-center justify-between gap-detail-next">
             <Button
