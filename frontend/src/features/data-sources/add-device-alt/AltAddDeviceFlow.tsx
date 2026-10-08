@@ -147,6 +147,7 @@ export function AltAddDeviceFlow({
         title={<SetupDeviceBreadcrumb step={step} final="Device added" />}
         onClose={onClose}
         width="wide"
+        minWidth="desktop"
         className={setupDeviceModalClassName}
         bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0"
         footer={
@@ -179,6 +180,7 @@ export function AltAddDeviceFlow({
         closeDisabled={saving}
         onClose={onClose}
         width="wide"
+        minWidth="desktop"
         className={setupDeviceModalClassName}
         bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0"
         footer={
@@ -240,6 +242,7 @@ export function AltAddDeviceFlow({
       title={<SetupDeviceBreadcrumb step={step} />}
       onClose={onClose}
       width="wide"
+      minWidth="desktop"
       className={setupDeviceModalClassName}
       bodyClassName="min-h-0 flex-1"
       footer={

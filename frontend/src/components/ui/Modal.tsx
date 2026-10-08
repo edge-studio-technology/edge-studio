@@ -77,6 +77,7 @@ export function Modal({
   closeOnOutsideClick,
   layer = "default",
   width = "default",
+  minWidth = "none",
 }: {
   title: string | ReactNode;
   description?: ReactNode;
@@ -91,6 +92,7 @@ export function Modal({
   closeOnOutsideClick?: boolean;
   layer?: "default" | "top";
   width?: "default" | "wide";
+  minWidth?: "none" | "desktop";
 }) {
   const titleId = useId();
   const descriptionId = useId();
@@ -131,12 +133,18 @@ export function Modal({
     <div
       className={cx(
         "bg-overlay-heavy px-pad-tight py-pad-tight fixed inset-0 grid place-items-center",
+        minWidth === "desktop" && "overflow-x-auto",
         layer === "top" ? "z-[100]" : "z-[90]",
       )}
       role="presentation"
       onMouseDown={handleBackdropMouseDown}
     >
-      <div className={cx("p-detail-close w-full", width === "wide" ? "max-w-240" : "max-w-200")}>
+      <div
+        className={cx(
+          "p-detail-close w-full",
+          minWidth === "desktop" ? "min-w-[1024px] max-w-none" : width === "wide" ? "max-w-240" : "max-w-200",
+        )}
+      >
         <div
           className={cx(
             "bg-surface-always-white gap-detail-near rounded-soft p-pad-relaxed relative flex max-h-[min(90vh,760px)] w-full flex-col overflow-hidden",
