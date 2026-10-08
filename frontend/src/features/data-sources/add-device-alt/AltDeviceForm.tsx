@@ -1,4 +1,3 @@
-import { Pill } from "../../../components/Pill";
 import { DetailList, DetailRow } from "../../../components/patterns/DetailList";
 import { InputField } from "../../../components/ui/InputField";
 import { SelectField } from "../../../components/ui/SelectField";
@@ -52,7 +51,7 @@ export function AltDeviceForm({
   return (
     <section className="grid min-h-full min-w-0 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
       <ProvisioningTimeline currentStep={currentStep} fields={fields} />
-      <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-t p-detail-next pl-6 lg:border-t-0 lg:border-l">
+      <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-t px-detail-next py-pad-relaxed pl-6 lg:border-t-0 lg:border-l">
         <div className="min-w-0">
           {currentStep === "type" && <DeviceTypeStep template={template} />}
           {currentStep === "name" && <NameStep fields={fields} />}
@@ -120,8 +119,7 @@ function ProvisioningTimeline({ currentStep, fields }: { currentStep: AltDeviceP
 
 function DeviceTypeStep({ template }: { template: DataSourceTemplate }) {
   return (
-    <div className="gap-detail-close grid">
-      <Pill>{template.title}</Pill>
+    <div>
       <div>
         <h3 className="type-title text-text-primary m-0">{template.title}</h3>
         <p className="type-body text-text-secondary mt-detail-tight m-0">{template.description}</p>
