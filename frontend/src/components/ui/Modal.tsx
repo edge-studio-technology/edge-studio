@@ -142,7 +142,8 @@ export function Modal({
       <div
         className={cx(
           "p-detail-close w-full",
-          minWidth === "desktop" ? "min-w-[1024px] max-w-none" : width === "wide" ? "max-w-240" : "max-w-200",
+          width === "wide" ? "max-w-240" : "max-w-200",
+          minWidth === "desktop" && "max-lg:min-w-[1024px]",
         )}
       >
         <div
