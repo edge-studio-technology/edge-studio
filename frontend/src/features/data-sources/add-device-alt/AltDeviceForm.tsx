@@ -71,7 +71,15 @@ export function isAltDeviceStepValid(fields: DeviceFormFields, step: AltDevicePr
   return true;
 }
 
-export function DeviceAddedSummary({ source, template }: { source: DataSource; template: DataSourceTemplate }) {
+export function DeviceAddedSummary({
+  source,
+  template,
+  action,
+}: {
+  source: DataSource;
+  template: DataSourceTemplate;
+  action?: ReactNode;
+}) {
   return (
     <section className="grid min-h-full min-w-0 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
       <div className="bg-surface-secondary px-detail-next py-pad-relaxed">
@@ -80,16 +88,19 @@ export function DeviceAddedSummary({ source, template }: { source: DataSource; t
           {source.name} is ready to use in Edge Studio.
         </p>
       </div>
-      <div className="border-stroke-secondary bg-surface-primary min-w-0 border-t px-detail-next py-pad-relaxed pl-6 lg:border-t-0 lg:border-l">
-        <h3 className="type-title text-text-primary m-0">{source.name}</h3>
-        <p className="type-body text-text-secondary mt-detail-tight m-0">
-          Your device was saved successfully. Open its guide for setup and workflow recommendations.
-        </p>
-        <DetailList className="mt-detail-near">
-          <DetailRow label="Type" value={template.title} />
-          <DetailRow label="Name" value={source.name} />
-          {source.description && <DetailRow label="Description" value={source.description} />}
-        </DetailList>
+      <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-t px-detail-next py-pad-relaxed pl-6 lg:border-t-0 lg:border-l">
+        <div>
+          <h3 className="type-title text-text-primary m-0">{source.name}</h3>
+          <p className="type-body text-text-secondary mt-detail-tight m-0">
+            Your device was saved successfully. Open its guide for setup and workflow recommendations.
+          </p>
+          <DetailList className="mt-detail-near">
+            <DetailRow label="Type" value={template.title} />
+            <DetailRow label="Name" value={source.name} />
+            {source.description && <DetailRow label="Description" value={source.description} />}
+          </DetailList>
+        </div>
+        {action ? <div className="mt-auto flex justify-center pt-detail-next">{action}</div> : null}
       </div>
     </section>
   );

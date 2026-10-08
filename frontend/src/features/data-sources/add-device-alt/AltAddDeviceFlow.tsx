@@ -150,15 +150,24 @@ export function AltAddDeviceFlow({
         className={setupDeviceModalClassName}
         bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0"
         footer={
-          <div className="gap-detail-next flex w-full flex-wrap items-center justify-end">
-            <Button variant="secondary" onClick={onClose}>Return to device page</Button>
-            <Button variant="secondary" onClick={addAnotherDevice}>Add new device</Button>
-            <Button variant="secondary" onClick={openSetupGuide}>Open device guide</Button>
-            <Button onClick={goToWorkflows}>Go to workflow page</Button>
+          <div className="grid w-full grid-cols-3 items-center">
+            <div className="justify-self-start">
+              <Button variant="secondary" onClick={onClose}>Return to device page</Button>
+            </div>
+            <div className="justify-self-center">
+              <Button variant="secondary" onClick={addAnotherDevice}>Add new device</Button>
+            </div>
+            <div className="justify-self-end">
+              <Button variant="secondary" onClick={goToWorkflows}>Go to workflow page</Button>
+            </div>
           </div>
         }
       >
-        <DeviceAddedSummary source={createdSource} template={template} />
+        <DeviceAddedSummary
+          source={createdSource}
+          template={template}
+          action={<Button onClick={openSetupGuide}>Open device guide</Button>}
+        />
       </Modal>
     );
   }
