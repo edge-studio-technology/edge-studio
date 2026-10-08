@@ -4,7 +4,7 @@ import { fetchVerifiedManifest, type Manifest } from "../../src/manifest/manifes
 import { getLastAppliedManifest, recordAppliedManifest } from "../../src/manifest/manifest-state.js";
 import { getComposeServiceContainer, inspectImage } from "../../src/docker/docker.service.js";
 import { getUpdateStatus } from "../../src/status/status.service.js";
-import { syncChangelog } from "../../src/status/changelog-cache.js";
+import { getCachedChangelog, syncChangelog } from "../../src/status/changelog-cache.js";
 import type { DockerContainerSummary } from "../../src/docker/docker.types.js";
 
 vi.mock("../../src/manifest/manifest.service.js", () => ({
@@ -16,7 +16,7 @@ vi.mock("../../src/manifest/manifest-state.js", () => ({
   recordAppliedManifest: vi.fn()
 }));
 vi.mock("../../src/docker/docker.service.js", () => ({ getComposeServiceContainer: vi.fn(), inspectImage: vi.fn() }));
-vi.mock("../../src/status/changelog-cache.js", () => ({ syncChangelog: vi.fn() }));
+vi.mock("../../src/status/changelog-cache.js", () => ({ syncChangelog: vi.fn(), getCachedChangelog: vi.fn() }));
 
 function manifest(overrides: Partial<Manifest> = {}): Manifest {
   return {
@@ -76,6 +76,22 @@ describe("status.service", () => {
 
       await assert.rejects(getUpdateStatus(), /bad signature/);
       assert.equal((syncChangelog as any).mock.calls.length, 0);
+    });
+
+    it("returns the cached changelog without its manifest version", async () => {
+      (getCachedChangelog as any).mockResolvedValue({ markdown: "# Changelog", manifestVersion: "1.2.3", fetchedAt: "2026-10-08T00:00:00.000Z" });
+
+      const result = await getUpdateStatus();
+
+      assert.deepEqual(result.changelog, { markdown: "# Changelog", fetchedAt: "2026-10-08T00:00:00.000Z" });
+    });
+
+    it("returns a null changelog when none is cached", async () => {
+      (getCachedChangelog as any).mockResolvedValue(null);
+
+      const result = await getUpdateStatus();
+
+      assert.equal(result.changelog, null);
     });
 
     it("builds a service status entry for each manifest service key plus update-agent and host-runtime", async () => {

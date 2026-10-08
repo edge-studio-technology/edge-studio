@@ -2,7 +2,7 @@ import { fetchVerifiedManifest, MANIFEST_SERVICE_KEYS, type Manifest } from "../
 import { getLastAppliedManifest, recordAppliedManifest } from "../manifest/manifest-state.js";
 import { getComposeServiceContainer, inspectImage } from "../docker/docker.service.js";
 import type { DockerContainerSummary } from "../docker/docker.types.js";
-import { syncChangelog } from "./changelog-cache.js";
+import { getCachedChangelog, syncChangelog } from "./changelog-cache.js";
 
 export type ServiceStatus = {
   service: string;
@@ -39,6 +39,7 @@ export async function getUpdateStatus(): Promise<{
   services: ServiceStatus[];
   currentVersion: string | null;
   installedBuilds: InstalledBuilds;
+  changelog: { markdown: string; fetchedAt: string } | null;
 }> {
   const manifest = await fetchVerifiedManifest();
   // Never rejects: a failed changelog sync keeps the cached copy and must not fail the status check.
@@ -109,11 +110,13 @@ export async function getUpdateStatus(): Promise<{
     getInstalledBuild(containers["update-agent"])
   ]);
   await changelogSync;
+  const changelog = await getCachedChangelog();
 
   return {
     manifest,
     services,
     currentVersion,
-    installedBuilds: { frontend: frontendBuild, backend: backendBuild, "update-agent": updateAgentBuild }
+    installedBuilds: { frontend: frontendBuild, backend: backendBuild, "update-agent": updateAgentBuild },
+    changelog: changelog ? { markdown: changelog.markdown, fetchedAt: changelog.fetchedAt } : null
   };
 }
