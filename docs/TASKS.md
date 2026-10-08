@@ -84,7 +84,7 @@
 
 ## Done
 
-- [x] Added local Pi SSH credential placeholders, a password-safe developer helper, and the mirrored `pi-ssh` agent skill; skill validation, Bash syntax, and eight isolated helper checks passed. Live connection setup remains local to the developer machine.
+- [x] Added local Pi SSH credential placeholders, a password-safe developer helper, and the mirrored `pi-ssh` agent skill; skill validation, Bash syntax, and eight isolated helper checks passed. Live password authentication and read-only identity checks passed on `RaspberryPi5` as `devpi5` (`aarch64`), with host-key verification enabled.
 
 - [x] #206 implementation and contact-flow verification — full checks/builds passed; Pi upgrade, clean app/wallet installation, default naming, protections, ordinary CRUD, restart persistence, and same/different-wallet backup restores with pending-payment protection verified; see the QA summary.
 
