@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - The address book automatically adds a persistent contact named after the device, marked Local device, with editable name/notes and protected address/deletion.
+- `scripts/dev/benchmark/` scripts that measure the installed app's CPU, memory, disk growth, start-up time and workflow load on a Pi, with a guide in `docs/guides/pi-benchmark.md`.
 
 ### Changed
 
