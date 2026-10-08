@@ -84,6 +84,8 @@
 
 ## Done
 
+- [x] Added local Pi SSH credential placeholders, a password-safe developer helper, and the mirrored `pi-ssh` agent skill; skill validation, Bash syntax, and eight isolated helper checks passed. Live connection setup remains local to the developer machine.
+
 - [x] #206 implementation and contact-flow verification — full checks/builds passed; Pi upgrade, clean app/wallet installation, default naming, protections, ordinary CRUD, restart persistence, and same/different-wallet backup restores with pending-payment protection verified; see the QA summary.
 
 - [x] Fixed npm audit advisories with patch-only lockfile updates for `proxy-addr`, `source-map-js`, and root `brace-expansion`; all four audits are clean, typechecks/builds and frontend/Update Agent coverage passed; existing backend and Windows script-test limitations are recorded in SESSION.
