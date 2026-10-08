@@ -1,6 +1,6 @@
 # Improve Changelog Service Plan
 
-**Status:** In progress — code, docs, local verification done; Pi check remains
+**Status:** Done — awaiting PR to `dev`
 **Created:** 2026-10-08
 **Branch:** `task/239-improve-changelog-service`
 **Goal:** Cache the Update page changelog in `update-agent`, kept in step with the signed manifest, instead of having the browser fetch GitHub on every page load.
@@ -13,7 +13,7 @@
 - [x] Frontend 1–6 (`bb3f4941`)
 - [x] Docs: ADR 0031, 0004 marked partially superseded, rules ×3, SECURITY, README, CHANGELOG
 - [x] Local verification: `npm run check`, backend/frontend builds, `docker compose config`, `docker compose build frontend update-agent`, `nginx -t` on new CSP
-- [ ] Pi check: notes show with no browser GitHub requests; offline `update-agent` restart keeps notes
+- [x] Pi check (2026-10-08, DEV_MODE install + branch `update-agent`): notes show with no browser GitHub requests; `update-agent` restart with GitHub blocked keeps notes from disk
 
 ## Context
 

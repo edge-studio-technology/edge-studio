@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Update page release notes come from a copy `update-agent` caches when it checks for updates, and still show when the Pi is offline.
+- Update page release notes come from a copy `update-agent` caches on disk when it checks for updates.
 - "View full changelog" on the Update page opens every released entry in the app instead of GitHub.
 - The browser no longer contacts GitHub from the Update page, and the frontend CSP no longer allows `raw.githubusercontent.com`.
 

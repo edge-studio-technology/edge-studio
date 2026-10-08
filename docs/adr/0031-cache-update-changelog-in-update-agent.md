@@ -33,7 +33,7 @@ within that cap.
   never fails the status call.
 - The cache (`{ markdown, manifestVersion, fetchedAt }`) is persisted to
   `UPDATE_AGENT_STATE_DIR/changelog-cache.json`, same pattern as `manifest-state.ts`, and loaded
-  lazily on first use. Notes survive an offline restart.
+  lazily on first use. Notes survive an `update-agent` restart without GitHub access.
 - `GET /status` adds `changelog: { markdown, fetchedAt } | null`. `/status/summary` is unchanged,
   since the nav badge polls it and doesn't need the body.
 - The frontend no longer contacts GitHub. `UpdatePage` passes `status.changelog.markdown` to
