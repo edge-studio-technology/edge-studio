@@ -95,7 +95,7 @@ of carrying the full rationale inline.
 | [adr/0001-minima-graceful-node-restart.md](./adr/0001-minima-graceful-node-restart.md)   | Minima restart: `quit` + Docker `RestartCount` baseline detection + 5-min forceful fallback |
 | [adr/0002-update-page-split.md](./adr/0002-update-page-split.md)                         | Update page split: frontend owns `/update` (status/check/start), `update-agent` owns `/update/` (apply progress) |
 | [adr/0003-update-dry-run.md](./adr/0003-update-dry-run.md)                               | Dev-only `UPDATE_DRY_RUN`: simulates a successful apply without touching any container |
-| [adr/0004-update-page-changelog.md](./adr/0004-update-page-changelog.md)                 | Update page changelog preview: direct client-side GitHub raw fetch, rendered as React elements (no HTML injection) |
+| [adr/0004-update-page-changelog.md](./adr/0004-update-page-changelog.md)                 | Update page changelog preview: rendered as React elements (no HTML injection); client-side GitHub fetch superseded by 0032 |
 | [adr/0005-modal-mount-gate-removal.md](./adr/0005-modal-mount-gate-removal.md)           | Removed `Modal`'s SSR-pattern `mounted` render gate: unneeded in this client-only SPA, was causing a blank-frame flicker on modal-to-modal swaps |
 | [adr/0006-app-version-single-source-of-truth.md](./adr/0006-app-version-single-source-of-truth.md) | Feedback's app version now reads `update-agent`'s last-applied-manifest file (read-only mount) instead of a separate, drifted `INTEGRITAS_PI_VERSION` env var |
 | [adr/0007-release-channels-and-compose-generation.md](./adr/0007-release-channels-and-compose-generation.md) | Release workflow: branch-per-channel replaced with folder-per-channel on `main`, plus generated per-channel `docker-compose.yml`/`.env.example` |
@@ -119,6 +119,7 @@ of carrying the full rationale inline.
 | [adr/0029-verified-version-identity.md](./adr/0029-verified-version-identity.md) | Installed release version reported only when running image digests match the recorded manifest; images carry a baked build identity for dev and mismatched builds |
 | [adr/0030-app-owned-local-address-book-contact.md](./adr/0030-app-owned-local-address-book-contact.md) | Separate app-owned local contact; check/create only; manual contacts stay untouched and may share its destination |
 | [adr/0031-public-credential-type-and-legacy-correction.md](./adr/0031-public-credential-type-and-legacy-correction.md) | Public setup credential hint and hash-conditional metadata correction after successful authentication |
+| [adr/0032-cache-update-changelog-in-update-agent.md](./adr/0032-cache-update-changelog-in-update-agent.md) | Update page changelog cached by update-agent in its state dir, synced on manifest checks; browser no longer fetches GitHub |
 
 ---
 

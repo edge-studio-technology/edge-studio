@@ -4,6 +4,11 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- #239 Pi check on dev Pi (DEV_MODE install of the branch + `update-agent` built from branch source): Update page showed 3 released entries and the full-changelog modal; browser made no GitHub requests; `update-agent` recreated with `raw.githubusercontent.com` blocked still served notes from `changelog-cache.json` (unchanged `fetchedAt`). Corrected CHANGELOG/README/ADR 0032 wording: notes survive a restart without GitHub, not a fully offline Pi (manifest check fails first).
+- #239 frontend (`bb3f4941`) + docs on `task/239-improve-changelog-service`: `UpdateStatus.changelog` type; dropped browser `fetchChangelog()`; `parseChangelog()` limit now optional (all released entries); `ChangelogPreview` takes `markdown`/`onRetry` props from `UpdatePage`, previews 3 entries, "View full changelog" opens an in-app `Modal`; `REPO_URL` fixed to `edge-studio-technology`; `raw.githubusercontent.com` dropped from both nginx CSP `connect-src`. ADR 0032 (renumbered from 0031 after the `dev` merge) added, ADR 0004 marked partially superseded, `docs/README.md` table, update-agent rules ×3, SECURITY, README, CHANGELOG updated. Verified: `npm run check` (all packages, coverage thresholds met), backend/frontend builds, `docker compose config`, `docker compose build frontend update-agent`, `nginx -t` on the new config.
+- #239 update-agent steps 1–3 on `task/239-improve-changelog-service`: added the persisted changelog cache (`changelog-cache.ts`, `/state/changelog-cache.json`, refetch only on a new manifest version, copy accepted only with that version's heading), synced it from every `getUpdateStatus()` call without failing the status check, and added `changelog: { markdown, fetchedAt } | null` to `GET /status`. Commits `f2fb38cb`, `fbb2a887`, `32fc5c22`. Update Agent coverage run (188 tests, thresholds met) and `tsc --noEmit` passed.
+- Added project-scope Playwright MCP in `.mcp.json` (`--browser chromium --output-dir .playwright-mcp`; output dir already gitignored); approved via `enabledMcpjsonServers` in `.claude/settings.local.json` and confirmed connecting in a new session. Installed Playwright Chromium 1247 for `@playwright/mcp` 0.0.83. Committed in `4a6da13b`.
+
 - Completed #283 in-scope Pi QA: disposable pre-flag PIN/password compatibility and fresh-account setup/login/reload/onboarding passed; four databases passed integrity checks. Backup confirmation actions passed in both modes, including rejected credentials, byte-identical encrypted downloads, four real stored/uploaded restores with 64-address identity/readiness checks, upload cleanup, and password removal/automatic-backup disablement. One legacy-node restore needed manual restart; row menu needed viewport repositioning. Restored original mounts, PIN login, wallet/contact ownership, Integritas connection, and healthy services; removed disposable data/downloads. Excluded actual password-manager/native autofill and physical mobile keyboard checks per user direction; posted #283 comment mentioning Rowel and proposing a separate ticket without creating one. Recorded [QA results](qa/283-credential-input-pi-verification.md), completed plan step 5, and moved local implementation work to Done; OpenProject remains Testing for operator review. No application code changed.
 
 - Deployed #283 commit `e78caec8` to the dev Pi with `DEV_MODE=true`; frontend/backend ARM64 source builds and health checks passed, existing account/data were preserved, and Minima stayed running. Backed up the app/database before installation to `/home/devpi5/edge-studio-pre-283-backup.tgz` (excluding Minima data). Live headed Chromium QA passed PIN editing/length/readiness, native leading-zero clipboard paste, selection deletion, Enter/no-auto-submit, rejected-login draft retention, 375×812 login layout, current/new type independence, and strong-password creation validation. With explicit approval, changed PIN to a temporary password and back through the UI; both login modes persisted after reload and the original PIN login was verified. Backup-password and whitelist confirmation readiness passed in both modes; uploaded restore inputs were checked without a file or restore submission. No backup password or whitelist changes were saved, and no node restore ran. Browser remains open and authenticated. Actual password-manager/physical mobile keyboard, disposable legacy/fresh-account fixtures, unavailable saved-backup dialogs, and disposable restore QA remain; step 5 stays open.
@@ -110,6 +115,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
+- #239: open PR `task/239-improve-changelog-service` → `dev`.
 - #283: operator review/merge; implementation and in-scope verification are complete. Consider a separate compatibility ticket for password-manager/native autofill and physical mobile keyboards.
 
 - #206: commit the verified compatibility fix, obtain user signoff, and prepare the PR to dev.
@@ -128,6 +134,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - PR #143: review and merge to `dev`; then a separate release branch bumps `package.json` to `0.42.2`, dates the changelog, merges `dev` → `main`, and tags `v0.42.2`.
 
 ## Notes / Open Questions
+
+- #239: `changelog` is returned by `getUpdateStatus()` itself (route unchanged, testable), so the poller and apply flow also receive it and ignore it; `/status/summary` unchanged.
+- Playwright MCP: deferred aligning Codex's global `~/.codex/config.toml` entry (pinned 0.0.83, headless, isolated, `--ignore-https-errors`, chromium-1246 path, no `--output-dir`) and adding `--ignore-https-errors` to `.mcp.json` for the self-signed `:8080` cert.
 
 - #206 policy and rationale are recorded in ADR 0030. Reroll and out-of-band wallet-change detection remain out of scope.
 
