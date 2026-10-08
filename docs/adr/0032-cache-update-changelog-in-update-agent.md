@@ -29,7 +29,8 @@ within that cap.
   behind "Check again", so "Update available" and its notes come from the same check.
 - A fetched copy is accepted only if it has a `## [<version>]` heading for the manifest version
   (leading `v` of the tag stripped). If `main`'s changelog lags the tag, the old copy is kept and
-  the version stays unrecorded, so the next check retries. A failed fetch behaves the same way, and
+  the version stays unrecorded, so the next check retries. A failed fetch, or a response over the
+  2 MB cap (read as a stream, so an oversized body is never fully buffered), behaves the same way, and
   never fails the status call.
 - The cache (`{ markdown, manifestVersion, fetchedAt }`) is persisted to
   `UPDATE_AGENT_STATE_DIR/changelog-cache.json`, same pattern as `manifest-state.ts`, and loaded

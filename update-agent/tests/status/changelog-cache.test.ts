@@ -143,6 +143,28 @@ describe("changelog-cache", () => {
     assert.equal((await mod.getCachedChangelog())?.manifestVersion, "v0.1.0");
   });
 
+  it("keeps the old copy when the changelog exceeds the size cap", async () => {
+    const oversized = `## [0.2.0] 2026-10-06\n${"x".repeat(2 * 1024 * 1024)}`;
+    fetchMock.mockResolvedValueOnce(textResponse(CHANGELOG_V1)).mockResolvedValueOnce(textResponse(oversized));
+
+    await mod.syncChangelog("v0.1.0");
+    await mod.syncChangelog("v0.2.0");
+
+    const cached = await mod.getCachedChangelog();
+    assert.equal(cached?.manifestVersion, "v0.1.0");
+    assert.equal(cached?.markdown, CHANGELOG_V1);
+  });
+
+  it("accepts a changelog exactly at the size cap", async () => {
+    const heading = "## [0.2.0] 2026-10-06\n";
+    const atCap = heading + "x".repeat(2 * 1024 * 1024 - heading.length);
+    fetchMock.mockResolvedValue(textResponse(atCap));
+
+    await mod.syncChangelog("v0.2.0");
+
+    assert.equal((await mod.getCachedChangelog())?.markdown.length, 2 * 1024 * 1024);
+  });
+
   it("loads the persisted cache after a restart", async () => {
     fetchMock.mockResolvedValue(textResponse(CHANGELOG_V2));
     await mod.syncChangelog("v0.2.0");

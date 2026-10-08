@@ -5,6 +5,7 @@ import { env } from "../config/env.js";
 const CHANGELOG_URL = "https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/CHANGELOG.md";
 const CACHE_FILE = "changelog-cache.json";
 const FETCH_TIMEOUT_MS = 10000;
+const MAX_CHANGELOG_BYTES = 2 * 1024 * 1024;
 
 export type ChangelogCache = {
   markdown: string;
@@ -36,7 +37,22 @@ async function loadCache(): Promise<void> {
 export async function fetchChangelog(): Promise<string> {
   const response = await fetch(CHANGELOG_URL, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!response.ok) throw new Error(`Changelog fetch failed with status ${response.status}`);
-  return response.text();
+  if (!response.body) return "";
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_CHANGELOG_BYTES) {
+      await reader.cancel();
+      throw new Error(`Changelog exceeds ${MAX_CHANGELOG_BYTES} bytes`);
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString("utf8");
 }
 
 function hasVersionHeading(markdown: string, manifestVersion: string): boolean {
