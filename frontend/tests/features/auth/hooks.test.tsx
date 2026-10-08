@@ -16,6 +16,7 @@ describe("useAuth", () => {
     };
     const value = {
       user,
+      credentialType: user.credentialType,
       loading: false,
       showSetup: false,
       showLogin: false,

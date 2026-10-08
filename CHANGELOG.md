@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Successful login corrects older PIN accounts' credential metadata without changing their credentials.
+- Login wording follows the configured credential type and falls back to PIN or password when metadata is unavailable.
+- Session-expiry notices now refer to both PINs and passwords.
 
 ## [Unreleased]
 

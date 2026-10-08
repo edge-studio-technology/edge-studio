@@ -17,7 +17,7 @@
 
 ## In Progress
 
-- [ ] Implement PIN/password credential input (OpenProject #283) — step 1 implemented and focused backend auth/database tests passed (141); public credential metadata and legacy correction are ready; next is step 2 auth bootstrap. See `docs/plans/features/283-implement-pin-password-credential-input.md` and ADR 0031.
+- [ ] Implement PIN/password credential input (OpenProject #283) — steps 1–2 implemented; public metadata, legacy correction, auth-bootstrap hint lifecycle, and login wording are ready; 141 focused backend and 158 focused frontend tests passed; next is step 3's shared field. See `docs/plans/features/283-implement-pin-password-credential-input.md` and ADR 0031.
 
 - [ ] Upgrade Automation watch mode into a production-quality live monitoring, historic replay, and workflow debugging experience — runtime overview, domain-aware block summaries, replay toolbar/status messaging, status-colored replay animation, and run-specific historic canvas rendering are implemented and build/test verified; browser visual QA remains; see `docs/plans/workflow-watch-mode-upgrade.md`.
 - [ ] Static guided tour (OpenProject #275): built on `task/275-create-static-app-guided-tour`, current `dev` merged for PR preparation (first-visit modal with 9 steps, seen flag per browser, replay from Settings → Behaviour); draft screenshots from dev data are in for every slide, crossfading in a full frame when a slide has two; recapture all of them with clean, Pi-like values before merge, then copy review and merge. Decisions in `docs/adr/0027-static-guided-tour.md`; see `docs/plans/features/275-create-static-app-guided-tour.md`.

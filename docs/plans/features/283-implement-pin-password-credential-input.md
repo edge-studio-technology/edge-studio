@@ -1,6 +1,6 @@
 # PIN/password Credential Input Plan
 
-**Status:** Step 1 implemented; steps 2–5 pending. OpenProject currently marks the ticket In progress.
+**Status:** Steps 1–2 implemented; steps 3–5 pending. OpenProject currently marks the ticket In progress.
 **Created:** 2026-10-08
 **Ticket:** [#283 — Implement PIN/password credential input](https://openproject.privateprivate.org/work_packages/283)
 **Goal:** Show the appropriate PIN or password input everywhere the operator enters their local admin credential, using the backend's stored credential type.
@@ -51,7 +51,7 @@ The backup-encryption password and uploaded-backup password override are separat
 ### Progress
 
 - [x] Step 1: credential metadata and legacy compatibility.
-- [ ] Step 2: auth bootstrap hint.
+- [x] Step 2: auth bootstrap hint.
 - [ ] Step 3: shared credential field.
 - [ ] Step 4: apply the field across credential surfaces.
 - [ ] Step 5: completed-feature documentation and manual verification.
@@ -73,6 +73,8 @@ The backup-encryption password and uploaded-backup password override are separat
 - On status failure, clear unverified/stale metadata and render the generic fallback. A metadata fetch should not discard an in-progress credential or trigger login submission.
 - Update `App.tsx:LoginRoute()` to supply the hint to `LoginPage`. Replace the PIN-only expiry notice with accurate or neutral wording.
 - **Verify:** fresh browser, authenticated boot, logout, 401, status failure, PIN-to-password and password-to-PIN changes, and incomplete-onboarding login/resume.
+
+**Implemented 2026-10-08:** Setup status now carries a nullable `AdminCredentialType`; the API maps missing or unsupported metadata to null. `AuthProvider` holds a separate hint, prefers the authenticated user's type, and refreshes public metadata after logout/expiry, including credential-change sign-out. A request version prevents older status/session/logout completions from overwriting newer state; unmount invalidates pending work. Hint-only refreshes keep login mounted, clear stale hints while pending or failed, preserve typed credentials, and never submit. `LoginRoute` passes the resolved type to `LoginPage`, which uses matching labels/helper text; expiry notices mention both credential types. The input remains unrestricted until steps 3–4. All **158 focused frontend tests in 19 files** passed, covering auth/setup, both type-change directions, metadata fallback, asynchronous races, onboarding resume, and login request/draft preservation. Full verification passed: `MINIMA_STATUS_URL=http://127.0.0.1:9005/status npm run check` (3,374 tests, typechecks, coverage thresholds, and clean dependency audits), backend/frontend builds, and `docker compose config --quiet`. Browser/Pi verification remains pending.
 
 ### 3. Add the shared credential field
 

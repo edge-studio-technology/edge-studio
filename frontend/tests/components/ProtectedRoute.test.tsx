@@ -10,6 +10,7 @@ import { ProtectedRoute } from "../../src/components/ProtectedRoute";
 function renderWithAuth(user: AuthContextValue["user"]) {
   const value: AuthContextValue = {
     user,
+    credentialType: user?.credentialType ?? null,
     loading: false,
     showSetup: false,
     showLogin: false,

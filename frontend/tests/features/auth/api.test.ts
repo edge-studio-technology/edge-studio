@@ -19,14 +19,25 @@ import {
 } from "../../../src/features/auth/api";
 
 describe("auth api", () => {
+  it.each(["pin", "password", null])("preserves the public %s credential hint", async (credentialType) => {
+    const status = { localAdminCreated: true, setupComplete: true, credentialType };
+    getJson.mockResolvedValue(status);
+    expect(await getSetupStatus()).toEqual(status);
+  });
+
+  it.each([undefined, "invalid"])("uses unknown for an unavailable or invalid credential hint (%s)", async (credentialType) => {
+    getJson.mockResolvedValue({ localAdminCreated: true, setupComplete: true, credentialType });
+    expect(await getSetupStatus()).toEqual({ localAdminCreated: true, setupComplete: true, credentialType: null });
+  });
+
   it("getSetupStatus GETs setup status", async () => {
-    const status = { localAdminCreated: true, setupComplete: true };
+    const status = { localAdminCreated: true, setupComplete: true, credentialType: "pin" };
     getJson.mockResolvedValue(status);
 
     const result = await getSetupStatus();
 
     expect(getJson).toHaveBeenCalledWith("/api/setup/status");
-    expect(result).toBe(status);
+    expect(result).toEqual(status);
   });
 
   it("getMe GETs the current user", async () => {

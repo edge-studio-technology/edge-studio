@@ -8,17 +8,23 @@ import { InputField } from "../components/ui/InputField";
 import { PinField } from "../components/ui/PinField";
 import { login } from "../features/auth/api";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
+import type { AdminCredentialType } from "../features/auth/adminCredentials";
 
 type LoginPhase = "credentials" | "twofa";
 
 const TOTP_CODE_LENGTH = 6;
 
-export function LoginPage({ onSuccess, sessionNotice }: { onSuccess: () => void; sessionNotice?: string | null }) {
+export function LoginPage({ onSuccess, sessionNotice, credentialType = null }: {
+  onSuccess: () => void;
+  sessionNotice?: string | null;
+  credentialType?: AdminCredentialType | null;
+}) {
   const [phase, setPhase] = useState<LoginPhase>("credentials");
   const [credential, setCredential] = useState("");
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const credentialLabel = credentialType === "pin" ? "PIN" : credentialType === "password" ? "Password" : "PIN or password";
 
   const credentialsValid = credential.length > 0;
   const twoFactorValid = twoFactorCode.length === TOTP_CODE_LENGTH;
@@ -86,7 +92,7 @@ export function LoginPage({ onSuccess, sessionNotice }: { onSuccess: () => void;
                 <header className="gap-detail-next grid w-full text-center">
                   <h2 className="type-heading text-text-primary m-0">Welcome back</h2>
                   <p className="type-body text-text-secondary m-0">
-                    Enter your password or PIN to continue.
+                    Enter your {credentialType === "password" ? "password" : credentialLabel} to continue.
                   </p>
                 </header>
 
@@ -98,7 +104,7 @@ export function LoginPage({ onSuccess, sessionNotice }: { onSuccess: () => void;
 
                 <div className="gap-detail-close flex w-full flex-col">
                   <InputField
-                    label="Password / PIN"
+                    label={credentialLabel}
                     type="password"
                     value={credential}
                     onChange={(event) => {

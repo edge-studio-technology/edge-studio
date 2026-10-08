@@ -4,6 +4,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Implemented #283 plan step 2: nullable public credential hints now flow through API/types, provider context, and the login route; authenticated metadata takes precedence, logout/expiry refreshes preserve the login draft, and request versions reject stale async completions. Missing/unsupported/failed hints use the generic fallback; login wording follows the hint and expiry copy mentions PIN or password. All 158 focused frontend auth/setup/route/login tests passed. Updated README/changelog and marked step 2 complete in the plan/task tracker. Full check passed with the same test-only Minima URL override as step 1: 3,374 tests (1,389 backend; 1,762 frontend; 171 Update Agent; 52 scripts), typechecks, coverage thresholds, and clean dependency audits; backend/frontend builds, Compose validation, and diff checks passed. The shared field and browser/Pi checks remain pending.
+
 - Implemented #283 plan step 1: public setup status exposes a nullable stored credential type with no-store caching; successful login repairs legacy metadata through a hash-conditional metadata-only update after all enabled factors pass. Added migration, failure/TOTP, concurrency, setup, authenticated-response, and credential-change/session regressions; all 141 focused auth/database tests passed. Updated README, SECURITY, the branch changelog, and ADR 0031; marked step 1 complete and consolidated the duplicate credential-UI task. Backend/frontend builds, backend typecheck, and Compose validation passed. Frontend steps and browser/Pi checks remain pending.
 
 - Verified #283 step 1 with `MINIMA_STATUS_URL=http://127.0.0.1:9005/status npm run check`: all typechecks, coverage thresholds, 3,343 tests (1,389 backend; 1,731 frontend; 171 Update Agent; 52 scripts), and dependency audits passed. The first full run caught a corrected new test assertion and a local Minima URL mismatch (9105 versus the existing mocked test expectation of 9005); no runtime environment files were changed. Auth service coverage was 100% lines and 98% branches.
@@ -96,7 +98,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- Continue #283 with step 2 when requested: carry nullable credential metadata through frontend auth bootstrap, refresh it after logout/expiry/credential changes, and preserve the generic fallback. Steps 3–5 and browser/Pi verification remain pending.
+- Continue #283 with step 3 when requested: add the shared credential field and persistent-PIN semantics, then apply it across login/reauthentication in step 4. Step 5 and browser/Pi verification remain pending.
 
 - #206: commit the verified compatibility fix, obtain user signoff, and prepare the PR to dev.
 - Deploy the longer Integritas timeout and verify a slow PDF verification on the Pi; change any explicit `INTEGRITAS_REQUEST_TIMEOUT_MS=15000` override to `300000` and recreate the backend/frontend containers. Rerun Docker builds with the engine available and investigate the Minima backup-restore fallback test failure separately.
