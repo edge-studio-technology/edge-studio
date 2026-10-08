@@ -1,9 +1,16 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MinimaConsoleCatalogEntry } from "../../../src/app/types";
 import { ToastProvider } from "../../../src/components/ToastProvider";
 import { MinimaConsoleWhitelistModal } from "../../../src/features/minima/MinimaConsoleWhitelistModal";
+
+import type { AdminCredentialType } from "../../../src/features/auth/adminCredentials";
+
+let credentialType: AdminCredentialType | null = null;
+vi.mock("../../../src/features/auth/hooks", () => ({
+  useAuth: () => ({ user: credentialType ? { credentialType } : null, credentialType: "pin" }),
+}));
 
 const getConsoleWhitelist = vi.fn();
 const updateConsoleWhitelist = vi.fn();
@@ -25,12 +32,14 @@ function renderModal(onClose = vi.fn()) {
 
 describe("MinimaConsoleWhitelistModal", () => {
   beforeEach(() => {
+    credentialType = null;
     getConsoleWhitelist.mockReset();
     updateConsoleWhitelist.mockReset();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("replaces the command list with a retryable error state when the fetch fails", async () => {
@@ -142,6 +151,57 @@ describe("MinimaConsoleWhitelistModal", () => {
     await screen.findByText("Write");
     await user.click(screen.getByRole("button", { name: /save whitelist/i }));
     expect(screen.getByRole("button", { name: /^confirm$/i })).toBeDisabled();
+  });
+
+  it.each(["pin", "password"] as const)("confirms with a %s using the existing HTTP payload and footer form", async (type) => {
+    credentialType = type;
+    const api = await vi.importActual<typeof import("../../../src/features/minima/minimaConsoleApi")>("../../../src/features/minima/minimaConsoleApi");
+    updateConsoleWhitelist.mockImplementation(api.updateConsoleWhitelist);
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ catalog, enabledKeys: ["status"] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    getConsoleWhitelist.mockResolvedValue({ catalog, enabledKeys: ["status"] });
+    const onClose = vi.fn();
+    renderModal(onClose);
+    await screen.findByText("Write");
+    await userEvent.click(screen.getByRole("button", { name: /save whitelist/i }));
+    const label = type === "pin" ? "PIN" : "password";
+    const input = screen.getByLabelText(`Enter your ${label}`);
+    expect(input).toHaveAttribute("type", "password");
+    expect(input).toHaveAttribute("autocomplete", "current-password");
+    expect(screen.getByText(`Enter your ${label} to save console command permissions.`)).toBeInTheDocument();
+    if (type === "pin") {
+      await userEvent.type(input, "00123");
+      expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
+      fireEvent.submit(input.closest("form")!);
+      expect(fetchMock).not.toHaveBeenCalled();
+      await userEvent.type(input, "4");
+    } else await userEvent.type(input, "weak");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Confirm" })).toHaveAttribute("form", "minima-console-whitelist-confirm");
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(fetchMock).toHaveBeenCalledWith("/api/minima/console/whitelist", expect.objectContaining({ method: "POST", credentials: "include",
+      body: JSON.stringify({ enabledKeys: ["status"], currentPassword: type === "pin" ? "001234" : "weak" }),
+    }));
+  });
+
+  it.each(["pin", "password"] as const)("keeps a rejected %s confirmation open and clears the error on edit", async (type) => {
+    credentialType = type;
+    getConsoleWhitelist.mockResolvedValue({ catalog, enabledKeys: ["status"] });
+    updateConsoleWhitelist.mockRejectedValue(new Error("Invalid credential"));
+    const onClose = vi.fn();
+    renderModal(onClose);
+    await screen.findByText("Write");
+    await userEvent.click(screen.getByRole("button", { name: /save whitelist/i }));
+    const input = screen.getByLabelText(type === "pin" ? "Enter your PIN" : "Enter your password");
+    const value = type === "pin" ? "001234" : "weak";
+    await userEvent.type(input, value);
+    await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid credential");
+    expect(input).toHaveValue(value);
+    expect(onClose).not.toHaveBeenCalled();
+    await userEvent.clear(input);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("calls onClose from the Cancel button", async () => {

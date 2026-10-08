@@ -982,7 +982,7 @@ Local admin credential field using `PinField` for a known PIN and a masked `Inpu
 | `label`, `description`, `error`, `className` | Existing field stack and outer styling |
 | …input props | Native attributes and handlers, including `id`, `name`, `form`, `required`, `disabled`, `autoFocus`, and focus/keyboard events |
 
-Completing a PIN does not submit an action. Use the form's submit handler or an explicit button, and keep creation policy and submit readiness in the form.
+Completing a PIN does not submit an action. Use the form's submit handler or an explicit button, and keep creation policy and submit readiness in the form. Existing-credential forms use `isAdminCredentialEntryReady`: known PINs require six digits; password/unknown values require only nonempty entry. New-credential forms retain `isValidAdminCredential` and matching confirmation. Authenticated forms use the user's stored type independently of the selected new type.
 
 ```tsx
 <CredentialField

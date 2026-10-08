@@ -1,6 +1,6 @@
 # PIN/password Credential Input Plan
 
-**Status:** Steps 1–3 implemented; steps 4–5 pending. OpenProject currently marks the ticket In progress.
+**Status:** Steps 1–4 implemented; step 5 pending. OpenProject currently marks the ticket In progress.
 **Created:** 2026-10-08
 **Ticket:** [#283 — Implement PIN/password credential input](https://openproject.privateprivate.org/work_packages/283)
 **Goal:** Show the appropriate PIN or password input everywhere the operator enters their local admin credential, using the backend's stored credential type.
@@ -53,7 +53,7 @@ The backup-encryption password and uploaded-backup password override are separat
 - [x] Step 1: credential metadata and legacy compatibility.
 - [x] Step 2: auth bootstrap hint.
 - [x] Step 3: shared credential field.
-- [ ] Step 4: apply the field across credential surfaces.
+- [x] Step 4: apply the field across credential surfaces.
 - [ ] Step 5: completed-feature documentation and manual verification.
 
 ### 1. Complete credential metadata and legacy compatibility
@@ -92,6 +92,8 @@ The backup-encryption password and uploaded-backup password override are separat
 - Authenticated forms use `user.credentialType`; new/confirmation fields use the selected new type. Keep authenticator fields behind their existing gates.
 - Update mode-specific helper text and submit readiness, including actions submitted from modal footers rather than a native form. Preserve request keys, FormData fields, endpoints, error handling, and server-side verification.
 - **Verify:** login and every inventory row in both modes, correct existing payloads, rejected-credential behavior, new/current type independence, and backup-encryption inputs accepting ordinary passwords regardless of admin mode.
+
+**Implemented 2026-10-08:** Wired `CredentialField` into login, all eight current-credential fields, and new/confirmation fields in setup and Settings. Authenticated forms use `user.credentialType`; current entry remains independent of the new-type tab, which clears only new/confirmation values. Shared entry readiness requires six digits for known PINs and only nonempty input for password/unknown metadata, separately from creation policy. Buttons and action handlers enforce readiness while retaining existing pending/error behavior, form/footer submission, request keys/endpoints, and TOTP gates. Mode-specific labels and confirmation copy follow the stored type; unrelated backup passwords/overrides remain unrestricted. Added request-boundary regressions for both modes, leading-zero PINs, legacy passwords, incomplete entry, rejected credentials, type changes, setup, all five backup actions, whitelist confirmation, and gated authenticator login/reset. The final focused frontend suite passed **279 tests in 25 files**. Full verification passed: `MINIMA_STATUS_URL=http://127.0.0.1:9005/status npm run check` (**3,452 tests**: 1,389 backend; 1,840 frontend; 171 Update Agent; 52 scripts), typechecks, coverage thresholds, dependency audits, backend/frontend builds, and `docker compose config --quiet`. Chromium checks used actual form components in a temporary auth-context harness with intercepted API responses: PIN mode at **375×900**, password mode at **1280×900**, and a PIN backup-removal modal at **375×812**. Login/setup/change/whitelist Enter actions and all five backup footer actions preserved payloads and rejected drafts without automatic submission or page overflow. No live backup actions were performed. README/design-system/security/changelog and local progress notes were updated, including correction of SECURITY's stale claim that credential type was not persisted. Actual password-manager/native autofill, physical mobile keyboard, complete application/existing-installation, and Pi verification remain for step 5.
 
 ### 5. Document and verify the completed feature
 

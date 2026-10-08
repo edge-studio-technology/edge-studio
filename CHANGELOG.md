@@ -10,7 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Developers can configure local Pi SSH access in `.env.local` and use the `pi-ssh` agent skill for requested Pi work.
 - Public setup status includes the local admin credential type and disables response caching.
-- Credential controls support masked six-digit PINs and unrestricted password entry with password autofill.
+- Login and current-credential confirmations use masked six-digit PIN or password inputs based on the stored credential type.
+
+### Changed
+
+- New and confirmed PINs in setup and Settings now use persistent-password autofill semantics.
 
 ### Fixed
 

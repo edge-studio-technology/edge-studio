@@ -1,9 +1,16 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { expectRowActionsPinned } from "../../helpers/expectRowActionsPinned";
 import { ToastProvider } from "../../../src/components/ToastProvider";
 import { MinimaBackupPanel } from "../../../src/features/minima/MinimaBackupPanel";
+
+import type { AdminCredentialType } from "../../../src/features/auth/adminCredentials";
+
+let credentialType: AdminCredentialType | null = null;
+vi.mock("../../../src/features/auth/hooks", () => ({
+  useAuth: () => ({ user: credentialType ? { credentialType } : null, credentialType: "pin" }),
+}));
 
 const clearBackupPassword = vi.fn();
 const createMinimaBackup = vi.fn();
@@ -50,6 +57,7 @@ function getFileInput() {
 
 describe("MinimaBackupPanel", () => {
   beforeEach(() => {
+    credentialType = null;
     clearBackupPassword.mockReset();
     createMinimaBackup.mockReset();
     deleteMinimaBackup.mockReset();
@@ -65,6 +73,7 @@ describe("MinimaBackupPanel", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("shows loading, then the backup list with formatted sizes and counts", async () => {
@@ -74,6 +83,109 @@ describe("MinimaBackupPanel", () => {
     expect(screen.getByText("2.0 KB")).toBeInTheDocument();
     expect(screen.getByText("5.0 MB")).toBeInTheDocument();
     expectRowActionsPinned(screen.getByRole("table"));
+  });
+
+  it.each(
+    (["pin", "password"] as const).flatMap((type) =>
+      (["download", "set-password", "upload-restore", "row-restore", "remove-password"] as const).flatMap((action) =>
+        [false, true].map((reject) => ({ type, action, reject })),
+      ),
+    ),
+  )( "$action with $type (rejected=$reject) preserves readiness, payload, and errors", async ({ type, action, reject }) => {
+    credentialType = type;
+    const api = await vi.importActual<typeof import("../../../src/features/minima/minimaBackupApi")>("../../../src/features/minima/minimaBackupApi");
+    downloadMinimaBackup.mockImplementation(api.downloadMinimaBackup);
+    setBackupPassword.mockImplementation(api.setBackupPassword);
+    restoreMinimaBackup.mockImplementation(api.restoreMinimaBackup);
+    restoreMinimaBackupFromUpload.mockImplementation(api.restoreMinimaBackupFromUpload);
+    clearBackupPassword.mockImplementation(api.clearBackupPassword);
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:backup");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const fetchMock = vi.fn((_url: string, init?: RequestInit) => Promise.resolve(new Response(
+      JSON.stringify(reject && init?.method ? { error: "Invalid credential", errorCode: "AUTH_BAD_PASSWORD" } : { ok: true, hasPassword: action !== "remove-password" }),
+      { status: reject && init?.method ? 401 : 200 },
+    )));
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    const file = new File(["backup-bytes"], "restore.bak");
+    const backupPassword = "ordinary backup secret é";
+    if (action === "set-password") getBackupPasswordStatus.mockResolvedValue({ hasPassword: false });
+    renderPanel();
+    await screen.findByText("minima-manual-1.bak");
+    let buttonName: RegExp;
+    if (action === "download") {
+      await user.click(screen.getByRole("button", { name: "Download minima-manual-1.bak" }));
+      buttonName = /^confirm$/i;
+    } else if (action === "row-restore") {
+      await user.click(screen.getByRole("button", { name: /more actions for minima-manual-1.bak/i }));
+      await user.click(screen.getByRole("menuitem", { name: /^restore$/i }));
+      buttonName = /^confirm restore$/i;
+    } else if (action === "upload-restore") {
+      await user.click(screen.getByRole("button", { name: /restore from backup/i }));
+      await user.upload(getFileInput(), file);
+      const override = screen.getByLabelText(/password override/i);
+      expect(override).not.toHaveAttribute("inputmode");
+      await user.type(override, backupPassword);
+      expect(override).toHaveValue(backupPassword);
+      buttonName = /^restore$/i;
+    } else if (action === "set-password") {
+      await user.click(screen.getByRole("button", { name: /set backup password/i }));
+      const backupInput = screen.getByLabelText(/^backup password$/i);
+      expect(backupInput).not.toHaveAttribute("inputmode");
+      await user.type(backupInput, backupPassword);
+      expect(backupInput).toHaveValue(backupPassword);
+      buttonName = /^save backup password$/i;
+    } else {
+      await user.click(screen.getByRole("button", { name: /manage backup password/i }));
+      await user.click(screen.getByRole("button", { name: /remove backup password/i }));
+      buttonName = /^remove password$/i;
+    }
+    const input = screen.getByLabelText(type === "pin" ? "Current PIN" : "Current password");
+    expect(input).toHaveAttribute("type", "password");
+    expect(input).toHaveAttribute("autocomplete", "current-password");
+    expect(screen.getByRole("button", { name: buttonName })).toBeDisabled();
+    const actionCalls = () => fetchMock.mock.calls.filter(([, init]) => init?.method);
+    if (type === "pin") {
+      expect(input).toHaveAttribute("inputmode", "numeric");
+      await user.type(input, "00123");
+      expect(screen.getByRole("button", { name: buttonName })).toBeDisabled();
+      if (action === "set-password") fireEvent.submit(input.closest("form")!);
+      expect(actionCalls()).toHaveLength(0);
+      await user.type(input, "4");
+    } else {
+      expect(input).not.toHaveAttribute("inputmode");
+      await user.type(input, "weak");
+    }
+    expect(actionCalls()).toHaveLength(0);
+    expect(screen.getByRole("button", { name: buttonName })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: buttonName }));
+    await waitFor(() => expect(actionCalls()).toHaveLength(1));
+    const [url, init] = actionCalls()[0];
+    const credential = type === "pin" ? "001234" : "weak";
+    expect(init).toMatchObject({ credentials: "include", method: action === "remove-password" ? "DELETE" : "POST" });
+    if (action === "download") {
+      expect(url).toBe("/api/minima/backups/minima-manual-1.bak/download");
+      expect(JSON.parse(init!.body as string)).toEqual({ currentPassword: credential });
+    } else if (action === "upload-restore") {
+      expect(url).toBe("/api/minima/backups/restore");
+      const form = init!.body as FormData;
+      expect(form.get("currentPassword")).toBe(credential);
+      expect(form.get("password")).toBe(backupPassword);
+      expect((form.get("file") as File).name).toBe(file.name);
+    } else {
+      expect(url).toBe(action === "row-restore" ? "/api/minima/backups/restore" : "/api/minima/backups/password");
+      expect(JSON.parse(init!.body as string)).toEqual({ currentPassword: credential,
+        ...(action === "set-password" ? { backupPassword } : action === "row-restore" ? { fileName: "minima-manual-1.bak" } : {}),
+      });
+    }
+    if (reject) {
+      expect(await screen.findByText("Invalid credential")).toBeInTheDocument();
+      expect(input).toHaveValue(credential);
+      expect(screen.getByRole("button", { name: buttonName })).toBeEnabled();
+    } else {
+      await waitFor(() => expect(input).not.toBeInTheDocument());
+    }
   });
 
   it("replaces the backup list with a retryable error state when the initial fetch fails", async () => {

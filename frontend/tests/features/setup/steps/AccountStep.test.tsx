@@ -56,6 +56,11 @@ describe("AccountStep", () => {
     expect(screen.getByText("Choose PIN or password")).toBeInTheDocument();
     expect(screen.getByLabelText("PIN")).toBeInTheDocument();
     expect(screen.getByLabelText("Confirm PIN")).toBeInTheDocument();
+    for (const label of ["PIN", "Confirm PIN"]) {
+      expect(screen.getByLabelText(label)).toHaveAttribute("type", "password");
+      expect(screen.getByLabelText(label)).toHaveAttribute("autocomplete", "new-password");
+      expect(screen.getByLabelText(label)).not.toHaveAttribute("data-1p-ignore");
+    }
   });
 
   it("disables continue until a matching PIN is entered, then enables it", async () => {
@@ -100,6 +105,24 @@ describe("AccountStep", () => {
     expect(screen.getByLabelText("Confirm password")).toBeInTheDocument();
     expect(screen.getByLabelText("Password requirements")).toBeInTheDocument();
     expect(screen.queryByLabelText("PIN")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toHaveAttribute("autocomplete", "new-password");
+    expect(screen.getByLabelText("Confirm password")).toHaveAttribute("autocomplete", "new-password");
+  });
+
+  it("keeps new-password creation policy and requires a strong matching password", async () => {
+    const onSubmit = vi.fn();
+    render(<ControlledAccountStep onSubmit={onSubmit} />);
+    await userEvent.click(screen.getByRole("tab", { name: "Password" }));
+    await userEvent.type(screen.getByLabelText("Password"), "weak");
+    await userEvent.type(screen.getByLabelText("Confirm password"), "weak");
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    await userEvent.clear(screen.getByLabelText("Password"));
+    await userEvent.clear(screen.getByLabelText("Confirm password"));
+    await userEvent.type(screen.getByLabelText("Password"), "Str0ng!Pass");
+    await userEvent.type(screen.getByLabelText("Confirm password"), "Str0ng!Pass");
+    expect(onSubmit).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Enter}");
+    expect(onSubmit).toHaveBeenCalledOnce();
   });
 
   it("shows a mismatch error for passwords once confirm is at least as long as password", async () => {

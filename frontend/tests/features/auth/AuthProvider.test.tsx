@@ -323,16 +323,13 @@ describe("AuthProvider", () => {
     const status = deferred<SetupStatus>();
     getSetupStatus.mockReturnValueOnce(status.promise);
     expireSession();
-    expect(screen.getByLabelText("PIN or password")).toBe(input);
-    expect(input).toHaveValue("012345");
+    expect(screen.getByLabelText("PIN or password")).toHaveValue("012345");
     await act(async () => status.resolve({ localAdminCreated: true, setupComplete: true, credentialType: "password" }));
-    expect(screen.getByLabelText("Password")).toBe(input);
-    expect(input).toHaveValue("012345");
+    expect(screen.getByLabelText("Password")).toHaveValue("012345");
 
     getSetupStatus.mockRejectedValueOnce(new Error("unavailable"));
     expireSession();
-    await screen.findByLabelText("PIN or password");
-    expect(input).toHaveValue("012345");
+    expect(await screen.findByLabelText("PIN or password")).toHaveValue("012345");
     expect(login).not.toHaveBeenCalled();
   });
 

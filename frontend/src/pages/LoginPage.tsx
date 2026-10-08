@@ -4,11 +4,11 @@ import { APP_NAME, BRAND_GRADIENT } from "../app/brand";
 import { BrandLockup } from "../components/patterns/BrandLockup";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
-import { InputField } from "../components/ui/InputField";
+import { CredentialField } from "../components/ui/CredentialField";
 import { PinField } from "../components/ui/PinField";
 import { login } from "../features/auth/api";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
-import type { AdminCredentialType } from "../features/auth/adminCredentials";
+import { isAdminCredentialEntryReady, type AdminCredentialType } from "../features/auth/adminCredentials";
 
 type LoginPhase = "credentials" | "twofa";
 
@@ -26,7 +26,7 @@ export function LoginPage({ onSuccess, sessionNotice, credentialType = null }: {
   const [error, setError] = useState<string | null>(null);
   const credentialLabel = credentialType === "pin" ? "PIN" : credentialType === "password" ? "Password" : "PIN or password";
 
-  const credentialsValid = credential.length > 0;
+  const credentialsValid = isAdminCredentialEntryReady(credentialType, credential);
   const twoFactorValid = twoFactorCode.length === TOTP_CODE_LENGTH;
 
   const continueToTwoFactor = () => {
@@ -37,7 +37,7 @@ export function LoginPage({ onSuccess, sessionNotice, credentialType = null }: {
   };
 
   const signIn = async (totpToken = "") => {
-    if (signingIn) return;
+    if (signingIn || !credentialsValid) return;
     if (TOTP_ENABLED && !twoFactorValid) return;
     setSigningIn(true);
     setError(null);
@@ -103,12 +103,12 @@ export function LoginPage({ onSuccess, sessionNotice, credentialType = null }: {
                 )}
 
                 <div className="gap-detail-close flex w-full flex-col">
-                  <InputField
+                  <CredentialField
+                    credentialType={credentialType}
                     label={credentialLabel}
-                    type="password"
                     value={credential}
-                    onChange={(event) => {
-                      setCredential(event.target.value);
+                    onChange={(value) => {
+                      setCredential(value);
                       if (error) setError(null);
                     }}
                     placeholder="••••••••••"

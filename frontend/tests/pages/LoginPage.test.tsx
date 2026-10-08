@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { LoginPage } from "../../src/pages/LoginPage";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -34,6 +34,8 @@ describe("LoginPage credential metadata", () => {
   });
 
   it.each([
+    ["pin", "001234"],
+    ["password", "weak"],
     ["password", "012345"],
     [null, "legacy"],
   ] as const)("accepts the existing credential with a %s hint and preserves the request", async (credentialType, credential) => {
@@ -41,7 +43,7 @@ describe("LoginPage credential metadata", () => {
     vi.stubGlobal("fetch", fetchMock);
     const onSuccess = vi.fn();
     render(<LoginPage credentialType={credentialType} onSuccess={onSuccess} />);
-    const input = screen.getByLabelText(credentialType === "password" ? "Password" : "PIN or password");
+    const input = screen.getByLabelText(credentialType === "pin" ? "PIN" : credentialType === "password" ? "Password" : "PIN or password");
     await userEvent.type(input, credential);
     await userEvent.click(screen.getByRole("button", { name: "Log In" }));
 
@@ -51,5 +53,72 @@ describe("LoginPage credential metadata", () => {
       method: "POST",
       body: JSON.stringify({ password: credential }),
     }));
+  });
+
+  it("requires six PIN digits and submits through Enter without automatic login", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const onSuccess = vi.fn();
+    render(<LoginPage credentialType="pin" onSuccess={onSuccess} />);
+    const input = screen.getByLabelText("PIN");
+    expect(input).toHaveAttribute("type", "password");
+    expect(input).toHaveAttribute("inputmode", "numeric");
+    await userEvent.type(input, "00123");
+    expect(screen.getByRole("button", { name: "Log In" })).toBeDisabled();
+    fireEvent.submit(input.closest("form")!);
+    expect(fetchMock).not.toHaveBeenCalled();
+    await userEvent.type(input, "456");
+    expect(input).toHaveValue("001234");
+    expect(fetchMock).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+    expect(fetchMock).toHaveBeenCalledWith("/api/auth/login", expect.objectContaining({ body: JSON.stringify({ password: "001234" }) }));
+  });
+
+  it.each(["pin", "password"] as const)("retains %s entry on rejection and clears the error on editing", async (credentialType) => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "Invalid credential" }), { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const onSuccess = vi.fn();
+    render(<LoginPage credentialType={credentialType} onSuccess={onSuccess} />);
+    const input = screen.getByLabelText(credentialType === "pin" ? "PIN" : "Password");
+    const value = credentialType === "pin" ? "001234" : "weak";
+    await userEvent.type(input, value);
+    await userEvent.click(screen.getByRole("button", { name: "Log In" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid credential");
+    expect(input).toHaveValue(value);
+    expect(onSuccess).not.toHaveBeenCalled();
+    await userEvent.clear(input);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("LoginPage with authenticator codes enabled", () => {
+  let TotpLoginPage: typeof LoginPage;
+  beforeAll(async () => {
+    vi.resetModules();
+    vi.doMock("../../src/features/auth/totpEnabled", () => ({ TOTP_ENABLED: true }));
+    ({ LoginPage: TotpLoginPage } = await import("../../src/pages/LoginPage"));
+  });
+  afterAll(() => {
+    vi.doUnmock("../../src/features/auth/totpEnabled");
+    vi.resetModules();
+  });
+
+  it.each(["pin", "password"] as const)("keeps the authenticator input separate from %s credentials", async (type) => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const onSuccess = vi.fn();
+    render(<TotpLoginPage credentialType={type} onSuccess={onSuccess} />);
+    await userEvent.type(screen.getByLabelText(type === "pin" ? "PIN" : "Password"), type === "pin" ? "001234" : "weak");
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    const code = screen.getByLabelText("Authentication code");
+    expect(code).toHaveAttribute("type", "text");
+    expect(code).toHaveAttribute("autocomplete", "one-time-code");
+    expect(code).toHaveAttribute("data-1p-ignore");
+    await userEvent.type(code, "000000");
+    expect(fetchMock).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+    expect(fetchMock).toHaveBeenCalledWith("/api/auth/login", expect.objectContaining({ body: JSON.stringify({ password: type === "pin" ? "001234" : "weak", totpToken: "000000" }) }));
   });
 });
