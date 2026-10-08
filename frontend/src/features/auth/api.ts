@@ -1,8 +1,14 @@
 import { getJson, postJson } from "../../lib/api";
 import type { AuthUser, SetupStatus } from "./types";
 
-export async function getSetupStatus() {
-  return getJson<SetupStatus>("/api/setup/status");
+export async function getSetupStatus(): Promise<SetupStatus> {
+  const status = await getJson<SetupStatus>("/api/setup/status");
+  return {
+    ...status,
+    credentialType: status.credentialType === "pin" || status.credentialType === "password"
+      ? status.credentialType
+      : null,
+  };
 }
 
 export async function getMe() {

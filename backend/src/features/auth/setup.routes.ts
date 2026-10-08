@@ -2,6 +2,7 @@ import { Router } from "express";
 import { env } from "../../config/env.js";
 import { apiErrorFromStatus, unexpected } from "../../shared/api-error.js";
 import { TOTP_ENABLED } from "./auth.constants.js";
+import { getLocalAdminCredentialType } from "./auth.repository.js";
 import { authRateLimiter } from "./rate-limit.middleware.js";
 import {
   completeSetup,
@@ -16,9 +17,11 @@ import { sessionCookieOptions } from "./session.service.js";
 export const setupRouter = Router();
 
 setupRouter.get("/status", (_req, res) => {
+  res.set("Cache-Control", "no-store");
   res.json({
     localAdminCreated: isLocalAdminCreated(),
     setupComplete: isSetupComplete(),
+    credentialType: getLocalAdminCredentialType(),
   });
 });
 

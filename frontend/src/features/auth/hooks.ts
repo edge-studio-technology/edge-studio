@@ -1,8 +1,10 @@
 import { createContext, useContext } from "react";
 import type { AuthUser } from "./types";
+import type { AdminCredentialType } from "./adminCredentials";
 
 export type AuthContextValue = {
   user: AuthUser | null;
+  credentialType: AdminCredentialType | null;
   loading: boolean;
   showSetup: boolean;
   showLogin: boolean;
