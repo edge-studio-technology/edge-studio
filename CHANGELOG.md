@@ -20,16 +20,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Developers can configure local Pi SSH access in `.env.local` and use the `pi-ssh` agent skill for requested Pi work.
+- Public setup status includes the local admin credential type and disables response caching.
+- Login and current-credential confirmations use masked six-digit PIN or password inputs based on the stored credential type.
 - The address book automatically adds a persistent contact named after the device, marked Local device, with editable name/notes and protected address/deletion.
 - `scripts/dev/benchmark/` scripts that measure the installed app's CPU, memory, disk growth, start-up time and workflow load on a Pi, with a guide in `docs/guides/pi-benchmark.md`.
 
 ### Changed
 
+- New and confirmed PINs in setup and Settings now use persistent-password autofill semantics.
 - User-created contacts remain independent and may share the local contact's address.
 - App-controlled wallet replacement verifies and updates the local contact, preserves its details and workflow references, and blocks payments through it until verification completes.
 
 ### Fixed
 
+- Successful login corrects older PIN accounts' credential metadata without changing their credentials.
+- Login wording follows the configured credential type and falls back to PIN or password when metadata is unavailable.
+- Session-expiry notices now refer to both PINs and passwords.
 - Address-book payments resolve the current saved destination, including after wallet replacement on older Minima versions.
 
 ## [0.42.2] 2026-10-06

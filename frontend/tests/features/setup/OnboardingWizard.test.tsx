@@ -54,6 +54,7 @@ describe("OnboardingWizard", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("starts on the welcome step and advances to credentials on Get started", async () => {
@@ -82,6 +83,27 @@ describe("OnboardingWizard", () => {
     await waitFor(() => {
       expect(screen.getByText("Connect your Integritas account")).toBeInTheDocument();
     });
+  });
+
+  it.each(["pin", "password"] as const)("creates a %s with the existing HTTP payload", async (type) => {
+    const api = await vi.importActual<typeof import("../../../src/features/setup/api")>("../../../src/features/setup/api");
+    completeSetup.mockImplementation(api.completeSetup);
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, user: {} }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    mockHook({ status: { status: "unauthenticated" } });
+    render(<OnboardingWizard onComplete={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Get started" }));
+    const credential = type === "pin" ? "001234" : "Str0ng!Pass";
+    if (type === "pin") await fillMatchingPin(credential);
+    else {
+      await userEvent.click(screen.getByRole("tab", { name: "Password" }));
+      await userEvent.type(screen.getByLabelText("Password"), credential);
+      await userEvent.type(screen.getByLabelText("Confirm password"), credential);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Enter}");
+    expect(await screen.findByText("Connect your Integritas account")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("/api/setup/complete", expect.objectContaining({ method: "POST", credentials: "include", body: JSON.stringify({ password: credential }) }));
   });
 
   it("shows a submit error and stays on the credentials step when completeSetup fails", async () => {

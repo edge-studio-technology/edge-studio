@@ -313,6 +313,19 @@ cp .env.example .env
 
 For local development on a non-Pi machine, change `HOST_FILES_DIR` to a directory that exists on your machine.
 
+### Local Pi SSH access for development
+
+The `pi-ssh` agent skill uses `scripts/dev/pi-ssh.sh` to access a development Pi. Add these entries to the gitignored `.env.local`, preserving any existing OpenProject credentials:
+
+```bash
+PI_SSH_LOGIN=pi@192.168.1.50
+PI_SSH_PASSWORD='your-password'
+```
+
+Keep `.env.local` at mode `600` (`chmod 600 .env.local`). The file is sourced as trusted shell configuration; shell-quote the password and enter it locally. Install OpenSSH and `sshpass` on the development machine. Verify the Pi's SSH fingerprint through a trusted channel and establish trust with an interactive SSH connection before using the helper; it requires a known host key and rejects changed keys.
+
+Run `bash scripts/dev/pi-ssh.sh 'hostname; id; uname -m'` for a read-only connection check. The password is passed through a file descriptor; these credentials are developer-only and are not app runtime configuration. The skill is mirrored in `.agents/skills/pi-ssh/`, `.claude/skills/pi-ssh/`, and `.cursor/skills/pi-ssh/`.
+
 ### Native frontend + backend (fast iteration)
 
 Use this when you want to change UI or API code without rebuilding Docker images.
@@ -433,6 +446,12 @@ Public API routes (no session required):
 - `POST /api/auth/login`
 
 All other `/api/*` routes require a valid session cookie.
+
+`GET /api/setup/status` returns `{ "localAdminCreated": boolean, "setupComplete": boolean, "credentialType": "pin" | "password" | null }` with `Cache-Control: no-store`. The credential type is public input metadata; it is null before local admin creation and contains no credential or user-record fields. Older accounts can retain the migration default `password` until a fully successful login corrects the stored type from the verified credential. Existing credentials remain accepted without applying new-credential strength rules.
+
+The browser reads this hint during auth bootstrap and refreshes it after logout or session expiry, including sign-out after a credential change. Authenticated user metadata takes precedence. Missing, unsupported, or failed status metadata uses an unrestricted masked field labeled PIN or password; background refreshes preserve the credential being typed and never submit it automatically.
+
+Login and current-credential confirmations in Settings, node backups, and the console whitelist use a masked six-slot numeric field for a known PIN or a masked password field for a password account. Known PIN entry requires six digits and preserves leading zeros; existing password entry requires only a nonempty value. Setup and credential changes retain explicit new-type selection and creation requirements. Persistent credentials use `current-password` or `new-password` autofill; authenticator codes keep `one-time-code`. Backup-encryption passwords and uploaded-backup password overrides remain separate unrestricted password inputs. Use the existing submit button or form Enter action; completing a PIN never submits automatically.
 
 ## Feedback
 

@@ -1,4 +1,4 @@
-# 0031: Cache the Update Page Changelog in update-agent
+# 0032: Cache the Update Page Changelog in update-agent
 
 **Status:** Accepted
 **Date:** 2026-10-08

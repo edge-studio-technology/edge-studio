@@ -36,6 +36,9 @@ import { ErrorText } from "../../components/Text";
 import { useToast } from "../../components/ToastProvider";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { InputField } from "../../components/ui/InputField";
+import { CredentialField } from "../../components/ui/CredentialField";
+import { useAuth } from "../auth/hooks";
+import { adminCredentialLabel, isAdminCredentialEntryReady } from "../auth/adminCredentials";
 import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
 import { ScrollArea } from "../../components/ui/ScrollArea";
 import { formatLocalDateTime } from "../../lib/time";
@@ -177,6 +180,9 @@ export function MinimaBackupPanel({
   minimaState: MinimaNodeState | null;
 }) {
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const credentialType = user?.credentialType ?? null;
+  const credentialLabel = adminCredentialLabel(credentialType);
   // Same "confirmed running" gate used by MinimaSettingsPanel/WalletSettingsPanel.
   const actionsBlocked = minimaState !== "running";
 
@@ -252,6 +258,7 @@ export function MinimaBackupPanel({
 
   async function handleSetBackupPassword(e: React.FormEvent) {
     e.preventDefault();
+    if (setupBusy || !newBackupPassword || !isAdminCredentialEntryReady(credentialType, setupCurrentPassword)) return;
     setSetupBusy(true);
     setSetupError(null);
     try {
@@ -281,6 +288,7 @@ export function MinimaBackupPanel({
   }
 
   async function confirmClearPassword() {
+    if (clearPasswordBusy || !isAdminCredentialEntryReady(credentialType, clearPasswordCurrentPassword)) return;
     setClearPasswordBusy(true);
     setClearPasswordError(null);
     try {
@@ -371,7 +379,7 @@ export function MinimaBackupPanel({
   }
 
   async function confirmDownload() {
-    if (!downloadTarget) return;
+    if (!downloadTarget || downloadBusy || !isAdminCredentialEntryReady(credentialType, downloadPassword)) return;
     setDownloadBusy(true);
     setDownloadError(null);
     try {
@@ -393,7 +401,7 @@ export function MinimaBackupPanel({
   }
 
   async function confirmUploadRestore() {
-    if (!uploadFile) return;
+    if (!uploadFile || uploadBusy || !isAdminCredentialEntryReady(credentialType, uploadCurrentPassword)) return;
     setUploadBusy(true);
     setUploadError(null);
     try {
@@ -423,7 +431,7 @@ export function MinimaBackupPanel({
   }
 
   async function confirmRowRestore() {
-    if (!rowRestoreTarget) return;
+    if (!rowRestoreTarget || rowRestoreBusy || !isAdminCredentialEntryReady(credentialType, rowRestorePassword)) return;
     setRowRestoreBusy(true);
     setRowRestoreError(null);
     try {
@@ -607,7 +615,7 @@ export function MinimaBackupPanel({
               </Button>
               <Button
                 onClick={() => void confirmDownload()}
-                disabled={downloadBusy || downloadPassword.length === 0}
+                disabled={downloadBusy || !isAdminCredentialEntryReady(credentialType, downloadPassword)}
               >
                 {downloadBusy ? "Confirming…" : "Confirm"}
               </Button>
@@ -616,14 +624,14 @@ export function MinimaBackupPanel({
         >
           <div className="grid gap-3">
             <p className="m-0 text-sm text-slate-600">
-              Re-enter your current PIN or password to download this backup.
+              Re-enter your current {credentialLabel} to download this backup.
             </p>
-            <InputField
-              label="Current PIN or password"
-              type="password"
+            <CredentialField
+              credentialType={credentialType}
+              label={`Current ${credentialLabel}`}
               value={downloadPassword}
-              onChange={(e) => {
-                setDownloadPassword(e.target.value);
+              onChange={(value) => {
+                setDownloadPassword(value);
                 setDownloadError(null);
               }}
               autoComplete="current-password"
@@ -664,7 +672,7 @@ export function MinimaBackupPanel({
               <Button
                 type="submit"
                 form="backup-password-form"
-                disabled={setupBusy || !newBackupPassword || !setupCurrentPassword}
+                disabled={setupBusy || !newBackupPassword || !isAdminCredentialEntryReady(credentialType, setupCurrentPassword)}
               >
                 {setupBusy
                   ? "Saving…"
@@ -694,11 +702,11 @@ export function MinimaBackupPanel({
               autoComplete="new-password"
               required
             />
-            <InputField
-              label="Current PIN or password"
-              type="password"
+            <CredentialField
+              credentialType={credentialType}
+              label={`Current ${credentialLabel}`}
               value={setupCurrentPassword}
-              onChange={(e) => setSetupCurrentPassword(e.target.value)}
+              onChange={setSetupCurrentPassword}
               autoComplete="current-password"
               required
             />
@@ -727,7 +735,7 @@ export function MinimaBackupPanel({
               </Button>
               <Button
                 onClick={() => void confirmUploadRestore()}
-                disabled={uploadBusy || !uploadFile || uploadCurrentPassword.length === 0}
+                disabled={uploadBusy || !uploadFile || !isAdminCredentialEntryReady(credentialType, uploadCurrentPassword)}
               >
                 {uploadBusy ? "Restoring…" : "Restore"}
               </Button>
@@ -753,12 +761,12 @@ export function MinimaBackupPanel({
               autoComplete="off"
             />
 
-            <InputField
-              label="Current PIN or password"
-              type="password"
+            <CredentialField
+              credentialType={credentialType}
+              label={`Current ${credentialLabel}`}
               value={uploadCurrentPassword}
-              onChange={(e) => {
-                setUploadCurrentPassword(e.target.value);
+              onChange={(value) => {
+                setUploadCurrentPassword(value);
                 setUploadError(null);
               }}
               autoComplete="current-password"
@@ -789,7 +797,7 @@ export function MinimaBackupPanel({
               </Button>
               <Button
                 onClick={() => void confirmRowRestore()}
-                disabled={rowRestoreBusy || rowRestorePassword.length === 0}
+                disabled={rowRestoreBusy || !isAdminCredentialEntryReady(credentialType, rowRestorePassword)}
               >
                 {rowRestoreBusy ? "Restoring…" : "Confirm restore"}
               </Button>
@@ -800,14 +808,14 @@ export function MinimaBackupPanel({
             {restoreWarning}
             <p className="m-0 text-sm text-slate-600">
               Restoring <span className="font-mono">{rowRestoreTarget.fileName}</span>. Re-enter
-              your current PIN or password to confirm.
+              your current {credentialLabel} to confirm.
             </p>
-            <InputField
-              label="Current PIN or password"
-              type="password"
+            <CredentialField
+              credentialType={credentialType}
+              label={`Current ${credentialLabel}`}
               value={rowRestorePassword}
-              onChange={(e) => {
-                setRowRestorePassword(e.target.value);
+              onChange={(value) => {
+                setRowRestorePassword(value);
                 setRowRestoreError(null);
               }}
               autoComplete="current-password"
@@ -852,7 +860,7 @@ export function MinimaBackupPanel({
               <Button
                 variant="danger"
                 onClick={() => void confirmClearPassword()}
-                disabled={clearPasswordBusy || clearPasswordCurrentPassword.length === 0}
+                disabled={clearPasswordBusy || !isAdminCredentialEntryReady(credentialType, clearPasswordCurrentPassword)}
               >
                 {clearPasswordBusy ? "Removing…" : "Remove password"}
               </Button>
@@ -868,12 +876,12 @@ export function MinimaBackupPanel({
                 You'll need to set a new backup password before creating another backup.
               </p>
             </div>
-            <InputField
-              label="Current PIN or password"
-              type="password"
+            <CredentialField
+              credentialType={credentialType}
+              label={`Current ${credentialLabel}`}
               value={clearPasswordCurrentPassword}
-              onChange={(e) => {
-                setClearPasswordCurrentPassword(e.target.value);
+              onChange={(value) => {
+                setClearPasswordCurrentPassword(value);
                 setClearPasswordError(null);
               }}
               autoComplete="current-password"

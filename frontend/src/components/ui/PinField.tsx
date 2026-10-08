@@ -9,6 +9,7 @@ type PinFieldProps = Omit<
   value: string;
   onChange: (nextValue: string) => void;
   length?: number;
+  mode?: "one-time-code" | "credential";
   label?: ReactNode;
   description?: ReactNode;
   error?: ReactNode;
@@ -26,6 +27,7 @@ export function PinField({
   value,
   onChange,
   length = 6,
+  mode = "one-time-code",
   label,
   description,
   error,
@@ -72,15 +74,15 @@ export function PinField({
           {...props}
           id={controlId}
           name={name}
-          type="text"
+          type={mode === "credential" ? "password" : "text"}
           inputMode="numeric"
           pattern="[0-9]*"
-          autoComplete={autoComplete ?? "one-time-code"}
+          autoComplete={autoComplete ?? (mode === "credential" ? "current-password" : "one-time-code")}
           autoCorrect="off"
           spellCheck={false}
-          data-1p-ignore
-          data-bwignore
-          data-lpignore="true"
+          data-1p-ignore={mode === "one-time-code" ? true : undefined}
+          data-bwignore={mode === "one-time-code" ? true : undefined}
+          data-lpignore={mode === "one-time-code" ? "true" : undefined}
           value={normalizedValue}
           disabled={disabled}
           autoFocus={autoFocus}

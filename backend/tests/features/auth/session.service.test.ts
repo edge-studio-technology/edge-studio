@@ -43,6 +43,7 @@ describe("createSession / validateSession", () => {
     assert.ok(sessionUser);
     assert.equal(sessionUser?.id, userId);
     assert.equal(sessionUser?.role, "admin");
+    assert.equal(sessionUser?.credentialType, "password");
   });
 
   it("returns null for an unknown token", () => {

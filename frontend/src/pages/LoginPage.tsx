@@ -4,23 +4,29 @@ import { APP_NAME, BRAND_GRADIENT } from "../app/brand";
 import { BrandLockup } from "../components/patterns/BrandLockup";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
-import { InputField } from "../components/ui/InputField";
+import { CredentialField } from "../components/ui/CredentialField";
 import { PinField } from "../components/ui/PinField";
 import { login } from "../features/auth/api";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
+import { isAdminCredentialEntryReady, type AdminCredentialType } from "../features/auth/adminCredentials";
 
 type LoginPhase = "credentials" | "twofa";
 
 const TOTP_CODE_LENGTH = 6;
 
-export function LoginPage({ onSuccess, sessionNotice }: { onSuccess: () => void; sessionNotice?: string | null }) {
+export function LoginPage({ onSuccess, sessionNotice, credentialType = null }: {
+  onSuccess: () => void;
+  sessionNotice?: string | null;
+  credentialType?: AdminCredentialType | null;
+}) {
   const [phase, setPhase] = useState<LoginPhase>("credentials");
   const [credential, setCredential] = useState("");
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const credentialLabel = credentialType === "pin" ? "PIN" : credentialType === "password" ? "Password" : "PIN or password";
 
-  const credentialsValid = credential.length > 0;
+  const credentialsValid = isAdminCredentialEntryReady(credentialType, credential);
   const twoFactorValid = twoFactorCode.length === TOTP_CODE_LENGTH;
 
   const continueToTwoFactor = () => {
@@ -31,7 +37,7 @@ export function LoginPage({ onSuccess, sessionNotice }: { onSuccess: () => void;
   };
 
   const signIn = async (totpToken = "") => {
-    if (signingIn) return;
+    if (signingIn || !credentialsValid) return;
     if (TOTP_ENABLED && !twoFactorValid) return;
     setSigningIn(true);
     setError(null);
@@ -86,7 +92,7 @@ export function LoginPage({ onSuccess, sessionNotice }: { onSuccess: () => void;
                 <header className="gap-detail-next grid w-full text-center">
                   <h2 className="type-heading text-text-primary m-0">Welcome back</h2>
                   <p className="type-body text-text-secondary m-0">
-                    Enter your password or PIN to continue.
+                    Enter your {credentialType === "password" ? "password" : credentialLabel} to continue.
                   </p>
                 </header>
 
@@ -97,12 +103,12 @@ export function LoginPage({ onSuccess, sessionNotice }: { onSuccess: () => void;
                 )}
 
                 <div className="gap-detail-close flex w-full flex-col">
-                  <InputField
-                    label="Password / PIN"
-                    type="password"
+                  <CredentialField
+                    credentialType={credentialType}
+                    label={credentialLabel}
                     value={credential}
-                    onChange={(event) => {
-                      setCredential(event.target.value);
+                    onChange={(value) => {
+                      setCredential(value);
                       if (error) setError(null);
                     }}
                     placeholder="••••••••••"

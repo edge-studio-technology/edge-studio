@@ -12,6 +12,13 @@ export function findTheUser(): UserRecord | undefined {
   return db.prepare("SELECT * FROM users LIMIT 1").get() as UserRecord | undefined;
 }
 
+export function getLocalAdminCredentialType(): AdminCredentialType | null {
+  const row = db.prepare("SELECT credential_type FROM users LIMIT 1").get() as
+    | { credential_type: AdminCredentialType }
+    | undefined;
+  return row?.credential_type ?? null;
+}
+
 export function findUserById(id: string): UserRecord | undefined {
   return db.prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRecord | undefined;
 }
@@ -131,6 +138,14 @@ export function updateUserPassword(userId: string, passwordHash: string, credent
     credentialType,
     userId
   );
+}
+
+export function updateUserCredentialType(userId: string, verifiedPasswordHash: string, credentialType: AdminCredentialType) {
+  return db.prepare("UPDATE users SET credential_type = ? WHERE id = ? AND password = ?").run(
+    credentialType,
+    userId,
+    verifiedPasswordHash
+  ).changes > 0;
 }
 
 export function updateUserTotpSecret(userId: string, totpSecretEncrypted: string) {

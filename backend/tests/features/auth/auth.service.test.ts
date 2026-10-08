@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterAll, beforeAll, describe, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { hashPassword, verifyPassword } from "../../../src/features/auth/password.service.js";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 import { currentToken, wrongToken } from "../../helpers/totp.js";
@@ -60,6 +60,7 @@ describe("login", () => {
     if (result.ok) {
       assert.ok(result.sessionToken);
       assert.equal(result.user.role, "admin");
+      assert.equal(result.user.credentialType, "password");
     }
   });
 
@@ -84,6 +85,68 @@ describe("login", () => {
     await authService.login({ password: "wrong-password" });
     const events = db.prepare("SELECT action FROM audit_events WHERE action = 'login.failure'").all();
     assert.ok(events.length > 0);
+  });
+});
+
+describe("legacy credential metadata on login", () => {
+  const PIN = "012345";
+  let originalUser: NonNullable<ReturnType<AuthRepository["findUserById"]>>;
+  let pinHash: string;
+
+  beforeAll(async () => {
+    pinHash = await hashPassword(PIN);
+  });
+
+  beforeEach(() => {
+    originalUser = findUserById(userId)!;
+    updateUserPassword(userId, pinHash, "password");
+  });
+
+  afterEach(() => {
+    updateUserPassword(userId, originalUser.password, originalUser.credential_type);
+    sessionService.deleteAllUserSessions(userId);
+  });
+
+  it("repairs a leading-zero legacy PIN only after successful login and returns it in the session", async () => {
+    const result = await authService.login({ password: PIN });
+
+    assert.equal(result.ok, true);
+    assert.equal(findUserById(userId)?.credential_type, "pin");
+    assert.equal(findUserById(userId)?.password, pinHash);
+    if (result.ok) {
+      assert.equal(result.user.credentialType, "pin");
+      assert.equal(sessionService.validateSession(result.sessionToken)?.credentialType, "pin");
+    }
+  });
+
+  it("does not repair metadata or create a session on failed password verification", async () => {
+    const original = findUserById(userId);
+    const result = await authService.login({ password: "654321" });
+
+    assert.equal(result.ok, false);
+    assert.deepEqual(findUserById(userId), original);
+    assert.equal((db.prepare("SELECT COUNT(*) AS count FROM sessions").get() as { count: number }).count, 0);
+  });
+
+  it("preserves a concurrent credential change while the old PIN is being verified", async () => {
+    const replacementHash = await hashPassword(PASSWORD);
+    const pendingLogin = authService.login({ password: PIN });
+    updateUserPassword(userId, replacementHash, "password");
+    const result = await pendingLogin;
+
+    assert.equal(findUserById(userId)?.password, replacementHash);
+    assert.equal(findUserById(userId)?.credential_type, "password");
+    assert.equal(result.ok, true);
+    if (result.ok) assert.equal(result.user.credentialType, "password");
+  });
+
+  it("accepts an existing password without applying the new-password strength policy", async () => {
+    updateUserPassword(userId, await hashPassword("legacy"), "pin");
+    const result = await authService.login({ password: "legacy" });
+
+    assert.equal(result.ok, true);
+    assert.equal(findUserById(userId)?.credential_type, "password");
+    if (result.ok) assert.equal(result.user.credentialType, "password");
   });
 });
 
@@ -151,6 +214,28 @@ describe("changePassword", () => {
 
     assert.ok(sessionService.validateSession(token));
     sessionService.deleteAllUserSessions(userId);
+  });
+
+  it("stores each changed credential type and revokes the previous session in both directions", async () => {
+    const original = findUserById(userId)!;
+    let currentPassword = "Revoked1!";
+    try {
+      for (const [newPassword, credentialType] of [["012345", "pin"], [PASSWORD, "password"]] as const) {
+        const token = sessionService.createSession(userId);
+        await authService.changePassword(userId, { currentPassword, newPassword });
+
+        assert.equal(findUserById(userId)?.credential_type, credentialType);
+        assert.equal(await verifyPassword(newPassword, findUserById(userId)!.password), true);
+        assert.equal(sessionService.validateSession(token), null);
+        const result = await authService.login({ password: newPassword });
+        assert.equal(result.ok, true);
+        if (result.ok) assert.equal(result.user.credentialType, credentialType);
+        currentPassword = newPassword;
+      }
+    } finally {
+      updateUserPassword(userId, original.password, original.credential_type);
+      sessionService.deleteAllUserSessions(userId);
+    }
   });
 });
 
@@ -449,6 +534,41 @@ describe("login with TOTP enforcement enabled", () => {
 
       const user = findUserById(userId);
       assert.equal(await verifyPassword(newPassword, user!.password), true);
+    });
+  });
+
+  describe("legacy PIN metadata with TOTP enabled", () => {
+    const PIN = "012345";
+    let pinHash: string;
+
+    beforeAll(async () => {
+      pinHash = await hashPassword(PIN);
+    });
+
+    beforeEach(() => {
+      updateUserPassword(userId, pinHash, "password");
+      sessionService.deleteAllUserSessions(userId);
+    });
+
+    for (const tokenKind of ["missing", "malformed", "wrong"] as const) {
+      it(`does not correct metadata when the TOTP code is ${tokenKind}`, async () => {
+        const original = findUserById(userId);
+        const totpToken = tokenKind === "missing" ? undefined : tokenKind === "malformed" ? "12345" : wrongToken(secret);
+        const result = await totpAuthService.login({ password: PIN, totpToken });
+
+        assert.equal(result.ok, false);
+        assert.deepEqual(findUserById(userId), original);
+        assert.equal((db.prepare("SELECT COUNT(*) AS count FROM sessions").get() as { count: number }).count, 0);
+      });
+    }
+
+    it("corrects metadata only once both the PIN and TOTP are verified", async () => {
+      const result = await totpAuthService.login({ password: PIN, totpToken: currentToken(secret) });
+
+      assert.equal(result.ok, true);
+      assert.equal(findUserById(userId)?.credential_type, "pin");
+      assert.equal(findUserById(userId)?.password, pinHash);
+      if (result.ok) assert.equal(result.user.credentialType, "pin");
     });
   });
 });

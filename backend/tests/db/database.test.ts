@@ -109,6 +109,35 @@ describe("runMigrations — retention and budget schema", () => {
   });
 });
 
+describe("runMigrations — legacy credential metadata", () => {
+  it("defaults pre-flag accounts to password, preserves their fields, and retains corrected types on rerun", () => {
+    db.exec(`
+      CREATE TABLE legacy_users (
+        id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
+        totp_secret TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'admin',
+        created_at TEXT NOT NULL, last_login TEXT
+      );
+      DROP TABLE users;
+      ALTER TABLE legacy_users RENAME TO users;
+      INSERT INTO users VALUES ('legacy-pin', 'admin-pin', 'pin-hash', 'pin-totp', 'admin', '2026-01-01', NULL);
+      INSERT INTO users VALUES ('legacy-password', 'admin-password', 'password-hash', 'password-totp', 'admin', '2026-01-02', '2026-01-03');
+    `);
+    const original = db.prepare("SELECT * FROM users ORDER BY id").all() as object[];
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM users ORDER BY id").all(), original.map((row) => ({ ...row, credential_type: "password" })));
+    const column = (db.prepare("PRAGMA table_info(users)").all() as { name: string; notnull: number; dflt_value: string }[])
+      .find((item) => item.name === "credential_type");
+    assert.equal(column?.notnull, 1);
+    assert.equal(column?.dflt_value, "'password'");
+
+    db.prepare("UPDATE users SET credential_type = 'pin' WHERE id = 'legacy-pin'").run();
+    const corrected = db.prepare("SELECT * FROM users ORDER BY id").all();
+    runMigrations();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM users ORDER BY id").all(), corrected);
+  });
+});
+
 describe("runMigrations — local address-book identity", () => {
   it("upgrades an existing address book without changing saved fields and is repeatable", () => {
     db.exec(`

@@ -77,7 +77,7 @@ function ChangelogEntryView({ entry, defaultOpen }: { entry: ChangelogEntry; def
 }
 
 /**
- * `markdown` is update-agent's cached copy of CHANGELOG.md. See docs/adr/0031-cache-update-changelog-in-update-agent.md.
+ * `markdown` is update-agent's cached copy of CHANGELOG.md. See docs/adr/0032-cache-update-changelog-in-update-agent.md.
  * Renders as React elements, never HTML injection.
  */
 export function ChangelogPreview({ markdown, onRetry }: { markdown: string | null; onRetry: () => void }) {

@@ -1,6 +1,6 @@
 # 0004: Update Page Changelog Preview
 
-**Status:** Partially superseded by [0031](./0031-cache-update-changelog-in-update-agent.md) (fetch location, proxy rejection, full-changelog link)
+**Status:** Partially superseded by [0032](./0032-cache-update-changelog-in-update-agent.md) (fetch location, proxy rejection, full-changelog link)
 **Date:** 2026-08-07
 
 ## Context

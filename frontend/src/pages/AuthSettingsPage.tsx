@@ -23,6 +23,7 @@ import { SubSection } from "../components/patterns/SubSection";
 import { ErrorText } from "../components/Text";
 import { Disclosure } from "../components/ui/Disclosure";
 import { InputField } from "../components/ui/InputField";
+import { CredentialField } from "../components/ui/CredentialField";
 import { SwitchField } from "../components/ui/SwitchField";
 import {
   closeModalOnOutsideClickSetting,
@@ -33,6 +34,7 @@ import { initTotpReset, verifyTotpReset } from "../features/auth/api";
 import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { TOTP_ENABLED } from "../features/auth/totpEnabled";
 import { useAuth } from "../features/auth/hooks";
+import { adminCredentialLabel, isAdminCredentialEntryReady } from "../features/auth/adminCredentials";
 
 type TotpResetPhase = "idle" | "scan" | "done";
 
@@ -55,7 +57,10 @@ export function AuthSettingsPage() {
   const [verifySubmitting, setVerifySubmitting] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  const credentialType = user?.credentialType ?? null;
+  const resetFormReady =
+    isAdminCredentialEntryReady(credentialType, resetCurrentPassword) && resetCurrentToken.length === 6;
   const navigate = useNavigate();
 
   // Changing a credential or the TOTP secret revokes every session server-side, so the
@@ -66,6 +71,7 @@ export function AuthSettingsPage() {
 
   const handleInitTotpReset = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!resetFormReady || resetSubmitting) return;
     setResetSubmitting(true);
     setResetError(null);
     try {
@@ -158,12 +164,12 @@ export function AuthSettingsPage() {
                         is available before continuing.
                       </p>
                     </div>
-                    <InputField
-                      label="Current PIN or password"
-                      type="password"
+                    <CredentialField
+                      credentialType={credentialType}
+                      label={`Current ${adminCredentialLabel(credentialType)}`}
                       value={resetCurrentPassword}
-                      onChange={(e) => {
-                        setResetCurrentPassword(e.target.value);
+                      onChange={(value) => {
+                        setResetCurrentPassword(value);
                         setResetError(null);
                       }}
                       placeholder="Your current credential"
@@ -187,8 +193,7 @@ export function AuthSettingsPage() {
                         type="submit"
                         disabled={
                           resetSubmitting ||
-                          resetCurrentPassword.length === 0 ||
-                          resetCurrentToken.length !== 6
+                          !resetFormReady
                         }
                       >
                         {resetSubmitting ? "Verifying…" : "Start 2FA reset"}
