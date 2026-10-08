@@ -4,6 +4,10 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Audited OpenProject #283 against `task/283-implement-pin-password-credential-input` at `b63809d`: credential-type persistence and authenticated responses already exist; pre-login metadata, dynamic login/eight reauthentication fields, and legacy PIN metadata compatibility remain. Saved the implementation plan in `docs/plans/features/283-implement-pin-password-credential-input.md`; no implementation code changed.
+- Added the complete #283 audit and plan to the OpenProject description, preserved its original requirements and other ticket fields, and verified the persisted result.
+- Verified #283's focused baseline: 124 backend auth/database tests and 170 frontend auth/setup/input/backup/whitelist tests passed. Backend route tests required a rerun outside the sandbox to allow local server binding; full checks/builds and browser/Pi verification were not run for this planning task.
+
 - Implemented #206's separate app-owned local contact, automatic initialization, editable name/notes, protected address/deletion, and pending wallet-replacement handling with a legacy-Minima restart/status fallback; preserved user contacts and references. Full check passed 3,326 tests, with builds, typechecks, coverage, dependency audits, and Compose verification.
 - Verified #206 on the dev Pi through upgrade and clean app/wallet source installations plus authenticated Playwright contact flows. Default naming, duplicate-safe creation, managed protections, ordinary CRUD, restart persistence, and headless same/different-wallet backup restores passed. Pending protection survived backend restart; metadata/manual contacts and ownership/audits were verified. Original wallet/name/notes restored and test fixtures removed. Pi runs the healthy uncommitted `ef54f4ec.readiness.dirty` build; see [QA summary](qa/206-completed-branch-pi-deployment.md).
 
@@ -87,6 +91,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Opened PR #143 to `dev`.
 
 ## Next Steps
+
+- Implement #283 from its audited plan when requested; verify public credential hints, legacy PIN login, all local reauthentication fields, and credential-type changes.
 
 - #206: commit the verified compatibility fix, obtain user signoff, and prepare the PR to dev.
 - Deploy the longer Integritas timeout and verify a slow PDF verification on the Pi; change any explicit `INTEGRITAS_REQUEST_TIMEOUT_MS=15000` override to `300000` and recreate the backend/frontend containers. Rerun Docker builds with the engine available and investigate the Minima backup-restore fallback test failure separately.
