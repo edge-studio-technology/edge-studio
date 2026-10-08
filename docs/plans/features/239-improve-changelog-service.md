@@ -1,6 +1,6 @@
 # Improve Changelog Service Plan
 
-**Status:** In progress — update-agent steps 1–3 done; frontend, docs, verification remain
+**Status:** In progress — code, docs, local verification done; Pi check remains
 **Created:** 2026-10-08
 **Branch:** `task/239-improve-changelog-service`
 **Goal:** Cache the Update page changelog in `update-agent`, kept in step with the signed manifest, instead of having the browser fetch GitHub on every page load.
@@ -10,9 +10,10 @@
 - [x] update-agent 1: `changelog-cache.ts` (`f2fb38cb`)
 - [x] update-agent 2: `getUpdateStatus()` syncs the changelog (`fbb2a887`)
 - [x] update-agent 3: `GET /status` returns `changelog` (`32fc5c22`), added in `getUpdateStatus()`'s return rather than the route
-- [ ] Frontend 1–6
-- [ ] Docs
-- [ ] Verification
+- [x] Frontend 1–6 (`bb3f4941`)
+- [x] Docs: ADR 0031, 0004 marked partially superseded, rules ×3, SECURITY, README, CHANGELOG
+- [x] Local verification: `npm run check`, backend/frontend builds, `docker compose config`, `docker compose build frontend update-agent`, `nginx -t` on new CSP
+- [ ] Pi check: notes show with no browser GitHub requests; offline `update-agent` restart keeps notes
 
 ## Context
 

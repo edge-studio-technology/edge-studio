@@ -4,6 +4,18 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] task/239-improve-changelog-service
+
+### Changed
+
+- Update page release notes come from a copy `update-agent` caches when it checks for updates, and still show when the Pi is offline.
+- "View full changelog" on the Update page opens every released entry in the app instead of GitHub.
+- The browser no longer contacts GitHub from the Update page, and the frontend CSP no longer allows `raw.githubusercontent.com`.
+
+### Fixed
+
+- Relative links in Update page release notes point to the correct GitHub repository.
+
 ## [Unreleased]
 
 ### Added

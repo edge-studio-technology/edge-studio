@@ -4,6 +4,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- #239 frontend (`bb3f4941`) + docs on `task/239-improve-changelog-service`: `UpdateStatus.changelog` type; dropped browser `fetchChangelog()`; `parseChangelog()` limit now optional (all released entries); `ChangelogPreview` takes `markdown`/`onRetry` props from `UpdatePage`, previews 3 entries, "View full changelog" opens an in-app `Modal`; `REPO_URL` fixed to `edge-studio-technology`; `raw.githubusercontent.com` dropped from both nginx CSP `connect-src`. ADR 0031 added, ADR 0004 marked partially superseded, `docs/README.md` table, update-agent rules ×3, SECURITY, README, CHANGELOG updated. Verified: `npm run check` (all packages, coverage thresholds met), backend/frontend builds, `docker compose config`, `docker compose build frontend update-agent`, `nginx -t` on the new config.
 - #239 update-agent steps 1–3 on `task/239-improve-changelog-service`: added the persisted changelog cache (`changelog-cache.ts`, `/state/changelog-cache.json`, refetch only on a new manifest version, copy accepted only with that version's heading), synced it from every `getUpdateStatus()` call without failing the status check, and added `changelog: { markdown, fetchedAt } | null` to `GET /status`. Commits `f2fb38cb`, `fbb2a887`, `32fc5c22`. Update Agent coverage run (188 tests, thresholds met) and `tsc --noEmit` passed.
 - Added project-scope Playwright MCP in `.mcp.json` (`--browser chromium --output-dir .playwright-mcp`; output dir already gitignored); approved via `enabledMcpjsonServers` in `.claude/settings.local.json` and confirmed connecting in a new session. Installed Playwright Chromium 1247 for `@playwright/mcp` 0.0.83. `.mcp.json` is staged, not committed.
 
@@ -91,7 +92,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- #239 remaining (plan `docs/plans/features/239-improve-changelog-service.md`): frontend steps 1–6 (`UpdateStatus.changelog` type, drop browser `fetchChangelog()` + `parseChangelog()` limit, `ChangelogPreview` from prop, in-app full-changelog modal, `REPO_URL` org fix, drop `raw.githubusercontent.com` from both nginx CSP `connect-src`), then docs (ADR 0031 superseding ADR 0004's client fetch, update-agent rules ×3, SECURITY, README, CHANGELOG `## [Unreleased] task/239-improve-changelog-service`), then full verification and the Pi check.
+- #239 remaining: Pi check (Update page shows notes with no browser requests to GitHub; restart `update-agent` offline and notes still show).
 - Commit the staged `.mcp.json`.
 
 - #206: commit the verified compatibility fix, obtain user signoff, and prepare the PR to dev.
