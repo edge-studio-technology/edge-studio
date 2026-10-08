@@ -17,7 +17,6 @@
 
 ## In Progress
 
-- [ ] Implement PIN/password credential input (OpenProject #283) — steps 1–4 implemented across login, eight reauthentication inputs, and new/confirmation credentials; 279 focused frontend and 3,452 full-suite tests passed, plus Chromium component integration checks in both modes. Next is step 5's final documentation/ticket reconciliation and actual password-manager/mobile keyboard/full-application/existing-installation/Pi verification. See `docs/plans/features/283-implement-pin-password-credential-input.md` and ADR 0031.
 
 - [ ] Upgrade Automation watch mode into a production-quality live monitoring, historic replay, and workflow debugging experience — runtime overview, domain-aware block summaries, replay toolbar/status messaging, status-colored replay animation, and run-specific historic canvas rendering are implemented and build/test verified; browser visual QA remains; see `docs/plans/workflow-watch-mode-upgrade.md`.
 - [ ] Static guided tour (OpenProject #275): built on `task/275-create-static-app-guided-tour`, current `dev` merged for PR preparation (first-visit modal with 9 steps, seen flag per browser, replay from Settings → Behaviour); draft screenshots from dev data are in for every slide, crossfading in a full frame when a slide has two; recapture all of them with clean, Pi-like values before merge, then copy review and merge. Decisions in `docs/adr/0027-static-guided-tour.md`; see `docs/plans/features/275-create-static-app-guided-tour.md`.
@@ -83,6 +82,8 @@
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
 
 ## Done
+
+- [x] Implemented PIN/password credential input (#283), steps 1–5 for the agreed scope — 279 focused frontend and 3,452 full-suite tests/builds/checks passed; live Pi QA covered both modes, disposable legacy/fresh accounts, all backup credential actions, and four actual restores with wallet identity verification. Original Pi data/account/connection restored; disposable data removed. Password-manager/native autofill and physical mobile keyboard QA were excluded for a proposed separate ticket; comment mentions Rowel. OpenProject remains Testing for review. See [plan](plans/features/283-implement-pin-password-credential-input.md) and [QA results](qa/283-credential-input-pi-verification.md).
 
 - [x] Added local Pi SSH credential placeholders, a password-safe developer helper, and the mirrored `pi-ssh` agent skill; skill validation, Bash syntax, and eight isolated helper checks passed. Live password authentication and read-only identity checks passed on `RaspberryPi5` as `devpi5` (`aarch64`), with host-key verification enabled.
 

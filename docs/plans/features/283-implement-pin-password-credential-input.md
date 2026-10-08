@@ -1,6 +1,6 @@
 # PIN/password Credential Input Plan
 
-**Status:** Steps 1–4 implemented; step 5 pending. OpenProject currently marks the ticket In progress.
+**Status:** Steps 1–5 complete for the agreed scope. OpenProject remains Testing for operator review; password-manager/native autofill and physical mobile keyboard checks were excluded for a proposed separate ticket.
 **Created:** 2026-10-08
 **Ticket:** [#283 — Implement PIN/password credential input](https://openproject.privateprivate.org/work_packages/283)
 **Goal:** Show the appropriate PIN or password input everywhere the operator enters their local admin credential, using the backend's stored credential type.
@@ -54,7 +54,7 @@ The backup-encryption password and uploaded-backup password override are separat
 - [x] Step 2: auth bootstrap hint.
 - [x] Step 3: shared credential field.
 - [x] Step 4: apply the field across credential surfaces.
-- [ ] Step 5: completed-feature documentation and manual verification.
+- [x] Step 5: completed-feature documentation and in-scope manual verification.
 
 ### 1. Complete credential metadata and legacy compatibility
 
@@ -104,11 +104,19 @@ The backup-encryption password and uploaded-backup password override are separat
 
 ## Verification
 
+### Live Pi verification — 2026-10-08
+
+Installed commit `e78caec8` on the existing dev Pi through the branch installer with `DEV_MODE=true`. ARM64 frontend/backend source builds passed; both containers became healthy, public setup status returned the stored PIN type with `Cache-Control: no-store`, and Minima remained running. The previous app/database was backed up before deployment; account and node data were preserved. This verifies an installer-based source upgrade, not a signed release/update-agent rollout.
+
+Live headed Chromium on the operator's Linux desktop passed PIN typing, six-digit bounds, partial-entry readiness, Backspace, selection deletion, native clipboard paste with a leading zero, Enter/no automatic submission, rejected-login error/draft retention, and login layout at 375×812. Settings checks passed current/new type independence, new-field clearing on tab changes, and strong-password creation validation. With explicit approval, changed the existing PIN to a temporary password and back through the UI; login metadata persisted after reload in both directions, password login passed, and the original PIN was restored and used successfully. Backup-password and whitelist confirmation fields passed readiness/semantics in both modes; ordinary backup encryption/restore-override values remained unrestricted. Uploaded restore stayed disabled without a file. These dialogs were cancelled without saving configuration or restoring node data; the browser was left authenticated at desktop size.
+
+**Follow-up verification completed:** Disposable legacy/fresh-account checks and real backup/restore actions passed in both admin modes. Original Pi data/account/connection restored and disposable data removed. See [QA results](../../qa/283-credential-input-pi-verification.md). Password-manager/native autofill and physical mobile keyboards were excluded by the user for a proposed separate ticket; a comment mentioning Rowel records this. Step 5 is complete for the agreed scope, with the legacy-node restart and row-menu viewport limitations recorded.
+
 Extend existing backend auth/setup/repository/session tests and database migration tests. Add explicit contracts for the public hint, safe response shape, both stored modes, metadata repair, and PIN/password changes with invalidated old sessions.
 
 Add `frontend/tests/components/ui/CredentialField.test.tsx` and `frontend/tests/pages/LoginPage.test.tsx`; extend provider, auth API/types consumers, setup, credential change, backup, whitelist, and gated TOTP-reset tests. Test behavior and requests rather than only inspecting which child component rendered.
 
-Manual browser verification must cover desktop and narrow mobile viewports, numeric keyboard, paste, backspace, Enter, password-manager/autofill behavior, errors, and modal-footer actions. Test on a disposable existing-installation database with a pre-flag PIN, a pre-flag password, and a newly created account; confirm logout/reload and both direction credential changes. Backup restore QA uses disposable node data.
+Manual browser verification covers desktop and narrow mobile viewports, numeric input attributes, paste, backspace, Enter, errors, and modal-footer actions. Actual password-manager/native autofill and physical mobile keyboard checks were explicitly excluded by the operator on 2026-10-08 for a proposed separate ticket. Test on a disposable existing-installation database with a pre-flag PIN, a pre-flag password, and a newly created account; confirm logout/reload and both direction credential changes. Backup restore QA uses disposable node data.
 
 ### Audit baseline
 
