@@ -4,6 +4,7 @@ import { fetchVerifiedManifest, type Manifest } from "../../src/manifest/manifes
 import { getLastAppliedManifest, recordAppliedManifest } from "../../src/manifest/manifest-state.js";
 import { getComposeServiceContainer, inspectImage } from "../../src/docker/docker.service.js";
 import { getUpdateStatus } from "../../src/status/status.service.js";
+import { syncChangelog } from "../../src/status/changelog-cache.js";
 import type { DockerContainerSummary } from "../../src/docker/docker.types.js";
 
 vi.mock("../../src/manifest/manifest.service.js", () => ({
@@ -15,6 +16,7 @@ vi.mock("../../src/manifest/manifest-state.js", () => ({
   recordAppliedManifest: vi.fn()
 }));
 vi.mock("../../src/docker/docker.service.js", () => ({ getComposeServiceContainer: vi.fn(), inspectImage: vi.fn() }));
+vi.mock("../../src/status/changelog-cache.js", () => ({ syncChangelog: vi.fn() }));
 
 function manifest(overrides: Partial<Manifest> = {}): Manifest {
   return {
@@ -61,6 +63,21 @@ describe("status.service", () => {
   });
 
   describe("getUpdateStatus", () => {
+    it("syncs the changelog to the verified manifest version", async () => {
+      (fetchVerifiedManifest as any).mockResolvedValue(manifest({ version: "v2.0.0" }));
+
+      await getUpdateStatus();
+
+      assert.deepEqual((syncChangelog as any).mock.calls, [["v2.0.0"]]);
+    });
+
+    it("does not sync the changelog when the manifest fails verification", async () => {
+      (fetchVerifiedManifest as any).mockRejectedValue(new Error("bad signature"));
+
+      await assert.rejects(getUpdateStatus(), /bad signature/);
+      assert.equal((syncChangelog as any).mock.calls.length, 0);
+    });
+
     it("builds a service status entry for each manifest service key plus update-agent and host-runtime", async () => {
       const result = await getUpdateStatus();
 
