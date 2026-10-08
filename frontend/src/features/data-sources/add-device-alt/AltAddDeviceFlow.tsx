@@ -7,7 +7,7 @@ import { buildDeviceConfigInput } from "../buildDeviceConfig";
 import { createDataSource } from "../dataSourcesApi";
 import type { DataSource, DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../dataSourceTypes";
 import { useDeviceFormFields } from "../useDeviceFormFields";
-import { AltDeviceForm, altDeviceProvisioningSteps, isAltDeviceFormValid, isAltDeviceStepValid } from "./AltDeviceForm";
+import { AltDeviceForm, altDeviceProvisioningSteps, DeviceAddedSummary, isAltDeviceFormValid, isAltDeviceStepValid } from "./AltDeviceForm";
 import { inputTemplates, outputTemplates, resolveTemplateConfig, templateIcon } from "../DataSourceTemplates";
 
 type WizardStep = "root" | "boards" | "protocols" | "protocol-inbound" | "protocol-outbound" | "sensors" | "sensor-templates";
@@ -37,16 +37,21 @@ export function AltAddDeviceFlow({
   capabilities,
   onClose,
   onCreated,
+  onOpenSetupGuide = () => undefined,
+  onGoToWorkflows = () => undefined,
 }: {
   open: boolean;
   capabilities: DataSourceCapabilities | null;
   hostCapabilities?: HostCapability[];
   onClose: () => void;
   onCreated: (source: DataSource) => void;
+  onOpenSetupGuide?: (source: DataSource) => void;
+  onGoToWorkflows?: () => void;
 }) {
   const { showToast } = useToast();
   const [step, setStep] = useState<WizardStep>("root");
   const [template, setTemplate] = useState<DataSourceTemplate | null>(null);
+  const [createdSource, setCreatedSource] = useState<DataSource | null>(null);
   const [provisioningStepIndex, setProvisioningStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const { fields, reset, fillFromTemplate } = useDeviceFormFields();
@@ -55,6 +60,7 @@ export function AltAddDeviceFlow({
     if (!open) return;
     setStep("root");
     setTemplate(null);
+    setCreatedSource(null);
     setProvisioningStepIndex(0);
     reset();
     // Reset only when a fresh open is requested, not on every field change.
@@ -80,6 +86,7 @@ export function AltAddDeviceFlow({
         config: buildDeviceConfigInput(fields, { template }),
       });
       showToast({ tone: "success", title: "Device added" });
+      setCreatedSource(response.item);
       onCreated(response.item);
     } catch (err) {
       showToast({
@@ -113,6 +120,47 @@ export function AltAddDeviceFlow({
 
   function goToPreviousProvisioningStep() {
     if (provisioningStepIndex > 0) setProvisioningStepIndex((current) => current - 1);
+  }
+
+  function addAnotherDevice() {
+    setCreatedSource(null);
+    setTemplate(null);
+    setProvisioningStepIndex(0);
+    setStep("root");
+    reset();
+  }
+
+  function openSetupGuide() {
+    if (!createdSource) return;
+    onOpenSetupGuide(createdSource);
+    onClose();
+  }
+
+  function goToWorkflows() {
+    onGoToWorkflows();
+    onClose();
+  }
+
+  if (createdSource && template) {
+    return (
+      <Modal
+        title={<SetupDeviceBreadcrumb step={step} final="Device added" />}
+        onClose={onClose}
+        width="wide"
+        className={setupDeviceModalClassName}
+        bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0"
+        footer={
+          <div className="gap-detail-next flex w-full flex-wrap items-center justify-end">
+            <Button variant="secondary" onClick={onClose}>Return to device page</Button>
+            <Button variant="secondary" onClick={addAnotherDevice}>Add new device</Button>
+            <Button variant="secondary" onClick={openSetupGuide}>Open device guide</Button>
+            <Button onClick={goToWorkflows}>Go to workflow page</Button>
+          </div>
+        }
+      >
+        <DeviceAddedSummary source={createdSource} template={template} />
+      </Modal>
+    );
   }
 
   if (template && provisioningStep) {

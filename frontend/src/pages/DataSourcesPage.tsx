@@ -113,9 +113,7 @@ export function DataSourcesPage() {
   }
 
   function handleDeviceCreated(source: DataSource) {
-    setSetupDeviceOpen(false);
     refresh();
-    if (getDeviceSetupGuide(source)) setSetupGuideSource(source);
   }
 
   function editSource(source: DataSource) {
@@ -477,6 +475,8 @@ export function DataSourcesPage() {
         hostCapabilities={hostCapabilities}
         onClose={() => setSetupDeviceOpen(false)}
         onCreated={handleDeviceCreated}
+        onOpenSetupGuide={setSetupGuideSource}
+        onGoToWorkflows={() => navigate("/workflows")}
       />
 
       {formOpen && (

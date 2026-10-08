@@ -117,7 +117,25 @@ describe("AltAddDeviceFlow", () => {
       type: "json-api",
     });
     expect(props.onCreated).toHaveBeenCalledWith(created);
-    expect(await screen.findByText("Device added")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Device added" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Return to device page" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add new device" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open device guide" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Go to workflow page" })).toBeInTheDocument();
+  });
+
+  it("opens the saved device guide from the success state", async () => {
+    const created = { id: "s1", name: "HTTP JSON Source" };
+    const onOpenSetupGuide = vi.fn();
+    createDataSource.mockResolvedValue({ item: created });
+    const { props } = renderFlow({ onOpenSetupGuide });
+    await chooseRestApiSource();
+    await advanceToReview();
+    await userEvent.click(screen.getByRole("button", { name: "Add device" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: "Open device guide" }));
+    expect(onOpenSetupGuide).toHaveBeenCalledWith(created);
+    expect(props.onClose).toHaveBeenCalled();
   });
 
   it("shows an error toast and does not call onCreated when the create request fails", async () => {

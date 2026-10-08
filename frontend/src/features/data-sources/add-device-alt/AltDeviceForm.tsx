@@ -2,7 +2,7 @@ import { DetailList, DetailRow } from "../../../components/patterns/DetailList";
 import { InputField } from "../../../components/ui/InputField";
 import { SelectField } from "../../../components/ui/SelectField";
 import type { ReactNode } from "react";
-import type { DataSourceTemplate } from "../dataSourceTypes";
+import type { DataSource, DataSourceTemplate } from "../dataSourceTypes";
 import type { DeviceFormFields } from "../useDeviceFormFields";
 
 export type AltDeviceProvisioningStep = "type" | "name" | "setup" | "review";
@@ -69,6 +69,30 @@ export function isAltDeviceStepValid(fields: DeviceFormFields, step: AltDevicePr
   if (step === "setup") return isAltDeviceSetupValid(fields);
   if (step === "review") return isAltDeviceFormValid(fields);
   return true;
+}
+
+export function DeviceAddedSummary({ source, template }: { source: DataSource; template: DataSourceTemplate }) {
+  return (
+    <section className="grid min-h-full min-w-0 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="bg-surface-secondary px-detail-next py-pad-relaxed">
+        <h3 className="type-title text-text-primary m-0">Device added</h3>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">
+          {source.name} is ready to use in Edge Studio.
+        </p>
+      </div>
+      <div className="border-stroke-secondary bg-surface-primary min-w-0 border-t px-detail-next py-pad-relaxed pl-6 lg:border-t-0 lg:border-l">
+        <h3 className="type-title text-text-primary m-0">{source.name}</h3>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">
+          Your device was saved successfully. Open its guide for setup and workflow recommendations.
+        </p>
+        <DetailList className="mt-detail-near">
+          <DetailRow label="Type" value={template.title} />
+          <DetailRow label="Name" value={source.name} />
+          {source.description && <DetailRow label="Description" value={source.description} />}
+        </DetailList>
+      </div>
+    </section>
+  );
 }
 
 function isAltDeviceSetupValid(fields: DeviceFormFields) {
