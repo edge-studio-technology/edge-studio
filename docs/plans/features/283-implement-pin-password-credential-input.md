@@ -1,6 +1,6 @@
 # PIN/password Credential Input Plan
 
-**Status:** Steps 1–2 implemented; steps 3–5 pending. OpenProject currently marks the ticket In progress.
+**Status:** Steps 1–3 implemented; steps 4–5 pending. OpenProject currently marks the ticket In progress.
 **Created:** 2026-10-08
 **Ticket:** [#283 — Implement PIN/password credential input](https://openproject.privateprivate.org/work_packages/283)
 **Goal:** Show the appropriate PIN or password input everywhere the operator enters their local admin credential, using the backend's stored credential type.
@@ -52,7 +52,7 @@ The backup-encryption password and uploaded-backup password override are separat
 
 - [x] Step 1: credential metadata and legacy compatibility.
 - [x] Step 2: auth bootstrap hint.
-- [ ] Step 3: shared credential field.
+- [x] Step 3: shared credential field.
 - [ ] Step 4: apply the field across credential surfaces.
 - [ ] Step 5: completed-feature documentation and manual verification.
 
@@ -83,6 +83,8 @@ The backup-encryption password and uploaded-backup password override are separat
 - Extend `PinField` only as needed for persistent credentials: a password input mode and appropriate password-manager attributes, preserving its default one-time-code mode. Review its typing/deletion/paste/autofill behavior with a real browser.
 - Keep creation policy and submit validation in forms/existing credential helpers; do not put new-password policy inside the shared field.
 - **Verify:** masked input semantics, numeric keyboard, six-digit bound, leading zero, paste/delete, labels/error association, disabled/focus state, Enter submission, and unrestricted password/fallback values.
+
+**Implemented 2026-10-08:** Added presentational `ui/CredentialField` with explicit nullable metadata, controlled string values, existing field presentation, and native form/focus attributes. Known PINs use six-slot `PinField` in persistent-credential mode; password/unknown values use unrestricted masked `InputField`. Persistent PINs use a password input, default to `current-password`, accept `new-password`, and omit password-manager ignore attributes. Default authenticator-code behavior is unchanged; creation policy and submit readiness stay with callers. All **31 focused field tests in 3 files** passed, covering normalization, leading zeros, paste, selection replacement/deletion, whole-value changes, accessibility, form payloads, focus/disabled state, Enter, and no automatic submission. Chromium checks passed in a temporary component harness at **1280×900 and 375×812**, including native clipboard paste, typing/deletion, simulated whole-value autofill input, masking, errors, disabled controls, and no horizontal overflow. Actual password-manager extension/native saved-password fill and physical mobile keyboard checks remain pending. Full verification passed: `MINIMA_STATUS_URL=http://127.0.0.1:9005/status npm run check` (**3,395 tests**, all typechecks/coverage thresholds, clean dependency audits), backend/frontend builds, and `docker compose config --quiet`. Design-system documentation and changelog were updated; removed the stale absent `CredentialInput.tsx` inventory entry. Page integration begins in step 4; full-feature browser/existing-installation/Pi verification remains pending.
 
 ### 4. Apply the field across the ticket's surfaces
 

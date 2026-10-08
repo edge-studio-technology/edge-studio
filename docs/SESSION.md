@@ -4,6 +4,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Implemented #283 plan step 3: added the shared credential field and persistent-PIN mode, retaining default authenticator semantics and unrestricted password/unknown entry. All 31 focused field tests passed; Chromium checks at 1280×900 and 375×812 covered native clipboard paste, leading-zero typing, selection/deletion, simulated autofill input, Enter, focus, errors, disabled controls, and narrow layout. Full check passed with the test-only Minima URL override: 3,395 tests (1,389 backend; 1,783 frontend; 171 Update Agent; 52 scripts), typechecks, coverage thresholds, and clean dependency audits; backend/frontend builds, Compose validation, and diff checks passed. Updated the design-system guide, changelog, plan, and task tracker; corrected the stale absent credential-input inventory. Step 4 integration and actual password-manager/mobile keyboard/full-feature/Pi verification remain pending.
+
 - Verified live Pi SSH access through `scripts/dev/pi-ssh.sh` with installed sshpass and the configured local credentials: `hostname; id; uname -m` succeeded, reporting `RaspberryPi5`, user `devpi5`, and `aarch64`. The sandbox initially prevented OpenSSH from reading its system configuration; the same read-only check passed outside the sandbox. Host-key verification stayed enabled; no remote changes were made.
 
 - Added blank Pi SSH login/password entries to the gitignored `.env.local` and tracked template, the developer SSH helper, and the `pi-ssh` skill mirrored across agent tools. Preserved existing credentials and mode 600; documented setup/security. Skill validation, Bash syntax checks (helper, installer, CLI), eight isolated helper checks, mirror equality, and diff checks passed. Live access is pending locally supplied credentials, sshpass installation, and an already trusted host key; application checks/builds were not run for this developer-tooling change.
@@ -102,7 +104,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- Continue #283 with step 3 when requested: add the shared credential field and persistent-PIN semantics, then apply it across login/reauthentication in step 4. Step 5 and browser/Pi verification remain pending.
+- Continue #283 with step 4 when requested: apply the shared field across login, reauthentication, and new/confirmation credentials. Step 5, actual password-manager/mobile keyboard checks, and full-feature browser/existing-installation/Pi verification remain pending.
 
 - #206: commit the verified compatibility fix, obtain user signoff, and prepare the PR to dev.
 - Deploy the longer Integritas timeout and verify a slow PDF verification on the Pi; change any explicit `INTEGRITAS_REQUEST_TIMEOUT_MS=15000` override to `300000` and recreate the backend/frontend containers. Rerun Docker builds with the engine available and investigate the Minima backup-restore fallback test failure separately.

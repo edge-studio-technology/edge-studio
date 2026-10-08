@@ -99,12 +99,13 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [SpinnerAlt](#spinneralt): pin-dial loading indicator
 - `Input`: bare text control
 - [InputField](#inputfield): labeled text field
+- [CredentialField](#credentialfield): PIN or password field
 - [SelectField](#selectfield): labeled select
 - `TextareaField`: labeled multiline field
 - [Menu](#menu): action menu list
 - [TabList](#tablist): underline page tabs
 - [ToggleTabs](#toggletabs): segmented toggle
-- `PinField`: segmented PIN / code field
+- [PinField](#pinfield): segmented PIN / code field
 - `DataTable`: native table shell and row primitives (`TableWrap`, `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`, `TableIconMenu`)
   - Pass `sticky` to the `actions` column's `TableHeaderCell` and `TableCell` to pin row actions to the right edge while the table scrolls sideways. The table must sit in `TableWrap`, or spread `useTableScrollEdges().scrollProps` on its own scroller, so the divider and shadow show; cover it with `expectRowActionsPinned()` (`frontend/tests/helpers/`) in the table's row-render test
 - `TableControls`: table toolbar shell with a utility slot for controls such as column visibility
@@ -137,7 +138,6 @@ These files exist under `frontend/src/components/` with no app call sites. Do no
 
 | File                          | Use instead                                  |
 | ----------------------------- | -------------------------------------------- |
-| `CredentialInput.tsx`         | `PinField` / `InputField`                    |
 | `EmptyPage.tsx`               | `StatusPage`                                 |
 | `ErrorDetails.tsx`            | `ErrorDetailPanel`                           |
 | `ListPagerFilterBar.tsx`      | `ListFilterBar` + `ListPaginationFooter`     |
@@ -969,6 +969,40 @@ Control states live on `Input` (used by `InputField`): inset 1px outline `stroke
 ```
 
 Do not use placeholder as the only label.
+
+### CredentialField
+
+Local admin credential field using `PinField` for a known PIN and a masked `InputField` for a password or unknown type. The caller supplies metadata and owns the string value, validation, and submission. Password and unknown-type entry do not impose new-password requirements.
+
+| Prop | Notes |
+| --- | --- |
+| `credentialType` | Required: `"pin"`, `"password"`, or `null` for unrestricted fallback |
+| `value`, `onChange` | Controlled string and next-string callback; PIN entry filters non-digits and caps at six, preserving leading zeros |
+| `autoComplete` | `current-password` by default; use `new-password` for new/confirmed credentials |
+| `label`, `description`, `error`, `className` | Existing field stack and outer styling |
+| …input props | Native attributes and handlers, including `id`, `name`, `form`, `required`, `disabled`, `autoFocus`, and focus/keyboard events |
+
+Completing a PIN does not submit an action. Use the form's submit handler or an explicit button, and keep creation policy and submit readiness in the form.
+
+```tsx
+<CredentialField
+  credentialType={credentialType}
+  label={credentialType === "pin" ? "PIN" : credentialType === "password" ? "Password" : "PIN or password"}
+  name="currentPassword"
+  value={credential}
+  onChange={setCredential}
+  autoComplete="current-password"
+  error={error ?? undefined}
+/>
+```
+
+### PinField
+
+Segmented numeric entry uses one native input beneath masked visual slots. It filters non-digits and defaults to six slots. Label, description, error, disabled state, and native form attributes follow the other fields.
+
+The default `mode="one-time-code"` retains a text input, `autocomplete="one-time-code"`, and password-manager ignore attributes for authenticator codes. `mode="credential"` uses a password input and defaults to `current-password`, with no password-manager ignore attributes. Pass `new-password` for a new or confirmed persistent PIN. Both modes use `inputMode="numeric"` and preserve leading zeros as strings.
+
+Use `CredentialField` for local admin credentials and `PinField` directly for authenticator codes. Neither field owns submission or creation policy.
 
 ### SelectField
 
