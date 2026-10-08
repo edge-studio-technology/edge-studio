@@ -100,6 +100,24 @@ describe("AltAddDeviceFlow", () => {
     expect(screen.getByRole("button", { name: /BME280 \/ BME680 Environmental Sensor/ })).toBeInTheDocument();
   });
 
+  it("splits GPIO input setup into connection and behavior steps", async () => {
+    renderFlow();
+    await userEvent.click(screen.getByRole("button", { name: /Sensors/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Template devices/ }));
+    await userEvent.click(screen.getByRole("button", { name: /GPIO Button/ }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step (3)" }));
+    expect(screen.getByRole("heading", { name: "Connect GPIO" })).toBeInTheDocument();
+    expect(screen.getByLabelText("GPIO chip")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Pull resistor")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Next step (4)" }));
+    expect(screen.getByRole("heading", { name: "Configure input behavior" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Pull resistor")).toBeInTheDocument();
+    expect(screen.queryByLabelText("GPIO chip")).not.toBeInTheDocument();
+  });
+
   it("submits the built config, shows a success toast, and calls onCreated", async () => {
     const created = { id: "s1", name: "HTTP JSON Source" };
     createDataSource.mockResolvedValue({ item: created });

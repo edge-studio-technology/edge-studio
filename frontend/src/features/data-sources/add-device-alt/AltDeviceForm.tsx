@@ -6,17 +6,26 @@ import type { ReactNode } from "react";
 import type { DataSource, DataSourceTemplate } from "../dataSourceTypes";
 import type { DeviceFormFields } from "../useDeviceFormFields";
 
-export type AltDeviceProvisioningStep = "type" | "name" | "setup" | "review";
+export type AltDeviceProvisioningStep = "type" | "name" | "setup" | "gpio-pin" | "gpio-behavior" | "review";
 
-const provisioningSteps: { id: AltDeviceProvisioningStep; title: string; description: string }[] = [
+type ProvisioningStep = { id: AltDeviceProvisioningStep; title: string; description: string };
+
+const baseProvisioningSteps: ProvisioningStep[] = [
   { id: "type", title: "Select device type", description: "Confirm the selected template or protocol." },
   { id: "name", title: "Give it a name", description: "Name this device so it is easy to find later." },
   { id: "setup", title: "Set up connection", description: "Configure the required endpoint, topic, pin, or sensor settings." },
   { id: "review", title: "Review and add", description: "Check the saved settings before creating the device." },
 ];
 
-export function altDeviceProvisioningSteps() {
-  return provisioningSteps;
+export function altDeviceProvisioningSteps(fields: DeviceFormFields): ProvisioningStep[] {
+  if (fields.type !== "gpio-input") return baseProvisioningSteps;
+  return [
+    baseProvisioningSteps[0],
+    baseProvisioningSteps[1],
+    { id: "gpio-pin", title: "Connect GPIO", description: "Choose the Raspberry Pi GPIO chip and BCM pin." },
+    { id: "gpio-behavior", title: "Configure input behavior", description: "Set pull resistance, edge detection, debounce, and active state." },
+    baseProvisioningSteps[3],
+  ];
 }
 
 /** True when the current field values are complete enough to create the device. */
@@ -55,8 +64,10 @@ export function AltDeviceForm({
       <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-t px-detail-next py-pad-relaxed pl-6 lg:border-t-0 lg:border-l">
         <div className="min-w-0">
           {currentStep === "type" && <DeviceTypeStep template={template} />}
-          {currentStep === "name" && <NameStep fields={fields} />}
-          {currentStep === "setup" && <SetupFields fields={fields} />}
+        {currentStep === "name" && <NameStep fields={fields} />}
+        {currentStep === "setup" && <SetupFields fields={fields} />}
+        {currentStep === "gpio-pin" && <GpioPinStep fields={fields} />}
+        {currentStep === "gpio-behavior" && <GpioBehaviorStep fields={fields} />}
           {currentStep === "review" && <ReviewStep template={template} fields={fields} />}
         </div>
         {action ? <div className="mt-auto pt-detail-next">{action}</div> : null}
@@ -67,6 +78,8 @@ export function AltDeviceForm({
 
 export function isAltDeviceStepValid(fields: DeviceFormFields, step: AltDeviceProvisioningStep) {
   if (step === "name") return Boolean(fields.name.trim());
+  if (step === "gpio-pin") return Boolean(fields.gpioChip && fields.gpioPin);
+  if (step === "gpio-behavior") return true;
   if (step === "setup") return isAltDeviceSetupValid(fields);
   if (step === "review") return isAltDeviceFormValid(fields);
   return true;
@@ -119,13 +132,14 @@ function isAltDeviceSetupValid(fields: DeviceFormFields) {
 }
 
 function ProvisioningTimeline({ currentStep, fields }: { currentStep: AltDeviceProvisioningStep; fields: DeviceFormFields }) {
-  const currentIndex = provisioningSteps.findIndex((step) => step.id === currentStep);
+  const steps = altDeviceProvisioningSteps(fields);
+  const currentIndex = steps.findIndex((step) => step.id === currentStep);
   return (
     <ol className="bg-surface-secondary m-0 flex h-full list-none flex-col px-detail-next py-pad-relaxed">
-      {provisioningSteps.map((step, index) => {
+      {steps.map((step, index) => {
         const complete = index < currentIndex || (index === currentIndex && isAltDeviceStepValid(fields, step.id));
         const active = step.id === currentStep;
-        const isLast = index === provisioningSteps.length - 1;
+        const isLast = index === steps.length - 1;
         return (
           <li key={step.id} className={`gap-detail-tight grid grid-cols-[auto_minmax(0,1fr)] items-start ${isLast ? "flex-none" : "flex-1"}`}>
             <span className="grid h-full grid-rows-[auto_minmax(0,1fr)] justify-items-center">
@@ -183,6 +197,77 @@ function NameStep({ fields }: { fields: DeviceFormFields }) {
         value={fields.description}
         onChange={(event) => fields.setDescription(event.target.value)}
         placeholder="What does this device do?"
+      />
+    </div>
+  );
+}
+
+function GpioPinStep({ fields }: { fields: DeviceFormFields }) {
+  return (
+    <div className="gap-detail-close grid">
+      <div>
+        <h3 className="type-title text-text-primary m-0">Connect GPIO</h3>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">Choose the Raspberry Pi GPIO chip and BCM pin for this input.</p>
+      </div>
+      <InputField
+        label="GPIO chip"
+        value={fields.gpioChip}
+        onChange={(event) => fields.setGpioChip(event.target.value)}
+        placeholder="gpiochip0"
+      />
+      <InputField
+        label="BCM pin number"
+        value={fields.gpioPin}
+        onChange={(event) => fields.setGpioPin(event.target.value)}
+        placeholder="17"
+        inputMode="numeric"
+      />
+    </div>
+  );
+}
+
+function GpioBehaviorStep({ fields }: { fields: DeviceFormFields }) {
+  return (
+    <div className="gap-detail-close grid">
+      <div>
+        <h3 className="type-title text-text-primary m-0">Configure input behavior</h3>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">Set how Edge Studio detects and records changes on this pin.</p>
+      </div>
+      <SelectField
+        label="Pull resistor"
+        value={fields.gpioPull}
+        onChange={(event) => fields.setGpioPull(event.target.value as "off" | "up" | "down")}
+        options={[
+          { value: "off", label: "Off" },
+          { value: "up", label: "Pull-up" },
+          { value: "down", label: "Pull-down" },
+        ]}
+      />
+      <SelectField
+        label="Edge"
+        value={fields.gpioEdge}
+        onChange={(event) => fields.setGpioEdge(event.target.value as "rising" | "falling" | "both")}
+        options={[
+          { value: "rising", label: "Rising" },
+          { value: "falling", label: "Falling" },
+          { value: "both", label: "Both" },
+        ]}
+      />
+      <InputField
+        label="Debounce ms"
+        value={fields.gpioDebounceMs}
+        onChange={(event) => fields.setGpioDebounceMs(event.target.value)}
+        placeholder="100"
+        inputMode="numeric"
+      />
+      <SelectField
+        label="Active state"
+        value={fields.gpioActiveState}
+        onChange={(event) => fields.setGpioActiveState(event.target.value as "high" | "low")}
+        options={[
+          { value: "high", label: "High" },
+          { value: "low", label: "Low" },
+        ]}
       />
     </div>
   );

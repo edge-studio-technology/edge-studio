@@ -109,7 +109,7 @@ export function AltAddDeviceFlow({
   }
 
   const options = stepOptions(step, setStep, selectTemplate);
-  const provisioningSteps = altDeviceProvisioningSteps();
+  const provisioningSteps = altDeviceProvisioningSteps(fields);
   const provisioningStep = provisioningSteps[provisioningStepIndex];
   const isFinalProvisioningStep = provisioningStepIndex === provisioningSteps.length - 1;
   const canContinue = provisioningStep ? isAltDeviceStepValid(fields, provisioningStep.id) : false;
