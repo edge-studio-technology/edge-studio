@@ -15,6 +15,7 @@ description: This skill should be used right after a plan-mode plan is approved 
    - `**Status:** Not started` (or the real status if resuming/updating an in-progress plan)
    - `**Created:** <YYYY-MM-DD>`
    - `**Goal:** <one sentence>`
+   - `## Progress` — a `- [ ]` checklist with one item per implementation step in the sections below, plus `Docs` and `Verification`. This is where progress is tracked, not only the `Status` line.
    - `## Context` — why this is being built, what was discussed/decided, and any rejected alternatives worth remembering.
    - Section(s) describing the concrete changes (e.g. `## Backend changes`, `## Frontend changes`) — name real files/functions to reuse, not just describe behavior in the abstract.
    - `## Docs` — which docs need updating once built, per `.claude/rules/documenting-work.md`.
@@ -22,3 +23,7 @@ description: This skill should be used right after a plan-mode plan is approved 
 3. Add one line under `## Next` (or `## In Progress` if the user says work is already underway) in `docs/TASKS.md`, matching the existing style: `- [ ] <short description> — see \`docs/plans/<slug>.md\`.`
 4. Stop there. Writing the plan doc is the deliverable for this step — do not start implementing unless the user explicitly says to begin now. Exiting plan mode only means the plan's content is approved, not that coding should start immediately.
 5. Report the file path(s) written, nothing else.
+
+## Tracking progress
+
+While implementing a plan, tick its `## Progress` item (`- [x]`) as each step lands, with the commit hash once committed, and note any deviation from the plan on that item. Keep `**Status:**` in step. If an older plan has no `## Progress` checklist, add one before ticking anything.

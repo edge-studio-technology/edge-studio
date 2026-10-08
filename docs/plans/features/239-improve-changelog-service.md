@@ -1,9 +1,18 @@
 # Improve Changelog Service Plan
 
-**Status:** Not started
+**Status:** In progress — update-agent steps 1–3 done; frontend, docs, verification remain
 **Created:** 2026-10-08
 **Branch:** `task/239-improve-changelog-service`
 **Goal:** Cache the Update page changelog in `update-agent`, kept in step with the signed manifest, instead of having the browser fetch GitHub on every page load.
+
+## Progress
+
+- [x] update-agent 1: `changelog-cache.ts` (`f2fb38cb`)
+- [x] update-agent 2: `getUpdateStatus()` syncs the changelog (`fbb2a887`)
+- [x] update-agent 3: `GET /status` returns `changelog` (`32fc5c22`), added in `getUpdateStatus()`'s return rather than the route
+- [ ] Frontend 1–6
+- [ ] Docs
+- [ ] Verification
 
 ## Context
 

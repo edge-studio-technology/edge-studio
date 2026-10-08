@@ -4,6 +4,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- #239 update-agent steps 1–3 on `task/239-improve-changelog-service`: added the persisted changelog cache (`changelog-cache.ts`, `/state/changelog-cache.json`, refetch only on a new manifest version, copy accepted only with that version's heading), synced it from every `getUpdateStatus()` call without failing the status check, and added `changelog: { markdown, fetchedAt } | null` to `GET /status`. Commits `f2fb38cb`, `fbb2a887`, `32fc5c22`. Update Agent coverage run (188 tests, thresholds met) and `tsc --noEmit` passed.
+- Added project-scope Playwright MCP in `.mcp.json` (`--browser chromium --output-dir .playwright-mcp`; output dir already gitignored); approved via `enabledMcpjsonServers` in `.claude/settings.local.json` and confirmed connecting in a new session. Installed Playwright Chromium 1247 for `@playwright/mcp` 0.0.83. `.mcp.json` is staged, not committed.
+
 - Implemented #206's separate app-owned local contact, automatic initialization, editable name/notes, protected address/deletion, and pending wallet-replacement handling with a legacy-Minima restart/status fallback; preserved user contacts and references. Full check passed 3,326 tests, with builds, typechecks, coverage, dependency audits, and Compose verification.
 - Verified #206 on the dev Pi through upgrade and clean app/wallet source installations plus authenticated Playwright contact flows. Default naming, duplicate-safe creation, managed protections, ordinary CRUD, restart persistence, and headless same/different-wallet backup restores passed. Pending protection survived backend restart; metadata/manual contacts and ownership/audits were verified. Original wallet/name/notes restored and test fixtures removed. Pi runs the healthy uncommitted `ef54f4ec.readiness.dirty` build; see [QA summary](qa/206-completed-branch-pi-deployment.md).
 
@@ -88,6 +91,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
+- #239 remaining (plan `docs/plans/features/239-improve-changelog-service.md`): frontend steps 1–6 (`UpdateStatus.changelog` type, drop browser `fetchChangelog()` + `parseChangelog()` limit, `ChangelogPreview` from prop, in-app full-changelog modal, `REPO_URL` org fix, drop `raw.githubusercontent.com` from both nginx CSP `connect-src`), then docs (ADR 0031 superseding ADR 0004's client fetch, update-agent rules ×3, SECURITY, README, CHANGELOG `## [Unreleased] task/239-improve-changelog-service`), then full verification and the Pi check.
+- Commit the staged `.mcp.json`.
+
 - #206: commit the verified compatibility fix, obtain user signoff, and prepare the PR to dev.
 - Deploy the longer Integritas timeout and verify a slow PDF verification on the Pi; change any explicit `INTEGRITAS_REQUEST_TIMEOUT_MS=15000` override to `300000` and recreate the backend/frontend containers. Rerun Docker builds with the engine available and investigate the Minima backup-restore fallback test failure separately.
 
@@ -104,6 +110,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - PR #143: review and merge to `dev`; then a separate release branch bumps `package.json` to `0.42.2`, dates the changelog, merges `dev` → `main`, and tags `v0.42.2`.
 
 ## Notes / Open Questions
+
+- #239: `changelog` is returned by `getUpdateStatus()` itself (route unchanged, testable), so the poller and apply flow also receive it and ignore it; `/status/summary` unchanged.
+- Playwright MCP: deferred aligning Codex's global `~/.codex/config.toml` entry (pinned 0.0.83, headless, isolated, `--ignore-https-errors`, chromium-1246 path, no `--output-dir`) and adding `--ignore-https-errors` to `.mcp.json` for the self-signed `:8080` cert.
 
 - #206 policy and rationale are recorded in ADR 0030. Reroll and out-of-band wallet-change detection remain out of scope.
 

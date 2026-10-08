@@ -17,6 +17,7 @@
 
 ## In Progress
 
+- [ ] Improve changelog service (OpenProject #239): `update-agent` caches main's changelog in `/state`, kept in step with the manifest; Update page reads it from `GET /update/status` with an in-app full view — update-agent steps 1–3 done on `task/239-improve-changelog-service`; frontend steps, docs, and verification remain; see `docs/plans/features/239-improve-changelog-service.md`.
 - [ ] Upgrade Automation watch mode into a production-quality live monitoring, historic replay, and workflow debugging experience — runtime overview, domain-aware block summaries, replay toolbar/status messaging, status-colored replay animation, and run-specific historic canvas rendering are implemented and build/test verified; browser visual QA remains; see `docs/plans/workflow-watch-mode-upgrade.md`.
 - [ ] Static guided tour (OpenProject #275): built on `task/275-create-static-app-guided-tour`, current `dev` merged for PR preparation (first-visit modal with 9 steps, seen flag per browser, replay from Settings → Behaviour); draft screenshots from dev data are in for every slide, crossfading in a full frame when a slide has two; recapture all of them with clean, Pi-like values before merge, then copy review and merge. Decisions in `docs/adr/0027-static-guided-tour.md`; see `docs/plans/features/275-create-static-app-guided-tour.md`.
 - [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — all built including #694 (toolkit drawer); #694 still needs its ticket move, then merge; decisions in `docs/adr/0024-responsive-layout-strategy.md`; see `docs/plans/features/667-responsive-application.md`.
@@ -29,7 +30,6 @@
 
 ## Next
 
-- [ ] Improve changelog service (OpenProject #239): `update-agent` caches main's changelog in `/state`, kept in step with the manifest; Update page reads it from `GET /update/status` with an in-app full view — see `docs/plans/features/239-improve-changelog-service.md`.
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
 - [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.
 
