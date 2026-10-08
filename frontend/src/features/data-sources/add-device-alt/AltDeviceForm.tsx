@@ -1,6 +1,7 @@
 import { DetailList, DetailRow } from "../../../components/patterns/DetailList";
 import { InputField } from "../../../components/ui/InputField";
 import { SelectField } from "../../../components/ui/SelectField";
+import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DataSource, DataSourceTemplate } from "../dataSourceTypes";
 import type { DeviceFormFields } from "../useDeviceFormFields";
@@ -82,11 +83,11 @@ export function DeviceAddedSummary({
 }) {
   return (
     <section className="grid min-h-full min-w-0 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
-      <div className="bg-surface-secondary px-detail-next py-pad-relaxed">
+      <div className="bg-surface-secondary gap-detail-next flex flex-col items-center justify-center px-detail-next py-pad-relaxed text-center">
         <h3 className="type-title text-text-primary m-0">Device added</h3>
-        <p className="type-body text-text-secondary mt-detail-tight m-0">
-          {source.name} is ready to use in Edge Studio.
-        </p>
+        <span className="bg-feedback-positive grid size-10 place-items-center rounded-full text-core-white">
+          <Check className="size-5" aria-hidden />
+        </span>
       </div>
       <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-t px-detail-next py-pad-relaxed pl-6 lg:border-t-0 lg:border-l">
         <div>
