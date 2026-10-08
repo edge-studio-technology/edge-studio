@@ -2,6 +2,8 @@
 
 Measure the whole installed app bundle on a Pi: every Compose container, the host helper
 services and the Docker engine. The results feed the wiki's *Hardware and Requirements* page.
+Step-by-step guide, including device runs and where the numbers go on the wiki:
+[docs/guides/pi-benchmark.md](../../../docs/guides/pi-benchmark.md).
 
 Adapted from the Minima student benchmark (one 1-second `/proc` sampler, a runner, plots).
 Changes from that version:
