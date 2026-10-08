@@ -7,6 +7,7 @@ import {
   findTheUser,
   findUserById,
   getLatestSetupPending,
+  updateUserCredentialType,
   updateUserLastLogin,
   updateUserPassword,
   updateUserTotpSecret
@@ -59,6 +60,14 @@ export async function login(input: { password: string; totpToken?: string }) {
     return { ok: false as const };
   }
 
+  let credentialType = user.credential_type;
+  const verifiedCredentialType = getAdminCredentialType(password);
+  if (credentialType !== verifiedCredentialType) {
+    credentialType = updateUserCredentialType(user.id, passwordHash, verifiedCredentialType)
+      ? verifiedCredentialType
+      : findUserById(user.id)?.credential_type ?? credentialType;
+  }
+
   updateUserLastLogin(user.id);
   const sessionToken = createSession(user.id);
   recordAuditEvent("login.success", { userId: user.id, detail: LOCAL_ADMIN_DISPLAY_NAME });
@@ -66,7 +75,7 @@ export async function login(input: { password: string; totpToken?: string }) {
   return {
     ok: true as const,
     sessionToken,
-    user: { displayName: LOCAL_ADMIN_DISPLAY_NAME, role: user.role, credentialType: user.credential_type }
+    user: { displayName: LOCAL_ADMIN_DISPLAY_NAME, role: user.role, credentialType }
   };
 }
 

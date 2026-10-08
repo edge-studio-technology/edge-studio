@@ -83,6 +83,27 @@ describe("POST /api/auth/settings/password", () => {
   });
 });
 
+describe("credential metadata through login", () => {
+  it("exposes repaired legacy PIN metadata in login, authenticated user, and public status responses", async () => {
+    const user = findTheUser()!;
+    updateUserPassword(user.id, await hashPassword("012345"), "password");
+    try {
+      assert.equal((await request(app).get("/api/setup/status")).body.credentialType, "password");
+      const agent = request.agent(app);
+      const response = await agent.post("/api/auth/login").send({ password: "012345" });
+
+      assert.equal(response.status, 200);
+      assert.equal(response.body.user.credentialType, "pin");
+      const me = await agent.get("/api/auth/me");
+      assert.equal(me.status, 200);
+      assert.equal(me.body.credentialType, "pin");
+      assert.equal((await request(app).get("/api/setup/status")).body.credentialType, "pin");
+    } finally {
+      updateUserPassword(user.id, user.password, user.credential_type);
+    }
+  });
+});
+
 describe("TOTP settings routes with TOTP disabled", () => {
   for (const path of ["/api/auth/settings/totp/init", "/api/auth/settings/totp/verify"]) {
     it(`POST ${path} returns 404 for an authenticated admin`, async () => {

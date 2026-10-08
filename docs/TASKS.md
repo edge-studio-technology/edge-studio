@@ -17,6 +17,8 @@
 
 ## In Progress
 
+- [ ] Implement PIN/password credential input (OpenProject #283) — step 1 implemented and focused backend auth/database tests passed (141); public credential metadata and legacy correction are ready; next is step 2 auth bootstrap. See `docs/plans/features/283-implement-pin-password-credential-input.md` and ADR 0031.
+
 - [ ] Upgrade Automation watch mode into a production-quality live monitoring, historic replay, and workflow debugging experience — runtime overview, domain-aware block summaries, replay toolbar/status messaging, status-colored replay animation, and run-specific historic canvas rendering are implemented and build/test verified; browser visual QA remains; see `docs/plans/workflow-watch-mode-upgrade.md`.
 - [ ] Static guided tour (OpenProject #275): built on `task/275-create-static-app-guided-tour`, current `dev` merged for PR preparation (first-visit modal with 9 steps, seen flag per browser, replay from Settings → Behaviour); draft screenshots from dev data are in for every slide, crossfading in a full frame when a slide has two; recapture all of them with clean, Pi-like values before merge, then copy review and merge. Decisions in `docs/adr/0027-static-guided-tour.md`; see `docs/plans/features/275-create-static-app-guided-tour.md`.
 - [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — all built including #694 (toolkit drawer); #694 still needs its ticket move, then merge; decisions in `docs/adr/0024-responsive-layout-strategy.md`; see `docs/plans/features/667-responsive-application.md`.
@@ -28,8 +30,6 @@
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
-
-- [ ] Implement PIN/password credential input (OpenProject #283) — current-code audit and implementation plan prepared; focused backend/frontend baseline passed; see `docs/plans/features/283-implement-pin-password-credential-input.md`.
 
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
 - [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.
@@ -46,7 +46,6 @@
 - [ ] Manual browser check of the rebuilt Automation "Workflows" table (`AutomationWorkflowsList.tsx`): filter/search, pagination, pause/play, the overflow menu's six actions, and the delete flow now going through confirm → progress modal instead of deleting immediately.
 - [ ] Manual browser check of the rebuilt Automation inbox table (`AutomationInboxTable.tsx`): now full width (previously a bare `<section>` missing `w-full`); filter (All/Unread/Read) + search; the "View preview" modal for each of the four preview formats (text/json/link/image); "Mark read/unread"; and Delete now going through confirm → progress modal instead of deleting immediately.
 - [ ] Manual browser check of the "Send feedback" modal's new "Integritas account ID" disclosure row (`FeedbackModal.tsx`): "Not connected" when unlinked, real account ID once linked via Integritas Connect.
-- [ ] Post-v1: build a UI that reads the local-admin `credentialType` field (`GET /api/auth/me`, login response) — attempted app-wide (login page, all re-auth prompts) this session and reverted except `ChangeCredentialPanel`'s PIN-field swap, pending a better look/feel pass. Also needs a decision on the login page's pre-auth lookup (new field on public `GET /api/setup/status` vs. a manual toggle) before that piece can be built.
 - [ ] Post-v1: add seed-phrase-only restore as an option inside `MinimaBackupPanel`, then remove the commented-out `WalletSettingsPanel` from `AuthSettingsPage.tsx`.
 - [ ] Manual check of the update-agent UI Back buttons and the dashboard "Update available" badge across a real update cycle (Pi or local Docker Compose) — this session's fixes were only build/typecheck-verified.
 - [ ] Manual browser check of `update-agent`'s restyled static update-progress page (`update-agent/public/index.html`): black-to-purple gradient background and the white logo below the centered card, matching the login page — not yet manually checked (static HTML, no build step).

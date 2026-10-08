@@ -94,6 +94,8 @@ describe("before the local admin is created", () => {
 
     assert.ok(result.sessionToken);
     assert.equal(result.user.role, "admin");
+    assert.equal(result.user.credentialType, "password");
+    assert.equal(authRepository.findTheUser()?.credential_type, "password");
 
     const auditRow = db.prepare("SELECT * FROM audit_events WHERE action = 'setup.complete'").get();
     assert.ok(auditRow);
@@ -153,6 +155,19 @@ describe("after the local admin is created", () => {
 
     assert.equal(setupService.isSetupComplete(), true);
     assert.ok(settingsRepository.getSetting("setup.completed_at"));
+  });
+});
+
+describe("PIN setup", () => {
+  it("stores and returns the PIN type with its authenticated session", async () => {
+    db.prepare("DELETE FROM sessions").run();
+    db.prepare("DELETE FROM users").run();
+    const result = await setupService.completeSetup({ password: "012345" });
+    const { validateSession } = await import("../../../src/features/auth/session.service.js");
+
+    assert.equal(result.user.credentialType, "pin");
+    assert.equal(authRepository.findTheUser()?.credential_type, "pin");
+    assert.equal(validateSession(result.sessionToken)?.credentialType, "pin");
   });
 });
 

@@ -4,6 +4,10 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Implemented #283 plan step 1: public setup status exposes a nullable stored credential type with no-store caching; successful login repairs legacy metadata through a hash-conditional metadata-only update after all enabled factors pass. Added migration, failure/TOTP, concurrency, setup, authenticated-response, and credential-change/session regressions; all 141 focused auth/database tests passed. Updated README, SECURITY, the branch changelog, and ADR 0031; marked step 1 complete and consolidated the duplicate credential-UI task. Backend/frontend builds, backend typecheck, and Compose validation passed. Frontend steps and browser/Pi checks remain pending.
+
+- Verified #283 step 1 with `MINIMA_STATUS_URL=http://127.0.0.1:9005/status npm run check`: all typechecks, coverage thresholds, 3,343 tests (1,389 backend; 1,731 frontend; 171 Update Agent; 52 scripts), and dependency audits passed. The first full run caught a corrected new test assertion and a local Minima URL mismatch (9105 versus the existing mocked test expectation of 9005); no runtime environment files were changed. Auth service coverage was 100% lines and 98% branches.
+
 - Audited OpenProject #283 against `task/283-implement-pin-password-credential-input` at `b63809d`: credential-type persistence and authenticated responses already exist; pre-login metadata, dynamic login/eight reauthentication fields, and legacy PIN metadata compatibility remain. Saved the implementation plan in `docs/plans/features/283-implement-pin-password-credential-input.md`; no implementation code changed.
 - Added the complete #283 audit and plan to the OpenProject description, preserved its original requirements and other ticket fields, and verified the persisted result.
 - Verified #283's focused baseline: 124 backend auth/database tests and 170 frontend auth/setup/input/backup/whitelist tests passed. Backend route tests required a rerun outside the sandbox to allow local server binding; full checks/builds and browser/Pi verification were not run for this planning task.
@@ -92,7 +96,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- Implement #283 from its audited plan when requested; verify public credential hints, legacy PIN login, all local reauthentication fields, and credential-type changes.
+- Continue #283 with step 2 when requested: carry nullable credential metadata through frontend auth bootstrap, refresh it after logout/expiry/credential changes, and preserve the generic fallback. Steps 3–5 and browser/Pi verification remain pending.
 
 - #206: commit the verified compatibility fix, obtain user signoff, and prepare the PR to dev.
 - Deploy the longer Integritas timeout and verify a slow PDF verification on the Pi; change any explicit `INTEGRITAS_REQUEST_TIMEOUT_MS=15000` override to `300000` and recreate the backend/frontend containers. Rerun Docker builds with the engine available and investigate the Minima backup-restore fallback test failure separately.

@@ -4,6 +4,16 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] task/283-implement-pin-password-credential-input
+
+### Added
+
+- Public setup status includes the local admin credential type and disables response caching.
+
+### Fixed
+
+- Successful login corrects older PIN accounts' credential metadata without changing their credentials.
+
 ## [Unreleased]
 
 ### Added

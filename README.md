@@ -434,6 +434,8 @@ Public API routes (no session required):
 
 All other `/api/*` routes require a valid session cookie.
 
+`GET /api/setup/status` returns `{ "localAdminCreated": boolean, "setupComplete": boolean, "credentialType": "pin" | "password" | null }` with `Cache-Control: no-store`. The credential type is public input metadata; it is null before local admin creation and contains no credential or user-record fields. Older accounts can retain the migration default `password` until a fully successful login corrects the stored type from the verified credential. Existing credentials remain accepted without applying new-credential strength rules.
+
 ## Feedback
 
 Authenticated users can open the Feedback modal from the app shell sidebar. Feedback is submitted to Integritas with the existing backend-only Integritas API key and per-submission consent. The browser never receives the API key.

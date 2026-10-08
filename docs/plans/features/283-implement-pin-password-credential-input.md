@@ -1,6 +1,6 @@
 # PIN/password Credential Input Plan
 
-**Status:** Planned; implementation not started in this session. OpenProject currently marks the ticket In progress.
+**Status:** Step 1 implemented; steps 2–5 pending. OpenProject currently marks the ticket In progress.
 **Created:** 2026-10-08
 **Ticket:** [#283 — Implement PIN/password credential input](https://openproject.privateprivate.org/work_packages/283)
 **Goal:** Show the appropriate PIN or password input everywhere the operator enters their local admin credential, using the backend's stored credential type.
@@ -9,7 +9,7 @@
 
 The ticket requests improved credential input UX, a backend PIN/password flag, and dynamic inputs based on the configured credential. This audit covers the current checkout on `task/283-implement-pin-password-credential-input`, commit `b63809d68dafb3c7c60d9bcfe5336a034a84d803`; the working tree was clean before planning. It does not establish the state of a deployed Pi or other branches. The ticket has no child tasks and no substantive existing implementation-plan comment.
 
-The backend flag and credential-selection UI already exist. The remaining work is to make the flag available before login, route it to a shared control, replace current-credential fields, and handle existing installations safely. This plan proposes extending the existing public setup-status response rather than adding another auth endpoint. Record the public metadata and legacy-account decisions in an ADR when implementing them.
+At audit time, the backend flag and credential-selection UI already existed. The remaining work was to make the flag available before login, route it to a shared control, replace current-credential fields, and handle existing installations safely. Step 1 extends the existing public setup-status response; its public metadata and legacy-account decisions are recorded in ADR 0031.
 
 ## Current codebase audit
 
@@ -48,6 +48,14 @@ The backup-encryption password and uploaded-backup password override are separat
 
 ## Implementation sequence
 
+### Progress
+
+- [x] Step 1: credential metadata and legacy compatibility.
+- [ ] Step 2: auth bootstrap hint.
+- [ ] Step 3: shared credential field.
+- [ ] Step 4: apply the field across credential surfaces.
+- [ ] Step 5: completed-feature documentation and manual verification.
+
 ### 1. Complete credential metadata and legacy compatibility
 
 - Extend `backend/src/features/auth/setup.routes.ts`'s existing status DTO with `credentialType: "pin" | "password" | null`, using a narrow read of the local user's stored type. Return null before admin creation; do not expose user records or other credential information. Avoid caching the hint (`Cache-Control: no-store`).
@@ -55,6 +63,8 @@ The backup-encryption password and uploaded-backup password override are separat
 - Repair a mismatched legacy type only after a fully successful login, using the verified submitted credential and a repository update that changes only `credential_type` and checks that the verified password hash is still current. Return the corrected type. Never derive it from the hash or update it on failed password/TOTP verification; a concurrent credential change must not receive a stale type correction.
 - Preserve unrestricted password-field entry for migration-default `password` accounts so an existing numeric PIN can log in once and be corrected. Add a pre-flag database fixture that pins the default and repeat-migration behavior.
 - **Verify:** public status before setup and for each type; no secret fields; successful legacy PIN login repairs metadata; failed login leaves it untouched; existing password login and session revocation still work.
+
+**Implemented 2026-10-08:** Public status now reads only the stored credential type and sends `Cache-Control: no-store`. Fully successful login corrects mismatches using a hash-conditional metadata-only update; failed password/TOTP checks leave user metadata untouched. No schema change or creation-policy change was required. Regression coverage includes leading-zero legacy PINs, existing weak passwords, concurrent credential changes, migration defaults/reruns, setup in both modes, authenticated responses, and credential changes with session revocation. The final focused backend auth/database suite passed **141 tests in 11 files**. Decision: [ADR 0031](../../adr/0031-public-credential-type-and-legacy-correction.md). Full verification passed: `MINIMA_STATUS_URL=http://127.0.0.1:9005/status npm run check` (3,343 tests, all typechecks/coverage thresholds, clean dependency audits), backend/frontend builds, and `docker compose config --quiet`. The Minima URL override matches the existing mocked test expectation; local configuration otherwise uses port 9105. Frontend work starts at step 2; browser/Pi verification remains pending.
 
 ### 2. Carry the hint through auth bootstrap
 
@@ -83,7 +93,7 @@ The backup-encryption password and uploaded-backup password override are separat
 
 - Update `docs/frontend-design-system.md` with `CredentialField` placement, usage, and persistent-PIN semantics; remove its stale absent `CredentialInput.tsx` inventory row.
 - Update README auth/setup/API guidance, a branch-named Unreleased changelog entry, and SECURITY.md for exposing the minimal credential-type hint before authentication.
-- Record the public-hint and legacy-metadata policy in `docs/adr/` using the ADR skill. Reconcile this plan, `docs/TASKS.md`, `docs/SESSION.md`, and #283 when implementation is complete.
+- Revisit step 1's ADR 0031 if the public-hint or legacy-metadata policy changes during frontend work. Reconcile this plan, `docs/TASKS.md`, `docs/SESSION.md`, and #283 when implementation is complete.
 - **Verify:** focused tests below, `npm run check`, backend/frontend production builds, and `docker compose config`; then browser and existing-installation checks. No Docker topology or environment changes are expected.
 
 ## Verification
@@ -98,7 +108,7 @@ Manual browser verification must cover desktop and narrow mobile viewports, nume
 
 - Frontend focused baseline: **170 tests passed in 22 files** (auth, setup, PIN/Input fields, backup panel, whitelist modal, and ProtectedRoute).
 - Backend auth/database baseline: **124 tests passed in 11 files** after rerunning with local test-server binding allowed. The first sandbox run passed 113 tests; 11 route tests could not bind (`listen EPERM`). The rerun resolved that environment restriction without code changes.
-- This session changes planning documents only. Full repository checks/builds, browser UX, deployed-Pi state, and the proposed behavior have not been verified.
+- The original audit session changed planning documents only. Its baseline did not verify the proposed behavior, full repository checks/builds, browser UX, or deployed-Pi state; implementation verification is recorded under the completed steps above.
 
 ## Acceptance criteria
 
