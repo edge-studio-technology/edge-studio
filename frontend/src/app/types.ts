@@ -39,6 +39,7 @@ export type UpdateStatus = {
   manifest: UpdateManifest;
   services: UpdateServiceStatus[];
   currentVersion: string | null;
+  changelog: { markdown: string; fetchedAt: string } | null;
 };
 
 export type Health = { status: string; service: string };

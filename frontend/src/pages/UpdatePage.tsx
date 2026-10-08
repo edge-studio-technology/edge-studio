@@ -120,7 +120,7 @@ export function UpdatePage() {
 
             <div className="border-stroke-secondary gap-detail-close pt-detail-close flex flex-col border-t">
               <h3 className="type-title text-text-primary m-0">What's new</h3>
-              <ChangelogPreview />
+              <ChangelogPreview markdown={status.changelog?.markdown ?? null} onRetry={load} />
             </div>
           </>
         ) : null}

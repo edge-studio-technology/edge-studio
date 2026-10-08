@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { ErrorContentState } from "../../components/patterns/ErrorContentState";
-import { LoadingState } from "../../components/patterns/LoadingState";
 import { Disclosure } from "../../components/ui/Disclosure";
-import { fetchChangelog, parseChangelog } from "./changelog";
+import { Modal } from "../../components/ui/Modal";
+import { cx } from "../../lib/cx";
+import { parseChangelog } from "./changelog";
 import type { ChangelogEntry } from "./changelog";
 
-const REPO_URL = "https://github.com/integritas-technology/edge-studio";
+const REPO_URL = "https://github.com/edge-studio-technology/edge-studio";
+const PREVIEW_LIMIT = 3;
 const linkClass = "type-link text-text-accent hover:text-text-accent-hover transition-colors duration-200";
 
 const INLINE_PATTERN = /`([^`]+)`|\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)]+)\)/g;
@@ -74,52 +76,42 @@ function ChangelogEntryView({ entry, defaultOpen }: { entry: ChangelogEntry; def
   );
 }
 
-/** See docs/adr/0004-update-page-changelog.md. Renders as React elements, never HTML injection. */
-export function ChangelogPreview() {
-  const [entries, setEntries] = useState<ChangelogEntry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loadAttempt, setLoadAttempt] = useState(0);
+/**
+ * `markdown` is update-agent's cached copy of CHANGELOG.md. See docs/adr/0031-cache-update-changelog-in-update-agent.md.
+ * Renders as React elements, never HTML injection.
+ */
+export function ChangelogPreview({ markdown, onRetry }: { markdown: string | null; onRetry: () => void }) {
+  const [fullOpen, setFullOpen] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    setEntries(null);
-    setError(null);
-    fetchChangelog()
-      .then((text) => {
-        if (!cancelled) setEntries(parseChangelog(text));
-      })
-      .catch(() => {
-        if (!cancelled) setError("Couldn't load the changelog from GitHub.");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [loadAttempt]);
-
-  if (error) {
+  if (markdown === null) {
     return (
       <ErrorContentState
         title="Release notes aren't available"
-        description={error}
-        onRetry={() => setLoadAttempt((attempt) => attempt + 1)}
+        description="The update service hasn't downloaded the changelog yet."
+        onRetry={onRetry}
       />
     );
   }
 
-  if (!entries) {
-    return (
-      <LoadingState title="Fetching release notes" description="This should take a few seconds." />
-    );
-  }
+  const entries = parseChangelog(markdown, PREVIEW_LIMIT);
 
   return (
     <div className="gap-detail-close flex flex-col">
       {entries.map((entry, index) => (
         <ChangelogEntryView key={entry.version} entry={entry} defaultOpen={index === 0} />
       ))}
-      <a href={`${REPO_URL}/blob/main/CHANGELOG.md`} target="_blank" rel="noreferrer" className={linkClass}>
-        View full changelog on GitHub
-      </a>
+      <button type="button" className={cx(linkClass, "self-start")} onClick={() => setFullOpen(true)}>
+        View full changelog
+      </button>
+      {fullOpen ? (
+        <Modal title="Changelog" width="wide" onClose={() => setFullOpen(false)}>
+          <div className="gap-detail-close flex flex-col">
+            {parseChangelog(markdown).map((entry, index) => (
+              <ChangelogEntryView key={entry.version} entry={entry} defaultOpen={index === 0} />
+            ))}
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }
