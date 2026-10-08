@@ -101,7 +101,7 @@ export function DeviceAddedSummary({
             {source.description && <DetailRow label="Description" value={source.description} />}
           </DetailList>
         </div>
-        {action ? <div className="mt-auto flex justify-center pt-detail-next">{action}</div> : null}
+        {action ? <div className="flex flex-1 items-center justify-center pt-detail-next">{action}</div> : null}
       </div>
     </section>
   );
