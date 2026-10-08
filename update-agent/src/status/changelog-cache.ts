@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { env } from "../config/env.js";
 
@@ -6,6 +7,7 @@ const CHANGELOG_URL = "https://raw.githubusercontent.com/edge-studio-technology/
 const CACHE_FILE = "changelog-cache.json";
 const FETCH_TIMEOUT_MS = 10000;
 const MAX_CHANGELOG_BYTES = 2 * 1024 * 1024;
+const MAX_CACHE_FILE_BYTES = MAX_CHANGELOG_BYTES * 6 + 64 * 1024;
 
 export type ChangelogCache = {
   markdown: string;
@@ -21,12 +23,29 @@ function cachePath(): string {
   return path.join(env.stateDirInContainer, CACHE_FILE);
 }
 
+async function readCacheFile(): Promise<string> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of createReadStream(cachePath())) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += buffer.byteLength;
+    if (size > MAX_CACHE_FILE_BYTES) throw new Error("Changelog cache file exceeds size limit");
+    chunks.push(buffer);
+  }
+  return Buffer.concat(chunks, size).toString("utf8");
+}
+
 async function loadCache(): Promise<void> {
   if (loaded) return;
   loaded = true;
   try {
-    const parsed = JSON.parse(await readFile(cachePath(), "utf8")) as Partial<ChangelogCache>;
-    if (typeof parsed.markdown === "string" && typeof parsed.manifestVersion === "string" && typeof parsed.fetchedAt === "string") {
+    const parsed = JSON.parse(await readCacheFile()) as Partial<ChangelogCache>;
+    if (
+      typeof parsed.markdown === "string" &&
+      Buffer.byteLength(parsed.markdown, "utf8") <= MAX_CHANGELOG_BYTES &&
+      typeof parsed.manifestVersion === "string" &&
+      typeof parsed.fetchedAt === "string"
+    ) {
       cache = { markdown: parsed.markdown, manifestVersion: parsed.manifestVersion, fetchedAt: parsed.fetchedAt };
     }
   } catch {
@@ -52,7 +71,11 @@ export async function fetchChangelog(): Promise<string> {
     }
     chunks.push(value);
   }
-  return Buffer.concat(chunks).toString("utf8");
+  const markdown = Buffer.concat(chunks).toString("utf8");
+  if (Buffer.byteLength(markdown, "utf8") > MAX_CHANGELOG_BYTES) {
+    throw new Error(`Decoded changelog exceeds ${MAX_CHANGELOG_BYTES} bytes`);
+  }
+  return markdown;
 }
 
 function hasVersionHeading(markdown: string, manifestVersion: string): boolean {

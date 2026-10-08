@@ -165,6 +165,16 @@ describe("changelog-cache", () => {
     assert.equal((await mod.getCachedChangelog())?.markdown.length, 2 * 1024 * 1024);
   });
 
+  it("rejects a decoded changelog that exceeds the size cap", async () => {
+    const bytes = new Uint8Array(2 * 1024 * 1024).fill(0xff);
+    bytes.set(Buffer.from("## [0.2.0] 2026-10-06\n"));
+    fetchMock.mockResolvedValue(new Response(bytes));
+
+    await mod.syncChangelog("v0.2.0");
+
+    assert.equal(await mod.getCachedChangelog(), null);
+  });
+
   it("loads the persisted cache after a restart", async () => {
     fetchMock.mockResolvedValue(textResponse(CHANGELOG_V2));
     await mod.syncChangelog("v0.2.0");
@@ -175,6 +185,46 @@ describe("changelog-cache", () => {
     assert.equal((await mod.getCachedChangelog())?.markdown, CHANGELOG_V2);
     await mod.syncChangelog("v0.2.0");
     assert.equal(fetchMock.mock.calls.length, 0);
+  });
+
+  it("treats an oversized persisted changelog as no cache", async () => {
+    const oversized = {
+      markdown: "x".repeat(2 * 1024 * 1024 + 1),
+      manifestVersion: "v0.2.0",
+      fetchedAt: new Date().toISOString(),
+    };
+    await writeFile(path.join(stateDir, "changelog-cache.json"), JSON.stringify(oversized));
+
+    assert.equal(await mod.getCachedChangelog(), null);
+
+    fetchMock.mockResolvedValue(textResponse(CHANGELOG_V2));
+    await mod.syncChangelog("v0.2.0");
+
+    assert.equal(fetchMock.mock.calls.length, 1);
+    assert.equal((await mod.getCachedChangelog())?.markdown, CHANGELOG_V2);
+  });
+
+  it("treats an oversized persisted cache file as no cache", async () => {
+    const oversized = {
+      markdown: "small",
+      manifestVersion: "v0.2.0",
+      fetchedAt: new Date().toISOString(),
+      padding: "x".repeat(6 * 2 * 1024 * 1024 + 64 * 1024),
+    };
+    await writeFile(path.join(stateDir, "changelog-cache.json"), JSON.stringify(oversized));
+
+    assert.equal(await mod.getCachedChangelog(), null);
+  });
+
+  it("loads persisted changelog markdown exactly at the size cap", async () => {
+    const atCap = {
+      markdown: "\u0000".repeat(2 * 1024 * 1024),
+      manifestVersion: "v0.2.0",
+      fetchedAt: new Date().toISOString(),
+    };
+    await writeFile(path.join(stateDir, "changelog-cache.json"), JSON.stringify(atCap));
+
+    assert.equal((await mod.getCachedChangelog())?.markdown.length, 2 * 1024 * 1024);
   });
 
   it("treats a corrupt state file as no cache", async () => {
