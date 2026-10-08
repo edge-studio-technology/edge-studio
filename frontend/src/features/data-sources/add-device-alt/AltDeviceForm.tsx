@@ -59,9 +59,9 @@ export function AltDeviceForm({
   action?: ReactNode;
 }) {
   return (
-    <section className="grid min-h-full min-w-0 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
+    <section className="grid min-h-full min-w-0 grid-cols-[260px_minmax(0,1fr)] overflow-hidden">
       <ProvisioningTimeline currentStep={currentStep} fields={fields} />
-      <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-t px-detail-next py-pad-relaxed pl-6 lg:border-t-0 lg:border-l">
+      <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-l px-detail-next py-pad-relaxed pl-6">
         <div className="min-w-0">
           {currentStep === "type" && <DeviceTypeStep template={template} />}
         {currentStep === "name" && <NameStep fields={fields} />}
@@ -95,14 +95,14 @@ export function DeviceAddedSummary({
   action?: ReactNode;
 }) {
   return (
-    <section className="grid min-h-full min-w-0 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
+    <section className="grid min-h-full min-w-0 grid-cols-[260px_minmax(0,1fr)] overflow-hidden">
       <div className="bg-surface-secondary gap-detail-next flex flex-col items-center justify-center px-detail-next py-pad-relaxed text-center">
         <h3 className="type-title text-text-primary m-0">Device added</h3>
         <span className="bg-feedback-positive grid size-10 place-items-center rounded-full text-core-white">
           <Check className="size-5" aria-hidden />
         </span>
       </div>
-      <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-t px-detail-next py-pad-relaxed pl-6 lg:border-t-0 lg:border-l">
+      <div className="border-stroke-secondary bg-surface-primary flex min-w-0 flex-col border-l px-detail-next py-pad-relaxed pl-6">
         <div>
           <h3 className="type-title text-text-primary m-0">{source.name}</h3>
           <p className="type-body text-text-secondary mt-detail-tight m-0">

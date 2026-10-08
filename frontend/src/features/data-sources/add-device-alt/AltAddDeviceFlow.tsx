@@ -271,7 +271,7 @@ function SetupDevicePicker({ step, options }: { step: WizardStep; options: Wizar
         <h3 className="type-title text-text-primary m-0">{stepIntro(step).title}</h3>
         <p className="type-body text-text-secondary mt-detail-tight m-0">{stepIntro(step).description}</p>
       </div>
-      <div className="gap-detail-close grid auto-rows-fr sm:grid-cols-2 lg:grid-cols-3">
+      <div className="gap-detail-close grid auto-rows-fr grid-cols-3">
         {options.map((option) => (
           <button
             key={option.title}
