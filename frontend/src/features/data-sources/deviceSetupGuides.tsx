@@ -152,8 +152,8 @@ export function DeviceGuideWorkspace({
   }
 
   return (
-    <section className="grid min-h-full min-w-0 grid-cols-[240px_minmax(0,1fr)] overflow-hidden">
-      <nav className="bg-surface-secondary gap-detail-tight flex flex-col px-detail-next py-pad-relaxed" aria-label="Device guide topics">
+    <section className="grid h-full min-h-0 min-w-0 grid-cols-[240px_minmax(0,1fr)] overflow-hidden">
+      <nav className="bg-surface-secondary gap-detail-tight flex min-h-0 flex-col px-detail-next py-pad-relaxed" aria-label="Device guide topics">
         {topics.map((topic) => {
           const active = topic.id === activeTopic.id;
           return (
@@ -172,26 +172,26 @@ export function DeviceGuideWorkspace({
           <Button
             variant="secondary"
             size="sm"
-            className="w-full"
-            iconStart={<ChevronUp aria-hidden />}
+            className="relative w-full !border-stroke-primary"
             disabled={activeTopicIndex === 0}
             onClick={() => selectTopic(activeTopicIndex - 1)}
           >
-            Previous topic
+            <ChevronUp className="absolute left-detail-close size-4" aria-hidden />
+            <span>Previous topic</span>
           </Button>
           <Button
             variant="secondary"
             size="sm"
-            className="w-full"
-            iconStart={<ChevronDown aria-hidden />}
+            className="relative w-full !border-stroke-primary"
             disabled={activeTopicIndex === topics.length - 1}
             onClick={() => selectTopic(activeTopicIndex + 1)}
           >
-            Next topic
+            <ChevronDown className="absolute left-detail-close size-4" aria-hidden />
+            <span>Next topic</span>
           </Button>
         </div>
       </nav>
-      <div className="border-stroke-secondary bg-surface-primary min-w-0 border-l px-detail-next py-pad-relaxed pl-6">
+      <div className="border-stroke-secondary bg-surface-primary min-h-0 min-w-0 overflow-y-auto border-l px-detail-next py-pad-relaxed pl-6">
         {activeTopic.id === "overview" && (overview ?? <GuideOverview guide={guide} tableSections={tableSections} />)}
         {"section" in activeTopic && <GuideSectionCard section={activeTopic.section} />}
         {activeTopic.id === "actions" && guide.actions && <GuideActions actions={guide.actions} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} />}
