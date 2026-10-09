@@ -447,12 +447,12 @@ function migrateWalletTransactionsToKeyByWallet() {
   const columns = db.prepare("PRAGMA table_info(wallet_transactions)").all() as { name: string; pk: number }[];
   if (columns.some((column) => column.name === "wallet_fingerprint" && column.pk > 0)) return;
 
-  db.exec(`
+  db.transaction(() => db.exec(`
     CREATE TABLE wallet_transactions_new (${WALLET_TRANSACTIONS_COLUMNS});
     INSERT INTO wallet_transactions_new SELECT * FROM wallet_transactions;
     DROP TABLE wallet_transactions;
     ALTER TABLE wallet_transactions_new RENAME TO wallet_transactions;
-  `);
+  `))();
 }
 
 function migrateAddressBookToAllowLocalContact() {
