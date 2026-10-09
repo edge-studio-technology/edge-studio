@@ -476,7 +476,6 @@ export function DataSourcesPage() {
         onClose={() => setSetupDeviceOpen(false)}
         onCreated={handleDeviceCreated}
         onOpenSetupGuide={setSetupGuideSource}
-        onGoToWorkflows={() => navigate("/workflows")}
       />
 
       {formOpen && (

@@ -88,11 +88,9 @@ export function isAltDeviceStepValid(fields: DeviceFormFields, step: AltDevicePr
 export function DeviceAddedSummary({
   source,
   template,
-  action,
 }: {
   source: DataSource;
   template: DataSourceTemplate;
-  action?: ReactNode;
 }) {
   return (
     <section className="grid min-h-full min-w-0 grid-cols-[260px_minmax(0,1fr)] overflow-hidden">
@@ -114,7 +112,6 @@ export function DeviceAddedSummary({
             {source.description && <DetailRow label="Description" value={source.description} />}
           </DetailList>
         </div>
-        {action ? <div className="flex flex-1 items-center justify-center pt-detail-next">{action}</div> : null}
       </div>
     </section>
   );

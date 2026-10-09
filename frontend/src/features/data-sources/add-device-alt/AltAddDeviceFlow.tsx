@@ -38,7 +38,6 @@ export function AltAddDeviceFlow({
   onClose,
   onCreated,
   onOpenSetupGuide = () => undefined,
-  onGoToWorkflows = () => undefined,
 }: {
   open: boolean;
   capabilities: DataSourceCapabilities | null;
@@ -46,7 +45,6 @@ export function AltAddDeviceFlow({
   onClose: () => void;
   onCreated: (source: DataSource) => void;
   onOpenSetupGuide?: (source: DataSource) => void;
-  onGoToWorkflows?: () => void;
 }) {
   const { showToast } = useToast();
   const [step, setStep] = useState<WizardStep>("root");
@@ -122,22 +120,9 @@ export function AltAddDeviceFlow({
     if (provisioningStepIndex > 0) setProvisioningStepIndex((current) => current - 1);
   }
 
-  function addAnotherDevice() {
-    setCreatedSource(null);
-    setTemplate(null);
-    setProvisioningStepIndex(0);
-    setStep("root");
-    reset();
-  }
-
   function openSetupGuide() {
     if (!createdSource) return;
     onOpenSetupGuide(createdSource);
-    onClose();
-  }
-
-  function goToWorkflows() {
-    onGoToWorkflows();
     onClose();
   }
 
@@ -151,24 +136,13 @@ export function AltAddDeviceFlow({
         className={setupDeviceModalClassName}
         bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0"
         footer={
-          <div className="grid w-full grid-cols-3 items-center">
-            <div className="justify-self-start">
-              <Button variant="secondary" onClick={onClose}>Return to device page</Button>
-            </div>
-            <div className="justify-self-center">
-              <Button variant="secondary" onClick={addAnotherDevice}>Add new device</Button>
-            </div>
-            <div className="justify-self-end">
-              <Button variant="secondary" onClick={goToWorkflows}>Go to workflow page</Button>
-            </div>
+          <div className="flex w-full items-center justify-between">
+            <Button variant="secondary" onClick={onClose}>Return to device page</Button>
+            <Button onClick={openSetupGuide}>Open device guide</Button>
           </div>
         }
       >
-        <DeviceAddedSummary
-          source={createdSource}
-          template={template}
-          action={<Button onClick={openSetupGuide}>Open device guide</Button>}
-        />
+        <DeviceAddedSummary source={createdSource} template={template} />
       </Modal>
     );
   }

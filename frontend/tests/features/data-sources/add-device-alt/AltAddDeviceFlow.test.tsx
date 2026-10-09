@@ -137,9 +137,9 @@ describe("AltAddDeviceFlow", () => {
     expect(props.onCreated).toHaveBeenCalledWith(created);
     expect(await screen.findByRole("heading", { name: "Device added" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Return to device page" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add new device" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open device guide" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Go to workflow page" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add new device" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Go to workflow page" })).not.toBeInTheDocument();
   });
 
   it("opens the saved device guide from the success state", async () => {
