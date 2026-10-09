@@ -73,29 +73,33 @@ describe("isAltDeviceFormValid", () => {
 });
 
 describe("AltDeviceForm", () => {
-  it("shows the template badge and description, plus name/description fields", () => {
-    render(<AltDeviceForm template={template} fields={fields()} />);
-    expect(screen.getByText("HTTP JSON Source")).toBeInTheDocument();
+  it("shows the template badge and description on the type step", () => {
+    render(<AltDeviceForm template={template} fields={fields()} currentStep="type" />);
+    expect(screen.getByRole("heading", { name: "HTTP JSON Source" })).toBeInTheDocument();
     expect(screen.getByText("Fetch JSON from an external API")).toBeInTheDocument();
+  });
+
+  it("shows name/description fields on the name step", () => {
+    render(<AltDeviceForm template={template} fields={fields()} currentStep="name" />);
     expect(screen.getByLabelText("Name")).toHaveValue("My device");
   });
 
   it("typing a name calls fields.setName", async () => {
     const user = userEvent.setup();
     const setName = vi.fn();
-    render(<AltDeviceForm template={template} fields={fields({ setName })} />);
+    render(<AltDeviceForm template={template} fields={fields({ setName })} currentStep="name" />);
     await user.type(screen.getByLabelText("Name"), "X");
     expect(setName).toHaveBeenCalled();
   });
 
   it("shows mqtt/mqtt-output broker and topic fields with type-specific placeholders", () => {
-    render(<AltDeviceForm template={template} fields={fields({ type: "mqtt" })} />);
+    render(<AltDeviceForm template={template} fields={fields({ type: "mqtt" })} currentStep="setup" />);
     expect(screen.getByLabelText("Broker URL")).toBeInTheDocument();
     expect(screen.getByLabelText("Topic")).toHaveAttribute("placeholder", "sensors/+/data");
   });
 
   it("shows gpio-input fields", () => {
-    render(<AltDeviceForm template={template} fields={fields({ type: "gpio-input" })} />);
+    render(<AltDeviceForm template={template} fields={fields({ type: "gpio-input" })} currentStep="setup" />);
     expect(screen.getByLabelText("GPIO chip")).toBeInTheDocument();
     expect(screen.getByLabelText("BCM pin number")).toBeInTheDocument();
     expect(screen.getByLabelText("Pull resistor")).toBeInTheDocument();
@@ -103,41 +107,47 @@ describe("AltDeviceForm", () => {
   });
 
   it("shows gpio-output fields (no pull/edge selects)", () => {
-    render(<AltDeviceForm template={template} fields={fields({ type: "gpio-output" })} />);
+    render(<AltDeviceForm template={template} fields={fields({ type: "gpio-output" })} currentStep="setup" />);
     expect(screen.getByLabelText("GPIO chip")).toBeInTheDocument();
     expect(screen.queryByLabelText("Pull resistor")).not.toBeInTheDocument();
   });
 
   it("shows camera fields, with FPS only in video mode", () => {
-    const { rerender } = render(<AltDeviceForm template={template} fields={fields({ type: "pi-camera", cameraMode: "photo" })} />);
+    const { rerender } = render(<AltDeviceForm template={template} fields={fields({ type: "pi-camera", cameraMode: "photo" })} currentStep="setup" />);
     expect(screen.getByLabelText("Width")).toBeInTheDocument();
     expect(screen.queryByLabelText("FPS")).not.toBeInTheDocument();
 
-    rerender(<AltDeviceForm template={template} fields={fields({ type: "pi-camera", cameraMode: "video" })} />);
+    rerender(<AltDeviceForm template={template} fields={fields({ type: "pi-camera", cameraMode: "video" })} currentStep="setup" />);
     expect(screen.getByLabelText("FPS")).toBeInTheDocument();
   });
 
   it("shows bme-sensor fields including sensor model select", () => {
-    render(<AltDeviceForm template={template} fields={fields({ type: "bme-sensor" })} />);
+    render(<AltDeviceForm template={template} fields={fields({ type: "bme-sensor" })} currentStep="setup" />);
     expect(screen.getByLabelText("Sensor model")).toBeInTheDocument();
     expect(screen.getByLabelText("I2C bus")).toBeInTheDocument();
   });
 
   it("shows http-output URL/method fields", () => {
-    render(<AltDeviceForm template={template} fields={fields({ type: "http-output", url: "https://x" })} />);
+    render(<AltDeviceForm template={template} fields={fields({ type: "http-output", url: "https://x" })} currentStep="setup" />);
     expect(screen.getByLabelText("URL")).toHaveValue("https://x");
     expect(screen.getByLabelText("Method")).toBeInTheDocument();
   });
 
   it("shows json-api URL and method fields", () => {
-    render(<AltDeviceForm template={template} fields={fields({ type: "json-api", url: "https://x" })} />);
+    render(<AltDeviceForm template={template} fields={fields({ type: "json-api", url: "https://x" })} currentStep="setup" />);
     expect(screen.getByLabelText("URL")).toHaveValue("https://x");
     expect(screen.getByLabelText("Method")).toBeInTheDocument();
   });
 
   it("shows no extra fields for webhook and device-system-data beyond name/description", () => {
-    render(<AltDeviceForm template={template} fields={fields({ type: "webhook" })} />);
+    render(<AltDeviceForm template={template} fields={fields({ type: "webhook" })} currentStep="setup" />);
     expect(screen.queryByLabelText("URL")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Broker URL")).not.toBeInTheDocument();
+  });
+
+  it("shows a review summary", () => {
+    render(<AltDeviceForm template={template} fields={fields({ type: "json-api", url: "https://x" })} currentStep="review" />);
+    expect(screen.getByRole("heading", { name: "Review and add" })).toBeInTheDocument();
+    expect(screen.getByText("https://x")).toBeInTheDocument();
   });
 });
