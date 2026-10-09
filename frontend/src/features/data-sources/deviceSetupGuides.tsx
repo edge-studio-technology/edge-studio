@@ -3,7 +3,7 @@ import { useState, type ReactNode } from "react";
 import { Button, IconButton } from "../../components/Button";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { useToast } from "../../components/ToastProvider";
-import piGpioPinoutUrl from "../../../../docs/guides/header_map_rpi.png";
+import piGpioPinoutUrl from "../../assets/header_map_rpi.png";
 import type { AutomationBlock, AutomationBlockType } from "../automation/automationTypes";
 import type { DataSource } from "./dataSourceTypes";
 
