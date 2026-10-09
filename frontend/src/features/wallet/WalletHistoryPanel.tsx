@@ -186,6 +186,63 @@ export function WalletHistoryPanel({
       ) : null}
 
       {error ? null : (
+        <div className="flex w-full min-w-0 flex-wrap items-start gap-3">
+          <div className="gap-detail-tight flex w-full min-w-0 flex-col sm:w-40 sm:shrink-0">
+            <SelectField
+              label="Filter"
+              className="w-full min-w-0"
+              value={filters.status}
+              options={WALLET_HISTORY_STATUS_OPTIONS.map((opt) => ({ ...opt }))}
+              onChange={(event) => onFiltersChange({ status: event.target.value as WalletHistoryFilters["status"] })}
+            />
+          </div>
+          <div className="gap-detail-tight flex w-full min-w-0 flex-col sm:w-40 sm:shrink-0">
+            <SelectField
+              label="Type"
+              className="w-full min-w-0"
+              value={filters.direction}
+              options={WALLET_HISTORY_DIRECTION_OPTIONS.map((opt) => ({ ...opt }))}
+              onChange={(event) =>
+                onFiltersChange({ direction: event.target.value as WalletHistoryFilters["direction"] })
+              }
+            />
+          </div>
+          <div className="gap-detail-tight flex w-full min-w-0 flex-col sm:w-44 sm:shrink-0">
+            <SelectField
+              label="Date"
+              className="w-full min-w-0"
+              value={filters.datePreset}
+              options={WALLET_HISTORY_DATE_OPTIONS.map((opt) => ({ ...opt }))}
+              onChange={(event) =>
+                onFiltersChange({ datePreset: event.target.value as WalletHistoryFilters["datePreset"] })
+              }
+            />
+          </div>
+          {filters.datePreset === "custom" ? (
+            <>
+              <InputField
+                label="From"
+                type="date"
+                className="w-full min-w-0 sm:w-44"
+                value={filters.customFrom}
+                max={filters.customTo || undefined}
+                onChange={(event) => onFiltersChange({ customFrom: event.target.value })}
+              />
+              <InputField
+                label="To"
+                type="date"
+                className="w-full min-w-0 sm:w-44"
+                value={filters.customTo}
+                min={filters.customFrom || undefined}
+                error={rangeInvalid ? "Pick a date on or after From." : undefined}
+                onChange={(event) => onFiltersChange({ customTo: event.target.value })}
+              />
+            </>
+          ) : null}
+        </div>
+      )}
+
+      {error ? null : (
         <TableControls
           utilities={
             <TableColumnVisibilityButton
@@ -202,59 +259,9 @@ export function WalletHistoryPanel({
         >
           <div className="[&>div]:mb-0">
             <ListFilterBar
-              filter={filters.status}
               q={filters.q}
-              filterOptions={WALLET_HISTORY_STATUS_OPTIONS}
               searchPlaceholder="Contact, address, token, or ID"
-              onFilterChange={(status) => onFiltersChange({ status: status as WalletHistoryFilters["status"] })}
               onQueryChange={(q) => onFiltersChange({ q })}
-              extraFilters={
-                <>
-                  <div className="gap-detail-tight flex w-full min-w-0 flex-col sm:w-40 sm:shrink-0">
-                    <SelectField
-                      label="Type"
-                      className="w-full min-w-0"
-                      value={filters.direction}
-                      options={WALLET_HISTORY_DIRECTION_OPTIONS.map((opt) => ({ ...opt }))}
-                      onChange={(event) =>
-                        onFiltersChange({ direction: event.target.value as WalletHistoryFilters["direction"] })
-                      }
-                    />
-                  </div>
-                  <div className="gap-detail-tight flex w-full min-w-0 flex-col sm:w-44 sm:shrink-0">
-                    <SelectField
-                      label="Date"
-                      className="w-full min-w-0"
-                      value={filters.datePreset}
-                      options={WALLET_HISTORY_DATE_OPTIONS.map((opt) => ({ ...opt }))}
-                      onChange={(event) =>
-                        onFiltersChange({ datePreset: event.target.value as WalletHistoryFilters["datePreset"] })
-                      }
-                    />
-                  </div>
-                  {filters.datePreset === "custom" ? (
-                    <>
-                      <InputField
-                        label="From"
-                        type="date"
-                        className="w-full min-w-0 sm:w-44"
-                        value={filters.customFrom}
-                        max={filters.customTo || undefined}
-                        onChange={(event) => onFiltersChange({ customFrom: event.target.value })}
-                      />
-                      <InputField
-                        label="To"
-                        type="date"
-                        className="w-full min-w-0 sm:w-44"
-                        value={filters.customTo}
-                        min={filters.customFrom || undefined}
-                        error={rangeInvalid ? "Pick a date on or after From." : undefined}
-                        onChange={(event) => onFiltersChange({ customTo: event.target.value })}
-                      />
-                    </>
-                  ) : null}
-                </>
-              }
             />
           </div>
         </TableControls>
