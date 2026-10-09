@@ -162,6 +162,17 @@ describe("StandardDeviceSetupGuide", () => {
     );
   });
 
+  it("moves between guide topics with previous and next controls", async () => {
+    const item = source({ type: "bme-sensor", config: { sensor: "bme280" } });
+    render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
+
+    expect(screen.getByRole("button", { name: "Previous topic" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Next topic" }));
+    expect(screen.getByRole("heading", { name: "Requirements" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Previous topic" }));
+    expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
+  });
+
   it("renders a guide action and calls onAction when clicked", async () => {
     const onAction = vi.fn();
     const item = source({ type: "bme-sensor", config: { sensor: "bme280" } });
@@ -229,6 +240,10 @@ describe("StandardDeviceSetupGuide", () => {
     const toggle = screen.getByRole("button", { name: "Show wiring schematic" });
     await userEvent.click(toggle);
     expect(screen.getByRole("button", { name: "Hide wiring schematic" })).toBeInTheDocument();
-    expect(screen.getByAltText(/Raspberry Pi 40-pin GPIO header pinout/)).toBeInTheDocument();
+    const image = screen.getByAltText(/Raspberry Pi 40-pin GPIO header pinout/);
+    const fullSizeLink = screen.getByRole("link", { name: "Open full-size Raspberry Pi GPIO header pinout" });
+    expect(fullSizeLink).toHaveAttribute("href", image.getAttribute("src"));
+    expect(fullSizeLink).toHaveAttribute("target", "_blank");
+    expect(fullSizeLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 });

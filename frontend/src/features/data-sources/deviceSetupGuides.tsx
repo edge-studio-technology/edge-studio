@@ -1,9 +1,9 @@
-import { Check, Copy } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button, IconButton } from "../../components/Button";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { useToast } from "../../components/ToastProvider";
-import piGpioPinoutUrl from "../../assets/pi-gpio-pinout.svg";
+import piGpioPinoutUrl from "../../../../docs/guides/header_map_rpi.png";
 import type { AutomationBlock, AutomationBlockType } from "../automation/automationTypes";
 import type { DataSource } from "./dataSourceTypes";
 
@@ -145,6 +145,11 @@ export function DeviceGuideWorkspace({
     ...(guide.docPath ? [{ id: "documentation" as const, title: "Documentation" }] : []),
   ];
   const activeTopic = topics.find((topic) => topic.id === activeTopicId) ?? topics[0];
+  const activeTopicIndex = topics.indexOf(activeTopic);
+
+  function selectTopic(index: number) {
+    setActiveTopicId(topics[index].id);
+  }
 
   return (
     <section className="grid min-h-full min-w-0 grid-cols-[240px_minmax(0,1fr)] overflow-hidden">
@@ -163,6 +168,28 @@ export function DeviceGuideWorkspace({
             </button>
           );
         })}
+        <div className="gap-detail-tight mt-auto grid pt-pad-relaxed">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full"
+            iconStart={<ChevronUp aria-hidden />}
+            disabled={activeTopicIndex === 0}
+            onClick={() => selectTopic(activeTopicIndex - 1)}
+          >
+            Previous topic
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full"
+            iconStart={<ChevronDown aria-hidden />}
+            disabled={activeTopicIndex === topics.length - 1}
+            onClick={() => selectTopic(activeTopicIndex + 1)}
+          >
+            Next topic
+          </Button>
+        </div>
       </nav>
       <div className="border-stroke-secondary bg-surface-primary min-w-0 border-l px-detail-next py-pad-relaxed pl-6">
         {activeTopic.id === "overview" && (overview ?? <GuideOverview guide={guide} tableSections={tableSections} />)}
@@ -280,11 +307,20 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
       )}
       {section.schematic === "pi-gpio" && schematicVisible && (
         <div className="border-stroke-secondary bg-surface-always-white rounded-soft p-pad-close overflow-auto border">
-          <img
-            className="h-auto w-full min-w-190"
-            src={piGpioPinoutUrl}
-            alt="Raspberry Pi 40-pin GPIO header pinout showing 3V3, 5V, ground, SDA, SCL, and GPIO pins"
-          />
+          <a
+            className="gap-detail-tight group flex w-full flex-col items-center"
+            href={piGpioPinoutUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open full-size Raspberry Pi GPIO header pinout"
+          >
+            <img
+              className="max-h-72 w-full max-w-160 cursor-zoom-in object-contain"
+              src={piGpioPinoutUrl}
+              alt="Raspberry Pi 40-pin GPIO header pinout showing 3V3, 5V, ground, SDA, SCL, and GPIO pins"
+            />
+            <span className="type-meta text-text-secondary group-hover:text-text-primary">Open full-size image</span>
+          </a>
         </div>
       )}
     </div>
