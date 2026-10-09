@@ -29,7 +29,7 @@ export async function pollMinimaHealth() {
       }
     }
 
-    if (!detectStall(status)) return;
+    if (status.resync?.busy || !detectStall(status)) return;
 
     recordStallDetected();
     const blockAge = status.sync.blockAgeSeconds ?? "unknown";

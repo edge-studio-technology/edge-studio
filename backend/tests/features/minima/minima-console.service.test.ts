@@ -201,7 +201,7 @@ describe("runConsoleCommand", () => {
 
     await consoleService.runConsoleCommand(userId, "megammrsync action:resync host:megammr.minima.global:9001");
 
-    assert.deepEqual(resyncMegammrMock.mock.calls[0], ["console"]);
+    assert.deepEqual(resyncMegammrMock.mock.calls[0], ["console", userId]);
   });
 
   it("dispatches peers-add via addMinimaPeers with the parsed peerslist", async () => {

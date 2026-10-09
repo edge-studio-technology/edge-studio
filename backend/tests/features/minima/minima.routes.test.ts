@@ -42,6 +42,12 @@ const BACKUP_SECRET = "route-level-leak-canary";
 const ADMIN_PASSWORD = "Abcdef1!";
 const BACKUP_FILE_BYTES = "backup-file-canary-bytes";
 
+const docker = await import("../../helpers/minimaDocker.js").then(({ createMinimaDockerMock }) => createMinimaDockerMock());
+vi.mock("node:http", async () => {
+  const real = await vi.importActual<typeof import("node:http")>("node:http");
+  return { ...real, ...docker.module, default: { ...real, ...docker.module.default } };
+});
+
 let teardown: () => void;
 let db: import("better-sqlite3").Database;
 let app: import("express").Express;
@@ -92,6 +98,7 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
+  resyncService.stopMinimaResyncObserver();
   teardown();
   fs.rmSync(backupsDir, { recursive: true, force: true });
 });
@@ -104,6 +111,7 @@ beforeEach(() => {
   fs.mkdirSync(backupsDir, { recursive: true });
   db.prepare("DELETE FROM settings WHERE key IN ('minima_backup_password_enc', 'minima_console_whitelist', 'minima_resync_operation')").run();
   backupService.setBackupPassword(BACKUP_SECRET);
+  resyncService.stopMinimaResyncObserver();
   monitoring.endMinimaOperation();
 });
 
@@ -247,6 +255,10 @@ describe("asynchronous resync API", () => {
       assert.equal(accepted.body.phase, "starting");
       assert.equal(accepted.body.busy, true);
       assert.equal(accepted.body.outcome, null);
+      const audit = db.prepare("SELECT user_id,detail FROM audit_events WHERE action='minima.resync.started' ORDER BY rowid DESC LIMIT 1").get() as { user_id: string; detail: string };
+      assert.ok(audit.user_id);
+      assert.equal(JSON.parse(audit.detail).id, accepted.body.id);
+      assert.equal(JSON.parse(audit.detail).trigger, "manual");
       const duplicate = await request(app).post("/api/minima/megammrsync/resync").set("Cookie", cookie);
       assert.equal(duplicate.status, 409);
       assert.equal(duplicate.body.errorDetails.type, "conflict");

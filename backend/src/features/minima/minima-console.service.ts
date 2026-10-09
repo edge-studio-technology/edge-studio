@@ -100,7 +100,7 @@ export async function runConsoleCommand(userId: string | undefined, rawInput: st
 
   let result;
   if (entry.dispatch === "megammrsync-resync") {
-    result = await resyncMegammr("console");
+    result = await resyncMegammr("console", userId);
   } else if (entry.dispatch === "peers-add") {
     const match = /peerslist:(\S+)/i.exec(command);
     result = await addMinimaPeers(match?.[1] ?? "");

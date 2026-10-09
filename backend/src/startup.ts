@@ -1,3 +1,4 @@
+import { reconcileMinimaResync, stopMinimaResyncObserver } from "./features/minima/minima-resync.service.js";
 import { env } from "./config/env.js";
 import { db, runMigrations } from "./db/database.js";
 import { createApp } from "./app.js";
@@ -40,6 +41,7 @@ runMigrations();
 await ensureDeviceId();
 startAutomationScheduler();
 startIntegritasProofPoller();
+reconcileMinimaResync();
 startMinimaHealthPoller();
 startMinimaAutoBackupScheduler();
 startMqttIngestion();
@@ -62,6 +64,7 @@ function shutdown() {
   stopAutomationScheduler();
   stopIntegritasProofPoller();
   stopMinimaHealthPoller();
+  stopMinimaResyncObserver();
   stopMinimaAutoBackupScheduler();
   stopMqttIngestion();
   stopGpioIngestion();

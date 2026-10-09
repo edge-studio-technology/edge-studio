@@ -1,6 +1,6 @@
 # Improve Minima Resync Status Feedback and Expose Progress Logs Plan
 
-**Status:** In progress — steps 1–2 complete; backend recovery starts at step 3
+**Status:** In progress — steps 1–3 complete; browser integration starts at step 4
 
 **Created:** 2026-10-09
 
@@ -14,7 +14,7 @@
 
 - [x] 1. Capture the supported node's resync lifecycle and add regression fixtures.
 - [x] 2. Implement backend resync tracking, asynchronous initiation, and bounded progress persistence.
-- [ ] 3. Implement backend recovery and route every supported resync caller through it.
+- [x] 3. Implement backend recovery and route every supported resync caller through it.
 - [ ] 4. Connect the Minima UI to operation state and add the progress panel.
 - [ ] 5. Cover ambiguous outcomes, recovery, conflicts, and existing consumers with regression tests.
 - [ ] Docs.
@@ -126,6 +126,16 @@ Update all common callers:
 - Stall poller starts the operation and records cooldown at initiation; it records terminal completion/failure separately. A skipped conflict does not consume cooldown or become “auto-resync failed.” Suppress another automatic start while the resync remains active/uncertain.
 - Pass trigger/user metadata for a dedicated start audit event; record the terminal result without adding an audit row on every poll.
 - In `backend/src/startup.ts`, reconcile a persisted nonterminal operation after migrations and before starting the health poller. Resume observation only; never replay a dispatched RPC on backend restart. Stop timers at shutdown. If evidence cannot reconstruct the outcome, preserve an explicit unconfirmed result.
+
+### Step 3 results (2026-10-09)
+
+Implemented persisted pre-dispatch Docker baseline/deadlines and concurrent serial process observation. Confirmed completion plus a cycle and usable chain RPC completes/releases the operation; stale/unknown freshness remains visible. Interrupted/malformed responses followed by recovery finish unconfirmed/recovered, without fabricated success. Cycle/readiness deadlines retain reservations; slower read-only observation can reconcile late or operator recovery. One idempotent start is allowed only for confirmed completion with an exited container; start failure records its stage and retains ownership without repeated retries. No timeout-triggered quit/restart/replay was added; all supported tested versions naturally cycle.
+
+Startup reconciliation runs before the health poller and never replays the command; shutdown cancels timers and invalidates queued/pending callbacks. Undispatched snapshots release with an unconfirmed result; legacy missing-baseline/deadline snapshots fail closed. Manual and console callers pass initiating user metadata for lifecycle audits; automatic terminal messages update without extending the initiation cooldown. Latest automatic snapshots restore their initiation timestamp at startup. Audits record start and changes to terminal outcome/recovered/reservation, including late reconciliation, without per-poll rows.
+
+Regression coverage uses the real RPC, Docker HTTP and SQLite boundaries for tracking/recovery: natural/late/replacement cycles, pending response, transport interruption, rejection, stale/unknown chains, start failure, retained reservation, restart persistence, corrupt state and shutdown. Full `npm run check` passed 3,525 tests (1,440 backend, 1,839 frontend, 194 Update Agent, 52 scripts), all typechecks/coverage thresholds and clean dependency audits. Final review added three poller cases for busy recovering/unconfirmed/failed operations; the complete backend coverage suite then passed 1,443 tests, and backend typecheck/build/container build passed again. Tracking/recovery line coverage is 98.21%. Backend/frontend production and container builds, Compose validation, mirrored-rule equality and diff checks passed. Frontend's existing large-chunk warning remains.
+
+Browser integration and final disposable-node/browser QA remain steps 4–5. No deployment, OpenProject mutation or live node resync occurred during this step.
 
 ## 4. Show authoritative operation state and concise events
 

@@ -187,9 +187,9 @@ export async function getWalletBalance() {
   return runMinimaPathCommand("balance");
 }
 
-export async function resyncMegammr(trigger: MinimaResyncTrigger = "manual") {
+export async function resyncMegammr(trigger: MinimaResyncTrigger = "manual", userId?: string | null) {
   const { megammrHost } = getMinimaConfig();
-  return startMinimaResync(megammrHost, trigger);
+  return startMinimaResync(megammrHost, trigger, userId);
 }
 
 export async function getMinimaPeers() {

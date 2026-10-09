@@ -42,6 +42,7 @@ vi.mock("../../../src/features/status/docker.control.js", () => ({
 }));
 
 vi.mock("../../../src/features/status/docker.service.js", () => ({
+  inspectContainer: vi.fn().mockResolvedValue({ RestartCount: 0, State: { StartedAt: "2026-01-01T00:00:00.000Z", Running: true, Status: "running" } }),
   getComposeServiceContainer: getComposeServiceContainerMock
 }));
 
@@ -61,11 +62,13 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
+  resync.stopMinimaResyncObserver();
   teardown();
 });
 
 beforeEach(() => {
   db.prepare("DELETE FROM settings WHERE key = 'minima_resync_operation'").run();
+  resync.stopMinimaResyncObserver();
   minimaMonitoring.endMinimaOperation();
   fetchMinimaStatusMock.mockReset();
   runMinimaPathCommandMock.mockReset();

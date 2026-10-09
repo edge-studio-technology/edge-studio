@@ -168,6 +168,17 @@ describe("pollMinimaHealth with auto-resync enabled", () => {
     await loadModule();
   });
 
+  for (const phase of ["recovering", "unconfirmed", "failed"]) {
+    it(`skips automatic initiation while a ${phase} operation still owns the reservation`, async () => {
+      getMinimaNodeStatusMock.mockResolvedValue({ ...baseStatus, resync: { busy: true, phase } });
+      detectStallMock.mockReturnValue(true);
+      canAutoResyncMock.mockReturnValue(true);
+      await pollMinimaHealth();
+      assert.equal(resyncMegammrMock.mock.calls.length, 0);
+      assert.equal(recordAutoResyncMock.mock.calls.length, 0);
+    });
+  }
+
   it("skips resync while the cooldown is active", async () => {
     getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
     detectStallMock.mockReturnValue(true);

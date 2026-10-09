@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Minima resync starts asynchronously with HTTP 202 and exposes the latest persisted operation through an admin-only progress endpoint.
 - Duplicate resync and conflicting node restart, backup, and restore requests return HTTP 409 while resync is reserved.
-- Resync connection interruptions retain operation ownership and redacted diagnostics for backend recovery.
+- Resync recovery observes natural node restarts, preserves uncertain outcomes and warnings, and resumes monitoring after a backend restart without replaying resync.
+- Resync start and result audit events identify the caller, and automatic-resync completion is recorded separately from its initiation cooldown.
 
 ## [Unreleased]
 

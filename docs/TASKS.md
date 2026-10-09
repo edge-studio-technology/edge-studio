@@ -17,7 +17,7 @@
 
 ## In Progress
 
-- [ ] Fix Minima resync feedback (OpenProject #536) — steps 1–2 complete: lifecycle verified, async 202/admin progress/persistence/conflict guards implemented, ownership regression fixed; full checks/builds passed; backend recovery starts at step 3; see [plan](plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md), [QA](qa/536-resync-lifecycle.md), and ADR 0033.
+- [ ] Fix Minima resync feedback (OpenProject #536) — steps 1–3 complete: lifecycle verified, persistent async tracking/conflict guards and backend recovery/startup reconciliation/lifecycle audits implemented; full checks/builds passed; browser progress integration starts at step 4; see [plan](plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md), [QA](qa/536-resync-lifecycle.md), and ADR 0033.
 
 - [ ] Improve changelog service (OpenProject #239): `update-agent` caches main's changelog in `/state`, kept in step with the manifest; Update page reads it from `GET /update/status` with an in-app full view — code, docs, local and Pi verification done on `task/239-improve-changelog-service`; PR to `dev` pending; see `docs/plans/features/239-improve-changelog-service.md`.
 - [ ] Upgrade Automation watch mode into a production-quality live monitoring, historic replay, and workflow debugging experience — runtime overview, domain-aware block summaries, replay toolbar/status messaging, status-colored replay animation, and run-specific historic canvas rendering are implemented and build/test verified; browser visual QA remains; see `docs/plans/workflow-watch-mode-upgrade.md`.

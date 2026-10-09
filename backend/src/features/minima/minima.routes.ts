@@ -128,9 +128,9 @@ minimaRouter.get("/balance", async (_req, res) => {
   }
 });
 
-minimaRouter.post("/megammrsync/resync", requireRole("admin"), async (_req, res) => {
+minimaRouter.post("/megammrsync/resync", requireRole("admin"), async (req, res) => {
   try {
-    const result = await resyncMegammr();
+    const result = await resyncMegammr("manual", req.user?.id);
     res.status(202).json(result);
   } catch (error) {
     if (error instanceof MinimaResyncConflictError) return apiErrorFromStatus(res, 409, error.message);
