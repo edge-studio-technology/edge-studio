@@ -56,6 +56,7 @@ export function WalletPage() {
         refresh();
       } else if (previous !== null) {
         // Picks up incoming payments and confirmations without a loading flash.
+        void loadStatus({ quiet: true });
         void loadHistory(historyFilters, { quiet: true });
       }
     },
@@ -74,15 +75,18 @@ export function WalletPage() {
     void loadHistory(historyFilters);
   }
 
-  async function loadStatus() {
-    setLoading(true);
-    setError(null);
+  async function loadStatus({ quiet = false }: { quiet?: boolean } = {}) {
+    if (!quiet) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       setWalletStatus(await getWalletStatus());
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load wallet.");
+      if (!quiet) setError(err instanceof Error ? err.message : "Failed to load wallet.");
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }
 
@@ -187,6 +191,7 @@ export function WalletPage() {
           minimaConfirmedUnavailable={minimaConfirmedUnavailable}
           onClose={() => {
             setSendOpen(false);
+            void loadStatus({ quiet: true });
             void loadHistory(historyFilters, { quiet: true });
           }}
         />

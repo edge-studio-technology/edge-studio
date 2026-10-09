@@ -49,7 +49,7 @@
     - A send appears immediately as a pending send without a TxPoW ID. After the next sync it is replaced by its chain row (no duplicate), with origin kept.
     - Two injected previous-wallet rows were flagged and counted. A wrong PIN returned 401 `invalid_credential` and kept the session; the right PIN deleted exactly those 2 rows and recorded `wallet.history.clear_previous` with `{"deleted":2}`.
 - [x] Step 5: Frontend history panel, filters, detail modal, and clear action (`17f0b251`)
-  - `WalletPage.tsx` loads status and history separately. History reloads quietly on each Minima status tick (30 s) and after the send dialog closes, so incoming payments and confirmations show up without a page reload.
+  - `WalletPage.tsx` loads status and history separately. Both reload quietly on each Minima status tick (30 s) and after the send dialog closes, so incoming payments, confirmations, and the balance update without a page reload. (The balance was added after the sanity pass found it stale while history updated.)
   - Filters: status, type (Received/Sent/Self), date preset (Today, Last 7 days, Last 30 days, This month, Custom range), and search. Presets and custom days are local time; a custom range includes both days. Filter helpers live in `walletHistory.ts`. Status, type, and date filters sit on their own row above a full-width search.
   - Deviation: contact labels are resolved by the backend (`counterpartyLabel` on each item, matching Mx and 0x forms), not in the browser, because matching needs Mx checksum decoding.
   - Deviation: the clear dialog is a `Modal` with `CredentialField` (`ClearPreviousHistoryModal.tsx`), same as "Remove backup password". `DeleteConfirmModal` has no slot for a credential field.

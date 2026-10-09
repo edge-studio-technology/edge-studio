@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Wallet history lists incoming payments and self-transfers alongside sends, synced from the Minima node.
-- Wallet history rows show Pending, Confirmed, or Failed, and update without a page reload.
+- Wallet history rows show Pending, Confirmed, or Failed, and they and the wallet balance update without a page reload.
 - Wallet history can be filtered by type, status, and date (presets or a custom range), and searched by contact name, address, token, or ID.
 - Wallet history shows the sender or recipient's address-book name when it is a saved contact.
 - The history details view shows the date, confirmation time, block, confirmation count, origin, and TxPoW and transaction IDs.
