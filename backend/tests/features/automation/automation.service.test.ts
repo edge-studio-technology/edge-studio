@@ -73,6 +73,10 @@ vi.mock("../../../src/features/settings/secrets.service.js", () => ({
   getIntegritasApiKey: getIntegritasApiKeyMock
 }));
 
+vi.mock("../../../src/features/wallet/wallet-history.service.js", () => ({
+  getWalletFingerprint: async () => "fingerprint-a"
+}));
+
 vi.mock("../../../src/features/wallet/wallet.service.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../src/features/wallet/wallet.service.js")>();
   return { ...actual, getWalletStatus: getWalletStatusMock, sendPayment: sendPaymentMock };
@@ -87,7 +91,6 @@ let runsRepo: typeof import("../../../src/features/automation/automationRuns.rep
 let db: Awaited<ReturnType<typeof setupTestDatabase>>["db"];
 let integritasRepo: typeof import("../../../src/features/integritas/integritas.repository.js");
 let addressBookRepo: typeof import("../../../src/features/address-book/address-book.repository.js");
-let walletService: typeof import("../../../src/features/wallet/wallet.service.js");
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
@@ -100,7 +103,6 @@ beforeAll(async () => {
   dataReadsRepo = await import("../../../src/features/data-reads/dataReads.repository.js");
   integritasRepo = await import("../../../src/features/integritas/integritas.repository.js");
   addressBookRepo = await import("../../../src/features/address-book/address-book.repository.js");
-  walletService = await import("../../../src/features/wallet/wallet.service.js");
 });
 
 afterAll(() => {
@@ -891,15 +893,17 @@ describe("automation.service — send_transaction", () => {
       checkedAt: "now",
       tokens: [{ tokenId: "0x00", name: "Minima", confirmed: "10", unconfirmed: "0", sendable: "10", isNative: true }]
     });
-    sendPaymentMock.mockResolvedValue({ ok: true, txpowId: "tx-1", status: "sent" });
+    sendPaymentMock.mockResolvedValue({ ok: true, txpowId: "tx-1", transactionId: "0x02", status: "sent" });
     const wf = makeWorkflow([
       { type: "manual_start", config: {} },
       { type: "send_transaction", config: { recipientAddressBookId: recipient.id, tokenId: "0x00", amount: "5" } }
     ]);
     const result = await service.runAutomationWorkflow(wf.id);
     assert.equal(result.workflow.lastError, null);
-    const history = walletService.listWalletSendHistory();
-    assert.ok(history.some((h) => h.txpowId === "tx-1" && h.status === "submitted"));
+    assert.deepEqual(
+      db.prepare("SELECT status, origin, transaction_id, wallet_fingerprint FROM wallet_send_history WHERE txpow_id = 'tx-1'").get(),
+      { status: "submitted", origin: "automation", transaction_id: "0x02", wallet_fingerprint: "fingerprint-a" }
+    );
   });
 
   it("throws when the payment fails", async () => {
@@ -914,6 +918,10 @@ describe("automation.service — send_transaction", () => {
       { type: "send_transaction", config: { recipientAddressBookId: recipient.id, tokenId: "0x00", amount: "5" } }
     ]);
     await assert.rejects(service.runAutomationWorkflow(wf.id), /insufficient fee/);
+    assert.deepEqual(
+      db.prepare("SELECT status, origin, error FROM wallet_send_history WHERE to_address = ?").get(recipient.address),
+      { status: "failed", origin: "automation", error: "insufficient fee" }
+    );
   });
 });
 

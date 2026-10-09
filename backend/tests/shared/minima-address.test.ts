@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import { canonicalMinimaAddress, isMinimaAddress } from "../../src/shared/minima-address.js";
+import { canonicalMinimaAddress, isMinimaAddress, miniMinimaAddress } from "../../src/shared/minima-address.js";
 
 const OFFICIAL_HEX_ADDRESS = "0xDE111E13DBA5054DFF657969BF3A76BFB6CE196F95F6EBEFE1B70FED0115EF1A";
 const OFFICIAL_MX_ADDRESS = "MxG086U24F17MT50Y6VUPBPD6VJKTYVMR71WRSYURYUVZDN1VMG25FF39M0458A";
@@ -58,5 +58,24 @@ describe("isMinimaAddress", () => {
   it("rejects truncated and checksum-corrupted Mx addresses", () => {
     assert.equal(isMinimaAddress(OFFICIAL_MX_ADDRESS.slice(0, -1)), false);
     assert.equal(isMinimaAddress(`${OFFICIAL_MX_ADDRESS.slice(0, -1)}B`), false);
+  });
+});
+
+describe("miniMinimaAddress", () => {
+  it("encodes the official hex address as its Mx alias", () => {
+    assert.equal(miniMinimaAddress(OFFICIAL_HEX_ADDRESS), OFFICIAL_MX_ADDRESS);
+    assert.equal(miniMinimaAddress(OFFICIAL_HEX_ADDRESS.toLowerCase()), OFFICIAL_MX_ADDRESS);
+  });
+
+  it("round-trips through the decoder, including from an Mx address", () => {
+    assert.equal(miniMinimaAddress(OFFICIAL_MX_ADDRESS.toLowerCase()), OFFICIAL_MX_ADDRESS);
+    const short = miniMinimaAddress("0x01");
+    assert.ok(short);
+    assert.equal(canonicalMinimaAddress(short), "0x01");
+  });
+
+  it("returns null for an invalid address", () => {
+    assert.equal(miniMinimaAddress("not an address"), null);
+    assert.equal(miniMinimaAddress("Mx123"), null);
   });
 });

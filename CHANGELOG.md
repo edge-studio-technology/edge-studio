@@ -13,6 +13,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Login and current-credential confirmations use masked six-digit PIN or password inputs based on the stored credential type.
 - The address book automatically adds a persistent contact named after the device, marked Local device, with editable name/notes and protected address/deletion.
 - `scripts/dev/benchmark/` scripts that measure the installed app's CPU, memory, disk growth, start-up time and workflow load on a Pi, with a guide in `docs/guides/pi-benchmark.md`.
+- Wallet history lists incoming payments and self-transfers alongside sends, synced from the Minima node.
+- Wallet history rows show Pending, Confirmed, or Failed, and they and the wallet balance update without a page reload.
+- Wallet history can be filtered by type, status, and date (presets or a custom range), and searched by contact name, address, token, or ID.
+- Wallet history shows the sender or recipient's address-book name when it is a saved contact.
+- The history details view shows the date, confirmation time, block, confirmation count, origin, and TxPoW and transaction IDs.
+- Failed sends from the Send dialog and automation workflows record Minima's failure reason, shown in the history details view.
+- History from a wallet the node no longer uses is marked Previous wallet and can be cleared by an admin after re-entering their PIN/password (`POST /api/wallet/history/clear-previous`).
+- Dev testnet setup for Minima wallet testing on a Pi; see `docs/guides/minima-testnet.md`.
 
 ### Changed
 
@@ -22,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Update page release notes come from a copy `update-agent` caches on disk when it checks for updates.
 - "View full changelog" on the Update page opens every released entry in the app instead of GitHub.
 - The browser no longer contacts GitHub from the Update page, and the frontend CSP no longer allows `raw.githubusercontent.com`.
+- `GET /api/wallet/history` returns a paginated, filterable list of all wallet movements instead of `{ sends }`, and no longer accepts `limit`; see `README.md`.
 
 ### Fixed
 
@@ -30,6 +39,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Session-expiry notices now refer to both PINs and passwords.
 - Address-book payments resolve the current saved destination, including after wallet replacement on older Minima versions.
 - Relative links in Update page release notes point to the correct GitHub repository.
+- The Send payment dialog accepts decimal amounts.
+- `GET /api/wallet/payment-status/:txpowid` reports pending and confirmed payments instead of always `unknown`.
 
 ## [0.42.2] 2026-10-06
 

@@ -1,11 +1,22 @@
 import { Router } from "express";
 import { env } from "../../config/env.js";
-import { badRequest, conflict, dependencyUnavailable, forbidden, unexpected, validationFailed } from "../../shared/api-error.js";
+import { apiErrorFromStatus, badRequest, conflict, dependencyUnavailable, forbidden, unexpected, validationFailed } from "../../shared/api-error.js";
+import { parseListQuery, toPaginatedResult } from "../../shared/list-query.js";
 import { AddressBookRecipientError, getAddressBookPaymentRecipient } from "../address-book/address-book.repository.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
+import { authRateLimiter } from "../auth/rate-limit.middleware.js";
+import { MinimaBackupError, verifyCurrentPassword } from "../minima/minima-backup.service.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
-import { clearWalletSendHistoryForDebug, getPaymentStatus, getReceiveAddress, getWalletStatus, importWallet, listWalletSendHistory, recordWalletSendHistory, sendPayment } from "./wallet.service.js";
+import { isTxPowId } from "./wallet.parse.js";
+import {
+  clearPreviousWalletHistory,
+  listWalletHistory,
+  syncWalletHistoryIfStale,
+  WalletReplacementBusyError
+} from "./wallet-history.service.js";
+import { clearWalletSendHistoryForDebug, getPaymentStatus, getReceiveAddress, getWalletStatus, importWallet, recordWalletSendHistory, sendPayment } from "./wallet.service.js";
+import { WALLET_HISTORY_STATUSES, type WalletHistoryDirection } from "./wallet.types.js";
 
 export const walletRouter = Router();
 
@@ -53,13 +64,16 @@ walletRouter.post("/send-payment", requireRole("admin"), async (req, res) => {
   try {
     const result = await sendPayment({ address, amount, tokenId });
     const displayTokenName = tokenName || (tokenId === "0x00" ? "Minima" : tokenId);
-    recordWalletSendHistory({
+    await recordWalletSendHistory({
       toAddress: address,
       tokenId,
       tokenName: displayTokenName,
       amount,
       txpowId: result.txpowId,
-      status: result.ok ? "submitted" : "failed"
+      transactionId: result.transactionId,
+      status: result.ok ? "submitted" : "failed",
+      origin: "manual",
+      error: result.message
     });
     recordAuditEvent("wallet.payment.send", {
       userId: req.user?.id,
@@ -72,18 +86,68 @@ walletRouter.post("/send-payment", requireRole("admin"), async (req, res) => {
   }
 });
 
+const HISTORY_DIRECTIONS: readonly WalletHistoryDirection[] = ["in", "out", "self"];
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
+
+function parseInstant(value: unknown): number | null | undefined {
+  if (value === undefined || value === "") return undefined;
+  if (typeof value !== "string" || !ISO_INSTANT.test(value)) return null;
+  const millis = Date.parse(value);
+  return Number.isFinite(millis) ? millis : null;
+}
+
 walletRouter.get("/history", async (req, res) => {
-  const rawLimit = typeof req.query.limit === "string" ? Number(req.query.limit) : 30;
-  const limit = Number.isFinite(rawLimit) ? rawLimit : 30;
+  const parsed = parseListQuery(req.query, { defaultPageSize: 25, allowedStatuses: WALLET_HISTORY_STATUSES });
+  if (!parsed.ok) return badRequest(res, parsed.error, { field: "status" });
+  const direction = typeof req.query.direction === "string" ? req.query.direction.trim() : "";
+  if (direction && !HISTORY_DIRECTIONS.includes(direction as WalletHistoryDirection)) {
+    return badRequest(res, `direction must be one of: ${HISTORY_DIRECTIONS.join(", ")}`, { field: "direction" });
+  }
+  const fromMillis = parseInstant(req.query.from);
+  const toMillis = parseInstant(req.query.to);
+  if (fromMillis === null) return badRequest(res, "from must be an ISO 8601 date-time with a time zone", { field: "from" });
+  if (toMillis === null) return badRequest(res, "to must be an ISO 8601 date-time with a time zone", { field: "to" });
+  if (fromMillis !== undefined && toMillis !== undefined && fromMillis >= toMillis) {
+    return badRequest(res, "from must be before to", { field: "from" });
+  }
+
   try {
-    res.json({ sends: listWalletSendHistory(limit) });
+    await syncWalletHistoryIfStale();
+    const query = {
+      ...parsed.value,
+      status: parsed.value.status as (typeof WALLET_HISTORY_STATUSES)[number] | undefined,
+      ...(direction ? { direction: direction as WalletHistoryDirection } : {}),
+      ...(fromMillis !== undefined ? { fromMillis } : {}),
+      ...(toMillis !== undefined ? { toMillis } : {})
+    };
+    const { items, total, previousWalletItems } = await listWalletHistory(query);
+    res.json({ ...toPaginatedResult(items, total, query), previousWalletItems });
   } catch (error) {
+    unexpected(res, "Could not load wallet history.", error);
+  }
+});
+
+walletRouter.post("/history/clear-previous", requireRole("admin"), authRateLimiter, async (req, res) => {
+  try {
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    await verifyCurrentPassword(req.user?.id, currentPassword);
+    const deleted = await clearPreviousWalletHistory();
+    recordAuditEvent("wallet.history.clear_previous", { userId: req.user?.id, detail: JSON.stringify({ deleted }) });
+    res.json({ deleted });
+  } catch (error) {
+    if (error instanceof MinimaBackupError) {
+      // errorCode marks a re-auth failure, not an expired session.
+      const extra = error.status === 401 ? { errorCode: "invalid_credential" } : {};
+      return apiErrorFromStatus(res, error.status, error.message, extra);
+    }
+    if (error instanceof WalletReplacementBusyError) return conflict(res, error.message);
     const message = error instanceof Error ? error.message : "Unknown error";
-    unexpected(res, message, error, undefined, { ok: false });
+    dependencyUnavailable(res, "Could not read the current wallet from Minima.", message);
   }
 });
 
 walletRouter.get("/payment-status/:txpowid", async (req, res) => {
+  if (!isTxPowId(req.params.txpowid)) return badRequest(res, "txpowid must be a 0x hex value", { field: "txpowid" }, { ok: false });
   try {
     res.json(await getPaymentStatus(req.params.txpowid));
   } catch (error) {

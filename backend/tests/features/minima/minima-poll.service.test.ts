@@ -9,7 +9,9 @@ const {
   recordAutoResyncMock,
   recordPollerCheckMock,
   recordStallDetectedMock,
-  initializeLocalAddressBookEntryMock
+  initializeLocalAddressBookEntryMock,
+  syncWalletHistoryMock,
+  refreshPendingConfirmationsMock
 } = vi.hoisted(() => ({
   getMinimaNodeStatusMock: vi.fn(),
   resyncMegammrMock: vi.fn(),
@@ -18,7 +20,14 @@ const {
   recordAutoResyncMock: vi.fn(),
   recordPollerCheckMock: vi.fn(),
   recordStallDetectedMock: vi.fn(),
-  initializeLocalAddressBookEntryMock: vi.fn()
+  initializeLocalAddressBookEntryMock: vi.fn(),
+  syncWalletHistoryMock: vi.fn(),
+  refreshPendingConfirmationsMock: vi.fn()
+}));
+
+vi.mock("../../../src/features/wallet/wallet-history.service.js", () => ({
+  syncWalletHistory: syncWalletHistoryMock,
+  refreshPendingConfirmations: refreshPendingConfirmationsMock
 }));
 
 vi.mock("../../../src/features/address-book/address-book.service.js", () => ({
@@ -57,6 +66,8 @@ beforeEach(async () => {
   recordPollerCheckMock.mockReset();
   recordStallDetectedMock.mockReset();
   initializeLocalAddressBookEntryMock.mockReset().mockResolvedValue(null);
+  syncWalletHistoryMock.mockReset().mockResolvedValue(undefined);
+  refreshPendingConfirmationsMock.mockReset().mockResolvedValue(undefined);
   await loadModule();
 });
 
@@ -101,15 +112,32 @@ describe("pollMinimaHealth", () => {
   });
 
   for (const state of ["stopped", "error", "restarting"] as const) {
-    it(`skips initialization while the node is ${state} and retries when running`, async () => {
+    it(`skips initialization and wallet history sync while the node is ${state} and retries when running`, async () => {
       getMinimaNodeStatusMock.mockResolvedValueOnce({ ...baseStatus, state }).mockResolvedValueOnce(baseStatus);
       detectStallMock.mockReturnValue(false);
       await pollMinimaHealth();
       assert.equal(initializeLocalAddressBookEntryMock.mock.calls.length, 0);
+      assert.equal(syncWalletHistoryMock.mock.calls.length, 0);
       await pollMinimaHealth();
       assert.equal(initializeLocalAddressBookEntryMock.mock.calls.length, 1);
+      assert.equal(syncWalletHistoryMock.mock.calls.length, 1);
     });
   }
+
+  it("syncs wallet history, then refreshes confirmations, before stall detection", async () => {
+    const order: string[] = [];
+    getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
+    syncWalletHistoryMock.mockImplementation(async () => { order.push("sync"); });
+    refreshPendingConfirmationsMock.mockImplementation(async () => { order.push("refresh"); });
+    detectStallMock.mockImplementation(() => { order.push("stall"); return false; });
+    initializeLocalAddressBookEntryMock.mockRejectedValue(new Error("local contact failed"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await pollMinimaHealth();
+
+    assert.deepEqual(order, ["sync", "refresh", "stall"]);
+    vi.mocked(console.error).mockRestore();
+  });
 
   it("retries initialization on later polls after a failure", async () => {
     getMinimaNodeStatusMock.mockResolvedValue(baseStatus);

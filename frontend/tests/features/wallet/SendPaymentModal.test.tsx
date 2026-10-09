@@ -127,6 +127,14 @@ describe("SendPaymentModal", () => {
     expect(screen.queryByRole("option", { name: "Widget" })).not.toBeInTheDocument();
   });
 
+  it("accepts a decimal amount", async () => {
+    renderModal();
+
+    await userEvent.type(screen.getByLabelText("Amount"), "0.75");
+
+    expect((screen.getByLabelText("Amount") as HTMLInputElement).checkValidity()).toBe(true);
+  });
+
   it("validates that an address is required", async () => {
     renderModal();
 

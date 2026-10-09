@@ -45,7 +45,7 @@ import type {
 import { extractVerifyMatch } from "../features/integritas/VerifyResult";
 import { useIntegritasHistoryAutoRefresh } from "../features/integritas/useIntegritasHistoryAutoRefresh";
 import { useTableColumnVisibility } from "../features/preferences/useTableColumnVisibility";
-import { DEFAULT_PAGE_SIZE_OPTIONS, emptyPaginatedPage } from "../lib/paginated";
+import { applyPaginatedPage, DEFAULT_PAGE_SIZE_OPTIONS, emptyPaginatedPage } from "../lib/paginated";
 import {
   defaultDiagnosticsListQuery,
   diagnosticsSearchParams,
@@ -81,19 +81,6 @@ const TAB_SEARCH_PLACEHOLDER: Record<DiagnosticsTab, string> = {
   reads: "Source, hash, or proof ID",
   "workflow-runs": "Workflow name or trigger",
 };
-
-function applyPaginatedPage<T extends { totalPages: number }>(
-  response: T,
-  currentPage: number,
-  setPage: (page: T) => void,
-  clampPage: (page: number) => void,
-) {
-  if (response.totalPages > 0 && currentPage > response.totalPages) {
-    clampPage(response.totalPages);
-    return;
-  }
-  setPage(response);
-}
 
 function emptyProofsPage(): IntegritasHistoryPage {
   return { ...emptyPaginatedPage<IntegritasProofRecord>(), pendingTotal: 0 };

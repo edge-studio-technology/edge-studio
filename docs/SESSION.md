@@ -4,6 +4,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- #652/#655 on `task/652-implement-the-incoming-payment-service`: steps 0–5 committed (`266899fc`, `aeaf487e`, `c1e3a06d`, `d7f11c64`, `84e2f05a`, `11b51c4a`, `17f0b251`) plus follow-up `75e34201` (contact-name search via `miniMinimaAddress()`, confirmation time from the block's TxPoW). Minima history syncs into `wallet_transactions` on each health poll; `GET /api/wallet/history` is paginated/filterable with `isPreviousWallet`, `counterpartyLabel`; admin re-auth `POST /api/wallet/history/clear-previous`; Wallet page history panel with type/status/date/search filters, detail view, quiet 30 s refresh, and clear dialog. Docs: CHANGELOG branch section, README wallet API, SECURITY + `docs/security/wallet-and-tokens.md`, ADR 0033.
+- #652 verification: `npm run check`, backend/frontend builds, `docker compose config` green. Pi QA on the dev Pi's private testnet (`docker-compose.testnet.yml`, app images rebuilt from the branch only, `v0.42.2-dev+75e3420`): sync, incoming payment, UI/automation send recording, filters, pending → confirmed without reload, previous-wallet clear with wrong/right PIN, contact-name search, block-time confirmations. Results in the plan doc.
+- #652 final verification (`3a7887cf`): offline receive listed Confirmed with block time ~11 s after backend start; backup restores (peer, then Pi) via `POST /api/minima/backups/restore` on the testnet. Fixed two branch bugs found there: rows now keyed by wallet fingerprint too (with a row-preserving migration), and confirmation time falls back to the TxPoW time when the node no longer has the block. Seed import (`restore phrase:`) is broken but deferred post-v1. CHANGELOG folded into shared `[Unreleased]`.
 - #239 Pi check on dev Pi (DEV_MODE install of the branch + `update-agent` built from branch source): Update page showed 3 released entries and the full-changelog modal; browser made no GitHub requests; `update-agent` recreated with `raw.githubusercontent.com` blocked still served notes from `changelog-cache.json` (unchanged `fetchedAt`). Corrected CHANGELOG/README/ADR 0032 wording: notes survive a restart without GitHub, not a fully offline Pi (manifest check fails first).
 - #239 frontend (`bb3f4941`) + docs on `task/239-improve-changelog-service`: `UpdateStatus.changelog` type; dropped browser `fetchChangelog()`; `parseChangelog()` limit now optional (all released entries); `ChangelogPreview` takes `markdown`/`onRetry` props from `UpdatePage`, previews 3 entries, "View full changelog" opens an in-app `Modal`; `REPO_URL` fixed to `edge-studio-technology`; `raw.githubusercontent.com` dropped from both nginx CSP `connect-src`. ADR 0032 (renumbered from 0031 after the `dev` merge) added, ADR 0004 marked partially superseded, `docs/README.md` table, update-agent rules ×3, SECURITY, README, CHANGELOG updated. Verified: `npm run check` (all packages, coverage thresholds met), backend/frontend builds, `docker compose config`, `docker compose build frontend update-agent`, `nginx -t` on the new config.
 - #239 update-agent steps 1–3 on `task/239-improve-changelog-service`: added the persisted changelog cache (`changelog-cache.ts`, `/state/changelog-cache.json`, refetch only on a new manifest version, copy accepted only with that version's heading), synced it from every `getUpdateStatus()` call without failing the status check, and added `changelog: { markdown, fetchedAt } | null` to `GET /status`. Commits `f2fb38cb`, `fbb2a887`, `32fc5c22`. Update Agent coverage run (188 tests, thresholds met) and `tsc --noEmit` passed.
@@ -115,6 +118,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
+- #652: PR `task/652-implement-the-incoming-payment-service` → `dev` open for review. Pi leftovers kept for review: `~/edge-studio-652` clone, QA workflow "652 QA automation send" (disabled), contact "Testnet peer (652 QA)", testnet containers.
 - #239: open PR `task/239-improve-changelog-service` → `dev`.
 - #283: operator review/merge; implementation and in-scope verification are complete. Consider a separate compatibility ticket for password-manager/native autofill and physical mobile keyboards.
 
@@ -135,6 +139,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Notes / Open Questions
 
+- #652: the testnet guide now notes the backend's backups folder follows `.env`'s `MINIMA_DATA_DIR`, not the testnet override.
+- #652: Pi deploys rebuild only the `backend`/`frontend` images (`docker compose up -d --no-deps --no-build`), because a `DEV_MODE` installer run would remove the `minima-testnet*` folders and restart Minima on mainnet. `/opt/edge-studio` still holds the older source tree.
+- #652: sent amounts stay neutral (not red) because red is used for Failed; user agreed. Deferred items (CSV export, running balance, day grouping, incoming-payment automation trigger, stuck-tx detection, app DB backup) are listed in ADR 0033.
 - #239: `changelog` is returned by `getUpdateStatus()` itself (route unchanged, testable), so the poller and apply flow also receive it and ignore it; `/status/summary` unchanged.
 - Playwright MCP: deferred aligning Codex's global `~/.codex/config.toml` entry (pinned 0.0.83, headless, isolated, `--ignore-https-errors`, chromium-1246 path, no `--output-dir`) and adding `--ignore-https-errors` to `.mcp.json` for the self-signed `:8080` cert.
 

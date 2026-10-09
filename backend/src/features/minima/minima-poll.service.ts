@@ -1,5 +1,6 @@
 import { env } from "../../config/env.js";
 import { initializeLocalAddressBookEntry } from "../address-book/address-book.service.js";
+import { refreshPendingConfirmations, syncWalletHistory } from "../wallet/wallet-history.service.js";
 import {
   canAutoResync,
   detectStall,
@@ -27,6 +28,9 @@ export async function pollMinimaHealth() {
       } catch {
         console.error("Minima health poller: local address-book initialization failed");
       }
+      // Both log and swallow their own failures.
+      await syncWalletHistory();
+      await refreshPendingConfirmations();
     }
 
     if (!detectStall(status)) return;

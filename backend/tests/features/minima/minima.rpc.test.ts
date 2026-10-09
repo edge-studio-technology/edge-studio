@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { fetchMinimaStatus, runMinimaPathCommand } from "../../../src/features/minima/minima.rpc.js";
-import { parseBalanceResponse, parseLocalWalletAddressesResponse } from "../../../src/features/wallet/wallet.parse.js";
+import { parseBalanceResponse, parseHistoryResponse, parseLocalWalletAddressesResponse } from "../../../src/features/wallet/wallet.parse.js";
+import { EXTERNAL_ADDRESS, EXTERNAL_MINIADDRESS, LOCAL_ADDRESS, TOKEN_ID, historyBody, historyCoin, historyTxpow } from "../../helpers/minimaHistoryFixtures.js";
 import { parseTokenCreateResponse } from "../../../src/features/tokens/tokens.parse.js";
 
 const fetchMock = vi.fn();
@@ -121,6 +122,21 @@ describe("response body redaction against recorded Minima bodies", () => {
 
     assert.equal(parsed.ok, true);
     assert.equal(parsed.tokenId, "0xNEW");
+  });
+
+  it("leaves a history response parseable — token ids, names, and addresses survive", async () => {
+    const txpow = historyTxpow("0xIN", 1_700_000_000_000,
+      [historyCoin({ address: EXTERNAL_ADDRESS, amount: "3", tokenid: TOKEN_ID, tokenName: { name: "Gold" } })],
+      [historyCoin({ address: LOCAL_ADDRESS, amount: "3", tokenid: TOKEN_ID, tokenName: { name: "Gold" } })]);
+    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify(historyBody([{ txpow, difference: { [TOKEN_ID]: "3" } }]))));
+
+    const result = await runMinimaPathCommand("history max:100 offset:0");
+    const [entry] = parseHistoryResponse(result.body, new Set([LOCAL_ADDRESS.toLowerCase()]));
+
+    assert.equal(entry.tokenId, TOKEN_ID);
+    assert.equal(entry.tokenName, "Gold");
+    assert.equal(entry.direction, "in");
+    assert.equal(entry.counterparty, EXTERNAL_MINIADDRESS);
   });
 
   it("still redacts a secret echoed back inside the response body", async () => {

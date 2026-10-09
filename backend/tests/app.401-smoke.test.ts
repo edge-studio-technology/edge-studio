@@ -78,6 +78,7 @@ const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: strin
   ["post", "/api/integritas/history/rec-1/verify"],
   ["post", "/api/automation/workflows"],
   ["post", "/api/wallet/send-payment"],
+  ["post", "/api/wallet/history/clear-previous"],
   ["post", "/api/tokens/create"],
 ];
 

@@ -36,3 +36,16 @@ export function listRangeLabel(page: number, pageSize: number, total: number) {
   const end = Math.min(page * pageSize, total);
   return `Showing ${start}–${end} of ${total}`;
 }
+
+export function applyPaginatedPage<T extends { totalPages: number }>(
+  response: T,
+  currentPage: number,
+  setPage: (page: T) => void,
+  clampPage: (page: number) => void,
+) {
+  if (response.totalPages > 0 && currentPage > response.totalPages) {
+    clampPage(response.totalPages);
+    return;
+  }
+  setPage(response);
+}
