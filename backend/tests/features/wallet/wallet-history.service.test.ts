@@ -220,6 +220,26 @@ describe("syncWalletHistory", () => {
     assert.equal(rows[1].wallet_fingerprint, firstFingerprint);
   });
 
+  it("keeps each wallet's own row for a TxPoW both wallets took part in", async () => {
+    chain = [receivedItem(1)];
+    await service.syncWalletHistory();
+    const firstFingerprint = await service.getWalletFingerprint();
+
+    finishWalletReplacement();
+    scripts = SECOND_WALLET_SCRIPTS;
+    chain = [{
+      txpow: historyTxpow("0x000001", 1_700_000_000_000 - 1,
+        [historyCoin({ address: SECOND_WALLET_ADDRESS, amount: "1" })], [historyCoin({ address: LOCAL_ADDRESS, amount: "1" })]),
+      difference: { "0x00": "-1" }
+    }];
+    await service.syncWalletHistory();
+
+    const rows = db.prepare("SELECT wallet_fingerprint, direction FROM wallet_transactions WHERE txpow_id = '0x000001'").all() as
+      { wallet_fingerprint: string; direction: string }[];
+    assert.deepEqual(rows.map((row) => [row.wallet_fingerprint === firstFingerprint, row.direction]).sort(),
+      [[false, "out"], [true, "in"]]);
+  });
+
   it("keeps confirmation data when a known row is synced again", async () => {
     chain = [receivedItem(1)];
     await service.syncWalletHistory();
@@ -280,10 +300,21 @@ describe("refreshPendingConfirmations", () => {
     assert.equal(pending.confirmed_at, null);
   });
 
-  it("leaves a row pending when its block can't be read, and retries next time", async () => {
+  it("falls back to the transaction's own time when the node no longer has the block", async () => {
     chain = [receivedItem(1)];
     await service.syncWalletHistory();
     onchain = { "0x000001": { found: true, block: "42", blockid: "0xB", tip: "44", confirmations: "3" } };
+
+    await service.refreshPendingConfirmations();
+
+    assert.deepEqual([storedRows()[0].block, storedRows()[0].confirmed_at], [42, new Date(1_700_000_000_000 - 1).toISOString()]);
+  });
+
+  it("leaves a row pending when the block lookup fails, and retries next time", async () => {
+    chain = [receivedItem(1)];
+    await service.syncWalletHistory();
+    onchain = { "0x000001": { found: true, block: "42", blockid: "0xB", tip: "44", confirmations: "3" } };
+    blocks = { "0xB": { status: true, response: { txpowid: "0xB", header: {} } } };
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     await service.refreshPendingConfirmations();
@@ -377,7 +408,7 @@ describe("listWalletHistory", () => {
     assert.equal(total, 3);
     assert.deepEqual(items.map((item) => [item.id, item.status, item.direction, item.origin]), [
       ["unsynced", "pending", "out", "manual"],
-      ["0x0A:0x00", "confirmed", "out", "automation"],
+      [`${current}:0x0A:0x00`, "confirmed", "out", "automation"],
       ["failed", "failed", "out", "manual"]
     ]);
     assert.deepEqual(items.map((item) => item.error), [null, null, "Insufficient funds"]);
@@ -400,6 +431,19 @@ describe("listWalletHistory", () => {
     assert.equal(previousWalletItems, 2);
   });
 
+  it("matches sends to chain rows of the same wallet only", async () => {
+    const current = await service.getWalletFingerprint();
+    insertChainRow({ txpowId: "0x0A", transactionId: "0xT1", direction: "in", timeMillis: 2_000, fingerprint: "old" });
+    insertSendRow({ id: "sent", createdAt: new Date(3_000).toISOString(), status: "submitted", transactionId: "0xT1", fingerprint: current, origin: "manual" });
+
+    const { items } = await service.listWalletHistory(PAGE);
+
+    assert.deepEqual(items.map((item) => [item.id, item.status, item.origin]), [
+      ["sent", "pending", "manual"],
+      ["old:0x0A:0x00", "pending", null]
+    ]);
+  });
+
   it("labels counterparties saved in the address book, matching Mx and 0x forms", async () => {
     const current = await service.getWalletFingerprint();
     db.prepare("INSERT INTO address_book (id, label, address, created_at) VALUES ('c1', 'Testnet peer', ?, 'now')").run(SECOND_WALLET_ADDRESS);
@@ -420,7 +464,7 @@ describe("listWalletHistory", () => {
 
     const { items } = await service.listWalletHistory({ ...PAGE, q: "PEER" });
 
-    assert.deepEqual(items.map((item) => item.id), ["0x0A:0x00", "0x0B:0x00"]);
+    assert.deepEqual(items.map((item) => item.txpowId), ["0x0A", "0x0B"]);
   });
 
   it("still lists stored rows when Minima is unreachable", async () => {
@@ -440,17 +484,17 @@ describe("listWalletHistory", () => {
     insertChainRow({ txpowId: "0x0C", transactionId: "0xT3", direction: "self", timeMillis: 3_000, confirmedAt: "c", block: 2, fingerprint: current });
     insertSendRow({ id: "failed", createdAt: new Date(4_000).toISOString(), status: "failed", transactionId: null, fingerprint: current });
     const ids = async (query: Partial<Parameters<typeof service.listWalletHistory>[0]>) =>
-      (await service.listWalletHistory({ ...PAGE, ...query })).items.map((item) => item.id);
+      (await service.listWalletHistory({ ...PAGE, ...query })).items.map((item) => item.txpowId ?? item.id);
 
-    assert.deepEqual(await ids({ status: "pending" }), ["0x0B:0x00"]);
+    assert.deepEqual(await ids({ status: "pending" }), ["0x0B"]);
     assert.deepEqual(await ids({ status: "failed" }), ["failed"]);
-    assert.deepEqual(await ids({ direction: "out" }), ["failed", "0x0B:0x00"]);
-    assert.deepEqual(await ids({ fromMillis: 2_000, toMillis: 4_000 }), ["0x0C:0x00", "0x0B:0x00"]);
-    assert.deepEqual(await ids({ q: "alice" }), ["0x0A:0x00"]);
-    assert.deepEqual(await ids({ q: "0xT3" }), ["0x0C:0x00"]);
+    assert.deepEqual(await ids({ direction: "out" }), ["failed", "0x0B"]);
+    assert.deepEqual(await ids({ fromMillis: 2_000, toMillis: 4_000 }), ["0x0C", "0x0B"]);
+    assert.deepEqual(await ids({ q: "alice" }), ["0x0A"]);
+    assert.deepEqual(await ids({ q: "0xT3" }), ["0x0C"]);
     assert.deepEqual(await ids({ q: "warehouse" }), []);
     const page = await service.listWalletHistory({ page: 2, pageSize: 3 });
-    assert.deepEqual([page.total, page.items.map((item) => item.id)], [4, ["0x0A:0x00"]]);
+    assert.deepEqual([page.total, page.items.map((item) => item.txpowId)], [4, ["0x0A"]]);
   });
 });
 

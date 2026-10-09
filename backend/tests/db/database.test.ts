@@ -217,3 +217,23 @@ describe("runMigrations — local address-book identity", () => {
     assert.equal((db.prepare("SELECT COUNT(*) AS total FROM address_book WHERE is_local_device = 1").get() as { total: number }).total, 1);
   });
 });
+
+describe("runMigrations — wallet history key", () => {
+  it("keys wallet transactions by wallet, keeping existing rows, and is repeatable", () => {
+    db.exec(`
+      DROP TABLE wallet_transactions;
+      CREATE TABLE wallet_transactions (
+        txpow_id TEXT NOT NULL, token_id TEXT NOT NULL, transaction_id TEXT, direction TEXT NOT NULL, amount TEXT NOT NULL,
+        token_name TEXT NOT NULL, counterparty TEXT, time_millis INTEGER NOT NULL, block INTEGER, confirmations INTEGER,
+        confirmed_at TEXT, wallet_fingerprint TEXT NOT NULL, synced_at TEXT NOT NULL, PRIMARY KEY (txpow_id, token_id)
+      );
+      INSERT INTO wallet_transactions VALUES ('0x0A', '0x00', '0xT1', 'in', '1', 'Minima', 'MxPEER', 1000, 5, 3, 'c', 'first', 's');
+    `);
+    const original = db.prepare("SELECT * FROM wallet_transactions").all();
+    runMigrations();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM wallet_transactions").all(), original);
+    db.exec(`INSERT INTO wallet_transactions VALUES ('0x0A', '0x00', '0xT1', 'out', '1', 'Minima', 'MxPI', 1000, 5, 3, 'c', 'second', 's');`);
+    assert.equal((db.prepare("SELECT COUNT(*) AS total FROM wallet_transactions").get() as { total: number }).total, 2);
+  });
+});

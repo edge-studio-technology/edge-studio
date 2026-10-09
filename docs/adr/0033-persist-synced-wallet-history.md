@@ -40,7 +40,9 @@ Two constraints shaped the design:
   pending at once and is replaced by its chain row without a duplicate.
 - **Mark rows with a wallet fingerprint.** The fingerprint is a SHA-256 of the wallet's sorted
   canonical default addresses, cached until `runWalletReplacement()` finishes another replacement.
-  Rows from another fingerprint are returned with `isPreviousWallet` and are kept.
+  Rows from another fingerprint are returned with `isPreviousWallet` and are kept. Rows are keyed by
+  fingerprint, TxPoW, and token, so a payment between the old and new wallet keeps one row per wallet,
+  each with its own direction, and a send is matched only to chain rows of the wallet that sent it.
 - **Clearing is explicit and narrow.** Only previous-wallet rows can be deleted
   (`POST /api/wallet/history/clear-previous`), admin-only, rate-limited, and only after
   re-entering the current PIN/password, the same pattern as backup download. Current-wallet rows
@@ -50,7 +52,9 @@ Two constraints shaped the design:
   a payment workflow at the 1,000 runs/hour budget (ADR 0028), about 24k rows a day.
 - **Confirmation time is the block's time.** `refreshPendingConfirmations()` checks up to 20
   unconfirmed rows per poll with `txpow onchain:`, then reads the block's TxPoW time with
-  `txpow txpowid:<blockid>`. Confirmation counts are computed at read time from the current tip.
+  `txpow txpowid:<blockid>`. If the node no longer has the block's TxPoW (pruned, or not in a
+  restored backup), the transaction's own TxPoW time is used, which is usually seconds earlier.
+  Confirmation counts are computed at read time from the current tip.
 - **Contact names are resolved by the backend.** Counterparties and contacts can use either the
   Mx or 0x address form, and matching needs Mx checksum decoding, so the API returns
   `counterpartyLabel` and search matches contact names on the server.
@@ -64,6 +68,8 @@ Two constraints shaped the design:
   row for fields the UI never shows.
 - **Delete history on wallet replacement.** Rejected: it silently destroys a financial record.
   Marking rows and letting an admin clear them keeps the decision with the operator.
+- **Key rows by TxPoW and token only.** Rejected after Pi QA: restoring a backup of a wallet that had
+  paid this one overwrote the old wallet's rows with the new wallet's view of the same TxPoWs.
 - **Record the confirmation time as when the app first sees it.** Rejected after Pi QA: rows
   confirmed before the sync existed, or while the backend was down, showed a later time than the
   block, by up to hours.
@@ -72,6 +78,8 @@ Two constraints shaped the design:
 
 - History survives Minima restores and resyncs, but rows synced before a restore stay even if the
   restored node no longer reports them.
+- After a restore, confirmation times of older rows can be the transaction's time rather than the
+  block's, because the restored node may not hold those blocks.
 - Payments received while the backend is down appear on the next poll after it starts, as long as
   Minima still reports them.
 - A wallet's history is identified by its default addresses. A replacement that keeps the same

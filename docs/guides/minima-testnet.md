@@ -38,6 +38,8 @@ pinode "history max:5"
 
 A payment is confirmed after 3 blocks (about a minute); coins are only sendable once confirmed. Test mode creates 8 default addresses, not 64.
 
+The backend's backups folder (`/minima-backups`) still comes from `.env`'s `MINIMA_DATA_DIR`, so the Minima page cannot see the test node's backups. To back up or restore through the app, recreate `backend` with the same override (`MINIMA_DATA_DIR=./minima-testnet docker compose ... up -d backend`). A restore of a backup less than 2 days old does not contact the Megammr host, so it works on the testnet.
+
 ## Switch back to mainnet
 
 ```bash

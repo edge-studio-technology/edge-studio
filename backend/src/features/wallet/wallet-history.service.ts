@@ -82,14 +82,13 @@ function upsertEntries(entries: ChainHistoryEntry[], fingerprint: string) {
       txpow_id, token_id, transaction_id, direction, amount, token_name, counterparty, time_millis, wallet_fingerprint, synced_at
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(txpow_id, token_id) DO UPDATE SET
+    ON CONFLICT(wallet_fingerprint, txpow_id, token_id) DO UPDATE SET
       transaction_id = excluded.transaction_id,
       direction = excluded.direction,
       amount = excluded.amount,
       token_name = excluded.token_name,
       counterparty = excluded.counterparty,
       time_millis = excluded.time_millis,
-      wallet_fingerprint = excluded.wallet_fingerprint,
       synced_at = excluded.synced_at
   `);
   db.transaction(() => {
@@ -171,21 +170,23 @@ export async function refreshPendingConfirmations(): Promise<void> {
   try {
     const fingerprint = await getWalletFingerprint();
     const pending = db.prepare(`
-      SELECT DISTINCT txpow_id FROM wallet_transactions
+      SELECT txpow_id, MAX(time_millis) AS time_millis FROM wallet_transactions
       WHERE confirmed_at IS NULL AND wallet_fingerprint = ?
+      GROUP BY txpow_id
       ORDER BY time_millis DESC
       LIMIT ?
-    `).all(fingerprint, CONFIRMATION_BATCH_SIZE) as { txpow_id: string }[];
+    `).all(fingerprint, CONFIRMATION_BATCH_SIZE) as { txpow_id: string; time_millis: number }[];
 
     const confirm = db.prepare(`
       UPDATE wallet_transactions SET block = ?, confirmations = ?, confirmed_at = ? WHERE txpow_id = ?
     `);
-    for (const { txpow_id: txpowId } of pending) {
+    for (const { txpow_id: txpowId, time_millis: timeMillis } of pending) {
       if (!isTxPowId(txpowId)) continue;
       const onchain = parseOnchainResponse((await runMinimaPathCommand(`txpow onchain:${txpowId}`)).body);
       if (!onchain.found || !isTxPowId(onchain.blockId)) continue;
+      // A restored or pruned node may no longer hold the block; the transaction's own time is the closest fallback.
       const blockTime = parseTxPowTimeResponse((await runMinimaPathCommand(`txpow txpowid:${onchain.blockId}`)).body, onchain.blockId);
-      confirm.run(onchain.block, onchain.confirmations, new Date(blockTime).toISOString(), txpowId);
+      confirm.run(onchain.block, onchain.confirmations, new Date(blockTime ?? timeMillis).toISOString(), txpowId);
     }
   } catch (error) {
     console.error("Wallet confirmation refresh failed:", error instanceof Error ? error.message : "unknown error");
@@ -195,11 +196,12 @@ export async function refreshPendingConfirmations(): Promise<void> {
 // Chain rows, plus app sends that failed or are not on chain yet. Sends recorded before
 // transaction IDs were stored cannot be matched to their chain row, so only failed ones are listed.
 const HISTORY_ROWS = `
-  SELECT t.txpow_id || ':' || t.token_id AS id, t.direction,
+  SELECT t.wallet_fingerprint || ':' || t.txpow_id || ':' || t.token_id AS id, t.direction,
     CASE WHEN t.confirmed_at IS NULL THEN 'pending' ELSE 'confirmed' END AS status,
     t.amount, t.token_id, t.token_name, t.counterparty, t.time_millis, t.txpow_id, t.transaction_id,
     t.block, t.confirmed_at, t.wallet_fingerprint,
-    (SELECT s.origin FROM wallet_send_history s WHERE s.transaction_id = t.transaction_id LIMIT 1) AS origin,
+    (SELECT s.origin FROM wallet_send_history s WHERE s.transaction_id = t.transaction_id
+      AND (s.wallet_fingerprint IS NULL OR s.wallet_fingerprint = t.wallet_fingerprint) LIMIT 1) AS origin,
     NULL AS error
   FROM wallet_transactions t
   UNION ALL
@@ -210,7 +212,8 @@ const HISTORY_ROWS = `
   FROM wallet_send_history s
   WHERE s.status = 'failed'
     OR (s.transaction_id IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM wallet_transactions t WHERE t.transaction_id = s.transaction_id))
+      AND NOT EXISTS (SELECT 1 FROM wallet_transactions t WHERE t.transaction_id = s.transaction_id
+        AND (s.wallet_fingerprint IS NULL OR t.wallet_fingerprint = s.wallet_fingerprint)))
 `;
 
 type HistoryRow = {

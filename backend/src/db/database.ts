@@ -311,24 +311,8 @@ export function runMigrations() {
   ensureColumn("wallet_send_history", "transaction_id", "TEXT");
   ensureColumn("wallet_send_history", "error", "TEXT");
 
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS wallet_transactions (
-      txpow_id TEXT NOT NULL,
-      token_id TEXT NOT NULL,
-      transaction_id TEXT,
-      direction TEXT NOT NULL,
-      amount TEXT NOT NULL,
-      token_name TEXT NOT NULL,
-      counterparty TEXT,
-      time_millis INTEGER NOT NULL,
-      block INTEGER,
-      confirmations INTEGER,
-      confirmed_at TEXT,
-      wallet_fingerprint TEXT NOT NULL,
-      synced_at TEXT NOT NULL,
-      PRIMARY KEY (txpow_id, token_id)
-    )
-  `);
+  db.exec(`CREATE TABLE IF NOT EXISTS wallet_transactions (${WALLET_TRANSACTIONS_COLUMNS})`);
+  migrateWalletTransactionsToKeyByWallet();
   db.exec("CREATE INDEX IF NOT EXISTS idx_wallet_transactions_time ON wallet_transactions(time_millis)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_wallet_transactions_transaction_id ON wallet_transactions(transaction_id)");
 
@@ -436,9 +420,39 @@ function resetLegacyAutomationSchema() {
   `);
 }
 
+const WALLET_TRANSACTIONS_COLUMNS = `
+  txpow_id TEXT NOT NULL,
+  token_id TEXT NOT NULL,
+  transaction_id TEXT,
+  direction TEXT NOT NULL,
+  amount TEXT NOT NULL,
+  token_name TEXT NOT NULL,
+  counterparty TEXT,
+  time_millis INTEGER NOT NULL,
+  block INTEGER,
+  confirmations INTEGER,
+  confirmed_at TEXT,
+  wallet_fingerprint TEXT NOT NULL,
+  synced_at TEXT NOT NULL,
+  PRIMARY KEY (wallet_fingerprint, txpow_id, token_id)
+`;
+
 function ensureColumn(table: string, column: string, definition: string) {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!columns.some((item) => item.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+// Early builds keyed rows by TxPoW and token only, so a TxPoW seen by two wallets kept one row.
+function migrateWalletTransactionsToKeyByWallet() {
+  const columns = db.prepare("PRAGMA table_info(wallet_transactions)").all() as { name: string; pk: number }[];
+  if (columns.some((column) => column.name === "wallet_fingerprint" && column.pk > 0)) return;
+
+  db.exec(`
+    CREATE TABLE wallet_transactions_new (${WALLET_TRANSACTIONS_COLUMNS});
+    INSERT INTO wallet_transactions_new SELECT * FROM wallet_transactions;
+    DROP TABLE wallet_transactions;
+    ALTER TABLE wallet_transactions_new RENAME TO wallet_transactions;
+  `);
 }
 
 function migrateAddressBookToAllowLocalContact() {

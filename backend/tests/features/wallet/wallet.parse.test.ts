@@ -233,9 +233,12 @@ describe("parseTxPowTimeResponse", () => {
     assert.equal(parseTxPowTimeResponse(body, "0xab"), 1_791_542_341_688);
   });
 
-  it("rejects failures, another TxPoW, and a missing or malformed time", () => {
+  it("returns null when the node does not have the TxPoW", () => {
+    assert.equal(parseTxPowTimeResponse({ status: false, error: "TxPoW not found : 0xAB" }, "0xAB"), null);
+  });
+
+  it("rejects another TxPoW and a missing or malformed time", () => {
     for (const body of [
-      { status: false, error: "not found" },
       { status: true, response: { txpowid: "0xCD", header: { timemilli: "1" } } },
       { status: true, response: { txpowid: "0xAB", header: {} } },
       { status: true, response: { txpowid: "0xAB", header: { timemilli: "soon" } } },

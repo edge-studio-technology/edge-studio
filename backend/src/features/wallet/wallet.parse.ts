@@ -155,9 +155,10 @@ function asNonNegativeInteger(value: unknown): number | null {
   return typeof parsed === "number" && Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
-/** TxPoW time from a `txpow txpowid:` response, in epoch milliseconds. */
-export function parseTxPowTimeResponse(body: unknown, txpowId: string): number {
+/** TxPoW time from a `txpow txpowid:` response, in epoch milliseconds, or null when the node no longer has that TxPoW. */
+export function parseTxPowTimeResponse(body: unknown, txpowId: string): number | null {
   const record = asRecord(body);
+  if (record?.status === false) return null;
   const response = asRecord(record?.response);
   const timeMillis = asNonNegativeInteger(asRecord(response?.header)?.timemilli);
   if (record?.status !== true || typeof response?.txpowid !== "string"
