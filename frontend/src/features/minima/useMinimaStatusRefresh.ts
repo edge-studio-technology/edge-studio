@@ -57,7 +57,7 @@ export function useMinimaStatusRefresh(
     const tick = () => {
       void refresh().then((status) => {
         if (cancelled) return;
-        const nextDelay = status?.state === "restarting" ? RESTARTING_INTERVAL_MS : intervalMs;
+        const nextDelay = (status?.state === "restarting" || status?.resync?.busy) ? RESTARTING_INTERVAL_MS : intervalMs;
         timer = window.setTimeout(tick, nextDelay);
       });
     };

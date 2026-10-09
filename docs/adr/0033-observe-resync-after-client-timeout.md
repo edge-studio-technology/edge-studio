@@ -25,6 +25,10 @@ A confirmed completion and Docker `exited` state permit one persisted idempotent
 
 Lifecycle audits record initiation and changes to outcome/recovered/reservation, not every poll. Late recovery can therefore update an earlier unconfirmed audit without claiming resync success unless completion evidence exists. Automatic result messages update independently of the initiation cooldown; the latest automatic snapshot restores that timestamp at startup. Only the latest operation is persisted, so this is not a complete historical cooldown ledger when a later manual operation replaces it.
 
+Step 4 removes browser parsing of completion text and the resync-triggered restart. A feature-local progress hook serially reads the persisted DTO, polls busy operations every three seconds (including failed/unconfirmed reservations), and polls idle state every 30 seconds to discover other callers without a shared polling-store rewrite. Status-summary changes and console responses prompt a lightweight read. Accepted DTOs invalidate older reads; older operation/observation timestamps cannot roll the display back. Unmount cancels timers and ignores pending callbacks.
+
+The page notifies observed terminal transitions by operation ID/outcome/recovery/reservation, and does not notify an already-terminal snapshot on mount. This prevents replaying historic completion as a fresh result. Initiation transport errors and HTTP 5xx are uncertain, since a backend can have reserved/dispatched before the response is lost; read progress before another attempt. Progress-read errors preserve the last operation/events rather than changing its outcome. Busy reservations and unavailable progress gate conflicting controls; backend enforcement remains authoritative. Metric merging retains previous values/time but preserves current node state, RPC error and operation summary.
+
 ## Alternatives considered
 
 - Increase the existing synchronous timeout: still leaves recovery dependent on the browser and does not resolve a disconnected request's outcome.
@@ -33,7 +37,7 @@ Lifecycle audits record initiation and changes to outcome/recovered/reservation,
 
 ## Consequences
 
-A timeout warning can remain visible while observation continues. Some outcomes will remain unconfirmed. Initial budgets require revalidation in final QA and cannot establish outcomes by themselves. Steps 2–3 implement tracking, dispatch, process observation, recovery and startup reconciliation. Browser integration and final live worker/browser QA remain for steps 4–5. An unconfirmed terminal outcome may remain busy; API consumers must poll ownership as well as phase.
+A timeout warning can remain visible while observation continues. Some outcomes will remain unconfirmed. Initial budgets require revalidation in final QA and cannot establish outcomes by themselves. Steps 2–4 implement tracking, dispatch, process observation, recovery, startup reconciliation and browser progress. Final live worker/browser QA remains step 5. An unconfirmed terminal outcome may remain busy; API consumers must poll ownership as well as phase.
 
 ## Where this lives in code
 
@@ -41,3 +45,5 @@ A timeout warning can remain visible while observation continues. Some outcomes 
 - `backend/tests/features/minima/minima.parse.test.ts`: envelope parsing.
 - `backend/tests/features/minima/minima.rpc.test.ts`: rejection and client-deadline boundaries.
 - `backend/src/features/minima/minima-resync.service.ts`: persisted reservation, progress, asynchronous RPC dispatch, concurrent recovery observation, lifecycle audits and startup reconciliation.
+
+- `frontend/src/features/minima/useMinimaResync.ts`, `MinimaResyncProgressPanel.tsx`, and `frontend/src/pages/MinimaPage.tsx`: persisted progress polling/presentation, accepted initiation and observed-transition notifications.

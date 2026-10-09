@@ -1,11 +1,12 @@
 import { HardDrive, Layers3, RefreshCw, RotateCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import type { MinimaNodeStatus, Status } from "../../app/types";
+import type { MinimaNodeStatus, MinimaResyncSummary, Status } from "../../app/types";
 import { Button } from "../../components/ui/Button";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { Pill } from "../../components/ui/Pill";
 import { Card } from "../../components/ui/Card";
+import { resyncPhaseLabel, resyncPhaseTone } from "./minimaResync";
 import { cx } from "../../lib/cx";
 import { formatLocalTime, formatUtcTime } from "../../lib/time";
 import { formatNodeState, formatSyncStatus, nodeStateStatus, syncStatusTone } from "./minimaFormat";
@@ -40,11 +41,11 @@ function SummaryCard({
   const displayValue = loading ? <LoadingDots /> : text;
 
   return (
-    <Card size="Compact" className="gap-detail-close flex h-full w-full flex-col">
+    <Card size="Compact" className="gap-detail-close flex h-full w-full min-w-0 flex-col">
       <div className="gap-detail-next flex w-full flex-col items-start">
-        <div className="gap-detail-next flex min-h-6 w-full items-center justify-between">
+        <div className="gap-detail-next flex min-h-6 w-full flex-wrap items-center justify-between">
           <p className="type-meta text-text-primary m-0">{title}</p>
-          <div className="flex min-h-6 shrink-0 items-center">{badge}</div>
+          <div className="flex min-h-6 min-w-0 max-w-full items-center">{badge}</div>
         </div>
         <div className="gap-detail-next flex w-full min-w-0 items-center">
           <span
@@ -80,6 +81,7 @@ export type MinimaSummaryGridProps = {
   resyncing: boolean;
   refreshing: boolean;
   onResync: () => void;
+  resync?: MinimaResyncSummary | null;
 };
 
 export function MinimaSummaryGrid({
@@ -89,6 +91,7 @@ export function MinimaSummaryGrid({
   resyncing,
   refreshing,
   onResync,
+  resync,
 }: MinimaSummaryGridProps) {
   const effectiveStatus = refreshing ? null : status;
   const effectiveLoading = loading || refreshing;
@@ -110,9 +113,9 @@ export function MinimaSummaryGrid({
       <SummaryCard
         icon={Layers3}
         title="Minima"
-        loading={effectiveLoading && !effectiveStatus?.state}
-        text={formatNodeState(effectiveStatus?.state ?? null)}
-        status={nodeStateStatus(effectiveStatus?.state ?? null)}
+        loading={!resync?.busy && effectiveLoading && !effectiveStatus?.state}
+        text={resync?.busy ? resyncPhaseLabel[resync.phase] : formatNodeState(effectiveStatus?.state ?? null)}
+        status={resync?.busy ? resync.phase === "failed" ? "error" : "warning" : nodeStateStatus(effectiveStatus?.state ?? null)}
         detail={checkedLabel}
       />
 
@@ -120,10 +123,12 @@ export function MinimaSummaryGrid({
         icon={RefreshCw}
         title="Sync status"
         badge={
-          resyncing ? (
-            <Pill tone="warn" indicator>
-              Resyncing
+          resync ? (
+            <Pill className="!h-auto min-h-6 max-w-full" tone={resyncPhaseTone(resync.phase)} indicator>
+              {resyncPhaseLabel[resync.phase]}
             </Pill>
+          ) : resyncing ? (
+            <Pill tone="warn" indicator>Resyncing</Pill>
           ) : null
         }
         loading={effectiveLoading && !effectiveStatus?.sync.status}
@@ -135,7 +140,7 @@ export function MinimaSummaryGrid({
           size="sm"
           variant="secondary"
           className="w-full"
-          disabled={busy}
+          disabled={busy || status?.state !== "running"}
           onClick={onResync}
         >
           <RotateCw size={16} />

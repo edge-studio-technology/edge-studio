@@ -25,10 +25,10 @@ export function MinimaStatGrid({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="gap-detail-close flex h-full min-h-0 flex-col">
-      <div className="gap-detail-next flex min-h-6 items-center justify-between">
+    <Card className="gap-detail-close flex h-full min-h-0 min-w-0 flex-col">
+      <div className="gap-detail-next flex min-h-6 flex-wrap items-center justify-between">
         <h3 className="type-title text-text-primary m-0">{title}</h3>
-        <div className="flex min-h-6 shrink-0 items-center">{badge}</div>
+        <div className="flex min-h-6 min-w-0 max-w-full items-center">{badge}</div>
       </div>
       <div className={cx("gap-detail-close grid flex-1 auto-rows-fr", cols)}>{children}</div>
       <div className="min-h-11">{footer}</div>

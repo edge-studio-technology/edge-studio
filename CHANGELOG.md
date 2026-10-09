@@ -6,12 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] bug/536-improve-minima-resync-status-feedback-and-expose-progress-logs
 
+### Added
+
+- The Minima page shows persisted resync progress and timestamped events that remain available after navigation or reload.
+
 ### Changed
 
 - Minima resync starts asynchronously with HTTP 202 and exposes the latest persisted operation through an admin-only progress endpoint.
 - Duplicate resync and conflicting node restart, backup, and restore requests return HTTP 409 while resync is reserved.
 - Resync recovery observes natural node restarts, preserves uncertain outcomes and warnings, and resumes monitoring after a backend restart without replaying resync.
 - Resync start and result audit events identify the caller, and automatic-resync completion is recorded separately from its initiation cooldown.
+- Browser resync feedback follows backend outcomes, retains recovery warnings, and offers retry for unavailable progress reads.
+- Conflicting backup, restore, resync, and restart controls remain disabled while resync holds the node reservation.
 
 ## [Unreleased]
 

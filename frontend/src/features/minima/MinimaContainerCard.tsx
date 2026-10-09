@@ -1,5 +1,6 @@
 import { RotateCcw } from "lucide-react";
-import type { MinimaNodeStatus } from "../../app/types";
+import type { MinimaNodeStatus, MinimaResyncSummary } from "../../app/types";
+import { resyncPhaseLabel, resyncPhaseTone } from "./minimaResync";
 import { Button } from "../../components/ui/Button";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { Pill } from "../../components/ui/Pill";
@@ -22,12 +23,14 @@ export function MinimaContainerCard({
   busy,
   refreshing,
   onRestart,
+  resync,
 }: {
   status: MinimaNodeStatus | null;
   loading: boolean;
   busy?: boolean;
   refreshing?: boolean;
   onRestart?: () => void;
+  resync?: MinimaResyncSummary | null;
 }) {
   const container = refreshing ? undefined : status?.container;
   const unavailable = (loading || refreshing) && !container ? <LoadingDots /> : "—";
@@ -52,11 +55,11 @@ export function MinimaContainerCard({
   ) : null;
 
   return (
-    <div className="h-full">
+    <div className="h-full min-w-0">
       <MinimaStatGrid
         title="Container health"
         badge={
-          refreshing ? (
+          resync?.busy ? <Pill className="!h-auto min-h-6 max-w-full" tone={resyncPhaseTone(resync.phase)} indicator>{resyncPhaseLabel[resync.phase]}</Pill> : refreshing ? (
             <Pill tone="warn" indicator>
               Restarting
             </Pill>

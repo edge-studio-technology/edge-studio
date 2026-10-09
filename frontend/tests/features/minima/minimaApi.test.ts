@@ -14,6 +14,7 @@ import {
   getMinimaConfig,
   getMinimaNodeStatus,
   getMinimaPeers,
+  getMinimaResyncOperation,
   resyncMegammr,
   restartMinimaContainer,
   saveMinimaConfig,
@@ -48,6 +49,13 @@ describe("minimaApi", () => {
     postJson.mockResolvedValue({ ok: true });
     await resyncMegammr();
     expect(postJson).toHaveBeenCalledWith("/api/minima/megammrsync/resync");
+  });
+
+  it("reads persisted resync progress without issuing a mutation", async () => {
+    getJson.mockResolvedValue(null);
+    expect(await getMinimaResyncOperation()).toBeNull();
+    expect(getJson).toHaveBeenCalledWith("/api/minima/resync");
+    expect(postJson).not.toHaveBeenCalled();
   });
 
   it("getMinimaPeers GETs /api/minima/peers", async () => {

@@ -1,6 +1,6 @@
 # Improve Minima Resync Status Feedback and Expose Progress Logs Plan
 
-**Status:** In progress — steps 1–3 complete; browser integration starts at step 4
+**Status:** In progress — steps 1–4 complete; final end-to-end verification remains step 5
 
 **Created:** 2026-10-09
 
@@ -15,7 +15,7 @@
 - [x] 1. Capture the supported node's resync lifecycle and add regression fixtures.
 - [x] 2. Implement backend resync tracking, asynchronous initiation, and bounded progress persistence.
 - [x] 3. Implement backend recovery and route every supported resync caller through it.
-- [ ] 4. Connect the Minima UI to operation state and add the progress panel.
+- [x] 4. Connect the Minima UI to operation state and add the progress panel.
 - [ ] 5. Cover ambiguous outcomes, recovery, conflicts, and existing consumers with regression tests.
 - [ ] Docs.
 - [ ] Verification, including live disposable-node and browser checks.
@@ -149,6 +149,14 @@ Keep events visible after completion/failure, including the warning that precede
 
 Update summary/health presentation so operation phase has precedence over local busy flags, last-known metric merges, and the generic `restarting` label. Keep metrics clearly marked as last observed when unavailable. Pass operation busy state to backup/restore and supported resync/restart controls; backend checks remain authoritative across tabs. Preserve Wallet/Dashboard offline behavior and verify recovery when a resync was initiated elsewhere. No shared frontend polling-store rewrite.
 
+### Step 4 results (2026-10-09)
+
+Connected the page to the accepted operation DTO/admin progress read and added a feature-local serial polling hook (3s while busy, including terminal reservations; 30s when idle). Accepted DTOs invalidate earlier reads, stale snapshots cannot roll state back, and unmount/StrictMode callbacks are handled without replay. Status summaries and console responses discover other callers. Removed browser Minima response parsing/resync-triggered restart; the independent manual restart flow remains. Lost POST/HTTP 5xx is uncertain and prompts a progress read; 409 is shown as a conflict without inventing resync failure.
+
+Added the concise progress panel with phase, live elapsed time, last observation, persistent timestamped events, and collapsed secondary error details. Loading/empty/retryable read failures use existing UI patterns. Retained events survive completion/failure/navigation. Terminal notifications are deduplicated within the mounted page and old terminal snapshots do not toast on load. Backup/restore confirmations and resync/restart controls honor reservation, including a resync that begins while a dialog is open. Ordinary status refresh stays enabled; metric merges preserve current state/RPC error/operation and label retained metrics as last observed.
+
+Full checks passed 3,553 tests (1,443 backend, 1,864 frontend, 194 Update Agent, 52 scripts), all typechecks, coverage thresholds and clean dependency audits. Browser checks used intercepted API responses in an isolated context: running/recovering, unavailable RPC, failed progress/retry, recovered/unconfirmed, preserved events/reload, no old-terminal toast, and no page overflow at 1280/768/375px. A follow-up busy/unconfirmed narrow-screen check exposed clipped health-card badges; wrapped headers, bounded badge widths and flexible badge height fixed it. Rechecked at 1280/768/375px with no badge clipping or page overflow. No mutation requests or page errors occurred in the final checks. Initial browser fixture returned the wrong backup-list shape; correcting the fixture restored the full page without an application change. One final restart-dialog cancellation case passed with the complete 1,865-test frontend coverage suite, repeated frontend typecheck/build and container build. New progress panel/hook line coverage is 100%. Backend/frontend production and container builds, Compose validation, mirror equality and diff checks passed; the existing frontend chunk-size warning remains. Temporary QA server/context were removed. Final worker tests on a real disposable node remain step 5; no live resync, deployment or OpenProject mutation occurred during this step.
+
 ## 5. Regression coverage
 
 Extend existing suites and add one mirrored test file for each new feature-local module. Mock at the owned RPC/Docker I/O boundary; use fake timers for worker deadlines and controlled promises for UI transitions.
@@ -206,4 +214,4 @@ Use a disposable node for the final live checks: fast/slow resync, host rejectio
 
 ## Remaining inputs for implementation
 
-The events-only UI scope is agreed. Steps 1–2 establish lifecycle evidence and backend tracking/initiation. Backend recovery/startup reconciliation starts at step 3; worker terminal integration and final live/browser QA remain pending. Original operator-node data was not mutated.
+The events-only UI scope is agreed. Steps 1–4 establish lifecycle evidence, backend tracking/recovery and browser integration. Step 5 retains final disposable-node worker/browser QA and gap reconciliation. Original operator-node data was not mutated.

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { resyncOperation } from "../../helpers/minimaResync";
 import type { MinimaNodeStatus } from "../../../src/app/types";
 import { MinimaContainerCard } from "../../../src/features/minima/MinimaContainerCard";
 
@@ -100,4 +101,10 @@ describe("MinimaContainerCard", () => {
     rerender(<MinimaContainerCard status={status(null)} loading={false} busy onRestart={onRestart} />);
     expect(screen.getByRole("button", { name: /restart/i })).toBeDisabled();
   });
+});
+
+ it("shows the resync recovery phase instead of an ordinary restart badge", () => {
+  render(<MinimaContainerCard status={status(null)} loading={false} refreshing resync={resyncOperation({ phase: "unconfirmed", outcome: "unconfirmed" })} />);
+  expect(screen.getByText("Resync outcome unconfirmed")).toBeInTheDocument();
+  expect(screen.queryByText("Restarting")).not.toBeInTheDocument();
 });

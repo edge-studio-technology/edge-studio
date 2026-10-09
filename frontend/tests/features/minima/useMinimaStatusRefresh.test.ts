@@ -124,6 +124,15 @@ describe("useMinimaStatusRefresh", () => {
     expect(getMinimaNodeStatus).toHaveBeenCalledTimes(4);
   });
 
+  it("uses the fast cadence for a busy resync even while the node remains running", async () => {
+    vi.useFakeTimers();
+    getMinimaNodeStatus.mockResolvedValue(status({ resync: { id: "536", phase: "unconfirmed", busy: true, startedAt: "2026-10-09T10:00:00Z", updatedAt: "2026-10-09T10:05:00Z", finishedAt: "2026-10-09T10:05:00Z", recovered: false, outcome: "unconfirmed" } }));
+    renderHook(() => useMinimaStatusRefresh(vi.fn(), vi.fn()));
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(getMinimaNodeStatus).toHaveBeenCalledTimes(2);
+  });
+
   it("stops scheduling further polls after unmount", async () => {
     vi.useFakeTimers();
     getMinimaNodeStatus.mockResolvedValue(status());

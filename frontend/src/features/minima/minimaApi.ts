@@ -4,6 +4,7 @@ import type {
   MinimaConfig,
   MinimaNodeStatus,
   MinimaPeersResponse,
+  MinimaResyncOperation,
   MinimaRestartResult
 } from "../../app/types";
 import { getJson, postJson } from "../../lib/api";
@@ -21,7 +22,11 @@ export function saveMinimaConfig(megammrHost: string) {
 }
 
 export function resyncMegammr() {
-  return postJson<MinimaCommandResult>("/api/minima/megammrsync/resync");
+  return postJson<MinimaResyncOperation>("/api/minima/megammrsync/resync");
+}
+
+export function getMinimaResyncOperation() {
+  return getJson<MinimaResyncOperation | null>("/api/minima/resync");
 }
 
 export function getMinimaPeers() {
