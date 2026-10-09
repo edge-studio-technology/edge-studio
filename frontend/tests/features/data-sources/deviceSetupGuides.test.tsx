@@ -141,7 +141,7 @@ describe("StandardDeviceSetupGuide", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders table and disclosure sections, and the doc-path link opens the doc in a new tab", async () => {
+  it("renders overview details, and documentation opens in a new tab", async () => {
     const item = source({
       type: "bme-sensor",
       name: "Kitchen BME280",
@@ -153,7 +153,8 @@ describe("StandardDeviceSetupGuide", () => {
     expect(screen.getByText("Sensor")).toBeInTheDocument();
     expect(screen.getByText("bme280")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "docs/guides/bme280-sensor.md" }));
+    await userEvent.click(screen.getByRole("button", { name: "Documentation" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open documentation" }));
     expect(window.open).toHaveBeenCalledWith(
       "https://github.com/integritas-technology/edge-studio/blob/main/docs/guides/bme280-sensor.md",
       "_blank",
@@ -166,6 +167,7 @@ describe("StandardDeviceSetupGuide", () => {
     const item = source({ type: "bme-sensor", config: { sensor: "bme280" } });
     render(<StandardDeviceSetupGuide source={item} onAction={onAction} />, { wrapper: ToastProvider });
 
+    await userEvent.click(screen.getByRole("button", { name: "Guide actions" }));
     const actionButton = screen.getByRole("button", { name: "Create basic workflow for this device" });
     await userEvent.click(actionButton);
     expect(onAction).toHaveBeenCalledWith(
@@ -185,12 +187,13 @@ describe("StandardDeviceSetupGuide", () => {
       { wrapper: ToastProvider },
     );
 
+    await userEvent.click(screen.getByRole("button", { name: "Guide actions" }));
     const goToWorkflow = screen.getByRole("button", { name: "Go to workflow" });
     await userEvent.click(goToWorkflow);
     expect(onGoToWorkflow).toHaveBeenCalledWith("wf-1");
   });
 
-  it("shows 'Creating...' and disables the action while it is running", () => {
+  it("shows 'Creating...' and disables the action while it is running", async () => {
     const item = source({ type: "bme-sensor", config: { sensor: "bme280" } });
     render(
       <StandardDeviceSetupGuide
@@ -200,6 +203,7 @@ describe("StandardDeviceSetupGuide", () => {
       />,
       { wrapper: ToastProvider },
     );
+    await userEvent.click(screen.getByRole("button", { name: "Guide actions" }));
     expect(screen.getByRole("button", { name: "Creating..." })).toBeDisabled();
   });
 
@@ -207,6 +211,7 @@ describe("StandardDeviceSetupGuide", () => {
     const item = source({ type: "webhook", config: { webhookToken: "tok-123" } });
     render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
 
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
     await userEvent.click(screen.getByRole("button", { name: "Copy commands" }));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       expect.stringContaining("curl -X POST"),
@@ -220,6 +225,7 @@ describe("StandardDeviceSetupGuide", () => {
     const item = source({ type: "gpio-output", config: {} });
     render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
 
+    await userEvent.click(screen.getByRole("button", { name: "Typical wiring" }));
     const toggle = screen.getByRole("button", { name: "Show wiring schematic" });
     await userEvent.click(toggle);
     expect(screen.getByRole("button", { name: "Hide wiring schematic" })).toBeInTheDocument();

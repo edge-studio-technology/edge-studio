@@ -3,7 +3,6 @@ import { useState, type ReactNode } from "react";
 import { Button, IconButton } from "../../components/Button";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { useToast } from "../../components/ToastProvider";
-import { Disclosure } from "../../components/ui/Disclosure";
 import piGpioPinoutUrl from "../../assets/pi-gpio-pinout.svg";
 import type { AutomationBlock, AutomationBlockType } from "../automation/automationTypes";
 import type { DataSource } from "./dataSourceTypes";
@@ -93,32 +92,14 @@ export function StandardDeviceSetupGuide({
 }) {
   const setupGuide = getDeviceSetupGuide(source);
   if (!setupGuide) return null;
-  const tableSections = setupGuide.sections.filter(isTableOnlySection);
-  const otherSections = setupGuide.sections.filter((section) => !isTableOnlySection(section));
   return (
-    <DeviceSetupGuideShell guide={setupGuide}>
-      {tableSections.map((section) => (
-        <DetailList key={section.title}>
-          {section.table!.map(([label, value]) => (
-            <DetailRow key={label} label={label} value={value} mono />
-          ))}
-        </DetailList>
-      ))}
-      <div className="flex flex-col gap-4 pb-2 pl-2">
-        {otherSections.map((section) => (
-          <GuideSectionCard key={section.title} section={section} />
-        ))}
-        {setupGuide.actions && setupGuide.actions.length > 0 && (
-          <GuideActions
-            actions={setupGuide.actions}
-            createdWorkflowIds={createdWorkflowIds}
-            runningActionKey={runningActionKey}
-            onAction={onAction}
-            onGoToWorkflow={onGoToWorkflow}
-          />
-        )}
-      </div>
-    </DeviceSetupGuideShell>
+    <DeviceGuideWorkspace
+      guide={setupGuide}
+      createdWorkflowIds={createdWorkflowIds}
+      runningActionKey={runningActionKey}
+      onAction={onAction}
+      onGoToWorkflow={onGoToWorkflow}
+    />
   );
 }
 
@@ -132,28 +113,82 @@ function isTableOnlySection(section: GuideSection) {
   );
 }
 
-export function DeviceSetupGuideShell({
+type GuideTopic =
+  | { id: "overview"; title: string }
+  | { id: `section:${number}`; title: string; section: GuideSection }
+  | { id: "actions"; title: string }
+  | { id: "documentation"; title: string };
+
+export function DeviceGuideWorkspace({
   guide,
-  children,
+  createdWorkflowIds,
+  runningActionKey,
+  onAction,
+  onGoToWorkflow,
+  overview,
 }: {
   guide: DeviceSetupGuide;
-  children: ReactNode;
+  createdWorkflowIds?: Record<string, string>;
+  runningActionKey?: string | null;
+  onAction?: (action: DeviceGuideAction) => void;
+  onGoToWorkflow?: (workflowId: string) => void;
+  overview?: ReactNode;
 }) {
+  const [activeTopicId, setActiveTopicId] = useState<GuideTopic["id"]>("overview");
+  const tableSections = guide.sections.filter(isTableOnlySection);
+  const topics: GuideTopic[] = [
+    { id: "overview", title: "Overview" },
+    ...guide.sections
+      .filter((section) => !isTableOnlySection(section))
+      .map((section, index) => ({ id: `section:${index}` as const, title: section.title, section })),
+    ...(guide.actions?.length ? [{ id: "actions" as const, title: "Guide actions" }] : []),
+    ...(guide.docPath ? [{ id: "documentation" as const, title: "Documentation" }] : []),
+  ];
+  const activeTopic = topics.find((topic) => topic.id === activeTopicId) ?? topics[0];
+
+  return (
+    <section className="grid min-h-full min-w-0 grid-cols-[240px_minmax(0,1fr)] overflow-hidden">
+      <nav className="bg-surface-secondary gap-detail-tight flex flex-col px-detail-next py-pad-relaxed" aria-label="Device guide topics">
+        {topics.map((topic) => {
+          const active = topic.id === activeTopic.id;
+          return (
+            <button
+              key={topic.id}
+              type="button"
+              aria-current={active ? "page" : undefined}
+              className={`rounded-soft px-detail-next py-detail-tight type-body-em cursor-pointer text-left transition-colors ${active ? "bg-surface-primary text-text-primary" : "text-text-secondary hover:bg-surface-primary hover:text-text-primary"}`}
+              onClick={() => setActiveTopicId(topic.id)}
+            >
+              {topic.title}
+            </button>
+          );
+        })}
+      </nav>
+      <div className="border-stroke-secondary bg-surface-primary min-w-0 border-l px-detail-next py-pad-relaxed pl-6">
+        {activeTopic.id === "overview" && (overview ?? <GuideOverview guide={guide} tableSections={tableSections} />)}
+        {"section" in activeTopic && <GuideSectionCard section={activeTopic.section} />}
+        {activeTopic.id === "actions" && guide.actions && <GuideActions actions={guide.actions} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} />}
+        {activeTopic.id === "documentation" && guide.docPath && <GuideDocumentation docPath={guide.docPath} />}
+      </div>
+    </section>
+  );
+}
+
+function GuideOverview({ guide, tableSections }: { guide: DeviceSetupGuide; tableSections: GuideSection[] }) {
   return (
     <div className="gap-detail-near grid">
-      {children}
-      {guide.docPath && (
-        <p className="type-body text-text-secondary m-0">
-          More detail:{" "}
-          <button
-            type="button"
-            className="type-mono text-text-accent underline decoration-dotted underline-offset-2"
-            onClick={() => openExternalDoc(guide.docPath!)}
-          >
-            {guide.docPath}
-          </button>
-        </p>
-      )}
+      <div>
+        <h3 className="type-title text-text-primary m-0">Overview</h3>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">{guide.intro}</p>
+      </div>
+      {tableSections.map((section) => (
+        <div key={section.title} className="gap-detail-tight grid">
+          <h4 className="type-body-em text-text-primary m-0">{section.title}</h4>
+          <DetailList>
+            {section.table!.map(([label, value]) => <DetailRow key={label} label={label} value={value} mono />)}
+          </DetailList>
+        </div>
+      ))}
     </div>
   );
 }
@@ -172,7 +207,11 @@ function GuideActions({
   onGoToWorkflow?: (workflowId: string) => void;
 }) {
   return (
-    <Disclosure title="Guide actions">
+    <div className="gap-detail-near grid">
+      <div>
+        <h3 className="type-title text-text-primary m-0">Guide actions</h3>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">Create a starter workflow or open one created from this guide.</p>
+      </div>
       <div className="gap-detail-tight grid">
         {actions.map((action) => {
           const workflowId = createdWorkflowIds?.[action.key] ?? null;
@@ -203,14 +242,15 @@ function GuideActions({
           );
         })}
       </div>
-    </Disclosure>
+    </div>
   );
 }
 
 function GuideSectionCard({ section }: { section: GuideSection }) {
   const [schematicVisible, setSchematicVisible] = useState(false);
   return (
-    <Disclosure title={section.title}>
+    <div className="gap-detail-near grid">
+      <h3 className="type-title text-text-primary m-0">{section.title}</h3>
       {section.body && <p className="type-body text-text-secondary m-0">{section.body}</p>}
       {section.items && (
         <ul className="type-body text-text-secondary gap-detail-tight m-0 grid list-disc pl-5">
@@ -247,7 +287,21 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
           />
         </div>
       )}
-    </Disclosure>
+    </div>
+  );
+}
+
+function GuideDocumentation({ docPath }: { docPath: string }) {
+  return (
+    <div className="gap-detail-near grid">
+      <div>
+        <h3 className="type-title text-text-primary m-0">Documentation</h3>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">Open the full setup documentation in a new tab.</p>
+      </div>
+      <Button type="button" className="justify-self-start" onClick={() => openExternalDoc(docPath)}>
+        Open documentation
+      </Button>
+    </div>
   );
 }
 

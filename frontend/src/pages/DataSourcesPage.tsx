@@ -40,6 +40,7 @@ import type {
 } from "../features/data-sources/dataSourceTypes";
 import {
   getDeviceSetupGuide,
+  DeviceGuideWorkspace,
   StandardDeviceSetupGuide,
   type DeviceGuideAction,
 } from "../features/data-sources/deviceSetupGuides";
@@ -529,8 +530,11 @@ export function DataSourcesPage() {
       {setupGuideSource && (
         <Modal
           title={getDeviceSetupGuide(setupGuideSource)?.title ?? "Device setup guide"}
-          description={getDeviceSetupGuide(setupGuideSource)?.intro}
           onClose={() => setSetupGuideSource(null)}
+          width="wide"
+          minWidth="desktop"
+          className="h-[min(90vh,760px)]"
+          bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0"
         >
           {setupGuideBme680SupportWarning && (
             <ErrorAlert status="warning" className="mb-4 max-w-none">
@@ -539,7 +543,10 @@ export function DataSourcesPage() {
           )}
           {setupGuideSource.type === "mqtt" &&
           setupGuideSource.config.profile === "esp32-mqtt-board" ? (
-            <Esp32FirmwareSetup source={setupGuideSource} />
+            <DeviceGuideWorkspace
+              guide={getDeviceSetupGuide(setupGuideSource)!}
+              overview={<Esp32FirmwareSetup source={setupGuideSource} />}
+            />
           ) : (
             <StandardDeviceSetupGuide
               source={setupGuideSource}

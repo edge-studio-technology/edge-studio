@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "../../components/Button";
-import { Card } from "../../components/Card";
 import { ErrorAlert } from "../../components/ErrorAlert";
 import { MutedText } from "../../components/Text";
 import type { DataSource } from "./dataSourceTypes";
@@ -26,7 +25,7 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
   });
 
   return (
-    <Card className="grid max-w-4xl gap-4">
+    <div className="grid gap-4">
       <div>
         <strong>Next steps</strong>
         <MutedText className="m-0 mt-1">
@@ -129,7 +128,7 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
         The starter sketch publishes a simple Ping JSON message first; replace it with real sensor
         fields after the MQTT path works.
       </MutedText>
-    </Card>
+    </div>
   );
 }
 
