@@ -54,13 +54,15 @@ walletRouter.post("/send-payment", requireRole("admin"), async (req, res) => {
   try {
     const result = await sendPayment({ address, amount, tokenId });
     const displayTokenName = tokenName || (tokenId === "0x00" ? "Minima" : tokenId);
-    recordWalletSendHistory({
+    await recordWalletSendHistory({
       toAddress: address,
       tokenId,
       tokenName: displayTokenName,
       amount,
       txpowId: result.txpowId,
-      status: result.ok ? "submitted" : "failed"
+      transactionId: result.transactionId,
+      status: result.ok ? "submitted" : "failed",
+      origin: "manual"
     });
     recordAuditEvent("wallet.payment.send", {
       userId: req.user?.id,

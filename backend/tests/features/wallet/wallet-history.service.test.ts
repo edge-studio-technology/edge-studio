@@ -4,8 +4,8 @@ import { afterAll, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 import { LOCAL_ADDRESS, historyBody, historyCoin, historyTxpow, scriptsBody } from "../../helpers/minimaHistoryFixtures.js";
 
-const { runMinimaPathCommandMock, replacementInProgressMock } = vi.hoisted(() => ({
-  runMinimaPathCommandMock: vi.fn(), replacementInProgressMock: vi.fn()
+const { runMinimaPathCommandMock, replacementInProgressMock, replacementCountMock } = vi.hoisted(() => ({
+  runMinimaPathCommandMock: vi.fn(), replacementInProgressMock: vi.fn(), replacementCountMock: vi.fn()
 }));
 
 vi.mock("../../../src/features/minima/minima.rpc.js", () => ({
@@ -13,7 +13,8 @@ vi.mock("../../../src/features/minima/minima.rpc.js", () => ({
 }));
 
 vi.mock("../../../src/features/address-book/wallet-replacement.service.js", () => ({
-  isWalletReplacementInProgress: replacementInProgressMock
+  isWalletReplacementInProgress: replacementInProgressMock,
+  getWalletReplacementCount: replacementCountMock
 }));
 
 // The Pi testnet peer's wallet address from the recorded fixture.
@@ -29,6 +30,11 @@ let db: import("better-sqlite3").Database;
 let chain: { txpow: unknown; difference: Record<string, string> }[];
 let scripts: unknown;
 let onchain: Record<string, unknown>;
+let replacementCount = 0;
+
+function finishWalletReplacement() {
+  replacementCount += 1;
+}
 
 function receivedItem(index: number) {
   const txpowid = `0x${index.toString(16).padStart(6, "0")}`;
@@ -73,11 +79,12 @@ afterAll(() => {
 beforeEach(() => {
   db.prepare("DELETE FROM wallet_transactions").run();
   db.prepare("DELETE FROM settings WHERE key = 'wallet_history_sync_state'").run();
-  service.invalidateWalletFingerprint();
+  finishWalletReplacement();
   chain = [];
   scripts = scriptsBody();
   onchain = {};
   replacementInProgressMock.mockReset().mockReturnValue(false);
+  replacementCountMock.mockReset().mockImplementation(() => replacementCount);
   runMinimaPathCommandMock.mockReset().mockImplementation(async (command: string) => routeRpc(command));
 });
 
@@ -86,13 +93,26 @@ describe("getWalletFingerprint", () => {
     const extra = SECOND_WALLET_SCRIPTS.response[0];
     scripts = scriptsBody([extra]);
     const first = await service.getWalletFingerprint();
-    service.invalidateWalletFingerprint();
+    finishWalletReplacement();
     scripts = { status: true, response: [...(scriptsBody().response), extra].reverse() };
     assert.equal(await service.getWalletFingerprint(), first);
     assert.match(first, /^[0-9a-f]{64}$/);
 
     await service.getWalletFingerprint();
     assert.equal(runMinimaPathCommandMock.mock.calls.length, 2);
+  });
+
+  it("does not reuse a fingerprint read while a replacement was still running", async () => {
+    runMinimaPathCommandMock.mockImplementation(async (command: string) => {
+      const result = routeRpc(command);
+      finishWalletReplacement();
+      scripts = SECOND_WALLET_SCRIPTS;
+      return result;
+    });
+    const stale = await service.getWalletFingerprint();
+    runMinimaPathCommandMock.mockImplementation(async (command: string) => routeRpc(command));
+
+    assert.notEqual(await service.getWalletFingerprint(), stale);
   });
 
   it("rejects a wallet with no default addresses", async () => {
@@ -176,7 +196,7 @@ describe("syncWalletHistory", () => {
     await service.syncWalletHistory();
     const firstFingerprint = await service.getWalletFingerprint();
 
-    service.invalidateWalletFingerprint();
+    finishWalletReplacement();
     scripts = SECOND_WALLET_SCRIPTS;
     chain = [{
       txpow: historyTxpow("0x0000ff", 1_800_000_000_000, [], [historyCoin({ address: SECOND_WALLET_ADDRESS, amount: "4" })]),
@@ -260,6 +280,17 @@ describe("refreshPendingConfirmations", () => {
     const checked = runMinimaPathCommandMock.mock.calls.map((call) => call[0] as string);
     assert.equal(checked.length, service.CONFIRMATION_BATCH_SIZE - 1);
     assert.ok(!checked.includes("txpow onchain:0x000001"));
+  });
+
+  it("does nothing while the wallet is being replaced", async () => {
+    chain = [receivedItem(1)];
+    await service.syncWalletHistory();
+    replacementInProgressMock.mockReturnValue(true);
+    runMinimaPathCommandMock.mockClear();
+
+    await service.refreshPendingConfirmations();
+
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
   });
 
   it("logs and stops the batch when Minima fails", async () => {

@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { db } from "../../db/database.js";
 import { canonicalMinimaAddress } from "../../shared/minima-address.js";
-import { isWalletReplacementInProgress } from "../address-book/wallet-replacement.service.js";
+import { getWalletReplacementCount, isWalletReplacementInProgress } from "../address-book/wallet-replacement.service.js";
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { getSetting, saveSetting } from "../settings/settings.repository.js";
 import {
@@ -22,10 +22,11 @@ const SYNC_STATE_KEY = "wallet_history_sync_state";
 /** `backfillOffset` is where an unfinished scan continues; rows only shift to higher offsets as new ones arrive. */
 type SyncState = { fingerprint: string; size: number; backfillOffset: number | null };
 
-let cachedFingerprint: string | null = null;
+let cachedFingerprint: { value: string; replacementCount: number } | null = null;
 let syncInFlight: Promise<void> | null = null;
 
 async function readWalletScripts() {
+  const replacementCount = getWalletReplacementCount();
   const result = await runMinimaPathCommand("scripts");
   if (!result.ok) throw new Error(`Minima RPC error: HTTP ${result.status}`);
   const defaults = parseLocalWalletAddressesResponse(result.body)
@@ -33,17 +34,18 @@ async function readWalletScripts() {
     .filter((address): address is string => address !== null)
     .sort();
   if (defaults.length === 0) throw new Error("Minima returned no default wallet addresses");
-  cachedFingerprint = crypto.createHash("sha256").update(defaults.join("\n")).digest("hex");
-  return { fingerprint: cachedFingerprint, trackedAddresses: parseTrackedScriptAddressesResponse(result.body) };
+  const fingerprint = crypto.createHash("sha256").update(defaults.join("\n")).digest("hex");
+  cachedFingerprint = { value: fingerprint, replacementCount };
+  return { fingerprint, trackedAddresses: parseTrackedScriptAddressesResponse(result.body) };
 }
 
-/** SHA-256 of the wallet's sorted default addresses; identifies which wallet a history row belongs to. */
+/**
+ * SHA-256 of the wallet's sorted default addresses; identifies which wallet a history row belongs to.
+ * Cached until the next wallet replacement finishes.
+ */
 export async function getWalletFingerprint(): Promise<string> {
-  return cachedFingerprint ?? (await readWalletScripts()).fingerprint;
-}
-
-export function invalidateWalletFingerprint() {
-  cachedFingerprint = null;
+  if (cachedFingerprint?.replacementCount === getWalletReplacementCount()) return cachedFingerprint.value;
+  return (await readWalletScripts()).fingerprint;
 }
 
 function readSyncState(): SyncState | null {
@@ -151,8 +153,9 @@ export function syncWalletHistory(): Promise<void> {
   return syncInFlight;
 }
 
-/** Marks a bounded batch of the current wallet's unconfirmed rows confirmed once `txpow onchain:` finds them. */
+/** Marks a bounded batch of the current wallet's unconfirmed rows confirmed once `txpow onchain:` finds them. Skips while the wallet is being replaced. */
 export async function refreshPendingConfirmations(): Promise<void> {
+  if (isWalletReplacementInProgress()) return;
   try {
     const fingerprint = await getWalletFingerprint();
     const pending = db.prepare(`

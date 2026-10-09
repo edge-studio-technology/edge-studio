@@ -73,6 +73,10 @@ vi.mock("../../../src/features/settings/secrets.service.js", () => ({
   getIntegritasApiKey: getIntegritasApiKeyMock
 }));
 
+vi.mock("../../../src/features/wallet/wallet-history.service.js", () => ({
+  getWalletFingerprint: async () => "fingerprint-a"
+}));
+
 vi.mock("../../../src/features/wallet/wallet.service.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../src/features/wallet/wallet.service.js")>();
   return { ...actual, getWalletStatus: getWalletStatusMock, sendPayment: sendPaymentMock };
@@ -891,7 +895,7 @@ describe("automation.service — send_transaction", () => {
       checkedAt: "now",
       tokens: [{ tokenId: "0x00", name: "Minima", confirmed: "10", unconfirmed: "0", sendable: "10", isNative: true }]
     });
-    sendPaymentMock.mockResolvedValue({ ok: true, txpowId: "tx-1", status: "sent" });
+    sendPaymentMock.mockResolvedValue({ ok: true, txpowId: "tx-1", transactionId: "0x02", status: "sent" });
     const wf = makeWorkflow([
       { type: "manual_start", config: {} },
       { type: "send_transaction", config: { recipientAddressBookId: recipient.id, tokenId: "0x00", amount: "5" } }
@@ -900,6 +904,10 @@ describe("automation.service — send_transaction", () => {
     assert.equal(result.workflow.lastError, null);
     const history = walletService.listWalletSendHistory();
     assert.ok(history.some((h) => h.txpowId === "tx-1" && h.status === "submitted"));
+    assert.deepEqual(
+      db.prepare("SELECT origin, transaction_id, wallet_fingerprint FROM wallet_send_history WHERE txpow_id = 'tx-1'").get(),
+      { origin: "automation", transaction_id: "0x02", wallet_fingerprint: "fingerprint-a" }
+    );
   });
 
   it("throws when the payment fails", async () => {

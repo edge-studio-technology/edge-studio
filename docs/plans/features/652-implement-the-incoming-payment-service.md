@@ -20,14 +20,18 @@
   - `getPaymentStatus()` now asks `txpow onchain:` first (confirmed) and falls back to `txpow txpowid:` (pending/unknown). `isTxPowId()` validates the ID in the service and in `GET /payment-status/:txpowid` (400), which previously passed the raw param into the RPC command.
   - Self-transfers carry amount `0` (the `difference`). `history`'s list `size` is the page length, not the total; use `history action:size` for the total.
   - Source-derived fixtures live in `backend/tests/helpers/minimaHistoryFixtures.ts`; swap in Pi captures after step 0.
-- [x] Step 2: `wallet_transactions` table, wallet fingerprint, and history sync service
-  - `wallet-history.service.ts`: `getWalletFingerprint()`/`invalidateWalletFingerprint()`, `syncWalletHistory()`, `refreshPendingConfirmations()`. Not wired up yet (step 3).
+- [x] Step 2: `wallet_transactions` table, wallet fingerprint, and history sync service (`c1e3a06d`)
+  - `wallet-history.service.ts`: `getWalletFingerprint()`, `syncWalletHistory()`, `refreshPendingConfirmations()`.
   - Sync state (`wallet_history_sync_state` setting) holds fingerprint, size, and a `backfillOffset`. When the 5-page cap cuts a scan short, the next tick resumes there; rows only move to higher offsets as new ones arrive, so nothing is skipped. A page of only malformed TxPoWs does not count as "fully known".
   - Overlapping `syncWalletHistory()` calls share the running sync instead of being dropped, so step 4's route can await it.
   - Re-syncing a known row keeps its block/confirmation data. A TxPoW relevant to both old and new wallets moves to the new fingerprint.
   - `confirmations` is stored once, when the TxPoW is first found on chain; it is not kept current.
   - `parseSendResponse()` and `parseHistoryResponse()` return `transactionId` (verified on the Pi fixture: the send's `transactionid` matches the chain row's).
-- [ ] Step 3: Sync hooks (health poller, wallet replacement, send paths)
+- [x] Step 3: Sync hooks (health poller, wallet replacement, send paths)
+  - The health poller runs `syncWalletHistory()` and then `refreshPendingConfirmations()` on each running-node tick, before stall detection. Both log their own failures, so there is no extra `try/catch`.
+  - Deviation: no `invalidateWalletFingerprint()`. `runWalletReplacement()` bumps `getWalletReplacementCount()` after every attempt, and the cached fingerprint is reused only while the count is unchanged. This avoids an import cycle, and a fingerprint read during a replacement is not reused afterwards.
+  - `refreshPendingConfirmations()` also skips while a replacement runs.
+  - `recordWalletSendHistory()` is now async and stores fingerprint, origin (`manual`/`automation`), and transaction ID. If the fingerprint lookup fails, the row is still saved, with a null fingerprint.
 - [ ] Step 4: Paginated, filtered `GET /api/wallet/history` and admin re-auth clear of previous-wallet rows
 - [ ] Step 5: Frontend history panel, filters, detail modal, and clear action
 - [ ] Docs

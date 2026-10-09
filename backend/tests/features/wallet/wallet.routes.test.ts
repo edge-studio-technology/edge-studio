@@ -4,7 +4,9 @@ import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
-const { sendPaymentMock, importWalletMock } = vi.hoisted(() => ({ sendPaymentMock: vi.fn(), importWalletMock: vi.fn() }));
+const { sendPaymentMock, importWalletMock, recordWalletSendHistoryMock } = vi.hoisted(() => ({
+  sendPaymentMock: vi.fn(), importWalletMock: vi.fn(), recordWalletSendHistoryMock: vi.fn()
+}));
 
 vi.mock("../../../src/features/wallet/wallet.service.js", () => ({
   clearWalletSendHistoryForDebug: vi.fn(),
@@ -13,7 +15,7 @@ vi.mock("../../../src/features/wallet/wallet.service.js", () => ({
   getWalletStatus: vi.fn(),
   importWallet: importWalletMock,
   listWalletSendHistory: vi.fn(),
-  recordWalletSendHistory: vi.fn(),
+  recordWalletSendHistory: recordWalletSendHistoryMock,
   sendPayment: sendPaymentMock
 }));
 const { recordAuditEventMock } = vi.hoisted(() => ({ recordAuditEventMock: vi.fn() }));
@@ -47,6 +49,7 @@ describe("wallet routes", () => {
     sendPaymentMock.mockReset();
     importWalletMock.mockReset();
     recordAuditEventMock.mockReset();
+    recordWalletSendHistoryMock.mockReset();
     db.prepare("DELETE FROM address_book").run();
     db.prepare("DELETE FROM settings").run();
   });
@@ -60,6 +63,17 @@ describe("wallet routes", () => {
       .send({ address: local.address, recipientAddressBookId: local.id, amount: "1" });
     assert.equal(response.status, 200);
     assert.equal(sendPaymentMock.mock.calls[0][0].address, "0x02");
+  });
+
+  it("records a manual send with its transaction ID", async () => {
+    sendPaymentMock.mockResolvedValue({ ok: true, status: "sent", txpowId: "0x01", transactionId: "0x02" });
+    const response = await request(testApp()).post("/api/wallet/send-payment")
+      .send({ address: "0x03", amount: "1" });
+    assert.equal(response.status, 200);
+    assert.deepEqual(recordWalletSendHistoryMock.mock.calls[0][0], {
+      toAddress: "0x03", tokenId: "0x00", tokenName: "Minima", amount: "1",
+      txpowId: "0x01", transactionId: "0x02", status: "submitted", origin: "manual"
+    });
   });
 
   it("blocks pending local recipients without blocking manual copies or external addresses", async () => {

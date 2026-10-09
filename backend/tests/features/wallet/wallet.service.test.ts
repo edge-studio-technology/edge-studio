@@ -2,8 +2,12 @@ import assert from "node:assert/strict";
 import { afterAll, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
-const { runMinimaPathCommandMock, getContainerMock, inspectMock } = vi.hoisted(() => ({
-  runMinimaPathCommandMock: vi.fn(), getContainerMock: vi.fn(), inspectMock: vi.fn()
+const { runMinimaPathCommandMock, getContainerMock, inspectMock, getWalletFingerprintMock } = vi.hoisted(() => ({
+  runMinimaPathCommandMock: vi.fn(), getContainerMock: vi.fn(), inspectMock: vi.fn(), getWalletFingerprintMock: vi.fn()
+}));
+
+vi.mock("../../../src/features/wallet/wallet-history.service.js", () => ({
+  getWalletFingerprint: getWalletFingerprintMock
 }));
 
 vi.mock("../../../src/features/status/docker.service.js", () => ({
@@ -35,6 +39,7 @@ beforeEach(() => {
   runMinimaPathCommandMock.mockReset();
   getContainerMock.mockReset();
   inspectMock.mockReset();
+  getWalletFingerprintMock.mockReset().mockResolvedValue("fingerprint-a");
   db.prepare("DELETE FROM address_book").run();
   db.prepare("DELETE FROM settings WHERE key='address_book_local_wallet_verification'").run();
 });
@@ -266,22 +271,26 @@ describe("wallet send history", () => {
     assert.equal(walletService.clearWalletSendHistoryForDebug(), 0);
   });
 
-  it("records and lists send history entries newest first", () => {
-    walletService.recordWalletSendHistory({
+  it("records and lists send history entries newest first", async () => {
+    await walletService.recordWalletSendHistory({
       toAddress: "0xaaa",
       tokenId: "0x00",
       tokenName: "Minima",
       amount: "1",
       txpowId: "tx-a",
-      status: "submitted"
+      transactionId: null,
+      status: "submitted",
+      origin: "manual"
     });
-    walletService.recordWalletSendHistory({
+    await walletService.recordWalletSendHistory({
       toAddress: "0xbbb",
       tokenId: "0x00",
       tokenName: "Minima",
       amount: "2",
       txpowId: null,
-      status: "failed"
+      transactionId: null,
+      status: "failed",
+      origin: "manual"
     });
 
     const history = walletService.listWalletSendHistory();
@@ -291,28 +300,52 @@ describe("wallet send history", () => {
     assert.equal(bbb?.txpowId, null);
   });
 
-  it("clearWalletSendHistoryForDebug removes all recorded entries", () => {
-    walletService.recordWalletSendHistory({
+  it("clearWalletSendHistoryForDebug removes all recorded entries", async () => {
+    await walletService.recordWalletSendHistory({
       toAddress: "0xccc",
       tokenId: "0x00",
       tokenName: "Minima",
       amount: "1",
       txpowId: "tx-c",
-      status: "submitted"
+      transactionId: null,
+      status: "submitted",
+      origin: "manual"
     });
     const removed = walletService.clearWalletSendHistoryForDebug();
     assert.ok(removed >= 1);
     assert.equal(walletService.listWalletSendHistory().length, 0);
   });
 
-  it("clamps the limit passed to listWalletSendHistory", () => {
-    walletService.recordWalletSendHistory({
+  it("stores the wallet fingerprint, origin, and transaction ID with each send", async () => {
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xeee", tokenId: "0x00", tokenName: "Minima", amount: "1",
+      txpowId: "0x01", transactionId: "0x02", status: "submitted", origin: "automation"
+    });
+    getWalletFingerprintMock.mockRejectedValueOnce(new Error("Minima RPC error: HTTP 500"));
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xfff", tokenId: "0x00", tokenName: "Minima", amount: "1",
+      txpowId: null, transactionId: null, status: "failed", origin: "manual"
+    });
+
+    const rows = db.prepare(
+      "SELECT to_address, wallet_fingerprint, origin, transaction_id FROM wallet_send_history ORDER BY to_address"
+    ).all();
+    assert.deepEqual(rows, [
+      { to_address: "0xeee", wallet_fingerprint: "fingerprint-a", origin: "automation", transaction_id: "0x02" },
+      { to_address: "0xfff", wallet_fingerprint: null, origin: "manual", transaction_id: null }
+    ]);
+  });
+
+  it("clamps the limit passed to listWalletSendHistory", async () => {
+    await walletService.recordWalletSendHistory({
       toAddress: "0xddd",
       tokenId: "0x00",
       tokenName: "Minima",
       amount: "1",
       txpowId: "tx-d",
-      status: "submitted"
+      transactionId: null,
+      status: "submitted",
+      origin: "manual"
     });
     const result = walletService.listWalletSendHistory(0);
     assert.equal(result.length, 1);
