@@ -1,13 +1,28 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
+  isTxPowId,
   parseAddressResponse,
   parseBalanceResponse,
+  parseHistoryResponse,
+  parseHistorySizeResponse,
   parseImportResponse,
   parseLocalWalletAddressesResponse,
+  parseOnchainResponse,
   parsePaymentStatusResponse,
-  parseSendResponse
+  parseSendResponse,
+  parseTrackedScriptAddressesResponse
 } from "../../../src/features/wallet/wallet.parse.js";
+import {
+  EXTERNAL_ADDRESS,
+  EXTERNAL_MINIADDRESS,
+  LOCAL_ADDRESS,
+  TOKEN_ID,
+  historyBody,
+  historyCoin,
+  historyTxpow,
+  scriptsBody
+} from "../../helpers/minimaHistoryFixtures.js";
 
 const LOCAL_SCRIPT = {
   address: "0xDE111E13DBA5054DFF657969BF3A76BFB6CE196F95F6EBEFE1B70FED0115EF1A",
@@ -175,41 +190,152 @@ describe("parseSendResponse", () => {
   });
 });
 
+describe("isTxPowId", () => {
+  it("accepts 0x hex only", () => {
+    assert.equal(isTxPowId("0xAB12"), true);
+    for (const value of ["", "0x", "AB12", "0xZZ", "0x12 max:1", `0x${"a".repeat(129)}`]) {
+      assert.equal(isTxPowId(value), false, value);
+    }
+  });
+});
+
 describe("parsePaymentStatusResponse", () => {
-  it("returns unknown when the body is not a record", () => {
-    const result = parsePaymentStatusResponse(null, "tx-1");
-    assert.equal(result.status, "unknown");
-    assert.equal(result.txpowId, "tx-1");
-  });
-
-  it("returns unknown when status is false", () => {
-    const result = parsePaymentStatusResponse({ status: false }, "tx-1");
-    assert.equal(result.status, "unknown");
-  });
-
-  it("returns unknown when response is missing", () => {
-    const result = parsePaymentStatusResponse({ status: true }, "tx-1");
-    assert.equal(result.status, "unknown");
-  });
-
-  it("returns unknown when txpow is missing from the response", () => {
-    const result = parsePaymentStatusResponse({ response: {} }, "tx-1");
-    assert.equal(result.status, "unknown");
-  });
-
-  it("returns confirmed when response.confirmed is true", () => {
-    const result = parsePaymentStatusResponse({ response: { confirmed: true, txpow: {} } }, "tx-1");
-    assert.equal(result.status, "confirmed");
-  });
-
-  it("returns confirmed when txpow.isblock is true", () => {
-    const result = parsePaymentStatusResponse({ response: { txpow: { isblock: true } } }, "tx-1");
-    assert.equal(result.status, "confirmed");
-  });
-
-  it("returns pending when neither confirmation flag is set", () => {
-    const result = parsePaymentStatusResponse({ response: { txpow: {} } }, "tx-1");
+  it("returns pending when Minima returns the TxPoW itself as the response", () => {
+    const result = parsePaymentStatusResponse({ status: true, response: { txpowid: "0xAB", isblock: false } }, "0xab");
     assert.equal(result.status, "pending");
+    assert.equal(result.txpowId, "0xab");
+    assert.ok(result.checkedAt);
+  });
+
+  it("returns unknown for failures, missing responses, and a different TxPoW", () => {
+    for (const body of [null, { status: false, error: "TxPoW not found : 0xAB" }, { status: true },
+      { response: { txpowid: "0xAB" } }, { status: true, response: { txpowid: "0xCD" } },
+      { status: true, response: { txpow: { txpowid: "0xAB" } } }]) {
+      assert.equal(parsePaymentStatusResponse(body, "0xAB").status, "unknown");
+    }
+  });
+});
+
+describe("parseOnchainResponse", () => {
+  it("returns found:false when the TxPoW is not on chain", () => {
+    assert.deepEqual(parseOnchainResponse({ status: true, response: { found: false } }), { found: false });
+  });
+
+  it("parses Minima's string block numbers and confirmations", () => {
+    assert.deepEqual(parseOnchainResponse({ status: true, response: {
+      found: true, block: "1200", blockid: "0xB10C", tip: "1203", confirmations: "3"
+    } }), { found: true, block: 1200, blockId: "0xB10C", confirmations: 3 });
+  });
+
+  it("throws on failed or malformed responses", () => {
+    for (const body of [null, { status: false }, { status: true }, { status: true, response: { found: "true" } }]) {
+      assert.throws(() => parseOnchainResponse(body), /successful txpow onchain response/);
+    }
+    for (const response of [{ found: true, block: "x", blockid: "0x1", confirmations: "1" },
+      { found: true, block: "1", blockid: "", confirmations: "1" },
+      { found: true, block: "1", blockid: "0x1", confirmations: "-1" }]) {
+      assert.throws(() => parseOnchainResponse({ status: true, response }), /malformed txpow onchain data/);
+    }
+  });
+});
+
+describe("parseHistorySizeResponse", () => {
+  it("returns the relevant TxPoW count", () => {
+    assert.equal(parseHistorySizeResponse({ status: true, response: { size: 42 } }), 42);
+    assert.equal(parseHistorySizeResponse({ status: true, response: { size: 0 } }), 0);
+  });
+
+  it("throws on failed or malformed responses", () => {
+    for (const body of [null, { status: false, response: { size: 1 } }, { status: true, response: {} },
+      { status: true, response: { size: -1 } }, { status: true, response: { size: 1.5 } }]) {
+      assert.throws(() => parseHistorySizeResponse(body), /successful history size response/);
+    }
+  });
+});
+
+describe("parseTrackedScriptAddressesResponse", () => {
+  it("returns canonical addresses of tracked scripts only, including non-default ones", () => {
+    const addresses = parseTrackedScriptAddressesResponse(scriptsBody([
+      { address: "0xAAAA", miniaddress: "MxA", default: false, simple: false, track: true },
+      { address: "0xBBBB", miniaddress: "MxB", default: false, simple: true, track: false },
+      { address: 7, track: true }
+    ]));
+    assert.deepEqual([...addresses].sort(), ["0xaaaa", LOCAL_ADDRESS.toLowerCase()]);
+  });
+
+  it("throws on a failed scripts response", () => {
+    assert.throws(() => parseTrackedScriptAddressesResponse({ status: false }), /successful scripts response/);
+  });
+});
+
+describe("parseHistoryResponse", () => {
+  const local = new Set([LOCAL_ADDRESS.toLowerCase()]);
+
+  it("derives direction from the sign of difference and the counterparty from the other side", () => {
+    const received = historyTxpow("0xIN", 1_700_000_000_000,
+      [historyCoin({ address: EXTERNAL_ADDRESS, amount: "15" })],
+      [historyCoin({ address: LOCAL_ADDRESS, amount: "10" }), historyCoin({ address: EXTERNAL_ADDRESS, amount: "5" })]);
+    const sent = historyTxpow("0xOUT", 1_700_000_100_000,
+      [historyCoin({ address: LOCAL_ADDRESS, amount: "20" })],
+      [historyCoin({ address: LOCAL_ADDRESS, amount: "17.5" }), historyCoin({ address: EXTERNAL_ADDRESS, amount: "2.5" })]);
+    const self = historyTxpow("0xSELF", 1_700_000_200_000,
+      [historyCoin({ address: LOCAL_ADDRESS, amount: "5" })],
+      [historyCoin({ address: LOCAL_ADDRESS, amount: "5" })]);
+
+    const entries = parseHistoryResponse(historyBody([
+      { txpow: sent, difference: { "0x00": "-2.5" } },
+      { txpow: received, difference: { "0x00": "10" } },
+      { txpow: self, difference: { "0x00": "0" } }
+    ]), local);
+
+    assert.deepEqual(entries, [
+      { txpowId: "0xOUT", tokenId: "0x00", tokenName: "Minima", amount: "2.5", direction: "out", timeMillis: 1_700_000_100_000, counterparty: EXTERNAL_MINIADDRESS },
+      { txpowId: "0xIN", tokenId: "0x00", tokenName: "Minima", amount: "10", direction: "in", timeMillis: 1_700_000_000_000, counterparty: EXTERNAL_MINIADDRESS },
+      { txpowId: "0xSELF", tokenId: "0x00", tokenName: "Minima", amount: "0", direction: "self", timeMillis: 1_700_000_200_000, counterparty: null }
+    ]);
+  });
+
+  it("emits one entry per token and resolves custom token names from string or metadata names", () => {
+    const txpow = historyTxpow("0xMULTI", 1_700_000_000_000,
+      [historyCoin({ address: EXTERNAL_ADDRESS, amount: "3", tokenid: TOKEN_ID, tokenName: { name: " Gold ", url: "x" } }),
+        historyCoin({ address: EXTERNAL_ADDRESS, amount: "1" })],
+      [historyCoin({ address: LOCAL_ADDRESS, amount: "3", tokenid: TOKEN_ID, tokenName: { name: " Gold ", url: "x" } }),
+        historyCoin({ address: LOCAL_ADDRESS, amount: "1" })]);
+    const plain = historyTxpow("0xPLAIN", 1, [], [historyCoin({ address: LOCAL_ADDRESS, amount: "1", tokenid: "0xCC", tokenName: "Silver" })]);
+    const unnamed = historyTxpow("0xUNNAMED", 1, [], []);
+
+    const entries = parseHistoryResponse(historyBody([
+      { txpow, difference: { [TOKEN_ID]: "3", "0x00": "1" } },
+      { txpow: plain, difference: { "0xCC": "1" } },
+      { txpow: unnamed, difference: { "0xDD": "1" } }
+    ]), local);
+
+    assert.deepEqual(entries.map((entry) => [entry.txpowId, entry.tokenId, entry.tokenName]), [
+      ["0xMULTI", TOKEN_ID, "Gold"], ["0xMULTI", "0x00", "Minima"], ["0xPLAIN", "0xCC", "Silver"], ["0xUNNAMED", "0xDD", "0xDD"]
+    ]);
+  });
+
+  it("returns a null counterparty when every coin on the other side is local", () => {
+    const txpow = historyTxpow("0xCONSOLIDATE", 1, [historyCoin({ address: LOCAL_ADDRESS, amount: "3" })], []);
+    const [entry] = parseHistoryResponse(historyBody([{ txpow, difference: { "0x00": "-3" } }]), local);
+    assert.equal(entry.direction, "out");
+    assert.equal(entry.counterparty, null);
+  });
+
+  it("skips malformed TxPoWs and differences instead of throwing", () => {
+    const good = historyTxpow("0xGOOD", 5, [], []);
+    const entries = parseHistoryResponse({ status: true, response: {
+      txpows: [null, { ...good, txpowid: 1 }, { ...good, header: { timemilli: "soon" } }, good, good],
+      details: [{ difference: { "0x00": "1" } }, { difference: { "0x00": "1" } }, { difference: { "0x00": "1" } },
+        { difference: { "0x00": "1e5", "0x01": 2, "0x02": "-4" } }]
+    } }, local);
+    assert.deepEqual(entries.map((entry) => [entry.txpowId, entry.tokenId, entry.direction]), [["0xGOOD", "0x02", "out"]]);
+  });
+
+  it("throws when the history call itself failed", () => {
+    for (const body of [null, { status: false, error: "x" }, { status: true, response: { txpows: [] } }]) {
+      assert.throws(() => parseHistoryResponse(body, local), /successful history response/);
+    }
   });
 });
 

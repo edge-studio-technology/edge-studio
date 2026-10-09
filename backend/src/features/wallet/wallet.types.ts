@@ -55,3 +55,20 @@ export type WalletSendHistoryItem = {
   txpowId: string | null;
   status: "submitted" | "failed";
 };
+
+export type WalletHistoryDirection = "in" | "out" | "self";
+
+/** One token movement of one relevant TxPoW, derived from Minima's `history` command. */
+export type ChainHistoryEntry = {
+  txpowId: string;
+  tokenId: string;
+  tokenName: string;
+  amount: string;
+  direction: WalletHistoryDirection;
+  timeMillis: number;
+  counterparty: string | null;
+};
+
+export type TxPowOnChain =
+  | { found: false }
+  | { found: true; block: number; blockId: string; confirmations: number };

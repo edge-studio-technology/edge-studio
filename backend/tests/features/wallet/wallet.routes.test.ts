@@ -97,6 +97,12 @@ describe("wallet routes", () => {
     assert.equal(sendPaymentMock.mock.calls.length, 0);
   });
 
+  it("rejects a non-hex TxPoW ID before it reaches the Minima command", async () => {
+    const response = await request(testApp()).get(`/api/wallet/payment-status/${encodeURIComponent("0xAB max:1")}`);
+    assert.equal(response.status, 400);
+    assert.match(response.body.error, /txpowid must be a 0x hex value/);
+  });
+
   it("never echoes the imported seed phrase back to the client", async () => {
     const phrase = "canary alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo";
     importWalletMock.mockResolvedValue({ ok: true, message: "Restore complete" });

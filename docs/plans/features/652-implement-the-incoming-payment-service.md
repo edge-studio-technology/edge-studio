@@ -1,6 +1,6 @@
 # Incoming Payment Service and Wallet History Filtering Plan
 
-**Status:** Not started
+**Status:** In progress
 **Created:** 2026-10-09
 **Branch:** `task/652-implement-the-incoming-payment-service`
 **Audit baseline:** `620bef8c` (clean working tree before this planning session)
@@ -8,8 +8,12 @@
 
 ## Progress
 
-- [ ] Step 0: Pi RPC capture (read-only, runs alongside step 1, not a gate)
-- [ ] Step 1: Parsers for `history`, `history action:size`, `txpow onchain:`, and fix `parsePaymentStatusResponse`
+- [ ] Step 0: Pi RPC capture (read-only, runs alongside step 1, not a gate) — not run yet: `PI_SSH_LOGIN` is not set in `.env.local`.
+- [x] Step 1: Parsers for `history`, `history action:size`, `txpow onchain:`, and fix `parsePaymentStatusResponse`
+  - Tracked-address parsing is a new `parseTrackedScriptAddressesResponse()` (scripts with `track: true`, matching Minima's `isAddressRelevant`). `parseLocalWalletAddressesResponse()` is unchanged.
+  - `getPaymentStatus()` now asks `txpow onchain:` first (confirmed) and falls back to `txpow txpowid:` (pending/unknown). `isTxPowId()` validates the ID in the service and in `GET /payment-status/:txpowid` (400), which previously passed the raw param into the RPC command.
+  - Self-transfers carry amount `0` (the `difference`). `history`'s list `size` is the page length, not the total; use `history action:size` for the total.
+  - Source-derived fixtures live in `backend/tests/helpers/minimaHistoryFixtures.ts`; swap in Pi captures after step 0.
 - [ ] Step 2: `wallet_transactions` table, wallet fingerprint, and history sync service
 - [ ] Step 3: Sync hooks (health poller, wallet replacement, send paths)
 - [ ] Step 4: Paginated, filtered `GET /api/wallet/history` and admin re-auth clear of previous-wallet rows

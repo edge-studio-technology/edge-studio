@@ -220,15 +220,29 @@ describe("sendPayment", () => {
 });
 
 describe("getPaymentStatus", () => {
-  it("queries the txpow status and parses the response", async () => {
+  it("returns confirmed when the TxPoW is on chain", async () => {
     runMinimaPathCommandMock.mockResolvedValue({
       ok: true,
       status: 200,
-      body: { response: { confirmed: true, txpow: {} } }
+      body: { status: true, response: { found: true, block: "10", blockid: "0xB", tip: "12", confirmations: "2" } }
     });
-    const result = await walletService.getPaymentStatus("tx-1");
-    assert.equal(runMinimaPathCommandMock.mock.calls[0][0], "txpow txpowid:tx-1");
+    const result = await walletService.getPaymentStatus("0xAB");
+    assert.deepEqual(runMinimaPathCommandMock.mock.calls.map((call) => call[0]), ["txpow onchain:0xAB"]);
     assert.equal(result.status, "confirmed");
+  });
+
+  it("falls back to the TxPoW lookup when it is not on chain yet", async () => {
+    runMinimaPathCommandMock
+      .mockResolvedValueOnce({ ok: true, status: 200, body: { status: true, response: { found: false } } })
+      .mockResolvedValueOnce({ ok: true, status: 200, body: { status: true, response: { txpowid: "0xAB" } } });
+    const result = await walletService.getPaymentStatus("0xAB");
+    assert.deepEqual(runMinimaPathCommandMock.mock.calls.map((call) => call[0]), ["txpow onchain:0xAB", "txpow txpowid:0xAB"]);
+    assert.equal(result.status, "pending");
+  });
+
+  it("rejects a non-hex TxPoW ID before calling Minima", async () => {
+    await assert.rejects(walletService.getPaymentStatus("0xAB max:1"), /0x hex value/);
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
   });
 });
 

@@ -4,7 +4,7 @@ import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { db } from "../../db/database.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
 import { getComposeServiceContainer, inspectContainer } from "../status/docker.service.js";
-import { parseAddressResponse, parseBalanceResponse, parseImportResponse, parseLocalWalletAddressesResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
+import { isTxPowId, parseAddressResponse, parseBalanceResponse, parseImportResponse, parseLocalWalletAddressesResponse, parseOnchainResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
 import type {
   ImportWalletResult,
   PaymentStatus,
@@ -64,6 +64,11 @@ export async function sendPayment({ address, amount, tokenId = "0x00" }: SendPay
 }
 
 export async function getPaymentStatus(txpowId: string): Promise<PaymentStatus> {
+  if (!isTxPowId(txpowId)) throw new Error("TxPoW ID must be a 0x hex value");
+  const onchain = await runMinimaPathCommand(`txpow onchain:${txpowId}`);
+  if (parseOnchainResponse(onchain.body).found) {
+    return { txpowId, status: "confirmed", checkedAt: new Date().toISOString() };
+  }
   const result = await runMinimaPathCommand(`txpow txpowid:${txpowId}`);
   return parsePaymentStatusResponse(result.body, txpowId);
 }

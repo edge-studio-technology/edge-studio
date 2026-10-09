@@ -5,6 +5,7 @@ import { AddressBookRecipientError, getAddressBookPaymentRecipient } from "../ad
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
+import { isTxPowId } from "./wallet.parse.js";
 import { clearWalletSendHistoryForDebug, getPaymentStatus, getReceiveAddress, getWalletStatus, importWallet, listWalletSendHistory, recordWalletSendHistory, sendPayment } from "./wallet.service.js";
 
 export const walletRouter = Router();
@@ -84,6 +85,7 @@ walletRouter.get("/history", async (req, res) => {
 });
 
 walletRouter.get("/payment-status/:txpowid", async (req, res) => {
+  if (!isTxPowId(req.params.txpowid)) return badRequest(res, "txpowid must be a 0x hex value", { field: "txpowid" }, { ok: false });
   try {
     res.json(await getPaymentStatus(req.params.txpowid));
   } catch (error) {
