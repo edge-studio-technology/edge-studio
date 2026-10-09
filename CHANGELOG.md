@@ -4,10 +4,15 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] task/652-implement-the-incoming-payment-service
+## [Unreleased]
 
 ### Added
 
+- Developers can configure local Pi SSH access in `.env.local` and use the `pi-ssh` agent skill for requested Pi work.
+- Public setup status includes the local admin credential type and disables response caching.
+- Login and current-credential confirmations use masked six-digit PIN or password inputs based on the stored credential type.
+- The address book automatically adds a persistent contact named after the device, marked Local device, with editable name/notes and protected address/deletion.
+- `scripts/dev/benchmark/` scripts that measure the installed app's CPU, memory, disk growth, start-up time and workflow load on a Pi, with a guide in `docs/guides/pi-benchmark.md`.
 - Wallet history lists incoming payments and self-transfers alongside sends, synced from the Minima node.
 - Wallet history rows show Pending, Confirmed, or Failed, and they and the wallet balance update without a page reload.
 - Wallet history can be filtered by type, status, and date (presets or a custom range), and searched by contact name, address, token, or ID.
@@ -19,31 +24,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- `GET /api/wallet/history` returns a paginated, filterable list of all wallet movements instead of `{ sends }`, and no longer accepts `limit`; see `README.md`.
-
-### Fixed
-
-- The Send payment dialog accepts decimal amounts.
-- `GET /api/wallet/payment-status/:txpowid` reports pending and confirmed payments instead of always `unknown`.
-
-## [Unreleased]
-
-### Added
-
-- Developers can configure local Pi SSH access in `.env.local` and use the `pi-ssh` agent skill for requested Pi work.
-- Public setup status includes the local admin credential type and disables response caching.
-- Login and current-credential confirmations use masked six-digit PIN or password inputs based on the stored credential type.
-- The address book automatically adds a persistent contact named after the device, marked Local device, with editable name/notes and protected address/deletion.
-- `scripts/dev/benchmark/` scripts that measure the installed app's CPU, memory, disk growth, start-up time and workflow load on a Pi, with a guide in `docs/guides/pi-benchmark.md`.
-
-### Changed
-
 - New and confirmed PINs in setup and Settings now use persistent-password autofill semantics.
 - User-created contacts remain independent and may share the local contact's address.
 - App-controlled wallet replacement verifies and updates the local contact, preserves its details and workflow references, and blocks payments through it until verification completes.
 - Update page release notes come from a copy `update-agent` caches on disk when it checks for updates.
 - "View full changelog" on the Update page opens every released entry in the app instead of GitHub.
 - The browser no longer contacts GitHub from the Update page, and the frontend CSP no longer allows `raw.githubusercontent.com`.
+- `GET /api/wallet/history` returns a paginated, filterable list of all wallet movements instead of `{ sends }`, and no longer accepts `limit`; see `README.md`.
 
 ### Fixed
 
@@ -52,6 +39,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Session-expiry notices now refer to both PINs and passwords.
 - Address-book payments resolve the current saved destination, including after wallet replacement on older Minima versions.
 - Relative links in Update page release notes point to the correct GitHub repository.
+- The Send payment dialog accepts decimal amounts.
+- `GET /api/wallet/payment-status/:txpowid` reports pending and confirmed payments instead of always `unknown`.
 
 ## [0.42.2] 2026-10-06
 

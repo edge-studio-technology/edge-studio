@@ -1,6 +1,6 @@
 # Incoming Payment Service and Wallet History Filtering Plan
 
-**Status:** In progress
+**Status:** Done — PR to `dev` open
 **Created:** 2026-10-09
 **Branch:** `task/652-implement-the-incoming-payment-service`
 **Audit baseline:** `620bef8c` (clean working tree before this planning session)
@@ -70,7 +70,7 @@
       Pi QA (`99b7be0`): a 5000 send over the API failed and its details showed Reason "Insufficient funds.. you only have 7.834 require:5000"; the earlier 9999 row shows "No reason was recorded for this send." The Send dialog itself blocks amounts above the sendable balance, so this case can't be produced from the UI.
     - Note: a contact name only labels the exact address saved. The peer's later payment came from another of its addresses and shows the address instead of "Testnet peer (652 QA)".
 - [x] Docs — CHANGELOG branch section, README wallet API and sync behaviour, SECURITY bullet and `docs/security/wallet-and-tokens.md` "Wallet History Clear", ADR 0033 (`docs/README.md` table), SESSION/TASKS.
-- [ ] Verification — Pi QA done (2026-10-09), fixes uncommitted:
+- [x] Verification — `3a7887cf`; Pi QA 2026-10-09 (`v0.42.2-dev+3a7887c`). QA backups, the Minima snapshot, and the 13 peer rows were cleaned up afterwards:
     - Offline receive: with the backend stopped, a 0.777 receive confirmed on chain; after the backend started it was listed Confirmed with its block time within about 11 s.
     - Seed import (`POST /api/wallet/import`) fails with "Invalid parameter : phrase": it sends `restore phrase:`, which Minima's `restore` does not accept (it takes `file:`; seed restore is `vault action:restorekeys`). Pre-existing; the feature is hidden and deferred post-v1, so not fixed here. The failed import also left the local "This device" contact pending until the next restore. History was unaffected.
     - Backup restore through the app (`POST /api/minima/backups/restore`, a backup under 2 days old, so `restoresync` does a plain restore without Megammr): restoring the testnet peer's backup, then the Pi's own backup.
