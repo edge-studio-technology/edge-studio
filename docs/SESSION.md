@@ -4,6 +4,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Audited OpenProject #536, its activity history, parent #307, and related spike #212 against `620bef8c`; saved the proposed resync lifecycle/progress plan and linked it from TASKS. Confirmed the 30-second RPC failure path, browser-owned restart, premature/overwritten in-memory tracking, and missing resync page coverage. User chose concise events. All 127 focused existing backend/frontend tests passed; route tests required permission for a temporary local listener. No application code, OpenProject state, deployment, or real-node action changed; live lifecycle/timing evidence and implementation remain pending.
+
 - #239 Pi check on dev Pi (DEV_MODE install of the branch + `update-agent` built from branch source): Update page showed 3 released entries and the full-changelog modal; browser made no GitHub requests; `update-agent` recreated with `raw.githubusercontent.com` blocked still served notes from `changelog-cache.json` (unchanged `fetchedAt`). Corrected CHANGELOG/README/ADR 0032 wording: notes survive a restart without GitHub, not a fully offline Pi (manifest check fails first).
 - #239 frontend (`bb3f4941`) + docs on `task/239-improve-changelog-service`: `UpdateStatus.changelog` type; dropped browser `fetchChangelog()`; `parseChangelog()` limit now optional (all released entries); `ChangelogPreview` takes `markdown`/`onRetry` props from `UpdatePage`, previews 3 entries, "View full changelog" opens an in-app `Modal`; `REPO_URL` fixed to `edge-studio-technology`; `raw.githubusercontent.com` dropped from both nginx CSP `connect-src`. ADR 0032 (renumbered from 0031 after the `dev` merge) added, ADR 0004 marked partially superseded, `docs/README.md` table, update-agent rules ×3, SECURITY, README, CHANGELOG updated. Verified: `npm run check` (all packages, coverage thresholds met), backend/frontend builds, `docker compose config`, `docker compose build frontend update-agent`, `nginx -t` on the new config.
 - #239 update-agent steps 1–3 on `task/239-improve-changelog-service`: added the persisted changelog cache (`changelog-cache.ts`, `/state/changelog-cache.json`, refetch only on a new manifest version, copy accepted only with that version's heading), synced it from every `getUpdateStatus()` call without failing the status check, and added `changelog: { markdown, fetchedAt } | null` to `GET /status`. Commits `f2fb38cb`, `fbb2a887`, `32fc5c22`. Update Agent coverage run (188 tests, thresholds met) and `tsc --noEmit` passed.
@@ -114,6 +116,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - Opened PR #143 to `dev`.
 
 ## Next Steps
+
+- #536: review the proposed plan, then capture disposable-node lifecycle evidence and implement backend-owned resync tracking/recovery with the agreed concise progress panel.
 
 - #239: open PR `task/239-improve-changelog-service` → `dev`.
 - #283: operator review/merge; implementation and in-scope verification are complete. Consider a separate compatibility ticket for password-manager/native autofill and physical mobile keyboards.

@@ -30,6 +30,8 @@
 
 ## Next
 
+- [ ] Fix Minima resync feedback (OpenProject #536) — audit complete; proposed backend-owned lifecycle and concise progress events, implementation not started; see [plan](plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md).
+
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
 - [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.
 
