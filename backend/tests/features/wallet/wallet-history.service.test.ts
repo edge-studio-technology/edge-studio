@@ -32,6 +32,7 @@ let scripts: unknown;
 let onchain: Record<string, unknown>;
 let replacementCount = 0;
 let tip: unknown;
+let blocks: Record<string, unknown>;
 
 function finishWalletReplacement() {
   replacementCount += 1;
@@ -56,6 +57,8 @@ function routeRpc(command: string) {
   }
   const id = /^txpow onchain:(.+)$/.exec(command)?.[1];
   if (id) return { ok: true, body: { status: true, response: onchain[id] ?? { found: false } } };
+  const blockId = /^txpow txpowid:(.+)$/.exec(command)?.[1];
+  if (blockId) return { ok: true, body: blocks[blockId] ?? { status: false, error: "TxPoW not found" } };
   throw new Error(`unexpected command ${command}`);
 }
 
@@ -87,6 +90,7 @@ beforeEach(() => {
   chain = [];
   scripts = scriptsBody();
   onchain = {};
+  blocks = {};
   tip = { status: true, response: { block: "100" } };
   replacementInProgressMock.mockReset().mockReturnValue(false);
   replacementCountMock.mockReset().mockImplementation(() => replacementCount);
@@ -264,13 +268,34 @@ describe("refreshPendingConfirmations", () => {
     chain = [receivedItem(1), receivedItem(2)];
     await service.syncWalletHistory();
     onchain = { "0x000001": { found: true, block: "42", blockid: "0xB", tip: "44", confirmations: "3" } };
+    blocks = { "0xB": { status: true, response: { txpowid: "0xB", header: { block: "42", timemilli: "1700000005000" } } } };
 
     await service.refreshPendingConfirmations();
 
     const [confirmed, pending] = storedRows();
-    assert.deepEqual([confirmed.block, confirmed.confirmations], [42, 3]);
-    assert.ok(confirmed.confirmed_at);
+    assert.deepEqual(
+      [confirmed.block, confirmed.confirmations, confirmed.confirmed_at],
+      [42, 3, new Date(1_700_000_005_000).toISOString()]
+    );
     assert.equal(pending.confirmed_at, null);
+  });
+
+  it("leaves a row pending when its block can't be read, and retries next time", async () => {
+    chain = [receivedItem(1)];
+    await service.syncWalletHistory();
+    onchain = { "0x000001": { found: true, block: "42", blockid: "0xB", tip: "44", confirmations: "3" } };
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await service.refreshPendingConfirmations();
+
+    assert.equal(storedRows()[0].confirmed_at, null);
+    assert.match(String(errorSpy.mock.calls[0][1]), /requested TxPoW/);
+    errorSpy.mockRestore();
+    blocks = { "0xB": { status: true, response: { txpowid: "0xB", header: { timemilli: "1700000005000" } } } };
+
+    await service.refreshPendingConfirmations();
+
+    assert.equal(storedRows()[0].confirmed_at, new Date(1_700_000_005_000).toISOString());
   });
 
   it("only checks the current wallet's rows, in bounded batches, and skips non-hex IDs", async () => {
@@ -385,6 +410,18 @@ describe("listWalletHistory", () => {
     assert.deepEqual(items.map((item) => item.counterpartyLabel), ["Testnet peer", null]);
   });
 
+  it("finds rows by contact name, whichever address form the row and the contact use", async () => {
+    const current = await service.getWalletFingerprint();
+    db.prepare("INSERT INTO address_book (id, label, address, created_at) VALUES ('c1', 'Testnet peer', ?, 'now')").run(SECOND_WALLET_ADDRESS);
+    insertChainRow({ txpowId: "0x0A", transactionId: "0xT1", timeMillis: 3_000, fingerprint: current, counterparty: SECOND_WALLET_MINIADDRESS });
+    insertChainRow({ txpowId: "0x0B", transactionId: "0xT2", timeMillis: 2_000, fingerprint: current, counterparty: SECOND_WALLET_ADDRESS.toLowerCase() });
+    insertChainRow({ txpowId: "0x0C", transactionId: "0xT3", timeMillis: 1_000, fingerprint: current, counterparty: "MxUNKNOWN" });
+
+    const { items } = await service.listWalletHistory({ ...PAGE, q: "PEER" });
+
+    assert.deepEqual(items.map((item) => item.id), ["0x0A:0x00", "0x0B:0x00"]);
+  });
+
   it("still lists stored rows when Minima is unreachable", async () => {
     insertChainRow({ txpowId: "0x0A", transactionId: "0xT1", timeMillis: 1_000, block: 97, confirmedAt: "c", fingerprint: "old" });
     runMinimaPathCommandMock.mockRejectedValue(new Error("connect ECONNREFUSED"));
@@ -410,6 +447,7 @@ describe("listWalletHistory", () => {
     assert.deepEqual(await ids({ fromMillis: 2_000, toMillis: 4_000 }), ["0x0C:0x00", "0x0B:0x00"]);
     assert.deepEqual(await ids({ q: "alice" }), ["0x0A:0x00"]);
     assert.deepEqual(await ids({ q: "0xT3" }), ["0x0C:0x00"]);
+    assert.deepEqual(await ids({ q: "warehouse" }), []);
     const page = await service.listWalletHistory({ page: 2, pageSize: 3 });
     assert.deepEqual([page.total, page.items.map((item) => item.id)], [4, ["0x0A:0x00"]]);
   });

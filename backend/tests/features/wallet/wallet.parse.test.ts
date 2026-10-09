@@ -10,6 +10,7 @@ import {
   parseImportResponse,
   parseLocalWalletAddressesResponse,
   parseOnchainResponse,
+  parseTxPowTimeResponse,
   parsePaymentStatusResponse,
   parseSendResponse,
   parseTrackedScriptAddressesResponse
@@ -222,6 +223,25 @@ describe("parsePaymentStatusResponse", () => {
       { response: { txpowid: "0xAB" } }, { status: true, response: { txpowid: "0xCD" } },
       { status: true, response: { txpow: { txpowid: "0xAB" } } }]) {
       assert.equal(parsePaymentStatusResponse(body, "0xAB").status, "unknown");
+    }
+  });
+});
+
+describe("parseTxPowTimeResponse", () => {
+  it("returns the header time of the requested TxPoW", () => {
+    const body = { status: true, response: { txpowid: "0xAB", header: { block: "381", timemilli: "1791542341688" } } };
+    assert.equal(parseTxPowTimeResponse(body, "0xab"), 1_791_542_341_688);
+  });
+
+  it("rejects failures, another TxPoW, and a missing or malformed time", () => {
+    for (const body of [
+      { status: false, error: "not found" },
+      { status: true, response: { txpowid: "0xCD", header: { timemilli: "1" } } },
+      { status: true, response: { txpowid: "0xAB", header: {} } },
+      { status: true, response: { txpowid: "0xAB", header: { timemilli: "soon" } } },
+      { status: true, response: { txpowid: "0xAB" } }
+    ]) {
+      assert.throws(() => parseTxPowTimeResponse(body, "0xAB"), /requested TxPoW/);
     }
   });
 });

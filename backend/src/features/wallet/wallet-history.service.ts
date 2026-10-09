@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { db } from "../../db/database.js";
-import { canonicalMinimaAddress } from "../../shared/minima-address.js";
+import { canonicalMinimaAddress, miniMinimaAddress } from "../../shared/minima-address.js";
 import { listAddressBookEntries } from "../address-book/address-book.repository.js";
 import { getWalletReplacementCount, isWalletReplacementInProgress } from "../address-book/wallet-replacement.service.js";
 import { parseBlockCommandResponse } from "../minima/minima.parse.js";
@@ -12,7 +12,8 @@ import {
   parseHistorySizeResponse,
   parseLocalWalletAddressesResponse,
   parseOnchainResponse,
-  parseTrackedScriptAddressesResponse
+  parseTrackedScriptAddressesResponse,
+  parseTxPowTimeResponse
 } from "./wallet.parse.js";
 import type { ChainHistoryEntry, WalletHistoryItem, WalletHistoryQuery } from "./wallet.types.js";
 
@@ -182,7 +183,9 @@ export async function refreshPendingConfirmations(): Promise<void> {
     for (const { txpow_id: txpowId } of pending) {
       if (!isTxPowId(txpowId)) continue;
       const onchain = parseOnchainResponse((await runMinimaPathCommand(`txpow onchain:${txpowId}`)).body);
-      if (onchain.found) confirm.run(onchain.block, onchain.confirmations, new Date().toISOString(), txpowId);
+      if (!onchain.found || !isTxPowId(onchain.blockId)) continue;
+      const blockTime = parseTxPowTimeResponse((await runMinimaPathCommand(`txpow txpowid:${onchain.blockId}`)).body, onchain.blockId);
+      confirm.run(onchain.block, onchain.confirmations, new Date(blockTime).toISOString(), txpowId);
     }
   } catch (error) {
     console.error("Wallet confirmation refresh failed:", error instanceof Error ? error.message : "unknown error");
@@ -226,7 +229,8 @@ type HistoryRow = {
   origin: WalletHistoryItem["origin"];
 };
 
-function buildHistoryWhere(query: Omit<WalletHistoryQuery, "page" | "pageSize">) {
+/** `contactAddresses` are the addresses of contacts whose label matches `q`, in both 0x and Mx form. */
+function buildHistoryWhere(query: Omit<WalletHistoryQuery, "page" | "pageSize">, contactAddresses: string[]) {
   const clauses: string[] = [];
   const params: unknown[] = [];
   if (query.status) {
@@ -247,8 +251,11 @@ function buildHistoryWhere(query: Omit<WalletHistoryQuery, "page" | "pageSize">)
   }
   if (query.q) {
     const like = `%${query.q}%`;
-    clauses.push("(counterparty LIKE ? OR txpow_id LIKE ? OR transaction_id LIKE ? OR token_name LIKE ? OR token_id LIKE ?)");
-    params.push(like, like, like, like, like);
+    const contactMatch = contactAddresses.length > 0
+      ? ` OR counterparty COLLATE NOCASE IN (${contactAddresses.map(() => "?").join(", ")})`
+      : "";
+    clauses.push(`(counterparty LIKE ? OR txpow_id LIKE ? OR transaction_id LIKE ? OR token_name LIKE ? OR token_id LIKE ?${contactMatch})`);
+    params.push(like, like, like, like, like, ...contactAddresses);
   }
   return { where: clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "", params };
 }
@@ -275,7 +282,15 @@ async function readCurrentFingerprint(): Promise<string | null> {
  */
 export async function listWalletHistory(query: WalletHistoryQuery) {
   const [tip, fingerprint] = await Promise.all([readTipBlock(), readCurrentFingerprint()]);
-  const { where, params } = buildHistoryWhere(query);
+  const contacts = listAddressBookEntries();
+  const needle = query.q?.toLowerCase();
+  const contactAddresses = needle
+    ? contacts
+      .filter((entry) => entry.label.toLowerCase().includes(needle))
+      .flatMap((entry) => [canonicalMinimaAddress(entry.address), miniMinimaAddress(entry.address)])
+      .filter((address): address is string => address !== null)
+    : [];
+  const { where, params } = buildHistoryWhere(query, contactAddresses);
   const total = (db.prepare(`SELECT COUNT(*) AS count FROM (${HISTORY_ROWS}) ${where}`).get(...params) as { count: number }).count;
   const rows = db.prepare(`
     SELECT * FROM (${HISTORY_ROWS}) ${where}
@@ -285,7 +300,7 @@ export async function listWalletHistory(query: WalletHistoryQuery) {
   const previousWalletItems = fingerprint === null ? 0 : (db.prepare(`
     SELECT COUNT(*) AS count FROM (${HISTORY_ROWS}) WHERE wallet_fingerprint IS NOT NULL AND wallet_fingerprint != ?
   `).get(fingerprint) as { count: number }).count;
-  const contactLabels = new Map(listAddressBookEntries().map((entry) => [canonicalMinimaAddress(entry.address), entry.label]));
+  const contactLabels = new Map(contacts.map((entry) => [canonicalMinimaAddress(entry.address), entry.label]));
 
   const items = rows.map((row): WalletHistoryItem => ({
     id: row.id,

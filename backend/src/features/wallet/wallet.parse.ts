@@ -155,6 +155,18 @@ function asNonNegativeInteger(value: unknown): number | null {
   return typeof parsed === "number" && Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
+/** TxPoW time from a `txpow txpowid:` response, in epoch milliseconds. */
+export function parseTxPowTimeResponse(body: unknown, txpowId: string): number {
+  const record = asRecord(body);
+  const response = asRecord(record?.response);
+  const timeMillis = asNonNegativeInteger(asRecord(response?.header)?.timemilli);
+  if (record?.status !== true || typeof response?.txpowid !== "string"
+    || response.txpowid.toLowerCase() !== txpowId.toLowerCase() || timeMillis === null) {
+    throw new Error("Minima did not return the requested TxPoW");
+  }
+  return timeMillis;
+}
+
 export function parseOnchainResponse(body: unknown): TxPowOnChain {
   const record = asRecord(body);
   const response = asRecord(record?.response);

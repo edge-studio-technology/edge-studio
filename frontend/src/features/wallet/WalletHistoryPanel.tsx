@@ -205,7 +205,7 @@ export function WalletHistoryPanel({
               filter={filters.status}
               q={filters.q}
               filterOptions={WALLET_HISTORY_STATUS_OPTIONS}
-              searchPlaceholder="Address, token, or ID"
+              searchPlaceholder="Contact, address, token, or ID"
               onFilterChange={(status) => onFiltersChange({ status: status as WalletHistoryFilters["status"] })}
               onQueryChange={(q) => onFiltersChange({ q })}
               extraFilters={

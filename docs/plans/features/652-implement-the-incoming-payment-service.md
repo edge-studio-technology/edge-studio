@@ -48,12 +48,21 @@
     - Direction, status, search, and from/to filters return the expected counts; invalid status, direction, date, and range return 400.
     - A send appears immediately as a pending send without a TxPoW ID. After the next sync it is replaced by its chain row (no duplicate), with origin kept.
     - Two injected previous-wallet rows were flagged and counted. A wrong PIN returned 401 `invalid_credential` and kept the session; the right PIN deleted exactly those 2 rows and recorded `wallet.history.clear_previous` with `{"deleted":2}`.
-- [ ] Step 5: Frontend history panel, filters, detail modal, and clear action
+- [x] Step 5: Frontend history panel, filters, detail modal, and clear action (`17f0b251`)
   - `WalletPage.tsx` loads status and history separately. History reloads quietly on each Minima status tick (30 s) and after the send dialog closes, so incoming payments and confirmations show up without a page reload.
   - Filters: status, type (Received/Sent/Self), date preset (Today, Last 7 days, Last 30 days, This month, Custom range), and search. Presets and custom days are local time; a custom range includes both days. Filter helpers live in `walletHistory.ts`. `ListFilterBar` gained an `extraFilters` slot.
   - Deviation: contact labels are resolved by the backend (`counterpartyLabel` on each item, matching Mx and 0x forms), not in the browser, because matching needs Mx checksum decoding.
   - Deviation: the clear dialog is a `Modal` with `CredentialField` (`ClearPreviousHistoryModal.tsx`), same as "Remove backup password". `DeleteConfirmModal` has no slot for a credential field.
   - `applyPaginatedPage()` moved to `frontend/src/lib/paginated.ts`.
+  - Pi QA 2026-10-09 (testnet, `v0.42.2-dev+17f0b25`, headless browser):
+    - The Wallet page loads again: 8 rows with signed amounts, contact names, Received/Sent/Self, and confirmed status.
+    - Type, status, date preset, custom range (same day, future days, end before start), and address search filters return the expected rows.
+    - The detail view shows sender name and address, date, confirmation time, block with confirmation count, token, TxPoW, and transaction IDs.
+    - A 0.75 send from the dialog appeared at once as Pending and turned Confirmed 48 s later without a reload, with no duplicate row.
+    - Two injected previous-wallet rows brought up the banner within one refresh. A wrong PIN showed "Invalid current credential" and kept the session; the right PIN deleted 2 and the banner disappeared.
+    - Diagnostics paging still works after the helper move.
+    - Finding, fixed in the follow-up commit: search matched addresses and IDs but not contact names. Search now also matches rows whose counterparty is a contact with a matching name, in either address form (`miniMinimaAddress()` in `shared/minima-address.ts` encodes the Mx form).
+    - Finding, fixed in the follow-up commit: "Confirmed" was the time the app first saw the confirmation. It is now the block's TxPoW time, read with `txpow txpowid:<blockid>` (one extra call per newly confirmed row; verified on the Pi that the response carries `header.timemilli`).
 - [ ] Docs
 - [ ] Verification
 
