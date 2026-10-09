@@ -24,7 +24,8 @@ import {
 } from "../status/docker.control.js";
 import { getComposeServiceContainer } from "../status/docker.service.js";
 import { normalizeMinimaRpcError } from "./minima.errors.js";
-import type { MinimaNodeState, MinimaNodeStatus } from "./minima.types.js";
+import type { MinimaNodeState, MinimaNodeStatus, MinimaResyncTrigger } from "./minima.types.js";
+import { reserveMinimaMutation, getMinimaResyncSummary, startMinimaResync } from "./minima-resync.service.js";
 
 const megammrHostSetting = "minima_megammr_host";
 const defaultMegammrHost = "megammr.minima.global:9001";
@@ -55,6 +56,7 @@ function deriveNodeState(
 }
 
 function applyOperationOverride(state: MinimaNodeState): MinimaNodeState {
+  if (getMinimaResyncSummary()?.busy) return state === "running" ? state : "restarting";
   if (state === "running") {
     endMinimaOperation();
     return state;
@@ -103,7 +105,7 @@ export async function getMinimaNodeStatus(): Promise<MinimaNodeStatus> {
       storage: getMinimaStorageInfo(containerStats?.containerDisk),
       config
     };
-    return { ...status, monitoring: buildMinimaMonitoring(status) };
+    return { ...status, monitoring: buildMinimaMonitoring(status), resync: getMinimaResyncSummary() };
   }
 
   const parsed = parseStatusResponse(rpcResult.body);
@@ -178,23 +180,16 @@ export async function getMinimaNodeStatus(): Promise<MinimaNodeStatus> {
     config
   };
 
-  return { ...status, monitoring: buildMinimaMonitoring(status) };
+  return { ...status, monitoring: buildMinimaMonitoring(status), resync: getMinimaResyncSummary() };
 }
 
 export async function getWalletBalance() {
   return runMinimaPathCommand("balance");
 }
 
-export async function resyncMegammr() {
+export async function resyncMegammr(trigger: MinimaResyncTrigger = "manual") {
   const { megammrHost } = getMinimaConfig();
-  const command = `megammrsync action:resync host:${megammrHost}`;
-  beginMinimaOperation("resync");
-  try {
-    return await runMinimaPathCommand(command, 30000);
-  } catch (error) {
-    endMinimaOperation();
-    throw error;
-  }
+  return startMinimaResync(megammrHost, trigger);
 }
 
 export async function getMinimaPeers() {
@@ -257,6 +252,7 @@ async function performGracefulRestart(containerId: string, baseline: ContainerRe
 }
 
 export async function restartMinimaContainer() {
+  const release = reserveMinimaMutation();
   beginMinimaOperation("restart");
   let container;
   let baseline;
@@ -269,13 +265,14 @@ export async function restartMinimaContainer() {
     baseline = await getContainerRestartBaseline(container.Id);
   } catch (error) {
     endMinimaOperation();
+    release();
     throw error;
   }
 
   void performGracefulRestart(container.Id, baseline).catch((error) => {
     endMinimaOperation();
     console.error("Minima graceful restart failed:", error instanceof Error ? error.message : error);
-  });
+  }).finally(release);
 
   return {
     ok: true as const,

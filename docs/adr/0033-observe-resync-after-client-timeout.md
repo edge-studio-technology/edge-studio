@@ -17,6 +17,8 @@ Use separate initial observation budgets: five minutes for RPC response, five mi
 
 After losing the completion envelope, cycle plus usable RPC establishes recovery but the resync outcome remains unconfirmed. Release reservation only after that reconciliation or definite rejection; otherwise preserve ownership. Operator recovery requires host diagnostics and confirmed cessation/completion before starting a stopped container. Do not add an in-app clear/force shortcut solely because a deadline expired.
 
+Step 2 persists resync ownership separately from the legacy display marker. Restart/backup/restore hold an in-memory exclusion for the duration of pending work, because healthy status can clear their marker while I/O is still running. These exclusions prevent resync overlap without introducing the previously reverted generic operation-lock redesign. Other mutations remain outside this boundary.
+
 ## Alternatives considered
 
 - Increase the existing synchronous timeout: still leaves recovery dependent on the browser and does not resolve a disconnected request's outcome.
@@ -25,11 +27,11 @@ After losing the completion envelope, cycle plus usable RPC establishes recovery
 
 ## Consequences
 
-A timeout warning can remain visible while observation continues. Some outcomes will remain unconfirmed. Initial budgets require revalidation in final QA and cannot establish outcomes by themselves. This evidence step adds no runtime behavior.
+A timeout warning can remain visible while observation continues. Some outcomes will remain unconfirmed. Initial budgets require revalidation in final QA and cannot establish outcomes by themselves. Step 2 implements tracking and dispatch; process observation, recovery and startup reconciliation remain for step 3.
 
 ## Where this lives in code
 
 - `backend/tests/fixtures/minima/resync-lifecycle.json`: captured envelopes.
 - `backend/tests/features/minima/minima.parse.test.ts`: envelope parsing.
 - `backend/tests/features/minima/minima.rpc.test.ts`: rejection and client-deadline boundaries.
-- `backend/src/features/minima/minima-resync.service.ts`: planned worker, not implemented yet.
+- `backend/src/features/minima/minima-resync.service.ts`: persisted reservation, progress, and asynchronous RPC dispatch; recovery observation pending.

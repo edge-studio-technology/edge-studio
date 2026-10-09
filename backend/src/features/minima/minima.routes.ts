@@ -22,7 +22,8 @@ import {
 } from "./minima-backup.service.js";
 import { getConsoleWhitelist, MinimaConsoleError, runConsoleCommand, updateConsoleWhitelist } from "./minima-console.service.js";
 import { backupUpload } from "./minima-upload.middleware.js";
-import { normalizeMinimaRpcError } from "./minima.errors.js";
+import { normalizeMinimaRpcError, MinimaResyncConflictError } from "./minima.errors.js";
+import { getMinimaResyncOperation } from "./minima-resync.service.js";
 import {
   addMinimaPeers,
   getAutoRestartEnabled,
@@ -108,6 +109,7 @@ minimaRouter.post("/restart", requireRole("admin"), async (req, res) => {
     });
     res.json(result);
   } catch (error) {
+    if (error instanceof MinimaResyncConflictError) return apiErrorFromStatus(res, 409, error.message);
     const nativeMessage = error instanceof Error ? error.message : "Unknown error";
     const message = normalizeMinimaRpcError(nativeMessage);
     dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false });
@@ -129,12 +131,21 @@ minimaRouter.get("/balance", async (_req, res) => {
 minimaRouter.post("/megammrsync/resync", requireRole("admin"), async (_req, res) => {
   try {
     const result = await resyncMegammr();
-    if (!result.ok) return dependencyUnavailable(res, "Megammr resync failed", undefined, undefined, result);
-    res.json(result);
+    res.status(202).json(result);
   } catch (error) {
+    if (error instanceof MinimaResyncConflictError) return apiErrorFromStatus(res, 409, error.message);
     const nativeMessage = error instanceof Error ? error.message : "Unknown error";
     const message = normalizeMinimaRpcError(nativeMessage);
     dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });
+  }
+});
+
+minimaRouter.get("/resync", requireRole("admin"), (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  try {
+    res.json(getMinimaResyncOperation());
+  } catch (error) {
+    unexpected(res, "Failed to read Minima resync progress", error);
   }
 });
 
@@ -167,6 +178,7 @@ minimaRouter.post("/console/run", requireRole("admin"), async (req, res) => {
     const result = await runConsoleCommand(req.user?.id, command);
     res.json(result);
   } catch (error) {
+    if (error instanceof MinimaResyncConflictError) return apiErrorFromStatus(res, 409, error.message);
     if (error instanceof MinimaConsoleError) {
       return apiErrorFromStatus(res, error.status, error.message);
     }
@@ -177,6 +189,7 @@ minimaRouter.post("/console/run", requireRole("admin"), async (req, res) => {
 });
 
 function handleMinimaBackupError(res: Response, error: unknown) {
+  if (error instanceof MinimaResyncConflictError) return apiErrorFromStatus(res, 409, error.message);
   if (error instanceof MinimaBackupError) {
     // errorCode marks this as a re-auth failure, not an expired session — see the same
     // note on POST /console/whitelist above.

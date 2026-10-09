@@ -8,6 +8,7 @@ import { deleteSetting, getSetting, saveSetting } from "../settings/settings.rep
 import { beginMinimaOperation, endMinimaOperation } from "./minima-monitoring.js";
 import { runMinimaPathCommand } from "./minima.rpc.js";
 import { getMinimaConfig } from "./minima.service.js";
+import { reserveMinimaMutation } from "./minima-resync.service.js";
 
 export class MinimaBackupError extends Error {
   status: number;
@@ -151,57 +152,67 @@ export type MinimaBackupRestoreResult = {
 };
 
 export async function createBackup({ auto = false }: { auto?: boolean } = {}): Promise<MinimaBackupCreateResult> {
-  const password = getBackupPassword();
-  if (!password) {
-    throw new MinimaBackupError("Set a backup password before creating a backup.", 400);
-  }
-
-  const fileName = backupFileName(auto);
-  const command = `backup file:backups/${fileName} password:"${password}"`;
-  beginMinimaOperation("backup");
+  const release = reserveMinimaMutation();
   try {
-    const result = await runMinimaPathCommand(command, 60000);
-
-    const existing = await listBackups();
-    if (existing.length > MAX_BACKUPS) {
-      const oldest = existing[existing.length - 1];
-      if (oldest) await deleteBackup(oldest.fileName).catch(() => undefined);
+    const password = getBackupPassword();
+    if (!password) {
+      throw new MinimaBackupError("Set a backup password before creating a backup.", 400);
     }
 
-    const written = existing.find((entry) => entry.fileName === fileName);
-    return {
-      ok: result.ok,
-      status: result.status,
-      fileName,
-      auto,
-      sizeBytes: written?.sizeBytes ?? null,
-      createdAt: written?.createdAt ?? null
-    };
-  } catch (error) {
-    endMinimaOperation();
-    throw error;
+    const fileName = backupFileName(auto);
+    const command = `backup file:backups/${fileName} password:"${password}"`;
+    beginMinimaOperation("backup");
+    try {
+      const result = await runMinimaPathCommand(command, 60000);
+
+      const existing = await listBackups();
+      if (existing.length > MAX_BACKUPS) {
+        const oldest = existing[existing.length - 1];
+        if (oldest) await deleteBackup(oldest.fileName).catch(() => undefined);
+      }
+
+      const written = existing.find((entry) => entry.fileName === fileName);
+      return {
+        ok: result.ok,
+        status: result.status,
+        fileName,
+        auto,
+        sizeBytes: written?.sizeBytes ?? null,
+        createdAt: written?.createdAt ?? null
+      };
+    } catch (error) {
+      endMinimaOperation();
+      throw error;
+    }
+  } finally {
+    release();
   }
 }
 
 export async function restoreBackup({ fileName, password }: { fileName: string; password?: string }): Promise<MinimaBackupRestoreResult> {
-  const absolutePath = await resolveBackupPath(fileName);
-  await fs.access(absolutePath);
-  const { megammrHost } = getMinimaConfig();
-  // Explicit password wins (needed for an uploaded/foreign .bak with an unknown history);
-  // otherwise fall back to our own stored password, since that's what protects every
-  // backup this service itself created.
-  const trimmed = password?.trim() || getBackupPassword();
-  const passwordArg = trimmed ? ` password:"${trimmed}"` : "";
-  const command = `restoresync file:backups/${fileName} host:${megammrHost}${passwordArg}`;
-  beginMinimaOperation("restore");
+  const release = reserveMinimaMutation();
   try {
-    // Same reason as createBackup — the command carries the password.
-    const result = await runWalletReplacement(() => runMinimaPathCommand(command, 60000));
-    const body = result.body as { status?: unknown } | null;
-    return { ok: result.ok && body?.status === true, status: result.status, fileName };
-  } catch (error) {
-    endMinimaOperation();
-    throw error;
+    const absolutePath = await resolveBackupPath(fileName);
+    await fs.access(absolutePath);
+    const { megammrHost } = getMinimaConfig();
+    // Explicit password wins (needed for an uploaded/foreign .bak with an unknown history);
+    // otherwise fall back to our own stored password, since that's what protects every
+    // backup this service itself created.
+    const trimmed = password?.trim() || getBackupPassword();
+    const passwordArg = trimmed ? ` password:"${trimmed}"` : "";
+    const command = `restoresync file:backups/${fileName} host:${megammrHost}${passwordArg}`;
+    beginMinimaOperation("restore");
+    try {
+      // Same reason as createBackup — the command carries the password.
+      const result = await runWalletReplacement(() => runMinimaPathCommand(command, 60000));
+      const body = result.body as { status?: unknown } | null;
+      return { ok: result.ok && body?.status === true, status: result.status, fileName };
+    } catch (error) {
+      endMinimaOperation();
+      throw error;
+    }
+  } finally {
+    release();
   }
 }
 

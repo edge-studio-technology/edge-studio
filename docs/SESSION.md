@@ -4,6 +4,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Committed #536 step 1 as `0091fd40`; implemented step 2 persistent ownership/phases/events, async 202 initiation, admin-only no-store progress reads, compact status summary and structured 409 conflicts. Pending restart/backup/restore I/O excludes resync independently of legacy display markers. Captured rejection releases ownership; transport/malformed/completion responses remain reserved for step 3 recovery. Console/poller DTO/trigger adaptations record initiation instead of completion; skipped conflicts consume no cooldown. Removed the ownership test's expected-failure marker. Full check passed 3,501 tests, typechecks/coverage/audits; two follow-up backup/restore race tests passed (31-test suite). Focused 169 tests, builds, Compose validation and backend/frontend Docker builds passed; new module line coverage 94.91%. Updated README/SECURITY/risk register/changelog/ADR and mirrored rules. No deployment or live-node action; recovery/startup reconciliation and browser integration remain pending.
+
 - Completed #536 step 1: captured resync completion/rejection on disposable AMD64 Core 1.1.2.4/1.0.49.4 and the exact deployed ARM64 Core 1.1.2.6 image. Verified continued work after abort, >30-second throttled resync, natural restart and recovered chain progress. Added fixtures, parser/RPC regressions and one explicitly expected-failing ownership regression; ADR 0033 records observation budgets and uncertainty/operator policy. Focused 41 passes plus one expected failure, full checks/coverage/audits, typechecks, builds and Compose validation passed. No runtime implementation or deployment; original Pi node process baseline stayed unchanged.
 
 - Audited OpenProject #536, its activity history, parent #307, and related spike #212 against `620bef8c`; saved the proposed resync lifecycle/progress plan and linked it from TASKS. Confirmed the 30-second RPC failure path, browser-owned restart, premature/overwritten in-memory tracking, and missing resync page coverage. User chose concise events. All 127 focused existing backend/frontend tests passed; route tests required permission for a temporary local listener. No application code, OpenProject state, deployment, or real-node action changed; live lifecycle/timing evidence and implementation remain pending.
@@ -119,7 +121,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- #536: implement step 2 backend tracking/asynchronous initiation/bounded persistence; remove the expected-failure marker when ownership retention is fixed, then implement backend recovery and concise progress UI.
+- #536: implement step 3 Docker baseline/observation/recovery, lifecycle audits, terminal poller results and startup/shutdown reconciliation; then step 4 browser DTO/progress integration. Current backend checkpoint is not deployable with the existing browser resync continuation.
 
 - #239: open PR `task/239-improve-changelog-service` → `dev`.
 - #283: operator review/merge; implementation and in-scope verification are complete. Consider a separate compatibility ticket for password-manager/native autofill and physical mobile keyboards.

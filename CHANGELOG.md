@@ -4,6 +4,14 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] bug/536-improve-minima-resync-status-feedback-and-expose-progress-logs
+
+### Changed
+
+- Minima resync starts asynchronously with HTTP 202 and exposes the latest persisted operation through an admin-only progress endpoint.
+- Duplicate resync and conflicting node restart, backup, and restore requests return HTTP 409 while resync is reserved.
+- Resync connection interruptions retain operation ownership and redacted diagnostics for backend recovery.
+
 ## [Unreleased]
 
 ### Added

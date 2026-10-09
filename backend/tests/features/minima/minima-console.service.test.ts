@@ -197,11 +197,11 @@ describe("runConsoleCommand", () => {
       enabledKeys: ["status", "megammrsync.resync"],
       currentPassword: PASSWORD
     });
-    resyncMegammrMock.mockResolvedValue({ ok: true });
+    resyncMegammrMock.mockResolvedValue({ id: "resync-1", phase: "starting" });
 
     await consoleService.runConsoleCommand(userId, "megammrsync action:resync host:megammr.minima.global:9001");
 
-    assert.equal(resyncMegammrMock.mock.calls.length, 1);
+    assert.deepEqual(resyncMegammrMock.mock.calls[0], ["console"]);
   });
 
   it("dispatches peers-add via addMinimaPeers with the parsed peerslist", async () => {

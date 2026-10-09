@@ -47,6 +47,7 @@ let db: import("better-sqlite3").Database;
 let app: import("express").Express;
 let cookie: string;
 let monitoring: typeof import("../../../src/features/minima/minima-monitoring.js");
+let resyncService: typeof import("../../../src/features/minima/minima-resync.service.js");
 let backupService: typeof import("../../../src/features/minima/minima-backup.service.js");
 
 function minimaResponse(status: number, requestedUrl: string) {
@@ -76,6 +77,7 @@ beforeAll(async () => {
   const { createSession } = await import("../../../src/features/auth/session.service.js");
   backupService = await import("../../../src/features/minima/minima-backup.service.js");
   monitoring = await import("../../../src/features/minima/minima-monitoring.js");
+  resyncService = await import("../../../src/features/minima/minima-resync.service.js");
 
   const userId = createUser({
     username: "admin",
@@ -100,7 +102,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   fs.rmSync(backupsDir, { recursive: true, force: true });
   fs.mkdirSync(backupsDir, { recursive: true });
-  db.prepare("DELETE FROM settings WHERE key IN ('minima_backup_password_enc', 'minima_console_whitelist')").run();
+  db.prepare("DELETE FROM settings WHERE key IN ('minima_backup_password_enc', 'minima_console_whitelist', 'minima_resync_operation')").run();
   backupService.setBackupPassword(BACKUP_SECRET);
   monitoring.endMinimaOperation();
 });
@@ -221,5 +223,66 @@ describe("POST /api/minima/console/run", () => {
     assertNoSecret(response);
     assert.equal("command" in response.body, false);
     monitoring.endMinimaOperation();
+  });
+});
+
+
+describe("asynchronous resync API", () => {
+  it("returns a noncached empty snapshot without issuing node RPC", async () => {
+    const anonymous = await request(app).get("/api/minima/resync");
+    assert.equal(anonymous.status, 401);
+    const response = await request(app).get("/api/minima/resync").set("Cookie", cookie);
+    assert.equal(response.status, 200);
+    assert.equal(response.body, null);
+    assert.equal(response.headers["cache-control"], "no-store");
+    assert.equal(fetchMock.mock.calls.length, 0);
+  });
+
+  it("returns 202 before slow RPC finishes and returns 409 for a duplicate without redispatch", async () => {
+    let finish!: (value: { ok: boolean; status: number; text: () => Promise<string> }) => void;
+    fetchMock.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    try {
+      const accepted = await request(app).post("/api/minima/megammrsync/resync").set("Cookie", cookie);
+      assert.equal(accepted.status, 202);
+      assert.equal(accepted.body.phase, "starting");
+      assert.equal(accepted.body.busy, true);
+      assert.equal(accepted.body.outcome, null);
+      const duplicate = await request(app).post("/api/minima/megammrsync/resync").set("Cookie", cookie);
+      assert.equal(duplicate.status, 409);
+      assert.equal(duplicate.body.errorDetails.type, "conflict");
+      const progress = await request(app).get("/api/minima/resync").set("Cookie", cookie);
+      assert.equal(progress.body.id, accepted.body.id);
+      assert.equal(progress.body.phase, "starting");
+      assert.equal("host" in progress.body, false);
+      assert.equal("dispatchedAt" in progress.body, false);
+      assert.equal(fetchMock.mock.calls.length, 1);
+    } finally {
+      finish({ ok: true, status: 200, text: async () => JSON.stringify({ status: true, response: { message: "MegaMMR sync fininshed.. please restart" } }) });
+      await vi.waitFor(() => assert.equal(resyncService.getMinimaResyncOperation()?.phase, "recovering"));
+    }
+  });
+
+  it("blocks backup, restore and console resync while reserved without another node command", async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, text: async () => JSON.stringify({ status: true }) });
+    const accepted = await request(app).post("/api/minima/megammrsync/resync").set("Cookie", cookie);
+    assert.equal(accepted.status, 202);
+    fs.writeFileSync(path.join(backupsDir, "minima-manual-1.bak"), "x");
+    db.prepare("INSERT OR REPLACE INTO settings(key,value) VALUES ('minima_console_whitelist',?)").run(JSON.stringify(["megammrsync.resync"]));
+    const backup = await request(app).post("/api/minima/backups").set("Cookie", cookie);
+    const restore = await request(app).post("/api/minima/backups/restore").set("Cookie", cookie).send({ fileName: "minima-manual-1.bak", currentPassword: ADMIN_PASSWORD });
+    const consoleResponse = await request(app).post("/api/minima/console/run").set("Cookie", cookie).send({ command: "megammrsync action:resync" });
+    for (const response of [backup, restore, consoleResponse]) {
+      assert.equal(response.status, 409);
+      assert.equal(response.body.errorDetails.type, "conflict");
+    }
+    assert.equal(fetchMock.mock.calls.length, 1);
+  });
+
+  it("returns a structured restart conflict", async () => {
+    const { MinimaResyncConflictError } = await import("../../../src/features/minima/minima.errors.js");
+    restartMinimaContainer.mockRejectedValue(new MinimaResyncConflictError());
+    const response = await request(app).post("/api/minima/restart").set("Cookie", cookie);
+    assert.equal(response.status, 409);
+    assert.equal(response.body.errorDetails.type, "conflict");
   });
 });

@@ -1,6 +1,6 @@
 # Improve Minima Resync Status Feedback and Expose Progress Logs Plan
 
-**Status:** In progress — step 1 evidence and fixtures complete; runtime implementation starts at step 2
+**Status:** In progress — steps 1–2 complete; backend recovery starts at step 3
 
 **Created:** 2026-10-09
 
@@ -13,7 +13,7 @@
 ## Progress
 
 - [x] 1. Capture the supported node's resync lifecycle and add regression fixtures.
-- [ ] 2. Implement backend resync tracking, asynchronous initiation, and bounded progress persistence.
+- [x] 2. Implement backend resync tracking, asynchronous initiation, and bounded progress persistence.
 - [ ] 3. Implement backend recovery and route every supported resync caller through it.
 - [ ] 4. Connect the Minima UI to operation state and add the progress panel.
 - [ ] 5. Cover ambiguous outcomes, recovery, conflicts, and existing consumers with regression tests.
@@ -97,6 +97,18 @@ The extra `unconfirmed` outcome prevents an ambiguous timeout from becoming eith
 Change `POST /api/minima/megammrsync/resync` to return HTTP 202 with the operation DTO once the backend has reserved/scheduled the work. The UI should say “Resync starting,” not claim upstream acceptance or completion at that point. Add admin-gated `GET /api/minima/resync` returning the latest snapshot or null, independent of node RPC availability. Add a compact optional operation summary to `GET /api/minima/status` for existing consumers; preserve the existing node-state enum.
 
 Reject a duplicate/conflicting start with structured 409 without issuing another RPC. Add a narrow resync reservation checked by restart, backup, and restore entry points, and refuse resync while one of those operations is active. A healthy status read and the legacy six-minute expiry must not clear that reservation. Release by operation ID only; old callbacks must not finish or overwrite a newer operation. Keep broader wallet/console mutation coordination and FIFO queues in #307.
+
+### Step 2 results (2026-10-09)
+
+Added feature-local persistent resync tracking/dispatch, with an owner ID, trigger, internal host/dispatch/completion evidence, phases/outcomes, `busy`, structured warnings/errors, and up to 100 meaningful events. Messages/native errors are redacted and capped at 2,000 characters. Updates reject obsolete owner IDs and released operations; repeated identical observations do not add events. There is no new migration or unbounded history.
+
+The common wrapper returns an accepted DTO immediately; manual POST returns 202. Admin-only, no-store GET `/api/minima/resync` reads the latest snapshot/null without node RPC; authenticated status includes a compact summary without diagnostics/internal fields. Conflicts return structured 409 for resync/restart/backup/restore/console dispatch. Pending restart/backup/restore calls hold a narrow exclusion independently of their legacy display marker. Healthy status, marker expiry, and module reload cannot release persisted resync ownership or replay its RPC.
+
+RPC dispatch uses ADR 0033's five-minute response budget. Explicit HTTP/RPC rejection records failed/released; lost or malformed responses retain recovering/reserved. A reported completion also remains recovering/reserved until step 3 can observe node recovery. Console/poller were minimally adapted to the changed DTO/trigger contract; automatic initiation records cooldown and conflicts consume none. Dedicated lifecycle audits, terminal poller results, Docker baseline/observation/recovery, and startup/shutdown reconciliation remain step 3.
+
+The ownership regression now passes normally (no `it.fails`). Full checks passed 3,501 tests (1,416 backend; 1,839 frontend; 194 Update Agent; 52 scripts), package typechecks/coverage thresholds, and dependency audits; two additional pending-backup/restore race tests passed afterward (31 backup-suite tests). Focused service/route/auth checks initially passed 169 tests. Backend/frontend builds, Compose validation and both container builds passed. New tracking module line coverage was 94.91%. README, SECURITY/risk register, changelog, ADR and mirrored Minima rules were updated.
+
+No deployment or live node mutation occurred in step 2. The existing browser resync continuation still expects the old synchronous response; UI integration is step 4. This is an intermediate implementation checkpoint, with no automatic terminal success/recovery yet.
 
 ## 3. Own recovery and caller integration in the backend
 
@@ -184,4 +196,4 @@ Use a disposable node for the final live checks: fast/slow resync, host rejectio
 
 ## Remaining inputs for implementation
 
-The events-only UI scope is agreed. Step 1 establishes initial lifecycle/recovery rules and budgets in ADR 0033. Runtime implementation starts at step 2; worker terminal integration and final live/browser QA remain pending. Original operator-node data was not mutated.
+The events-only UI scope is agreed. Steps 1–2 establish lifecycle evidence and backend tracking/initiation. Backend recovery/startup reconciliation starts at step 3; worker terminal integration and final live/browser QA remain pending. Original operator-node data was not mutated.
