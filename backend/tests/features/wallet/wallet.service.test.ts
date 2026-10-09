@@ -316,6 +316,33 @@ describe("wallet send history", () => {
     assert.deepEqual(db.prepare("SELECT COUNT(*) AS count FROM wallet_send_history").get(), { count: 0 });
   });
 
+  it("stores a redacted failure message for failed sends only", async () => {
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xa1", tokenId: "0x00", tokenName: "Minima", amount: "9",
+      txpowId: null, transactionId: null, status: "failed", origin: "manual",
+      error: "Insufficient funds.. you only have 1 require:9"
+    });
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xa2", tokenId: "0x00", tokenName: "Minima", amount: "1",
+      txpowId: null, transactionId: null, status: "failed", origin: "manual",
+      error: 'send rejected password:"hunter2"'
+    });
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xa3", tokenId: "0x00", tokenName: "Minima", amount: "1",
+      txpowId: "0x01", transactionId: null, status: "submitted", origin: "manual", error: "ignored"
+    });
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xa4", tokenId: "0x00", tokenName: "Minima", amount: "1",
+      txpowId: null, transactionId: null, status: "failed", origin: "manual"
+    });
+
+    const errors = db.prepare("SELECT error FROM wallet_send_history ORDER BY to_address").all().map((row) => (row as { error: string | null }).error);
+    assert.equal(errors[0], "Insufficient funds.. you only have 1 require:9");
+    assert.doesNotMatch(String(errors[1]), /hunter2/);
+    assert.deepEqual(errors.slice(2), [null, null]);
+    walletService.clearWalletSendHistoryForDebug();
+  });
+
   it("stores the wallet fingerprint, origin, and transaction ID with each send", async () => {
     await walletService.recordWalletSendHistory({
       toAddress: "0xeee", tokenId: "0x00", tokenName: "Minima", amount: "1",

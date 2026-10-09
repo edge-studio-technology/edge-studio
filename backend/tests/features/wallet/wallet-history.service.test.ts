@@ -352,13 +352,13 @@ function insertChainRow(row: {
 
 function insertSendRow(row: {
   id: string; createdAt: string; status: "submitted" | "failed"; transactionId: string | null;
-  fingerprint: string | null; origin?: string | null;
+  fingerprint: string | null; origin?: string | null; error?: string | null;
 }) {
   db.prepare(`
     INSERT INTO wallet_send_history (id, created_at, to_address, token_id, token_name, amount, txpow_id, status,
-      wallet_fingerprint, origin, transaction_id)
-    VALUES (?, ?, 'MxPEER', '0x00', 'Minima', '2', '0xPREMINED', ?, ?, ?, ?)
-  `).run(row.id, row.createdAt, row.status, row.fingerprint, row.origin ?? null, row.transactionId);
+      wallet_fingerprint, origin, transaction_id, error)
+    VALUES (?, ?, 'MxPEER', '0x00', 'Minima', '2', '0xPREMINED', ?, ?, ?, ?, ?)
+  `).run(row.id, row.createdAt, row.status, row.fingerprint, row.origin ?? null, row.transactionId, row.error ?? null);
 }
 
 const PAGE = { page: 1, pageSize: 25 };
@@ -369,7 +369,7 @@ describe("listWalletHistory", () => {
     insertChainRow({ txpowId: "0x0A", transactionId: "0xT1", direction: "out", timeMillis: 3_000, block: 90, confirmedAt: "c", fingerprint: current });
     insertSendRow({ id: "linked", createdAt: new Date(2_900).toISOString(), status: "submitted", transactionId: "0xT1", fingerprint: current, origin: "automation" });
     insertSendRow({ id: "unsynced", createdAt: new Date(4_000).toISOString(), status: "submitted", transactionId: "0xT2", fingerprint: current, origin: "manual" });
-    insertSendRow({ id: "failed", createdAt: new Date(1_000).toISOString(), status: "failed", transactionId: null, fingerprint: current, origin: "manual" });
+    insertSendRow({ id: "failed", createdAt: new Date(1_000).toISOString(), status: "failed", transactionId: null, fingerprint: current, origin: "manual", error: "Insufficient funds" });
     insertSendRow({ id: "legacy", createdAt: new Date(2_000).toISOString(), status: "submitted", transactionId: null, fingerprint: null });
 
     const { items, total } = await service.listWalletHistory(PAGE);
@@ -380,10 +380,11 @@ describe("listWalletHistory", () => {
       ["0x0A:0x00", "confirmed", "out", "automation"],
       ["failed", "failed", "out", "manual"]
     ]);
+    assert.deepEqual(items.map((item) => item.error), [null, null, "Insufficient funds"]);
     assert.deepEqual(items[0], {
       id: "unsynced", direction: "out", status: "pending", amount: "2", tokenId: "0x00", tokenName: "Minima",
       counterparty: "MxPEER", counterpartyLabel: null, time: new Date(4_000).toISOString(), txpowId: null, transactionId: "0xT2",
-      block: null, confirmations: null, confirmedAt: null, origin: "manual", isPreviousWallet: false
+      block: null, confirmations: null, confirmedAt: null, origin: "manual", error: null, isPreviousWallet: false
     });
   });
 

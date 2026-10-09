@@ -199,13 +199,14 @@ const HISTORY_ROWS = `
     CASE WHEN t.confirmed_at IS NULL THEN 'pending' ELSE 'confirmed' END AS status,
     t.amount, t.token_id, t.token_name, t.counterparty, t.time_millis, t.txpow_id, t.transaction_id,
     t.block, t.confirmed_at, t.wallet_fingerprint,
-    (SELECT s.origin FROM wallet_send_history s WHERE s.transaction_id = t.transaction_id LIMIT 1) AS origin
+    (SELECT s.origin FROM wallet_send_history s WHERE s.transaction_id = t.transaction_id LIMIT 1) AS origin,
+    NULL AS error
   FROM wallet_transactions t
   UNION ALL
   SELECT s.id, 'out', CASE WHEN s.status = 'failed' THEN 'failed' ELSE 'pending' END,
     s.amount, s.token_id, s.token_name, s.to_address,
     CAST(ROUND((julianday(s.created_at) - 2440587.5) * 86400000) AS INTEGER), NULL, s.transaction_id,
-    NULL, NULL, s.wallet_fingerprint, s.origin
+    NULL, NULL, s.wallet_fingerprint, s.origin, s.error
   FROM wallet_send_history s
   WHERE s.status = 'failed'
     OR (s.transaction_id IS NOT NULL
@@ -227,6 +228,7 @@ type HistoryRow = {
   confirmed_at: string | null;
   wallet_fingerprint: string | null;
   origin: WalletHistoryItem["origin"];
+  error: string | null;
 };
 
 /** `contactAddresses` are the addresses of contacts whose label matches `q`, in both 0x and Mx form. */
@@ -318,6 +320,7 @@ export async function listWalletHistory(query: WalletHistoryQuery) {
     confirmations: row.block !== null && tip !== null ? Math.max(0, tip - row.block) : null,
     confirmedAt: row.confirmed_at,
     origin: row.origin,
+    error: row.error,
     isPreviousWallet: fingerprint !== null && row.wallet_fingerprint !== null && row.wallet_fingerprint !== fingerprint
   }));
   return { items, total, previousWalletItems };

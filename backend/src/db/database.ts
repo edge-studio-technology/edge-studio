@@ -309,6 +309,7 @@ export function runMigrations() {
   ensureColumn("wallet_send_history", "wallet_fingerprint", "TEXT");
   ensureColumn("wallet_send_history", "origin", "TEXT");
   ensureColumn("wallet_send_history", "transaction_id", "TEXT");
+  ensureColumn("wallet_send_history", "error", "TEXT");
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS wallet_transactions (

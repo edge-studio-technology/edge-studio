@@ -22,6 +22,7 @@ function item(overrides: Partial<WalletHistoryItem> = {}): WalletHistoryItem {
     confirmations: 3,
     confirmedAt: "2026-08-01T12:01:00.000Z",
     origin: null,
+    error: null,
     isPreviousWallet: false,
     ...overrides,
   };
@@ -77,6 +78,21 @@ describe("HistoryDetailModal", () => {
     expect(screen.queryByRole("region", { name: "Confirmed" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Block" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "TxPoW ID" })).not.toBeInTheDocument();
+  });
+
+  it("shows the failure reason only for failed sends", () => {
+    const { unmount } = renderModal({
+      item: item({ direction: "out", status: "failed", error: "Insufficient funds.. you only have 1 require:5" }),
+    });
+    expect(screen.getByRole("region", { name: "Reason" })).toHaveTextContent("Insufficient funds.. you only have 1 require:5");
+    unmount();
+
+    const { unmount: unmountLegacy } = renderModal({ item: item({ direction: "out", status: "failed", error: null }) });
+    expect(screen.getByRole("region", { name: "Reason" })).toHaveTextContent("No reason was recorded for this send.");
+    unmountLegacy();
+
+    renderModal();
+    expect(screen.queryByRole("region", { name: "Reason" })).not.toBeInTheDocument();
   });
 
   it("omits the counterparty for a self-transfer and marks an unknown one", () => {

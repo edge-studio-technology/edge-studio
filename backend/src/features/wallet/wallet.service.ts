@@ -3,6 +3,7 @@ import { runWalletReplacement } from "../address-book/wallet-replacement.service
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { db } from "../../db/database.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
+import { redactSecrets } from "../../shared/redact.js";
 import { getComposeServiceContainer, inspectContainer } from "../status/docker.service.js";
 import { getWalletFingerprint } from "./wallet-history.service.js";
 import { isTxPowId, parseAddressResponse, parseBalanceResponse, parseImportResponse, parseLocalWalletAddressesResponse, parseOnchainResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
@@ -96,6 +97,8 @@ export async function recordWalletSendHistory(input: {
   transactionId: string | null;
   status: "submitted" | "failed";
   origin: "manual" | "automation";
+  /** Minima's failure message; stored for failed sends only. */
+  error?: string;
 }) {
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
@@ -104,9 +107,9 @@ export async function recordWalletSendHistory(input: {
   db.prepare(`
     INSERT INTO wallet_send_history (
       id, created_at, from_account_label, from_account_address, to_address, token_id, token_name, amount, txpow_id, status,
-      wallet_fingerprint, origin, transaction_id
+      wallet_fingerprint, origin, transaction_id, error
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     createdAt,
@@ -120,6 +123,7 @@ export async function recordWalletSendHistory(input: {
     input.status,
     walletFingerprint,
     input.origin,
-    input.transactionId
+    input.transactionId,
+    input.status === "failed" && input.error ? redactSecrets(input.error) : null
   );
 }

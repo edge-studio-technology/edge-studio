@@ -918,6 +918,10 @@ describe("automation.service — send_transaction", () => {
       { type: "send_transaction", config: { recipientAddressBookId: recipient.id, tokenId: "0x00", amount: "5" } }
     ]);
     await assert.rejects(service.runAutomationWorkflow(wf.id), /insufficient fee/);
+    assert.deepEqual(
+      db.prepare("SELECT status, origin, error FROM wallet_send_history WHERE to_address = ?").get(recipient.address),
+      { status: "failed", origin: "automation", error: "insufficient fee" }
+    );
   });
 });
 

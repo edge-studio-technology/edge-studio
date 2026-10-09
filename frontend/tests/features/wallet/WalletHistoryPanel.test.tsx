@@ -42,6 +42,7 @@ function item(overrides: Partial<WalletHistoryItem> = {}): WalletHistoryItem {
     confirmations: 2,
     confirmedAt: "2026-08-01T12:01:00.000Z",
     origin: "manual",
+    error: null,
     isPreviousWallet: false,
     ...overrides,
   };

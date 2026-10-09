@@ -91,7 +91,22 @@ describe("wallet routes", () => {
     assert.equal(response.status, 200);
     assert.deepEqual(recordWalletSendHistoryMock.mock.calls[0][0], {
       toAddress: "0x03", tokenId: "0x00", tokenName: "Minima", amount: "1",
-      txpowId: "0x01", transactionId: "0x02", status: "submitted", origin: "manual"
+      txpowId: "0x01", transactionId: "0x02", status: "submitted", origin: "manual", error: undefined
+    });
+  });
+
+  it("records a failed manual send with Minima's message", async () => {
+    sendPaymentMock.mockResolvedValue({
+      ok: false, status: "failed", txpowId: null, transactionId: null, message: "Insufficient funds.. you only have 1 require:5"
+    });
+    const response = await request(testApp()).post("/api/wallet/send-payment")
+      .send({ address: "0x03", amount: "5" });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.ok, false);
+    assert.deepEqual(recordWalletSendHistoryMock.mock.calls[0][0], {
+      toAddress: "0x03", tokenId: "0x00", tokenName: "Minima", amount: "5",
+      txpowId: null, transactionId: null, status: "failed", origin: "manual",
+      error: "Insufficient funds.. you only have 1 require:5"
     });
   });
 

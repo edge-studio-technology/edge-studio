@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Wallet history can be filtered by type, status, and date (presets or a custom range), and searched by contact name, address, token, or ID.
 - Wallet history shows the sender or recipient's address-book name when it is a saved contact.
 - The history details view shows the date, confirmation time, block, confirmation count, origin, and TxPoW and transaction IDs.
+- Failed sends from the Send dialog and automation workflows record Minima's failure reason, shown in the history details view.
 - History from a wallet the node no longer uses is marked Previous wallet and can be cleared by an admin after re-entering their PIN/password (`POST /api/wallet/history/clear-previous`).
 - Dev testnet setup for Minima wallet testing on a Pi; see `docs/guides/minima-testnet.md`.
 

@@ -68,6 +68,8 @@ export type WalletHistoryItem = {
   confirmations: number | null;
   confirmedAt: string | null;
   origin: "manual" | "automation" | null;
+  /** Minima's failure message for a failed send. */
+  error: string | null;
   isPreviousWallet: boolean;
 };
 

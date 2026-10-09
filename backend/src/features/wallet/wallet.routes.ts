@@ -72,7 +72,8 @@ walletRouter.post("/send-payment", requireRole("admin"), async (req, res) => {
       txpowId: result.txpowId,
       transactionId: result.transactionId,
       status: result.ok ? "submitted" : "failed",
-      origin: "manual"
+      origin: "manual",
+      error: result.message
     });
     recordAuditEvent("wallet.payment.send", {
       userId: req.user?.id,

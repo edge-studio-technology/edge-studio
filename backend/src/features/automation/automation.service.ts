@@ -1341,6 +1341,7 @@ async function sendTransaction(
     transactionId: result.transactionId,
     status: result.ok ? "submitted" : "failed",
     origin: "automation",
+    error: result.message,
   });
   recordAuditEvent("automation.wallet.send", {
     detail: JSON.stringify({

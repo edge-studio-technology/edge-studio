@@ -75,6 +75,14 @@ export function HistoryDetailModal({
           </div>
         </section>
 
+        {item.status === "failed" ? (
+          <HistoryField label="Reason">
+            <p className="type-body text-text-error m-0 break-words">
+              {item.error ?? "No reason was recorded for this send."}
+            </p>
+          </HistoryField>
+        ) : null}
+
         {item.direction !== "self" ? (
           <HistoryField label={counterpartyTitle}>
             {item.counterpartyLabel ? (
