@@ -12,7 +12,6 @@ import type {
   ReceiveAddress,
   SendPaymentRequest,
   SendPaymentResult,
-  WalletSendHistoryItem,
   WalletStatus
 } from "./wallet.types.js";
 
@@ -123,33 +122,4 @@ export async function recordWalletSendHistory(input: {
     input.origin,
     input.transactionId
   );
-}
-
-export function listWalletSendHistory(limit = 30): WalletSendHistoryItem[] {
-  const safeLimit = Math.max(1, Math.min(200, Math.trunc(limit)));
-  const rows = db.prepare(`
-    SELECT id, created_at, to_address, token_id, token_name, amount, txpow_id, status
-    FROM wallet_send_history
-    ORDER BY datetime(created_at) DESC
-    LIMIT ?
-  `).all(safeLimit) as {
-    id: string;
-    created_at: string;
-    to_address: string;
-    token_id: string;
-    token_name: string;
-    amount: string;
-    txpow_id: string | null;
-    status: "submitted" | "failed";
-  }[];
-  return rows.map((row) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    toAddress: row.to_address,
-    tokenId: row.token_id,
-    tokenName: row.token_name,
-    amount: row.amount,
-    txpowId: row.txpow_id,
-    status: row.status
-  }));
 }

@@ -14,9 +14,24 @@ vi.mock("../../../src/features/wallet/wallet.service.js", () => ({
   getReceiveAddress: vi.fn(),
   getWalletStatus: vi.fn(),
   importWallet: importWalletMock,
-  listWalletSendHistory: vi.fn(),
   recordWalletSendHistory: recordWalletSendHistoryMock,
   sendPayment: sendPaymentMock
+}));
+const { listWalletHistoryMock, clearPreviousMock, syncIfStaleMock, verifyCurrentPasswordMock } = vi.hoisted(() => ({
+  listWalletHistoryMock: vi.fn(), clearPreviousMock: vi.fn(), syncIfStaleMock: vi.fn(), verifyCurrentPasswordMock: vi.fn()
+}));
+vi.mock("../../../src/features/wallet/wallet-history.service.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../src/features/wallet/wallet-history.service.js")>()),
+  listWalletHistory: listWalletHistoryMock,
+  clearPreviousWalletHistory: clearPreviousMock,
+  syncWalletHistoryIfStale: syncIfStaleMock
+}));
+vi.mock("../../../src/features/minima/minima-backup.service.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../src/features/minima/minima-backup.service.js")>()),
+  verifyCurrentPassword: verifyCurrentPasswordMock
+}));
+vi.mock("../../../src/features/auth/rate-limit.middleware.js", () => ({
+  authRateLimiter: (_req: unknown, _res: unknown, next: () => void) => next()
 }));
 const { recordAuditEventMock } = vi.hoisted(() => ({ recordAuditEventMock: vi.fn() }));
 vi.mock("../../../src/features/auth/audit.service.js", () => ({ recordAuditEvent: recordAuditEventMock }));
@@ -50,6 +65,10 @@ describe("wallet routes", () => {
     importWalletMock.mockReset();
     recordAuditEventMock.mockReset();
     recordWalletSendHistoryMock.mockReset();
+    listWalletHistoryMock.mockReset().mockResolvedValue({ items: [], total: 0, previousWalletItems: 0 });
+    clearPreviousMock.mockReset();
+    syncIfStaleMock.mockReset().mockResolvedValue(undefined);
+    verifyCurrentPasswordMock.mockReset().mockResolvedValue(undefined);
     db.prepare("DELETE FROM address_book").run();
     db.prepare("DELETE FROM settings").run();
   });
@@ -139,5 +158,62 @@ describe("wallet routes", () => {
     // The upstream message still reaches the client — only the phrase argument is redacted.
     assert.match(response.body.error, /Minima RPC error/);
     assert.equal(response.text.includes("canary"), false, `seed phrase in error body: ${response.text}`);
+  });
+
+  it("syncs, then returns a page of history with the parsed filters", async () => {
+    const item = { id: "0x0A:0x00", direction: "in" };
+    listWalletHistoryMock.mockResolvedValue({ items: [item], total: 26, previousWalletItems: 2 });
+
+    const response = await request(testApp()).get("/api/wallet/history")
+      .query({ page: "2", pageSize: "25", status: "pending", direction: "in", q: "Mx", from: "2026-10-01T00:00:00Z", to: "2026-10-02T00:00:00+02:00" });
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, { items: [item], page: 2, pageSize: 25, total: 26, totalPages: 2, previousWalletItems: 2 });
+    assert.equal(syncIfStaleMock.mock.calls.length, 1);
+    assert.deepEqual(listWalletHistoryMock.mock.calls[0][0], {
+      page: 2, pageSize: 25, status: "pending", q: "Mx", direction: "in",
+      fromMillis: Date.parse("2026-10-01T00:00:00Z"), toMillis: Date.parse("2026-10-01T22:00:00Z")
+    });
+  });
+
+  for (const [query, field] of [
+    [{ status: "submitted" }, "status"],
+    [{ direction: "sideways" }, "direction"],
+    [{ from: "2026-10-01" }, "from"],
+    [{ to: "yesterday" }, "to"],
+    [{ from: "2026-10-02T00:00:00Z", to: "2026-10-01T00:00:00Z" }, "from"]
+  ] as const) {
+    it(`rejects an invalid ${field} filter (${JSON.stringify(query)})`, async () => {
+      const response = await request(testApp()).get("/api/wallet/history").query(query);
+      assert.equal(response.status, 400);
+      assert.equal(listWalletHistoryMock.mock.calls.length, 0);
+    });
+  }
+
+  it("clears previous-wallet history after re-authentication and audits the count", async () => {
+    clearPreviousMock.mockResolvedValue(3);
+    const response = await request(testApp()).post("/api/wallet/history/clear-previous").send({ currentPassword: "123123" });
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, { deleted: 3 });
+    assert.equal(verifyCurrentPasswordMock.mock.calls[0][1], "123123");
+    assert.deepEqual(recordAuditEventMock.mock.calls[0], ["wallet.history.clear_previous", { userId: undefined, detail: JSON.stringify({ deleted: 3 }) }]);
+  });
+
+  it("rejects a wrong credential as invalid_credential without clearing", async () => {
+    const { MinimaBackupError } = await import("../../../src/features/minima/minima-backup.service.js");
+    verifyCurrentPasswordMock.mockRejectedValue(new MinimaBackupError("Invalid current credential", 401));
+    const response = await request(testApp()).post("/api/wallet/history/clear-previous").send({ currentPassword: "nope" });
+    assert.equal(response.status, 401);
+    assert.equal(response.body.errorCode, "invalid_credential");
+    assert.equal(clearPreviousMock.mock.calls.length, 0);
+  });
+
+  it("returns 409 during a wallet replacement and 502 when the wallet cannot be read", async () => {
+    const { WalletReplacementBusyError } = await import("../../../src/features/wallet/wallet-history.service.js");
+    clearPreviousMock.mockRejectedValueOnce(new WalletReplacementBusyError()).mockRejectedValueOnce(new Error("Minima RPC error: HTTP 500"));
+    const busy = await request(testApp()).post("/api/wallet/history/clear-previous").send({ currentPassword: "123123" });
+    const down = await request(testApp()).post("/api/wallet/history/clear-previous").send({ currentPassword: "123123" });
+    assert.deepEqual([busy.status, down.status], [409, 502]);
+    assert.equal(recordAuditEventMock.mock.calls.length, 0);
   });
 });

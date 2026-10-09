@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { db } from "../../db/database.js";
 import { canonicalMinimaAddress } from "../../shared/minima-address.js";
 import { getWalletReplacementCount, isWalletReplacementInProgress } from "../address-book/wallet-replacement.service.js";
+import { parseBlockCommandResponse } from "../minima/minima.parse.js";
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { getSetting, saveSetting } from "../settings/settings.repository.js";
 import {
@@ -12,11 +13,12 @@ import {
   parseOnchainResponse,
   parseTrackedScriptAddressesResponse
 } from "./wallet.parse.js";
-import type { ChainHistoryEntry } from "./wallet.types.js";
+import type { ChainHistoryEntry, WalletHistoryItem, WalletHistoryQuery } from "./wallet.types.js";
 
 export const HISTORY_PAGE_SIZE = 100;
 export const MAX_HISTORY_PAGES_PER_SYNC = 5;
 export const CONFIRMATION_BATCH_SIZE = 20;
+export const READ_SYNC_MAX_AGE_MS = 5_000;
 const SYNC_STATE_KEY = "wallet_history_sync_state";
 
 /** `backfillOffset` is where an unfinished scan continues; rows only shift to higher offsets as new ones arrive. */
@@ -24,6 +26,7 @@ type SyncState = { fingerprint: string; size: number; backfillOffset: number | n
 
 let cachedFingerprint: { value: string; replacementCount: number } | null = null;
 let syncInFlight: Promise<void> | null = null;
+let lastSyncFinishedAt = 0;
 
 async function readWalletScripts() {
   const replacementCount = getWalletReplacementCount();
@@ -148,9 +151,16 @@ export function syncWalletHistory(): Promise<void> {
       console.error("Wallet history sync failed:", error instanceof Error ? error.message : "unknown error");
     })
     .finally(() => {
+      lastSyncFinishedAt = Date.now();
       syncInFlight = null;
     });
   return syncInFlight;
+}
+
+/** Syncs before a history read unless a sync finished within the last few seconds. */
+export function syncWalletHistoryIfStale(): Promise<void> {
+  if (Date.now() - lastSyncFinishedAt < READ_SYNC_MAX_AGE_MS) return Promise.resolve();
+  return syncWalletHistory();
 }
 
 /** Marks a bounded batch of the current wallet's unconfirmed rows confirmed once `txpow onchain:` finds them. Skips while the wallet is being replaced. */
@@ -176,4 +186,143 @@ export async function refreshPendingConfirmations(): Promise<void> {
   } catch (error) {
     console.error("Wallet confirmation refresh failed:", error instanceof Error ? error.message : "unknown error");
   }
+}
+
+// Chain rows, plus app sends that failed or are not on chain yet. Sends recorded before
+// transaction IDs were stored cannot be matched to their chain row, so only failed ones are listed.
+const HISTORY_ROWS = `
+  SELECT t.txpow_id || ':' || t.token_id AS id, t.direction,
+    CASE WHEN t.confirmed_at IS NULL THEN 'pending' ELSE 'confirmed' END AS status,
+    t.amount, t.token_id, t.token_name, t.counterparty, t.time_millis, t.txpow_id, t.transaction_id,
+    t.block, t.confirmed_at, t.wallet_fingerprint,
+    (SELECT s.origin FROM wallet_send_history s WHERE s.transaction_id = t.transaction_id LIMIT 1) AS origin
+  FROM wallet_transactions t
+  UNION ALL
+  SELECT s.id, 'out', CASE WHEN s.status = 'failed' THEN 'failed' ELSE 'pending' END,
+    s.amount, s.token_id, s.token_name, s.to_address,
+    CAST(ROUND((julianday(s.created_at) - 2440587.5) * 86400000) AS INTEGER), NULL, s.transaction_id,
+    NULL, NULL, s.wallet_fingerprint, s.origin
+  FROM wallet_send_history s
+  WHERE s.status = 'failed'
+    OR (s.transaction_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM wallet_transactions t WHERE t.transaction_id = s.transaction_id))
+`;
+
+type HistoryRow = {
+  id: string;
+  direction: WalletHistoryItem["direction"];
+  status: WalletHistoryItem["status"];
+  amount: string;
+  token_id: string;
+  token_name: string;
+  counterparty: string | null;
+  time_millis: number;
+  txpow_id: string | null;
+  transaction_id: string | null;
+  block: number | null;
+  confirmed_at: string | null;
+  wallet_fingerprint: string | null;
+  origin: WalletHistoryItem["origin"];
+};
+
+function buildHistoryWhere(query: Omit<WalletHistoryQuery, "page" | "pageSize">) {
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+  if (query.status) {
+    clauses.push("status = ?");
+    params.push(query.status);
+  }
+  if (query.direction) {
+    clauses.push("direction = ?");
+    params.push(query.direction);
+  }
+  if (query.fromMillis !== undefined) {
+    clauses.push("time_millis >= ?");
+    params.push(query.fromMillis);
+  }
+  if (query.toMillis !== undefined) {
+    clauses.push("time_millis < ?");
+    params.push(query.toMillis);
+  }
+  if (query.q) {
+    const like = `%${query.q}%`;
+    clauses.push("(counterparty LIKE ? OR txpow_id LIKE ? OR transaction_id LIKE ? OR token_name LIKE ? OR token_id LIKE ?)");
+    params.push(like, like, like, like, like);
+  }
+  return { where: clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "", params };
+}
+
+async function readTipBlock(): Promise<number | null> {
+  try {
+    return parseBlockCommandResponse((await runMinimaPathCommand("block")).body).block;
+  } catch {
+    return null;
+  }
+}
+
+async function readCurrentFingerprint(): Promise<string | null> {
+  try {
+    return await getWalletFingerprint();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * One page of Wallet history, newest first. While Minima is unreachable, stored rows are still
+ * returned, with no confirmation counts and no row marked as previous-wallet.
+ */
+export async function listWalletHistory(query: WalletHistoryQuery) {
+  const [tip, fingerprint] = await Promise.all([readTipBlock(), readCurrentFingerprint()]);
+  const { where, params } = buildHistoryWhere(query);
+  const total = (db.prepare(`SELECT COUNT(*) AS count FROM (${HISTORY_ROWS}) ${where}`).get(...params) as { count: number }).count;
+  const rows = db.prepare(`
+    SELECT * FROM (${HISTORY_ROWS}) ${where}
+    ORDER BY time_millis DESC, id
+    LIMIT ? OFFSET ?
+  `).all(...params, query.pageSize, (query.page - 1) * query.pageSize) as HistoryRow[];
+  const previousWalletItems = fingerprint === null ? 0 : (db.prepare(`
+    SELECT COUNT(*) AS count FROM (${HISTORY_ROWS}) WHERE wallet_fingerprint IS NOT NULL AND wallet_fingerprint != ?
+  `).get(fingerprint) as { count: number }).count;
+
+  const items = rows.map((row): WalletHistoryItem => ({
+    id: row.id,
+    direction: row.direction,
+    status: row.status,
+    amount: row.amount,
+    tokenId: row.token_id,
+    tokenName: row.token_name,
+    counterparty: row.counterparty,
+    time: new Date(row.time_millis).toISOString(),
+    txpowId: row.txpow_id,
+    transactionId: row.transaction_id,
+    block: row.block,
+    confirmations: row.block !== null && tip !== null ? Math.max(0, tip - row.block) : null,
+    confirmedAt: row.confirmed_at,
+    origin: row.origin,
+    isPreviousWallet: fingerprint !== null && row.wallet_fingerprint !== null && row.wallet_fingerprint !== fingerprint
+  }));
+  return { items, total, previousWalletItems };
+}
+
+export class WalletReplacementBusyError extends Error {
+  constructor() {
+    super("The wallet is being replaced. Try again when it has finished.");
+  }
+}
+
+/** Deletes history rows recorded under another wallet. Returns the number of rows deleted. */
+export async function clearPreviousWalletHistory(): Promise<number> {
+  const replacementCount = getWalletReplacementCount();
+  if (isWalletReplacementInProgress()) throw new WalletReplacementBusyError();
+  const fingerprint = await getWalletFingerprint();
+  if (isWalletReplacementInProgress() || getWalletReplacementCount() !== replacementCount) throw new WalletReplacementBusyError();
+
+  return db.transaction(() => {
+    const chain = db.prepare("DELETE FROM wallet_transactions WHERE wallet_fingerprint != ?").run(fingerprint).changes;
+    const sends = db.prepare(
+      "DELETE FROM wallet_send_history WHERE wallet_fingerprint IS NOT NULL AND wallet_fingerprint != ?"
+    ).run(fingerprint).changes;
+    return chain + sends;
+  })();
 }

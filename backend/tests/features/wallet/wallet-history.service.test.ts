@@ -31,6 +31,7 @@ let chain: { txpow: unknown; difference: Record<string, string> }[];
 let scripts: unknown;
 let onchain: Record<string, unknown>;
 let replacementCount = 0;
+let tip: unknown;
 
 function finishWalletReplacement() {
   replacementCount += 1;
@@ -47,6 +48,7 @@ function receivedItem(index: number) {
 function routeRpc(command: string) {
   if (command === "history action:size") return { ok: true, body: { status: true, response: { size: chain.length } } };
   if (command === "scripts") return { ok: true, body: scripts };
+  if (command === "block") return { ok: true, body: tip };
   const page = /^history max:(\d+) offset:(\d+)$/.exec(command);
   if (page) {
     const offset = Number(page[2]);
@@ -78,11 +80,13 @@ afterAll(() => {
 
 beforeEach(() => {
   db.prepare("DELETE FROM wallet_transactions").run();
+  db.prepare("DELETE FROM wallet_send_history").run();
   db.prepare("DELETE FROM settings WHERE key = 'wallet_history_sync_state'").run();
   finishWalletReplacement();
   chain = [];
   scripts = scriptsBody();
   onchain = {};
+  tip = { status: true, response: { block: "100" } };
   replacementInProgressMock.mockReset().mockReturnValue(false);
   replacementCountMock.mockReset().mockImplementation(() => replacementCount);
   runMinimaPathCommandMock.mockReset().mockImplementation(async (command: string) => routeRpc(command));
@@ -305,5 +309,144 @@ describe("refreshPendingConfirmations", () => {
     assert.ok(storedRows().every((row) => row.confirmed_at === null));
     assert.match(String(errorSpy.mock.calls[0][1]), /txpow onchain/);
     errorSpy.mockRestore();
+  });
+});
+
+function insertChainRow(row: {
+  txpowId: string; transactionId: string; direction?: string; amount?: string; timeMillis: number;
+  block?: number | null; confirmedAt?: string | null; fingerprint: string; counterparty?: string | null; tokenName?: string;
+}) {
+  db.prepare(`
+    INSERT INTO wallet_transactions (txpow_id, token_id, transaction_id, direction, amount, token_name, counterparty, time_millis,
+      block, confirmed_at, wallet_fingerprint, synced_at)
+    VALUES (?, '0x00', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'now')
+  `).run(row.txpowId, row.transactionId, row.direction ?? "in", row.amount ?? "1", row.tokenName ?? "Minima", row.counterparty ?? null,
+    row.timeMillis, row.block ?? null, row.confirmedAt ?? null, row.fingerprint);
+}
+
+function insertSendRow(row: {
+  id: string; createdAt: string; status: "submitted" | "failed"; transactionId: string | null;
+  fingerprint: string | null; origin?: string | null;
+}) {
+  db.prepare(`
+    INSERT INTO wallet_send_history (id, created_at, to_address, token_id, token_name, amount, txpow_id, status,
+      wallet_fingerprint, origin, transaction_id)
+    VALUES (?, ?, 'MxPEER', '0x00', 'Minima', '2', '0xPREMINED', ?, ?, ?, ?)
+  `).run(row.id, row.createdAt, row.status, row.fingerprint, row.origin ?? null, row.transactionId);
+}
+
+const PAGE = { page: 1, pageSize: 25 };
+
+describe("listWalletHistory", () => {
+  it("merges chain rows with unsynced and failed sends, newest first", async () => {
+    const current = await service.getWalletFingerprint();
+    insertChainRow({ txpowId: "0x0A", transactionId: "0xT1", direction: "out", timeMillis: 3_000, block: 90, confirmedAt: "c", fingerprint: current });
+    insertSendRow({ id: "linked", createdAt: new Date(2_900).toISOString(), status: "submitted", transactionId: "0xT1", fingerprint: current, origin: "automation" });
+    insertSendRow({ id: "unsynced", createdAt: new Date(4_000).toISOString(), status: "submitted", transactionId: "0xT2", fingerprint: current, origin: "manual" });
+    insertSendRow({ id: "failed", createdAt: new Date(1_000).toISOString(), status: "failed", transactionId: null, fingerprint: current, origin: "manual" });
+    insertSendRow({ id: "legacy", createdAt: new Date(2_000).toISOString(), status: "submitted", transactionId: null, fingerprint: null });
+
+    const { items, total } = await service.listWalletHistory(PAGE);
+
+    assert.equal(total, 3);
+    assert.deepEqual(items.map((item) => [item.id, item.status, item.direction, item.origin]), [
+      ["unsynced", "pending", "out", "manual"],
+      ["0x0A:0x00", "confirmed", "out", "automation"],
+      ["failed", "failed", "out", "manual"]
+    ]);
+    assert.deepEqual(items[0], {
+      id: "unsynced", direction: "out", status: "pending", amount: "2", tokenId: "0x00", tokenName: "Minima",
+      counterparty: "MxPEER", time: new Date(4_000).toISOString(), txpowId: null, transactionId: "0xT2",
+      block: null, confirmations: null, confirmedAt: null, origin: "manual", isPreviousWallet: false
+    });
+  });
+
+  it("derives confirmations from the current tip and marks previous-wallet rows", async () => {
+    const current = await service.getWalletFingerprint();
+    insertChainRow({ txpowId: "0x0A", transactionId: "0xT1", timeMillis: 2_000, block: 97, confirmedAt: "c", fingerprint: current });
+    insertChainRow({ txpowId: "0x0B", transactionId: "0xT2", timeMillis: 1_000, block: 100, confirmedAt: "c", fingerprint: "old" });
+    insertSendRow({ id: "old-send", createdAt: new Date(500).toISOString(), status: "failed", transactionId: null, fingerprint: "old" });
+
+    const { items, previousWalletItems } = await service.listWalletHistory(PAGE);
+
+    assert.deepEqual(items.map((item) => [item.confirmations, item.isPreviousWallet]), [[3, false], [0, true], [null, true]]);
+    assert.equal(previousWalletItems, 2);
+  });
+
+  it("still lists stored rows when Minima is unreachable", async () => {
+    insertChainRow({ txpowId: "0x0A", transactionId: "0xT1", timeMillis: 1_000, block: 97, confirmedAt: "c", fingerprint: "old" });
+    runMinimaPathCommandMock.mockRejectedValue(new Error("connect ECONNREFUSED"));
+
+    const { items, previousWalletItems } = await service.listWalletHistory(PAGE);
+
+    assert.deepEqual(items.map((item) => [item.confirmations, item.isPreviousWallet]), [[null, false]]);
+    assert.equal(previousWalletItems, 0);
+  });
+
+  it("filters by status, direction, time range, and search text, and pages the result", async () => {
+    const current = await service.getWalletFingerprint();
+    insertChainRow({ txpowId: "0x0A", transactionId: "0xT1", direction: "in", timeMillis: 1_000, confirmedAt: "c", block: 1, fingerprint: current, counterparty: "MxALICE" });
+    insertChainRow({ txpowId: "0x0B", transactionId: "0xT2", direction: "out", timeMillis: 2_000, fingerprint: current, counterparty: "MxBOB" });
+    insertChainRow({ txpowId: "0x0C", transactionId: "0xT3", direction: "self", timeMillis: 3_000, confirmedAt: "c", block: 2, fingerprint: current });
+    insertSendRow({ id: "failed", createdAt: new Date(4_000).toISOString(), status: "failed", transactionId: null, fingerprint: current });
+    const ids = async (query: Partial<Parameters<typeof service.listWalletHistory>[0]>) =>
+      (await service.listWalletHistory({ ...PAGE, ...query })).items.map((item) => item.id);
+
+    assert.deepEqual(await ids({ status: "pending" }), ["0x0B:0x00"]);
+    assert.deepEqual(await ids({ status: "failed" }), ["failed"]);
+    assert.deepEqual(await ids({ direction: "out" }), ["failed", "0x0B:0x00"]);
+    assert.deepEqual(await ids({ fromMillis: 2_000, toMillis: 4_000 }), ["0x0C:0x00", "0x0B:0x00"]);
+    assert.deepEqual(await ids({ q: "alice" }), ["0x0A:0x00"]);
+    assert.deepEqual(await ids({ q: "0xT3" }), ["0x0C:0x00"]);
+    const page = await service.listWalletHistory({ page: 2, pageSize: 3 });
+    assert.deepEqual([page.total, page.items.map((item) => item.id)], [4, ["0x0A:0x00"]]);
+  });
+});
+
+describe("syncWalletHistoryIfStale", () => {
+  it("skips the sync when one finished within the last few seconds", async () => {
+    await service.syncWalletHistory();
+    runMinimaPathCommandMock.mockClear();
+    await service.syncWalletHistoryIfStale();
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
+
+    const now = Date.now();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(now + service.READ_SYNC_MAX_AGE_MS);
+    try {
+      await service.syncWalletHistoryIfStale();
+    } finally {
+      clock.mockRestore();
+    }
+    assert.ok(runMinimaPathCommandMock.mock.calls.some((call) => call[0] === "history action:size"));
+  });
+});
+
+describe("clearPreviousWalletHistory", () => {
+  it("deletes only rows recorded under another wallet", async () => {
+    const current = await service.getWalletFingerprint();
+    insertChainRow({ txpowId: "0x0A", transactionId: "0xT1", timeMillis: 1, fingerprint: current });
+    insertChainRow({ txpowId: "0x0B", transactionId: "0xT2", timeMillis: 2, fingerprint: "old" });
+    insertSendRow({ id: "old", createdAt: "2026-01-01T00:00:00.000Z", status: "failed", transactionId: null, fingerprint: "old" });
+    insertSendRow({ id: "legacy", createdAt: "2026-01-01T00:00:00.000Z", status: "failed", transactionId: null, fingerprint: null });
+    insertSendRow({ id: "mine", createdAt: "2026-01-01T00:00:00.000Z", status: "failed", transactionId: null, fingerprint: current });
+
+    assert.equal(await service.clearPreviousWalletHistory(), 2);
+
+    assert.deepEqual(storedRows().map((row) => row.txpow_id), ["0x0A"]);
+    assert.deepEqual(db.prepare("SELECT id FROM wallet_send_history ORDER BY id").all(), [{ id: "legacy" }, { id: "mine" }]);
+  });
+
+  it("refuses while a replacement is running or when one finished during the wallet read", async () => {
+    insertChainRow({ txpowId: "0x0B", transactionId: "0xT2", timeMillis: 2, fingerprint: "old" });
+    replacementInProgressMock.mockReturnValue(true);
+    await assert.rejects(service.clearPreviousWalletHistory(), service.WalletReplacementBusyError);
+
+    replacementInProgressMock.mockReturnValue(false);
+    runMinimaPathCommandMock.mockImplementation(async (command: string) => {
+      finishWalletReplacement();
+      return routeRpc(command);
+    });
+    await assert.rejects(service.clearPreviousWalletHistory(), service.WalletReplacementBusyError);
+    assert.equal(storedRows().length, 1);
   });
 });

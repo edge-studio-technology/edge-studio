@@ -271,7 +271,7 @@ describe("wallet send history", () => {
     assert.equal(walletService.clearWalletSendHistoryForDebug(), 0);
   });
 
-  it("records and lists send history entries newest first", async () => {
+  it("records submitted and failed sends", async () => {
     await walletService.recordWalletSendHistory({
       toAddress: "0xaaa",
       tokenId: "0x00",
@@ -293,11 +293,11 @@ describe("wallet send history", () => {
       origin: "manual"
     });
 
-    const history = walletService.listWalletSendHistory();
-    assert.ok(history.length >= 2);
-    const bbb = history.find((h) => h.toAddress === "0xbbb");
-    assert.equal(bbb?.status, "failed");
-    assert.equal(bbb?.txpowId, null);
+    const rows = db.prepare("SELECT to_address, status, txpow_id FROM wallet_send_history ORDER BY to_address").all();
+    assert.deepEqual(rows, [
+      { to_address: "0xaaa", status: "submitted", txpow_id: "tx-a" },
+      { to_address: "0xbbb", status: "failed", txpow_id: null }
+    ]);
   });
 
   it("clearWalletSendHistoryForDebug removes all recorded entries", async () => {
@@ -313,7 +313,7 @@ describe("wallet send history", () => {
     });
     const removed = walletService.clearWalletSendHistoryForDebug();
     assert.ok(removed >= 1);
-    assert.equal(walletService.listWalletSendHistory().length, 0);
+    assert.deepEqual(db.prepare("SELECT COUNT(*) AS count FROM wallet_send_history").get(), { count: 0 });
   });
 
   it("stores the wallet fingerprint, origin, and transaction ID with each send", async () => {
@@ -334,20 +334,5 @@ describe("wallet send history", () => {
       { to_address: "0xeee", wallet_fingerprint: "fingerprint-a", origin: "automation", transaction_id: "0x02" },
       { to_address: "0xfff", wallet_fingerprint: null, origin: "manual", transaction_id: null }
     ]);
-  });
-
-  it("clamps the limit passed to listWalletSendHistory", async () => {
-    await walletService.recordWalletSendHistory({
-      toAddress: "0xddd",
-      tokenId: "0x00",
-      tokenName: "Minima",
-      amount: "1",
-      txpowId: "tx-d",
-      transactionId: null,
-      status: "submitted",
-      origin: "manual"
-    });
-    const result = walletService.listWalletSendHistory(0);
-    assert.equal(result.length, 1);
   });
 });

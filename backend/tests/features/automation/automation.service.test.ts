@@ -91,7 +91,6 @@ let runsRepo: typeof import("../../../src/features/automation/automationRuns.rep
 let db: Awaited<ReturnType<typeof setupTestDatabase>>["db"];
 let integritasRepo: typeof import("../../../src/features/integritas/integritas.repository.js");
 let addressBookRepo: typeof import("../../../src/features/address-book/address-book.repository.js");
-let walletService: typeof import("../../../src/features/wallet/wallet.service.js");
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
@@ -104,7 +103,6 @@ beforeAll(async () => {
   dataReadsRepo = await import("../../../src/features/data-reads/dataReads.repository.js");
   integritasRepo = await import("../../../src/features/integritas/integritas.repository.js");
   addressBookRepo = await import("../../../src/features/address-book/address-book.repository.js");
-  walletService = await import("../../../src/features/wallet/wallet.service.js");
 });
 
 afterAll(() => {
@@ -902,11 +900,9 @@ describe("automation.service — send_transaction", () => {
     ]);
     const result = await service.runAutomationWorkflow(wf.id);
     assert.equal(result.workflow.lastError, null);
-    const history = walletService.listWalletSendHistory();
-    assert.ok(history.some((h) => h.txpowId === "tx-1" && h.status === "submitted"));
     assert.deepEqual(
-      db.prepare("SELECT origin, transaction_id, wallet_fingerprint FROM wallet_send_history WHERE txpow_id = 'tx-1'").get(),
-      { origin: "automation", transaction_id: "0x02", wallet_fingerprint: "fingerprint-a" }
+      db.prepare("SELECT status, origin, transaction_id, wallet_fingerprint FROM wallet_send_history WHERE txpow_id = 'tx-1'").get(),
+      { status: "submitted", origin: "automation", transaction_id: "0x02", wallet_fingerprint: "fingerprint-a" }
     );
   });
 

@@ -27,12 +27,22 @@
   - Re-syncing a known row keeps its block/confirmation data. A TxPoW relevant to both old and new wallets moves to the new fingerprint.
   - `confirmations` is stored once, when the TxPoW is first found on chain; it is not kept current.
   - `parseSendResponse()` and `parseHistoryResponse()` return `transactionId` (verified on the Pi fixture: the send's `transactionid` matches the chain row's).
-- [x] Step 3: Sync hooks (health poller, wallet replacement, send paths)
+- [x] Step 3: Sync hooks (health poller, wallet replacement, send paths) (`d7f11c64`)
   - The health poller runs `syncWalletHistory()` and then `refreshPendingConfirmations()` on each running-node tick, before stall detection. Both log their own failures, so there is no extra `try/catch`.
   - Deviation: no `invalidateWalletFingerprint()`. `runWalletReplacement()` bumps `getWalletReplacementCount()` after every attempt, and the cached fingerprint is reused only while the count is unchanged. This avoids an import cycle, and a fingerprint read during a replacement is not reused afterwards.
   - `refreshPendingConfirmations()` also skips while a replacement runs.
   - `recordWalletSendHistory()` is now async and stores fingerprint, origin (`manual`/`automation`), and transaction ID. If the fingerprint lookup fails, the row is still saved, with a null fingerprint.
-- [ ] Step 4: Paginated, filtered `GET /api/wallet/history` and admin re-auth clear of previous-wallet rows
+  - Pi QA 2026-10-09 (testnet, `v0.42.2-dev+d7f11c6`, backend/frontend images rebuilt only): first sync stored the 3 recorded rows; a peer payment appeared as `in` within one tick; unchanged history wrote nothing; a UI send and an automation-workflow send stored origin, transaction ID, and fingerprint and linked to their chain rows (UI send seen pending, then confirmed a tick later).
+  - Finding: a TxPoW found on chain in its tip block stores `confirmations: 0` forever. Step 4 derives confirmations from the current tip at read time instead of serving the stored value.
+  - Found and fixed on the way: the Send payment amount input lacked `step="any"`, so browsers rejected decimal amounts.
+- [x] Step 4: Paginated, filtered `GET /api/wallet/history` and admin re-auth clear of previous-wallet rows
+  - `listWalletHistory()`/`clearPreviousWalletHistory()`/`syncWalletHistoryIfStale()` in `wallet-history.service.ts`. The route syncs first unless a sync finished in the last 5 s.
+  - Status values are `pending`/`confirmed`/`failed`. `from` is inclusive and `to` exclusive; both are ISO date-times with a time zone. Default page size is 25. The response adds `previousWalletItems` so step 5 can show the clear action only when it applies.
+  - `confirmations` is the current tip block minus the row's block, read at request time with one `block` call; the stored column is not served.
+  - Unsynced sends are listed without a TxPoW ID (the stored one is the pre-mined ID). Sends recorded before transaction IDs existed can't be matched to chain rows: failed ones are listed, submitted ones are hidden (their chain row shows instead).
+  - If Minima is unreachable, stored rows are still listed, with no confirmation counts and nothing marked previous-wallet. Clearing returns 409 while a replacement runs (or one finished during the wallet read) and 502 if the wallet can't be read.
+  - Clear reuses `verifyCurrentPassword()` from `minima-backup.service.ts`.
+  - The current Wallet page still reads `{ sends }`, so its history panel is broken until step 5.
 - [ ] Step 5: Frontend history panel, filters, detail modal, and clear action
 - [ ] Docs
 - [ ] Verification

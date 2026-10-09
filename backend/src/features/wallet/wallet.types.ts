@@ -47,18 +47,45 @@ export type ImportWalletResult = {
   message: string;
 };
 
-export type WalletSendHistoryItem = {
+export type WalletHistoryDirection = "in" | "out" | "self";
+
+export const WALLET_HISTORY_STATUSES = ["pending", "confirmed", "failed"] as const;
+export type WalletHistoryStatus = (typeof WALLET_HISTORY_STATUSES)[number];
+
+/** One row of Wallet history: a synced chain movement, or an app send not seen on chain yet. */
+export type WalletHistoryItem = {
   id: string;
-  createdAt: string;
-  toAddress: string;
+  direction: WalletHistoryDirection;
+  status: WalletHistoryStatus;
+  /** Unsigned decimal string; `direction` carries the sign. */
+  amount: string;
   tokenId: string;
   tokenName: string;
-  amount: string;
+  counterparty: string | null;
+  /** TxPoW time for chain rows, send time for unsynced sends. */
+  time: string;
+  /** Mined TxPoW ID; null for sends not seen on chain. */
   txpowId: string | null;
-  status: "submitted" | "failed";
+  transactionId: string | null;
+  block: number | null;
+  /** Blocks on top of `block` at read time. */
+  confirmations: number | null;
+  confirmedAt: string | null;
+  origin: "manual" | "automation" | null;
+  isPreviousWallet: boolean;
 };
 
-export type WalletHistoryDirection = "in" | "out" | "self";
+export type WalletHistoryQuery = {
+  page: number;
+  pageSize: number;
+  status?: WalletHistoryStatus;
+  q?: string;
+  direction?: WalletHistoryDirection;
+  /** Inclusive, epoch milliseconds. */
+  fromMillis?: number;
+  /** Exclusive, epoch milliseconds. */
+  toMillis?: number;
+};
 
 /** One token movement of one relevant TxPoW, derived from Minima's `history` command. */
 export type ChainHistoryEntry = {
