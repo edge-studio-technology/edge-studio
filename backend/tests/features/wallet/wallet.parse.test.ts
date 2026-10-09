@@ -188,6 +188,15 @@ describe("parseSendResponse", () => {
   it("returns null txpowId when neither location has an id", () => {
     const result = parseSendResponse({ response: {} });
     assert.equal(result.txpowId, null);
+    assert.equal(result.transactionId, null);
+  });
+
+  it("returns the transaction ID, which survives mining, from a Pi-recorded send", () => {
+    const recorded = JSON.parse(readFileSync(new URL("../../fixtures/minima-testnet-history.json", import.meta.url), "utf8"));
+    const result = parseSendResponse(recorded.sendOut);
+    assert.equal(result.txpowId, recorded.sendOut.response.txpowid);
+    assert.equal(result.transactionId, "0x67D843B5988652A30EF0709E70913C93D3BB43FF29D1A462B4865E932A836F0A");
+    assert.equal(parseSendResponse({ response: { txpow: { body: { txn: { transactionid: "0xAB" } } } } }).transactionId, "0xAB");
   });
 });
 
@@ -290,9 +299,9 @@ describe("parseHistoryResponse", () => {
     ]), local);
 
     assert.deepEqual(entries, [
-      { txpowId: "0xOUT", tokenId: "0x00", tokenName: "Minima", amount: "2.5", direction: "out", timeMillis: 1_700_000_100_000, counterparty: EXTERNAL_MINIADDRESS },
-      { txpowId: "0xIN", tokenId: "0x00", tokenName: "Minima", amount: "10", direction: "in", timeMillis: 1_700_000_000_000, counterparty: EXTERNAL_MINIADDRESS },
-      { txpowId: "0xSELF", tokenId: "0x00", tokenName: "Minima", amount: "0", direction: "self", timeMillis: 1_700_000_200_000, counterparty: null }
+      { txpowId: "0xOUT", transactionId: "0x02", tokenId: "0x00", tokenName: "Minima", amount: "2.5", direction: "out", timeMillis: 1_700_000_100_000, counterparty: EXTERNAL_MINIADDRESS },
+      { txpowId: "0xIN", transactionId: "0x02", tokenId: "0x00", tokenName: "Minima", amount: "10", direction: "in", timeMillis: 1_700_000_000_000, counterparty: EXTERNAL_MINIADDRESS },
+      { txpowId: "0xSELF", transactionId: "0x02", tokenId: "0x00", tokenName: "Minima", amount: "0", direction: "self", timeMillis: 1_700_000_200_000, counterparty: null }
     ]);
   });
 
@@ -344,6 +353,7 @@ describe("parseHistoryResponse", () => {
       { direction: "in", amount: "10", counterparty: peer, tokenName: "Minima" }
     ]);
     assert.equal(entries[2].timeMillis, 1791535329786);
+    assert.equal(entries[1].transactionId, "0x67D843B5988652A30EF0709E70913C93D3BB43FF29D1A462B4865E932A836F0A");
   });
 
   it("throws when the history call itself failed", () => {

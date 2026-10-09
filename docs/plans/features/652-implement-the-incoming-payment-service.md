@@ -8,19 +8,25 @@
 
 ## Progress
 
-- [x] Step 0: Pi RPC capture — 2026-10-09, mainnet Minima 1.1.2.6, then a private testnet on the dev Pi (`docker-compose.testnet.yml`, `docs/guides/minima-testnet.md`; deviation: the plan only planned read-only mainnet capture, but the mainnet wallet had no history).
+- [x] Step 0: Pi RPC capture (`266899fc`) — 2026-10-09, mainnet Minima 1.1.2.6, then a private testnet on the dev Pi (`docker-compose.testnet.yml`, `docs/guides/minima-testnet.md`; deviation: the plan only planned read-only mainnet capture, but the mainnet wallet had no history).
   - Matches step 1 fixtures: `txpow onchain:` found/not-found (`block`/`tip`/`confirmations` are strings), `txpow txpowid:` returns the TxPoW as `response`, `scripts` row keys/flags, `history action:size` → `{ size }`, `history` `{ txpows, details, size }` with `details[i].{inputs,outputs,difference}`.
   - Received (+10), sent (−2.5), and self (0) recorded and trimmed into `backend/tests/fixtures/minima-testnet-history.json`; `parseHistoryResponse()` handles all three.
   - **`send` returns the pre-mined TxPoW** (`nonce` 0). Async mining changes the TxPoW ID, so the stored send-log `txpow_id` never appears on chain (`txpow txpowid:` → "TxPoW not found"). `body.txn.transactionid` is unchanged after mining. Steps 2–4 link send-log rows to chain rows by transaction ID (see below).
   - `history max:100` takes 7–17 ms with 3 rows. Test mode creates 8 default addresses (mainnet 64).
   - Fingerprint stability across a node restart moves to Pi QA.
   - Checked against [`spartacusrex-minima/minima-core`](https://github.com/spartacusrex-minima/minima-core) `main` (1.1.2.31; Pi image 1.1.2.6, matches `minima-global/Minima` `dev-pureminima-core`, not `master` 1.0): `send`, `TxPoWMiner`, `txpow`, `TxPoW`/`Transaction`/`TxHeader` JSON unchanged, so the pre-mined TxPoW ID finding holds. `history` adds `details[i].tokens` (`{ tokenid: name }`); additive, parser unaffected. Its `Token.getTokenName()` returns `"Error token name.."` for plain-string names, so keep the coin-derived name.
-- [x] Step 1: Parsers for `history`, `history action:size`, `txpow onchain:`, and fix `parsePaymentStatusResponse`
+- [x] Step 1: Parsers for `history`, `history action:size`, `txpow onchain:`, and fix `parsePaymentStatusResponse` (`aeaf487e`)
   - Tracked-address parsing is a new `parseTrackedScriptAddressesResponse()` (scripts with `track: true`, matching Minima's `isAddressRelevant`). `parseLocalWalletAddressesResponse()` is unchanged.
   - `getPaymentStatus()` now asks `txpow onchain:` first (confirmed) and falls back to `txpow txpowid:` (pending/unknown). `isTxPowId()` validates the ID in the service and in `GET /payment-status/:txpowid` (400), which previously passed the raw param into the RPC command.
   - Self-transfers carry amount `0` (the `difference`). `history`'s list `size` is the page length, not the total; use `history action:size` for the total.
   - Source-derived fixtures live in `backend/tests/helpers/minimaHistoryFixtures.ts`; swap in Pi captures after step 0.
-- [ ] Step 2: `wallet_transactions` table, wallet fingerprint, and history sync service
+- [x] Step 2: `wallet_transactions` table, wallet fingerprint, and history sync service
+  - `wallet-history.service.ts`: `getWalletFingerprint()`/`invalidateWalletFingerprint()`, `syncWalletHistory()`, `refreshPendingConfirmations()`. Not wired up yet (step 3).
+  - Sync state (`wallet_history_sync_state` setting) holds fingerprint, size, and a `backfillOffset`. When the 5-page cap cuts a scan short, the next tick resumes there; rows only move to higher offsets as new ones arrive, so nothing is skipped. A page of only malformed TxPoWs does not count as "fully known".
+  - Overlapping `syncWalletHistory()` calls share the running sync instead of being dropped, so step 4's route can await it.
+  - Re-syncing a known row keeps its block/confirmation data. A TxPoW relevant to both old and new wallets moves to the new fingerprint.
+  - `confirmations` is stored once, when the TxPoW is first found on chain; it is not kept current.
+  - `parseSendResponse()` and `parseHistoryResponse()` return `transactionId` (verified on the Pi fixture: the send's `transactionid` matches the chain row's).
 - [ ] Step 3: Sync hooks (health poller, wallet replacement, send paths)
 - [ ] Step 4: Paginated, filtered `GET /api/wallet/history` and admin re-auth clear of previous-wallet rows
 - [ ] Step 5: Frontend history panel, filters, detail modal, and clear action

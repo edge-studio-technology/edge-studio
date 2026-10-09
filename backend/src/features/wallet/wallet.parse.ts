@@ -122,6 +122,7 @@ export function parseSendResponse(body: unknown): SendPaymentResult {
     return {
       ok: false,
       txpowId: null,
+      transactionId: null,
       status: "failed",
       message: asString(record.error ?? record.message, "Send failed")
     };
@@ -129,7 +130,9 @@ export function parseSendResponse(body: unknown): SendPaymentResult {
   const response = asRecord(record?.response);
   const inner = asRecord(response?.txpow);
   const txpowId = asString(response?.txpowid ?? inner?.txpowid, "") || null;
-  return { ok: true, txpowId, status: "pending" };
+  const txn = asRecord(asRecord((inner ?? response)?.body)?.txn);
+  const transactionId = asString(txn?.transactionid, "") || null;
+  return { ok: true, txpowId, transactionId, status: "pending" };
 }
 
 export function isTxPowId(value: string): boolean {
@@ -220,6 +223,7 @@ export function parseHistoryResponse(body: unknown, localAddresses: Set<string>)
     if (!txpowId || timeMillis === null || !difference) return;
 
     const txn = asRecord(asRecord(txpow?.body)?.txn);
+    const transactionId = typeof txn?.transactionid === "string" && txn.transactionid ? txn.transactionid : null;
     const inputs = coinsOf(txn, "inputs");
     const outputs = coinsOf(txn, "outputs");
 
@@ -237,6 +241,7 @@ export function parseHistoryResponse(body: unknown, localAddresses: Set<string>)
 
       entries.push({
         txpowId,
+        transactionId,
         tokenId,
         tokenName: tokenDisplayName(tokenId, asRecord(tokenCoin?.token)?.name),
         amount,

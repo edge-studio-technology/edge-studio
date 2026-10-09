@@ -30,6 +30,8 @@ export type SendPaymentRequest = {
 export type SendPaymentResult = {
   ok: boolean;
   txpowId: string | null;
+  /** Stable across mining, unlike the pre-mined `txpowId` `send` returns; links the send log to chain rows. */
+  transactionId: string | null;
   status: "pending" | "sent" | "failed";
   message?: string;
 };
@@ -61,6 +63,7 @@ export type WalletHistoryDirection = "in" | "out" | "self";
 /** One token movement of one relevant TxPoW, derived from Minima's `history` command. */
 export type ChainHistoryEntry = {
   txpowId: string;
+  transactionId: string | null;
   tokenId: string;
   tokenName: string;
   amount: string;

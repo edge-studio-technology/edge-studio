@@ -306,6 +306,30 @@ export function runMigrations() {
       status TEXT NOT NULL
     )
   `);
+  ensureColumn("wallet_send_history", "wallet_fingerprint", "TEXT");
+  ensureColumn("wallet_send_history", "origin", "TEXT");
+  ensureColumn("wallet_send_history", "transaction_id", "TEXT");
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS wallet_transactions (
+      txpow_id TEXT NOT NULL,
+      token_id TEXT NOT NULL,
+      transaction_id TEXT,
+      direction TEXT NOT NULL,
+      amount TEXT NOT NULL,
+      token_name TEXT NOT NULL,
+      counterparty TEXT,
+      time_millis INTEGER NOT NULL,
+      block INTEGER,
+      confirmations INTEGER,
+      confirmed_at TEXT,
+      wallet_fingerprint TEXT NOT NULL,
+      synced_at TEXT NOT NULL,
+      PRIMARY KEY (txpow_id, token_id)
+    )
+  `);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_wallet_transactions_time ON wallet_transactions(time_millis)");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_wallet_transactions_transaction_id ON wallet_transactions(transaction_id)");
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS custom_tokens (
