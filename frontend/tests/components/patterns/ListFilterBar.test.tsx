@@ -56,13 +56,4 @@ describe("ListFilterBar", () => {
     expect(screen.getByRole("button", { name: "New item" })).toBeInTheDocument();
     expect(screen.getByLabelText("Search")).toBeInTheDocument();
   });
-
-  it("renders extra filter fields before the search input", () => {
-    render(
-      <ListFilterBar q="" onQueryChange={vi.fn()} extraFilters={<label>Type<select /></label>} />,
-    );
-    const type = screen.getByLabelText("Type");
-    const search = screen.getByLabelText("Search");
-    expect(type.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
 });

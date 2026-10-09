@@ -6,9 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] task/652-implement-the-incoming-payment-service
 
+### Added
+
+- Wallet history lists incoming payments and self-transfers alongside sends, synced from the Minima node.
+- Wallet history rows show Pending, Confirmed, or Failed, and update without a page reload.
+- Wallet history can be filtered by type, status, and date (presets or a custom range), and searched by contact name, address, token, or ID.
+- Wallet history shows the sender or recipient's address-book name when it is a saved contact.
+- The history details view shows the date, confirmation time, block, confirmation count, origin, and TxPoW and transaction IDs.
+- History from a wallet the node no longer uses is marked Previous wallet and can be cleared by an admin after re-entering their PIN/password (`POST /api/wallet/history/clear-previous`).
+- Dev testnet setup for Minima wallet testing on a Pi; see `docs/guides/minima-testnet.md`.
+
+### Changed
+
+- `GET /api/wallet/history` returns a paginated, filterable list of all wallet movements instead of `{ sends }`, and no longer accepts `limit`; see `README.md`.
+
 ### Fixed
 
 - The Send payment dialog accepts decimal amounts.
+- `GET /api/wallet/payment-status/:txpowid` reports pending and confirmed payments instead of always `unknown`.
 
 ## [Unreleased]
 

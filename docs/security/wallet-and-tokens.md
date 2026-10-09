@@ -125,6 +125,21 @@ Current Controls:
 
 Status: Accepted for local/dev iteration only. Not available in production builds.
 
+## Wallet History Clear (admin)
+
+Risk: `POST /api/wallet/history/clear-previous` deletes wallet history rows recorded under a wallet the node no longer uses (after a seed import, backup restore, or console restore/reset). Wallet history is a financial record and is never pruned automatically ([adr/0033](../adr/0033-persist-synced-wallet-history.md)).
+
+Impact: Loss of history rows in SQLite for the earlier wallet, including failed sends and send origin that exist only in the app. Does not delete Minima wallet keys, on-chain balances, or the current wallet's rows.
+
+Current Controls:
+
+- Admin session required (`requireRole('admin')`) and the shared auth rate limiter applies.
+- The current admin PIN/password must be re-entered, the same pattern as backup download; a wrong credential returns 401 `invalid_credential` without ending the session.
+- Only rows whose wallet fingerprint differs from the current wallet's are deleted. The request returns 409 while a wallet replacement runs or if one finished during the request, and 502 if the current wallet cannot be read, so it never deletes against an unknown wallet.
+- Audit event `wallet.history.clear_previous` records the deleted count.
+
+Status: Accepted. History stored in SQLite is not backed up by Minima node backups; backing up the app database is deferred.
+
 ## Custom Token Creation (admin)
 
 Risk: `POST /api/tokens/create` calls Minima `tokencreate` to mint a custom token on-chain. Creation consumes MINIMA (coloured coins) and cannot be undone from the Pi UI.

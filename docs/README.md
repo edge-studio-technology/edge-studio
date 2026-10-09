@@ -120,6 +120,7 @@ of carrying the full rationale inline.
 | [adr/0030-app-owned-local-address-book-contact.md](./adr/0030-app-owned-local-address-book-contact.md) | Separate app-owned local contact; check/create only; manual contacts stay untouched and may share its destination |
 | [adr/0031-public-credential-type-and-legacy-correction.md](./adr/0031-public-credential-type-and-legacy-correction.md) | Public setup credential hint and hash-conditional metadata correction after successful authentication |
 | [adr/0032-cache-update-changelog-in-update-agent.md](./adr/0032-cache-update-changelog-in-update-agent.md) | Update page changelog cached by update-agent in its state dir, synced on manifest checks; browser no longer fetches GitHub |
+| [adr/0033-persist-synced-wallet-history.md](./adr/0033-persist-synced-wallet-history.md) | Wallet history synced from Minima `history` into SQLite, marked by wallet fingerprint, cleared only with admin re-auth, confirmation time from the block |
 
 ---
 
