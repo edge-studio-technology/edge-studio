@@ -1,6 +1,6 @@
 # Improve Minima Resync Status Feedback and Expose Progress Logs Plan
 
-**Status:** Proposed — audit complete; implementation not started
+**Status:** In progress — step 1 evidence and fixtures complete; runtime implementation starts at step 2
 
 **Created:** 2026-10-09
 
@@ -12,7 +12,7 @@
 
 ## Progress
 
-- [ ] 1. Capture the supported node's resync lifecycle and add regression fixtures.
+- [x] 1. Capture the supported node's resync lifecycle and add regression fixtures.
 - [ ] 2. Implement backend resync tracking, asynchronous initiation, and bounded progress persistence.
 - [ ] 3. Implement backend recovery and route every supported resync caller through it.
 - [ ] 4. Connect the Minima UI to operation state and add the progress panel.
@@ -68,6 +68,12 @@ Verify whether aborting the client RPC leaves resync running. Capture completion
 Use those observations to select separate RPC-response, shutdown, and recovery deadlines. Preserve ADR 0001's restart timing for ordinary restart; do not substitute it for measured resync timing. Record verified timing and recovery choices through the `adr` skill before embedding them in implementation.
 
 Add captured non-secret envelopes to parser/RPC tests and a failing regression test for timeout followed by successful recovery. This evidence checkpoint can reuse #212's resync investigation without waiting for its broader workflow policy.
+
+### Step 1 results (2026-10-09)
+
+Verified fresh disposable AMD64 Core 1.1.2.4/1.0.49.4 nodes and the deployed Pi's exact ARM64 Core 1.1.2.6 image. Captured quick completion/rejection envelopes and real >30-second throttled transfers followed by natural recovery. Client abort did not cancel work; “please restart” did not require another restart. Original Pi node process baseline stayed unchanged.
+
+Added fixtures/parser/RPC regressions and an explicitly expected-failing service regression for ownership retention after timeout. Remove `it.fails` when step 2 fixes ownership. Focused/full checks, coverage thresholds, audits, builds and Compose validation passed. See [lifecycle evidence](../../qa/536-resync-lifecycle.md) and [ADR 0033](../../adr/0033-observe-resync-after-client-timeout.md) for exact identities/timings, initial separate 5-minute response/5-minute cycle/2-minute readiness budgets, and operator recovery policy. Budgets bound observation and never authorize a destructive fallback.
 
 ## 2. Track and initiate resync in the backend
 
@@ -178,4 +184,4 @@ Use a disposable node for the final live checks: fast/slow resync, host rejectio
 
 ## Remaining inputs for implementation
 
-The events-only UI scope is agreed. Live lifecycle evidence, resync deadlines, and the exact outcome-confirmation/manual-recovery rules remain the first checkpoint. No deployment or real-node mutation was performed or required to complete this audit and plan.
+The events-only UI scope is agreed. Step 1 establishes initial lifecycle/recovery rules and budgets in ADR 0033. Runtime implementation starts at step 2; worker terminal integration and final live/browser QA remain pending. Original operator-node data was not mutated.

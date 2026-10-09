@@ -17,6 +17,8 @@
 
 ## In Progress
 
+- [ ] Fix Minima resync feedback (OpenProject #536) — step 1 complete: disposable AMD64/exact deployed ARM64 lifecycle verified, fixtures/regressions added, ownership failure reproduced; backend tracking starts at step 2; see [plan](plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md), [QA](qa/536-resync-lifecycle.md), and ADR 0033.
+
 - [ ] Improve changelog service (OpenProject #239): `update-agent` caches main's changelog in `/state`, kept in step with the manifest; Update page reads it from `GET /update/status` with an in-app full view — code, docs, local and Pi verification done on `task/239-improve-changelog-service`; PR to `dev` pending; see `docs/plans/features/239-improve-changelog-service.md`.
 - [ ] Upgrade Automation watch mode into a production-quality live monitoring, historic replay, and workflow debugging experience — runtime overview, domain-aware block summaries, replay toolbar/status messaging, status-colored replay animation, and run-specific historic canvas rendering are implemented and build/test verified; browser visual QA remains; see `docs/plans/workflow-watch-mode-upgrade.md`.
 - [ ] Static guided tour (OpenProject #275): built on `task/275-create-static-app-guided-tour`, current `dev` merged for PR preparation (first-visit modal with 9 steps, seen flag per browser, replay from Settings → Behaviour); draft screenshots from dev data are in for every slide, crossfading in a full frame when a slide has two; recapture all of them with clean, Pi-like values before merge, then copy review and merge. Decisions in `docs/adr/0027-static-guided-tour.md`; see `docs/plans/features/275-create-static-app-guided-tour.md`.
@@ -29,8 +31,6 @@
 - [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
 
 ## Next
-
-- [ ] Fix Minima resync feedback (OpenProject #536) — audit complete; proposed backend-owned lifecycle and concise progress events, implementation not started; see [plan](plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md).
 
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
 - [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.

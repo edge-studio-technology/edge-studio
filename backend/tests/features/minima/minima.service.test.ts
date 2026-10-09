@@ -214,6 +214,12 @@ describe("getWalletBalance", () => {
 });
 
 describe("resyncMegammr", () => {
+  it.fails("retains operation ownership after a dispatched resync times out (#536 regression)", async () => {
+    runMinimaPathCommandMock.mockRejectedValue(new DOMException("The operation was aborted", "AbortError"));
+    await assert.rejects(minimaService.resyncMegammr(), /aborted/i);
+    assert.equal(minimaMonitoring.isMinimaOperationInProgress(), true);
+  });
+
   it("builds the megammrsync command from the configured host with a 30s timeout", async () => {
     minimaService.saveMinimaConfig({ megammrHost: "resync.host:9001" });
     runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, source: "s", command: "megammrsync", body: {} });

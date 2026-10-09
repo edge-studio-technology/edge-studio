@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { fetchMinimaStatus, runMinimaPathCommand } from "../../../src/features/minima/minima.rpc.js";
 import { parseBalanceResponse, parseLocalWalletAddressesResponse } from "../../../src/features/wallet/wallet.parse.js";
@@ -48,6 +49,34 @@ describe("fetchMinimaStatus", () => {
 });
 
 describe("runMinimaPathCommand", () => {
+  it("preserves an HTTP 200 resync rejection for the caller to inspect", async () => {
+    const captured = JSON.parse(readFileSync(new URL("../../fixtures/minima/resync-lifecycle.json", import.meta.url), "utf8"));
+    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify(captured.unreachableHost)));
+    const result = await runMinimaPathCommand("megammrsync action:resync host:127.0.0.1:1");
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.body, captured.unreachableHost);
+  });
+
+  it("can observe a healthy node after a resync client timeout without redispatching resync", async () => {
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockImplementationOnce((_url, options) => new Promise((_resolve, reject) => {
+        options.signal.addEventListener("abort", () => reject(new DOMException("The operation was aborted", "AbortError")), { once: true });
+      }));
+      const request = runMinimaPathCommand("megammrsync action:resync host:megammr.minima.global:9001", 30000);
+      const rejected = assert.rejects(request, /aborted/i);
+      await vi.advanceTimersByTimeAsync(30000);
+      await rejected;
+      fetchMock.mockResolvedValueOnce(mockResponse(200, JSON.stringify({ status: true, response: { chain: { block: 2357067 } } })));
+      const recovered = await fetchMinimaStatus();
+      assert.equal((recovered.body as { status: boolean }).status, true);
+      assert.equal(fetchMock.mock.calls.length, 2);
+      assert.equal(fetchMock.mock.calls[1][0], "http://127.0.0.1:9005/status");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("preserves default/simple address data through the scripts RPC and parser", async () => {
     // Source-shaped fixture; deployed-node capture remains part of ticket #206 verification.
     const miniaddress = "MxG086U24F17MT50Y6VUPBPD6VJKTYVMR71WRSYURYUVZDN1VMG25FF39M0458A";

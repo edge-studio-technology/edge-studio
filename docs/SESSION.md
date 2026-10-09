@@ -4,6 +4,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Completed #536 step 1: captured resync completion/rejection on disposable AMD64 Core 1.1.2.4/1.0.49.4 and the exact deployed ARM64 Core 1.1.2.6 image. Verified continued work after abort, >30-second throttled resync, natural restart and recovered chain progress. Added fixtures, parser/RPC regressions and one explicitly expected-failing ownership regression; ADR 0033 records observation budgets and uncertainty/operator policy. Focused 41 passes plus one expected failure, full checks/coverage/audits, typechecks, builds and Compose validation passed. No runtime implementation or deployment; original Pi node process baseline stayed unchanged.
+
 - Audited OpenProject #536, its activity history, parent #307, and related spike #212 against `620bef8c`; saved the proposed resync lifecycle/progress plan and linked it from TASKS. Confirmed the 30-second RPC failure path, browser-owned restart, premature/overwritten in-memory tracking, and missing resync page coverage. User chose concise events. All 127 focused existing backend/frontend tests passed; route tests required permission for a temporary local listener. No application code, OpenProject state, deployment, or real-node action changed; live lifecycle/timing evidence and implementation remain pending.
 
 - #239 Pi check on dev Pi (DEV_MODE install of the branch + `update-agent` built from branch source): Update page showed 3 released entries and the full-changelog modal; browser made no GitHub requests; `update-agent` recreated with `raw.githubusercontent.com` blocked still served notes from `changelog-cache.json` (unchanged `fetchedAt`). Corrected CHANGELOG/README/ADR 0032 wording: notes survive a restart without GitHub, not a fully offline Pi (manifest check fails first).
@@ -117,7 +119,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- #536: review the proposed plan, then capture disposable-node lifecycle evidence and implement backend-owned resync tracking/recovery with the agreed concise progress panel.
+- #536: implement step 2 backend tracking/asynchronous initiation/bounded persistence; remove the expected-failure marker when ownership retention is fixed, then implement backend recovery and concise progress UI.
 
 - #239: open PR `task/239-improve-changelog-service` → `dev`.
 - #283: operator review/merge; implementation and in-scope verification are complete. Consider a separate compatibility ticket for password-manager/native autofill and physical mobile keyboards.

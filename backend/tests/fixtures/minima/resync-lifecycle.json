@@ -1,0 +1,16 @@
+{
+  "completed": {
+    "command": "megammrsync",
+    "params": { "action": "resync", "host": "megammr.minima.global:9001" },
+    "status": true,
+    "pending": false,
+    "response": { "message": "MegaMMR sync fininshed.. please restart", "coins": 0 }
+  },
+  "unreachableHost": {
+    "command": "megammrsync",
+    "params": { "action": "resync", "host": "127.0.0.1:1" },
+    "status": false,
+    "pending": false,
+    "error": "Could not connect to Archive host! @ 127.0.0.1:1"
+  }
+}
