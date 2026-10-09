@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { db } from "../../db/database.js";
 import { canonicalMinimaAddress } from "../../shared/minima-address.js";
+import { listAddressBookEntries } from "../address-book/address-book.repository.js";
 import { getWalletReplacementCount, isWalletReplacementInProgress } from "../address-book/wallet-replacement.service.js";
 import { parseBlockCommandResponse } from "../minima/minima.parse.js";
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
@@ -284,6 +285,7 @@ export async function listWalletHistory(query: WalletHistoryQuery) {
   const previousWalletItems = fingerprint === null ? 0 : (db.prepare(`
     SELECT COUNT(*) AS count FROM (${HISTORY_ROWS}) WHERE wallet_fingerprint IS NOT NULL AND wallet_fingerprint != ?
   `).get(fingerprint) as { count: number }).count;
+  const contactLabels = new Map(listAddressBookEntries().map((entry) => [canonicalMinimaAddress(entry.address), entry.label]));
 
   const items = rows.map((row): WalletHistoryItem => ({
     id: row.id,
@@ -293,6 +295,7 @@ export async function listWalletHistory(query: WalletHistoryQuery) {
     tokenId: row.token_id,
     tokenName: row.token_name,
     counterparty: row.counterparty,
+    counterpartyLabel: (row.counterparty && contactLabels.get(canonicalMinimaAddress(row.counterparty))) ?? null,
     time: new Date(row.time_millis).toISOString(),
     txpowId: row.txpow_id,
     transactionId: row.transaction_id,

@@ -62,6 +62,8 @@ export type WalletHistoryItem = {
   tokenId: string;
   tokenName: string;
   counterparty: string | null;
+  /** Address-book label of `counterparty`, when it is a saved contact. */
+  counterpartyLabel: string | null;
   /** TxPoW time for chain rows, send time for unsynced sends. */
   time: string;
   /** Mined TxPoW ID; null for sends not seen on chain. */

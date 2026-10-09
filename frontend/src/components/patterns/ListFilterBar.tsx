@@ -15,6 +15,8 @@ export type ListFilterBarProps = {
   onFilterChange?: (filter: string) => void;
   onQueryChange: (q: string) => void;
   disabled?: boolean;
+  /** Additional filter fields, placed after the filter select. */
+  extraFilters?: ReactNode;
   /** Primary action button(s) beside search; full-width under the fields below `md`. */
   actions?: ReactNode;
 };
@@ -27,6 +29,7 @@ export function ListFilterBar({
   onFilterChange,
   onQueryChange,
   disabled = false,
+  extraFilters,
   actions,
 }: ListFilterBarProps) {
   const [searchInput, setSearchInput] = useState(q);
@@ -56,6 +59,8 @@ export function ListFilterBar({
           />
         </div>
       ) : null}
+
+      {extraFilters}
 
       <InputField
         label="Search"

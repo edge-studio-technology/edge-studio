@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, Inbox } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Eye, Inbox, Repeat } from "lucide-react";
 import {
   DataTable,
   RowActions,
@@ -13,9 +13,12 @@ import {
 } from "../../components/patterns/DataTable";
 import { Button } from "../../components/ui/Button";
 import { CopyableTruncatedText } from "../../components/ui/CopyableTruncatedText";
+import { InputField } from "../../components/ui/InputField";
 import { Pill } from "../../components/ui/Pill";
+import { SelectField } from "../../components/ui/SelectField";
 import { TruncatedHash } from "../../components/ui/TruncatedHash";
 import { EmptyContentState } from "../../components/patterns/EmptyContentState";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { ErrorContentState } from "../../components/patterns/ErrorContentState";
 import { ListPaginationFooter } from "../../components/patterns/ListPaginationFooter";
 import { ListFilterBar } from "../../components/patterns/ListFilterBar";
@@ -29,22 +32,30 @@ import {
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
 import { useToast } from "../../components/ToastProvider";
+import { cx } from "../../lib/cx";
 import { describeLoadFailure } from "../../lib/errors";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
-import { formatMinimaAmount, shortHash } from "../../lib/format";
 import { formatLocalDateTime } from "../../lib/time";
 import { clearWalletHistoryForDebug } from "./walletApi";
+import { ClearPreviousHistoryModal } from "./ClearPreviousHistoryModal";
 import { HistoryDetailModal } from "./HistoryDetailModal";
 import { TokenGlyph } from "./TokenGlyph";
 import { useTableColumnVisibility } from "../preferences/useTableColumnVisibility";
-import type { WalletSendHistoryItem } from "./walletTypes";
+import {
+  counterpartyLabel,
+  DIRECTION_LABEL,
+  isCustomRangeInvalid,
+  ORIGIN_LABEL,
+  signedAmountLabel,
+  STATUS_LABEL,
+  STATUS_TONE,
+  WALLET_HISTORY_DATE_OPTIONS,
+  WALLET_HISTORY_DIRECTION_OPTIONS,
+  WALLET_HISTORY_STATUS_OPTIONS,
+  type WalletHistoryFilters,
+} from "./walletHistory";
+import type { WalletHistoryDirection, WalletHistoryItem, WalletHistoryPage } from "./walletTypes";
 import { isNativeTokenId } from "./walletUtils";
-
-const HISTORY_STATUS_OPTIONS = [
-  { value: "", label: "All" },
-  { value: "submitted", label: "Submitted" },
-  { value: "failed", label: "Failed" },
-] as const;
 
 const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
   value: String(size),
@@ -53,83 +64,75 @@ const PAGE_SIZE_OPTIONS = DEFAULT_PAGE_SIZE_OPTIONS.map((size) => ({
 
 const WALLET_HISTORY_COLUMNS = [
   { id: "amount", label: "Amount" },
-  { id: "to", label: "To", filterable: true },
+  { id: "counterparty", label: "From / To", filterable: true },
   { id: "status", label: "Status" },
   { id: "date", label: "Date" },
   { id: "token", label: "Token", defaultVisible: false, filterable: true },
   { id: "txpow", label: "TxPoW ID", defaultVisible: false, filterable: true },
+  { id: "origin", label: "Origin", defaultVisible: false },
   { id: "actions", label: "Actions", dataColumn: false },
 ] as const satisfies readonly TableColumnDefinition[];
 
-function historyStatusTone(status: WalletSendHistoryItem["status"]) {
-  return status === "failed" ? "error" : "good";
-}
+const DIRECTION_ICON = { in: ArrowDownLeft, out: ArrowUpRight, self: Repeat } as const;
 
-function historyStatusLabel(status: WalletSendHistoryItem["status"]) {
-  return status === "submitted" ? "Submitted" : "Failed";
-}
+const AMOUNT_TONE: Record<WalletHistoryDirection, string> = {
+  in: "text-text-success",
+  out: "text-text-primary",
+  self: "text-text-secondary",
+};
 
 export function WalletHistoryPanel({
-  items,
+  history,
+  filters,
   loading,
   error,
   actionsBlocked,
+  onFiltersChange,
   onRefresh,
 }: {
-  items: WalletSendHistoryItem[];
+  history: WalletHistoryPage;
+  filters: WalletHistoryFilters;
   loading: boolean;
   error: string | null;
   actionsBlocked: boolean;
+  onFiltersChange: (patch: Partial<WalletHistoryFilters>) => void;
   onRefresh: () => Promise<void>;
 }) {
   const { showToast } = useToast();
-  const [historyQuery, setHistoryQuery] = useState("");
-  const [historyStatus, setHistoryStatus] = useState("");
-  const [historyPage, setHistoryPage] = useState(1);
-  const [historyPageSize, setHistoryPageSize] = useState<number>(DEFAULT_PAGE_SIZE_OPTIONS[0]);
-  const [selectedHistoryItem, setSelectedHistoryItem] = useState<WalletSendHistoryItem | null>(
-    null,
-  );
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<WalletHistoryItem | null>(null);
+  const [clearPreviousOpen, setClearPreviousOpen] = useState(false);
   const [debugClearingHistory, setDebugClearingHistory] = useState(false);
-  const { visibility, columnOrder, filters, setVisibility, setColumnOrder, setFilters } = useTableColumnVisibility(
-    "wallet-history",
-    WALLET_HISTORY_COLUMNS,
-  );
+  const {
+    visibility,
+    columnOrder,
+    filters: columnFilters,
+    setVisibility,
+    setColumnOrder,
+    setFilters: setColumnFilters,
+  } = useTableColumnVisibility("wallet-history", WALLET_HISTORY_COLUMNS);
   const visibleColumns = orderedColumns(WALLET_HISTORY_COLUMNS, columnOrder).filter(
     (column) => visibility[column.id],
   );
   const visibleColumnCount = visibleColumns.length;
   const isDev = import.meta.env.DEV;
 
-  const trimmedHistoryQuery = historyQuery.trim().toLowerCase();
-  const filtersActive = Boolean(historyStatus || trimmedHistoryQuery || Object.keys(filters).length > 0);
-  const pagerDisabled = loading;
-  const showLoading = loading;
-  const searchFilteredHistory = items.filter((entry) => {
-    if (historyStatus && entry.status !== historyStatus) return false;
-    if (!trimmedHistoryQuery) return true;
-    return (
-      entry.toAddress.toLowerCase().includes(trimmedHistoryQuery) ||
-      entry.tokenName.toLowerCase().includes(trimmedHistoryQuery) ||
-      (entry.txpowId ?? "").toLowerCase().includes(trimmedHistoryQuery)
-    );
-  });
-  const filteredHistory = applyColumnFilters(searchFilteredHistory, filters, {
-    to: (entry) => entry.toAddress,
+  const rangeInvalid = isCustomRangeInvalid(filters);
+  const filtersActive = Boolean(
+    filters.status ||
+      filters.direction ||
+      filters.datePreset ||
+      filters.q.trim() ||
+      Object.keys(columnFilters).length > 0,
+  );
+  const items = applyColumnFilters(history.items, columnFilters, {
+    counterparty: (entry) => [entry.counterpartyLabel, entry.counterparty].join(" "),
     token: (entry) => entry.tokenName,
     txpow: (entry) => entry.txpowId,
   });
-  const historyTotalPages = Math.max(1, Math.ceil(filteredHistory.length / historyPageSize));
-  const historyCurrentPage = Math.min(historyPage, historyTotalPages);
-  const pagedHistory = filteredHistory.slice(
-    (historyCurrentPage - 1) * historyPageSize,
-    historyCurrentPage * historyPageSize,
-  );
 
   function clearFilters() {
-    setHistoryStatus("");
-    setHistoryQuery("");
-    setHistoryPage(1);
+    onFiltersChange({ status: "", direction: "", q: "", datePreset: "", customFrom: "", customTo: "" });
+    setColumnFilters({});
   }
 
   async function handleDebugClearWalletHistory() {
@@ -159,36 +162,99 @@ export function WalletHistoryPanel({
 
   return (
     <div className="gap-detail-close flex flex-col">
+      {!error && history.previousWalletItems > 0 ? (
+        <ErrorAlert
+          status="warning"
+          title="History from a previous wallet"
+          className="w-full max-w-none"
+          action={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={actionsBlocked}
+              onClick={() => setClearPreviousOpen(true)}
+            >
+              Clear
+            </Button>
+          }
+        >
+          {history.previousWalletItems === 1
+            ? "1 item was recorded under a wallet this node no longer uses."
+            : `${history.previousWalletItems} items were recorded under a wallet this node no longer uses.`}
+        </ErrorAlert>
+      ) : null}
+
       {error ? null : (
         <TableControls
           utilities={
             <TableColumnVisibilityButton
-              tableLabel="Send history"
+              tableLabel="Wallet history"
               columns={WALLET_HISTORY_COLUMNS}
               visibility={visibility}
               columnOrder={columnOrder}
-              filters={filters}
+              filters={columnFilters}
               onChange={setVisibility}
               onOrderChange={setColumnOrder}
-              onFiltersChange={setFilters}
+              onFiltersChange={setColumnFilters}
             />
           }
         >
           <div className="[&>div]:mb-0">
             <ListFilterBar
-              filter={historyStatus}
-              q={historyQuery}
-              filterOptions={HISTORY_STATUS_OPTIONS}
-              searchPlaceholder="Address, token, or txpow ID"
-              disabled={pagerDisabled || items.length === 0}
-              onFilterChange={(status) => {
-                setHistoryStatus(status);
-                setHistoryPage(1);
-              }}
-              onQueryChange={(q) => {
-                setHistoryQuery(q);
-                setHistoryPage(1);
-              }}
+              filter={filters.status}
+              q={filters.q}
+              filterOptions={WALLET_HISTORY_STATUS_OPTIONS}
+              searchPlaceholder="Address, token, or ID"
+              onFilterChange={(status) => onFiltersChange({ status: status as WalletHistoryFilters["status"] })}
+              onQueryChange={(q) => onFiltersChange({ q })}
+              extraFilters={
+                <>
+                  <div className="gap-detail-tight flex w-full min-w-0 flex-col sm:w-40 sm:shrink-0">
+                    <SelectField
+                      label="Type"
+                      className="w-full min-w-0"
+                      value={filters.direction}
+                      options={WALLET_HISTORY_DIRECTION_OPTIONS.map((opt) => ({ ...opt }))}
+                      onChange={(event) =>
+                        onFiltersChange({ direction: event.target.value as WalletHistoryFilters["direction"] })
+                      }
+                    />
+                  </div>
+                  <div className="gap-detail-tight flex w-full min-w-0 flex-col sm:w-44 sm:shrink-0">
+                    <SelectField
+                      label="Date"
+                      className="w-full min-w-0"
+                      value={filters.datePreset}
+                      options={WALLET_HISTORY_DATE_OPTIONS.map((opt) => ({ ...opt }))}
+                      onChange={(event) =>
+                        onFiltersChange({ datePreset: event.target.value as WalletHistoryFilters["datePreset"] })
+                      }
+                    />
+                  </div>
+                  {filters.datePreset === "custom" ? (
+                    <>
+                      <InputField
+                        label="From"
+                        type="date"
+                        className="w-full min-w-0 sm:w-44"
+                        value={filters.customFrom}
+                        max={filters.customTo || undefined}
+                        onChange={(event) => onFiltersChange({ customFrom: event.target.value })}
+                      />
+                      <InputField
+                        label="To"
+                        type="date"
+                        className="w-full min-w-0 sm:w-44"
+                        value={filters.customTo}
+                        min={filters.customFrom || undefined}
+                        error={rangeInvalid ? "Pick a date on or after From." : undefined}
+                        onChange={(event) => onFiltersChange({ customTo: event.target.value })}
+                      />
+                    </>
+                  ) : null}
+                </>
+              }
             />
           </div>
         </TableControls>
@@ -196,42 +262,42 @@ export function WalletHistoryPanel({
 
       {!error ? (
         <p className="sr-only" aria-live="polite">
-          {showLoading
-            ? "Loading send history."
+          {loading
+            ? "Loading wallet history."
             : filtersActive
-              ? `${filteredHistory.length} matching ${filteredHistory.length === 1 ? "send" : "sends"}.`
-              : `${filteredHistory.length} ${filteredHistory.length === 1 ? "send" : "sends"} in history.`}
+              ? `${history.total} matching ${history.total === 1 ? "item" : "items"}.`
+              : `${history.total} ${history.total === 1 ? "item" : "items"} in history.`}
         </p>
       ) : null}
 
       {error ? null : (
         <TableColumnFilterSummary
           columns={WALLET_HISTORY_COLUMNS}
-          filters={filters}
-          onRemove={(columnId) => setFilters({ ...filters, [columnId]: undefined })}
-          onClear={() => setFilters({})}
+          filters={columnFilters}
+          onRemove={(columnId) => setColumnFilters({ ...columnFilters, [columnId]: undefined })}
+          onClear={() => setColumnFilters({})}
         />
       )}
 
       {error ? (
         <ErrorContentState
-          title="Send history isn't available"
+          title="Wallet history isn't available"
           description={describeLoadFailure(error)}
           onRetry={() => void onRefresh()}
         />
-      ) : showLoading ? (
+      ) : loading ? (
         <LoadingState
-          title="Fetching your send history"
+          title="Fetching your wallet history"
           description="This should take a few seconds."
         />
-      ) : filteredHistory.length === 0 ? (
+      ) : items.length === 0 ? (
         <EmptyContentState
           icon={Inbox}
-          title={filtersActive ? "No matching sends" : "No send activity yet"}
+          title={filtersActive ? "No matching history" : "No wallet activity yet"}
           description={
             filtersActive
-              ? "Try another status or search, or clear filters."
-              : "Payments you send from this wallet will be added to your history here."
+              ? "Try another filter or search, or clear filters."
+              : "Payments this wallet sends or receives will be added to your history here."
           }
           actionLabel={filtersActive ? "Clear filters" : undefined}
           actionVariant="secondary"
@@ -239,7 +305,7 @@ export function WalletHistoryPanel({
         />
       ) : (
         <TableWrap>
-          <DataTable aria-label="Send history" className={visibleColumnCount > 3 ? "min-w-245" : undefined}>
+          <DataTable aria-label="Wallet history" className={visibleColumnCount > 3 ? "min-w-245" : undefined}>
             <TableHead>
               {visibleColumns.map((column) => (
                 <TableHeaderCell
@@ -252,24 +318,18 @@ export function WalletHistoryPanel({
               ))}
             </TableHead>
             <TableBody>
-              {pagedHistory.map((entry) => {
-                const amountLabel = formatMinimaAmount(entry.amount, 12);
-                const toShort = shortHash(entry.toAddress);
-                return (
-                  <TableRow key={entry.id}>
-                    {visibleColumns.map((column) => (
-                      <WalletHistoryCell
-                        key={column.id}
-                        columnId={column.id}
-                        entry={entry}
-                        amountLabel={amountLabel}
-                        toShort={toShort}
-                        onView={() => setSelectedHistoryItem(entry)}
-                      />
-                    ))}
-                  </TableRow>
-                );
-              })}
+              {items.map((entry) => (
+                <TableRow key={entry.id}>
+                  {visibleColumns.map((column) => (
+                    <WalletHistoryCell
+                      key={column.id}
+                      columnId={column.id}
+                      entry={entry}
+                      onView={() => setSelectedHistoryItem(entry)}
+                    />
+                  ))}
+                </TableRow>
+              ))}
             </TableBody>
           </DataTable>
         </TableWrap>
@@ -277,16 +337,13 @@ export function WalletHistoryPanel({
 
       {error ? null : (
         <ListPaginationFooter
-          page={historyCurrentPage}
-          pageSize={historyPageSize}
-          total={filteredHistory.length}
-          totalPages={historyTotalPages}
-          disabled={pagerDisabled}
-          onPageChange={setHistoryPage}
-          onPageSizeChange={(size) => {
-            setHistoryPageSize(size);
-            setHistoryPage(1);
-          }}
+          page={history.page}
+          pageSize={filters.pageSize}
+          total={history.total}
+          totalPages={Math.max(1, history.totalPages)}
+          disabled={loading}
+          onPageChange={(page) => onFiltersChange({ page })}
+          onPageSizeChange={(pageSize) => onFiltersChange({ pageSize })}
           pageSizeOptions={PAGE_SIZE_OPTIONS}
         />
       )}
@@ -312,6 +369,22 @@ export function WalletHistoryPanel({
           onClose={() => setSelectedHistoryItem(null)}
         />
       ) : null}
+
+      {clearPreviousOpen ? (
+        <ClearPreviousHistoryModal
+          itemCount={history.previousWalletItems}
+          onClose={() => setClearPreviousOpen(false)}
+          onCleared={async (deleted) => {
+            setClearPreviousOpen(false);
+            showToast({
+              tone: "success",
+              title: "Previous wallet history cleared",
+              message: `Deleted ${deleted} ${deleted === 1 ? "item" : "items"}.`,
+            });
+            await onRefresh();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -319,42 +392,57 @@ export function WalletHistoryPanel({
 function WalletHistoryCell({
   columnId,
   entry,
-  amountLabel,
-  toShort,
   onView,
 }: {
   columnId: string;
-  entry: WalletSendHistoryItem;
-  amountLabel: string;
-  toShort: string;
+  entry: WalletHistoryItem;
   onView: () => void;
 }) {
   if (columnId === "amount") {
+    const DirectionIcon = DIRECTION_ICON[entry.direction];
     return (
       <TableCell className="min-w-0">
         <span className="gap-detail-next inline-flex max-w-full min-w-0 items-center">
+          <DirectionIcon size={16} className="text-icon-secondary shrink-0" aria-hidden />
+          <span className="sr-only">{DIRECTION_LABEL[entry.direction]}</span>
           <TokenGlyph isNative={isNativeTokenId(entry.tokenId)} />
-          <span className="gap-detail-tight flex min-w-0 flex-col">
-            <span className="type-mono text-text-primary truncate tabular-nums">{amountLabel}</span>
+          <span className={cx("type-mono truncate tabular-nums", AMOUNT_TONE[entry.direction])}>
+            {signedAmountLabel(entry)}
           </span>
         </span>
       </TableCell>
     );
   }
-  if (columnId === "to") return <TableCell className="min-w-0"><TruncatedHash value={entry.toAddress} /></TableCell>;
+  if (columnId === "counterparty") {
+    const label = counterpartyLabel(entry);
+    return (
+      <TableCell className="min-w-0">
+        {entry.direction !== "self" && entry.counterparty && !entry.counterpartyLabel ? (
+          <TruncatedHash value={entry.counterparty} />
+        ) : label ? (
+          <CopyableTruncatedText value={label} />
+        ) : (
+          <span className="text-text-secondary">Unknown</span>
+        )}
+      </TableCell>
+    );
+  }
   if (columnId === "status") {
     return (
       <TableCell>
-        <Pill tone={historyStatusTone(entry.status)} indicator>
-          {historyStatusLabel(entry.status)}
-        </Pill>
+        <span className="gap-detail-tight inline-flex flex-wrap items-center">
+          <Pill tone={STATUS_TONE[entry.status]} indicator>
+            {STATUS_LABEL[entry.status]}
+          </Pill>
+          {entry.isPreviousWallet ? <Pill>Previous wallet</Pill> : null}
+        </span>
       </TableCell>
     );
   }
   if (columnId === "date") {
     return (
       <TableCell className="whitespace-nowrap">
-        <time className="type-meta text-text-secondary" dateTime={entry.createdAt}>{formatLocalDateTime(entry.createdAt)}</time>
+        <time className="type-meta text-text-secondary" dateTime={entry.time}>{formatLocalDateTime(entry.time)}</time>
       </TableCell>
     );
   }
@@ -366,6 +454,13 @@ function WalletHistoryCell({
       </TableCell>
     );
   }
+  if (columnId === "origin") {
+    return (
+      <TableCell className="whitespace-nowrap">
+        {entry.origin ? ORIGIN_LABEL[entry.origin] : <span className="text-text-secondary">None</span>}
+      </TableCell>
+    );
+  }
   if (columnId === "actions") {
     return (
       <TableCell sticky className="w-px whitespace-nowrap">
@@ -373,7 +468,7 @@ function WalletHistoryCell({
           <TableIconButton
             type="button"
             title="View details"
-            aria-label={`View send of ${amountLabel} ${entry.tokenName} to ${toShort}`}
+            aria-label={`View ${DIRECTION_LABEL[entry.direction].toLowerCase()} ${signedAmountLabel(entry)} ${entry.tokenName}`}
             onClick={onView}
           >
             <Eye size={16} aria-hidden />

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { buildListQueryString, emptyPaginatedPage, listRangeLabel } from "../../src/lib/paginated";
+import { describe, expect, it, vi } from "vitest";
+import { applyPaginatedPage, buildListQueryString, emptyPaginatedPage, listRangeLabel } from "../../src/lib/paginated";
 
 describe("emptyPaginatedPage", () => {
   it("returns an empty page with the default page size", () => {
@@ -47,5 +47,38 @@ describe("listRangeLabel", () => {
 
   it("clips the end to the total on the last page", () => {
     expect(listRangeLabel(3, 25, 60)).toBe("Showing 51–60 of 60");
+  });
+});
+
+describe("applyPaginatedPage", () => {
+  it("stores the page when the requested page exists", () => {
+    const setPage = vi.fn();
+    const clampPage = vi.fn();
+    const response = { totalPages: 3 };
+
+    applyPaginatedPage(response, 3, setPage, clampPage);
+
+    expect(setPage).toHaveBeenCalledWith(response);
+    expect(clampPage).not.toHaveBeenCalled();
+  });
+
+  it("asks for the last page instead of storing a page past the end", () => {
+    const setPage = vi.fn();
+    const clampPage = vi.fn();
+
+    applyPaginatedPage({ totalPages: 2 }, 5, setPage, clampPage);
+
+    expect(clampPage).toHaveBeenCalledWith(2);
+    expect(setPage).not.toHaveBeenCalled();
+  });
+
+  it("stores an empty result without clamping", () => {
+    const setPage = vi.fn();
+    const clampPage = vi.fn();
+
+    applyPaginatedPage({ totalPages: 0 }, 4, setPage, clampPage);
+
+    expect(setPage).toHaveBeenCalled();
+    expect(clampPage).not.toHaveBeenCalled();
   });
 });

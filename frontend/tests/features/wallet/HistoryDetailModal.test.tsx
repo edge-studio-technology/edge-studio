@@ -3,18 +3,26 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { HistoryDetailModal } from "../../../src/features/wallet/HistoryDetailModal";
 import { ToastProvider } from "../../../src/components/ToastProvider";
-import type { WalletSendHistoryItem } from "../../../src/features/wallet/walletTypes";
+import type { WalletHistoryItem } from "../../../src/features/wallet/walletTypes";
 
-function item(overrides: Partial<WalletSendHistoryItem> = {}): WalletSendHistoryItem {
+function item(overrides: Partial<WalletHistoryItem> = {}): WalletHistoryItem {
   return {
-    id: "1",
-    createdAt: "2026-08-01T12:00:00.000Z",
-    toAddress: "Mx1234567890",
+    id: "0xabcdef:0x00",
+    direction: "in",
+    status: "confirmed",
+    amount: "5",
     tokenId: "0x00",
     tokenName: "Minima",
-    amount: "5",
+    counterparty: "Mx1234567890",
+    counterpartyLabel: null,
+    time: "2026-08-01T12:00:00.000Z",
     txpowId: "0xabcdef",
-    status: "submitted",
+    transactionId: "0x7777",
+    block: 120,
+    confirmations: 3,
+    confirmedAt: "2026-08-01T12:01:00.000Z",
+    origin: null,
+    isPreviousWallet: false,
     ...overrides,
   };
 }
@@ -27,27 +35,58 @@ function renderModal(props: Partial<Parameters<typeof HistoryDetailModal>[0]> = 
 }
 
 describe("HistoryDetailModal", () => {
-  it("shows the amount, token name, recipient, token id, and created date", () => {
+  it("shows a received payment with sender, times, block, and IDs", () => {
     renderModal();
 
     expect(screen.getByRole("dialog", { name: "History details" })).toBeInTheDocument();
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("Minima")).toBeInTheDocument();
-    expect(screen.getByText("Mx1234567890")).toBeInTheDocument();
+    expect(screen.getByText("+5")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Received" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Received" })).toHaveTextContent("Confirmed");
+    expect(screen.getByRole("region", { name: "From" })).toHaveTextContent("Mx1234567890");
+    expect(screen.getByRole("region", { name: "Date" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Confirmed" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Block" })).toHaveTextContent("120 · 3 confirmations");
+    expect(screen.getByRole("region", { name: "TxPoW ID" })).toHaveTextContent("0xabcdef");
+    expect(screen.getByRole("region", { name: "Transaction ID" })).toHaveTextContent("0x7777");
     expect(screen.getByText("0x00")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Origin" })).not.toBeInTheDocument();
   });
 
-  it("shows a TxPow ID section when txpowId is present", () => {
-    renderModal({ item: item({ txpowId: "0xabcdef" }) });
+  it("shows a pending app send with recipient label, origin, and no chain fields", () => {
+    renderModal({
+      item: item({
+        direction: "out",
+        status: "pending",
+        counterpartyLabel: "Warehouse",
+        txpowId: null,
+        block: null,
+        confirmations: null,
+        confirmedAt: null,
+        origin: "automation",
+        isPreviousWallet: true,
+      }),
+    });
 
-    expect(screen.getByText("TxPow ID")).toBeInTheDocument();
-    expect(screen.getByText("0xabcdef")).toBeInTheDocument();
+    expect(screen.getByText("−5")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Sent" })).toBeInTheDocument();
+    expect(screen.getByText("Pending")).toBeInTheDocument();
+    expect(screen.getByText("Previous wallet")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "To" })).toHaveTextContent("Warehouse");
+    expect(screen.getByRole("region", { name: "Date" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Origin" })).toHaveTextContent("Automation");
+    expect(screen.queryByRole("region", { name: "Confirmed" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Block" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "TxPoW ID" })).not.toBeInTheDocument();
   });
 
-  it("omits the TxPow ID section when txpowId is null", () => {
-    renderModal({ item: item({ txpowId: null }) });
+  it("omits the counterparty for a self-transfer and marks an unknown one", () => {
+    const { unmount } = renderModal({ item: item({ direction: "self", amount: "0" }) });
+    expect(screen.queryByRole("region", { name: "From" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "To" })).not.toBeInTheDocument();
+    unmount();
 
-    expect(screen.queryByText("TxPow ID")).not.toBeInTheDocument();
+    renderModal({ item: item({ counterparty: null }) });
+    expect(screen.getByRole("region", { name: "From" })).toHaveTextContent("Unknown");
   });
 
   it("calls onClose from the modal close button", async () => {

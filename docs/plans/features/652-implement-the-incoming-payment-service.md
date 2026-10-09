@@ -35,15 +35,25 @@
   - Pi QA 2026-10-09 (testnet, `v0.42.2-dev+d7f11c6`, backend/frontend images rebuilt only): first sync stored the 3 recorded rows; a peer payment appeared as `in` within one tick; unchanged history wrote nothing; a UI send and an automation-workflow send stored origin, transaction ID, and fingerprint and linked to their chain rows (UI send seen pending, then confirmed a tick later).
   - Finding: a TxPoW found on chain in its tip block stores `confirmations: 0` forever. Step 4 derives confirmations from the current tip at read time instead of serving the stored value.
   - Found and fixed on the way: the Send payment amount input lacked `step="any"`, so browsers rejected decimal amounts.
-- [x] Step 4: Paginated, filtered `GET /api/wallet/history` and admin re-auth clear of previous-wallet rows
+- [x] Step 4: Paginated, filtered `GET /api/wallet/history` and admin re-auth clear of previous-wallet rows (`84e2f05a`)
   - `listWalletHistory()`/`clearPreviousWalletHistory()`/`syncWalletHistoryIfStale()` in `wallet-history.service.ts`. The route syncs first unless a sync finished in the last 5 s.
   - Status values are `pending`/`confirmed`/`failed`. `from` is inclusive and `to` exclusive; both are ISO date-times with a time zone. Default page size is 25. The response adds `previousWalletItems` so step 5 can show the clear action only when it applies.
   - `confirmations` is the current tip block minus the row's block, read at request time with one `block` call; the stored column is not served.
   - Unsynced sends are listed without a TxPoW ID (the stored one is the pre-mined ID). Sends recorded before transaction IDs existed can't be matched to chain rows: failed ones are listed, submitted ones are hidden (their chain row shows instead).
   - If Minima is unreachable, stored rows are still listed, with no confirmation counts and nothing marked previous-wallet. Clearing returns 409 while a replacement runs (or one finished during the wallet read) and 502 if the wallet can't be read.
   - Clear reuses `verifyCurrentPassword()` from `minima-backup.service.ts`.
-  - The current Wallet page still reads `{ sends }`, so its history panel is broken until step 5.
+  - The current Wallet page still reads `{ sends }` and crashes ("Something went wrong") until step 5.
+  - Pi QA 2026-10-09 (testnet, `v0.42.2-dev+84e2f05`, via the API from a logged-in browser):
+    - All 7 rows listed newest first, with live confirmation counts; the row that showed 0 now counts up.
+    - Direction, status, search, and from/to filters return the expected counts; invalid status, direction, date, and range return 400.
+    - A send appears immediately as a pending send without a TxPoW ID. After the next sync it is replaced by its chain row (no duplicate), with origin kept.
+    - Two injected previous-wallet rows were flagged and counted. A wrong PIN returned 401 `invalid_credential` and kept the session; the right PIN deleted exactly those 2 rows and recorded `wallet.history.clear_previous` with `{"deleted":2}`.
 - [ ] Step 5: Frontend history panel, filters, detail modal, and clear action
+  - `WalletPage.tsx` loads status and history separately. History reloads quietly on each Minima status tick (30 s) and after the send dialog closes, so incoming payments and confirmations show up without a page reload.
+  - Filters: status, type (Received/Sent/Self), date preset (Today, Last 7 days, Last 30 days, This month, Custom range), and search. Presets and custom days are local time; a custom range includes both days. Filter helpers live in `walletHistory.ts`. `ListFilterBar` gained an `extraFilters` slot.
+  - Deviation: contact labels are resolved by the backend (`counterpartyLabel` on each item, matching Mx and 0x forms), not in the browser, because matching needs Mx checksum decoding.
+  - Deviation: the clear dialog is a `Modal` with `CredentialField` (`ClearPreviousHistoryModal.tsx`), same as "Remove backup password". `DeleteConfirmModal` has no slot for a credential field.
+  - `applyPaginatedPage()` moved to `frontend/src/lib/paginated.ts`.
 - [ ] Docs
 - [ ] Verification
 

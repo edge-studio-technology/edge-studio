@@ -1,19 +1,47 @@
+import { useId, type ReactNode } from "react";
 import { CopyableCode } from "../../components/patterns/CopyableCode";
 import { Modal } from "../../components/ui/Modal";
-import { formatMinimaAmount } from "../../lib/format";
+import { Pill } from "../../components/ui/Pill";
 import { formatLocalDateTime } from "../../lib/time";
 import { TokenGlyph } from "./TokenGlyph";
-import type { WalletSendHistoryItem } from "./walletTypes";
+import {
+  DIRECTION_LABEL,
+  ORIGIN_LABEL,
+  signedAmountLabel,
+  STATUS_LABEL,
+  STATUS_TONE,
+} from "./walletHistory";
+import type { WalletHistoryItem } from "./walletTypes";
 import { isNativeTokenId } from "./walletUtils";
+
+function HistoryField({ label, children }: { label: string; children: ReactNode }) {
+  const labelId = useId();
+  return (
+    <section className="gap-detail-next flex flex-col" aria-labelledby={labelId}>
+      <p className="type-meta text-text-secondary m-0" id={labelId}>
+        {label}
+      </p>
+      {children}
+    </section>
+  );
+}
+
+function HistoryTime({ value }: { value: string }) {
+  return (
+    <time className="type-body text-text-primary" dateTime={value}>
+      {formatLocalDateTime(value)}
+    </time>
+  );
+}
 
 export function HistoryDetailModal({
   item,
   onClose,
 }: {
-  item: WalletSendHistoryItem;
+  item: WalletHistoryItem;
   onClose: () => void;
 }) {
-  const amountLabel = formatMinimaAmount(item.amount, 12);
+  const counterpartyTitle = item.direction === "in" ? "From" : "To";
 
   return (
     <Modal title="History details" onClose={onClose}>
@@ -23,7 +51,7 @@ export function HistoryDetailModal({
           aria-labelledby="history-amount-label"
         >
           <p className="type-meta text-text-secondary m-0" id="history-amount-label">
-            Amount
+            {DIRECTION_LABEL[item.direction]}
           </p>
           <div className="gap-detail-close flex min-w-0 items-center">
             <span
@@ -34,44 +62,74 @@ export function HistoryDetailModal({
             </span>
             <div className="gap-detail-tight flex min-w-0 flex-col">
               <p className="type-title text-text-primary m-0 min-w-0 break-all tabular-nums">
-                {amountLabel}
+                {signedAmountLabel(item)}
               </p>
               <p className="type-meta text-text-secondary m-0 truncate">{item.tokenName}</p>
             </div>
           </div>
+          <div className="gap-detail-tight flex flex-wrap items-center">
+            <Pill tone={STATUS_TONE[item.status]} indicator>
+              {STATUS_LABEL[item.status]}
+            </Pill>
+            {item.isPreviousWallet ? <Pill>Previous wallet</Pill> : null}
+          </div>
         </section>
 
-        <section className="gap-detail-next flex flex-col" aria-labelledby="history-to-label">
-          <p className="type-meta text-text-secondary m-0" id="history-to-label">
-            To
-          </p>
-          <CopyableCode value={item.toAddress} />
-        </section>
-
-        <section className="gap-detail-next flex flex-col" aria-labelledby="history-token-id-label">
-          <p className="type-meta text-text-secondary m-0" id="history-token-id-label">
-            Token ID
-          </p>
-          <CopyableCode value={item.tokenId} />
-        </section>
-
-        {item.txpowId ? (
-          <section className="gap-detail-next flex flex-col" aria-labelledby="history-txpow-label">
-            <p className="type-meta text-text-secondary m-0" id="history-txpow-label">
-              TxPow ID
-            </p>
-            <CopyableCode value={item.txpowId} />
-          </section>
+        {item.direction !== "self" ? (
+          <HistoryField label={counterpartyTitle}>
+            {item.counterpartyLabel ? (
+              <p className="type-body text-text-primary m-0">{item.counterpartyLabel}</p>
+            ) : null}
+            {item.counterparty ? (
+              <CopyableCode value={item.counterparty} />
+            ) : (
+              <p className="type-body text-text-secondary m-0">Unknown</p>
+            )}
+          </HistoryField>
         ) : null}
 
-        <section className="gap-detail-next flex flex-col" aria-labelledby="history-created-label">
-          <p className="type-meta text-text-secondary m-0" id="history-created-label">
-            Created
-          </p>
-          <time className="type-body text-text-primary" dateTime={item.createdAt}>
-            {formatLocalDateTime(item.createdAt)}
-          </time>
-        </section>
+        <HistoryField label="Date">
+          <HistoryTime value={item.time} />
+        </HistoryField>
+
+        {item.confirmedAt ? (
+          <HistoryField label="Confirmed">
+            <HistoryTime value={item.confirmedAt} />
+          </HistoryField>
+        ) : null}
+
+        {item.block !== null ? (
+          <HistoryField label="Block">
+            <p className="type-body text-text-primary m-0 tabular-nums">
+              {item.block}
+              {item.confirmations !== null
+                ? ` · ${item.confirmations} ${item.confirmations === 1 ? "confirmation" : "confirmations"}`
+                : null}
+            </p>
+          </HistoryField>
+        ) : null}
+
+        {item.origin ? (
+          <HistoryField label="Origin">
+            <p className="type-body text-text-primary m-0">{ORIGIN_LABEL[item.origin]}</p>
+          </HistoryField>
+        ) : null}
+
+        <HistoryField label="Token ID">
+          <CopyableCode value={item.tokenId} />
+        </HistoryField>
+
+        {item.txpowId ? (
+          <HistoryField label="TxPoW ID">
+            <CopyableCode value={item.txpowId} />
+          </HistoryField>
+        ) : null}
+
+        {item.transactionId ? (
+          <HistoryField label="Transaction ID">
+            <CopyableCode value={item.transactionId} />
+          </HistoryField>
+        ) : null}
       </div>
     </Modal>
   );

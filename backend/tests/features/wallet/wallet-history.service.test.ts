@@ -81,6 +81,7 @@ afterAll(() => {
 beforeEach(() => {
   db.prepare("DELETE FROM wallet_transactions").run();
   db.prepare("DELETE FROM wallet_send_history").run();
+  db.prepare("DELETE FROM address_book").run();
   db.prepare("DELETE FROM settings WHERE key = 'wallet_history_sync_state'").run();
   finishWalletReplacement();
   chain = [];
@@ -356,7 +357,7 @@ describe("listWalletHistory", () => {
     ]);
     assert.deepEqual(items[0], {
       id: "unsynced", direction: "out", status: "pending", amount: "2", tokenId: "0x00", tokenName: "Minima",
-      counterparty: "MxPEER", time: new Date(4_000).toISOString(), txpowId: null, transactionId: "0xT2",
+      counterparty: "MxPEER", counterpartyLabel: null, time: new Date(4_000).toISOString(), txpowId: null, transactionId: "0xT2",
       block: null, confirmations: null, confirmedAt: null, origin: "manual", isPreviousWallet: false
     });
   });
@@ -371,6 +372,17 @@ describe("listWalletHistory", () => {
 
     assert.deepEqual(items.map((item) => [item.confirmations, item.isPreviousWallet]), [[3, false], [0, true], [null, true]]);
     assert.equal(previousWalletItems, 2);
+  });
+
+  it("labels counterparties saved in the address book, matching Mx and 0x forms", async () => {
+    const current = await service.getWalletFingerprint();
+    db.prepare("INSERT INTO address_book (id, label, address, created_at) VALUES ('c1', 'Testnet peer', ?, 'now')").run(SECOND_WALLET_ADDRESS);
+    insertChainRow({ txpowId: "0x0A", transactionId: "0xT1", timeMillis: 2_000, fingerprint: current, counterparty: SECOND_WALLET_MINIADDRESS });
+    insertChainRow({ txpowId: "0x0B", transactionId: "0xT2", timeMillis: 1_000, fingerprint: current, counterparty: "MxUNKNOWN" });
+
+    const { items } = await service.listWalletHistory(PAGE);
+
+    assert.deepEqual(items.map((item) => item.counterpartyLabel), ["Testnet peer", null]);
   });
 
   it("still lists stored rows when Minima is unreachable", async () => {
