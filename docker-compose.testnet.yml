@@ -1,0 +1,35 @@
+# Dev-only private Minima test network. Never use on a production device.
+# See docs/guides/minima-testnet.md.
+#
+#   MINIMA_DATA_DIR=./minima-testnet docker compose -f docker-compose.yml -f docker-compose.testnet.yml up -d minima minima-testnet-peer
+#
+# A plain `docker compose up -d minima` switches the node back to mainnet and its original data dir.
+services:
+  minima:
+    environment:
+      minima_test: "true"
+      minima_connect: "minima-testnet-peer:9001"
+      minima_p2pnodes: ""
+      minima_rescuenode: ""
+    depends_on:
+      - minima-testnet-peer
+
+  minima-testnet-peer:
+    image: minimaglobal/minimacore
+    stop_grace_period: 60s
+    environment:
+      minima_solo: "true"
+      minima_rpcenable: "true"
+      minima_rpccrlf: "true"
+    ports:
+      - "127.0.0.1:${MINIMA_TESTNET_PEER_RPC_PORT:-9205}:9005"
+    volumes:
+      - ${MINIMA_TESTNET_PEER_DATA_DIR:-./minima-testnet-peer}:/home/minima/data
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - integritas

@@ -140,3 +140,4 @@ of carrying the full rationale inline.
 | [guides/bme280-sensor.md](./guides/bme280-sensor.md) | BME280/BME680 I2C sensor setup |
 | [guides/tester-device-workflows.md](./guides/tester-device-workflows.md) | Short tester matrix for Pi and PC device/workflow tests |
 | [guides/pi-benchmark.md](./guides/pi-benchmark.md) | Benchmarking Edge Studio on a Pi for the wiki hardware page |
+| [guides/minima-testnet.md](./guides/minima-testnet.md) | Dev-only private Minima testnet on a dev Pi for wallet testing |

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "vitest";
 import {
   isTxPowId,
@@ -330,6 +331,19 @@ describe("parseHistoryResponse", () => {
         { difference: { "0x00": "1e5", "0x01": 2, "0x02": "-4" } }]
     } }, local);
     assert.deepEqual(entries.map((entry) => [entry.txpowId, entry.tokenId, entry.direction]), [["0xGOOD", "0x02", "out"]]);
+  });
+
+  it("parses a Pi-recorded testnet history: received, sent, and self-transfer", () => {
+    const recorded = JSON.parse(readFileSync(new URL("../../fixtures/minima-testnet-history.json", import.meta.url), "utf8"));
+    const entries = parseHistoryResponse(recorded.history, new Set(recorded.localTrackedAddresses));
+    const peer = "MxG0817DWN95HF1G21QWAV0GPYPF15FCGBSQRSVWSDPD21M7VU7VY6DPQQD4673";
+
+    assert.deepEqual(entries.map(({ direction, amount, counterparty, tokenName }) => ({ direction, amount, counterparty, tokenName })), [
+      { direction: "self", amount: "0", counterparty: null, tokenName: "Minima" },
+      { direction: "out", amount: "2.5", counterparty: peer, tokenName: "Minima" },
+      { direction: "in", amount: "10", counterparty: peer, tokenName: "Minima" }
+    ]);
+    assert.equal(entries[2].timeMillis, 1791535329786);
   });
 
   it("throws when the history call itself failed", () => {

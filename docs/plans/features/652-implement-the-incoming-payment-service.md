@@ -8,7 +8,13 @@
 
 ## Progress
 
-- [ ] Step 0: Pi RPC capture (read-only, runs alongside step 1, not a gate) — not run yet: `PI_SSH_LOGIN` is not set in `.env.local`.
+- [x] Step 0: Pi RPC capture — 2026-10-09, mainnet Minima 1.1.2.6, then a private testnet on the dev Pi (`docker-compose.testnet.yml`, `docs/guides/minima-testnet.md`; deviation: the plan only planned read-only mainnet capture, but the mainnet wallet had no history).
+  - Matches step 1 fixtures: `txpow onchain:` found/not-found (`block`/`tip`/`confirmations` are strings), `txpow txpowid:` returns the TxPoW as `response`, `scripts` row keys/flags, `history action:size` → `{ size }`, `history` `{ txpows, details, size }` with `details[i].{inputs,outputs,difference}`.
+  - Received (+10), sent (−2.5), and self (0) recorded and trimmed into `backend/tests/fixtures/minima-testnet-history.json`; `parseHistoryResponse()` handles all three.
+  - **`send` returns the pre-mined TxPoW** (`nonce` 0). Async mining changes the TxPoW ID, so the stored send-log `txpow_id` never appears on chain (`txpow txpowid:` → "TxPoW not found"). `body.txn.transactionid` is unchanged after mining. Steps 2–4 link send-log rows to chain rows by transaction ID (see below).
+  - `history max:100` takes 7–17 ms with 3 rows. Test mode creates 8 default addresses (mainnet 64).
+  - Fingerprint stability across a node restart moves to Pi QA.
+  - Checked against [`spartacusrex-minima/minima-core`](https://github.com/spartacusrex-minima/minima-core) `main` (1.1.2.31; Pi image 1.1.2.6, matches `minima-global/Minima` `dev-pureminima-core`, not `master` 1.0): `send`, `TxPoWMiner`, `txpow`, `TxPoW`/`Transaction`/`TxHeader` JSON unchanged, so the pre-mined TxPoW ID finding holds. `history` adds `details[i].tokens` (`{ tokenid: name }`); additive, parser unaffected. Its `Token.getTokenName()` returns `"Error token name.."` for plain-string names, so keep the coin-derived name.
 - [x] Step 1: Parsers for `history`, `history action:size`, `txpow onchain:`, and fix `parsePaymentStatusResponse`
   - Tracked-address parsing is a new `parseTrackedScriptAddressesResponse()` (scripts with `track: true`, matching Minima's `isAddressRelevant`). `parseLocalWalletAddressesResponse()` is unchanged.
   - `getPaymentStatus()` now asks `txpow onchain:` first (confirmed) and falls back to `txpow txpowid:` (pending/unknown). `isTxPowId()` validates the ID in the service and in `GET /payment-status/:txpowid` (400), which previously passed the raw param into the RPC command.
@@ -78,7 +84,7 @@ Restore/resync durability of Minima's history and whether payments received whil
 
 ### 2. Storage and sync
 
-- `database.ts`: add `wallet_transactions` (`txpow_id`, `token_id` composite primary key; `direction`, `amount` as decimal string, `token_name`, `counterparty`, `time_millis`, `block`, `confirmations`, `confirmed_at`, `wallet_fingerprint`, `synced_at`) with an index on `time_millis`. Add nullable `wallet_fingerprint` and `origin` (`manual` | `automation`) to `wallet_send_history` via `ensureColumn`.
+- `database.ts`: add `wallet_transactions` (`txpow_id`, `token_id` composite primary key; `transaction_id`, `direction`, `amount` as decimal string, `token_name`, `counterparty`, `time_millis`, `block`, `confirmations`, `confirmed_at`, `wallet_fingerprint`, `synced_at`) with indexes on `time_millis` and `transaction_id`. Add nullable `wallet_fingerprint`, `origin` (`manual` | `automation`), and `transaction_id` to `wallet_send_history` via `ensureColumn`. `parseHistoryResponse()`/`parseSendResponse()` also return `body.txn.transactionid`.
 - New `backend/src/features/wallet/wallet-history.service.ts`:
   - `getWalletFingerprint()`: SHA-256 of sorted canonical default addresses from `getLocalWalletAddresses()`, cached, invalidated after wallet replacement.
   - `syncWalletHistory()`: overlap-locked; skip while `isWalletReplacementInProgress()`. Compare `history action:size` with the last stored size (settings table); when changed, page `history max:100 offset:N` newest-first, upsert rows, and stop at the first fully-known page. Cap pages per call; continue next tick.
@@ -89,11 +95,11 @@ Restore/resync durability of Minima's history and whether payments received whil
 
 - `minima-poll.service.ts`: call `syncWalletHistory()` after `initializeLocalAddressBookEntry()` when the node is running, in its own `try/catch` so it never affects stall/resync monitoring.
 - `runWalletReplacement()`: invalidate the cached fingerprint after `replace()`.
-- `recordWalletSendHistory()`: store the current fingerprint and origin (`manual` from the route, `automation` from the workflow block).
+- `recordWalletSendHistory()`: store the current fingerprint, origin (`manual` from the route, `automation` from the workflow block), and the transaction ID from the send response. The send-log `txpow_id` is the pre-mined ID and is not shown as a chain ID.
 
 ### 4. API (`wallet.routes.ts`)
 
-- `GET /api/wallet/history?page&pageSize&direction&status&q&from&to` returns `PaginatedResult` via `parseListQuery()`/`toPaginatedResult()`. Direction, `from`, and `to` (ISO instants) are validated in the route. Items are a `UNION ALL` of `wallet_transactions` joined to the send log by `txpow_id` (adds origin) and send-log rows not yet seen on chain (failed, or submitted and pending). Each item carries `isPreviousWallet`. Before reading, run `syncWalletHistory()` if the last sync is older than a few seconds.
+- `GET /api/wallet/history?page&pageSize&direction&status&q&from&to` returns `PaginatedResult` via `parseListQuery()`/`toPaginatedResult()`. Direction, `from`, and `to` (ISO instants) are validated in the route. Items are a `UNION ALL` of `wallet_transactions` joined to the send log by `transaction_id` (adds origin) and send-log rows not yet seen on chain (failed, or submitted and pending). Each item carries `isPreviousWallet`. Before reading, run `syncWalletHistory()` if the last sync is older than a few seconds.
 - `POST /api/wallet/history/clear-previous`: `requireRole("admin")`, `authRateLimiter`, `verifyCurrentPassword()`; 401 failures return `errorCode: "invalid_credential"`; records `wallet.history.clear_previous` with the deleted count. Add to `backend/tests/app.401-smoke.test.ts`.
 - `WalletSendHistoryItem` is replaced by a `WalletHistoryItem` type in `wallet.types.ts`.
 
