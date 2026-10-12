@@ -34,11 +34,10 @@ describe("Esp32FirmwareSetup", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows the saved broker/topic and no override warning for a LAN-reachable broker", () => {
+  it("shows the walkthrough and no override warning for a LAN-reachable broker", () => {
     render(<Esp32FirmwareSetup source={source()} />);
-    expect(screen.getByText("mqtt://192.168.1.50:1883")).toBeInTheDocument();
-    expect(screen.getAllByText("192.168.1.50").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("sensors/esp32/data").length).toBeGreaterThan(0);
+    expect(screen.getByText("ESP32 setup")).toBeInTheDocument();
+    expect(screen.getByText("Walkthrough")).toBeInTheDocument();
     expect(screen.queryByText("ESP32 broker address needed")).not.toBeInTheDocument();
   });
 
@@ -56,9 +55,8 @@ describe("Esp32FirmwareSetup", () => {
     await user.clear(screen.getByLabelText("ESP32 broker port"));
     await user.type(screen.getByLabelText("ESP32 broker port"), "1884");
 
-    // The overridden host/port should now flow into the "ESP32 broker host/port" summary and firmware.
-    expect(screen.getAllByText("192.168.1.75").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("1884").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("ESP32 broker host")).toHaveValue("192.168.1.75");
+    expect(screen.getByLabelText("ESP32 broker port")).toHaveValue("1884");
   });
 
   it("shows an override warning for an unparsable broker URL", () => {

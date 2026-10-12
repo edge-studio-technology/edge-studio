@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "../../components/Button";
 import { ErrorAlert } from "../../components/ErrorAlert";
-import { MutedText } from "../../components/Text";
 import type { DataSource } from "./dataSourceTypes";
 
 export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
@@ -25,37 +24,23 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
   });
 
   return (
-    <div className="grid gap-4">
+    <div className="gap-detail-near grid">
       <div>
-        <strong>Next steps</strong>
-        <MutedText className="m-0 mt-1">
+        <h4 className="type-body-em text-text-primary m-0">ESP32 setup</h4>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">
           The device was saved as a normal MQTT input source. Follow these steps to flash an ESP32
           and verify that Edge Studio receives its JSON messages.
-        </MutedText>
-      </div>
-      <div className="grid gap-2 text-sm">
-        <div>
-          Saved MQTT broker URL: <code>{source.config.brokerUrl}</code>
-        </div>
-        <div>
-          ESP32 broker host: <code>{broker.host}</code>
-        </div>
-        <div>
-          ESP32 broker port: <code>{broker.port}</code>
-        </div>
-        <div>
-          Publish topic: <code>{source.config.topic}</code>
-        </div>
+        </p>
       </div>
       {savedBroker.needsEsp32Override && (
         <ErrorAlert status="warning" title="ESP32 broker address needed">
-          <div className="grid gap-3">
-            <div>
+          <div className="gap-detail-close grid">
+            <div className="type-body text-text-secondary">
               {savedBroker.reason} Enter the broker host and port that the ESP32 can reach from
               Wi-Fi/LAN.
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="grid gap-2 font-bold">
+            <div className="gap-detail-close grid md:grid-cols-2">
+              <label className="type-body-em text-text-primary gap-detail-next grid">
                 ESP32 broker host
                 <input
                   value={esp32BrokerHost}
@@ -63,7 +48,7 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
                   placeholder="192.168.1.75"
                 />
               </label>
-              <label className="grid gap-2 font-bold">
+              <label className="type-body-em text-text-primary gap-detail-next grid">
                 ESP32 broker port
                 <input
                   value={esp32BrokerPort}
@@ -76,9 +61,9 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
           </div>
         </ErrorAlert>
       )}
-      <div className="grid gap-3 text-sm text-slate-700">
-        <strong>Walkthrough</strong>
-        <ol className="m-0 grid gap-2 pl-5">
+      <div className="gap-detail-near grid">
+        <h4 className="type-body-em text-text-primary m-0">Walkthrough</h4>
+        <ol className="type-body text-text-secondary gap-detail-next m-0 grid pl-5">
           <li>
             Connect the ESP32 to the computer you will use for flashing, using a USB data cable.
             This can be a laptop, desktop, or Raspberry Pi.
@@ -88,7 +73,7 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
             for terminal/Raspberry Pi/headless use.
           </li>
         </ol>
-        <div className="flex flex-wrap gap-2">
+        <div className="gap-detail-next flex flex-wrap">
           <Button
             type="button"
             size="sm"
@@ -124,10 +109,10 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
           />
         )}
       </div>
-      <MutedText className="m-0">
+      <p className="type-body text-text-secondary m-0">
         The starter sketch publishes a simple Ping JSON message first; replace it with real sensor
         fields after the MQTT path works.
-      </MutedText>
+      </p>
     </div>
   );
 }
@@ -140,8 +125,8 @@ function ArduinoIdeSteps({
   onWifiPasswordChange,
 }: FirmwareStepProps) {
   return (
-    <div className="grid gap-3">
-      <strong>Arduino IDE steps</strong>
+    <div className="gap-detail-near grid">
+      <h4 className="type-body-em text-text-primary m-0">Arduino IDE steps</h4>
       <SetupStep index={1} title="Install Arduino IDE">
         Install and open Arduino IDE on the flashing computer from{" "}
         <InlineCode>arduino.cc/en/software</InlineCode>.
@@ -216,8 +201,8 @@ function ArduinoCliSteps({
   const commands = esp32CliCommands(detectedPort ?? "/dev/ttyUSB0", selectedFqbn);
 
   return (
-    <div className="grid gap-3">
-      <strong>Arduino CLI steps</strong>
+    <div className="gap-detail-near grid">
+      <h4 className="type-body-em text-text-primary m-0">Arduino CLI steps</h4>
       <SetupStep index={1} title="Install Arduino CLI">
         <div>Run this on the computer connected to the ESP32.</div>
         <CommandBlock value={commands.installCli} />
@@ -242,7 +227,7 @@ function ArduinoCliSteps({
           <InlineCode>Unknown</InlineCode>.
         </div>
         <textarea
-          className="mt-2 min-h-[110px] font-mono text-xs"
+          className="type-mono mt-detail-next min-h-[110px]"
           value={boardListOutput}
           onChange={(event) => setBoardListOutput(event.target.value)}
           placeholder={
@@ -277,7 +262,7 @@ function ArduinoCliSteps({
           family.
         </div>
         <CommandBlock value={commands.boardListAll} />
-        <label className="grid gap-2 font-bold text-slate-700">
+        <label className="type-body-em text-text-primary gap-detail-next grid">
           Board FQBN
           <input
             value={usableDetectedFqbn ?? manualFqbn}
@@ -365,9 +350,9 @@ function FirmwareStepContent({
 }: FirmwareStepProps) {
   const [showFirmware, setShowFirmware] = useState(false);
   return (
-    <div className="mt-3 grid gap-3">
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="grid gap-2 font-bold text-slate-700">
+    <div className="mt-detail-close gap-detail-close grid">
+      <div className="gap-detail-close grid md:grid-cols-2">
+        <label className="type-body-em text-text-primary gap-detail-next grid">
           Wi-Fi name
           <input
             value={wifiSsid}
@@ -375,7 +360,7 @@ function FirmwareStepContent({
             placeholder="MyWifi"
           />
         </label>
-        <label className="grid gap-2 font-bold text-slate-700">
+        <label className="type-body-em text-text-primary gap-detail-next grid">
           Wi-Fi password
           <input
             type="password"
@@ -385,16 +370,16 @@ function FirmwareStepContent({
           />
         </label>
       </div>
-      <div className="text-sm text-slate-600">
+      <div className="type-body text-text-secondary">
         These values are inserted into the firmware text only. They are not saved to Edge Studio.
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" size="xs" onClick={() => navigator.clipboard?.writeText(firmware)}>
+      <div className="gap-detail-next flex flex-wrap">
+        <Button type="button" size="sm" onClick={() => navigator.clipboard?.writeText(firmware)}>
           Copy firmware
         </Button>
         <Button
           type="button"
-          size="xs"
+          size="sm"
           variant="secondary"
           onClick={() => setShowFirmware((value) => !value)}
         >
@@ -402,7 +387,7 @@ function FirmwareStepContent({
         </Button>
       </div>
       {showFirmware && (
-        <textarea className="min-h-[420px] font-mono text-xs" readOnly value={firmware} />
+        <textarea className="type-mono min-h-[420px]" readOnly value={firmware} />
       )}
     </div>
   );
@@ -418,22 +403,22 @@ function SetupStep({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t border-slate-200 pt-3 first:border-t-0 first:pt-0">
-      <h4 className="m-0 text-sm font-extrabold text-slate-800">
+    <section className="border-stroke-secondary pt-detail-close border-t first:border-t-0 first:pt-0">
+      <h4 className="type-body-em text-text-primary m-0">
         {index}. {title}
       </h4>
-      <div className="mt-2 text-sm leading-6 text-slate-700">{children}</div>
+      <div className="type-body text-text-secondary mt-detail-next">{children}</div>
     </section>
   );
 }
 
 function CommandBlock({ value }: { value: string }) {
   return (
-    <div className="mt-2 grid gap-2">
-      <textarea className="min-h-[92px] font-mono text-xs" readOnly value={value} />
+    <div className="mt-detail-next gap-detail-next grid">
+      <textarea className="type-mono min-h-[92px]" readOnly value={value} />
       <Button
         type="button"
-        size="xs"
+        size="sm"
         variant="secondary"
         onClick={() => navigator.clipboard?.writeText(value)}
       >
@@ -445,7 +430,7 @@ function CommandBlock({ value }: { value: string }) {
 
 function InlineCode({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded bg-white px-1.5 py-0.5 font-mono text-[0.9em] break-all text-slate-600">
+    <span className="type-mono bg-surface-always-white rounded-loose px-detail-tight py-detail-fine break-all text-text-secondary">
       {children}
     </span>
   );

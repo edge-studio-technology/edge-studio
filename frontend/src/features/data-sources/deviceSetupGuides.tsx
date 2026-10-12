@@ -206,11 +206,7 @@ function GuideOverview({
   content?: ReactNode;
 }) {
   return (
-    <div className="gap-detail-near grid">
-      <div>
-        <h3 className="type-title text-text-primary m-0">Overview</h3>
-        <p className="type-body text-text-secondary mt-detail-tight m-0">{guide.intro}</p>
-      </div>
+    <GuideTopic title="Overview" description={guide.intro}>
       <div>
         <h4 className="type-body-em text-text-primary m-0">How to use this guide</h4>
         <p className="type-body text-text-secondary mt-detail-tight m-0">
@@ -218,7 +214,7 @@ function GuideOverview({
         </p>
       </div>
       {content}
-    </div>
+    </GuideTopic>
   );
 }
 
@@ -236,11 +232,10 @@ function GuideActions({
   onGoToWorkflow?: (workflowId: string) => void;
 }) {
   return (
-    <div className="gap-detail-near grid">
-      <div>
-        <h3 className="type-title text-text-primary m-0">Guide actions</h3>
-        <p className="type-body text-text-secondary mt-detail-tight m-0">Create a starter workflow or open one created from this guide.</p>
-      </div>
+    <GuideTopic
+      title="Guide actions"
+      description="Create a starter workflow or open one created from this guide."
+    >
       <div className="gap-detail-tight grid">
         {actions.map((action) => {
           const workflowId = createdWorkflowIds?.[action.key] ?? null;
@@ -265,7 +260,7 @@ function GuideActions({
           );
         })}
       </div>
-    </div>
+    </GuideTopic>
   );
 }
 
@@ -273,11 +268,7 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
   const [schematicVisible, setSchematicVisible] = useState(false);
   const description = section.description ?? standardSectionDescriptions[section.title];
   return (
-    <div className="gap-detail-near grid">
-      <div>
-        <h3 className="type-title text-text-primary m-0">{section.title}</h3>
-        {description && <p className="type-body text-text-secondary mt-detail-tight m-0">{description}</p>}
-      </div>
+    <GuideTopic title={section.title} description={description}>
       {section.body && <p className="type-body text-text-secondary m-0">{section.body}</p>}
       {section.items && (
         <ul className="type-body text-text-secondary gap-detail-tight m-0 grid list-disc pl-5">
@@ -323,6 +314,26 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
           </a>
         </div>
       )}
+    </GuideTopic>
+  );
+}
+
+function GuideTopic({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="gap-detail-near grid">
+      <div>
+        <h3 className="type-title text-text-primary m-0">{title}</h3>
+        {description && <p className="type-body text-text-secondary mt-detail-tight m-0">{description}</p>}
+      </div>
+      {children}
     </div>
   );
 }
@@ -337,15 +348,11 @@ const standardSectionDescriptions: Record<string, string> = {
 
 function GuideDocumentation({ docPath }: { docPath: string }) {
   return (
-    <div className="gap-detail-near grid">
-      <div>
-        <h3 className="type-title text-text-primary m-0">Documentation</h3>
-        <p className="type-body text-text-secondary mt-detail-tight m-0">Open the full setup documentation in a new tab.</p>
-      </div>
-      <Button type="button" className="justify-self-start" onClick={() => openExternalDoc(docPath)}>
+    <GuideTopic title="Documentation" description="Open the full setup documentation in a new tab.">
+      <Button type="button" size="sm" className="justify-self-start" onClick={() => openExternalDoc(docPath)}>
         Open documentation
       </Button>
-    </div>
+    </GuideTopic>
   );
 }
 
