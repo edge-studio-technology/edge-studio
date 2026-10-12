@@ -38,7 +38,7 @@ describe("Esp32FirmwareSetup", () => {
     render(<Esp32FirmwareSetup source={source()} />);
     expect(screen.getByText("ESP32 setup")).toBeInTheDocument();
     expect(screen.getByText("Walkthrough")).toBeInTheDocument();
-    expect(screen.getByText(/Starter firmware supports an unauthenticated, non-TLS mqtt:\/\/ broker/)).toBeInTheDocument();
+    expect(screen.getByText(/generated starter firmware will not connect if your broker requires authentication or TLS/)).toBeInTheDocument();
     expect(screen.getByText(/copied firmware contains the Wi-Fi password/)).toBeInTheDocument();
     expect(screen.queryByText("ESP32 broker address needed")).not.toBeInTheDocument();
   });

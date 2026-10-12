@@ -33,16 +33,18 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
         </p>
       </div>
       <ErrorAlert status="warning" title="Broker compatibility">
-        Starter firmware supports an unauthenticated, non-TLS mqtt:// broker reachable from the ESP32.
-        It does not use MQTT URL credentials or mqtts://; use a protected LAN broker or firmware that
-        supports your broker's authentication and TLS requirements.
+        This is not an Edge Studio error, but the generated starter firmware will not connect if your
+        broker requires authentication or TLS. It supports only an unauthenticated, non-TLS mqtt://
+        broker reachable from the ESP32. Use a protected LAN broker or firmware that supports your
+        broker's authentication and TLS requirements.
       </ErrorAlert>
       {savedBroker.needsEsp32Override && (
         <ErrorAlert status="warning" title="ESP32 broker address needed">
           <div className="gap-detail-close grid">
             <div className="type-body text-text-secondary">
-              {savedBroker.reason} Enter the broker host and port that the ESP32 can reach from
-              Wi-Fi/LAN.
+              {savedBroker.reason} Edge Studio can still use this address, but the ESP32 cannot. This
+              needs attention before flashing: enter the broker host and port that the ESP32 can reach
+              from Wi-Fi/LAN.
             </div>
             <div className="gap-detail-close grid md:grid-cols-2">
               <label className="type-body-em text-text-primary gap-detail-next grid">
