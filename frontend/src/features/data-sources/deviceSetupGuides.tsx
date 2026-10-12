@@ -9,6 +9,7 @@ import type { DataSource } from "./dataSourceTypes";
 
 type GuideSection = {
   title: string;
+  description?: string;
   body?: string;
   items?: string[];
   table?: Array<[string, string]>;
@@ -276,9 +277,13 @@ function GuideActions({
 
 function GuideSectionCard({ section }: { section: GuideSection }) {
   const [schematicVisible, setSchematicVisible] = useState(false);
+  const description = section.description ?? standardSectionDescriptions[section.title];
   return (
     <div className="gap-detail-near grid">
-      <h3 className="type-title text-text-primary m-0">{section.title}</h3>
+      <div>
+        <h3 className="type-title text-text-primary m-0">{section.title}</h3>
+        {description && <p className="type-body text-text-secondary mt-detail-tight m-0">{description}</p>}
+      </div>
       {section.body && <p className="type-body text-text-secondary m-0">{section.body}</p>}
       {section.items && (
         <ul className="type-body text-text-secondary gap-detail-tight m-0 grid list-disc pl-5">
@@ -327,6 +332,14 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
     </div>
   );
 }
+
+const standardSectionDescriptions: Record<string, string> = {
+  Requirements: "Conditions that must be in place before this device can be used.",
+  Wiring: "Connections required to use this device safely.",
+  "Saved settings": "Configuration currently saved for this device.",
+  Verify: "Checks that confirm the device works before it is used in automation.",
+  "Workflow use": "How to use this device in an automation workflow.",
+};
 
 function GuideDocumentation({ docPath }: { docPath: string }) {
   return (
@@ -446,14 +459,14 @@ function bmeSensorGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable I2C sensors from Devices -> Hardware support so the host-side sensor helper is running.",
-          "Enable I2C on the Raspberry Pi host and reboot if /dev/i2c-1 is still missing.",
+          "I2C sensors are enabled in Devices -> Hardware support so the host-side sensor helper is running.",
+          "I2C is enabled on the Raspberry Pi host; reboot if /dev/i2c-1 is still missing.",
           ...(source.config.sensor === "bme680"
             ? [
                 "Hardware support installs the PyPI bme680 module in /opt/edge-studio/.venv-sensor-helper for BME680 reads.",
               ]
             : []),
-          "Use address 0x76 first, then try 0x77 if reads fail.",
+          "Default address: 0x76. Try 0x77 if reads fail.",
         ],
       },
       {
@@ -470,6 +483,7 @@ function bmeSensorGuide(source: DataSource) {
         ? [
             {
               title: "BME680 extra pins",
+              description: "Additional pins some BME680 breakout boards need for I2C mode.",
               body: "Many BME680 breakouts expose six pins because the chip can also speak SPI. Basic I2C still uses VIN, GND, SCL, and SDA, but some boards need SDO and CS/CSB set explicitly.",
               table: [
                 ["SDO", "Optional I2C address select: GND for 0x76, 3.3V for 0x77"],
@@ -510,6 +524,7 @@ function deviceSystemDataGuide(source: DataSource) {
     [
       {
         title: "What gets read",
+        description: "The categories of local system data collected by this source.",
         items: [
           "Device specs: hostname, OS platform, kernel release, CPU model/count, architecture, and total memory.",
           "Performance: uptime, load average, free memory, total memory, and CPU temperature when the Pi exposes it.",
@@ -519,6 +534,7 @@ function deviceSystemDataGuide(source: DataSource) {
       },
       {
         title: "Privacy boundaries",
+        description: "Data this source intentionally excludes and the privacy implications of what remains.",
         items: [
           "This source does not collect public-IP geolocation, GPS coordinates, Wi-Fi SSIDs, Wi-Fi BSSIDs, MAC addresses, or CPU serial numbers.",
           "Network interface IP addresses can still identify the device on your LAN. Review previews before stamping data publicly.",
@@ -556,9 +572,9 @@ function gpioInputGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable GPIO from Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
-          "Use BCM pin numbering, not physical header numbering.",
-          "Never connect a GPIO input directly to 5V.",
+          "GPIO is enabled in Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
+          "BCM pin numbering is used instead of physical header numbering.",
+          "GPIO inputs are never connected directly to 5V.",
         ],
       },
       {
@@ -593,9 +609,9 @@ function gpioButtonGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable GPIO from Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
-          "Use BCM pin numbering, not physical header numbering.",
-          "Never connect a GPIO input directly to 5V.",
+          "GPIO is enabled in Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
+          "BCM pin numbering is used instead of physical header numbering.",
+          "GPIO inputs are never connected directly to 5V.",
         ],
       },
       {
@@ -637,9 +653,9 @@ function pirGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable GPIO from Devices -> Hardware support.",
-          "Let the PIR sensor warm up for 60-90 seconds after power-on.",
-          "Verify the module output voltage before connecting unknown clones to a Pi GPIO pin.",
+          "GPIO is enabled in Devices -> Hardware support.",
+          "The PIR sensor has warmed up for 60-90 seconds after power-on.",
+          "The module output voltage is verified before an unknown clone is connected to a Pi GPIO pin.",
         ],
       },
       {
@@ -683,9 +699,9 @@ function gpioLedGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable GPIO from Devices -> Hardware support.",
-          "Use a 220-330 ohm resistor in series with the LED.",
-          "Never connect GPIO directly to 5V, motors, relays, or mains voltage.",
+          "GPIO is enabled in Devices -> Hardware support.",
+          "A 220-330 ohm resistor is installed in series with the LED.",
+          "GPIO is never connected directly to 5V, motors, relays, or mains voltage.",
         ],
       },
       {
@@ -725,9 +741,9 @@ function piCameraGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable Camera from Devices -> Hardware support so the host camera helper is running.",
-          "Verify the Pi host can see the camera with rpicam-still --list-cameras or libcamera-still --list-cameras.",
-          "Place the camera with consent and privacy in mind.",
+          "Camera is enabled in Devices -> Hardware support so the host camera helper is running.",
+          "The Pi host can see the camera with rpicam-still --list-cameras or libcamera-still --list-cameras.",
+          "The camera is placed with consent and privacy in mind.",
         ],
       },
       {
@@ -767,9 +783,9 @@ function httpJsonSourceGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "The endpoint must return valid JSON.",
-          "Use GET for normal reads, or POST when the source requires a request body configured by backend/API paths.",
-          "Avoid placing secrets in URLs because they can appear in logs/history.",
+          "The endpoint returns valid JSON.",
+          "GET is used for normal reads, or POST is configured when the source requires a request body.",
+          "Secrets are not placed in URLs because they can appear in logs or history.",
         ],
       },
       {

@@ -174,8 +174,13 @@ describe("StandardDeviceSetupGuide", () => {
     expect(screen.getByText("How to use this guide")).toBeInTheDocument();
     expect(screen.getByText("Requirements")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
+    expect(screen.getByText("Configuration currently saved for this device.")).toBeInTheDocument();
     expect(screen.getByText("Sensor")).toBeInTheDocument();
     expect(screen.getByText("bme280")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Requirements" }));
+    expect(screen.getByText("Conditions that must be in place before this device can be used.")).toBeInTheDocument();
+    expect(screen.getByText("I2C sensors are enabled in Devices -> Hardware support so the host-side sensor helper is running.")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Documentation" }));
     await userEvent.click(screen.getByRole("button", { name: "Open documentation" }));
