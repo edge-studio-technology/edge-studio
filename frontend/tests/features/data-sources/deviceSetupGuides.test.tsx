@@ -215,6 +215,33 @@ describe("StandardDeviceSetupGuide", () => {
     expect(screen.getByText("Use Test output in Devices and confirm the endpoint receives the expected JSON request.")).toBeInTheDocument();
   });
 
+  it("shows operational safety guidance where device output or access has side effects", async () => {
+    const webhook = source({ type: "webhook", config: { webhookToken: "tok-123" } });
+    render(<StandardDeviceSetupGuide source={webhook} />, { wrapper: ToastProvider });
+
+    await userEvent.click(screen.getByRole("button", { name: "Workflow use" }));
+    expect(screen.getByText(/Treat the webhook URL as a bearer secret/)).toBeInTheDocument();
+  });
+
+  it("uses the configured PIR pin and shows GPIO debounce in saved settings", async () => {
+    const item = source({ type: "gpio-input", config: { profile: "pir-motion", pin: 24, debounceMs: 750 } });
+    render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
+
+    await userEvent.click(screen.getByRole("button", { name: "Wiring" }));
+    expect(screen.getByText("Configured BCM GPIO24; GPIO23 is physical pin 16 for the default template.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
+    expect(screen.getByText("750 ms")).toBeInTheDocument();
+  });
+
+  it("uses a concrete MQTT verification topic when the subscription has wildcards", async () => {
+    const item = source({ type: "mqtt", config: { topic: "sensors/+/data" } });
+    render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
+
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(screen.getByText(/publishers cannot publish to \+ or #/)).toBeInTheDocument();
+    expect(screen.getByText(/<concrete-matching-topic>/)).toBeInTheDocument();
+  });
+
   it("renders a guide action and calls onAction when clicked", async () => {
     const onAction = vi.fn();
     const item = source({ type: "bme-sensor", config: { sensor: "bme280" } });

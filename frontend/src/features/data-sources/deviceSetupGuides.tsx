@@ -240,7 +240,7 @@ function GuideActions({
         {actions.map((action) => {
           const workflowId = createdWorkflowIds?.[action.key] ?? null;
           return (
-            <div key={action.key} className="gap-detail-tight grid justify-items-start">
+            <div key={action.key} className="gap-detail-near grid justify-items-start">
               {action.description && (
                 <p className="type-body text-text-secondary m-0">{action.description}</p>
               )}
@@ -586,6 +586,7 @@ function gpioInputGuide(source: DataSource) {
           ["BCM pin", String(source.config.pin ?? "?")],
           ["Pull", source.config.pull ?? "off"],
           ["Edge", source.config.edge ?? "both"],
+          ["Debounce", `${source.config.debounceMs ?? 100} ms`],
           ["Active state", source.config.activeState ?? "high"],
         ],
       },
@@ -630,6 +631,7 @@ function gpioButtonGuide(source: DataSource) {
           ["BCM pin", String(source.config.pin ?? 17)],
           ["Pull", source.config.pull ?? "up"],
           ["Edge", source.config.edge ?? "falling"],
+          ["Debounce", `${source.config.debounceMs ?? 100} ms`],
           ["Active state", source.config.activeState ?? "low"],
         ],
       },
@@ -665,7 +667,7 @@ function pirGuide(source: DataSource) {
         table: [
           ["PIR VCC", "5V"],
           ["PIR GND", "GND"],
-          ["PIR OUT", `GPIO${source.config.pin ?? 23} / physical pin 16 for GPIO23`],
+          ["PIR OUT", `Configured BCM GPIO${source.config.pin ?? 23}; GPIO23 is physical pin 16 for the default template.`],
         ],
       },
       {
@@ -675,6 +677,7 @@ function pirGuide(source: DataSource) {
           ["BCM pin", String(source.config.pin ?? 23)],
           ["Pull", source.config.pull ?? "off"],
           ["Edge", source.config.edge ?? "rising"],
+          ["Debounce", `${source.config.debounceMs ?? 500} ms`],
           ["Active state", source.config.activeState ?? "high"],
         ],
       },
@@ -761,7 +764,7 @@ function piCameraGuide(source: DataSource) {
         items: [
           "Add a Capture camera block and select this camera device.",
           "Attach Stamp data to create an Integritas proof for the captured media hash.",
-          "Captured media stays on the Pi under the configured capture directory.",
+          "Captured media stays local but is pruned opportunistically after CAMERA_RETENTION_DAYS (7 days by default). Export evidence you need before retention expires; read history retains metadata and the media hash.",
         ],
       },
     ],
@@ -823,6 +826,7 @@ function webhookGuide(source: DataSource) {
           "Create or enable a workflow with Webhook received as the start block.",
           "POST JSON to the webhook URL.",
           "The app records the payload only while an enabled workflow exists for this source.",
+          "Treat the webhook URL as a bearer secret. Anyone who can reach it can submit JSON and trigger an enabled workflow.",
         ],
       },
       {
@@ -838,6 +842,8 @@ function webhookGuide(source: DataSource) {
 }
 
 function mqttSubscriberGuide(source: DataSource) {
+  const topic = source.config.topic ?? "sensors/example/data";
+  const publishTopic = /[+#]/.test(topic) ? "<concrete-matching-topic>" : topic;
   return guide(
     source,
     "MQTT Subscriber Setup Guide",
@@ -860,7 +866,10 @@ function mqttSubscriberGuide(source: DataSource) {
       },
       {
         title: "Verify",
-        commands: `mosquitto_pub -h <broker-host> -t "${source.config.topic ?? "sensors/example/data"}" -m '{"event":"test","value":1}'`,
+        items: /[+#]/.test(topic)
+          ? ["The saved subscription contains MQTT wildcards. Publish to a concrete topic that matches it; publishers cannot publish to + or #."]
+          : undefined,
+        commands: `mosquitto_pub -h <broker-host> -t "${publishTopic}" -m '{"event":"test","value":1}'`,
       },
     ],
   );
@@ -892,6 +901,7 @@ function httpJsonTargetGuide(source: DataSource) {
         items: [
           "Use Test output in Devices and confirm the endpoint receives the expected JSON request.",
           "Confirm the device reports a successful output before enabling the workflow.",
+          "Test output sends a real request. Use a safe test endpoint or confirm the receiver treats the payload as non-operational.",
         ],
       },
     ],
@@ -918,6 +928,7 @@ function mqttPublisherGuide(source: DataSource) {
         items: [
           "Add Control device to a workflow and select this target.",
           "Set the JSON payload in the workflow block.",
+          "Leave Retain off unless intended: a retained command is delivered to future subscribers when they connect.",
         ],
       },
       {
@@ -925,6 +936,7 @@ function mqttPublisherGuide(source: DataSource) {
         items: [
           "Use Test output in Devices and confirm the broker receives the expected JSON message.",
           "Confirm the message reaches the configured topic before enabling the workflow.",
+          "Test output sends a real message. Use a safe test topic or confirm subscribers treat the payload as non-operational.",
         ],
       },
     ],

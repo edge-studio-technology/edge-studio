@@ -32,6 +32,11 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
           and verify that Edge Studio receives its JSON messages.
         </p>
       </div>
+      <ErrorAlert status="warning" title="Broker compatibility">
+        Starter firmware supports an unauthenticated, non-TLS mqtt:// broker reachable from the ESP32.
+        It does not use MQTT URL credentials or mqtts://; use a protected LAN broker or firmware that
+        supports your broker's authentication and TLS requirements.
+      </ErrorAlert>
       {savedBroker.needsEsp32Override && (
         <ErrorAlert status="warning" title="ESP32 broker address needed">
           <div className="gap-detail-close grid">
@@ -110,8 +115,8 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
         )}
       </div>
       <p className="type-body text-text-secondary m-0">
-        The starter sketch publishes a simple Ping JSON message first; replace it with real sensor
-        fields after the MQTT path works.
+        After MQTT connects, the starter sketch sends its first Ping after up to 30 seconds, then every
+        30 seconds. Replace the Ping fields with real sensor data after the MQTT path works.
       </p>
     </div>
   );
@@ -371,7 +376,8 @@ function FirmwareStepContent({
         </label>
       </div>
       <div className="type-body text-text-secondary">
-        These values are inserted into the firmware text only. They are not saved to Edge Studio.
+        These values are inserted into the firmware text only. They are not saved to Edge Studio, but the
+        copied firmware contains the Wi-Fi password: do not commit, share, or leave it on shared machines.
       </div>
       <div className="gap-detail-next flex flex-wrap">
         <Button type="button" size="sm" onClick={() => navigator.clipboard?.writeText(firmware)}>
