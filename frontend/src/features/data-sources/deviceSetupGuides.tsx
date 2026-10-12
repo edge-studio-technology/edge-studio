@@ -161,7 +161,7 @@ export function DeviceGuideWorkspace({
               key={topic.id}
               type="button"
               aria-current={active ? "page" : undefined}
-              className={`rounded-soft px-detail-next py-detail-tight type-body-em cursor-pointer text-left transition-colors ${active ? "bg-surface-primary text-text-primary" : "text-text-secondary hover:bg-surface-primary hover:text-text-primary"}`}
+              className={`rounded-soft px-detail-next py-detail-tight type-body cursor-pointer text-left transition-colors focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${active ? "bg-surface-accent text-text-inverse" : "text-text-secondary hover:bg-surface-primary hover:text-text-primary"}`}
               onClick={() => setActiveTopicId(topic.id)}
             >
               {topic.title}
@@ -172,22 +172,22 @@ export function DeviceGuideWorkspace({
           <Button
             variant="secondary"
             size="sm"
-            className="relative w-full !border-stroke-primary"
+            className="grid w-full grid-cols-[1rem_1fr_1rem] !border-stroke-primary after:size-4 after:content-['']"
+            iconStart={<ChevronUp aria-hidden />}
             disabled={activeTopicIndex === 0}
             onClick={() => selectTopic(activeTopicIndex - 1)}
           >
-            <ChevronUp className="absolute left-detail-close size-4" aria-hidden />
-            <span>Previous topic</span>
+            Previous
           </Button>
           <Button
             variant="secondary"
             size="sm"
-            className="relative w-full !border-stroke-primary"
+            className="grid w-full grid-cols-[1rem_1fr_1rem] !border-stroke-primary after:size-4 after:content-['']"
+            iconStart={<ChevronDown aria-hidden />}
             disabled={activeTopicIndex === topics.length - 1}
             onClick={() => selectTopic(activeTopicIndex + 1)}
           >
-            <ChevronDown className="absolute left-detail-close size-4" aria-hidden />
-            <span>Next topic</span>
+            Next
           </Button>
         </div>
       </nav>

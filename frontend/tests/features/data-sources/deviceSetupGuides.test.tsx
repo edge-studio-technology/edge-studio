@@ -166,11 +166,13 @@ describe("StandardDeviceSetupGuide", () => {
     const item = source({ type: "bme-sensor", config: { sensor: "bme280" } });
     render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
 
-    expect(screen.getByRole("button", { name: "Previous topic" })).toBeDisabled();
-    await userEvent.click(screen.getByRole("button", { name: "Next topic" }));
+    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByRole("heading", { name: "Requirements" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Previous topic" }));
+    expect(screen.getByRole("button", { name: "Requirements" })).toHaveAttribute("aria-current", "page");
+    await userEvent.click(screen.getByRole("button", { name: "Previous" }));
     expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Overview" })).toHaveAttribute("aria-current", "page");
   });
 
   it("renders a guide action and calls onAction when clicked", async () => {
