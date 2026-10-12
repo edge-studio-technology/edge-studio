@@ -245,16 +245,10 @@ function GuideActions({
         {actions.map((action) => {
           const workflowId = createdWorkflowIds?.[action.key] ?? null;
           return (
-            <div
-              key={action.key}
-              className="border-stroke-secondary bg-surface-always-white rounded-loose p-pad-close gap-detail-close flex flex-wrap items-center justify-between border"
-            >
-              <div>
-                <div className="type-body-em text-text-primary">{action.label}</div>
-                {action.description && (
-                  <p className="type-body text-text-secondary m-0 mt-1">{action.description}</p>
-                )}
-              </div>
+            <div key={action.key} className="gap-detail-tight grid justify-items-start">
+              {action.description && (
+                <p className="type-body text-text-secondary m-0">{action.description}</p>
+              )}
               <Button
                 type="button"
                 size="sm"
