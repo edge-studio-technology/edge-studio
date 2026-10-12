@@ -175,6 +175,17 @@ describe("StandardDeviceSetupGuide", () => {
     expect(screen.getByRole("button", { name: "Overview" })).toHaveAttribute("aria-current", "page");
   });
 
+  it("uses consistent workflow and verification topics while keeping overview fields out of the rail", async () => {
+    const item = source({ type: "http-output", config: { url: "https://example.test/output" } });
+    render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
+
+    expect(screen.getByRole("button", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Endpoint" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Workflow use" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(screen.getByText("Use Test output in Devices and confirm the endpoint receives the expected JSON request.")).toBeInTheDocument();
+  });
+
   it("renders a guide action and calls onAction when clicked", async () => {
     const onAction = vi.fn();
     const item = source({ type: "bme-sensor", config: { sensor: "bme280" } });
@@ -238,7 +249,7 @@ describe("StandardDeviceSetupGuide", () => {
     const item = source({ type: "gpio-output", config: {} });
     render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
 
-    await userEvent.click(screen.getByRole("button", { name: "Typical wiring" }));
+    await userEvent.click(screen.getByRole("button", { name: "Wiring" }));
     const toggle = screen.getByRole("button", { name: "Show wiring schematic" });
     await userEvent.click(toggle);
     expect(screen.getByRole("button", { name: "Hide wiring schematic" })).toBeInTheDocument();

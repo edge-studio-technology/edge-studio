@@ -9,6 +9,7 @@ import type { DataSource } from "./dataSourceTypes";
 
 type GuideSection = {
   title: string;
+  overview?: boolean;
   body?: string;
   items?: string[];
   table?: Array<[string, string]>;
@@ -103,16 +104,6 @@ export function StandardDeviceSetupGuide({
   );
 }
 
-function isTableOnlySection(section: GuideSection) {
-  return (
-    Boolean(section.table) &&
-    !section.body &&
-    !section.items &&
-    !section.commands &&
-    !section.schematic
-  );
-}
-
 type GuideTopic =
   | { id: "overview"; title: string }
   | { id: `section:${number}`; title: string; section: GuideSection }
@@ -135,11 +126,11 @@ export function DeviceGuideWorkspace({
   overview?: ReactNode;
 }) {
   const [activeTopicId, setActiveTopicId] = useState<GuideTopic["id"]>("overview");
-  const tableSections = guide.sections.filter(isTableOnlySection);
+  const overviewSections = guide.sections.filter((section) => section.overview);
   const topics: GuideTopic[] = [
     { id: "overview", title: "Overview" },
     ...guide.sections
-      .filter((section) => !isTableOnlySection(section))
+      .filter((section) => !section.overview)
       .map((section, index) => ({ id: `section:${index}` as const, title: section.title, section })),
     ...(guide.actions?.length ? [{ id: "actions" as const, title: "Guide actions" }] : []),
     ...(guide.docPath ? [{ id: "documentation" as const, title: "Documentation" }] : []),
@@ -191,8 +182,8 @@ export function DeviceGuideWorkspace({
           </Button>
         </div>
       </nav>
-      <div className="border-stroke-secondary bg-surface-primary min-h-0 min-w-0 overflow-y-auto border-l px-detail-next py-pad-close pl-6">
-        {activeTopic.id === "overview" && (overview ?? <GuideOverview guide={guide} tableSections={tableSections} />)}
+      <div className="border-stroke-secondary bg-surface-primary min-h-0 min-w-0 overflow-y-auto border-l px-detail-next pb-pad-close pl-6 pt-pad-tight">
+        {activeTopic.id === "overview" && (overview ?? <GuideOverview guide={guide} overviewSections={overviewSections} />)}
         {"section" in activeTopic && <GuideSectionCard section={activeTopic.section} />}
         {activeTopic.id === "actions" && guide.actions && <GuideActions actions={guide.actions} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} />}
         {activeTopic.id === "documentation" && guide.docPath && <GuideDocumentation docPath={guide.docPath} />}
@@ -201,14 +192,14 @@ export function DeviceGuideWorkspace({
   );
 }
 
-function GuideOverview({ guide, tableSections }: { guide: DeviceSetupGuide; tableSections: GuideSection[] }) {
+function GuideOverview({ guide, overviewSections }: { guide: DeviceSetupGuide; overviewSections: GuideSection[] }) {
   return (
     <div className="gap-detail-near grid">
       <div>
         <h3 className="type-title text-text-primary m-0">Overview</h3>
         <p className="type-body text-text-secondary mt-detail-tight m-0">{guide.intro}</p>
       </div>
-      {tableSections.map((section) => (
+      {overviewSections.map((section) => (
         <div key={section.title} className="gap-detail-tight grid">
           <h4 className="type-body-em text-text-primary m-0">{section.title}</h4>
           <DetailList>
@@ -482,6 +473,7 @@ function bmeSensorGuide(source: DataSource) {
         : []),
       {
         title: "Saved settings",
+        overview: true,
         table: [
           ["Sensor", source.config.sensor ?? "bme280"],
           ["I2C bus", String(source.config.bus ?? 1)],
@@ -526,6 +518,7 @@ function deviceSystemDataGuide(source: DataSource) {
       },
       {
         title: "Saved settings",
+        overview: true,
         table: [
           ["Specs", source.config.includeSpecs === false ? "Disabled" : "Enabled"],
           ["Performance", source.config.includePerformance === false ? "Disabled" : "Enabled"],
@@ -598,7 +591,7 @@ function gpioButtonGuide(source: DataSource) {
         ],
       },
       {
-        title: "Typical wiring",
+        title: "Wiring",
         schematic: "pi-gpio",
         table: [
           ["GPIO", `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? 17}`],
@@ -635,7 +628,7 @@ function pirGuide(source: DataSource) {
         ],
       },
       {
-        title: "Tested wiring",
+        title: "Wiring",
         schematic: "pi-gpio",
         table: [
           ["PIR VCC", "5V"],
@@ -644,7 +637,7 @@ function pirGuide(source: DataSource) {
         ],
       },
       {
-        title: "Recommended workflow",
+        title: "Workflow use",
         items: [
           "Use Start on GPIO event with this source.",
           "Enable Only run when the GPIO event is active to ignore motion_cleared events.",
@@ -671,7 +664,7 @@ function gpioLedGuide(source: DataSource) {
         ],
       },
       {
-        title: "Typical wiring",
+        title: "Wiring",
         schematic: "pi-gpio",
         table: [
           ["GPIO", `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? 18}`],
@@ -707,6 +700,7 @@ function piCameraGuide(source: DataSource) {
       },
       {
         title: "Saved settings",
+        overview: true,
         table: [
           ["Mode", source.config.mode ?? "photo"],
           ["Resolution", `${source.config.width ?? 1280}x${source.config.height ?? 720}`],
@@ -715,7 +709,7 @@ function piCameraGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Workflows",
+        title: "Workflow use",
         items: [
           "Add a Capture camera block and select this camera device.",
           "Attach Stamp data to create an Integritas proof for the captured media hash.",
@@ -734,6 +728,7 @@ function httpJsonSourceGuide(source: DataSource) {
     [
       {
         title: "Endpoint",
+        overview: true,
         table: [
           ["Method", source.config.method ?? "GET"],
           ["URL", source.config.url ?? ""],
@@ -769,6 +764,7 @@ function webhookGuide(source: DataSource) {
     [
       {
         title: "Endpoint",
+        overview: true,
         table: [
           ["URL", url],
           ["Method", "POST"],
@@ -776,7 +772,7 @@ function webhookGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Workflows",
+        title: "Workflow use",
         items: [
           "Create or enable a workflow with Webhook received as the start block.",
           "POST JSON to the webhook URL.",
@@ -803,13 +799,14 @@ function mqttSubscriberGuide(source: DataSource) {
     [
       {
         title: "Topic",
+        overview: true,
         table: [
           ["Broker", source.config.brokerUrl ?? ""],
           ["Topic", source.config.topic ?? ""],
         ],
       },
       {
-        title: "Use in Workflows",
+        title: "Workflow use",
         items: [
           "Create or enable a workflow with MQTT message received as the start block.",
           "Publish valid JSON to the configured topic.",
@@ -832,6 +829,7 @@ function httpJsonTargetGuide(source: DataSource) {
     [
       {
         title: "Endpoint",
+        overview: true,
         table: [
           ["Method", source.config.method ?? "POST"],
           ["URL", source.config.url ?? ""],
@@ -839,11 +837,17 @@ function httpJsonTargetGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Workflows",
+        title: "Workflow use",
         items: [
           "Add Control device to a workflow and select this target.",
           "Set the JSON body in the workflow block so this target can be reused.",
-          "Use Test output in Devices for a basic request before enabling workflows.",
+        ],
+      },
+      {
+        title: "Verify",
+        items: [
+          "Use Test output in Devices and confirm the endpoint receives the expected JSON request.",
+          "Confirm the device reports a successful output before enabling the workflow.",
         ],
       },
     ],
@@ -858,6 +862,7 @@ function mqttPublisherGuide(source: DataSource) {
     [
       {
         title: "Topic",
+        overview: true,
         table: [
           ["Broker", source.config.brokerUrl ?? ""],
           ["Topic", source.config.topic ?? ""],
@@ -866,11 +871,17 @@ function mqttPublisherGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Workflows",
+        title: "Workflow use",
         items: [
           "Add Control device to a workflow and select this target.",
           "Set the JSON payload in the workflow block.",
-          "Use Test output in Devices to publish a basic test message.",
+        ],
+      },
+      {
+        title: "Verify",
+        items: [
+          "Use Test output in Devices and confirm the broker receives the expected JSON message.",
+          "Confirm the message reaches the configured topic before enabling the workflow.",
         ],
       },
     ],
