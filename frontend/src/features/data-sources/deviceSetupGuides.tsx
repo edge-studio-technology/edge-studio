@@ -153,7 +153,7 @@ export function DeviceGuideWorkspace({
 
   return (
     <section className="grid h-full min-h-0 min-w-0 grid-cols-[240px_minmax(0,1fr)] overflow-hidden">
-      <nav className="bg-surface-secondary gap-detail-tight flex min-h-0 flex-col px-detail-next" aria-label="Device guide topics">
+      <nav className="bg-surface-secondary gap-detail-tight flex min-h-0 flex-col px-detail-next py-pad-close" aria-label="Device guide topics">
         {topics.map((topic) => {
           const active = topic.id === activeTopic.id;
           return (
@@ -191,7 +191,7 @@ export function DeviceGuideWorkspace({
           </Button>
         </div>
       </nav>
-      <div className="border-stroke-secondary bg-surface-primary min-h-0 min-w-0 overflow-y-auto border-l px-detail-next pl-6">
+      <div className="border-stroke-secondary bg-surface-primary min-h-0 min-w-0 overflow-y-auto border-l px-detail-next py-pad-close pl-6">
         {activeTopic.id === "overview" && (overview ?? <GuideOverview guide={guide} tableSections={tableSections} />)}
         {"section" in activeTopic && <GuideSectionCard section={activeTopic.section} />}
         {activeTopic.id === "actions" && guide.actions && <GuideActions actions={guide.actions} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} />}
