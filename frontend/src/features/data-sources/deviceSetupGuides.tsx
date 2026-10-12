@@ -153,7 +153,7 @@ export function DeviceGuideWorkspace({
 
   return (
     <section className="grid h-full min-h-0 min-w-0 grid-cols-[240px_minmax(0,1fr)] overflow-hidden">
-      <nav className="bg-surface-secondary gap-detail-tight flex min-h-0 flex-col px-detail-next py-pad-relaxed" aria-label="Device guide topics">
+      <nav className="bg-surface-secondary gap-detail-tight flex min-h-0 flex-col px-detail-next" aria-label="Device guide topics">
         {topics.map((topic) => {
           const active = topic.id === activeTopic.id;
           return (
@@ -172,7 +172,7 @@ export function DeviceGuideWorkspace({
           <Button
             variant="secondary"
             size="sm"
-            className="grid w-full grid-cols-[1rem_1fr_1rem] !border-stroke-primary after:size-4 after:content-['']"
+            className="!grid w-full grid-cols-[1rem_1fr_1rem] !border-stroke-primary after:size-4 after:content-['']"
             iconStart={<ChevronUp aria-hidden />}
             disabled={activeTopicIndex === 0}
             onClick={() => selectTopic(activeTopicIndex - 1)}
@@ -182,7 +182,7 @@ export function DeviceGuideWorkspace({
           <Button
             variant="secondary"
             size="sm"
-            className="grid w-full grid-cols-[1rem_1fr_1rem] !border-stroke-primary after:size-4 after:content-['']"
+            className="!grid w-full grid-cols-[1rem_1fr_1rem] !border-stroke-primary after:size-4 after:content-['']"
             iconStart={<ChevronDown aria-hidden />}
             disabled={activeTopicIndex === topics.length - 1}
             onClick={() => selectTopic(activeTopicIndex + 1)}
@@ -191,7 +191,7 @@ export function DeviceGuideWorkspace({
           </Button>
         </div>
       </nav>
-      <div className="border-stroke-secondary bg-surface-primary min-h-0 min-w-0 overflow-y-auto border-l px-detail-next py-pad-relaxed pl-6">
+      <div className="border-stroke-secondary bg-surface-primary min-h-0 min-w-0 overflow-y-auto border-l px-detail-next pl-6">
         {activeTopic.id === "overview" && (overview ?? <GuideOverview guide={guide} tableSections={tableSections} />)}
         {"section" in activeTopic && <GuideSectionCard section={activeTopic.section} />}
         {activeTopic.id === "actions" && guide.actions && <GuideActions actions={guide.actions} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} />}
