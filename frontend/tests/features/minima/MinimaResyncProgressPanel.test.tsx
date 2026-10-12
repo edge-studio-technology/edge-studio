@@ -52,6 +52,7 @@ describe("resync progress panel", () => {
         onRetry={vi.fn()}
       />,
     );
+    fireEvent.click(screen.getByText("Resync progress"));
     expect(screen.getByText("Node recovered")).toBeInTheDocument();
     expect(screen.getByText(/RPC response timed out/)).toBeInTheDocument();
     expect(screen.getByText("Resync outcome unconfirmed")).toBeInTheDocument();
@@ -81,6 +82,7 @@ describe("resync progress panel", () => {
         onRetry={retry}
       />,
     );
+    fireEvent.click(screen.getByText("Resync progress"));
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(retry).toHaveBeenCalledOnce();
     expect(screen.queryByText("Resync failed")).not.toBeInTheDocument();
@@ -100,6 +102,30 @@ describe("resync progress panel", () => {
     expect(screen.getByRole("list")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry progress" }));
     expect(retry).toHaveBeenCalledOnce();
+  });
+
+  it("opens for a new busy operation, respects collapse while polling, and stays open after completion", () => {
+    const props = { loading: false, error: null, onRetry: vi.fn() };
+    const { rerender } = render(<MinimaResyncProgressPanel {...props} operation={null} />);
+    const details = screen.getByText("Resync progress").closest("details")!;
+    expect(details.open).toBe(false);
+    rerender(<MinimaResyncProgressPanel {...props} operation={resyncOperation()} />);
+    expect(details.open).toBe(true);
+    details.open = false;
+    fireEvent(details, new Event("toggle"));
+    rerender(<MinimaResyncProgressPanel {...props} operation={resyncOperation({ phase: "recovering" })} />);
+    expect(details.open).toBe(false);
+    rerender(<MinimaResyncProgressPanel {...props} operation={resyncOperation({ id: "next" })} />);
+    expect(details.open).toBe(true);
+    rerender(<MinimaResyncProgressPanel {...props} operation={resyncOperation({ id: "next", busy: false, phase: "completed" })} />);
+    expect(details.open).toBe(true);
+    expect(screen.getByText("Progress events").closest("summary")).toBeNull();
+    expect(screen.getByLabelText("Resync events")).toHaveClass("max-h-64");
+  });
+
+  it("keeps a historical terminal operation collapsed until opened", () => {
+    render(<MinimaResyncProgressPanel operation={resyncOperation({ busy: false, phase: "completed" })} loading={false} error={null} onRetry={vi.fn()} />);
+    expect(screen.getByText("Resync progress").closest("details")).not.toHaveAttribute("open");
   });
 
   it("updates elapsed time while reserved and stops at the final timestamp after release", async () => {

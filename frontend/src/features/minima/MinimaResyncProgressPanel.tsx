@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MinimaResyncOperation } from "../../app/types";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -24,6 +24,14 @@ export function MinimaResyncProgressPanel({
   error: string | null;
   onRetry: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const openedOperationId = useRef<string | null>(null);
+  useEffect(() => {
+    if (operation?.busy && openedOperationId.current !== operation.id) {
+      openedOperationId.current = operation.id;
+      setOpen(true);
+    }
+  }, [operation?.id, operation?.busy]);
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
     if (!operation?.busy) return;
@@ -44,80 +52,87 @@ export function MinimaResyncProgressPanel({
   return (
     <div className="w-full min-w-0" role="region" aria-label="Resync progress">
       <Card className="gap-detail-close grid w-full min-w-0">
-        <h2 className="type-title text-text-primary m-0">Resync progress</h2>
-        {operation ? (
-          <>
-            <div
-              className="gap-detail-next flex flex-wrap items-center"
-              role="status"
-              aria-live="polite"
-            >
-              <Pill className="!h-auto min-h-6 max-w-full" indicator tone={resyncPhaseTone(operation.phase)}>
-                {resyncPhaseLabel[operation.phase]}
-              </Pill>
-              {operation.recovered ? <Pill tone="good">Node recovered</Pill> : null}
-              {operation.busy ? (
-                <span className="type-meta text-text-secondary">Node actions paused</span>
-              ) : null}
-            </div>
-            <p className="type-body text-text-primary m-0 break-words">{operation.message}</p>
-            <p className="type-meta text-text-tertiary m-0">
-              Elapsed: {Math.floor(elapsed / 60)}m {elapsed % 60}s · Last observation{" "}
-              <time dateTime={operation.updatedAt}>{formatLocalDateTime(operation.updatedAt)}</time>
-            </p>
-            {error ? (
-              <ErrorAlert
-                title="Progress update unavailable"
-                action={
-                  <Button size="sm" variant="secondary" onClick={onRetry}>
-                    Retry progress
-                  </Button>
-                }
+        <Disclosure
+          title={<h2 className="type-title text-text-primary m-0">Resync progress</h2>}
+          open={open}
+          onToggle={(event) => setOpen(event.currentTarget.open)}
+          contentClassName="gap-detail-close grid"
+        >
+          {operation ? (
+            <>
+              <div
+                className="gap-detail-next flex flex-wrap items-center"
+                role="status"
+                aria-live="polite"
               >
-                {error} Showing the last observed operation.
-              </ErrorAlert>
-            ) : null}
-            <Disclosure title="Progress events" defaultOpen>
-              <ScrollArea className="max-h-64" tabIndex={0} aria-label="Resync events">
-                <ol className="gap-detail-next m-0 grid list-none p-0">
-                  {operation.events.map((event, index) => (
-                    <li key={`${event.at}-${index}`} className="gap-detail-tight grid break-words">
-                      <p className="type-body text-text-primary m-0">
-                        <time className="type-meta text-text-tertiary" dateTime={event.at}>
-                          {formatLocalTime(event.at)}
-                        </time>{" "}
-                        · {event.message}
-                      </p>
-                      {event.errorDetails ? (
-                        <Disclosure title="Event details" defaultOpen={false}>
-                          <ErrorDetailPanel error={event.errorDetails} />
-                        </Disclosure>
-                      ) : null}
-                    </li>
-                  ))}
-                </ol>
-              </ScrollArea>
-            </Disclosure>
-            {operation.errorDetails ? (
-              <Disclosure title="Recovery and error details" defaultOpen={false}>
-                <ErrorDetailPanel error={operation.errorDetails} />
-              </Disclosure>
-            ) : null}
-          </>
-        ) : error ? (
-          <ErrorContentState
-            title="Resync progress isn't available"
-            description={error}
-            onRetry={onRetry}
-          />
-        ) : loading ? (
-          <LoadingState title="Loading resync progress" />
-        ) : (
-          <EmptyContentState
-            title="No resync recorded"
-            description="Progress from the next resync will appear here."
-          />
-        )}
+                <Pill className="!h-auto min-h-6 max-w-full" indicator tone={resyncPhaseTone(operation.phase)}>
+                  {resyncPhaseLabel[operation.phase]}
+                </Pill>
+                {operation.recovered ? <Pill tone="good">Node recovered</Pill> : null}
+                {operation.busy ? (
+                  <span className="type-meta text-text-secondary">Node actions paused</span>
+                ) : null}
+              </div>
+              <p className="type-body text-text-primary m-0 break-words">{operation.message}</p>
+              <p className="type-meta text-text-tertiary m-0">
+                Elapsed: {Math.floor(elapsed / 60)}m {elapsed % 60}s · Last observation{" "}
+                <time dateTime={operation.updatedAt}>{formatLocalDateTime(operation.updatedAt)}</time>
+              </p>
+              {error ? (
+                <ErrorAlert
+                  title="Progress update unavailable"
+                  action={
+                    <Button size="sm" variant="secondary" onClick={onRetry}>
+                      Retry progress
+                    </Button>
+                  }
+                >
+                  {error} Showing the last observed operation.
+                </ErrorAlert>
+              ) : null}
+              <div className="gap-detail-next grid min-w-0">
+                <h3 className="type-body-em text-text-primary m-0">Progress events</h3>
+                <ScrollArea className="max-h-64" tabIndex={0} aria-label="Resync events">
+                  <ol className="gap-detail-next m-0 grid list-none p-0">
+                    {operation.events.map((event, index) => (
+                      <li key={`${event.at}-${index}`} className="gap-detail-tight grid break-words">
+                        <p className="type-body text-text-primary m-0">
+                          <time className="type-meta text-text-tertiary" dateTime={event.at}>
+                            {formatLocalTime(event.at)}
+                          </time>{" "}
+                          · {event.message}
+                        </p>
+                        {event.errorDetails ? (
+                          <Disclosure title="Event details" defaultOpen={false}>
+                            <ErrorDetailPanel error={event.errorDetails} />
+                          </Disclosure>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ol>
+                </ScrollArea>
+              </div>
+              {operation.errorDetails ? (
+                <Disclosure title="Recovery and error details" defaultOpen={false}>
+                  <ErrorDetailPanel error={operation.errorDetails} />
+                </Disclosure>
+              ) : null}
+            </>
+          ) : error ? (
+            <ErrorContentState
+              title="Resync progress isn't available"
+              description={error}
+              onRetry={onRetry}
+            />
+          ) : loading ? (
+            <LoadingState title="Loading resync progress" />
+          ) : (
+            <EmptyContentState
+              title="No resync recorded"
+              description="Progress from the next resync will appear here."
+            />
+          )}
+        </Disclosure>
       </Card>
     </div>
   );
