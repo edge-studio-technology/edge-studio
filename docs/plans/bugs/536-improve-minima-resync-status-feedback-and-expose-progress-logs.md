@@ -1,6 +1,6 @@
 # Improve Minima Resync Status Feedback and Expose Progress Logs Plan
 
-**Status:** In progress — steps 1–4 complete; final end-to-end verification remains step 5
+**Status:** Complete — steps 1–5, documentation and Pi/browser verification complete; review/merge pending
 
 **Created:** 2026-10-09
 
@@ -16,9 +16,9 @@
 - [x] 2. Implement backend resync tracking, asynchronous initiation, and bounded progress persistence.
 - [x] 3. Implement backend recovery and route every supported resync caller through it.
 - [x] 4. Connect the Minima UI to operation state and add the progress panel.
-- [ ] 5. Cover ambiguous outcomes, recovery, conflicts, and existing consumers with regression tests.
-- [ ] Docs.
-- [ ] Verification, including live disposable-node and browser checks.
+- [x] 5. Cover ambiguous outcomes, recovery, conflicts, and existing consumers with regression tests.
+- [x] Docs.
+- [x] Verification, including live disposable-node and browser checks.
 
 ## Context and agreed scope
 
@@ -173,7 +173,13 @@ Extend existing suites and add one mirrored test file for each new feature-local
 - Page renders each required phase, explicit recovery, retained diagnostics, and unconfirmed outcome; progress-fetch errors do not fabricate terminal failures.
 - `mergeMinimaStatus()` preserves operation state; ordinary restart, backup/restore, dashboard balance, Wallet recovery, and #206 local-contact initialization remain functional.
 
-Existing tests are useful infrastructure, but currently pin the old behavior: `minima.service.test.ts` asserts the 30-second timeout, `minima-monitoring.test.ts` asserts marker expiry, `minimaResync.test.ts` tests synchronous toast mapping, and `MinimaPage.test.tsx` has no resync action test. Update those contracts deliberately rather than retaining tests for the removed browser continuation.
+At the audited baseline, existing tests pinned the old behavior: `minima.service.test.ts` asserted the 30-second timeout, `minima-monitoring.test.ts` asserted marker expiry, `minimaResync.test.ts` tested synchronous toast mapping, and `MinimaPage.test.tsx` had no resync action test. Steps 2–4 updated those contracts and added worker/browser regressions; step 5 verified the complete suite and live behavior.
+
+### Step 5 results (2026-10-09)
+
+Deployed this branch's `7bdd02e` frontend/backend ARM64 builds to the Pi, preserving its existing private testnet node and application data. Verified real backend workers and HTTPS/browser feedback against a separate disposable Core 1.1.2.6 node: explicit archive rejection, real shutdown disconnect, a 150-second RPC/161-second recovery, console initiation with intentional disconnect and backend restart, confirmed completion with exactly one start of an exited node, unavailable-node preflight, and ordinary graceful restart. Manual/console/backup/restore conflicts returned structured 409 without another node command. Live automatic-caller checks verified initiation versus terminal results, busy exclusion, cooldown and startup restoration. Reload/second tab/browser closure, retained warnings, progress-read failure/retry, authenticated/admin gates, compact status, Wallet recovery and 1280/768/375px layouts passed. Rare deadline/start-failure/redaction/obsolete-owner variants remain covered by the regression suites.
+
+Full checks passed 3,554 tests (1,443 backend, 1,865 frontend, 194 Update Agent, 52 scripts), typechecks, coverage thresholds and clean dependency audits with the existing test-only RPC URL override. Production builds, Compose validation and local/Pi frontend/backend container builds passed. No application-code changes were required. Closed MINIMA-02/MINIMA-08 and reconciled README, SECURITY, ADR, mirrored rules and task/session notes. Removed the disposable app/node/network/relays and logged out the QA login. SQLite integrity and pre-deployment comparisons confirmed preserved admin credentials/contacts; the existing testnet node retained RestartCount 2 and StartedAt `2026-10-09T11:56:07.391662755Z`. Retained rollback images/database/source backups. See [end-to-end QA](../../qa/536-resync-end-to-end.md) and its recorded runtime observations. OpenProject was not changed; review/merge remains a separate step.
 
 ## Docs
 
@@ -212,6 +218,6 @@ git status --short --untracked-files=all
 
 Use a disposable node for the final live checks: fast/slow resync, host rejection, natural restart, unavailable node, page closed midway, reload/second tab, and backend restart while observing. Confirm no false failure, no false completion, one command dispatch, visible recovery history, and normal node-dependent UI after recovery. Record image/Core version and timings in the QA evidence. An existing operator node is not needed for the initial fixtures or local development.
 
-## Remaining inputs for implementation
+## Completion boundary
 
-The events-only UI scope is agreed. Steps 1–4 establish lifecycle evidence, backend tracking/recovery and browser integration. Step 5 retains final disposable-node worker/browser QA and gap reconciliation. Original operator-node data was not mutated.
+The events-only UI scope is complete. Steps 1–5 establish lifecycle evidence, backend tracking/recovery, browser integration, regression coverage and final Pi/disposable-node/browser QA. Original operator-node data was not mutated. Review/merge and broader #212/#307 workflow coordination remain outside this implementation plan.

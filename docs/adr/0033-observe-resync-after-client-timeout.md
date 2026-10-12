@@ -37,7 +37,7 @@ The page notifies observed terminal transitions by operation ID/outcome/recovery
 
 ## Consequences
 
-A timeout warning can remain visible while observation continues. Some outcomes will remain unconfirmed. Initial budgets require revalidation in final QA and cannot establish outcomes by themselves. Steps 2–4 implement tracking, dispatch, process observation, recovery, startup reconciliation and browser progress. Final live worker/browser QA remains step 5. An unconfirmed terminal outcome may remain busy; API consumers must poll ownership as well as phase.
+A timeout warning can remain visible while observation continues. Some outcomes will remain unconfirmed. Initial budgets cannot establish outcomes by themselves. Steps 2–4 implement tracking, dispatch, process observation, recovery, startup reconciliation and browser progress. Step 5 [live Pi worker/browser QA](../qa/536-resync-end-to-end.md) verified a 150-second response/161-second natural recovery, disconnected recovery across backend restart and one start after confirmed completion/process exit; no observation budget changed. An unconfirmed terminal outcome may remain busy; API consumers must poll ownership as well as phase.
 
 ## Where this lives in code
 

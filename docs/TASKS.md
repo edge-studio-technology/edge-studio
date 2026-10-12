@@ -17,8 +17,6 @@
 
 ## In Progress
 
-- [ ] Fix Minima resync feedback (OpenProject #536) — steps 1–4 complete: lifecycle/backend recovery and browser progress integration implemented; full checks and intercepted browser recovery/reload/layout checks passed; final disposable-node worker/browser QA remains step 5; see [plan](plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md), [QA](qa/536-resync-lifecycle.md), and ADR 0033.
-
 - [ ] Improve changelog service (OpenProject #239): `update-agent` caches main's changelog in `/state`, kept in step with the manifest; Update page reads it from `GET /update/status` with an in-app full view — code, docs, local and Pi verification done on `task/239-improve-changelog-service`; PR to `dev` pending; see `docs/plans/features/239-improve-changelog-service.md`.
 - [ ] Upgrade Automation watch mode into a production-quality live monitoring, historic replay, and workflow debugging experience — runtime overview, domain-aware block summaries, replay toolbar/status messaging, status-colored replay animation, and run-specific historic canvas rendering are implemented and build/test verified; browser visual QA remains; see `docs/plans/workflow-watch-mode-upgrade.md`.
 - [ ] Static guided tour (OpenProject #275): built on `task/275-create-static-app-guided-tour`, current `dev` merged for PR preparation (first-visit modal with 9 steps, seen flag per browser, replay from Settings → Behaviour); draft screenshots from dev data are in for every slide, crossfading in a full frame when a slide has two; recapture all of them with clean, Pi-like values before merge, then copy review and merge. Decisions in `docs/adr/0027-static-guided-tour.md`; see `docs/plans/features/275-create-static-app-guided-tour.md`.
@@ -84,6 +82,8 @@
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the peers table's `<div>` header, and moving Minima backups onto `TableWrap` — see §4 of `docs/plans/features/667-responsive-application.md`.
 
 ## Done
+
+- [x] Fixed Minima resync feedback (#536), steps 1–5 — persistent backend recovery/progress and browser integration passed 3,554 full-suite tests, builds and final Pi/disposable-node/browser QA: slow/disconnected resync, backend restart, conflicts, automatic caller/cooldown, stopped-node start, unavailable node, graceful restart and Wallet recovery. Original private testnet/data preserved; temporary fixtures removed; MINIMA-02/MINIMA-08 closed. Branch is deployed on the Pi; review/merge pending and OpenProject unchanged. See [plan](plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md), [QA](qa/536-resync-end-to-end.md) and ADR 0033.
 
 - [x] Implemented PIN/password credential input (#283), steps 1–5 for the agreed scope — 279 focused frontend and 3,452 full-suite tests/builds/checks passed; live Pi QA covered both modes, disposable legacy/fresh accounts, all backup credential actions, and four actual restores with wallet identity verification. Original Pi data/account/connection restored; disposable data removed. Password-manager/native autofill and physical mobile keyboard QA were excluded for a proposed separate ticket; comment mentions Rowel. OpenProject remains Testing for review. See [plan](plans/features/283-implement-pin-password-credential-input.md) and [QA results](qa/283-credential-input-pi-verification.md).
 

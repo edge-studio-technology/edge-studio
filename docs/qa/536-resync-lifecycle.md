@@ -54,13 +54,13 @@ After a lost completion envelope, cycle plus usable RPC proves recovery, not res
 
 Parser tests use both captured envelopes. RPC tests preserve HTTP success versus RPC rejection, and use the real request deadline with fake timers at `global.fetch` to exercise timeout followed by a healthy status read without another resync command. That status only proves reachability, not rebuild completion.
 
-A service regression asserts that a dispatched resync timeout retains operation ownership. It is marked `it.fails`: the existing service clears ownership, and Vitest confirms the expected assertion failure. Remove that modifier when step 2 fixes ownership. The RPC timeout-to-healthy-read test passes, but does not claim the existing service owns terminal recovery; that integration regression belongs with the worker in steps 2–3.
+A service regression asserts that a dispatched resync timeout retains operation ownership. At the step-1 checkpoint it was marked `it.fails`: the baseline service cleared ownership, and Vitest confirmed the expected assertion failure. Step 2 removed that modifier after fixing ownership; the regression now passes normally. The original RPC timeout-to-healthy-read test establishes reachability only; worker terminal recovery coverage was added in steps 2–3 and verified in [final end-to-end QA](./536-resync-end-to-end.md).
 
 ## Verification and limits
 
 Focused suites: 41 passed and one explicitly expected-failing #536 ownership regression. Full `npm run check` passed package typechecks, coverage thresholds, tests (including that expected failure), scripts, and dependency audits. Backend/frontend builds and Compose validation passed. No application runtime change, browser validation, image configuration change, or deployment was included.
 
-Observed versions returned the same completion message, including the legacy spelling; no other successful variant was observed. Timing budgets require final QA on other supported versions and slower hosts. No disconnected completion response was reconstructed from healthy status alone. Worker terminal integration tests remain for steps 2–3.
+Observed versions returned the same completion message, including the legacy spelling; no other successful variant was observed. No disconnected completion response was reconstructed from healthy status alone. This report records the original lifecycle checkpoint; completed worker/browser verification and its version/timing limits are recorded in [final end-to-end QA](./536-resync-end-to-end.md).
 
 ## Cleanup
 
