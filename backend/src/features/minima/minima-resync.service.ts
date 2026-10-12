@@ -15,7 +15,7 @@ import type { MinimaResyncOperation, MinimaResyncPhase, MinimaResyncTrigger } fr
 const operationSetting = "minima_resync_operation";
 const maxEvents = 100;
 const maxMessageLength = 2000;
-// See docs/adr/0033-observe-resync-after-client-timeout.md.
+// See docs/adr/0034-observe-resync-after-client-timeout.md.
 const rpcResponseTimeoutMs = 5 * 60 * 1000;
 const cycleTimeoutMs = 5 * 60 * 1000;
 const readinessTimeoutMs = 2 * 60 * 1000;

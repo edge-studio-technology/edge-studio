@@ -48,3 +48,20 @@ export function isMinimaAddress(value: string): boolean {
   if (/^0x[0-9a-f]+$/i.test(trimmed)) return true;
   return /^mx/i.test(trimmed) && decodeMxPayload(trimmed) !== null;
 }
+
+/** Encodes a valid address in Minima's checksummed Mx form, or returns null for an invalid address. */
+export function miniMinimaAddress(value: string): string | null {
+  const canonical = canonicalMinimaAddress(value);
+  if (canonical === null) return null;
+  const payload = Buffer.from(canonical.slice(2), "hex");
+  const header = Buffer.alloc(3);
+  header[0] = 1;
+  header.writeInt16BE(payload.length, 1);
+  const checksum = Buffer.from(sha3HashHex(payload).slice(0, 8), "hex");
+  const encoded = BigInt(`0x${Buffer.concat([header, payload, checksum]).toString("hex")}`)
+    .toString(32)
+    .replaceAll("i", "w")
+    .replaceAll("l", "y")
+    .replaceAll("o", "z");
+  return `Mx${encoded.toUpperCase()}`;
+}

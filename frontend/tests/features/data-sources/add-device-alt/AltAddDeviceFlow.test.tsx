@@ -52,14 +52,16 @@ describe("AltAddDeviceFlow", () => {
     expect(props.onClose).toHaveBeenCalled();
   });
 
-  it("selecting a protocol device moves to the configure step with a filled name", async () => {
+  it("selecting a protocol device starts the provisioning steps", async () => {
     renderFlow();
     await chooseRestApiSource();
 
-    expect(screen.getByRole("button", { name: "Add device" })).toBeInTheDocument();
+    expect(screen.getAllByText("Select device type").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Next step (2)" })).toBeEnabled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
     expect(screen.getByLabelText("Name")).toHaveValue("HTTP JSON Source");
-    // json-api template comes with a default url, so the form should already be valid.
-    expect(screen.getByRole("button", { name: "Add device" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Next step (3)" })).toBeEnabled();
   });
 
   it("Back returns to the previous setup step", async () => {
@@ -69,6 +71,19 @@ describe("AltAddDeviceFlow", () => {
     await userEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByRole("button", { name: /Inbound/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Outbound/ })).toBeInTheDocument();
+  });
+
+  it("uses Previous step within provisioning and Back to return to the device picker", async () => {
+    renderFlow();
+    await chooseRestApiSource();
+    await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
+
+    expect(screen.getByRole("button", { name: "Previous step (1)" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Previous step (1)" }));
+    expect(screen.getByRole("button", { name: "Next step (2)" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByRole("button", { name: /REST API/ })).toBeInTheDocument();
   });
 
   it("shows boards and sensor template choices", async () => {
@@ -85,11 +100,30 @@ describe("AltAddDeviceFlow", () => {
     expect(screen.getByRole("button", { name: /BME280 \/ BME680 Environmental Sensor/ })).toBeInTheDocument();
   });
 
+  it("splits GPIO input setup into connection and behavior steps", async () => {
+    renderFlow();
+    await userEvent.click(screen.getByRole("button", { name: /Sensors/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Template devices/ }));
+    await userEvent.click(screen.getByRole("button", { name: /GPIO Button/ }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step (3)" }));
+    expect(screen.getByRole("heading", { name: "Connect GPIO" })).toBeInTheDocument();
+    expect(screen.getByLabelText("GPIO chip")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Pull resistor")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Next step (4)" }));
+    expect(screen.getByRole("heading", { name: "Configure input behavior" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Pull resistor")).toBeInTheDocument();
+    expect(screen.queryByLabelText("GPIO chip")).not.toBeInTheDocument();
+  });
+
   it("submits the built config, shows a success toast, and calls onCreated", async () => {
     const created = { id: "s1", name: "HTTP JSON Source" };
     createDataSource.mockResolvedValue({ item: created });
     const { props } = renderFlow();
     await chooseRestApiSource();
+    await advanceToReview();
 
     await userEvent.click(screen.getByRole("button", { name: "Add device" }));
 
@@ -101,13 +135,32 @@ describe("AltAddDeviceFlow", () => {
       type: "json-api",
     });
     expect(props.onCreated).toHaveBeenCalledWith(created);
-    expect(await screen.findByText("Device added")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Device added" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Return to device page" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open device guide" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add new device" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Go to workflow page" })).not.toBeInTheDocument();
+  });
+
+  it("opens the saved device guide from the success state", async () => {
+    const created = { id: "s1", name: "HTTP JSON Source" };
+    const onOpenSetupGuide = vi.fn();
+    createDataSource.mockResolvedValue({ item: created });
+    const { props } = renderFlow({ onOpenSetupGuide });
+    await chooseRestApiSource();
+    await advanceToReview();
+    await userEvent.click(screen.getByRole("button", { name: "Add device" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: "Open device guide" }));
+    expect(onOpenSetupGuide).toHaveBeenCalledWith(created);
+    expect(props.onClose).toHaveBeenCalled();
   });
 
   it("shows an error toast and does not call onCreated when the create request fails", async () => {
     createDataSource.mockRejectedValue(new Error("Network error"));
     const { props } = renderFlow();
     await chooseRestApiSource();
+    await advanceToReview();
 
     await userEvent.click(screen.getByRole("button", { name: "Add device" }));
 
@@ -121,4 +174,10 @@ async function chooseRestApiSource() {
   await userEvent.click(screen.getByRole("button", { name: /Protocols/ }));
   await userEvent.click(screen.getByRole("button", { name: /Inbound/ }));
   await userEvent.click(screen.getByRole("button", { name: /REST API/ }));
+}
+
+async function advanceToReview() {
+  await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
+  await userEvent.click(screen.getByRole("button", { name: "Next step (3)" }));
+  await userEvent.click(screen.getByRole("button", { name: "Next step (4)" }));
 }

@@ -55,6 +55,15 @@ describe("runWalletReplacement", () => {
     assert.throws(() => repo.getAddressBookPaymentRecipient(local.id), /awaiting wallet verification/);
   });
 
+  it("counts every finished replacement, failed ones included", async () => {
+    const before = service.getWalletReplacementCount();
+    await service.runWalletReplacement(async () => {
+      assert.equal(service.getWalletReplacementCount(), before);
+    });
+    await assert.rejects(service.runWalletReplacement(async () => { throw new Error("restore failed"); }), /restore failed/);
+    assert.equal(service.getWalletReplacementCount(), before + 2);
+  });
+
   it("does not dispatch a mutation when durable protection cannot be written", async () => {
     db.exec("CREATE TRIGGER fail_verification BEFORE INSERT ON settings BEGIN SELECT RAISE(ABORT,'write failed'); END");
     let dispatched = false;

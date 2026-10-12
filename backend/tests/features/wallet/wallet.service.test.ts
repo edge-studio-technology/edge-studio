@@ -2,8 +2,12 @@ import assert from "node:assert/strict";
 import { afterAll, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
-const { runMinimaPathCommandMock, getContainerMock, inspectMock } = vi.hoisted(() => ({
-  runMinimaPathCommandMock: vi.fn(), getContainerMock: vi.fn(), inspectMock: vi.fn()
+const { runMinimaPathCommandMock, getContainerMock, inspectMock, getWalletFingerprintMock } = vi.hoisted(() => ({
+  runMinimaPathCommandMock: vi.fn(), getContainerMock: vi.fn(), inspectMock: vi.fn(), getWalletFingerprintMock: vi.fn()
+}));
+
+vi.mock("../../../src/features/wallet/wallet-history.service.js", () => ({
+  getWalletFingerprint: getWalletFingerprintMock
 }));
 
 vi.mock("../../../src/features/status/docker.service.js", () => ({
@@ -35,6 +39,7 @@ beforeEach(() => {
   runMinimaPathCommandMock.mockReset();
   getContainerMock.mockReset();
   inspectMock.mockReset();
+  getWalletFingerprintMock.mockReset().mockResolvedValue("fingerprint-a");
   db.prepare("DELETE FROM address_book").run();
   db.prepare("DELETE FROM settings WHERE key='address_book_local_wallet_verification'").run();
 });
@@ -220,15 +225,29 @@ describe("sendPayment", () => {
 });
 
 describe("getPaymentStatus", () => {
-  it("queries the txpow status and parses the response", async () => {
+  it("returns confirmed when the TxPoW is on chain", async () => {
     runMinimaPathCommandMock.mockResolvedValue({
       ok: true,
       status: 200,
-      body: { response: { confirmed: true, txpow: {} } }
+      body: { status: true, response: { found: true, block: "10", blockid: "0xB", tip: "12", confirmations: "2" } }
     });
-    const result = await walletService.getPaymentStatus("tx-1");
-    assert.equal(runMinimaPathCommandMock.mock.calls[0][0], "txpow txpowid:tx-1");
+    const result = await walletService.getPaymentStatus("0xAB");
+    assert.deepEqual(runMinimaPathCommandMock.mock.calls.map((call) => call[0]), ["txpow onchain:0xAB"]);
     assert.equal(result.status, "confirmed");
+  });
+
+  it("falls back to the TxPoW lookup when it is not on chain yet", async () => {
+    runMinimaPathCommandMock
+      .mockResolvedValueOnce({ ok: true, status: 200, body: { status: true, response: { found: false } } })
+      .mockResolvedValueOnce({ ok: true, status: 200, body: { status: true, response: { txpowid: "0xAB" } } });
+    const result = await walletService.getPaymentStatus("0xAB");
+    assert.deepEqual(runMinimaPathCommandMock.mock.calls.map((call) => call[0]), ["txpow onchain:0xAB", "txpow txpowid:0xAB"]);
+    assert.equal(result.status, "pending");
+  });
+
+  it("rejects a non-hex TxPoW ID before calling Minima", async () => {
+    await assert.rejects(walletService.getPaymentStatus("0xAB max:1"), /0x hex value/);
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
   });
 });
 
@@ -252,55 +271,95 @@ describe("wallet send history", () => {
     assert.equal(walletService.clearWalletSendHistoryForDebug(), 0);
   });
 
-  it("records and lists send history entries newest first", () => {
-    walletService.recordWalletSendHistory({
+  it("records submitted and failed sends", async () => {
+    await walletService.recordWalletSendHistory({
       toAddress: "0xaaa",
       tokenId: "0x00",
       tokenName: "Minima",
       amount: "1",
       txpowId: "tx-a",
-      status: "submitted"
+      transactionId: null,
+      status: "submitted",
+      origin: "manual"
     });
-    walletService.recordWalletSendHistory({
+    await walletService.recordWalletSendHistory({
       toAddress: "0xbbb",
       tokenId: "0x00",
       tokenName: "Minima",
       amount: "2",
       txpowId: null,
-      status: "failed"
+      transactionId: null,
+      status: "failed",
+      origin: "manual"
     });
 
-    const history = walletService.listWalletSendHistory();
-    assert.ok(history.length >= 2);
-    const bbb = history.find((h) => h.toAddress === "0xbbb");
-    assert.equal(bbb?.status, "failed");
-    assert.equal(bbb?.txpowId, null);
+    const rows = db.prepare("SELECT to_address, status, txpow_id FROM wallet_send_history ORDER BY to_address").all();
+    assert.deepEqual(rows, [
+      { to_address: "0xaaa", status: "submitted", txpow_id: "tx-a" },
+      { to_address: "0xbbb", status: "failed", txpow_id: null }
+    ]);
   });
 
-  it("clearWalletSendHistoryForDebug removes all recorded entries", () => {
-    walletService.recordWalletSendHistory({
+  it("clearWalletSendHistoryForDebug removes all recorded entries", async () => {
+    await walletService.recordWalletSendHistory({
       toAddress: "0xccc",
       tokenId: "0x00",
       tokenName: "Minima",
       amount: "1",
       txpowId: "tx-c",
-      status: "submitted"
+      transactionId: null,
+      status: "submitted",
+      origin: "manual"
     });
     const removed = walletService.clearWalletSendHistoryForDebug();
     assert.ok(removed >= 1);
-    assert.equal(walletService.listWalletSendHistory().length, 0);
+    assert.deepEqual(db.prepare("SELECT COUNT(*) AS count FROM wallet_send_history").get(), { count: 0 });
   });
 
-  it("clamps the limit passed to listWalletSendHistory", () => {
-    walletService.recordWalletSendHistory({
-      toAddress: "0xddd",
-      tokenId: "0x00",
-      tokenName: "Minima",
-      amount: "1",
-      txpowId: "tx-d",
-      status: "submitted"
+  it("stores a redacted failure message for failed sends only", async () => {
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xa1", tokenId: "0x00", tokenName: "Minima", amount: "9",
+      txpowId: null, transactionId: null, status: "failed", origin: "manual",
+      error: "Insufficient funds.. you only have 1 require:9"
     });
-    const result = walletService.listWalletSendHistory(0);
-    assert.equal(result.length, 1);
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xa2", tokenId: "0x00", tokenName: "Minima", amount: "1",
+      txpowId: null, transactionId: null, status: "failed", origin: "manual",
+      error: 'send rejected password:"hunter2"'
+    });
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xa3", tokenId: "0x00", tokenName: "Minima", amount: "1",
+      txpowId: "0x01", transactionId: null, status: "submitted", origin: "manual", error: "ignored"
+    });
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xa4", tokenId: "0x00", tokenName: "Minima", amount: "1",
+      txpowId: null, transactionId: null, status: "failed", origin: "manual"
+    });
+
+    const errors = db.prepare("SELECT error FROM wallet_send_history ORDER BY to_address").all().map((row) => (row as { error: string | null }).error);
+    assert.equal(errors[0], "Insufficient funds.. you only have 1 require:9");
+    assert.doesNotMatch(String(errors[1]), /hunter2/);
+    assert.deepEqual(errors.slice(2), [null, null]);
+    walletService.clearWalletSendHistoryForDebug();
+  });
+
+  it("stores the wallet fingerprint, origin, and transaction ID with each send", async () => {
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xeee", tokenId: "0x00", tokenName: "Minima", amount: "1",
+      txpowId: "0x01", transactionId: "0x02", status: "submitted", origin: "automation"
+    });
+    getWalletFingerprintMock.mockRejectedValueOnce(new Error("Minima RPC error: HTTP 500"));
+    await walletService.recordWalletSendHistory({
+      toAddress: "0xfff", tokenId: "0x00", tokenName: "Minima", amount: "1",
+      txpowId: null, transactionId: null, status: "failed", origin: "manual"
+    });
+
+    const rows = db.prepare(
+      "SELECT to_address, wallet_fingerprint, origin, transaction_id FROM wallet_send_history ORDER BY to_address"
+    ).all();
+    assert.deepEqual(rows, [
+      { to_address: "0xeee", wallet_fingerprint: "fingerprint-a", origin: "automation", transaction_id: "0x02" },
+      { to_address: "0xfff", wallet_fingerprint: null, origin: "manual", transaction_id: null }
+    ]);
   });
 });

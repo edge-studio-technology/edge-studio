@@ -260,7 +260,7 @@ The Minima page reads the latest operation on load and shows its phase, elapsed 
 
 The browser schedules resync and presents the backend's outcome; it no longer interprets Minima completion text or restarts the node after resync. A lost POST response or HTTP 5xx prompts a progress check without claiming failure. Progress-read failures preserve the previous snapshot/events and offer retry; unknown progress or an active reservation disables conflicting controls. Backup/restore confirmations also disable if resync begins while their dialog is open. Unavailable metrics are labeled as last observed, and resync phase takes precedence over generic restart feedback.
 
-Implementation and final Pi/disposable-node/browser verification (steps 1–5) are complete. See [the plan](docs/plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md), [QA results](docs/qa/536-resync-end-to-end.md) and [ADR 0033](docs/adr/0033-observe-resync-after-client-timeout.md).
+Implementation and final Pi/disposable-node/browser verification (steps 1–5) are complete. See [the plan](docs/plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md), [QA results](docs/qa/536-resync-end-to-end.md) and [ADR 0034](docs/adr/0034-observe-resync-after-client-timeout.md).
 
 
 Restarting the Minima node from the UI shuts it down gracefully first: the backend sends `quit compact:true` over RPC and waits (up to 5 minutes — the node can take a while to actually stop even after reporting shutdown complete) for the container to actually exit before starting it back up, instead of immediately force-stopping it. If the node still hasn't stopped after that, it falls back to a forceful container restart so the action still always completes.
@@ -274,7 +274,7 @@ The Wallet page exposes allowlisted wallet/account actions through the backend:
 - global balance via Minima `balance` (`GET /api/wallet`)
 - labeled accounts mapped to the node's 64-address pool (`GET/POST /api/wallet/accounts`)
 - per-account holdings via Minima `coins relevant:true`
-- send history in SQLite (`GET /api/wallet/history`)
+- wallet history (received, sent, and self-transfers) synced from Minima `history` into SQLite (`GET /api/wallet/history`)
 - payment submission via Minima `send` (`POST /api/wallet/send-payment`)
 - seed phrase import via Minima `restore` (`POST /api/wallet/import`)
 
@@ -800,6 +800,7 @@ Wallet APIs:
 ```http
 GET /api/wallet
 GET /api/wallet/history
+POST /api/wallet/history/clear-previous
 POST /api/wallet/send-payment
 GET /api/wallet/payment-status/:txpowid
 POST /api/wallet/import
@@ -808,7 +809,11 @@ POST /api/wallet/receive-address
 
 `GET /api/wallet` reports balances for the node's single wallet. The address book stores recipient contacts; it does not create labeled wallet accounts.
 
-`GET /api/wallet/history?limit=N` returns recent send activity recorded in SQLite when payments are submitted.
+`GET /api/wallet/history?page&pageSize&status&direction&q&from&to` returns wallet history newest first as a paginated list (`items`, `page`, `pageSize`, `total`, `totalPages`) plus `previousWalletItems`, the number of rows from a wallet the node no longer uses. `pageSize` defaults to 25. `status` is `pending`, `confirmed`, or `failed`; `direction` is `in`, `out`, or `self`; `from` (inclusive) and `to` (exclusive) are ISO date-times with a time zone; `q` matches the counterparty address, a contact name, the token, or a TxPoW or transaction ID. Invalid values return `400`. Each item has `direction`, `status`, an unsigned decimal `amount`, token fields, `counterparty` and its address-book `counterpartyLabel`, `time` (TxPoW time, or send time for sends not seen on chain), `txpowId`, `transactionId`, `block`, `confirmations` (counted from the current tip), `confirmedAt` (block time, or the TxPoW time when the node no longer has the block), `origin` (`manual`, `automation`, or null for payments the app did not send), `error` (Minima's message for a failed send, redacted; null otherwise or for sends recorded before it was stored), and `isPreviousWallet`.
+
+The backend copies new relevant TxPoWs from Minima's `history` into SQLite on every Minima health poll and before a history read when the last sync is more than 5 seconds old, then checks up to 20 unconfirmed rows per poll with `txpow onchain:`. Payments sent from Edge Studio are listed as pending at once and replaced by their chain row once synced. Rows carry a fingerprint of the wallet's default addresses; after a wallet replacement, earlier rows stay listed and are marked as from a previous wallet, and a TxPoW both wallets took part in is listed once per wallet. If Minima is unreachable, stored rows are still returned, without confirmation counts or previous-wallet marking. History is never pruned automatically; see `docs/adr/0033-persist-synced-wallet-history.md`.
+
+`POST /api/wallet/history/clear-previous` deletes only previous-wallet rows and returns `{ "deleted": number }`. It is admin-only, rate-limited, and requires `{ "currentPassword": string }`; a wrong credential returns `401` with `errorCode: "invalid_credential"`. It returns `409` while a wallet replacement is running and `502` if the current wallet cannot be read.
 
 Address-book contacts are stored in SQLite and exposed through `GET`/`POST /api/wallet/address-book` and `PATCH`/`DELETE /api/wallet/address-book/:id`. Each returned entry includes `isLocalDevice`, a boolean identifying the app's local-wallet contact, and `isLocalDevicePending`, indicating that replacement verification is required; existing and manually created contacts default to `false`. The app-owned contact is separate from manual contacts and may share their destination. Manual copies retain their IDs, fields, and edit/delete controls; exact-address duplicates between manual contacts remain disallowed.
 

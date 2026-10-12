@@ -1,4 +1,4 @@
-# 0033: Observe Resync After Client Timeout
+# 0034: Observe Resync After Client Timeout
 
 **Status:** Accepted
 **Date:** 2026-10-09
