@@ -251,7 +251,7 @@ describe("StandardDeviceSetupGuide", () => {
     const actionButton = screen.getByRole("button", { name: "Create basic workflow for this device" });
     await userEvent.click(actionButton);
     expect(onAction).toHaveBeenCalledWith(
-      expect.objectContaining({ key: "create-readable-preview-workflow" }),
+      expect.objectContaining({ key: "create-basic-workflow" }),
     );
   });
 
@@ -261,7 +261,7 @@ describe("StandardDeviceSetupGuide", () => {
     render(
       <StandardDeviceSetupGuide
         source={item}
-        createdWorkflowIds={{ "create-readable-preview-workflow": "wf-1" }}
+        createdWorkflowIds={{ "create-basic-workflow": "wf-1" }}
         onGoToWorkflow={onGoToWorkflow}
       />,
       { wrapper: ToastProvider },
@@ -279,7 +279,7 @@ describe("StandardDeviceSetupGuide", () => {
       <StandardDeviceSetupGuide
         source={item}
         onAction={vi.fn()}
-        runningActionKey="create-readable-preview-workflow"
+        runningActionKey="create-basic-workflow"
       />,
       { wrapper: ToastProvider },
     );

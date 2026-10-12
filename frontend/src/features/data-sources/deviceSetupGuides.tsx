@@ -412,23 +412,45 @@ function guide(
   intro: string,
   sections: GuideSection[],
   docPath?: string,
-  actions?: DeviceGuideAction[],
+  actions: DeviceGuideAction[] = [basicWorkflowAction()],
 ): DeviceSetupGuide {
   return { title, intro, sections, docPath, actions };
 }
 
-function readableSourcePreviewAction(): DeviceGuideAction {
+function basicWorkflowAction(): DeviceGuideAction {
   return {
-    key: "create-readable-preview-workflow",
+    key: "create-basic-workflow",
     label: "Create basic workflow for this device",
     description:
-      "Adds a disabled manual workflow that reads this device and writes the latest JSON to the Workflow Inbox.",
+      "Adds a disabled starter workflow for this device. Review it before enabling or running it.",
     kind: "create_workflow",
-    workflow: readableSourcePreviewWorkflow,
+    workflow: basicWorkflow,
   };
 }
 
-function readableSourcePreviewWorkflow(source: DataSource): DeviceGuideWorkflowInput {
+function basicWorkflow(source: DataSource): DeviceGuideWorkflowInput {
+  if (source.type === "gpio-input" || source.type === "webhook" || source.type === "mqtt") {
+    const startType = source.type === "gpio-input" ? "gpio_event_start" : source.type === "webhook" ? "webhook_event_start" : "mqtt_event_start";
+    return { name: `${source.name} event preview`, enabled: false, blocks: [
+      { type: startType, config: { sourceId: source.id }, clientId: "start" },
+      { type: "record_trigger_event", config: {}, clientId: "record" },
+      { type: "show_preview", config: { title: `${source.name} latest event`, previewFormat: "json", contentMode: "trigger_payload" }, clientId: "preview" },
+    ] };
+  }
+  if (source.type === "pi-camera") {
+    return { name: `${source.name} capture preview`, enabled: false, blocks: [
+      { type: "manual_start", config: {}, clientId: "start" },
+      { type: "capture_camera", config: { sourceId: source.id }, clientId: "capture" },
+      { type: "show_preview", config: { title: `${source.name} latest capture`, previewFormat: "json", contentMode: "latest_data" }, clientId: "preview" },
+    ] };
+  }
+  if (source.type === "gpio-output" || source.type === "http-output" || source.type === "mqtt-output") {
+    const config = source.type === "gpio-output" ? { targetId: source.id, action: "pulse" as const, durationMs: 1000 } : { targetId: source.id, action: source.type === "http-output" ? "send_request" as const : "publish" as const, bodyMode: "custom" as const, bodyTemplateText: '{"event":"test"}' };
+    return { name: `${source.name} output draft`, enabled: false, blocks: [
+      { type: "manual_start", config: {}, clientId: "start" },
+      { type: "control_output", config, clientId: "output" },
+    ] };
+  }
   return {
     name: `${source.name} preview`,
     enabled: false,
@@ -513,7 +535,6 @@ function bmeSensorGuide(source: DataSource) {
       },
     ],
     "docs/guides/bme280-sensor.md",
-    [readableSourcePreviewAction()],
   );
 }
 
@@ -560,7 +581,6 @@ function deviceSystemDataGuide(source: DataSource) {
       },
     ],
     undefined,
-    [readableSourcePreviewAction()],
   );
 }
 
@@ -801,7 +821,6 @@ function httpJsonSourceGuide(source: DataSource) {
       },
     ],
     undefined,
-    [readableSourcePreviewAction()],
   );
 }
 
