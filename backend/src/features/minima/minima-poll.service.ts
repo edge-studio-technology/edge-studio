@@ -8,8 +8,8 @@ import {
   recordPollerCheck,
   recordStallDetected
 } from "./minima-monitoring.js";
-import { parseMegammrResyncMessage } from "./minima.parse.js";
 import { getMinimaNodeStatus, resyncMegammr } from "./minima.service.js";
+import { MinimaResyncConflictError } from "./minima.errors.js";
 
 let poller: NodeJS.Timeout | null = null;
 let pollRunning = false;
@@ -33,7 +33,7 @@ export async function pollMinimaHealth() {
       await refreshPendingConfirmations();
     }
 
-    if (!detectStall(status)) return;
+    if (status.resync?.busy || !detectStall(status)) return;
 
     recordStallDetected();
     const blockAge = status.sync.blockAgeSeconds ?? "unknown";
@@ -46,12 +46,11 @@ export async function pollMinimaHealth() {
     }
 
     try {
-      const result = await resyncMegammr();
-      const parsed = parseMegammrResyncMessage(result.body);
-      const message = parsed.message || (result.ok ? "resync completed" : "resync failed");
-      recordAutoResync(message);
-      console.log(`Minima health poller: auto-resync completed (${message})`);
+      const result = await resyncMegammr("auto");
+      recordAutoResync(result.message);
+      console.log("Minima health poller: auto-resync starting");
     } catch (error) {
+      if (error instanceof MinimaResyncConflictError) return;
       const message = error instanceof Error ? error.message : "resync failed";
       recordAutoResync(message);
       console.error(`Minima health poller: auto-resync failed (${message})`);

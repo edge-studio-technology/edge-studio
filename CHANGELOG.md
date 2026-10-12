@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- The Minima page shows persisted resync progress and timestamped events that remain available after navigation or reload.
 - Developers can configure local Pi SSH access in `.env.local` and use the `pi-ssh` agent skill for requested Pi work.
 - Public setup status includes the local admin credential type and disables response caching.
 - Login and current-credential confirmations use masked six-digit PIN or password inputs based on the stored credential type.
@@ -24,6 +25,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Resync progress is collapsible, opens for each active resync, and shows events in a bounded scrolling list.
+- Minima resync starts asynchronously with HTTP 202 and exposes the latest persisted operation through an admin-only progress endpoint.
+- Duplicate resync and conflicting node restart, backup, and restore requests return HTTP 409 while resync is reserved.
+- Resync recovery observes natural node restarts, preserves uncertain outcomes and warnings, and resumes monitoring after a backend restart without replaying resync.
+- Resync start and result audit events identify the caller, and automatic-resync completion is recorded separately from its initiation cooldown.
+- Browser resync feedback follows backend outcomes, retains recovery warnings, and offers retry for unavailable progress reads.
+- Conflicting backup, restore, resync, and restart controls remain disabled while resync holds the node reservation.
 - New and confirmed PINs in setup and Settings now use persistent-password autofill semantics.
 - User-created contacts remain independent and may share the local contact's address.
 - App-controlled wallet replacement verifies and updates the local contact, preserves its details and workflow references, and blocks payments through it until verification completes.

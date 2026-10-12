@@ -175,7 +175,9 @@ function BackupCell({
 export function MinimaBackupPanel({
   bare = false,
   minimaState,
+  operationBusy = false,
 }: {
+  operationBusy?: boolean;
   bare?: boolean;
   minimaState: MinimaNodeState | null;
 }) {
@@ -184,7 +186,7 @@ export function MinimaBackupPanel({
   const credentialType = user?.credentialType ?? null;
   const credentialLabel = adminCredentialLabel(credentialType);
   // Same "confirmed running" gate used by MinimaSettingsPanel/WalletSettingsPanel.
-  const actionsBlocked = minimaState !== "running";
+  const actionsBlocked = operationBusy || minimaState !== "running";
 
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -401,6 +403,7 @@ export function MinimaBackupPanel({
   }
 
   async function confirmUploadRestore() {
+    if (actionsBlocked) return;
     if (!uploadFile || uploadBusy || !isAdminCredentialEntryReady(credentialType, uploadCurrentPassword)) return;
     setUploadBusy(true);
     setUploadError(null);
@@ -431,6 +434,7 @@ export function MinimaBackupPanel({
   }
 
   async function confirmRowRestore() {
+    if (actionsBlocked) return;
     if (!rowRestoreTarget || rowRestoreBusy || !isAdminCredentialEntryReady(credentialType, rowRestorePassword)) return;
     setRowRestoreBusy(true);
     setRowRestoreError(null);
@@ -735,7 +739,7 @@ export function MinimaBackupPanel({
               </Button>
               <Button
                 onClick={() => void confirmUploadRestore()}
-                disabled={uploadBusy || !uploadFile || !isAdminCredentialEntryReady(credentialType, uploadCurrentPassword)}
+                disabled={actionsBlocked || uploadBusy || !uploadFile || !isAdminCredentialEntryReady(credentialType, uploadCurrentPassword)}
               >
                 {uploadBusy ? "Restoring…" : "Restore"}
               </Button>
@@ -797,7 +801,7 @@ export function MinimaBackupPanel({
               </Button>
               <Button
                 onClick={() => void confirmRowRestore()}
-                disabled={rowRestoreBusy || !isAdminCredentialEntryReady(credentialType, rowRestorePassword)}
+                disabled={actionsBlocked || rowRestoreBusy || !isAdminCredentialEntryReady(credentialType, rowRestorePassword)}
               >
                 {rowRestoreBusy ? "Restoring…" : "Confirm restore"}
               </Button>

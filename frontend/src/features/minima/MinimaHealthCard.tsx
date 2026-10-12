@@ -1,8 +1,10 @@
 import { Terminal } from "lucide-react";
-import type { MinimaNodeStatus } from "../../app/types";
+import type { MinimaNodeStatus, MinimaResyncSummary } from "../../app/types";
 import { JsonPreview } from "../../components/patterns/JsonPreview";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { ErrorText } from "../../components/ui/ErrorText";
+import { Pill } from "../../components/ui/Pill";
+import { resyncPhaseLabel, resyncPhaseTone } from "./minimaResync";
 import { formatBlockAge } from "./minimaFormat";
 import { shouldShowMinimaRpcError } from "./minimaStatusDisplay";
 import { MinimaStatCell, MinimaStatGrid } from "./MinimaStatCell";
@@ -12,10 +14,12 @@ export function MinimaHealthCard({
   status,
   loading,
   refreshing,
+  resync,
 }: {
   status: MinimaNodeStatus | null;
   loading: boolean;
   refreshing: boolean;
+  resync?: MinimaResyncSummary | null;
 }) {
   const effectiveStatus = refreshing ? null : status;
   const effectiveLoading = loading || refreshing;
@@ -52,6 +56,7 @@ export function MinimaHealthCard({
 
   const footer = (
     <>
+      {status && !status.rpc.ok ? <p className="type-meta text-text-tertiary m-0">RPC unavailable · Metrics last observed {formatLocalTime(status.metricsObservedAt ?? status.checkedAt)}.</p> : null}
       {shouldShowMinimaRpcError(effectiveStatus) && (
         <ErrorText className="mb-2">{effectiveStatus?.rpc.error}</ErrorText>
       )}
@@ -67,8 +72,8 @@ export function MinimaHealthCard({
   );
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      {monitoring?.stallDetected && (
+    <div className="flex h-full min-w-0 flex-col gap-4">
+      {!resync?.busy && monitoring?.stallDetected && (
         <p className="mb-0 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           Chain stall detected — last block is older than {monitoring.stallThresholdSeconds}s.
           {monitoring.autoResyncEnabled
@@ -80,7 +85,7 @@ export function MinimaHealthCard({
       )}
 
       <div className="min-h-0 flex-1">
-        <MinimaStatGrid title="Node health" footer={footer}>
+        <MinimaStatGrid title="Node health" badge={resync?.busy ? <Pill className="!h-auto min-h-6 max-w-full" tone={resyncPhaseTone(resync.phase)} indicator>{resyncPhaseLabel[resync.phase]}</Pill> : null} footer={footer}>
           <MinimaStatCell label="Node memory" value={memoryLabel} />
           <MinimaStatCell label="Active peers" value={peerLabel} />
           <MinimaStatCell label="Last block" value={blockAgeLabel} />

@@ -38,7 +38,11 @@ Current Controls:
 - **Disabled by default** (`MINIMA_AUTO_RESYNC=false`).
 - Cooldown between auto-resync attempts (`MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES`, default 30).
 - Poller logs stall detection and auto-resync actions; `GET /api/minima/status` exposes `monitoring.stallDetected`, `lastAutoResyncAt`, and related fields.
-- Manual resync remains available in the UI; auto-resync reuses the same allowlisted `resyncMegammr()` path.
+- Auto-resync and console resync use the same asynchronous, allowlisted `resyncMegammr()` path as the manual API.
+- Initiation starts the cooldown; an operation conflict does not consume cooldown or count as resync failure. Completion is tracked separately from initiation.
+- Resync reservation persists across backend reload and is not cleared by healthy status reads or the legacy display-marker expiry. Restart/backup/restore calls check it; pending calls also exclude resync even if their display marker clears.
+- Admin-only progress reads expose at most 100 meaningful events and bounded, redacted diagnostics. Internal host, trigger and dispatch metadata are excluded; ordinary status only includes a compact operation summary.
+- Backend recovery observes a container cycle and usable chain RPC; lost completion responses remain unconfirmed even when the node recovers. Deadline expiry retains ownership and never sends quit/restart/resync. Confirmed completion permits one idempotent start of an exited container. Persisted observation resumes at startup without replay; lifecycle audits record initiation/results and caller identity. The browser now follows persisted outcomes/events, keeps conflicting controls disabled during reservations, and never restarts the node after resync. Final disposable-node end-to-end QA remains step 5. See [ADR 0034](../adr/0034-observe-resync-after-client-timeout.md).
 
 Status: Documented prototype tradeoff. Review before enabling on production nodes.
 

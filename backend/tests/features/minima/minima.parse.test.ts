@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "vitest";
 import {
   deriveSyncStatus,
@@ -71,6 +72,20 @@ describe("parsePeersListResponse", () => {
 });
 
 describe("parseMegammrResyncMessage", () => {
+  const captured = JSON.parse(readFileSync(new URL("../../fixtures/minima/resync-lifecycle.json", import.meta.url), "utf8"));
+
+  it("parses the captured completion envelope, including the legacy spelling", () => {
+    assert.deepEqual(parseMegammrResyncMessage(captured.completed), {
+      ok: true, message: "MegaMMR sync fininshed.. please restart", needsRestart: true, finished: true
+    });
+  });
+
+  it("does not classify the captured unreachable-host rejection as completion", () => {
+    assert.deepEqual(parseMegammrResyncMessage(captured.unreachableHost), {
+      ok: false, message: "", needsRestart: false, finished: false
+    });
+  });
+
   it("detects finished resync that needs restart", () => {
     const parsed = parseMegammrResyncMessage({
       command: "megammrsync",

@@ -1,0 +1,23 @@
+{"at": 1791549986.0972826, "kind": "proxy-ready"}
+{"at": 1791550061.5833373, "kind": "rpc-command", "command": "resync"}
+{"at": 1791550063.597085, "kind": "resync-response", "status": false, "message": null, "error": "Could not connect to Archive host! @ 127.0.0.1:1"}
+{"at": 1791550109.419911, "kind": "rpc-command", "command": "resync"}
+{"at": 1791550109.430816, "kind": "archive-connection"}
+{"at": 1791550109.8947966, "kind": "archive-connection"}
+{"at": 1791550226.5074978, "kind": "rpc-command", "command": "backup"}
+{"at": 1791550258.887437, "kind": "rpc-command", "command": "resync"}
+{"at": 1791550258.8939795, "kind": "archive-connection"}
+{"at": 1791550265.5492756, "kind": "archive-connection"}
+{"at": 1791550409.2715456, "kind": "resync-response", "status": true, "message": "MegaMMR sync fininshed.. please restart", "error": null}
+{"at": 1791550475.436869, "kind": "rpc-command", "command": "resync"}
+{"at": 1791550475.4490333, "kind": "archive-connection"}
+{"at": 1791550478.306822, "kind": "archive-connection"}
+{"at": 1791550621.9437501, "kind": "resync-response", "status": true, "message": "MegaMMR sync fininshed.. please restart", "error": null}
+{"at": 1791550715.0074155, "kind": "rpc-command", "command": "resync"}
+{"at": 1791550715.022915, "kind": "archive-connection"}
+{"at": 1791550720.806813, "kind": "archive-connection"}
+{"at": 1791550740.7836459, "kind": "resync-response", "status": true, "message": "MegaMMR sync fininshed.. please restart", "error": null}
+{"at": 1791550850.8886244, "kind": "docker-mutation", "action": "start"}
+{"at": 1791550988.4551504, "kind": "rpc-command", "command": "resync"}
+{"at": 1791550988.5212529, "kind": "resync-response", "status": false, "message": null, "error": "Could not connect to Archive host! @ 127.0.0.1:1"}
+{"at": 1791551011.7538748, "kind": "rpc-command", "command": "quit"}

@@ -47,7 +47,24 @@ export type FileItem = { name: string; type: "file" | "directory" | "other"; siz
 export type FilesResponse = { path: string; items: FileItem[] };
 export type MinimaNodeState = "running" | "stopped" | "error" | "restarting";
 export type MinimaSyncStatus = "active" | "stale" | "syncing" | "unavailable";
+export type MinimaResyncPhase = "starting" | "in_progress" | "recovering" | "completed" | "failed" | "unconfirmed";
+export type MinimaResyncOperation = {
+  id: string;
+  phase: MinimaResyncPhase;
+  startedAt: string;
+  updatedAt: string;
+  finishedAt: string | null;
+  outcome: "completed" | "failed" | "unconfirmed" | null;
+  recovered: boolean;
+  busy: boolean;
+  message: string;
+  events: { at: string; phase: MinimaResyncPhase; message: string; errorDetails?: unknown }[];
+  errorDetails: unknown | null;
+};
+export type MinimaResyncSummary = Pick<MinimaResyncOperation, "id" | "phase" | "startedAt" | "updatedAt" | "finishedAt" | "outcome" | "recovered" | "busy">;
 export type MinimaNodeStatus = {
+  resync?: MinimaResyncSummary | null;
+  metricsObservedAt?: string;
   checkedAt: string;
   state: MinimaNodeState;
   container: {
@@ -141,7 +158,7 @@ export type MinimaBackupCreateResult = {
   createdAt: string | null;
 };
 export type MinimaBackupRestoreResult = { ok: boolean; status: number; fileName: string };
-export type MinimaConsoleRunResult = MinimaCommandResult | MinimaBackupCreateResult | MinimaBackupRestoreResult;
+export type MinimaConsoleRunResult = MinimaResyncOperation | MinimaCommandResult | MinimaBackupCreateResult | MinimaBackupRestoreResult;
 export type MinimaAutoBackupResponse = { autoBackupEnabled: boolean };
 export type MinimaBackupPasswordResponse = { hasPassword: boolean };
 export type IntegritasConfig = {

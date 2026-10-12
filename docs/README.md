@@ -121,6 +121,7 @@ of carrying the full rationale inline.
 | [adr/0031-public-credential-type-and-legacy-correction.md](./adr/0031-public-credential-type-and-legacy-correction.md) | Public setup credential hint and hash-conditional metadata correction after successful authentication |
 | [adr/0032-cache-update-changelog-in-update-agent.md](./adr/0032-cache-update-changelog-in-update-agent.md) | Update page changelog cached by update-agent in its state dir, synced on manifest checks; browser no longer fetches GitHub |
 | [adr/0033-persist-synced-wallet-history.md](./adr/0033-persist-synced-wallet-history.md) | Wallet history synced from Minima `history` into SQLite, marked by wallet fingerprint, cleared only with admin re-auth, confirmation time from the block |
+| [adr/0034-observe-resync-after-client-timeout.md](./adr/0034-observe-resync-after-client-timeout.md) | Resync transport uncertainty, automatic-restart observation, separate budgets, and recovery evidence |
 
 ---
 
@@ -129,6 +130,7 @@ of carrying the full rationale inline.
 | Doc                        | Purpose                                      |
 | -------------------------- | -------------------------------------------- |
 | [qa/gaps.md](./qa/gaps.md) | Open QA, security, and test gaps (all areas) |
+| [qa/536-resync-lifecycle.md](./qa/536-resync-lifecycle.md) | Disposable-node resync envelopes, timeout continuation, and natural recovery |
 
 ---
 

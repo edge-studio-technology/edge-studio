@@ -42,25 +42,33 @@ vi.mock("../../../src/features/status/docker.control.js", () => ({
 }));
 
 vi.mock("../../../src/features/status/docker.service.js", () => ({
+  inspectContainer: vi.fn().mockResolvedValue({ RestartCount: 0, State: { StartedAt: "2026-01-01T00:00:00.000Z", Running: true, Status: "running" } }),
   getComposeServiceContainer: getComposeServiceContainerMock
 }));
 
 let teardown: () => void;
+let db: import("better-sqlite3").Database;
+let resync: typeof import("../../../src/features/minima/minima-resync.service.js");
 let minimaService: typeof import("../../../src/features/minima/minima.service.js");
 let minimaMonitoring: typeof import("../../../src/features/minima/minima-monitoring.js");
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
   teardown = testDb.teardown;
+  db = testDb.db;
+  resync = await import("../../../src/features/minima/minima-resync.service.js");
   minimaMonitoring = await import("../../../src/features/minima/minima-monitoring.js");
   minimaService = await import("../../../src/features/minima/minima.service.js");
 });
 
 afterAll(() => {
+  resync.stopMinimaResyncObserver();
   teardown();
 });
 
 beforeEach(() => {
+  db.prepare("DELETE FROM settings WHERE key = 'minima_resync_operation'").run();
+  resync.stopMinimaResyncObserver();
   minimaMonitoring.endMinimaOperation();
   fetchMinimaStatusMock.mockReset();
   runMinimaPathCommandMock.mockReset();
@@ -214,15 +222,36 @@ describe("getWalletBalance", () => {
 });
 
 describe("resyncMegammr", () => {
-  it("builds the megammrsync command from the configured host with a 30s timeout", async () => {
-    minimaService.saveMinimaConfig({ megammrHost: "resync.host:9001" });
-    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, source: "s", command: "megammrsync", body: {} });
-    await minimaService.resyncMegammr();
-
-    const [command, timeoutMs] = runMinimaPathCommandMock.mock.calls.at(-1)!;
-    assert.equal(command, "megammrsync action:resync host:resync.host:9001");
-    assert.equal(timeoutMs, 30000);
+  it("retains ownership after a dispatched resync times out (#536 regression)", async () => {
+    runMinimaPathCommandMock.mockRejectedValue(new DOMException("The operation was aborted", "AbortError"));
+    const accepted = await minimaService.resyncMegammr();
+    await vi.waitFor(() => assert.equal(resync.getMinimaResyncOperation()?.phase, "recovering"));
+    assert.equal(resync.getMinimaResyncOperation()?.id, accepted.id);
+    assert.equal(resync.getMinimaResyncOperation()?.busy, true);
   });
+
+  it("builds the configured command with the measured five-minute response budget", async () => {
+    minimaService.saveMinimaConfig({ megammrHost: "resync.host:9001" });
+    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, command: "megammrsync", body: { status: true } });
+    const result = await minimaService.resyncMegammr();
+    await vi.waitFor(() => assert.equal(runMinimaPathCommandMock.mock.calls.length, 1));
+    assert.equal(result.phase, "starting");
+    assert.deepEqual(runMinimaPathCommandMock.mock.calls[0], ["megammrsync action:resync host:resync.host:9001", 300000]);
+  });
+
+  it("does not end resync on a healthy status read, and exposes a compact summary", async () => {
+    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, command: "megammrsync", body: { status: true } });
+    const accepted = await minimaService.resyncMegammr();
+    fetchMinimaStatusMock.mockResolvedValue(rpcOk({ status: true, response: { chain: { block: 10, timemilli: Date.now() }, network: { connected: 1 } } }));
+    const status = await minimaService.getMinimaNodeStatus();
+    assert.equal(status.state, "running");
+    assert.equal(status.resync?.id, accepted.id);
+    assert.equal(status.resync?.busy, true);
+    assert.equal("events" in status.resync!, false);
+    await assert.rejects(minimaService.restartMinimaContainer(), /already active/);
+    assert.equal(getContainerRestartBaselineMock.mock.calls.length, 0);
+  });
+
 });
 
 describe("getMinimaPeers", () => {
@@ -271,6 +300,18 @@ describe("addMinimaPeers", () => {
 });
 
 describe("restartMinimaContainer", () => {
+  it("refuses resync while restart setup is pending even after a healthy read clears its marker", async () => {
+    let finish!: (value: { Id: string }) => void;
+    getComposeServiceContainerMock.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const pending = minimaService.restartMinimaContainer();
+    fetchMinimaStatusMock.mockResolvedValue(rpcOk({ status: true, response: { chain: { block: 10, timemilli: Date.now() }, network: { connected: 1 } } }));
+    await minimaService.getMinimaNodeStatus();
+    await assert.rejects(minimaService.resyncMegammr(), /already active/);
+    finish({ Id: "abc123fullcontainerid" });
+    await pending;
+    await vi.waitFor(() => assert.equal(restartComposeServiceMock.mock.calls.length, 1));
+  });
+
   it("sends a compact quit and force-restarts only after the graceful wait times out", async () => {
     runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, source: "s", command: "quit", body: {} });
     restartComposeServiceMock.mockResolvedValue({ ok: true, state: "restarting", service: "minima", containerId: "abc123" });
