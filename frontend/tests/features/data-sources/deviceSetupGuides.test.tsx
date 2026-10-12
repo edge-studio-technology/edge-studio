@@ -125,6 +125,28 @@ describe("getDeviceSetupGuide / hasDeviceSetupGuide", () => {
       expect(hasDeviceSetupGuide(source({ type, config: {} }))).toBe(true);
     }
   });
+
+  it("gives every guide variant a Saved settings topic", () => {
+    const items = [
+      source({ type: "mqtt", config: { profile: "esp32-mqtt-board" } }),
+      source({ type: "bme-sensor", config: {} }),
+      source({ type: "device-system-data", config: {} }),
+      source({ type: "gpio-input", config: {} }),
+      source({ type: "gpio-input", config: { profile: "gpio-button" } }),
+      source({ type: "gpio-input", config: { profile: "pir-motion" } }),
+      source({ type: "gpio-output", config: {} }),
+      source({ type: "pi-camera", config: {} }),
+      source({ type: "json-api", config: {} }),
+      source({ type: "webhook", config: {} }),
+      source({ type: "mqtt", config: {} }),
+      source({ type: "http-output", config: {} }),
+      source({ type: "mqtt-output", config: {} }),
+    ];
+
+    for (const item of items) {
+      expect(getDeviceSetupGuide(item)?.sections.some((section) => section.title === "Saved settings")).toBe(true);
+    }
+  });
 });
 
 describe("StandardDeviceSetupGuide", () => {
@@ -149,7 +171,9 @@ describe("StandardDeviceSetupGuide", () => {
     });
     render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
 
+    expect(screen.getByText("How to use this guide")).toBeInTheDocument();
     expect(screen.getByText("Requirements")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
     expect(screen.getByText("Sensor")).toBeInTheDocument();
     expect(screen.getByText("bme280")).toBeInTheDocument();
 
@@ -175,12 +199,12 @@ describe("StandardDeviceSetupGuide", () => {
     expect(screen.getByRole("button", { name: "Overview" })).toHaveAttribute("aria-current", "page");
   });
 
-  it("uses consistent workflow and verification topics while keeping overview fields out of the rail", async () => {
+  it("uses consistent workflow, verification, and saved-settings topics", async () => {
     const item = source({ type: "http-output", config: { url: "https://example.test/output" } });
     render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
 
     expect(screen.getByRole("button", { name: "Overview" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Endpoint" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Saved settings" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Workflow use" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Verify" }));
     expect(screen.getByText("Use Test output in Devices and confirm the endpoint receives the expected JSON request.")).toBeInTheDocument();

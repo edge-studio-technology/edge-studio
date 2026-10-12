@@ -9,7 +9,6 @@ import type { DataSource } from "./dataSourceTypes";
 
 type GuideSection = {
   title: string;
-  overview?: boolean;
   body?: string;
   items?: string[];
   table?: Array<[string, string]>;
@@ -57,7 +56,15 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
       source,
       "ESP32 MQTT Board Setup Guide",
       "Flash starter firmware, connect the board to Wi-Fi, publish JSON over MQTT, then use an MQTT event workflow.",
-      [],
+      [
+        {
+          title: "Saved settings",
+          table: [
+            ["Broker", source.config.brokerUrl ?? ""],
+            ["Topic", source.config.topic ?? "sensors/esp32/data"],
+          ],
+        },
+      ],
       "docs/guides/esp32-mqtt-sensors.md",
     );
   if (source.type === "gpio-input" && source.config.profile === "pir-motion")
@@ -126,11 +133,9 @@ export function DeviceGuideWorkspace({
   overview?: ReactNode;
 }) {
   const [activeTopicId, setActiveTopicId] = useState<GuideTopic["id"]>("overview");
-  const overviewSections = guide.sections.filter((section) => section.overview);
   const topics: GuideTopic[] = [
     { id: "overview", title: "Overview" },
     ...guide.sections
-      .filter((section) => !section.overview)
       .map((section, index) => ({ id: `section:${index}` as const, title: section.title, section })),
     ...(guide.actions?.length ? [{ id: "actions" as const, title: "Guide actions" }] : []),
     ...(guide.docPath ? [{ id: "documentation" as const, title: "Documentation" }] : []),
@@ -183,7 +188,7 @@ export function DeviceGuideWorkspace({
         </div>
       </nav>
       <div className="border-stroke-secondary bg-surface-primary min-h-0 min-w-0 overflow-y-auto border-l px-detail-next pb-pad-close pl-6 pt-pad-tight">
-        {activeTopic.id === "overview" && (overview ?? <GuideOverview guide={guide} overviewSections={overviewSections} />)}
+        {activeTopic.id === "overview" && <GuideOverview guide={guide} content={overview} />}
         {"section" in activeTopic && <GuideSectionCard section={activeTopic.section} />}
         {activeTopic.id === "actions" && guide.actions && <GuideActions actions={guide.actions} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} />}
         {activeTopic.id === "documentation" && guide.docPath && <GuideDocumentation docPath={guide.docPath} />}
@@ -192,21 +197,26 @@ export function DeviceGuideWorkspace({
   );
 }
 
-function GuideOverview({ guide, overviewSections }: { guide: DeviceSetupGuide; overviewSections: GuideSection[] }) {
+function GuideOverview({
+  guide,
+  content,
+}: {
+  guide: DeviceSetupGuide;
+  content?: ReactNode;
+}) {
   return (
     <div className="gap-detail-near grid">
       <div>
         <h3 className="type-title text-text-primary m-0">Overview</h3>
         <p className="type-body text-text-secondary mt-detail-tight m-0">{guide.intro}</p>
       </div>
-      {overviewSections.map((section) => (
-        <div key={section.title} className="gap-detail-tight grid">
-          <h4 className="type-body-em text-text-primary m-0">{section.title}</h4>
-          <DetailList>
-            {section.table!.map(([label, value]) => <DetailRow key={label} label={label} value={value} mono />)}
-          </DetailList>
-        </div>
-      ))}
+      <div>
+        <h4 className="type-body-em text-text-primary m-0">How to use this guide</h4>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">
+          Follow the relevant topics in order, then verify the device before using it in a workflow or quick action.
+        </p>
+      </div>
+      {content}
     </div>
   );
 }
@@ -473,7 +483,6 @@ function bmeSensorGuide(source: DataSource) {
         : []),
       {
         title: "Saved settings",
-        overview: true,
         table: [
           ["Sensor", source.config.sensor ?? "bme280"],
           ["I2C bus", String(source.config.bus ?? 1)],
@@ -518,7 +527,6 @@ function deviceSystemDataGuide(source: DataSource) {
       },
       {
         title: "Saved settings",
-        overview: true,
         table: [
           ["Specs", source.config.includeSpecs === false ? "Disabled" : "Enabled"],
           ["Performance", source.config.includePerformance === false ? "Disabled" : "Enabled"],
@@ -596,6 +604,13 @@ function gpioButtonGuide(source: DataSource) {
         table: [
           ["GPIO", `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? 17}`],
           ["Button path", "GPIO -> button -> GND"],
+        ],
+      },
+      {
+        title: "Saved settings",
+        table: [
+          ["GPIO chip", source.config.chip ?? "gpiochip0"],
+          ["BCM pin", String(source.config.pin ?? 17)],
           ["Pull", source.config.pull ?? "up"],
           ["Edge", source.config.edge ?? "falling"],
           ["Active state", source.config.activeState ?? "low"],
@@ -637,6 +652,16 @@ function pirGuide(source: DataSource) {
         ],
       },
       {
+        title: "Saved settings",
+        table: [
+          ["GPIO chip", source.config.chip ?? "gpiochip0"],
+          ["BCM pin", String(source.config.pin ?? 23)],
+          ["Pull", source.config.pull ?? "off"],
+          ["Edge", source.config.edge ?? "rising"],
+          ["Active state", source.config.activeState ?? "high"],
+        ],
+      },
+      {
         title: "Workflow use",
         items: [
           "Use Start on GPIO event with this source.",
@@ -668,8 +693,15 @@ function gpioLedGuide(source: DataSource) {
         schematic: "pi-gpio",
         table: [
           ["GPIO", `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? 18}`],
-          ["Active state", source.config.activeState ?? "high"],
           ["Path", "GPIO -> resistor -> LED anode -> LED cathode -> GND"],
+        ],
+      },
+      {
+        title: "Saved settings",
+        table: [
+          ["GPIO chip", source.config.chip ?? "gpiochip0"],
+          ["BCM pin", String(source.config.pin ?? 18)],
+          ["Active state", source.config.activeState ?? "high"],
         ],
       },
       {
@@ -700,7 +732,6 @@ function piCameraGuide(source: DataSource) {
       },
       {
         title: "Saved settings",
-        overview: true,
         table: [
           ["Mode", source.config.mode ?? "photo"],
           ["Resolution", `${source.config.width ?? 1280}x${source.config.height ?? 720}`],
@@ -727,8 +758,7 @@ function httpJsonSourceGuide(source: DataSource) {
     "Fetch JSON from an HTTP endpoint manually or from workflows.",
     [
       {
-        title: "Endpoint",
-        overview: true,
+        title: "Saved settings",
         table: [
           ["Method", source.config.method ?? "GET"],
           ["URL", source.config.url ?? ""],
@@ -763,8 +793,7 @@ function webhookGuide(source: DataSource) {
     "Receive pushed JSON at a generated URL while an enabled workflow listens to this source.",
     [
       {
-        title: "Endpoint",
-        overview: true,
+        title: "Saved settings",
         table: [
           ["URL", url],
           ["Method", "POST"],
@@ -798,8 +827,7 @@ function mqttSubscriberGuide(source: DataSource) {
     "Subscribe to a broker topic and record incoming JSON messages while an enabled workflow listens.",
     [
       {
-        title: "Topic",
-        overview: true,
+        title: "Saved settings",
         table: [
           ["Broker", source.config.brokerUrl ?? ""],
           ["Topic", source.config.topic ?? ""],
@@ -828,8 +856,7 @@ function httpJsonTargetGuide(source: DataSource) {
     "Send JSON commands to an HTTP endpoint from Workflows Control device blocks.",
     [
       {
-        title: "Endpoint",
-        overview: true,
+        title: "Saved settings",
         table: [
           ["Method", source.config.method ?? "POST"],
           ["URL", source.config.url ?? ""],
@@ -861,8 +888,7 @@ function mqttPublisherGuide(source: DataSource) {
     "Publish JSON commands to a broker topic from Workflows Control device blocks.",
     [
       {
-        title: "Topic",
-        overview: true,
+        title: "Saved settings",
         table: [
           ["Broker", source.config.brokerUrl ?? ""],
           ["Topic", source.config.topic ?? ""],
