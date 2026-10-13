@@ -8,11 +8,14 @@ alwaysApply: false
 Run relevant checks before finishing changes:
 
 ```bash
+npm run lint
 npm run check
 npm --prefix backend run build
 npm --prefix frontend run build
 docker compose config
 ```
+
+`npm run check` runs `npm run lint` first; run `npm run lint` on its own for a fast ESLint pass across `backend`, `frontend`, and `update-agent`.
 
 For container-impacting changes, also run:
 

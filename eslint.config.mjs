@@ -17,6 +17,18 @@ export default tseslint.config(
   {
     files: ["**/*.{ts,tsx}"],
     extends: [tseslint.configs.recommended],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
+    },
+  },
+  {
+    files: ["**/tests/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
   },
   {
     files: ["backend/**", "update-agent/src/**", "update-agent/tests/**", "**/*.config.ts"],

@@ -81,7 +81,6 @@ export function WorkflowWorkspace({
   workflow,
   runs,
   validation,
-  source,
   sources,
   addressBook,
   walletStatus,
@@ -180,7 +179,7 @@ export function WorkflowWorkspace({
             lastError: block.error,
           }))
       : [];
-  const historicalBlockById = new Map(historicalBlocks.map((block) => [block.id, block]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- recomputed each render; see #524 follow-up
   const replayCanvasBlocks = selectedRun && selectedRun.blocks.length > 0
     ? [
         ...persistedCanvasBlocks.filter((block) => {
@@ -226,6 +225,7 @@ export function WorkflowWorkspace({
         }
       : {}),
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- recomputed each render; see #524 follow-up
   const replaySteps =
     mode === "watch" && selectedRun
       ? selectedRun.blocks.filter((block) => {
@@ -326,7 +326,7 @@ export function WorkflowWorkspace({
     setNewLiveRunId(selectedRun.id);
     setSelectedBlockId("");
     setReplayPlaying(true);
-  }, [followLiveRuns, mode, selectedRun?.id]);
+  }, [followLiveRuns, mode, selectedRun?.id]); // eslint-disable-line react-hooks/exhaustive-deps -- keyed on selectedRun.id only
 
   useEffect(() => {
     if (!replayPlaying || mode !== "watch" || replaySteps.length === 0) return;

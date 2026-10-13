@@ -101,6 +101,7 @@ export function WalletHistoryPanel({
   const { showToast } = useToast();
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<WalletHistoryItem | null>(null);
   const [clearPreviousOpen, setClearPreviousOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug clear button is commented out below
   const [debugClearingHistory, setDebugClearingHistory] = useState(false);
   const {
     visibility,
@@ -114,6 +115,7 @@ export function WalletHistoryPanel({
     (column) => visibility[column.id],
   );
   const visibleColumnCount = visibleColumns.length;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug clear button is commented out below
   const isDev = import.meta.env.DEV;
 
   const rangeInvalid = isCustomRangeInvalid(filters);
@@ -135,6 +137,7 @@ export function WalletHistoryPanel({
     setColumnFilters({});
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug clear button is commented out below
   async function handleDebugClearWalletHistory() {
     const confirmed = window.confirm(
       "Clear wallet send history from SQLite? This is a dev-only debug action and cannot be undone.",

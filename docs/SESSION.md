@@ -4,6 +4,13 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- #524 lint CI pipeline on `task/524-lint-ci-pipeline`:
+  - Wrote the plan doc (`f321d3b9`).
+  - Added the shared root ESLint 10 config (`typescript-eslint` recommended, `react-hooks` rules-of-hooks/exhaustive-deps, `eslint-config-prettier`), per-package `lint` scripts with `--max-warnings=0`, and a root `lint` that runs first in `check` (`497e7856`).
+  - Cleared the 299-message baseline. Config now turns `no-explicit-any` off in tests and ignores `_`-prefixed names. Unused code deleted; all 11 `exhaustive-deps` and the parked-code unused vars line-suppressed with reasons.
+  - Updated verification rules ×3, README, CHANGELOG, plan.
+  - Verified with the test RPC URL override: full `npm run check`, the negative lint probe, builds, and `docker compose config` all pass. Cleanup/docs not yet committed.
+
 - Committed #536 final QA docs as `1d588265`. Implemented the requested collapsible resync progress card: collapsed historical/empty state, one auto-open per busy operation, retained open state through completion and operator-controlled collapse during polling. Removed the nested events disclosure; events use a 256px maximum-height scroll area. Passed 3,556 tests/typechecks/coverage/audits, frontend production and Pi ARM64 builds. Deployed only the frontend and reused the visible Linux Chromium window, scrolling to and expanding the actual recorded resync result. Node baseline stayed at RestartCount 4 / StartedAt `2026-10-12T08:34:17.202835728Z` during this deployment. Committed the UI follow-up with its tests and documentation; review/merge remains pending.
 
 - Completed #536 step 5 on `7bdd02e`: built/deployed the branch's frontend/backend on the Pi and updated installed source build contexts, preserving its private testnet node. Real disposable Core 1.1.2.6 QA passed rejection, shutdown disconnect, 150-second RPC/161-second recovery, console disconnect with backend restart/no replay, exactly one stopped-after-completion start, unavailable-node preflight, graceful restart, automatic initiation/results/cooldown/startup restoration and conflict/access checks. Browser reload/second tab/closure, warning persistence, progress failure/retry, mounted Wallet recovery, installed Dashboard/Wallet/local contact and 1280/768/375px layouts passed. Full check passed 3,554 tests, all typechecks/coverage thresholds and clean dependency audits with the test-only RPC URL override; production/container builds and Compose validation passed. SQLite integrity/backup comparison confirmed preserved credentials/contacts; original node baseline stayed unchanged. Logged out QA login, removed temporary app/node/network/relays, retained rollback images/database/source. Added [QA evidence](qa/536-resync-end-to-end.md), completed the plan, closed MINIMA-02/MINIMA-08 and moved the local task to Done. No application-code/OpenProject/commit/merge action; review/merge pending.
@@ -132,6 +139,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
+- #524: commit the cleanup/docs, open the PR to `dev` (move the changelog branch section into the shared `Unreleased` first), confirm `Check (dev)` runs lint, then move the ticket to Ready for Deployment.
+
 - #536: review and merge the verified branch; all plan steps and in-scope Pi/browser QA are complete. OpenProject remains unchanged.
 
 - #652: PR `task/652-implement-the-incoming-payment-service` → `dev` open for review. Pi leftovers kept for review: `~/edge-studio-652` clone, QA workflow "652 QA automation send" (disabled), contact "Testnet peer (652 QA)", testnet containers.
@@ -154,6 +163,11 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - PR #143: review and merge to `dev`; then a separate release branch bumps `package.json` to `0.42.2`, dates the changelog, merges `dev` → `main`, and tags `v0.42.2`.
 
 ## Notes / Open Questions
+
+- #524 follow-ups, recorded in the plan's Baseline section:
+  - `JsonPreview` ignores its `title` prop, and `WatchRunHistory` ignores `replayPlaying` (possible bugs).
+  - `WorkflowWorkspace` rebuilds `replayCanvasBlocks`/`replaySteps` every render, so the replay timer re-arms each render.
+  - Root `npm audit` reports 2 critical findings in `concurrently` → `shell-quote` (they predate this branch, and root isn't covered by `audit:moderate`).
 
 - #652: the testnet guide now notes the backend's backups folder follows `.env`'s `MINIMA_DATA_DIR`, not the testnet override.
 - #652: Pi deploys rebuild only the `backend`/`frontend` images (`docker compose up -d --no-deps --no-build`), because a `DEV_MODE` installer run would remove the `minima-testnet*` folders and restart Minima on mainnet. `/opt/edge-studio` still holds the older source tree.

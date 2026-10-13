@@ -17,6 +17,7 @@
 
 ## In Progress
 
+- [ ] Lint CI pipeline (OpenProject #524): shared root ESLint config, root `npm run lint` in `npm run check`/CI, and the existing violations cleared — implemented and verified locally on `task/524-lint-ci-pipeline`; commit the cleanup, then PR to `dev`; see `docs/plans/features/524-lint-ci-pipeline.md`.
 - [ ] Incoming payment service and wallet history filtering (OpenProject #652, includes #655): synced Minima history in SQLite, server-paginated history with direction/date filters, previous-wallet marking with re-auth clear — all steps, docs, and final Pi verification (offline receive, backup restore marking, per-wallet rows) done on `task/652-implement-the-incoming-payment-service`; PR to `dev` open for review; decisions in `docs/adr/0033-persist-synced-wallet-history.md`; see `docs/plans/features/652-implement-the-incoming-payment-service.md`.
 - [ ] Improve changelog service (OpenProject #239): `update-agent` caches main's changelog in `/state`, kept in step with the manifest; Update page reads it from `GET /update/status` with an in-app full view — code, docs, local and Pi verification done on `task/239-improve-changelog-service`; PR to `dev` pending; see `docs/plans/features/239-improve-changelog-service.md`.
 - [ ] Upgrade Automation watch mode into a production-quality live monitoring, historic replay, and workflow debugging experience — runtime overview, domain-aware block summaries, replay toolbar/status messaging, status-colored replay animation, and run-specific historic canvas rendering are implemented and build/test verified; browser visual QA remains; see `docs/plans/workflow-watch-mode-upgrade.md`.
@@ -31,7 +32,8 @@
 
 ## Next
 
-- [ ] Lint CI pipeline (OpenProject #524): shared root ESLint config for `backend`/`frontend`/`update-agent`, root `npm run lint` wired into `npm run check` and CI, existing violations cleaned up — see `docs/plans/features/524-lint-ci-pipeline.md`.
+- [ ] Review the #524 lint follow-ups: `JsonPreview` ignores `title`, `WatchRunHistory` ignores `replayPlaying`, `WorkflowWorkspace` replay arrays rebuilt every render (effects rerun and the replay timer re-arms); see the Baseline section of `docs/plans/features/524-lint-ci-pipeline.md`.
+- [ ] Fix the root `concurrently` → `shell-quote` critical audit finding; consider adding the root package to `audit:moderate`.
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
 - [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.
 

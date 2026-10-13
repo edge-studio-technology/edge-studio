@@ -109,8 +109,7 @@ export async function getMinimaNodeStatus(): Promise<MinimaNodeStatus> {
   }
 
   const parsed = parseStatusResponse(rpcResult.body);
-  let { block, blockTime, blockAgeSeconds, syncStatus } = parsed;
-  let synced = parsed.synced;
+  let { block, blockTime, blockAgeSeconds } = parsed;
   let peerCount = parsed.peerCount;
   let peersKnown: number | null = null;
 
@@ -139,8 +138,8 @@ export async function getMinimaNodeStatus(): Promise<MinimaNodeStatus> {
   }
 
   const sync = deriveSyncStatus({ rpcOk: parsed.rpcOk, blockAgeSeconds });
-  synced = sync.synced;
-  syncStatus = sync.status;
+  const synced = sync.synced;
+  const syncStatus = sync.status;
 
   const rpcReachable = rpcResult.ok;
   const state = applyOperationOverride(deriveNodeState(containerStats, rpcReachable, parsed.rpcOk));

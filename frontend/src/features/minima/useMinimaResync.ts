@@ -99,6 +99,7 @@ export function useMinimaResync() {
       cancelled = true;
       mounted.current = false;
       wake.current = null;
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- bumps the live counter to invalidate in-flight refreshes
       version.current++;
       if (timer !== undefined) window.clearTimeout(timer);
     };

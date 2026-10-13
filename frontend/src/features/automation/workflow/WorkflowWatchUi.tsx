@@ -1224,7 +1224,6 @@ export function WatchRuntimeInspector({
 export function WatchRunHistory({
   runs,
   selectedRunId,
-  replayPlaying = false,
   onSelectRun,
 }: {
   runs: AutomationRun[];

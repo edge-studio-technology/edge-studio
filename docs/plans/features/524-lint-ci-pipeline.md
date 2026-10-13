@@ -1,19 +1,19 @@
 # Lint CI Pipeline Plan
 
-**Status:** Not started
+**Status:** In progress — implemented and verified locally; cleanup/docs commit and PR to `dev` pending
 **Created:** 2026-10-13
 **Branch:** `task/524-lint-ci-pipeline`
 **Goal:** Add TypeScript-aware ESLint to `backend`, `frontend`, and `update-agent`, run it from a root `npm run lint`, and make it part of `npm run check` so CI runs it.
 
 ## Progress
 
-- [ ] Tooling 1: root ESLint deps + shared `eslint.config.mjs`
-- [ ] Tooling 2: `lint` script in each package
-- [ ] Tooling 3: root `lint` script, wired into `check`
-- [ ] Baseline: run lint, record violation counts per package/rule
-- [ ] Cleanup: fix or deliberately suppress every existing violation
-- [ ] Docs
-- [ ] Verification
+- [x] Tooling 1: root ESLint deps + shared `eslint.config.mjs` (`497e7856`). Deviation: root also gets `typescript` (`^5.9.3`, resolves to the packages' 5.9.3), since root had none and `typescript-eslint` needs it as a peer.
+- [x] Tooling 2: `lint` script in each package (`497e7856`). The root config and root `eslint` binary resolve from each package dir with no `--config` flag.
+- [x] Tooling 3: root `lint` script, wired into `check` (`497e7856`)
+- [x] Baseline: run lint, record violation counts per package/rule (see Baseline below)
+- [x] Cleanup: fix or deliberately suppress every existing violation. Two config decisions agreed with the user: `no-explicit-any` off for `**/tests/**`, and `_`-prefixed names ignored by `no-unused-vars`.
+- [x] Docs
+- [x] Verification
 
 ## Context
 
@@ -75,6 +75,31 @@ Known limitation: `audit:moderate` audits the three packages only, not root `dev
 4. If one rule produces a large, mostly-intentional volume (e.g. `no-explicit-any` in test mocks, or `exhaustive-deps` across many components), stop and agree with the user whether to fix, line-suppress, or scope that rule (e.g. off for `**/tests/**`) before going further. A narrow scoped override is a deliberate config decision; a global disable is not allowed.
 5. Behavior-affecting fixes (e.g. adding a missing hook dependency changes when an effect runs) are listed here and covered by existing or new tests, not slipped in as lint cleanup.
 
+## Baseline
+
+First run (ESLint 10.12, `typescript-eslint` 8.71), 299 messages:
+
+- `backend` 21: `no-unused-vars` 11, `no-useless-assignment` 5, `preserve-caught-error` 3, `no-namespace` 1, `no-unsafe-function-type` 1
+- `frontend` 46: `no-unused-vars` 34, `exhaustive-deps` 11 (warnings), `no-useless-escape` 1
+- `update-agent` 232: `no-explicit-any` 229 (all in tests, 9 files), `no-unused-vars` 3
+
+Resolution:
+
+- **Config:** `no-explicit-any` turned off for `**/tests/**`, which made the one existing backend-test disable comment unused, so it was removed. `no-unused-vars` now ignores `^_` args/vars/caught errors.
+- **Deleted:** unused imports and dead locals (`historicalBlockById`, `flowRunId`, update-agent's `server` binding). Unused props were dropped from destructuring, keeping their types (`JsonPreview.title`, `WatchRunHistory.replayPlaying`, `WorkflowWorkspace.source`, `DataSourceForm.setType`/`setGpioProfile`, `handleDeviceCreated(source)`). `hardwareStateSummary`'s unused param was renamed to `_statusLabel`. None of this changes behavior.
+- **Small fixes:** dead initial values removed (`totpValid`, `resources`, `synced`/`syncStatus` now `const` after `deriveSyncStatus`), `Function` → explicit signature in a test mock, `[a-z0-9_\-]` → `[a-z0-9_-]`, `catch (error)` → `catch`.
+- **Line-suppressed, with a reason:**
+  - all 11 `exhaustive-deps`; no dependency arrays changed
+  - 3 `preserve-caught-error` (no cause chain is attached to the rethrown error)
+  - the Express `declare global` namespace
+  - unused vars/imports that belong to parked, commented-out code: Minima auto-restart, AppShell debug ping, wallet debug clear history, sidebar sign-out, runs-table row menu, Create token button, `validateIntegritasApiKey`
+
+Follow-ups (not in this task):
+
+- `JsonPreview` accepts `title` but always renders "JSON preview", and `WatchRunHistory` accepts `replayPlaying` but ignores it. These may be bugs; callers' props are unchanged.
+- `WorkflowWorkspace`'s `replayCanvasBlocks`/`replaySteps` are rebuilt every render, so the effects that depend on them rerun every render (the replay timer re-arms on each render). A candidate for `useMemo` with tests.
+- Root `npm audit` reports 2 critical findings in `concurrently` → `shell-quote` (they predate this branch). Root isn't covered by `audit:moderate`.
+
 ## Docs
 
 - `.claude/rules/verification.md`, `.agents/rules/verification.md`, `.cursor/rules/verification.mdc`: add `npm run lint` (kept identical per the sync notice).
@@ -93,3 +118,11 @@ Known limitation: `audit:moderate` audits the three packages only, not root `dev
 - `npm run check`, `npm --prefix backend run build`, `npm --prefix frontend run build`, `docker compose config`. Docker builds are not affected (no lint in the Dockerfiles, and the new deps are root-only), so `docker compose build` is optional.
 - `git status --short --untracked-files=all` before committing.
 - After pushing: confirm the PR's `Check (dev)` run shows the lint output.
+
+Results (2026-10-13):
+
+- Root `npm run lint` and each package's `lint` pass clean. `npm run typecheck` passes.
+- Negative check: an unused var in `backend`/`update-agent` and a conditional `useState` in `frontend` each failed their package lint and root lint (probes removed).
+- Full `MINIMA_STATUS_URL=http://127.0.0.1:9005/status npm run check` passes: lint, typecheck, coverage thresholds, and 3,657 tests (backend 1509, frontend 1902, update-agent 194, scripts 52). Without the override, one backend test (`address-book.service.test.ts`) fails because the local `.env` points Minima at 9105. It fails the same way on the pre-branch commit and passes without `.env`, so it's environment-specific and CI is unaffected.
+- `audit:moderate`: 0 vulnerabilities in all three packages. `npm --prefix backend run build`, `npm --prefix frontend run build`, and `docker compose config` pass.
+- Not run: the fresh-install `rm -rf node_modules` check and `docker compose build` (Dockerfiles are unaffected). CI's `Check (dev)` run is pending the PR.

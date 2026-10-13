@@ -41,7 +41,6 @@ import {
   errorMessage,
   parseStoredError,
   workflowError,
-  type StructuredError,
 } from "../../shared/structured-error.js";
 import {
   getAutomationWorkflow,

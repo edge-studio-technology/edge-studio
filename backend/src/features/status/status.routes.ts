@@ -131,7 +131,7 @@ statusRouter.get("/overview", async (_req, res) => {
     });
   }
 
-  let resources: unknown = null;
+  let resources: unknown;
   try {
     resources = { containers: await dockerServiceResources(), disks: [await diskUsage("/data"), await diskUsage(env.hostFilesRoot)] };
   } catch (error) {
