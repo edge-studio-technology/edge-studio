@@ -284,9 +284,9 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
   const description = section.description ?? standardSectionDescriptions[section.title];
   return (
     <GuideTopic title={section.title} description={description}>
-      {section.body && <p className="type-body text-text-secondary m-0">{section.body}</p>}
+      {section.body && <p className="type-body text-text-secondary m-0 leading-[1.4]">{section.body}</p>}
       {section.items && (
-        <ul className="type-body text-text-secondary gap-detail-tight m-0 grid list-disc pl-5">
+        <ul className="type-body text-text-secondary gap-detail-next m-0 grid list-disc pl-5 leading-[1.4]">
           {section.items.map((item) => (
             <li key={item}>{item}</li>
           ))}

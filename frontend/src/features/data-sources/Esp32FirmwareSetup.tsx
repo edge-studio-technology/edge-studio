@@ -78,7 +78,7 @@ export function Esp32SetupGuide({
     {
       id: "verify",
       title: "Verify",
-      content: <Esp32Topic title="Verify" description="Confirm the board connects to Wi-Fi and publishes MQTT messages before enabling a workflow."><ol className="type-body text-text-secondary gap-detail-next m-0 grid list-decimal pl-5"><li>Open Serial Monitor at <InlineCode>115200</InlineCode> and confirm Wi-Fi connected, MQTT connected, and Publishing messages.</li><li>Wait up to 30 seconds for the first Ping message; the starter firmware publishes again every 30 seconds.</li><li>Confirm the MQTT source receives the JSON message in Edge Studio.</li></ol></Esp32Topic>,
+      content: <Esp32Topic title="Verify" description="Confirm the board connects to Wi-Fi and publishes MQTT messages before enabling a workflow."><ol className="type-body text-text-secondary gap-detail-next m-0 grid list-decimal pl-5 leading-[1.4]"><li>Open Serial Monitor at <InlineCode>115200</InlineCode> and confirm Wi-Fi connected, MQTT connected, and Publishing messages.</li><li>Wait up to 30 seconds for the first Ping message; the starter firmware publishes again every 30 seconds.</li><li>Confirm the MQTT source receives the JSON message in Edge Studio.</li></ol></Esp32Topic>,
     },
   ];
   return <DeviceGuideWorkspace guide={getDeviceSetupGuide(source)!} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} overview={<Esp32Overview />} customTopics={topics} />;
@@ -473,7 +473,7 @@ function SetupStep({
       <h4 className="type-body-em text-text-primary m-0">
         {index}. {title}
       </h4>
-      <div className="type-body text-text-secondary mt-detail-next">{children}</div>
+      <div className="type-body text-text-secondary mt-detail-next leading-[1.4]">{children}</div>
     </section>
   );
 }
@@ -486,7 +486,7 @@ function CommandBlock({ value }: { value: string }) {
 
 function InlineCode({ children }: { children: React.ReactNode }) {
   return (
-    <span className="type-mono border-stroke-secondary bg-surface-secondary rounded-tight border px-detail-tight py-detail-fine break-normal text-text-primary">
+    <span className="type-mono border-stroke-primary bg-surface-secondary rounded-tight border px-detail-tight py-detail-fine break-normal text-text-primary">
       {children}
     </span>
   );
