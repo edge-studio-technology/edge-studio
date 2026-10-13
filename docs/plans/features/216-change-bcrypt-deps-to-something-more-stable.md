@@ -7,7 +7,7 @@
 
 ## Progress
 
-- [x] Step 1: dependencies — swap `bcrypt`/`@types/bcrypt` for `bcryptjs` (also pointed the two existing `bcrypt` imports at `bcryptjs` so the build stays green until Steps 2–3)
+- [x] Step 1: dependencies — swap `bcrypt`/`@types/bcrypt` for `bcryptjs` (also pointed the two existing `bcrypt` imports at `bcryptjs` so the build stays green until Steps 2–3; pinned exactly to `3.0.3`) — `ea7b1482`; CI outdated warning added
 - [ ] Step 2: `password.service.ts` — scrypt hash/verify, legacy bcrypt verify, `needsRehash()`, dummy hash + tests
 - [ ] Step 3: `auth.service.ts` — scrypt dummy hash, rehash on successful login (compare-and-set) + tests
 - [ ] Docs
@@ -34,6 +34,7 @@ Current state:
 ### Step 1: dependencies
 
 - `backend/package.json`: remove `bcrypt` and `@types/bcrypt`, add `bcryptjs` (v3 ships its own types). Update `backend/package-lock.json` via `npm --prefix backend install`.
+- `bcryptjs` is pinned exactly. `check-dev.yml`/`check-main.yml` run `npm --prefix backend outdated bcryptjs` as a non-blocking warning when a newer release exists. `bcryptjs` and that step are temporary: remove both with the Node 24/Argon2id upgrade (#887). Any install still holding a bcrypt hash at that point (admin never logged in since this change) can no longer log in.
 
 ### Step 2: `password.service.ts`
 

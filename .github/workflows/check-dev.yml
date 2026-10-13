@@ -17,4 +17,7 @@ jobs:
 
       - run: npm install
 
+      - name: Check bcryptjs pin is current
+        run: npm --prefix backend outdated bcryptjs || echo "::warning::bcryptjs has a newer release; review upstream and bump the pin"
+
       - run: npm run check
