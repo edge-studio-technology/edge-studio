@@ -29,9 +29,13 @@ for the move that drops 32-bit support (#887). Existing installs hold bcrypt has
   - Anything else, or anything malformed, returns `false`.
 - `bcryptjs` is pinned to an exact version. A CI step warns when a newer release exists.
 - After a fully successful login (password, and TOTP when enabled), a hash that is not current
-  scrypt is replaced. The write is a compare-and-set against the verified hash, so a concurrent
-  credential change wins. Re-auth checks (password change, TOTP reset, Minima backup/console) only
-  verify and never rehash.
+  scrypt is replaced. The replacement is computed first. Then one SQLite transaction with no
+  `await` re-reads the user and fails the login if the stored hash is no longer the verified one.
+  Otherwise it applies the credential-type correction and the rehash, both compare-and-set against
+  the verified hash, and creates the session. A credential change that lands during verification or
+  rehashing therefore wins, and the overlapping login gets no session after the change revoked the
+  others. This replaces the ADR 0031 behavior, which still created that session. Re-auth checks
+  (password change, TOTP reset, Minima backup/console) only verify and never rehash.
 - The unknown-user login path verifies against a dummy hash built at startup with the current
   parameters, so its cost tracks the real path.
 - `bcryptjs`, the bcrypt verify branch and the CI warning are temporary. #887 removes them when it
@@ -69,7 +73,7 @@ for the move that drops 32-bit support (#887). Existing installs hold bcrypt has
 
 - `backend/src/features/auth/password.service.ts`: `hashPassword()`, `verifyPassword()`,
   `needsRehash()`, `DUMMY_PASSWORD_HASH`.
-- `backend/src/features/auth/auth.service.ts`: `login()` rehash after a successful login.
+- `backend/src/features/auth/auth.service.ts`: `login()` freshness check, rehash and session creation in one transaction.
 - `backend/src/features/auth/auth.repository.ts`: `replaceUserPasswordHash()` compare-and-set.
 - `.github/workflows/check-dev.yml`, `.github/workflows/check-main.yml`: "Check bcryptjs pin is
   current" warning.

@@ -129,16 +129,16 @@ describe("legacy credential metadata on login", () => {
     assert.equal((db.prepare("SELECT COUNT(*) AS count FROM sessions").get() as { count: number }).count, 0);
   });
 
-  it("preserves a concurrent credential change while the old PIN is being verified", async () => {
+  it("rejects the login and preserves a credential change made while the old PIN is being verified", async () => {
     const replacementHash = await hashPassword(PASSWORD);
     const pendingLogin = authService.login({ password: PIN });
     updateUserPassword(userId, replacementHash, "password");
     const result = await pendingLogin;
 
+    assert.equal(result.ok, false);
     assert.equal(findUserById(userId)?.password, replacementHash);
     assert.equal(findUserById(userId)?.credential_type, "password");
-    assert.equal(result.ok, true);
-    if (result.ok) assert.equal(result.user.credentialType, "password");
+    assert.equal((db.prepare("SELECT COUNT(*) AS count FROM sessions").get() as { count: number }).count, 0);
   });
 
   it("accepts an existing password without applying the new-password strength policy", async () => {
@@ -207,14 +207,45 @@ describe("legacy bcrypt hash migration on login", () => {
     assert.equal(findUserById(userId)?.password, currentHash);
   });
 
-  it("preserves a credential change made while the bcrypt login is in flight", async () => {
+  it("rejects the login and keeps a credential change made while the bcrypt hash is being verified", async () => {
     const replacementHash = await hashPassword("Replaced1!");
     const pendingLogin = authService.login({ password: PASSWORD });
     updateUserPassword(userId, replacementHash, "password");
     const result = await pendingLogin;
 
-    assert.equal(result.ok, true);
+    assert.equal(result.ok, false);
     assert.equal(findUserById(userId)?.password, replacementHash);
+    assert.equal((db.prepare("SELECT COUNT(*) AS count FROM sessions").get() as { count: number }).count, 0);
+  });
+
+  describe("credential change while the replacement hash is computed", () => {
+    afterEach(() => {
+      vi.doUnmock("../../../src/features/auth/password.service.js");
+      vi.resetModules();
+    });
+
+    it("rejects the login, keeps the changed hash, and creates no session", async () => {
+      const replacementHash = await hashPassword("Replaced1!");
+      vi.resetModules();
+      vi.doMock("../../../src/features/auth/password.service.js", async (importOriginal) => {
+        const original = await importOriginal<typeof import("../../../src/features/auth/password.service.js")>();
+        return {
+          ...original,
+          hashPassword: async (plain: string) => {
+            const hash = await original.hashPassword(plain);
+            updateUserPassword(userId, replacementHash, "password");
+            return hash;
+          }
+        };
+      });
+      const racingAuthService = await import("../../../src/features/auth/auth.service.js");
+
+      const result = await racingAuthService.login({ password: PASSWORD });
+
+      assert.equal(result.ok, false);
+      assert.equal(findUserById(userId)?.password, replacementHash);
+      assert.equal((db.prepare("SELECT COUNT(*) AS count FROM sessions").get() as { count: number }).count, 0);
+    });
   });
 });
 

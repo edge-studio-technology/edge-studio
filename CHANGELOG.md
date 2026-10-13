@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Security
 
 - After a login converts the stored credential, manually reinstalling an older release locks the admin out; in-app updates are unaffected.
+- A login that overlaps a PIN/password change now fails instead of creating a session.
 
 ## [Unreleased]
 

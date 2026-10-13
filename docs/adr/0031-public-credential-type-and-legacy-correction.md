@@ -46,7 +46,8 @@ Anyone who can reach the public status route learns whether the local account us
 Older PIN accounts can show password metadata until their first fully successful login;
 frontend work must keep that input unrestricted. No schema or credential replacement is needed.
 The hash condition protects metadata correction, without changing the existing login/session
-behavior if a credential change overlaps asynchronous password verification.
+behavior if a credential change overlaps asynchronous password verification. ADR 0035 later
+changed that behavior: such a login now fails and gets no session.
 
 ## Where this lives in code
 
