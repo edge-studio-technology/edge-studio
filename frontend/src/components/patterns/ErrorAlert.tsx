@@ -81,7 +81,7 @@ export function ErrorAlert({
             {title ? <strong className="type-body-em text-text-primary">{title}</strong> : null}
           </div>
           {variant === "full" && children ? (
-            <div className={cx("type-body m-0 break-words", title ? "text-text-secondary" : "text-text-primary")}>
+            <div className={cx("type-body m-0 break-normal", title ? "text-text-secondary" : "text-text-primary")}>
               {children}
             </div>
           ) : null}

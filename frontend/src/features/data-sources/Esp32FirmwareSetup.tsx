@@ -524,7 +524,7 @@ function CommandBlock({ value }: { value: string }) {
 
 function InlineCode({ children }: { children: React.ReactNode }) {
   return (
-    <span className="type-mono bg-surface-always-white rounded-loose px-detail-tight py-detail-fine break-all text-text-secondary">
+    <span className="type-mono bg-surface-always-white rounded-loose px-detail-tight py-detail-fine break-normal text-text-secondary">
       {children}
     </span>
   );
