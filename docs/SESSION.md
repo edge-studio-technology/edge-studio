@@ -147,7 +147,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- #886: PR to `dev` (move the branch CHANGELOG section into shared `Unreleased` first).
+- #886: review and merge the PR to `dev`.
 
 - #524: PR to `dev` open; confirm `Check (dev)` runs lint, then move the ticket to Ready for Deployment.
 

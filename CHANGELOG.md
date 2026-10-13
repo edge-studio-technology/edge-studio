@@ -4,12 +4,6 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] dev-task/886-upgrade-update-agent-frontend-build-and-installer-verifier-to-node-22
-
-### Changed
-
-- The update agent, the frontend build, and the installer's manifest signature verifier run on Node 22 instead of end-of-life Node 20.
-
 ## [Unreleased]
 
 ### Added
@@ -46,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - "View full changelog" on the Update page opens every released entry in the app instead of GitHub.
 - The browser no longer contacts GitHub from the Update page, and the frontend CSP no longer allows `raw.githubusercontent.com`.
 - `GET /api/wallet/history` returns a paginated, filterable list of all wallet movements instead of `{ sends }`, and no longer accepts `limit`; see `README.md`.
+- The update agent, the frontend build, and the installer's manifest signature verifier run on Node 22 instead of end-of-life Node 20.
 
 ### Fixed
 
