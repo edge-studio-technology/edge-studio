@@ -100,14 +100,10 @@ describe("Esp32FirmwareSetup", () => {
     await user.type(screen.getAllByLabelText("Wi-Fi password")[0], "secret123");
 
     await user.click(screen.getAllByRole("button", { name: "Show firmware" })[0]);
-    // There can be multiple readonly textareas; find the one containing the firmware source.
-    const firmwareBox = screen
-      .getAllByDisplayValue(/#include <WiFi.h>/)
-      .find((el) => el.tagName === "TEXTAREA") as HTMLTextAreaElement;
-    expect(firmwareBox.value).toContain('WIFI_SSID = "MyWifi"');
-    expect(firmwareBox.value).toContain('WIFI_PASSWORD = "secret123"');
-    expect(firmwareBox.value).toContain('DEVICE_NAME = "kitchen-esp32"');
-    expect(firmwareBox.value).toContain('MQTT_TOPIC = "sensors/esp32/data"');
+    expect(screen.getByText(/WIFI_SSID = "MyWifi"/)).toBeInTheDocument();
+    expect(screen.getByText(/WIFI_PASSWORD = "secret123"/)).toBeInTheDocument();
+    expect(screen.getByText(/DEVICE_NAME = "kitchen-esp32"/)).toBeInTheDocument();
+    expect(screen.getByText(/MQTT_TOPIC = "sensors\/esp32\/data"/)).toBeInTheDocument();
   });
 
   it("copies the firmware to the clipboard via 'Copy firmware'", async () => {
@@ -152,9 +148,6 @@ describe("Esp32FirmwareSetup", () => {
     await user.type(fqbnInput, "esp32:esp32:esp32s3");
     expect(fqbnInput).toHaveValue("esp32:esp32:esp32s3");
     // The typed FQBN flows into the compile/upload command blocks.
-    const compileCommand = screen
-      .getAllByDisplayValue(/arduino-cli compile/)
-      .find((el) => el.tagName === "TEXTAREA") as HTMLTextAreaElement;
-    expect(compileCommand.value).toContain("--fqbn esp32:esp32:esp32s3");
+    expect(screen.getAllByText(/--fqbn esp32:esp32:esp32s3/)).toHaveLength(2);
   });
 });

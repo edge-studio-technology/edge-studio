@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Button } from "../../components/Button";
 import { ErrorAlert } from "../../components/ErrorAlert";
+import { CodeBlock } from "../../components/patterns/CodeBlock";
+import { InputField } from "../../components/ui/InputField";
+import { TextareaField } from "../../components/ui/TextareaField";
 import {
   DeviceGuideWorkspace,
   getDeviceSetupGuide,
@@ -52,8 +55,8 @@ export function Esp32SetupGuide({
             </ErrorAlert>
           )}
           <div className="gap-detail-close grid md:grid-cols-2">
-            <label className="type-body-em text-text-primary gap-detail-next grid">ESP32 broker host<input value={esp32BrokerHost} onChange={(event) => setEsp32BrokerHost(event.target.value)} placeholder="192.168.1.75" /></label>
-            <label className="type-body-em text-text-primary gap-detail-next grid">ESP32 broker port<input value={esp32BrokerPort} onChange={(event) => setEsp32BrokerPort(event.target.value)} placeholder="1883" inputMode="numeric" /></label>
+            <InputField label="ESP32 broker host" value={esp32BrokerHost} onChange={(event) => setEsp32BrokerHost(event.target.value)} placeholder="192.168.1.75" />
+            <InputField label="ESP32 broker port" value={esp32BrokerPort} onChange={(event) => setEsp32BrokerPort(event.target.value)} placeholder="1883" inputMode="numeric" />
           </div>
           <FirmwareStepContent firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} />
         </Esp32Topic>
@@ -133,23 +136,8 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
               from Wi-Fi/LAN.
             </div>
             <div className="gap-detail-close grid md:grid-cols-2">
-              <label className="type-body-em text-text-primary gap-detail-next grid">
-                ESP32 broker host
-                <input
-                  value={esp32BrokerHost}
-                  onChange={(event) => setEsp32BrokerHost(event.target.value)}
-                  placeholder="192.168.1.75"
-                />
-              </label>
-              <label className="type-body-em text-text-primary gap-detail-next grid">
-                ESP32 broker port
-                <input
-                  value={esp32BrokerPort}
-                  onChange={(event) => setEsp32BrokerPort(event.target.value)}
-                  placeholder="1883"
-                  inputMode="numeric"
-                />
-              </label>
+              <InputField label="ESP32 broker host" value={esp32BrokerHost} onChange={(event) => setEsp32BrokerHost(event.target.value)} placeholder="192.168.1.75" />
+              <InputField label="ESP32 broker port" value={esp32BrokerPort} onChange={(event) => setEsp32BrokerPort(event.target.value)} placeholder="1883" inputMode="numeric" />
             </div>
           </div>
         </ErrorAlert>
@@ -319,8 +307,11 @@ function ArduinoCliSteps({
           <InlineCode>EN</InlineCode>, then run the command again if the board appears as{" "}
           <InlineCode>Unknown</InlineCode>.
         </div>
-        <textarea
-          className="type-mono mt-detail-next min-h-[110px]"
+        <TextareaField
+          className="mt-detail-next"
+          label="Arduino CLI board list output"
+          description="Paste the output so the guide can select the detected port and board target."
+          rows={5}
           value={boardListOutput}
           onChange={(event) => setBoardListOutput(event.target.value)}
           placeholder={
@@ -355,15 +346,13 @@ function ArduinoCliSteps({
           family.
         </div>
         <CommandBlock value={commands.boardListAll} />
-        <label className="type-body-em text-text-primary gap-detail-next grid">
-          Board FQBN
-          <input
-            value={usableDetectedFqbn ?? manualFqbn}
-            onChange={(event) => setManualFqbn(event.target.value)}
-            disabled={Boolean(usableDetectedFqbn)}
-            placeholder="esp32:esp32:esp32"
-          />
-        </label>
+        <InputField
+          label="Board FQBN"
+          value={usableDetectedFqbn ?? manualFqbn}
+          onChange={(event) => setManualFqbn(event.target.value)}
+          disabled={Boolean(usableDetectedFqbn)}
+          placeholder="esp32:esp32:esp32"
+        />
         <div className="mt-2">
           This board target is used by both compile and upload. Use{" "}
           <InlineCode>esp32:esp32:esp32</InlineCode> for a generic ESP32 Dev Module. If upload
@@ -445,23 +434,8 @@ function FirmwareStepContent({
   return (
     <div className="mt-detail-close gap-detail-close grid">
       <div className="gap-detail-close grid md:grid-cols-2">
-        <label className="type-body-em text-text-primary gap-detail-next grid">
-          Wi-Fi name
-          <input
-            value={wifiSsid}
-            onChange={(event) => onWifiSsidChange(event.target.value)}
-            placeholder="MyWifi"
-          />
-        </label>
-        <label className="type-body-em text-text-primary gap-detail-next grid">
-          Wi-Fi password
-          <input
-            type="password"
-            value={wifiPassword}
-            onChange={(event) => onWifiPasswordChange(event.target.value)}
-            placeholder="Wi-Fi password"
-          />
-        </label>
+        <InputField label="Wi-Fi name" value={wifiSsid} onChange={(event) => onWifiSsidChange(event.target.value)} placeholder="MyWifi" />
+        <InputField label="Wi-Fi password" type="password" value={wifiPassword} onChange={(event) => onWifiPasswordChange(event.target.value)} placeholder="Wi-Fi password" />
       </div>
       <div className="type-body text-text-secondary">
         These values are inserted into the firmware text only. They are not saved to Edge Studio, but the
@@ -480,9 +454,7 @@ function FirmwareStepContent({
           {showFirmware ? "Hide firmware" : "Show firmware"}
         </Button>
       </div>
-      {showFirmware && (
-        <textarea className="type-mono min-h-[420px]" readOnly value={firmware} />
-      )}
+      {showFirmware && <CodeBlock value={firmware} className="max-h-[420px]" />}
     </div>
   );
 }
@@ -508,17 +480,7 @@ function SetupStep({
 
 function CommandBlock({ value }: { value: string }) {
   return (
-    <div className="mt-detail-next gap-detail-next grid">
-      <textarea className="type-mono min-h-[92px]" readOnly value={value} />
-      <Button
-        type="button"
-        size="sm"
-        variant="secondary"
-        onClick={() => navigator.clipboard?.writeText(value)}
-      >
-        Copy commands
-      </Button>
-    </div>
+    <CodeBlock value={value} className="mt-detail-next" />
   );
 }
 
