@@ -13,8 +13,8 @@ export function CodeBlock({ value, className }: { value: string; className?: str
   }
 
   return (
-    <div className={cx("bg-surface-inverse border-stroke-secondary rounded-soft relative min-w-0 max-w-full overflow-hidden border", className)}>
-      <pre className="type-mono text-text-inverse m-0 min-w-0 max-w-full max-h-80 overflow-auto p-pad-tight pr-12 whitespace-pre">
+    <div className={cx("bg-surface-inverse border-stroke-secondary rounded-soft relative w-full min-w-0 max-w-full overflow-hidden border", className)}>
+      <pre className="type-mono text-text-inverse m-0 w-full min-w-0 max-w-full max-h-80 overflow-x-scroll overflow-y-auto p-pad-tight pr-12 whitespace-pre">
         <code>{value}</code>
       </pre>
       <IconButton

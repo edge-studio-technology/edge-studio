@@ -113,7 +113,7 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
   });
 
   return (
-    <div className="gap-detail-near grid">
+    <div className="gap-detail-near grid min-w-0">
       <div>
         <h4 className="type-body-em text-text-primary m-0">ESP32 setup</h4>
         <p className="type-body text-text-secondary mt-detail-tight m-0">
@@ -282,7 +282,7 @@ function ArduinoCliSteps({
   const commands = esp32CliCommands(detectedPort ?? "/dev/ttyUSB0", selectedFqbn);
 
   return (
-    <div className="gap-detail-near grid">
+    <div className="gap-detail-near grid min-w-0">
       <h4 className="type-body-em text-text-primary m-0">Arduino CLI steps</h4>
       <SetupStep index={1} title="Install Arduino CLI">
         <div>Run this on the computer connected to the ESP32.</div>
@@ -469,11 +469,11 @@ function SetupStep({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-stroke-secondary pt-detail-close border-t first:border-t-0 first:pt-0">
+    <section className="border-stroke-secondary min-w-0 border-t pt-detail-close first:border-t-0 first:pt-0">
       <h4 className="type-body-em text-text-primary m-0">
         {index}. {title}
       </h4>
-      <div className="type-body text-text-secondary mt-detail-next leading-[1.7]">{children}</div>
+      <div className="type-body text-text-secondary mt-detail-next min-w-0 leading-[1.7]">{children}</div>
     </section>
   );
 }
