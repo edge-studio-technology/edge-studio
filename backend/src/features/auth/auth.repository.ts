@@ -148,6 +148,14 @@ export function updateUserCredentialType(userId: string, verifiedPasswordHash: s
   ).changes > 0;
 }
 
+export function replaceUserPasswordHash(userId: string, verifiedPasswordHash: string, passwordHash: string) {
+  return db.prepare("UPDATE users SET password = ? WHERE id = ? AND password = ?").run(
+    passwordHash,
+    userId,
+    verifiedPasswordHash
+  ).changes > 0;
+}
+
 export function updateUserTotpSecret(userId: string, totpSecretEncrypted: string) {
   db.prepare("UPDATE users SET totp_secret = ? WHERE id = ?").run(totpSecretEncrypted, userId);
 }

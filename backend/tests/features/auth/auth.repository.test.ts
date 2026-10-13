@@ -100,3 +100,24 @@ describe("credential metadata", () => {
     assert.equal(authRepository.updateUserCredentialType("missing-user", "replacement-hash", "pin"), false);
   });
 });
+
+describe("password hash replacement", () => {
+  it("replaces the hash only while the verified hash is still stored", () => {
+    const user = authRepository.findTheUser()!;
+    authRepository.updateUserPassword(user.id, "legacy-hash", "pin");
+    const original = authRepository.findUserById(user.id)!;
+
+    assert.equal(authRepository.replaceUserPasswordHash(user.id, "legacy-hash", "rehashed"), true);
+    assert.deepEqual(authRepository.findUserById(user.id), { ...original, password: "rehashed" });
+  });
+
+  it("does not overwrite a hash changed after verification", () => {
+    const user = authRepository.findTheUser()!;
+    authRepository.updateUserPassword(user.id, "changed-hash", "password");
+    const current = authRepository.findUserById(user.id);
+
+    assert.equal(authRepository.replaceUserPasswordHash(user.id, "legacy-hash", "rehashed"), false);
+    assert.deepEqual(authRepository.findUserById(user.id), current);
+    assert.equal(authRepository.replaceUserPasswordHash("missing-user", "changed-hash", "rehashed"), false);
+  });
+});
