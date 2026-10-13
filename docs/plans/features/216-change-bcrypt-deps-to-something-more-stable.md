@@ -8,7 +8,7 @@
 ## Progress
 
 - [x] Step 1: dependencies — swap `bcrypt`/`@types/bcrypt` for `bcryptjs` (also pointed the two existing `bcrypt` imports at `bcryptjs` so the build stays green until Steps 2–3; pinned exactly to `3.0.3`) — `ea7b1482`; CI outdated warning added
-- [ ] Step 2: `password.service.ts` — scrypt hash/verify, legacy bcrypt verify, `needsRehash()`, dummy hash + tests
+- [x] Step 2: `password.service.ts` — scrypt hash/verify, legacy bcrypt verify, `needsRehash()`, dummy hash + tests (bounds: `128·N·r` ≤ 64 MiB, `p` ≤ 16; `needsRehash()` is true for anything not current scrypt; the code comment already points at `docs/adr/0035-hash-admin-credentials-with-scrypt.md`, so the ADR uses that name)
 - [ ] Step 3: `auth.service.ts` — scrypt dummy hash, rehash on successful login (compare-and-set) + tests
 - [ ] Docs
 - [ ] Verification
