@@ -31,6 +31,7 @@
 
 ## Next
 
+- [ ] Lint CI pipeline (OpenProject #524): shared root ESLint config for `backend`/`frontend`/`update-agent`, root `npm run lint` wired into `npm run check` and CI, existing violations cleaned up — see `docs/plans/features/524-lint-ci-pipeline.md`.
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
 - [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.
 
