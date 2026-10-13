@@ -22,6 +22,7 @@ import {
   DeleteProgressModal,
 } from "../../components/patterns/DeleteConfirmModal";
 import { FileDropBox } from "../../components/patterns/FileDropBox";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import {
   orderedColumns,
   TableColumnVisibilityButton,
@@ -73,13 +74,9 @@ function formatSize(bytes: number) {
 }
 
 const restoreWarning = (
-  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-    <p className="m-0 text-sm font-bold text-amber-800">This will replace the current node state</p>
-    <p className="m-0 mt-1 text-sm text-amber-700">
-      Restoring re-syncs from the configured MegaMMR host and overwrites the node's current wallet
-      and chain state.
-    </p>
-  </div>
+  <ErrorAlert status="warning" title="This will replace the current node state">
+    Restoring re-syncs from the configured MegaMMR host and overwrites the node's current wallet and chain state.
+  </ErrorAlert>
 );
 
 function BackupRow({
@@ -465,14 +462,7 @@ export function MinimaBackupPanel({
         </div>
       )}
 
-      {hasPassword === false && (
-        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
-          <p className="m-0 text-sm text-amber-800">
-            No backup password set. Use the key icon below to set one — required for manual and
-            automatic backups.
-          </p>
-        </div>
-      )}
+      {hasPassword === false && <ErrorAlert className="mb-4" status="warning" title="Backup password required">No backup password set. Use the key icon below to set one — required for manual and automatic backups.</ErrorAlert>}
 
       <div className="grid gap-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -868,14 +858,7 @@ export function MinimaBackupPanel({
           }
         >
           <div className="grid gap-3">
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-              <p className="m-0 text-sm font-bold text-amber-800">
-                This turns off automatic backups
-              </p>
-              <p className="m-0 mt-1 text-sm text-amber-700">
-                You'll need to set a new backup password before creating another backup.
-              </p>
-            </div>
+            <ErrorAlert status="warning" title="This turns off automatic backups">You'll need to set a new backup password before creating another backup.</ErrorAlert>
             <CredentialField
               credentialType={credentialType}
               label={`Current ${credentialLabel}`}

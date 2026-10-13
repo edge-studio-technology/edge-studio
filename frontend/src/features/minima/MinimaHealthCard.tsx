@@ -1,6 +1,7 @@
 import { Terminal } from "lucide-react";
 import type { MinimaNodeStatus } from "../../app/types";
 import { JsonPreview } from "../../components/patterns/JsonPreview";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { ErrorText } from "../../components/ui/ErrorText";
 import { formatBlockAge } from "./minimaFormat";
@@ -69,14 +70,14 @@ export function MinimaHealthCard({
   return (
     <div className="flex h-full flex-col gap-4">
       {monitoring?.stallDetected && (
-        <p className="mb-0 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          Chain stall detected — last block is older than {monitoring.stallThresholdSeconds}s.
+        <ErrorAlert status="warning" title="Chain stall detected">
+          Last block is older than {monitoring.stallThresholdSeconds}s.
           {monitoring.autoResyncEnabled
             ? monitoring.lastAutoResyncAt
               ? ` Last auto-resync: ${formatLocalTime(monitoring.lastAutoResyncAt)} (${monitoring.lastAutoResyncResult ?? "no details"}).`
               : " Auto-resync is enabled; the backend poller will attempt resync when cooldown allows."
             : " Consider a manual Megammr resync or check peer connectivity."}
-        </p>
+        </ErrorAlert>
       )}
 
       <div className="min-h-0 flex-1">

@@ -1,7 +1,6 @@
 import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  CheckCircle2,
   Compass,
   Copy,
   Download,
@@ -11,7 +10,6 @@ import {
   MousePointerClick,
   PanelLeft,
   RefreshCw,
-  ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "../components/Button";
@@ -21,6 +19,7 @@ import { Input } from "../components/Input";
 import { Page } from "../components/Page";
 import { SubSection } from "../components/patterns/SubSection";
 import { ErrorText } from "../components/Text";
+import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Disclosure } from "../components/ui/Disclosure";
 import { InputField } from "../components/ui/InputField";
 import { CredentialField } from "../components/ui/CredentialField";
@@ -157,13 +156,9 @@ export function AuthSettingsPage() {
               >
                 {totpPhase === "idle" && (
                   <form onSubmit={(e) => void handleInitTotpReset(e)} className={formClass}>
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                      <p className="m-0 flex items-center gap-2 text-sm text-amber-800">
-                        <ShieldAlert size={14} />
-                        Your current 2FA secret will be replaced. Make sure your authenticator app
-                        is available before continuing.
-                      </p>
-                    </div>
+                    <ErrorAlert status="warning" title="This will replace your current 2FA secret">
+                      Make sure your authenticator app is available before continuing.
+                    </ErrorAlert>
                     <CredentialField
                       credentialType={credentialType}
                       label={`Current ${adminCredentialLabel(credentialType)}`}
@@ -295,16 +290,9 @@ export function AuthSettingsPage() {
                 )}
 
                 {totpPhase === "done" && (
-                  <div className="grid gap-4">
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                      <p className="m-0 flex items-center gap-2 text-sm text-emerald-700">
-                        <CheckCircle2 size={14} />
-                        Two-factor authentication has been reset. Your authenticator app is now
-                        linked to the new secret. Signing you out — log in again with a code from
-                        the new secret.
-                      </p>
-                    </div>
-                  </div>
+                    <ErrorAlert status="success" title="Two-factor authentication reset">
+                      Your authenticator app is now linked to the new secret. Signing you out — log in again with a code from the new secret.
+                    </ErrorAlert>
                 )}
               </SubSection>
             ) : null}
