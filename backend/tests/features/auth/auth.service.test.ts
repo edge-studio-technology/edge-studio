@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import bcrypt from "bcryptjs";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, it, vi } from "vitest";
-import { hashPassword, verifyPassword } from "../../../src/features/auth/password.service.js";
+import { hashPassword, needsRehash, verifyPassword } from "../../../src/features/auth/password.service.js";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 import { currentToken, wrongToken } from "../../helpers/totp.js";
 
@@ -128,16 +129,16 @@ describe("legacy credential metadata on login", () => {
     assert.equal((db.prepare("SELECT COUNT(*) AS count FROM sessions").get() as { count: number }).count, 0);
   });
 
-  it("preserves a concurrent credential change while the old PIN is being verified", async () => {
+  it("rejects the login and preserves a credential change made while the old PIN is being verified", async () => {
     const replacementHash = await hashPassword(PASSWORD);
     const pendingLogin = authService.login({ password: PIN });
     updateUserPassword(userId, replacementHash, "password");
     const result = await pendingLogin;
 
+    assert.equal(result.ok, false);
     assert.equal(findUserById(userId)?.password, replacementHash);
     assert.equal(findUserById(userId)?.credential_type, "password");
-    assert.equal(result.ok, true);
-    if (result.ok) assert.equal(result.user.credentialType, "password");
+    assert.equal((db.prepare("SELECT COUNT(*) AS count FROM sessions").get() as { count: number }).count, 0);
   });
 
   it("accepts an existing password without applying the new-password strength policy", async () => {
@@ -147,6 +148,132 @@ describe("legacy credential metadata on login", () => {
     assert.equal(result.ok, true);
     assert.equal(findUserById(userId)?.credential_type, "password");
     if (result.ok) assert.equal(result.user.credentialType, "password");
+  });
+});
+
+describe("legacy bcrypt hash migration on login", () => {
+  let originalUser: NonNullable<ReturnType<AuthRepository["findUserById"]>>;
+  let bcryptHash: string;
+
+  beforeAll(async () => {
+    bcryptHash = await bcrypt.hash(PASSWORD, 12);
+  });
+
+  beforeEach(() => {
+    originalUser = findUserById(userId)!;
+    updateUserPassword(userId, bcryptHash, "password");
+  });
+
+  afterEach(() => {
+    updateUserPassword(userId, originalUser.password, originalUser.credential_type);
+    sessionService.deleteAllUserSessions(userId);
+  });
+
+  it("replaces a bcrypt hash with a current scrypt hash after a successful login", async () => {
+    const result = await authService.login({ password: PASSWORD });
+
+    assert.equal(result.ok, true);
+    const migrated = findUserById(userId)!;
+    assert.match(migrated.password, /^scrypt\$/);
+    assert.equal(needsRehash(migrated.password), false);
+    assert.equal(await verifyPassword(PASSWORD, migrated.password), true);
+    assert.equal(migrated.credential_type, "password");
+  });
+
+  it("logs in again with the migrated hash without rewriting it", async () => {
+    await authService.login({ password: PASSWORD });
+    const migratedHash = findUserById(userId)!.password;
+
+    const result = await authService.login({ password: PASSWORD });
+
+    assert.equal(result.ok, true);
+    assert.equal(findUserById(userId)?.password, migratedHash);
+  });
+
+  it("leaves the bcrypt hash unchanged after a failed login", async () => {
+    const result = await authService.login({ password: "wrong-password" });
+
+    assert.equal(result.ok, false);
+    assert.equal(findUserById(userId)?.password, bcryptHash);
+  });
+
+  it("does not rewrite a current scrypt hash", async () => {
+    const currentHash = await hashPassword(PASSWORD);
+    updateUserPassword(userId, currentHash, "password");
+
+    const result = await authService.login({ password: PASSWORD });
+
+    assert.equal(result.ok, true);
+    assert.equal(findUserById(userId)?.password, currentHash);
+  });
+
+  it("rejects the login and keeps a credential change made while the bcrypt hash is being verified", async () => {
+    const replacementHash = await hashPassword("Replaced1!");
+    const pendingLogin = authService.login({ password: PASSWORD });
+    updateUserPassword(userId, replacementHash, "password");
+    const result = await pendingLogin;
+
+    assert.equal(result.ok, false);
+    assert.equal(findUserById(userId)?.password, replacementHash);
+    assert.equal((db.prepare("SELECT COUNT(*) AS count FROM sessions").get() as { count: number }).count, 0);
+  });
+
+  describe("credential change while the replacement hash is computed", () => {
+    afterEach(() => {
+      vi.doUnmock("../../../src/features/auth/password.service.js");
+      vi.resetModules();
+    });
+
+    it("rejects the login, keeps the changed hash, and creates no session", async () => {
+      const replacementHash = await hashPassword("Replaced1!");
+      vi.resetModules();
+      vi.doMock("../../../src/features/auth/password.service.js", async (importOriginal) => {
+        const original = await importOriginal<typeof import("../../../src/features/auth/password.service.js")>();
+        return {
+          ...original,
+          hashPassword: async (plain: string) => {
+            const hash = await original.hashPassword(plain);
+            updateUserPassword(userId, replacementHash, "password");
+            return hash;
+          }
+        };
+      });
+      const racingAuthService = await import("../../../src/features/auth/auth.service.js");
+
+      const result = await racingAuthService.login({ password: PASSWORD });
+
+      assert.equal(result.ok, false);
+      assert.equal(findUserById(userId)?.password, replacementHash);
+      assert.equal((db.prepare("SELECT COUNT(*) AS count FROM sessions").get() as { count: number }).count, 0);
+    });
+  });
+});
+
+describe("login without a local admin", () => {
+  afterEach(() => {
+    vi.doUnmock("../../../src/features/auth/auth.repository.js");
+    vi.doUnmock("../../../src/features/auth/password.service.js");
+    vi.resetModules();
+  });
+
+  it("verifies against the current dummy hash and fails", async () => {
+    vi.resetModules();
+    vi.doMock("../../../src/features/auth/auth.repository.js", async (importOriginal) => ({
+      ...(await importOriginal<AuthRepository>()),
+      findTheUser: () => undefined
+    }));
+    vi.doMock("../../../src/features/auth/password.service.js", async (importOriginal) => {
+      const original = await importOriginal<typeof import("../../../src/features/auth/password.service.js")>();
+      return { ...original, verifyPassword: vi.fn(original.verifyPassword) };
+    });
+    const passwordService = await import("../../../src/features/auth/password.service.js");
+    const noUserAuthService = await import("../../../src/features/auth/auth.service.js");
+
+    const result = await noUserAuthService.login({ password: PASSWORD });
+
+    assert.equal(result.ok, false);
+    assert.deepEqual(vi.mocked(passwordService.verifyPassword).mock.calls, [[PASSWORD, passwordService.DUMMY_PASSWORD_HASH]]);
+    assert.equal(needsRehash(passwordService.DUMMY_PASSWORD_HASH), false);
   });
 });
 
@@ -569,6 +696,35 @@ describe("login with TOTP enforcement enabled", () => {
       assert.equal(findUserById(userId)?.credential_type, "pin");
       assert.equal(findUserById(userId)?.password, pinHash);
       if (result.ok) assert.equal(result.user.credentialType, "pin");
+    });
+  });
+
+  describe("legacy bcrypt hash migration with TOTP enabled", () => {
+    let bcryptHash: string;
+
+    beforeAll(async () => {
+      bcryptHash = await bcrypt.hash(TOTP_PASSWORD, 12);
+    });
+
+    beforeEach(() => {
+      updateUserPassword(userId, bcryptHash, "password");
+      sessionService.deleteAllUserSessions(userId);
+    });
+
+    it("leaves the bcrypt hash unchanged when the TOTP code is wrong", async () => {
+      const result = await totpAuthService.login({ password: TOTP_PASSWORD, totpToken: wrongToken(secret) });
+
+      assert.equal(result.ok, false);
+      assert.equal(findUserById(userId)?.password, bcryptHash);
+    });
+
+    it("migrates the hash only once both the password and TOTP are verified", async () => {
+      const result = await totpAuthService.login({ password: TOTP_PASSWORD, totpToken: currentToken(secret) });
+
+      assert.equal(result.ok, true);
+      const migratedHash = findUserById(userId)!.password;
+      assert.equal(needsRehash(migratedHash), false);
+      assert.equal(await verifyPassword(TOTP_PASSWORD, migratedHash), true);
     });
   });
 });

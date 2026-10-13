@@ -41,6 +41,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The browser no longer contacts GitHub from the Update page, and the frontend CSP no longer allows `raw.githubusercontent.com`.
 - `GET /api/wallet/history` returns a paginated, filterable list of all wallet movements instead of `{ sends }`, and no longer accepts `limit`; see `README.md`.
 - The update agent, the frontend build, and the installer's manifest signature verifier run on Node 22 instead of end-of-life Node 20.
+- Admin PINs and passwords are hashed with Node's built-in scrypt instead of the native `bcrypt` package; see `SECURITY.md`.
+- Existing bcrypt-hashed credentials keep working and are converted to scrypt on the next successful login.
 
 ### Fixed
 
@@ -51,6 +53,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Relative links in Update page release notes point to the correct GitHub repository.
 - The Send payment dialog accepts decimal amounts.
 - `GET /api/wallet/payment-status/:txpowid` reports pending and confirmed payments instead of always `unknown`.
+
+### Security
+
+- After a login converts the stored credential, manually reinstalling an older release locks the admin out; in-app updates are unaffected.
+- A login that overlaps a PIN/password change now fails instead of creating a session.
 
 ## [0.42.2] 2026-10-06
 

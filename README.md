@@ -444,7 +444,7 @@ On first launch with an empty database, Edge Studio shows a setup wizard:
 2. Create or connect the Integritas Connect account used for plan and proof usage
 3. Review the connected account and finish setup
 
-After setup, sign in with the chosen PIN or password. You can switch credential types later in Settings. There is a single local admin account (no username to enter), and only its bcrypt hash is stored. Sessions persist across browser reloads until logout or expiry.
+After setup, sign in with the chosen PIN or password. You can switch credential types later in Settings. There is a single local admin account (no username to enter), and only its scrypt hash is stored. Sessions persist across browser reloads until logout or expiry.
 
 The first time you open Edge Studio in a browser, a short guided tour introduces the main areas. Skip it at any step, or replay it from Settings → Behaviour.
 
