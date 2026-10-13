@@ -8,7 +8,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
   - `update-agent` (all stages) and `frontend` build stage moved to `node:22-bookworm-slim`.
   - `install.sh` `VERIFIER_IMAGE` pinned to the `node:22-bookworm-slim` multi-arch index digest `sha256:c3de60bf…8392` (amd64, arm64/v8, arm/v7 confirmed).
   - `@types/node` `^22.20.5` in backend and update-agent, lock files regenerated; ADR 0016 runtime tag updated; branch CHANGELOG section added.
-  - Verified: `npm run check` (lint, typecheck, coverage, audit) passes, backend/frontend/update-agent builds, `docker compose config`, `docker compose --profile update-agent build`, `bash -n install.sh`; update-agent image runs Node v22.23.2; embedded verifier in the pinned image accepts a valid Ed25519 signature and rejects a tampered artifact. Not committed yet.
+  - Verified: `npm run check` (lint, typecheck, coverage, audit) passes, backend/frontend/update-agent builds, `docker compose config`, `docker compose --profile update-agent build`, `bash -n install.sh`; update-agent image runs Node v22.23.2; embedded verifier in the pinned image accepts a valid Ed25519 signature and rejects a tampered artifact. Committed `fd5a9527`, tagged and released `v0.42.3-dev.1` (development channel).
+  - Pi QA (`RaspberryPi5`, aarch64, fully wiped between runs): fresh install with the tagged `install.sh` (manifest + runtime bundle from the manifests repo on GitHub) verified both signatures on the pinned Node 22 verifier image; update-agent/backend on Node v22.23.3, all services healthy. Self-update: v0.42.2 release install (update-agent Node v20.20.2), `MANIFEST_URL` pointed at the GitHub dev manifest, in-app apply updated frontend/backend, update-agent self-updated to Node v22.23.3, status reports `v0.42.3-dev.1` with every service up to date.
+  - GitHub wiki *Hardware and Requirements*: added the notice that 32-bit Raspberry Pi OS is supported until April 2027 and new installs should use 64-bit.
 
 - #524 lint CI pipeline on `task/524-lint-ci-pipeline`:
   - Wrote the plan doc (`f321d3b9`).
@@ -145,7 +147,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- #886: commit, then push dev tag `v0.42.3-dev.1` (development channel, after user approval); Pi tests: in-app update-agent self-update to Node 22, then fresh `install.sh` from this branch with `MANIFEST_URL=https://edgestudio.technology/manifest/development/manifest.json`; then the GitHub wiki *Hardware and Requirements* 32-bit notice.
+- #886: PR to `dev` (move the branch CHANGELOG section into shared `Unreleased` first).
 
 - #524: PR to `dev` open; confirm `Check (dev)` runs lint, then move the ticket to Ready for Deployment.
 
@@ -173,6 +175,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 ## Notes / Open Questions
 
 - #886: `v0.50.0-dev.*` tags are mis-tagged (older than they sort); dev builds for this work use `v0.42.3-dev.N`. CI's previous-dev-tag lookup still picks `v0.50.0-dev.9`, which only affects which services rebuild. Update availability uses signed `createdAt` and digests, not version order.
+- #886: edgestudio.technology lagged the manifests repo after the dev release (still served the 6 Oct dev manifest; the runtime bundle was already current). Dev Pi now runs `v0.42.3-dev.1` from release v0.42.2 with `MANIFEST_URL` set to the GitHub dev manifest; admin password in `~/edge-studio-admin-password` on the Pi.
 - #886: root `node_modules` was missing locally (root ESLint from #524 needs `npm ci` at the repo root).
 
 - #524 follow-ups, recorded in the plan's Baseline section:
