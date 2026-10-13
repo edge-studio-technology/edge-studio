@@ -1,6 +1,6 @@
 # Lint CI Pipeline Plan
 
-**Status:** In progress — implemented and verified locally; cleanup/docs commit and PR to `dev` pending
+**Status:** Done — PR to `dev` open
 **Created:** 2026-10-13
 **Branch:** `task/524-lint-ci-pipeline`
 **Goal:** Add TypeScript-aware ESLint to `backend`, `frontend`, and `update-agent`, run it from a root `npm run lint`, and make it part of `npm run check` so CI runs it.

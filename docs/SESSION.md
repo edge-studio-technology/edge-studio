@@ -139,7 +139,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- #524: commit the cleanup/docs, open the PR to `dev` (move the changelog branch section into the shared `Unreleased` first), confirm `Check (dev)` runs lint, then move the ticket to Ready for Deployment.
+- #524: PR to `dev` open; confirm `Check (dev)` runs lint, then move the ticket to Ready for Deployment.
 
 - #536: review and merge the verified branch; all plan steps and in-scope Pi/browser QA are complete. OpenProject remains unchanged.
 
