@@ -4,6 +4,12 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- #886 Node 22 upgrade on `dev-task/886-upgrade-update-agent-frontend-build-and-installer-verifier-to-node-22`:
+  - `update-agent` (all stages) and `frontend` build stage moved to `node:22-bookworm-slim`.
+  - `install.sh` `VERIFIER_IMAGE` pinned to the `node:22-bookworm-slim` multi-arch index digest `sha256:c3de60bf…8392` (amd64, arm64/v8, arm/v7 confirmed).
+  - `@types/node` `^22.20.5` in backend and update-agent, lock files regenerated; ADR 0016 runtime tag updated; branch CHANGELOG section added.
+  - Verified: `npm run check` (lint, typecheck, coverage, audit) passes, backend/frontend/update-agent builds, `docker compose config`, `docker compose --profile update-agent build`, `bash -n install.sh`; update-agent image runs Node v22.23.2; embedded verifier in the pinned image accepts a valid Ed25519 signature and rejects a tampered artifact. Not committed yet.
+
 - #524 lint CI pipeline on `task/524-lint-ci-pipeline`:
   - Wrote the plan doc (`f321d3b9`).
   - Added the shared root ESLint 10 config (`typescript-eslint` recommended, `react-hooks` rules-of-hooks/exhaustive-deps, `eslint-config-prettier`), per-package `lint` scripts with `--max-warnings=0`, and a root `lint` that runs first in `check` (`497e7856`).
@@ -139,6 +145,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
+- #886: commit, then push dev tag `v0.42.3-dev.1` (development channel, after user approval); Pi tests: in-app update-agent self-update to Node 22, then fresh `install.sh` from this branch with `MANIFEST_URL=https://edgestudio.technology/manifest/development/manifest.json`; then the GitHub wiki *Hardware and Requirements* 32-bit notice.
+
 - #524: PR to `dev` open; confirm `Check (dev)` runs lint, then move the ticket to Ready for Deployment.
 
 - #536: review and merge the verified branch; all plan steps and in-scope Pi/browser QA are complete. OpenProject remains unchanged.
@@ -163,6 +171,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 - PR #143: review and merge to `dev`; then a separate release branch bumps `package.json` to `0.42.2`, dates the changelog, merges `dev` → `main`, and tags `v0.42.2`.
 
 ## Notes / Open Questions
+
+- #886: `v0.50.0-dev.*` tags are mis-tagged (older than they sort); dev builds for this work use `v0.42.3-dev.N`. CI's previous-dev-tag lookup still picks `v0.50.0-dev.9`, which only affects which services rebuild. Update availability uses signed `createdAt` and digests, not version order.
+- #886: root `node_modules` was missing locally (root ESLint from #524 needs `npm ci` at the repo root).
 
 - #524 follow-ups, recorded in the plan's Baseline section:
   - `JsonPreview` ignores its `title` prop, and `WatchRunHistory` ignores `replayPlaying` (possible bugs).
