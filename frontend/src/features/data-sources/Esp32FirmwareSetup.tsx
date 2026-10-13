@@ -473,7 +473,7 @@ function SetupStep({
       <h4 className="type-body-em text-text-primary m-0">
         {index}. {title}
       </h4>
-      <div className="type-body text-text-secondary mt-detail-next leading-[1.4]">{children}</div>
+      <div className="type-body text-text-secondary mt-detail-next leading-[1.7]">{children}</div>
     </section>
   );
 }
