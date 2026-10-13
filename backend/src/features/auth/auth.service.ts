@@ -97,7 +97,7 @@ export async function changePassword(
     const token = (input.totpToken ?? "").trim();
     if (!/^\d{6}$/.test(token)) throw new AuthSettingsError("totpToken must be a 6-digit code", 400);
 
-    let totpValid = false;
+    let totpValid: boolean;
     try {
       const secret = decryptTotpSecret(user.totp_secret);
       totpValid = verifyToken(secret, token);
@@ -131,7 +131,7 @@ export async function initTotpReset(
   const token = input.totpToken.trim();
   if (!/^\d{6}$/.test(token)) throw new AuthSettingsError("totpToken must be a 6-digit code", 400);
 
-  let totpValid = false;
+  let totpValid: boolean;
   try {
     const secret = decryptTotpSecret(user.totp_secret);
     totpValid = verifyToken(secret, token);

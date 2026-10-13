@@ -138,7 +138,6 @@ function makeWorkflow(blocks: Block[], overrides: { name?: string; enabled?: boo
   return workflowRepo.createAutomationWorkflow({
     name: overrides.name ?? "WF",
     enabled: overrides.enabled ?? true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     blocks: blocks as any
   });
 }

@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- ESLint for `backend`, `frontend`, and `update-agent` via `npm run lint`, run as part of `npm run check` and CI.
 - The Minima page shows persisted resync progress and timestamped events that remain available after navigation or reload.
 - Developers can configure local Pi SSH access in `.env.local` and use the `pi-ssh` agent skill for requested Pi work.
 - Public setup status includes the local admin credential type and disables response caching.

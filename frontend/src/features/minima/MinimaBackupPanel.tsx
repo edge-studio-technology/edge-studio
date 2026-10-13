@@ -26,7 +26,6 @@ import {
   orderedColumns,
   TableColumnVisibilityButton,
   type TableColumnDefinition,
-  type TableColumnVisibility,
 } from "../../components/patterns/TableColumnVisibility";
 import { TableControls } from "../../components/patterns/TableControls";
 import { ErrorContentState } from "../../components/patterns/ErrorContentState";

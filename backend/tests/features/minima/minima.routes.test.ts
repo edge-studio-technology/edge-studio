@@ -20,7 +20,7 @@ vi.mock("node:fs/promises", async () => {
   const wrapped = Object.fromEntries(
     Object.entries(real).map(([key, value]) => [
       key,
-      typeof value === "function" ? (...args: unknown[]) => (value as Function)(...args.map(redirect)) : value
+      typeof value === "function" ? (...args: unknown[]) => (value as (...args: unknown[]) => unknown)(...args.map(redirect)) : value
     ])
   );
   return { ...wrapped, default: wrapped };

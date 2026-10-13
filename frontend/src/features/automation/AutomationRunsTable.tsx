@@ -9,6 +9,7 @@ import {
   TableHead,
   TableHeaderCell,
   TableIconButton,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used by the commented-out row menu
   TableIconMenu,
   TableRow,
   TableWrap,
@@ -283,6 +284,7 @@ function WorkflowRunCell({
 }
 
 function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void }) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used by the commented-out row menu
   const navigate = useNavigate();
   const label = run.workflowName;
 

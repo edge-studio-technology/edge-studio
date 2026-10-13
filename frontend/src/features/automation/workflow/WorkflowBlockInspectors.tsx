@@ -4,7 +4,6 @@ import { CheckboxField } from "../../../components/ui/CheckboxField";
 import { InputField } from "../../../components/ui/InputField";
 import { SelectField } from "../../../components/ui/SelectField";
 import { SwitchField } from "../../../components/ui/SwitchField";
-import { Text } from "../../../components/ui/Text";
 import { TextareaField } from "../../../components/ui/TextareaField";
 import { AddContactModal } from "../../address-book/AddContactModal";
 import type {

@@ -196,7 +196,7 @@ integritasRouter.get("/history/:id/download-zip", async (req, res) => {
   try {
     const filePath = await writeProofSourceZip(record);
     return res.download(filePath, `integritas-proof-${record.id}.zip`);
-  } catch (error) {
+  } catch {
     return badRequest(res, "Proof ZIP is unavailable for this record");
   }
 });

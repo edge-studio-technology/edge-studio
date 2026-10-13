@@ -87,6 +87,7 @@ async function cameraHelperRequest(pathname: string, body?: unknown, timeoutMs =
       signal: controller.signal
     });
   } catch (error) {
+    // eslint-disable-next-line preserve-caught-error -- timeout replaces the abort error
     if (controller.signal.aborted) throw new Error(`request timed out after ${timeoutMs}ms`);
     throw error;
   } finally {

@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   Compass,
   Copy,
-  Download,
   Eye,
   EyeOff,
   LogOut,

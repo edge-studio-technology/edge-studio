@@ -2,8 +2,6 @@ import { ErrorAlert } from "../../../components/patterns/ErrorAlert";
 import { OptionCard } from "../../../components/patterns/OptionCard";
 import { MutedText } from "../../../components/Text";
 import {
-  inputTemplates,
-  outputTemplates,
   activeInputTemplates,
   activeOutputTemplates,
   resolveTemplateConfig,

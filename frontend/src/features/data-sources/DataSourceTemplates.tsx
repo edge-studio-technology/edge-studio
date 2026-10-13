@@ -500,7 +500,7 @@ function HardwareDetailPanel({
   );
 }
 
-function hardwareStateSummary(item: HardwareItem, statusLabel: string) {
+function hardwareStateSummary(item: HardwareItem, _statusLabel: string) {
   if (item.capability?.state === "missing_prerequisites") return "Complete the host setup steps, then refresh status.";
   if (item.capability?.available) return "Ready for device configuration.";
   if (item.capability?.enabled) return "Support is enabled but not currently usable.";

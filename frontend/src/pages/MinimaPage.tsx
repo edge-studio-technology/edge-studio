@@ -170,7 +170,7 @@ export function MinimaPage() {
 
   useEffect(() => {
     if (nodeStatus?.resync) void resync.refresh();
-  }, [nodeStatus?.resync?.id, nodeStatus?.resync?.updatedAt, resync.refresh]);
+  }, [nodeStatus?.resync?.id, nodeStatus?.resync?.updatedAt, resync.refresh]); // eslint-disable-line react-hooks/exhaustive-deps -- keyed on resync id/updatedAt
 
   async function runResync() {
     if (resyncSubmitting || actionsBlocked) return;

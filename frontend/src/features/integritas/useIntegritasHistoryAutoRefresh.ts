@@ -62,6 +62,7 @@ export function useIntegritasHistoryAutoRefresh(
       cancelled = true;
       window.clearInterval(interval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- query fields listed individually
   }, [
     shouldRefresh,
     intervalMs,

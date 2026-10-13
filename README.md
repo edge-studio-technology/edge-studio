@@ -536,7 +536,7 @@ npm run check
 docker compose build --no-cache
 ```
 
-`npm run check` runs backend and frontend TypeScript checks plus moderate-level npm audits. `docker compose build --no-cache` catches Docker build issues from a clean image context.
+`npm run check` runs ESLint (`npm run lint`), TypeScript checks, and test coverage for `backend`, `frontend`, and `update-agent`, plus moderate-level npm audits. `docker compose build --no-cache` catches Docker build issues from a clean image context.
 
 ## Troubleshooting
 

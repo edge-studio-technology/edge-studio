@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- used by the commented-out validateIntegritasApiKey
 import { requestProofUid } from "../integritas/integritas.service.js";
 
 // const VALIDATION_HASH = "0000000000000000000000000000000000000000000000000000000000000000";
