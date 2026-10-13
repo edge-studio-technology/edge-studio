@@ -30,7 +30,7 @@ ADR 0010 ordered [1] as one of the two highs. This is Phase 4 of
 1. The Ed25519 public key, as an embedded heredoc.
 2. The verifier source, as an embedded heredoc, written to a private `mktemp -d` at start of run and
    removed on exit.
-3. The verifier's runtime, pinned to the `node:20-bookworm-slim` multi-arch index digest rather than
+3. The verifier's runtime, pinned to the `node:22-bookworm-slim` multi-arch index digest rather than
    the tag.
 
 `scripts/verify-manifest.mjs` is deleted and both it and `manifest-public-key.pem` are dropped from
