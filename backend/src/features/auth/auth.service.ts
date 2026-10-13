@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { LOCAL_ADMIN_DISPLAY_NAME, TOTP_ACCOUNT_LABEL, TOTP_ENABLED } from "./auth.constants.js";
 import { recordAuditEvent } from "./audit.service.js";
 import {

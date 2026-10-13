@@ -1,13 +1,13 @@
 # Replace Native bcrypt with scrypt Plan
 
-**Status:** Not started
+**Status:** In progress
 **Created:** 2026-10-13
 **Branch:** `task/216-change-bcrypt-deps-to-something-more-stable`
 **Goal:** Hash new admin credentials with Node's built-in `crypto.scrypt`, verify existing bcrypt hashes with pure-JS `bcryptjs`, and rehash legacy hashes to scrypt on the next successful login.
 
 ## Progress
 
-- [ ] Step 1: dependencies — swap `bcrypt`/`@types/bcrypt` for `bcryptjs`
+- [x] Step 1: dependencies — swap `bcrypt`/`@types/bcrypt` for `bcryptjs` (also pointed the two existing `bcrypt` imports at `bcryptjs` so the build stays green until Steps 2–3)
 - [ ] Step 2: `password.service.ts` — scrypt hash/verify, legacy bcrypt verify, `needsRehash()`, dummy hash + tests
 - [ ] Step 3: `auth.service.ts` — scrypt dummy hash, rehash on successful login (compare-and-set) + tests
 - [ ] Docs
@@ -76,7 +76,7 @@ Tests (`backend/tests/features/auth/auth.service.test.ts`):
 - `CHANGELOG.md`: entries under `## [Unreleased] task/216-change-bcrypt-deps-to-something-more-stable` (Changed, Security), folded into the shared `## [Unreleased]` before the PR.
 - New ADR `docs/adr/0035-...` (number checked against `origin/dev` when written): scrypt now, Argon2id with Node 24 (#887), rejected native `bcrypt`/`argon2`, OWASP params, self-describing format, rehash on login only. Add it to the `docs/README.md` table.
 - `docs/qa/gaps.md` GAP-14: point at #887.
-- GitHub user wiki, updating/reinstalling page: downgrade lockout warning (confirm with the user who edits the wiki).
+- GitHub user wiki, updating/reinstalling page: downgrade lockout warning (Claude edits it, once the change is released).
 - `docs/SESSION.md` / `docs/TASKS.md`.
 
 ## Verification
