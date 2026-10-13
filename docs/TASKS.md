@@ -17,6 +17,7 @@
 
 ## In Progress
 
+- [ ] Replace native `bcrypt` with built-in `crypto.scrypt` (OpenProject #216): legacy bcrypt verified via `bcryptjs` and rehashed on login — planned on `task/216-change-bcrypt-deps-to-something-more-stable`; see `docs/plans/features/216-change-bcrypt-deps-to-something-more-stable.md`.
 - [ ] Upgrade update-agent, frontend build and installer verifier to Node 22 (OpenProject #886) — implemented and locally verified on `dev-task/886-upgrade-update-agent-frontend-build-and-installer-verifier-to-node-22`; `v0.42.3-dev.1` released and Pi fresh install + self-update verified; wiki 32-bit notice added; PR to `dev` open for review.
 - [ ] Lint CI pipeline (OpenProject #524): shared root ESLint config, root `npm run lint` in `npm run check`/CI, and the existing violations cleared — implemented and verified on `task/524-lint-ci-pipeline`; PR to `dev` open; see `docs/plans/features/524-lint-ci-pipeline.md`.
 - [ ] Incoming payment service and wallet history filtering (OpenProject #652, includes #655): synced Minima history in SQLite, server-paginated history with direction/date filters, previous-wallet marking with re-auth clear — all steps, docs, and final Pi verification (offline receive, backup restore marking, per-wallet rows) done on `task/652-implement-the-incoming-payment-service`; PR to `dev` open for review; decisions in `docs/adr/0033-persist-synced-wallet-history.md`; see `docs/plans/features/652-implement-the-incoming-payment-service.md`.
