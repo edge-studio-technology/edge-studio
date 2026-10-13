@@ -40,11 +40,10 @@ import type {
 } from "../features/data-sources/dataSourceTypes";
 import {
   getDeviceSetupGuide,
-  DeviceGuideWorkspace,
   StandardDeviceSetupGuide,
   type DeviceGuideAction,
 } from "../features/data-sources/deviceSetupGuides";
-import { Esp32FirmwareSetup } from "../features/data-sources/Esp32FirmwareSetup";
+import { Esp32SetupGuide } from "../features/data-sources/Esp32FirmwareSetup";
 import { useDeviceFormFields } from "../features/data-sources/useDeviceFormFields";
 
 const HARDWARE_REFRESH_TIMEOUT_MS = 30000;
@@ -543,9 +542,17 @@ export function DataSourcesPage() {
           )}
           {setupGuideSource.type === "mqtt" &&
           setupGuideSource.config.profile === "esp32-mqtt-board" ? (
-            <DeviceGuideWorkspace
-              guide={getDeviceSetupGuide(setupGuideSource)!}
-              overview={<Esp32FirmwareSetup source={setupGuideSource} />}
+            <Esp32SetupGuide
+              source={setupGuideSource}
+              createdWorkflowIds={guideWorkflowIdsForSource(
+                setupGuideSource,
+                createdGuideWorkflowIds,
+              )}
+              runningActionKey={runningGuideActionKey}
+              onAction={(action) => runGuideAction(setupGuideSource, action)}
+              onGoToWorkflow={(workflowId) =>
+                navigate(`/workflows/${encodeURIComponent(workflowId)}/edit`)
+              }
             />
           ) : (
             <StandardDeviceSetupGuide

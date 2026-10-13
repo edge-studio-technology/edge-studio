@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Esp32FirmwareSetup } from "../../../src/features/data-sources/Esp32FirmwareSetup";
+import { Esp32FirmwareSetup, Esp32SetupGuide } from "../../../src/features/data-sources/Esp32FirmwareSetup";
 import type { DataSource } from "../../../src/features/data-sources/dataSourceTypes";
 
 function source(overrides: Partial<DataSource> = {}): DataSource {
@@ -41,6 +41,21 @@ describe("Esp32FirmwareSetup", () => {
     expect(screen.getByText(/generated starter firmware will not connect if your broker requires authentication or TLS/)).toBeInTheDocument();
     expect(screen.getByText(/copied firmware contains the Wi-Fi password/)).toBeInTheDocument();
     expect(screen.queryByText("ESP32 broker address needed")).not.toBeInTheDocument();
+  });
+
+  it("separates firmware, flashing, and verification into guide topics", async () => {
+    const user = userEvent.setup();
+    render(<Esp32SetupGuide source={source()} />);
+
+    expect(screen.getByText(/Use this guide to configure starter firmware/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Firmware settings" }));
+    await user.type(screen.getByLabelText("Wi-Fi name"), "WorkshopWiFi");
+    await user.click(screen.getByRole("button", { name: "Flash firmware" }));
+    expect(screen.getByText("Arduino IDE steps")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Firmware settings" }));
+    expect(screen.getByLabelText("Wi-Fi name")).toHaveValue("WorkshopWiFi");
+    await user.click(screen.getByRole("button", { name: "Verify" }));
+    expect(screen.getByText(/Wait up to 30 seconds for the first Ping message/)).toBeInTheDocument();
   });
 
   it("shows an override warning and lets the operator enter a reachable broker host/port for a localhost broker", async () => {

@@ -75,7 +75,9 @@ export function ErrorAlert({
         </div>
         <div className="gap-detail-tight grid min-w-0 flex-1">
           <div className="gap-detail-tight flex items-center">
-            <span className={cx("type-meta font-emphasis", statusIconClass[status])}>{statusLabel[status]}</span>
+            <span className={cx("type-meta border-r pr-detail-tight font-emphasis", statusIconClass[status], statusShellClass[status])}>
+              {statusLabel[status]}
+            </span>
             {title ? <strong className="type-body-em text-text-primary">{title}</strong> : null}
           </div>
           {variant === "full" && children ? (

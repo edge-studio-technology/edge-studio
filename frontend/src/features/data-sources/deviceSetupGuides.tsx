@@ -47,6 +47,12 @@ export type DeviceSetupGuide = {
   actions?: DeviceGuideAction[];
 };
 
+export type DeviceGuideCustomTopic = {
+  id: string;
+  title: string;
+  content: ReactNode;
+};
+
 export function hasDeviceSetupGuide(source: DataSource) {
   return Boolean(getDeviceSetupGuide(source));
 }
@@ -115,6 +121,7 @@ export function StandardDeviceSetupGuide({
 type GuideTopic =
   | { id: "overview"; title: string }
   | { id: `section:${number}`; title: string; section: GuideSection }
+  | { id: `custom:${string}`; title: string; content: ReactNode }
   | { id: "actions"; title: string }
   | { id: "documentation"; title: string };
 
@@ -125,6 +132,7 @@ export function DeviceGuideWorkspace({
   onAction,
   onGoToWorkflow,
   overview,
+  customTopics = [],
 }: {
   guide: DeviceSetupGuide;
   createdWorkflowIds?: Record<string, string>;
@@ -132,10 +140,16 @@ export function DeviceGuideWorkspace({
   onAction?: (action: DeviceGuideAction) => void;
   onGoToWorkflow?: (workflowId: string) => void;
   overview?: ReactNode;
+  customTopics?: DeviceGuideCustomTopic[];
 }) {
   const [activeTopicId, setActiveTopicId] = useState<GuideTopic["id"]>("overview");
   const topics: GuideTopic[] = [
     { id: "overview", title: "Overview" },
+    ...customTopics.map((topic) => ({
+      id: `custom:${topic.id}` as const,
+      title: topic.title,
+      content: topic.content,
+    })),
     ...guide.sections
       .map((section, index) => ({ id: `section:${index}` as const, title: section.title, section })),
     ...(guide.actions?.length ? [{ id: "actions" as const, title: "Guide actions" }] : []),
@@ -190,6 +204,7 @@ export function DeviceGuideWorkspace({
       </nav>
       <div className="border-stroke-secondary bg-surface-primary min-h-0 min-w-0 overflow-y-auto border-l px-detail-next pb-pad-close pl-6 pt-pad-tight">
         {activeTopic.id === "overview" && <GuideOverview guide={guide} content={overview} />}
+        {"content" in activeTopic && activeTopic.content}
         {"section" in activeTopic && <GuideSectionCard section={activeTopic.section} />}
         {activeTopic.id === "actions" && guide.actions && <GuideActions actions={guide.actions} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} />}
         {activeTopic.id === "documentation" && guide.docPath && <GuideDocumentation docPath={guide.docPath} />}

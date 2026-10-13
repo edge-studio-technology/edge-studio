@@ -1,7 +1,93 @@
 import { useState } from "react";
 import { Button } from "../../components/Button";
 import { ErrorAlert } from "../../components/ErrorAlert";
+import {
+  DeviceGuideWorkspace,
+  getDeviceSetupGuide,
+  type DeviceGuideAction,
+  type DeviceGuideCustomTopic,
+} from "./deviceSetupGuides";
 import type { DataSource } from "./dataSourceTypes";
+
+export function Esp32SetupGuide({
+  source,
+  createdWorkflowIds,
+  runningActionKey,
+  onAction,
+  onGoToWorkflow,
+}: {
+  source: DataSource;
+  createdWorkflowIds?: Record<string, string>;
+  runningActionKey?: string | null;
+  onAction?: (action: DeviceGuideAction) => void;
+  onGoToWorkflow?: (workflowId: string) => void;
+}) {
+  const [flashMethod, setFlashMethod] = useState<"ide" | "cli">("ide");
+  const [wifiSsid, setWifiSsid] = useState("");
+  const [wifiPassword, setWifiPassword] = useState("");
+  const savedBroker = esp32BrokerParts(source.config.brokerUrl ?? "mqtt://localhost:1883");
+  const [esp32BrokerHost, setEsp32BrokerHost] = useState(savedBroker.host);
+  const [esp32BrokerPort, setEsp32BrokerPort] = useState(String(savedBroker.port));
+  const broker = {
+    host: esp32BrokerHost.trim() || savedBroker.host,
+    port: Number(esp32BrokerPort) || savedBroker.port,
+  };
+  const firmware = esp32Firmware({
+    deviceName: source.name,
+    mqttHost: broker.host,
+    mqttPort: broker.port,
+    topic: source.config.topic ?? "sensors/esp32/data",
+    wifiSsid,
+    wifiPassword,
+  });
+  const topics: DeviceGuideCustomTopic[] = [
+    {
+      id: "firmware-settings",
+      title: "Firmware settings",
+      content: (
+        <Esp32Topic title="Firmware settings" description="Set Wi-Fi and the broker address the ESP32 can reach, then copy the generated sketch.">
+          {savedBroker.needsEsp32Override && (
+            <ErrorAlert status="warning" title="ESP32 broker address needed">
+              {savedBroker.reason} Edge Studio can still use this address, but the ESP32 cannot. Enter the broker host and port reachable from Wi-Fi/LAN before flashing.
+            </ErrorAlert>
+          )}
+          <div className="gap-detail-close grid md:grid-cols-2">
+            <label className="type-body-em text-text-primary gap-detail-next grid">ESP32 broker host<input value={esp32BrokerHost} onChange={(event) => setEsp32BrokerHost(event.target.value)} placeholder="192.168.1.75" /></label>
+            <label className="type-body-em text-text-primary gap-detail-next grid">ESP32 broker port<input value={esp32BrokerPort} onChange={(event) => setEsp32BrokerPort(event.target.value)} placeholder="1883" inputMode="numeric" /></label>
+          </div>
+          <FirmwareStepContent firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} />
+        </Esp32Topic>
+      ),
+    },
+    {
+      id: "flash-firmware",
+      title: "Flash firmware",
+      content: (
+        <Esp32Topic title="Flash firmware" description="Connect the ESP32 by USB, choose a flashing method, then work through the numbered steps.">
+          <div className="gap-detail-next flex flex-wrap">
+            <Button type="button" size="sm" variant={flashMethod === "ide" ? "primary" : "secondary"} onClick={() => setFlashMethod("ide")}>Arduino IDE</Button>
+            <Button type="button" size="sm" variant={flashMethod === "cli" ? "primary" : "secondary"} onClick={() => setFlashMethod("cli")}>Arduino CLI</Button>
+          </div>
+          {flashMethod === "ide" ? <ArduinoIdeSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} /> : <ArduinoCliSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} />}
+        </Esp32Topic>
+      ),
+    },
+    {
+      id: "verify",
+      title: "Verify",
+      content: <Esp32Topic title="Verify" description="Confirm the board connects to Wi-Fi and publishes MQTT messages before enabling a workflow."><ol className="type-body text-text-secondary gap-detail-next m-0 grid pl-5"><li>Open Serial Monitor at <InlineCode>115200</InlineCode> and confirm Wi-Fi connected, MQTT connected, and Publishing messages.</li><li>Wait up to 30 seconds for the first Ping message; the starter firmware publishes again every 30 seconds.</li><li>Confirm the MQTT source receives the JSON message in Edge Studio.</li></ol></Esp32Topic>,
+    },
+  ];
+  return <DeviceGuideWorkspace guide={getDeviceSetupGuide(source)!} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} overview={<Esp32Overview />} customTopics={topics} />;
+}
+
+function Esp32Overview() {
+  return <div className="gap-detail-near grid"><p className="type-body text-text-secondary m-0">Use this guide to configure starter firmware, flash it to the board, then verify MQTT messages before enabling a workflow.</p><ErrorAlert status="warning" title="Broker compatibility">The generated starter firmware supports only an unauthenticated, non-TLS <InlineCode>mqtt://</InlineCode> broker reachable from the ESP32. Use a protected LAN broker or firmware that supports your broker's authentication and TLS requirements.</ErrorAlert></div>;
+}
+
+function Esp32Topic({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return <div className="gap-detail-near grid"><div><h3 className="type-title text-text-primary m-0">{title}</h3><p className="type-body text-text-secondary mt-detail-tight m-0">{description}</p></div>{children}</div>;
+}
 
 export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
   const [flashMethod, setFlashMethod] = useState<"ide" | "cli">("ide");
