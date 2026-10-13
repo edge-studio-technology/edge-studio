@@ -45,7 +45,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 ### P2
 
-- [ ] **GAP-14** Argon2id instead of bcrypt
+- [ ] **GAP-14** Argon2id instead of scrypt — native bcrypt replaced with built-in scrypt in #216 ([ADR 0035](../adr/0035-hash-admin-credentials-with-scrypt.md)); Argon2id and removal of legacy bcrypt verification tracked in #887.
 - [ ] **GAP-15** `__Host-` session cookie prefix
 - [ ] **GAP-16** CLI authentication (401 today)
 - [ ] **GAP-18** Pen test / OWASP ZAP scan

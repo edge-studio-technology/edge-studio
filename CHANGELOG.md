@@ -4,6 +4,17 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] task/216-change-bcrypt-deps-to-something-more-stable
+
+### Changed
+
+- Admin PINs and passwords are hashed with Node's built-in scrypt instead of the native `bcrypt` package; see `SECURITY.md`.
+- Existing bcrypt-hashed credentials keep working and are converted to scrypt on the next successful login.
+
+### Security
+
+- After a login converts the stored credential, manually reinstalling an older release locks the admin out; in-app updates are unaffected.
+
 ## [Unreleased]
 
 ### Added

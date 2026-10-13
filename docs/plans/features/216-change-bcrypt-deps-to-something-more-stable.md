@@ -10,7 +10,7 @@
 - [x] Step 1: dependencies — swap `bcrypt`/`@types/bcrypt` for `bcryptjs` (also pointed the two existing `bcrypt` imports at `bcryptjs` so the build stays green until Steps 2–3; pinned exactly to `3.0.3`) — `ea7b1482`; CI outdated warning added
 - [x] Step 2: `password.service.ts` — scrypt hash/verify, legacy bcrypt verify, `needsRehash()`, dummy hash + tests (bounds: `128·N·r` ≤ 64 MiB, `p` ≤ 16; `needsRehash()` is true for anything not current scrypt; the code comment already points at `docs/adr/0035-hash-admin-credentials-with-scrypt.md`, so the ADR uses that name)
 - [x] Step 3: `auth.service.ts` — scrypt dummy hash, rehash on successful login (compare-and-set) + tests (also TOTP-enabled migration tests; mutation-checked: removing the rehash or making the write unconditional fails tests)
-- [ ] Docs
+- [x] Docs — SECURITY, README, CHANGELOG branch section, ADR 0035 + `docs/README.md` table, GAP-14. Still open: wiki downgrade warning (at release), SESSION/TASKS at the end
 - [ ] Verification
 
 ## Context
