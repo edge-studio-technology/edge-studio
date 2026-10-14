@@ -52,8 +52,8 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | [../SECURITY.md](../SECURITY.md)                                                     | Security policy: supported use, guidelines, vulnerability reporting                       |
 | [security/auth-and-transport.md](./security/auth-and-transport.md)                   | LAN access, TLS trust, API keys, `APP_SECRET`                                             |
-| [security/host-and-infrastructure.md](./security/host-and-infrastructure.md)         | Docker socket, file browser, path traversal, SQLite permissions, supply chain, installer  |
-| [security/wallet-and-tokens.md](./security/wallet-and-tokens.md)                     | Seed phrase import, automated transactions, debug clears, token creation                  |
+| [security/host-and-infrastructure.md](./security/host-and-infrastructure.md)         | Docker socket, path traversal, SQLite permissions, supply chain, installer                |
+| [security/wallet-and-tokens.md](./security/wallet-and-tokens.md)                     | Destination validation, local address book, automated transactions, history clear        |
 | [security/data-sources-and-automation.md](./security/data-sources-and-automation.md) | Minima RPC/resync/restart/peers, data source URLs, webhooks, MQTT, GPIO, Raspberry Pi Camera, Integritas proxy |
 | [security/low-priority-and-future.md](./security/low-priority-and-future.md)         | Rate limiting, error detail, logging hygiene, missing security tests                      |
 | [security/external-review-2026-09-03.md](./security/external-review-2026-09-03.md)   | External static security review of `571ba70` (14 findings), kept verbatim — see [adr/0010](./adr/0010-security-review-audit-verdict.md) for the audited verdict and fix ordering |
@@ -65,7 +65,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | Plan | Status |
 | ---- | ------ |
 | [plans/security/](./plans/security/README.md) | In progress — Phases 1-5 done and in review; owns all V1.5 security work |
-| [plans/remove-totp.md](./plans/remove-totp.md) | On hold — candidate analysis; removal not decided |
+| [plans/remove-totp.md](./plans/remove-totp.md) | Superseded — TOTP removed in #686 (ADR 0036) |
 | [plans/block-automation-workflows.md](./plans/block-automation-workflows.md) | In progress |
 | [plans/workflow-redesign.md](./plans/workflow-redesign.md) | In progress |
 | [plans/esp32-mqtt-sensor-onboarding.md](./plans/esp32-mqtt-sensor-onboarding.md) | In progress |
@@ -103,7 +103,7 @@ of carrying the full rationale inline.
 | [adr/0009-manifest-fallback-to-github-raw.md](./adr/0009-manifest-fallback-to-github-raw.md) | Default manifest delivery switched to our own domain, with `update-agent` falling back to `raw.githubusercontent.com` on fetch failure |
 | [adr/0010-security-review-audit-verdict.md](./adr/0010-security-review-audit-verdict.md) | Second-opinion audit of the external V1.5 security review: all 14 findings confirmed, one likelihood downgrade, one missed SSRF-to-Minima-RPC finding, and the resulting fix ordering |
 | [adr/0011-remove-unused-totp.md](./adr/0011-remove-unused-totp.md) | Superseded proposal to remove the dormant TOTP implementation |
-| [adr/0012-keep-totp-decision-outside-v1-5-hardening.md](./adr/0012-keep-totp-decision-outside-v1-5-hardening.md) | V1.5 hardens the dormant implementation without deciding whether TOTP is later retained, redesigned, re-enabled, or removed |
+| [adr/0012-keep-totp-decision-outside-v1-5-hardening.md](./adr/0012-keep-totp-decision-outside-v1-5-hardening.md) | V1.5 hardens the dormant implementation without deciding whether TOTP is later retained, redesigned, re-enabled, or removed; superseded by ADR 0036 |
 | [adr/0013-secret-redaction-boundary.md](./adr/0013-secret-redaction-boundary.md) | Single redaction boundary: `redactDeep()` vs `redactStrings()` split, write-time redaction, fail-closed depth limit, and the `isSecretKey()` KISS simplification |
 | [adr/0018-nginx-upload-request-limit.md](./adr/0018-nginx-upload-request-limit.md) | Nginx derives bounded multipart headroom from the backend upload settings instead of carrying a second operator-configured limit |
 | [adr/0019-i2c-prerequisite-setup-action.md](./adr/0019-i2c-prerequisite-setup-action.md) | I2C prerequisite setup: fixed Raspberry Pi OS host-agent action with manual fallback |
@@ -123,6 +123,7 @@ of carrying the full rationale inline.
 | [adr/0033-persist-synced-wallet-history.md](./adr/0033-persist-synced-wallet-history.md) | Wallet history synced from Minima `history` into SQLite, marked by wallet fingerprint, cleared only with admin re-auth, confirmation time from the block |
 | [adr/0034-observe-resync-after-client-timeout.md](./adr/0034-observe-resync-after-client-timeout.md) | Resync transport uncertainty, automatic-restart observation, separate budgets, and recovery evidence |
 | [adr/0035-hash-admin-credentials-with-scrypt.md](./adr/0035-hash-admin-credentials-with-scrypt.md) | Admin credentials hashed with built-in scrypt; legacy bcrypt verified via pinned `bcryptjs` and rehashed on login until #887 |
+| [adr/0036-remove-dead-code-and-unused-features.md](./adr/0036-remove-dead-code-and-unused-features.md) | Dead code, seed import, token creation, TOTP (schema dropped), debug and unused API routes, and the `/setup` page removed; supersedes ADR 0012 |
 
 ---
 

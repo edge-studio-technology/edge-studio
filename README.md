@@ -272,14 +272,8 @@ The Minima page also exposes node backup & restore: a Minima `backup` includes t
 The Wallet page exposes allowlisted wallet/account actions through the backend:
 
 - global balance via Minima `balance` (`GET /api/wallet`)
-- labeled accounts mapped to the node's 64-address pool (`GET/POST /api/wallet/accounts`)
-- per-account holdings via Minima `coins relevant:true`
 - wallet history (received, sent, and self-transfers) synced from Minima `history` into SQLite (`GET /api/wallet/history`)
 - payment submission via Minima `send` (`POST /api/wallet/send-payment`)
-
-`POST /api/wallet/accounts` with `{ label }` creates a named account on a random default address. With `{ label, address }` it labels an existing funded address (migration/recovery). This does not create new seed material.
-
-`GET /api/wallet/accounts` returns labeled accounts with per-address MINIMA/token balances plus `unlabeledFunded` addresses that have funds but no label yet.
 
 Minima RPC commands should be transmitted as a single percent-encoded URL path command, not as query parameters. For example:
 
