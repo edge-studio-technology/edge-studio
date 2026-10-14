@@ -4,7 +4,6 @@ export type Tone = "neutral" | "good" | "warn" | "error";
 export type Status = "neutral" | "success" | "warning" | "error";
 export type NavId =
   | "dashboard"
-  | "setup"
   | "node"
   | "wallet"
   | "integritas"

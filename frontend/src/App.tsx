@@ -13,7 +13,6 @@ import { MinimaPage } from "./pages/MinimaPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { AutomationPage } from "./pages/AutomationPage";
 import { AutomationHelpPage } from "./pages/AutomationHelpPage";
-import { SetupPage } from "./pages/SetupPage";
 import { WalletPage } from "./pages/WalletPage";
 import { AuthSettingsPage } from "./pages/AuthSettingsPage";
 import { UpdatePage } from "./pages/UpdatePage";
@@ -33,7 +32,6 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/setup" element={<SetupPage />} />
         <Route path="/node" element={<MinimaPage />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/integritas" element={<IntegritasPage />} />
