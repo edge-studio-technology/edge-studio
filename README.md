@@ -478,7 +478,7 @@ Feedback includes the current page, feedback area, feedback type, optional bug/f
 
 Edge Studio saves feedback locally first, then sends the single new submission to `https://integritas.technology/api/feedback`. The modal requires per-submission consent before sending device metadata, browser context, and non-secret usage stats off the Pi.
 
-If the Integritas API key is missing or the hosted endpoint is unavailable, the local JSON file remains the durable fallback. Retrying is safe because each submission keeps its Pi-generated id.
+If the Integritas API key is missing or the hosted endpoint is unavailable, the local JSON file remains the durable fallback.
 
 The CLI does not send session cookies in V1. Operational CLI commands that call protected APIs return `401 Unauthorized` until a future CLI auth story is added. Use the browser UI for authenticated operations.
 
@@ -633,7 +633,7 @@ frontend container
   - React static app
   - Nginx
   - Proxies /api to backend:3000
-  - Sidebar pages: App status, Minima, Integritas, File explorer
+  - Sidebar pages: App status, Minima, Integritas
   |
   v
 backend container
@@ -641,9 +641,8 @@ backend container
   - SQLite database at /data/edge-studio.db
   - GET /api/health
   - GET /api/status/overview
-  - GET /api/files
   - GET /api/minima/status
-- Integritas hash, stamp, status, verify endpoints
+- Integritas file stamping, proof history, and proof verification endpoints
   - File uploads (stamp a file, verify a proof file, restore a Minima backup) are limited to `UPLOAD_MAX_FILE_BYTES` (default 100 MB) and `UPLOAD_MAX_FILES`/`UPLOAD_MAX_FIELDS` per request; Nginx derives multipart request headroom from the same settings, and an oversized file returns a JSON `413` from the backend. Raise `UPLOAD_MAX_FILE_BYTES` if you stamp larger files — it has no hard maximum.
 - Device APIs and historic read log at `/api/data-sources` and `/api/data-reads`
   - HTTP source and HTTP output target URLs must use `http` or `https` and must not point at Edge Studio's own container network, its gateway, a container service name, loopback, or a link-local address. The check runs when the device is saved and again on every fetch, follows redirects one hop at a time, and pins the address it checked to the connection. LAN and public destinations are unaffected. Set `EDGE_STUDIO_DOCKER_SUBNET` / `EDGE_STUDIO_DOCKER_GATEWAY` if the Compose network differs from the defaults.
@@ -686,41 +685,12 @@ Feedback:
 ```http
 POST /api/feedback
 GET /api/feedback/config
-POST /api/feedback/retry-pending
 GET /api/feedback/export
 ```
 
-`POST /api/feedback` appends a submission to the local aggregate JSON feedback export and sends that single submission to the hosted Integritas feedback endpoint when an API key is configured. `GET /api/feedback/config` returns non-secret hosted feedback state, `POST /api/feedback/retry-pending` retries pending or failed hosted uploads for admins, and `GET /api/feedback/export` downloads the hidden local fallback file.
+`POST /api/feedback` appends a submission to the local aggregate JSON feedback export and sends that single submission to the hosted Integritas feedback endpoint when an API key is configured. `GET /api/feedback/config` returns non-secret hosted feedback state, and `GET /api/feedback/export` downloads the hidden local fallback file.
 
 `/api/status/overview` returns status for the frontend, backend, Minima node, and Integritas API, plus Docker container CPU/memory/image-size data when the Docker socket is available.
-
-Files:
-
-```http
-GET /api/files
-GET /api/files?path=/Documents
-```
-
-Example response:
-
-```json
-{
-  "path": "/Documents",
-  "items": [
-    {
-      "name": "test.txt",
-      "type": "file",
-      "size": 1234
-    },
-    {
-      "name": "Pictures",
-      "type": "directory"
-    }
-  ]
-}
-```
-
-Path traversal attempts such as `../../etc/passwd` are blocked because the backend resolves the requested path and verifies that it remains inside `/host-files`.
 
 Minima status:
 
@@ -794,7 +764,6 @@ GET /api/wallet
 GET /api/wallet/history
 POST /api/wallet/history/clear-previous
 POST /api/wallet/send-payment
-GET /api/wallet/payment-status/:txpowid
 POST /api/wallet/receive-address
 ```
 
@@ -824,10 +793,6 @@ Integritas:
 
 ```http
 GET /api/integritas/config
-POST /api/integritas/hash
-POST /api/integritas/stamp
-POST /api/integritas/status
-POST /api/integritas/verify
 ```
 
 Integritas Connect (device linking):
@@ -838,7 +803,7 @@ GET /api/auth/connect/status
 GET /api/user/profile
 ```
 
-The frontend sends canonical bytes and proof payloads to the backend. The backend performs SHA3-256 hashing and calls Integritas with the Connect-linked API key from `integritas_auth.api_key_enc`.
+The frontend sends files and proof files to the backend. The backend performs SHA3-256 hashing and calls Integritas with the Connect-linked API key from `integritas_auth.api_key_enc`.
 
 The backend uses the first available source in that order. Install with a fallback Integritas API key:
 

@@ -240,35 +240,6 @@ export async function appendFeedbackSubmission(input: FeedbackInput, user: Sessi
   return { submission: updatedSubmission ?? { ...submission, remoteDelivery }, fileName: FEEDBACK_FILE, exportUrl: "/api/feedback/export" };
 }
 
-export async function retryPendingFeedback(user: SessionUser) {
-  const config = getFeedbackConfig();
-  const apiKey = getIntegritasApiKey();
-  if (!config.hostedFeedbackEnabled || !apiKey) {
-    const document = readFeedbackDocument(getFeedbackExportPath(), user, new Date().toISOString());
-    return { sent: 0, failed: 0, skipped: countRetryableSubmissions(document) };
-  }
-
-  const filePath = getFeedbackExportPath();
-  const now = new Date().toISOString();
-  const document = readFeedbackDocument(filePath, user, now);
-  let sent = 0;
-  let failed = 0;
-  let skipped = 0;
-
-  for (const submission of document.submissions) {
-    if (!isRetryableSubmission(submission)) {
-      skipped += 1;
-      continue;
-    }
-    const remoteDelivery = await deliverSubmission(document.metadata, submission, apiKey);
-    updateSubmissionRemoteDelivery(filePath, user, submission.id, remoteDelivery);
-    if (remoteDelivery.status === "sent") sent += 1;
-    else failed += 1;
-  }
-
-  return { sent, failed, skipped };
-}
-
 export function getFeedbackExport(user: SessionUser) {
   const filePath = getFeedbackExportPath();
   if (!fs.existsSync(filePath)) {
@@ -440,14 +411,6 @@ function updateSubmissionRemoteDelivery(filePath: string, user: SessionUser, sub
   if (!updatedSubmission) return null;
   writeJsonAtomically(filePath, { ...existing, metadata: buildMetadata(user, existing.metadata.createdAt || now, now), submissions });
   return updatedSubmission;
-}
-
-function isRetryableSubmission(submission: FeedbackSubmission) {
-  return submission.remoteDelivery?.status === "pending" || submission.remoteDelivery?.status === "failed";
-}
-
-function countRetryableSubmissions(document: FeedbackDocument) {
-  return document.submissions.filter(isRetryableSubmission).length;
 }
 
 function buildMetadata(user: SessionUser, createdAt: string, updatedAt: string): FeedbackDocument["metadata"] {

@@ -9,7 +9,6 @@ const { sendPaymentMock, recordWalletSendHistoryMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../src/features/wallet/wallet.service.js", () => ({
-  getPaymentStatus: vi.fn(),
   getReceiveAddress: vi.fn(),
   getWalletStatus: vi.fn(),
   recordWalletSendHistory: recordWalletSendHistoryMock,
@@ -140,12 +139,6 @@ describe("wallet routes", () => {
     assert.equal(response.status, 400);
     assert.match(response.body.error, /valid Minima Mx or 0x address/);
     assert.equal(sendPaymentMock.mock.calls.length, 0);
-  });
-
-  it("rejects a non-hex TxPoW ID before it reaches the Minima command", async () => {
-    const response = await request(testApp()).get(`/api/wallet/payment-status/${encodeURIComponent("0xAB max:1")}`);
-    assert.equal(response.status, 400);
-    assert.match(response.body.error, /txpowid must be a 0x hex value/);
   });
 
   it("syncs, then returns a page of history with the parsed filters", async () => {

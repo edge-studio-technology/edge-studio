@@ -9,7 +9,6 @@ vi.mock("../../../src/lib/api", () => ({
 }));
 
 import {
-  getPaymentStatus,
   getReceiveAddress,
   getWalletStatus,
   listWalletHistory,
@@ -46,16 +45,6 @@ describe("walletApi", () => {
     const result = await sendPayment(body);
 
     expect(postJson).toHaveBeenCalledWith("/api/wallet/send-payment", body);
-    expect(result).toBe(response);
-  });
-
-  it("getPaymentStatus GETs the payment-status endpoint with an encoded txpowId", async () => {
-    const response = { txpowId: "0x ab", status: "confirmed" as const, checkedAt: "2026-01-01T00:00:00Z" };
-    getJson.mockResolvedValue(response);
-
-    const result = await getPaymentStatus("0x ab");
-
-    expect(getJson).toHaveBeenCalledWith("/api/wallet/payment-status/0x%20ab");
     expect(result).toBe(response);
   });
 

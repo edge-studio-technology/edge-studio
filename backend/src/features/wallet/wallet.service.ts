@@ -5,9 +5,8 @@ import { isMinimaAddress } from "../../shared/minima-address.js";
 import { redactSecrets } from "../../shared/redact.js";
 import { getComposeServiceContainer, inspectContainer } from "../status/docker.service.js";
 import { getWalletFingerprint } from "./wallet-history.service.js";
-import { isTxPowId, parseAddressResponse, parseBalanceResponse, parseLocalWalletAddressesResponse, parseOnchainResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
+import { parseAddressResponse, parseBalanceResponse, parseLocalWalletAddressesResponse, parseSendResponse } from "./wallet.parse.js";
 import type {
-  PaymentStatus,
   ReceiveAddress,
   SendPaymentRequest,
   SendPaymentResult,
@@ -60,16 +59,6 @@ export async function sendPayment({ address, amount, tokenId = "0x00" }: SendPay
   if (!Number.isFinite(parsed) || parsed <= 0) throw new Error("Amount must be a positive number");
   const result = await runMinimaPathCommand(`send amount:${amount} address:${address} tokenid:${tokenId}`, 10_000);
   return parseSendResponse(result.body);
-}
-
-export async function getPaymentStatus(txpowId: string): Promise<PaymentStatus> {
-  if (!isTxPowId(txpowId)) throw new Error("TxPoW ID must be a 0x hex value");
-  const onchain = await runMinimaPathCommand(`txpow onchain:${txpowId}`);
-  if (parseOnchainResponse(onchain.body).found) {
-    return { txpowId, status: "confirmed", checkedAt: new Date().toISOString() };
-  }
-  const result = await runMinimaPathCommand(`txpow txpowid:${txpowId}`);
-  return parsePaymentStatusResponse(result.body, txpowId);
 }
 
 /** `txpowId` is the pre-mined ID `send` returned; `transactionId` links the row to the mined TxPoW. */

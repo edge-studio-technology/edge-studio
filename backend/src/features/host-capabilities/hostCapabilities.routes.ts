@@ -2,7 +2,7 @@ import { Router } from "express";
 import { dependencyUnavailable } from "../../shared/api-error.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
-import { disableHostCameraCapability, disableHostGpioCapability, disableHostMqttCapability, disableHostSensorCapability, enableHostCameraCapability, enableHostGpioCapability, enableHostMqttCapability, enableHostSensorCapability, getHostCameraCapability, getHostGpioCapability, getHostMqttCapability, getHostSensorCapability, listHostCapabilities, setupHostSensorPrerequisites, type HostCapability } from "./hostCapabilities.service.js";
+import { disableHostCameraCapability, disableHostGpioCapability, disableHostMqttCapability, disableHostSensorCapability, enableHostCameraCapability, enableHostGpioCapability, enableHostMqttCapability, enableHostSensorCapability, listHostCapabilities, setupHostSensorPrerequisites, type HostCapability } from "./hostCapabilities.service.js";
 
 export const hostCapabilitiesRouter = Router();
 
@@ -11,38 +11,6 @@ hostCapabilitiesRouter.get("/", async (_req, res) => {
     return res.json(await listHostCapabilities());
   } catch (error) {
     return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to read host capabilities");
-  }
-});
-
-hostCapabilitiesRouter.get("/camera", async (_req, res) => {
-  try {
-    return res.json(await getHostCameraCapability());
-  } catch (error) {
-    return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to read camera capability");
-  }
-});
-
-hostCapabilitiesRouter.get("/gpio", async (_req, res) => {
-  try {
-    return res.json(await getHostGpioCapability());
-  } catch (error) {
-    return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to read GPIO capability");
-  }
-});
-
-hostCapabilitiesRouter.get("/sensors", async (_req, res) => {
-  try {
-    return res.json(await getHostSensorCapability());
-  } catch (error) {
-    return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to read sensor capability");
-  }
-});
-
-hostCapabilitiesRouter.get("/mqtt", async (_req, res) => {
-  try {
-    return res.json(await getHostMqttCapability());
-  } catch (error) {
-    return dependencyUnavailable(res, error instanceof Error ? error.message : "Failed to read MQTT capability");
   }
 });
 

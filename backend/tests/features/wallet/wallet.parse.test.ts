@@ -10,7 +10,6 @@ import {
   parseLocalWalletAddressesResponse,
   parseOnchainResponse,
   parseTxPowTimeResponse,
-  parsePaymentStatusResponse,
   parseSendResponse,
   parseTrackedScriptAddressesResponse
 } from "../../../src/features/wallet/wallet.parse.js";
@@ -205,23 +204,6 @@ describe("isTxPowId", () => {
     assert.equal(isTxPowId("0xAB12"), true);
     for (const value of ["", "0x", "AB12", "0xZZ", "0x12 max:1", `0x${"a".repeat(129)}`]) {
       assert.equal(isTxPowId(value), false, value);
-    }
-  });
-});
-
-describe("parsePaymentStatusResponse", () => {
-  it("returns pending when Minima returns the TxPoW itself as the response", () => {
-    const result = parsePaymentStatusResponse({ status: true, response: { txpowid: "0xAB", isblock: false } }, "0xab");
-    assert.equal(result.status, "pending");
-    assert.equal(result.txpowId, "0xab");
-    assert.ok(result.checkedAt);
-  });
-
-  it("returns unknown for failures, missing responses, and a different TxPoW", () => {
-    for (const body of [null, { status: false, error: "TxPoW not found : 0xAB" }, { status: true },
-      { response: { txpowid: "0xAB" } }, { status: true, response: { txpowid: "0xCD" } },
-      { status: true, response: { txpow: { txpowid: "0xAB" } } }]) {
-      assert.equal(parsePaymentStatusResponse(body, "0xAB").status, "unknown");
     }
   });
 });

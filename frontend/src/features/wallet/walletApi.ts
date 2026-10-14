@@ -1,7 +1,6 @@
 import { getJson, postJson } from "../../lib/api";
 import { buildListQueryString } from "../../lib/paginated";
 import type {
-  PaymentStatus,
   ReceiveAddress,
   SendPaymentRequest,
   SendPaymentResult,
@@ -20,10 +19,6 @@ export function getReceiveAddress() {
 
 export function sendPayment(body: SendPaymentRequest) {
   return postJson<SendPaymentResult>("/api/wallet/send-payment", body);
-}
-
-export function getPaymentStatus(txpowId: string) {
-  return getJson<PaymentStatus>(`/api/wallet/payment-status/${encodeURIComponent(txpowId)}`);
 }
 
 export function listWalletHistory({ direction, from, to, ...listQuery }: WalletHistoryQuery = {}) {

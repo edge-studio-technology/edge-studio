@@ -7,14 +7,13 @@ import { requireRole } from "../auth/auth.middleware.js";
 import { authRateLimiter } from "../auth/rate-limit.middleware.js";
 import { MinimaBackupError, verifyCurrentPassword } from "../minima/minima-backup.service.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
-import { isTxPowId } from "./wallet.parse.js";
 import {
   clearPreviousWalletHistory,
   listWalletHistory,
   syncWalletHistoryIfStale,
   WalletReplacementBusyError
 } from "./wallet-history.service.js";
-import { getPaymentStatus, getReceiveAddress, getWalletStatus, recordWalletSendHistory, sendPayment } from "./wallet.service.js";
+import { getReceiveAddress, getWalletStatus, recordWalletSendHistory, sendPayment } from "./wallet.service.js";
 import { WALLET_HISTORY_STATUSES, type WalletHistoryDirection } from "./wallet.types.js";
 
 export const walletRouter = Router();
@@ -142,15 +141,5 @@ walletRouter.post("/history/clear-previous", requireRole("admin"), authRateLimit
     if (error instanceof WalletReplacementBusyError) return conflict(res, error.message);
     const message = error instanceof Error ? error.message : "Unknown error";
     dependencyUnavailable(res, "Could not read the current wallet from Minima.", message);
-  }
-});
-
-walletRouter.get("/payment-status/:txpowid", async (req, res) => {
-  if (!isTxPowId(req.params.txpowid)) return badRequest(res, "txpowid must be a 0x hex value", { field: "txpowid" }, { ok: false });
-  try {
-    res.json(await getPaymentStatus(req.params.txpowid));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    dependencyUnavailable(res, message, message, undefined, { ok: false });
   }
 });

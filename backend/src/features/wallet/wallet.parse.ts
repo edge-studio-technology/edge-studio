@@ -1,7 +1,6 @@
 import { canonicalMinimaAddress } from "../../shared/minima-address.js";
 import type {
   ChainHistoryEntry,
-  PaymentStatus,
   ReceiveAddress,
   SendPaymentResult,
   TokenBalance,
@@ -136,17 +135,6 @@ export function parseSendResponse(body: unknown): SendPaymentResult {
 
 export function isTxPowId(value: string): boolean {
   return /^0x[0-9a-f]{1,128}$/i.test(value);
-}
-
-// `txpow txpowid:` returns the TxPoW itself as `response`; a TxPoW the node knows but has not
-// found on chain is pending.
-export function parsePaymentStatusResponse(body: unknown, txpowId: string): PaymentStatus {
-  const checkedAt = new Date().toISOString();
-  const record = asRecord(body);
-  const response = asRecord(record?.response);
-  const known = record?.status === true && typeof response?.txpowid === "string"
-    && response.txpowid.toLowerCase() === txpowId.toLowerCase();
-  return { txpowId, status: known ? "pending" : "unknown", checkedAt };
 }
 
 function asNonNegativeInteger(value: unknown): number | null {

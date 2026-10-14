@@ -7,7 +7,7 @@ import { automationWriteRateLimiter } from "../auth/rate-limit.middleware.js";
 import { syncGpioDataSources } from "../data-sources/gpioIngestion.service.js";
 import { syncMqttDataSources } from "../data-sources/mqttIngestion.service.js";
 import { createAutomationBlock, createAutomationWorkflow, deleteAutomationBlock, deleteAutomationWorkflow, duplicateAutomationWorkflow, getAutomationWorkflow, listAutomationBlocks, listAutomationWorkflows, reorderAutomationBlocks, replaceAutomationStartBlock, updateAutomationBlock, updateAutomationWorkflow, type AutomationBlockType } from "./automation.repository.js";
-import { getSerializedAutomationRun, listSerializedAutomationRuns, listSerializedAutomationRunsForWorkflow, runAutomationWorkflow, serializeAutomationBlock, serializeAutomationWorkflow } from "./automation.service.js";
+import { listSerializedAutomationRuns, listSerializedAutomationRunsForWorkflow, runAutomationWorkflow, serializeAutomationBlock, serializeAutomationWorkflow } from "./automation.service.js";
 import { AUTOMATION_RUN_LIST_STATUSES, countAutomationRuns } from "./automationRuns.repository.js";
 import { countAutomationInboxItems, deleteAutomationInboxItem, getAutomationInboxItem, listAutomationInboxItems, setAutomationInboxItemRead, type AutomationInboxFormat } from "./automationInbox.repository.js";
 import { validateAutomationDraft, validateAutomationWorkflow, type AutomationDraftValidationBlock } from "./automation.validation.js";
@@ -86,12 +86,6 @@ automationRouter.get("/runs", (req, res) => {
   const total = countAutomationRuns(parsed.value);
   const items = listSerializedAutomationRuns(parsed.value);
   return res.json(toPaginatedResult(items, total, parsed.value));
-});
-
-automationRouter.get("/runs/:id", (req, res) => {
-  const run = getSerializedAutomationRun(req.params.id);
-  if (!run) return notFound(res, "Automation run not found");
-  res.json({ item: run });
 });
 
 automationRouter.get("/workflows/:id/runs", (req, res) => {
