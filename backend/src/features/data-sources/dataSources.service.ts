@@ -249,6 +249,7 @@ export async function readJsonApiSource(config: JsonApiConfig) {
     }));
   } catch (error) {
     if (error instanceof EgressUrlError || error instanceof ResponseTooLargeError || error instanceof EgressQueueFullError) throw error;
+    // eslint-disable-next-line preserve-caught-error -- message carries describeFetchError(error); raw error not chained
     throw new Error(`Could not fetch ${config.url}: ${describeFetchError(error)}`);
   }
 

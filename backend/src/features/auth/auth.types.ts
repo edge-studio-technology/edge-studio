@@ -37,6 +37,7 @@ export type TotpResetVerifyRequest = {
 };
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace -- Express Request augmentation
   namespace Express {
     interface Request {
       user?: SessionUser;

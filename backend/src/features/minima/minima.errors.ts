@@ -4,3 +4,10 @@ export function normalizeMinimaRpcError(message: string) {
   }
   return message;
 }
+
+export class MinimaResyncConflictError extends Error {
+  constructor() {
+    super("A Minima operation is already active; wait for it to finish or check its progress.");
+    this.name = "MinimaResyncConflictError";
+  }
+}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- LogOut used by the commented-out sign-out button
 import { ChevronDown, ChevronUp, LogOut, MessageCircle, Minimize2, PanelLeft } from "lucide-react";
 import { nav } from "../app/nav";
 import { cx } from "../lib/cx";
@@ -37,6 +38,7 @@ function CollapsibleLabel({
 export function AppShellSidebar({
   pathname,
   onFeedback,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used by the commented-out sign-out button
   onSignOut,
   version,
   updateNotice,

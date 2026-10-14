@@ -126,9 +126,12 @@ export function AppShell({
   const showUpdateNotice =
     updateAvailable && availableVersion !== null && availableVersion !== dismissedUpdateVersion;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug ping helper, not wired to the UI
   const [debugPinging, setDebugPinging] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug ping helper, not wired to the UI
   const [debugMessage, setDebugMessage] = useState<string | null>(null);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug ping helper, not wired to the UI
   function pingDebugEndpoint() {
     setDebugPinging(true);
     setDebugMessage(null);

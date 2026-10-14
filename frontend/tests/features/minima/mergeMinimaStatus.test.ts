@@ -68,13 +68,25 @@ describe("mergeMinimaStatus", () => {
 
     const merged = mergeMinimaStatus(previous, next);
 
-    expect(merged.state).toBe("running");
+    expect(merged.state).toBe("error");
+    expect(merged.metricsObservedAt).toBe(previous.checkedAt);
     expect(merged.sync).toBe(previous.sync);
     expect(merged.health).toBe(previous.health);
     expect(merged.node).toBe(previous.node);
     expect(merged.storage).toBe(previous.storage);
-    expect(merged.rpc.error).toBeUndefined();
+    expect(merged.rpc.error).toBe("fetch failed");
     expect(merged.rpc.raw).toEqual({ previous: true });
+  });
+
+  it("retains the new resync summary and offline state through repeated metric merges", () => {
+    const previous = status();
+    const next = status({ state: "restarting", checkedAt: "2026-08-20T00:00:03Z", rpc: { ok: false, error: "unavailable" }, resync: { id: "536", phase: "recovering", busy: true, startedAt: "2026-08-20T00:00:00Z", updatedAt: "2026-08-20T00:00:03Z", finishedAt: null, recovered: false, outcome: null } });
+    const merged = mergeMinimaStatus(previous, next);
+    const again = mergeMinimaStatus(merged, { ...next, checkedAt: "2026-08-20T00:00:06Z" });
+    expect(again.state).toBe("restarting");
+    expect(again.resync).toEqual(next.resync);
+    expect(again.rpc.error).toBe("unavailable");
+    expect(again.metricsObservedAt).toBe(previous.checkedAt);
   });
 
   it("keeps next.state when previous state is not running", () => {

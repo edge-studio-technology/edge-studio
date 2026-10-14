@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { fetchMinimaStatus, runMinimaPathCommand } from "../../../src/features/minima/minima.rpc.js";
-import { parseBalanceResponse, parseLocalWalletAddressesResponse } from "../../../src/features/wallet/wallet.parse.js";
+import { parseBalanceResponse, parseHistoryResponse, parseLocalWalletAddressesResponse } from "../../../src/features/wallet/wallet.parse.js";
+import { EXTERNAL_ADDRESS, EXTERNAL_MINIADDRESS, LOCAL_ADDRESS, TOKEN_ID, historyBody, historyCoin, historyTxpow } from "../../helpers/minimaHistoryFixtures.js";
 import { parseTokenCreateResponse } from "../../../src/features/tokens/tokens.parse.js";
 
 const fetchMock = vi.fn();
@@ -48,6 +50,34 @@ describe("fetchMinimaStatus", () => {
 });
 
 describe("runMinimaPathCommand", () => {
+  it("preserves an HTTP 200 resync rejection for the caller to inspect", async () => {
+    const captured = JSON.parse(readFileSync(new URL("../../fixtures/minima/resync-lifecycle.json", import.meta.url), "utf8"));
+    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify(captured.unreachableHost)));
+    const result = await runMinimaPathCommand("megammrsync action:resync host:127.0.0.1:1");
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.body, captured.unreachableHost);
+  });
+
+  it("can observe a healthy node after a resync client timeout without redispatching resync", async () => {
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockImplementationOnce((_url, options) => new Promise((_resolve, reject) => {
+        options.signal.addEventListener("abort", () => reject(new DOMException("The operation was aborted", "AbortError")), { once: true });
+      }));
+      const request = runMinimaPathCommand("megammrsync action:resync host:megammr.minima.global:9001", 30000);
+      const rejected = assert.rejects(request, /aborted/i);
+      await vi.advanceTimersByTimeAsync(30000);
+      await rejected;
+      fetchMock.mockResolvedValueOnce(mockResponse(200, JSON.stringify({ status: true, response: { chain: { block: 2357067 } } })));
+      const recovered = await fetchMinimaStatus();
+      assert.equal((recovered.body as { status: boolean }).status, true);
+      assert.equal(fetchMock.mock.calls.length, 2);
+      assert.equal(fetchMock.mock.calls[1][0], "http://127.0.0.1:9005/status");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("preserves default/simple address data through the scripts RPC and parser", async () => {
     // Source-shaped fixture; deployed-node capture remains part of ticket #206 verification.
     const miniaddress = "MxG086U24F17MT50Y6VUPBPD6VJKTYVMR71WRSYURYUVZDN1VMG25FF39M0458A";
@@ -121,6 +151,21 @@ describe("response body redaction against recorded Minima bodies", () => {
 
     assert.equal(parsed.ok, true);
     assert.equal(parsed.tokenId, "0xNEW");
+  });
+
+  it("leaves a history response parseable — token ids, names, and addresses survive", async () => {
+    const txpow = historyTxpow("0xIN", 1_700_000_000_000,
+      [historyCoin({ address: EXTERNAL_ADDRESS, amount: "3", tokenid: TOKEN_ID, tokenName: { name: "Gold" } })],
+      [historyCoin({ address: LOCAL_ADDRESS, amount: "3", tokenid: TOKEN_ID, tokenName: { name: "Gold" } })]);
+    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify(historyBody([{ txpow, difference: { [TOKEN_ID]: "3" } }]))));
+
+    const result = await runMinimaPathCommand("history max:100 offset:0");
+    const [entry] = parseHistoryResponse(result.body, new Set([LOCAL_ADDRESS.toLowerCase()]));
+
+    assert.equal(entry.tokenId, TOKEN_ID);
+    assert.equal(entry.tokenName, "Gold");
+    assert.equal(entry.direction, "in");
+    assert.equal(entry.counterparty, EXTERNAL_MINIADDRESS);
   });
 
   it("still redacts a secret echoed back inside the response body", async () => {

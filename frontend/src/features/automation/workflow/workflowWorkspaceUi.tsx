@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
 import { CheckCircle2, X } from "lucide-react";
 import { IconButton } from "../../../components/Button";
 import { TableIconButton } from "../../../components/DataTable";

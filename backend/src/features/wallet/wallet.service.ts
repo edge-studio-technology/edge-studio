@@ -3,15 +3,16 @@ import { runWalletReplacement } from "../address-book/wallet-replacement.service
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { db } from "../../db/database.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
+import { redactSecrets } from "../../shared/redact.js";
 import { getComposeServiceContainer, inspectContainer } from "../status/docker.service.js";
-import { parseAddressResponse, parseBalanceResponse, parseImportResponse, parseLocalWalletAddressesResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
+import { getWalletFingerprint } from "./wallet-history.service.js";
+import { isTxPowId, parseAddressResponse, parseBalanceResponse, parseImportResponse, parseLocalWalletAddressesResponse, parseOnchainResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
 import type {
   ImportWalletResult,
   PaymentStatus,
   ReceiveAddress,
   SendPaymentRequest,
   SendPaymentResult,
-  WalletSendHistoryItem,
   WalletStatus
 } from "./wallet.types.js";
 
@@ -64,6 +65,11 @@ export async function sendPayment({ address, amount, tokenId = "0x00" }: SendPay
 }
 
 export async function getPaymentStatus(txpowId: string): Promise<PaymentStatus> {
+  if (!isTxPowId(txpowId)) throw new Error("TxPoW ID must be a 0x hex value");
+  const onchain = await runMinimaPathCommand(`txpow onchain:${txpowId}`);
+  if (parseOnchainResponse(onchain.body).found) {
+    return { txpowId, status: "confirmed", checkedAt: new Date().toISOString() };
+  }
   const result = await runMinimaPathCommand(`txpow txpowid:${txpowId}`);
   return parsePaymentStatusResponse(result.body, txpowId);
 }
@@ -81,21 +87,29 @@ export function clearWalletSendHistoryForDebug(): number {
   return result.changes;
 }
 
-export function recordWalletSendHistory(input: {
+/** `txpowId` is the pre-mined ID `send` returned; `transactionId` links the row to the mined TxPoW. */
+export async function recordWalletSendHistory(input: {
   toAddress: string;
   tokenId: string;
   tokenName: string;
   amount: string;
   txpowId: string | null;
+  transactionId: string | null;
   status: "submitted" | "failed";
+  origin: "manual" | "automation";
+  /** Minima's failure message; stored for failed sends only. */
+  error?: string;
 }) {
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
+  // The payment is already sent; a fingerprint lookup failure must not lose the record.
+  const walletFingerprint = await getWalletFingerprint().catch(() => null);
   db.prepare(`
     INSERT INTO wallet_send_history (
-      id, created_at, from_account_label, from_account_address, to_address, token_id, token_name, amount, txpow_id, status
+      id, created_at, from_account_label, from_account_address, to_address, token_id, token_name, amount, txpow_id, status,
+      wallet_fingerprint, origin, transaction_id, error
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     createdAt,
@@ -106,35 +120,10 @@ export function recordWalletSendHistory(input: {
     input.tokenName,
     input.amount,
     input.txpowId,
-    input.status
+    input.status,
+    walletFingerprint,
+    input.origin,
+    input.transactionId,
+    input.status === "failed" && input.error ? redactSecrets(input.error) : null
   );
-}
-
-export function listWalletSendHistory(limit = 30): WalletSendHistoryItem[] {
-  const safeLimit = Math.max(1, Math.min(200, Math.trunc(limit)));
-  const rows = db.prepare(`
-    SELECT id, created_at, to_address, token_id, token_name, amount, txpow_id, status
-    FROM wallet_send_history
-    ORDER BY datetime(created_at) DESC
-    LIMIT ?
-  `).all(safeLimit) as {
-    id: string;
-    created_at: string;
-    to_address: string;
-    token_id: string;
-    token_name: string;
-    amount: string;
-    txpow_id: string | null;
-    status: "submitted" | "failed";
-  }[];
-  return rows.map((row) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    toAddress: row.to_address,
-    tokenId: row.token_id,
-    tokenName: row.token_name,
-    amount: row.amount,
-    txpowId: row.txpow_id,
-    status: row.status
-  }));
 }

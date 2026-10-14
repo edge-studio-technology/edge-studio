@@ -66,6 +66,7 @@ const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: strin
   ["post", "/api/data-sources"],
   ["post", "/api/minima/config"],
   ["post", "/api/minima/megammrsync/resync"],
+  ["get", "/api/minima/resync"],
   ["post", "/api/minima/peers/add"],
   ["post", "/api/minima/restart"],
   ["post", "/api/minima/console/run"],
@@ -78,6 +79,7 @@ const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: strin
   ["post", "/api/integritas/history/rec-1/verify"],
   ["post", "/api/automation/workflows"],
   ["post", "/api/wallet/send-payment"],
+  ["post", "/api/wallet/history/clear-previous"],
   ["post", "/api/tokens/create"],
 ];
 

@@ -41,6 +41,7 @@ export function MinimaSettingsPanel({
   const [busy, setBusy] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
   const [autoRestartEnabled, setAutoRestartEnabledState] = useState<boolean | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- auto-restart toggle is commented out until re-enabled
   const [togglingAutoRestart, setTogglingAutoRestart] = useState(false);
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export function MinimaSettingsPanel({
     getAutoRestartEnabled()
       .then((res) => setAutoRestartEnabledState(res.autoRestartEnabled))
       .catch(() => undefined);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only load
 
   useEffect(() => {
     // Wait for a confirmed "running" state before fetching peers — during a
@@ -57,7 +58,7 @@ export function MinimaSettingsPanel({
     // fail as an expected side effect, not a real error.
     if (actionsBlocked) return;
     refreshPeers().catch(() => undefined);
-  }, [actionsBlocked]);
+  }, [actionsBlocked]); // eslint-disable-line react-hooks/exhaustive-deps -- refetch only when actionsBlocked changes
 
   async function refreshConfig() {
     const parsed = await getMinimaConfig();
@@ -134,6 +135,7 @@ export function MinimaSettingsPanel({
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- auto-restart toggle is commented out until re-enabled
   async function handleToggleAutoRestart() {
     if (autoRestartEnabled === null) return;
     setTogglingAutoRestart(true);

@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Coins used by the commented-out Create token button
 import { Coins, Download, Info, Send } from "lucide-react";
 import { ButtonRow } from "../../components/patterns/ButtonRow";
 import { Button, IconButton } from "../../components/ui/Button";

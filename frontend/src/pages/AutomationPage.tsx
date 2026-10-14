@@ -414,7 +414,6 @@ export function AutomationPage() {
     [location.pathname, routeRunId, routeWorkflowId],
   );
   const flowWorkflowId = "workflowId" in flow ? flow.workflowId : null;
-  const flowRunId = flow.mode === "watch" ? flow.runId : undefined;
   const [workspaceRuns, setWorkspaceRuns] = useState<AutomationRun[]>([]);
   const [workspaceValidation, setWorkspaceValidation] = useState<AutomationValidationResult | null>(
     null,
@@ -434,7 +433,7 @@ export function AutomationPage() {
 
   useEffect(() => {
     void loadPage();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only load
 
   useEffect(() => {
     setWorkspaceSnapshot(readWorkspaceSnapshot(flowWorkflowId));

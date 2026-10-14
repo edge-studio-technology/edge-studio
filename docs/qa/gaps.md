@@ -45,7 +45,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 ### P2
 
-- [ ] **GAP-14** Argon2id instead of bcrypt
+- [ ] **GAP-14** Argon2id instead of scrypt — native bcrypt replaced with built-in scrypt in #216 ([ADR 0035](../adr/0035-hash-admin-credentials-with-scrypt.md)); Argon2id and removal of legacy bcrypt verification tracked in #887.
 - [ ] **GAP-15** `__Host-` session cookie prefix
 - [ ] **GAP-16** CLI authentication (401 today)
 - [ ] **GAP-18** Pen test / OWASP ZAP scan
@@ -82,7 +82,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 ### P0
 
 - [ ] **MINIMA-01 Stopped container** — `docker compose stop minima` → `state: "stopped"` (HTTP 200); recovers on start.
-- [ ] **MINIMA-02 Megammr resync + restart (UI)** — Resync chains container restart when Minima reports `needsRestart`; success toast; stats recover.
+- [x] **MINIMA-02 Resync progress and recovery (UI)** — Closed by #536: backend-owned natural-cycle/stopped-node recovery, persistent browser events, honest completed/failed/unconfirmed feedback, reload/second-tab and live Pi verification ([QA](./536-resync-end-to-end.md)).
 - [ ] **MINIMA-03 Manual restart** — Admin restart works; audit event `minima.container.restart` recorded.
 - [ ] **MINIMA-04 Peer add** — `GET /api/minima/peers` (auth); `POST /api/minima/peers/add` (admin). Active peers vs configured peers count may differ.
 - [ ] **MINIMA-05 Parser tests** — `minima.parse.test.ts` (8 tests) passes in `npm run check`.
@@ -91,7 +91,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 - [x] **MINIMA-06 Admin gate on resync** — `POST /api/minima/megammrsync/resync` requires `requireRole('admin')` (Phase 2, unreleased).
 - [x] **MINIMA-07 Admin gate on config** — `POST /api/minima/config` requires `requireRole('admin')` (Phase 2, unreleased).
-- [ ] **MINIMA-08 Auto-resync no restart** — Poller calls `resyncMegammr()` only; does not restart container when `needsRestart`.
+- [x] **MINIMA-08 Auto-resync recovery** — Closed by #536: automatic initiation uses the common recovery worker; busy exclusion, initiation cooldown, separate terminal results and startup restoration passed live caller/worker checks and regression tests ([QA](./536-resync-end-to-end.md)). Broader workflow queueing remains #212/#307.
 - [ ] **MINIMA-09 App shell overview** — Header wallet/node pills fetched once on mount; may be stale until reload.
 - [ ] **MINIMA-10 Stall detection** — In-memory `monitoring.*` resets on backend restart.
 - [ ] **MINIMA-11 Docker socket** — Writable mount required for restart; risk accepted in `SECURITY.md`.

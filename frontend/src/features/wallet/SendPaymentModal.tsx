@@ -205,6 +205,7 @@ export function SendPaymentModal({
           label="Amount"
           inputMode="decimal"
           min="0"
+          step="any"
           max={availableSendable}
           type="number"
           value={amount}

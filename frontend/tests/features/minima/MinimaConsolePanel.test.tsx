@@ -18,6 +18,15 @@ describe("MinimaConsolePanel", () => {
     vi.restoreAllMocks();
   });
 
+  it("notifies progress refresh after a wrapped resync returns its accepted DTO", async () => {
+    const complete = vi.fn();
+    runConsoleCommand.mockResolvedValue({ id: "536", phase: "starting", busy: true });
+    render(<MinimaConsolePanel onEditWhitelist={vi.fn()} onCommandComplete={complete} />);
+    await userEvent.type(screen.getByPlaceholderText("status"), "megammrsync action:resync{Enter}");
+    await waitFor(() => expect(complete).toHaveBeenCalledOnce());
+    expect(screen.getByText(/starting/)).toBeInTheDocument();
+  });
+
   it("shows an empty scrollback message initially", () => {
     render(<MinimaConsolePanel onEditWhitelist={vi.fn()} />);
     expect(screen.getByText("No commands run yet.")).toBeInTheDocument();

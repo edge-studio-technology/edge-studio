@@ -14,7 +14,8 @@ import {
   getReceiveAddress,
   getWalletStatus,
   importWallet,
-  listWalletSendHistory,
+  listWalletHistory,
+  clearPreviousWalletHistory,
   sendPayment,
 } from "../../../src/features/wallet/walletApi";
 
@@ -80,22 +81,40 @@ describe("walletApi", () => {
     expect(result).toBe(response);
   });
 
-  it("listWalletSendHistory GETs the history endpoint with the default limit", async () => {
-    const response = { sends: [] };
+  it("listWalletHistory GETs the history endpoint without a query by default", async () => {
+    const response = { items: [], page: 1, pageSize: 25, total: 0, totalPages: 0, previousWalletItems: 0 };
     getJson.mockResolvedValue(response);
 
-    const result = await listWalletSendHistory();
+    const result = await listWalletHistory();
 
-    expect(getJson).toHaveBeenCalledWith("/api/wallet/history?limit=30");
+    expect(getJson).toHaveBeenCalledWith("/api/wallet/history");
     expect(result).toBe(response);
   });
 
-  it("listWalletSendHistory GETs the history endpoint with a custom limit", async () => {
-    const response = { sends: [] };
-    getJson.mockResolvedValue(response);
+  it("listWalletHistory sends paging, filters, and the date range", async () => {
+    getJson.mockResolvedValue({});
 
-    await listWalletSendHistory(5);
+    await listWalletHistory({
+      page: 2,
+      pageSize: 10,
+      status: "pending",
+      q: "Mx1",
+      direction: "in",
+      from: "2026-10-01T00:00:00.000Z",
+      to: "2026-10-02T00:00:00.000Z",
+    });
 
-    expect(getJson).toHaveBeenCalledWith("/api/wallet/history?limit=5");
+    expect(getJson).toHaveBeenCalledWith(
+      "/api/wallet/history?page=2&pageSize=10&status=pending&q=Mx1&direction=in&from=2026-10-01T00%3A00%3A00.000Z&to=2026-10-02T00%3A00%3A00.000Z",
+    );
+  });
+
+  it("clearPreviousWalletHistory POSTs the current credential", async () => {
+    postJson.mockResolvedValue({ deleted: 2 });
+
+    const result = await clearPreviousWalletHistory("123456");
+
+    expect(postJson).toHaveBeenCalledWith("/api/wallet/history/clear-previous", { currentPassword: "123456" });
+    expect(result).toEqual({ deleted: 2 });
   });
 });

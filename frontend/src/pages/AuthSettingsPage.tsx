@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Compass,
   Copy,
-  Download,
   Eye,
   EyeOff,
   LogOut,

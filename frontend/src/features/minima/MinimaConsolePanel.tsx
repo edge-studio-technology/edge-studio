@@ -81,9 +81,11 @@ const toolbarIconClass = "max-lg:size-10";
 export function MinimaConsolePanel({
   disabled,
   onEditWhitelist,
+  onCommandComplete,
 }: {
   disabled?: boolean;
   onEditWhitelist: () => void;
+  onCommandComplete?: () => void;
 }) {
   const [command, setCommand] = useState("");
   const [entries, setEntries] = useState<ScrollbackEntry[]>([]);
@@ -149,6 +151,8 @@ export function MinimaConsolePanel({
           entry.id === id ? { ...entry, status: "error", error: message } : entry,
         ),
       );
+    } finally {
+      onCommandComplete?.();
     }
   }
 

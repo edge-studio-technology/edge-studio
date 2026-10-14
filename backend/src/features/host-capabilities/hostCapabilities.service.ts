@@ -120,6 +120,7 @@ async function hostAgentRequest<T>(pathname: string, init: RequestInit = {}, tim
     return payload as T;
   } catch (error) {
     debugHostCapability("error", pathname, { message: error instanceof Error ? error.message : String(error) });
+    // eslint-disable-next-line preserve-caught-error -- timeout replaces the abort error
     if (controller.signal.aborted) throw new Error("Host agent request timed out");
     throw error;
   } finally {

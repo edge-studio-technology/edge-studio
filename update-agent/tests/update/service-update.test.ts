@@ -14,7 +14,7 @@ import {
   waitForHealthy,
   pruneOldImages
 } from "../../src/docker/docker.service.js";
-import { startPullProgress, recordPullProgress, clearPullProgress } from "../../src/docker/pull-progress.js";
+import { startPullProgress, clearPullProgress } from "../../src/docker/pull-progress.js";
 import { updateService } from "../../src/update/service-update.js";
 import type { DockerContainerInspect, DockerContainerSummary } from "../../src/docker/docker.types.js";
 

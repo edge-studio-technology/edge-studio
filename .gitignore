@@ -9,6 +9,8 @@ coverage/
 /data/certs/
 /minima/
 /minima-backup/
+/minima-testnet/
+/minima-testnet-peer/
 npm-debug.log*
 .DS_Store
 .claude/settings.local.json

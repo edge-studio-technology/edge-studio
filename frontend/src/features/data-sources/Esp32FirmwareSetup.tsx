@@ -536,7 +536,7 @@ function detectEsp32Board(output: string) {
   const portMatch = line?.match(/^(\/dev\/ttyUSB\d+|\/dev\/ttyACM\d+|COM\d+)/i);
   if (!portMatch) return null;
 
-  const fqbnMatch = line?.match(/\besp32:esp32:[a-z0-9_\-]+\b/i);
+  const fqbnMatch = line?.match(/\besp32:esp32:[a-z0-9_-]+\b/i);
   return { port: portMatch[1], fqbn: fqbnMatch?.[0] ?? null };
 }
 

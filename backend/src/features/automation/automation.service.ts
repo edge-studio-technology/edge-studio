@@ -41,7 +41,6 @@ import {
   errorMessage,
   parseStoredError,
   workflowError,
-  type StructuredError,
 } from "../../shared/structured-error.js";
 import {
   getAutomationWorkflow,
@@ -1332,13 +1331,16 @@ async function sendTransaction(
 
   recipient = getAddressBookPaymentRecipient(recipient.id);
   const result = await sendPayment({ address: recipient.address, amount, tokenId: "0x00" });
-  recordWalletSendHistory({
+  await recordWalletSendHistory({
     toAddress: recipient.address,
     tokenId: "0x00",
     tokenName: "Minima",
     amount,
     txpowId: result.txpowId,
+    transactionId: result.transactionId,
     status: result.ok ? "submitted" : "failed",
+    origin: "automation",
+    error: result.message,
   });
   recordAuditEvent("automation.wallet.send", {
     detail: JSON.stringify({

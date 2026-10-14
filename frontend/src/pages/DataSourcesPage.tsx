@@ -83,7 +83,7 @@ export function DataSourcesPage() {
 
   useEffect(() => {
     void loadInitialData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only load
 
   async function loadInitialData() {
     setInitialLoading(true);
@@ -113,7 +113,7 @@ export function DataSourcesPage() {
     return { items: response.items, capabilities: capabilityResponse, hostCapabilities: hostCapabilityResponse.items };
   }
 
-  function handleDeviceCreated(source: DataSource) {
+  function handleDeviceCreated() {
     refresh();
   }
 

@@ -492,3 +492,47 @@ describe("MinimaBackupPanel", () => {
     expect(screen.queryByText("Node backup & restore")).not.toBeInTheDocument();
   });
 });
+
+describe("backup controls during resync", () => {
+  beforeEach(() => {
+    credentialType = null;
+    getBackupPasswordStatus.mockResolvedValue({ hasPassword: true });
+    listMinimaBackups.mockResolvedValue(backups);
+    getAutoBackupEnabled.mockResolvedValue({ autoBackupEnabled: false });
+    restoreMinimaBackup.mockReset();
+    restoreMinimaBackupFromUpload.mockReset();
+  });
+
+  it("blocks backup and restore even while node status is running", async () => {
+    render(<MinimaBackupPanel minimaState="running" operationBusy />, { wrapper: ToastProvider });
+    expect(await screen.findByRole("button", { name: /backup now/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /restore from backup/i })).toBeDisabled();
+  });
+
+  it("blocks confirmation if resync begins while a row restore dialog is open", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<MinimaBackupPanel minimaState="running" operationBusy={false} />, { wrapper: ToastProvider });
+    await screen.findByText("minima-manual-1.bak");
+    await user.click(screen.getByRole("button", { name: /more actions for minima-manual-1.bak/i }));
+    await user.click(screen.getByRole("menuitem", { name: /restore/i }));
+    await user.type(screen.getByLabelText(/current pin or password/i), "pin1234");
+    expect(screen.getByRole("button", { name: /confirm restore/i })).toBeEnabled();
+    rerender(<MinimaBackupPanel minimaState="running" operationBusy />);
+    expect(screen.getByRole("button", { name: /confirm restore/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /confirm restore/i }));
+    expect(restoreMinimaBackup).not.toHaveBeenCalled();
+  });
+
+  it("blocks confirmation if resync begins while an upload restore dialog is open", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<MinimaBackupPanel minimaState="running" operationBusy={false} />, { wrapper: ToastProvider });
+    await user.click(screen.getByRole("button", { name: /restore from backup/i }));
+    await user.upload(getFileInput(), new File(["backup"], "restore.bak"));
+    await user.type(screen.getByLabelText(/current pin or password/i), "pin1234");
+    expect(screen.getByRole("button", { name: /^restore$/i })).toBeEnabled();
+    rerender(<MinimaBackupPanel minimaState="running" operationBusy />);
+    expect(screen.getByRole("button", { name: /^restore$/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /^restore$/i }));
+    expect(restoreMinimaBackupFromUpload).not.toHaveBeenCalled();
+  });
+});

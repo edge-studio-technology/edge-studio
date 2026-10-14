@@ -246,6 +246,23 @@ The Minima page also stores its Megammr host URL in SQLite through the Configure
 
 The Minima page exposes an allowlisted Megammr resync action. The browser calls the backend, and the backend calls Minima RPC internally with `megammrsync action:resync host:<configured-megammr-host>`.
 
+On the #536 branch, `POST /api/minima/megammrsync/resync` returns HTTP **202** with a persisted operation snapshot (`id`, `phase`, timestamps, `outcome`, `recovered`, `busy`, `message`, `events`, `errorDetails`) before the node RPC finishes. Acceptance means Edge Studio scheduled the request. Admin-only `GET /api/minima/resync` returns that latest snapshot or `null`, with `Cache-Control: no-store`, without calling the node. `GET /api/minima/status` includes a compact `resync` summary for authenticated consumers; it excludes events, errors and internal metadata.
+
+Only the latest resync is stored, with at most 100 meaningful timestamped events and bounded, redacted messages. Duplicate resync and conflicting restart/backup/restore requests return structured HTTP **409**. Reservation survives healthy status reads, the old six-minute display-marker window, and backend reload. Explicit RPC rejection releases it; transport interruption retains it. The internal resync RPC response budget is five minutes; expiry does not cancel already-dispatched node work or establish failure.
+
+The backend captures the Docker container identity, restart count and start time before sending resync, and observes natural process recovery alongside the pending RPC. A completion response plus a process cycle and usable RPC with a chain block establishes `completed`; stale or unknown chain freshness remains a message warning. A lost response followed by cycle/readiness establishes `recovered: true` with outcome `unconfirmed`. Confirmed completion with an exited container permits one idempotent Docker start; no resync timeout sends `quit`, forces restart, or replays the request. Start and result audits include operation ID, caller trigger and initiating user where available.
+
+Observation budgets are five minutes for a cycle after the RPC settles and two minutes for readiness after a cycle. Expiry records `unconfirmed` and retains `busy: true` until a later process cycle and usable RPC reconcile it. Read-only observation continues every 30 seconds while unconfirmed. Check both outcome and `busy`; a terminal outcome can still reserve the node. On backend startup, persisted ownership and deadlines resume observation before the health poller starts, without replay; shutdown stops timers and ignores pending callbacks. Automatic caller terminal results update separately from the initiation cooldown; startup restores the latest automatic operation's initiation timestamp.
+
+If resync remains reserved, inspect the node's Docker state and host logs and confirm whether rebuild/database-save work is still running. Wait while it is running. Only after host diagnostics establish completion or cessation should an operator start an exited container with `docker compose start minima` from the installed Compose directory; the backend will reconcile the subsequent process cycle and chain readiness. Do not force restart or clear the reservation just because an observation deadline expired. A legacy snapshot lacking its process baseline/deadline remains reserved and requires host/database diagnosis; the backend cannot infer its missing evidence.
+
+The Minima page reads the latest operation on load and shows its phase, elapsed time, last observation, concise timestamped events, and expandable warning/error details. Events remain after completion or failure. Progress reads run serially every three seconds while `busy` and every 30 seconds otherwise, including discovery of resync from another tab, the console, or the automatic caller. Ordinary node status continues refreshing, with the fast cadence while resync is reserved. Reloading or navigating back does not replay resync or an old completion toast.
+
+The browser schedules resync and presents the backend's outcome; it no longer interprets Minima completion text or restarts the node after resync. A lost POST response or HTTP 5xx prompts a progress check without claiming failure. Progress-read failures preserve the previous snapshot/events and offer retry; unknown progress or an active reservation disables conflicting controls. Backup/restore confirmations also disable if resync begins while their dialog is open. Unavailable metrics are labeled as last observed, and resync phase takes precedence over generic restart feedback.
+
+Implementation and final Pi/disposable-node/browser verification (steps 1–5) are complete. See [the plan](docs/plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md), [QA results](docs/qa/536-resync-end-to-end.md) and [ADR 0034](docs/adr/0034-observe-resync-after-client-timeout.md).
+
+
 Restarting the Minima node from the UI shuts it down gracefully first: the backend sends `quit compact:true` over RPC and waits (up to 5 minutes — the node can take a while to actually stop even after reporting shutdown complete) for the container to actually exit before starting it back up, instead of immediately force-stopping it. If the node still hasn't stopped after that, it falls back to a forceful container restart so the action still always completes.
 
 An optional "Auto restart" toggle (off by default) has the backend perform this same graceful restart automatically every 48 hours, as a preventive node health measure. It reuses the nightly auto-backup scheduler rather than a separate timer, so the check runs at 00:30 on the backend container's clock, after that night's backup — it only actually restarts every other night, tracked by a persisted last-run time so a backend redeploy doesn't reset the cadence.
@@ -257,7 +274,7 @@ The Wallet page exposes allowlisted wallet/account actions through the backend:
 - global balance via Minima `balance` (`GET /api/wallet`)
 - labeled accounts mapped to the node's 64-address pool (`GET/POST /api/wallet/accounts`)
 - per-account holdings via Minima `coins relevant:true`
-- send history in SQLite (`GET /api/wallet/history`)
+- wallet history (received, sent, and self-transfers) synced from Minima `history` into SQLite (`GET /api/wallet/history`)
 - payment submission via Minima `send` (`POST /api/wallet/send-payment`)
 - seed phrase import via Minima `restore` (`POST /api/wallet/import`)
 
@@ -427,7 +444,7 @@ On first launch with an empty database, Edge Studio shows a setup wizard:
 2. Create or connect the Integritas Connect account used for plan and proof usage
 3. Review the connected account and finish setup
 
-After setup, sign in with the chosen PIN or password. You can switch credential types later in Settings. There is a single local admin account (no username to enter), and only its bcrypt hash is stored. Sessions persist across browser reloads until logout or expiry.
+After setup, sign in with the chosen PIN or password. You can switch credential types later in Settings. There is a single local admin account (no username to enter), and only its scrypt hash is stored. Sessions persist across browser reloads until logout or expiry.
 
 The first time you open Edge Studio in a browser, a short guided tour introduces the main areas. Skip it at any step, or replay it from Settings → Behaviour.
 
@@ -519,7 +536,7 @@ npm run check
 docker compose build --no-cache
 ```
 
-`npm run check` runs backend and frontend TypeScript checks plus moderate-level npm audits. `docker compose build --no-cache` catches Docker build issues from a clean image context.
+`npm run check` runs ESLint (`npm run lint`), TypeScript checks, and test coverage for `backend`, `frontend`, and `update-agent`, plus moderate-level npm audits. `docker compose build --no-cache` catches Docker build issues from a clean image context.
 
 ## Troubleshooting
 
@@ -783,6 +800,7 @@ Wallet APIs:
 ```http
 GET /api/wallet
 GET /api/wallet/history
+POST /api/wallet/history/clear-previous
 POST /api/wallet/send-payment
 GET /api/wallet/payment-status/:txpowid
 POST /api/wallet/import
@@ -791,7 +809,11 @@ POST /api/wallet/receive-address
 
 `GET /api/wallet` reports balances for the node's single wallet. The address book stores recipient contacts; it does not create labeled wallet accounts.
 
-`GET /api/wallet/history?limit=N` returns recent send activity recorded in SQLite when payments are submitted.
+`GET /api/wallet/history?page&pageSize&status&direction&q&from&to` returns wallet history newest first as a paginated list (`items`, `page`, `pageSize`, `total`, `totalPages`) plus `previousWalletItems`, the number of rows from a wallet the node no longer uses. `pageSize` defaults to 25. `status` is `pending`, `confirmed`, or `failed`; `direction` is `in`, `out`, or `self`; `from` (inclusive) and `to` (exclusive) are ISO date-times with a time zone; `q` matches the counterparty address, a contact name, the token, or a TxPoW or transaction ID. Invalid values return `400`. Each item has `direction`, `status`, an unsigned decimal `amount`, token fields, `counterparty` and its address-book `counterpartyLabel`, `time` (TxPoW time, or send time for sends not seen on chain), `txpowId`, `transactionId`, `block`, `confirmations` (counted from the current tip), `confirmedAt` (block time, or the TxPoW time when the node no longer has the block), `origin` (`manual`, `automation`, or null for payments the app did not send), `error` (Minima's message for a failed send, redacted; null otherwise or for sends recorded before it was stored), and `isPreviousWallet`.
+
+The backend copies new relevant TxPoWs from Minima's `history` into SQLite on every Minima health poll and before a history read when the last sync is more than 5 seconds old, then checks up to 20 unconfirmed rows per poll with `txpow onchain:`. Payments sent from Edge Studio are listed as pending at once and replaced by their chain row once synced. Rows carry a fingerprint of the wallet's default addresses; after a wallet replacement, earlier rows stay listed and are marked as from a previous wallet, and a TxPoW both wallets took part in is listed once per wallet. If Minima is unreachable, stored rows are still returned, without confirmation counts or previous-wallet marking. History is never pruned automatically; see `docs/adr/0033-persist-synced-wallet-history.md`.
+
+`POST /api/wallet/history/clear-previous` deletes only previous-wallet rows and returns `{ "deleted": number }`. It is admin-only, rate-limited, and requires `{ "currentPassword": string }`; a wrong credential returns `401` with `errorCode: "invalid_credential"`. It returns `409` while a wallet replacement is running and `502` if the current wallet cannot be read.
 
 Address-book contacts are stored in SQLite and exposed through `GET`/`POST /api/wallet/address-book` and `PATCH`/`DELETE /api/wallet/address-book/:id`. Each returned entry includes `isLocalDevice`, a boolean identifying the app's local-wallet contact, and `isLocalDevicePending`, indicating that replacement verification is required; existing and manually created contacts default to `false`. The app-owned contact is separate from manual contacts and may share their destination. Manual copies retain their IDs, fields, and edit/delete controls; exact-address duplicates between manual contacts remain disallowed.
 

@@ -50,8 +50,12 @@ export function recordStallDetected() {
   snapshot.lastStallDetectedAt = new Date().toISOString();
 }
 
-export function recordAutoResync(result: string) {
-  snapshot.lastAutoResyncAt = new Date().toISOString();
+export function recordAutoResync(result: string, startedAt = new Date().toISOString()) {
+  snapshot.lastAutoResyncAt = startedAt;
+  snapshot.lastAutoResyncResult = result;
+}
+
+export function recordAutoResyncResult(result: string) {
   snapshot.lastAutoResyncResult = result;
 }
 

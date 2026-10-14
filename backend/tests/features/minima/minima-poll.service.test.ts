@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
+let MinimaResyncConflictError: typeof import("../../../src/features/minima/minima.errors.js").MinimaResyncConflictError;
 
 const {
   getMinimaNodeStatusMock,
@@ -9,7 +10,9 @@ const {
   recordAutoResyncMock,
   recordPollerCheckMock,
   recordStallDetectedMock,
-  initializeLocalAddressBookEntryMock
+  initializeLocalAddressBookEntryMock,
+  syncWalletHistoryMock,
+  refreshPendingConfirmationsMock
 } = vi.hoisted(() => ({
   getMinimaNodeStatusMock: vi.fn(),
   resyncMegammrMock: vi.fn(),
@@ -18,7 +21,14 @@ const {
   recordAutoResyncMock: vi.fn(),
   recordPollerCheckMock: vi.fn(),
   recordStallDetectedMock: vi.fn(),
-  initializeLocalAddressBookEntryMock: vi.fn()
+  initializeLocalAddressBookEntryMock: vi.fn(),
+  syncWalletHistoryMock: vi.fn(),
+  refreshPendingConfirmationsMock: vi.fn()
+}));
+
+vi.mock("../../../src/features/wallet/wallet-history.service.js", () => ({
+  syncWalletHistory: syncWalletHistoryMock,
+  refreshPendingConfirmations: refreshPendingConfirmationsMock
 }));
 
 vi.mock("../../../src/features/address-book/address-book.service.js", () => ({
@@ -44,6 +54,7 @@ let stopMinimaHealthPoller: typeof import("../../../src/features/minima/minima-p
 
 async function loadModule() {
   vi.resetModules();
+  ({ MinimaResyncConflictError } = await import("../../../src/features/minima/minima.errors.js"));
   ({ pollMinimaHealth, startMinimaHealthPoller, stopMinimaHealthPoller } = await import("../../../src/features/minima/minima-poll.service.js"));
 }
 
@@ -57,6 +68,8 @@ beforeEach(async () => {
   recordPollerCheckMock.mockReset();
   recordStallDetectedMock.mockReset();
   initializeLocalAddressBookEntryMock.mockReset().mockResolvedValue(null);
+  syncWalletHistoryMock.mockReset().mockResolvedValue(undefined);
+  refreshPendingConfirmationsMock.mockReset().mockResolvedValue(undefined);
   await loadModule();
 });
 
@@ -101,15 +114,32 @@ describe("pollMinimaHealth", () => {
   });
 
   for (const state of ["stopped", "error", "restarting"] as const) {
-    it(`skips initialization while the node is ${state} and retries when running`, async () => {
+    it(`skips initialization and wallet history sync while the node is ${state} and retries when running`, async () => {
       getMinimaNodeStatusMock.mockResolvedValueOnce({ ...baseStatus, state }).mockResolvedValueOnce(baseStatus);
       detectStallMock.mockReturnValue(false);
       await pollMinimaHealth();
       assert.equal(initializeLocalAddressBookEntryMock.mock.calls.length, 0);
+      assert.equal(syncWalletHistoryMock.mock.calls.length, 0);
       await pollMinimaHealth();
       assert.equal(initializeLocalAddressBookEntryMock.mock.calls.length, 1);
+      assert.equal(syncWalletHistoryMock.mock.calls.length, 1);
     });
   }
+
+  it("syncs wallet history, then refreshes confirmations, before stall detection", async () => {
+    const order: string[] = [];
+    getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
+    syncWalletHistoryMock.mockImplementation(async () => { order.push("sync"); });
+    refreshPendingConfirmationsMock.mockImplementation(async () => { order.push("refresh"); });
+    detectStallMock.mockImplementation(() => { order.push("stall"); return false; });
+    initializeLocalAddressBookEntryMock.mockRejectedValue(new Error("local contact failed"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await pollMinimaHealth();
+
+    assert.deepEqual(order, ["sync", "refresh", "stall"]);
+    vi.mocked(console.error).mockRestore();
+  });
 
   it("retries initialization on later polls after a failure", async () => {
     getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
@@ -166,6 +196,17 @@ describe("pollMinimaHealth with auto-resync enabled", () => {
     await loadModule();
   });
 
+  for (const phase of ["recovering", "unconfirmed", "failed"]) {
+    it(`skips automatic initiation while a ${phase} operation still owns the reservation`, async () => {
+      getMinimaNodeStatusMock.mockResolvedValue({ ...baseStatus, resync: { busy: true, phase } });
+      detectStallMock.mockReturnValue(true);
+      canAutoResyncMock.mockReturnValue(true);
+      await pollMinimaHealth();
+      assert.equal(resyncMegammrMock.mock.calls.length, 0);
+      assert.equal(recordAutoResyncMock.mock.calls.length, 0);
+    });
+  }
+
   it("skips resync while the cooldown is active", async () => {
     getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
     detectStallMock.mockReturnValue(true);
@@ -176,19 +217,19 @@ describe("pollMinimaHealth with auto-resync enabled", () => {
     assert.equal(resyncMegammrMock.mock.calls.length, 0);
   });
 
-  it("resyncs and records the result when the cooldown has elapsed", async () => {
+  it("records initiation rather than completion when the cooldown has elapsed", async () => {
     getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
     detectStallMock.mockReturnValue(true);
     canAutoResyncMock.mockReturnValue(true);
     resyncMegammrMock.mockResolvedValue({
-      ok: true,
-      body: { status: true, response: { message: "MegaMMR sync fininshed.. please restart" } }
+      id: "resync-1", phase: "starting", message: "Resync requested."
     });
 
     await pollMinimaHealth();
 
     assert.equal(resyncMegammrMock.mock.calls.length, 1);
-    assert.equal(recordAutoResyncMock.mock.calls[0][0], "MegaMMR sync fininshed.. please restart");
+    assert.equal(recordAutoResyncMock.mock.calls[0][0], "Resync requested.");
+    assert.deepEqual(resyncMegammrMock.mock.calls[0], ["auto"]);
   });
 
   it("still detects stalls and performs auto-resync after contact initialization fails", async () => {
@@ -196,11 +237,20 @@ describe("pollMinimaHealth with auto-resync enabled", () => {
     detectStallMock.mockReturnValue(true);
     canAutoResyncMock.mockReturnValue(true);
     initializeLocalAddressBookEntryMock.mockRejectedValue(new Error("local contact failed"));
-    resyncMegammrMock.mockResolvedValue({ ok: true, body: { status: true, response: { message: "resync completed" } } });
+    resyncMegammrMock.mockResolvedValue({ id: "resync-1", phase: "starting", message: "Resync requested." });
     await pollMinimaHealth();
     assert.equal(recordStallDetectedMock.mock.calls.length, 1);
     assert.equal(resyncMegammrMock.mock.calls.length, 1);
-    assert.equal(recordAutoResyncMock.mock.calls[0][0], "resync completed");
+    assert.equal(recordAutoResyncMock.mock.calls[0][0], "Resync requested.");
+  });
+
+  it("does not consume cooldown or record a failure when resync conflicts", async () => {
+    getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
+    detectStallMock.mockReturnValue(true);
+    canAutoResyncMock.mockReturnValue(true);
+    resyncMegammrMock.mockRejectedValue(new MinimaResyncConflictError());
+    await pollMinimaHealth();
+    assert.equal(recordAutoResyncMock.mock.calls.length, 0);
   });
 
   it("records the failure when resync throws", async () => {

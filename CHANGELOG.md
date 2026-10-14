@@ -8,20 +8,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- ESLint for `backend`, `frontend`, and `update-agent` via `npm run lint`, run as part of `npm run check` and CI.
+- The Minima page shows persisted resync progress and timestamped events that remain available after navigation or reload.
 - Developers can configure local Pi SSH access in `.env.local` and use the `pi-ssh` agent skill for requested Pi work.
 - Public setup status includes the local admin credential type and disables response caching.
 - Login and current-credential confirmations use masked six-digit PIN or password inputs based on the stored credential type.
 - The address book automatically adds a persistent contact named after the device, marked Local device, with editable name/notes and protected address/deletion.
 - `scripts/dev/benchmark/` scripts that measure the installed app's CPU, memory, disk growth, start-up time and workflow load on a Pi, with a guide in `docs/guides/pi-benchmark.md`.
+- Wallet history lists incoming payments and self-transfers alongside sends, synced from the Minima node.
+- Wallet history rows show Pending, Confirmed, or Failed, and they and the wallet balance update without a page reload.
+- Wallet history can be filtered by type, status, and date (presets or a custom range), and searched by contact name, address, token, or ID.
+- Wallet history shows the sender or recipient's address-book name when it is a saved contact.
+- The history details view shows the date, confirmation time, block, confirmation count, origin, and TxPoW and transaction IDs.
+- Failed sends from the Send dialog and automation workflows record Minima's failure reason, shown in the history details view.
+- History from a wallet the node no longer uses is marked Previous wallet and can be cleared by an admin after re-entering their PIN/password (`POST /api/wallet/history/clear-previous`).
+- Dev testnet setup for Minima wallet testing on a Pi; see `docs/guides/minima-testnet.md`.
 
 ### Changed
 
+- Resync progress is collapsible, opens for each active resync, and shows events in a bounded scrolling list.
+- Minima resync starts asynchronously with HTTP 202 and exposes the latest persisted operation through an admin-only progress endpoint.
+- Duplicate resync and conflicting node restart, backup, and restore requests return HTTP 409 while resync is reserved.
+- Resync recovery observes natural node restarts, preserves uncertain outcomes and warnings, and resumes monitoring after a backend restart without replaying resync.
+- Resync start and result audit events identify the caller, and automatic-resync completion is recorded separately from its initiation cooldown.
+- Browser resync feedback follows backend outcomes, retains recovery warnings, and offers retry for unavailable progress reads.
+- Conflicting backup, restore, resync, and restart controls remain disabled while resync holds the node reservation.
 - New and confirmed PINs in setup and Settings now use persistent-password autofill semantics.
 - User-created contacts remain independent and may share the local contact's address.
 - App-controlled wallet replacement verifies and updates the local contact, preserves its details and workflow references, and blocks payments through it until verification completes.
 - Update page release notes come from a copy `update-agent` caches on disk when it checks for updates.
 - "View full changelog" on the Update page opens every released entry in the app instead of GitHub.
 - The browser no longer contacts GitHub from the Update page, and the frontend CSP no longer allows `raw.githubusercontent.com`.
+- `GET /api/wallet/history` returns a paginated, filterable list of all wallet movements instead of `{ sends }`, and no longer accepts `limit`; see `README.md`.
+- The update agent, the frontend build, and the installer's manifest signature verifier run on Node 22 instead of end-of-life Node 20.
+- Admin PINs and passwords are hashed with Node's built-in scrypt instead of the native `bcrypt` package; see `SECURITY.md`.
+- Existing bcrypt-hashed credentials keep working and are converted to scrypt on the next successful login.
 
 ### Fixed
 
@@ -30,6 +51,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Session-expiry notices now refer to both PINs and passwords.
 - Address-book payments resolve the current saved destination, including after wallet replacement on older Minima versions.
 - Relative links in Update page release notes point to the correct GitHub repository.
+- The Send payment dialog accepts decimal amounts.
+- `GET /api/wallet/payment-status/:txpowid` reports pending and confirmed payments instead of always `unknown`.
+
+### Security
+
+- After a login converts the stored credential, manually reinstalling an older release locks the admin out; in-app updates are unaffected.
+- A login that overlaps a PIN/password change now fails instead of creating a session.
 
 ## [0.42.2] 2026-10-06
 
