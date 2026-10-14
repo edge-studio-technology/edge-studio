@@ -282,8 +282,6 @@ The Wallet page exposes allowlisted wallet/account actions through the backend:
 
 `GET /api/wallet/accounts` returns labeled accounts with per-address MINIMA/token balances plus `unlabeledFunded` addresses that have funds but no label yet.
 
-Dev-only debug routes (`POST /api/wallet/debug/clear-wallet-accounts`, `clear-wallet-history`) clear SQLite wallet tables for local testing; they return 403 when `NODE_ENV=production`.
-
 Minima RPC commands should be transmitted as a single percent-encoded URL path command, not as query parameters. For example:
 
 ```txt

@@ -9,7 +9,6 @@ vi.mock("../../../src/lib/api", () => ({
 }));
 
 import {
-  clearWalletHistoryForDebug,
   getPaymentStatus,
   getReceiveAddress,
   getWalletStatus,
@@ -68,16 +67,6 @@ describe("walletApi", () => {
     const result = await importWallet("word1 word2 word3");
 
     expect(postJson).toHaveBeenCalledWith("/api/wallet/import", { phrase: "word1 word2 word3" });
-    expect(result).toBe(response);
-  });
-
-  it("clearWalletHistoryForDebug POSTs to the debug clear endpoint", async () => {
-    const response = { ok: true, deleted: 3 };
-    postJson.mockResolvedValue(response);
-
-    const result = await clearWalletHistoryForDebug();
-
-    expect(postJson).toHaveBeenCalledWith("/api/wallet/debug/clear-wallet-history");
     expect(result).toBe(response);
   });
 

@@ -9,7 +9,6 @@ const { sendPaymentMock, importWalletMock, recordWalletSendHistoryMock } = vi.ho
 }));
 
 vi.mock("../../../src/features/wallet/wallet.service.js", () => ({
-  clearWalletSendHistoryForDebug: vi.fn(),
   getPaymentStatus: vi.fn(),
   getReceiveAddress: vi.fn(),
   getWalletStatus: vi.fn(),

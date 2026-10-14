@@ -11,7 +11,6 @@ import {
   dataSourcesRouter,
   dataSourcesWebhookRouter,
 } from "./features/data-sources/dataSources.routes.js";
-import { debugRouter } from "./features/debug/debug.routes.js";
 import { healthRouter } from "./features/health/health.routes.js";
 import { hostCapabilitiesRouter } from "./features/host-capabilities/hostCapabilities.routes.js";
 import { integritasRouter } from "./features/integritas/integritas.routes.js";
@@ -59,7 +58,6 @@ export function createApp() {
   app.use("/api/wallet/address-book", addressBookRouter);
   app.use("/api/tokens", tokensRouter);
   app.use("/api/preferences", preferencesRouter);
-  app.use("/api/debug", debugRouter);
 
   app.use(uploadErrorHandler);
 

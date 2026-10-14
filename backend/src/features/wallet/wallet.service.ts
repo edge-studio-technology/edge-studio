@@ -82,11 +82,6 @@ export async function importWallet(phrase: string): Promise<ImportWalletResult> 
   return parseImportResponse(result.body);
 }
 
-export function clearWalletSendHistoryForDebug(): number {
-  const result = db.prepare("DELETE FROM wallet_send_history").run();
-  return result.changes;
-}
-
 /** `txpowId` is the pre-mined ID `send` returned; `transactionId` links the row to the mined TxPoW. */
 export async function recordWalletSendHistory(input: {
   toAddress: string;

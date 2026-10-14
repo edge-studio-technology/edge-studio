@@ -31,10 +31,6 @@ export function importWallet(phrase: string) {
   return postJson<ImportWalletResult>("/api/wallet/import", { phrase });
 }
 
-export function clearWalletHistoryForDebug() {
-  return postJson<{ ok: boolean; deleted: number }>("/api/wallet/debug/clear-wallet-history");
-}
-
 export function listWalletHistory({ direction, from, to, ...listQuery }: WalletHistoryQuery = {}) {
   const search = new URLSearchParams(buildListQueryString(listQuery));
   if (direction) search.set("direction", direction);

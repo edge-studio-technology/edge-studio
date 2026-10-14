@@ -267,8 +267,8 @@ describe("importWallet", () => {
 });
 
 describe("wallet send history", () => {
-  it("returns 0 from clearWalletSendHistoryForDebug when there is nothing to clear", () => {
-    assert.equal(walletService.clearWalletSendHistoryForDebug(), 0);
+  beforeEach(() => {
+    db.prepare("DELETE FROM wallet_send_history").run();
   });
 
   it("records submitted and failed sends", async () => {
@@ -300,22 +300,6 @@ describe("wallet send history", () => {
     ]);
   });
 
-  it("clearWalletSendHistoryForDebug removes all recorded entries", async () => {
-    await walletService.recordWalletSendHistory({
-      toAddress: "0xccc",
-      tokenId: "0x00",
-      tokenName: "Minima",
-      amount: "1",
-      txpowId: "tx-c",
-      transactionId: null,
-      status: "submitted",
-      origin: "manual"
-    });
-    const removed = walletService.clearWalletSendHistoryForDebug();
-    assert.ok(removed >= 1);
-    assert.deepEqual(db.prepare("SELECT COUNT(*) AS count FROM wallet_send_history").get(), { count: 0 });
-  });
-
   it("stores a redacted failure message for failed sends only", async () => {
     await walletService.recordWalletSendHistory({
       toAddress: "0xa1", tokenId: "0x00", tokenName: "Minima", amount: "9",
@@ -340,7 +324,6 @@ describe("wallet send history", () => {
     assert.equal(errors[0], "Insufficient funds.. you only have 1 require:9");
     assert.doesNotMatch(String(errors[1]), /hunter2/);
     assert.deepEqual(errors.slice(2), [null, null]);
-    walletService.clearWalletSendHistoryForDebug();
   });
 
   it("stores the wallet fingerprint, origin, and transaction ID with each send", async () => {

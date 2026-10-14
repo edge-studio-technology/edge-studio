@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { env } from "../../config/env.js";
-import { apiErrorFromStatus, badRequest, conflict, dependencyUnavailable, forbidden, unexpected, validationFailed } from "../../shared/api-error.js";
+import { apiErrorFromStatus, badRequest, conflict, dependencyUnavailable, unexpected, validationFailed } from "../../shared/api-error.js";
 import { parseListQuery, toPaginatedResult } from "../../shared/list-query.js";
 import { AddressBookRecipientError, getAddressBookPaymentRecipient } from "../address-book/address-book.repository.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
@@ -15,7 +14,7 @@ import {
   syncWalletHistoryIfStale,
   WalletReplacementBusyError
 } from "./wallet-history.service.js";
-import { clearWalletSendHistoryForDebug, getPaymentStatus, getReceiveAddress, getWalletStatus, importWallet, recordWalletSendHistory, sendPayment } from "./wallet.service.js";
+import { getPaymentStatus, getReceiveAddress, getWalletStatus, importWallet, recordWalletSendHistory, sendPayment } from "./wallet.service.js";
 import { WALLET_HISTORY_STATUSES, type WalletHistoryDirection } from "./wallet.types.js";
 
 export const walletRouter = Router();
@@ -170,22 +169,5 @@ walletRouter.post("/import", requireRole("admin"), async (req, res) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     dependencyUnavailable(res, message, message, undefined, { ok: false });
-  }
-});
-
-walletRouter.post("/debug/clear-wallet-history", requireRole("admin"), async (req, res) => {
-  if (process.env.NODE_ENV === "production") {
-    return forbidden(res, "Debug endpoint is disabled in production", { ok: false });
-  }
-  try {
-    const deleted = clearWalletSendHistoryForDebug();
-    recordAuditEvent("wallet.debug.clear_history", {
-      userId: req.user?.id,
-      detail: JSON.stringify({ deleted, mode: process.env.NODE_ENV ?? "unknown", dbPath: env.databasePath })
-    });
-    res.json({ ok: true, deleted });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    unexpected(res, message, error, undefined, { ok: false });
   }
 });

@@ -36,7 +36,6 @@ import { cx } from "../../lib/cx";
 import { describeLoadFailure } from "../../lib/errors";
 import { DEFAULT_PAGE_SIZE_OPTIONS } from "../../lib/paginated";
 import { formatLocalDateTime } from "../../lib/time";
-import { clearWalletHistoryForDebug } from "./walletApi";
 import { ClearPreviousHistoryModal } from "./ClearPreviousHistoryModal";
 import { HistoryDetailModal } from "./HistoryDetailModal";
 import { TokenGlyph } from "./TokenGlyph";
@@ -101,8 +100,6 @@ export function WalletHistoryPanel({
   const { showToast } = useToast();
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<WalletHistoryItem | null>(null);
   const [clearPreviousOpen, setClearPreviousOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug clear button is commented out below
-  const [debugClearingHistory, setDebugClearingHistory] = useState(false);
   const {
     visibility,
     columnOrder,
@@ -115,8 +112,6 @@ export function WalletHistoryPanel({
     (column) => visibility[column.id],
   );
   const visibleColumnCount = visibleColumns.length;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug clear button is commented out below
-  const isDev = import.meta.env.DEV;
 
   const rangeInvalid = isCustomRangeInvalid(filters);
   const filtersActive = Boolean(
@@ -135,32 +130,6 @@ export function WalletHistoryPanel({
   function clearFilters() {
     onFiltersChange({ status: "", direction: "", q: "", datePreset: "", customFrom: "", customTo: "" });
     setColumnFilters({});
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug clear button is commented out below
-  async function handleDebugClearWalletHistory() {
-    const confirmed = window.confirm(
-      "Clear wallet send history from SQLite? This is a dev-only debug action and cannot be undone.",
-    );
-    if (!confirmed) return;
-    setDebugClearingHistory(true);
-    try {
-      const result = await clearWalletHistoryForDebug();
-      await onRefresh();
-      showToast({
-        tone: "success",
-        title: "Wallet history cleared",
-        message: `Deleted ${result.deleted} history item(s).`,
-      });
-    } catch (err) {
-      showToast({
-        tone: "error",
-        title: "Clear failed",
-        message: err instanceof Error ? err.message : "Could not clear wallet history.",
-      });
-    } finally {
-      setDebugClearingHistory(false);
-    }
   }
 
   return (
@@ -357,21 +326,6 @@ export function WalletHistoryPanel({
           pageSizeOptions={PAGE_SIZE_OPTIONS}
         />
       )}
-
-      {/* {isDev ? (
-        <div className="flex justify-start">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={handleDebugClearWalletHistory}
-            disabled={debugClearingHistory}
-            title="Dev-only: clears wallet_send_history table"
-          >
-            {debugClearingHistory ? "Clearing…" : "Debug: clear history"}
-          </Button>
-        </div>
-      ) : null} */}
 
       {selectedHistoryItem ? (
         <HistoryDetailModal

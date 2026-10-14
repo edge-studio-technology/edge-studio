@@ -52,7 +52,6 @@ const protectedPrefixes = [
   "/api/wallet/address-book",
   "/api/tokens",
   "/api/preferences",
-  "/api/debug",
 ];
 
 // The admin-gate matrix. `UserRole` has one member today, so this cannot be driven through a
