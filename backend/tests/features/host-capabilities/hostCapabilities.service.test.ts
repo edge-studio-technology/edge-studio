@@ -45,16 +45,6 @@ describe("hostCapabilities.service", () => {
     assert.equal(fetchMock.mock.calls.length, 0);
   });
 
-  it("returns fallback item responses for single capability reads when unconfigured", async () => {
-    envMock.hostAgentToken = "";
-
-    assert.equal((await service.getHostCameraCapability()).item.name, "camera");
-    assert.equal((await service.getHostGpioCapability()).item.name, "gpio");
-    assert.equal((await service.getHostSensorCapability()).item.name, "sensors");
-    assert.equal((await service.getHostMqttCapability()).item.name, "mqtt");
-    assert.equal(fetchMock.mock.calls.length, 0);
-  });
-
   it("GETs capability status with the backend-only bearer token", async () => {
     const payload = { items: [{ name: "gpio", enabled: true, installed: true, available: true, state: "enabled", reason: null }] };
     fetchMock.mockResolvedValue(response(200, payload));
@@ -65,22 +55,6 @@ describe("hostCapabilities.service", () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     assert.equal(url, "http://host-agent/capabilities");
     assert.equal((init.headers as Record<string, string>).Authorization, "Bearer token-1");
-  });
-
-  it("GETs individual capability status endpoints", async () => {
-    fetchMock.mockResolvedValue(response(200, { item: { name: "camera", enabled: true, installed: true, available: true, state: "enabled", reason: null } }));
-
-    await service.getHostCameraCapability();
-    await service.getHostGpioCapability();
-    await service.getHostSensorCapability();
-    await service.getHostMqttCapability();
-
-    assert.deepEqual(fetchMock.mock.calls.map((call) => call[0]), [
-      "http://host-agent/capabilities/camera",
-      "http://host-agent/capabilities/gpio",
-      "http://host-agent/capabilities/sensors",
-      "http://host-agent/capabilities/mqtt"
-    ]);
   });
 
   it("POSTs apply and disable actions for every capability", async () => {
@@ -117,7 +91,7 @@ describe("hostCapabilities.service", () => {
   it("falls back to HTTP status when the error response has no JSON payload", async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 502, json: async () => { throw new Error("not json"); } });
 
-    await assert.rejects(service.getHostCameraCapability(), /Host agent returned HTTP 502/);
+    await assert.rejects(service.listHostCapabilities(), /Host agent returned HTTP 502/);
   });
 
   it("rejects action requests when the host agent is not configured", async () => {
@@ -132,7 +106,7 @@ describe("hostCapabilities.service", () => {
       (init.signal as AbortSignal).addEventListener("abort", () => reject(new Error("aborted")));
     }));
 
-    const request = service.getHostCameraCapability().then(
+    const request = service.listHostCapabilities().then(
       () => assert.fail("expected request to time out"),
       (error: Error) => error
     );
@@ -145,11 +119,11 @@ describe("hostCapabilities.service", () => {
   it("logs secret-safe diagnostics when enabled", async () => {
     envMock.hostCapabilityDebug = true;
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    fetchMock.mockResolvedValue(response(200, { item: { name: "gpio", enabled: true, installed: true, available: true, state: "enabled", reason: null } }));
+    fetchMock.mockResolvedValue(response(200, { items: [] }));
 
-    await service.getHostGpioCapability();
+    await service.listHostCapabilities();
 
-    assert.ok(log.mock.calls.some((call) => String(call[0]).includes("[host-capabilities] get /capabilities/gpio")));
-    assert.ok(log.mock.calls.some((call) => String(call[0]).includes("[host-capabilities] response /capabilities/gpio")));
+    assert.ok(log.mock.calls.some((call) => String(call[0]).includes("[host-capabilities] list /capabilities")));
+    assert.ok(log.mock.calls.some((call) => String(call[0]).includes("[host-capabilities] response /capabilities")));
   });
 });
