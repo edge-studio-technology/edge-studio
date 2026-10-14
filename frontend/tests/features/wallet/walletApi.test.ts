@@ -12,7 +12,6 @@ import {
   getPaymentStatus,
   getReceiveAddress,
   getWalletStatus,
-  importWallet,
   listWalletHistory,
   clearPreviousWalletHistory,
   sendPayment,
@@ -57,16 +56,6 @@ describe("walletApi", () => {
     const result = await getPaymentStatus("0x ab");
 
     expect(getJson).toHaveBeenCalledWith("/api/wallet/payment-status/0x%20ab");
-    expect(result).toBe(response);
-  });
-
-  it("importWallet POSTs the seed phrase", async () => {
-    const response = { ok: true, message: "Wallet imported." };
-    postJson.mockResolvedValue(response);
-
-    const result = await importWallet("word1 word2 word3");
-
-    expect(postJson).toHaveBeenCalledWith("/api/wallet/import", { phrase: "word1 word2 word3" });
     expect(result).toBe(response);
   });
 

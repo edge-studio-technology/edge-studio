@@ -14,7 +14,7 @@ import {
   syncWalletHistoryIfStale,
   WalletReplacementBusyError
 } from "./wallet-history.service.js";
-import { getPaymentStatus, getReceiveAddress, getWalletStatus, importWallet, recordWalletSendHistory, sendPayment } from "./wallet.service.js";
+import { getPaymentStatus, getReceiveAddress, getWalletStatus, recordWalletSendHistory, sendPayment } from "./wallet.service.js";
 import { WALLET_HISTORY_STATUSES, type WalletHistoryDirection } from "./wallet.types.js";
 
 export const walletRouter = Router();
@@ -149,23 +149,6 @@ walletRouter.get("/payment-status/:txpowid", async (req, res) => {
   if (!isTxPowId(req.params.txpowid)) return badRequest(res, "txpowid must be a 0x hex value", { field: "txpowid" }, { ok: false });
   try {
     res.json(await getPaymentStatus(req.params.txpowid));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    dependencyUnavailable(res, message, message, undefined, { ok: false });
-  }
-});
-
-walletRouter.post("/import", requireRole("admin"), async (req, res) => {
-  const phrase = typeof req.body?.phrase === "string" ? req.body.phrase.trim() : "";
-  if (!phrase) return validationFailed(res, "phrase is required", { phrase: "phrase is required" }, { ok: false });
-  const words = phrase.split(/\s+/).filter(Boolean);
-  if (words.length < 12) return validationFailed(res, "phrase must be at least 12 words", { phrase: "phrase must be at least 12 words" }, { ok: false });
-
-  try {
-    const result = await importWallet(phrase);
-    // Audit event records only that an import occurred — never the phrase itself
-    recordAuditEvent("wallet.import", { userId: req.user?.id });
-    res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     dependencyUnavailable(res, message, message, undefined, { ok: false });

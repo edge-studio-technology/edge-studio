@@ -1,7 +1,6 @@
 import { canonicalMinimaAddress } from "../../shared/minima-address.js";
 import type {
   ChainHistoryEntry,
-  ImportWalletResult,
   PaymentStatus,
   ReceiveAddress,
   SendPaymentResult,
@@ -267,10 +266,3 @@ export function parseHistoryResponse(body: unknown, localAddresses: Set<string>)
   return entries;
 }
 
-export function parseImportResponse(body: unknown): ImportWalletResult {
-  const record = asRecord(body);
-  if (record?.status === false) {
-    return { ok: false, message: asString(record.error ?? record.message, "Import failed") };
-  }
-  return { ok: true, message: "Wallet restored. The node may restart to apply the new seed." };
-}

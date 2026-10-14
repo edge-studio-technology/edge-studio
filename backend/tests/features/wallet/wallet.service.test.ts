@@ -20,14 +20,12 @@ vi.mock("../../../src/features/minima/minima.rpc.js", () => ({
 
 let teardown: () => void;
 let walletService: typeof import("../../../src/features/wallet/wallet.service.js");
-let repo: typeof import("../../../src/features/address-book/address-book.repository.js");
 let db: import("better-sqlite3").Database;
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
   teardown = testDb.teardown;
   db = testDb.db;
-  repo = await import("../../../src/features/address-book/address-book.repository.js");
   walletService = await import("../../../src/features/wallet/wallet.service.js");
 });
 
@@ -121,19 +119,6 @@ describe("wallet replacement readiness", () => {
   }
 });
 
-describe("wallet import recipient protection", () => {
-  it("makes the local recipient unavailable before seed import dispatch and preserves manual copies", async () => {
-    const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
-    const manual = repo.insertAddressBookEntry({ label: "Mine", address: local.address, notes: null });
-    runMinimaPathCommandMock.mockImplementation(async () => {
-      assert.throws(() => repo.getAddressBookPaymentRecipient(local.id), /awaiting/);
-      assert.deepEqual(repo.getAddressBookPaymentRecipient(manual.id), manual);
-      return { ok: true, status: 200, body: { status: true } };
-    });
-    await walletService.importWallet("test seed");
-    assert.equal(repo.getLocalAddressBookEntry()!.isLocalDevicePending, true);
-  });
-});
 
 describe("getWalletStatus", () => {
   it("parses the balance response from the minima RPC call", async () => {
@@ -251,20 +236,6 @@ describe("getPaymentStatus", () => {
   });
 });
 
-describe("importWallet", () => {
-  it("throws when the RPC call is not ok", async () => {
-    runMinimaPathCommandMock.mockResolvedValue({ ok: false, status: 500, body: {} });
-    await assert.rejects(walletService.importWallet("word ".repeat(24)), /Minima RPC error: HTTP 500/);
-  });
-
-  it("includes the phrase in the restore command and parses the response", async () => {
-    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, body: { status: true } });
-    const result = await walletService.importWallet("apple banana cherry");
-    assert.equal(runMinimaPathCommandMock.mock.calls[0][0], 'restore phrase:"apple banana cherry"');
-    assert.equal(runMinimaPathCommandMock.mock.calls[0][1], 30_000);
-    assert.equal(result.ok, true);
-  });
-});
 
 describe("wallet send history", () => {
   beforeEach(() => {

@@ -7,7 +7,6 @@ import {
   parseBalanceResponse,
   parseHistoryResponse,
   parseHistorySizeResponse,
-  parseImportResponse,
   parseLocalWalletAddressesResponse,
   parseOnchainResponse,
   parseTxPowTimeResponse,
@@ -386,16 +385,3 @@ describe("parseHistoryResponse", () => {
   });
 });
 
-describe("parseImportResponse", () => {
-  it("returns a failed result with the error message when status is false", () => {
-    const result = parseImportResponse({ status: false, error: "bad phrase" });
-    assert.equal(result.ok, false);
-    assert.equal(result.message, "bad phrase");
-  });
-
-  it("returns a fixed success message on success", () => {
-    const result = parseImportResponse({ status: true });
-    assert.equal(result.ok, true);
-    assert.match(result.message, /Wallet restored/);
-  });
-});

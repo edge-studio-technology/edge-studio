@@ -42,11 +42,6 @@ export type PaymentStatus = {
   checkedAt: string;
 };
 
-export type ImportWalletResult = {
-  ok: boolean;
-  message: string;
-};
-
 export type WalletHistoryDirection = "in" | "out" | "self";
 
 export const WALLET_HISTORY_STATUSES = ["pending", "confirmed", "failed"] as const;

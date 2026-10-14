@@ -1,14 +1,12 @@
 import QRCode from "qrcode";
-import { runWalletReplacement } from "../address-book/wallet-replacement.service.js";
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { db } from "../../db/database.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
 import { redactSecrets } from "../../shared/redact.js";
 import { getComposeServiceContainer, inspectContainer } from "../status/docker.service.js";
 import { getWalletFingerprint } from "./wallet-history.service.js";
-import { isTxPowId, parseAddressResponse, parseBalanceResponse, parseImportResponse, parseLocalWalletAddressesResponse, parseOnchainResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
+import { isTxPowId, parseAddressResponse, parseBalanceResponse, parseLocalWalletAddressesResponse, parseOnchainResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
 import type {
-  ImportWalletResult,
   PaymentStatus,
   ReceiveAddress,
   SendPaymentRequest,
@@ -72,14 +70,6 @@ export async function getPaymentStatus(txpowId: string): Promise<PaymentStatus> 
   }
   const result = await runMinimaPathCommand(`txpow txpowid:${txpowId}`);
   return parsePaymentStatusResponse(result.body, txpowId);
-}
-
-// Restores wallet from a 24-word seed phrase via Minima restore RPC.
-// The phrase must never be logged — do not pass it to recordAuditEvent detail.
-export async function importWallet(phrase: string): Promise<ImportWalletResult> {
-  const result = await runWalletReplacement(() => runMinimaPathCommand(`restore phrase:"${phrase}"`, 30_000));
-  if (!result.ok) throw new Error(`Minima RPC error: HTTP ${result.status}`);
-  return parseImportResponse(result.body);
 }
 
 /** `txpowId` is the pre-mined ID `send` returned; `transactionId` links the row to the mined TxPoW. */
