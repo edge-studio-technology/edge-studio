@@ -17,6 +17,7 @@
 
 ## In Progress
 
+- [ ] Define Edge Studio storage/history lifecycle: monitor usage first, then archive/import, manual cleanup, and category-specific retention — monitor-only inventory implemented; see `docs/plans/storage-history-lifecycle.md`.
 - [ ] Replace native `bcrypt` with built-in `crypto.scrypt` (OpenProject #216): legacy bcrypt verified via `bcryptjs` and rehashed on login — implemented and verified (unit, Pi), PR to `dev` pending on `task/216-change-bcrypt-deps-to-something-more-stable`; see `docs/plans/features/216-change-bcrypt-deps-to-something-more-stable.md`.
 - [ ] Upgrade update-agent, frontend build and installer verifier to Node 22 (OpenProject #886) — implemented and locally verified on `dev-task/886-upgrade-update-agent-frontend-build-and-installer-verifier-to-node-22`; `v0.42.3-dev.1` released and Pi fresh install + self-update verified; wiki 32-bit notice added; PR to `dev` open for review.
 - [ ] Lint CI pipeline (OpenProject #524): shared root ESLint config, root `npm run lint` in `npm run check`/CI, and the existing violations cleared — implemented and verified on `task/524-lint-ci-pipeline`; PR to `dev` open; see `docs/plans/features/524-lint-ci-pipeline.md`.
@@ -34,7 +35,6 @@
 
 ## Next
 
-- [ ] Define Edge Studio storage/history lifecycle: monitor usage first, then archive/import, manual cleanup, and category-specific retention — see `docs/plans/storage-history-lifecycle.md`.
 - [ ] Review the #524 lint follow-ups: `JsonPreview` ignores `title`, `WatchRunHistory` ignores `replayPlaying`, `WorkflowWorkspace` replay arrays rebuilt every render (effects rerun and the replay timer re-arms); see the Baseline section of `docs/plans/features/524-lint-ci-pipeline.md`.
 - [ ] Fix the root `concurrently` → `shell-quote` critical audit finding; consider adding the root package to `audit:moderate`.
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.

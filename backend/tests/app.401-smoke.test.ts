@@ -41,6 +41,7 @@ const protectedPrefixes = [
   "/api/auth",
   "/api/user",
   "/api/status",
+  "/api/storage-history",
   "/api/minima",
   "/api/integritas",
   "/api/data-sources",

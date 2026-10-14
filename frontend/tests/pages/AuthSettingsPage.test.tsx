@@ -13,6 +13,34 @@ vi.mock("../../src/features/auth/hooks", () => ({
 
 afterEach(() => vi.unstubAllGlobals());
 
+it("loads the storage inventory only after opening the storage history section", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    totalBytes: 1024,
+    database: { databaseBytes: 1024, walBytes: 0, sharedMemoryBytes: 0, tableAllocationAvailable: true },
+    categories: [{
+      id: "minima-history",
+      label: "Minima history",
+      description: "Synced wallet transactions.",
+      lifecycle: "Kept until manually removed.",
+      recordCount: 2,
+      databaseBytes: 512,
+      fileCount: null,
+      fileBytes: null,
+    }],
+  }), { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<MemoryRouter><AuthSettingsPage /></MemoryRouter>);
+  expect(fetchMock).not.toHaveBeenCalled();
+
+  await userEvent.click(screen.getByText("Storage & history"));
+
+  expect(await screen.findByText("Managed application storage")).toBeInTheDocument();
+  expect(screen.getByText("Minima history")).toBeInTheDocument();
+  expect(screen.getByText("2 records · 512 B in database")).toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledWith("/api/storage-history/inventory", { credentials: "include" });
+});
+
 it("keeps authenticator reset behind the existing disabled gate", async () => {
   render(<MemoryRouter><AuthSettingsPage /></MemoryRouter>);
   await userEvent.click(screen.getByText("Credentials"));

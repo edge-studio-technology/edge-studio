@@ -1,13 +1,13 @@
 # Storage And History Lifecycle Plan
 
-**Status:** Not started  
+**Status:** In progress
 **Created:** 2026-10-14  
 **Goal:** Give operators visibility and deliberate control over Edge Studio's stored history without silently deleting evidence, financial records, or user content.
 
 ## Progress
 
-- [ ] Add read-only storage and history inventory API.
-- [ ] Add the Settings storage and history overview.
+- [x] Add read-only storage and history inventory API.
+- [x] Add the Settings storage and history overview.
 - [ ] Define and implement versioned history-archive export.
 - [ ] Define and implement read-only archived-history import.
 - [ ] Add scoped manual cleanup with preview and confirmations.
