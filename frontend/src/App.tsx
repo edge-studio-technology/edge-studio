@@ -25,12 +25,11 @@ function LoginRoute() {
 }
 
 function AppContent() {
-  const { signOut } = useAuth();
   const { pathname } = useLocation();
   const fullBleed = /^\/workflows\/(new|[^/]+\/(edit|watch)(\/[^/]+)?)$/.test(pathname);
 
   return (
-    <AppShell fullBleed={fullBleed} onSignOut={() => void signOut()}>
+    <AppShell fullBleed={fullBleed}>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />

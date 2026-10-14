@@ -383,21 +383,6 @@ export function AuthSettingsPage() {
             </SubSection>
           </div>
         </Disclosure>
-
-        {/* Version box deprecated in favor of the version indicator in the sidebar
-          corner and the "Check for updates" button next to Sign out. Left commented,
-          not deleted, for an easy revert. */}
-        {/* <Disclosure title="Version" className="pt-4" defaultOpen={false}>
-        <p className="mt-2 tabular-nums text-slate-500">{currentVersion ?? "Unknown"}</p>
-        <ButtonRow className="mt-3">
-          <a
-            href="/update"
-            className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
-          >
-            Check for updates
-          </a>
-        </ButtonRow>
-      </Disclosure> */}
       </Card>
     </Page>
   );

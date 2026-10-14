@@ -1,13 +1,13 @@
 # Clean Out Dead Code and Business Logic Plan
 
-**Status:** Not started
+**Status:** In progress
 **Created:** 2026-10-14
 **Branch:** `task/686-clean-out-dead-code-and-buisness-logic`
 **Goal:** Remove code, routes, and features no end user reaches, with no change to how the app behaves for operators.
 
 ## Progress
 
-- [ ] Step 1: frontend dead files and commented-out code
+- [x] Step 1: frontend dead files and commented-out code. Also removed what this left unused: the sidebar `onSignOut` prop chain, the tour `points` copy, `activeInputTemplates`/`activeOutputTemplates`, and `isTemplateActiveByCapability`. The commented Setup nav item in `app/nav.ts` moves to Step 7.
 - [ ] Step 2: debug routes
 - [ ] Step 3: seed phrase import
 - [ ] Step 4: custom token creation
@@ -101,7 +101,7 @@ Backend in the same step: delete `backend/src/features/auth/integritas-validatio
 
 ### Step 7: legacy `/setup` page
 
-Delete `pages/SetupPage.tsx`, its route in `App.tsx:37`, and its test. The onboarding wizard (`features/setup/`) and `DashboardNextAction` are unaffected.
+Delete `pages/SetupPage.tsx`, its route in `App.tsx:37`, its test, and the commented Setup nav item in `app/nav.ts`. The onboarding wizard (`features/setup/`) and `DashboardNextAction` are unaffected.
 
 ### Step 8: unused exports
 

@@ -82,11 +82,9 @@ function statusBarItem({
 
 export function AppShell({
   fullBleed = false,
-  onSignOut,
   children,
 }: {
   fullBleed?: boolean;
-  onSignOut: () => void;
   children: React.ReactNode;
 }) {
   const { pathname, search } = useLocation();
@@ -169,7 +167,6 @@ export function AppShell({
       <AppShellSidebar
         pathname={pathname}
         onFeedback={() => setFeedbackOpen(true)}
-        onSignOut={onSignOut}
         version={appVersion ?? backendBuild?.version ?? null}
         updateNotice={
           showUpdateNotice ? (

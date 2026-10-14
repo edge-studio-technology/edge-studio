@@ -61,48 +61,6 @@ integritasRouter.get("/config", (_req, res) => {
   res.json(getIntegritasConfig());
 });
 
-// integritasRouter.post("/api-key/check", requireRole("admin"), async (_req, res) => {
-//   const checkedAt = new Date().toISOString();
-//   const apiKeySource = integritasApiKeySource();
-//   const apiKey = getIntegritasApiKey();
-
-//   if (!apiKey) {
-//     return res.json({ configured: false, valid: false, checkedAt, apiKeySource });
-//   }
-
-//   const validation = await validateIntegritasApiKey(apiKey);
-//   if (!validation.ok) {
-//     return res.json({
-//       configured: true,
-//       valid: false,
-//       checkedAt,
-//       apiKeySource,
-//       error: validation.error,
-//       ...("errorCode" in validation && validation.errorCode ? { errorCode: validation.errorCode } : {}),
-//     });
-//   }
-
-//   return res.json({ configured: true, valid: true, checkedAt, apiKeySource });
-// });
-
-// integritasRouter.post("/api-key", requireRole("admin"), async (req, res) => {
-//   const apiKey = typeof req.body?.apiKey === "string" ? req.body.apiKey.trim() : "";
-//   if (!apiKey) return res.status(400).json({ error: "apiKey is required" });
-
-//   const validation = await validateIntegritasApiKey(apiKey);
-//   if (!validation.ok) return res.status(400).json({ error: validation.error });
-
-//   saveIntegritasApiKey(apiKey);
-//   recordAuditEvent("integritas_api_key.save", { userId: req.user?.id, detail: "via integritas page" });
-//   return res.json({ hasApiKey: true, apiKeySource: integritasApiKeySource() });
-// });
-
-// integritasRouter.delete("/api-key", requireRole("admin"), (req, res) => {
-//   deleteIntegritasApiKey();
-//   recordAuditEvent("integritas_api_key.delete", { userId: req.user?.id });
-//   res.json({ hasApiKey: Boolean(getIntegritasApiKey()), apiKeySource: integritasApiKeySource() });
-// });
-
 integritasRouter.post("/hash", (req, res) => {
   const canonicalBytes = typeof req.body?.canonicalBytes === "string" ? req.body.canonicalBytes : "";
   if (!canonicalBytes) return badRequest(res, "canonicalBytes is required", { field: "canonicalBytes" });

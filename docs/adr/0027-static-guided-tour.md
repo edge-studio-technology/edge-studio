@@ -39,9 +39,9 @@ No design or approved copy exists, and no screenshots are available yet.
   confusing. The closing step shows the white Edge Studio lockup on
   `BRAND_GRADIENT`, matching the login page, instead of a screenshot.
 - **Plain-language, scannable copy.** Each step shows one lead sentence in `type-callout`, not a
-  paragraph, so it can be read at a glance. Each step also carries three short points; they were
-  shown as a checklist with accent check icons until stakeholder review, and are now commented out
-  in `GuidedTourModal` so they can be restored without rewriting the copy. The copy
+  paragraph, so it can be read at a glance. Each step also carried three short points, shown as a
+  checklist with accent check icons; the checklist was dropped after stakeholder review and the
+  points were removed in #686. The copy
   says what each area is for and how it is used, and avoids technical terms such as blockchain,
   hash, RPC, MQTT, webhook, and GPIO. Minima and Integritas stay named because they are sidebar
   labels, but each is explained by what it does for the user. With a one-line lead, the modal height
