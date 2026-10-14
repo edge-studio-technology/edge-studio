@@ -9,8 +9,8 @@
 
 - [x] Step 1: frontend dead files and commented-out code (`9c0ce9d2`). Also removed what this left unused: the sidebar `onSignOut` prop chain, the tour `points` copy, `activeInputTemplates`/`activeOutputTemplates`, and `isTemplateActiveByCapability`. The commented Setup nav item in `app/nav.ts` moves to Step 7.
 - [x] Step 2: debug routes (`e8d6bfae`). Wallet send-history tests now reset the table in `beforeEach` instead of calling the removed debug clear function. README debug-route line removed here.
-- [x] Step 3: seed phrase import. README, SECURITY, `minima.md` rules and `docs/TASKS.md` updated here. The recipient-protection test went with `importWallet()`; `runWalletReplacement()` keeps its own tests and the backup-restore ones.
-- [ ] Step 4: custom token creation
+- [x] Step 3: seed phrase import (`e4d8e74b`). README, SECURITY, `minima.md` rules and `docs/TASKS.md` updated here. The recipient-protection test went with `importWallet()`; `runWalletReplacement()` keeps its own tests and the backup-restore ones.
+- [x] Step 4: custom token creation. Also removed the `minima.rpc.test.ts` tokencreate redaction case (its parser is gone; balance/history cases still pin token IDs) and the `"assets"` WalletPage tab type. Added a migration test for the `custom_tokens` drop. README tokens API block and the `backend.md` rule's "token creation" removed here.
 - [ ] Step 5: TOTP, including the schema migration
 - [ ] Step 6: unused API routes
 - [ ] Step 7: legacy `/setup` page

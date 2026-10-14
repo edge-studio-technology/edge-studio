@@ -50,7 +50,6 @@ const protectedPrefixes = [
   "/api/files",
   "/api/wallet",
   "/api/wallet/address-book",
-  "/api/tokens",
   "/api/preferences",
 ];
 
@@ -79,7 +78,6 @@ const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: strin
   ["post", "/api/automation/workflows"],
   ["post", "/api/wallet/send-payment"],
   ["post", "/api/wallet/history/clear-previous"],
-  ["post", "/api/tokens/create"],
 ];
 
 describe("app 401 smoke test", () => {

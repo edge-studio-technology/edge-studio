@@ -825,16 +825,6 @@ Empty/invalid/offline discovery keeps the local recipient pending and retries la
 
 `POST /api/wallet/receive-address` samples a random default address from the wallet pool for the Receive QR view. It can differ from the stable This device destination; both belong to the wallet when verified.
 
-Custom token APIs:
-
-```http
-GET /api/tokens
-GET /api/tokens/create-requirements
-POST /api/tokens/create
-```
-
-`GET /api/tokens` returns non-native token balances from Minima `balance`, enriched with local metadata when the token was created on this Pi (`custom_tokens` in SQLite). `POST /api/tokens/create` (admin) calls Minima `tokencreate` with `{ name, amount, decimal, fromAccountAddress }` where `fromAccountAddress` must be a **labeled** wallet account with at least `0.001` MINIMA on its address. `GET /api/tokens/create-requirements` returns cost estimates. Wallet list/send APIs are unchanged.
-
 Integritas:
 
 ```http

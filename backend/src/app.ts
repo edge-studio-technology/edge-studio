@@ -22,7 +22,6 @@ import { minimaRouter } from "./features/minima/minima.routes.js";
 import { preferencesRouter } from "./features/preferences/preferences.routes.js";
 import { statusRouter } from "./features/status/status.routes.js";
 import { addressBookRouter } from "./features/address-book/address-book.routes.js";
-import { tokensRouter } from "./features/tokens/tokens.routes.js";
 import { walletRouter } from "./features/wallet/wallet.routes.js";
 import { requestLogger } from "./middleware/requestLogger.js";
 import { uploadErrorHandler } from "./middleware/uploadErrors.js";
@@ -56,7 +55,6 @@ export function createApp() {
   app.use("/api/files", filesRouter);
   app.use("/api/wallet", walletRouter);
   app.use("/api/wallet/address-book", addressBookRouter);
-  app.use("/api/tokens", tokensRouter);
   app.use("/api/preferences", preferencesRouter);
 
   app.use(uploadErrorHandler);

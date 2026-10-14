@@ -317,18 +317,6 @@ export function runMigrations() {
   db.exec("CREATE INDEX IF NOT EXISTS idx_wallet_transactions_transaction_id ON wallet_transactions(transaction_id)");
 
   db.exec(`
-    CREATE TABLE IF NOT EXISTS custom_tokens (
-      id TEXT PRIMARY KEY,
-      token_id TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      amount TEXT NOT NULL,
-      decimal INTEGER NOT NULL,
-      txpow_id TEXT,
-      created_at TEXT NOT NULL
-    )
-  `);
-
-  db.exec(`
     CREATE TABLE IF NOT EXISTS address_book (
       id         TEXT PRIMARY KEY,
       label      TEXT NOT NULL,
@@ -406,6 +394,7 @@ export function runMigrations() {
   `);
 
   db.exec(`DROP TABLE IF EXISTS wallet_accounts`);
+  db.exec(`DROP TABLE IF EXISTS custom_tokens`);
 }
 
 function resetLegacyAutomationSchema() {

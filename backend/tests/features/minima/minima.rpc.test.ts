@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { fetchMinimaStatus, runMinimaPathCommand } from "../../../src/features/minima/minima.rpc.js";
 import { parseBalanceResponse, parseHistoryResponse, parseLocalWalletAddressesResponse } from "../../../src/features/wallet/wallet.parse.js";
 import { EXTERNAL_ADDRESS, EXTERNAL_MINIADDRESS, LOCAL_ADDRESS, TOKEN_ID, historyBody, historyCoin, historyTxpow } from "../../helpers/minimaHistoryFixtures.js";
-import { parseTokenCreateResponse } from "../../../src/features/tokens/tokens.parse.js";
 
 const fetchMock = vi.fn();
 
@@ -140,17 +139,6 @@ describe("response body redaction against recorded Minima bodies", () => {
     assert.equal(parsed.tokens[0].name, "Minima");
     assert.equal(parsed.tokens[1].tokenId, "0xFEED");
     assert.equal(parsed.tokens[1].name, "MyToken");
-  });
-
-  it("leaves a tokencreate response parseable — the new token id survives", async () => {
-    const body = { status: true, response: { txpowid: "0xTX", body: { txn: { outputs: [{ token: { tokenid: "0xNEW", name: "MyToken" } }] } } } };
-    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify(body)));
-
-    const result = await runMinimaPathCommand("tokencreate name:MyToken amount:10 decimals:8");
-    const parsed = parseTokenCreateResponse(result.body);
-
-    assert.equal(parsed.ok, true);
-    assert.equal(parsed.tokenId, "0xNEW");
   });
 
   it("leaves a history response parseable — token ids, names, and addresses survive", async () => {

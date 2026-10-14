@@ -15,16 +15,14 @@ import {
 import type { WalletHistoryPage, WalletStatus } from "../features/wallet/walletTypes";
 import { AddressBookPanel } from "../features/address-book/AddressBookPanel";
 import { AssetDetailModal } from "../features/wallet/AssetDetailModal";
-// import { CreateTokenModal } from "../features/wallet/CreateTokenModal";
 import { SendPaymentModal } from "../features/wallet/SendPaymentModal";
 import { ReceiveAddressModal } from "../features/wallet/ReceiveAddressModal";
-// import { WalletAssetsPanel } from "../features/wallet/WalletAssetsPanel";
 import { WalletHero } from "../features/wallet/WalletHero";
 import { WalletHistoryPanel } from "../features/wallet/WalletHistoryPanel";
 import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
 import { applyPaginatedPage } from "../lib/paginated";
 
-type WalletTab = "assets" | "address-book" | "history";
+type WalletTab = "address-book" | "history";
 
 export function WalletPage() {
   const [walletStatus, setWalletStatus] = useState<WalletStatus | null>(null);
@@ -33,7 +31,6 @@ export function WalletPage() {
   const [sendOpen, setSendOpen] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-  // const [createTokenOpen, setCreateTokenOpen] = useState(false);
   const [historyFilters, setHistoryFilters] = useState<WalletHistoryFilters>(DEFAULT_WALLET_HISTORY_FILTERS);
   const [history, setHistory] = useState<WalletHistoryPage>(emptyWalletHistoryPage);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -146,7 +143,6 @@ export function WalletPage() {
         onSend={() => setSendOpen(true)}
         onReceive={() => setReceiveOpen(true)}
         onInfo={() => setInfoOpen(true)}
-        // onCreateToken={() => setCreateTokenOpen(true)}
       />
 
       <Card className="gap-detail-close flex w-full flex-col">
@@ -155,20 +151,11 @@ export function WalletPage() {
           value={mainTab}
           options={[
             { value: "history", label: "History" },
-            // { value: "assets", label: "Assets" },
             { value: "address-book", label: "Address book" },
           ]}
           onChange={setMainTab}
         />
 
-        {/* Assets tab disabled for v1 — a single native token makes a separate assets list redundant.
-        {mainTab === "assets" ? (
-          <WalletAssetsPanel
-            tokens={walletStatus?.tokens ?? []}
-            loading={loading}
-            actionsBlocked={actionsBlocked}
-          />
-        ) : */}
         {mainTab === "address-book" ? (
           <AddressBookPanel actionsBlocked={actionsBlocked} />
         ) : (
@@ -207,16 +194,6 @@ export function WalletPage() {
       {infoOpen && nativeToken ? (
         <AssetDetailModal token={nativeToken} onClose={() => setInfoOpen(false)} />
       ) : null}
-
-      {/* {createTokenOpen && (
-        <CreateTokenModal
-          walletStatus={walletStatus}
-          actionsBlocked={actionsBlocked}
-          minimaConfirmedUnavailable={minimaConfirmedUnavailable}
-          onClose={() => setCreateTokenOpen(false)}
-          onCreated={refresh}
-        />
-      )} */}
     </Page>
   );
 }

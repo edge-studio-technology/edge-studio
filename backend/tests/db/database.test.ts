@@ -237,3 +237,15 @@ describe("runMigrations — wallet history key", () => {
     assert.equal((db.prepare("SELECT COUNT(*) AS total FROM wallet_transactions").get() as { total: number }).total, 2);
   });
 });
+
+describe("runMigrations — removed custom tokens table", () => {
+  it("drops an existing custom_tokens table and is repeatable", () => {
+    db.exec(`
+      CREATE TABLE custom_tokens (id TEXT PRIMARY KEY, token_id TEXT NOT NULL UNIQUE, name TEXT NOT NULL, amount TEXT NOT NULL, decimal INTEGER NOT NULL, txpow_id TEXT, created_at TEXT NOT NULL);
+      INSERT INTO custom_tokens VALUES ('t1', '0xNEW', 'MyToken', '10', 8, '0xTX', '2026-01-01');
+    `);
+    runMigrations();
+    runMigrations();
+    assert.equal(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'custom_tokens'").get(), undefined);
+  });
+});
