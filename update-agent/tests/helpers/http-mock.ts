@@ -1,6 +1,5 @@
 import { EventEmitter } from "node:events";
 import { vi } from "vitest";
-import type { IncomingMessage } from "node:http";
 
 export class MockHttpRequestImpl extends EventEmitter {
   method?: string;
@@ -61,10 +60,4 @@ export function createMockHttpRequest(): {
   const response = new MockHttpResponse();
 
   return { request, response };
-}
-
-export function stubHttpRequest(
-  handler: (opts: Record<string, unknown>, callback: (res: IncomingMessage) => void) => MockHttpRequestImpl
-) {
-  return vi.fn(handler);
 }

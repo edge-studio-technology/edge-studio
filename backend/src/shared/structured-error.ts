@@ -1,6 +1,6 @@
 import { redactDeep, redactSecrets } from "./redact.js";
 
-export type StructuredErrorDomain = "data_source" | "workflow" | "block" | "integritas" | "app" | "system" | "unknown";
+type StructuredErrorDomain = "data_source" | "workflow" | "block" | "integritas" | "app" | "system" | "unknown";
 
 export type StructuredError = {
   domain: StructuredErrorDomain;

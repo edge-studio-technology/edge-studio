@@ -1,4 +1,3 @@
-import type { Request } from "express";
 import type { AdminCredentialType } from "./password.service.js";
 
 export type UserRole = "admin";
@@ -19,15 +18,6 @@ export type SessionUser = {
   role: UserRole;
   lastLogin: string | null;
   credentialType: AdminCredentialType;
-};
-
-export type AuthenticatedRequest = Request & {
-  user: SessionUser;
-};
-
-export type ChangePasswordRequest = {
-  currentPassword: string;
-  newPassword: string;
 };
 
 declare global {

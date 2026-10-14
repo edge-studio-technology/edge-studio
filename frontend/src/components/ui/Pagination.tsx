@@ -1,6 +1,6 @@
 import { cx } from "../../lib/cx";
 
-export type PaginationNumberState = "Default" | "Current";
+type PaginationNumberState = "Default" | "Current";
 
 export type PaginationNumberProps = {
   number: number;

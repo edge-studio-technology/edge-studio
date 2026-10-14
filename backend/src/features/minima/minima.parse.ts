@@ -41,8 +41,6 @@ function readPeerCount(response: Record<string, unknown>) {
   return null;
 }
 
-export type MinimaSyncStatus = "active" | "stale" | "syncing" | "unavailable";
-
 const staleBlockAgeSeconds = 300;
 
 export function deriveSyncStatus(input: { rpcOk: boolean; blockAgeSeconds: number | null }) {

@@ -9,7 +9,7 @@ import type {
   WalletHistoryStatus,
 } from "./walletTypes";
 
-export type WalletHistoryDatePreset = "" | "today" | "7d" | "30d" | "month" | "custom";
+type WalletHistoryDatePreset = "" | "today" | "7d" | "30d" | "month" | "custom";
 
 export type WalletHistoryFilters = {
   page: number;

@@ -11,7 +11,7 @@ export type ServiceStatus = {
   upToDate: boolean;
 };
 
-export type InstalledBuild = { version: string; revision: string } | null;
+type InstalledBuild = { version: string; revision: string } | null;
 export type InstalledBuilds = Record<"frontend" | "backend" | "update-agent", InstalledBuild>;
 
 const MANIFEST_TO_COMPOSE_SERVICE: Record<(typeof MANIFEST_SERVICE_KEYS)[number], string> = {
