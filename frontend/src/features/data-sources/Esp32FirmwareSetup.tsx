@@ -1,9 +1,98 @@
 import { useState } from "react";
 import { Button } from "../../components/Button";
-import { Card } from "../../components/Card";
 import { ErrorAlert } from "../../components/ErrorAlert";
-import { MutedText } from "../../components/Text";
+import { CodeBlock } from "../../components/patterns/CodeBlock";
+import { InputField } from "../../components/ui/InputField";
+import { TextareaField } from "../../components/ui/TextareaField";
+import {
+  DeviceGuideWorkspace,
+  getDeviceSetupGuide,
+  type DeviceGuideAction,
+  type DeviceGuideCustomTopic,
+} from "./deviceSetupGuides";
 import type { DataSource } from "./dataSourceTypes";
+
+export function Esp32SetupGuide({
+  source,
+  createdWorkflowIds,
+  runningActionKey,
+  onAction,
+  onGoToWorkflow,
+  onEditSettings,
+}: {
+  source: DataSource;
+  createdWorkflowIds?: Record<string, string>;
+  runningActionKey?: string | null;
+  onAction?: (action: DeviceGuideAction) => void;
+  onGoToWorkflow?: (workflowId: string) => void;
+  onEditSettings?: () => void;
+}) {
+  const [flashMethod, setFlashMethod] = useState<"ide" | "cli">("ide");
+  const [wifiSsid, setWifiSsid] = useState("");
+  const [wifiPassword, setWifiPassword] = useState("");
+  const savedBroker = esp32BrokerParts(source.config.brokerUrl ?? "mqtt://localhost:1883");
+  const [esp32BrokerHost, setEsp32BrokerHost] = useState(savedBroker.host);
+  const [esp32BrokerPort, setEsp32BrokerPort] = useState(String(savedBroker.port));
+  const broker = {
+    host: esp32BrokerHost.trim() || savedBroker.host,
+    port: Number(esp32BrokerPort) || savedBroker.port,
+  };
+  const firmware = esp32Firmware({
+    deviceName: source.name,
+    mqttHost: broker.host,
+    mqttPort: broker.port,
+    topic: source.config.topic ?? "sensors/esp32/data",
+    wifiSsid,
+    wifiPassword,
+  });
+  const topics: DeviceGuideCustomTopic[] = [
+    {
+      id: "firmware-settings",
+      title: "Firmware settings",
+      content: (
+        <Esp32Topic title="Firmware settings" description="Set Wi-Fi and the broker address the ESP32 can reach, then copy the generated sketch.">
+          {savedBroker.needsEsp32Override && (
+            <ErrorAlert status="warning" title="ESP32 broker address needed">
+              {savedBroker.reason} Edge Studio can still use this address, but the ESP32 cannot. Enter the broker host and port reachable from Wi-Fi/LAN before flashing.
+            </ErrorAlert>
+          )}
+          <div className="gap-detail-close grid md:grid-cols-2">
+            <InputField label="ESP32 broker host" value={esp32BrokerHost} onChange={(event) => setEsp32BrokerHost(event.target.value)} placeholder="192.168.1.75" />
+            <InputField label="ESP32 broker port" value={esp32BrokerPort} onChange={(event) => setEsp32BrokerPort(event.target.value)} placeholder="1883" inputMode="numeric" />
+          </div>
+          <FirmwareStepContent firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} />
+        </Esp32Topic>
+      ),
+    },
+    {
+      id: "flash-firmware",
+      title: "Flash firmware",
+      content: (
+        <Esp32Topic title="Flash firmware" description="Connect the ESP32 by USB, choose a flashing method, then work through the numbered steps.">
+          <div className="gap-detail-next flex flex-wrap">
+            <Button type="button" size="sm" variant={flashMethod === "ide" ? "primary" : "secondary"} onClick={() => setFlashMethod("ide")}>Arduino IDE</Button>
+            <Button type="button" size="sm" variant={flashMethod === "cli" ? "primary" : "secondary"} onClick={() => setFlashMethod("cli")}>Arduino CLI</Button>
+          </div>
+          {flashMethod === "ide" ? <ArduinoIdeSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} /> : <ArduinoCliSteps firmware={firmware} wifiSsid={wifiSsid} wifiPassword={wifiPassword} onWifiSsidChange={setWifiSsid} onWifiPasswordChange={setWifiPassword} />}
+        </Esp32Topic>
+      ),
+    },
+    {
+      id: "verify",
+      title: "Verify",
+      content: <Esp32Topic title="Verify" description="Confirm the board connects to Wi-Fi and publishes MQTT messages before enabling a workflow."><ol className="type-body text-text-secondary gap-detail-next m-0 grid list-decimal pl-5 leading-[1.4]"><li>Open Serial Monitor at <InlineCode>115200</InlineCode> and confirm Wi-Fi connected, MQTT connected, and Publishing messages.</li><li>Wait up to 30 seconds for the first Ping message; the starter firmware publishes again every 30 seconds.</li><li>Confirm the MQTT source receives the JSON message in Edge Studio.</li></ol></Esp32Topic>,
+    },
+  ];
+  return <DeviceGuideWorkspace guide={getDeviceSetupGuide(source)!} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} onEditSettings={onEditSettings} overview={<Esp32Overview />} customTopics={topics} />;
+}
+
+function Esp32Overview() {
+  return <div className="gap-detail-near grid"><p className="type-body text-text-secondary m-0">Use this guide to configure starter firmware, flash it to the board, then verify MQTT messages before enabling a workflow.</p><ErrorAlert status="warning" title="Broker compatibility">The generated starter firmware supports only an unauthenticated, non-TLS <InlineCode>mqtt://</InlineCode> broker reachable from the ESP32. Use a protected LAN broker or firmware that supports your broker's authentication and TLS requirements.</ErrorAlert></div>;
+}
+
+function Esp32Topic({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return <div className="gap-detail-near grid"><div><h3 className="type-title text-text-primary m-0">{title}</h3><p className="type-body text-text-secondary mt-detail-tight m-0">{description}</p></div>{children}</div>;
+}
 
 export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
   const [flashMethod, setFlashMethod] = useState<"ide" | "cli">("ide");
@@ -26,60 +115,38 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
   });
 
   return (
-    <Card className="grid max-w-4xl gap-4">
+    <div className="gap-detail-near grid min-w-0">
       <div>
-        <strong>Next steps</strong>
-        <MutedText className="m-0 mt-1">
+        <h4 className="type-body-em text-text-primary m-0">ESP32 setup</h4>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">
           The device was saved as a normal MQTT input source. Follow these steps to flash an ESP32
           and verify that Edge Studio receives its JSON messages.
-        </MutedText>
+        </p>
       </div>
-      <div className="grid gap-2 text-sm">
-        <div>
-          Saved MQTT broker URL: <code>{source.config.brokerUrl}</code>
-        </div>
-        <div>
-          ESP32 broker host: <code>{broker.host}</code>
-        </div>
-        <div>
-          ESP32 broker port: <code>{broker.port}</code>
-        </div>
-        <div>
-          Publish topic: <code>{source.config.topic}</code>
-        </div>
-      </div>
+      <ErrorAlert status="warning" title="Broker compatibility">
+        This is not an Edge Studio error, but the generated starter firmware will not connect if your
+        broker requires authentication or TLS. It supports only an unauthenticated, non-TLS mqtt://
+        broker reachable from the ESP32. Use a protected LAN broker or firmware that supports your
+        broker's authentication and TLS requirements.
+      </ErrorAlert>
       {savedBroker.needsEsp32Override && (
         <ErrorAlert status="warning" title="ESP32 broker address needed">
-          <div className="grid gap-3">
-            <div>
-              {savedBroker.reason} Enter the broker host and port that the ESP32 can reach from
-              Wi-Fi/LAN.
+          <div className="gap-detail-close grid">
+            <div className="type-body text-text-secondary">
+              {savedBroker.reason} Edge Studio can still use this address, but the ESP32 cannot. This
+              needs attention before flashing: enter the broker host and port that the ESP32 can reach
+              from Wi-Fi/LAN.
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="grid gap-2 font-bold">
-                ESP32 broker host
-                <input
-                  value={esp32BrokerHost}
-                  onChange={(event) => setEsp32BrokerHost(event.target.value)}
-                  placeholder="192.168.1.75"
-                />
-              </label>
-              <label className="grid gap-2 font-bold">
-                ESP32 broker port
-                <input
-                  value={esp32BrokerPort}
-                  onChange={(event) => setEsp32BrokerPort(event.target.value)}
-                  placeholder="1883"
-                  inputMode="numeric"
-                />
-              </label>
+            <div className="gap-detail-close grid md:grid-cols-2">
+              <InputField label="ESP32 broker host" value={esp32BrokerHost} onChange={(event) => setEsp32BrokerHost(event.target.value)} placeholder="192.168.1.75" />
+              <InputField label="ESP32 broker port" value={esp32BrokerPort} onChange={(event) => setEsp32BrokerPort(event.target.value)} placeholder="1883" inputMode="numeric" />
             </div>
           </div>
         </ErrorAlert>
       )}
-      <div className="grid gap-3 text-sm text-slate-700">
-        <strong>Walkthrough</strong>
-        <ol className="m-0 grid gap-2 pl-5">
+      <div className="gap-detail-near grid">
+        <h4 className="type-body-em text-text-primary m-0">Walkthrough</h4>
+        <ol className="type-body text-text-secondary gap-detail-next m-0 grid pl-5">
           <li>
             Connect the ESP32 to the computer you will use for flashing, using a USB data cable.
             This can be a laptop, desktop, or Raspberry Pi.
@@ -89,7 +156,7 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
             for terminal/Raspberry Pi/headless use.
           </li>
         </ol>
-        <div className="flex flex-wrap gap-2">
+        <div className="gap-detail-next flex flex-wrap">
           <Button
             type="button"
             size="sm"
@@ -125,11 +192,11 @@ export function Esp32FirmwareSetup({ source }: { source: DataSource }) {
           />
         )}
       </div>
-      <MutedText className="m-0">
-        The starter sketch publishes a simple Ping JSON message first; replace it with real sensor
-        fields after the MQTT path works.
-      </MutedText>
-    </Card>
+      <p className="type-body text-text-secondary m-0">
+        After MQTT connects, the starter sketch sends its first Ping after up to 30 seconds, then every
+        30 seconds. Replace the Ping fields with real sensor data after the MQTT path works.
+      </p>
+    </div>
   );
 }
 
@@ -141,8 +208,8 @@ function ArduinoIdeSteps({
   onWifiPasswordChange,
 }: FirmwareStepProps) {
   return (
-    <div className="grid gap-3">
-      <strong>Arduino IDE steps</strong>
+    <div className="gap-detail-near grid">
+      <h4 className="type-body-em text-text-primary m-0">Arduino IDE steps</h4>
       <SetupStep index={1} title="Install Arduino IDE">
         Install and open Arduino IDE on the flashing computer from{" "}
         <InlineCode>arduino.cc/en/software</InlineCode>.
@@ -217,8 +284,8 @@ function ArduinoCliSteps({
   const commands = esp32CliCommands(detectedPort ?? "/dev/ttyUSB0", selectedFqbn);
 
   return (
-    <div className="grid gap-3">
-      <strong>Arduino CLI steps</strong>
+    <div className="gap-detail-near grid min-w-0">
+      <h4 className="type-body-em text-text-primary m-0">Arduino CLI steps</h4>
       <SetupStep index={1} title="Install Arduino CLI">
         <div>Run this on the computer connected to the ESP32.</div>
         <CommandBlock value={commands.installCli} />
@@ -242,8 +309,11 @@ function ArduinoCliSteps({
           <InlineCode>EN</InlineCode>, then run the command again if the board appears as{" "}
           <InlineCode>Unknown</InlineCode>.
         </div>
-        <textarea
-          className="mt-2 min-h-[110px] font-mono text-xs"
+        <TextareaField
+          className="mt-detail-next"
+          label="Arduino CLI board list output"
+          description="Paste the output so the guide can select the detected port and board target."
+          rows={5}
           value={boardListOutput}
           onChange={(event) => setBoardListOutput(event.target.value)}
           placeholder={
@@ -278,15 +348,13 @@ function ArduinoCliSteps({
           family.
         </div>
         <CommandBlock value={commands.boardListAll} />
-        <label className="grid gap-2 font-bold text-slate-700">
-          Board FQBN
-          <input
-            value={usableDetectedFqbn ?? manualFqbn}
-            onChange={(event) => setManualFqbn(event.target.value)}
-            disabled={Boolean(usableDetectedFqbn)}
-            placeholder="esp32:esp32:esp32"
-          />
-        </label>
+        <InputField
+          label="Board FQBN"
+          value={usableDetectedFqbn ?? manualFqbn}
+          onChange={(event) => setManualFqbn(event.target.value)}
+          disabled={Boolean(usableDetectedFqbn)}
+          placeholder="esp32:esp32:esp32"
+        />
         <div className="mt-2">
           This board target is used by both compile and upload. Use{" "}
           <InlineCode>esp32:esp32:esp32</InlineCode> for a generic ESP32 Dev Module. If upload
@@ -366,45 +434,29 @@ function FirmwareStepContent({
 }: FirmwareStepProps) {
   const [showFirmware, setShowFirmware] = useState(false);
   return (
-    <div className="mt-3 grid gap-3">
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="grid gap-2 font-bold text-slate-700">
-          Wi-Fi name
-          <input
-            value={wifiSsid}
-            onChange={(event) => onWifiSsidChange(event.target.value)}
-            placeholder="MyWifi"
-          />
-        </label>
-        <label className="grid gap-2 font-bold text-slate-700">
-          Wi-Fi password
-          <input
-            type="password"
-            value={wifiPassword}
-            onChange={(event) => onWifiPasswordChange(event.target.value)}
-            placeholder="Wi-Fi password"
-          />
-        </label>
+    <div className="mt-detail-close gap-detail-close grid">
+      <div className="gap-detail-close grid md:grid-cols-2">
+        <InputField label="Wi-Fi name" value={wifiSsid} onChange={(event) => onWifiSsidChange(event.target.value)} placeholder="MyWifi" />
+        <InputField label="Wi-Fi password" type="password" value={wifiPassword} onChange={(event) => onWifiPasswordChange(event.target.value)} placeholder="Wi-Fi password" />
       </div>
-      <div className="text-sm text-slate-600">
-        These values are inserted into the firmware text only. They are not saved to Edge Studio.
+      <div className="type-body text-text-secondary">
+        These values are inserted into the firmware text only. They are not saved to Edge Studio, but the
+        copied firmware contains the Wi-Fi password: do not commit, share, or leave it on shared machines.
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" size="xs" onClick={() => navigator.clipboard?.writeText(firmware)}>
+      <div className="gap-detail-next flex flex-wrap">
+        <Button type="button" size="sm" onClick={() => navigator.clipboard?.writeText(firmware)}>
           Copy firmware
         </Button>
         <Button
           type="button"
-          size="xs"
+          size="sm"
           variant="secondary"
           onClick={() => setShowFirmware((value) => !value)}
         >
           {showFirmware ? "Hide firmware" : "Show firmware"}
         </Button>
       </div>
-      {showFirmware && (
-        <textarea className="min-h-[420px] font-mono text-xs" readOnly value={firmware} />
-      )}
+      {showFirmware && <CodeBlock value={firmware} className="max-h-[420px]" />}
     </div>
   );
 }
@@ -419,34 +471,24 @@ function SetupStep({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t border-slate-200 pt-3 first:border-t-0 first:pt-0">
-      <h4 className="m-0 text-sm font-extrabold text-slate-800">
+    <section className="border-stroke-secondary min-w-0 border-t pt-detail-close first:border-t-0 first:pt-0">
+      <h4 className="type-body-em text-text-primary m-0">
         {index}. {title}
       </h4>
-      <div className="mt-2 text-sm leading-6 text-slate-700">{children}</div>
+      <div className="type-body text-text-secondary mt-detail-next min-w-0 leading-[1.7]">{children}</div>
     </section>
   );
 }
 
 function CommandBlock({ value }: { value: string }) {
   return (
-    <div className="mt-2 grid gap-2">
-      <textarea className="min-h-[92px] font-mono text-xs" readOnly value={value} />
-      <Button
-        type="button"
-        size="xs"
-        variant="secondary"
-        onClick={() => navigator.clipboard?.writeText(value)}
-      >
-        Copy commands
-      </Button>
-    </div>
+    <CodeBlock value={value} className="mt-detail-next" />
   );
 }
 
 function InlineCode({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded bg-white px-1.5 py-0.5 font-mono text-[0.9em] break-all text-slate-600">
+    <span className="type-mono border-stroke-primary bg-surface-secondary rounded-tight border px-detail-tight py-detail-fine break-normal text-text-primary">
       {children}
     </span>
   );

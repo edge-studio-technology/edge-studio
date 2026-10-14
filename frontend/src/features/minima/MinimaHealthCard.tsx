@@ -1,6 +1,7 @@
 import { Terminal } from "lucide-react";
 import type { MinimaNodeStatus, MinimaResyncSummary } from "../../app/types";
 import { JsonPreview } from "../../components/patterns/JsonPreview";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { LoadingDots } from "../../components/ui/LoadingDots";
 import { ErrorText } from "../../components/ui/ErrorText";
 import { Pill } from "../../components/ui/Pill";
@@ -71,18 +72,18 @@ export function MinimaHealthCard({
     </>
   );
 
-  return (
-    <div className="flex h-full min-w-0 flex-col gap-4">
-      {!resync?.busy && monitoring?.stallDetected && (
-        <p className="mb-0 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          Chain stall detected — last block is older than {monitoring.stallThresholdSeconds}s.
-          {monitoring.autoResyncEnabled
-            ? monitoring.lastAutoResyncAt
-              ? ` Last auto-resync: ${formatLocalTime(monitoring.lastAutoResyncAt)} (${monitoring.lastAutoResyncResult ?? "no details"}).`
-              : " Auto-resync is enabled; the backend poller will attempt resync when cooldown allows."
-            : " Consider a manual Megammr resync or check peer connectivity."}
-        </p>
-      )}
+return (
+  <div className="flex h-full min-w-0 flex-col gap-4">
+    {!resync?.busy && monitoring?.stallDetected && (
+      <ErrorAlert status="warning" title="Chain stall detected">
+        Last block is older than {monitoring.stallThresholdSeconds}s.
+        {monitoring.autoResyncEnabled
+          ? monitoring.lastAutoResyncAt
+            ? ` Last auto-resync: ${formatLocalTime(monitoring.lastAutoResyncAt)} (${monitoring.lastAutoResyncResult ?? "no details"}).`
+            : " Auto-resync is enabled; the backend poller will attempt resync when cooldown allows."
+          : " Consider a manual Megammr resync or check peer connectivity."}
+      </ErrorAlert>
+    )}
 
       <div className="min-h-0 flex-1">
         <MinimaStatGrid title="Node health" badge={resync?.busy ? <Pill className="!h-auto min-h-6 max-w-full" tone={resyncPhaseTone(resync.phase)} indicator>{resyncPhaseLabel[resync.phase]}</Pill> : null} footer={footer}>

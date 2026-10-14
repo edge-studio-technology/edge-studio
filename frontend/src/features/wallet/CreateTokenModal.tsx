@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { useToast } from "../../components/ToastProvider";
+import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { InputField } from "../../components/ui/InputField";
 import { formatMinimaAmount } from "../../lib/format";
 import {
@@ -157,22 +158,16 @@ export function CreateTokenModal({
           value={decimal}
           onChange={(e) => setDecimal(e.target.value)}
         />
-        {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        )}
+        {error && <ErrorAlert title="Token creation failed">{error}</ErrorAlert>}
         {submitting && (
           <p className="text-sm text-slate-500">
             Creating token on the node… this may take up to a minute.
           </p>
         )}
         {minimaConfirmedUnavailable && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <p className="text-sm text-amber-800">
-              Minima isn't running — token creation is unavailable right now.
-            </p>
-          </div>
+          <ErrorAlert status="warning" title="Token creation unavailable">
+            Minima isn't running — token creation is unavailable right now.
+          </ErrorAlert>
         )}
       </form>
     </Modal>

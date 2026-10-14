@@ -1,15 +1,15 @@
-import { Check, Copy } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button, IconButton } from "../../components/Button";
 import { DetailList, DetailRow } from "../../components/patterns/DetailList";
 import { useToast } from "../../components/ToastProvider";
-import { Disclosure } from "../../components/ui/Disclosure";
-import piGpioPinoutUrl from "../../assets/pi-gpio-pinout.svg";
+import piGpioPinoutUrl from "../../assets/header_map_rpi.png";
 import type { AutomationBlock, AutomationBlockType } from "../automation/automationTypes";
 import type { DataSource } from "./dataSourceTypes";
 
 type GuideSection = {
   title: string;
+  description?: string;
   body?: string;
   items?: string[];
   table?: Array<[string, string]>;
@@ -47,6 +47,12 @@ export type DeviceSetupGuide = {
   actions?: DeviceGuideAction[];
 };
 
+export type DeviceGuideCustomTopic = {
+  id: string;
+  title: string;
+  content: ReactNode;
+};
+
 export function hasDeviceSetupGuide(source: DataSource) {
   return Boolean(getDeviceSetupGuide(source));
 }
@@ -57,7 +63,15 @@ export function getDeviceSetupGuide(source: DataSource): DeviceSetupGuide | null
       source,
       "ESP32 MQTT Board Setup Guide",
       "Flash starter firmware, connect the board to Wi-Fi, publish JSON over MQTT, then use an MQTT event workflow.",
-      [],
+      [
+        {
+          title: "Saved settings",
+          table: [
+            ["Broker", source.config.brokerUrl ?? ""],
+            ["Topic", source.config.topic ?? "sensors/esp32/data"],
+          ],
+        },
+      ],
       "docs/guides/esp32-mqtt-sensors.md",
     );
   if (source.type === "gpio-input" && source.config.profile === "pir-motion")
@@ -84,77 +98,143 @@ export function StandardDeviceSetupGuide({
   runningActionKey,
   onAction,
   onGoToWorkflow,
+  onEditSettings,
 }: {
   source: DataSource;
   createdWorkflowIds?: Record<string, string>;
   runningActionKey?: string | null;
   onAction?: (action: DeviceGuideAction) => void;
   onGoToWorkflow?: (workflowId: string) => void;
+  onEditSettings?: () => void;
 }) {
   const setupGuide = getDeviceSetupGuide(source);
   if (!setupGuide) return null;
-  const tableSections = setupGuide.sections.filter(isTableOnlySection);
-  const otherSections = setupGuide.sections.filter((section) => !isTableOnlySection(section));
   return (
-    <DeviceSetupGuideShell guide={setupGuide}>
-      {tableSections.map((section) => (
-        <DetailList key={section.title}>
-          {section.table!.map(([label, value]) => (
-            <DetailRow key={label} label={label} value={value} mono />
-          ))}
-        </DetailList>
-      ))}
-      <div className="flex flex-col gap-4 pb-2 pl-2">
-        {otherSections.map((section) => (
-          <GuideSectionCard key={section.title} section={section} />
-        ))}
-        {setupGuide.actions && setupGuide.actions.length > 0 && (
-          <GuideActions
-            actions={setupGuide.actions}
-            createdWorkflowIds={createdWorkflowIds}
-            runningActionKey={runningActionKey}
-            onAction={onAction}
-            onGoToWorkflow={onGoToWorkflow}
-          />
-        )}
-      </div>
-    </DeviceSetupGuideShell>
+    <DeviceGuideWorkspace
+      guide={setupGuide}
+      createdWorkflowIds={createdWorkflowIds}
+      runningActionKey={runningActionKey}
+      onAction={onAction}
+      onGoToWorkflow={onGoToWorkflow}
+      onEditSettings={onEditSettings}
+    />
   );
 }
 
-function isTableOnlySection(section: GuideSection) {
-  return (
-    Boolean(section.table) &&
-    !section.body &&
-    !section.items &&
-    !section.commands &&
-    !section.schematic
-  );
-}
+type GuideTopic =
+  | { id: "overview"; title: string }
+  | { id: `section:${number}`; title: string; section: GuideSection }
+  | { id: `custom:${string}`; title: string; content: ReactNode }
+  | { id: "actions"; title: string }
+  | { id: "documentation"; title: string };
 
-export function DeviceSetupGuideShell({
+export function DeviceGuideWorkspace({
   guide,
-  children,
+  createdWorkflowIds,
+  runningActionKey,
+  onAction,
+  onGoToWorkflow,
+  onEditSettings,
+  overview,
+  customTopics = [],
 }: {
   guide: DeviceSetupGuide;
-  children: ReactNode;
+  createdWorkflowIds?: Record<string, string>;
+  runningActionKey?: string | null;
+  onAction?: (action: DeviceGuideAction) => void;
+  onGoToWorkflow?: (workflowId: string) => void;
+  onEditSettings?: () => void;
+  overview?: ReactNode;
+  customTopics?: DeviceGuideCustomTopic[];
+}) {
+  const [activeTopicId, setActiveTopicId] = useState<GuideTopic["id"]>("overview");
+  const topics: GuideTopic[] = [
+    { id: "overview", title: "Overview" },
+    ...customTopics.map((topic) => ({
+      id: `custom:${topic.id}` as const,
+      title: topic.title,
+      content: topic.content,
+    })),
+    ...guide.sections
+      .map((section, index) => ({ id: `section:${index}` as const, title: section.title, section })),
+    ...(guide.actions?.length ? [{ id: "actions" as const, title: "Guide actions" }] : []),
+    ...(guide.docPath ? [{ id: "documentation" as const, title: "Documentation" }] : []),
+  ];
+  const activeTopic = topics.find((topic) => topic.id === activeTopicId) ?? topics[0];
+  const activeTopicIndex = topics.indexOf(activeTopic);
+
+  function selectTopic(index: number) {
+    setActiveTopicId(topics[index].id);
+  }
+
+  return (
+    <section className="grid h-full min-h-0 min-w-0 grid-cols-[240px_minmax(0,1fr)] overflow-hidden">
+      <nav className="bg-surface-secondary gap-detail-tight flex min-h-0 flex-col px-detail-next py-pad-close" aria-label="Device guide topics">
+        {topics.map((topic) => {
+          const active = topic.id === activeTopic.id;
+          return (
+            <button
+              key={topic.id}
+              type="button"
+              aria-current={active ? "page" : undefined}
+              className={`rounded-soft px-detail-next py-detail-tight type-body cursor-pointer text-left transition-colors focus-visible:ring-stroke-active focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${active ? "bg-surface-accent text-text-inverse" : "text-text-secondary hover:bg-surface-primary hover:text-text-primary"}`}
+              onClick={() => setActiveTopicId(topic.id)}
+            >
+              {topic.title}
+            </button>
+          );
+        })}
+        <div className="gap-detail-tight mt-auto grid pt-pad-relaxed">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="!grid w-full grid-cols-[1rem_1fr_1rem] !border-stroke-primary after:size-4 after:content-['']"
+            iconStart={<ChevronUp aria-hidden />}
+            disabled={activeTopicIndex === 0}
+            onClick={() => selectTopic(activeTopicIndex - 1)}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="!grid w-full grid-cols-[1rem_1fr_1rem] !border-stroke-primary after:size-4 after:content-['']"
+            iconStart={<ChevronDown aria-hidden />}
+            disabled={activeTopicIndex === topics.length - 1}
+            onClick={() => selectTopic(activeTopicIndex + 1)}
+          >
+            Next
+          </Button>
+        </div>
+      </nav>
+      <div className="border-stroke-secondary bg-surface-primary min-h-0 min-w-0 overflow-y-auto border-l px-detail-next pb-pad-close pl-6 pt-pad-tight">
+        {activeTopic.id === "overview" && <GuideOverview guide={guide} content={overview} />}
+        {"content" in activeTopic && activeTopic.content}
+        {"section" in activeTopic && <GuideSectionCard section={activeTopic.section} onEditSettings={onEditSettings} />}
+        {activeTopic.id === "actions" && guide.actions && <GuideActions actions={guide.actions} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} />}
+        {activeTopic.id === "documentation" && guide.docPath && <GuideDocumentation docPath={guide.docPath} />}
+      </div>
+    </section>
+  );
+}
+
+function GuideOverview({
+  guide,
+  content,
+}: {
+  guide: DeviceSetupGuide;
+  content?: ReactNode;
 }) {
   return (
-    <div className="gap-detail-near grid">
-      {children}
-      {guide.docPath && (
-        <p className="type-body text-text-secondary m-0">
-          More detail:{" "}
-          <button
-            type="button"
-            className="type-mono text-text-accent underline decoration-dotted underline-offset-2"
-            onClick={() => openExternalDoc(guide.docPath!)}
-          >
-            {guide.docPath}
-          </button>
+    <GuideTopic title="Overview" description={guide.intro}>
+      <div>
+        <h4 className="type-body-em text-text-primary m-0">How to use this guide</h4>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">
+          Follow the relevant topics in order, then verify the device before using it in a workflow or quick action.
         </p>
-      )}
-    </div>
+      </div>
+      {content}
+    </GuideTopic>
   );
 }
 
@@ -172,21 +252,18 @@ function GuideActions({
   onGoToWorkflow?: (workflowId: string) => void;
 }) {
   return (
-    <Disclosure title="Guide actions">
+    <GuideTopic
+      title="Guide actions"
+      description="Create a starter workflow or open one created from this guide."
+    >
       <div className="gap-detail-tight grid">
         {actions.map((action) => {
           const workflowId = createdWorkflowIds?.[action.key] ?? null;
           return (
-            <div
-              key={action.key}
-              className="border-stroke-secondary bg-surface-always-white rounded-loose p-pad-close gap-detail-close flex flex-wrap items-center justify-between border"
-            >
-              <div>
-                <div className="type-body-em text-text-primary">{action.label}</div>
-                {action.description && (
-                  <p className="type-body text-text-secondary m-0 mt-1">{action.description}</p>
-                )}
-              </div>
+            <div key={action.key} className="gap-detail-near grid justify-items-start">
+              {action.description && (
+                <p className="type-body text-text-secondary m-0">{action.description}</p>
+              )}
               <Button
                 type="button"
                 size="sm"
@@ -203,28 +280,32 @@ function GuideActions({
           );
         })}
       </div>
-    </Disclosure>
+    </GuideTopic>
   );
 }
 
-function GuideSectionCard({ section }: { section: GuideSection }) {
+function GuideSectionCard({ section, onEditSettings }: { section: GuideSection; onEditSettings?: () => void }) {
   const [schematicVisible, setSchematicVisible] = useState(false);
+  const description = section.description ?? standardSectionDescriptions[section.title];
   return (
-    <Disclosure title={section.title}>
-      {section.body && <p className="type-body text-text-secondary m-0">{section.body}</p>}
+    <GuideTopic title={section.title} description={description}>
+      {section.body && <p className="type-body text-text-secondary m-0 leading-[1.4]">{section.body}</p>}
       {section.items && (
-        <ul className="type-body text-text-secondary gap-detail-tight m-0 grid list-disc pl-5">
+        <ul className="type-body text-text-secondary gap-detail-next m-0 grid list-disc pl-5 leading-[1.4]">
           {section.items.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
       )}
       {section.table && (
-        <DetailList>
+        <div className="gap-detail-close grid justify-items-start">
+        <DetailList className="w-full">
           {section.table.map(([label, value]) => (
             <DetailRow key={label} label={label} value={value} mono />
           ))}
         </DetailList>
+        {section.title === "Saved settings" && onEditSettings ? <Button type="button" variant="secondary" size="sm" onClick={onEditSettings}>Edit device settings</Button> : null}
+        </div>
       )}
       {section.commands && <CommandBlock value={section.commands} />}
       {section.schematic === "pi-gpio" && (
@@ -240,14 +321,61 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
       )}
       {section.schematic === "pi-gpio" && schematicVisible && (
         <div className="border-stroke-secondary bg-surface-always-white rounded-soft p-pad-close overflow-auto border">
-          <img
-            className="h-auto w-full min-w-190"
-            src={piGpioPinoutUrl}
-            alt="Raspberry Pi 40-pin GPIO header pinout showing 3V3, 5V, ground, SDA, SCL, and GPIO pins"
-          />
+          <a
+            className="gap-detail-tight group flex w-full flex-col items-center"
+            href={piGpioPinoutUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open full-size Raspberry Pi GPIO header pinout"
+          >
+            <img
+              className="max-h-72 w-full max-w-160 cursor-zoom-in object-contain"
+              src={piGpioPinoutUrl}
+              alt="Raspberry Pi 40-pin GPIO header pinout showing 3V3, 5V, ground, SDA, SCL, and GPIO pins"
+            />
+            <span className="type-meta text-text-secondary group-hover:text-text-primary">Open full-size image</span>
+          </a>
         </div>
       )}
-    </Disclosure>
+    </GuideTopic>
+  );
+}
+
+function GuideTopic({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="gap-detail-near grid">
+      <div>
+        <h3 className="type-title text-text-primary m-0">{title}</h3>
+        {description && <p className="type-body text-text-secondary mt-detail-tight m-0">{description}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+const standardSectionDescriptions: Record<string, string> = {
+  Requirements: "Conditions that must be in place before this device can be used.",
+  Wiring: "Connections required to use this device safely.",
+  "Saved settings": "Configuration currently saved for this device.",
+  Verify: "Checks that confirm the device works before it is used in automation.",
+  "Workflow use": "How to use this device in an automation workflow.",
+};
+
+function GuideDocumentation({ docPath }: { docPath: string }) {
+  return (
+    <GuideTopic title="Documentation" description="Open the full setup documentation in a new tab.">
+      <Button type="button" size="sm" className="justify-self-start" onClick={() => openExternalDoc(docPath)}>
+        Open documentation
+      </Button>
+    </GuideTopic>
   );
 }
 
@@ -307,23 +435,45 @@ function guide(
   intro: string,
   sections: GuideSection[],
   docPath?: string,
-  actions?: DeviceGuideAction[],
+  actions: DeviceGuideAction[] = [basicWorkflowAction()],
 ): DeviceSetupGuide {
   return { title, intro, sections, docPath, actions };
 }
 
-function readableSourcePreviewAction(): DeviceGuideAction {
+function basicWorkflowAction(): DeviceGuideAction {
   return {
-    key: "create-readable-preview-workflow",
+    key: "create-basic-workflow",
     label: "Create basic workflow for this device",
     description:
-      "Adds a disabled manual workflow that reads this device and writes the latest JSON to the Workflow Inbox.",
+      "Adds a disabled starter workflow for this device. Review it before enabling or running it.",
     kind: "create_workflow",
-    workflow: readableSourcePreviewWorkflow,
+    workflow: basicWorkflow,
   };
 }
 
-function readableSourcePreviewWorkflow(source: DataSource): DeviceGuideWorkflowInput {
+function basicWorkflow(source: DataSource): DeviceGuideWorkflowInput {
+  if (source.type === "gpio-input" || source.type === "webhook" || source.type === "mqtt") {
+    const startType = source.type === "gpio-input" ? "gpio_event_start" : source.type === "webhook" ? "webhook_event_start" : "mqtt_event_start";
+    return { name: `${source.name} event preview`, enabled: false, blocks: [
+      { type: startType, config: { sourceId: source.id }, clientId: "start" },
+      { type: "record_trigger_event", config: {}, clientId: "record" },
+      { type: "show_preview", config: { title: `${source.name} latest event`, previewFormat: "json", contentMode: "trigger_payload" }, clientId: "preview" },
+    ] };
+  }
+  if (source.type === "pi-camera") {
+    return { name: `${source.name} capture preview`, enabled: false, blocks: [
+      { type: "manual_start", config: {}, clientId: "start" },
+      { type: "capture_camera", config: { sourceId: source.id }, clientId: "capture" },
+      { type: "show_preview", config: { title: `${source.name} latest capture`, previewFormat: "json", contentMode: "latest_data" }, clientId: "preview" },
+    ] };
+  }
+  if (source.type === "gpio-output" || source.type === "http-output" || source.type === "mqtt-output") {
+    const config = source.type === "gpio-output" ? { targetId: source.id, action: "pulse" as const, durationMs: 1000 } : { targetId: source.id, action: source.type === "http-output" ? "send_request" as const : "publish" as const, bodyMode: "custom" as const, bodyTemplateText: '{"event":"test"}' };
+    return { name: `${source.name} output draft`, enabled: false, blocks: [
+      { type: "manual_start", config: {}, clientId: "start" },
+      { type: "control_output", config, clientId: "output" },
+    ] };
+  }
   return {
     name: `${source.name} preview`,
     enabled: false,
@@ -355,14 +505,14 @@ function bmeSensorGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable I2C sensors from Devices -> Hardware support so the host-side sensor helper is running.",
-          "Enable I2C on the Raspberry Pi host and reboot if /dev/i2c-1 is still missing.",
+          "I2C sensors are enabled in Devices -> Hardware support so the host-side sensor helper is running.",
+          "I2C is enabled on the Raspberry Pi host; reboot if /dev/i2c-1 is still missing.",
           ...(source.config.sensor === "bme680"
             ? [
                 "Hardware support installs the PyPI bme680 module in /opt/edge-studio/.venv-sensor-helper for BME680 reads.",
               ]
             : []),
-          "Use address 0x76 first, then try 0x77 if reads fail.",
+          "Default address: 0x76. Try 0x77 if reads fail.",
         ],
       },
       {
@@ -379,6 +529,7 @@ function bmeSensorGuide(source: DataSource) {
         ? [
             {
               title: "BME680 extra pins",
+              description: "Additional pins some BME680 breakout boards need for I2C mode.",
               body: "Many BME680 breakouts expose six pins because the chip can also speak SPI. Basic I2C still uses VIN, GND, SCL, and SDA, but some boards need SDO and CS/CSB set explicitly.",
               table: [
                 ["SDO", "Optional I2C address select: GND for 0x76, 3.3V for 0x77"],
@@ -407,7 +558,6 @@ function bmeSensorGuide(source: DataSource) {
       },
     ],
     "docs/guides/bme280-sensor.md",
-    [readableSourcePreviewAction()],
   );
 }
 
@@ -419,6 +569,7 @@ function deviceSystemDataGuide(source: DataSource) {
     [
       {
         title: "What gets read",
+        description: "The categories of local system data collected by this source.",
         items: [
           "Device specs: hostname, OS platform, kernel release, CPU model/count, architecture, and total memory.",
           "Performance: uptime, load average, free memory, total memory, and CPU temperature when the Pi exposes it.",
@@ -428,6 +579,7 @@ function deviceSystemDataGuide(source: DataSource) {
       },
       {
         title: "Privacy boundaries",
+        description: "Data this source intentionally excludes and the privacy implications of what remains.",
         items: [
           "This source does not collect public-IP geolocation, GPS coordinates, Wi-Fi SSIDs, Wi-Fi BSSIDs, MAC addresses, or CPU serial numbers.",
           "Network interface IP addresses can still identify the device on your LAN. Review previews before stamping data publicly.",
@@ -452,7 +604,6 @@ function deviceSystemDataGuide(source: DataSource) {
       },
     ],
     undefined,
-    [readableSourcePreviewAction()],
   );
 }
 
@@ -465,9 +616,9 @@ function gpioInputGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable GPIO from Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
-          "Use BCM pin numbering, not physical header numbering.",
-          "Never connect a GPIO input directly to 5V.",
+          "GPIO is enabled in Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
+          "BCM pin numbering is used instead of physical header numbering.",
+          "GPIO inputs are never connected directly to 5V.",
         ],
       },
       {
@@ -478,6 +629,7 @@ function gpioInputGuide(source: DataSource) {
           ["BCM pin", String(source.config.pin ?? "?")],
           ["Pull", source.config.pull ?? "off"],
           ["Edge", source.config.edge ?? "both"],
+          ["Debounce", `${source.config.debounceMs ?? 100} ms`],
           ["Active state", source.config.activeState ?? "high"],
         ],
       },
@@ -502,19 +654,27 @@ function gpioButtonGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable GPIO from Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
-          "Use BCM pin numbering, not physical header numbering.",
-          "Never connect a GPIO input directly to 5V.",
+          "GPIO is enabled in Devices -> Hardware support so /dev/gpiochip0 is available to the backend.",
+          "BCM pin numbering is used instead of physical header numbering.",
+          "GPIO inputs are never connected directly to 5V.",
         ],
       },
       {
-        title: "Typical wiring",
+        title: "Wiring",
         schematic: "pi-gpio",
         table: [
           ["GPIO", `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? 17}`],
           ["Button path", "GPIO -> button -> GND"],
+        ],
+      },
+      {
+        title: "Saved settings",
+        table: [
+          ["GPIO chip", source.config.chip ?? "gpiochip0"],
+          ["BCM pin", String(source.config.pin ?? 17)],
           ["Pull", source.config.pull ?? "up"],
           ["Edge", source.config.edge ?? "falling"],
+          ["Debounce", `${source.config.debounceMs ?? 100} ms`],
           ["Active state", source.config.activeState ?? "low"],
         ],
       },
@@ -539,22 +699,33 @@ function pirGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable GPIO from Devices -> Hardware support.",
-          "Let the PIR sensor warm up for 60-90 seconds after power-on.",
-          "Verify the module output voltage before connecting unknown clones to a Pi GPIO pin.",
+          "GPIO is enabled in Devices -> Hardware support.",
+          "The PIR sensor has warmed up for 60-90 seconds after power-on.",
+          "The module output voltage is verified before an unknown clone is connected to a Pi GPIO pin.",
         ],
       },
       {
-        title: "Tested wiring",
+        title: "Wiring",
         schematic: "pi-gpio",
         table: [
           ["PIR VCC", "5V"],
           ["PIR GND", "GND"],
-          ["PIR OUT", `GPIO${source.config.pin ?? 23} / physical pin 16 for GPIO23`],
+          ["PIR OUT", `Configured BCM GPIO${source.config.pin ?? 23}; GPIO23 is physical pin 16 for the default template.`],
         ],
       },
       {
-        title: "Recommended workflow",
+        title: "Saved settings",
+        table: [
+          ["GPIO chip", source.config.chip ?? "gpiochip0"],
+          ["BCM pin", String(source.config.pin ?? 23)],
+          ["Pull", source.config.pull ?? "off"],
+          ["Edge", source.config.edge ?? "rising"],
+          ["Debounce", `${source.config.debounceMs ?? 500} ms`],
+          ["Active state", source.config.activeState ?? "high"],
+        ],
+      },
+      {
+        title: "Workflow use",
         items: [
           "Use Start on GPIO event with this source.",
           "Enable Only run when the GPIO event is active to ignore motion_cleared events.",
@@ -575,18 +746,25 @@ function gpioLedGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable GPIO from Devices -> Hardware support.",
-          "Use a 220-330 ohm resistor in series with the LED.",
-          "Never connect GPIO directly to 5V, motors, relays, or mains voltage.",
+          "GPIO is enabled in Devices -> Hardware support.",
+          "A 220-330 ohm resistor is installed in series with the LED.",
+          "GPIO is never connected directly to 5V, motors, relays, or mains voltage.",
         ],
       },
       {
-        title: "Typical wiring",
+        title: "Wiring",
         schematic: "pi-gpio",
         table: [
           ["GPIO", `${source.config.chip ?? "gpiochip0"} GPIO${source.config.pin ?? 18}`],
-          ["Active state", source.config.activeState ?? "high"],
           ["Path", "GPIO -> resistor -> LED anode -> LED cathode -> GND"],
+        ],
+      },
+      {
+        title: "Saved settings",
+        table: [
+          ["GPIO chip", source.config.chip ?? "gpiochip0"],
+          ["BCM pin", String(source.config.pin ?? 18)],
+          ["Active state", source.config.activeState ?? "high"],
         ],
       },
       {
@@ -610,9 +788,9 @@ function piCameraGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Enable Camera from Devices -> Hardware support so the host camera helper is running.",
-          "Verify the Pi host can see the camera with rpicam-still --list-cameras or libcamera-still --list-cameras.",
-          "Place the camera with consent and privacy in mind.",
+          "Camera is enabled in Devices -> Hardware support so the host camera helper is running.",
+          "The Pi host can see the camera with rpicam-still --list-cameras or libcamera-still --list-cameras.",
+          "The camera is placed with consent and privacy in mind.",
         ],
       },
       {
@@ -625,11 +803,11 @@ function piCameraGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Workflows",
+        title: "Workflow use",
         items: [
           "Add a Capture camera block and select this camera device.",
           "Attach Stamp data to create an Integritas proof for the captured media hash.",
-          "Captured media stays on the Pi under the configured capture directory.",
+          "Captured media stays local but is pruned opportunistically after CAMERA_RETENTION_DAYS (7 days by default). Export evidence you need before retention expires; read history retains metadata and the media hash.",
         ],
       },
     ],
@@ -643,7 +821,7 @@ function httpJsonSourceGuide(source: DataSource) {
     "Fetch JSON from an HTTP endpoint manually or from workflows.",
     [
       {
-        title: "Endpoint",
+        title: "Saved settings",
         table: [
           ["Method", source.config.method ?? "GET"],
           ["URL", source.config.url ?? ""],
@@ -652,9 +830,9 @@ function httpJsonSourceGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "The endpoint must return valid JSON.",
-          "Use GET for normal reads, or POST when the source requires a request body configured by backend/API paths.",
-          "Avoid placing secrets in URLs because they can appear in logs/history.",
+          "The endpoint returns valid JSON.",
+          "GET is used for normal reads, or POST is configured when the source requires a request body.",
+          "Secrets are not placed in URLs because they can appear in logs or history.",
         ],
       },
       {
@@ -666,7 +844,6 @@ function httpJsonSourceGuide(source: DataSource) {
       },
     ],
     undefined,
-    [readableSourcePreviewAction()],
   );
 }
 
@@ -678,7 +855,7 @@ function webhookGuide(source: DataSource) {
     "Receive pushed JSON at a generated URL while an enabled workflow listens to this source.",
     [
       {
-        title: "Endpoint",
+        title: "Saved settings",
         table: [
           ["URL", url],
           ["Method", "POST"],
@@ -686,11 +863,12 @@ function webhookGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Workflows",
+        title: "Workflow use",
         items: [
           "Create or enable a workflow with Webhook received as the start block.",
           "POST JSON to the webhook URL.",
           "The app records the payload only while an enabled workflow exists for this source.",
+          "Treat the webhook URL as a bearer secret. Anyone who can reach it can submit JSON and trigger an enabled workflow.",
         ],
       },
       {
@@ -706,20 +884,22 @@ function webhookGuide(source: DataSource) {
 }
 
 function mqttSubscriberGuide(source: DataSource) {
+  const topic = source.config.topic ?? "sensors/example/data";
+  const publishTopic = /[+#]/.test(topic) ? "<concrete-matching-topic>" : topic;
   return guide(
     source,
     "MQTT Subscriber Setup Guide",
     "Subscribe to a broker topic and record incoming JSON messages while an enabled workflow listens.",
     [
       {
-        title: "Topic",
+        title: "Saved settings",
         table: [
           ["Broker", source.config.brokerUrl ?? ""],
           ["Topic", source.config.topic ?? ""],
         ],
       },
       {
-        title: "Use in Workflows",
+        title: "Workflow use",
         items: [
           "Create or enable a workflow with MQTT message received as the start block.",
           "Publish valid JSON to the configured topic.",
@@ -728,7 +908,10 @@ function mqttSubscriberGuide(source: DataSource) {
       },
       {
         title: "Verify",
-        commands: `mosquitto_pub -h <broker-host> -t "${source.config.topic ?? "sensors/example/data"}" -m '{"event":"test","value":1}'`,
+        items: /[+#]/.test(topic)
+          ? ["The saved subscription contains MQTT wildcards. Publish to a concrete topic that matches it; publishers cannot publish to + or #."]
+          : undefined,
+        commands: `mosquitto_pub -h <broker-host> -t "${publishTopic}" -m '{"event":"test","value":1}'`,
       },
     ],
   );
@@ -741,7 +924,7 @@ function httpJsonTargetGuide(source: DataSource) {
     "Send JSON commands to an HTTP endpoint from Workflows Control device blocks.",
     [
       {
-        title: "Endpoint",
+        title: "Saved settings",
         table: [
           ["Method", source.config.method ?? "POST"],
           ["URL", source.config.url ?? ""],
@@ -749,11 +932,18 @@ function httpJsonTargetGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Workflows",
+        title: "Workflow use",
         items: [
           "Add Control device to a workflow and select this target.",
           "Set the JSON body in the workflow block so this target can be reused.",
-          "Use Test output in Devices for a basic request before enabling workflows.",
+        ],
+      },
+      {
+        title: "Verify",
+        items: [
+          "Use Test output in Devices and confirm the endpoint receives the expected JSON request.",
+          "Confirm the device reports a successful output before enabling the workflow.",
+          "Test output sends a real request. Use a safe test endpoint or confirm the receiver treats the payload as non-operational.",
         ],
       },
     ],
@@ -767,7 +957,7 @@ function mqttPublisherGuide(source: DataSource) {
     "Publish JSON commands to a broker topic from Workflows Control device blocks.",
     [
       {
-        title: "Topic",
+        title: "Saved settings",
         table: [
           ["Broker", source.config.brokerUrl ?? ""],
           ["Topic", source.config.topic ?? ""],
@@ -776,11 +966,19 @@ function mqttPublisherGuide(source: DataSource) {
         ],
       },
       {
-        title: "Use in Workflows",
+        title: "Workflow use",
         items: [
           "Add Control device to a workflow and select this target.",
           "Set the JSON payload in the workflow block.",
-          "Use Test output in Devices to publish a basic test message.",
+          "Leave Retain off unless intended: a retained command is delivered to future subscribers when they connect.",
+        ],
+      },
+      {
+        title: "Verify",
+        items: [
+          "Use Test output in Devices and confirm the broker receives the expected JSON message.",
+          "Confirm the message reaches the configured topic before enabling the workflow.",
+          "Test output sends a real message. Use a safe test topic or confirm subscribers treat the payload as non-operational.",
         ],
       },
     ],
