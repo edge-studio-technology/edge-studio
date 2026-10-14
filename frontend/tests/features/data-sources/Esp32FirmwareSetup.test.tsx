@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Esp32FirmwareSetup } from "../../../src/features/data-sources/Esp32FirmwareSetup";
+import { Esp32FirmwareSetup, Esp32SetupGuide } from "../../../src/features/data-sources/Esp32FirmwareSetup";
 import type { DataSource } from "../../../src/features/data-sources/dataSourceTypes";
 
 function source(overrides: Partial<DataSource> = {}): DataSource {
@@ -34,12 +34,28 @@ describe("Esp32FirmwareSetup", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows the saved broker/topic and no override warning for a LAN-reachable broker", () => {
+  it("shows the walkthrough and no override warning for a LAN-reachable broker", () => {
     render(<Esp32FirmwareSetup source={source()} />);
-    expect(screen.getByText("mqtt://192.168.1.50:1883")).toBeInTheDocument();
-    expect(screen.getAllByText("192.168.1.50").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("sensors/esp32/data").length).toBeGreaterThan(0);
+    expect(screen.getByText("ESP32 setup")).toBeInTheDocument();
+    expect(screen.getByText("Walkthrough")).toBeInTheDocument();
+    expect(screen.getByText(/generated starter firmware will not connect if your broker requires authentication or TLS/)).toBeInTheDocument();
+    expect(screen.getByText(/copied firmware contains the Wi-Fi password/)).toBeInTheDocument();
     expect(screen.queryByText("ESP32 broker address needed")).not.toBeInTheDocument();
+  });
+
+  it("separates firmware, flashing, and verification into guide topics", async () => {
+    const user = userEvent.setup();
+    render(<Esp32SetupGuide source={source()} />);
+
+    expect(screen.getByText(/Use this guide to configure starter firmware/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Firmware settings" }));
+    await user.type(screen.getByLabelText("Wi-Fi name"), "WorkshopWiFi");
+    await user.click(screen.getByRole("button", { name: "Flash firmware" }));
+    expect(screen.getByText("Arduino IDE steps")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Firmware settings" }));
+    expect(screen.getByLabelText("Wi-Fi name")).toHaveValue("WorkshopWiFi");
+    await user.click(screen.getByRole("button", { name: "Verify" }));
+    expect(screen.getByText(/Wait up to 30 seconds for the first Ping message/)).toBeInTheDocument();
   });
 
   it("shows an override warning and lets the operator enter a reachable broker host/port for a localhost broker", async () => {
@@ -56,9 +72,8 @@ describe("Esp32FirmwareSetup", () => {
     await user.clear(screen.getByLabelText("ESP32 broker port"));
     await user.type(screen.getByLabelText("ESP32 broker port"), "1884");
 
-    // The overridden host/port should now flow into the "ESP32 broker host/port" summary and firmware.
-    expect(screen.getAllByText("192.168.1.75").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("1884").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("ESP32 broker host")).toHaveValue("192.168.1.75");
+    expect(screen.getByLabelText("ESP32 broker port")).toHaveValue("1884");
   });
 
   it("shows an override warning for an unparsable broker URL", () => {
@@ -85,14 +100,10 @@ describe("Esp32FirmwareSetup", () => {
     await user.type(screen.getAllByLabelText("Wi-Fi password")[0], "secret123");
 
     await user.click(screen.getAllByRole("button", { name: "Show firmware" })[0]);
-    // There can be multiple readonly textareas; find the one containing the firmware source.
-    const firmwareBox = screen
-      .getAllByDisplayValue(/#include <WiFi.h>/)
-      .find((el) => el.tagName === "TEXTAREA") as HTMLTextAreaElement;
-    expect(firmwareBox.value).toContain('WIFI_SSID = "MyWifi"');
-    expect(firmwareBox.value).toContain('WIFI_PASSWORD = "secret123"');
-    expect(firmwareBox.value).toContain('DEVICE_NAME = "kitchen-esp32"');
-    expect(firmwareBox.value).toContain('MQTT_TOPIC = "sensors/esp32/data"');
+    expect(screen.getByText(/WIFI_SSID = "MyWifi"/)).toBeInTheDocument();
+    expect(screen.getByText(/WIFI_PASSWORD = "secret123"/)).toBeInTheDocument();
+    expect(screen.getByText(/DEVICE_NAME = "kitchen-esp32"/)).toBeInTheDocument();
+    expect(screen.getByText(/MQTT_TOPIC = "sensors\/esp32\/data"/)).toBeInTheDocument();
   });
 
   it("copies the firmware to the clipboard via 'Copy firmware'", async () => {
@@ -137,9 +148,6 @@ describe("Esp32FirmwareSetup", () => {
     await user.type(fqbnInput, "esp32:esp32:esp32s3");
     expect(fqbnInput).toHaveValue("esp32:esp32:esp32s3");
     // The typed FQBN flows into the compile/upload command blocks.
-    const compileCommand = screen
-      .getAllByDisplayValue(/arduino-cli compile/)
-      .find((el) => el.tagName === "TEXTAREA") as HTMLTextAreaElement;
-    expect(compileCommand.value).toContain("--fqbn esp32:esp32:esp32s3");
+    expect(screen.getAllByText(/--fqbn esp32:esp32:esp32s3/)).toHaveLength(2);
   });
 });

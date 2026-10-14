@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { MinimaNodeState } from '../../app/types';
 import { Card } from '../../components/Card';
+import { ErrorAlert } from '../../components/patterns/ErrorAlert';
 import { useToast } from '../../components/ToastProvider';
 import { useMinimaStatusRefresh } from '../minima/useMinimaStatusRefresh';
 import { importWallet as importWalletApi } from './walletApi';
@@ -108,21 +109,11 @@ export function WalletSettingsPanel() {
             <ChevronLeft size={15} />
             Back
           </button>
-          <div className='rounded-xl bg-amber-50 border border-amber-200 p-4'>
-            <p className='text-sm font-bold text-amber-800'>
-              This will replace the current wallet
-            </p>
-            <p className='text-sm text-amber-700 mt-1'>
-              Restoring from a seed phrase overwrites the node's existing wallet.
-              The node may restart after import. The phrase is transmitted over
-              HTTPS to the local Pi node — only do this on your own network.
-            </p>
-          </div>
+          <ErrorAlert status='warning' title='This will replace the current wallet'>
+            Restoring from a seed phrase overwrites the node's existing wallet. The node may restart after import. The phrase is transmitted over HTTPS to the local Pi node — only do this on your own network.
+          </ErrorAlert>
           {result?.ok ? (
-            <div className='rounded-2xl bg-emerald-50 border border-emerald-200 p-5 text-center grid gap-2'>
-              <p className='text-lg font-bold text-emerald-700'>Wallet imported</p>
-              <p className='text-sm text-emerald-600'>{result.message}</p>
-            </div>
+            <ErrorAlert status='success' title='Wallet imported'>{result.message}</ErrorAlert>
           ) : (
             <form onSubmit={handleImport} className='grid gap-4'>
               <label className='grid gap-1.5'>
@@ -139,16 +130,8 @@ export function WalletSettingsPanel() {
                   className='rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-slate-400'
                 />
               </label>
-              {error && (
-                <div className='rounded-xl bg-red-50 border border-red-200 p-3'>
-                  <p className='text-sm text-red-700'>{error}</p>
-                </div>
-              )}
-              {minimaConfirmedUnavailable && (
-                <div className='rounded-xl bg-amber-50 border border-amber-200 p-3'>
-                  <p className='text-sm text-amber-800'>Minima isn't running — import is unavailable right now.</p>
-                </div>
-              )}
+              {error && <ErrorAlert title='Wallet import failed'>{error}</ErrorAlert>}
+              {minimaConfirmedUnavailable && <ErrorAlert status='warning' title='Wallet import unavailable'>Minima isn't running, so import is unavailable right now.</ErrorAlert>}
               <button
                 type='submit'
                 disabled={submitting || actionsBlocked}

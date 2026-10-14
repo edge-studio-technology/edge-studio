@@ -30,6 +30,7 @@
   --color-feedback-error: #dc0428;
   --color-feedback-warning: #f5a70a;
   --color-feedback-positive: #009966;
+  --color-feedback-info: #1c7ed6;
 
   /* ESDS semantics — prefer these in new UI */
   --color-surface-primary: var(--color-grey-01);
@@ -52,6 +53,7 @@
   --color-text-error: var(--color-feedback-error);
   --color-text-warning: var(--color-feedback-warning);
   --color-text-success: var(--color-feedback-positive);
+  --color-text-info: var(--color-feedback-info);
 
   --color-icon-primary: var(--color-core-black);
   --color-icon-secondary: var(--color-grey-05);
@@ -61,6 +63,7 @@
   --color-icon-error: var(--color-feedback-error);
   --color-icon-warning: var(--color-feedback-warning);
   --color-icon-success: var(--color-feedback-positive);
+  --color-icon-info: var(--color-feedback-info);
 
   --color-stroke-primary: var(--color-grey-03);
   --color-stroke-secondary: var(--color-grey-02);
@@ -68,6 +71,7 @@
   --color-stroke-error: var(--color-feedback-error);
   --color-stroke-warning: var(--color-feedback-warning);
   --color-stroke-success: var(--color-feedback-positive);
+  --color-stroke-info: var(--color-feedback-info);
   --color-stroke-always-white: var(--color-core-white);
 
   --color-overlay-light: #0000004d;

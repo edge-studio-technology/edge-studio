@@ -319,7 +319,7 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Use bare `Input` only when there is no label stack (rare toolbars / search).
 - Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
 - Use `ErrorContentState` when a load failure leaves a whole table/list/region with nothing to show — it replaces that content, and that content's own toolbar/pager chrome, in place. Do not stand in a bare `ErrorText` line or a bare `LoadingDots` for these; the trio is the vocabulary for a whole content region.
-- Use `ErrorAlert` for persistent in-page / form-level failures that stay in layout while the surrounding page still works (optional Retry action).
+- Use `ErrorAlert` for persistent in-page / form-level notices that stay in layout while the surrounding page still works (optional Retry action). Use `error` for failures, `warning` for blocked or degraded functionality, `attention` for operational information that needs review, and `success` for a persistent completion state. Full notices include the classification, icon, title, and details; use `variant="compact"` where a single-row classification is sufficient.
 - Use toast errors for transient action failures that should not occupy page layout.
 
 ### CheckboxField
