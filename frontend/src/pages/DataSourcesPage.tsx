@@ -75,6 +75,7 @@ export function DataSourcesPage() {
   const [hardwareOperation, setHardwareOperation] = useState<HardwareOperation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DataSource | null>(null);
   const [setupGuideSource, setSetupGuideSource] = useState<DataSource | null>(null);
+  const [resumeGuideAfterEdit, setResumeGuideAfterEdit] = useState(false);
   const [runningGuideActionKey, setRunningGuideActionKey] = useState<string | null>(null);
   const [createdGuideWorkflowIds, setCreatedGuideWorkflowIds] = useState<Record<string, string>>(
     {},
@@ -126,6 +127,7 @@ export function DataSourcesPage() {
     if (busy) return;
     setFormOpen(false);
     setEditingSource(null);
+    setResumeGuideAfterEdit(false);
     editForm.reset();
   }
 
@@ -187,7 +189,7 @@ export function DataSourcesPage() {
   async function saveEditedDevice() {
     if (!editingSource) return;
     await run(async () => {
-      await updateDataSource(editingSource.id, {
+      const response = await updateDataSource(editingSource.id, {
         name: editForm.fields.name,
         description: editForm.fields.description,
         type: editForm.fields.type,
@@ -196,6 +198,10 @@ export function DataSourcesPage() {
       setFormOpen(false);
       setEditingSource(null);
       editForm.reset();
+      if (resumeGuideAfterEdit) {
+        setSetupGuideSource(response.item);
+        setResumeGuideAfterEdit(false);
+      }
     }, "Device updated");
   }
 
@@ -555,6 +561,7 @@ export function DataSourcesPage() {
               }
               onEditSettings={() => {
                 setSetupGuideSource(null);
+                setResumeGuideAfterEdit(true);
                 editSource(setupGuideSource);
               }}
             />
@@ -574,6 +581,7 @@ export function DataSourcesPage() {
               }
               onEditSettings={() => {
                 setSetupGuideSource(null);
+                setResumeGuideAfterEdit(true);
                 editSource(setupGuideSource);
               }}
             />
