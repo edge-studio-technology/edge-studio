@@ -34,6 +34,7 @@
 
 ## Next
 
+- [ ] Define Edge Studio storage/history lifecycle: monitor usage first, then archive/import, manual cleanup, and category-specific retention — see `docs/plans/storage-history-lifecycle.md`.
 - [ ] Review the #524 lint follow-ups: `JsonPreview` ignores `title`, `WatchRunHistory` ignores `replayPlaying`, `WorkflowWorkspace` replay arrays rebuilt every render (effects rerun and the replay timer re-arms); see the Baseline section of `docs/plans/features/524-lint-ci-pipeline.md`.
 - [ ] Fix the root `concurrently` → `shell-quote` critical audit finding; consider adding the root package to `audit:moderate`.
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
