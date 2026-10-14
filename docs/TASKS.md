@@ -17,6 +17,7 @@
 
 ## In Progress
 
+- [ ] Clean out dead code and business logic (OpenProject #686): remove dead files, debug routes, seed phrase import, token creation, TOTP, unused API routes and the legacy `/setup` page with no behaviour change — planned on `task/686-clean-out-dead-code-and-buisness-logic`; see `docs/plans/features/686-clean-out-dead-code-and-business-logic.md`.
 - [ ] Replace native `bcrypt` with built-in `crypto.scrypt` (OpenProject #216): legacy bcrypt verified via `bcryptjs` and rehashed on login — implemented and verified (unit, Pi), PR to `dev` pending on `task/216-change-bcrypt-deps-to-something-more-stable`; see `docs/plans/features/216-change-bcrypt-deps-to-something-more-stable.md`.
 - [ ] Upgrade update-agent, frontend build and installer verifier to Node 22 (OpenProject #886) — implemented and locally verified on `dev-task/886-upgrade-update-agent-frontend-build-and-installer-verifier-to-node-22`; `v0.42.3-dev.1` released and Pi fresh install + self-update verified; wiki 32-bit notice added; PR to `dev` open for review.
 - [ ] Lint CI pipeline (OpenProject #524): shared root ESLint config, root `npm run lint` in `npm run check`/CI, and the existing violations cleared — implemented and verified on `task/524-lint-ci-pipeline`; PR to `dev` open; see `docs/plans/features/524-lint-ci-pipeline.md`.
