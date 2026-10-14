@@ -46,5 +46,5 @@ Auth rules:
 - High-risk mutations also use `requireRole('admin')` (Integritas API key, files, automation/data-source mutations).
 - Gate routes by what the handler does, not by which router it lives in. `POST /api/minima/config` and `/megammrsync/resync` match the other Minima mutations; Integritas stamp/stamp-file/history-delete/poll/verify are admin, history reads and export are not. `backend/tests/app.401-smoke.test.ts` pins the whole matrix — add new admin routes there.
 - Session cookies: HttpOnly, `SameSite=Strict`, `Secure` when `COOKIE_SECURE=true`.
-- Never return password hashes, TOTP secrets, raw session tokens, or Integritas API keys.
+- Never return password hashes, raw session tokens, or Integritas API keys.
 - CLI has no session auth in V1; document `401` for protected API calls.

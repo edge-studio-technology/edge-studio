@@ -26,20 +26,18 @@ export function findUserById(id: string): UserRecord | undefined {
 export function createUser(input: {
   username: string;
   passwordHash: string;
-  totpSecretEncrypted: string;
   credentialType: AdminCredentialType;
   role?: string;
 }) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   db.prepare(
-    `INSERT INTO users (id, username, password, totp_secret, role, created_at, credential_type)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO users (id, username, password, role, created_at, credential_type)
+     VALUES (?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     input.username,
     input.passwordHash,
-    input.totpSecretEncrypted,
     input.role ?? "admin",
     now,
     input.credentialType
@@ -96,42 +94,6 @@ export function deleteExpiredSessions() {
   db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(now);
 }
 
-export function deleteExpiredSetupPending() {
-  const now = new Date().toISOString();
-  db.prepare("DELETE FROM setup_pending WHERE expires_at < ?").run(now);
-}
-
-export function clearSetupPending() {
-  db.prepare("DELETE FROM setup_pending").run();
-}
-
-export function createSetupPending(totpSecretEncrypted: string, expiresAt: string) {
-  deleteExpiredSetupPending();
-  clearSetupPending();
-  const id = crypto.randomUUID();
-  db.prepare("INSERT INTO setup_pending (id, totp_secret, expires_at, verified_at) VALUES (?, ?, ?, NULL)").run(
-    id,
-    totpSecretEncrypted,
-    expiresAt
-  );
-  return id;
-}
-
-export function markSetupPendingVerified(id: string, verifiedAt: string, expiresAt: string) {
-  db.prepare("UPDATE setup_pending SET verified_at = ?, expires_at = ? WHERE id = ?").run(
-    verifiedAt,
-    expiresAt,
-    id
-  );
-}
-
-export function getLatestSetupPending() {
-  deleteExpiredSetupPending();
-  return db.prepare("SELECT * FROM setup_pending ORDER BY expires_at DESC LIMIT 1").get() as
-    | { id: string; totp_secret: string; expires_at: string; verified_at: string | null }
-    | undefined;
-}
-
 export function updateUserPassword(userId: string, passwordHash: string, credentialType: AdminCredentialType) {
   db.prepare("UPDATE users SET password = ?, credential_type = ? WHERE id = ?").run(
     passwordHash,
@@ -154,10 +116,6 @@ export function replaceUserPasswordHash(userId: string, verifiedPasswordHash: st
     userId,
     verifiedPasswordHash
   ).changes > 0;
-}
-
-export function updateUserTotpSecret(userId: string, totpSecretEncrypted: string) {
-  db.prepare("UPDATE users SET totp_secret = ? WHERE id = ?").run(totpSecretEncrypted, userId);
 }
 
 export function insertAuditEvent(input: { userId?: string | null; action: string; detail?: string }) {

@@ -122,9 +122,12 @@ describe("runMigrations — legacy credential metadata", () => {
       INSERT INTO users VALUES ('legacy-pin', 'admin-pin', 'pin-hash', 'pin-totp', 'admin', '2026-01-01', NULL);
       INSERT INTO users VALUES ('legacy-password', 'admin-password', 'password-hash', 'password-totp', 'admin', '2026-01-02', '2026-01-03');
     `);
-    const original = db.prepare("SELECT * FROM users ORDER BY id").all() as object[];
+    const original = db.prepare("SELECT * FROM users ORDER BY id").all() as Record<string, unknown>[];
     runMigrations();
-    assert.deepEqual(db.prepare("SELECT * FROM users ORDER BY id").all(), original.map((row) => ({ ...row, credential_type: "password" })));
+    assert.deepEqual(
+      db.prepare("SELECT * FROM users ORDER BY id").all(),
+      original.map(({ totp_secret: _totpSecret, ...row }) => ({ ...row, credential_type: "password" }))
+    );
     const column = (db.prepare("PRAGMA table_info(users)").all() as { name: string; notnull: number; dflt_value: string }[])
       .find((item) => item.name === "credential_type");
     assert.equal(column?.notnull, 1);
@@ -247,5 +250,39 @@ describe("runMigrations — removed custom tokens table", () => {
     runMigrations();
     runMigrations();
     assert.equal(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'custom_tokens'").get(), undefined);
+  });
+});
+
+describe("runMigrations — removed TOTP storage", () => {
+  it("drops totp_secret and setup_pending, keeps users and sessions, and is repeatable", () => {
+    db.exec(`
+      DELETE FROM sessions;
+      CREATE TABLE totp_users (
+        id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
+        totp_secret TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'admin',
+        created_at TEXT NOT NULL, last_login TEXT, credential_type TEXT NOT NULL DEFAULT 'password'
+      );
+      DROP TABLE users;
+      ALTER TABLE totp_users RENAME TO users;
+      INSERT INTO users VALUES ('totp-user', 'admin', 'password-hash', 'encrypted-totp', 'admin', '2026-01-01', '2026-01-02', 'pin');
+      INSERT INTO sessions (id, user_id, token_hash, created_at, expires_at, last_seen_at)
+        VALUES ('session-1', 'totp-user', 'token-hash', '2026-01-02', '2026-02-01', '2026-01-02');
+      CREATE TABLE setup_pending (id TEXT PRIMARY KEY, totp_secret TEXT NOT NULL, expires_at TEXT NOT NULL, verified_at TEXT);
+      INSERT INTO setup_pending VALUES ('pending-1', 'encrypted-pending', '2026-01-01', NULL);
+    `);
+    const session = db.prepare("SELECT * FROM sessions").all();
+
+    runMigrations();
+    runMigrations();
+
+    const columns = (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map((column) => column.name);
+    assert.equal(columns.includes("totp_secret"), false);
+    assert.deepEqual(db.prepare("SELECT * FROM users").all(), [{
+      id: "totp-user", username: "admin", password: "password-hash", role: "admin",
+      created_at: "2026-01-01", last_login: "2026-01-02", credential_type: "pin"
+    }]);
+    assert.deepEqual(db.prepare("SELECT * FROM sessions").all(), session);
+    assert.equal(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'setup_pending'").get(), undefined);
+    assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
   });
 });

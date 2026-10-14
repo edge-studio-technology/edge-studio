@@ -7,7 +7,6 @@ import { ProgressBar } from "../../../components/ui/ProgressBar";
 import { SpinnerAlt } from "../../../components/ui/SpinnerAlt";
 import { cx } from "../../../lib/cx";
 import type { AdminCredentialType } from "../../auth/adminCredentials";
-import { TOTP_ENABLED } from "../../auth/totpEnabled";
 import {
   hasConnectedProfile,
   type IntegritasAuthStatus,
@@ -150,9 +149,6 @@ export function ConnectIntegritasStep({
             aria-atomic="true"
           >
             <SetupDoneRow title="Device secured" detail={deviceSignInDetail(credentialType)} />
-            {TOTP_ENABLED ? (
-              <SetupDoneRow title="Two-factor auth" detail="Authenticator ready for sign-in" />
-            ) : null}
             <SetupDoneRow title="Integritas Connected" detail={connectDetail} />
           </ul>
         </div>

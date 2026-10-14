@@ -445,12 +445,7 @@ After setup, sign in with the chosen PIN or password. You can switch credential 
 
 The first time you open Edge Studio in a browser, a short guided tour introduces the main areas. Skip it at any step, or replay it from Settings → Behaviour.
 
-Changing the PIN/password (or resetting two-factor authentication) signs out every session, including the browser making the change, and returns you to the login screen. Expired sessions are also swept from the database at backend startup and hourly.
-
-TOTP is disabled through `TOTP_ENABLED = false` in the backend and frontend auth constants. Its
-future retention, redesign, re-enablement, or removal is not yet decided; V1.5 security hardening
-only closes the dormant routes while the feature is disabled (see
-[`docs/adr/0012`](docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md)).
+Changing the PIN/password signs out every session, including the browser making the change, and returns you to the login screen. Expired sessions are also swept from the database at backend startup and hourly.
 
 Public API routes (no session required):
 
@@ -479,7 +474,7 @@ DATA_DIR/feedback/feedback-submissions.json
 
 In the default Docker deploy this is inside the backend container at `/data/feedback/feedback-submissions.json` and on the host under the configured `DATA_DIR`.
 
-Feedback includes the current page, feedback area, feedback type, optional bug/feature details, description, browser context, non-secret app/user/device metadata, current Node/Integritas connection status, and lightweight app stats. It must not include passwords, TOTP secrets, session cookies, Integritas API keys, wallet seed phrases, or raw encrypted secret values.
+Feedback includes the current page, feedback area, feedback type, optional bug/feature details, description, browser context, non-secret app/user/device metadata, current Node/Integritas connection status, and lightweight app stats. It must not include passwords, session cookies, Integritas API keys, wallet seed phrases, or raw encrypted secret values.
 
 Edge Studio saves feedback locally first, then sends the single new submission to `https://integritas.technology/api/feedback`. The modal requires per-submission consent before sending device metadata, browser context, and non-secret usage stats off the Pi.
 

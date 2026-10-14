@@ -7,7 +7,6 @@ export type UserRecord = {
   id: string;
   username: string;
   password: string;
-  totp_secret: string;
   role: UserRole;
   created_at: string;
   last_login: string | null;
@@ -29,11 +28,6 @@ export type AuthenticatedRequest = Request & {
 export type ChangePasswordRequest = {
   currentPassword: string;
   newPassword: string;
-  totpToken: string;
-};
-
-export type TotpResetVerifyRequest = {
-  totpToken: string;
 };
 
 declare global {

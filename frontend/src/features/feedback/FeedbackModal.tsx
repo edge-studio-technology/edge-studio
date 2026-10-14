@@ -353,7 +353,7 @@ export function FeedbackModal({
               />
               <DetailRow
                 label="Not included"
-                value="Passwords, TOTP secrets, session cookies, Integritas API keys, or wallet seed phrases."
+                value="Passwords, session cookies, Integritas API keys, or wallet seed phrases."
               />
             </DetailList>
           </Disclosure>

@@ -1,19 +1,12 @@
 import { Link2, LockKeyhole, Shield } from "lucide-react";
 import { Button } from "../../../components/Button";
 import { Card } from "../../../components/Card";
-import { TOTP_ENABLED } from "../../auth/totpEnabled";
 import { onboardingWorkSteps } from "../steps";
 
 const stepMeta: Record<string, { icon: typeof LockKeyhole; detail: string }> = {
   credentials: {
     icon: Shield,
-    detail: TOTP_ENABLED
-      ? "Setup a local admin PIN or password, then two-factor auth."
-      : "Setup a local admin PIN or password for this device.",
-  },
-  twofa: {
-    icon: LockKeyhole,
-    detail: "Setup an authenticator app for two-factor sign-in.",
+    detail: "Setup a local admin PIN or password for this device.",
   },
   connectAccount: {
     icon: Link2,

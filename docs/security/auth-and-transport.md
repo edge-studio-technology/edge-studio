@@ -12,7 +12,7 @@ Controls (V1):
 
 - Login required for all `/api/*` routes except health, setup, and login.
 - HttpOnly + `SameSite=Strict` session cookies with `Secure` on the default HTTPS deploy; token hashes stored in SQLite.
-- Single-factor password/PIN is the currently shipped local-admin control. TOTP is implemented but disabled (`TOTP_ENABLED = false`); whether it is later retained, redesigned, re-enabled, or removed is deliberately undecided and outside V1.5 hardening ([adr/0012](../adr/0012-keep-totp-decision-outside-v1-5-hardening.md)). The backend flag gates enforcement and all four TOTP route registrations: setup init/verify return `404`, while settings init/verify pass through the global auth gate before an authenticated request receives `404`.
+- Single-factor password/PIN is the local-admin control. TOTP was removed in #686.
 - Login/setup rate limiting and generic login errors.
 - Self-signed TLS encrypts browser-to-Pi traffic by default.
 - Nginx adds a restrictive Content Security Policy, clickjacking protection, MIME-sniffing
@@ -85,7 +85,7 @@ that specific row.
 
 Controls:
 
-- `POST /api/auth/settings/password` and `POST /api/auth/settings/totp/verify` delete every session
+- `POST /api/auth/settings/password` deletes every session
   for the user on success, including the caller's own, and clear the caller's session cookie on the
   way out. The frontend signs out and returns to the login screen after showing the confirmation.
 - Sessions are only revoked once the credential change has actually been applied; a rejected change
@@ -101,7 +101,7 @@ Status: **Mitigated (Phase 3, 2026-09-09).** Review finding [9]; GAP-08 and GAP-
 
 ## `APP_SECRET` Dependency
 
-Risk: Encrypted local secrets (Integritas API key, TOTP, Connect tokens) can only be decrypted with the same `APP_SECRET` from `.env`. If `APP_SECRET` is lost or changed, stored secrets are unrecoverable. If `.env` leaks together with the database, encrypted secrets can be decrypted.
+Risk: Encrypted local secrets (Integritas API key, Connect tokens) can only be decrypted with the same `APP_SECRET` from `.env`. If `APP_SECRET` is lost or changed, stored secrets are unrecoverable. If `.env` leaks together with the database, encrypted secrets can be decrypted.
 
 Impact: Loss of access to saved secrets or compromise when both `.env` and SQLite are obtained.
 

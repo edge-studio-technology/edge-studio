@@ -1,118 +1,38 @@
-import { useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Compass,
-  Copy,
-  Eye,
-  EyeOff,
   LogOut,
   MousePointerClick,
   PanelLeft,
   RefreshCw,
-  ShieldCheck,
 } from "lucide-react";
 import { Button } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
-import { Input } from "../components/Input";
 import { Page } from "../components/Page";
 import { SubSection } from "../components/patterns/SubSection";
-import { ErrorText } from "../components/Text";
-import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Disclosure } from "../components/ui/Disclosure";
-import { InputField } from "../components/ui/InputField";
-import { CredentialField } from "../components/ui/CredentialField";
 import { SwitchField } from "../components/ui/SwitchField";
 import {
   closeModalOnOutsideClickSetting,
   guidedTourSeenSetting,
   sidebarStartCollapsedSetting,
 } from "../lib/behaviourSettings";
-import { initTotpReset, verifyTotpReset } from "../features/auth/api";
 import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
-import { TOTP_ENABLED } from "../features/auth/totpEnabled";
 import { useAuth } from "../features/auth/hooks";
-import { adminCredentialLabel, isAdminCredentialEntryReady } from "../features/auth/adminCredentials";
-
-type TotpResetPhase = "idle" | "scan" | "done";
-
-const formClass = "grid max-w-md gap-3";
 
 /** Long enough to read the confirmation before the forced re-login. */
 const SIGN_OUT_AFTER_CREDENTIAL_CHANGE_MS = 3000;
 
 export function AuthSettingsPage() {
-  const [totpPhase, setTotpPhase] = useState<TotpResetPhase>("idle");
-  const [resetCurrentPassword, setResetCurrentPassword] = useState("");
-  const [resetCurrentToken, setResetCurrentToken] = useState("");
-  const [resetSubmitting, setResetSubmitting] = useState(false);
-  const [resetError, setResetError] = useState<string | null>(null);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [totpSecret, setTotpSecret] = useState<string | null>(null);
-  const [showManualKey, setShowManualKey] = useState(false);
-  const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
-  const [verifyCode, setVerifyCode] = useState("");
-  const [verifySubmitting, setVerifySubmitting] = useState(false);
-  const [verifyError, setVerifyError] = useState<string | null>(null);
-
-  const { user, signOut } = useAuth();
-  const credentialType = user?.credentialType ?? null;
-  const resetFormReady =
-    isAdminCredentialEntryReady(credentialType, resetCurrentPassword) && resetCurrentToken.length === 6;
+  const { signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Changing a credential or the TOTP secret revokes every session server-side, so the
+  // Changing a credential revokes every session server-side, so the
   // browser is holding a dead cookie from here on — force the login screen.
   const scheduleSignOut = () => {
     window.setTimeout(() => void signOut(), SIGN_OUT_AFTER_CREDENTIAL_CHANGE_MS);
-  };
-
-  const handleInitTotpReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resetFormReady || resetSubmitting) return;
-    setResetSubmitting(true);
-    setResetError(null);
-    try {
-      const result = await initTotpReset({
-        currentPassword: resetCurrentPassword,
-        totpToken: resetCurrentToken,
-      });
-      setQrCode(result.qrCodePngBase64);
-      setTotpSecret(result.secret);
-      setTotpPhase("scan");
-    } catch (err) {
-      setResetError(err instanceof Error ? err.message : "Failed to start 2FA reset");
-    } finally {
-      setResetSubmitting(false);
-    }
-  };
-
-  const handleVerifyTotpReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setVerifySubmitting(true);
-    setVerifyError(null);
-    try {
-      await verifyTotpReset({ totpToken: verifyCode });
-      setQrCode(null);
-      setTotpSecret(null);
-      setTotpPhase("done");
-      scheduleSignOut();
-    } catch (err) {
-      setVerifyError(err instanceof Error ? err.message : "Invalid code — try again");
-    } finally {
-      setVerifySubmitting(false);
-    }
-  };
-
-  const copyManualKey = async () => {
-    if (!totpSecret) return;
-    try {
-      await navigator.clipboard.writeText(totpSecret);
-      setCopyState("copied");
-      window.setTimeout(() => setCopyState("idle"), 2000);
-    } catch {
-      setCopyState("idle");
-    }
   };
 
   const closeModalOnOutsideClick = useSyncExternalStore(
@@ -147,154 +67,6 @@ export function AuthSettingsPage() {
           <div className="gap-detail-close my-detail-close grid">
             <ChangeCredentialPanel onCredentialChanged={scheduleSignOut} />
 
-            {TOTP_ENABLED ? (
-              <SubSection
-                icon={<ShieldCheck size={13} />}
-                title="Reset two-factor authentication"
-                description="Generates a new TOTP secret. The QR code is shown once — save it in your authenticator before closing."
-              >
-                {totpPhase === "idle" && (
-                  <form onSubmit={(e) => void handleInitTotpReset(e)} className={formClass}>
-                    <ErrorAlert status="warning" title="This will replace your current 2FA secret">
-                      Make sure your authenticator app is available before continuing.
-                    </ErrorAlert>
-                    <CredentialField
-                      credentialType={credentialType}
-                      label={`Current ${adminCredentialLabel(credentialType)}`}
-                      value={resetCurrentPassword}
-                      onChange={(value) => {
-                        setResetCurrentPassword(value);
-                        setResetError(null);
-                      }}
-                      placeholder="Your current credential"
-                      autoComplete="current-password"
-                    />
-                    <InputField
-                      label="Current 2FA code"
-                      value={resetCurrentToken}
-                      onChange={(e) => {
-                        setResetCurrentToken(e.target.value.replace(/\D/g, "").slice(0, 6));
-                        setResetError(null);
-                      }}
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      placeholder="000000"
-                      maxLength={6}
-                    />
-                    {resetError && <ErrorText className="m-0">{resetError}</ErrorText>}
-                    <ButtonRow>
-                      <Button
-                        type="submit"
-                        disabled={
-                          resetSubmitting ||
-                          !resetFormReady
-                        }
-                      >
-                        {resetSubmitting ? "Verifying…" : "Start 2FA reset"}
-                      </Button>
-                    </ButtonRow>
-                  </form>
-                )}
-
-                {totpPhase === "scan" && qrCode && (
-                  <div className="grid gap-6">
-                    <div className="flex flex-wrap items-start gap-6">
-                      <img
-                        src={qrCode}
-                        alt="TOTP QR code"
-                        style={{
-                          width: 160,
-                          height: 160,
-                          borderRadius: 12,
-                          border: "1px solid #e2e8f0",
-                        }}
-                      />
-                      {totpSecret && (
-                        <div className="grid min-w-0 flex-1 gap-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-text-secondary text-xs font-bold tracking-wide uppercase">
-                              Manual setup key
-                            </span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowManualKey((v) => !v)}
-                            >
-                              {showManualKey ? (
-                                <>
-                                  <EyeOff size={12} /> Hide
-                                </>
-                              ) : (
-                                <>
-                                  <Eye size={12} /> Show
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                          <p className="type-meta text-text-secondary m-0">
-                            Issuer: <strong>Edge Studio</strong>, Account:{" "}
-                            <strong>Edge Studio</strong>
-                          </p>
-                          <div className="flex gap-2">
-                            <Input
-                              readOnly
-                              value={
-                                showManualKey
-                                  ? totpSecret
-                                  : "•".repeat(Math.min(totpSecret.length, 32))
-                              }
-                              className="font-mono text-sm"
-                              aria-label="Authenticator setup key"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="shrink-0"
-                              onClick={() => void copyManualKey()}
-                            >
-                              <Copy size={13} />
-                              {copyState === "copied" ? "Copied" : "Copy"}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <form onSubmit={(e) => void handleVerifyTotpReset(e)} className={formClass}>
-                      <InputField
-                        label="Confirmation code"
-                        value={verifyCode}
-                        onChange={(e) => {
-                          setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                          setVerifyError(null);
-                        }}
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        placeholder="000000"
-                        maxLength={6}
-                      />
-                      {verifyError && <ErrorText className="m-0">{verifyError}</ErrorText>}
-                      <ButtonRow>
-                        <Button
-                          type="submit"
-                          disabled={verifySubmitting || verifyCode.length !== 6}
-                        >
-                          {verifySubmitting ? "Verifying…" : "Confirm new 2FA"}
-                        </Button>
-                      </ButtonRow>
-                    </form>
-                  </div>
-                )}
-
-                {totpPhase === "done" && (
-                    <ErrorAlert status="success" title="Two-factor authentication reset">
-                      Your authenticator app is now linked to the new secret. Signing you out — log in again with a code from the new secret.
-                    </ErrorAlert>
-                )}
-              </SubSection>
-            ) : null}
           </div>
         </Disclosure>
 
