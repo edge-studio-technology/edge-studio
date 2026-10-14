@@ -18,12 +18,14 @@ export function Esp32SetupGuide({
   runningActionKey,
   onAction,
   onGoToWorkflow,
+  onEditSettings,
 }: {
   source: DataSource;
   createdWorkflowIds?: Record<string, string>;
   runningActionKey?: string | null;
   onAction?: (action: DeviceGuideAction) => void;
   onGoToWorkflow?: (workflowId: string) => void;
+  onEditSettings?: () => void;
 }) {
   const [flashMethod, setFlashMethod] = useState<"ide" | "cli">("ide");
   const [wifiSsid, setWifiSsid] = useState("");
@@ -81,7 +83,7 @@ export function Esp32SetupGuide({
       content: <Esp32Topic title="Verify" description="Confirm the board connects to Wi-Fi and publishes MQTT messages before enabling a workflow."><ol className="type-body text-text-secondary gap-detail-next m-0 grid list-decimal pl-5 leading-[1.4]"><li>Open Serial Monitor at <InlineCode>115200</InlineCode> and confirm Wi-Fi connected, MQTT connected, and Publishing messages.</li><li>Wait up to 30 seconds for the first Ping message; the starter firmware publishes again every 30 seconds.</li><li>Confirm the MQTT source receives the JSON message in Edge Studio.</li></ol></Esp32Topic>,
     },
   ];
-  return <DeviceGuideWorkspace guide={getDeviceSetupGuide(source)!} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} overview={<Esp32Overview />} customTopics={topics} />;
+  return <DeviceGuideWorkspace guide={getDeviceSetupGuide(source)!} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} onEditSettings={onEditSettings} overview={<Esp32Overview />} customTopics={topics} />;
 }
 
 function Esp32Overview() {

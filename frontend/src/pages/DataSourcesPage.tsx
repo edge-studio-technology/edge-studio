@@ -553,6 +553,10 @@ export function DataSourcesPage() {
               onGoToWorkflow={(workflowId) =>
                 navigate(`/workflows/${encodeURIComponent(workflowId)}/edit`)
               }
+              onEditSettings={() => {
+                setSetupGuideSource(null);
+                editSource(setupGuideSource);
+              }}
             />
           ) : (
             <StandardDeviceSetupGuide
@@ -568,6 +572,10 @@ export function DataSourcesPage() {
                 // navigate(`/workflows/${encodeURIComponent(workflowId)}/watch`)
                 navigate(`/workflows/${encodeURIComponent(workflowId)}/edit`)
               }
+              onEditSettings={() => {
+                setSetupGuideSource(null);
+                editSource(setupGuideSource);
+              }}
             />
           )}
         </Modal>

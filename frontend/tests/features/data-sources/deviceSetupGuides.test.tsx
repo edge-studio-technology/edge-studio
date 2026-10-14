@@ -315,4 +315,14 @@ describe("StandardDeviceSetupGuide", () => {
     expect(fullSizeLink).toHaveAttribute("target", "_blank");
     expect(fullSizeLink).toHaveAttribute("rel", "noopener noreferrer");
   });
+
+  it("offers device editing from saved settings", async () => {
+    const onEditSettings = vi.fn();
+    const item = source({ type: "mqtt", config: { brokerUrl: "mqtt://broker", topic: "sensors/data" } });
+    render(<StandardDeviceSetupGuide source={item} onEditSettings={onEditSettings} />, { wrapper: ToastProvider });
+
+    await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit device settings" }));
+    expect(onEditSettings).toHaveBeenCalledOnce();
+  });
 });

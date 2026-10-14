@@ -98,12 +98,14 @@ export function StandardDeviceSetupGuide({
   runningActionKey,
   onAction,
   onGoToWorkflow,
+  onEditSettings,
 }: {
   source: DataSource;
   createdWorkflowIds?: Record<string, string>;
   runningActionKey?: string | null;
   onAction?: (action: DeviceGuideAction) => void;
   onGoToWorkflow?: (workflowId: string) => void;
+  onEditSettings?: () => void;
 }) {
   const setupGuide = getDeviceSetupGuide(source);
   if (!setupGuide) return null;
@@ -114,6 +116,7 @@ export function StandardDeviceSetupGuide({
       runningActionKey={runningActionKey}
       onAction={onAction}
       onGoToWorkflow={onGoToWorkflow}
+      onEditSettings={onEditSettings}
     />
   );
 }
@@ -131,6 +134,7 @@ export function DeviceGuideWorkspace({
   runningActionKey,
   onAction,
   onGoToWorkflow,
+  onEditSettings,
   overview,
   customTopics = [],
 }: {
@@ -139,6 +143,7 @@ export function DeviceGuideWorkspace({
   runningActionKey?: string | null;
   onAction?: (action: DeviceGuideAction) => void;
   onGoToWorkflow?: (workflowId: string) => void;
+  onEditSettings?: () => void;
   overview?: ReactNode;
   customTopics?: DeviceGuideCustomTopic[];
 }) {
@@ -205,7 +210,7 @@ export function DeviceGuideWorkspace({
       <div className="border-stroke-secondary bg-surface-primary min-h-0 min-w-0 overflow-y-auto border-l px-detail-next pb-pad-close pl-6 pt-pad-tight">
         {activeTopic.id === "overview" && <GuideOverview guide={guide} content={overview} />}
         {"content" in activeTopic && activeTopic.content}
-        {"section" in activeTopic && <GuideSectionCard section={activeTopic.section} />}
+        {"section" in activeTopic && <GuideSectionCard section={activeTopic.section} onEditSettings={onEditSettings} />}
         {activeTopic.id === "actions" && guide.actions && <GuideActions actions={guide.actions} createdWorkflowIds={createdWorkflowIds} runningActionKey={runningActionKey} onAction={onAction} onGoToWorkflow={onGoToWorkflow} />}
         {activeTopic.id === "documentation" && guide.docPath && <GuideDocumentation docPath={guide.docPath} />}
       </div>
@@ -279,7 +284,7 @@ function GuideActions({
   );
 }
 
-function GuideSectionCard({ section }: { section: GuideSection }) {
+function GuideSectionCard({ section, onEditSettings }: { section: GuideSection; onEditSettings?: () => void }) {
   const [schematicVisible, setSchematicVisible] = useState(false);
   const description = section.description ?? standardSectionDescriptions[section.title];
   return (
@@ -293,11 +298,14 @@ function GuideSectionCard({ section }: { section: GuideSection }) {
         </ul>
       )}
       {section.table && (
-        <DetailList>
+        <div className="gap-detail-close grid justify-items-start">
+        <DetailList className="w-full">
           {section.table.map(([label, value]) => (
             <DetailRow key={label} label={label} value={value} mono />
           ))}
         </DetailList>
+        {section.title === "Saved settings" && onEditSettings ? <Button type="button" variant="secondary" size="sm" onClick={onEditSettings}>Edit device settings</Button> : null}
+        </div>
       )}
       {section.commands && <CommandBlock value={section.commands} />}
       {section.schematic === "pi-gpio" && (
