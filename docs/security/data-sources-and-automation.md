@@ -182,7 +182,7 @@ Plan:
 - Add optional webhook secret headers/signatures before production use.
 - Add custom/trusted certificate support or documented reverse-proxy TLS for senders that cannot accept self-signed certificates.
 
-Status: **Partially mitigated (Phase 7, task 705)** for credential leakage and privileged repetition. Workflow run, visible inbox, and read-history growth remains an availability risk pending the lifecycle in [adr/0023](../adr/0023-classify-stored-records-before-applying-retention.md) and [adr/0026](../adr/0026-preserve-workflow-run-history.md). Unsigned bearer-token delivery remains an accepted prototype risk. See [adr/0022](../adr/0022-bound-external-automation-effects.md).
+Status: **Partially mitigated (Phase 7, task 705)** for credential leakage and privileged repetition. Workflow run, visible inbox, and read-history growth remains an availability risk pending the lifecycle in [adr/0022](../adr/0022-bound-external-automation-effects.md). Unsigned bearer-token delivery remains an accepted prototype risk. See [adr/0022](../adr/0022-bound-external-automation-effects.md).
 
 ## MQTT Data Sources
 

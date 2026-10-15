@@ -70,11 +70,3 @@ No design or approved copy exists, and no screenshots are available yet.
 - Tour copy is a draft written from the current pages. It needs review when screenshots land or
   nav areas change.
 - Tests that render `AppShell` must set the seen flag first or the tour opens over them.
-
-## Where this lives in code
-
-- `frontend/src/lib/behaviourSettings.ts`: `guidedTourSeenSetting`.
-- `frontend/src/features/tour/tourSteps.ts`: `TourStep` and `tourSteps`.
-- `frontend/src/features/tour/GuidedTourModal.tsx`: modal, image frame, and footer controls.
-- `frontend/src/components/AppShell.tsx`: renders the tour while the flag is unset.
-- `frontend/src/pages/AuthSettingsPage.tsx`: "Guided tour" replay under Behaviour.

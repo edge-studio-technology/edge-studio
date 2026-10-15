@@ -64,11 +64,3 @@ locally-built dev container, which would silently break the dev environment (and
   or health for — it's a UI/flow rehearsal, not a test of the real pull/health-check/swap
   machinery. `service-update.ts`'s actual logic still needs real (non-dry-run) testing before a
   release.
-
-## Where this lives in code
-
-- `update-agent/src/config/env.ts` — `dryRun`.
-- `update-agent/src/update/apply.service.ts` — the dry-run branch in `applyUpdates()`.
-- `update-agent/src/index.ts` — startup warning log.
-- `docker-compose.yml` — `UPDATE_DRY_RUN` passthrough with a safe default.
-- `.env.example`, `README.md`, `SECURITY.md` — documentation and the security guideline.

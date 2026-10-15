@@ -183,8 +183,7 @@ is sound because its public key is baked into its own image, and the install-tim
 it is meant to authenticate. Compromise of the artifact origin alone is no longer sufficient — the
 signing key is now required. Rated high by the external review — see
 [adr/0010](../adr/0010-security-review-audit-verdict.md),
-[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md),
-[adr/0020](../adr/0020-bind-installer-runtime-to-signed-manifest.md), and `.agents/rules/update-agent.md`.
+[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md), and `.agents/rules/update-agent.md`.
 The remaining bootstrap exposure is the installer distribution channel itself — see *One-Line Curl
 Installer* below.
 
