@@ -260,7 +260,7 @@ The Minima page reads the latest operation on load and shows its phase, elapsed 
 
 The browser schedules resync and presents the backend's outcome; it no longer interprets Minima completion text or restarts the node after resync. A lost POST response or HTTP 5xx prompts a progress check without claiming failure. Progress-read failures preserve the previous snapshot/events and offer retry; unknown progress or an active reservation disables conflicting controls. Backup/restore confirmations also disable if resync begins while their dialog is open. Unavailable metrics are labeled as last observed, and resync phase takes precedence over generic restart feedback.
 
-Implementation and final Pi/disposable-node/browser verification (steps 1–5) are complete. See [the plan](docs/plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md), [QA results](docs/qa/536-resync-end-to-end.md) and [ADR 0034](docs/adr/0034-observe-resync-after-client-timeout.md).
+See [ADR 0034](docs/adr/0034-observe-resync-after-client-timeout.md) and the [QA results](docs/reports/536-resync-end-to-end.md).
 
 
 Restarting the Minima node from the UI shuts it down gracefully first: the backend sends `quit compact:true` over RPC and waits (up to 5 minutes — the node can take a while to actually stop even after reporting shutdown complete) for the container to actually exit before starting it back up, instead of immediately force-stopping it. If the node still hasn't stopped after that, it falls back to a forceful container restart so the action still always completes.

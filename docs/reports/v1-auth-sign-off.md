@@ -1,7 +1,7 @@
 # V1 Auth and Security Sign-Off
 
 This record covers the production Compose sign-off required by
-[Task 706](../plans/security/706-v1-sign-off-remainder.md). It uses disposable application and
+task 706. It uses disposable application and
 Minima data only. Never substitute an operator's normal data paths for the paths below.
 
 ## Evidence header

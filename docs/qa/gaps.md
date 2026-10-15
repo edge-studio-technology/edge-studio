@@ -2,11 +2,10 @@
 
 **Status:** Open  
 **Last verified:** Task 706 production Compose auth/header sign-off passed 2026-09-18
-**Related:** [SECURITY.md](../../SECURITY.md), [security/](../security/), [plans/security/](../plans/security/README.md), [CHANGELOG.md](../../CHANGELOG.md)
+**Related:** [SECURITY.md](../../SECURITY.md), [security/](../security/), [CHANGELOG.md](../../CHANGELOG.md)
 
-> Security items scheduled for V1.5 are owned by
-> [plans/security/](../plans/security/README.md) and annotated below with
-> their phase. This backlog stays the list of *what is open*; the plan is *when and how*. Tick items
+> Security items from the V1.5 hardening are annotated below with
+> their phase. This backlog stays the list of *what is open*. Tick items
 > here as each phase lands.
 
 Shipped features with open QA, security, and test gaps. Close P0 items (or document accepted risk in `SECURITY.md`) before treating an area field-ready.
@@ -27,11 +26,11 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 - [ ] **GAP-01 Transport** — HTTPS default deploy ships (`COOKIE_SECURE=true`). Manual: cookie has `Secure` flag; HTTP redirects to HTTPS. HSTS deferred (V2+).
 - [x] **GAP-02 Automated auth tests** — Done (0.39.0): backend auth suites plus a smoke test asserting every non-public route requires a session.
-- [x] **GAP-03 Manual E2E checklist** — Closed by task 706: two separately named clean-data production Compose runs covered Integritas Connect completion and deferred Connect, reload/restart persistence, logout and protected `401`, generic login errors, setup immutability, and the documented CLI `401` ([sign-off](./v1-auth-sign-off.md)).
+- [x] **GAP-03 Manual E2E checklist** — Closed by task 706: two separately named clean-data production Compose runs covered Integritas Connect completion and deferred Connect, reload/restart persistence, logout and protected `401`, generic login errors, setup immutability, and the documented CLI `401` ([sign-off](../reports/v1-auth-sign-off.md)).
 - [x] **GAP-04 `APP_SECRET` validation** — Closed by task 704: the public default was removed and the backend refuses startup before database or background-service initialization when the value is absent or empty. `install.sh` still generates fresh values and preserves existing ones; ADR 0021 records why migration/regeneration was dropped.
 - [x] **GAP-05 Dormant TOTP routes** — Closed by task 706: all four setup/settings init/verify routes are omitted while `TOTP_ENABLED` is false, with automated regressions for disabled/enabled configurations and the setup first-admin guard plus shipped-container `404` verification. TOTP was later removed entirely in #686 ([adr/0036](../adr/0036-remove-dead-code-and-unused-features.md)). **Phase 8.**
 - [x] **GAP-06 CSRF** — Closed by task 706: V1 intentionally uses no CSRF tokens; `HttpOnly`, `SameSite=Strict` session cookies (`Secure` by default) and JSON/multipart browser mutations are the accepted posture for the trusted-LAN, single-admin threat model. Revisit before the exposure or request assumptions change ([adr/0010](../adr/0010-security-review-audit-verdict.md)).
-- [x] **GAP-07 Security headers** — Closed by task 706: CSP, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy` were verified on live SPA, API proxy, nginx error, and HTTP redirect responses; Dashboard, Account, and Update produced no browser CSP violations ([sign-off](./v1-auth-sign-off.md)). **Phase 8.**
+- [x] **GAP-07 Security headers** — Closed by task 706: CSP, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy` were verified on live SPA, API proxy, nginx error, and HTTP redirect responses; Dashboard, Account, and Update produced no browser CSP violations ([sign-off](../reports/v1-auth-sign-off.md)). **Phase 8.**
 
 ### P1
 
@@ -82,7 +81,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 ### P0
 
 - [ ] **MINIMA-01 Stopped container** — `docker compose stop minima` → `state: "stopped"` (HTTP 200); recovers on start.
-- [x] **MINIMA-02 Resync progress and recovery (UI)** — Closed by #536: backend-owned natural-cycle/stopped-node recovery, persistent browser events, honest completed/failed/unconfirmed feedback, reload/second-tab and live Pi verification ([QA](./536-resync-end-to-end.md)).
+- [x] **MINIMA-02 Resync progress and recovery (UI)** — Closed by #536: backend-owned natural-cycle/stopped-node recovery, persistent browser events, honest completed/failed/unconfirmed feedback, reload/second-tab and live Pi verification ([QA](../reports/536-resync-end-to-end.md)).
 - [ ] **MINIMA-03 Manual restart** — Admin restart works; audit event `minima.container.restart` recorded.
 - [ ] **MINIMA-04 Peer add** — `GET /api/minima/peers` (auth); `POST /api/minima/peers/add` (admin). Active peers vs configured peers count may differ.
 - [ ] **MINIMA-05 Parser tests** — `minima.parse.test.ts` (8 tests) passes in `npm run check`.
@@ -91,7 +90,7 @@ Shipped features with open QA, security, and test gaps. Close P0 items (or docum
 
 - [x] **MINIMA-06 Admin gate on resync** — `POST /api/minima/megammrsync/resync` requires `requireRole('admin')` (Phase 2, unreleased).
 - [x] **MINIMA-07 Admin gate on config** — `POST /api/minima/config` requires `requireRole('admin')` (Phase 2, unreleased).
-- [x] **MINIMA-08 Auto-resync recovery** — Closed by #536: automatic initiation uses the common recovery worker; busy exclusion, initiation cooldown, separate terminal results and startup restoration passed live caller/worker checks and regression tests ([QA](./536-resync-end-to-end.md)). Broader workflow queueing remains #212/#307.
+- [x] **MINIMA-08 Auto-resync recovery** — Closed by #536: automatic initiation uses the common recovery worker; busy exclusion, initiation cooldown, separate terminal results and startup restoration passed live caller/worker checks and regression tests ([QA](../reports/536-resync-end-to-end.md)). Broader workflow queueing remains #212/#307.
 - [ ] **MINIMA-09 App shell overview** — Header wallet/node pills fetched once on mount; may be stale until reload.
 - [ ] **MINIMA-10 Stall detection** — In-memory `monitoring.*` resets on backend restart.
 - [ ] **MINIMA-11 Docker socket** — Writable mount required for restart; risk accepted in `SECURITY.md`.

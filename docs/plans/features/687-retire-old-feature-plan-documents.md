@@ -1,21 +1,21 @@
 # Retire Old Feature Plan Documents Plan
 
-**Status:** In progress
+**Status:** Implemented; awaiting review
 **Created:** 2026-10-15
 **Goal:** Remove finished plans and stale docs so `docs/` only describes the current codebase, and consolidate overlapping ADRs into one current record per topic.
 
 ## Progress
 
-- [ ] 1. ADR process: `adr` skill and rule amend an existing ADR in place for refinements; new ADR only for a new decision. Drop the `Where this lives in code` section.
-- [ ] 2. ADR consolidation: fold 0006→0029, 0008→0009, 0004→0032, 0020→0016, 0018→0017, 0023/0026/0028→0022, 0011/0012→0036; trim 0010 to its verdict; tighten the rest; redirect references.
-- [ ] 3. New ADRs from plans: hardware access via host helpers and the host agent (absorbs 0019), Minima backup scheduler and stored password, feedback delivery, workflow watch-mode behaviour.
-- [ ] 4. Trim rationale out of the `minima` rule (×3 mirrors) into ADRs.
-- [ ] 5. Delete finished plans and `plans/archive/`; move open items to `docs/TASKS.md` or `docs/qa/gaps.md`; keep only the feedback receiver spec as an active plan; redirect links.
-- [ ] 6. Remove `docs/notes/`; move point-in-time QA evidence and reports to `docs/reports/`.
-- [ ] 7. Reconcile `docs/TASKS.md` (merged tickets to Done, trim Done) and rewrite `docs/README.md`.
-- [ ] 8. Process docs: `plan-doc`/`openproject` skills and `documenting-work` rule delete a plan once its ticket merges; fix `.cursor` drift.
-- [ ] Docs
-- [ ] Verification
+- [x] 1. ADR process: `adr` skill and rule amend an existing ADR in place for refinements; new ADR only for a new decision. Drop the `Where this lives in code` section.
+- [x] 2. ADR consolidation (`8cbf4bcc`): fold 0006→0029, 0008→0009, 0004→0032, 0020→0016, 0018→0017, 0023/0026/0028→0022, 0011/0012→0036; trim 0010 to its verdict; tighten the rest; redirect references.
+- [x] 3. New ADRs from plans: hardware access via host helpers and the host agent (absorbs 0019), Minima backup scheduler and stored password, feedback delivery, workflow watch-mode behaviour.
+- [x] 4. Trim rationale out of the `minima` rule (×3 mirrors) into ADRs.
+- [x] 5. Delete finished plans and `plans/archive/`; move open items to `docs/TASKS.md` or `docs/qa/gaps.md`; keep only the feedback receiver spec as an active plan; redirect links.
+- [x] 6. Remove `docs/notes/`; move point-in-time QA evidence and reports to `docs/reports/`.
+- [x] 7. Reconcile `docs/TASKS.md` (merged tickets to Done, trim Done) and rewrite `docs/README.md`. Old manual-check items left as-is pending a decision on collapsing them.
+- [x] 8. Process docs: `plan-doc`/`openproject` skills and `documenting-work` rule delete a plan once its ticket merges; fix `.cursor` drift.
+- [x] Docs
+- [x] Verification
 
 ## Context
 

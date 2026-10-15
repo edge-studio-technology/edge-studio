@@ -25,7 +25,7 @@ Status: **Open — scheduled, Phase 2.** The "no arbitrary command proxy" contro
 an HTTP JSON Source pointed at `http://minima:9005/vault` reaches unauthenticated Minima RPC from
 inside the Docker network and returns the response to the caller, bypassing the console catalog's
 hard exclusions. See [adr/0010](../adr/0010-security-review-audit-verdict.md) and
-[plans/security/phase-2-minima-rpc-bypass.md](../plans/security/phase-2-minima-rpc-bypass.md).
+[adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md).
 
 ## Minima Auto-Resync (optional)
 
@@ -252,8 +252,8 @@ Plan:
 Status: **Accepted for local learning deployments only — escalated to a product decision.** The
 external review rated anonymous publishing medium. It is off by default and profile-gated, but
 unauthenticated when on, and closing it needs a device-authentication model rather than a config
-change. Not scheduled as a patch — see
-[plans/security/phase-0-product-decision-gate.md](../plans/security/phase-0-product-decision-gate.md#findings-in-detail).
+change. Not scheduled as a patch; it is a pending product decision (see
+[adr/0010](../adr/0010-security-review-audit-verdict.md)).
 
 ## HTTP JSON Targets
 

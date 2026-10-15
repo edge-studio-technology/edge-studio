@@ -10,6 +10,8 @@ When finishing a task, summarize:
 
 Apply that summary to `docs/SESSION.md` and reconcile `docs/TASKS.md` — use the `session-notes` skill for this.
 
+When a ticket's work is ready for its PR into `dev`, retire its plan doc (`plan-doc` skill, Retiring): rationale to an ADR, open items to `docs/TASKS.md` or `docs/qa/gaps.md`, then delete the plan. `docs/` should describe the codebase as it is, not finished work.
+
 Update project documentation when behavior changes:
 
 - Update `CHANGELOG.md` for every user-facing or operator-facing change (see below).

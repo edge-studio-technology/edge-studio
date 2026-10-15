@@ -79,14 +79,13 @@ Plan:
 
 Status: **Mitigated.** Storage and route controls are as described (narrow scoped volume, path
 containment, admin-only + re-auth-gated routes, capped/auto-pruned lists, audit logging — see
-`docs/plans/minima-node-backup-restore.md`). The stored backup password no longer reaches clients on
+[adr/0037](../adr/0037-minima-backups-own-scheduler-and-stored-password.md)). The stored backup password no longer reaches clients on
 any of the three paths it previously did (`POST /backups` success body, its failure body via
 `dependencyUnavailable`'s `extra` spreading, and `POST /console/run` for a whitelisted `backup`):
 `createBackup()`/`restoreBackup()` return purpose-built DTOs instead of the RPC result,
 `runMinimaPathCommand()` redacts the command, the URL built from it, and the response body before
 they leave the RPC layer, and `structuredError()`/`sendApiError()` redact both sinks so the secret
-reaches neither responses nor Docker logs. Closed in Phase 1 of
-[plans/security/phase-1-backup-password-leak.md](../plans/security/phase-1-backup-password-leak.md).
+reaches neither responses nor Docker logs. Closed in V1.5 Phase 1.
 
 ## Update Agent Docker Socket Mount
 
@@ -137,7 +136,7 @@ Plan:
 - Keep host runtime update allowlists tight as new helper files are added.
 - Revisit binding/firewall behavior during real Pi verification.
 
-Status: Accepted risk for app-managed hardware enablement. See `docs/plans/host-agent-capability-management.md`.
+Status: Accepted risk for app-managed hardware enablement. See [adr/0019](../adr/0019-hardware-access-through-host-helpers.md).
 
 ## I2C Sensor Helper
 
@@ -268,8 +267,7 @@ Plan:
 
 Status: **Open — scheduled, Phase 6.** `minimaglobal/minimacore` is untagged and
 `eclipse-mosquitto:2` is a mutable tag; both sit outside the signed manifest, so digest pinning is
-the only available control. See
-[plans/security/phase-6-fail-closed-on-weak-config.md](../plans/security/phase-6-fail-closed-on-weak-config.md).
+the only available control. Tracked in `docs/TASKS.md`.
 
 ## One-Line Curl Installer
 

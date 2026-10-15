@@ -88,7 +88,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 2. `SECURITY.md` — security policy and guidelines; full risk register in `docs/security/*.md`
 3. `README.md` — install, usage, CLI commands, runtime config, API expectations, or operational workflow changes
 
-For auth work, also read `docs/plans/auth-implementation.md` and `docs/plans/auth-security.md`. Docs layout: `docs/README.md`.
+Docs layout: `docs/README.md`.
 
 ## Rule files
 

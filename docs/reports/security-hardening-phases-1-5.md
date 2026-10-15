@@ -1,7 +1,7 @@
 # Security Hardening Phases 1-5 QA Sign-Off
 
 Use this runbook to decide whether the implementation in
-[Security Hardening V1.5](../plans/security/README.md) Phases 1-5 is safe to promote to the next
+Security Hardening V1.5 Phases 1-5 is safe to promote to the next
 release channel. Run it again against the artifacts published by each channel; a pass on a source
 branch does not prove that the release workflow published the same result.
 

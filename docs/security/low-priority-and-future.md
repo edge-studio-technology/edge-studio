@@ -1,6 +1,6 @@
 # Low Priority Or Future Risks
 
-Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md) · [plans/security/](../plans/security/README.md)
+Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md) · [adr/0010](../adr/0010-security-review-audit-verdict.md)
 
 ## Lack Of Rate Limiting
 
@@ -40,8 +40,7 @@ arguments); neither may keep a secret. Widen the covered patterns as new secret-
 appear.
 
 Status: Mitigated for the confirmed disclosure (the Minima backup password) and for the general
-contract. Closed in Phase 1 of
-[plans/security/phase-1-backup-password-leak.md](../plans/security/phase-1-backup-password-leak.md).
+contract. Closed in V1.5 Phase 1.
 
 ## Logging Sensitive Data
 
@@ -72,6 +71,5 @@ Impact: Regressions may go unnoticed.
 Status: **Largely closed (0.39.0).** Unit suites now cover every feature area of backend, frontend,
 and Update Agent, with per-package coverage thresholds enforced by `npm run check`, plus a smoke test
 asserting every non-public backend route requires a session. Path containment and crypto are covered.
-Remaining gap is regression tests for the fixes in this hardening round — each phase in
-[plans/security/](../plans/security/README.md) requires a test that fails
+Remaining gap is regression tests for the fixes in this hardening round — each V1.5 phase required a test that fails
 before its fix.
