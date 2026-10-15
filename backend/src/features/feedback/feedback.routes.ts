@@ -1,29 +1,12 @@
 import { Router } from "express";
-import { requireRole } from "../auth/auth.middleware.js";
 import { badRequest, unauthorized, unexpected } from "../../shared/api-error.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
-import { appendFeedbackSubmission, FeedbackValidationError, getFeedbackConfig, getFeedbackExport, retryPendingFeedback } from "./feedback.service.js";
+import { appendFeedbackSubmission, FeedbackValidationError, getFeedbackConfig, getFeedbackExport } from "./feedback.service.js";
 
 export const feedbackRouter = Router();
 
 feedbackRouter.get("/config", (_req, res) => {
   return res.json(getFeedbackConfig());
-});
-
-feedbackRouter.post("/retry-pending", requireRole("admin"), async (req, res) => {
-  if (!req.user) return unauthorized(res);
-
-  try {
-    const result = await retryPendingFeedback(req.user);
-    recordAuditEvent("feedback.retry_pending", {
-      userId: req.user.id,
-      detail: JSON.stringify(result),
-    });
-    return res.json(result);
-  } catch (error) {
-    console.error("Failed to retry feedback delivery", error);
-    return unexpected(res, "Failed to retry feedback delivery", error);
-  }
 });
 
 feedbackRouter.post("/", async (req, res) => {

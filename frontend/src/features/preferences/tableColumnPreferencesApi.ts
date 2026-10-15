@@ -5,7 +5,7 @@ import type {
   TableColumnVisibility,
 } from "../../components/patterns/TableColumnVisibility";
 
-export type TableColumnPreferenceEntry =
+type TableColumnPreferenceEntry =
   | TableColumnVisibility
   | {
       visibility?: TableColumnVisibility;

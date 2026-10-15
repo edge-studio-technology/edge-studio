@@ -4,7 +4,6 @@ import { nav } from "../app/nav";
 import type { StatusOverview, Tone } from "../app/types";
 import { Button } from "./ui/Button";
 import { NoticeCard } from "./patterns/NoticeCard";
-import { getDebugPing } from "../features/debug/debugApi";
 import { FeedbackModal } from "../features/feedback/FeedbackModal";
 import { GuidedTourModal } from "../features/tour/GuidedTourModal";
 import { guidedTourSeenSetting } from "../lib/behaviourSettings";
@@ -82,11 +81,9 @@ function statusBarItem({
 
 export function AppShell({
   fullBleed = false,
-  onSignOut,
   children,
 }: {
   fullBleed?: boolean;
-  onSignOut: () => void;
   children: React.ReactNode;
 }) {
   const { pathname, search } = useLocation();
@@ -126,21 +123,6 @@ export function AppShell({
   const showUpdateNotice =
     updateAvailable && availableVersion !== null && availableVersion !== dismissedUpdateVersion;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug ping helper, not wired to the UI
-  const [debugPinging, setDebugPinging] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug ping helper, not wired to the UI
-  const [debugMessage, setDebugMessage] = useState<string | null>(null);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- debug ping helper, not wired to the UI
-  function pingDebugEndpoint() {
-    setDebugPinging(true);
-    setDebugMessage(null);
-    getDebugPing()
-      .then((data) => setDebugMessage(data.message))
-      .catch((error) => setDebugMessage(`Error: ${error.message}`))
-      .finally(() => setDebugPinging(false));
-  }
-
   const statusItems: StatusBarItem[] = [
     statusBarItem({
       id: "node",
@@ -169,7 +151,6 @@ export function AppShell({
       <AppShellSidebar
         pathname={pathname}
         onFeedback={() => setFeedbackOpen(true)}
-        onSignOut={onSignOut}
         version={appVersion ?? backendBuild?.version ?? null}
         updateNotice={
           showUpdateNotice ? (

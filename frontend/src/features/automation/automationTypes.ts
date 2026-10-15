@@ -139,7 +139,7 @@ export type AutomationBlockRun = {
   errorDetails?: unknown;
 };
 
-export type AutomationValidationIssue = {
+type AutomationValidationIssue = {
   level: "error" | "warning";
   code: string;
   message: string;

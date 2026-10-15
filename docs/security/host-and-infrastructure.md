@@ -56,14 +56,14 @@ see *Data Source URL Fetching* in `data-sources-and-automation.md` and
 
 ## Minima Node Backup & Restore
 
-Risk: The Account Settings "Node backup & restore" panel (`backend/src/features/minima/minima-backup.service.ts`, `minima.routes.ts` `/api/minima/backups*`) lets an admin create, download, upload, and restore full Minima node backup (`.bak`) files, plus set one admin-chosen backup password used for every backup. Unlike the existing seed-phrase-only wallet import, a node backup is a superset containing the seed phrase, private keys, coin proofs, and transaction history. The backup password itself is stored encrypted in SQLite (keyed by `APP_SECRET`, same primitive as Integritas token storage) so the backend's own scheduler can create automatic backups unattended.
+Risk: The Account Settings "Node backup & restore" panel (`backend/src/features/minima/minima-backup.service.ts`, `minima.routes.ts` `/api/minima/backups*`) lets an admin create, download, upload, and restore full Minima node backup (`.bak`) files, plus set one admin-chosen backup password used for every backup. A node backup contains the seed phrase, private keys, coin proofs, and transaction history. The backup password itself is stored encrypted in SQLite (keyed by `APP_SECRET`, same primitive as Integritas token storage) so the backend's own scheduler can create automatic backups unattended.
 
 Impact: An attacker with filesystem access to the host (or a compromised backend container) could read the DB, recover the stored backup password, and decrypt any backup file also on disk — recovering full wallet keys and history. A malicious or malformed uploaded restore file could also be used to attempt a path traversal or overwrite of unrelated files if the backup directory logic were not scoped correctly.
 
 Current Controls:
 
 - The backend only gains filesystem access to one new, narrow, purpose-built subdirectory: `${MINIMA_DATA_DIR:-./minima}/backups` mounted read-write at the fixed container path `/minima-backups` (`docker-compose.yml`). The same host directory is also mounted into `minima` at `/home/minima/backups` — required because Minima resolves the `backup`/`restoresync` `file:` argument against its home dir, not `/home/minima/data` (verified against the pinned image). This is the only host directory shared between the two containers; the backend has no access to the rest of Minima's data directory (seed/private key files, chain DB) and Minima has no access to anything outside its own data dir plus this one backups subfolder.
-- All backup filenames are validated as a bare basename and containment-checked with the same resolve-then-realpath pattern used by the host file browser (`files.service.ts`) before any read/write/delete, preventing path traversal via a crafted filename or upload.
+- All backup filenames are validated as a bare basename and containment-checked with a resolve-then-realpath pattern before any read/write/delete, preventing path traversal via a crafted filename or upload.
 - `GET/POST/DELETE /api/minima/backups*` all require an admin session (`requireRole("admin")`).
 - Downloading a backup, restoring from a backup (existing file or new upload), and setting/changing the backup password all require re-entering the current admin PIN/password, the same re-auth pattern used by `updateConsoleWhitelist` and `changePassword`, since each reads, activates, or replaces key material.
 - Deleting a backup does not require re-auth — it only removes a copy of data recoverable elsewhere (the running node itself, or other retained backup files), not a unique secret.
@@ -188,31 +188,16 @@ signing key is now required. Rated high by the external review — see
 The remaining bootstrap exposure is the installer distribution channel itself — see *One-Line Curl
 Installer* below.
 
-## File Browser Metadata Exposure
-
-Risk: Backend lists files and directories from the configured host path. Mount is read-only, but filenames, directory names, sizes, and structure may be sensitive.
-
-Impact: Local data disclosure to anyone who can access the UI.
-
-Plan:
-
-- Keep `HOST_FILES_DIR` as narrow as possible.
-- Add auth before use outside trusted local development.
-- Add per-user allowlists or explicit directory selection later.
-- Avoid mounting `/home/pi` in production unless required.
-
-Status: Partially mitigated by read-only mount and path traversal checks. `/api/files/*` is auth-gated, with admin role on mutations.
-
 ## Path Traversal And Symlink Escape
 
-Risk: File browser endpoints could be abused to access files outside the allowed directory.
+Risk: Endpoints that read host files by path (Automation inbox local images, Minima backup files) could be abused to access files outside the allowed directory.
 
 Impact: Sensitive host file disclosure.
 
 Current Controls:
 
 - Uses `path.resolve` to block `../` traversal.
-- Uses `fs.realpath` to block symlink escape outside `/host-files`.
+- Uses `fs.realpath` to block symlink escape outside the allowed roots (`/host-files` and the camera capture directory for inbox images, `/minima-backups` for backups).
 - Host mount is read-only.
 
 Plan:
@@ -220,7 +205,7 @@ Plan:
 - Add tests for traversal, symlink escape, encoded paths, and permission errors.
 - Consider hiding symlinks entirely.
 
-Status: Mitigated. Containment double-checks via `realpath` in `files.service.ts` and is covered by `backend/tests/features/files/files.service.test.ts`. The external review examined this surface and found no issue.
+Status: Mitigated. Containment double-checks via `realpath` in `minima-backup.service.ts` (covered by `backend/tests/features/minima/minima-backup.service.test.ts`) and `resolveHostImagePath()` in `automation.routes.ts`. The external review examined this surface and found no issue.
 
 ## SQLite File Permissions
 

@@ -30,7 +30,6 @@ import {
   getMinimaConfig,
   getMinimaNodeStatus,
   getMinimaPeers,
-  getWalletBalance,
   resyncMegammr,
   restartMinimaContainer,
   saveMinimaConfig,
@@ -113,18 +112,6 @@ minimaRouter.post("/restart", requireRole("admin"), async (req, res) => {
     const nativeMessage = error instanceof Error ? error.message : "Unknown error";
     const message = normalizeMinimaRpcError(nativeMessage);
     dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false });
-  }
-});
-
-minimaRouter.get("/balance", async (_req, res) => {
-  try {
-    const result = await getWalletBalance();
-    if (!result.ok) return dependencyUnavailable(res, "Failed to get wallet balance", undefined, undefined, result);
-    res.json(result);
-  } catch (error) {
-    const nativeMessage = error instanceof Error ? error.message : "Unknown error";
-    const message = normalizeMinimaRpcError(nativeMessage);
-    dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });
   }
 });
 

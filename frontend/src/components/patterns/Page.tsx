@@ -1,14 +1,11 @@
 import type { ReactNode } from "react";
 
 export function Page({
-  eyebrow: _eyebrow,
   title,
   desc,
   action,
   children,
 }: {
-  /** @deprecated Unused. Drop when migrating each page call site. */
-  eyebrow?: string;
   title: ReactNode;
   desc?: ReactNode;
   /** Optional header action, right-aligned next to title/desc (e.g. a primary button). */

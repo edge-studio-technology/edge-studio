@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Coins used by the commented-out Create token button
-import { Coins, Download, Info, Send } from "lucide-react";
+import { Download, Info, Send } from "lucide-react";
 import { ButtonRow } from "../../components/patterns/ButtonRow";
 import { Button, IconButton } from "../../components/ui/Button";
 import { LoadingDots } from "../../components/ui/LoadingDots";
@@ -27,7 +26,6 @@ export function WalletHero({
   onSend,
   onReceive,
   onInfo,
-  // onCreateToken,
 }: {
   loading: boolean;
   unavailable?: boolean;
@@ -36,7 +34,6 @@ export function WalletHero({
   onSend: () => void;
   onReceive: () => void;
   onInfo: () => void;
-  // onCreateToken: () => void;
 }) {
   const balanceBusy = loading;
 
@@ -97,15 +94,6 @@ export function WalletHero({
           >
             <Info aria-hidden="true" />
           </IconButton>
-          {/* <Button
-            type="button"
-            variant="accent"
-            onClick={onCreateToken}
-            disabled={disabled}
-            iconStart={<Coins aria-hidden="true" />}
-          >
-            Create token
-          </Button> */}
         </ButtonRow>
       </div>
     </section>

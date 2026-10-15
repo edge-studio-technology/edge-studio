@@ -9,7 +9,7 @@ const textareaClass =
  * Mirrors `Input` styling with textarea sizing.
  * Move to Textarea.tsx when needed.
  * */
-export function Textarea({
+function Textarea({
   className,
   rows = 5,
   ...props

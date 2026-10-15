@@ -1,16 +1,9 @@
 import { db } from "../../db/database.js";
 import { getIntegritasAuth } from "../integritas-auth/integritas-auth.repository.js";
 import { getSetting, saveSetting } from "../settings/settings.repository.js";
-import { LOCAL_ADMIN_DISPLAY_NAME, LOCAL_ADMIN_USERNAME, TOTP_ACCOUNT_LABEL, TOTP_ENABLED } from "./auth.constants.js";
+import { LOCAL_ADMIN_DISPLAY_NAME, LOCAL_ADMIN_USERNAME } from "./auth.constants.js";
 import { recordAuditEvent } from "./audit.service.js";
-import {
-  countUsers,
-  createSetupPending,
-  createUser,
-  getLatestSetupPending,
-  clearSetupPending,
-  markSetupPendingVerified
-} from "./auth.repository.js";
+import { countUsers, createUser } from "./auth.repository.js";
 import {
   adminCredentialValidationError,
   getAdminCredentialType,
@@ -18,10 +11,7 @@ import {
   isValidAdminCredential
 } from "./password.service.js";
 import { createSession } from "./session.service.js";
-import { decryptTotpSecret, encryptTotpSecret, generateSecret, getOtpAuthUrl, renderQrPngBase64, verifyToken } from "./totp.service.js";
 
-const SETUP_PENDING_TTL_MS = 15 * 60 * 1000;
-const SETUP_PENDING_VERIFIED_TTL_MS = 30 * 60 * 1000;
 const SETUP_COMPLETED_SETTING_KEY = "setup.completed_at";
 
 export function isLocalAdminCreated() {
@@ -53,64 +43,12 @@ export class SetupError extends Error {
   }
 }
 
-export async function initSetupTotp() {
-  assertLocalAdminNotCreated();
-
-  const secret = generateSecret();
-  const encrypted = encryptTotpSecret(secret);
-  const expiresAt = new Date(Date.now() + SETUP_PENDING_TTL_MS).toISOString();
-  createSetupPending(encrypted, expiresAt);
-
-  const otpAuthUrl = getOtpAuthUrl(secret, TOTP_ACCOUNT_LABEL);
-  const qrCodePngBase64 = await renderQrPngBase64(otpAuthUrl);
-
-  return { qrCodePngBase64, expiresAt, secret };
-}
-
-export async function verifySetupTotp(totpToken: string) {
-  assertLocalAdminNotCreated();
-
-  const token = totpToken.trim();
-  if (!/^\d{6}$/.test(token)) {
-    throw new SetupError("totpToken must be a 6-digit code", 400);
-  }
-
-  const pending = getLatestSetupPending();
-  if (!pending) {
-    throw new SetupError("TOTP setup expired or not initialized", 400);
-  }
-
-  const totpSecret = decryptTotpSecret(pending.totp_secret);
-  if (!verifyToken(totpSecret, token)) {
-    throw new SetupError("Invalid TOTP code", 400);
-  }
-
-  const verifiedAt = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + SETUP_PENDING_VERIFIED_TTL_MS).toISOString();
-  markSetupPendingVerified(pending.id, verifiedAt, expiresAt);
-
-  return { valid: true };
-}
-
 export async function completeSetup(input: { password: string }) {
   assertLocalAdminNotCreated();
 
   const password = input.password;
 
   if (!isValidAdminCredential(password)) throw new SetupError(adminCredentialValidationError(), 400);
-
-  let totpSecretEncrypted: string;
-  if (TOTP_ENABLED) {
-    const pending = getLatestSetupPending();
-    if (!pending) throw new SetupError("TOTP setup expired or not initialized", 400);
-    if (!pending.verified_at) {
-      throw new SetupError("TOTP must be verified before completing setup", 400);
-    }
-    totpSecretEncrypted = encryptTotpSecret(decryptTotpSecret(pending.totp_secret));
-  } else {
-    // Placeholder so users.totp_secret stays NOT NULL while TOTP is disabled.
-    totpSecretEncrypted = encryptTotpSecret(generateSecret());
-  }
 
   const passwordHash = await hashPassword(password);
   const credentialType = getAdminCredentialType(password);
@@ -121,11 +59,9 @@ export async function completeSetup(input: { password: string }) {
     const userId = createUser({
       username: LOCAL_ADMIN_USERNAME,
       passwordHash,
-      totpSecretEncrypted,
       credentialType
     });
 
-    clearSetupPending();
     recordAuditEvent("setup.complete", { userId, detail: LOCAL_ADMIN_DISPLAY_NAME });
 
     return userId;

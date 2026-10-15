@@ -1,6 +1,6 @@
 import { env } from "../../config/env.js";
 
-export type HostCapabilityState = "disabled" | "applying" | "enabled" | "failed" | "needs_reboot" | "missing_prerequisites";
+type HostCapabilityState = "disabled" | "applying" | "enabled" | "failed" | "needs_reboot" | "missing_prerequisites";
 
 export type HostCapability = {
   name: "camera" | "gpio" | "sensors" | "mqtt";
@@ -18,7 +18,6 @@ export type HostCapability = {
 };
 
 type HostAgentListResponse = { items: HostCapability[] };
-type HostAgentItemResponse = { item: HostCapability };
 type HostAgentActionResponse = { capability: HostCapability; restart?: { ok: boolean; scheduled?: boolean; message?: string }; warning?: string | null };
 export type HostSensorPrerequisiteSetupResponse = { capability: HostCapability; steps: Array<{ label: string; ok: boolean }>; rebootRequired: boolean };
 const HOST_AGENT_READ_TIMEOUT_MS = 5000;
@@ -31,12 +30,6 @@ export async function listHostCapabilities() {
   return hostAgentRequest<HostAgentListResponse>("/capabilities");
 }
 
-export async function getHostCameraCapability() {
-  if (!env.hostAgentUrl || !env.hostAgentToken) return { item: fallbackCameraCapability("Host agent is not configured") };
-  debugHostCapability("get", "/capabilities/camera");
-  return hostAgentRequest<HostAgentItemResponse>("/capabilities/camera");
-}
-
 export async function enableHostCameraCapability() {
   debugHostCapability("post", "/capabilities/camera/apply");
   return hostAgentActionRequest("/capabilities/camera/apply");
@@ -47,12 +40,6 @@ export async function disableHostCameraCapability() {
   return hostAgentActionRequest("/capabilities/camera/disable");
 }
 
-export async function getHostGpioCapability() {
-  if (!env.hostAgentUrl || !env.hostAgentToken) return { item: fallbackCapability("gpio", "Host agent is not configured") };
-  debugHostCapability("get", "/capabilities/gpio");
-  return hostAgentRequest<HostAgentItemResponse>("/capabilities/gpio");
-}
-
 export async function enableHostGpioCapability() {
   debugHostCapability("post", "/capabilities/gpio/apply");
   return hostAgentActionRequest("/capabilities/gpio/apply");
@@ -61,12 +48,6 @@ export async function enableHostGpioCapability() {
 export async function disableHostGpioCapability() {
   debugHostCapability("post", "/capabilities/gpio/disable");
   return hostAgentActionRequest("/capabilities/gpio/disable");
-}
-
-export async function getHostSensorCapability() {
-  if (!env.hostAgentUrl || !env.hostAgentToken) return { item: fallbackCapability("sensors", "Host agent is not configured") };
-  debugHostCapability("get", "/capabilities/sensors");
-  return hostAgentRequest<HostAgentItemResponse>("/capabilities/sensors");
 }
 
 export async function enableHostSensorCapability() {
@@ -82,12 +63,6 @@ export async function disableHostSensorCapability() {
 export async function setupHostSensorPrerequisites() {
   debugHostCapability("post", "/capabilities/sensors/setup-prerequisites");
   return hostAgentRequest<HostSensorPrerequisiteSetupResponse>("/capabilities/sensors/setup-prerequisites", { method: "POST" }, HOST_AGENT_SETUP_TIMEOUT_MS);
-}
-
-export async function getHostMqttCapability() {
-  if (!env.hostAgentUrl || !env.hostAgentToken) return { item: fallbackCapability("mqtt", "Host agent is not configured") };
-  debugHostCapability("get", "/capabilities/mqtt");
-  return hostAgentRequest<HostAgentItemResponse>("/capabilities/mqtt");
 }
 
 export async function enableHostMqttCapability() {

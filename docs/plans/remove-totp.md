@@ -1,6 +1,6 @@
 # Candidate Plan: Remove TOTP
 
-**Status:** On hold — removal is not decided
+**Status:** Superseded — TOTP removed in #686 ([ADR 0036](../adr/0036-remove-dead-code-and-unused-features.md))
 **Created:** 2026-09-04
 **Branch:** None — a future decision must authorize its own ticket and branch
 **Goal:** Preserve the previously investigated removal steps as candidate analysis if a future

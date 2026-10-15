@@ -11,10 +11,5 @@ export {
   TableIconButton,
   TableRow,
   TableWrap,
-  tableCellClass,
-  tableHeaderCellClass,
-  tableHeadRowClass,
-  tableRowClass,
   useTableScrollEdges,
 } from "./patterns/DataTable";
-export type { RowOverflowMenuItem } from "./patterns/DataTable";

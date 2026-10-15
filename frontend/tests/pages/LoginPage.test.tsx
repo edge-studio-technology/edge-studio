@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { LoginPage } from "../../src/pages/LoginPage";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -89,36 +89,5 @@ describe("LoginPage credential metadata", () => {
     expect(onSuccess).not.toHaveBeenCalled();
     await userEvent.clear(input);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-  });
-});
-
-describe("LoginPage with authenticator codes enabled", () => {
-  let TotpLoginPage: typeof LoginPage;
-  beforeAll(async () => {
-    vi.resetModules();
-    vi.doMock("../../src/features/auth/totpEnabled", () => ({ TOTP_ENABLED: true }));
-    ({ LoginPage: TotpLoginPage } = await import("../../src/pages/LoginPage"));
-  });
-  afterAll(() => {
-    vi.doUnmock("../../src/features/auth/totpEnabled");
-    vi.resetModules();
-  });
-
-  it.each(["pin", "password"] as const)("keeps the authenticator input separate from %s credentials", async (type) => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
-    const onSuccess = vi.fn();
-    render(<TotpLoginPage credentialType={type} onSuccess={onSuccess} />);
-    await userEvent.type(screen.getByLabelText(type === "pin" ? "PIN" : "Password"), type === "pin" ? "001234" : "weak");
-    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
-    const code = screen.getByLabelText("Authentication code");
-    expect(code).toHaveAttribute("type", "text");
-    expect(code).toHaveAttribute("autocomplete", "one-time-code");
-    expect(code).toHaveAttribute("data-1p-ignore");
-    await userEvent.type(code, "000000");
-    expect(fetchMock).not.toHaveBeenCalled();
-    await userEvent.keyboard("{Enter}");
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
-    expect(fetchMock).toHaveBeenCalledWith("/api/auth/login", expect.objectContaining({ body: JSON.stringify({ password: type === "pin" ? "001234" : "weak", totpToken: "000000" }) }));
   });
 });

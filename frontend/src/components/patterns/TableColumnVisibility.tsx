@@ -18,7 +18,7 @@ export type TableColumnDefinition = {
 
 export type TableColumnVisibility = Record<string, boolean>;
 export type TableColumnOrder = string[];
-export type TableColumnFilterOperator = "contains" | "not_contains";
+type TableColumnFilterOperator = "contains" | "not_contains";
 export type TableColumnFilterRule = {
   operator: TableColumnFilterOperator;
   value: string;

@@ -182,10 +182,6 @@ export async function getMinimaNodeStatus(): Promise<MinimaNodeStatus> {
   return { ...status, monitoring: buildMinimaMonitoring(status), resync: getMinimaResyncSummary() };
 }
 
-export async function getWalletBalance() {
-  return runMinimaPathCommand("balance");
-}
-
 export async function resyncMegammr(trigger: MinimaResyncTrigger = "manual", userId?: string | null) {
   const { megammrHost } = getMinimaConfig();
   return startMinimaResync(megammrHost, trigger, userId);

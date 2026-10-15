@@ -4,7 +4,6 @@ export type Tone = "neutral" | "good" | "warn" | "error";
 export type Status = "neutral" | "success" | "warning" | "error";
 export type NavId =
   | "dashboard"
-  | "setup"
   | "node"
   | "wallet"
   | "integritas"
@@ -15,7 +14,7 @@ export type NavId =
   | "settings";
 export type NavItem = { id: NavId; label: string; icon: LucideIcon; badge?: string };
 
-export type UpdateServiceStatus = {
+type UpdateServiceStatus = {
   service: string;
   currentImage: string | null;
   targetImage: string;
@@ -28,7 +27,7 @@ export type UpdateStatusSummary = {
   availableVersion: string;
 } | null;
 
-export type UpdateManifest = {
+type UpdateManifest = {
   frontend: string;
   backend: string;
   updateAgent: string;
@@ -42,9 +41,6 @@ export type UpdateStatus = {
   changelog: { markdown: string; fetchedAt: string } | null;
 };
 
-export type Health = { status: string; service: string };
-export type FileItem = { name: string; type: "file" | "directory" | "other"; size?: number };
-export type FilesResponse = { path: string; items: FileItem[] };
 export type MinimaNodeState = "running" | "stopped" | "error" | "restarting";
 export type MinimaSyncStatus = "active" | "stale" | "syncing" | "unavailable";
 export type MinimaResyncPhase = "starting" | "in_progress" | "recovering" | "completed" | "failed" | "unconfirmed";

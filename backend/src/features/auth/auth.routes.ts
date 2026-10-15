@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { env } from "../../config/env.js";
 import { apiErrorFromStatus, unauthorized, unexpected } from "../../shared/api-error.js";
-import { TOTP_ENABLED } from "./auth.constants.js";
-import { login, changePassword, initTotpReset, verifyTotpReset, AuthSettingsError } from "./auth.service.js";
+import { login, changePassword, AuthSettingsError } from "./auth.service.js";
 import { recordAuditEvent } from "./audit.service.js";
 import { authRateLimiter } from "./rate-limit.middleware.js";
 import { deleteSession, sessionClearCookieOptions, sessionCookieOptions } from "./session.service.js";
@@ -12,9 +11,8 @@ export const authProtectedRouter = Router();
 
 authPublicRouter.post("/login", authRateLimiter, async (req, res) => {
   const password = typeof req.body?.password === "string" ? req.body.password : "";
-  const totpToken = typeof req.body?.totpToken === "string" ? req.body.totpToken : "";
 
-  const result = await login({ password, totpToken });
+  const result = await login({ password });
   if (!result.ok) {
     return unauthorized(res, "Invalid credentials");
   }
@@ -54,8 +52,7 @@ authProtectedRouter.post("/settings/password", authRateLimiter, async (req, res)
   try {
     const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
     const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
-    const totpToken = typeof req.body?.totpToken === "string" ? req.body.totpToken : "";
-    await changePassword(req.user.id, { currentPassword, newPassword, totpToken });
+    await changePassword(req.user.id, { currentPassword, newPassword });
     // Every session was revoked, including this one — drop the now-dead cookie.
     res.clearCookie(env.sessionCookieName, sessionClearCookieOptions());
     return res.json({ success: true, sessionsRevoked: true });
@@ -66,36 +63,3 @@ authProtectedRouter.post("/settings/password", authRateLimiter, async (req, res)
     return unexpected(res, "Failed to change credential", error);
   }
 });
-
-if (TOTP_ENABLED) {
-  authProtectedRouter.post("/settings/totp/init", authRateLimiter, async (req, res) => {
-    if (!req.user) return unauthorized(res);
-    try {
-      const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
-      const totpToken = typeof req.body?.totpToken === "string" ? req.body.totpToken : "";
-      const result = await initTotpReset(req.user.id, { currentPassword, totpToken });
-      return res.json(result);
-    } catch (error) {
-      if (error instanceof AuthSettingsError) {
-        return apiErrorFromStatus(res, error.status, error.message);
-      }
-      return unexpected(res, "Failed to initialize TOTP reset", error);
-    }
-  });
-
-  authProtectedRouter.post("/settings/totp/verify", authRateLimiter, async (req, res) => {
-    if (!req.user) return unauthorized(res);
-    try {
-      const totpToken = typeof req.body?.totpToken === "string" ? req.body.totpToken : "";
-      await verifyTotpReset(req.user.id, totpToken);
-      // Every session was revoked, including this one — drop the now-dead cookie.
-      res.clearCookie(env.sessionCookieName, sessionClearCookieOptions());
-      return res.json({ success: true, sessionsRevoked: true });
-    } catch (error) {
-      if (error instanceof AuthSettingsError) {
-        return apiErrorFromStatus(res, error.status, error.message);
-      }
-      return unexpected(res, "Failed to verify TOTP reset", error);
-    }
-  });
-}

@@ -12,10 +12,8 @@ import {
   changePassword,
   getMe,
   getSetupStatus,
-  initTotpReset,
   login,
   logout,
-  verifyTotpReset,
 } from "../../../src/features/auth/api";
 
 describe("auth api", () => {
@@ -60,17 +58,6 @@ describe("auth api", () => {
     expect(result).toBe(response);
   });
 
-  it("login includes an optional totpToken", async () => {
-    postJson.mockResolvedValue({ success: true, user: {} });
-
-    await login({ password: "123456", totpToken: "000000" });
-
-    expect(postJson).toHaveBeenCalledWith("/api/auth/login", {
-      password: "123456",
-      totpToken: "000000",
-    });
-  });
-
   it("logout POSTs with no body", async () => {
     postJson.mockResolvedValue({ success: true });
 
@@ -89,28 +76,6 @@ describe("auth api", () => {
       currentPassword: "old",
       newPassword: "new",
     });
-    expect(result).toEqual({ success: true });
-  });
-
-  it("initTotpReset POSTs current password and totp token", async () => {
-    const response = { qrCodePngBase64: "abc", secret: "s", expiresAt: "now" };
-    postJson.mockResolvedValue(response);
-
-    const result = await initTotpReset({ currentPassword: "old", totpToken: "000000" });
-
-    expect(postJson).toHaveBeenCalledWith("/api/auth/settings/totp/init", {
-      currentPassword: "old",
-      totpToken: "000000",
-    });
-    expect(result).toBe(response);
-  });
-
-  it("verifyTotpReset POSTs the totp token", async () => {
-    postJson.mockResolvedValue({ success: true });
-
-    const result = await verifyTotpReset({ totpToken: "000000" });
-
-    expect(postJson).toHaveBeenCalledWith("/api/auth/settings/totp/verify", { totpToken: "000000" });
     expect(result).toEqual({ success: true });
   });
 });

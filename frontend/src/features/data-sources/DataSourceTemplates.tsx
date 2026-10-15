@@ -21,7 +21,6 @@ import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { Pill } from "../../components/Pill";
 import { Disclosure } from "../../components/ui/Disclosure";
 import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "./dataSourceTypes";
-import { isTemplateActiveByCapability } from "./hardwareCapabilities";
 
 export const inputTemplates: DataSourceTemplate[] = [
   {
@@ -191,28 +190,6 @@ export function resolveTemplateConfig(
     ? capabilities.mqttBroker.internalUrl
     : "mqtt://localhost:1883";
   return { ...template.config, brokerUrl };
-}
-
-export function activeInputTemplates(
-  capabilities: DataSourceCapabilities | null,
-  hostCapabilities: HostCapability[] = [],
-) {
-  return inputTemplates.filter((template) => isTemplateActive(template, capabilities, hostCapabilities));
-}
-
-export function activeOutputTemplates(
-  capabilities: DataSourceCapabilities | null,
-  hostCapabilities: HostCapability[] = [],
-) {
-  return outputTemplates.filter((template) => isTemplateActive(template, capabilities, hostCapabilities));
-}
-
-function isTemplateActive(
-  template: DataSourceTemplate,
-  capabilities: DataSourceCapabilities | null,
-  hostCapabilities: HostCapability[],
-) {
-  return isTemplateActiveByCapability(template, capabilities, hostCapabilities);
 }
 
 export function LocalServicesCard({

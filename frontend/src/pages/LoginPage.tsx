@@ -1,64 +1,36 @@
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
 import { APP_NAME, BRAND_GRADIENT } from "../app/brand";
 import { BrandLockup } from "../components/patterns/BrandLockup";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { CredentialField } from "../components/ui/CredentialField";
-import { PinField } from "../components/ui/PinField";
 import { login } from "../features/auth/api";
-import { TOTP_ENABLED } from "../features/auth/totpEnabled";
 import { isAdminCredentialEntryReady, type AdminCredentialType } from "../features/auth/adminCredentials";
-
-type LoginPhase = "credentials" | "twofa";
-
-const TOTP_CODE_LENGTH = 6;
 
 export function LoginPage({ onSuccess, sessionNotice, credentialType = null }: {
   onSuccess: () => void;
   sessionNotice?: string | null;
   credentialType?: AdminCredentialType | null;
 }) {
-  const [phase, setPhase] = useState<LoginPhase>("credentials");
   const [credential, setCredential] = useState("");
-  const [twoFactorCode, setTwoFactorCode] = useState("");
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const credentialLabel = credentialType === "pin" ? "PIN" : credentialType === "password" ? "Password" : "PIN or password";
 
   const credentialsValid = isAdminCredentialEntryReady(credentialType, credential);
-  const twoFactorValid = twoFactorCode.length === TOTP_CODE_LENGTH;
 
-  const continueToTwoFactor = () => {
-    if (!credentialsValid) return;
-    setError(null);
-    setPhase("twofa");
-    setTwoFactorCode("");
-  };
-
-  const signIn = async (totpToken = "") => {
+  const signIn = async () => {
     if (signingIn || !credentialsValid) return;
-    if (TOTP_ENABLED && !twoFactorValid) return;
     setSigningIn(true);
     setError(null);
     try {
-      await login({
-        password: credential,
-        ...(TOTP_ENABLED ? { totpToken } : {}),
-      });
+      await login({ password: credential });
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Log in failed");
     } finally {
       setSigningIn(false);
     }
-  };
-
-  const backToCredentials = () => {
-    setPhase("credentials");
-    setTwoFactorCode("");
-    setSigningIn(false);
-    setError(null);
   };
 
   return (
@@ -77,110 +49,52 @@ export function LoginPage({ onSuccess, sessionNotice, credentialType = null }: {
           <Card className="w-full max-w-120 shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
             <h1 className="sr-only">{APP_NAME}</h1>
 
-            {phase === "credentials" ? (
-              <form
-                className="gap-separator-related flex w-full flex-col"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (TOTP_ENABLED) {
-                    continueToTwoFactor();
-                    return;
-                  }
-                  if (credentialsValid && !signingIn) void signIn();
-                }}
-              >
-                <header className="gap-detail-next grid w-full text-center">
-                  <h2 className="type-heading text-text-primary m-0">Welcome back</h2>
-                  <p className="type-body text-text-secondary m-0">
-                    Enter your {credentialType === "password" ? "password" : credentialLabel} to continue.
-                  </p>
-                </header>
+            <form
+              className="gap-separator-related flex w-full flex-col"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (credentialsValid && !signingIn) void signIn();
+              }}
+            >
+              <header className="gap-detail-next grid w-full text-center">
+                <h2 className="type-heading text-text-primary m-0">Welcome back</h2>
+                <p className="type-body text-text-secondary m-0">
+                  Enter your {credentialType === "password" ? "password" : credentialLabel} to continue.
+                </p>
+              </header>
 
-                {sessionNotice && (
-                  <p className="type-meta border-border-subtle bg-surface-subtle text-text-secondary rounded-card-inner m-0 border p-pad-tight text-center">
-                    {sessionNotice}
-                  </p>
-                )}
+              {sessionNotice && (
+                <p className="type-meta border-border-subtle bg-surface-subtle text-text-secondary rounded-card-inner m-0 border p-pad-tight text-center">
+                  {sessionNotice}
+                </p>
+              )}
 
-                <div className="gap-detail-close flex w-full flex-col">
-                  <CredentialField
-                    credentialType={credentialType}
-                    label={credentialLabel}
-                    value={credential}
-                    onChange={(value) => {
-                      setCredential(value);
-                      if (error) setError(null);
-                    }}
-                    placeholder="••••••••••"
-                    autoComplete="current-password"
-                    autoFocus
-                    error={error ?? undefined}
-                  />
+              <div className="gap-detail-close flex w-full flex-col">
+                <CredentialField
+                  credentialType={credentialType}
+                  label={credentialLabel}
+                  value={credential}
+                  onChange={(value) => {
+                    setCredential(value);
+                    if (error) setError(null);
+                  }}
+                  placeholder="••••••••••"
+                  autoComplete="current-password"
+                  autoFocus
+                  error={error ?? undefined}
+                />
 
-                  <Button
-                    type="submit"
-                    variant="accent"
-                    size="md"
-                    className="w-full"
-                    disabled={!credentialsValid || signingIn}
-                  >
-                    {signingIn ? "Logging in…" : TOTP_ENABLED ? "Continue" : "Log In"}
-                  </Button>
-                </div>
-              </form>
-            ) : (
-              <form
-                className="gap-separator-related flex w-full flex-col"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (twoFactorValid && !signingIn) void signIn(twoFactorCode);
-                }}
-              >
-                <header className="gap-detail-next grid w-full text-center">
-                  <h2 className="type-heading text-text-primary m-0">Enter your code</h2>
-                  <p className="type-callout text-text-secondary m-0">
-                    Open your authenticator app and enter the {TOTP_CODE_LENGTH}-digit code for{" "}
-                    {APP_NAME}.
-                  </p>
-                </header>
-
-                <div className="gap-detail-close flex w-full flex-col">
-                  <PinField
-                    label="Authentication code"
-                    value={twoFactorCode}
-                    length={TOTP_CODE_LENGTH}
-                    onChange={(nextCode) => {
-                      setTwoFactorCode(nextCode);
-                      if (error) setError(null);
-                    }}
-                    autoComplete="one-time-code"
-                    autoFocus
-                    error={error ?? undefined}
-                  />
-
-                  <Button
-                    type="submit"
-                    variant="accent"
-                    size="md"
-                    className="w-full"
-                    disabled={!twoFactorValid || signingIn}
-                  >
-                    {signingIn ? "Logging in…" : "Log In"}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="md"
-                    className="w-full"
-                    iconStart={<ArrowLeft />}
-                    onClick={backToCredentials}
-                  >
-                    Back
-                  </Button>
-                </div>
-              </form>
-            )}
+                <Button
+                  type="submit"
+                  variant="accent"
+                  size="md"
+                  className="w-full"
+                  disabled={!credentialsValid || signingIn}
+                >
+                  {signingIn ? "Logging in…" : "Log In"}
+                </Button>
+              </div>
+            </form>
           </Card>
         </div>
 

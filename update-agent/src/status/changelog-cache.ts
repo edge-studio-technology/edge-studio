@@ -53,7 +53,7 @@ async function loadCache(): Promise<void> {
   }
 }
 
-export async function fetchChangelog(): Promise<string> {
+async function fetchChangelog(): Promise<string> {
   const response = await fetch(CHANGELOG_URL, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!response.ok) throw new Error(`Changelog fetch failed with status ${response.status}`);
   if (!response.body) return "";

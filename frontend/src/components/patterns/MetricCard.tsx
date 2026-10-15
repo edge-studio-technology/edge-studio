@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Status } from "../../app/types";
 import { cx } from "../../lib/cx";
-import { LoadingDots } from "../LoadingDots";
+import { LoadingDots } from "../ui/LoadingDots";
 import { Card } from "../ui/Card";
 
 const statusValueClass: Record<Status, string> = {

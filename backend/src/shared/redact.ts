@@ -33,7 +33,7 @@ export function redactSecrets(value: string): string {
   return stringRules.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), value);
 }
 
-export function isSecretKey(key: string): boolean {
+function isSecretKey(key: string): boolean {
   const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, "");
   return secretKeyWords.some((word) => normalized.includes(word));
 }

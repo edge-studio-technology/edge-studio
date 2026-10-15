@@ -128,23 +128,6 @@ export function WorkflowBlockLibrary({
           );
         })}
       </ToolkitGroup>
-      {/* <ToolkitGroup title="Attached actions">
-        <LibraryCard
-          disabled={Boolean(stampReason)}
-          disabledReason={stampReason}
-          onClick={attachStamp}
-          title="Stamp data"
-          description="Create an Integritas proof for recorded or fetched data."
-        />
-        {stampPickerOpen && stampTargets.length >= 2 && (
-          <Menu
-            items={stampTargets.map((block) => ({
-              label: draftBlockTitle(block),
-              onClick: () => pickStampTarget(block.id),
-            }))}
-          />
-        )}
-      </ToolkitGroup> */}
     </WorkflowRailPanel>
   );
 }

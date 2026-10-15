@@ -36,21 +36,10 @@ export type SendPaymentResult = {
   message?: string;
 };
 
-export type PaymentStatus = {
-  txpowId: string;
-  status: "pending" | "confirmed" | "failed" | "unknown";
-  checkedAt: string;
-};
-
-export type ImportWalletResult = {
-  ok: boolean;
-  message: string;
-};
-
 export type WalletHistoryDirection = "in" | "out" | "self";
 
 export const WALLET_HISTORY_STATUSES = ["pending", "confirmed", "failed"] as const;
-export type WalletHistoryStatus = (typeof WALLET_HISTORY_STATUSES)[number];
+type WalletHistoryStatus = (typeof WALLET_HISTORY_STATUSES)[number];
 
 /** One row of Wallet history: a synced chain movement, or an app send not seen on chain yet. */
 export type WalletHistoryItem = {

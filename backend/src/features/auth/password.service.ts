@@ -12,8 +12,8 @@ const SCRYPT_PREFIX = "scrypt";
 const SCRYPT_HASH_PATTERN = /^scrypt\$([1-9]\d{0,9})\$([1-9]\d{0,2})\$([1-9]\d{0,2})\$([A-Za-z0-9_-]+)\$([A-Za-z0-9_-]+)$/;
 const BCRYPT_HASH_PATTERN = /^\$2[aby]\$/;
 
-export const ADMIN_PIN_LENGTH = 6;
-export const ADMIN_PASSWORD_MIN_LENGTH = 8;
+const ADMIN_PIN_LENGTH = 6;
+const ADMIN_PASSWORD_MIN_LENGTH = 8;
 
 const ADMIN_PIN_PATTERN = new RegExp(`^\\d{${ADMIN_PIN_LENGTH}}$`);
 const ADMIN_PASSWORD_UPPERCASE_PATTERN = /[A-Z]/;

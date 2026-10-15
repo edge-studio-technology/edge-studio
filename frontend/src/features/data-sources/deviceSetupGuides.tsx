@@ -25,7 +25,7 @@ type GuideWorkflowBlock = {
   clientId?: string | null;
 };
 
-export type DeviceGuideWorkflowInput = {
+type DeviceGuideWorkflowInput = {
   name: string;
   enabled: boolean;
   blocks: GuideWorkflowBlock[];

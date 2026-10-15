@@ -10,7 +10,6 @@ const initialForm: OnboardingFormState = {
   credentialType: "pin",
   password: "",
   confirmPassword: "",
-  twoFactorCode: "",
 };
 
 function ControlledAccountStep({

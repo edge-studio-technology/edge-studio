@@ -224,12 +224,6 @@ export function MinimaPage() {
           >
             <MinimaBackupPanel bare minimaState={nodeStatus?.state ?? null} operationBusy={actionsBlocked} />
           </SubSection>
-          {/* Deprecated in favor of Node backup & restore above (superset: full node backup
-              vs. wallet-keys-only). Seed-phrase-only restore is still a distinct recovery path
-              (no backup file needed) and is planned as a "coming soon" option in
-              MinimaBackupPanel for v1.5 — see docs/TASKS.md. Left commented, not deleted, for
-              an easy revert. */}
-          {/* <WalletSettingsPanel /> */}
         </Disclosure>
       </Card>
 

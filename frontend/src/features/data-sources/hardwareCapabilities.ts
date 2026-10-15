@@ -13,21 +13,6 @@ export function hostCapabilityForDevice(source: DataSource, hostCapabilities: Ho
   return hostCapabilities.find((capability) => capability.name === name) ?? null;
 }
 
-export function isTemplateActiveByCapability(
-  template: DataSourceTemplate,
-  capabilities: DataSourceCapabilities | null,
-  hostCapabilities: HostCapability[],
-) {
-  const capabilityName = hostCapabilityForDeviceType(template.type);
-  const hostCapability = capabilityName ? hostCapabilities.find((capability) => capability.name === capabilityName) : null;
-  if (hostCapability) return hostCapability.enabled;
-
-  if (template.type === "pi-camera") return Boolean(capabilities?.camera?.enabled);
-  if (template.type === "bme-sensor") return Boolean(capabilities?.sensors?.enabled);
-  if (template.type === "gpio-input" || template.type === "gpio-output") return Boolean(capabilities?.gpioInput.available);
-  return true;
-}
-
 export function fallbackCapabilityState(source: DataSource, capabilities: DataSourceCapabilities | null) {
   if (source.type === "pi-camera") return { enabled: Boolean(capabilities?.camera?.enabled), available: Boolean(capabilities?.camera?.available), reason: capabilities?.camera?.reason ?? null };
   if (source.type === "bme-sensor") return { enabled: Boolean(capabilities?.sensors?.enabled), available: Boolean(capabilities?.sensors?.available), reason: capabilities?.sensors?.reason ?? null };

@@ -9,11 +9,8 @@ vi.mock("../../../src/lib/api", () => ({
 }));
 
 import {
-  clearWalletHistoryForDebug,
-  getPaymentStatus,
   getReceiveAddress,
   getWalletStatus,
-  importWallet,
   listWalletHistory,
   clearPreviousWalletHistory,
   sendPayment,
@@ -48,36 +45,6 @@ describe("walletApi", () => {
     const result = await sendPayment(body);
 
     expect(postJson).toHaveBeenCalledWith("/api/wallet/send-payment", body);
-    expect(result).toBe(response);
-  });
-
-  it("getPaymentStatus GETs the payment-status endpoint with an encoded txpowId", async () => {
-    const response = { txpowId: "0x ab", status: "confirmed" as const, checkedAt: "2026-01-01T00:00:00Z" };
-    getJson.mockResolvedValue(response);
-
-    const result = await getPaymentStatus("0x ab");
-
-    expect(getJson).toHaveBeenCalledWith("/api/wallet/payment-status/0x%20ab");
-    expect(result).toBe(response);
-  });
-
-  it("importWallet POSTs the seed phrase", async () => {
-    const response = { ok: true, message: "Wallet imported." };
-    postJson.mockResolvedValue(response);
-
-    const result = await importWallet("word1 word2 word3");
-
-    expect(postJson).toHaveBeenCalledWith("/api/wallet/import", { phrase: "word1 word2 word3" });
-    expect(result).toBe(response);
-  });
-
-  it("clearWalletHistoryForDebug POSTs to the debug clear endpoint", async () => {
-    const response = { ok: true, deleted: 3 };
-    postJson.mockResolvedValue(response);
-
-    const result = await clearWalletHistoryForDebug();
-
-    expect(postJson).toHaveBeenCalledWith("/api/wallet/debug/clear-wallet-history");
     expect(result).toBe(response);
   });
 

@@ -1,8 +1,6 @@
 import { canonicalMinimaAddress } from "../../shared/minima-address.js";
 import type {
   ChainHistoryEntry,
-  ImportWalletResult,
-  PaymentStatus,
   ReceiveAddress,
   SendPaymentResult,
   TokenBalance,
@@ -139,17 +137,6 @@ export function isTxPowId(value: string): boolean {
   return /^0x[0-9a-f]{1,128}$/i.test(value);
 }
 
-// `txpow txpowid:` returns the TxPoW itself as `response`; a TxPoW the node knows but has not
-// found on chain is pending.
-export function parsePaymentStatusResponse(body: unknown, txpowId: string): PaymentStatus {
-  const checkedAt = new Date().toISOString();
-  const record = asRecord(body);
-  const response = asRecord(record?.response);
-  const known = record?.status === true && typeof response?.txpowid === "string"
-    && response.txpowid.toLowerCase() === txpowId.toLowerCase();
-  return { txpowId, status: known ? "pending" : "unknown", checkedAt };
-}
-
 function asNonNegativeInteger(value: unknown): number | null {
   const parsed = typeof value === "string" && value.trim() ? Number(value) : value;
   return typeof parsed === "number" && Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
@@ -265,12 +252,4 @@ export function parseHistoryResponse(body: unknown, localAddresses: Set<string>)
     }
   });
   return entries;
-}
-
-export function parseImportResponse(body: unknown): ImportWalletResult {
-  const record = asRecord(body);
-  if (record?.status === false) {
-    return { ok: false, message: asString(record.error ?? record.message, "Import failed") };
-  }
-  return { ok: true, message: "Wallet restored. The node may restart to apply the new seed." };
 }
