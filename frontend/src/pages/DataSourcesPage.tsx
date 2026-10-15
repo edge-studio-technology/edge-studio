@@ -66,6 +66,7 @@ export function DataSourcesPage() {
   const [hostCapabilities, setHostCapabilities] = useState<HostCapability[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
+  const [hardwareLoadError, setHardwareLoadError] = useState<string | null>(null);
   const [setupDeviceOpen, setSetupDeviceOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -88,8 +89,10 @@ export function DataSourcesPage() {
   async function loadInitialData() {
     setInitialLoading(true);
     setInitialLoadError(null);
+    void loadHardwareStatus();
     try {
-      await refresh();
+      const response = await listDataSources();
+      setItems(response.items);
     } catch (err) {
       setInitialLoadError(
         err instanceof Error && err.message
@@ -101,6 +104,23 @@ export function DataSourcesPage() {
     }
   }
 
+  async function loadHardwareStatus() {
+    const hostCapabilitiesRequest = getHostCapabilities().catch(() => ({ items: [] }));
+    try {
+      const capabilityResponse = await getDataSourceCapabilities();
+      setCapabilities(capabilityResponse);
+      setHardwareLoadError(null);
+    } catch (err) {
+      setHardwareLoadError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Edge Studio could not load hardware status. Try again.",
+      );
+    }
+    const hostCapabilityResponse = await hostCapabilitiesRequest;
+    setHostCapabilities(hostCapabilityResponse.items);
+  }
+
   async function refresh() {
     const [response, capabilityResponse, hostCapabilityResponse] = await Promise.all([
       listDataSources(),
@@ -110,6 +130,7 @@ export function DataSourcesPage() {
     setItems(response.items);
     setCapabilities(capabilityResponse);
     setHostCapabilities(hostCapabilityResponse.items);
+    setHardwareLoadError(null);
     return { items: response.items, capabilities: capabilityResponse, hostCapabilities: hostCapabilityResponse.items };
   }
 
@@ -474,6 +495,20 @@ export function DataSourcesPage() {
         onDisableMqtt={disableMqttHardware}
         onRefreshHardware={refreshHardwareStatus}
       />
+
+      {hardwareLoadError && (
+        <ErrorAlert
+          status="warning"
+          title="Hardware status couldn't be loaded"
+          action={
+            <Button type="button" variant="secondary" onClick={() => void loadHardwareStatus()}>
+              Retry
+            </Button>
+          }
+        >
+          {describeLoadFailure(hardwareLoadError)}
+        </ErrorAlert>
+      )}
 
       <AltAddDeviceFlow
         open={setupDeviceOpen}
