@@ -367,6 +367,7 @@ function stepOptions(
         { title: "Boards", description: "Connect a microcontroller board and generate starter setup.", icon: Cpu, action: () => setStep("boards") },
         { title: "Protocols", description: "Receive data or send commands using REST APIs, MQTT, or webhooks.", icon: Radio, action: () => setStep("protocols") },
         { title: "Sensors", description: "Add GPIO and environmental sensor devices attached to this Pi.", icon: ThermometerSun, action: () => setStep("sensors") },
+        templateOption("This Pi system data", "Record local device specifications, performance, network status, and coarse locale data.", findInputTemplate("Device System Data"), selectTemplate),
       ];
   }
 }

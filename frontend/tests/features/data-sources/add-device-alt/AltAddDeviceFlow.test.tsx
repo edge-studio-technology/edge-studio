@@ -44,6 +44,13 @@ describe("AltAddDeviceFlow", () => {
     expect(screen.getByRole("button", { name: /Boards/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Protocols/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Sensors/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /This Pi system data/ })).toBeInTheDocument();
+  });
+
+  it("opens the system-data provisioning flow from the root picker", async () => {
+    renderFlow();
+    await userEvent.click(screen.getByRole("button", { name: /This Pi system data/ }));
+    expect(screen.getByRole("button", { name: "Next step (2)" })).toBeEnabled();
   });
 
   it("Cancel in the picker step calls onClose", async () => {
