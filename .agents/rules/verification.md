@@ -7,6 +7,7 @@ npm run lint
 npm run check
 npm --prefix backend run build
 npm --prefix frontend run build
+npm --prefix update-agent run build
 docker compose config
 ```
 

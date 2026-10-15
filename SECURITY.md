@@ -49,9 +49,8 @@ An external static security review of the codebase was completed on 2026-09-03
 kept verbatim). Its findings were independently audited and re-rated in
 [`docs/adr/0010`](docs/adr/0010-security-review-audit-verdict.md), which also records the fix order.
 Open items are tracked in [`docs/qa/gaps.md`](docs/qa/gaps.md) and [`docs/TASKS.md`](docs/TASKS.md).
-Several of the findings are open as of this writing; the register entries say which, and under which
-phase they are addressed. This is a prototype on a trusted LAN — treat the register, not this page,
-as the current state.
+Most findings are closed; the register entries say which remain open or accepted. This is a
+prototype on a trusted LAN — treat the register, not this page, as the current state.
 
 ## Default Network Exposure
 

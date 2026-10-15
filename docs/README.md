@@ -34,7 +34,6 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | Plan | Status |
 | ---- | ------ |
 | [plans/feedback-hosted-receiver.md](./plans/feedback-hosted-receiver.md) | Hand-off spec for the Integritas API repo; not started |
-| [plans/features/687-retire-old-feature-plan-documents.md](./plans/features/687-retire-old-feature-plan-documents.md) | In progress |
 
 ## Architecture decisions
 
@@ -107,7 +106,6 @@ Merged into the surviving record on 2026-10-15. Numbers are not reused.
 | --- | ------- |
 | [qa/gaps.md](./qa/gaps.md) | Open QA, security, and test gaps (all areas) |
 | [reports/v1-auth-sign-off.md](./reports/v1-auth-sign-off.md) | V1 auth and security production Compose sign-off (2026-09-18) |
-| [reports/security-hardening-phases-1-5.md](./reports/security-hardening-phases-1-5.md) | V1.5 hardening Phases 1-5 promotion runbook |
 | [reports/536-resync-lifecycle.md](./reports/536-resync-lifecycle.md) | Disposable-node resync timings and timeout behaviour (fixtures in `backend/tests/fixtures/minima/`) |
 | [reports/536-resync-end-to-end.md](./reports/536-resync-end-to-end.md) | #536 Pi, disposable-node, and browser resync QA |
 | [reports/283-credential-input-pi-verification.md](./reports/283-credential-input-pi-verification.md) | #283 PIN/password input and backup restore Pi QA |

@@ -16,7 +16,7 @@ and Integritas stamp creation (10 per client across `/stamp` and `/stamp-file`).
 
 Limits: all HTTP limiters are in-memory and reset when the backend restarts. They cannot see MQTT or
 GPIO events; those, and every other trigger, are bounded by the persisted per-workflow run budget
-([wallet-and-tokens.md](./wallet-and-tokens.md#automated-wallet-transactions)). Files and other
+([wallet-and-tokens.md](./wallet-and-tokens.md#automated-wallet-transactions)). Other
 admin-only endpoints remain unlimited.
 
 Status: **Mitigated for the paths untrusted event sources can drive (Phase 7, GAP-10).**

@@ -254,7 +254,7 @@ Status: **Mitigated (Phase 5, 2026-09-09).** Review finding [13]. See
 
 ## Dependency And Image Supply Chain
 
-Risk: Docker images and npm packages are pulled from external registries. Tags such as `minimaglobal/minima:dev` are mutable.
+Risk: Docker images and npm packages are pulled from external registries. Tags such as `minimaglobal/minimacore` (untagged) and `eclipse-mosquitto:2` are mutable.
 
 Impact: Unexpected updates, compromised dependencies, reproducibility issues.
 
@@ -265,7 +265,7 @@ Plan:
 - Add automated `npm audit` and image vulnerability scanning.
 - Review native dependency `better-sqlite3` updates.
 
-Status: **Open — scheduled, Phase 6.** `minimaglobal/minimacore` is untagged and
+Status: **Open.** Review finding [6]. `minimaglobal/minimacore` is untagged and
 `eclipse-mosquitto:2` is a mutable tag; both sit outside the signed manifest, so digest pinning is
 the only available control. Tracked in `docs/TASKS.md`.
 
