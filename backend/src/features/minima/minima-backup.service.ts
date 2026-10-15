@@ -82,7 +82,7 @@ async function ensureBackupsRoot() {
   await fs.mkdir(backupsRoot, { recursive: true });
 }
 
-// Same resolve-then-realpath containment check as files.service.ts, applied here as
+// Resolve-then-realpath containment check, applied here as
 // defense in depth even though backupsRoot is a fixed, non-configurable path.
 async function resolveBackupPath(fileName: string) {
   if (!fileName || fileName !== path.basename(fileName)) {

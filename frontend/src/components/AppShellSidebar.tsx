@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- LogOut used by the commented-out sign-out button
-import { ChevronDown, ChevronUp, LogOut, MessageCircle, Minimize2, PanelLeft } from "lucide-react";
+import { ChevronDown, ChevronUp, MessageCircle, Minimize2, PanelLeft } from "lucide-react";
 import { nav } from "../app/nav";
 import { cx } from "../lib/cx";
 import { sidebarStartCollapsedSetting } from "../lib/behaviourSettings";
@@ -38,14 +37,11 @@ function CollapsibleLabel({
 export function AppShellSidebar({
   pathname,
   onFeedback,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used by the commented-out sign-out button
-  onSignOut,
   version,
   updateNotice,
 }: {
   pathname: string;
   onFeedback: () => void;
-  onSignOut: () => void;
   version: string | null;
   updateNotice?: ReactNode;
 }) {
@@ -262,22 +258,6 @@ export function AppShellSidebar({
                 Feedback
               </CollapsibleLabel>
             </button>
-            {/* Sign out moved to Account settings page. Left commented, not deleted,
-              for an easy revert. */}
-            {/* <button
-            type="button"
-            className={cx(
-              "text-text-inverse hover:text-text-disabled inline-flex cursor-pointer items-center self-start overflow-hidden transition-colors",
-              collapsed ? "gap-0" : "gap-detail-next",
-            )}
-            onClick={onSignOut}
-            tabIndex={collapsed ? -1 : undefined}
-          >
-            <LogOut size={16} className="shrink-0" />
-            <CollapsibleLabel collapsed={collapsed} className="type-body">
-              Sign out
-            </CollapsibleLabel>
-          </button> */}
           </div>
 
           <div

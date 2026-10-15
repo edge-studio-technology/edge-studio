@@ -1,6 +1,6 @@
 # 0012: Keep the TOTP Product Decision Outside V1.5 Security Hardening
 
-**Status:** Accepted
+**Status:** Superseded by [ADR 0036](0036-remove-dead-code-and-unused-features.md)
 **Date:** 2026-09-07
 
 ## Context

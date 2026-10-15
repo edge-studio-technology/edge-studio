@@ -22,7 +22,6 @@ vi.mock("../../../src/features/preferences/tableColumnPreferencesApi", () => ({
 const clearPreviousWalletHistory = vi.fn();
 vi.mock("../../../src/features/wallet/walletApi", () => ({
   clearPreviousWalletHistory: (...args: unknown[]) => clearPreviousWalletHistory(...args),
-  clearWalletHistoryForDebug: vi.fn(),
 }));
 
 function item(overrides: Partial<WalletHistoryItem> = {}): WalletHistoryItem {

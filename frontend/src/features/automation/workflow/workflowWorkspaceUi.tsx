@@ -21,14 +21,12 @@ import { blockHelp, type WorkflowBlockHelpField } from "./workflowBlockHelp";
 /** Workspace chrome for Automation page screens (list/create/edit/watch). Not the graph — that lives in `workflow/canvas/`. */
 export const mutedText = "type-body text-text-secondary";
 export const errorText = "type-body text-text-error";
-export const cardClass =
+const cardClass =
   "rounded-soft border border-stroke-secondary bg-surface-always-white p-margin-tight shadow-sm";
-export const softCardClass =
+const softCardClass =
   "rounded-soft border border-stroke-secondary bg-surface-always-white p-margin-tight shadow-[0_16px_40px_rgba(0,0,0,0.10)]";
 export const statusRowClass = "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between";
 export const formGridClass = "grid gap-detail-close";
-export const inspectorClass =
-  "grid content-start gap-detail-close overflow-visible xl:sticky xl:top-margin-tight";
 
 export function StatusPill({
   status,

@@ -39,15 +39,6 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("hashCanonicalBytes", () => {
-  it("returns the sha3-256 hex hash and a fixed canonicalization tag", () => {
-    const result = service.hashCanonicalBytes("hello world");
-
-    assert.equal(result.hash, crypto_.sha3HashHex("hello world"));
-    assert.equal(result.canonicalization, "edge-studio-text-utf8-v1");
-  });
-});
-
 describe("sha3HashFile", () => {
   it("streams a file and returns its sha3-256 hex hash", async () => {
     const filePath = path.join(dataDir, "sample.txt");
@@ -391,52 +382,6 @@ describe("verification reports", () => {
       () => service.saveVerificationReport("proof-3", { data: { file: { download_url: "https://example.com/missing.pdf" } } }),
       /Verification report download failed with HTTP 404/,
     );
-  });
-});
-
-describe("refreshProofRecord", () => {
-  it("reports not found when the record does not exist", async () => {
-    const result = await service.refreshProofRecord("key", "missing-id");
-    assert.equal(result.ok, false);
-    if (!result.ok) assert.equal(result.notFound, true);
-  });
-
-  it("reports not found when the record has no proof uid", async () => {
-    const record = integritasRepo.createProofRecord({ hash: "h1", proofUid: "", proofStatus: "pending" });
-    const result = await service.refreshProofRecord("key", record.id);
-    assert.equal(result.ok, false);
-    if (!result.ok) assert.equal(result.notFound, true);
-  });
-
-  it("short-circuits without calling fetch when already timed out", async () => {
-    const record = integritasRepo.createProofRecord({ hash: "h2", proofUid: "u2", proofStatus: "failed" });
-    integritasRepo.updateProofStatus(record.id, { proofStatus: "failed", proofError: "On-chain confirmation timed out" });
-
-    const result = await service.refreshProofRecord("key", record.id);
-
-    assert.equal(fetchMock.mock.calls.length, 0);
-    assert.equal(result.ok, true);
-    if (result.ok) assert.equal(result.timedOut, true);
-  });
-
-  it("returns the upstream failure when polling fails", async () => {
-    const record = integritasRepo.createProofRecord({ hash: "h3", proofUid: "u3", proofStatus: "pending" });
-    fetchMock.mockResolvedValue(mockResponse(401, JSON.stringify({ error: "bad" })));
-
-    const result = await service.refreshProofRecord("key", record.id);
-
-    assert.equal(result.ok, false);
-    if (!result.ok) assert.equal(result.notFound, false);
-  });
-
-  it("applies a successful poll result and returns the updated record", async () => {
-    const record = integritasRepo.createProofRecord({ hash: "h4", proofUid: "u4", proofStatus: "pending" });
-    fetchMock.mockResolvedValue(mockResponse(200, JSON.stringify({ data: [{ uid: "u4", onchain: true, address: "a", data: "d", proof: "p", root: "r" }] })));
-
-    const result = await service.refreshProofRecord("key", record.id);
-
-    assert.equal(result.ok, true);
-    if (result.ok) assert.equal(result.record.proof_status, "ready");
   });
 });
 

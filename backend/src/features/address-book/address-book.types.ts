@@ -7,15 +7,3 @@ export type AddressBookEntry = {
   isLocalDevice: boolean;
   isLocalDevicePending: boolean;
 };
-
-export type CreateAddressBookEntryInput = {
-  label: string;
-  address: string;
-  notes?: string | null;
-};
-
-export type UpdateAddressBookEntryInput = {
-  label?: string;
-  address?: string;
-  notes?: string | null;
-};

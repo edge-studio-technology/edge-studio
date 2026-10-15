@@ -1,7 +1,7 @@
 import type { StructuredError } from "../../shared/structured-error.js";
 
 export type MinimaNodeState = "running" | "stopped" | "error" | "restarting";
-export type MinimaSyncStatus = "active" | "stale" | "syncing" | "unavailable";
+type MinimaSyncStatus = "active" | "stale" | "syncing" | "unavailable";
 
 export type MinimaResyncPhase = "starting" | "in_progress" | "recovering" | "completed" | "failed" | "unconfirmed";
 export type MinimaResyncTrigger = "manual" | "console" | "auto";

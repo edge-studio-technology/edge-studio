@@ -4,7 +4,6 @@ import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { SubSection } from "../../components/patterns/SubSection";
 import { ErrorText } from "../../components/Text";
-import { InputField } from "../../components/ui/InputField";
 import { CredentialField } from "../../components/ui/CredentialField";
 import { ToggleTabs } from "../../components/ui/ToggleTabs";
 import { changePassword } from "./api";
@@ -15,7 +14,6 @@ import {
   type AdminCredentialType,
 } from "./adminCredentials";
 import { PasswordRequirements } from "./PasswordRequirements";
-import { TOTP_ENABLED } from "./totpEnabled";
 import { useAuth } from "./hooks";
 
 export function ChangeCredentialPanel({
@@ -29,7 +27,6 @@ export function ChangeCredentialPanel({
   const [newCredentialType, setNewCredentialType] = useState<AdminCredentialType>("pin");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [pwTotpToken, setPwTotpToken] = useState("");
   const [pwSubmitting, setPwSubmitting] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwSuccess, setPwSuccess] = useState(false);
@@ -40,8 +37,7 @@ export function ChangeCredentialPanel({
   const passwordFormReady =
     isAdminCredentialEntryReady(credentialType, currentPassword) &&
     isValidAdminCredential(newCredentialType, newPassword) &&
-    newPassword === confirmNewPassword &&
-    (!TOTP_ENABLED || pwTotpToken.length === 6);
+    newPassword === confirmNewPassword;
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,13 +49,11 @@ export function ChangeCredentialPanel({
       await changePassword({
         currentPassword,
         newPassword,
-        ...(TOTP_ENABLED ? { totpToken: pwTotpToken } : {}),
       });
       setPwSuccess(true);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
-      setPwTotpToken("");
       onCredentialChanged?.();
     } catch (err) {
       setPwError(err instanceof Error ? err.message : "Failed to change credential");
@@ -72,11 +66,7 @@ export function ChangeCredentialPanel({
     <SubSection
       icon={<KeyRound size={13} />}
       title="Change PIN or password"
-      description={
-        TOTP_ENABLED
-          ? "Choose a 6-digit PIN or a strong password. A valid 2FA code is also required."
-          : "Choose a 6-digit PIN or a strong password."
-      }
+      description="Choose a 6-digit PIN or a strong password."
     >
       {pwSuccess && (
         <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
@@ -146,21 +136,6 @@ export function ChangeCredentialPanel({
               : undefined
           }
         />
-        {TOTP_ENABLED ? (
-          <InputField
-            label="2FA code"
-            value={pwTotpToken}
-            onChange={(e) => {
-              setPwTotpToken(e.target.value.replace(/\D/g, "").slice(0, 6));
-              setPwError(null);
-              setPwSuccess(false);
-            }}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="000000"
-            maxLength={6}
-          />
-        ) : null}
         {pwError && <ErrorText className="m-0">{pwError}</ErrorText>}
         <ButtonRow>
           <Button type="submit" disabled={pwSubmitting || !passwordFormReady}>

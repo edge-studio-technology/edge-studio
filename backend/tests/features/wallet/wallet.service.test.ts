@@ -20,14 +20,12 @@ vi.mock("../../../src/features/minima/minima.rpc.js", () => ({
 
 let teardown: () => void;
 let walletService: typeof import("../../../src/features/wallet/wallet.service.js");
-let repo: typeof import("../../../src/features/address-book/address-book.repository.js");
 let db: import("better-sqlite3").Database;
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
   teardown = testDb.teardown;
   db = testDb.db;
-  repo = await import("../../../src/features/address-book/address-book.repository.js");
   walletService = await import("../../../src/features/wallet/wallet.service.js");
 });
 
@@ -121,19 +119,6 @@ describe("wallet replacement readiness", () => {
   }
 });
 
-describe("wallet import recipient protection", () => {
-  it("makes the local recipient unavailable before seed import dispatch and preserves manual copies", async () => {
-    const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
-    const manual = repo.insertAddressBookEntry({ label: "Mine", address: local.address, notes: null });
-    runMinimaPathCommandMock.mockImplementation(async () => {
-      assert.throws(() => repo.getAddressBookPaymentRecipient(local.id), /awaiting/);
-      assert.deepEqual(repo.getAddressBookPaymentRecipient(manual.id), manual);
-      return { ok: true, status: 200, body: { status: true } };
-    });
-    await walletService.importWallet("test seed");
-    assert.equal(repo.getLocalAddressBookEntry()!.isLocalDevicePending, true);
-  });
-});
 
 describe("getWalletStatus", () => {
   it("parses the balance response from the minima RPC call", async () => {
@@ -224,51 +209,9 @@ describe("sendPayment", () => {
   });
 });
 
-describe("getPaymentStatus", () => {
-  it("returns confirmed when the TxPoW is on chain", async () => {
-    runMinimaPathCommandMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      body: { status: true, response: { found: true, block: "10", blockid: "0xB", tip: "12", confirmations: "2" } }
-    });
-    const result = await walletService.getPaymentStatus("0xAB");
-    assert.deepEqual(runMinimaPathCommandMock.mock.calls.map((call) => call[0]), ["txpow onchain:0xAB"]);
-    assert.equal(result.status, "confirmed");
-  });
-
-  it("falls back to the TxPoW lookup when it is not on chain yet", async () => {
-    runMinimaPathCommandMock
-      .mockResolvedValueOnce({ ok: true, status: 200, body: { status: true, response: { found: false } } })
-      .mockResolvedValueOnce({ ok: true, status: 200, body: { status: true, response: { txpowid: "0xAB" } } });
-    const result = await walletService.getPaymentStatus("0xAB");
-    assert.deepEqual(runMinimaPathCommandMock.mock.calls.map((call) => call[0]), ["txpow onchain:0xAB", "txpow txpowid:0xAB"]);
-    assert.equal(result.status, "pending");
-  });
-
-  it("rejects a non-hex TxPoW ID before calling Minima", async () => {
-    await assert.rejects(walletService.getPaymentStatus("0xAB max:1"), /0x hex value/);
-    assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
-  });
-});
-
-describe("importWallet", () => {
-  it("throws when the RPC call is not ok", async () => {
-    runMinimaPathCommandMock.mockResolvedValue({ ok: false, status: 500, body: {} });
-    await assert.rejects(walletService.importWallet("word ".repeat(24)), /Minima RPC error: HTTP 500/);
-  });
-
-  it("includes the phrase in the restore command and parses the response", async () => {
-    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, body: { status: true } });
-    const result = await walletService.importWallet("apple banana cherry");
-    assert.equal(runMinimaPathCommandMock.mock.calls[0][0], 'restore phrase:"apple banana cherry"');
-    assert.equal(runMinimaPathCommandMock.mock.calls[0][1], 30_000);
-    assert.equal(result.ok, true);
-  });
-});
-
 describe("wallet send history", () => {
-  it("returns 0 from clearWalletSendHistoryForDebug when there is nothing to clear", () => {
-    assert.equal(walletService.clearWalletSendHistoryForDebug(), 0);
+  beforeEach(() => {
+    db.prepare("DELETE FROM wallet_send_history").run();
   });
 
   it("records submitted and failed sends", async () => {
@@ -300,22 +243,6 @@ describe("wallet send history", () => {
     ]);
   });
 
-  it("clearWalletSendHistoryForDebug removes all recorded entries", async () => {
-    await walletService.recordWalletSendHistory({
-      toAddress: "0xccc",
-      tokenId: "0x00",
-      tokenName: "Minima",
-      amount: "1",
-      txpowId: "tx-c",
-      transactionId: null,
-      status: "submitted",
-      origin: "manual"
-    });
-    const removed = walletService.clearWalletSendHistoryForDebug();
-    assert.ok(removed >= 1);
-    assert.deepEqual(db.prepare("SELECT COUNT(*) AS count FROM wallet_send_history").get(), { count: 0 });
-  });
-
   it("stores a redacted failure message for failed sends only", async () => {
     await walletService.recordWalletSendHistory({
       toAddress: "0xa1", tokenId: "0x00", tokenName: "Minima", amount: "9",
@@ -340,7 +267,6 @@ describe("wallet send history", () => {
     assert.equal(errors[0], "Insufficient funds.. you only have 1 require:9");
     assert.doesNotMatch(String(errors[1]), /hunter2/);
     assert.deepEqual(errors.slice(2), [null, null]);
-    walletService.clearWalletSendHistoryForDebug();
   });
 
   it("stores the wallet fingerprint, origin, and transaction ID with each send", async () => {

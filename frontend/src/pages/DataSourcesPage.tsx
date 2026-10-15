@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
@@ -465,21 +464,6 @@ export function DataSourcesPage() {
       title="Devices"
       desc="Add input sources for data and events, and output targets for workflows."
     >
-      {/* "Add devices" card disabled for v1 — its actions moved next to the device list's
-      filter bar (New device), making this separate card redundant.
-      <Card className="gap-detail-near grid w-full">
-        <div>
-          <h2 className="type-title text-text-primary m-0">Add devices</h2>
-          <p className="type-body text-text-secondary mt-detail-next m-0">
-            Create a configured input source or output target. Local services show connection
-            details for app-provided services.
-          </p>
-        </div>
-        <ButtonRow>
-          <Button onClick={() => setSetupDeviceOpen(true)}>New device</Button>
-        </ButtonRow>
-      </Card> */}
-
       <LocalServicesCard
         capabilities={capabilities}
         hostCapabilities={hostCapabilities}

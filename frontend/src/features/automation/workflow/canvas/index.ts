@@ -1,7 +1,5 @@
 export type {
   DraftWorkflowBlock,
-  WorkflowCanvasBlock,
-  WorkflowCanvasMode,
   WorkflowCanvasRuntimeState,
   WorkflowCanvasValidationIssue,
 } from "./types";

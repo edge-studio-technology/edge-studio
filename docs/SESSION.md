@@ -4,6 +4,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- #686 dead code cleanup on `task/686-clean-out-dead-code-and-buisness-logic`: Steps 7–9 (`027d824c`, `ceb138f4`, `4e85610d`, `2bdb73e5`) and Docs (`157cc7c6`, ADR 0036) committed. Verification: `npm run check` (backend 1402, frontend 1779, update-agent 194, scripts 52; 0 vulnerabilities), knip clean. Tagged and released `v0.42.3-dev.2`; Pi 5 fresh install from the tagged `install.sh` and the GitHub dev manifest, then a headless browser smoke of every page and feature (wizard with Integritas Connect, Minima backup/download/restore/restart/resync, wallet address book, stamp and verify, devices, workflow with attached stamp, diagnostics, credential change, feedback); the 12 removed routes return 404. Migration checked on a v0.42.2-created database seeded with TOTP, token and setup rows: dropped cleanly, user and session kept, second run a no-op. CHANGELOG folded into shared `[Unreleased]` (dropped the now-removed payment-status Fixed bullet).
+
 - #216 on `task/216-change-bcrypt-deps-to-something-more-stable`: plan (`73340e77`); native `bcrypt` replaced by exact-pinned `bcryptjs@3.0.3` (`ea7b1482`) with a non-blocking CI outdated warning (`14c2f966`); `password.service` scrypt N=2^14 r=8 p=5 in `scrypt$N$r$p$salt$key` format, strict parsing, legacy bcrypt verify, `needsRehash()`, `DUMMY_PASSWORD_HASH` (`1968dbe9`); login rehash with compare-and-set `replaceUserPasswordHash()` (`ca3eebf1`); docs: ADR 0035, SECURITY, README, GAP-14, CHANGELOG (`8627d4be`). Wiki *Updating Edge Studio* got a downgrade-lockout section (wiki `f81234c`). #887 commented to remove `bcryptjs`, its verify branch, tests and the CI step.
 - #216 security review (Daybreak, P2): a login overlapping a credential change still got a session (pre-existing per ADR 0031, widened by the rehash await). `login()` now re-checks the stored hash, corrects type, rehashes and creates the session in one `db.transaction` without `await` (`29908456`); ADR 0031/0035, SECURITY, CHANGELOG updated. Race tests mutation-checked.
 - #216 verification: `npm run check`, builds, `docker compose config`, backend image (Node 22, only `bcryptjs`). Pi 5 DEV_MODE `v0.42.2-dev+8627d4b` from v0.42.2 with a `$2b$12$` hash: wrong login 401/unchanged; login migrated to `scrypt$16384$8$5$`; second login no rewrite; console whitelist re-auth wrong 401 / correct 200. Re-run on `v0.42.2-dev+2990845` with the fix (hash reset to bcrypt first): same results. CHANGELOG folded into shared `[Unreleased]`.
@@ -150,7 +152,8 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
-- #216: open the PR `task/216-change-bcrypt-deps-to-something-more-stable` → `dev`. Dev Pi is on a DEV_MODE build of the branch (no `update-agent`) until a normal reinstall.
+- #686: Daybreak security sanity check, then the PR `task/686-clean-out-dead-code-and-buisness-logic` → `dev`.
+- #216: open the PR `task/216-change-bcrypt-deps-to-something-more-stable` → `dev`. Dev Pi no longer runs this build (replaced by the #686 dev build).
 - #886: review and merge the PR to `dev`.
 
 - #524: PR to `dev` open; confirm `Check (dev)` runs lint, then move the ticket to Ready for Deployment.
@@ -178,9 +181,11 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Notes / Open Questions
 
+- #686: Dev Pi now runs a fresh `v0.42.3-dev.2` install (GitHub dev manifest); the previous install is moved aside to `/opt/edge-studio.pre-686`. QA data left on it: "QA 686" device and workflows, two proofs, one backup; backup password in `~/edge-studio-backup-password`. The v0.42.2 backend image was pulled on the Pi for the migration check. Not tested: wallet send, sensors/GPIO/MQTT/camera, camera-sourced local-path inbox images.
+- Playwright MCP: added a local-scope override for this project (`--headless --ignore-https-errors`) so the Pi's self-signed certificate works; not in the repo.
 - #216: Pi test leftovers `/tmp/es-216-pi-check.py`, `/tmp/es-install-216.sh` on the Pi and the local wiki clone `/tmp/es-wiki.mf7s` (deletion was denied; no secrets).
 - #886: `v0.50.0-dev.*` tags are mis-tagged (older than they sort); dev builds for this work use `v0.42.3-dev.N`. CI's previous-dev-tag lookup still picks `v0.50.0-dev.9`, which only affects which services rebuild. Update availability uses signed `createdAt` and digests, not version order.
-- #886: edgestudio.technology lagged the manifests repo after the dev release (still served the 6 Oct dev manifest; the runtime bundle was already current). Dev Pi now runs `v0.42.3-dev.1` from release v0.42.2 with `MANIFEST_URL` set to the GitHub dev manifest; admin password in `~/edge-studio-admin-password` on the Pi.
+- #886: edgestudio.technology lagged the manifests repo after the dev release (still served the 6 Oct dev manifest; the runtime bundle was already current). Admin password in `~/edge-studio-admin-password` on the Pi.
 - #886: root `node_modules` was missing locally (root ESLint from #524 needs `npm ci` at the repo root).
 
 - #524 follow-ups, recorded in the plan's Baseline section:

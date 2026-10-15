@@ -330,59 +330,6 @@ describe("appendFeedbackSubmission operational status", () => {
   });
 });
 
-describe("retryPendingFeedback", () => {
-  it("reports zero retryable submissions when no API key is configured", async () => {
-    getIntegritasApiKeyMock.mockReturnValue("");
-    await service.appendFeedbackSubmission(validInput, user);
-
-    const result = await service.retryPendingFeedback(user);
-    assert.deepEqual(result, { sent: 0, failed: 0, skipped: 0 });
-    assert.equal(sendHostedFeedbackMock.mock.calls.length, 0);
-  });
-
-  it("counts retryable submissions when no API key is configured but a pending one exists", async () => {
-    getIntegritasApiKeyMock.mockReturnValue("key-1");
-    sendHostedFeedbackMock.mockResolvedValue({ ok: false, retryable: true, error: "timeout" });
-    await service.appendFeedbackSubmission(validInput, user);
-
-    getIntegritasApiKeyMock.mockReturnValue("");
-    const result = await service.retryPendingFeedback(user);
-    assert.deepEqual(result, { sent: 0, failed: 0, skipped: 1 });
-  });
-
-  it("retries pending/failed submissions and updates their delivery status", async () => {
-    getIntegritasApiKeyMock.mockReturnValue("key-1");
-    sendHostedFeedbackMock.mockResolvedValue({ ok: false, retryable: true, error: "timeout" });
-    await service.appendFeedbackSubmission(validInput, user);
-    await service.appendFeedbackSubmission({ ...validInput, description: "Second issue" }, user);
-
-    sendHostedFeedbackMock.mockReset();
-    sendHostedFeedbackMock
-      .mockResolvedValueOnce({ ok: true, remoteId: "remote-1", receivedAt: "2026-01-01T00:00:02.000Z" })
-      .mockResolvedValueOnce({ ok: false, retryable: false, error: "rejected" });
-
-    const result = await service.retryPendingFeedback(user);
-    assert.equal(result.sent, 1);
-    assert.equal(result.failed, 1);
-    assert.equal(result.skipped, 0);
-
-    const exported = JSON.parse(service.getFeedbackExport(user));
-    assert.equal(exported.submissions[0].remoteDelivery.status, "sent");
-    assert.equal(exported.submissions[1].remoteDelivery.status, "failed");
-  });
-
-  it("skips submissions that already sent successfully", async () => {
-    getIntegritasApiKeyMock.mockReturnValue("key-1");
-    sendHostedFeedbackMock.mockResolvedValue({ ok: true, remoteId: "remote-1", receivedAt: "2026-01-01T00:00:02.000Z" });
-    await service.appendFeedbackSubmission(validInput, user);
-
-    sendHostedFeedbackMock.mockClear();
-    const result = await service.retryPendingFeedback(user);
-    assert.equal(result.skipped, 1);
-    assert.equal(sendHostedFeedbackMock.mock.calls.length, 0);
-  });
-});
-
 describe("getFeedbackExport", () => {
   it("returns an empty document when no file has been written yet", () => {
     const exported = JSON.parse(service.getFeedbackExport(user));

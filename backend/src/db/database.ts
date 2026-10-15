@@ -236,13 +236,16 @@ export function runMigrations() {
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
-      totp_secret TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'admin',
       created_at TEXT NOT NULL,
       last_login TEXT
     )
   `);
   ensureColumn("users", "credential_type", "TEXT NOT NULL DEFAULT 'password'");
+  const userColumns = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  if (userColumns.some((column) => column.name === "totp_secret")) {
+    db.exec("ALTER TABLE users DROP COLUMN totp_secret");
+  }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (
@@ -255,20 +258,6 @@ export function runMigrations() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS setup_pending (
-      id TEXT PRIMARY KEY,
-      totp_secret TEXT NOT NULL,
-      expires_at TEXT NOT NULL,
-      verified_at TEXT
-    )
-  `);
-
-  const setupPendingColumns = db.prepare("PRAGMA table_info(setup_pending)").all() as { name: string }[];
-  if (!setupPendingColumns.some((column) => column.name === "verified_at")) {
-    db.exec("ALTER TABLE setup_pending ADD COLUMN verified_at TEXT");
-  }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS audit_events (
@@ -315,18 +304,6 @@ export function runMigrations() {
   migrateWalletTransactionsToKeyByWallet();
   db.exec("CREATE INDEX IF NOT EXISTS idx_wallet_transactions_time ON wallet_transactions(time_millis)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_wallet_transactions_transaction_id ON wallet_transactions(transaction_id)");
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS custom_tokens (
-      id TEXT PRIMARY KEY,
-      token_id TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      amount TEXT NOT NULL,
-      decimal INTEGER NOT NULL,
-      txpow_id TEXT,
-      created_at TEXT NOT NULL
-    )
-  `);
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS address_book (
@@ -406,6 +383,8 @@ export function runMigrations() {
   `);
 
   db.exec(`DROP TABLE IF EXISTS wallet_accounts`);
+  db.exec(`DROP TABLE IF EXISTS custom_tokens`);
+  db.exec(`DROP TABLE IF EXISTS setup_pending`);
 }
 
 function resetLegacyAutomationSchema() {

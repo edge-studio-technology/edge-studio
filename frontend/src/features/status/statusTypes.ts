@@ -1,6 +1,6 @@
 export type DeviceNodeState = "running" | "stopped" | "error" | "restarting" | "unknown";
 
-export type DeviceDisk = {
+type DeviceDisk = {
   path: string;
   totalBytes: number;
   freeBytes: number;

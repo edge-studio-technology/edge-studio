@@ -5,21 +5,18 @@ import { BrandLockup } from "../../components/patterns/BrandLockup";
 import { ErrorText } from "../../components/Text";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { isValidAdminCredential } from "../auth/adminCredentials";
-import { TOTP_ENABLED } from "../auth/totpEnabled";
 import { useIntegritasAuth } from "../integritas-auth/useIntegritasAuth";
-import { completeSetup, initTotp, verifyTotp } from "./api";
+import { completeSetup } from "./api";
 import { onboardingSteps, onboardingWorkSteps } from "./steps";
 import { AccountStep } from "./steps/AccountStep";
 import { ConnectIntegritasStep } from "./steps/ConnectIntegritasStep";
-import { TwoFactorStep } from "./steps/TwoFactorStep";
 import { WelcomeStep } from "./steps/WelcomeStep";
-import type { CheckState, OnboardingFormState, OnboardingStepId } from "./types";
+import type { OnboardingFormState, OnboardingStepId } from "./types";
 
 const initialForm: OnboardingFormState = {
   credentialType: "pin",
   password: "",
   confirmPassword: "",
-  twoFactorCode: "",
 };
 
 const connectAccountStepIndex = onboardingSteps.findIndex((step) => step.id === "connectAccount");
@@ -35,11 +32,6 @@ export function OnboardingWizard({
     resumeAtConnect ? Math.max(0, connectAccountStepIndex) : 0,
   );
   const [form, setFormState] = useState<OnboardingFormState>(initialForm);
-  const [totpCheck, setTotpCheck] = useState<CheckState>("idle");
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [totpSecret, setTotpSecret] = useState<string | null>(null);
-  const [loadingQr, setLoadingQr] = useState(false);
-  const [qrError, setQrError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [localAdminReady, setLocalAdminReady] = useState(resumeAtConnect);
@@ -73,25 +65,7 @@ export function OnboardingWizard({
 
   const setForm = (patch: Partial<OnboardingFormState>) => {
     setFormState((prev) => ({ ...prev, ...patch }));
-    if ("twoFactorCode" in patch) {
-      setTotpCheck("idle");
-    }
   };
-
-  useEffect(() => {
-    if (currentStep.id !== "twofa") return;
-    if (qrCode || loadingQr) return;
-
-    setLoadingQr(true);
-    setQrError(null);
-    initTotp()
-      .then((result) => {
-        setQrCode(result.qrCodePngBase64);
-        setTotpSecret(result.secret);
-      })
-      .catch((err: Error) => setQrError(err.message))
-      .finally(() => setLoadingQr(false));
-  }, [currentStep.id, qrCode, loadingQr]);
 
   // After local admin exists: start Connect activation on the account screen.
   useEffect(() => {
@@ -112,18 +86,15 @@ export function OnboardingWizard({
           isValidAdminCredential(form.credentialType, form.password) &&
           form.password === form.confirmPassword
         );
-      case "twofa":
-        return totpCheck === "ok" && Boolean(qrCode) && !qrError;
       case "connectAccount":
         return status?.status === "connected";
       default:
         return false;
     }
-  }, [currentStep.id, form, totpCheck, qrCode, qrError, status?.status]);
+  }, [currentStep.id, form, status?.status]);
 
   const shouldCreateLocalAdmin = (stepId: OnboardingStepId) => {
     if (localAdminReady) return false;
-    if (TOTP_ENABLED) return stepId === "twofa";
     return stepId === "credentials";
   };
 
@@ -157,16 +128,6 @@ export function OnboardingWizard({
   const goBack = () => {
     if (localAdminReady) return;
     if (stepIndex > 0) setStepIndex((index) => index - 1);
-  };
-
-  const verifyTotpCode = async () => {
-    setTotpCheck("checking");
-    try {
-      await verifyTotp(form.twoFactorCode);
-      setTotpCheck("ok");
-    } catch {
-      setTotpCheck("error");
-    }
   };
 
   const retryConnect = () => {
@@ -227,18 +188,6 @@ export function OnboardingWizard({
                 canContinue={canContinue}
                 continueLabel={continueLabel}
                 submitting={submitting}
-              />
-            )}
-            {currentStep.id === "twofa" && (
-              <TwoFactorStep
-                form={form}
-                setForm={setForm}
-                qrCode={qrCode}
-                totpSecret={totpSecret}
-                loadingQr={loadingQr}
-                qrError={qrError}
-                checkState={totpCheck}
-                onVerifyCode={() => void verifyTotpCode()}
               />
             )}
             {currentStep.id === "connectAccount" && (

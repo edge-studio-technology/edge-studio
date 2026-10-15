@@ -26,7 +26,7 @@ export const excludedConsoleCommandVerbs = [
   "quit"
 ] as const;
 
-export type ConsoleDispatch = "passthrough" | "megammrsync-resync" | "peers-add" | "backup" | "restoresync";
+type ConsoleDispatch = "passthrough" | "megammrsync-resync" | "peers-add" | "backup" | "restoresync";
 
 export type ConsoleCommandEntry = {
   key: string;

@@ -181,7 +181,7 @@ export function MinimaBackupPanel({
   const { user } = useAuth();
   const credentialType = user?.credentialType ?? null;
   const credentialLabel = adminCredentialLabel(credentialType);
-  // Same "confirmed running" gate used by MinimaSettingsPanel/WalletSettingsPanel.
+  // Same "confirmed running" gate used by MinimaSettingsPanel.
   const actionsBlocked = operationBusy || minimaState !== "running";
 
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);

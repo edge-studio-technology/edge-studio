@@ -1,4 +1,4 @@
-export type ChangelogCategory = { name: string; items: string[] };
+type ChangelogCategory = { name: string; items: string[] };
 export type ChangelogEntry = { version: string; categories: ChangelogCategory[] };
 
 /**

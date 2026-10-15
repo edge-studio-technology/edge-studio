@@ -1,4 +1,3 @@
-import type { Request } from "express";
 import type { AdminCredentialType } from "./password.service.js";
 
 export type UserRole = "admin";
@@ -7,7 +6,6 @@ export type UserRecord = {
   id: string;
   username: string;
   password: string;
-  totp_secret: string;
   role: UserRole;
   created_at: string;
   last_login: string | null;
@@ -20,20 +18,6 @@ export type SessionUser = {
   role: UserRole;
   lastLogin: string | null;
   credentialType: AdminCredentialType;
-};
-
-export type AuthenticatedRequest = Request & {
-  user: SessionUser;
-};
-
-export type ChangePasswordRequest = {
-  currentPassword: string;
-  newPassword: string;
-  totpToken: string;
-};
-
-export type TotpResetVerifyRequest = {
-  totpToken: string;
 };
 
 declare global {

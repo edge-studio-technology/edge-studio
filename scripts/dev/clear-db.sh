@@ -59,7 +59,7 @@ case "$TARGET" in
     ;;
   users)
     description="local accounts, sessions, setup state, and Integritas Connect pairing"
-    tables="sessions users setup_pending settings integritas_auth integritas_activation integritas_device integritas_account_cache"
+    tables="sessions users settings integritas_auth integritas_activation integritas_device integritas_account_cache"
     ;;
   history)
     description="Integritas proof history, data source read history, and workflow run logs"

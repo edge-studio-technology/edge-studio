@@ -31,19 +31,19 @@ export type ActivationStatusInput = {
   deviceId: string;
 };
 
-export type DeviceTokens = {
+type DeviceTokens = {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
   tokenType: string;
 };
 
-export type ActivationStatusPending = {
+type ActivationStatusPending = {
   status: "pending";
   expiresAt: string;
 };
 
-export type ActivationStatusApproved = {
+type ActivationStatusApproved = {
   status: "approved";
   tokens: DeviceTokens;
   device: {
@@ -53,7 +53,7 @@ export type ActivationStatusApproved = {
   };
 };
 
-export type ActivationStatusTerminal = {
+type ActivationStatusTerminal = {
   status: "denied" | "expired" | "connected";
 };
 

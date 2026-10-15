@@ -7,11 +7,9 @@ import {
   parseBalanceResponse,
   parseHistoryResponse,
   parseHistorySizeResponse,
-  parseImportResponse,
   parseLocalWalletAddressesResponse,
   parseOnchainResponse,
   parseTxPowTimeResponse,
-  parsePaymentStatusResponse,
   parseSendResponse,
   parseTrackedScriptAddressesResponse
 } from "../../../src/features/wallet/wallet.parse.js";
@@ -210,23 +208,6 @@ describe("isTxPowId", () => {
   });
 });
 
-describe("parsePaymentStatusResponse", () => {
-  it("returns pending when Minima returns the TxPoW itself as the response", () => {
-    const result = parsePaymentStatusResponse({ status: true, response: { txpowid: "0xAB", isblock: false } }, "0xab");
-    assert.equal(result.status, "pending");
-    assert.equal(result.txpowId, "0xab");
-    assert.ok(result.checkedAt);
-  });
-
-  it("returns unknown for failures, missing responses, and a different TxPoW", () => {
-    for (const body of [null, { status: false, error: "TxPoW not found : 0xAB" }, { status: true },
-      { response: { txpowid: "0xAB" } }, { status: true, response: { txpowid: "0xCD" } },
-      { status: true, response: { txpow: { txpowid: "0xAB" } } }]) {
-      assert.equal(parsePaymentStatusResponse(body, "0xAB").status, "unknown");
-    }
-  });
-});
-
 describe("parseTxPowTimeResponse", () => {
   it("returns the header time of the requested TxPoW", () => {
     const body = { status: true, response: { txpowid: "0xAB", header: { block: "381", timemilli: "1791542341688" } } };
@@ -383,19 +364,5 @@ describe("parseHistoryResponse", () => {
     for (const body of [null, { status: false, error: "x" }, { status: true, response: { txpows: [] } }]) {
       assert.throws(() => parseHistoryResponse(body, local), /successful history response/);
     }
-  });
-});
-
-describe("parseImportResponse", () => {
-  it("returns a failed result with the error message when status is false", () => {
-    const result = parseImportResponse({ status: false, error: "bad phrase" });
-    assert.equal(result.ok, false);
-    assert.equal(result.message, "bad phrase");
-  });
-
-  it("returns a fixed success message on success", () => {
-    const result = parseImportResponse({ status: true });
-    assert.equal(result.ok, true);
-    assert.match(result.message, /Wallet restored/);
   });
 });

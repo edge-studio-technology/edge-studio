@@ -45,7 +45,7 @@ export function StorageHistoryPanel() {
 
   useEffect(() => {
     void load();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- load once when the collapsed settings section opens
+  }, []);
 
   async function exportHistory() {
     if (exporting || !isAdminCredentialEntryReady(user?.credentialType ?? null, currentPassword)) return;

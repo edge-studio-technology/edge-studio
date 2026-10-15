@@ -4,17 +4,20 @@ import { redactDeep, redactSecrets } from "../../shared/redact.js";
 const ARCHIVE_SCHEMA_VERSION = 1;
 
 type RunRow = Record<string, unknown> & {
+  id: string;
   trigger_payload_json: string | null;
   error: string | null;
 };
 
 type BlockRunRow = Record<string, unknown> & {
+  run_id: string;
   input_json: string | null;
   output_json: string | null;
   error: string | null;
 };
 
 type InboxRow = Record<string, unknown> & {
+  run_id: string | null;
   content_json: string | null;
   rendered_text: string | null;
 };

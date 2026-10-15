@@ -1,15 +1,12 @@
 import QRCode from "qrcode";
-import { runWalletReplacement } from "../address-book/wallet-replacement.service.js";
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { db } from "../../db/database.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
 import { redactSecrets } from "../../shared/redact.js";
 import { getComposeServiceContainer, inspectContainer } from "../status/docker.service.js";
 import { getWalletFingerprint } from "./wallet-history.service.js";
-import { isTxPowId, parseAddressResponse, parseBalanceResponse, parseImportResponse, parseLocalWalletAddressesResponse, parseOnchainResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
+import { parseAddressResponse, parseBalanceResponse, parseLocalWalletAddressesResponse, parseSendResponse } from "./wallet.parse.js";
 import type {
-  ImportWalletResult,
-  PaymentStatus,
   ReceiveAddress,
   SendPaymentRequest,
   SendPaymentResult,
@@ -62,29 +59,6 @@ export async function sendPayment({ address, amount, tokenId = "0x00" }: SendPay
   if (!Number.isFinite(parsed) || parsed <= 0) throw new Error("Amount must be a positive number");
   const result = await runMinimaPathCommand(`send amount:${amount} address:${address} tokenid:${tokenId}`, 10_000);
   return parseSendResponse(result.body);
-}
-
-export async function getPaymentStatus(txpowId: string): Promise<PaymentStatus> {
-  if (!isTxPowId(txpowId)) throw new Error("TxPoW ID must be a 0x hex value");
-  const onchain = await runMinimaPathCommand(`txpow onchain:${txpowId}`);
-  if (parseOnchainResponse(onchain.body).found) {
-    return { txpowId, status: "confirmed", checkedAt: new Date().toISOString() };
-  }
-  const result = await runMinimaPathCommand(`txpow txpowid:${txpowId}`);
-  return parsePaymentStatusResponse(result.body, txpowId);
-}
-
-// Restores wallet from a 24-word seed phrase via Minima restore RPC.
-// The phrase must never be logged — do not pass it to recordAuditEvent detail.
-export async function importWallet(phrase: string): Promise<ImportWalletResult> {
-  const result = await runWalletReplacement(() => runMinimaPathCommand(`restore phrase:"${phrase}"`, 30_000));
-  if (!result.ok) throw new Error(`Minima RPC error: HTTP ${result.status}`);
-  return parseImportResponse(result.body);
-}
-
-export function clearWalletSendHistoryForDebug(): number {
-  const result = db.prepare("DELETE FROM wallet_send_history").run();
-  return result.changes;
 }
 
 /** `txpowId` is the pre-mined ID `send` returned; `transactionId` links the row to the mined TxPoW. */

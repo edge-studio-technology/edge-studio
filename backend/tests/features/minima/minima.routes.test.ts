@@ -88,7 +88,6 @@ beforeAll(async () => {
   const userId = createUser({
     username: "admin",
     passwordHash: await hashPassword(ADMIN_PASSWORD),
-    totpSecretEncrypted: "irrelevant-secret",
     credentialType: "password"
   });
   cookie = `session=${createSession(userId)}`;

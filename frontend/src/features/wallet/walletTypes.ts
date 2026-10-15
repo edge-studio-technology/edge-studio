@@ -36,17 +36,6 @@ export type SendPaymentResult = {
   message?: string;
 };
 
-export type PaymentStatus = {
-  txpowId: string;
-  status: "pending" | "confirmed" | "failed" | "unknown";
-  checkedAt: string;
-};
-
-export type ImportWalletResult = {
-  ok: boolean;
-  message: string;
-};
-
 export type WalletHistoryDirection = "in" | "out" | "self";
 export type WalletHistoryStatus = "pending" | "confirmed" | "failed";
 

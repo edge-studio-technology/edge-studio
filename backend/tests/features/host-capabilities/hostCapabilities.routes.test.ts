@@ -11,10 +11,6 @@ const { enableHostSensorCapabilityMock, disableHostMqttCapabilityMock, setupHost
 
 vi.mock("../../../src/features/host-capabilities/hostCapabilities.service.js", () => ({
   listHostCapabilities: vi.fn(),
-  getHostCameraCapability: vi.fn(),
-  getHostGpioCapability: vi.fn(),
-  getHostSensorCapability: vi.fn(),
-  getHostMqttCapability: vi.fn(),
   enableHostCameraCapability: vi.fn(),
   disableHostCameraCapability: vi.fn(),
   enableHostGpioCapability: vi.fn(),

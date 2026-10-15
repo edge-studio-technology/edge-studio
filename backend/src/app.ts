@@ -5,13 +5,11 @@ import { requireAuth } from "./features/auth/auth.middleware.js";
 import { setupRouter } from "./features/auth/setup.routes.js";
 import { automationRouter } from "./features/automation/automation.routes.js";
 import { dataReadsRouter } from "./features/data-reads/dataReads.routes.js";
-import { filesRouter } from "./features/files/files.routes.js";
 import { feedbackRouter } from "./features/feedback/feedback.routes.js";
 import {
   dataSourcesRouter,
   dataSourcesWebhookRouter,
 } from "./features/data-sources/dataSources.routes.js";
-import { debugRouter } from "./features/debug/debug.routes.js";
 import { healthRouter } from "./features/health/health.routes.js";
 import { hostCapabilitiesRouter } from "./features/host-capabilities/hostCapabilities.routes.js";
 import { integritasRouter } from "./features/integritas/integritas.routes.js";
@@ -24,7 +22,6 @@ import { preferencesRouter } from "./features/preferences/preferences.routes.js"
 import { statusRouter } from "./features/status/status.routes.js";
 import { storageHistoryRouter } from "./features/storage-history/storage-history.routes.js";
 import { addressBookRouter } from "./features/address-book/address-book.routes.js";
-import { tokensRouter } from "./features/tokens/tokens.routes.js";
 import { walletRouter } from "./features/wallet/wallet.routes.js";
 import { requestLogger } from "./middleware/requestLogger.js";
 import { uploadErrorHandler } from "./middleware/uploadErrors.js";
@@ -56,12 +53,9 @@ export function createApp() {
   app.use("/api/data-reads", dataReadsRouter);
   app.use("/api/automation", automationRouter);
   app.use("/api/feedback", feedbackRouter);
-  app.use("/api/files", filesRouter);
   app.use("/api/wallet", walletRouter);
   app.use("/api/wallet/address-book", addressBookRouter);
-  app.use("/api/tokens", tokensRouter);
   app.use("/api/preferences", preferencesRouter);
-  app.use("/api/debug", debugRouter);
 
   app.use(uploadErrorHandler);
 

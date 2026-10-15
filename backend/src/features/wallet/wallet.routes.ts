@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { env } from "../../config/env.js";
-import { apiErrorFromStatus, badRequest, conflict, dependencyUnavailable, forbidden, unexpected, validationFailed } from "../../shared/api-error.js";
+import { apiErrorFromStatus, badRequest, conflict, dependencyUnavailable, unexpected, validationFailed } from "../../shared/api-error.js";
 import { parseListQuery, toPaginatedResult } from "../../shared/list-query.js";
 import { AddressBookRecipientError, getAddressBookPaymentRecipient } from "../address-book/address-book.repository.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
@@ -8,14 +7,13 @@ import { requireRole } from "../auth/auth.middleware.js";
 import { authRateLimiter } from "../auth/rate-limit.middleware.js";
 import { MinimaBackupError, verifyCurrentPassword } from "../minima/minima-backup.service.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
-import { isTxPowId } from "./wallet.parse.js";
 import {
   clearPreviousWalletHistory,
   listWalletHistory,
   syncWalletHistoryIfStale,
   WalletReplacementBusyError
 } from "./wallet-history.service.js";
-import { clearWalletSendHistoryForDebug, getPaymentStatus, getReceiveAddress, getWalletStatus, importWallet, recordWalletSendHistory, sendPayment } from "./wallet.service.js";
+import { getReceiveAddress, getWalletStatus, recordWalletSendHistory, sendPayment } from "./wallet.service.js";
 import { WALLET_HISTORY_STATUSES, type WalletHistoryDirection } from "./wallet.types.js";
 
 export const walletRouter = Router();
@@ -143,49 +141,5 @@ walletRouter.post("/history/clear-previous", requireRole("admin"), authRateLimit
     if (error instanceof WalletReplacementBusyError) return conflict(res, error.message);
     const message = error instanceof Error ? error.message : "Unknown error";
     dependencyUnavailable(res, "Could not read the current wallet from Minima.", message);
-  }
-});
-
-walletRouter.get("/payment-status/:txpowid", async (req, res) => {
-  if (!isTxPowId(req.params.txpowid)) return badRequest(res, "txpowid must be a 0x hex value", { field: "txpowid" }, { ok: false });
-  try {
-    res.json(await getPaymentStatus(req.params.txpowid));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    dependencyUnavailable(res, message, message, undefined, { ok: false });
-  }
-});
-
-walletRouter.post("/import", requireRole("admin"), async (req, res) => {
-  const phrase = typeof req.body?.phrase === "string" ? req.body.phrase.trim() : "";
-  if (!phrase) return validationFailed(res, "phrase is required", { phrase: "phrase is required" }, { ok: false });
-  const words = phrase.split(/\s+/).filter(Boolean);
-  if (words.length < 12) return validationFailed(res, "phrase must be at least 12 words", { phrase: "phrase must be at least 12 words" }, { ok: false });
-
-  try {
-    const result = await importWallet(phrase);
-    // Audit event records only that an import occurred — never the phrase itself
-    recordAuditEvent("wallet.import", { userId: req.user?.id });
-    res.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    dependencyUnavailable(res, message, message, undefined, { ok: false });
-  }
-});
-
-walletRouter.post("/debug/clear-wallet-history", requireRole("admin"), async (req, res) => {
-  if (process.env.NODE_ENV === "production") {
-    return forbidden(res, "Debug endpoint is disabled in production", { ok: false });
-  }
-  try {
-    const deleted = clearWalletSendHistoryForDebug();
-    recordAuditEvent("wallet.debug.clear_history", {
-      userId: req.user?.id,
-      detail: JSON.stringify({ deleted, mode: process.env.NODE_ENV ?? "unknown", dbPath: env.databasePath })
-    });
-    res.json({ ok: true, deleted });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    unexpected(res, message, error, undefined, { ok: false });
   }
 });

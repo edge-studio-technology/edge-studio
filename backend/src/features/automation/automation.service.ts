@@ -58,7 +58,6 @@ import {
   createAutomationRun,
   finishAutomationBlockRun,
   finishAutomationRun,
-  getAutomationRun,
   listAutomationBlockRuns,
   listAutomationRuns,
   listAutomationRunsForWorkflow,
@@ -235,11 +234,6 @@ export function listSerializedAutomationRuns(query: AutomationRunListQuery) {
 
 export function listSerializedAutomationRunsForWorkflow(workflowId: string, limit?: number) {
   return listAutomationRunsForWorkflow(workflowId, limit).map(serializeAutomationRun);
-}
-
-export function getSerializedAutomationRun(id: string) {
-  const run = getAutomationRun(id);
-  return run ? serializeAutomationRun(run) : null;
 }
 
 export async function runAutomationWorkflow(

@@ -212,15 +212,6 @@ describe("getMinimaNodeStatus", () => {
   });
 });
 
-describe("getWalletBalance", () => {
-  it("delegates to the balance RPC command", async () => {
-    runMinimaPathCommandMock.mockResolvedValue({ ok: true, status: 200, source: "s", command: "balance", body: {} });
-    const result = await minimaService.getWalletBalance();
-    assert.equal(runMinimaPathCommandMock.mock.calls[0][0], "balance");
-    assert.equal(result.command, "balance");
-  });
-});
-
 describe("resyncMegammr", () => {
   it("retains ownership after a dispatched resync times out (#536 regression)", async () => {
     runMinimaPathCommandMock.mockRejectedValue(new DOMException("The operation was aborted", "AbortError"));

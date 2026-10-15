@@ -4,7 +4,6 @@ import {
   CreditCard,
   House,
   Radio,
-  // Settings, // unused while the Setup nav item is commented out above
   Settings,
   Shield,
   ShoppingCart,
@@ -14,9 +13,6 @@ import type { NavItem } from "./types";
 
 export const nav: NavItem[] = [
   { id: "dashboard", label: "Dashboard", icon: House },
-  // Setup nav item hidden pending relocation of its actions. Left commented, not
-  // deleted, for an easy revert.
-  // { id: "setup", label: "Setup", icon: Settings },
   { id: "node", label: "Minima", icon: Radio },
   { id: "wallet", label: "Wallet", icon: CreditCard },
   { id: "integritas", label: "Integritas", icon: Shield },
