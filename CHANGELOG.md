@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Failed sends from the Send dialog and automation workflows record Minima's failure reason, shown in the history details view.
 - History from a wallet the node no longer uses is marked Previous wallet and can be cleared by an admin after re-entering their PIN/password (`POST /api/wallet/history/clear-previous`).
 - Dev testnet setup for Minima wallet testing on a Pi; see `docs/guides/minima-testnet.md`.
+- Settings can download a re-authenticated, read-only history archive with redacted wallet, workflow, data-source, and Integritas records.
 
 ### Changed
 

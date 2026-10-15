@@ -123,6 +123,7 @@ of carrying the full rationale inline.
 | [adr/0033-persist-synced-wallet-history.md](./adr/0033-persist-synced-wallet-history.md) | Wallet history synced from Minima `history` into SQLite, marked by wallet fingerprint, cleared only with admin re-auth, confirmation time from the block |
 | [adr/0034-observe-resync-after-client-timeout.md](./adr/0034-observe-resync-after-client-timeout.md) | Resync transport uncertainty, automatic-restart observation, separate budgets, and recovery evidence |
 | [adr/0035-hash-admin-credentials-with-scrypt.md](./adr/0035-hash-admin-credentials-with-scrypt.md) | Admin credentials hashed with built-in scrypt; legacy bcrypt verified via pinned `bcryptjs` and rehashed on login until #887 |
+| [adr/0036-separate-portable-history-from-device-migration.md](./adr/0036-separate-portable-history-from-device-migration.md) | Portable history is a read-only, secret-redacted archive; encrypted configuration/secrets transfer belongs to a later device migration feature |
 
 ---
 

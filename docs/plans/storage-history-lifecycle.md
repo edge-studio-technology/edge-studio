@@ -8,11 +8,11 @@
 
 - [x] Add read-only storage and history inventory API.
 - [x] Add the Settings storage and history overview.
-- [ ] Define and implement versioned history-archive export.
+- [x] Define and implement versioned history-archive export.
 - [ ] Define and implement read-only archived-history import.
 - [ ] Add scoped manual cleanup with preview and confirmations.
 - [ ] Define and implement per-category automatic retention.
-- [ ] Update operator/security documentation and changelog.
+- [x] Update operator/security documentation and changelog.
 - [ ] Complete automated, browser, and Raspberry Pi verification.
 
 ## Context
@@ -85,12 +85,12 @@ Do not include users, sessions, encrypted settings, Integritas credentials, addr
 
 ## Milestone 2: Versioned History Archive Export
 
-1. Define a versioned archive manifest and a ZIP-based format with JSON records and optional binary attachments. Record archive version, creation timestamp, selected categories, counts, and checksums.
+1. Define a versioned history document with archive version, creation timestamp, selected categories, and counts. Start with a direct JSON download; add ZIP packaging only when optional binary attachments are introduced.
 2. Export self-contained historical snapshots rather than the raw database. Preserve original record IDs as source metadata, not as IDs to insert into live records later.
 3. Export workflow runs together with their block runs; export proofs with their linked read snapshots when selected; offer captures and verification PDFs as explicit opt-in attachments because they can be large.
 4. Include Minima transaction/send snapshots with wallet fingerprint and addresses, but never wallet seed material or Minima backup data.
 5. Exclude address-book contacts, saved devices, workflow definitions, users, sessions, settings, secrets, Docker logs, and audit events.
-6. Stream archive generation/download where practical and enforce a documented size limit or pre-generation estimate before writing a large archive to the Pi's primary disk.
+6. Stream the JSON response without writing a transient archive to the Pi. Add a documented size limit or pre-generation estimate before introducing attachment packaging.
 7. Require a final archive contract review before implementation. Record any lasting format, retention, or evidence-policy decision in an ADR if it is not already covered by ADRs 0023/0026/0033.
 
 ## Milestone 3: Read-Only Archived-History Import

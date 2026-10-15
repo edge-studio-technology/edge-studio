@@ -1,11 +1,17 @@
-import { HardDrive, RefreshCw } from "lucide-react";
+import { Download, HardDrive, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/Button";
+import { ButtonRow } from "../../components/ButtonRow";
 import { ErrorContentState } from "../../components/patterns/ErrorContentState";
 import { LoadingState } from "../../components/patterns/LoadingState";
+import { ErrorText } from "../../components/Text";
+import { CredentialField } from "../../components/ui/CredentialField";
+import { Modal } from "../../components/ui/Modal";
+import { isAdminCredentialEntryReady } from "../auth/adminCredentials";
+import { useAuth } from "../auth/hooks";
 import { describeLoadFailure } from "../../lib/errors";
-import { getStorageHistoryInventory, type StorageHistoryCategory, type StorageHistoryInventory } from "./storageHistoryApi";
+import { downloadHistoryArchive, getStorageHistoryInventory, type StorageHistoryCategory, type StorageHistoryInventory } from "./storageHistoryApi";
 
 const historyLinks: Record<string, { to: string; label: string }> = {
   "minima-history": { to: "/wallet", label: "Open wallet history" },
@@ -16,9 +22,14 @@ const historyLinks: Record<string, { to: string; label: string }> = {
 };
 
 export function StorageHistoryPanel() {
+  const { user } = useAuth();
   const [inventory, setInventory] = useState<StorageHistoryInventory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -35,6 +46,21 @@ export function StorageHistoryPanel() {
   useEffect(() => {
     void load();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- load once when the collapsed settings section opens
+
+  async function exportHistory() {
+    if (exporting || !isAdminCredentialEntryReady(user?.credentialType ?? null, currentPassword)) return;
+    setExporting(true);
+    setExportError(null);
+    try {
+      await downloadHistoryArchive(currentPassword);
+      setExportOpen(false);
+      setCurrentPassword("");
+    } catch (exportFailure) {
+      setExportError(exportFailure instanceof Error ? exportFailure.message : "History export failed.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   if (loading) {
     return <LoadingState title="Measuring stored history" description="This should take a few seconds." />;
@@ -66,6 +92,9 @@ export function StorageHistoryPanel() {
         <p className="type-meta text-text-secondary m-0">
           SQLite database, managed captures, verification reports, and generated downloads. Docker logs are managed separately.
         </p>
+        <Button type="button" variant="secondary" size="sm" iconStart={<Download aria-hidden />} onClick={() => setExportOpen(true)}>
+          Export history
+        </Button>
       </div>
 
       <div className="grid gap-2">
@@ -77,6 +106,51 @@ export function StorageHistoryPanel() {
       <p className="type-meta text-text-tertiary m-0">
         Removing records in a future cleanup feature will not always reduce the SQLite file size immediately.
       </p>
+
+      {exportOpen ? (
+        <Modal
+          title="Export history"
+          description="Downloads a read-only history archive. It does not include devices, workflows, contacts, credentials, or Minima backups."
+          onClose={() => {
+            if (exporting) return;
+            setExportOpen(false);
+            setCurrentPassword("");
+            setExportError(null);
+          }}
+          closeDisabled={exporting}
+          footer={
+            <ButtonRow>
+              <Button type="button" variant="secondary" disabled={exporting} onClick={() => setExportOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={exporting || !isAdminCredentialEntryReady(user?.credentialType ?? null, currentPassword)}
+                onClick={() => void exportHistory()}
+              >
+                {exporting ? "Exporting…" : "Export history"}
+              </Button>
+            </ButtonRow>
+          }
+        >
+          <div className="gap-detail-next grid">
+            <p className="type-body text-text-secondary m-0">
+              Collected payloads are included after secret redaction. The archive is for history viewing and cannot restore active devices or workflows.
+            </p>
+            <CredentialField
+              credentialType={user?.credentialType ?? null}
+              label="Current PIN or password"
+              value={currentPassword}
+              onChange={(value) => {
+                setCurrentPassword(value);
+                setExportError(null);
+              }}
+              autoComplete="current-password"
+            />
+            {exportError ? <ErrorText className="m-0">{exportError}</ErrorText> : null}
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }
