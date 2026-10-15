@@ -14,7 +14,7 @@ export type Manifest = {
   createdAt: string;
 };
 
-// minima-node isn't update-managed yet — see docs/notes/minima-node-update-support.md.
+// minima-node isn't update-managed: its image is multi-arch, so one pinned digest can't describe every Pi.
 export const MANIFEST_SERVICE_KEYS = ["frontend", "backend"] as const;
 
 // Fixed fallback, not env-configurable — see docs/adr/0009-manifest-fallback-to-github-raw.md.

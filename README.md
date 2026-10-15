@@ -197,7 +197,7 @@ The installer sets `COOKIE_SECURE=true` for the default HTTPS Docker deploy. Use
 
 `TZ` sets the backend container's timezone (default `UTC`). Set it to the Pi's real local timezone (e.g. `Europe/Amsterdam`) so the nightly Minima auto-backup (00:30) lands at actual local night.
 
-`MINIMA_DATA_DIR` is mounted into the Minima container as `/home/minima/data` so node data survives container restarts and updates. `MINIMA_BACKUP_DIR` is a separate host path `update-agent` copies that data into before a Minima update, and restores from if the update fails its health check. `UPDATE_AGENT_STATE_DIR` persists `update-agent`'s own bookkeeping (the last successfully applied manifest's timestamp, version, and frontend/backend image digests, used to reject replayed/downgraded manifests and to verify the installed version) across container restarts. It also holds `changelog-cache.json`, the release notes shown on the Update page, refreshed whenever a manifest check finds a new version and kept across restarts. `install.sh` also writes an initial `last-applied-manifest.json` there once the containers have started, and it's mounted read-only into the backend container (`/update-agent-state`) as the app version shown in feedback submissions. Feedback also carries the backend image's own build version and commit.
+`MINIMA_DATA_DIR` is mounted into the Minima container as `/home/minima/data` so node data survives container restarts and updates. `UPDATE_AGENT_STATE_DIR` persists `update-agent`'s own bookkeeping (the last successfully applied manifest's timestamp, version, and frontend/backend image digests, used to reject replayed/downgraded manifests and to verify the installed version) across container restarts. It also holds `changelog-cache.json`, the release notes shown on the Update page, refreshed whenever a manifest check finds a new version and kept across restarts. `install.sh` also writes an initial `last-applied-manifest.json` there once the containers have started, and it's mounted read-only into the backend container (`/update-agent-state`) as the app version shown in feedback submissions. Feedback also carries the backend image's own build version and commit.
 
 `MINIMA_RPC_BIND` defaults to `127.0.0.1`, which means Minima RPC is only exposed on the Pi itself. Set it to `0.0.0.0` only on a trusted network.
 
@@ -211,7 +211,7 @@ The backend runs a Minima health poller on `MINIMA_HEALTH_POLL_INTERVAL_SECONDS`
 
 `ENABLE_GPIO=true` is an advanced install shortcut that asks the host agent to create a Docker Compose override that mounts `/dev/gpiochip0` for GPIO input/output devices during install. Normal installs should leave GPIO disabled and let an admin enable it later from Devices -> Hardware support. `GPIO_GID` is detected from `/dev/gpiochip0` or the host `gpio` group when possible. GPIO stays disabled by default because it grants the backend container host hardware access.
 
-When GPIO is not enabled or `/dev/gpiochip0` is unavailable in the backend container, the GPIO Input and PIR Motion Sensor cards are disabled in the Data Sources page.
+When GPIO support is not enabled, GPIO templates are hidden from the Devices add flows and configured GPIO devices show `Disabled` or `Needs attention`.
 
 GPIO input/output settings for tested button, LED, and HC-SR501 PIR motion sensor wiring, plus suggested untested device profiles, are documented in [`docs/guides/gpio-device-settings.md`](./docs/guides/gpio-device-settings.md).
 
@@ -246,26 +246,16 @@ The Minima page also stores its Megammr host URL in SQLite through the Configure
 
 The Minima page exposes an allowlisted Megammr resync action. The browser calls the backend, and the backend calls Minima RPC internally with `megammrsync action:resync host:<configured-megammr-host>`.
 
-On the #536 branch, `POST /api/minima/megammrsync/resync` returns HTTP **202** with a persisted operation snapshot (`id`, `phase`, timestamps, `outcome`, `recovered`, `busy`, `message`, `events`, `errorDetails`) before the node RPC finishes. Acceptance means Edge Studio scheduled the request. Admin-only `GET /api/minima/resync` returns that latest snapshot or `null`, with `Cache-Control: no-store`, without calling the node. `GET /api/minima/status` includes a compact `resync` summary for authenticated consumers; it excludes events, errors and internal metadata.
+Resync runs in the background. `POST /api/minima/megammrsync/resync` returns HTTP **202** with an operation snapshot (`id`, `phase`, timestamps, `outcome`, `recovered`, `busy`, `message`, `events`, `errorDetails`) before the node finishes. Admin-only `GET /api/minima/resync` returns the latest snapshot or `null` without calling the node; `GET /api/minima/status` carries a compact `resync` summary. Only the latest operation is stored, with at most 100 redacted events. While a resync holds the node, conflicting resync, restart, backup, and restore requests return HTTP **409**.
 
-Only the latest resync is stored, with at most 100 meaningful timestamped events and bounded, redacted messages. Duplicate resync and conflicting restart/backup/restore requests return structured HTTP **409**. Reservation survives healthy status reads, the old six-minute display-marker window, and backend reload. Explicit RPC rejection releases it; transport interruption retains it. The internal resync RPC response budget is five minutes; expiry does not cancel already-dispatched node work or establish failure.
+The Minima page shows the phase, elapsed time, recent events, and error details, and keeps them after completion or failure. A resync whose RPC response is lost is observed, never retried: it can end `unconfirmed` and still hold the node (`busy: true`), so check `busy` as well as `outcome`.
 
-The backend captures the Docker container identity, restart count and start time before sending resync, and observes natural process recovery alongside the pending RPC. A completion response plus a process cycle and usable RPC with a chain block establishes `completed`; stale or unknown chain freshness remains a message warning. A lost response followed by cycle/readiness establishes `recovered: true` with outcome `unconfirmed`. Confirmed completion with an exited container permits one idempotent Docker start; no resync timeout sends `quit`, forces restart, or replays the request. Start and result audits include operation ID, caller trigger and initiating user where available.
-
-Observation budgets are five minutes for a cycle after the RPC settles and two minutes for readiness after a cycle. Expiry records `unconfirmed` and retains `busy: true` until a later process cycle and usable RPC reconcile it. Read-only observation continues every 30 seconds while unconfirmed. Check both outcome and `busy`; a terminal outcome can still reserve the node. On backend startup, persisted ownership and deadlines resume observation before the health poller starts, without replay; shutdown stops timers and ignores pending callbacks. Automatic caller terminal results update separately from the initiation cooldown; startup restores the latest automatic operation's initiation timestamp.
-
-If resync remains reserved, inspect the node's Docker state and host logs and confirm whether rebuild/database-save work is still running. Wait while it is running. Only after host diagnostics establish completion or cessation should an operator start an exited container with `docker compose start minima` from the installed Compose directory; the backend will reconcile the subsequent process cycle and chain readiness. Do not force restart or clear the reservation just because an observation deadline expired. A legacy snapshot lacking its process baseline/deadline remains reserved and requires host/database diagnosis; the backend cannot infer its missing evidence.
-
-The Minima page reads the latest operation on load and shows its phase, elapsed time, last observation, concise timestamped events, and expandable warning/error details. Events remain after completion or failure. Progress reads run serially every three seconds while `busy` and every 30 seconds otherwise, including discovery of resync from another tab, the console, or the automatic caller. Ordinary node status continues refreshing, with the fast cadence while resync is reserved. Reloading or navigating back does not replay resync or an old completion toast.
-
-The browser schedules resync and presents the backend's outcome; it no longer interprets Minima completion text or restarts the node after resync. A lost POST response or HTTP 5xx prompts a progress check without claiming failure. Progress-read failures preserve the previous snapshot/events and offer retry; unknown progress or an active reservation disables conflicting controls. Backup/restore confirmations also disable if resync begins while their dialog is open. Unavailable metrics are labeled as last observed, and resync phase takes precedence over generic restart feedback.
-
-Implementation and final Pi/disposable-node/browser verification (steps 1–5) are complete. See [the plan](docs/plans/bugs/536-improve-minima-resync-status-feedback-and-expose-progress-logs.md), [QA results](docs/qa/536-resync-end-to-end.md) and [ADR 0034](docs/adr/0034-observe-resync-after-client-timeout.md).
+If resync stays reserved, check the node's Docker state and host logs and wait while rebuild or database-save work is still running. Only after host diagnostics show it has finished or stopped, start an exited container with `docker compose start minima` from the installed Compose directory; the backend reconciles the next process cycle and chain readiness. Do not force a restart or clear the reservation because a deadline expired. See [ADR 0034](docs/adr/0034-observe-resync-after-client-timeout.md).
 
 
 Restarting the Minima node from the UI shuts it down gracefully first: the backend sends `quit compact:true` over RPC and waits (up to 5 minutes — the node can take a while to actually stop even after reporting shutdown complete) for the container to actually exit before starting it back up, instead of immediately force-stopping it. If the node still hasn't stopped after that, it falls back to a forceful container restart so the action still always completes.
 
-An optional "Auto restart" toggle (off by default) has the backend perform this same graceful restart automatically every 48 hours, as a preventive node health measure. It reuses the nightly auto-backup scheduler rather than a separate timer, so the check runs at 00:30 on the backend container's clock, after that night's backup — it only actually restarts every other night, tracked by a persisted last-run time so a backend redeploy doesn't reset the cadence.
+An automatic 48-hour graceful restart exists in the backend but is currently disabled and has no settings toggle; see [ADR 0037](docs/adr/0037-minima-backups-own-scheduler-and-stored-password.md).
 
 The Minima page also exposes node backup & restore: a Minima `backup` includes the seed phrase, private keys, coin proofs, key-use counters, and transaction history, not just spendable wallet keys. Backups are written by Minima into `${MINIMA_DATA_DIR}/backups` on the host — mounted into `minima` at `/home/minima/backups` (Minima resolves the `backup`/`restoresync` `file:` argument against its home dir, not `/home/minima/data`) and into `backend` read-write at `/minima-backups`, the only host directory shared between the two containers — so the UI can list, download, upload, and delete backup files. An admin sets one backup password once (re-auth required, stored encrypted); every backup from then on, manual or automatic, uses that same password, so there's no unencrypted/weakly-protected class of backup at all. Backups are tracked in a single list capped at 20, oldest auto-deleted — all downloadable and restorable. Restoring always uses Minima's `restoresync`, which restores the backup and re-syncs from the configured Megammr host in one step; restoring one of these tracked backups needs no password re-entry, since the backend already knows the stored password. Automatic backups are created by the backend's own scheduler at a fixed nightly time, 00:30 on the backend container's clock (not Minima's built-in `backup auto:true`, which can never be given a custom password or write anywhere the backend can see) — set the `TZ` environment variable to the Pi's real local timezone (default `UTC`) so this lands at actual local night. Downloading, restoring, or changing the backup password all require re-entering the current admin PIN/password.
 
@@ -274,12 +264,6 @@ The Wallet page exposes allowlisted wallet/account actions through the backend:
 - global balance via Minima `balance` (`GET /api/wallet`)
 - wallet history (received, sent, and self-transfers) synced from Minima `history` into SQLite (`GET /api/wallet/history`)
 - payment submission via Minima `send` (`POST /api/wallet/send-payment`)
-
-Minima RPC commands should be transmitted as a single percent-encoded URL path command, not as query parameters. For example:
-
-```txt
-http://minima:9005/megammrsync%20action%3Aresync%20host%3Amegammr.minima.global%3A9001
-```
 
 `COOKIE_SECURE` controls the session cookie `Secure` flag. The Docker deploy uses HTTPS with `COOKIE_SECURE=true` (`https://<pi-ip>:8080`). Native dev uses HTTP on `http://localhost:5173` with `COOKIE_SECURE=false`.
 
@@ -627,7 +611,8 @@ frontend container
   - React static app
   - Nginx
   - Proxies /api to backend:3000
-  - Sidebar pages: App status, Minima, Integritas
+  - Sidebar pages: Dashboard, Minima, Wallet, Integritas, Devices, Workflows, Diagnostics, Settings
+  - Proxies /update/ to update-agent during an apply
   |
   v
 backend container
@@ -651,7 +636,7 @@ backend container
   - Reads Docker resource usage through /var/run/docker.sock
 
 minima container
-  - minimaglobal/minima:dev
+  - minimaglobal/minimacore
   - P2P port ${MINIMA_P2P_PORT:-9003}
   - RPC port ${MINIMA_RPC_PORT:-9005}
   - Persistent data in ${MINIMA_DATA_DIR:-./minima}
@@ -661,9 +646,15 @@ Pi host filesystem
   - ${HOST_FILES_DIR:-/home/pi} mounted read-only
   - ./data mounted read-write for SQLite
   - ./minima mounted read-write for Minima data
+
+Optional / host-side
+  - update-agent container (Compose profile): signed image updates, /update/ progress page
+  - mqtt container (Compose profile): local Mosquitto broker
+  - edge-studio-host-agent (root systemd service): fixed hardware enable/disable actions
+  - camera and sensor helpers (host systemd services): token-protected capture and I2C reads
 ```
 
-The backend never receives permission to run arbitrary shell commands. It only lists files and directories under `/host-files`.
+The backend never receives permission to run arbitrary shell commands. It reads `/host-files` only for inbox image previews and disk status.
 
 ## Backend API
 
@@ -809,30 +800,4 @@ For the preferred prototype UX, install without a key and then enter it in the I
 
 ## Security Notes
 
-This is a learning prototype, not a production-ready product.
-
-See [`SECURITY.md`](./SECURITY.md) for the current risk register, known vulnerabilities, and mitigation plan.
-
-- Backend container runs as the non-root `node` user
-- Host files are mounted read-only
-- Backend blocks access outside `/host-files`
-- Frontend cannot trigger shell commands
-- Minima RPC binds to `127.0.0.1` by default
-- Integritas Connect tokens and API key are backend-only and encrypted at rest in SQLite
-- Backend mounts `/var/run/docker.sock:ro` to read container status and resource usage for the App status page. This is useful for the prototype, but Docker socket access is sensitive and should be replaced with a narrower monitoring approach before production.
-- GPIO input sources use the `gpiomon` tool inside the backend container and GPIO LED output targets use `gpioset`; both require explicit GPIO device access on Raspberry Pi deployments. Add an override such as `devices: ["/dev/gpiochip0:/dev/gpiochip0"]` and a suitable GPIO group when enabling GPIO hardware ingestion/control.
-- BME280/BME680 sensor reads use the opt-in host-side `edge-studio-sensor-helper` service with I2C access instead of exposing generic I2C operations through the backend API.
-- Admin authentication with a 6-digit PIN or an 8+ character password containing uppercase, lowercase, a number, and a symbol, plus HttpOnly session cookies (see [Authentication](#authentication))
-- HTTPS with a self-signed certificate on the default Docker deploy (`COOKIE_SECURE=true`)
-
-## Future Services
-
-The Docker Compose file is intentionally simple so more services can be added later, for example:
-
-- Database
-- File storage
-- CLI session or API token auth
-- System commands through an allowlist
-- Auto updates
-
-When new services require host packages, add them to the dependency section in `install.sh`.
+This is a learning prototype, not a production-ready product. See [`SECURITY.md`](./SECURITY.md) for the security policy and the risk register in [`docs/security/`](./docs/security/).

@@ -1,6 +1,6 @@
 # Auth And Transport Risks
 
-Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md#auth) · [plans/security/](../plans/security/README.md)
+Related: [SECURITY.md](../../SECURITY.md) · [qa/gaps.md](../qa/gaps.md#auth) · [adr/0010](../adr/0010-security-review-audit-verdict.md)
 
 ## Unauthenticated LAN Access (mitigated, residual TLS trust risk)
 
@@ -22,7 +22,7 @@ Controls (V1):
 Task 706's production Compose sign-off verified both clean-data onboarding variants, session
 persistence and cookie attributes, generic auth failures, setup immutability, disabled TOTP route
 responses, nginx headers, and browser CSP compatibility. See
-[the recorded sign-off](../qa/v1-auth-sign-off.md).
+[the recorded sign-off](../reports/v1-auth-sign-off.md).
 
 Residual gap: Self-signed certificates do not prove server identity. Custom trusted certificates or operator-managed reverse-proxy TLS are planned for a later release.
 
@@ -53,7 +53,7 @@ Current Controls:
 - Nginx terminates TLS; `COOKIE_SECURE=true` on the default Docker deploy.
 - Certificates stored under `DATA_DIR/certs`; regenerate with `INTEGRITAS_TLS_FORCE=1 bash scripts/generate-tls-cert.sh` after a LAN IP change.
 
-Plan: Custom certificates and HSTS stay out of scope for V1.5 — see [plans/security/](../plans/security/README.md#out-of-scope-for-v15).
+Plan: Custom certificates and HSTS are out of scope for V1.5.
 
 Status: Mitigated for passive sniffing; residual self-signed trust risk documented.
 

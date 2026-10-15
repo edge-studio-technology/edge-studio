@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Derive the upload-route request limit from the backend settings. See ADR 0018.
+# Derive the upload-route request limit from the backend settings. See ADR 0017.
 EDGE_STUDIO_UPLOAD_MAX_REQUEST_BYTES="$({
   awk \
     -v raw_file_bytes="${UPLOAD_MAX_FILE_BYTES:-}" \

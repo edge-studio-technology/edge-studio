@@ -47,8 +47,6 @@ gpiomon --falling-edge --num-events=0 --bias=pull-up gpiochip0 17
 
 If you want to see both press and release events while debugging, use `Edge: both` in the app or run separate `gpiomon` edge tests depending on the installed libgpiod version.
 
-Visual wiring reference: [`gpio-button-wiring.svg`](./gpio-button-wiring.svg).
-
 ### Output LED On GPIO18
 
 Use this for a simple LED pulse output wired from GPIO18 through a resistor to the LED.
