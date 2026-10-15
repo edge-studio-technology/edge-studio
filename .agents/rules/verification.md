@@ -11,7 +11,7 @@ npm --prefix update-agent run build
 docker compose config
 ```
 
-`npm run check` runs `npm run lint` first; run `npm run lint` on its own for a fast ESLint pass across `backend`, `frontend`, and `update-agent`.
+`npm run check` runs `npm run lint` first; run `npm run lint` on its own for a fast ESLint pass across `backend`, `frontend`, and `update-agent`, plus the docs drift check (`npm run lint:docs`).
 
 For container-impacting changes, also run:
 

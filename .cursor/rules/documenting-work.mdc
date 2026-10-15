@@ -17,6 +17,8 @@ Apply that summary to `docs/SESSION.md` and reconcile `docs/TASKS.md` — use th
 
 When a ticket's work is ready for its PR into `dev`, retire its plan doc (`plan-doc` skill, Retiring): rationale to an ADR, open items to `docs/TASKS.md` or `docs/qa/gaps.md`, then delete the plan. `docs/` should describe the codebase as it is, not finished work.
 
+When a change renames or removes a feature, route, env var, file, or UI label, grep `README.md`, `SECURITY.md`, `docs/`, and the rules and skills for the old name and fix every hit in the same change. `npm run lint:docs` (part of `npm run lint`) catches dead links and paths, mirror drift, and an out-of-date `docs/README.md` index; it cannot catch prose that describes old behavior.
+
 Update project documentation when behavior changes:
 
 - Update `CHANGELOG.md` for every user-facing or operator-facing change (see below).
@@ -34,6 +36,7 @@ Keep `CHANGELOG.md` up to date as part of finishing work, not as a follow-up tas
 - On a feature branch, add new entries under `## [Unreleased] <branch-name>` (for example `## [Unreleased] ui/settings-page`), never under the shared `## [Unreleased]` or an already-dated version section.
 - Before the PR into `dev`, move the branch section's entries into the matching subsections of the shared `## [Unreleased]` and remove the branch header.
 - When `dev` merges into `main` for a release, rename the shared `## [Unreleased]` header to a dated version section (for example `## [0.30.0] - 2026-08-05`).
+- In the same release PR, read `README.md`, `SECURITY.md`, `docs/TASKS.md`, and `docs/qa/gaps.md` against what is shipping and fix anything that no longer matches.
 - On a `CHANGELOG.md` merge conflict in a feature branch, keep the branch's `## [Unreleased] <branch-name>` section separate from the shared `## [Unreleased]` entries coming from `dev`. Never fold either into a dated section.
 - Write entries for operators and users: what changed, not which files were touched.
 - Include auth, API, UI, config/env, Docker/install, CLI, and security-impacting changes.

@@ -28,6 +28,10 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 - **ADRs** are amended in place when a decision is refined; a new ADR is only for a new topic
   (`adr` skill). Merged ADR numbers are retired, never reused.
 - **Reports** are evidence from a specific date and are not updated afterwards.
+- **Drift check:** `npm run lint:docs` ([scripts/dev/check-docs.mjs](../scripts/dev/check-docs.mjs), run by
+  `npm run lint` and CI) fails on dead links and paths, rule/skill mirrors that differ, and ADRs,
+  plans, or top-level `docs/` entries missing from this file. Prose drift is caught by the
+  rename/remove grep and the release read-through in the documenting-work rule.
 
 ## Plans
 
