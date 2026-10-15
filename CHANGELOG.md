@@ -4,28 +4,6 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] task/686-clean-out-dead-code-and-buisness-logic
-
-### Removed
-
-- Seed phrase wallet import (`POST /api/wallet/import`).
-- Custom token creation (`/api/tokens/*`).
-- TOTP two-factor authentication, including its setup, login, and reset routes.
-- Debug routes, including `POST /api/wallet/debug/clear-wallet-history`.
-- Host file browser API (`/api/files/*`); the read-only host-files mount stays for local inbox images and disk status.
-- Raw Integritas hash, stamp, status, verify, and proof-poll routes; file stamping, proof history, and proof file verification stay.
-- `GET /api/minima/balance`, `GET /api/wallet/payment-status/:txpowid`, `GET /api/automation/runs/:id`, and `POST /api/feedback/retry-pending`.
-- Single-capability reads under `GET /api/host-capabilities/{camera,gpio,sensors,mqtt}`; `GET /api/host-capabilities` stays.
-- Legacy static `/setup` page, which now shows Not found.
-
-### Changed
-
-- Database migration drops the `custom_tokens` and `setup_pending` tables and the `users.totp_secret` column; an older backend cannot create a first admin against a migrated database (see [ADR 0036](docs/adr/0036-remove-dead-code-and-unused-features.md)).
-
-### Security
-
-- Smaller authenticated API surface and no stored TOTP secrets (see [ADR 0036](docs/adr/0036-remove-dead-code-and-unused-features.md)).
-
 ## [Unreleased]
 
 ### Added
@@ -65,6 +43,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The update agent, the frontend build, and the installer's manifest signature verifier run on Node 22 instead of end-of-life Node 20.
 - Admin PINs and passwords are hashed with Node's built-in scrypt instead of the native `bcrypt` package; see `SECURITY.md`.
 - Existing bcrypt-hashed credentials keep working and are converted to scrypt on the next successful login.
+- Database migration drops the `custom_tokens` and `setup_pending` tables and the `users.totp_secret` column; an older backend cannot create a first admin against a migrated database (see [ADR 0036](docs/adr/0036-remove-dead-code-and-unused-features.md)).
+
+### Removed
+
+- Seed phrase wallet import (`POST /api/wallet/import`).
+- Custom token creation (`/api/tokens/*`).
+- TOTP two-factor authentication, including its setup, login, and reset routes.
+- Debug routes, including `POST /api/wallet/debug/clear-wallet-history`.
+- Host file browser API (`/api/files/*`); the read-only host-files mount stays for local inbox images and disk status.
+- Raw Integritas hash, stamp, status, verify, and proof-poll routes; file stamping, proof history, and proof file verification stay.
+- `GET /api/minima/balance`, `GET /api/wallet/payment-status/:txpowid`, `GET /api/automation/runs/:id`, and `POST /api/feedback/retry-pending`.
+- Single-capability reads under `GET /api/host-capabilities/{camera,gpio,sensors,mqtt}`; `GET /api/host-capabilities` stays.
+- Legacy static `/setup` page, which now shows Not found.
 
 ### Fixed
 
@@ -74,12 +65,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Address-book payments resolve the current saved destination, including after wallet replacement on older Minima versions.
 - Relative links in Update page release notes point to the correct GitHub repository.
 - The Send payment dialog accepts decimal amounts.
-- `GET /api/wallet/payment-status/:txpowid` reports pending and confirmed payments instead of always `unknown`.
 
 ### Security
 
 - After a login converts the stored credential, manually reinstalling an older release locks the admin out; in-app updates are unaffected.
 - A login that overlaps a PIN/password change now fails instead of creating a session.
+- Smaller authenticated API surface and no stored TOTP secrets (see [ADR 0036](docs/adr/0036-remove-dead-code-and-unused-features.md)).
 
 ## [0.42.2] 2026-10-06
 
