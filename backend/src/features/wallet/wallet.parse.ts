@@ -253,4 +253,3 @@ export function parseHistoryResponse(body: unknown, localAddresses: Set<string>)
   });
   return entries;
 }
-
