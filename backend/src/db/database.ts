@@ -270,6 +270,17 @@ export function runMigrations() {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS history_archives (
+      id TEXT PRIMARY KEY,
+      imported_at TEXT NOT NULL,
+      exported_at TEXT NOT NULL,
+      schema_version INTEGER NOT NULL,
+      category_counts_json TEXT NOT NULL,
+      archive_json TEXT NOT NULL
+    )
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS wallet_accounts (
       id TEXT PRIMARY KEY,
       label TEXT NOT NULL,

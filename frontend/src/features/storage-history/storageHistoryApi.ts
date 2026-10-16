@@ -1,4 +1,4 @@
-import { getJson } from "../../lib/api";
+import { getJson, postForm } from "../../lib/api";
 
 export type StorageHistoryCategory = {
   id: string;
@@ -24,6 +24,24 @@ export type StorageHistoryInventory = {
 
 export function getStorageHistoryInventory() {
   return getJson<StorageHistoryInventory>("/api/storage-history/inventory");
+}
+
+export type ImportedHistoryArchive = {
+  id: string;
+  importedAt: string;
+  exportedAt: string;
+  schemaVersion: number;
+  categories: Record<string, number>;
+};
+
+export function importHistoryArchive(file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  return postForm<{ archive: ImportedHistoryArchive }>("/api/storage-history/imports", form);
+}
+
+export function listImportedHistoryArchives() {
+  return getJson<{ archives: ImportedHistoryArchive[] }>("/api/storage-history/imports");
 }
 
 export async function downloadHistoryArchive(currentPassword: string) {

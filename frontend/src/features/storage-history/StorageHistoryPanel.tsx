@@ -1,17 +1,19 @@
-import { Download, HardDrive, RefreshCw } from "lucide-react";
+import { Download, HardDrive, RefreshCw, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/Button";
 import { ButtonRow } from "../../components/ButtonRow";
 import { ErrorContentState } from "../../components/patterns/ErrorContentState";
+import { FileDropBox } from "../../components/patterns/FileDropBox";
 import { LoadingState } from "../../components/patterns/LoadingState";
 import { ErrorText } from "../../components/Text";
 import { CredentialField } from "../../components/ui/CredentialField";
 import { Modal } from "../../components/ui/Modal";
 import { isAdminCredentialEntryReady } from "../auth/adminCredentials";
 import { useAuth } from "../auth/hooks";
+import { useToast } from "../../components/ToastProvider";
 import { describeLoadFailure } from "../../lib/errors";
-import { downloadHistoryArchive, getStorageHistoryInventory, type StorageHistoryCategory, type StorageHistoryInventory } from "./storageHistoryApi";
+import { downloadHistoryArchive, getStorageHistoryInventory, importHistoryArchive, type StorageHistoryCategory, type StorageHistoryInventory } from "./storageHistoryApi";
 
 const historyLinks: Record<string, { to: string; label: string }> = {
   "minima-history": { to: "/wallet", label: "Open wallet history" },
@@ -23,6 +25,7 @@ const historyLinks: Record<string, { to: string; label: string }> = {
 
 export function StorageHistoryPanel() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [inventory, setInventory] = useState<StorageHistoryInventory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +33,8 @@ export function StorageHistoryPanel() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [exportError, setExportError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -59,6 +64,20 @@ export function StorageHistoryPanel() {
       setExportError(exportFailure instanceof Error ? exportFailure.message : "History export failed.");
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function importHistory() {
+    if (!importFile || importing) return;
+    setImporting(true);
+    try {
+      const { archive } = await importHistoryArchive(importFile);
+      setImportFile(null);
+      showToast({ tone: "success", title: "History imported", message: `Imported archive from ${new Date(archive.exportedAt).toLocaleString()}.`, timeoutMs: 6000 });
+    } catch (importFailure) {
+      showToast({ tone: "error", title: "History import failed", message: importFailure instanceof Error ? importFailure.message : "Choose a valid history archive.", timeoutMs: 9000 });
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -95,6 +114,8 @@ export function StorageHistoryPanel() {
         <Button type="button" variant="secondary" size="sm" iconStart={<Download aria-hidden />} onClick={() => setExportOpen(true)}>
           Export history
         </Button>
+        <FileDropBox title="Import history archive" file={importFile} onFile={setImportFile} accept="application/json,.json" busy={importing} />
+        {importFile ? <Button type="button" variant="secondary" size="sm" iconStart={<Upload aria-hidden />} disabled={importing} onClick={() => void importHistory()}>{importing ? "Importing…" : "Import history"}</Button> : null}
       </div>
 
       <div className="grid gap-2">
