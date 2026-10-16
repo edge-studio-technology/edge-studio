@@ -37,7 +37,6 @@
 - [ ] Digest-pin the third-party images outside the signed manifest (`minimaglobal/minimacore`, `eclipse-mosquitto:2`, `minimaglobal/minima:dev`, `alpine:3.20`) and document the manual pin-bump procedure (finding [6]).
 - [ ] Run the V1.5 manual transport checks on a Pi: `curl -vk https://<pi-ip>:8080/api/health` gives TLS 1.2/1.3 and 200; plain `http://` is refused or 400; the certificate SAN includes the Pi's LAN IP; the session cookie is `Secure`, `HttpOnly`, `SameSite=Strict`; optionally, a login capture shows no readable password.
 - [ ] Define the product lifecycle for data-source reads, workflow runs/block runs, and visible inbox items: retention configuration, export, proof-linked reads, storage quotas, and disk-usage warnings (ADR 0022).
-- [ ] Turn on branch protection for `main` now that changes land through PRs.
 - [ ] Security audit pipeline on release candidates: Codex Security diff scan plus CodeQL, Dependabot, and secret scanning (#658, blocked on OpenAI account, product-owner sign-off, report route, findings owner) — see `docs/plans/features/658-security-audit-pipeline.md`.
 
 ### Hardware support
@@ -69,6 +68,7 @@
 
 ## Done
 
+- [x] Branch protection for `main` and `dev` via repo rulesets (PRs required, no force pushes or deletion; `main` also requires status checks).
 - [x] #687 Retired finished plans, consolidated ADRs into one record per topic, and pruned stale docs; plans are now deleted before their PR into `dev`, and `npm run lint:docs` blocks doc drift.
 - [x] #686 Removed dead code, seed import, token creation, TOTP, unused routes, and `/setup` (ADR 0036).
 - [x] #216 Replaced native `bcrypt` with built-in scrypt; legacy hashes rehash on login (ADR 0035).
