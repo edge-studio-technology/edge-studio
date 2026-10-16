@@ -48,10 +48,3 @@ frontend work must keep that input unrestricted. No schema or credential replace
 The hash condition protects metadata correction, without changing the existing login/session
 behavior if a credential change overlaps asynchronous password verification. ADR 0035 later
 changed that behavior: such a login now fails and gets no session.
-
-## Where this lives in code
-
-- `backend/src/features/auth/setup.routes.ts`: public status DTO and no-store response.
-- `backend/src/features/auth/auth.repository.ts`: narrow metadata read and conditional correction.
-- `backend/src/features/auth/auth.service.ts`: correction after all enabled factors pass.
-- `backend/src/db/database.ts`: existing password-default credential-type migration.

@@ -48,8 +48,8 @@ Two constraints shaped the design:
   re-entering the current PIN/password, the same pattern as backup download. Current-wallet rows
   cannot be cleared because they would re-sync from Minima.
 - **No automatic retention.** Wallet history is a financial record under the classification in
-  ADR 0023, so it is never pruned automatically. Rows are roughly 300–400 bytes; the worst case is
-  a payment workflow at the 1,000 runs/hour budget (ADR 0028), about 24k rows a day.
+  ADR 0022, so it is never pruned automatically. Rows are roughly 300–400 bytes; the worst case is
+  a payment workflow at the 1,000 runs/hour budget (ADR 0022), about 24k rows a day.
 - **Confirmation time is the block's time.** `refreshPendingConfirmations()` checks up to 20
   unconfirmed rows per poll with `txpow onchain:`, then reads the block's TxPoW time with
   `txpow txpowid:<blockid>`. If the node no longer has the block's TxPoW (pruned, or not in a
@@ -88,19 +88,3 @@ Two constraints shaped the design:
 - Deferred to separate tickets: CSV export, running balance, day grouping, token-creation rows,
   incoming payments as an automation trigger, stuck-transaction detection, and backing up the app's
   SQLite database.
-
-## Where this lives in code
-
-- `backend/src/features/wallet/wallet-history.service.ts`: `syncWalletHistory()`,
-  `syncWalletHistoryIfStale()`, `refreshPendingConfirmations()`, `getWalletFingerprint()`,
-  `listWalletHistory()`, `clearPreviousWalletHistory()`.
-- `backend/src/features/wallet/wallet.parse.ts`: `parseHistoryResponse()`,
-  `parseHistorySizeResponse()`, `parseOnchainResponse()`, `parseTxPowTimeResponse()`.
-- `backend/src/features/wallet/wallet.routes.ts`: `GET /api/wallet/history`,
-  `POST /api/wallet/history/clear-previous`.
-- `backend/src/features/minima/minima-poll.service.ts`: sync and confirmation refresh on each poll.
-- `backend/src/features/address-book/wallet-replacement.service.ts`: `getWalletReplacementCount()`.
-- `backend/src/shared/minima-address.ts`: `miniMinimaAddress()`.
-- `backend/src/db/database.ts`: `wallet_transactions` and the new `wallet_send_history` columns.
-- `frontend/src/features/wallet/`: `WalletHistoryPanel.tsx`, `HistoryDetailModal.tsx`,
-  `ClearPreviousHistoryModal.tsx`, `walletHistory.ts`.

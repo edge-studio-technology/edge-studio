@@ -56,7 +56,7 @@ Migration is **incremental**, not a big-bang move:
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Divider`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots` |
 | `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `ListFilterBar`, `ListPaginationFooter`, `ErrorAlert`, `JsonPreview`, `CopyableCode`, `StatusPage`, `EmptyContentState`, `LoadingState`, `BrandLockup`, `MetricCard`                                                            |
-| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                             |
+| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`                                                                                                                                                                             |
 
 ## Styling Rules
 
@@ -72,7 +72,7 @@ Migration is **incremental**, not a big-bang move:
 
 ## Shared Components
 
-Use these before writing bespoke markup. Paths: most still live flat under `frontend/src/components/` until migrated; new design-system work goes in `ui/` / `patterns/` (see Placement above).
+Use these before writing bespoke markup. Most now live in `ui/` / `patterns/`; the flat `frontend/src/components/*.tsx` files are mostly one-line re-exports for older imports, except `Input`, `Text`, and `StatusRow`, which are not migrated yet (see Placement above).
 
 **Inventory style:** name + short description only. Link to a `###` detail section when one exists. No paths or migration arrows. Props, explain, and usage live under that heading.
 

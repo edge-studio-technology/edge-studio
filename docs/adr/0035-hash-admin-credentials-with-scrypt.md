@@ -68,12 +68,3 @@ for the move that drops 32-bit support (#887). Existing installs hold bcrypt has
 - An install whose admin never logs in on a release with this change keeps its bcrypt hash. After
   #887 removes `bcryptjs`, that admin cannot log in.
 - The hash still lives in `users.password`; no schema change.
-
-## Where this lives in code
-
-- `backend/src/features/auth/password.service.ts`: `hashPassword()`, `verifyPassword()`,
-  `needsRehash()`, `DUMMY_PASSWORD_HASH`.
-- `backend/src/features/auth/auth.service.ts`: `login()` freshness check, rehash and session creation in one transaction.
-- `backend/src/features/auth/auth.repository.ts`: `replaceUserPasswordHash()` compare-and-set.
-- `.github/workflows/check-dev.yml`, `.github/workflows/check-main.yml`: "Check bcryptjs pin is
-  current" warning.

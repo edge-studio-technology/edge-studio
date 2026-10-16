@@ -21,5 +21,7 @@ Keep `docs/SESSION.md` (this session's scratch log) and `docs/TASKS.md` (the dur
    - Add newly discovered work to `## Next` or `## Ideas` — not `## Current Focus` unless the user says it's now the priority.
    - Keep `## Current Focus` to 1-3 items max, per the file's own rule; move overflow to `## In Progress` or `## Next`.
    - Fix or remove stale items (referencing a deleted/superseded file, already resolved another way) instead of leaving them to rot.
+   - Keep Done to the current release cycle; drop older entries (`CHANGELOG.md` and git keep the history).
+   - If a ticket's work is finished and about to go to its PR into `dev`, retire its plan doc in the same branch (`plan-doc` skill, Retiring): open items to `## Next`, rationale to an ADR, then delete the plan.
 5. When a session's work is fully done and merged, reset `docs/SESSION.md` back to its empty template (`[Nothing recorded yet.]` / `[Nothing queued yet.]` / `[None.]`) — its own header says to do this.
 6. Report a short summary of what changed in each file.

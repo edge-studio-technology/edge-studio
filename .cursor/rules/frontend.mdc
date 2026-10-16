@@ -21,7 +21,7 @@ Page and feature folders:
 
 - Pages: `frontend/src/pages/`
 - Integritas UI/API/types: `frontend/src/features/integritas/`
-- Integritas Connect auth UI/API: `frontend/src/features/integritasAuth/`
+- Integritas Connect auth UI/API: `frontend/src/features/integritas-auth/`
 - Data Sources UI/API/types: `frontend/src/features/data-sources/`
 - Automation UI/API/types: `frontend/src/features/automation/`
 - Auth UI/API: `frontend/src/features/auth/`

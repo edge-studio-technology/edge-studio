@@ -71,12 +71,3 @@ Verified against the actual running Minima node behind this stack, not just docs
 - If `quit` truly never terminates the process, the node gets forcefully restarted after 5
   minutes regardless — an explicit product tradeoff: give it time to shut down cleanly, but
   beyond that, force it even if something ends up corrupted.
-
-## Where this lives in code
-
-- `backend/src/features/minima/minima.service.ts` — `restartMinimaContainer`,
-  `performGracefulRestart`, `MINIMA_GRACEFUL_SHUTDOWN_TIMEOUT_MS`.
-- `backend/src/features/status/docker.control.ts` — `getContainerRestartBaseline`,
-  `waitForContainerRestart`, `startComposeService`.
-- `backend/src/features/status/docker.service.ts` — `inspectContainer`.
-- `backend/src/features/minima/minima-monitoring.ts` — `MINIMA_OPERATION_MAX_WINDOW_MS`.
