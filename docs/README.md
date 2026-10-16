@@ -38,6 +38,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | Plan | Status |
 | ---- | ------ |
 | [plans/feedback-hosted-receiver.md](./plans/feedback-hosted-receiver.md) | Hand-off spec for the Integritas API repo; not started |
+| [plans/features/658-security-audit-pipeline.md](./plans/features/658-security-audit-pipeline.md) | Security audit pipeline on release candidates (#658); blocked |
 
 ## Architecture decisions
 

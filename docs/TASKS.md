@@ -38,6 +38,7 @@
 - [ ] Run the V1.5 manual transport checks on a Pi: `curl -vk https://<pi-ip>:8080/api/health` gives TLS 1.2/1.3 and 200; plain `http://` is refused or 400; the certificate SAN includes the Pi's LAN IP; the session cookie is `Secure`, `HttpOnly`, `SameSite=Strict`; optionally, a login capture shows no readable password.
 - [ ] Define the product lifecycle for data-source reads, workflow runs/block runs, and visible inbox items: retention configuration, export, proof-linked reads, storage quotas, and disk-usage warnings (ADR 0022).
 - [ ] Turn on branch protection for `main` now that changes land through PRs.
+- [ ] Security audit pipeline on release candidates: Codex Security diff scan plus CodeQL, Dependabot, and secret scanning (#658, blocked on OpenAI account, product-owner sign-off, report route, findings owner) — see `docs/plans/features/658-security-audit-pipeline.md`.
 
 ### Hardware support
 
