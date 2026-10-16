@@ -7,9 +7,9 @@
 ## Progress
 
 - [ ] Blockers cleared (see Blockers)
-- [ ] GitHub settings: secret scanning + push protection, Dependabot alerts + security updates
-- [ ] GitHub settings: protect `dev`, turn on CodeQL default setup
-- [ ] .github/dependabot.yml (new)
+- [x] GitHub settings: secret scanning + push protection on (verified via API 2026-10-16); Dependabot alerts were already on; Dependabot security updates deliberately left off (see Context)
+- [x] GitHub settings: `dev` already protected by a ruleset; CodeQL default setup on (verified via API 2026-10-16; first `main` scan: 24 open alerts to triage)
+- [x] .github/dependabot.yml: npm (root, backend, frontend, update-agent), github-actions, docker (three Dockerfiles), weekly, targeting `dev`
 - [ ] .github/workflows/security-audit.yml (new)
 - [ ] Private report route wired and checked for public leakage
 - [ ] Test runs (planted issue, docs-only skip, forced incomplete)
@@ -27,7 +27,7 @@ These need to be settled before the workflow work starts:
 - [ ] **Private report route:** decide where the full findings go. Options are SARIF to the Security tab, a private repo, or an encrypted artifact. Actions logs and artifacts are public on this repo. SARIF upload needs `security-events: write` (more than `contents: read`), and code scanning can show alerts as PR check annotations. Confirm the chosen route does neither in a way the public can see.
 - [ ] **Findings owner:** a named person who triages findings.
 
-Not blocked, can go ahead before the blockers clear: secret scanning + push protection, Dependabot (settings + `dependabot.yml`), and CodeQL default setup (needs `dev` protected).
+Not blocked, can go ahead before the blockers clear: secret scanning + push protection (done), `dependabot.yml`, and CodeQL default setup (needs `dev` protected).
 
 ## Context
 
@@ -35,11 +35,12 @@ Not blocked, can go ahead before the blockers clear: secret scanning + push prot
 - `require-dev-to-main.yml` already makes every PR into `main` a `dev` → `main` release candidate, so `pull_request` on `main` is the trigger. The head branch is in the same repo (not a fork), so repo secrets are available without `pull_request_target`.
 - `npm run audit:moderate` already runs in `npm run check` (both `check-dev.yml` and `check-main.yml`). Leave it as it is. Dependabot adds alerts and update PRs on top.
 - The AI review covers only the diff. Static analysis, dependencies, and secrets are left to CodeQL, Dependabot, and secret scanning.
+- Dependabot security updates stay off (deviation from the ticket). They always open PRs against the default branch (`main`) and ignore `target-branch`, and `require-dev-to-main.yml` fails any PR into `main` not from `dev`. Alerts plus version updates targeting `dev` cover vulnerable dependencies instead.
 - Out of scope: fixing findings (one ticket each), Docker image/shell scanning (#894), Codex Security cloud/hosted PR review, paid tools (Snyk, Claude Security), SHA-pinning the existing workflows' actions, and buying licences.
 
 ## GitHub settings (manual, repo admin)
 
-- Settings → Code security: turn on secret scanning, push protection, Dependabot alerts, and Dependabot security updates.
+- Settings → Advanced Security: Secret Protection and push protection on, Dependabot alerts on (done). Leave Dependabot security updates and the Dependabot version updates **Enable** button alone; the version-updates config is committed as a file.
 - Branch protection/ruleset for `dev`. CodeQL default setup only scans PRs into the default branch and protected branches.
 - Code security → CodeQL → default setup.
 - Repo secret `CODEX_SECURITY_API_KEY` (once the OpenAI account exists).
@@ -53,6 +54,7 @@ Not blocked, can go ahead before the blockers clear: secret scanning + push prot
 - `github-actions` for `/`.
 - `docker` for each Dockerfile directory (`backend/`, `frontend/`, `update-agent/`, plus any others found under `**/Dockerfile`).
 - `target-branch: dev` on every entry.
+- GitHub's docs imply Dependabot only picks up this file from the default branch, so version updates likely start only after it reaches `main` with the next release. Confirm then that Dependabot PRs open against `dev`.
 
 ### .github/workflows/security-audit.yml (new)
 
