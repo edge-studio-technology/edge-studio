@@ -71,6 +71,7 @@ Project-specific agent rules live outside `docs/`, in `.agents/rules/` at the re
 | [plans/esp32-mqtt-sensor-onboarding.md](./plans/esp32-mqtt-sensor-onboarding.md) | In progress |
 | [plans/pir-motion-sensor-workflows.md](./plans/pir-motion-sensor-workflows.md) | In progress |
 | [plans/host-agent-capability-management.md](./plans/host-agent-capability-management.md) | Not started |
+| [plans/storage-history-lifecycle.md](./plans/storage-history-lifecycle.md) | In progress |
 | [plans/feedback.md](./plans/feedback.md) | V1 implemented; hosted receiver required |
 | [plans/minima-node-backup-restore.md](./plans/minima-node-backup-restore.md) | Implemented; needs verification against a real node |
 | [plans/bme-environmental-sensor-support.md](./plans/bme-environmental-sensor-support.md) | Implemented |

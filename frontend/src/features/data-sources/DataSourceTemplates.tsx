@@ -4,6 +4,7 @@ import {
   Copy as CopyIcon,
   Cpu,
   Globe2,
+  HardDrive,
   Lightbulb,
   RefreshCw,
   Settings2,
@@ -176,7 +177,7 @@ export function templateIcon(template: DataSourceTemplate) {
   if (template.type === "gpio-output") return Lightbulb;
   if (template.type === "pi-camera") return Camera;
   if (template.type === "bme-sensor") return ThermometerSun;
-  if (template.type === "device-system-data") return Cpu;
+  if (template.type === "device-system-data") return HardDrive;
   return Cpu;
 }
 
