@@ -44,6 +44,7 @@ describe("AltAddDeviceFlow", () => {
     expect(screen.getByRole("button", { name: /Boards/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Protocols/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Sensors/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Actuators/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /This Pi system data/ })).toBeInTheDocument();
   });
 
@@ -93,7 +94,7 @@ describe("AltAddDeviceFlow", () => {
     expect(screen.getByRole("button", { name: /REST API/ })).toBeInTheDocument();
   });
 
-  it("shows boards and sensor template choices", async () => {
+  it("shows boards, sensor templates, and actuators", async () => {
     renderFlow();
     await userEvent.click(screen.getByRole("button", { name: /Boards/ }));
     expect(screen.getByRole("button", { name: /ESP32/ })).toBeInTheDocument();
@@ -103,8 +104,13 @@ describe("AltAddDeviceFlow", () => {
     await userEvent.click(screen.getByRole("button", { name: /Template devices/ }));
     expect(screen.getByRole("button", { name: /GPIO Button/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /PIR Motion Sensor/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /GPIO LED/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /GPIO LED/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /BME280 \/ BME680 Environmental Sensor/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+    await userEvent.click(screen.getByRole("button", { name: /Actuators/ }));
+    expect(screen.getByRole("button", { name: /GPIO LED/ })).toBeInTheDocument();
   });
 
   it("splits GPIO input setup into connection and behavior steps", async () => {

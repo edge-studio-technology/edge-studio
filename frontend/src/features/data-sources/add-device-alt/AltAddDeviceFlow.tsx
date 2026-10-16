@@ -1,4 +1,4 @@
-import { ArrowLeft, Cable, ChevronRight, Cpu, Radio, ThermometerSun, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Cable, ChevronRight, Cpu, Lightbulb, Radio, ThermometerSun, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
@@ -10,7 +10,7 @@ import { useDeviceFormFields } from "../useDeviceFormFields";
 import { AltDeviceForm, altDeviceProvisioningSteps, DeviceAddedSummary, isAltDeviceFormValid, isAltDeviceStepValid } from "./AltDeviceForm";
 import { inputTemplates, outputTemplates, resolveTemplateConfig, templateIcon } from "../DataSourceTemplates";
 
-type WizardStep = "root" | "boards" | "protocols" | "protocol-inbound" | "protocol-outbound" | "sensors" | "sensor-templates";
+type WizardStep = "root" | "boards" | "protocols" | "protocol-inbound" | "protocol-outbound" | "sensors" | "sensor-templates" | "actuators";
 
 type WizardOption = {
   title: string;
@@ -296,8 +296,10 @@ function stepIntro(step: WizardStep) {
       return { title: "Sensors", description: "Add Pi-connected hardware templates or configure a GPIO input yourself." };
     case "sensor-templates":
       return { title: "Template devices", description: "Start from known GPIO and I2C sensor presets." };
+    case "actuators":
+      return { title: "Actuators", description: "Control physical devices connected to this Pi." };
     default:
-      return { title: "Choose what you want to set up", description: "Start with a board, protocol integration, or Pi-connected sensor." };
+      return { title: "Choose what you want to set up", description: "Start with a board, protocol integration, Pi-connected sensor, or actuator." };
   }
 }
 
@@ -315,6 +317,8 @@ function stepPath(step: WizardStep) {
       return ["Sensors"];
     case "sensor-templates":
       return ["Sensors", "Template devices"];
+    case "actuators":
+      return ["Actuators"];
     default:
       return [];
   }
@@ -352,21 +356,25 @@ function stepOptions(
       ];
     case "sensors":
       return [
-        { title: "Template devices", description: "Use presets for buttons, motion sensors, LEDs, and BME environmental sensors.", icon: ThermometerSun, action: () => setStep("sensor-templates") },
+        { title: "Template devices", description: "Use presets for buttons, motion sensors, and BME environmental sensors.", icon: ThermometerSun, action: () => setStep("sensor-templates") },
         templateOption("Any device", "Configure a custom Raspberry Pi GPIO input pin manually.", findInputTemplate("GPIO Input Pin"), selectTemplate),
       ];
     case "sensor-templates":
       return [
         templateOption("GPIO Button", "Detect a simple push button wired between GPIO17 and GND.", findInputTemplate("GPIO Button"), selectTemplate),
         templateOption("PIR Motion Sensor", "Detect HC-SR501-style motion events from a GPIO input pin.", findInputTemplate("PIR Motion Sensor"), selectTemplate),
-        templateOption("GPIO LED", "Control a low-current LED output from workflow action blocks.", findOutputTemplate("GPIO LED"), selectTemplate),
         templateOption(environmentalSensorOption.title, environmentalSensorOption.description, environmentalSensorOption, selectTemplate),
+      ];
+    case "actuators":
+      return [
+        templateOption("GPIO LED", "Control a low-current LED output from workflow action blocks.", findOutputTemplate("GPIO LED"), selectTemplate),
       ];
     default:
       return [
         { title: "Boards", description: "Connect a microcontroller board and generate starter setup.", icon: Cpu, action: () => setStep("boards") },
         { title: "Protocols", description: "Receive data or send commands using REST APIs, MQTT, or webhooks.", icon: Radio, action: () => setStep("protocols") },
         { title: "Sensors", description: "Add GPIO and environmental sensor devices attached to this Pi.", icon: ThermometerSun, action: () => setStep("sensors") },
+        { title: "Actuators", description: "Control physical devices connected to this Pi.", icon: Lightbulb, action: () => setStep("actuators") },
         templateOption("This Pi system data", "Record local device specifications, performance, network status, and coarse locale data.", findInputTemplate("Device System Data"), selectTemplate),
       ];
   }
