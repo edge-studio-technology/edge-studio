@@ -440,6 +440,19 @@ The browser reads this hint during auth bootstrap and refreshes it after logout 
 
 Login and current-credential confirmations in Settings, node backups, and the console whitelist use a masked six-slot numeric field for a known PIN or a masked password field for a password account. Known PIN entry requires six digits and preserves leading zeros; existing password entry requires only a nonempty value. Setup and credential changes retain explicit new-type selection and creation requirements. Persistent credentials use `current-password` or `new-password` autofill; authenticator codes keep `one-time-code`. Backup-encryption passwords and uploaded-backup password overrides remain separate unrestricted password inputs. Use the existing submit button or form Enter action; completing a PIN never submits automatically.
 
+## Storage And History
+
+Settings -> Storage & history shows the records and managed files Edge Studio keeps on the Pi.
+An admin can download a read-only history archive after re-entering the current PIN/password. The
+archive contains redacted wallet history, workflow inbox items/runs, data-source reads, and
+Integritas proof history. It does not include active devices, workflow definitions, contacts,
+credentials, Minima backups, captures, verification PDFs, or generated downloads. A future import
+can show these records as history only; it will not recreate an operational installation.
+
+Some collected payload values may be redacted when they look like credentials. This keeps the
+archive safer to transfer, but means a redacted payload cannot be re-hashed to independently verify
+an Integritas proof's original source bytes. See `docs/adr/0037-separate-portable-history-from-device-migration.md`.
+
 ## Feedback
 
 Authenticated users can open the Feedback modal from the app shell sidebar. Feedback is submitted to Integritas with the existing backend-only Integritas API key and per-submission consent. The browser never receives the API key.

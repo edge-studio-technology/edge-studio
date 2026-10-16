@@ -23,9 +23,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Failed sends from the Send dialog and automation workflows record Minima's failure reason, shown in the history details view.
 - History from a wallet the node no longer uses is marked Previous wallet and can be cleared by an admin after re-entering their PIN/password (`POST /api/wallet/history/clear-previous`).
 - Dev testnet setup for Minima wallet testing on a Pi; see `docs/guides/minima-testnet.md`.
+- Settings can download a re-authenticated, read-only history archive with redacted wallet, workflow, data-source, and Integritas records.
 
 ### Changed
 
+- The Devices setup picker groups GPIO LED output under Actuators, separate from sensor templates and protocol output targets.
 - Resync progress is collapsible, opens for each active resync, and shows events in a bounded scrolling list.
 - Minima resync starts asynchronously with HTTP 202 and exposes the latest persisted operation through an admin-only progress endpoint.
 - Duplicate resync and conflicting node restart, backup, and restore requests return HTTP 409 while resync is reserved.

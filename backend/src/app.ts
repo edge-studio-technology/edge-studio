@@ -20,6 +20,7 @@ import {
 import { minimaRouter } from "./features/minima/minima.routes.js";
 import { preferencesRouter } from "./features/preferences/preferences.routes.js";
 import { statusRouter } from "./features/status/status.routes.js";
+import { storageHistoryRouter } from "./features/storage-history/storage-history.routes.js";
 import { addressBookRouter } from "./features/address-book/address-book.routes.js";
 import { walletRouter } from "./features/wallet/wallet.routes.js";
 import { requestLogger } from "./middleware/requestLogger.js";
@@ -44,6 +45,7 @@ export function createApp() {
   app.use("/api/auth", integritasAuthRouter);
   app.use("/api/user", integritasUserRouter);
   app.use("/api/status", statusRouter);
+  app.use("/api/storage-history", storageHistoryRouter);
   app.use("/api/host-capabilities", hostCapabilitiesRouter);
   app.use("/api/minima", minimaRouter);
   app.use("/api/integritas", integritasRouter);

@@ -1,7 +1,8 @@
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Compass,
+  HardDrive,
   LogOut,
   MousePointerClick,
   PanelLeft,
@@ -21,11 +22,13 @@ import {
 } from "../lib/behaviourSettings";
 import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { useAuth } from "../features/auth/hooks";
+import { StorageHistoryPanel } from "../features/storage-history/StorageHistoryPanel";
 
 /** Long enough to read the confirmation before the forced re-login. */
 const SIGN_OUT_AFTER_CREDENTIAL_CHANGE_MS = 3000;
 
 export function AuthSettingsPage() {
+  const [storageHistoryOpen, setStorageHistoryOpen] = useState(false);
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -47,7 +50,7 @@ export function AuthSettingsPage() {
   return (
     <Page
       title="Settings"
-      desc="Manage your admin credentials, interface preferences, and software updates."
+      desc="Manage your admin credentials, storage history, interface preferences, and software updates."
       action={
         <Button type="button" iconStart={<LogOut aria-hidden />} onClick={() => void signOut()}>
           Log out
@@ -55,6 +58,27 @@ export function AuthSettingsPage() {
       }
     >
       <Card className="grid w-full gap-4 divide-y divide-slate-200">
+        <Disclosure
+          title={
+            <span className="flex items-center gap-2">
+              <h2 className="type-title text-text-primary m-0">Storage &amp; history</h2>
+            </span>
+          }
+          className="pt-4 pb-6"
+          defaultOpen={false}
+          onToggle={(event) => setStorageHistoryOpen(event.currentTarget.open)}
+        >
+          <div className="gap-detail-close mt-2 grid">
+            <SubSection
+              icon={<HardDrive size={13} aria-hidden />}
+              title="Stored records"
+              description="Review the records and managed files Edge Studio keeps on this Pi. Cleanup and archive controls will be added separately."
+            >
+              {storageHistoryOpen ? <StorageHistoryPanel /> : null}
+            </SubSection>
+          </div>
+        </Disclosure>
+
         <Disclosure
           title={
             <span className="flex items-center gap-2">
