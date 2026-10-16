@@ -2,7 +2,7 @@
 
 Temporary note. Delete this file once every open branch has merged `dev`.
 
-#686 removed code that nothing in the UI or CLI used. Branches cut from `dev` before it can bring that code back during a merge, often without a conflict. When you merge `dev` into your branch, keep the removals. Full reasoning: `docs/adr/0036-remove-dead-code-and-unused-features.md`. Per-step details: `docs/plans/features/686-clean-out-dead-code-and-business-logic.md`.
+#686 removed code that nothing in the UI or CLI used. Branches cut from `dev` before it can bring that code back during a merge, often without a conflict. When you merge `dev` into your branch, keep the removals. Full reasoning: `docs/adr/0036-remove-dead-code-and-unused-features.md`.
 
 ## Removed
 

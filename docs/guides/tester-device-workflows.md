@@ -6,17 +6,17 @@ Use this guide to choose a quick end-to-end test. A passing test means the devic
 
 1. Open Edge Studio in the browser.
 2. Go to `Devices`.
-3. Click `Add device or source`.
+3. Click `New device`.
 4. Choose the device, source, or target you want to test from the wizard.
 5. Configure the required fields, such as URL, topic, GPIO pin, I2C address, or camera settings.
 6. Save the device/source/target.
 7. Open the setup guide shown for that device and follow the wiring, broker, flashing, or endpoint instructions.
 8. Use any available device test action first, such as manual read, test pulse, or webhook/MQTT publish.
-9. Go to `Automation`.
+9. Go to `Workflows`.
 10. Create a workflow using the matching blocks from the table below.
 11. Configure each block to use the device/source/target you just added.
 12. Enable the workflow if it uses an event start block such as webhook, MQTT, or GPIO.
-13. Trigger the workflow and check run history, Automation inbox previews, and Integritas proofs.
+13. Trigger the workflow and check run history, inbox previews, and Integritas proofs.
 
 ## Test With A Raspberry Pi
 
@@ -52,7 +52,7 @@ These tests can be driven from a PC browser and PC tools. Edge Studio can still 
 
 1. The device/source saves without validation errors.
 2. Manual reads, test pulses, webhook posts, MQTT messages, GPIO events, or camera captures produce a successful workflow run.
-3. `Show preview` creates an Automation inbox item with the expected payload or capture metadata.
+3. `Show preview` creates an inbox item with the expected payload or capture metadata.
 4. `Stamp data` creates a proof for fetch, trigger-record, and capture blocks.
 5. Workflow run history shows successful blocks and no unexpected `last_error` on the device/source.
 

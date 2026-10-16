@@ -14,18 +14,19 @@ Current Controls:
 - The Megammr resync action always calls the configured Minima RPC endpoint over the Docker network and only passes the saved Megammr host value.
 - The wallet balance action only calls the Minima `balance` command and returns its response through the backend.
 
+- Operator-supplied HTTP source and target URLs cannot reach the Compose network, its gateway, or
+  container service names, so `http://minima:9005/...` is rejected at save and fetch time.
+- Minima actions require a session, and mutations require the admin role.
+
 Plan:
 
 - Keep host RPC bind as `127.0.0.1` by default.
-- Add backend allowlist for any future Minima commands exposed through UI.
-- Add auth before exposing Minima actions.
 - Review Minima RPC auth/options before production.
 
-Status: **Open — scheduled, Phase 2.** The "no arbitrary command proxy" control does not hold:
-an HTTP JSON Source pointed at `http://minima:9005/vault` reaches unauthenticated Minima RPC from
-inside the Docker network and returns the response to the caller, bypassing the console catalog's
-hard exclusions. See [adr/0010](../adr/0010-security-review-audit-verdict.md) and
-[plans/security/phase-2-minima-rpc-bypass.md](../plans/security/phase-2-minima-rpc-bypass.md).
+Status: **Mitigated (V1.5 Phase 2, 2026-09-08)** for the SSRF bypass the external review missed
+(an HTTP JSON Source pointed at `http://minima:9005/vault`). Minima RPC itself remains
+unauthenticated inside the Docker network. See [adr/0010](../adr/0010-security-review-audit-verdict.md)
+and [adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md).
 
 ## Minima Auto-Resync (optional)
 
@@ -182,7 +183,7 @@ Plan:
 - Add optional webhook secret headers/signatures before production use.
 - Add custom/trusted certificate support or documented reverse-proxy TLS for senders that cannot accept self-signed certificates.
 
-Status: **Partially mitigated (Phase 7, task 705)** for credential leakage and privileged repetition. Workflow run, visible inbox, and read-history growth remains an availability risk pending the lifecycle in [adr/0023](../adr/0023-classify-stored-records-before-applying-retention.md) and [adr/0026](../adr/0026-preserve-workflow-run-history.md). Unsigned bearer-token delivery remains an accepted prototype risk. See [adr/0022](../adr/0022-bound-external-automation-effects.md).
+Status: **Partially mitigated (Phase 7, task 705)** for credential leakage and privileged repetition. Workflow run, visible inbox, and read-history growth remains an availability risk pending the lifecycle in [adr/0022](../adr/0022-bound-external-automation-effects.md). Unsigned bearer-token delivery remains an accepted prototype risk. See [adr/0022](../adr/0022-bound-external-automation-effects.md).
 
 ## MQTT Data Sources
 
@@ -252,8 +253,8 @@ Plan:
 Status: **Accepted for local learning deployments only — escalated to a product decision.** The
 external review rated anonymous publishing medium. It is off by default and profile-gated, but
 unauthenticated when on, and closing it needs a device-authentication model rather than a config
-change. Not scheduled as a patch — see
-[plans/security/phase-0-product-decision-gate.md](../plans/security/phase-0-product-decision-gate.md#findings-in-detail).
+change. Not scheduled as a patch; it is a pending product decision (see
+[adr/0010](../adr/0010-security-review-audit-verdict.md)).
 
 ## HTTP JSON Targets
 
@@ -358,11 +359,15 @@ Risk: Backend proxies stamp/status/verify calls to Integritas using a stored API
 
 Impact: API quota/billing misuse, stamping untrusted data, leaking operational details in errors.
 
+Current Controls:
+
+- Stamp creation is rate limited to 10 requests per minute per client; automation stamps count
+  against the per-workflow run budget ([adr/0022](../adr/0022-bound-external-automation-effects.md)).
+- Upload size and count are capped ([adr/0017](../adr/0017-outbound-and-upload-resource-limits.md)).
+- Stamp records (hash, proof UID, status, proof, errors) persist in the Integritas history table.
+
 Plan:
 
-- Add rate limiting.
-- Add request size limits per endpoint.
 - Add audit logs for stamping and verification.
-- Persist stamp records with document id, hash, proof UID, status, proof, canonicalization, and errors.
 
-Status: Open.
+Status: Partially mitigated.

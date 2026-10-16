@@ -55,7 +55,3 @@ caller of `Modal` relies on autofocus, measurement, or other mount-order timing 
   later. No behavior change observed or expected outside of removing the flash.
 - If this frontend ever grows an SSR entry point, this decision should be revisited — the removed
   gate was the correct defense for that case, just not for the app as it exists today.
-
-## Where this lives in code
-
-- `frontend/src/components/ui/Modal.tsx` — the removed gate.

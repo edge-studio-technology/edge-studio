@@ -72,12 +72,3 @@ equivalent to shipping a default.
   unaddressed and need a separate product decision.
 - Operator-chosen weak secrets are not detected.
 - Production secret storage (keyring, TPM, age/sops, passphrase-derived keys) remains out of scope.
-
-## Where this lives in code
-
-- `backend/src/config/env.ts` — `appSecret` without a fallback.
-- `backend/src/index.ts` — startup refusal before `runMigrations()`.
-- `backend/src/shared/crypto.ts` — `encryptionKey()` derivation (unchanged).
-- `install.sh` — `ensure_app_secret()` (unchanged).
-- `docker-compose.yml`, `.env.example` — no `APP_SECRET` default.
-- `scripts/release/build-docker-compose.mjs` — generated Compose and `.env.example` without a default.

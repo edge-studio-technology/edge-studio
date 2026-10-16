@@ -60,7 +60,7 @@ in the app used them before this decision. happy-dom does not evaluate layout, m
   narrow-1024 case.
 - **Tables: hide columns and expand rows, or render cards on small screens.** Rejected: both
   rebuild every table for a phone use case the feature excludes. A column picker with
-  backend-saved preferences already exists (`docs/plans/archive/table-column-visibility.md`).
+  backend-saved preferences already exists.
 - **Tables: also freeze the first column.** Rejected: Integritas history leads with a `select`
   checkbox column. Freezing two left columns plus the actions column uses up the width the change
   is meant to free.
@@ -88,18 +88,3 @@ in the app used them before this decision. happy-dom does not evaluate layout, m
   `expectRowActionsPinned()` in each table's row test fails on a missing scroller or a
   misplaced `sticky` prop.
 - Sub-768 widths remain best-effort.
-
-## Where this lives in code
-
-- `frontend/src/components/AppShellSidebar.tsx`: `EXPAND_MQ`, overlay behaviour below it.
-- `frontend/src/components/AppShell.tsx`: shell layout the overlay sits over.
-- `frontend/src/features/automation/workflow/chrome/WorkflowWorkspaceShell.tsx`: workspace
-  container, toolkit drawer.
-- `frontend/src/features/automation/workflow/canvas/WorkflowCanvas.tsx`: 360px rail reservation.
-- `frontend/src/features/automation/workflow/workflowWorkspaceUi.tsx`: `SelectedBlockSheet`.
-- `frontend/src/features/dashboard/DashboardDevices.tsx`: metric grid container.
-- `frontend/src/features/data-sources/DataSourceTemplates.tsx`: Hardware support modal layout.
-- `frontend/src/components/patterns/DataTable.tsx`: sticky cell support, `useTableScrollEdges()`,
-  `TableWrap` edge shadows.
-- `frontend/tests/helpers/expectRowActionsPinned.ts`: per-table pinning guard.
-- `frontend/src/components/StatusBar.tsx`: wrapping clock row.
