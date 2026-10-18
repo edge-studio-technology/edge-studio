@@ -14,6 +14,7 @@ const VENDORED = [/^\.(agents|claude|cursor)\/skills\/ui-ux-pro-max\//];
 const MIRRORS = [".claude", ".agents", ".cursor"];
 const DOCS_TOP_LEVEL = new Set([
   "PROJECT.md",
+  "capabilities.md",
   "README.md",
   "SESSION.md",
   "TASKS.md",

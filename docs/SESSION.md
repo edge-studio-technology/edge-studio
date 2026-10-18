@@ -4,6 +4,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Created `docs/capabilities.md`, a stakeholder-facing inventory of current user capabilities, end-to-end stories, scope boundaries, and sign-off questions; indexed it in `docs/README.md`.
 - #687 on `task/687-retire-old-feature-plan-documents`:
   - `8cbf4bcc`: ADRs consolidated into one current record per topic (10 retired numbers listed in `docs/README.md`); new ADRs 0037–0039, 0019 broadened; `adr` skill/rule amend in place; `minima` rule trimmed to requirements.
   - `89fbeb2e`: finished plans, `plans/archive/`, `plans/security/`, and `docs/notes/` deleted with open items carried into `docs/TASKS.md`; QA evidence moved to `docs/reports/`; `docs/README.md` and `docs/TASKS.md` rewritten; `plan-doc`/`openproject`/`documenting-work` retire plans before the PR.
@@ -17,4 +18,5 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Notes / Open Questions
 
+- `npm run lint:docs` remains blocked by 197 pre-existing documentation link, mirror, and ADR-index failures; after indexing `capabilities.md`, it reports no new layout failure for this document.
 - No `CHANGELOG.md` entry: internal developer docs only.

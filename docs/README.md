@@ -6,6 +6,7 @@ keeps them.
 ```
 docs/
 ├── PROJECT.md                  goal, audience, constraints, success criteria
+├── capabilities.md             stakeholder-facing current product scope and user stories
 ├── TASKS.md                    current and next work (read every session)
 ├── SESSION.md                  scratch log for the session in progress
 ├── frontend-design-system.md   frontend styling; ui/ vs patterns/ placement
