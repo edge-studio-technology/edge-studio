@@ -4,6 +4,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Module builder research and planning: mapped hard-coded hardware/device/workflow extension points and saved `docs/plans/module-builder.md`; recorded the user's full-host-access requirement, default-package extraction, local demo library lifecycle proof, and subsequent authoring tools. Implementation has not started.
+- Module builder docs verification: `git diff --check` passed. `npm run lint:docs` ran but failed with 198 findings, including Windows path-normalization link failures, rule mirror differences, and a duplicate ADR 0037; no application tests were run for this planning-only change.
+
 - #687 on `task/687-retire-old-feature-plan-documents`:
   - `8cbf4bcc`: ADRs consolidated into one current record per topic (10 retired numbers listed in `docs/README.md`); new ADRs 0037–0039, 0019 broadened; `adr` skill/rule amend in place; `minima` rule trimmed to requirements.
   - `89fbeb2e`: finished plans, `plans/archive/`, `plans/security/`, and `docs/notes/` deleted with open items carried into `docs/TASKS.md`; QA evidence moved to `docs/reports/`; `docs/README.md` and `docs/TASKS.md` rewritten; `plan-doc`/`openproject`/`documenting-work` retire plans before the PR.
@@ -13,8 +16,12 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
+- Module builder: inventory capability ownership/contracts, then prove one complete local library install/uninstall/reinstall slice before migrating the remaining hardware, device setup, and workflow contributions.
+
 - Review, then PR to `dev`. OpenProject #687 not yet updated.
 
 ## Notes / Open Questions
+
+- Module builder extensions are intended to support arbitrary privileged host code, including hardware-agent capabilities. Existing fixed-action security rules describe current behavior; implementation must update those rules and security documentation to match the new trust model.
 
 - No `CHANGELOG.md` entry: internal developer docs only.

@@ -35,6 +35,8 @@
 
 ## Next
 
+- [ ] Module builder: dynamic hardware agent, device setup, and workflow blocks with full host access; extract default capabilities into installable packages, prove removal/download/reactivation against a local demo library, then build authoring tools — see `docs/plans/module-builder.md`.
+
 ### Follow-ups from finished work
 
 - [ ] Review the #524 lint follow-ups: `JsonPreview` ignores `title`, `WatchRunHistory` ignores `replayPlaying`, and `WorkflowWorkspace` rebuilds its replay arrays every render, so effects rerun and the replay timer re-arms.

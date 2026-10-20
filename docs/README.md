@@ -37,6 +37,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 
 | Plan | Status |
 | ---- | ------ |
+| [plans/module-builder.md](./plans/module-builder.md) | Dynamic hardware, device setup, and workflow extensions; local demo library and authoring tools; not started |
 | [plans/feedback-hosted-receiver.md](./plans/feedback-hosted-receiver.md) | Hand-off spec for the Integritas API repo; not started |
 
 ## Architecture decisions
