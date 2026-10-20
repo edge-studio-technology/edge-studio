@@ -4,6 +4,16 @@
 **Created:** 2026-10-20
 **Goal:** Make hardware capabilities, device setup, and workflow blocks dynamically installable extensions, prove the lifecycle using the existing capabilities and a locally hosted demo library, then provide in-app extension authoring tools.
 
+**Discussion:** [Alternatives, research precedents, and public-library questions](./module-builder/discussion.md).
+**Stakeholder material:** [Presentation source and speaker notes](../reports/module-builder-2026-10-20/stakeholder-brief.md).
+
+## Stakeholder milestones
+
+- **M1 — Lifecycle proof (steps 1-2):** Inventory/contracts plus the HTTP JSON Source and Fetch block uninstall, real library download, install, activation, and restoration test, including retained configuration/history and restart persistence.
+- **M2 — Default capability parity (steps 3-6):** Dynamic hardware, device setup, and workflow contributions; all default packages removable/restorable, including real Pi verification.
+- **M3 — Authoring proof (step 7):** Create a new block and hardware/device capability with the tools and install them on another instance without core-source edits.
+- **Future M4 — Public library:** Central publishing/operations are a later product phase; the current implementation scope proves a local demo library.
+
 ## Progress
 
 - [ ] 1. Inventory existing capabilities and define package/runtime contracts and parity checks.

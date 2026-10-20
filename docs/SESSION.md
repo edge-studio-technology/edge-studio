@@ -4,6 +4,11 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Fixed presentation staging: ignored Office `~$*` temporary files in the presentation folder after confirming the open presentation's lock file was unreadable. `git check-ignore`, `git diff --check`, and `git add --dry-run --all` passed; no files were staged or committed.
+
+- Module builder stakeholder materials (2026-10-20): wrote `docs/plans/module-builder/discussion.md` with research gaps, alternatives/pros/cons, official Node-RED/Home Assistant/VS Code precedents, and future public-library policies; added explicit M1-M3 and future M4 labels to the implementation plan. These are discussion/planning documents, not implemented behavior or new adopted ADRs.
+- Built `docs/reports/module-builder-2026-10-20/module-builder-stakeholders.pptx` (18 main slides plus 4 appendix slides), PDF, overview, editable Markdown source, and reproducible build/validation scripts. PowerPoint rendered the slides; structural/content/link checks, 22 notes and PDF pages, zero native text overflow, PowerShell syntax, and `git diff --check` passed. Full docs lint still failed (213 findings, including Windows-normalized link comparisons, rule mirror differences, and duplicate ADR 0037). Application tests were not needed; no application code changed.
+
 - Module builder research and planning: mapped hard-coded hardware/device/workflow extension points and saved `docs/plans/module-builder.md`; recorded the user's full-host-access requirement, default-package extraction, local demo library lifecycle proof, and subsequent authoring tools. Implementation has not started.
 - Module builder docs verification: `git diff --check` passed. `npm run lint:docs` ran but failed with 198 findings, including Windows path-normalization link failures, rule mirror differences, and a duplicate ADR 0037; no application tests were run for this planning-only change.
 

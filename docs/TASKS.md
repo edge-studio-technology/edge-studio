@@ -35,7 +35,7 @@
 
 ## Next
 
-- [ ] Module builder: dynamic hardware agent, device setup, and workflow blocks with full host access; extract default capabilities into installable packages, prove removal/download/reactivation against a local demo library, then build authoring tools — see `docs/plans/module-builder.md`.
+- [ ] Module builder: dynamic hardware agent, device setup, and workflow blocks with full host access; extract default capabilities into installable packages, prove removal/download/reactivation against a local demo library, then build authoring tools — see `docs/plans/module-builder.md`; research alternatives in `docs/plans/module-builder/discussion.md` and stakeholder presentation source in `docs/reports/module-builder-2026-10-20/stakeholder-brief.md`. Implementation not started.
 
 ### Follow-ups from finished work
 

@@ -38,6 +38,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | Plan | Status |
 | ---- | ------ |
 | [plans/module-builder.md](./plans/module-builder.md) | Dynamic hardware, device setup, and workflow extensions; local demo library and authoring tools; not started |
+| [plans/module-builder/discussion.md](./plans/module-builder/discussion.md) | Stakeholder discussion: research precedents, alternatives, and future public-library policy |
 | [plans/feedback-hosted-receiver.md](./plans/feedback-hosted-receiver.md) | Hand-off spec for the Integritas API repo; not started |
 
 ## Architecture decisions
@@ -106,6 +107,8 @@ Merged into the surviving record on 2026-10-15. Numbers are not reused.
 | [security/external-review-2026-09-03.md](./security/external-review-2026-09-03.md) | External static review of `571ba70`, kept verbatim; audited in [ADR 0010](./adr/0010-security-review-audit-verdict.md) |
 
 ## QA and reports
+
+Module Builder stakeholder material (2026-10-20): [brief and speaker notes](./reports/module-builder-2026-10-20/stakeholder-brief.md), [PowerPoint](./reports/module-builder-2026-10-20/module-builder-stakeholders.pptx), [PDF](./reports/module-builder-2026-10-20/module-builder-stakeholders.pdf).
 
 | Plan | Status |
 | ---- | ------ |
