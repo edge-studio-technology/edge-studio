@@ -4,6 +4,13 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- 2026-10-27: Recorded D2's agreed scope: workload ceiling 1 mainly targets community module creation; web-library maintenance is separate. Updated responsibility guidance and the interpretation of the original comparison without changing exported scores. Named service ownership and official-package ownership/support remain open. Documentation-only update; `git diff --check` passed.
+
+- 2026-10-27: Resolved D1 in the workshop revision: in-app code editing and module tools; external AI-assisted code generation in the user's own harness with the planned module-builder-skill; no CLI actions. Updated the creation journey, M3 proposal, decision status, and task entry. The skill and platform are not implemented; the original workshop exports and implementation plan are unchanged.
+
+- 2026-10-27: Saved `docs/plans/module-builder/workshop-revision.md` with workshop evidence, capability/resource conflicts, proposed scope and sequencing changes, and eight open decisions. Indexed it and added a follow-up task. The original implementation plan and workshop exports are unchanged; recommendations remain pending discussion. Documentation-only work; no runtime changes.
+- Workshop revision verification: source links resolve on disk and `git diff --check` passed. Repository docs lint reported 241 findings, including Windows path-normalization false positives, stale references, mirror drift, and duplicate ADR 0037. No application tests were needed for this documentation-only change.
+
 - Added explanations for every option beneath all brief and team-priority dropdown questions, covering roles, commercial scope, hard boundaries, each resource ceiling level, importance weights, and minimum/target interpretation. Updated the guide and captured a resource-option screenshot. Frontend build/lint, diff checks, and the browser walkthrough passed; the walkthrough checked every dropdown option against its visible explanation, with zero runtime errors or backend requests. Scoring and stored answers are unchanged.
 
 - Added question steps within each brief section: all 23 fields render individually, with section/question progress, numbered question navigation, and Previous/Next spanning section boundaries. The host-access explanation appears with its question. Existing answers and storage format are preserved. Updated the guide and screenshot; frontend build/lint, browser checks of every brief field and navigation, and the existing workshop walkthrough passed with zero runtime errors or backend requests.

@@ -35,6 +35,8 @@
 
 ## Next
 
+- [ ] Resolve Full Module Builder workshop decisions D3-D8 and confirm named library/official-package ownership before revising the implementation plan; D1 agrees in-app editing/tools, external AI-assisted generation with a planned module-builder-skill, and no CLI actions; D2 scopes low core workload mainly to community module creation with separate web-library maintenance — see `docs/plans/module-builder/workshop-revision.md`.
+
 - [ ] Module builder: dynamic hardware agent, device setup, and workflow blocks with full host access; extract default capabilities into installable packages, prove removal/download/reactivation against a local demo library, then build authoring tools — see `docs/plans/module-builder.md`; research alternatives in `docs/plans/module-builder/discussion.md` and stakeholder presentation source in `docs/reports/module-builder-2026-10-20/stakeholder-brief.md`. Implementation not started.
 
 ### Follow-ups from finished work

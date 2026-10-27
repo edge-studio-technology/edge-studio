@@ -39,6 +39,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | ---- | ------ |
 | [plans/module-builder.md](./plans/module-builder.md) | Dynamic hardware, device setup, and workflow extensions; local demo library and authoring tools; not started |
 | [plans/module-builder/discussion.md](./plans/module-builder/discussion.md) | Stakeholder discussion: research precedents, alternatives, and future public-library policy |
+| [plans/module-builder/workshop-revision.md](./plans/module-builder/workshop-revision.md) | Workshop-based Full Module Builder proposal and open decisions; discussion draft |
 | [plans/feedback-hosted-receiver.md](./plans/feedback-hosted-receiver.md) | Hand-off spec for the Integritas API repo; not started |
 
 ## Architecture decisions
