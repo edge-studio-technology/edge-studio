@@ -4,6 +4,12 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Updated camera setup to five focused steps with capture field help, API-aligned numeric validation, and a complete review. Revised the in-app camera guide with connection, hardware enablement, configuration, mode-specific saved settings, deliberate capture verification, troubleshooting, and privacy/retention topics; kept the disabled starter workflow action.
+- Camera update verification: all 69 focused form/wizard/guide tests, frontend ESLint, and frontend production build passed. Full frontend suite: 1,798 passed, one unrelated `AuthSettingsPage` storage-inventory test failed because its harness lacks `ToastProvider`. Browser layout and physical Pi capture remain unverified; no deployment performed.
+
+- Restored the missing Raspberry Pi Camera option on the setup wizard's first screen, reusing the existing camera template, configuration form, and guide. Added a regression test covering selection, edited capture settings, and the create request; all 13 wizard tests and the frontend production build passed. Physical camera capture was not tested.
+- ESLint passed for backend, frontend, and update-agent; root lint failed in the docs drift check with 197 reports across existing links, rule mirrors, and a duplicate ADR number. Full `npm run check` was not run for this picker-only fix.
+
 - #687 on `task/687-retire-old-feature-plan-documents`:
   - `8cbf4bcc`: ADRs consolidated into one current record per topic (10 retired numbers listed in `docs/README.md`); new ADRs 0037–0039, 0019 broadened; `adr` skill/rule amend in place; `minima` rule trimmed to requirements.
   - `89fbeb2e`: finished plans, `plans/archive/`, `plans/security/`, and `docs/notes/` deleted with open items carried into `docs/TASKS.md`; QA evidence moved to `docs/reports/`; `docs/README.md` and `docs/TASKS.md` rewritten; `plan-doc`/`openproject`/`documenting-work` retire plans before the PR.

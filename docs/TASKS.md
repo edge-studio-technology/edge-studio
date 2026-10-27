@@ -37,6 +37,7 @@
 
 ### Follow-ups from finished work
 
+- [ ] Fix the `AuthSettingsPage` storage-inventory test harness missing `ToastProvider`; reproduced during camera setup verification.
 - [ ] Review the #524 lint follow-ups: `JsonPreview` ignores `title`, `WatchRunHistory` ignores `replayPlaying`, and `WorkflowWorkspace` rebuilds its replay arrays every render, so effects rerun and the replay timer re-arms.
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the Minima peers table's `<div>` header, and Minima backups not yet on `TableWrap`.
 - [ ] Remove the legacy `bcryptjs` verify path, its tests, and the CI outdated check once existing installs have rehashed (#887; ADR 0035).
@@ -84,6 +85,7 @@
 
 ## Done
 
+- [x] Restored Raspberry Pi Camera in the device setup wizard and updated its focused setup steps, validation, full capture review, and in-app guide; verified with focused tests, frontend lint, and build.
 - [x] #687 Retired finished plans, consolidated ADRs into one record per topic, and pruned stale docs; plans are now deleted before their PR into `dev`, and `npm run lint:docs` blocks doc drift.
 - [x] #686 Removed dead code, seed import, token creation, TOTP, unused routes, and `/setup` (ADR 0036).
 - [x] #216 Replaced native `bcrypt` with built-in scrypt; legacy hashes rehash on login (ADR 0035).
