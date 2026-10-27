@@ -4,6 +4,15 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] module-builder
+
+### Added
+
+- Frontend-only Module Builder and public library demos with sample module management, authoring, installation, and publication flows at `/demo/modules` and `/demo/library`.
+- Library demo module ratings, aggregate builder profiles, visible download counts, and sorting by rating or downloads.
+- English strategy workshop at `/demo/research` with a brief guided question by question across four sections, team survey, seven editable approach profiles, a selected-path comparison against the team vision, local draft saving, and session/report/chart exports.
+- Workshop brief and priority dropdown questions display explanations of every choice beneath each control.
+
 ## [Unreleased]
 
 ### Added

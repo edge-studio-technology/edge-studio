@@ -1,5 +1,6 @@
 import {
   Activity,
+  Boxes,
   Cable,
   CreditCard,
   House,
@@ -18,6 +19,7 @@ export const nav: NavItem[] = [
   { id: "integritas", label: "Integritas", icon: Shield },
   { id: "data", label: "Devices", icon: Cable },
   { id: "workflows", label: "Workflows", icon: Workflow },
+  { id: "demo/modules", label: "Module builder", icon: Boxes, badge: "Demo" },
   { id: "diagnostics", label: "Diagnostics", icon: Activity },
   { id: "marketplace", label: "Marketplace", icon: ShoppingCart, badge: "Coming soon" },
   { id: "settings", label: "Settings", icon: Settings },

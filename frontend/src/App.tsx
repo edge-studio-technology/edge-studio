@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { AppShell } from "./components/AppShell";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ToastProvider } from "./components/ToastProvider";
@@ -16,6 +17,9 @@ import { AutomationHelpPage } from "./pages/AutomationHelpPage";
 import { WalletPage } from "./pages/WalletPage";
 import { AuthSettingsPage } from "./pages/AuthSettingsPage";
 import { UpdatePage } from "./pages/UpdatePage";
+
+const ModuleDemo = lazy(() => import("./features/module-builder-demo/ModuleDemo"));
+const ModuleStrategyResearch = lazy(() => import("./features/module-strategy-research/ModuleStrategyResearch"));
 
 function LoginRoute() {
   const { user, credentialType, refreshSession, sessionNotice } = useAuth();
@@ -53,6 +57,19 @@ function AppContent() {
 }
 
 export default function App() {
+  const { pathname } = useLocation();
+  if (pathname === "/demo/research" || pathname.startsWith("/demo/research/")) {
+    return <ToastProvider><Suspense fallback={<div className="grid min-h-screen place-items-center text-sm text-zinc-400">Opening the strategy workshop…</div>}><ModuleStrategyResearch /></Suspense></ToastProvider>;
+  }
+  if (pathname.startsWith("/demo/modules") || pathname.startsWith("/demo/library")) {
+    return (
+      <ToastProvider>
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-zinc-400">Opening the concept workspace…</div>}>
+          <ModuleDemo />
+        </Suspense>
+      </ToastProvider>
+    );
+  }
   return (
     <ToastProvider>
       <AuthProvider>

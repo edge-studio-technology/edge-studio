@@ -6,7 +6,11 @@ Edge Studio is a prototype intended to run on a trusted local network. It is not
 
 ## Guidelines
 
+The module-builder branch includes intentionally unauthenticated frontend concept routes at `/demo/modules` and `/demo/library`. They display sample data and retain interactions in memory, without mounting the real auth provider, calling backend APIs, executing source code, uploading files, or changing devices. The normal app and backend authentication boundaries are unchanged. Remove these disposable routes before treating the extension system as implemented; see the [demo scope](docs/reports/module-builder-demo/README.md).
+
 Follow these when deploying, operating, or contributing to this project:
+
+- The disposable `/demo/research` route is also unauthenticated, but records user-entered workshop answers rather than fictional module data. It uses namespaced browser localStorage and local JSON/Markdown/SVG downloads, without backend/API calls or uploads. Its draft is not encrypted and is accessible to the same browser/origin; avoid credentials in workshop notes, export before clearing site data, and remove the route when discarding the research prototype.
 
 - Never expose the backend, Minima RPC, or the Docker socket directly to an untrusted network. Access the UI only through the frontend's HTTPS proxy.
 - Never enter admin credentials or download/upload a Minima node backup file over a network connection you cannot verify, even though it is TLS-encrypted. A self-signed certificate proves encryption, not server identity. A node backup file contains the same key material as a seed phrase, plus coin proofs and transaction history, protected only by the single admin-chosen backup password stored in Edge Studio (not a Minima node/wallet password) that encrypts every backup — treat it with the same care as the seed phrase itself.

@@ -108,6 +108,10 @@ Merged into the surviving record on 2026-10-15. Numbers are not reused.
 
 ## QA and reports
 
+Module strategy research: [English team survey, comparison method, exports, and screenshots](./reports/module-strategy-research/README.md).
+
+Module Builder frontend concept: [demo walkthrough, scope, removal instructions, and screenshots](./reports/module-builder-demo/README.md).
+
 Module Builder stakeholder material (2026-10-20): [brief and speaker notes](./reports/module-builder-2026-10-20/stakeholder-brief.md), [PowerPoint](./reports/module-builder-2026-10-20/module-builder-stakeholders.pptx), [PDF](./reports/module-builder-2026-10-20/module-builder-stakeholders.pdf).
 
 | Plan | Status |

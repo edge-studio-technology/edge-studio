@@ -99,6 +99,14 @@ Publication is optional, but publication eligibility need not be unrestricted. L
 
 VS Code documents publisher trust and several marketplace checks. This is a precedent for treating ecosystem operations as product work, not evidence that our demo needs all of its controls immediately. [S7](https://code.visualstudio.com/docs/configure/extensions/extension-runtime-security)
 
+## Community reputation requirement (2026-10-21)
+
+The user requested ratings for modules and builders, plus module download counts. Module ratings use a 1-5 star average with the number of ratings visible. Builder ratings combine all individual ratings across their published modules: total star values divided by total rating count. This weights a well-reviewed module more than a module with one vote, rather than treating their averages equally. For example, one 1-star vote plus nine 5-star votes produces 4.6/5, not 3/5.
+
+The frontend concept now demonstrates submitting/editing a vote, builder profiles, unrated listings, visible downloads even when installed, and rating/download sorting. Voting again replaces the session's previous vote. Private local modules do not contribute to public builder reputation. Seeded figures and simulated counter increments are sample data, not public measurements.
+
+For the real service, voting needs stable user/module identities and server-side uniqueness/aggregation; builder identity must not depend on their display name. Download totals should represent successful package delivery across module releases, with an agreed counting and abuse-control policy. Ratings and downloads can help assess popularity and reported experience; neither proves software safety. Publisher identity, requested host access, and any actual review status remain separate information.
+
 ## 9. Update, withdrawal and offline policy
 
 The plan already calls for immutable releases, version pinning, and staged activation. The later public service still needs policy choices:

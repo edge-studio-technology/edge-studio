@@ -15,6 +15,12 @@ The current prototype contains:
 - Read-only file browsing for a configured host directory
 - A simple architecture that can grow with more services later
 
+## Module Builder Vision Demo
+
+This branch includes a disposable frontend concept of Module Builder and its public library. Run `npm --prefix frontend run dev`, then open `/demo/modules` or `/demo/library` on Vite's Local URL (normally `http://localhost:3030`). No backend or login is needed; installation, activation, and publication use sample data only. See the [demo walkthrough and screenshots](docs/reports/module-builder-demo/README.md).
+
+For a facilitated long-term strategy workshop, open `/demo/research`. It compares the team's priorities with seven editable approaches using radar charts, explicit constraints, and a transparent gap model. Answers save locally in the browser and can be exported/imported. See the [research workshop guide](docs/reports/module-strategy-research/README.md).
+
 ## Installation On Raspberry Pi
 
 Run:

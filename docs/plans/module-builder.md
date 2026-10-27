@@ -115,6 +115,12 @@ Allow developers to write/import/download arbitrary source and package supported
 
 Use the tools to create at least one new workflow block and one new device/hardware capability with no application-source edits. Export and install those packages on another test instance. These examples are acceptance tests for extensibility, not new hard-coded special cases.
 
+## Public library reputation requirement
+
+The eventual public library must show a module's 1-5 star average, rating count, and total package downloads, including on cards for modules already installed. Users can submit or replace their module rating. A builder has no separate vote: their score aggregates every rating across their published modules, weighted by rating count. Unrated modules do not reduce an average; a new builder/module starts unrated.
+
+The disposable frontend concept demonstrates this with session-only votes, builder profiles, numeric sample counters, and Top rated / Most downloaded sorting. It is not a registry implementation. Production must identify builders by stable account ID, enforce one rating per user/module server-side, calculate aggregates server-side, and define successful-download counting across releases with abuse controls. Ratings/downloads are community popularity and experience signals; they are not code-safety certification and do not replace publisher/access information.
+
 ## Docs
 
 - Update `README.md`, `SECURITY.md`, and `docs/PROJECT.md` when the runtime behavior changes, explicitly describing privileged extension execution and local persistence/recovery.

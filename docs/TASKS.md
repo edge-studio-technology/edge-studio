@@ -86,6 +86,14 @@
 
 ## Done
 
+- [x] Added visible explanations for all choices beneath the strategy workshop's brief and priority dropdown questions, including all resource ceiling levels and scoring implications.
+
+- [x] Built an English-only, local long-term strategy workshop for the seven module approaches, with a brief guided question by question across four sections, consensus questions, hard boundaries, editable assumptions, one selected path compared against the team vision, autosave, and exports — see `docs/reports/module-strategy-research/README.md`; no real extension platform or public service was implemented.
+
+- [x] Added module ratings, weighted builder profiles, module download counts, and rating/download sorting to the disposable library frontend concept; real registry voting/counter services remain future public-library work.
+
+- [x] Built a disposable frontend-only Module Builder and public library concept on the module-builder branch, including editable drafts, sample install/remove/activate/publish flows, and browser-verified desktop/tablet/phone layouts — see `docs/reports/module-builder-demo/README.md`; the real extension-platform implementation remains unstarted.
+
 - [x] #687 Retired finished plans, consolidated ADRs into one record per topic, and pruned stale docs; plans are now deleted before their PR into `dev`, and `npm run lint:docs` blocks doc drift.
 - [x] #686 Removed dead code, seed import, token creation, TOTP, unused routes, and `/setup` (ADR 0036).
 - [x] #216 Replaced native `bcrypt` with built-in scrypt; legacy hashes rehash on login (ADR 0035).

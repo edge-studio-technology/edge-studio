@@ -9,6 +9,7 @@ export type NavId =
   | "integritas"
   | "data"
   | "workflows"
+  | "demo/modules"
   | "diagnostics"
   | "marketplace"
   | "settings";
