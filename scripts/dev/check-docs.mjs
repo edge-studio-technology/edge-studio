@@ -3,7 +3,7 @@
 // Usage: node scripts/dev/check-docs.mjs [repo-root]
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { basename, dirname, join, normalize } from "node:path";
+import { basename, join, posix } from "node:path";
 
 const root = process.argv[2] ?? process.cwd();
 
@@ -39,7 +39,7 @@ const fileSet = new Set(files);
 const dirSet = new Set(files.flatMap((f) => f.split("/").slice(0, -1).map((_, i, parts) => parts.slice(0, i + 1).join("/"))));
 const basenames = new Set(files.map((f) => basename(f)));
 const exists = (p) => fileSet.has(p) || dirSet.has(p.replace(/\/$/, ""));
-const read = (f) => readFileSync(join(root, f), "utf8");
+const read = (f) => readFileSync(join(root, f), "utf8").replaceAll("\r\n", "\n");
 
 const docs = files.filter((f) => /\.(md|mdc)$/.test(f) && !VENDORED.some((r) => r.test(f)));
 
@@ -54,7 +54,7 @@ for (const file of docs) {
       if (fenced) return;
       for (const [, target] of text.matchAll(/\]\(([^)\s#]+)(?:#[^)]*)?\)/g)) {
         if (/^[a-z]+:/i.test(target)) continue;
-        const resolved = normalize(join(dirname(file), decodeURI(target)));
+        const resolved = posix.normalize(posix.join(posix.dirname(file), decodeURI(target)));
         // Agent instruction files link repo-root paths such as `.cursor/rules/x.mdc`.
         if (!exists(resolved) && !(PATH_ROOTS.test(target) && exists(target))) fail(file, i + 1, `broken link ${target}`);
       }
