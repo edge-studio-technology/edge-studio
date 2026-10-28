@@ -69,7 +69,7 @@
 
 ## Done
 
-- [x] Repaired stale documentation indexes/references, reconciled retired-plan task entries, and renumbered the portable-history ADR to 0040; made the docs checker handle Windows paths and line endings.
+- [x] Repaired stale documentation indexes/references, reconciled retired-plan task entries, and renumbered the portable-history ADR to 0040; made the docs checker handle Windows paths and line endings and removed the unused frontend archive-list wrapper blocking Knip in CI.
 
 - [x] #687 Retired finished plans, consolidated ADRs into one record per topic, and pruned stale docs; plans are now deleted before their PR into `dev`, and `npm run lint:docs` blocks doc drift.
 - [x] #686 Removed dead code, seed import, token creation, TOTP, unused routes, and `/setup` (ADR 0036).
