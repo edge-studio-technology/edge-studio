@@ -74,6 +74,20 @@ describe("check-docs.mjs", () => {
     assert.match(result.stdout, /check-docs: ok/);
   });
 
+  it("passes mixed LF and CRLF mirrors, including Cursor frontmatter", () => {
+    write({
+      "AGENTS.md": baseline["AGENTS.md"].replaceAll("\n", "\r\n"),
+      ".agents/rules/x.md": rule.replaceAll("\n", "\r\n"),
+      ".cursor/rules/x.mdc": baseline[".cursor/rules/x.mdc"].replaceAll("\n", "\r\n")
+    });
+    assert.equal(run().status, 0);
+  });
+
+  it("still rejects content differences in CRLF mirrors", () => {
+    write({ ".agents/rules/x.md": `${rule}Changed.\n`.replaceAll("\n", "\r\n") });
+    expectProblem(/\.agents\/rules\/x\.md: differs from \.claude\/rules\/x\.md/);
+  });
+
   it("fails on a broken relative link", () => {
     write({ "docs/plans/p.md": "[gone](../../backend/src/gone.ts)\n" });
     expectProblem(/docs\/plans\/p\.md:1: broken link \.\.\/\.\.\/backend\/src\/gone\.ts/);
