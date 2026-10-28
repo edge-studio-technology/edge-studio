@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import type { DataSource, DataSourceTemplate } from "../dataSourceTypes";
 import type { DeviceFormFields } from "../useDeviceFormFields";
 
-export type AltDeviceProvisioningStep = "type" | "name" | "setup" | "gpio-pin" | "gpio-behavior" | "review";
+export type AltDeviceProvisioningStep = "type" | "name" | "setup" | "gpio-pin" | "gpio-behavior" | "camera-mode" | "camera-settings" | "review";
 
 type ProvisioningStep = { id: AltDeviceProvisioningStep; title: string; description: string };
 
@@ -18,6 +18,13 @@ const baseProvisioningSteps: ProvisioningStep[] = [
 ];
 
 export function altDeviceProvisioningSteps(fields: DeviceFormFields): ProvisioningStep[] {
+  if (fields.type === "pi-camera") return [
+    baseProvisioningSteps[0],
+    baseProvisioningSteps[1],
+    { id: "camera-mode", title: "Choose capture mode", description: "Choose a photo or a video clip." },
+    { id: "camera-settings", title: "Configure capture", description: "Set resolution and capture timing." },
+    baseProvisioningSteps[3],
+  ];
   if (fields.type !== "gpio-input") return baseProvisioningSteps;
   return [
     baseProvisioningSteps[0],
@@ -35,7 +42,7 @@ export function isAltDeviceFormValid(fields: DeviceFormFields) {
   if (type === "mqtt" || type === "mqtt-output") return Boolean(brokerUrl && topic);
   if (type === "gpio-input" || type === "gpio-output") return Boolean(gpioChip && gpioPin);
   if (type === "pi-camera")
-    return Boolean(fields.cameraWidth && fields.cameraHeight && fields.cameraDurationMs);
+    return Object.values(cameraFieldErrors(fields)).every((error) => !error);
   if (type === "bme-sensor") return Boolean(fields.bmeBus);
   if (type === "device-system-data") return true;
   if (type === "webhook") return true;
@@ -66,6 +73,8 @@ export function AltDeviceForm({
           {currentStep === "type" && <DeviceTypeStep template={template} />}
         {currentStep === "name" && <NameStep fields={fields} />}
         {currentStep === "setup" && <SetupFields fields={fields} />}
+        {currentStep === "camera-mode" && <CameraModeStep fields={fields} />}
+        {currentStep === "camera-settings" && <SetupFields fields={fields} />}
         {currentStep === "gpio-pin" && <GpioPinStep fields={fields} />}
         {currentStep === "gpio-behavior" && <GpioBehaviorStep fields={fields} />}
           {currentStep === "review" && <ReviewStep template={template} fields={fields} />}
@@ -81,6 +90,8 @@ export function isAltDeviceStepValid(fields: DeviceFormFields, step: AltDevicePr
   if (step === "gpio-pin") return Boolean(fields.gpioChip && fields.gpioPin);
   if (step === "gpio-behavior") return true;
   if (step === "setup") return isAltDeviceSetupValid(fields);
+  if (step === "camera-mode") return fields.cameraMode === "photo" || fields.cameraMode === "video";
+  if (step === "camera-settings") return isAltDeviceSetupValid(fields);
   if (step === "review") return isAltDeviceFormValid(fields);
   return true;
 }
@@ -121,7 +132,7 @@ function isAltDeviceSetupValid(fields: DeviceFormFields) {
   const { type, url, brokerUrl, topic, gpioChip, gpioPin } = fields;
   if (type === "mqtt" || type === "mqtt-output") return Boolean(brokerUrl && topic);
   if (type === "gpio-input" || type === "gpio-output") return Boolean(gpioChip && gpioPin);
-  if (type === "pi-camera") return Boolean(fields.cameraWidth && fields.cameraHeight && fields.cameraDurationMs);
+  if (type === "pi-camera") return Object.values(cameraFieldErrors(fields)).every((error) => !error);
   if (type === "bme-sensor") return Boolean(fields.bmeBus);
   if (type === "device-system-data") return true;
   if (type === "webhook") return true;
@@ -270,13 +281,45 @@ function GpioBehaviorStep({ fields }: { fields: DeviceFormFields }) {
   );
 }
 
-function SetupFields({ fields }: { fields: DeviceFormFields }) {
-  const { type } = fields;
+function cameraFieldErrors(fields: DeviceFormFields) {
+  const width = Number(fields.cameraWidth);
+  const height = Number(fields.cameraHeight);
+  const duration = Number(fields.cameraDurationMs);
+  const fps = Number(fields.cameraFps);
+  return {
+    width: Number.isInteger(width) && width >= 160 && width <= 7680 ? undefined : "Enter a whole number from 160 to 7680.",
+    height: Number.isInteger(height) && height >= 120 && height <= 4320 ? undefined : "Enter a whole number from 120 to 4320.",
+    duration: Number.isFinite(duration) && duration >= 100 && duration <= 300000 ? undefined : "Enter a duration from 100 to 300000 ms.",
+    fps: Number.isInteger(fps) && fps >= 1 && fps <= 120 ? undefined : "Enter a whole number from 1 to 120.",
+  };
+}
+
+function CameraModeStep({ fields }: { fields: DeviceFormFields }) {
   return (
     <div className="gap-detail-close grid">
       <div>
-        <h3 className="type-title text-text-primary m-0">Set up connection</h3>
-        <p className="type-body text-text-secondary mt-detail-tight m-0">Configure the required settings for this device.</p>
+        <h3 className="type-title text-text-primary m-0">Choose capture mode</h3>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">Photo saves a JPEG image. Video saves an H.264 clip.</p>
+      </div>
+      <SelectField
+        label="Capture mode"
+        value={fields.cameraMode}
+        onChange={(event) => fields.setCameraMode(event.target.value as "photo" | "video")}
+        options={[{ value: "photo", label: "Photo" }, { value: "video", label: "Video" }]}
+      />
+      <p className="type-body text-text-secondary m-0">Enable Camera in Devices → Hardware support before running a capture workflow. Adding this device does not take a picture or enable camera access.</p>
+    </div>
+  );
+}
+
+function SetupFields({ fields }: { fields: DeviceFormFields }) {
+  const { type } = fields;
+  const cameraErrors = cameraFieldErrors(fields);
+  return (
+    <div className="gap-detail-close grid">
+      <div>
+        <h3 className="type-title text-text-primary m-0">{type === "pi-camera" ? "Configure capture" : "Set up connection"}</h3>
+        <p className="type-body text-text-secondary mt-detail-tight m-0">{type === "pi-camera" ? "Start with 1280 × 720. Supported resolution and frame rate depend on your camera." : "Configure the required settings for this device."}</p>
       </div>
       {(type === "mqtt" || type === "mqtt-output") && (
         <>
@@ -380,17 +423,10 @@ function SetupFields({ fields }: { fields: DeviceFormFields }) {
 
       {type === "pi-camera" && (
         <>
-          <SelectField
-            label="Capture mode"
-            value={fields.cameraMode}
-            onChange={(event) => fields.setCameraMode(event.target.value as "photo" | "video")}
-            options={[
-              { value: "photo", label: "Photo" },
-              { value: "video", label: "Video" },
-            ]}
-          />
           <InputField
             label="Width"
+            description="Output width in pixels (160–7680)."
+            error={cameraErrors.width}
             value={fields.cameraWidth}
             onChange={(event) => fields.setCameraWidth(event.target.value)}
             placeholder="1280"
@@ -398,6 +434,8 @@ function SetupFields({ fields }: { fields: DeviceFormFields }) {
           />
           <InputField
             label="Height"
+            description="Output height in pixels (120–4320)."
+            error={cameraErrors.height}
             value={fields.cameraHeight}
             onChange={(event) => fields.setCameraHeight(event.target.value)}
             placeholder="720"
@@ -405,6 +443,8 @@ function SetupFields({ fields }: { fields: DeviceFormFields }) {
           />
           <InputField
             label={fields.cameraMode === "photo" ? "Warmup timeout ms" : "Video duration ms"}
+            description={fields.cameraMode === "photo" ? "Time for exposure and white balance to settle before the photo (100–300000 ms)." : "Clip length in milliseconds; 1000 ms is 1 second (100–300000 ms)."}
+            error={cameraErrors.duration}
             value={fields.cameraDurationMs}
             onChange={(event) => fields.setCameraDurationMs(event.target.value)}
             placeholder={fields.cameraMode === "photo" ? "1000" : "5000"}
@@ -413,6 +453,8 @@ function SetupFields({ fields }: { fields: DeviceFormFields }) {
           {fields.cameraMode === "video" && (
             <InputField
               label="FPS"
+              description="Video frames per second (1–120). Start with 30."
+              error={cameraErrors.fps}
               value={fields.cameraFps}
               onChange={(event) => fields.setCameraFps(event.target.value)}
               placeholder="30"
@@ -533,6 +575,13 @@ function ReviewStep({ template, fields }: { template: DataSourceTemplate; fields
         {fields.type === "bme-sensor" && <DetailRow label="I2C bus" value={fields.bmeBus} />}
         {fields.type === "bme-sensor" && <DetailRow label="I2C address" value={fields.bmeAddress} />}
         {fields.type === "webhook" && <DetailRow label="Receive URL" value="Generated after saving" />}
+        {fields.type === "pi-camera" && <>
+          <DetailRow label="Capture mode" value={fields.cameraMode === "video" ? "Video" : "Photo"} />
+          <DetailRow label="Resolution" value={`${fields.cameraWidth} × ${fields.cameraHeight}`} />
+          <DetailRow label={fields.cameraMode === "photo" ? "Warmup timeout" : "Video duration"} value={`${fields.cameraDurationMs} ms`} />
+          {fields.cameraMode === "video" && <DetailRow label="FPS" value={fields.cameraFps} />}
+          <DetailRow label="Output format" value={fields.cameraMode === "video" ? "H.264" : "JPEG"} />
+        </>}
       </DetailList>
     </div>
   );

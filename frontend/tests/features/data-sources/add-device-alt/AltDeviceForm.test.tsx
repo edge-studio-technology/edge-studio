@@ -70,6 +70,20 @@ describe("isAltDeviceFormValid", () => {
     expect(isAltDeviceFormValid(fields({ type: "webhook" }))).toBe(true);
     expect(isAltDeviceFormValid(fields({ type: "json-api", url: "" }))).toBe(false);
   });
+
+  it.each([
+    { cameraWidth: "159" }, { cameraWidth: "7681" }, { cameraWidth: "640.5" },
+    { cameraHeight: "119" }, { cameraHeight: "4321" },
+    { cameraDurationMs: "99" }, { cameraDurationMs: "300001" }, { cameraDurationMs: "abc" },
+    { cameraFps: "0" }, { cameraFps: "121" }, { cameraFps: "29.5" },
+  ])("rejects camera settings outside the API limits: %j", (invalid) => {
+    expect(isAltDeviceFormValid(fields({ type: "pi-camera", cameraWidth: "1280", cameraHeight: "720", cameraDurationMs: "1000", ...invalid }))).toBe(false);
+  });
+
+  it("accepts camera settings at the API limits", () => {
+    expect(isAltDeviceFormValid(fields({ type: "pi-camera", cameraWidth: "160", cameraHeight: "120", cameraDurationMs: "100", cameraFps: "1" }))).toBe(true);
+    expect(isAltDeviceFormValid(fields({ type: "pi-camera", cameraWidth: "7680", cameraHeight: "4320", cameraDurationMs: "300000", cameraFps: "120" }))).toBe(true);
+  });
 });
 
 describe("AltDeviceForm", () => {

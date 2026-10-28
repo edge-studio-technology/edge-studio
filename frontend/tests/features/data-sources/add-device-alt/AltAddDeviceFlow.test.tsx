@@ -54,6 +54,60 @@ describe("AltAddDeviceFlow", () => {
     expect(screen.getByRole("button", { name: "Next step (2)" })).toBeEnabled();
   });
 
+  it("adds a camera from the root picker with its capture settings", async () => {
+    const created = { id: "camera-1", name: "Raspberry Pi Camera", type: "pi-camera" };
+    createDataSource.mockResolvedValue({ item: created });
+    const { props } = renderFlow();
+    await userEvent.click(screen.getByRole("button", { name: /Raspberry Pi Camera/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step (3)" }));
+
+    expect(screen.getByLabelText("Capture mode")).toHaveValue("photo");
+    await userEvent.click(screen.getByRole("button", { name: "Next step (4)" }));
+    expect(screen.getByLabelText("Width")).toHaveValue("1280");
+    expect(screen.getByLabelText("Height")).toHaveValue("720");
+    expect(screen.getByLabelText("Warmup timeout ms")).toHaveValue("1000");
+    await userEvent.clear(screen.getByLabelText("Width"));
+    await userEvent.type(screen.getByLabelText("Width"), "1920");
+    await userEvent.click(screen.getByRole("button", { name: "Next step (5)" }));
+    expect(screen.getByText("1920 × 720")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Add device" }));
+
+    await waitFor(() => expect(props.onCreated).toHaveBeenCalledWith(created));
+    expect(createDataSource).toHaveBeenCalledWith(expect.objectContaining({
+      name: "Raspberry Pi Camera",
+      type: "pi-camera",
+      config: { mode: "photo", width: 1920, height: 720, durationMs: 1000, fps: 30, outputFormat: "jpg" },
+    }));
+    expect(screen.getByRole("button", { name: "Open device guide" })).toBeInTheDocument();
+  });
+
+  it("validates video capture settings and saves the selected mode and timing", async () => {
+    createDataSource.mockResolvedValue({ item: { id: "video-1", name: "Raspberry Pi Camera" } });
+    renderFlow();
+    await userEvent.click(screen.getByRole("button", { name: /Raspberry Pi Camera/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next step (3)" }));
+    await userEvent.selectOptions(screen.getByLabelText("Capture mode"), "video");
+    await userEvent.click(screen.getByRole("button", { name: "Next step (4)" }));
+    await userEvent.clear(screen.getByLabelText("FPS"));
+    await userEvent.type(screen.getByLabelText("FPS"), "121");
+    expect(screen.getByLabelText("FPS")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("button", { name: "Next step (5)" })).toBeDisabled();
+    await userEvent.clear(screen.getByLabelText("FPS"));
+    await userEvent.type(screen.getByLabelText("FPS"), "24");
+    await userEvent.clear(screen.getByLabelText("Video duration ms"));
+    await userEvent.type(screen.getByLabelText("Video duration ms"), "5000");
+    await userEvent.click(screen.getByRole("button", { name: "Next step (5)" }));
+    expect(screen.getByText("H.264")).toBeInTheDocument();
+    expect(screen.getByText("5000 ms")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Add device" }));
+    await waitFor(() => expect(createDataSource).toHaveBeenCalledWith(expect.objectContaining({
+      type: "pi-camera",
+      config: { mode: "video", width: 1280, height: 720, durationMs: 5000, fps: 24, outputFormat: "h264" },
+    })));
+  });
+
   it("Cancel in the picker step calls onClose", async () => {
     const { props } = renderFlow();
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));

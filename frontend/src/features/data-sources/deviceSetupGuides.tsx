@@ -780,6 +780,7 @@ function gpioLedGuide(source: DataSource) {
 }
 
 function piCameraGuide(source: DataSource) {
+  const isVideo = source.config.mode === "video";
   return guide(
     source,
     "Raspberry Pi Camera Setup Guide",
@@ -794,12 +795,55 @@ function piCameraGuide(source: DataSource) {
         ],
       },
       {
+        title: "Connect the camera",
+        description: "Connect a compatible camera to the Pi before enabling camera support.",
+        items: [
+          "Shut down the Pi and disconnect its power before connecting or reseating the camera ribbon cable.",
+          "Use the camera connector and ribbon cable appropriate for your Pi and camera model. Follow the board markings and camera manufacturer's connection instructions; connector positions and cable orientation vary.",
+          "Seat the ribbon fully at both ends, secure the connector latches, then reconnect power and start the Pi.",
+        ],
+      },
+      {
+        title: "Enable camera support",
+        description: "Enable the host camera helper and check that the Pi detects the camera.",
+        items: [
+          "Open Devices → Hardware support → Manage hardware → Camera and choose Enable.",
+          "If Action required appears, complete the displayed setup steps. Run the detection command below on the Pi host, then refresh hardware status.",
+          "Continue when Camera shows Available. If support is enabled but unavailable, inspect the reason and use Repair after correcting the problem.",
+        ],
+        commands: "rpicam-still --list-cameras",
+        body: "On older installations with libcamera tools, use libcamera-still --list-cameras. The output should list a detected camera and its supported modes.",
+      },
+      {
+        title: "Configure capture",
+        description: "Choose the settings used whenever a workflow captures from this device.",
+        items: [
+          "In Setup Device, select Raspberry Pi Camera on the first screen, confirm the type, and give the device a useful name.",
+          "Choose Photo for a JPEG image or Video for an H.264 clip.",
+          "Set width and height in pixels. Start with 1280 × 720 and use settings supported by your camera.",
+          "For photos, warmup timeout lets exposure and white balance settle before capture. Start with 1000 ms.",
+          "For video, duration is the clip length in milliseconds (5000 ms is 5 seconds); FPS is frames per second. Start with 30 FPS.",
+          "Review the mode, resolution, timing, and output format, then select Add device. Use Saved settings → Edit device settings to change them later.",
+        ],
+      },
+      {
         title: "Saved settings",
         table: [
-          ["Mode", source.config.mode ?? "photo"],
+          ["Mode", isVideo ? "Video" : "Photo"],
           ["Resolution", `${source.config.width ?? 1280}x${source.config.height ?? 720}`],
-          ["Duration/warmup", `${source.config.durationMs ?? 1000} ms`],
-          ["FPS", String(source.config.fps ?? 30)],
+          [isVideo ? "Video duration" : "Warmup timeout", `${source.config.durationMs ?? (isVideo ? 5000 : 1000)} ms`],
+          ...(isVideo ? [["FPS", String(source.config.fps ?? 30)]] as Array<[string, string]> : []),
+          ["Output format", isVideo ? "H.264" : "JPEG"],
+        ],
+      },
+      {
+        title: "Verify",
+        description: "Run one deliberate capture and inspect its recorded metadata.",
+        items: [
+          "Open Guide actions and select Create basic workflow for this device. The starter workflow is saved disabled.",
+          "Open the workflow and review Manual run → Capture camera → Show preview. Confirm that Capture camera selects this device.",
+          "Run the workflow manually when you are ready to record. Confirm that Capture camera succeeds and the preview shows capture metadata.",
+          "Check the device's read history for the capture metadata and media hash. Saving a device alone does not capture media.",
         ],
       },
       {
@@ -807,7 +851,27 @@ function piCameraGuide(source: DataSource) {
         items: [
           "Add a Capture camera block and select this camera device.",
           "Attach Stamp data to create an Integritas proof for the captured media hash.",
-          "Captured media stays local but is pruned opportunistically after CAMERA_RETENTION_DAYS (7 days by default). Export evidence you need before retention expires; read history retains metadata and the media hash.",
+          "A video Capture camera block can override the device's video duration for that workflow.",
+        ],
+      },
+      {
+        title: "Troubleshooting",
+        description: "Check hardware detection first, then the helper and workflow settings.",
+        table: [
+          ["No camera detected", "Shut down and disconnect power, then check the cable, connector, and camera compatibility. Restart the Pi and rerun the detection command."],
+          ["Camera tools missing", "Follow the installation steps shown under Hardware support → Camera, then refresh status."],
+          ["Camera unavailable", "Read the reason in Hardware support → Camera. Once prerequisites are met, use Repair and refresh status."],
+          ["Camera busy", "Stop other applications or overlapping workflows using the camera, then retry the capture."],
+          ["Capture fails", "Inspect the failed Capture camera block in the workflow run. Try 1280 × 720, 30 FPS for video, and a short duration supported by the camera."],
+        ],
+      },
+      {
+        title: "Privacy and retention",
+        description: "Review the recording area and keep any evidence you need.",
+        items: [
+          "Place the camera with consent and privacy in mind. A workflow run can record an image or video.",
+          "Captured media stays local unless a workflow sends it elsewhere. Stamp data creates a proof of the media hash; it does not back up the media.",
+          "Captured media is pruned opportunistically after CAMERA_RETENTION_DAYS (7 days by default). Export evidence you need before retention expires; read history retains metadata and the media hash.",
         ],
       },
     ],

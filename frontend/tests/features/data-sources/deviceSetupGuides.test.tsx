@@ -150,6 +150,43 @@ describe("getDeviceSetupGuide / hasDeviceSetupGuide", () => {
 });
 
 describe("StandardDeviceSetupGuide", () => {
+  it("shows camera setup topics, saved video settings, and a disabled capture starter", async () => {
+    const item = source({ type: "pi-camera", config: { mode: "video", width: 1920, height: 1080, durationMs: 5000, fps: 24 } });
+    const onAction = vi.fn();
+    render(<StandardDeviceSetupGuide source={item} onAction={onAction} />, { wrapper: ToastProvider });
+    await userEvent.click(screen.getByRole("button", { name: "Connect the camera" }));
+    expect(screen.getByText(/disconnect its power before connecting/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Enable camera support" }));
+    await userEvent.click(screen.getByRole("button", { name: "Copy commands" }));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("rpicam-still --list-cameras");
+    await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
+    expect(screen.getByText("1920x1080")).toBeInTheDocument();
+    expect(screen.getByText("5000 ms")).toBeInTheDocument();
+    expect(screen.getByText("24")).toBeInTheDocument();
+    expect(screen.getByText("H.264")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(screen.getByText(/Confirm that Capture camera succeeds/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Troubleshooting" }));
+    expect(screen.getByText("Camera busy")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Privacy and retention" }));
+    expect(screen.getByText(/CAMERA_RETENTION_DAYS/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Guide actions" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create basic workflow for this device" }));
+    const workflow = onAction.mock.calls[0][0].workflow(item);
+    expect(workflow.enabled).toBe(false);
+    expect(workflow.blocks.map((block: { type: string }) => block.type)).toEqual(["manual_start", "capture_camera", "show_preview"]);
+    expect(workflow.blocks[1].config.sourceId).toBe(item.id);
+  });
+
+  it("shows photo warmup and format without video FPS in camera saved settings", async () => {
+    render(<StandardDeviceSetupGuide source={source({ type: "pi-camera", config: { mode: "photo", durationMs: 1500 } })} />, { wrapper: ToastProvider });
+    await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
+    expect(screen.getByText("Warmup timeout")).toBeInTheDocument();
+    expect(screen.getByText("1500 ms")).toBeInTheDocument();
+    expect(screen.getByText("JPEG")).toBeInTheDocument();
+    expect(screen.queryByText("FPS")).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     vi.stubGlobal("navigator", {
       ...navigator,

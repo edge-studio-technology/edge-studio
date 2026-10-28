@@ -4,6 +4,15 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- 2026-10-28: Resolved the camera-readd merge with published origin/dev, retaining camera changes and all merged documentation, test-context and dependency fixes. Removed the now-resolved missing-ToastProvider follow-up.
+
+- Updated camera setup to five focused steps with capture field help, API-aligned numeric validation, and a complete review. Revised the in-app camera guide with connection, hardware enablement, configuration, mode-specific saved settings, deliberate capture verification, troubleshooting, and privacy/retention topics; kept the disabled starter workflow action.
+- Camera update verification: all 69 focused form/wizard/guide tests, frontend ESLint, and frontend production build passed. Full frontend suite: 1,798 passed, one unrelated `AuthSettingsPage` storage-inventory test failed because its harness lacks `ToastProvider`. Browser layout and physical Pi capture remain unverified; no deployment performed.
+
+- Restored the missing Raspberry Pi Camera option on the setup wizard's first screen, reusing the existing camera template, configuration form, and guide. Added a regression test covering selection, edited capture settings, and the create request; all 13 wizard tests and the frontend production build passed. Physical camera capture was not tested.
+- ESLint passed for backend, frontend, and update-agent; root lint failed in the docs drift check with 197 reports across existing links, rule mirrors, and a duplicate ADR number. Full `npm run check` was not run for this picker-only fix.
+
+
 - 2026-10-28 dependency audit follow-up: Updated compatible runtime/transitive packages and lockfiles, raised Vitest/coverage minimums to 4.1.12, moved the qs override to 6.16.1, and upgraded the frontend test DOM to patched Happy DOM 21.0.4. Root and all three application package installs/audits reported zero vulnerabilities; added the security changelog entry.
 - Dependency verification: lint, Knip, typechecking and all three production builds passed. Frontend coverage passed all 1,783 tests; update-agent coverage passed all 194. Backend had 1,408 passes and the already-recorded Minima restore 502/200 failure. Root script tests had 33 passes, 30 failures and 3 skips on Windows (missing sh/openssl and CRLF-sensitive fixtures); full check is not reported as passing. No Pi/container deployment was performed.
 - 2026-10-28 CI follow-up: Wrapped both AuthSettingsPage test renders in the real ToastProvider required by StorageHistoryPanel, matching the application context. Both page tests passed, including lazy inventory loading; no production component changes were needed.
