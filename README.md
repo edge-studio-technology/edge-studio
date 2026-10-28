@@ -451,7 +451,7 @@ can show these records as history only; it will not recreate an operational inst
 
 Some collected payload values may be redacted when they look like credentials. This keeps the
 archive safer to transfer, but means a redacted payload cannot be re-hashed to independently verify
-an Integritas proof's original source bytes. See `docs/adr/0037-separate-portable-history-from-device-migration.md`.
+an Integritas proof's original source bytes. See `docs/adr/0040-separate-portable-history-from-device-migration.md`.
 
 ## Feedback
 

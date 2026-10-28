@@ -16,27 +16,12 @@
 ## In Progress
 
 - [ ] Define Edge Studio storage/history lifecycle: monitor usage first, then archive/import, manual cleanup, and category-specific retention — monitor-only inventory implemented; see `docs/plans/storage-history-lifecycle.md`.
-- [ ] Clean out dead code and business logic (OpenProject #686): remove dead files, debug routes, seed phrase import, token creation, TOTP, unused API routes and the legacy `/setup` page with no behaviour change — all steps, docs and verification done (local check, Pi fresh install of `v0.42.3-dev.2`, migration from a v0.42.2 database, full browser smoke) on `task/686-clean-out-dead-code-and-buisness-logic`; security sanity check and PR to `dev` pending; decisions in `docs/adr/0036-remove-dead-code-and-unused-features.md`; see `docs/plans/features/686-clean-out-dead-code-and-business-logic.md`.
-- [ ] Replace native `bcrypt` with built-in `crypto.scrypt` (OpenProject #216): legacy bcrypt verified via `bcryptjs` and rehashed on login — implemented and verified (unit, Pi), PR to `dev` pending on `task/216-change-bcrypt-deps-to-something-more-stable`; see `docs/plans/features/216-change-bcrypt-deps-to-something-more-stable.md`.
-- [ ] Upgrade update-agent, frontend build and installer verifier to Node 22 (OpenProject #886) — implemented and locally verified on `dev-task/886-upgrade-update-agent-frontend-build-and-installer-verifier-to-node-22`; `v0.42.3-dev.1` released and Pi fresh install + self-update verified; wiki 32-bit notice added; PR to `dev` open for review.
-- [ ] Lint CI pipeline (OpenProject #524): shared root ESLint config, root `npm run lint` in `npm run check`/CI, and the existing violations cleared — implemented and verified on `task/524-lint-ci-pipeline`; PR to `dev` open; see `docs/plans/features/524-lint-ci-pipeline.md`.
-- [ ] Incoming payment service and wallet history filtering (OpenProject #652, includes #655): synced Minima history in SQLite, server-paginated history with direction/date filters, previous-wallet marking with re-auth clear — all steps, docs, and final Pi verification (offline receive, backup restore marking, per-wallet rows) done on `task/652-implement-the-incoming-payment-service`; PR to `dev` open for review; decisions in `docs/adr/0033-persist-synced-wallet-history.md`; see `docs/plans/features/652-implement-the-incoming-payment-service.md`.
-- [ ] Improve changelog service (OpenProject #239): `update-agent` caches main's changelog in `/state`, kept in step with the manifest; Update page reads it from `GET /update/status` with an in-app full view — code, docs, local and Pi verification done on `task/239-improve-changelog-service`; PR to `dev` pending; see `docs/plans/features/239-improve-changelog-service.md`.
-- [ ] Upgrade Automation watch mode into a production-quality live monitoring, historic replay, and workflow debugging experience — runtime overview, domain-aware block summaries, replay toolbar/status messaging, status-colored replay animation, and run-specific historic canvas rendering are implemented and build/test verified; browser visual QA remains; see `docs/plans/workflow-watch-mode-upgrade.md`.
-- [ ] Static guided tour (OpenProject #275): built on `task/275-create-static-app-guided-tour`, current `dev` merged for PR preparation (first-visit modal with 9 steps, seen flag per browser, replay from Settings → Behaviour); draft screenshots from dev data are in for every slide, crossfading in a full frame when a slide has two; recapture all of them with clean, Pi-like values before merge, then copy review and merge. Decisions in `docs/adr/0027-static-guided-tour.md`; see `docs/plans/features/275-create-static-app-guided-tour.md`.
-- [ ] Responsive application (OpenProject #667; tasks #694, #695, #697–#701, #269) — all built including #694 (toolkit drawer); #694 still needs its ticket move, then merge; decisions in `docs/adr/0024-responsive-layout-strategy.md`; see `docs/plans/features/667-responsive-application.md`.
-- [ ] Run the 13-step Brave verification for the completed app-wide empty/loading/error hardening, including tasks #659/#660/#661 plus Integritas, software update/update-agent, and Wallet behavior while Minima is unavailable, before merging to `dev` — see `docs/plans/bugs/229-empty-loading-and-error-states-hardening.md`.
-- [ ] Redesign the workflow canvas create/edit/watch experiences — see `docs/plans/workflow-redesign.md`.
-- [ ] Block automation workflows — see `docs/plans/block-automation-workflows.md`.
-- [ ] Security hardening V1.5 — close the external-review findings and remaining work in one ordered workstream; see `docs/plans/security/README.md`. Pi QA passed Phases 1-5 on `v0.50.0-dev.9`; task 704 closed finding [12], task 706 completed Phase 8, and task 707 completed Phase 9.
-- [ ] Add bounded workflow-diagnostic retention, webhook/MQTT credential redaction, persisted workflow run budgets, and rate limits for event-driven security paths — category-specific retention from ADR 0023 is implemented and the full check/build/Compose suite passes on `dev-task/705-retention-redaction-budgets`; needs remaining manual container/Pi checks and the documented existing-installation log migration — see `docs/plans/security/705-retention-redaction-budgets.md`.
-- [ ] Minima node backup & restore v3 (own scheduler, single stored backup password, manual/auto caps) — code implemented, needs manual verification against a real/test node — see `docs/plans/minima-node-backup-restore.md`.
-[Nothing in progress.]
 
 ## Next
 
 ### Follow-ups from finished work
 
+- [ ] Recapture the guided-tour screenshots with clean, Pi-like values and review the copy (#275; ADR 0027).
 - [ ] Review the #524 lint follow-ups: `JsonPreview` ignores `title`, `WatchRunHistory` ignores `replayPlaying`, and `WorkflowWorkspace` rebuilds its replay arrays every render, so effects rerun and the replay timer re-arms.
 - [ ] Clean up table drift left from #697: the workflow watch history's double scroller, the Minima peers table's `<div>` header, and Minima backups not yet on `TableWrap`.
 - [ ] Remove the legacy `bcryptjs` verify path, its tests, and the CI outdated check once existing installs have rehashed (#887; ADR 0035).
@@ -84,6 +69,9 @@
 
 ## Done
 
+- [x] Updated dependency lockfiles and patched Vitest/coverage, qs and Happy DOM requirements to clear the npm audit blocker; all three application audits and the root install audit reported zero vulnerabilities. Existing local backend/script test limitations are recorded in SESSION.
+- [x] Repaired stale documentation indexes/references, reconciled retired-plan task entries, and renumbered the portable-history ADR to 0040; made the docs checker handle Windows paths and line endings and removed the unused frontend archive-list wrapper blocking Knip in CI.
+
 - [x] #687 Retired finished plans, consolidated ADRs into one record per topic, and pruned stale docs; plans are now deleted before their PR into `dev`, and `npm run lint:docs` blocks doc drift.
 - [x] #686 Removed dead code, seed import, token creation, TOTP, unused routes, and `/setup` (ADR 0036).
 - [x] #216 Replaced native `bcrypt` with built-in scrypt; legacy hashes rehash on login (ADR 0035).
@@ -107,7 +95,7 @@
 
 - [ ] Consider an explicit "Change receive address" action for the app-owned local contact; define old-destination and workflow-reference behavior first (ADR 0030).
 - [ ] A sync script or CI check to keep `.agents/`, `.claude/`, and `.cursor/` rules and skills from drifting.
-- [ ] Graceful automation handling around Minima node restarts (don't interrupt an in-progress HTTP poll, MQTT publish, or wallet send); prerequisite for re-enabling the 48h auto-restart (ADR 0037).
+- [ ] Graceful automation handling around Minima node restarts (don't interrupt an in-progress HTTP poll, MQTT publish, or wallet send); prerequisite for re-enabling the 48h auto-restart (ADR 0001).
 - [ ] One-source-of-truth Minima status/operation lock across all mutating paths, with one shared frontend polling store instead of independent `useMinimaStatusRefresh` subscribers. A first attempt regressed UX and was reverted.
 
 ---

@@ -37,6 +37,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 
 | Plan | Status |
 | ---- | ------ |
+| [plans/storage-history-lifecycle.md](./plans/storage-history-lifecycle.md) | Storage/history inventory and archive/import/cleanup roadmap |
 | [plans/feedback-hosted-receiver.md](./plans/feedback-hosted-receiver.md) | Hand-off spec for the Integritas API repo; not started |
 
 ## Architecture decisions
@@ -72,6 +73,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0037](./adr/0037-minima-backups-own-scheduler-and-stored-password.md) | Minima backups: one stored password, own nightly scheduler, shared folder, rolling cap of 20 |
 | [0038](./adr/0038-feedback-hosted-delivery-with-local-fallback.md) | Feedback saved locally, sent to Integritas with the existing key after per-submission consent |
 | [0039](./adr/0039-workflow-canvas-and-watch-mode-interaction.md) | Workflow canvas routes and click controls; watch mode follow-live, replay, and summaries |
+| [0040](./adr/0040-separate-portable-history-from-device-migration.md) | Portable history is a read-only, redacted archive; configuration/secrets transfer is a separate device-migration concern |
 
 ### Retired ADRs
 
@@ -106,77 +108,6 @@ Merged into the surviving record on 2026-10-15. Numbers are not reused.
 
 ## QA and reports
 
-| Plan | Status |
-| ---- | ------ |
-| [plans/security/](./plans/security/README.md) | In progress — Phases 1-5 done and in review; owns all V1.5 security work |
-| [plans/remove-totp.md](./plans/remove-totp.md) | Superseded — TOTP removed in #686 (ADR 0036) |
-| [plans/block-automation-workflows.md](./plans/block-automation-workflows.md) | In progress |
-| [plans/workflow-redesign.md](./plans/workflow-redesign.md) | In progress |
-| [plans/esp32-mqtt-sensor-onboarding.md](./plans/esp32-mqtt-sensor-onboarding.md) | In progress |
-| [plans/pir-motion-sensor-workflows.md](./plans/pir-motion-sensor-workflows.md) | In progress |
-| [plans/host-agent-capability-management.md](./plans/host-agent-capability-management.md) | Not started |
-| [plans/storage-history-lifecycle.md](./plans/storage-history-lifecycle.md) | In progress |
-| [plans/feedback.md](./plans/feedback.md) | V1 implemented; hosted receiver required |
-| [plans/minima-node-backup-restore.md](./plans/minima-node-backup-restore.md) | Implemented; needs verification against a real node |
-| [plans/bme-environmental-sensor-support.md](./plans/bme-environmental-sensor-support.md) | Implemented |
-| [plans/device-guide-starter-workflows.md](./plans/device-guide-starter-workflows.md) | Implemented |
-| [plans/replace-openssl-manifest-verification.md](./plans/replace-openssl-manifest-verification.md) | Implemented |
-| [plans/manifest-deploy-pull-model.md](./plans/manifest-deploy-pull-model.md) | Superseded — see [adr/0008](./adr/0008-manifest-served-from-github-raw.md) |
-
-Completed and superseded plans move to [plans/archive/](./plans/archive/); they are kept for
-context, not updated. `security-checklist.md` and `high-risk-business-logic-hardening.md` were
-archived on 2026-09-04 and folded into the hardening plan above.
-
----
-
-## Architecture decisions
-
-Non-obvious "why" behind a specific implementation — timing constants, rejected alternatives,
-things verified empirically rather than documented upstream. Source comments point here instead
-of carrying the full rationale inline.
-
-| ADR                                                                                     | Decision                          |
-| ---------------------------------------------------------------------------------------- | ---------------------------------- |
-| [adr/0001-minima-graceful-node-restart.md](./adr/0001-minima-graceful-node-restart.md)   | Minima restart: `quit` + Docker `RestartCount` baseline detection + 5-min forceful fallback |
-| [adr/0002-update-page-split.md](./adr/0002-update-page-split.md)                         | Update page split: frontend owns `/update` (status/check/start), `update-agent` owns `/update/` (apply progress) |
-| [adr/0003-update-dry-run.md](./adr/0003-update-dry-run.md)                               | Dev-only `UPDATE_DRY_RUN`: simulates a successful apply without touching any container |
-| [adr/0004-update-page-changelog.md](./adr/0004-update-page-changelog.md)                 | Update page changelog preview: rendered as React elements (no HTML injection); client-side GitHub fetch superseded by 0032 |
-| [adr/0005-modal-mount-gate-removal.md](./adr/0005-modal-mount-gate-removal.md)           | Removed `Modal`'s SSR-pattern `mounted` render gate: unneeded in this client-only SPA, was causing a blank-frame flicker on modal-to-modal swaps |
-| [adr/0006-app-version-single-source-of-truth.md](./adr/0006-app-version-single-source-of-truth.md) | Feedback's app version now reads `update-agent`'s last-applied-manifest file (read-only mount) instead of a separate, drifted `INTEGRITAS_PI_VERSION` env var |
-| [adr/0007-release-channels-and-compose-generation.md](./adr/0007-release-channels-and-compose-generation.md) | Release workflow: branch-per-channel replaced with folder-per-channel on `main`, plus generated per-channel `docker-compose.yml`/`.env.example` |
-| [adr/0008-manifest-served-from-github-raw.md](./adr/0008-manifest-served-from-github-raw.md) | Default manifest delivery: `raw.githubusercontent.com` on the public manifest repo, replacing the never-finished VPS pull-based plan |
-| [adr/0009-manifest-fallback-to-github-raw.md](./adr/0009-manifest-fallback-to-github-raw.md) | Default manifest delivery switched to our own domain, with `update-agent` falling back to `raw.githubusercontent.com` on fetch failure |
-| [adr/0010-security-review-audit-verdict.md](./adr/0010-security-review-audit-verdict.md) | Second-opinion audit of the external V1.5 security review: all 14 findings confirmed, one likelihood downgrade, one missed SSRF-to-Minima-RPC finding, and the resulting fix ordering |
-| [adr/0011-remove-unused-totp.md](./adr/0011-remove-unused-totp.md) | Superseded proposal to remove the dormant TOTP implementation |
-| [adr/0012-keep-totp-decision-outside-v1-5-hardening.md](./adr/0012-keep-totp-decision-outside-v1-5-hardening.md) | V1.5 hardens the dormant implementation without deciding whether TOTP is later retained, redesigned, re-enabled, or removed; superseded by ADR 0036 |
-| [adr/0013-secret-redaction-boundary.md](./adr/0013-secret-redaction-boundary.md) | Single redaction boundary: `redactDeep()` vs `redactStrings()` split, write-time redaction, fail-closed depth limit, and the `isSecretKey()` KISS simplification |
-| [adr/0018-nginx-upload-request-limit.md](./adr/0018-nginx-upload-request-limit.md) | Nginx derives bounded multipart headroom from the backend upload settings instead of carrying a second operator-configured limit |
-| [adr/0019-i2c-prerequisite-setup-action.md](./adr/0019-i2c-prerequisite-setup-action.md) | I2C prerequisite setup: fixed Raspberry Pi OS host-agent action with manual fallback |
-| [adr/0020-bind-installer-runtime-to-signed-manifest.md](./adr/0020-bind-installer-runtime-to-signed-manifest.md) | Release installer verifies the runtime bundle against the signed manifest before replacing application files |
-| [adr/0021-app-secret-fail-closed-without-migration.md](./adr/0021-app-secret-fail-closed-without-migration.md) | Backend refuses an empty `APP_SECRET`, `dev-change-me` default removed, no secret migration; operator owns custom values |
-| [adr/0022-bound-external-automation-effects.md](./adr/0022-bound-external-automation-effects.md) | External automation hardening: initial retention scope, bounded logs, credential-free source history, and a persisted privileged-workflow budget |
-| [adr/0023-classify-stored-records-before-applying-retention.md](./adr/0023-classify-stored-records-before-applying-retention.md) | Retention follows record purpose: bound workflow diagnostics, preserve product and evidence records, and purge user-deleted inbox items |
-| [adr/0024-responsive-layout-strategy.md](./adr/0024-responsive-layout-strategy.md) | Responsive layout: 768 floor, container queries where sidebar width matters, sidebar overlay below 1024, sticky table actions |
-| [adr/0025-error-state-scope-tiers.md](./adr/0025-error-state-scope-tiers.md) | Error presentation by scope: `ErrorContentState` for empty regions, `ErrorAlert` for degraded slices, toasts for transient actions, field errors for validation |
-| [adr/0026-preserve-workflow-run-history.md](./adr/0026-preserve-workflow-run-history.md) | Workflow runs and block runs are preserved as Watch-mode history until a lifecycle policy bounds them per workflow |
-| [adr/0027-static-guided-tour.md](./adr/0027-static-guided-tour.md) | First-visit guided tour is a static single modal, marked seen per browser in `localStorage`, and replayed from Settings → Behaviour |
-| [adr/0028-raise-workflow-run-budget.md](./adr/0028-raise-workflow-run-budget.md) | Per-workflow run budget raised from 10 to an interim 1,000 privileged runs per rolling hour |
-| [adr/0029-verified-version-identity.md](./adr/0029-verified-version-identity.md) | Installed release version reported only when running image digests match the recorded manifest; images carry a baked build identity for dev and mismatched builds |
-| [adr/0030-app-owned-local-address-book-contact.md](./adr/0030-app-owned-local-address-book-contact.md) | Separate app-owned local contact; check/create only; manual contacts stay untouched and may share its destination |
-| [adr/0031-public-credential-type-and-legacy-correction.md](./adr/0031-public-credential-type-and-legacy-correction.md) | Public setup credential hint and hash-conditional metadata correction after successful authentication |
-| [adr/0032-cache-update-changelog-in-update-agent.md](./adr/0032-cache-update-changelog-in-update-agent.md) | Update page changelog cached by update-agent in its state dir, synced on manifest checks; browser no longer fetches GitHub |
-| [adr/0033-persist-synced-wallet-history.md](./adr/0033-persist-synced-wallet-history.md) | Wallet history synced from Minima `history` into SQLite, marked by wallet fingerprint, cleared only with admin re-auth, confirmation time from the block |
-| [adr/0034-observe-resync-after-client-timeout.md](./adr/0034-observe-resync-after-client-timeout.md) | Resync transport uncertainty, automatic-restart observation, separate budgets, and recovery evidence |
-| [adr/0035-hash-admin-credentials-with-scrypt.md](./adr/0035-hash-admin-credentials-with-scrypt.md) | Admin credentials hashed with built-in scrypt; legacy bcrypt verified via pinned `bcryptjs` and rehashed on login until #887 |
-| [adr/0036-remove-dead-code-and-unused-features.md](./adr/0036-remove-dead-code-and-unused-features.md) | Dead code, seed import, token creation, TOTP (schema dropped), debug and unused API routes, and the `/setup` page removed; supersedes ADR 0012 |
-| [adr/0037-separate-portable-history-from-device-migration.md](./adr/0037-separate-portable-history-from-device-migration.md) | Portable history is a read-only, secret-redacted archive; encrypted configuration/secrets transfer belongs to a later device migration feature |
-
----
-
-## QA
-
-| Doc                        | Purpose                                      |
-| -------------------------- | -------------------------------------------- |
 | Doc | Purpose |
 | --- | ------- |
 | [qa/gaps.md](./qa/gaps.md) | Open QA, security, and test gaps (all areas) |

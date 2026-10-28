@@ -1,4 +1,4 @@
-# 0037: Separate Portable History From Device Migration
+# 0040: Separate Portable History From Device Migration
 
 **Status:** Accepted
 **Date:** 2026-10-15
@@ -65,3 +65,7 @@ security and recovery problem from viewing historical records.
 - `frontend/src/features/storage-history/` - archive download action.
 - `docs/plans/storage-history-lifecycle.md` - phased storage, archive/import, cleanup, and migration
   follow-up plan.
+
+## History
+
+- 2026-10-28: Renumbered from 0037 to 0040 to resolve a collision with the existing Minima backup decision; the decision is unchanged.

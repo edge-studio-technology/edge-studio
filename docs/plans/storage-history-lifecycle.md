@@ -25,8 +25,7 @@ The Settings page is the intended home. Name the surface **Storage & history**, 
 
 This plan implements the unresolved lifecycle work identified in `docs/TASKS.md` and must preserve the accepted classifications in:
 
-- `docs/adr/0023-classify-stored-records-before-applying-retention.md`
-- `docs/adr/0026-preserve-workflow-run-history.md`
+- `docs/adr/0022-bound-external-automation-effects.md`
 - `docs/adr/0033-persist-synced-wallet-history.md`
 
 ## Record Inventory And Lifecycle
@@ -91,7 +90,7 @@ Do not include users, sessions, encrypted settings, Integritas credentials, addr
 4. Include Minima transaction/send snapshots with wallet fingerprint and addresses, but never wallet seed material or Minima backup data.
 5. Exclude address-book contacts, saved devices, workflow definitions, users, sessions, settings, secrets, Docker logs, and audit events.
 6. Stream the JSON response without writing a transient archive to the Pi. Add a documented size limit or pre-generation estimate before introducing attachment packaging.
-7. Require a final archive contract review before implementation. Record any lasting format, retention, or evidence-policy decision in an ADR if it is not already covered by ADRs 0023/0026/0033.
+7. Require a final archive contract review before implementation. Record any lasting format, retention, or evidence-policy decision in an ADR if it is not already covered by ADRs 0022/0033/0040.
 
 ## Milestone 3: Read-Only Archived-History Import
 

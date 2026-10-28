@@ -4,6 +4,12 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] doc-fix
+
+### Security
+
+- Updated runtime dependencies and test/build tooling to patched releases for the reported npm advisories.
+
 ## [Unreleased]
 
 ### Added

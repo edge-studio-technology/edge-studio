@@ -40,10 +40,6 @@ export function importHistoryArchive(file: File) {
   return postForm<{ archive: ImportedHistoryArchive }>("/api/storage-history/imports", form);
 }
 
-export function listImportedHistoryArchives() {
-  return getJson<{ archives: ImportedHistoryArchive[] }>("/api/storage-history/imports");
-}
-
 export async function downloadHistoryArchive(currentPassword: string) {
   const response = await fetch("/api/storage-history/export", {
     method: "POST",
