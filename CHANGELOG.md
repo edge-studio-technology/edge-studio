@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Frontend-only Module Builder and public library demos with sample module management, authoring, installation, and publication flows at `/demo/modules` and `/demo/library`.
 - Library demo module ratings, aggregate builder profiles, visible download counts, and sorting by rating or downloads.
+- Module demo phase labels, backup prompts, external AI-skill guidance, source/package snapshot import/export, separate installation/activation, release-source inspection, post-publication moderation status, and required Phase 2 commerce represented by a simulated paid entitlement.
 - English strategy workshop at `/demo/research` with a brief guided question by question across four sections, team survey, seven editable approach profiles, a selected-path comparison against the team vision, local draft saving, and session/report/chart exports.
 - Workshop brief and priority dropdown questions display explanations of every choice beneath each control.
 

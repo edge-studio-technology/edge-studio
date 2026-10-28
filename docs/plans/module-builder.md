@@ -5,14 +5,18 @@
 **Goal:** Make hardware capabilities, device setup, and workflow blocks dynamically installable extensions, prove the lifecycle using the existing capabilities and a locally hosted demo library, then provide in-app extension authoring tools.
 
 **Discussion:** [Alternatives, research precedents, and public-library questions](./module-builder/discussion.md).
+**Workshop revision:** [Agreed authoring direction, delivery phases, and remaining decisions](./module-builder/workshop-revision.md).
+**OpenProject delivery backlog:** [Phase 1 epic #1081](https://openproject.privateprivate.org/work_packages/1081), [Phase 2 epic #1082](https://openproject.privateprivate.org/work_packages/1082); [feature map and estimates](../reports/module-builder-openproject-2026-10-28/README.md).
 **Stakeholder material:** [Presentation source and speaker notes](../reports/module-builder-2026-10-20/stakeholder-brief.md).
 
 ## Stakeholder milestones
 
+Delivery is split into two phases, agreed 2026-10-27: **Phase 1 — Local Module Builder** covers M1-M3, including local authoring, editing, testing, packaging, activation, import/export, default-package extraction, and the local demo-library lifecycle proof. **Phase 2 — Web-hosted library and commerce** covers M4: central hosting, discovery, publishing, publisher profiles, ratings, download counts, checkout, contributor payouts/refunds, and offline purchase entitlements. Commerce is required in Phase 2, confirmed 2026-10-28; provider and commercial terms still need specification. Phase 1 does not require the production hosted library; its local demo library is a test fixture. Other workshop scope refinements remain under discussion in the workshop revision.
+
 - **M1 — Lifecycle proof (steps 1-2):** Inventory/contracts plus the HTTP JSON Source and Fetch block uninstall, real library download, install, activation, and restoration test, including retained configuration/history and restart persistence.
 - **M2 — Default capability parity (steps 3-6):** Dynamic hardware, device setup, and workflow contributions; all default packages removable/restorable, including real Pi verification.
 - **M3 — Authoring proof (step 7):** Create a new block and hardware/device capability with the tools and install them on another instance without core-source edits.
-- **Future M4 — Public library:** Central publishing/operations are a later product phase; the current implementation scope proves a local demo library.
+- **M4 — Web-hosted library and commerce (Phase 2):** Central hosting, discovery, self-service publishing, profiles, ratings, download counts, checkout, contributor payouts/refunds, offline purchase entitlements, and separately maintained service operations; commerce is included in the phase's completion criteria.
 
 ## Progress
 
@@ -46,10 +50,10 @@ Define a versioned manifest containing namespaced identity, version, compatibili
 
 - Hardware capabilities: discover, configure, status, install/setup, enable/start, disable/stop, repair, uninstall, operations, and events; long-running actions report durable job progress.
 - Devices: role (readable/event/capture/output), configuration schema, defaults, wizard steps, guides, tests, and starter workflows.
-- Blocks: explicit execution role/category, configuration and input/output schemas, validation, handler, cancellation, summaries, help, and optional custom editor/renderer.
+- Blocks: explicit execution role/category, configuration and input/output schemas, validation, handler, cancellation, summaries, and help. Custom editors/renderers are deferred under D5.
 - Runtime communication: versioned request/response/event envelopes, operation IDs, structured errors, deadlines, health, and shutdown.
 
-Use schema-driven generic UI plus versioned custom UI hooks for capabilities schemas cannot express. Dynamic means installing a compatible package can add a type without rebuilding the application; it does not mean code without any integration contract can become a working device or block automatically. Allow arbitrary package code and language-specific runtimes through explicit entry points.
+Use schema-driven generic forms, guides, and wizard steps initially. Custom UI hooks are deferred until a concrete required example demonstrates the need, as agreed in workshop follow-up D5. Dynamic means installing a compatible package can add a type without rebuilding the application; it does not mean code without any integration contract can become a working device or block automatically. Allow arbitrary package code and language-specific runtimes through explicit entry points.
 
 Specify legacy type aliases and configuration migrations so existing source IDs, block IDs, workflows, secrets, and histories survive extraction. Preserve historic presentation metadata needed to inspect runs after a package is removed.
 
@@ -60,6 +64,8 @@ Add a backend extension feature, registered through `backend/src/app.ts`, with s
 Persist local drafts, immutable installed releases, activation state, dependency locks, artifact digests, privilege acknowledgement, jobs, and module-owned state. Keep files under persistent application storage, outside installer-managed source replacement. Package definitions and exports must exclude configured instances and credentials by default.
 
 Provide authenticated admin APIs for import, inspect, install, activate, disable, uninstall, export, and catalog download. The browser uses the backend API. Fetching or inspecting a package must not execute it; code execution begins only during an explicit install/setup/activation action after its declared host access is shown.
+
+Per agreed D7, prompt the user before extension installation/update to back up through the planned app-wide Export device and Export logs functionality, before executable hooks run. Recovery is user directed through the corresponding device restore feature. Treat those app-wide capabilities as a dependency to implement and verify, not an existing guarantee: device exports must restore managed state, while log exports support diagnosis. A shareable module export without configured instances/credentials is not a full device backup. Preserve configuration/history on disable/uninstall; keep updates manual and do not promise reversal of arbitrary privileged host changes. Exact backup coverage and whether the prompt can be skipped remain to be specified.
 
 Use a separate local library service with a real catalog and downloadable immutable packages. Serve it as an opt-in development/demo service. The app must download package bytes from it rather than simulate download by copying built-in source or sharing the installed-package directory. Use an explicit local-library endpoint configuration rather than weakening existing operator-URL restrictions globally.
 
@@ -109,7 +115,7 @@ Stage updates before activation, resolve dependencies, reject incompatible artif
 
 Start authoring work once package/runtime contracts and the first vertical slice work; it can then proceed alongside capability extraction without depending on the completed public service.
 
-Provide My Modules, a local builder workspace, and the library browser. Support create from template, import, edit files/code, schema editing, custom UI entry points, wizard/block preview, fixtures, validation, development execution, logs, packaging, export, and local activation. Separate drafts from immutable active releases.
+Phase 1 provides My Modules and a local builder workspace. Support create from template, import, edit files/code, schema editing, wizard/block preview, fixtures, validation, development execution, logs, packaging, export, and local activation. Custom UI entry points are deferred under D5. Separate drafts from immutable active releases. The production library browser and publishing integration are Phase 2; the local demo library remains available for Phase 1 lifecycle verification.
 
 Allow developers to write/import/download arbitrary source and package supported runtimes. Build/source workflows must distinguish source import from artifact readiness and target architecture. Do not require cloud publication to activate a local extension. Testing privileged code is real host execution unless deliberately using a separate disposable target; fixtures alone cannot sandbox root hooks.
 

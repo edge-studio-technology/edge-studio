@@ -21,11 +21,13 @@ import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { InputField } from "../../components/ui/InputField";
 import { SwitchField } from "../../components/ui/SwitchField";
-import { useToast } from "../../components/ToastProvider";
 import { cx } from "../../lib/cx";
 import { categories, sampleFiles, type DemoModule, type ModuleIcon } from "./demoData";
 import { DemoBadge, ModuleGlyph, Publisher, SectionLabel } from "./DemoUi";
 import { useDemo } from "./demoState";
+import { BackupChecklist } from "./BackupChecklist";
+import { parseDemoDraft } from "./demoPackaging";
+import { type DemoDraft } from "./demoData";
 
 export function ModuleManager() {
   const { modules, drafts, activity, uninstall, toggle, update, saveDraft } = useDemo();
@@ -37,8 +39,10 @@ export function ModuleManager() {
   const [name, setName] = useState("");
   const [importName, setImportName] = useState("");
   const [removeTarget, setRemoveTarget] = useState<DemoModule | null>(null);
+  const [updateTarget, setUpdateTarget] = useState<DemoModule | null>(null);
+  const [importedDraft, setImportedDraft] = useState<DemoDraft | null>(null);
+  const [importError, setImportError] = useState("");
   const navigate = useNavigate();
-  const { showToast } = useToast();
   const installed = modules.filter((item) => item.installed);
   const updates = installed.filter((item) => item.update);
   const visible = installed.filter(
@@ -51,8 +55,18 @@ export function ModuleManager() {
     setCreate(mode);
     setName("");
     setImportName("");
+    setImportedDraft(null);
+    setImportError("");
   }
   function createDraft() {
+    if (create === "import") {
+      if (!importedDraft) return;
+      const restored = { ...importedDraft, name: name.trim() || importedDraft.name };
+      saveDraft(restored);
+      setCreate(null);
+      navigate(`/demo/modules/editor/${restored.id}`);
+      return;
+    }
     const draftName = name.trim() || "My first module";
     const id = `${draftName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
     const icon: ModuleIcon =
@@ -89,12 +103,6 @@ export function ModuleManager() {
     });
     setCreate(null);
     navigate(`/demo/modules/editor/${id}`);
-    if (create === "import")
-      showToast({
-        title: "Import preview created",
-        message: "This demo uses starter content; your selected file is not read or executed.",
-        tone: "info",
-      });
   }
   return (
     <div className="mx-auto max-w-[1440px] px-5 py-8 md:px-9 md:py-10">
@@ -102,13 +110,17 @@ export function ModuleManager() {
         <div>
           <div className="mb-2 flex items-center gap-2">
             <SectionLabel>YOUR WORKSPACE, EXTENDED</SectionLabel>
-            <DemoBadge tone="purple">Preview</DemoBadge>
+            <DemoBadge tone="purple">Phase 1 · Local</DemoBadge>
           </div>
           <h1 className="text-3xl font-semibold tracking-[-0.04em] text-zinc-950 md:text-4xl">
             Module builder
           </h1>
           <p className="mt-3 text-sm text-zinc-500">
             Make Edge Studio work your way. Add capabilities, or build your own.
+          </p>
+          <p className="mt-2 max-w-xl text-xs leading-relaxed text-zinc-400">
+            Create, edit, test, package, and activate locally. No library account is needed.
+            Publishing and the hosted catalog are Phase 2.
           </p>
         </div>
         <div className="flex gap-2 pt-2">
@@ -285,6 +297,11 @@ export function ModuleManager() {
                   </div>
                 </div>
                 <p className="mt-4 text-xs leading-relaxed text-zinc-500">{module.summary}</p>
+                {module.localOnly && (
+                  <p className="mt-2 text-[10px] text-violet-600">
+                    Local copy · Edits do not change a publisher's official release
+                  </p>
+                )}
                 <div className="mt-4 flex flex-wrap gap-1.5">
                   {module.contributions.slice(0, 2).map((item) => (
                     <DemoBadge key={item}>{item}</DemoBadge>
@@ -302,7 +319,7 @@ export function ModuleManager() {
                   <div className="flex items-center gap-3">
                     {module.update && (
                       <button
-                        onClick={() => update(module.id)}
+                        onClick={() => setUpdateTarget(module)}
                         className="cursor-pointer text-[11px] font-semibold text-violet-600"
                       >
                         Update to {module.update}
@@ -426,6 +443,38 @@ export function ModuleManager() {
           </div>
         </Modal>
       )}
+      {updateTarget && (
+        <Modal
+          title={`Update ${updateTarget.name}`}
+          description={`Manual update: ${updateTarget.version} → ${updateTarget.update}. Your configuration and history are retained.`}
+          onClose={() => setUpdateTarget(null)}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setUpdateTarget(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="accent"
+                onClick={() => {
+                  update(updateTarget.id);
+                  setUpdateTarget(null);
+                }}
+              >
+                Apply demo update
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4 p-6">
+            <BackupChecklist />
+            <p className="text-xs leading-relaxed text-zinc-500">
+              Compatibility and package checks are illustrated only. Recovery is user-directed
+              through the planned device restore feature; this demo does not perform a restore or
+              change your host.
+            </p>
+          </div>
+        </Modal>
+      )}
       {create && (
         <Modal
           title={create === "import" ? "Bring your own module" : "What will you build?"}
@@ -443,7 +492,7 @@ export function ModuleManager() {
               <Button
                 variant="accent"
                 onClick={createDraft}
-                disabled={!name.trim()}
+                disabled={!name.trim() || (create === "import" && !importedDraft)}
                 iconStart={<Plus />}
               >
                 {create === "import" ? "Import as draft" : "Create draft"}
@@ -459,17 +508,28 @@ export function ModuleManager() {
                   {importName || "Choose a module package"}
                 </span>
                 <span className="text-xs text-zinc-400">
-                  Demo import creates a starter draft; selected files are not read.
+                  Import a source or package snapshot exported by this demo. Files are read as JSON;
+                  code is never executed.
                 </span>
                 <input
                   type="file"
                   className="max-w-full text-xs"
                   aria-label="Choose module package"
-                  onChange={(event) => {
+                  onChange={async (event) => {
                     const file = event.target.files?.[0];
+                    setImportedDraft(null);
+                    setImportError("");
                     if (file) {
                       setImportName(file.name);
-                      setName(file.name.replace(/\.[^.]+$/, ""));
+                      try {
+                        const restored = parseDemoDraft(await file.text());
+                        setImportedDraft(restored);
+                        setName(restored.name);
+                      } catch {
+                        setImportError(
+                          "Choose a valid source or package snapshot exported by this demo. Your existing drafts are unchanged.",
+                        );
+                      }
                     }
                   }}
                 />
@@ -510,6 +570,16 @@ export function ModuleManager() {
                 ))}
               </div>
             )}
+            {importError && (
+              <p role="alert" className="text-xs text-red-600">
+                {importError}
+              </p>
+            )}
+            <p className="rounded-xl bg-violet-50 p-4 text-xs leading-relaxed text-violet-800">
+              Use our module-builder-skill in your own AI harness to generate code, then import a
+              demo snapshot or paste code into the editor. The editor's AI-assisted creation guide
+              includes an illustrative skill download. No CLI or built-in AI generator.
+            </p>
             <InputField
               label="Module name"
               placeholder="Something useful starts with a name"

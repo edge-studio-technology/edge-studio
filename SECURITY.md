@@ -8,6 +8,8 @@ Edge Studio is a prototype intended to run on a trusted local network. It is not
 
 The module-builder branch includes intentionally unauthenticated frontend concept routes at `/demo/modules` and `/demo/library`. They display sample data and retain interactions in memory, without mounting the real auth provider, calling backend APIs, executing source code, uploading files, or changing devices. The normal app and backend authentication boundaries are unchanged. Remove these disposable routes before treating the extension system as implemented; see the [demo scope](docs/reports/module-builder-demo/README.md).
 
+The concept can read a user-selected demo source/package JSON snapshot into browser memory; imported code is inert and never uploaded or executed. Device/log exports contain sample state and are explicitly non-restorable. Paid-module entitlements and exported unsigned receipts are simulated, with no checkout, license verification, or copy protection. Published source snapshots and inspection reports exist only in the demo session; acceptance-check results are not code-safety certification.
+
 Follow these when deploying, operating, or contributing to this project:
 
 - The disposable `/demo/research` route is also unauthenticated, but records user-entered workshop answers rather than fictional module data. It uses namespaced browser localStorage and local JSON/Markdown/SVG downloads, without backend/API calls or uploads. Its draft is not encrypted and is accessible to the same browser/origin; avoid credentials in workshop notes, export before clearing site data, and remove the route when discarding the research prototype.

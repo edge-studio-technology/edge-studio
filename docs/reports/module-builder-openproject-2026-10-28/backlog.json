@@ -1,0 +1,565 @@
+{
+  "created": "2026-10-28",
+  "project": "Integritas Team",
+  "projectId": 12,
+  "product": "Edge Studio",
+  "epics": 2,
+  "features": 16,
+  "items": [
+    {
+      "key": "P1",
+      "phase": 1,
+      "milestone": "M1-M3",
+      "subject": "Module Builder - Phase 1: Local creation and execution",
+      "estimate": [
+        40,
+        62
+      ],
+      "story": "An operator can create or import a module, test/package it and activate it locally without a core release, CLI or hosted-library account.",
+      "criteria": [
+        "Hardware-agent, device/setup and workflow contributions use versioned dynamic contracts and real installed packages.",
+        "Existing default capabilities are uninstallable/restorable through a real local demo-library lifecycle without losing configuration/history.",
+        "The app provides editing, templates, schema-driven preview, tests/logs, validation, packaging, import/export and explicit activation.",
+        "Code generation happens in the user's own AI harness using a module-builder-skill; no module CLI or built-in AI generator.",
+        "Before install/update/activation, prompt for app-wide device/log exports and demonstrate user-directed restoration of managed state.",
+        "A new physical sensor and workflow block can be authored and installed on another Pi without core-source edits.",
+        "Full privileged host execution is intentional; supervision is not a sandbox and arbitrary host changes are not universally reversible."
+      ],
+      "deps": [],
+      "legacy": [
+        316,
+        339,
+        976,
+        977,
+        978,
+        980,
+        982
+      ],
+      "id": 1081,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1081",
+      "dependencyIds": []
+    },
+    {
+      "key": "P2",
+      "phase": 2,
+      "milestone": "M4",
+      "subject": "Module Builder - Phase 2: Hosted library and commerce",
+      "estimate": [
+        24,
+        40
+      ],
+      "story": "Independent authors publish inspectable modules, users discover and buy them, and contributors receive payment while installed versions remain usable offline.",
+      "criteria": [
+        "Self-service publishing includes publisher identities, immutable releases, inspectable source, compatibility metadata and official delivery.",
+        "Automated acceptance checks precede publication; initial human spam/content moderation follows publication, with community management as the end goal.",
+        "Ratings, rating-count-weighted builder aggregates, download counts and community inspection reports are available without safety-certification claims.",
+        "Commerce is REQUIRED in this phase: checkout, contributor payouts, refunds, purchase records and offline entitlements are implemented and tested.",
+        "Installed paid versions continue offline without a continuous license-server dependency; external module services may still need connectivity.",
+        "Licensing/fork rights remain open; do not promise strong anti-copy enforcement or mandatory restrictive redistribution.",
+        "Web-library operational ownership is separate from community module creation; monitoring/backup/report/removal mechanisms are established."
+      ],
+      "deps": [
+        "P1"
+      ],
+      "legacy": [
+        926,
+        952,
+        954,
+        982
+      ],
+      "id": 1082,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1082",
+      "dependencyIds": [
+        1081
+      ]
+    },
+    {
+      "key": "F0",
+      "phase": 1,
+      "milestone": "Prerequisite",
+      "subject": "App-wide device/log export and tested restore for extension recovery",
+      "estimate": [
+        6,
+        10
+      ],
+      "story": "As an operator I can export managed device state and diagnostic logs, then restore through the app-wide recovery path when an extension change fails.",
+      "criteria": [
+        "Define backup coverage for configuration, workflows, module releases/artifacts/state, retained history/media and required credential/node/wallet integration.",
+        "Export device is restorable managed state; Export logs is diagnostic. Neither is confused with a credential-free shareable module package.",
+        "Protect credentials according to the app-wide backup policy and document a recovery route if the app must first be repaired/reinstalled.",
+        "Test export/restore on an app-approved Pi baseline, including failed extension updates and compatible code/state restoration.",
+        "Integrate with existing app-wide export/log work; do not build a second module-only backup system or promise full OS/firmware rollback."
+      ],
+      "deps": [],
+      "legacy": [
+        643,
+        819
+      ],
+      "id": 1083,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1083",
+      "dependencyIds": []
+    },
+    {
+      "key": "F1",
+      "phase": 1,
+      "milestone": "M1",
+      "subject": "Inventory capabilities and define versioned module contracts",
+      "estimate": [
+        3,
+        4
+      ],
+      "story": "As an author I have documented hardware/device/workflow contracts so a compatible package can add a type without core code changes.",
+      "criteria": [
+        "Inventory every current capability/block/template and assign package ownership and observable parity checks.",
+        "Define namespaced manifest identity/version, runtime entry points, contributions, dependencies, compatibility and declared host access.",
+        "Define lifecycle/error/cancellation/events and generic UI schemas for forms, guides and wizard steps.",
+        "Platform/runtimes/architectures inherit Edge Studio app policy; per-module requirements are declared and checked.",
+        "Define legacy IDs/state migration boundaries and keep the module manager usable with no packages installed."
+      ],
+      "deps": [],
+      "legacy": [
+        252,
+        978
+      ],
+      "id": 1084,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1084",
+      "dependencyIds": []
+    },
+    {
+      "key": "F2",
+      "phase": 1,
+      "milestone": "M1",
+      "subject": "Implement package lifecycle and HTTP/Fetch vertical slice",
+      "estimate": [
+        5,
+        8
+      ],
+      "story": "As an operator I can uninstall and genuinely download/reinstall an existing capability through one complete local lifecycle.",
+      "criteria": [
+        "Persist immutable installed releases, drafts, activation/configuration state and package integrity/compatibility results.",
+        "Import/inspection does not execute code; show access and the backup prompt before executable hooks.",
+        "Extract HTTP JSON Source/Fetch and use a separate local demo catalog with real downloadable bytes, not a shared-directory copy.",
+        "Demonstrate uninstall, missing-module placeholders, real download, inactive installation, explicit activation, restart persistence and retained history/configuration.",
+        "Keep updates manual and failed-install/reinstall states actionable; record backup/export integration as dependent on F0."
+      ],
+      "deps": [
+        "F1"
+      ],
+      "legacy": [],
+      "id": 1085,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1085",
+      "dependencyIds": [
+        1084
+      ]
+    },
+    {
+      "key": "F3",
+      "phase": 1,
+      "milestone": "M2",
+      "subject": "Make privileged hardware-agent capabilities dynamically installable",
+      "estimate": [
+        5,
+        8
+      ],
+      "story": "As an author I can add a privileged hardware capability without adding a hard-coded agent branch.",
+      "criteria": [
+        "Convert the fixed host-agent dispatcher into a module-aware supervisor and capability registry.",
+        "Package camera/GPIO/I2C/local-MQTT behavior, prerequisites and lifecycle operations with explicit ownership.",
+        "Support full privileged host entry points, durable progress, health/cancellation and clear partial-failure/reboot reporting.",
+        "Setup is repeatable; uninstall handles shared dependencies and reports host changes that remain.",
+        "Verify representative physical Pi hardware behavior; do not describe root execution as sandboxed."
+      ],
+      "deps": [
+        "F2"
+      ],
+      "legacy": [
+        386,
+        955
+      ],
+      "id": 1086,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1086",
+      "dependencyIds": [
+        1085
+      ]
+    },
+    {
+      "key": "F4",
+      "phase": 1,
+      "milestone": "M2",
+      "subject": "Render dynamic device definitions, schemas and setup wizards",
+      "estimate": [
+        3,
+        5
+      ],
+      "story": "As an operator I can configure new contributed device types through the existing Devices experience.",
+      "criteria": [
+        "Replace hard-coded device choices/forms/guides with registry-driven, schema-defined fields, defaults and wizard steps.",
+        "Dispatch backend configuration/reads/events/captures through registered providers.",
+        "Preserve existing IDs, credentials, device configuration, capture hashing and event lifecycle behavior.",
+        "Missing/disabled packages retain configured devices and show actionable unavailable states.",
+        "Arbitrary custom views/editors are deferred until a concrete required example demonstrates the need."
+      ],
+      "deps": [
+        "F2"
+      ],
+      "legacy": [],
+      "id": 1087,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1087",
+      "dependencyIds": [
+        1085
+      ]
+    },
+    {
+      "key": "F5",
+      "phase": 1,
+      "milestone": "M2",
+      "subject": "Make workflow blocks and execution registry-driven",
+      "estimate": [
+        4,
+        6
+      ],
+      "story": "As an author I can contribute workflow blocks and handlers without editing core type unions or execution branches.",
+      "criteria": [
+        "Replace compiled block lists, configuration/help/summaries and dispatch with registered descriptors and handlers.",
+        "Use explicit start/data/action roles; preserve scheduling, cancellation, run/block history and structured errors.",
+        "Preserve existing media/hash/proof semantics and application-service budgets for ordinary calls; privileged code is not constrained by those policies.",
+        "Pin resolved package versions for execution and retain placeholders/history for unavailable blocks.",
+        "Handle uncertain side effects without automatically repeating payments after timeouts."
+      ],
+      "deps": [
+        "F2"
+      ],
+      "legacy": [],
+      "id": 1088,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1088",
+      "dependencyIds": [
+        1085
+      ]
+    },
+    {
+      "key": "F6",
+      "phase": 1,
+      "milestone": "M2",
+      "subject": "Extract default packages and prove migration/hardware parity",
+      "estimate": [
+        4,
+        5
+      ],
+      "story": "As an existing user I retain my working devices/workflows while built-in capabilities become removable packages.",
+      "criteria": [
+        "Assign every existing choice a final package owner; remove temporary migration adapters and permanent hidden built-in fallbacks.",
+        "Migrate legacy IDs/configuration without recreating devices or losing histories/secrets.",
+        "For each package verify disable/remove, unavailable states, actual local-library download, inactive install, activation and restored behavior.",
+        "Verify reboot, interrupted hooks, shared hardware/dependencies, offline use, zero-extension operation and restoration of the default set.",
+        "Removed defaults do not silently reinstall on ordinary app restart/update; purge is a separate explicit action."
+      ],
+      "deps": [
+        "F3",
+        "F4",
+        "F5"
+      ],
+      "legacy": [],
+      "id": 1089,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1089",
+      "dependencyIds": [
+        1086,
+        1087,
+        1088
+      ]
+    },
+    {
+      "key": "F7",
+      "phase": 1,
+      "milestone": "M3",
+      "subject": "Deliver the in-app local module authoring workspace",
+      "estimate": [
+        5,
+        8
+      ],
+      "story": "As a creator I edit and preview module files in Edge Studio and test behavior before explicit local activation.",
+      "criteria": [
+        "Provide My Modules, local drafts, template selection, file/code editing and schema-defined configuration/setup previews.",
+        "Expose supported test fixtures/development runs, logs and clear failure results; distinguish preview from actual privileged execution.",
+        "Separate drafts from prepared immutable releases; edits invalidate preparation status.",
+        "Integrate app-wide backup prompts before install/update/local activation and preserve configuration/history on removal.",
+        "No module CLI, full IDE or in-app AI generation harness is required; publishing is Phase 2."
+      ],
+      "deps": [
+        "F2",
+        "F0"
+      ],
+      "legacy": [
+        977,
+        253
+      ],
+      "id": 1090,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1090",
+      "dependencyIds": [
+        1085,
+        1083
+      ]
+    },
+    {
+      "key": "F8",
+      "phase": 1,
+      "milestone": "M3",
+      "subject": "Provide the module-builder skill, packaging and independent-author proof",
+      "estimate": [
+        5,
+        8
+      ],
+      "story": "As a creator I generate source in my own AI harness with the module-builder-skill, then package and share it through the app.",
+      "criteria": [
+        "Publish a skill/reference hand-off covering actual manifest/runtime contracts, schemas, examples and test/package requirements.",
+        "Support source import, validation, target-aware artifact preparation, source/package export and import on another instance.",
+        "No hosted account/publication is required for local activation or direct sharing; exclude device instances/credentials from shareable artifacts.",
+        "An independent contributor creates a new physical sensor capability and workflow block, tests on a Pi and installs on a second instance without core edits.",
+        "Generated code is not presumed safe or correct; show execution trust and test limitations accurately."
+      ],
+      "deps": [
+        "F1",
+        "F7",
+        "F3",
+        "F4",
+        "F5"
+      ],
+      "legacy": [],
+      "id": 1091,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1091",
+      "dependencyIds": [
+        1084,
+        1090,
+        1086,
+        1087,
+        1088
+      ]
+    },
+    {
+      "key": "F9",
+      "phase": 2,
+      "milestone": "M4a",
+      "subject": "Host publisher identities and immutable module releases",
+      "estimate": [
+        4,
+        6
+      ],
+      "story": "As a contributor I own a stable publisher identity and publish versioned artifacts/source through a centrally hosted service.",
+      "criteria": [
+        "Provide publisher accounts/namespaces, scoped publishing credentials and release ownership.",
+        "Store immutable artifacts and the matching source snapshot/manifest/dependency/access metadata.",
+        "Provide integrity/provenance verification without claiming code-safety certification or DRM.",
+        "Establish service monitoring, backups, recovery and named operational ownership separate from community module creation."
+      ],
+      "deps": [
+        "F2",
+        "F8"
+      ],
+      "legacy": [
+        954,
+        926
+      ],
+      "id": 1092,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1092",
+      "dependencyIds": [
+        1085,
+        1091
+      ]
+    },
+    {
+      "key": "F10",
+      "phase": 2,
+      "milestone": "M4a",
+      "subject": "Deliver hosted discovery and Edge Studio library integration",
+      "estimate": [
+        3,
+        5
+      ],
+      "story": "As an operator I find compatible capabilities in the library and install official releases through Edge Studio.",
+      "criteria": [
+        "Provide searchable/filterable module pages, publisher profiles, versions, docs and compatibility/access information.",
+        "Connect the app to actual hosted package downloads using the Phase 1 package model.",
+        "Retain backup prompts, inactive installation and explicit activation; preserve installed versions when the library is offline.",
+        "Support both free and paid listings; paid entitlement enforcement in the official delivery path integrates with F15."
+      ],
+      "deps": [
+        "F9",
+        "F2"
+      ],
+      "legacy": [
+        952,
+        253
+      ],
+      "id": 1093,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1093",
+      "dependencyIds": [
+        1092,
+        1085
+      ]
+    },
+    {
+      "key": "F11",
+      "phase": 2,
+      "milestone": "M4a",
+      "subject": "Automate publication checks and initial post-publication moderation",
+      "estimate": [
+        3,
+        5
+      ],
+      "story": "As an author I publish after automated checks without a human approval gate, while the library can address spam and inappropriate content.",
+      "criteria": [
+        "Define and implement deterministic acceptance checks for package/manifest/metadata/artifact integrity and compatibility declarations.",
+        "Publication is self-service once checks pass; no mandatory manual code review or approval before publication.",
+        "Initially support human post-publication spam/content moderation, reporting, removals/appeals and an audit trail.",
+        "Document the path to community-managed moderation and name initial owners/transition criteria.",
+        "AI-assisted checks remain an evaluation option, not a mandatory dependency, automatic safety badge or claimed completed scan."
+      ],
+      "deps": [
+        "F9"
+      ],
+      "legacy": [],
+      "id": 1094,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1094",
+      "dependencyIds": [
+        1092
+      ]
+    },
+    {
+      "key": "F12",
+      "phase": 2,
+      "milestone": "M4b",
+      "subject": "Expose release-source inspection and community reports",
+      "estimate": [
+        2,
+        4
+      ],
+      "story": "As a community member I inspect the exact release source before purchase/download and report concerns about that version.",
+      "criteria": [
+        "Expose source, manifest, dependencies, requested privileges and release differences tied to the actual delivered artifact.",
+        "Keep published snapshots immutable while allowing labelled local modifications and separately versioned releases.",
+        "Support version-specific inspection reports distinct from ratings and purchase reviews.",
+        "Do not select a restrictive redistribution license or certify safety merely from public source, signatures or community reports."
+      ],
+      "deps": [
+        "F9",
+        "F11"
+      ],
+      "legacy": [],
+      "id": 1095,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1095",
+      "dependencyIds": [
+        1092,
+        1094
+      ]
+    },
+    {
+      "key": "F13",
+      "phase": 2,
+      "milestone": "M4b",
+      "subject": "Implement module ratings, builder reputation and download counts",
+      "estimate": [
+        4,
+        6
+      ],
+      "story": "As a user I compare community experience and popularity without mistaking them for a safety guarantee.",
+      "criteria": [
+        "Provide server-side 1-5 star ratings with counts and one replaceable rating per account/module.",
+        "Compute builder aggregates from all individual module ratings weighted by rating count; unrated modules do not lower averages.",
+        "Define successful-download counting and abuse controls; keep totals visible for installed modules.",
+        "Provide rating/download sorting and clearly distinguish verified purchases from other community feedback.",
+        "No rating, verified identity or download figure is represented as code-safety certification."
+      ],
+      "deps": [
+        "F9",
+        "F10"
+      ],
+      "legacy": [],
+      "id": 1096,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1096",
+      "dependencyIds": [
+        1092,
+        1093
+      ]
+    },
+    {
+      "key": "F14",
+      "phase": 2,
+      "milestone": "M4c",
+      "subject": "Implement required marketplace purchases, payouts and refunds",
+      "estimate": [
+        5,
+        9
+      ],
+      "story": "As a contributor I sell official module releases and receive payment; buyers have clear purchase and refund records.",
+      "criteria": [
+        "Commerce is required for Phase 2 completion; implement checkout with one selected payment provider.",
+        "Persist authoritative order/payment records and handle asynchronous provider events idempotently.",
+        "Implement contributor onboarding/payout and refund paths with auditable reconciliation and purchase-support states.",
+        "Agree pricing/purchase/update/refund/payout terms before launch; subscriptions are not assumed as baseline.",
+        "Allow source inspection before purchase and preserve the openness/anti-copy limitations recorded in D8."
+      ],
+      "deps": [
+        "F9",
+        "F10"
+      ],
+      "legacy": [
+        320,
+        367
+      ],
+      "id": 1097,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1097",
+      "dependencyIds": [
+        1092,
+        1093
+      ]
+    },
+    {
+      "key": "F15",
+      "phase": 2,
+      "milestone": "M4c",
+      "subject": "Deliver official-package entitlements and installed-version offline use",
+      "estimate": [
+        3,
+        5
+      ],
+      "story": "As a buyer I install my purchased official release and keep using it offline without continuous license-server access.",
+      "criteria": [
+        "Bind official download/install access to authoritative purchase records and version/update rights.",
+        "Define and verify offline receipts/entitlements with a tested key/lifecycle model; signatures prove provenance, not copy protection.",
+        "Test purchase, install, restart and installed-version use while the hosted library is unavailable.",
+        "Handle refunds/revocation/update eligibility according to agreed terms without silently assuming always-online checks or remote disablement.",
+        "Recognize that full host control/source editing permits bypassing local checks; no strong DRM or restrictive redistribution enforcement is promised."
+      ],
+      "deps": [
+        "F14",
+        "F12",
+        "F2"
+      ],
+      "legacy": [],
+      "id": 1098,
+      "reused": false,
+      "url": "https://openproject.privateprivate.org/work_packages/1098",
+      "dependencyIds": [
+        1097,
+        1095,
+        1085
+      ]
+    }
+  ]
+}

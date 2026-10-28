@@ -1,6 +1,6 @@
 # Full Module Builder: workshop revision and open decisions
 
-**Status:** Discussion draft; D1 and the workload scope in D2 agreed on 2026-10-27. D3-D8 and named ownership remain open; implementation not started.
+**Status:** Discussion draft; D1-D7 directions and two delivery phases agreed on 2026-10-27, with commerce confirmed as required Phase 2 scope on 2026-10-28. D8 and detailed commercial/ownership/check policies remain open; implementation not started.
 **Created:** 2026-10-27
 **Purpose:** Translate the workshop brief and team priorities into a narrower Full Module Builder proposal, and record decisions before revising the implementation plan.
 
@@ -66,11 +66,11 @@ Agreed journey:
 3. Use the planned module-builder-skill in the user's own AI harness to generate or revise module code using our contracts and templates.
 4. Import that code into Edge Studio and edit it in the app as needed. Users may also write code directly in the app.
 5. Use the app's previews, tests, packaging, and logs to prepare and check the module.
-6. Activate locally, export, or publish a version.
+6. Activate locally and export a version in Phase 1; publish to the hosted library in Phase 2.
 
 Code editing is in scope inside Edge Studio. AI-assisted code generation is expected to happen in the user's own harness, guided by our planned module-builder-skill. The team's expectation that this will account for roughly 99% of generation is a planning assumption, not measured adoption or a requirement to use AI. An in-app AI generation harness is not part of this agreed creation model. The workshop's IDE exclusion does not exclude a code editor or the agreed module tools.
 
-We will not build CLI actions for module creation, testing, packaging, activation, or publishing. Templates, previews, tests, packaging, activation, and publishing belong in the app's supported journey. The implementation of any required source builds remains to be designed within that app-driven flow. Previewing schemas and fixtures must be distinguished from executing privileged code on the real host.
+We will not build CLI actions for module creation, testing, packaging, activation, or publishing. Templates, previews, tests, packaging, activation, and publishing belong in the app's supported journey, delivered across the two phases below. The implementation of any required source builds remains to be designed within that app-driven flow. Previewing schemas and fixtures must be distinguished from executing privileged code on the real host.
 
 The module-builder-skill is a planned authoring aid, not an implemented feature. It should give the user's AI harness the module contracts, templates/examples, expected file structure, and testing/packaging requirements needed to produce compatible code. Its exact contents and distribution still need definition. No automatic harness connection, project synchronization, or specific AI provider is assumed by this decision.
 
@@ -78,23 +78,47 @@ Provide two authoring routes using the same package model: profile/template auth
 
 ### UI and runtime
 
-Use schema-defined forms, guides, and wizard steps first. Defer arbitrary custom views and block editors unless a concrete required integration cannot use the initial contracts.
+**D5 agreed:** Schema-defined forms, guides, and wizard steps are sufficient initially. Defer arbitrary custom views, block editors, and custom UI hooks until a concrete required example demonstrates that the schema-driven approach is insufficient.
 
-Keep supervised extension processes and full host access available. A privileged package is trusted host software; process separation helps operation and fault handling but does not constrain malicious root code. The initial supported runtime/SDK and target architectures still need selection. An extensible runtime protocol does not imply equally polished tools for every language from the first release.
+Keep supervised extension processes and full host access available. A privileged package is trusted host software; process separation helps operation and fault handling but does not constrain malicious root code.
+
+**D6 agreed ownership:** Supported runtimes, Pi models, operating systems, architectures, and app-version policy belong to Edge Studio as a whole. The Module Builder inherits that policy instead of defining a separate support matrix. The workshop's “Depends on Edge studio app” answer is the basis for this boundary; actual support values remain app-level decisions.
+
+The Module Builder still needs manifest fields and compatibility checks for each module's required app/module-API versions, runtime, architecture, and dependencies. A module may support only a subset of Edge Studio's environments; inheriting app policy does not make every module compatible with every target. Extension contracts and authoring documentation implement that policy. The distinction between template authors and driver developers remains a tooling/documentation consideration in the creation journey, separate from platform support ownership.
 
 ### Installation and publication
 
-Keep immutable package releases, explicit activation, compatibility checks, retained device/workflow configuration, missing-package states, logs, and disable/uninstall controls. Start with manual version selection and updates. Defer automatic dependency upgrades, staged rollout management, and advanced recovery automation where manual procedures meet the agreed scope.
+**D7 agreed:** Keep lifecycle behavior simple and user-action centric: manual installation, explicit activation and updates, compatibility/package-integrity checks, retained configuration/history, clear errors/logs, and disable/uninstall/reinstall controls. Uninstall does not purge device/workflow configuration or history unless the user explicitly requests deletion. Defer automatic dependency upgrades, staged rollout management, and automatic rollback.
 
-Basic publication checks should cover package structure and manifest validity. Installer correctness, artifact integrity, failed-install handling, and application regression tests remain necessary. Author testing evidence and reviewer responsibilities must be defined separately. Routine core-team review of every release would conflict with the independence goal.
+Before installing any extension, prompt the user to export a backup through the planned app-wide Export device and Export logs functions. Updates are installations of a new version and use the same prompt. The prompt must precede executable install/setup hooks, not appear after host changes have begun. Backup/export is user initiated; whether proceeding without an export is allowed remains a UI detail to resolve rather than an agreed mandatory-backup gate.
+
+Use the app-wide restore functionality for user-directed recovery rather than building a separate module-only backup system. Export device must provide a restorable backup of the device's managed state; Export logs provides the accompanying diagnostic record. A log export alone is not a device backup. These are planned app-wide capabilities, not implemented features assumed to exist already. Define their coverage for configuration, workflows, module versions/artifacts and state, retained history, and credentials, and verify a complete restore before relying on the prompt as the recovery path. Backup handling must follow the export feature's credential-protection policy, not the credential-free module-sharing format.
+
+Document restoring the exported state and reinstalling compatible module versions, including the recovery route if the app must first be repaired/reinstalled. Reinstalling module code alone is not configuration rollback. Restoring app-managed state cannot guarantee reversal of arbitrary privileged OS, service, firmware, or hardware changes; cleanup hooks and instructions may assist, but the backup must describe its actual coverage.
+
+**D4 agreed rollout:** Apply automated acceptance checks before publication, without requiring human approval to publish. Initially, human moderation takes place after publication to filter spam and inappropriate uploads. This is content moderation, not a requirement for manual code review or a guarantee of hardware compatibility or safety.
+
+The end goal is community-managed review/moderation supported by automated checks, without routine human review by our team. Community ratings, inspection reports, and reporting tools support that model. Possible AI-assisted checks should be evaluated; they are not yet required and must not be presented as proof of safety.
+
+Candidate automated acceptance checks include package structure, manifest validity, required metadata, declared dependencies/compatibility, and artifact integrity. Exact blocking rules and the role of any AI findings remain to be defined. Installer correctness, failed-install handling, and application regression tests remain necessary independently of publication policy. Author-provided test evidence may be useful, but mandatory evidence requirements have not been agreed.
+
+Before Phase 2 launches, define who performs the initial post-publication moderation, what counts as spam/inappropriate content, how reports and removals work, and the criteria for moving to community management. The initial human review is not a pre-publication gate. This refines the workshop's original hybrid validation-ownership answer without changing its exported record.
 
 Initially prefer prepared artifact uploads over a centrally hosted build service. Central hosting still requires publisher identity, immutable downloads, reports/withdrawals, and service ownership. Ratings, download counts, and builder aggregates remain planned reputation features; they do not certify code safety.
 
-### Commercial distribution and offline use
+### Commercial distribution and offline use — D3 direction agreed
 
-Proposed baseline: purchase/download requires connectivity; an installed purchased version continues working offline. This is not yet an agreed licensing model. Offline operation concerns the platform/library dependency; a module that calls an external service may still require that service.
+Support paid official distribution with inspectable release source, offline entitlements, and clear publisher identity. Purchase/download requires connectivity; an installed purchased version continues working offline without continuous license-server access. Offline operation concerns the platform/library dependency; a module that calls an external service may still require that service.
 
-Commercial distribution adds purchase entitlements, publisher payments, refunds, update eligibility, and support expectations. A fully privileged user-controlled host cannot provide a strong technical guarantee against copying or bypassing local license checks. Decide the commercial promise before designing enforcement. Paid distribution does not by itself settle whether source must be public or whether binary-only artifacts are accepted.
+The normal purchase flow grants access to official packages. A locally verifiable signed purchase receipt is a proposed entitlement mechanism; its exact format remains to be designed. It can support the normal installer flow offline but cannot prevent a user with full host control from bypassing a check or importing copied code. Package signatures/digests establish provenance and integrity, not copy protection or code safety.
+
+Expose the source for the exact published release, its dependencies and requested host access, and changes between versions. Local edits must remain possible and should be identified as modified copies rather than unchanged publisher releases. Verified-purchase reviews and community inspection reports should be distinguishable and refer to the inspected release; neither is a safety certification.
+
+Protect the official distribution channel through publisher namespaces, attribution, and ratings/purchase history tied to the original listing. Reporting and investigation can address impersonation and disputed uploads; do not assume every similar package is an unauthorized copy or prohibit legitimate reuse. These controls do not prevent sharing outside the library.
+
+**D8 remains deliberately open:** Restricted redistribution is difficult to enforce, so do not commit the product to strict redistribution enforcement or strong DRM. Accept that determined copying cannot be technically prevented on a user-controlled host. This does not select a license or settle redistribution/fork rights; inspectable source and open-source licensing are separate choices. The previous source-available commercial option is not adopted as a mandatory model.
+
+**D3 scope confirmed 2026-10-28:** Commerce is required in Phase 2, including paid official distribution, purchase entitlements, contributor payments and refunds. A catalog-only implementation does not complete Phase 2. Provider, pricing/subscription models, purchase/update rights, support expectations and exact licensing terms still need specification. None of these introduces a hosted-library dependency into Phase 1.
 
 ## 4. Ownership and resource feasibility
 
@@ -108,35 +132,65 @@ These are responsibilities, not an assumption that three separate teams exist. N
 
 **D2 agreed scope:** The workload ceiling of 1 is mainly aimed at community module creation: users should be able to create modules with little recurring core-team involvement. Web-library maintenance is handled separately. This ceiling is not a combined limit on all platform and library maintenance.
 
-The implementation should prioritize self-service templates, contracts, the module-builder-skill, and in-app tools so community creators do not routinely need the core team to implement their modules. Publication review and approval remain open under D4; this clarification does not settle those rules. Named library-service ownership and official-package ownership/support still need confirmation.
+The implementation should prioritize self-service templates, contracts, the module-builder-skill, and in-app tools so community creators do not routinely need the core team to implement their modules. D4 places initial human spam/content moderation after publication, with community management as the end goal. Named library-service, initial moderation, and official-package ownership/support still need confirmation.
 
-## 5. Proposed changes to implementation sequencing
+## 5. Delivery phases — agreed 2026-10-27
 
-The existing plan remains unchanged while these recommendations are discussed.
+Deliver the work in two phases. Phase 1 must be useful independently of Phase 2.
+
+### Phase 1: local Module Builder
+
+- Build the extension runtime and dynamic hardware, device setup, and workflow contributions, including the agreed full-host-access capability.
+- Extract the current hard-coded capabilities into installable default packages and prove removal/restoration.
+- Store drafts, installed releases, configuration, and activation state locally.
+- Provide in-app code editing, templates, previews, tests, packaging, local activation, import, and export. Support externally generated code guided by the planned module-builder-skill. No CLI actions.
+- Allow manual package sharing and installation on another instance without a public account or publication.
+- Keep the existing local demo library as a development/test fixture for real download, uninstall, reinstall, and activation checks. It does not include the production publishing or reputation service.
+
+Phase 1 acceptance: a user can create or import support for a previously unsupported sensor, test and activate it on a Pi without core-source edits, export the package, and install it on another instance. Default packages also satisfy the existing lifecycle/parity checks. Verify the pre-install/update device/log export prompt and a user-directed restore of the exported managed state after a failed extension change. Installed local functionality does not depend on the hosted library.
+
+### Phase 2: web-hosted library, publishing and commerce
+
+- Deliver centrally hosted package artifacts and public discovery/download pages.
+- Add publisher accounts/profiles and self-service publishing from the app.
+- Add module ratings, aggregate builder ratings, download counts, and library search/sorting.
+- Add automated publication checks and initial human post-publication moderation for spam/inappropriate uploads, with community-managed moderation as the end goal. Define reports/withdrawals and the separately maintained service's ownership; evaluate optional AI-assisted checks.
+- Connect the local Module Builder to the service for publication, discovery, and installation through the same package model.
+- Deliver commerce as required Phase 2 scope: purchases, contributor payouts/refunds, official-package entitlements, inspectable release source and installed-version offline use. Define provider and commercial terms before implementation; commerce is not an optional follow-up phase.
+
+Phase 2 acceptance: one independent author publishes a module, another user finds, inspects, purchases and installs it, the contributor payout/refund flow is verified, reputation information is available, and installed paid capabilities continue working when the library is unavailable, subject to any external services the module itself requires.
+
+Define the package identity, versions, compatibility metadata, and artifact format during Phase 1 so the hosted service can use them later. Local import/export and the demo download fixture exercise that boundary without requiring production library accounts, publishing, or ratings in Phase 1.
+
+### Mapping the existing milestones
+
+The phase split is agreed. Other detailed scope recommendations remain pending the open decisions; the implementation plan now records the phase boundary without treating those recommendations as accepted.
 
 | Existing milestone | Proposed adjustment | Evidence needed |
 | --- | --- | --- |
-| M1: lifecycle proof | Keep the HTTP device/Fetch block vertical slice and real local-library download. Introduce starter tooling once contracts work. | Removal, download, activation, restart, configuration/history preservation, and missing-package behavior work through the real installer. |
-| M2: default capability parity | Keep extraction across hardware, device setup, and workflows; prioritize schema-driven UI. Test an independently authored module before every default package has migrated. | A new physical sensor/driver works on a Pi without core-source edits or a core release; all defaults eventually meet parity. |
-| M3: authoring proof | Provide in-app editing, templates, previews, tests, packaging, activation, and publishing, with external AI-assisted generation guided by the module-builder-skill. No CLI actions. Develop basic authoring alongside extraction. | Another contributor generates/imports module code using their own harness and our skill, edits and checks it in the app, then packages and installs it on a second instance without a module CLI. |
-| Future M4: public library | Make self-service publication, reputation, and operational ownership explicit. Decide whether payments belong in the first public launch. | An independent author publishes, another user downloads and activates, and installed capabilities keep working without the library. |
+| M1: lifecycle proof — Phase 1 | Keep the HTTP device/Fetch block vertical slice and real local-demo-library download. Introduce starter tooling once contracts work. | Removal, download, activation, restart, configuration/history preservation, and missing-package behavior work through the real installer. |
+| M2: default capability parity — Phase 1 | Keep extraction across hardware, device setup, and workflows; prioritize schema-driven UI. Test an independently authored module before every default package has migrated. | A new physical sensor/driver works on a Pi without core-source edits or a core release; all defaults eventually meet parity. |
+| M3: local authoring proof — Phase 1 | Provide in-app editing, templates, previews, tests, packaging, activation, import/export, and external AI-assisted generation guided by the module-builder-skill. No CLI actions. Develop basic authoring alongside extraction. | Another contributor generates/imports module code using their own harness and our skill, edits and checks it in the app, then packages and installs it on a second instance without a module CLI or public library. |
+| M4: hosted library and commerce — Phase 2 | Add self-service publication, discovery, reputation, required purchases/payouts/refunds/offline entitlements, and separately maintained service operations. | An independent author publishes; another user inspects, purchases, installs and activates; payout/refund handling works; installed paid versions continue offline. |
 
 The HTTP slice proves installation plumbing; it does not prove the unsupported-sensor outcome. Keep both that hardware acceptance test and the original eventual default-package extraction requirement.
 
-## 6. Decisions to resolve together
+## 6. Decisions between the core developer and AI on unresolved workshop questions
 
-D1 and D2's workload scope are agreed; D3-D8 remain open. Named service ownership and official-package ownership/support remain follow-ups to D2. A working recommendation is not a team decision.
+This section records follow-up decisions made between the core developer and AI about scope and implementation questions that the exported workshop research did not fully resolve. These are subsequent clarifications, not decisions attributed to the original workshop participants. Entries still marked open remain undecided.
+
+D1, D2's workload scope, D3's required Phase 2 commerce, D4's moderation rollout, D5's initial UI scope, D6's app-level ownership, D7's user-directed lifecycle/export recovery, and the two-phase delivery split are agreed. D3's detailed commercial policies remain open, as do D8 and detailed check/moderation policies. Actual platform support values and app-wide export/restore implementation are app-level work. D8 is deliberately left open without a commitment to restricted redistribution enforcement. Publishing, ratings, moderation and commerce are Phase 2 work. Named service ownership and official-package ownership/support remain follow-ups to D2. A working recommendation is not a team decision.
 
 | ID | Decision question | Working recommendation | Agreed outcome |
 | --- | --- | --- | --- |
 | D1 | Where do code editing, AI-assisted generation, and module tools belong? | Reflected in the agreed creation journey above. | **Agreed 2026-10-27:** Code editing is available in the app. Users generate code in their own AI harness with our planned module-builder-skill. The app provides templates, previews, tests, packaging, activation, and publishing. No CLI actions will be built. |
 | D2 | What does core-workload ceiling 1 cover, and how is library maintenance handled? | Keep community module creation self-service; track platform and library responsibilities separately. | **Scope agreed 2026-10-27:** The low workload target mainly applies to community module creation. The web library will be maintained separately. Named service ownership and official-package ownership/support remain to be confirmed. |
-| D3 | Must the first public library support payments? Which commercial model and offline rights do we promise? | Consider a free initial catalog with commercial distribution later; preserve installed-version offline use. Do not assume subscriptions or continuous license checks. | Open |
-| D4 | What must pass before publication, and when is human review required? | Automate basic acceptance checks; require author evidence and define exceptions/reports. Avoid mandatory core review for every routine release. | Open |
-| D5 | Are schema-defined forms, guides, and wizard steps enough initially? | Defer arbitrary custom UI until a required example demonstrates the need. | Open |
-| D6 | Which runtimes, Pi/OS/architecture combinations, and app versions are supported? What skill level is expected for new-driver authors? | Start with a narrow, tested authoring route and explicit target matrix. Separate template creation from driver development. | Open |
-| D7 | What installation/update/recovery guarantees are required? | Keep manual updates and essential compatibility/configuration protection; document backup and recovery. Do not promise reversal of arbitrary privileged host changes. | Open |
-| D8 | What package/source formats may be imported and publicly distributed? Must source be available? | Separate arbitrary local development freedom from public-library acceptance. Define source visibility, artifact readiness, and licensing metadata before publication. | Open |
+| D3 | Is commerce included in Phase 2, and which commercial/offline rights apply? | Required paid official distribution with inspectable release source, offline entitlements, and publisher identity. Do not promise strong copy protection. | **Confirmed 2026-10-28:** Commerce is included in Phase 2, not optional. Includes purchases, contributor payouts/refunds and installed-version offline entitlements. Provider, pricing/subscriptions and detailed entitlement terms remain open; redistribution licensing remains D8. |
+| D4 | What must pass before publication, and when is human review required? | Automated acceptance checks; no human publication-approval gate. Define checks, moderation rules, owners, and transition criteria. | **Rollout agreed 2026-10-27:** Initially, human moderation after publication filters spam and inappropriate uploads. End goal: community-managed review/moderation with automated checks; AI-assisted checks are an option to evaluate. No mandatory human pre-publication review or code-safety certification. |
+| D5 | Are schema-defined forms, guides, and wizard steps enough initially? | Defer arbitrary custom UI until a required example demonstrates the need. | **Agreed 2026-10-27:** Yes. Start with schema-defined forms, guides, and wizard steps; defer arbitrary custom UI until a concrete required example demonstrates the need. |
+| D6 | Who defines supported runtimes, Pi/OS/architecture combinations, and app-version policy? | Inherit Edge Studio's app-wide policy; declare and check individual module compatibility. | **Ownership agreed 2026-10-27:** This is an Edge Studio-wide decision, not a separate Module Builder support matrix. Actual support values remain app-level work; the builder supplies compatibility metadata and checks. |
+| D7 | What installation/update/recovery guarantees are required? | Simple user-directed lifecycle actions, a pre-install/update backup prompt using app-wide exports, and tested user-directed restore. | **Agreed 2026-10-27:** Prompt users to back up through planned Export device/Export logs functionality before any extension installation/update. Keep manual updates, compatibility checks, retained configuration/history, disable/uninstall/reinstall, and documented recovery. Restore uses the app-wide backup/restore functions; arbitrary privileged host changes are not universally reversible. |
+| D8 | What package/source formats, licenses, and redistribution/fork rights apply? | Preserve inspectable release source for the agreed paid-module direction. Do not rely on enforcing restricted redistribution; retain clear provenance and attribution. | **Left open 2026-10-27:** No mandatory restrictive license or strong redistribution enforcement is adopted. Exact licenses, redistribution/fork rights, and accepted package formats remain undecided. |
 
 For each resolution, record the date, agreed scope, owner where relevant, and the consequence for the implementation plan. Leave unresolved entries open instead of treating the working recommendation as accepted.
 

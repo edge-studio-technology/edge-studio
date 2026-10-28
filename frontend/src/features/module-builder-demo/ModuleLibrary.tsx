@@ -32,6 +32,8 @@ import { CatalogCard, DemoBadge, ModuleGlyph, Publisher, SectionLabel } from "./
 import { useDemo } from "./demoState";
 import { ModuleRating, RateModule } from "./ModuleRatings";
 import { averageRating } from "./moduleRatingMath";
+import { ReleaseInspection } from "./ReleaseInspection";
+import { downloadDemoFile } from "./demoPackaging";
 
 function LibraryChrome({ children }: { children: React.ReactNode }) {
   const [params, setParams] = useSearchParams();
@@ -75,6 +77,10 @@ function LibraryChrome({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
       </header>
+      <div className="border-b border-violet-100 bg-violet-50 px-6 py-3 text-center text-xs leading-relaxed text-violet-800">
+        Phase 2 · Hosted library concept: discovery, publishing, ratings, and paid official
+        distribution. Phase 1's local builder works without this service.
+      </div>
       {children}
       <footer className="mt-16 border-t border-zinc-200 px-6 py-10">
         <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-6">
@@ -110,17 +116,17 @@ function LibraryChrome({ children }: { children: React.ReactNode }) {
               {
                 icon: Code2,
                 title: "Start with a template",
-                text: "Create a block, a device integration, or a full hardware capability in Module Builder. You can also work in your own editor.",
+                text: "Choose a template. Generate code in your own AI harness with our planned module-builder-skill, then edit it in the app. No CLI actions.",
               },
               {
                 icon: Terminal,
                 title: "Try it on your edge",
-                text: "Inspect your configuration, preview your setup flow, and test with sample data before activating a version.",
+                text: "Preview schema-defined forms and wizard steps. Test, validate, package, and activate locally in Phase 1; export your device and logs before installation or updates.",
               },
               {
                 icon: Globe2,
                 title: "Share when you're ready",
-                text: "Package code, documentation, and examples. Keep it local, or publish a version to the community library.",
+                text: "Export/import locally in Phase 1. Phase 2 adds publishing and reputation. Automated checks precede publication; initial human spam/content moderation follows it.",
               },
             ].map((item) => (
               <div key={item.title} className="flex gap-4">
@@ -439,9 +445,10 @@ export function ModuleLibrary() {
 export function ModuleDetails({ onInstall }: { onInstall: (module: DemoModule) => void }) {
   const navigate = useNavigate();
   const { moduleId } = useParams();
-  const { modules } = useDemo();
+  const { modules, purchase } = useDemo();
   const module = modules.find((item) => item.id === moduleId && !item.localOnly);
   const [tab, setTab] = useState("Overview");
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
   if (!module)
     return (
       <LibraryChrome>
@@ -490,13 +497,25 @@ export function ModuleDetails({ onInstall }: { onInstall: (module: DemoModule) =
           <div className="flex flex-col gap-2 pt-2">
             <Button
               variant="accent"
-              onClick={() => (module.installed ? navigate("/demo/modules") : onInstall(module))}
+              onClick={() =>
+                module.installed
+                  ? navigate("/demo/modules")
+                  : module.commercial && !module.entitled
+                    ? setPurchaseOpen(true)
+                    : onInstall(module)
+              }
               iconStart={module.installed ? <Check /> : <Download />}
             >
-              {module.installed ? "View in workspace" : "Add to Edge Studio"}
+              {module.installed
+                ? "View in workspace"
+                : module.commercial && !module.entitled
+                  ? "Preview purchase"
+                  : "Add to Edge Studio"}
             </Button>
             <span className="text-center text-[10px] text-zinc-400">
-              Free · Open source · Runs on your edge
+              {module.commercial
+                ? "Paid module concept · Source inspectable before purchase"
+                : "Free sample · Inspectable source · Runs on your edge"}
             </span>
           </div>
         </div>
@@ -508,17 +527,58 @@ export function ModuleDetails({ onInstall }: { onInstall: (module: DemoModule) =
           <ModuleRating module={module} />
           <RateModule module={module} />
           <span>v{module.version}</span>
-          <span>MIT license</span>
+          <span>Sample license metadata · Policy open (D8)</span>
           <span className="ml-auto text-zinc-400">Sample community listing</span>
         </div>
         <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
           Community ratings and downloads indicate popularity and experience, not verified code
           safety. Review the builder and requested access before installing.
         </p>
+        {module.moderationPending && (
+          <p className="mt-3 rounded-xl bg-amber-50 p-4 text-xs leading-relaxed text-amber-900">
+            Published · Post-publication spam/content moderation pending (demo). Basic structure
+            checks are not a code-safety review. Community management is the long-term goal.
+          </p>
+        )}
+        {module.commercial && (
+          <section className="mt-5 rounded-xl border border-violet-200 bg-violet-50 p-5 text-xs leading-relaxed text-violet-900">
+            <h2 className="font-semibold">Phase 2 · Paid official distribution</h2>
+            <p className="mt-2">
+              Inspect source before buying. A purchase grants access to the official release; the
+              installed version can work offline. No strong copy protection or restrictive
+              redistribution policy is promised. Commerce is included in Phase 2. Provider, pricing,
+              subscriptions, and update terms remain to be defined.
+            </p>
+            {module.entitled && (
+              <>
+                <p className="mt-3 font-semibold">
+                  Sample purchase entitlement recorded · No payment made
+                </p>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    downloadDemoFile(`${module.id}.receipt.demo.json`, {
+                      demo: true,
+                      module: module.id,
+                      version: module.version,
+                      entitlement: "Sample only",
+                      signed: false,
+                      notice:
+                        "Not a real purchase receipt or verified signature. Offline entitlement verification is planned.",
+                    })
+                  }
+                >
+                  Export sample receipt
+                </Button>
+              </>
+            )}
+          </section>
+        )}
         <div className="mt-8 grid items-start gap-10 lg:grid-cols-[1fr_280px]">
           <div className="min-w-0">
-            <div className="mb-7 flex gap-7 border-b border-zinc-200">
-              {["Overview", "Setup", "Versions", "Access"].map((item) => (
+            <div className="mb-7 flex flex-wrap gap-5 border-b border-zinc-200">
+              {["Overview", "Setup", "Versions", "Source", "Access"].map((item) => (
                 <button
                   key={item}
                   onClick={() => setTab(item)}
@@ -533,6 +593,9 @@ export function ModuleDetails({ onInstall }: { onInstall: (module: DemoModule) =
                 </button>
               ))}
             </div>
+            {tab === "Source" && (
+              <ReleaseInspection key={`${module.id}-${module.version}`} module={module} />
+            )}
             {tab === "Overview" && (
               <div className="space-y-7">
                 <div>
@@ -610,7 +673,7 @@ export function ModuleDetails({ onInstall }: { onInstall: (module: DemoModule) =
             {tab === "Versions" && (
               <div>
                 <h2 className="text-xl font-semibold">A module that keeps growing.</h2>
-                {[module.update || module.version, "1.0.0"].map((version, index) => (
+                {[module.version].map((version, index) => (
                   <div
                     key={`${version}-${index}`}
                     className="mt-6 rounded-xl border border-zinc-200 bg-white p-5"
@@ -627,6 +690,9 @@ export function ModuleDetails({ onInstall }: { onInstall: (module: DemoModule) =
                     <p className="mt-3 text-[10px] text-zinc-400">
                       Illustrative release notes · Edge Studio ≥ 0.42
                     </p>
+                    <Button size="sm" variant="ghost" onClick={() => setTab("Source")}>
+                      Inspect this release source
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -733,6 +799,44 @@ export function ModuleDetails({ onInstall }: { onInstall: (module: DemoModule) =
           </aside>
         </div>
       </div>
+      {purchaseOpen && (
+        <Modal
+          title="Preview a paid module purchase"
+          description="Phase 2 concept only · No checkout, payment provider, or money transfer."
+          onClose={() => setPurchaseOpen(false)}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setPurchaseOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="accent"
+                onClick={() => {
+                  purchase(module.id);
+                  setPurchaseOpen(false);
+                }}
+              >
+                Record demo purchase
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4 p-6 text-sm leading-relaxed text-zinc-600">
+            <h3 className="font-semibold">
+              {module.name} · v{module.version}
+            </h3>
+            <p>
+              This example grants a sample entitlement to the official release. Inspect the Source
+              tab freely before purchasing. Installed-version offline use is planned; receipts and
+              payment verification here are simulated.
+            </p>
+            <p>
+              Price, updates, subscriptions, and licensing terms remain undecided. A user-controlled
+              host cannot guarantee prevention of copying or bypassed license checks.
+            </p>
+          </div>
+        </Modal>
+      )}
     </LibraryChrome>
   );
 }

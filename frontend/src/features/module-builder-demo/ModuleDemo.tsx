@@ -23,8 +23,10 @@ import { DemoBadge, ModuleGlyph } from "./DemoUi";
 import { ModuleManager } from "./ModuleManager";
 import { ModuleEditor } from "./ModuleEditor";
 import { ModuleLibrary, ModuleDetails } from "./ModuleLibrary";
+import { BackupChecklist } from "./BackupChecklist";
 
 function PreviewBar() {
+  const { pathname } = useLocation();
   const { reset } = useDemo();
   const navigate = useNavigate();
   return (
@@ -32,6 +34,18 @@ function PreviewBar() {
       <Sparkles size={13} />
       <span className="font-semibold">Vision preview</span>
       <span className="text-violet-500">Sample content. Interactions stay in this demo.</span>
+      <Link
+        to="/demo/modules"
+        className={pathname.startsWith("/demo/modules") ? "font-semibold underline" : "underline"}
+      >
+        Phase 1 · Local builder
+      </Link>
+      <Link
+        to="/demo/library"
+        className={pathname.startsWith("/demo/library") ? "font-semibold underline" : "underline"}
+      >
+        Phase 2 · Hosted library
+      </Link>
       <button
         type="button"
         onClick={() => {
@@ -124,7 +138,12 @@ function BuilderShell({ children }: { children: React.ReactNode }) {
             <ChevronRight size={12} />
             <span className="text-zinc-700">Module builder</span>
           </div>
-          <Link to="/demo/research" className="hidden items-center gap-1 text-violet-600 md:inline-flex">Strategy workshop <ArrowUpRight size={12} /></Link>
+          <Link
+            to="/demo/research"
+            className="hidden items-center gap-1 text-violet-600 md:inline-flex"
+          >
+            Strategy workshop <ArrowUpRight size={12} />
+          </Link>
           <Link
             to="/demo/library"
             className="inline-flex items-center gap-2 text-zinc-600 hover:text-violet-600"
@@ -214,11 +233,12 @@ function DemoContent() {
             </div>
             {complete ? (
               <div className="rounded-xl bg-emerald-50 p-5 text-sm leading-relaxed text-emerald-800">
-                Added to your sample workspace. Its devices and blocks are now shown as available in
-                this concept. No package was downloaded or executed.
+                Installed in your sample workspace, but not active. Open Module Builder and use its
+                activation switch when you are ready. No package was downloaded or executed.
               </div>
             ) : (
               <>
+                <BackupChecklist />
                 <div className="rounded-xl border border-zinc-200 p-4">
                   <p className="text-xs text-zinc-400">INSTALL TO</p>
                   <p className="mt-2 flex items-center gap-2 font-semibold">

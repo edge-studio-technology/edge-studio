@@ -15,6 +15,7 @@ type DemoState = {
   publish: (draft: DemoDraft) => void;
   activate: (draft: DemoDraft) => void;
   rate: (id: string, score: number) => void;
+  purchase: (id: string) => void;
   reset: () => void;
 };
 
@@ -46,7 +47,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             ? {
                 ...item,
                 installed: true,
-                enabled: true,
+                enabled: false,
                 downloads: item.downloads + (!item.installed && !item.localOnly ? 1 : 0),
               }
             : item,
@@ -55,7 +56,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       record(`${modules.find((item) => item.id === id)?.name} installed`);
       showToast({
         title: "Module added to your workspace",
-        message: "Demo installation complete. No software was downloaded or executed.",
+        message:
+          "Installed, not active. Activate it explicitly in your workspace. No code was executed.",
         tone: "success",
       });
     },
@@ -125,6 +127,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         hostAccess: draft.icon === "cpu",
         installed: false,
         enabled: false,
+        releaseFiles: { ...draft.files },
+        moderationPending: true,
       };
       setModules((items) => {
         const existing = items.find((item) => item.id === published.id);
@@ -174,6 +178,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         installed: true,
         enabled: true,
         localOnly: true,
+        releaseFiles: { ...draft.files },
       };
       setModules((items) => [local, ...items.filter((item) => item.id !== local.id)]);
       record(`${draft.name} activated locally`);
@@ -182,6 +187,10 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         message: "Find it under Installed. Your code has not been executed.",
         tone: "success",
       });
+    },
+    purchase(id) {
+      change(id, { entitled: true });
+      record("Sample purchase entitlement recorded; no payment made");
     },
     rate(id, score) {
       setModules((items) =>

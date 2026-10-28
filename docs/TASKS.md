@@ -35,9 +35,9 @@
 
 ## Next
 
-- [ ] Resolve Full Module Builder workshop decisions D3-D8 and confirm named library/official-package ownership before revising the implementation plan; D1 agrees in-app editing/tools, external AI-assisted generation with a planned module-builder-skill, and no CLI actions; D2 scopes low core workload mainly to community module creation with separate web-library maintenance — see `docs/plans/module-builder/workshop-revision.md`.
+- [ ] Resolve remaining Full Module Builder workshop details and named library/official-package ownership; D1-D7 directions are agreed with recorded qualifications, commerce is required in Phase 2, and D8 plus detailed commercial/provider terms remain open — see `docs/plans/module-builder/workshop-revision.md`.
 
-- [ ] Module builder: dynamic hardware agent, device setup, and workflow blocks with full host access; extract default capabilities into installable packages, prove removal/download/reactivation against a local demo library, then build authoring tools — see `docs/plans/module-builder.md`; research alternatives in `docs/plans/module-builder/discussion.md` and stakeholder presentation source in `docs/reports/module-builder-2026-10-20/stakeholder-brief.md`. Implementation not started.
+- [ ] Module builder Phase 1 (OpenProject epic #1081): local authoring/runtime, dynamic hardware/device/workflow contributions, default-package extraction, import/export and local demo-library lifecycle proof. Phase 2 (epic #1082): hosted library, publishing/reputation, and required commerce including purchases, contributor payouts/refunds and offline entitlements — see `docs/plans/module-builder.md` and `docs/reports/module-builder-openproject-2026-10-28/README.md`. Implementation not started.
 
 ### Follow-ups from finished work
 
@@ -82,11 +82,19 @@
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
 - [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.
 - [ ] Stop other values from the previous `.env` (for example a hand-added `UPDATE_DRY_RUN`) leaking into the installer's compose run; only `COMPOSE_PROFILES` is unset after `load_existing_config` in `install.sh`.
-- [ ] Verify the wiki’s temporary application-data backup/restore procedure on a real Pi with the same app version and unchanged runtime configuration; implement an integrated Edge Studio backup/restore feature separately.
+- [ ] Verify the wiki’s temporary application-data backup/restore procedure on a real Pi with the same app version and unchanged runtime configuration; implement app-wide Export device, Export logs, and device restore separately, defining managed-state/credential coverage and verifying recovery before using them for the Module Builder's pre-install/update backup prompt (D7).
 - [ ] Document the `DEV_MODE` install flag in `README.md`'s runtime-config section and note its manifest-signature-verification bypass in `SECURITY.md`/`docs/security/host-and-infrastructure.md` — flagged during code review, deliberately deferred as a separate concern from the pagination work.
 - [ ] Sanity-check two catalog exclusions added beyond the Minima RPC console plan's named list during `help`-output reconciliation: `createtokenfrom` (same raw-`privatekey:` risk as the named `*from` commands) and `decryptbackup` (can turn an encrypted backup into plaintext key material).
 
 ## Done
+
+- [x] Applied the approved Module Builder query #307 cleanup: eight superseded records removed from the active bucket, #978/#981/#980 deferred to Backlog refinement, remote research consolidated in #208 under #342, and #1081–#1098 placed in the Module Builder bucket. Preserved history and existing statuses; no deletion or false completion — see `docs/reports/module-builder-openproject-2026-10-28/README.md`.
+
+- [x] Created and verified Module Builder delivery epics #1081/#1082 with 16 child features #1083–#1098, criteria, linked dependency references and provisional effort ranges; made commerce required in Phase 2 and updated the proposal/estimates/presentation. Existing tickets and assignments were not changed — see `docs/reports/module-builder-openproject-2026-10-28/README.md`.
+
+- [x] Created a workshop-aligned Module Builder user-journey PowerPoint/PDF with fresh demo screenshots, explanatory captions, phase/milestone acceptance criteria and provisional effort/schedule estimates — see `docs/reports/module-builder-journey-2026-10-28/README.md`; estimates are not delivery commitments.
+
+- [x] Aligned the disposable module demo with the workshop revision: phase separation, skill-assisted creation, validation/packaging/import, backup prompts, explicit activation, source inspection, post-publication moderation, and a simulated paid entitlement; frontend checks, 12 focused tests, and the browser walkthrough passed — see `docs/reports/module-builder-demo/README.md`; real platform services remain unimplemented.
 
 - [x] Added visible explanations for all choices beneath the strategy workshop's brief and priority dropdown questions, including all resource ceiling levels and scoring implications.
 

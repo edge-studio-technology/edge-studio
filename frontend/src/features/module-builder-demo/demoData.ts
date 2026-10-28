@@ -23,6 +23,10 @@ export type DemoModule = {
   enabled: boolean;
   update?: string;
   localOnly?: boolean;
+  releaseFiles?: Record<string, string>;
+  commercial?: boolean;
+  entitled?: boolean;
+  moderationPending?: boolean;
 };
 
 export const demoModules: DemoModule[] = [
@@ -191,6 +195,7 @@ export const demoModules: DemoModule[] = [
   {
     id: "gpio",
     name: "GPIO Workshop",
+    commercial: true,
     summary: "Make something happen in the real world.",
     description:
       "Buttons, motion sensors, lights, and all the little things you can imagine. Configure Raspberry Pi GPIO inputs and outputs with guides and blocks that speak your language.",

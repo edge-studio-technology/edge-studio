@@ -182,6 +182,13 @@ export function RateModule({ module }: { module: DemoModule }) {
           }
         >
           <div className="space-y-5 p-6">
+            {module.commercial && (
+              <p className="text-xs leading-relaxed text-zinc-500">
+                {module.entitled
+                  ? "Sample purchase entitlement present. Production verified-purchase reviews are planned; this demo verifies no payment."
+                  : "Community rating · No purchase verified. Use the Source tab for a separate release inspection report."}
+              </p>
+            )}
             <div role="radiogroup" aria-label="Module rating" className="flex justify-center gap-3">
               {[1, 2, 3, 4, 5].map((value) => (
                 <button

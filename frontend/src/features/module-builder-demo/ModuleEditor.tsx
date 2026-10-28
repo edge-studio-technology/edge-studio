@@ -33,6 +33,8 @@ import { useToast } from "../../components/ToastProvider";
 import { cx } from "../../lib/cx";
 import { DemoBadge, ModuleGlyph, SectionLabel } from "./DemoUi";
 import { useDemo } from "./demoState";
+import { BackupChecklist } from "./BackupChecklist";
+import { demoDraftRevision, downloadDemoFile, validateDemoDraft } from "./demoPackaging";
 
 function HighlightedCode({ source }: { source: string }) {
   return (
@@ -93,12 +95,37 @@ export function ModuleEditor() {
   const [agreed, setAgreed] = useState(false);
   const [activateOpen, setActivateOpen] = useState(false);
   const [readme, setReadme] = useState(true);
+  const [skillOpen, setSkillOpen] = useState(false);
+  const [validatedRevision, setValidatedRevision] = useState("");
+  const [packagedRevision, setPackagedRevision] = useState("");
+  const [validationErrors, setValidationErrors] = useState<string[] | null>(null);
   const preRef = useRef<HTMLPreElement>(null);
   const lineRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
   const navigate = useNavigate();
   const source = files[activeFile] ?? "";
   const currentDraft = { ...draft, files, name: moduleName, description };
+  const revision = demoDraftRevision(currentDraft);
+  const validated = validatedRevision === revision;
+  const packaged = packagedRevision === revision;
+  function validate() {
+    const errors = validateDemoDraft(currentDraft);
+    setValidationErrors(errors);
+    setValidatedRevision(errors.length === 0 ? revision : "");
+  }
+  function packageDraft() {
+    if (!validated) return;
+    saveDraft(currentDraft);
+    setDirty(false);
+    setPackagedRevision(revision);
+    downloadDemoFile(`${draft.id}.module.demo.json`, {
+      demo: true,
+      kind: "package",
+      executable: false,
+      draft: currentDraft,
+      notice: "Demonstration package snapshot; not a production installable artifact.",
+    });
+  }
   function save() {
     saveDraft(currentDraft);
     setDirty(false);
@@ -137,16 +164,11 @@ export function ModuleEditor() {
     }
   }
   function exportDraft() {
-    const url = URL.createObjectURL(
-      new Blob([JSON.stringify({ demo: true, name: moduleName, files }, null, 2)], {
-        type: "application/json",
-      }),
-    );
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${draft.id}.demo.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    downloadDemoFile(`${draft.id}.source.demo.json`, {
+      demo: true,
+      kind: "source",
+      draft: currentDraft,
+    });
     showToast({
       title: "Demo draft exported",
       message: "A source snapshot, not an executable module package.",
@@ -181,6 +203,9 @@ export function ModuleEditor() {
             <Button variant="ghost" size="sm" iconStart={<Save />} onClick={save}>
               Save draft
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSkillOpen(true)}>
+              AI-assisted creation
+            </Button>
             <Button variant="secondary" size="sm" iconStart={<Play />} onClick={runSample}>
               Test sample
             </Button>
@@ -193,11 +218,53 @@ export function ModuleEditor() {
                 setAgreed(false);
               }}
             >
-              Publish
+              Publish · Phase 2
             </Button>
           </div>
         </div>
       </div>
+      <section
+        aria-label="Module preparation"
+        className="space-y-3 border-b border-zinc-200 bg-violet-50/50 px-5 py-4 md:px-8"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-violet-900">
+            Phase 1 · Edit → Validate → Package → Activate / export
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={validate}>
+              Validate draft
+            </Button>
+            <Button size="sm" variant="accent" disabled={!validated} onClick={packageDraft}>
+              Package demo module
+            </Button>
+          </div>
+        </div>
+        <p aria-live="polite" className="text-xs text-zinc-600">
+          {packaged
+            ? "Current draft packaged. Ready for local activation or Phase 2 demo publication."
+            : validated
+              ? "Basic structure checks passed. Package this revision next."
+              : "Validate the current draft before packaging. Any code or metadata change requires validation and packaging again."}
+        </p>
+        {validationErrors && (
+          <div
+            role={validationErrors.length ? "alert" : "status"}
+            className="text-xs leading-relaxed text-zinc-600"
+          >
+            {validationErrors.length
+              ? validationErrors.join(" ")
+              : validated
+                ? "Manifest/config JSON and entry-file checks passed. This does not compile code, qualify hardware, or certify safety."
+                : "The draft changed since its last successful check. Validate and package the current revision again."}
+          </div>
+        )}
+        <p className="text-[10px] leading-relaxed text-zinc-400">
+          Source exports and demo package snapshots can be imported on another demo session. Neither
+          is a full device backup or a production artifact. Previews are schema-based examples; code
+          is not executed.
+        </p>
+      </section>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-white px-5 md:px-8">
         <div className="flex gap-6">
           {[
@@ -229,8 +296,9 @@ export function ModuleEditor() {
             Export source
           </button>
           <button
+            disabled={!packaged}
             onClick={() => setActivateOpen(true)}
-            className="flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-violet-600"
+            className="flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-violet-600 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Play size={12} />
             Activate locally
@@ -327,7 +395,7 @@ export function ModuleEditor() {
               />
               <div className="grid gap-5 sm:grid-cols-2">
                 <InputField label="Version" defaultValue="0.1.0" />
-                <InputField label="License" defaultValue="MIT" />
+                <InputField label="License (sample metadata; D8 open)" defaultValue="MIT" />
               </div>
               <div className="rounded-xl border border-violet-100 bg-violet-50 p-5">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-violet-800">
@@ -693,6 +761,7 @@ export function ModuleEditor() {
               </Button>
               <Button
                 variant="accent"
+                disabled={!packaged}
                 onClick={() => {
                   saveDraft(currentDraft);
                   activate(currentDraft);
@@ -706,6 +775,7 @@ export function ModuleEditor() {
           }
         >
           <div className="space-y-4 p-6 text-sm text-zinc-500">
+            <BackupChecklist />
             <p>
               <strong className="text-zinc-800">{moduleName}</strong> will appear under Installed as
               a local module.
@@ -717,13 +787,49 @@ export function ModuleEditor() {
           </div>
         </Modal>
       )}
+      {skillOpen && (
+        <Modal
+          title="Create with your own AI harness"
+          description="Phase 1 · External code generation, in-app editing and module tools. No CLI."
+          onClose={() => setSkillOpen(false)}
+          footer={<Button onClick={() => setSkillOpen(false)}>Back to editor</Button>}
+        >
+          <div className="space-y-5 p-6 text-sm leading-relaxed text-zinc-600">
+            <ol className="list-decimal space-y-3 pl-5">
+              <li>Start from a module template and export its source.</li>
+              <li>Give the template and module-builder-skill to your preferred AI harness.</li>
+              <li>
+                Generate or revise code there. Paste code into the app editor, or import an exported
+                demo snapshot from Module Builder.
+              </li>
+              <li>Edit, preview, test, validate, package, and activate in Edge Studio.</li>
+            </ol>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                downloadDemoFile(
+                  "module-builder-skill.example.demo.md",
+                  `# Module Builder skill — illustrative demo only\n\nThis is an example hand-off, not the production skill or a stable SDK contract.\n\nUse the supplied module.json, src/index.ts, schemas/config.json and README.md template. Keep manifest entry points consistent with included files. Define configuration through schemas, forms and guides. Declare dependencies and requested host access. Keep credentials and device state out of shareable source. Include sample input and test instructions. Code generation happens in the user's harness; return code for editing and checking in Edge Studio. No CLI workflow is required.\n\nNever assume a preview executes or validates arbitrary code. The demo does not run source or implement hardware access.\n`,
+                )
+              }
+            >
+              Download example skill
+            </Button>
+            <p className="text-xs text-zinc-400">
+              The actual module-builder-skill and runtime contracts are planned. This example
+              describes the hand-off without implying a live AI connection or project
+              synchronization.
+            </p>
+          </div>
+        </Modal>
+      )}
       {publishOpen && (
         <Modal
           title={published ? "Your idea is out there." : "A small idea. A wider world."}
           description={
             published
               ? "Your sample listing is now in the demo library."
-              : "Preview how your module becomes a community contribution."
+              : "Phase 2 · Automated checks, publication, then human spam/content moderation."
           }
           onClose={() => setPublishOpen(false)}
           footer={
@@ -747,7 +853,7 @@ export function ModuleEditor() {
                 </Button>
                 <Button
                   variant="accent"
-                  disabled={!agreed || !readme || !moduleName.trim()}
+                  disabled={!packaged || !agreed || !readme || !moduleName.trim()}
                   onClick={() => {
                     saveDraft(currentDraft);
                     publish(currentDraft);
@@ -772,7 +878,8 @@ export function ModuleEditor() {
                 <p className="mt-3 text-sm leading-relaxed text-zinc-500">
                   A new possibility in the community library.
                   <br />
-                  This listing lives only in your current demo session.
+                  Published immediately in this demo; post-publication content moderation is
+                  pending. This is not a code-safety review. The listing lives only in this session.
                 </p>
               </div>
             ) : (
@@ -781,10 +888,39 @@ export function ModuleEditor() {
                   <ModuleGlyph icon={draft.icon} color={draft.color} />
                   <div>
                     <h3 className="font-semibold">{moduleName}</h3>
-                    <p className="mt-1 text-xs text-zinc-400">Alex Morgan · v0.1.0 · MIT</p>
+                    <p className="mt-1 text-xs text-zinc-400">
+                      Alex Morgan · v0.1.0 · License metadata is illustrative; D8 open
+                    </p>
                   </div>
                   <DemoBadge tone="purple">Public</DemoBadge>
                 </div>
+                <section
+                  aria-label="Publication checks"
+                  className="rounded-xl bg-zinc-50 p-4 text-xs leading-relaxed text-zinc-600"
+                >
+                  <h4 className="font-semibold">Automated acceptance checks · Demo</h4>
+                  <ul className="mt-2 space-y-1">
+                    <li>
+                      {validated
+                        ? "✓ Basic manifest, JSON and entry-file checks passed"
+                        : "Validate this draft first"}
+                    </li>
+                    <li>
+                      {packaged
+                        ? "✓ Current revision packaged"
+                        : "Package the current revision before publishing"}
+                    </li>
+                    <li>
+                      Sample metadata and documentation checks; production rules remain to be
+                      defined
+                    </li>
+                  </ul>
+                  <p className="mt-3">
+                    No human approval gate. Initially, people filter spam and inappropriate uploads
+                    after publication. Community management is the long-term goal. AI-assisted
+                    checks are a future option, not a completed check or safety certification.
+                  </p>
+                </section>
                 <InputField
                   label="Listing title"
                   value={moduleName}

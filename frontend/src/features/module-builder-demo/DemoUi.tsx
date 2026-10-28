@@ -102,6 +102,11 @@ export function CatalogCard({ module }: { module: DemoModule }) {
       </Link>
       <p className="mt-2 min-h-11 text-sm leading-relaxed text-zinc-500">{module.summary}</p>
       <div className="mt-5 flex flex-wrap gap-1.5">
+        {module.commercial && (
+          <span className="rounded bg-violet-50 px-2 py-1 text-[10px] text-violet-700">
+            Paid concept · Inspectable source
+          </span>
+        )}
         {module.contributions.slice(0, 2).map((text) => (
           <span
             key={text}

@@ -115,6 +115,10 @@ Module Builder frontend concept: [demo walkthrough, scope, removal instructions,
 
 Module Builder stakeholder material (2026-10-20): [brief and speaker notes](./reports/module-builder-2026-10-20/stakeholder-brief.md), [PowerPoint](./reports/module-builder-2026-10-20/module-builder-stakeholders.pptx), [PDF](./reports/module-builder-2026-10-20/module-builder-stakeholders.pdf).
 
+Module Builder journey and estimates (2026-10-28): [walkthrough and rebuild guide](./reports/module-builder-journey-2026-10-28/README.md), [PowerPoint](./reports/module-builder-journey-2026-10-28/module-builder-user-journey.pptx), [PDF](./reports/module-builder-journey-2026-10-28/module-builder-user-journey.pdf), [estimate basis](./reports/module-builder-journey-2026-10-28/estimate-notes.md).
+
+Module Builder OpenProject backlog (2026-10-28): [two epics, sixteen features, dependencies and effort ranges](./reports/module-builder-openproject-2026-10-28/README.md), including required Phase 2 commerce.
+
 | Plan | Status |
 | ---- | ------ |
 | [plans/security/](./plans/security/README.md) | In progress — Phases 1-5 done and in review; owns all V1.5 security work |
