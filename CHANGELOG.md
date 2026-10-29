@@ -4,24 +4,9 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
-## [Unreleased] camera-readd
-
-### Changed
-
-- Camera setup separates capture mode and capture settings, validates numeric settings, and reviews the complete capture configuration before saving.
-- The camera guide includes connection, hardware enablement, configuration, verification, troubleshooting, and privacy and retention topics.
-
-### Fixed
-
-- Raspberry Pi Camera is available on the first screen of the device setup wizard.
-
-## [Unreleased] doc-fix
-
-### Security
-
-- Updated runtime dependencies and test/build tooling to patched releases for the reported npm advisories.
-
 ## [Unreleased]
+
+## [0.43.0] 2026-10-29
 
 ### Added
 
@@ -41,9 +26,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - History from a wallet the node no longer uses is marked Previous wallet and can be cleared by an admin after re-entering their PIN/password (`POST /api/wallet/history/clear-previous`).
 - Dev testnet setup for Minima wallet testing on a Pi; see `docs/guides/minima-testnet.md`.
 - Settings can download a re-authenticated, read-only history archive with redacted wallet, workflow, data-source, and Integritas records.
+- Settings shows storage and history usage and can import archives as read-only history without restoring app configuration.
 
 ### Changed
 
+- Camera setup separates capture mode and capture settings, validates numeric settings, and reviews the complete capture configuration before saving.
+- The camera guide includes connection, hardware enablement, configuration, verification, troubleshooting, and privacy and retention topics.
 - The Devices setup picker groups GPIO LED output under Actuators, separate from sensor templates and protocol output targets.
 - Resync progress is collapsible, opens for each active resync, and shows events in a bounded scrolling list.
 - Minima resync starts asynchronously with HTTP 202 and exposes the latest persisted operation through an admin-only progress endpoint.
@@ -78,6 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Raspberry Pi Camera is available on the first screen of the device setup wizard.
 - Successful login corrects older PIN accounts' credential metadata without changing their credentials.
 - Login wording follows the configured credential type and falls back to PIN or password when metadata is unavailable.
 - Session-expiry notices now refer to both PINs and passwords.
@@ -87,6 +76,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
+- Updated runtime dependencies and test/build tooling to patched releases for the reported npm advisories.
 - After a login converts the stored credential, manually reinstalling an older release locks the admin out; in-app updates are unaffected.
 - A login that overlaps a PIN/password change now fails instead of creating a session.
 - Smaller authenticated API surface and no stored TOTP secrets (see [ADR 0036](docs/adr/0036-remove-dead-code-and-unused-features.md)).

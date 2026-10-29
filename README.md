@@ -446,8 +446,8 @@ Settings -> Storage & history shows the records and managed files Edge Studio ke
 An admin can download a read-only history archive after re-entering the current PIN/password. The
 archive contains redacted wallet history, workflow inbox items/runs, data-source reads, and
 Integritas proof history. It does not include active devices, workflow definitions, contacts,
-credentials, Minima backups, captures, verification PDFs, or generated downloads. A future import
-can show these records as history only; it will not recreate an operational installation.
+credentials, Minima backups, captures, verification PDFs, or generated downloads. Imported archives
+are stored as read-only history; they do not recreate an operational installation.
 
 Some collected payload values may be redacted when they look like credentials. This keeps the
 archive safer to transfer, but means a redacted payload cannot be re-hashed to independently verify

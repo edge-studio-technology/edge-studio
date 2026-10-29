@@ -15,7 +15,7 @@
 
 ## In Progress
 
-- [ ] Define Edge Studio storage/history lifecycle: monitor usage first, then archive/import, manual cleanup, and category-specific retention — monitor-only inventory implemented; see `docs/plans/storage-history-lifecycle.md`.
+- [ ] Finish Edge Studio storage/history lifecycle: inventory and archive export/import are implemented; manual cleanup, category-specific retention, and browser/Pi verification remain; see `docs/plans/storage-history-lifecycle.md`.
 
 ## Next
 
@@ -60,7 +60,7 @@
 ### Other
 
 - [ ] Run the UI regression sweep in `docs/qa/gaps.md` (UI changes verified only by build or unit tests).
-- [ ] Fix the root `concurrently` → `shell-quote` critical audit finding; consider adding the root package to `audit:moderate`.
+- [ ] Consider adding the root package to `audit:moderate`; the previously reported `shell-quote` advisory was addressed by the dependency updates.
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
 - [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.
 - [ ] Stop other values from the previous `.env` (for example a hand-added `UPDATE_DRY_RUN`) leaking into the installer's compose run; only `COMPOSE_PROFILES` is unset after `load_existing_config` in `install.sh`.
