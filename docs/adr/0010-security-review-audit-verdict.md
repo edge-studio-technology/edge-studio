@@ -57,9 +57,10 @@ existing controls, and regression tests rather than the scanner severity alone.
 | 11 (verification-report write) | Harden | Use the retrieved proof record ID and allow only letters, digits, underscores, and hyphens before network or filesystem work; traversal, absolute paths, separators, and NUL inputs have regression tests. |
 | 7–9, 12–14, 25–27 (upload paths) | False positive | Every affected source is Multer's server-generated `req.file.path`, not a body field or original filename. Both disk-storage configurations use a fixed temporary directory and Multer's random 16-byte hex filenames. Multipart regression tests supply traversal filenames and forged path/destination fields and verify the actual path and bytes remain in the fixed directory. Backup destination names additionally pass basename/sanitization and existing realpath containment. |
 | 24 (CSRF middleware) | Existing accepted residual risk | The V1 decision above remains in force: strict same-site session cookies, secure cookies on HTTPS, single-admin trusted-LAN use, no cross-site integrations. This is not a false positive or a claim of token-based protection. Cookie policy is pinned by session-service tests; public/internet/multi-tenant use requires revisiting it. |
+| 30–35 (upload regression-test harnesses) | False positive | The two new middleware test files construct Express apps only for Supertest requests; production never imports or mounts them. Their file operations exercise the same server-generated Multer paths and verify the fixed directory and random filename before reading. Rate limiting is exercised separately on the real production routes. |
 
 Do not disable scanning or suppress rule families. Resolve fixed findings by rescanning; dismiss
-only the identified upload-path false positives and the already accepted V1 CSRF residual risk
+only the identified upload-path/test-harness false positives and the already accepted V1 CSRF residual risk
 with these specific reasons. New upload storage engines, client-controlled destinations, cookie
 changes, or exposure outside the supported threat model invalidate those dispositions.
 
