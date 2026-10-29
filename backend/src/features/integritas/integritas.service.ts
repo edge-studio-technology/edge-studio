@@ -281,6 +281,7 @@ export function verificationReportDownloadUrl(response: unknown) {
 }
 
 function verificationReportFileName(recordId: string) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(recordId)) throw new Error("Invalid proof record ID");
   return `${recordId}.pdf`;
 }
 
@@ -289,6 +290,7 @@ export function verificationReportFilePath(fileName: string) {
 }
 
 export async function saveVerificationReport(recordId: string, response: unknown) {
+  const fileName = verificationReportFileName(recordId);
   const reportUrl = verificationReportDownloadUrl(response);
   if (!reportUrl) return null;
 
@@ -296,7 +298,6 @@ export async function saveVerificationReport(recordId: string, response: unknown
   if (!fetchResponse.ok) throw new Error(`Verification report download failed with HTTP ${fetchResponse.status}`);
 
   const bytes = Buffer.from(await fetchResponse.arrayBuffer());
-  const fileName = verificationReportFileName(recordId);
   const reportsDir = path.join(env.dataDir, VERIFICATION_REPORTS_DIR);
   await fs.mkdir(reportsDir, { recursive: true });
   await fs.writeFile(path.join(reportsDir, fileName), bytes);

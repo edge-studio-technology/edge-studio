@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { Response } from "express";
 import fs from "node:fs/promises";
 import { requireRole } from "../auth/auth.middleware.js";
-import { integritasStampRateLimiter } from "../auth/rate-limit.middleware.js";
+import { fileOperationRateLimiter, integritasStampRateLimiter } from "../auth/rate-limit.middleware.js";
 import { badRequest, notFound, sendApiError, unexpected } from "../../shared/api-error.js";
 import { appError, systemError } from "../../shared/structured-error.js";
 import { getIntegritasApiKey } from "../settings/secrets.service.js";
@@ -111,7 +111,7 @@ integritasRouter.post("/history/delete-selected", requireRole("admin"), (req, re
   return res.json({ deleted: parsed.ids.length });
 });
 
-integritasRouter.post("/history/export-selected", async (req, res) => {
+integritasRouter.post("/history/export-selected", fileOperationRateLimiter, async (req, res) => {
   const parsed = parseSelectedIds(req);
   if (!parsed.ok) return badRequest(res, parsed.error, { field: "ids" });
   const ids = parsed.ids;
@@ -126,7 +126,7 @@ integritasRouter.post("/history/export-selected", async (req, res) => {
   }
 });
 
-integritasRouter.get("/history/:id/download-zip", async (req, res) => {
+integritasRouter.get("/history/:id/download-zip", fileOperationRateLimiter, async (req, res) => {
   const record = getProofRecord(req.params.id);
   if (!record) return notFound(res, "Proof record not found");
 
@@ -138,7 +138,7 @@ integritasRouter.get("/history/:id/download-zip", async (req, res) => {
   }
 });
 
-integritasRouter.post("/history/:id/verify", requireRole("admin"), async (req, res) => {
+integritasRouter.post("/history/:id/verify", requireRole("admin"), fileOperationRateLimiter, async (req, res) => {
   const apiKey = requireIntegritasApiKey(res);
   if (!apiKey) return;
   const record = getProofRecord(req.params.id);
@@ -147,7 +147,7 @@ integritasRouter.post("/history/:id/verify", requireRole("admin"), async (req, r
   if (!proofPayload) return badRequest(res, "Proof record has no proof payload");
   const result = await verifyProof({ apiKey, proofPayload });
   if (!result.ok) return sendIntegritasError(res, result);
-  const verificationReportFile = await saveVerificationReport(req.params.id, result.response).catch(() => null);
+  const verificationReportFile = await saveVerificationReport(record.id, result.response).catch(() => null);
   const updated = updateVerifyResponse(req.params.id, result.response, verificationReportFile);
   return res.json({
     record: updated,
@@ -157,7 +157,7 @@ integritasRouter.post("/history/:id/verify", requireRole("admin"), async (req, r
   });
 });
 
-integritasRouter.get("/history/:id/verification-report", async (req, res) => {
+integritasRouter.get("/history/:id/verification-report", fileOperationRateLimiter, async (req, res) => {
   const record = getProofRecord(req.params.id);
   if (!record) return notFound(res, "Proof record not found");
   if (!record.verification_report_file) return notFound(res, "Verification report not found");
@@ -177,7 +177,7 @@ integritasRouter.get("/history/:id/verification-report", async (req, res) => {
   });
 });
 
-integritasRouter.post("/verify-proof-file", upload.single("file"), async (req, res) => {
+integritasRouter.post("/verify-proof-file", fileOperationRateLimiter, upload.single("file"), async (req, res) => {
   // Same early-return orphan as /stamp-file: the missing-API-key check ran before the finally.
   const file = req.file;
   if (!file) {

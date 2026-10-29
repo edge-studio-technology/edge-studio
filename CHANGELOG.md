@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- Proof file operations, history archive imports/exports, and Minima backup downloads/restores share a limit of 30 requests per client per minute.
+- History exports and Minima backup downloads/restores limit failed credential checks to five per client per 15 minutes.
+- Verification report filenames accept only letters, numbers, underscores, and hyphens in proof IDs.
+- GitHub Actions tokens default to read-only repository access, with package publishing granted only to the image-build job.
+
 ## [0.43.0] 2026-10-29
 
 ### Added

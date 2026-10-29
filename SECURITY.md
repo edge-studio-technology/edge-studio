@@ -53,6 +53,12 @@ Open items are tracked in [`docs/qa/gaps.md`](docs/qa/gaps.md) and [`docs/TASKS.
 Most findings are closed; the register entries say which remain open or accepted. This is a
 prototype on a trusted LAN — treat the register, not this page, as the current state.
 
+## File Operations And CI Permissions
+
+Proof exports, ZIP/PDF downloads, verification requests, history archive imports/exports, and Minima backup downloads/restores share a process-local limit of 30 requests per client per minute. Archive exports and backup downloads/restores also use the existing authentication limiter: five failed requests per client per 15 minutes, shared with other credential-confirmation routes. Limits run before upload parsing, credential hashing, and file access; list/status polling is unaffected. Verification-report writes validate proof IDs against a filename allowlist. See [ADR 0022](docs/adr/0022-bound-external-automation-effects.md) and [release security triage](docs/adr/0010-security-review-audit-verdict.md#release-codeql-triage-2026-10-29).
+
+GitHub Actions tokens default to `contents: read`; only the release image-build job also receives `packages: write`. Manifest-repository writes use the existing dedicated GitHub App token.
+
 ## Default Network Exposure
 
 The default Compose installation publishes the HTTPS frontend on TCP `8080` and Minima peer-to-peer traffic on TCP `9003` on the host interfaces. Minima RPC on TCP `9005` is bound to `127.0.0.1`; keep that binding local. The backend and update-agent are accessed through the frontend proxy rather than separate host-published ports. Port values can be changed by installation configuration.

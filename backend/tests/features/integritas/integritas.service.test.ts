@@ -346,6 +346,16 @@ describe("verifyProof", () => {
 });
 
 describe("verification reports", () => {
+  for (const recordId of ["../outside", "..\\outside", "/tmp/outside", "C:\\outside", "..", "", "proof/child", "proof\u0000id"]) {
+    it(`rejects unsafe report ID ${JSON.stringify(recordId)} before network or file access`, async () => {
+      await assert.rejects(
+        () => service.saveVerificationReport(recordId, { data: { file: { download_url: "https://example.com/report.pdf" } } }),
+        /Invalid proof record ID/,
+      );
+      assert.equal(fetchMock.mock.calls.length, 0);
+    });
+  }
+
   it("extracts the PDF download URL from the verify envelope", () => {
     const response = { data: { file: { download_url: "https://example.com/report.pdf" } } };
 
