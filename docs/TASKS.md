@@ -11,7 +11,7 @@
 
 ## Current Focus
 
-- [ ] Resolve v0.43.0 release CodeQL findings, finalize the release changelog, and verify PR #165 before tagging.
+[Nothing in focus.]
 
 ## In Progress
 
@@ -70,6 +70,7 @@
 
 ## Done
 
+- [x] Release security hardening: bounded proof/history/backup file operations and credential checks, validated report IDs, explicit workflow token permissions, and regression-tested upload-path triage (ADRs 0010/0022); full Linux checks passed in #166.
 - [x] Restored Raspberry Pi Camera in the device setup wizard and updated its focused setup steps, validation, full capture review, and in-app guide; verified with focused tests, frontend lint, and build.
 
 - [x] Updated dependency lockfiles and patched Vitest/coverage, qs and Happy DOM requirements to clear the npm audit blocker; all three application audits and the root install audit reported zero vulnerabilities. Existing local backend/script test limitations are recorded in SESSION.
