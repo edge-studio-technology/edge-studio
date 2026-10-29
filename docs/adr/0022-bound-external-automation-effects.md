@@ -56,6 +56,15 @@ Integritas history is evidence. A security limit should not decide their product
 - Separate one-minute limiters: 60 webhook requests per client and source, 30 automation
   mutation/manual-run requests per client, 10 stamp creations per client. Not applied to reads,
   status polling, or draft validation.
+- Expensive proof file operations, history archive imports/exports, and Minima backup
+  downloads/restores share a separate 30-request/minute budget per client across those routes.
+  Unlike list/status reads, file downloads perform disk and export work. The shared ceiling bounds
+  client traffic across features without interfering with ordinary polling. It is an interim
+  conservative limit, not a measured Pi capacity.
+- Archive export and backup download/restore also use the existing five-failures/15-minute
+  authentication limiter shared by credential-confirmation routes. Traffic limiting runs first,
+  then credential limiting, then multipart upload parsing, so rejected clients cannot spend disk
+  or password-hashing work. Successful credential requests do not consume the failure budget.
 - Budget and limits are named backend constants; no API, UI, or env configuration. The budget
   limits repetition only; destinations and amounts remain trusted workflow configuration.
 
@@ -117,6 +126,7 @@ Integritas history is evidence. A security limit should not decide their product
 
 ## History
 
+- 2026-10-29: Bounded proof/history/backup file operations and added missing credential-confirmation limits after release CodeQL triage.
 - 2026-09-23: Retention classified by record purpose; inbox and data-source reads preserved (was
   ADR 0023).
 - 2026-09-25: Workflow runs and block runs preserved for Watch mode (was ADR 0026).

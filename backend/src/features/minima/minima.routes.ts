@@ -4,7 +4,7 @@ import type { Response } from "express";
 import { apiErrorFromStatus, badRequest, dependencyUnavailable, notFound, unauthorized, unexpected } from "../../shared/api-error.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
-import { authRateLimiter } from "../auth/rate-limit.middleware.js";
+import { authRateLimiter, fileOperationRateLimiter } from "../auth/rate-limit.middleware.js";
 import {
   clearBackupPassword,
   createBackup,
@@ -237,7 +237,7 @@ minimaRouter.post("/backups", requireRole("admin"), async (req, res) => {
   }
 });
 
-minimaRouter.post("/backups/:fileName/download", requireRole("admin"), async (req, res) => {
+minimaRouter.post("/backups/:fileName/download", requireRole("admin"), fileOperationRateLimiter, authRateLimiter, async (req, res) => {
   try {
     const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
     await verifyCurrentPassword(req.user?.id, currentPassword);
@@ -252,7 +252,7 @@ minimaRouter.post("/backups/:fileName/download", requireRole("admin"), async (re
   }
 });
 
-minimaRouter.post("/backups/restore", requireRole("admin"), backupUpload.single("file"), async (req, res) => {
+minimaRouter.post("/backups/restore", requireRole("admin"), fileOperationRateLimiter, authRateLimiter, backupUpload.single("file"), async (req, res) => {
   // An uploaded file is a one-time restore source, not a permanently tracked/classified
   // entry (we don't know if it's encrypted), so it's removed from the shared folder after
   // the restore attempt either way instead of lingering and confusing the two lists above.

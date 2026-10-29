@@ -2,6 +2,7 @@ import { Router } from "express";
 import fs from "node:fs/promises";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
+import { authRateLimiter, fileOperationRateLimiter } from "../auth/rate-limit.middleware.js";
 import { MinimaBackupError, verifyCurrentPassword } from "../minima/minima-backup.service.js";
 import { apiErrorFromStatus, unexpected } from "../../shared/api-error.js";
 import { buildHistoryArchive } from "./history-archive.service.js";
@@ -16,7 +17,7 @@ storageHistoryRouter.get("/inventory", (_req, res) => {
   return res.json(getStorageHistoryInventory());
 });
 
-storageHistoryRouter.post("/export", requireRole("admin"), async (req, res) => {
+storageHistoryRouter.post("/export", requireRole("admin"), fileOperationRateLimiter, authRateLimiter, async (req, res) => {
   try {
     const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
     await verifyCurrentPassword(req.user?.id, currentPassword);
@@ -41,7 +42,7 @@ storageHistoryRouter.get("/imports/:id", requireRole("admin"), (req, res) => {
   return archive ? res.json(archive) : notFound(res, "Imported history archive not found");
 });
 
-storageHistoryRouter.post("/imports", requireRole("admin"), upload.single("file"), async (req, res) => {
+storageHistoryRouter.post("/imports", requireRole("admin"), fileOperationRateLimiter, upload.single("file"), async (req, res) => {
   if (!req.file) return badRequest(res, "Choose a history archive file.", { field: "file" });
   try {
     const archive = importHistoryArchive(await fs.readFile(req.file.path, "utf8"));

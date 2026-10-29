@@ -11,7 +11,7 @@
 
 ## Current Focus
 
-[Nothing in focus.]
+- [ ] Resolve v0.43.0 release CodeQL findings, finalize the release changelog, and verify PR #165 before tagging.
 
 ## In Progress
 

@@ -102,7 +102,10 @@ afterAll(() => {
   fs.rmSync(backupsDir, { recursive: true, force: true });
 });
 
-beforeEach(() => {
+beforeEach(async () => {
+  const { authRateLimiter, fileOperationRateLimiter } = await import("../../../src/features/auth/rate-limit.middleware.js");
+  await authRateLimiter.resetKey("::ffff:127.0.0.1");
+  await fileOperationRateLimiter.resetKey("::ffff:127.0.0.1");
   fetchMock.mockReset();
   restartMinimaContainer.mockReset();
   vi.stubGlobal("fetch", fetchMock);
@@ -127,6 +130,31 @@ describe("POST /api/minima/restart", () => {
     assert.equal(response.body.errorDetails.domain, "system");
     assert.equal(response.body.errorDetails.type, "dependency_unavailable");
     assert.equal(response.body.errorDetails.message, response.body.error);
+  });
+});
+
+describe("backup credential rate limits", () => {
+  for (const route of ["/api/minima/backups/missing.bak/download", "/api/minima/backups/restore"]) {
+    it(`limits failed credential checks on ${route} before issuing RPC`, async () => {
+      for (let index = 0; index < 5; index += 1) {
+        const response = await request(app).post(route).set("Cookie", cookie).send({ currentPassword: "wrong" });
+        assert.equal(response.status, 401);
+      }
+      const response = await request(app).post(route).set("Cookie", cookie).send({ currentPassword: ADMIN_PASSWORD });
+      assert.equal(response.status, 429);
+      assert.equal(fetchMock.mock.calls.length, 0);
+    });
+  }
+
+  it("shares the file-operation budget with proof downloads before backup work", async () => {
+    for (let index = 0; index < 30; index += 1) {
+      assert.equal((await request(app).get("/api/integritas/history/missing/download-zip").set("Cookie", cookie)).status, 404);
+    }
+    for (const route of ["/api/minima/backups/missing.bak/download", "/api/minima/backups/restore"]) {
+      const response = await request(app).post(route).set("Cookie", cookie).send({ currentPassword: ADMIN_PASSWORD });
+      assert.equal(response.status, 429);
+    }
+    assert.equal(fetchMock.mock.calls.length, 0);
   });
 });
 
