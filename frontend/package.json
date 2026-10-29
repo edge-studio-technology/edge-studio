@@ -7,6 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "dev:https": "vite --host 0.0.0.0 --mode https",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "build": "tsc && vite build",
@@ -28,11 +29,11 @@
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
     "@vitejs/plugin-react": "^5.1.1",
-    "@vitest/coverage-v8": "^4.1.11",
-    "happy-dom": "^20.10.6",
+    "@vitest/coverage-v8": "^4.1.12",
+    "happy-dom": "^21.0.4",
     "tailwindcss": "^4.3.0",
     "typescript": "^5.4.2",
     "vite": "^8.0.15",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   }
 }

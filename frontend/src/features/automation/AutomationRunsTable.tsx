@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Eye, Inbox } from "lucide-react";
 import {
   DataTable,
@@ -9,7 +8,6 @@ import {
   TableHead,
   TableHeaderCell,
   TableIconButton,
-  TableIconMenu,
   TableRow,
   TableWrap,
 } from "../../components/patterns/DataTable";
@@ -283,7 +281,6 @@ function WorkflowRunCell({
 }
 
 function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void }) {
-  const navigate = useNavigate();
   const label = run.workflowName;
 
   return (
@@ -296,22 +293,6 @@ function RunRowActions({ run, onView }: { run: AutomationRun; onView: () => void
       >
         <Eye size={16} aria-hidden />
       </TableIconButton>
-      {/* <TableIconMenu
-        aria-label={`More actions for ${label}`}
-        items={[
-          {
-            label: "Show on canvas",
-            disabled: !run.workflowId,
-            title: run.workflowId ? undefined : "Workflow was deleted",
-            onClick: () => {
-              if (!run.workflowId) return;
-              navigate(
-                `/workflows/${encodeURIComponent(run.workflowId)}/watch/${encodeURIComponent(run.id)}`,
-              );
-            },
-          },
-        ]}
-      /> */}
     </RowActions>
   );
 }

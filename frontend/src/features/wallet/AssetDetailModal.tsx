@@ -80,13 +80,6 @@ export function AssetDetailModal({ token, onClose }: { token: TokenBalance; onCl
             hint={hasPending ? "Pending network confirmation" : undefined}
           />
         </div>
-
-        {/* <section className="gap-detail-next flex flex-col" aria-labelledby="asset-token-id-label">
-          <p className="type-meta text-text-secondary m-0" id="asset-token-id-label">
-            Token ID
-          </p>
-          <CopyableCode value={token.tokenId} />
-        </section> */}
       </div>
     </Modal>
   );

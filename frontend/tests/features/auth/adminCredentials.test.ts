@@ -3,6 +3,8 @@ import {
   ADMIN_PASSWORD_MIN_LENGTH,
   ADMIN_PIN_LENGTH,
   adminPinHint,
+  adminCredentialLabel,
+  isAdminCredentialEntryReady,
   getAdminPasswordRequirements,
   isValidAdminCredential,
   isValidAdminPassword,
@@ -95,5 +97,19 @@ describe("sanitizePinInput", () => {
 describe("adminPinHint", () => {
   it("describes the configured pin length", () => {
     expect(adminPinHint()).toBe(`${ADMIN_PIN_LENGTH}-digit PIN`);
+  });
+});
+
+describe("existing credential entry", () => {
+  it.each([
+    ["pin", "001234", true], ["pin", "12345", false], ["pin", "1234567", false],
+    ["pin", "12a456", false], ["password", "weak", true], ["password", "001234", true],
+    [null, "legacy password", true], [null, "001234", true], ["password", "", false], [null, "", false],
+  ] as const)("checks %s entry %s without imposing creation policy", (type, value, ready) => {
+    expect(isAdminCredentialEntryReady(type, value)).toBe(ready);
+  });
+
+  it.each([["pin", "PIN"], ["password", "password"], [null, "PIN or password"]] as const)("labels %s entry", (type, label) => {
+    expect(adminCredentialLabel(type)).toBe(label);
   });
 });

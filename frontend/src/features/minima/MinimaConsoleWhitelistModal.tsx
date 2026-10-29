@@ -7,9 +7,11 @@ import { useToast } from "../../components/ToastProvider";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { Disclosure } from "../../components/ui/Disclosure";
-import { InputField } from "../../components/ui/InputField";
+import { CredentialField } from "../../components/ui/CredentialField";
 import { Modal } from "../../components/ui/Modal";
 import { getConsoleWhitelist, updateConsoleWhitelist } from "./minimaConsoleApi";
+import { useAuth } from "../auth/hooks";
+import { adminCredentialLabel, isAdminCredentialEntryReady } from "../auth/adminCredentials";
 
 function WhitelistCheckRow({
   label,
@@ -140,6 +142,9 @@ function CommandSection({
 }
 
 export function MinimaConsoleWhitelistModal({ onClose }: { onClose: () => void }) {
+  const { user } = useAuth();
+  const credentialType = user?.credentialType ?? null;
+  const credentialLabel = adminCredentialLabel(credentialType);
   const { showToast } = useToast();
   const [catalog, setCatalog] = useState<MinimaConsoleCatalogEntry[] | null>(null);
   const [enabledKeys, setEnabledKeys] = useState<Set<string>>(new Set());
@@ -203,7 +208,7 @@ export function MinimaConsoleWhitelistModal({ onClose }: { onClose: () => void }
 
   async function handleConfirm(e: React.FormEvent) {
     e.preventDefault();
-    if (currentPassword.length === 0 || saving) return;
+    if (!isAdminCredentialEntryReady(credentialType, currentPassword) || saving) return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -308,7 +313,7 @@ export function MinimaConsoleWhitelistModal({ onClose }: { onClose: () => void }
       {confirmOpen ? (
         <Modal
           title="Confirm whitelist changes"
-          description="Enter your PIN or password to save console command permissions."
+          description={`Enter your ${credentialLabel} to save console command permissions.`}
           onClose={closeConfirm}
           closeDisabled={saving}
           className="!max-w-[420px]"
@@ -321,7 +326,7 @@ export function MinimaConsoleWhitelistModal({ onClose }: { onClose: () => void }
               <Button
                 type="submit"
                 form="minima-console-whitelist-confirm"
-                disabled={saving || currentPassword.length === 0}
+                disabled={saving || !isAdminCredentialEntryReady(credentialType, currentPassword)}
               >
                 {saving ? "Saving…" : "Confirm"}
               </Button>
@@ -333,12 +338,12 @@ export function MinimaConsoleWhitelistModal({ onClose }: { onClose: () => void }
             onSubmit={(e) => void handleConfirm(e)}
             className="gap-detail-close grid"
           >
-            <InputField
-              label="Enter your PIN or password"
-              type="password"
+            <CredentialField
+              credentialType={credentialType}
+              label={`Enter your ${credentialLabel}`}
               value={currentPassword}
-              onChange={(e) => {
-                setCurrentPassword(e.target.value);
+              onChange={(value) => {
+                setCurrentPassword(value);
                 setSaveError(null);
               }}
               placeholder="Your current credential"

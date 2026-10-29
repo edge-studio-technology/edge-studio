@@ -1,7 +1,6 @@
 import { APP_NAME } from "../../../app/brand";
 import { Button } from "../../../components/Button";
-import { InputField } from "../../../components/ui/InputField";
-import { PinField } from "../../../components/ui/PinField";
+import { CredentialField } from "../../../components/ui/CredentialField";
 import { ProgressBar } from "../../../components/ui/ProgressBar";
 import { ToggleTabs } from "../../../components/ui/ToggleTabs";
 import {
@@ -83,46 +82,26 @@ export function AccountStep({
             onChange={selectCredentialType}
           />
 
-          {isPin ? (
-            <div className="gap-detail-close flex w-full flex-col">
-              <PinField
-                label="PIN"
-                value={form.password}
-                length={ADMIN_PIN_LENGTH}
-                onChange={(password) => setForm({ password })}
-                autoComplete="one-time-code"
-              />
-              <PinField
-                label="Confirm PIN"
-                value={form.confirmPassword}
-                length={ADMIN_PIN_LENGTH}
-                onChange={(confirmPassword) => setForm({ confirmPassword })}
-                error={showMismatch ? "PINs do not match" : undefined}
-                autoComplete="one-time-code"
-              />
-            </div>
-          ) : (
-            <div className="gap-detail-close flex w-full flex-col">
-              <InputField
-                label="Password"
-                type="password"
-                value={form.password}
-                onChange={(event) => setForm({ password: event.target.value })}
-                placeholder="Password"
-                autoComplete="new-password"
-              />
-              <InputField
-                label="Confirm password"
-                type="password"
-                value={form.confirmPassword}
-                onChange={(event) => setForm({ confirmPassword: event.target.value })}
-                placeholder="Password"
-                autoComplete="new-password"
-                error={showMismatch ? "Passwords do not match" : undefined}
-              />
-              <PasswordRequirements password={form.password} />
-            </div>
-          )}
+          <div className="gap-detail-close flex w-full flex-col">
+            <CredentialField
+              credentialType={form.credentialType}
+              label={isPin ? "PIN" : "Password"}
+              value={form.password}
+              onChange={(password) => setForm({ password })}
+              placeholder={isPin ? undefined : "Password"}
+              autoComplete="new-password"
+            />
+            <CredentialField
+              credentialType={form.credentialType}
+              label={isPin ? "Confirm PIN" : "Confirm password"}
+              value={form.confirmPassword}
+              onChange={(confirmPassword) => setForm({ confirmPassword })}
+              placeholder={isPin ? undefined : "Password"}
+              error={showMismatch ? (isPin ? "PINs do not match" : "Passwords do not match") : undefined}
+              autoComplete="new-password"
+            />
+            {!isPin && <PasswordRequirements password={form.password} />}
+          </div>
 
           <Button
             type="submit"

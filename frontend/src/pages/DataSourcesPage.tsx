@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
@@ -43,7 +42,7 @@ import {
   StandardDeviceSetupGuide,
   type DeviceGuideAction,
 } from "../features/data-sources/deviceSetupGuides";
-import { Esp32FirmwareSetup } from "../features/data-sources/Esp32FirmwareSetup";
+import { Esp32SetupGuide } from "../features/data-sources/Esp32FirmwareSetup";
 import { useDeviceFormFields } from "../features/data-sources/useDeviceFormFields";
 
 const HARDWARE_REFRESH_TIMEOUT_MS = 30000;
@@ -66,6 +65,7 @@ export function DataSourcesPage() {
   const [hostCapabilities, setHostCapabilities] = useState<HostCapability[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
+  const [hardwareLoadError, setHardwareLoadError] = useState<string | null>(null);
   const [setupDeviceOpen, setSetupDeviceOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -75,6 +75,7 @@ export function DataSourcesPage() {
   const [hardwareOperation, setHardwareOperation] = useState<HardwareOperation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DataSource | null>(null);
   const [setupGuideSource, setSetupGuideSource] = useState<DataSource | null>(null);
+  const [resumeGuideAfterEdit, setResumeGuideAfterEdit] = useState(false);
   const [runningGuideActionKey, setRunningGuideActionKey] = useState<string | null>(null);
   const [createdGuideWorkflowIds, setCreatedGuideWorkflowIds] = useState<Record<string, string>>(
     {},
@@ -82,13 +83,15 @@ export function DataSourcesPage() {
 
   useEffect(() => {
     void loadInitialData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only load
 
   async function loadInitialData() {
     setInitialLoading(true);
     setInitialLoadError(null);
+    void loadHardwareStatus();
     try {
-      await refresh();
+      const response = await listDataSources();
+      setItems(response.items);
     } catch (err) {
       setInitialLoadError(
         err instanceof Error && err.message
@@ -100,6 +103,23 @@ export function DataSourcesPage() {
     }
   }
 
+  async function loadHardwareStatus() {
+    const hostCapabilitiesRequest = getHostCapabilities().catch(() => ({ items: [] }));
+    try {
+      const capabilityResponse = await getDataSourceCapabilities();
+      setCapabilities(capabilityResponse);
+      setHardwareLoadError(null);
+    } catch (err) {
+      setHardwareLoadError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Edge Studio could not load hardware status. Try again.",
+      );
+    }
+    const hostCapabilityResponse = await hostCapabilitiesRequest;
+    setHostCapabilities(hostCapabilityResponse.items);
+  }
+
   async function refresh() {
     const [response, capabilityResponse, hostCapabilityResponse] = await Promise.all([
       listDataSources(),
@@ -109,13 +129,12 @@ export function DataSourcesPage() {
     setItems(response.items);
     setCapabilities(capabilityResponse);
     setHostCapabilities(hostCapabilityResponse.items);
+    setHardwareLoadError(null);
     return { items: response.items, capabilities: capabilityResponse, hostCapabilities: hostCapabilityResponse.items };
   }
 
-  function handleDeviceCreated(source: DataSource) {
-    setSetupDeviceOpen(false);
+  function handleDeviceCreated() {
     refresh();
-    if (getDeviceSetupGuide(source)) setSetupGuideSource(source);
   }
 
   function editSource(source: DataSource) {
@@ -128,6 +147,7 @@ export function DataSourcesPage() {
     if (busy) return;
     setFormOpen(false);
     setEditingSource(null);
+    setResumeGuideAfterEdit(false);
     editForm.reset();
   }
 
@@ -189,7 +209,7 @@ export function DataSourcesPage() {
   async function saveEditedDevice() {
     if (!editingSource) return;
     await run(async () => {
-      await updateDataSource(editingSource.id, {
+      const response = await updateDataSource(editingSource.id, {
         name: editForm.fields.name,
         description: editForm.fields.description,
         type: editForm.fields.type,
@@ -198,6 +218,10 @@ export function DataSourcesPage() {
       setFormOpen(false);
       setEditingSource(null);
       editForm.reset();
+      if (resumeGuideAfterEdit) {
+        setSetupGuideSource(response.item);
+        setResumeGuideAfterEdit(false);
+      }
     }, "Device updated");
   }
 
@@ -440,21 +464,6 @@ export function DataSourcesPage() {
       title="Devices"
       desc="Add input sources for data and events, and output targets for workflows."
     >
-      {/* "Add devices" card disabled for v1 — its actions moved next to the device list's
-      filter bar (New device), making this separate card redundant.
-      <Card className="gap-detail-near grid w-full">
-        <div>
-          <h2 className="type-title text-text-primary m-0">Add devices</h2>
-          <p className="type-body text-text-secondary mt-detail-next m-0">
-            Create a configured input source or output target. Local services show connection
-            details for app-provided services.
-          </p>
-        </div>
-        <ButtonRow>
-          <Button onClick={() => setSetupDeviceOpen(true)}>New device</Button>
-        </ButtonRow>
-      </Card> */}
-
       <LocalServicesCard
         capabilities={capabilities}
         hostCapabilities={hostCapabilities}
@@ -471,12 +480,27 @@ export function DataSourcesPage() {
         onRefreshHardware={refreshHardwareStatus}
       />
 
+      {hardwareLoadError && (
+        <ErrorAlert
+          status="warning"
+          title="Hardware status couldn't be loaded"
+          action={
+            <Button type="button" variant="secondary" onClick={() => void loadHardwareStatus()}>
+              Retry
+            </Button>
+          }
+        >
+          {describeLoadFailure(hardwareLoadError)}
+        </ErrorAlert>
+      )}
+
       <AltAddDeviceFlow
         open={setupDeviceOpen}
         capabilities={capabilities}
         hostCapabilities={hostCapabilities}
         onClose={() => setSetupDeviceOpen(false)}
         onCreated={handleDeviceCreated}
+        onOpenSetupGuide={setSetupGuideSource}
       />
 
       {formOpen && (
@@ -530,8 +554,11 @@ export function DataSourcesPage() {
       {setupGuideSource && (
         <Modal
           title={getDeviceSetupGuide(setupGuideSource)?.title ?? "Device setup guide"}
-          description={getDeviceSetupGuide(setupGuideSource)?.intro}
           onClose={() => setSetupGuideSource(null)}
+          width="wide"
+          minWidth="desktop"
+          className="h-[min(90vh,760px)]"
+          bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0"
         >
           {setupGuideBme680SupportWarning && (
             <ErrorAlert status="warning" className="mb-4 max-w-none">
@@ -540,7 +567,23 @@ export function DataSourcesPage() {
           )}
           {setupGuideSource.type === "mqtt" &&
           setupGuideSource.config.profile === "esp32-mqtt-board" ? (
-            <Esp32FirmwareSetup source={setupGuideSource} />
+            <Esp32SetupGuide
+              source={setupGuideSource}
+              createdWorkflowIds={guideWorkflowIdsForSource(
+                setupGuideSource,
+                createdGuideWorkflowIds,
+              )}
+              runningActionKey={runningGuideActionKey}
+              onAction={(action) => runGuideAction(setupGuideSource, action)}
+              onGoToWorkflow={(workflowId) =>
+                navigate(`/workflows/${encodeURIComponent(workflowId)}/edit`)
+              }
+              onEditSettings={() => {
+                setSetupGuideSource(null);
+                setResumeGuideAfterEdit(true);
+                editSource(setupGuideSource);
+              }}
+            />
           ) : (
             <StandardDeviceSetupGuide
               source={setupGuideSource}
@@ -555,6 +598,11 @@ export function DataSourcesPage() {
                 // navigate(`/workflows/${encodeURIComponent(workflowId)}/watch`)
                 navigate(`/workflows/${encodeURIComponent(workflowId)}/edit`)
               }
+              onEditSettings={() => {
+                setSetupGuideSource(null);
+                setResumeGuideAfterEdit(true);
+                editSource(setupGuideSource);
+              }}
             />
           )}
         </Modal>

@@ -12,21 +12,30 @@ import {
   changePassword,
   getMe,
   getSetupStatus,
-  initTotpReset,
   login,
   logout,
-  verifyTotpReset,
 } from "../../../src/features/auth/api";
 
 describe("auth api", () => {
+  it.each(["pin", "password", null])("preserves the public %s credential hint", async (credentialType) => {
+    const status = { localAdminCreated: true, setupComplete: true, credentialType };
+    getJson.mockResolvedValue(status);
+    expect(await getSetupStatus()).toEqual(status);
+  });
+
+  it.each([undefined, "invalid"])("uses unknown for an unavailable or invalid credential hint (%s)", async (credentialType) => {
+    getJson.mockResolvedValue({ localAdminCreated: true, setupComplete: true, credentialType });
+    expect(await getSetupStatus()).toEqual({ localAdminCreated: true, setupComplete: true, credentialType: null });
+  });
+
   it("getSetupStatus GETs setup status", async () => {
-    const status = { localAdminCreated: true, setupComplete: true };
+    const status = { localAdminCreated: true, setupComplete: true, credentialType: "pin" };
     getJson.mockResolvedValue(status);
 
     const result = await getSetupStatus();
 
     expect(getJson).toHaveBeenCalledWith("/api/setup/status");
-    expect(result).toBe(status);
+    expect(result).toEqual(status);
   });
 
   it("getMe GETs the current user", async () => {
@@ -49,17 +58,6 @@ describe("auth api", () => {
     expect(result).toBe(response);
   });
 
-  it("login includes an optional totpToken", async () => {
-    postJson.mockResolvedValue({ success: true, user: {} });
-
-    await login({ password: "123456", totpToken: "000000" });
-
-    expect(postJson).toHaveBeenCalledWith("/api/auth/login", {
-      password: "123456",
-      totpToken: "000000",
-    });
-  });
-
   it("logout POSTs with no body", async () => {
     postJson.mockResolvedValue({ success: true });
 
@@ -78,28 +76,6 @@ describe("auth api", () => {
       currentPassword: "old",
       newPassword: "new",
     });
-    expect(result).toEqual({ success: true });
-  });
-
-  it("initTotpReset POSTs current password and totp token", async () => {
-    const response = { qrCodePngBase64: "abc", secret: "s", expiresAt: "now" };
-    postJson.mockResolvedValue(response);
-
-    const result = await initTotpReset({ currentPassword: "old", totpToken: "000000" });
-
-    expect(postJson).toHaveBeenCalledWith("/api/auth/settings/totp/init", {
-      currentPassword: "old",
-      totpToken: "000000",
-    });
-    expect(result).toBe(response);
-  });
-
-  it("verifyTotpReset POSTs the totp token", async () => {
-    postJson.mockResolvedValue({ success: true });
-
-    const result = await verifyTotpReset({ totpToken: "000000" });
-
-    expect(postJson).toHaveBeenCalledWith("/api/auth/settings/totp/verify", { totpToken: "000000" });
     expect(result).toEqual({ success: true });
   });
 });

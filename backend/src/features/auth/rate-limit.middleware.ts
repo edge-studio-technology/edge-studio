@@ -16,6 +16,7 @@ export const TRAFFIC_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 export const WEBHOOK_RATE_LIMIT_MAX = 60;
 export const AUTOMATION_WRITE_RATE_LIMIT_MAX = 30;
 export const INTEGRITAS_STAMP_RATE_LIMIT_MAX = 10;
+export const FILE_OPERATION_RATE_LIMIT_MAX = 30;
 
 function trafficRateLimiter(max: number, options: Pick<Parameters<typeof rateLimit>[0] & object, "keyGenerator" | "skip"> = {}) {
   return rateLimit({
@@ -41,3 +42,4 @@ export const automationWriteRateLimiter = trafficRateLimiter(AUTOMATION_WRITE_RA
 });
 
 export const integritasStampRateLimiter = trafficRateLimiter(INTEGRITAS_STAMP_RATE_LIMIT_MAX);
+export const fileOperationRateLimiter = trafficRateLimiter(FILE_OPERATION_RATE_LIMIT_MAX);

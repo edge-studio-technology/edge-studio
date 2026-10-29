@@ -18,7 +18,6 @@ function renderSidebar(props?: Partial<ComponentProps<typeof AppShellSidebar>>) 
       <AppShellSidebar
         pathname="/dashboard"
         onFeedback={vi.fn()}
-        onSignOut={vi.fn()}
         version="1.2.3"
         {...props}
       />
@@ -124,7 +123,6 @@ describe("AppShellSidebar", () => {
           <AppShellSidebar
             pathname="/wallet"
             onFeedback={vi.fn()}
-            onSignOut={vi.fn()}
             version="1.2.3"
           />
         </MemoryRouter>,

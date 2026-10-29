@@ -29,7 +29,7 @@ export type UseIntegritasAuthOptions = {
   enabled?: boolean;
 };
 
-export type StartIntegritasAuthOptions = {
+type StartIntegritasAuthOptions = {
   /** Open the Connect verify popup in the same user gesture (avoids a second click after start). */
   openPopup?: boolean;
 };

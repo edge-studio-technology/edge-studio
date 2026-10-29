@@ -90,7 +90,7 @@ COMPOSE_FILE_NAME="docker-compose.yml"
 # Install-time bootstrap trust set. The Ed25519 public key, the verifier source, and the
 # verifier's runtime are all pinned here rather than taken from the runtime bundle they
 # authenticate. See docs/adr/0016-install-time-bootstrap-trust-set.md.
-VERIFIER_IMAGE="node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0"
+VERIFIER_IMAGE="node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392"
 BOOTSTRAP_DIR=""
 MANIFEST_HOST_RUNTIME_URL=""
 MANIFEST_HOST_RUNTIME_SHA256=""

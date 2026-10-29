@@ -38,13 +38,13 @@ describe("templateIcon", () => {
     );
   });
 
-  it("picks Webhook, Radio, Lightbulb, Camera, ThermometerSun, Cpu by type", () => {
+  it("picks Webhook, Radio, Lightbulb, Camera, ThermometerSun, HardDrive by type", () => {
     expect(templateIcon(findTemplate("Webhook Receiver")).displayName).toBe("Webhook");
     expect(templateIcon(findTemplate("MQTT Subscriber")).displayName).toBe("Radio");
     expect(templateIcon(findTemplate("GPIO LED")).displayName).toBe("Lightbulb");
     expect(templateIcon(findTemplate("Raspberry Pi Camera")).displayName).toBe("Camera");
     expect(templateIcon(findTemplate("BME280 Environmental Sensor")).displayName).toBe("ThermometerSun");
-    expect(templateIcon(findTemplate("Device System Data")).displayName).toBe("Cpu");
+    expect(templateIcon(findTemplate("Device System Data")).displayName).toBe("HardDrive");
   });
 });
 

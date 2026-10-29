@@ -1,7 +1,14 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChangeCredentialPanel } from "../../../src/features/auth/ChangeCredentialPanel";
+
+import type { AdminCredentialType } from "../../../src/features/auth/adminCredentials";
+
+let credentialType: AdminCredentialType | null = null;
+vi.mock("../../../src/features/auth/hooks", () => ({
+  useAuth: () => ({ user: credentialType ? { credentialType } : null, credentialType: "pin" }),
+}));
 
 const changePassword = vi.fn();
 
@@ -13,11 +20,13 @@ vi.mock("../../../src/features/auth/api", () => ({
 
 describe("ChangeCredentialPanel", () => {
   beforeEach(() => {
+    credentialType = null;
     changePassword.mockReset();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("defaults to the PIN tab with the submit button disabled", () => {
@@ -25,6 +34,74 @@ describe("ChangeCredentialPanel", () => {
 
     expect(screen.getByRole("tab", { name: "6-digit PIN" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("button", { name: "Change credential" })).toBeDisabled();
+  });
+
+  it.each([
+    ["pin", "password", "001234", "Str0ng!Pass"],
+    ["password", "pin", "weak", "001234"],
+  ] as const)("changes from %s to %s with independent inputs and unchanged HTTP payload", async (currentType, newType, current, next) => {
+    credentialType = currentType;
+    const api = await vi.importActual<typeof import("../../../src/features/auth/api")>("../../../src/features/auth/api");
+    changePassword.mockImplementation(api.changePassword);
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const onCredentialChanged = vi.fn();
+    render(<ChangeCredentialPanel onCredentialChanged={onCredentialChanged} />);
+    const input = screen.getByLabelText(currentType === "pin" ? "Current PIN" : "Current password");
+    expect(input).toHaveAttribute("type", "password");
+    expect(input).toHaveAttribute("autocomplete", "current-password");
+    if (currentType === "pin") expect(input).toHaveAttribute("inputmode", "numeric");
+    else expect(input).not.toHaveAttribute("inputmode");
+    await userEvent.type(input, current);
+    await userEvent.type(screen.getByLabelText("New PIN"), "999999");
+    await userEvent.type(screen.getByLabelText("Confirm new PIN"), "999999");
+    await userEvent.click(screen.getByRole("tab", { name: "Password" }));
+    expect(input).toHaveValue(current);
+    expect(screen.getByLabelText("New password")).toHaveValue("");
+    expect(screen.getByLabelText("Confirm new password")).toHaveValue("");
+    if (newType === "pin") await userEvent.click(screen.getByRole("tab", { name: "6-digit PIN" }));
+    const newLabel = newType === "pin" ? "PIN" : "password";
+    for (const label of [`New ${newLabel}`, `Confirm new ${newLabel}`]) {
+      const field = screen.getByLabelText(label);
+      expect(field).toHaveAttribute("type", "password");
+      expect(field).toHaveAttribute("autocomplete", "new-password");
+      expect(field).not.toHaveAttribute("data-1p-ignore");
+      await userEvent.type(field, next);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(onCredentialChanged).toHaveBeenCalledOnce());
+    expect(fetchMock).toHaveBeenCalledWith("/api/auth/settings/password", expect.objectContaining({
+      method: "POST", credentials: "include", body: JSON.stringify({ currentPassword: current, newPassword: next }),
+    }));
+  });
+
+  it("prevents submission of an incomplete current PIN even with valid new credentials", async () => {
+    credentialType = "pin";
+    render(<ChangeCredentialPanel />);
+    await userEvent.type(screen.getByLabelText("Current PIN"), "00123");
+    await userEvent.type(screen.getByLabelText("New PIN"), "987654");
+    await userEvent.type(screen.getByLabelText("Confirm new PIN"), "987654");
+    expect(screen.getByRole("button", { name: "Change credential" })).toBeDisabled();
+    fireEvent.submit(screen.getByLabelText("Current PIN").closest("form")!);
+    expect(changePassword).not.toHaveBeenCalled();
+  });
+
+  it.each(["pin", "password"] as const)("retains %s current/new values after a rejected change", async (type) => {
+    credentialType = type;
+    changePassword.mockRejectedValue(new Error("Invalid credential"));
+    const onCredentialChanged = vi.fn();
+    render(<ChangeCredentialPanel onCredentialChanged={onCredentialChanged} />);
+    const current = screen.getByLabelText(type === "pin" ? "Current PIN" : "Current password");
+    const value = type === "pin" ? "001234" : "weak";
+    await userEvent.type(current, value);
+    await userEvent.type(screen.getByLabelText("New PIN"), "987654");
+    await userEvent.type(screen.getByLabelText("Confirm new PIN"), "987654");
+    await userEvent.click(screen.getByRole("button", { name: "Change credential" }));
+    expect(await screen.findByText("Invalid credential")).toBeInTheDocument();
+    expect(current).toHaveValue(value);
+    expect(screen.getByLabelText("New PIN")).toHaveValue("987654");
+    expect(onCredentialChanged).not.toHaveBeenCalled();
   });
 
   it("submits a matching PIN change and shows a success message", async () => {
@@ -147,77 +224,5 @@ describe("ChangeCredentialPanel", () => {
     await userEvent.click(screen.getByRole("tab", { name: "6-digit PIN" }));
 
     expect(screen.getByLabelText("New PIN")).toHaveValue("");
-  });
-});
-
-/** `TOTP_ENABLED` ships as `false`, so the 2FA code field only renders with the module mocked. */
-describe("ChangeCredentialPanel with TOTP enabled", () => {
-  let TotpChangeCredentialPanel: typeof ChangeCredentialPanel;
-
-  beforeAll(async () => {
-    vi.resetModules();
-    vi.doMock("../../../src/features/auth/totpEnabled", () => ({ TOTP_ENABLED: true }));
-    ({ ChangeCredentialPanel: TotpChangeCredentialPanel } = await import(
-      "../../../src/features/auth/ChangeCredentialPanel"
-    ));
-  });
-
-  beforeEach(() => {
-    changePassword.mockReset();
-  });
-
-  afterAll(() => {
-    vi.doUnmock("../../../src/features/auth/totpEnabled");
-    vi.resetModules();
-  });
-
-  it("says a 2FA code is also required", () => {
-    render(<TotpChangeCredentialPanel />);
-
-    expect(
-      screen.getByText("Choose a 6-digit PIN or a strong password. A valid 2FA code is also required."),
-    ).toBeInTheDocument();
-  });
-
-  it("keeps submit disabled until a 6-digit 2FA code is entered", async () => {
-    render(<TotpChangeCredentialPanel />);
-
-    await userEvent.type(screen.getByLabelText("Current PIN or password"), "111111");
-    await userEvent.type(screen.getByLabelText("New PIN"), "222222");
-    await userEvent.type(screen.getByLabelText("Confirm new PIN"), "222222");
-    expect(screen.getByRole("button", { name: "Change credential" })).toBeDisabled();
-
-    await userEvent.type(screen.getByLabelText("2FA code"), "12345");
-    expect(screen.getByRole("button", { name: "Change credential" })).toBeDisabled();
-
-    await userEvent.type(screen.getByLabelText("2FA code"), "6");
-    expect(screen.getByRole("button", { name: "Change credential" })).toBeEnabled();
-  });
-
-  it("strips non-digits from the 2FA code and caps it at 6 characters", async () => {
-    render(<TotpChangeCredentialPanel />);
-
-    await userEvent.type(screen.getByLabelText("2FA code"), "1a2b3c4d5e6f7");
-
-    expect(screen.getByLabelText("2FA code")).toHaveValue("123456");
-  });
-
-  it("sends the 2FA code with the credential change", async () => {
-    changePassword.mockResolvedValue({ success: true });
-    render(<TotpChangeCredentialPanel />);
-
-    await userEvent.type(screen.getByLabelText("Current PIN or password"), "111111");
-    await userEvent.type(screen.getByLabelText("New PIN"), "222222");
-    await userEvent.type(screen.getByLabelText("Confirm new PIN"), "222222");
-    await userEvent.type(screen.getByLabelText("2FA code"), "123456");
-    await userEvent.click(screen.getByRole("button", { name: "Change credential" }));
-
-    expect(changePassword).toHaveBeenCalledWith({
-      currentPassword: "111111",
-      newPassword: "222222",
-      totpToken: "123456",
-    });
-    expect(await screen.findByText(SUCCESS_TEXT)).toBeInTheDocument();
-    expect(screen.getByLabelText("2FA code")).toHaveValue("");
   });
 });

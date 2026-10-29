@@ -13,28 +13,25 @@ import { MinimaPage } from "./pages/MinimaPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { AutomationPage } from "./pages/AutomationPage";
 import { AutomationHelpPage } from "./pages/AutomationHelpPage";
-import { SetupPage } from "./pages/SetupPage";
 import { WalletPage } from "./pages/WalletPage";
 import { AuthSettingsPage } from "./pages/AuthSettingsPage";
 import { UpdatePage } from "./pages/UpdatePage";
 
 function LoginRoute() {
-  const { user, refreshSession, sessionNotice } = useAuth();
+  const { user, credentialType, refreshSession, sessionNotice } = useAuth();
   if (user) return <Navigate to="/dashboard" replace />;
-  return <LoginPage sessionNotice={sessionNotice} onSuccess={() => void refreshSession()} />;
+  return <LoginPage credentialType={credentialType} sessionNotice={sessionNotice} onSuccess={() => void refreshSession()} />;
 }
 
 function AppContent() {
-  const { signOut } = useAuth();
   const { pathname } = useLocation();
   const fullBleed = /^\/workflows\/(new|[^/]+\/(edit|watch)(\/[^/]+)?)$/.test(pathname);
 
   return (
-    <AppShell fullBleed={fullBleed} onSignOut={() => void signOut()}>
+    <AppShell fullBleed={fullBleed}>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/setup" element={<SetupPage />} />
         <Route path="/node" element={<MinimaPage />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/integritas" element={<IntegritasPage />} />

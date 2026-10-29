@@ -15,25 +15,47 @@ checksum. It deliberately does not impose a fixed address length derived from ex
 The wallet service repeats this validation so automation's `send_transaction` path cannot bypass
 the HTTP route check. Existing stored address-book rows are not rewritten or canonicalized.
 
-## Seed Phrase Import (admin)
+## Local Address-Book Identity
 
-Risk: `POST /api/wallet/import` accepts a 24-word BIP-39 seed phrase in the JSON request body and calls the Minima `restore` RPC. The phrase travels over the existing HTTP connection.
+The local contact stores an explicit, server-owned `isLocalDevice` marker.
+Ordinary initialization creates a separate app contact or returns the verified marked entry unchanged; it
+never promotes a manually saved contact based on its name or destination. A manual contact may
+share the same destination and retains its ID, fields, and edit/delete controls. Manual-contact
+uniqueness checks exclude the app-owned row; workflow recipients still resolve by contact ID.
 
-Impact: If the LAN connection is observed (e.g., on an untrusted network), the seed phrase can be captured and the wallet compromised. A successful restore replaces the node's current wallet and cannot be undone without a separate backup.
+The migration preserves existing rows and workflow references, allows a local/manual address pair,
+and retains exact-address uniqueness between manual contacts and a single local marker.
+The existing health poller initializes the contact when the node is running; authenticated listing
+also makes a bounded best-effort attempt while it is missing. Concurrent attempts share the same
+discovery promise. Initial discovery uses the fixed read-only `scripts` RPC, and validated default/simple
+address pairs are projected to public destinations; no seed/private-key commands are called.
+Discovery failures preserve saved contacts, while database failures remain HTTP errors. Once the
+contact exists and is verified, ordinary initialization skips RPC and keeps its destination. Actual creation emits
+one `address-book.local.create` audit event with the contact ID, label, and public address.
 
-Current Controls:
+PATCH/DELETE guards use the stored marker: the app contact allows validated name and notes edits but rejects manual
+address changes and deletion with structured conflicts. Unchanged address values are accepted
+even when a manual copy shares the destination. Client-supplied markers cannot forge or remove local
+identity. Existing auth/admin gates remain; manual copies retain independent CRUD. Frontend identity and protected form/action presentation are implemented.
 
-- Admin session required (`requireRole('admin')`).
-- Phrase is never logged — audit event `wallet.import` records only that an import occurred, with no phrase in the detail field.
-- Phrase is not returned in the response body.
-- Input is validated server-side (minimum 12 words) before calling Minima RPC.
-- Minima RPC call uses a 30 s timeout to allow node processing time.
+App-controlled restore/import/reset operations durably mark local verification pending before
+mutation dispatch; ordinary outages/restarts do not. Verification uses the fixed read-only
+`checkrestore` and `scripts` commands, requiring explicit readiness and valid default/simple
+receive addresses. If `checkrestore` is unsupported, verification requires a running Minima
+container started after the persisted dispatch time and successful unlocked `status`; an
+unavailable or malformed readiness signal keeps the contact pending. A revision guard discards stale discovery and verification waits for active
+replacement requests. Durable uncertainty starts before dispatch and survives a backend restart
+mid-request; it becomes a normal verification attempt only after the RPC returns. Pending local recipients fail payment resolution; workflow resolution is
+rechecked after balance awaits, and manual payment requests selecting a contact submit its ID.
+External address-only sends and user-created copies remain independent.
 
-**Required before field deployment:** Use the default HTTPS deploy on any network where seed phrase import will be used. Understand that the self-signed certificate requires a browser warning; traffic is encrypted but server identity is not publicly attested. Never import a seed phrase over an untrusted or monitored network if you cannot verify you reached your Pi.
-
-Status: HTTPS enabled by default on Docker deploy; self-signed trust limitations documented.
-
-> **Megammr resync interaction:** The Minima `restore` command used by `/api/wallet/import` triggers a node restart, which may overlap with active or auto-triggered Megammr resyncs. If a malicious or misconfigured Megammr host is set at the time of a resync, the resulting chain state could force the node to re-derive keys in an unexpected state. Operators should verify the Megammr host URL before importing a wallet and before enabling `MINIMA_AUTO_RESYNC`. This is a known prototype risk — investigate before production use.
+Verified replacement changes only the managed address, preserving ID, metadata, and manual rows.
+The address update, pending-state clearing, and `address-book.local.replace` audit with old/new
+public destinations are atomic. No backup contact or key material is stored. Ambiguous RPC failures
+keep a still-old destination blocked; a different verified destination or a subsequent completed
+replacement resolves it. Direct changes outside Edge Studio are outside detection scope. Reroll
+is out of scope. Live backup wallet-replacement verification passed; user signoff remains.
+See [ADR 0030](../adr/0030-app-owned-local-address-book-contact.md).
 
 ## Automated Wallet Transactions
 
@@ -68,32 +90,17 @@ Residual: the budget is per workflow, so several transaction workflows each get 
 and wallet sends are not serialized across workflows. Global aggregate budgets and wallet
 serialization are deferred ([adr/0022](../adr/0022-bound-external-automation-effects.md)).
 
-## Wallet Debug Clears (admin, non-production)
+## Wallet History Clear (admin)
 
-Risk: `POST /api/wallet/debug/clear-wallet-accounts` and `POST /api/wallet/debug/clear-wallet-history` delete legacy account-label mappings (unused since the single-wallet model) and SQLite send history. Misuse on a shared dev stack could remove local audit context (not on-chain funds).
+Risk: `POST /api/wallet/history/clear-previous` deletes wallet history rows recorded under a wallet the node no longer uses (after a backup restore or console restore/reset). Wallet history is a financial record and is never pruned automatically ([adr/0033](../adr/0033-persist-synced-wallet-history.md)).
 
-Impact: Loss of send-history rows in SQLite. Does not delete Minima wallet keys or on-chain balances.
-
-Current Controls:
-
-- Admin session required (`requireRole('admin')`).
-- Endpoints return **403** when `NODE_ENV=production`.
-- Frontend debug buttons render only when `import.meta.env.DEV` is true.
-- Audit events `wallet.debug.clear_accounts` and `wallet.debug.clear_history` record deletions.
-
-Status: Accepted for local/dev iteration only. Not available in production builds.
-
-## Custom Token Creation (admin)
-
-Risk: `POST /api/tokens/create` calls Minima `tokencreate` to mint a custom token on-chain. Creation consumes MINIMA (coloured coins) and cannot be undone from the Pi UI.
-
-Impact: Irreversible on-chain token state; misuse could drain wallet MINIMA used for colouring or create unwanted tokens on the node.
+Impact: Loss of history rows in SQLite for the earlier wallet, including failed sends and send origin that exist only in the app. Does not delete Minima wallet keys, on-chain balances, or the current wallet's rows.
 
 Current Controls:
 
-- Admin session required (`requireRole('admin')`).
-- Narrow allowlist — only `tokencreate` with validated `name`, `amount`, and `decimal`, checked against total wallet sendable MINIMA; no generic Minima command proxy.
-- Audit event `tokens.create` records `tokenId`, `name`, `amount`, `decimal`, and `txpowId` — no secrets.
-- SQLite `custom_tokens` stores operator metadata for tokens created through this API.
+- Admin session required (`requireRole('admin')`) and the shared auth rate limiter applies.
+- The current admin PIN/password must be re-entered, the same pattern as backup download; a wrong credential returns 401 `invalid_credential` without ending the session.
+- Only rows whose wallet fingerprint differs from the current wallet's are deleted. The request returns 409 while a wallet replacement runs or if one finished during the request, and 502 if the current wallet cannot be read, so it never deletes against an unknown wallet.
+- Audit event `wallet.history.clear_previous` records the deleted count.
 
-Status: Documented. Verify `tokencreate` RPC shape on a live Minima node before field use.
+Status: Accepted. History stored in SQLite is not backed up by Minima node backups; backing up the app database is deferred.

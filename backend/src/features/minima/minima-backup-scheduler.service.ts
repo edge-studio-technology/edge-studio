@@ -42,6 +42,7 @@ async function runAutoBackupIfEnabled() {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- call is commented out in the nightly tick until auto-restart is re-enabled
 async function runAutoRestartIfDue() {
   if (!getAutoRestartEnabled()) return;
   const lastRunAt = getSetting(lastAutoRestartSetting);

@@ -236,13 +236,16 @@ export function runMigrations() {
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
-      totp_secret TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'admin',
       created_at TEXT NOT NULL,
       last_login TEXT
     )
   `);
   ensureColumn("users", "credential_type", "TEXT NOT NULL DEFAULT 'password'");
+  const userColumns = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  if (userColumns.some((column) => column.name === "totp_secret")) {
+    db.exec("ALTER TABLE users DROP COLUMN totp_secret");
+  }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (
@@ -257,26 +260,23 @@ export function runMigrations() {
   `);
 
   db.exec(`
-    CREATE TABLE IF NOT EXISTS setup_pending (
-      id TEXT PRIMARY KEY,
-      totp_secret TEXT NOT NULL,
-      expires_at TEXT NOT NULL,
-      verified_at TEXT
-    )
-  `);
-
-  const setupPendingColumns = db.prepare("PRAGMA table_info(setup_pending)").all() as { name: string }[];
-  if (!setupPendingColumns.some((column) => column.name === "verified_at")) {
-    db.exec("ALTER TABLE setup_pending ADD COLUMN verified_at TEXT");
-  }
-
-  db.exec(`
     CREATE TABLE IF NOT EXISTS audit_events (
       id TEXT PRIMARY KEY,
       created_at TEXT NOT NULL,
       user_id TEXT,
       action TEXT NOT NULL,
       detail TEXT
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS history_archives (
+      id TEXT PRIMARY KEY,
+      imported_at TEXT NOT NULL,
+      exported_at TEXT NOT NULL,
+      schema_version INTEGER NOT NULL,
+      category_counts_json TEXT NOT NULL,
+      archive_json TEXT NOT NULL
     )
   `);
 
@@ -306,28 +306,36 @@ export function runMigrations() {
       status TEXT NOT NULL
     )
   `);
+  ensureColumn("wallet_send_history", "wallet_fingerprint", "TEXT");
+  ensureColumn("wallet_send_history", "origin", "TEXT");
+  ensureColumn("wallet_send_history", "transaction_id", "TEXT");
+  ensureColumn("wallet_send_history", "error", "TEXT");
 
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS custom_tokens (
-      id TEXT PRIMARY KEY,
-      token_id TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      amount TEXT NOT NULL,
-      decimal INTEGER NOT NULL,
-      txpow_id TEXT,
-      created_at TEXT NOT NULL
-    )
-  `);
+  db.exec(`CREATE TABLE IF NOT EXISTS wallet_transactions (${WALLET_TRANSACTIONS_COLUMNS})`);
+  migrateWalletTransactionsToKeyByWallet();
+  db.exec("CREATE INDEX IF NOT EXISTS idx_wallet_transactions_time ON wallet_transactions(time_millis)");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_wallet_transactions_transaction_id ON wallet_transactions(transaction_id)");
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS address_book (
       id         TEXT PRIMARY KEY,
       label      TEXT NOT NULL,
-      address    TEXT NOT NULL UNIQUE,
+      address    TEXT NOT NULL,
       notes      TEXT,
       created_at TEXT NOT NULL
     )
   `);
+
+  db.transaction(() => {
+    ensureColumn("address_book", "is_local_device", "INTEGER NOT NULL DEFAULT 0");
+    migrateAddressBookToAllowLocalContact();
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_address_book_local_device
+        ON address_book(is_local_device) WHERE is_local_device = 1;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_address_book_ordinary_address
+        ON address_book(address) WHERE is_local_device = 0;
+    `);
+  })();
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS integritas_device (
@@ -386,6 +394,8 @@ export function runMigrations() {
   `);
 
   db.exec(`DROP TABLE IF EXISTS wallet_accounts`);
+  db.exec(`DROP TABLE IF EXISTS custom_tokens`);
+  db.exec(`DROP TABLE IF EXISTS setup_pending`);
 }
 
 function resetLegacyAutomationSchema() {
@@ -400,9 +410,64 @@ function resetLegacyAutomationSchema() {
   `);
 }
 
+const WALLET_TRANSACTIONS_COLUMNS = `
+  txpow_id TEXT NOT NULL,
+  token_id TEXT NOT NULL,
+  transaction_id TEXT,
+  direction TEXT NOT NULL,
+  amount TEXT NOT NULL,
+  token_name TEXT NOT NULL,
+  counterparty TEXT,
+  time_millis INTEGER NOT NULL,
+  block INTEGER,
+  confirmations INTEGER,
+  confirmed_at TEXT,
+  wallet_fingerprint TEXT NOT NULL,
+  synced_at TEXT NOT NULL,
+  PRIMARY KEY (wallet_fingerprint, txpow_id, token_id)
+`;
+
 function ensureColumn(table: string, column: string, definition: string) {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!columns.some((item) => item.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+// Early builds keyed rows by TxPoW and token only, so a TxPoW seen by two wallets kept one row.
+function migrateWalletTransactionsToKeyByWallet() {
+  const columns = db.prepare("PRAGMA table_info(wallet_transactions)").all() as { name: string; pk: number }[];
+  if (columns.some((column) => column.name === "wallet_fingerprint" && column.pk > 0)) return;
+
+  db.transaction(() => db.exec(`
+    CREATE TABLE wallet_transactions_new (${WALLET_TRANSACTIONS_COLUMNS});
+    INSERT INTO wallet_transactions_new SELECT * FROM wallet_transactions;
+    DROP TABLE wallet_transactions;
+    ALTER TABLE wallet_transactions_new RENAME TO wallet_transactions;
+  `))();
+}
+
+function migrateAddressBookToAllowLocalContact() {
+  const indexes = db.prepare("PRAGMA index_list(address_book)").all() as { name: string; unique: number; partial: number }[];
+  const hasGlobalAddressConstraint = indexes.some((index) => {
+    if (index.unique !== 1 || index.partial !== 0) return false;
+    const columns = db.prepare("SELECT name FROM pragma_index_info(?)").all(index.name) as { name: string }[];
+    return columns.length === 1 && columns[0].name === "address";
+  });
+  if (!hasGlobalAddressConstraint) return;
+
+  db.exec(`
+    CREATE TABLE address_book_new (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      address TEXT NOT NULL,
+      notes TEXT,
+      created_at TEXT NOT NULL,
+      is_local_device INTEGER NOT NULL DEFAULT 0
+    );
+    INSERT INTO address_book_new (id, label, address, notes, created_at, is_local_device)
+      SELECT id, label, address, notes, created_at, is_local_device FROM address_book;
+    DROP TABLE address_book;
+    ALTER TABLE address_book_new RENAME TO address_book;
+  `);
 }
 
 // Push-source reads store a credential-free `data-source:<id>` reference. Rows whose source is gone

@@ -1,53 +1,26 @@
 import { Router } from "express";
 import { env } from "../../config/env.js";
 import { apiErrorFromStatus, unexpected } from "../../shared/api-error.js";
-import { TOTP_ENABLED } from "./auth.constants.js";
+import { getLocalAdminCredentialType } from "./auth.repository.js";
 import { authRateLimiter } from "./rate-limit.middleware.js";
 import {
   completeSetup,
-  initSetupTotp,
   isLocalAdminCreated,
   isSetupComplete,
   SetupError,
-  verifySetupTotp,
 } from "./setup.service.js";
 import { sessionCookieOptions } from "./session.service.js";
 
 export const setupRouter = Router();
 
 setupRouter.get("/status", (_req, res) => {
+  res.set("Cache-Control", "no-store");
   res.json({
     localAdminCreated: isLocalAdminCreated(),
     setupComplete: isSetupComplete(),
+    credentialType: getLocalAdminCredentialType(),
   });
 });
-
-if (TOTP_ENABLED) {
-  setupRouter.post("/totp/init", authRateLimiter, async (_req, res) => {
-    try {
-      const result = await initSetupTotp();
-      return res.json(result);
-    } catch (error) {
-      if (error instanceof SetupError) {
-        return apiErrorFromStatus(res, error.status, error.message);
-      }
-      return unexpected(res, "Failed to initialize TOTP setup", error);
-    }
-  });
-
-  setupRouter.post("/totp/verify", authRateLimiter, async (req, res) => {
-    try {
-      const totpToken = typeof req.body?.totpToken === "string" ? req.body.totpToken : "";
-      const result = await verifySetupTotp(totpToken);
-      return res.json(result);
-    } catch (error) {
-      if (error instanceof SetupError) {
-        return apiErrorFromStatus(res, error.status, error.message);
-      }
-      return unexpected(res, "Failed to verify TOTP code", error);
-    }
-  });
-}
 
 setupRouter.post("/complete", authRateLimiter, async (req, res) => {
   try {
@@ -62,16 +35,4 @@ setupRouter.post("/complete", authRateLimiter, async (req, res) => {
     }
     return unexpected(res, "Failed to complete setup", error);
   }
-});
-
-setupRouter.use((req, res, next) => {
-  const path = req.path.endsWith("/") ? req.path.slice(0, -1) : req.path;
-  if (
-    !TOTP_ENABLED &&
-    req.method === "POST" &&
-    (path === "/totp/init" || path === "/totp/verify")
-  ) {
-    return res.sendStatus(404);
-  }
-  return next();
 });

@@ -1,4 +1,4 @@
-import { ArrowLeft, Cable, ChevronRight, Cpu, Radio, ThermometerSun, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Cable, ChevronRight, Cpu, Lightbulb, Radio, ThermometerSun, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
@@ -7,10 +7,10 @@ import { buildDeviceConfigInput } from "../buildDeviceConfig";
 import { createDataSource } from "../dataSourcesApi";
 import type { DataSource, DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../dataSourceTypes";
 import { useDeviceFormFields } from "../useDeviceFormFields";
-import { AltDeviceForm, isAltDeviceFormValid } from "./AltDeviceForm";
+import { AltDeviceForm, altDeviceProvisioningSteps, DeviceAddedSummary, isAltDeviceFormValid, isAltDeviceStepValid } from "./AltDeviceForm";
 import { inputTemplates, outputTemplates, resolveTemplateConfig, templateIcon } from "../DataSourceTemplates";
 
-type WizardStep = "root" | "boards" | "protocols" | "protocol-inbound" | "protocol-outbound" | "sensors" | "sensor-templates";
+type WizardStep = "root" | "boards" | "protocols" | "protocol-inbound" | "protocol-outbound" | "sensors" | "sensor-templates" | "actuators";
 
 type WizardOption = {
   title: string;
@@ -37,16 +37,20 @@ export function AltAddDeviceFlow({
   capabilities,
   onClose,
   onCreated,
+  onOpenSetupGuide = () => undefined,
 }: {
   open: boolean;
   capabilities: DataSourceCapabilities | null;
   hostCapabilities?: HostCapability[];
   onClose: () => void;
   onCreated: (source: DataSource) => void;
+  onOpenSetupGuide?: (source: DataSource) => void;
 }) {
   const { showToast } = useToast();
   const [step, setStep] = useState<WizardStep>("root");
   const [template, setTemplate] = useState<DataSourceTemplate | null>(null);
+  const [createdSource, setCreatedSource] = useState<DataSource | null>(null);
+  const [provisioningStepIndex, setProvisioningStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const { fields, reset, fillFromTemplate } = useDeviceFormFields();
 
@@ -54,6 +58,8 @@ export function AltAddDeviceFlow({
     if (!open) return;
     setStep("root");
     setTemplate(null);
+    setCreatedSource(null);
+    setProvisioningStepIndex(0);
     reset();
     // Reset only when a fresh open is requested, not on every field change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,6 +71,7 @@ export function AltAddDeviceFlow({
     const resolved = { ...next, config: resolveTemplateConfig(next, capabilities) };
     fillFromTemplate(resolved);
     setTemplate(resolved);
+    setProvisioningStepIndex(0);
   }
 
   async function handleSubmit() {
@@ -77,6 +84,7 @@ export function AltAddDeviceFlow({
         config: buildDeviceConfigInput(fields, { template }),
       });
       showToast({ tone: "success", title: "Device added" });
+      setCreatedSource(response.item);
       onCreated(response.item);
     } catch (err) {
       showToast({
@@ -92,21 +100,63 @@ export function AltAddDeviceFlow({
   function goBack() {
     if (template) {
       setTemplate(null);
+      setProvisioningStepIndex(0);
       return;
     }
     setStep(parentStep(step));
   }
 
   const options = stepOptions(step, setStep, selectTemplate);
+  const provisioningSteps = altDeviceProvisioningSteps(fields);
+  const provisioningStep = provisioningSteps[provisioningStepIndex];
+  const isFinalProvisioningStep = provisioningStepIndex === provisioningSteps.length - 1;
+  const canContinue = provisioningStep ? isAltDeviceStepValid(fields, provisioningStep.id) : false;
 
-  if (template) {
+  function goNext() {
+    if (!isFinalProvisioningStep) setProvisioningStepIndex((current) => current + 1);
+  }
+
+  function goToPreviousProvisioningStep() {
+    if (provisioningStepIndex > 0) setProvisioningStepIndex((current) => current - 1);
+  }
+
+  function openSetupGuide() {
+    if (!createdSource) return;
+    onOpenSetupGuide(createdSource);
+    onClose();
+  }
+
+  if (createdSource && template) {
     return (
       <Modal
-        title={<SetupDeviceBreadcrumb step={step} final="Add device" />}
+        title={<SetupDeviceBreadcrumb step={step} final="Device added" />}
+        onClose={onClose}
+        width="wide"
+        minWidth="desktop"
+        className={setupDeviceModalClassName}
+        bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0"
+        footer={
+          <div className="flex w-full items-center justify-between">
+            <Button variant="secondary" onClick={onClose}>Return to device page</Button>
+            <Button onClick={openSetupGuide}>Open device guide</Button>
+          </div>
+        }
+      >
+        <DeviceAddedSummary source={createdSource} template={template} />
+      </Modal>
+    );
+  }
+
+  if (template && provisioningStep) {
+    return (
+      <Modal
+        title={<SetupDeviceBreadcrumb step={step} final={provisioningStep.title} />}
         closeDisabled={saving}
         onClose={onClose}
         width="wide"
+        minWidth="desktop"
         className={setupDeviceModalClassName}
+        bodyClassName="border-stroke-secondary bg-surface-primary min-h-0 flex-1 overflow-hidden rounded-soft border p-0"
         footer={
           <div className="flex w-full items-center justify-between gap-detail-next">
             <Button
@@ -117,16 +167,46 @@ export function AltAddDeviceFlow({
             >
               Back
             </Button>
-            <Button
-              disabled={saving || !isAltDeviceFormValid(fields)}
-              onClick={() => void handleSubmit()}
-            >
-              Add device
-            </Button>
+            {isFinalProvisioningStep ? (
+              <Button
+                disabled={saving || !isAltDeviceFormValid(fields)}
+                onClick={() => void handleSubmit()}
+              >
+                Add device
+              </Button>
+            ) : (
+              <span aria-hidden />
+            )}
           </div>
         }
       >
-        <AltDeviceForm template={template} fields={fields} />
+        <AltDeviceForm
+          template={template}
+          fields={fields}
+          currentStep={provisioningStep.id}
+          action={
+            provisioningStepIndex > 0 || !isFinalProvisioningStep ? (
+              <div className="flex items-center justify-between gap-detail-next">
+                {provisioningStepIndex > 0 ? (
+                  <Button
+                    variant="secondary"
+                    disabled={saving}
+                    onClick={goToPreviousProvisioningStep}
+                  >
+                    Previous step ({provisioningStepIndex})
+                  </Button>
+                ) : (
+                  <span />
+                )}
+                {!isFinalProvisioningStep ? (
+                  <Button disabled={saving || !canContinue} onClick={goNext}>
+                    Next step ({provisioningStepIndex + 2})
+                  </Button>
+                ) : null}
+              </div>
+            ) : undefined
+          }
+        />
       </Modal>
     );
   }
@@ -136,6 +216,7 @@ export function AltAddDeviceFlow({
       title={<SetupDeviceBreadcrumb step={step} />}
       onClose={onClose}
       width="wide"
+      minWidth="desktop"
       className={setupDeviceModalClassName}
       bodyClassName="min-h-0 flex-1"
       footer={
@@ -164,7 +245,7 @@ function SetupDevicePicker({ step, options }: { step: WizardStep; options: Wizar
         <h3 className="type-title text-text-primary m-0">{stepIntro(step).title}</h3>
         <p className="type-body text-text-secondary mt-detail-tight m-0">{stepIntro(step).description}</p>
       </div>
-      <div className="gap-detail-close grid auto-rows-fr sm:grid-cols-2 lg:grid-cols-3">
+      <div className="gap-detail-close grid auto-rows-fr grid-cols-3">
         {options.map((option) => (
           <button
             key={option.title}
@@ -215,8 +296,10 @@ function stepIntro(step: WizardStep) {
       return { title: "Sensors", description: "Add Pi-connected hardware templates or configure a GPIO input yourself." };
     case "sensor-templates":
       return { title: "Template devices", description: "Start from known GPIO and I2C sensor presets." };
+    case "actuators":
+      return { title: "Actuators", description: "Control physical devices connected to this Pi." };
     default:
-      return { title: "Choose what you want to set up", description: "Start with a board, protocol integration, or Pi-connected sensor." };
+      return { title: "Choose what you want to set up", description: "Start with a board, protocol integration, Pi-connected sensor, camera, or actuator." };
   }
 }
 
@@ -234,6 +317,8 @@ function stepPath(step: WizardStep) {
       return ["Sensors"];
     case "sensor-templates":
       return ["Sensors", "Template devices"];
+    case "actuators":
+      return ["Actuators"];
     default:
       return [];
   }
@@ -271,21 +356,27 @@ function stepOptions(
       ];
     case "sensors":
       return [
-        { title: "Template devices", description: "Use presets for buttons, motion sensors, LEDs, and BME environmental sensors.", icon: ThermometerSun, action: () => setStep("sensor-templates") },
+        { title: "Template devices", description: "Use presets for buttons, motion sensors, and BME environmental sensors.", icon: ThermometerSun, action: () => setStep("sensor-templates") },
         templateOption("Any device", "Configure a custom Raspberry Pi GPIO input pin manually.", findInputTemplate("GPIO Input Pin"), selectTemplate),
       ];
     case "sensor-templates":
       return [
         templateOption("GPIO Button", "Detect a simple push button wired between GPIO17 and GND.", findInputTemplate("GPIO Button"), selectTemplate),
         templateOption("PIR Motion Sensor", "Detect HC-SR501-style motion events from a GPIO input pin.", findInputTemplate("PIR Motion Sensor"), selectTemplate),
-        templateOption("GPIO LED", "Control a low-current LED output from workflow action blocks.", findOutputTemplate("GPIO LED"), selectTemplate),
         templateOption(environmentalSensorOption.title, environmentalSensorOption.description, environmentalSensorOption, selectTemplate),
+      ];
+    case "actuators":
+      return [
+        templateOption("GPIO LED", "Control a low-current LED output from workflow action blocks.", findOutputTemplate("GPIO LED"), selectTemplate),
       ];
     default:
       return [
         { title: "Boards", description: "Connect a microcontroller board and generate starter setup.", icon: Cpu, action: () => setStep("boards") },
         { title: "Protocols", description: "Receive data or send commands using REST APIs, MQTT, or webhooks.", icon: Radio, action: () => setStep("protocols") },
         { title: "Sensors", description: "Add GPIO and environmental sensor devices attached to this Pi.", icon: ThermometerSun, action: () => setStep("sensors") },
+        { title: "Actuators", description: "Control physical devices connected to this Pi.", icon: Lightbulb, action: () => setStep("actuators") },
+        templateOption("Raspberry Pi Camera", "Capture photos or short video clips from workflows.", findInputTemplate("Raspberry Pi Camera"), selectTemplate),
+        templateOption("This Pi system data", "Record local device specifications, performance, network status, and coarse locale data.", findInputTemplate("Device System Data"), selectTemplate),
       ];
   }
 }

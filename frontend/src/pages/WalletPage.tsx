@@ -1,22 +1,28 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MinimaNodeState } from "../app/types";
 import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Page } from "../components/patterns/Page";
 import { Card } from "../components/ui/Card";
 import { TabList } from "../components/ui/TabList";
-import { getWalletStatus, listWalletSendHistory } from "../features/wallet/walletApi";
-import type { WalletSendHistoryItem, WalletStatus } from "../features/wallet/walletTypes";
+import { getWalletStatus, listWalletHistory } from "../features/wallet/walletApi";
+import {
+  DEFAULT_WALLET_HISTORY_FILTERS,
+  emptyWalletHistoryPage,
+  isCustomRangeInvalid,
+  walletHistoryQuery,
+  type WalletHistoryFilters,
+} from "../features/wallet/walletHistory";
+import type { WalletHistoryPage, WalletStatus } from "../features/wallet/walletTypes";
 import { AddressBookPanel } from "../features/address-book/AddressBookPanel";
 import { AssetDetailModal } from "../features/wallet/AssetDetailModal";
-// import { CreateTokenModal } from "../features/wallet/CreateTokenModal";
 import { SendPaymentModal } from "../features/wallet/SendPaymentModal";
 import { ReceiveAddressModal } from "../features/wallet/ReceiveAddressModal";
-// import { WalletAssetsPanel } from "../features/wallet/WalletAssetsPanel";
 import { WalletHero } from "../features/wallet/WalletHero";
 import { WalletHistoryPanel } from "../features/wallet/WalletHistoryPanel";
 import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
+import { applyPaginatedPage } from "../lib/paginated";
 
-type WalletTab = "assets" | "address-book" | "history";
+type WalletTab = "address-book" | "history";
 
 export function WalletPage() {
   const [walletStatus, setWalletStatus] = useState<WalletStatus | null>(null);
@@ -25,8 +31,11 @@ export function WalletPage() {
   const [sendOpen, setSendOpen] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-  // const [createTokenOpen, setCreateTokenOpen] = useState(false);
-  const [sendHistory, setSendHistory] = useState<WalletSendHistoryItem[]>([]);
+  const [historyFilters, setHistoryFilters] = useState<WalletHistoryFilters>(DEFAULT_WALLET_HISTORY_FILTERS);
+  const [history, setHistory] = useState<WalletHistoryPage>(emptyWalletHistoryPage);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const historyRequestRef = useRef(0);
   const [mainTab, setMainTab] = useState<WalletTab>("history");
   const [minimaState, setMinimaState] = useState<MinimaNodeState | null>(null);
   const previousMinimaStateRef = useRef<MinimaNodeState | null>(null);
@@ -42,6 +51,10 @@ export function WalletPage() {
       // it last managed to load until the user navigates away and back.
       if (previous !== null && previous !== "running" && status.state === "running") {
         refresh();
+      } else if (previous !== null) {
+        // Picks up incoming payments and confirmations without a loading flash.
+        void loadStatus({ quiet: true });
+        void loadHistory(historyFilters, { quiet: true });
       }
     },
     () => {},
@@ -54,22 +67,61 @@ export function WalletPage() {
   const actionsBlocked = minimaState !== "running";
   const minimaConfirmedUnavailable = minimaState !== null && minimaState !== "running";
 
-  async function refresh() {
-    setLoading(true);
-    setError(null);
+  function refresh() {
+    void loadStatus();
+    void loadHistory(historyFilters);
+  }
+
+  async function loadStatus({ quiet = false }: { quiet?: boolean } = {}) {
+    if (!quiet) {
+      setLoading(true);
+      setError(null);
+    }
     try {
-      const [status, history] = await Promise.all([getWalletStatus(), listWalletSendHistory(20)]);
-      setWalletStatus(status);
-      setSendHistory(history.sends);
+      setWalletStatus(await getWalletStatus());
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load wallet.");
+      if (!quiet) setError(err instanceof Error ? err.message : "Failed to load wallet.");
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }
 
+  const loadHistory = useCallback(
+    async (filters: WalletHistoryFilters, { quiet = false }: { quiet?: boolean } = {}) => {
+      if (isCustomRangeInvalid(filters)) return;
+      const request = ++historyRequestRef.current;
+      if (!quiet) {
+        setHistoryLoading(true);
+        setHistoryError(null);
+      }
+      try {
+        const response = await listWalletHistory(walletHistoryQuery(filters));
+        if (request !== historyRequestRef.current) return;
+        applyPaginatedPage(response, filters.page, setHistory, (page) =>
+          setHistoryFilters((current) => ({ ...current, page })),
+        );
+        setHistoryError(null);
+      } catch (err) {
+        if (request !== historyRequestRef.current || quiet) return;
+        setHistoryError(err instanceof Error ? err.message : "Failed to load wallet history.");
+      } finally {
+        if (request === historyRequestRef.current) setHistoryLoading(false);
+      }
+    },
+    [],
+  );
+
+  function updateHistoryFilters(patch: Partial<WalletHistoryFilters>) {
+    setHistoryFilters((current) => ({ ...current, ...patch, page: patch.page ?? 1 }));
+  }
+
   useEffect(() => {
-    refresh();
+    void loadHistory(historyFilters);
+  }, [historyFilters, loadHistory]);
+
+  useEffect(() => {
+    void loadStatus();
   }, []);
 
   const nativeToken = walletStatus?.tokens.find((t) => t.isNative);
@@ -91,7 +143,6 @@ export function WalletPage() {
         onSend={() => setSendOpen(true)}
         onReceive={() => setReceiveOpen(true)}
         onInfo={() => setInfoOpen(true)}
-        // onCreateToken={() => setCreateTokenOpen(true)}
       />
 
       <Card className="gap-detail-close flex w-full flex-col">
@@ -100,29 +151,22 @@ export function WalletPage() {
           value={mainTab}
           options={[
             { value: "history", label: "History" },
-            // { value: "assets", label: "Assets" },
             { value: "address-book", label: "Address book" },
           ]}
           onChange={setMainTab}
         />
 
-        {/* Assets tab disabled for v1 — a single native token makes a separate assets list redundant.
-        {mainTab === "assets" ? (
-          <WalletAssetsPanel
-            tokens={walletStatus?.tokens ?? []}
-            loading={loading}
-            actionsBlocked={actionsBlocked}
-          />
-        ) : */}
         {mainTab === "address-book" ? (
           <AddressBookPanel actionsBlocked={actionsBlocked} />
         ) : (
           <WalletHistoryPanel
-            items={sendHistory}
-            loading={loading}
-            error={error}
+            history={history}
+            filters={historyFilters}
+            loading={historyLoading}
+            error={historyError}
             actionsBlocked={actionsBlocked}
-            onRefresh={refresh}
+            onFiltersChange={updateHistoryFilters}
+            onRefresh={() => loadHistory(historyFilters)}
           />
         )}
       </Card>
@@ -132,7 +176,11 @@ export function WalletPage() {
           walletStatus={walletStatus}
           actionsBlocked={actionsBlocked}
           minimaConfirmedUnavailable={minimaConfirmedUnavailable}
-          onClose={() => setSendOpen(false)}
+          onClose={() => {
+            setSendOpen(false);
+            void loadStatus({ quiet: true });
+            void loadHistory(historyFilters, { quiet: true });
+          }}
         />
       )}
 
@@ -146,16 +194,6 @@ export function WalletPage() {
       {infoOpen && nativeToken ? (
         <AssetDetailModal token={nativeToken} onClose={() => setInfoOpen(false)} />
       ) : null}
-
-      {/* {createTokenOpen && (
-        <CreateTokenModal
-          walletStatus={walletStatus}
-          actionsBlocked={actionsBlocked}
-          minimaConfirmedUnavailable={minimaConfirmedUnavailable}
-          onClose={() => setCreateTokenOpen(false)}
-          onCreated={refresh}
-        />
-      )} */}
     </Page>
   );
 }

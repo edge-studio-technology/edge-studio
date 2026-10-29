@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
-import { afterAll, beforeAll, describe, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, it } from "vitest";
 import request from "supertest";
 import { hashPassword } from "../../../src/features/auth/password.service.js";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
-import { currentToken } from "../../helpers/totp.js";
 
 type AuthRepository = typeof import("../../../src/features/auth/auth.repository.js");
 
@@ -38,7 +37,6 @@ beforeAll(async () => {
   createUser({
     username: "admin",
     passwordHash: await hashPassword(PASSWORD),
-    totpSecretEncrypted: "irrelevant-secret",
     credentialType: "password"
   });
 });
@@ -83,97 +81,23 @@ describe("POST /api/auth/settings/password", () => {
   });
 });
 
-describe("TOTP settings routes with TOTP disabled", () => {
-  for (const path of ["/api/auth/settings/totp/init", "/api/auth/settings/totp/verify"]) {
-    it(`POST ${path} returns 404 for an authenticated admin`, async () => {
-      const unauthenticatedResponse = await request(app).post(path).send({});
-      assert.equal(unauthenticatedResponse.status, 401);
+describe("credential metadata through login", () => {
+  it("exposes repaired legacy PIN metadata in login, authenticated user, and public status responses", async () => {
+    const user = findTheUser()!;
+    updateUserPassword(user.id, await hashPassword("012345"), "password");
+    try {
+      assert.equal((await request(app).get("/api/setup/status")).body.credentialType, "password");
+      const agent = request.agent(app);
+      const response = await agent.post("/api/auth/login").send({ password: "012345" });
 
-      const agent = await loginAgent();
-
-      const response = await agent.post(path).send({});
-
-      assert.equal(response.status, 404);
-      assert.equal((await agent.get("/api/auth/me")).status, 200);
-    });
-  }
-});
-
-describe("TOTP settings routes with TOTP enabled", () => {
-  const TOTP_PASSWORD = "Totproute1!";
-  let totpTeardown: () => void;
-  let totpApp: import("express").Express;
-  let currentSecret: string;
-  let previousDatabasePath: string | undefined;
-
-  beforeAll(async () => {
-    previousDatabasePath = process.env.DATABASE_PATH;
-    vi.resetModules();
-    vi.doMock("../../../src/features/auth/auth.constants.js", async (importOriginal) => ({
-      ...(await importOriginal<typeof import("../../../src/features/auth/auth.constants.js")>()),
-      TOTP_ENABLED: true
-    }));
-
-    ({ teardown: totpTeardown } = await setupTestDatabase());
-    const authRepository = await import("../../../src/features/auth/auth.repository.js");
-    const enabledTotpService = await import("../../../src/features/auth/totp.service.js");
-    const enabledPasswordService = await import("../../../src/features/auth/password.service.js");
-    const { createApp } = await import("../../../src/app.js");
-
-    currentSecret = enabledTotpService.generateSecret();
-    authRepository.createUser({
-      username: "admin",
-      passwordHash: await enabledPasswordService.hashPassword(TOTP_PASSWORD),
-      totpSecretEncrypted: enabledTotpService.encryptTotpSecret(currentSecret),
-      credentialType: "password"
-    });
-    totpApp = createApp();
-  });
-
-  afterAll(() => {
-    totpTeardown();
-    vi.doUnmock("../../../src/features/auth/auth.constants.js");
-    vi.resetModules();
-    process.env.DATABASE_PATH = previousDatabasePath;
-  });
-
-  async function loginTotpAgent() {
-    const agent = request.agent(totpApp);
-    const response = await agent
-      .post("/api/auth/login")
-      .send({ password: TOTP_PASSWORD, totpToken: currentToken(currentSecret) });
-    assert.equal(response.status, 200);
-    return agent;
-  }
-
-  it("allows an authenticated admin to initialize a reset", async () => {
-    const agent = await loginTotpAgent();
-
-    const response = await agent.post("/api/auth/settings/totp/init").send({
-      currentPassword: TOTP_PASSWORD,
-      totpToken: currentToken(currentSecret)
-    });
-
-    assert.equal(response.status, 200);
-    assert.match(response.body.secret, /^[A-Z2-7]{32}$/);
-    assert.match(response.body.qrCodePngBase64, /^data:image\/png;base64,/);
-  });
-
-  it("verifies the reset, clears the session cookie, and leaves the caller logged out", async () => {
-    const agent = await loginTotpAgent();
-    const initResponse = await agent.post("/api/auth/settings/totp/init").send({
-      currentPassword: TOTP_PASSWORD,
-      totpToken: currentToken(currentSecret)
-    });
-    assert.equal(initResponse.status, 200);
-
-    const response = await agent
-      .post("/api/auth/settings/totp/verify")
-      .send({ totpToken: currentToken(initResponse.body.secret) });
-
-    assert.equal(response.status, 200);
-    assert.equal(response.body.sessionsRevoked, true);
-    assert.equal(clearsSessionCookie(response.headers["set-cookie"]), true);
-    assert.equal((await agent.get("/api/auth/me")).status, 401);
+      assert.equal(response.status, 200);
+      assert.equal(response.body.user.credentialType, "pin");
+      const me = await agent.get("/api/auth/me");
+      assert.equal(me.status, 200);
+      assert.equal(me.body.credentialType, "pin");
+      assert.equal((await request(app).get("/api/setup/status")).body.credentialType, "pin");
+    } finally {
+      updateUserPassword(user.id, user.password, user.credential_type);
+    }
   });
 });

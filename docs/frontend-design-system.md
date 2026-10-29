@@ -56,7 +56,7 @@ Migration is **incremental**, not a big-bang move:
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ui/`          | `Button` / `IconButton`, `Pill`, `Divider`, `Input`, `InputField`, `SelectField`, `CheckboxField`, `RadioField`, `SwitchField`, `TextareaField`, `PinField`, `Label`, `Text`, `ErrorText`, `Card`, `Menu`, `TabList`, `ToggleTabs`, `Modal`, `Tooltip`, `ProgressBar`, `Pagination`, `LoadingDots` |
 | `patterns/`    | `Page`, `ButtonRow`, `DataTable` (incl. `TableWrap`), `StatusRow`, `ListFilterBar`, `ListPaginationFooter`, `ErrorAlert`, `JsonPreview`, `CopyableCode`, `StatusPage`, `EmptyContentState`, `LoadingState`, `BrandLockup`, `MetricCard`                                                            |
-| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`, temporary `Test`                                                                                                                                                                             |
+| Stay / special | `AppShell`, `AppShellSidebar`, `StatusBar`, `ProtectedRoute`, `ToastProvider`, `Clock`, `MinimaIcon`                                                                                                                                                                             |
 
 ## Styling Rules
 
@@ -72,15 +72,13 @@ Migration is **incremental**, not a big-bang move:
 
 ## Shared Components
 
-Use these before writing bespoke markup. Paths: most still live flat under `frontend/src/components/` until migrated; new design-system work goes in `ui/` / `patterns/` (see Placement above).
+Use these before writing bespoke markup. Most now live in `ui/` / `patterns/`; the flat `frontend/src/components/*.tsx` files are mostly one-line re-exports for older imports, except `Input`, `Text`, and `StatusRow`, which are not migrated yet (see Placement above).
 
 **Inventory style:** name + short description only. Link to a `###` detail section when one exists. No paths or migration arrows. Props, explain, and usage live under that heading.
 
 - [Page](#page): route content frame
 - [Card](#card): white card surface
 - [MetricCard](#metriccard): compact metric / status card
-- `OptionCard`: pressable choice card (whole card is the click target)
-- [AltOptionCard](#altoptioncard): quieter choice card with an explicit action button
 - [Button / IconButton](#button): text and icon-only buttons
 - [ButtonRow](#buttonrow): wrapping button group
 - [Pill](#pill): status / tag pill
@@ -95,16 +93,16 @@ Use these before writing bespoke markup. Paths: most still live flat under `fron
 - [ErrorDetailPanel](#errordetailpanel): embeddable message + raw-JSON breakdown for an operational error
 - [Modal](#modal): dialog overlay
 - `LoadingDots`: bouncing loading indicator
-- `Spinner`: rotating ring loading indicator (deprecated — use [SpinnerAlt](#spinneralt))
 - [SpinnerAlt](#spinneralt): pin-dial loading indicator
 - `Input`: bare text control
 - [InputField](#inputfield): labeled text field
+- [CredentialField](#credentialfield): PIN or password field
 - [SelectField](#selectfield): labeled select
 - `TextareaField`: labeled multiline field
 - [Menu](#menu): action menu list
 - [TabList](#tablist): underline page tabs
 - [ToggleTabs](#toggletabs): segmented toggle
-- `PinField`: segmented PIN / code field
+- [PinField](#pinfield): segmented PIN / code field
 - `DataTable`: native table shell and row primitives (`TableWrap`, `TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`, `TableIconMenu`)
   - Pass `sticky` to the `actions` column's `TableHeaderCell` and `TableCell` to pin row actions to the right edge while the table scrolls sideways. The table must sit in `TableWrap`, or spread `useTableScrollEdges().scrollProps` on its own scroller, so the divider and shadow show; cover it with `expectRowActionsPinned()` (`frontend/tests/helpers/`) in the table's row-render test
 - `TableControls`: table toolbar shell with a utility slot for controls such as column visibility
@@ -131,25 +129,7 @@ If a shared component needs a new variant, add the smallest variant that matches
 
 ### Unused
 
-These files exist under `frontend/src/components/` with no app call sites. Do not import them for new work. Removal is tracked in `docs/TASKS.md`.
-
-**Superseded** — use the replacement instead:
-
-| File                          | Use instead                                  |
-| ----------------------------- | -------------------------------------------- |
-| `CredentialInput.tsx`         | `PinField` / `InputField`                    |
-| `EmptyPage.tsx`               | `StatusPage`                                 |
-| `ErrorDetails.tsx`            | `ErrorDetailPanel`                           |
-| `ListPagerFilterBar.tsx`      | `ListFilterBar` + `ListPaginationFooter`     |
-| `TablePager.tsx`              | `Pagination` (via `ListPaginationFooter`)    |
-| `ProgressModal.tsx`           | `DeleteConfirmModal` / `DeleteProgressModal` |
-| `StatusBadge.tsx`             | `Pill`                                       |
-| `StatusDot.tsx`               | status bar chrome (no shared replacement)    |
-| `patterns/ListDisclosure.tsx` | `DataTable`                                  |
-| `patterns/Table.tsx`          | `DataTable`                                  |
-| `ui/Spinner.tsx`              | [SpinnerAlt](#spinneralt)                    |
-
-**No call sites yet** — still the right control when needed:
+These primitives have no app call sites yet but are still the right control when needed:
 
 - [RadioField](#radiofield)
 - [Menu](#menu) (table row actions use `TableIconMenu`)
@@ -319,7 +299,7 @@ Avoid exporting these constants or moving them into shared files unless more tha
 - Use bare `Input` only when there is no label stack (rare toolbars / search).
 - Keep inline validation on the field via `InputField` `error` when the user needs to compare it with the value.
 - Use `ErrorContentState` when a load failure leaves a whole table/list/region with nothing to show — it replaces that content, and that content's own toolbar/pager chrome, in place. Do not stand in a bare `ErrorText` line or a bare `LoadingDots` for these; the trio is the vocabulary for a whole content region.
-- Use `ErrorAlert` for persistent in-page / form-level failures that stay in layout while the surrounding page still works (optional Retry action).
+- Use `ErrorAlert` for persistent in-page / form-level notices that stay in layout while the surrounding page still works (optional Retry action). Use `error` for failures, `warning` for blocked or degraded functionality, `attention` for operational information that needs review, and `success` for a persistent completion state. Full notices include the classification, icon, title, and details; use `variant="compact"` where a single-row classification is sufficient.
 - Use toast errors for transient action failures that should not occupy page layout.
 
 ### CheckboxField
@@ -613,7 +593,6 @@ Route content frame: distant pad padding (`p-pad-distant`), title + optional des
 | `title`    | Page heading (`type-title`)                                           |
 | `desc`     | Optional supporting copy (`type-body`)                                |
 | `action`   | Optional header action (e.g. settings)                                |
-| `eyebrow`  | Deprecated / unused — still accepted so unmigrated call sites compile |
 | `children` | Page body                                                             |
 
 ```tsx
@@ -622,7 +601,7 @@ Route content frame: distant pad padding (`p-pad-distant`), title + optional des
 </Page>
 ```
 
-Cleanup later: drop `eyebrow` from remaining page call sites, then remove the prop and the flat `components/Page.tsx` re-export (import from `patterns/Page` instead).
+Cleanup later: remove the flat `components/Page.tsx` re-export (import from `patterns/Page` instead).
 
 ### BrandLockup
 
@@ -680,38 +659,9 @@ Standalone compact metric tile (`frontend/src/components/patterns/MetricCard.tsx
 <MetricCard label="Node status" loading={loading} value="Running" status="success" />
 ```
 
-### AltOptionCard
-
-Quieter choice card (`frontend/src/components/patterns/AltOptionCard.tsx`): `surface-primary` fill, `stroke-secondary` border, bare 24px glyph, `type-body-em` title, `type-body` secondary description, then a shared `Button` pinned to the bottom.
-
-Same slots as `OptionCard`, two differences: the glyph has no filled circle, and the card surface is **not** pressable — only the button is. Prefer this for dense grids of options where each option needs one explicit, labelled action; prefer `OptionCard` when the whole card should be one large target.
-
-| Prop          | Notes                                        |
-| ------------- | -------------------------------------------- |
-| `icon`        | Optional `LucideIcon`, rendered bare at 24px |
-| `title`       | Required card heading                        |
-| `description` | Optional supporting copy                     |
-| `actionLabel` | Button label                                 |
-| `onClick`     | Button click handler                         |
-| `disabled`    | Disables the action button                   |
-| `children`    | Optional extra content above the button      |
-| `className`   | Merged onto the card shell                   |
-
-```tsx
-<div className="gap-detail-close grid sm:grid-cols-2 lg:grid-cols-3">
-  <AltOptionCard
-    icon={Globe2}
-    title="HTTP JSON Source"
-    description="Fetch JSON from an external API or Pi service"
-    actionLabel="Add input"
-    onClick={() => select(template)}
-  />
-</div>
-```
-
 ### CopyableCode
 
-Mono value chip with a compact copy control (`frontend/src/components/patterns/CopyableCode.tsx`): secondary surface, `type-mono` value, `IconButton` copy/check. Copy success and failure use the shared toast. Prefer this for addresses, token IDs, and hashes. Flat `components/CopyableCode.tsx` re-exports for now.
+Mono value chip with a compact copy control (`frontend/src/components/patterns/CopyableCode.tsx`): secondary surface, `type-mono` value, `IconButton` copy/check. Copy success and failure use the shared toast. Prefer this for addresses, token IDs, and hashes.
 
 | Prop        | Notes                          |
 | ----------- | ------------------------------ |
@@ -970,6 +920,40 @@ Control states live on `Input` (used by `InputField`): inset 1px outline `stroke
 
 Do not use placeholder as the only label.
 
+### CredentialField
+
+Local admin credential field using `PinField` for a known PIN and a masked `InputField` for a password or unknown type. The caller supplies metadata and owns the string value, validation, and submission. Password and unknown-type entry do not impose new-password requirements.
+
+| Prop | Notes |
+| --- | --- |
+| `credentialType` | Required: `"pin"`, `"password"`, or `null` for unrestricted fallback |
+| `value`, `onChange` | Controlled string and next-string callback; PIN entry filters non-digits and caps at six, preserving leading zeros |
+| `autoComplete` | `current-password` by default; use `new-password` for new/confirmed credentials |
+| `label`, `description`, `error`, `className` | Existing field stack and outer styling |
+| …input props | Native attributes and handlers, including `id`, `name`, `form`, `required`, `disabled`, `autoFocus`, and focus/keyboard events |
+
+Completing a PIN does not submit an action. Use the form's submit handler or an explicit button, and keep creation policy and submit readiness in the form. Existing-credential forms use `isAdminCredentialEntryReady`: known PINs require six digits; password/unknown values require only nonempty entry. New-credential forms retain `isValidAdminCredential` and matching confirmation. Authenticated forms use the user's stored type independently of the selected new type.
+
+```tsx
+<CredentialField
+  credentialType={credentialType}
+  label={credentialType === "pin" ? "PIN" : credentialType === "password" ? "Password" : "PIN or password"}
+  name="currentPassword"
+  value={credential}
+  onChange={setCredential}
+  autoComplete="current-password"
+  error={error ?? undefined}
+/>
+```
+
+### PinField
+
+Segmented numeric entry uses one native input beneath masked visual slots. It filters non-digits and defaults to six slots. Label, description, error, disabled state, and native form attributes follow the other fields.
+
+The default `mode="one-time-code"` retains a text input, `autocomplete="one-time-code"`, and password-manager ignore attributes for authenticator codes. `mode="credential"` uses a password input and defaults to `current-password`, with no password-manager ignore attributes. Pass `new-password` for a new or confirmed persistent PIN. Both modes use `inputMode="numeric"` and preserve leading zeros as strings.
+
+Use `CredentialField` for local admin credentials and `PinField` directly for authenticator codes. Neither field owns submission or creation policy.
+
 ### SelectField
 
 Labeled select (`frontend/src/components/ui/SelectField.tsx`): label → optional description → control → optional error. Prefer this for single-choice dropdowns.
@@ -1082,11 +1066,10 @@ Selected: `surface-inverse` / `text-inverse`. Idle: transparent with `stroke-sec
 ## Tables And Lists
 
 - Use `DataTable` for tabular workflow/history/list surfaces (native `<table>` + helpers in `frontend/src/components/patterns/DataTable.tsx`; flat `components/DataTable.tsx` re-exports for now).
-- Prefer the row primitives (`TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`) over applying the exported class constants by hand. Class constants remain for older call sites.
+- Use the row primitives (`TableHead`, `TableBody`, `TableRow`, `TableHeaderCell`, `TableCell`).
 - Wrap list tables in `TableWrap` from that module: bordered scroll shell with a modest min-height (~4 rows).
 - Prefer one primary `TableIconButton` in the Actions column; put secondary actions in `TableIconMenu` (⋮).
 - Use compact cards/lists instead of tables when the content is entity-detail oriented, narrow, or action-heavy.
-- When migrating off native `<table>` markup, prefer the shared table shell pattern in `frontend/src/components/patterns/Table.tsx` (`Table`, `TableHeader`, `TableHeaderCell`, `TableRow`, `TableCell`).
 
 ```tsx
 <TableWrap>

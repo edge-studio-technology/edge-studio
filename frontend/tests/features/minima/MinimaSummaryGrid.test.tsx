@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { resyncOperation } from "../../helpers/minimaResync";
 import type { MinimaNodeStatus } from "../../../src/app/types";
 import { MinimaSummaryGrid } from "../../../src/features/minima/MinimaSummaryGrid";
 
@@ -151,4 +152,12 @@ describe("MinimaSummaryGrid", () => {
     );
     expect(screen.getByText(/Checked/)).toBeInTheDocument();
   });
+});
+
+ it("prioritizes resync recovery over the generic restart label and keeps observed metrics", () => {
+  render(<MinimaSummaryGrid status={status({ state: "restarting", rpc: { ok: false } })} loading={false} busy resyncing refreshing={false} resync={resyncOperation({ phase: "recovering" })} onResync={vi.fn()} />);
+  expect(screen.getAllByText("Checking node recovery").length).toBeGreaterThan(0);
+  expect(screen.queryByText("Restarting")).not.toBeInTheDocument();
+  expect(screen.getByText("3 GB chain data")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Resync" })).toBeDisabled();
 });

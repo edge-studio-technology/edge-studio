@@ -108,3 +108,181 @@ describe("runMigrations — retention and budget schema", () => {
     assert.ok(indexes.includes("idx_automation_workflow_budget_events_workflow_consumed"));
   });
 });
+
+describe("runMigrations — legacy credential metadata", () => {
+  it("defaults pre-flag accounts to password, preserves their fields, and retains corrected types on rerun", () => {
+    db.exec(`
+      CREATE TABLE legacy_users (
+        id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
+        totp_secret TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'admin',
+        created_at TEXT NOT NULL, last_login TEXT
+      );
+      DROP TABLE users;
+      ALTER TABLE legacy_users RENAME TO users;
+      INSERT INTO users VALUES ('legacy-pin', 'admin-pin', 'pin-hash', 'pin-totp', 'admin', '2026-01-01', NULL);
+      INSERT INTO users VALUES ('legacy-password', 'admin-password', 'password-hash', 'password-totp', 'admin', '2026-01-02', '2026-01-03');
+    `);
+    const original = db.prepare("SELECT * FROM users ORDER BY id").all() as Record<string, unknown>[];
+    runMigrations();
+    assert.deepEqual(
+      db.prepare("SELECT * FROM users ORDER BY id").all(),
+      original.map(({ totp_secret: _totpSecret, ...row }) => ({ ...row, credential_type: "password" }))
+    );
+    const column = (db.prepare("PRAGMA table_info(users)").all() as { name: string; notnull: number; dflt_value: string }[])
+      .find((item) => item.name === "credential_type");
+    assert.equal(column?.notnull, 1);
+    assert.equal(column?.dflt_value, "'password'");
+
+    db.prepare("UPDATE users SET credential_type = 'pin' WHERE id = 'legacy-pin'").run();
+    const corrected = db.prepare("SELECT * FROM users ORDER BY id").all();
+    runMigrations();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM users ORDER BY id").all(), corrected);
+  });
+});
+
+describe("runMigrations — local address-book identity", () => {
+  it("upgrades an existing address book without changing saved fields and is repeatable", () => {
+    db.exec(`
+      DROP TABLE address_book;
+      CREATE TABLE address_book (
+        id TEXT PRIMARY KEY, label TEXT NOT NULL, address TEXT NOT NULL UNIQUE,
+        notes TEXT, created_at TEXT NOT NULL
+      );
+      INSERT INTO address_book VALUES ('saved', 'Saved label', '0x01', 'Saved notes', '2026-01-01');
+    `);
+    runMigrations();
+    const rows = db.prepare("SELECT * FROM address_book").all();
+    assert.deepEqual(rows, [{ id: "saved", label: "Saved label", address: "0x01", notes: "Saved notes", created_at: "2026-01-01", is_local_device: 0 }]);
+    db.prepare("UPDATE address_book SET is_local_device = 1 WHERE id = 'saved'").run();
+    runMigrations();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM address_book").all(), [{ ...rows[0] as object, is_local_device: 1 }]);
+
+    const column = (db.prepare("PRAGMA table_info(address_book)").all() as { name: string; notnull: number; dflt_value: string }[])
+      .find((item) => item.name === "is_local_device");
+    assert.equal(column?.notnull, 1);
+    assert.equal(column?.dflt_value, "0");
+    db.exec("INSERT INTO address_book (id, label, address, created_at) VALUES ('ordinary', 'Ordinary', '0x02', '2026-01-02');");
+    assert.throws(() => db.exec("UPDATE address_book SET is_local_device = 1 WHERE id = 'ordinary'"), /UNIQUE/);
+  });
+
+  it("removes legacy global uniqueness while preserving manual contacts and their references", () => {
+    db.exec(`
+      DROP TABLE address_book;
+      CREATE TABLE address_book (
+        id TEXT PRIMARY KEY, label TEXT NOT NULL, address TEXT NOT NULL UNIQUE,
+        notes TEXT, created_at TEXT NOT NULL
+      );
+      INSERT INTO address_book VALUES ('manual', 'My node', '0x01', 'My notes', '2026-01-01');
+      INSERT INTO address_book VALUES ('alias', 'My alias', '0X01', NULL, '2026-01-02');
+      INSERT INTO automation_workflows (id, created_at, updated_at, name, enabled)
+        VALUES ('address-book-migration', '2026-01-01', '2026-01-01', 'Saved workflow', 0);
+      INSERT INTO automation_blocks (id, workflow_id, created_at, updated_at, type, enabled, order_index, config_json)
+        VALUES ('address-book-reference', 'address-book-migration', '2026-01-01', '2026-01-01', 'send_transaction', 1, 0,
+          '{"recipientAddressBookId":"manual"}');
+    `);
+    const original = db.prepare("SELECT * FROM address_book ORDER BY id").all() as object[];
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM address_book ORDER BY id").all(), original.map((row) => ({ ...row, is_local_device: 0 })));
+    assert.deepEqual(db.prepare("SELECT config_json FROM automation_blocks WHERE id = 'address-book-reference'").get(), {
+      config_json: '{"recipientAddressBookId":"manual"}'
+    });
+
+    db.exec(`INSERT INTO address_book (id, label, address, created_at, is_local_device)
+      VALUES ('local', 'This device', '0x01', '2026-01-03', 1);`);
+    const migrated = db.prepare("SELECT * FROM address_book ORDER BY id").all();
+    runMigrations();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM address_book ORDER BY id").all(), migrated);
+    assert.throws(() => db.exec(`INSERT INTO address_book (id, label, address, created_at)
+      VALUES ('duplicate', 'Duplicate manual', '0x01', '2026-01-04');`), /UNIQUE/);
+  });
+
+  it("preserves a local marker from the earlier step 1 schema and supports a later manual copy", () => {
+    db.exec(`
+      DROP TABLE address_book;
+      CREATE TABLE address_book (
+        id TEXT PRIMARY KEY, label TEXT NOT NULL, address TEXT NOT NULL UNIQUE,
+        notes TEXT, created_at TEXT NOT NULL, is_local_device INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO address_book VALUES ('local', 'This device', '0x01', 'Local notes', '2026-01-01', 1);
+      INSERT INTO address_book VALUES ('manual', 'Alice', '0x02', 'Manual notes', '2026-01-02', 0);
+      CREATE UNIQUE INDEX idx_address_book_local_device ON address_book(is_local_device) WHERE is_local_device = 1;
+    `);
+    const original = db.prepare("SELECT * FROM address_book ORDER BY id").all();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM address_book ORDER BY id").all(), original);
+    db.exec("INSERT INTO address_book (id, label, address, created_at) VALUES ('copy', 'My copy', '0x01', '2026-01-03');");
+    const once = db.prepare("SELECT * FROM address_book ORDER BY id").all();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM address_book ORDER BY id").all(), once);
+    assert.equal((db.prepare("SELECT COUNT(*) AS total FROM address_book WHERE is_local_device = 1").get() as { total: number }).total, 1);
+  });
+});
+
+describe("runMigrations — wallet history key", () => {
+  it("keys wallet transactions by wallet, keeping existing rows, and is repeatable", () => {
+    db.exec(`
+      DROP TABLE wallet_transactions;
+      CREATE TABLE wallet_transactions (
+        txpow_id TEXT NOT NULL, token_id TEXT NOT NULL, transaction_id TEXT, direction TEXT NOT NULL, amount TEXT NOT NULL,
+        token_name TEXT NOT NULL, counterparty TEXT, time_millis INTEGER NOT NULL, block INTEGER, confirmations INTEGER,
+        confirmed_at TEXT, wallet_fingerprint TEXT NOT NULL, synced_at TEXT NOT NULL, PRIMARY KEY (txpow_id, token_id)
+      );
+      INSERT INTO wallet_transactions VALUES ('0x0A', '0x00', '0xT1', 'in', '1', 'Minima', 'MxPEER', 1000, 5, 3, 'c', 'first', 's');
+    `);
+    const original = db.prepare("SELECT * FROM wallet_transactions").all();
+    runMigrations();
+    runMigrations();
+    assert.deepEqual(db.prepare("SELECT * FROM wallet_transactions").all(), original);
+    db.exec(`INSERT INTO wallet_transactions VALUES ('0x0A', '0x00', '0xT1', 'out', '1', 'Minima', 'MxPI', 1000, 5, 3, 'c', 'second', 's');`);
+    assert.equal((db.prepare("SELECT COUNT(*) AS total FROM wallet_transactions").get() as { total: number }).total, 2);
+  });
+});
+
+describe("runMigrations — removed custom tokens table", () => {
+  it("drops an existing custom_tokens table and is repeatable", () => {
+    db.exec(`
+      CREATE TABLE custom_tokens (id TEXT PRIMARY KEY, token_id TEXT NOT NULL UNIQUE, name TEXT NOT NULL, amount TEXT NOT NULL, decimal INTEGER NOT NULL, txpow_id TEXT, created_at TEXT NOT NULL);
+      INSERT INTO custom_tokens VALUES ('t1', '0xNEW', 'MyToken', '10', 8, '0xTX', '2026-01-01');
+    `);
+    runMigrations();
+    runMigrations();
+    assert.equal(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'custom_tokens'").get(), undefined);
+  });
+});
+
+describe("runMigrations — removed TOTP storage", () => {
+  it("drops totp_secret and setup_pending, keeps users and sessions, and is repeatable", () => {
+    db.exec(`
+      DELETE FROM sessions;
+      CREATE TABLE totp_users (
+        id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
+        totp_secret TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'admin',
+        created_at TEXT NOT NULL, last_login TEXT, credential_type TEXT NOT NULL DEFAULT 'password'
+      );
+      DROP TABLE users;
+      ALTER TABLE totp_users RENAME TO users;
+      INSERT INTO users VALUES ('totp-user', 'admin', 'password-hash', 'encrypted-totp', 'admin', '2026-01-01', '2026-01-02', 'pin');
+      INSERT INTO sessions (id, user_id, token_hash, created_at, expires_at, last_seen_at)
+        VALUES ('session-1', 'totp-user', 'token-hash', '2026-01-02', '2026-02-01', '2026-01-02');
+      CREATE TABLE setup_pending (id TEXT PRIMARY KEY, totp_secret TEXT NOT NULL, expires_at TEXT NOT NULL, verified_at TEXT);
+      INSERT INTO setup_pending VALUES ('pending-1', 'encrypted-pending', '2026-01-01', NULL);
+    `);
+    const session = db.prepare("SELECT * FROM sessions").all();
+
+    runMigrations();
+    runMigrations();
+
+    const columns = (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map((column) => column.name);
+    assert.equal(columns.includes("totp_secret"), false);
+    assert.deepEqual(db.prepare("SELECT * FROM users").all(), [{
+      id: "totp-user", username: "admin", password: "password-hash", role: "admin",
+      created_at: "2026-01-01", last_login: "2026-01-02", credential_type: "pin"
+    }]);
+    assert.deepEqual(db.prepare("SELECT * FROM sessions").all(), session);
+    assert.equal(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'setup_pending'").get(), undefined);
+    assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
+  });
+});

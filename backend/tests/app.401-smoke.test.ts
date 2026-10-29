@@ -41,18 +41,16 @@ const protectedPrefixes = [
   "/api/auth",
   "/api/user",
   "/api/status",
+  "/api/storage-history",
   "/api/minima",
   "/api/integritas",
   "/api/data-sources",
   "/api/data-reads",
   "/api/automation",
   "/api/feedback",
-  "/api/files",
   "/api/wallet",
   "/api/wallet/address-book",
-  "/api/tokens",
   "/api/preferences",
-  "/api/debug",
 ];
 
 // The admin-gate matrix. `UserRole` has one member today, so this cannot be driven through a
@@ -61,24 +59,25 @@ const protectedPrefixes = [
 // asymmetric on the same primitives (health vs. read, resync/config vs. peers/add), and the
 // failure mode is a new route quietly shipping ungated.
 const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: string][] = [
-  ["get", "/api/files"],
   ["post", "/api/data-sources/src-1/read"],
   ["post", "/api/data-sources"],
   ["post", "/api/minima/config"],
   ["post", "/api/minima/megammrsync/resync"],
+  ["get", "/api/minima/resync"],
   ["post", "/api/minima/peers/add"],
   ["post", "/api/minima/restart"],
   ["post", "/api/minima/console/run"],
   ["get", "/api/minima/console/whitelist"],
   ["post", "/api/minima/backups"],
-  ["post", "/api/integritas/stamp"],
   ["post", "/api/integritas/stamp-file"],
   ["post", "/api/integritas/history/delete-selected"],
-  ["post", "/api/integritas/history/rec-1/poll"],
   ["post", "/api/integritas/history/rec-1/verify"],
+  ["post", "/api/storage-history/export"],
+  ["get", "/api/storage-history/imports"],
+  ["post", "/api/storage-history/imports"],
   ["post", "/api/automation/workflows"],
   ["post", "/api/wallet/send-payment"],
-  ["post", "/api/tokens/create"],
+  ["post", "/api/wallet/history/clear-previous"],
 ];
 
 describe("app 401 smoke test", () => {

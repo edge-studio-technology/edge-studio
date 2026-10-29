@@ -4,7 +4,7 @@ import { cx } from "../../lib/cx";
 
 type TextElementProps = HTMLAttributes<HTMLElement> & { children: ReactNode };
 
-export function TextTitle({ className, children, ...props }: TextElementProps) {
+function TextTitle({ className, children, ...props }: TextElementProps) {
   return (
     <h2 className={cx("type-title text-text-primary m-0", className)} {...props}>
       {children}
@@ -12,7 +12,7 @@ export function TextTitle({ className, children, ...props }: TextElementProps) {
   );
 }
 
-export function TextSubtitle({ className, children, ...props }: TextElementProps) {
+function TextSubtitle({ className, children, ...props }: TextElementProps) {
   return (
     <p className={cx("type-callout m-0", className)} {...props}>
       {children}
@@ -20,7 +20,7 @@ export function TextSubtitle({ className, children, ...props }: TextElementProps
   );
 }
 
-export function TextBody({ className, children, ...props }: TextElementProps) {
+function TextBody({ className, children, ...props }: TextElementProps) {
   return (
     <p className={cx("type-body text-text-primary m-0", className)} {...props}>
       {children}
@@ -28,7 +28,7 @@ export function TextBody({ className, children, ...props }: TextElementProps) {
   );
 }
 
-export function TextBodyEm({ className, children, ...props }: TextElementProps) {
+function TextBodyEm({ className, children, ...props }: TextElementProps) {
   return (
     <p className={cx("type-body-em text-text-primary m-0", className)} {...props}>
       {children}
@@ -36,7 +36,7 @@ export function TextBodyEm({ className, children, ...props }: TextElementProps) 
   );
 }
 
-export function TextMuted({ className, children, ...props }: TextElementProps) {
+function TextMuted({ className, children, ...props }: TextElementProps) {
   return (
     <p className={cx("type-meta text-text-secondary m-0", className)} {...props}>
       {children}
@@ -44,7 +44,7 @@ export function TextMuted({ className, children, ...props }: TextElementProps) {
   );
 }
 
-export function TextLink({ className, ...props }: RouterLinkProps) {
+function TextLink({ className, ...props }: RouterLinkProps) {
   return (
     <RouterLink
       className={cx(

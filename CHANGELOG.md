@@ -6,6 +6,85 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.43.0] 2026-10-29
+
+### Added
+
+- ESLint for `backend`, `frontend`, and `update-agent` via `npm run lint`, run as part of `npm run check` and CI.
+- The Minima page shows persisted resync progress and timestamped events that remain available after navigation or reload.
+- Developers can configure local Pi SSH access in `.env.local` and use the `pi-ssh` agent skill for requested Pi work.
+- Public setup status includes the local admin credential type and disables response caching.
+- Login and current-credential confirmations use masked six-digit PIN or password inputs based on the stored credential type.
+- The address book automatically adds a persistent contact named after the device, marked Local device, with editable name/notes and protected address/deletion.
+- `scripts/dev/benchmark/` scripts that measure the installed app's CPU, memory, disk growth, start-up time and workflow load on a Pi, with a guide in `docs/guides/pi-benchmark.md`.
+- Wallet history lists incoming payments and self-transfers alongside sends, synced from the Minima node.
+- Wallet history rows show Pending, Confirmed, or Failed, and they and the wallet balance update without a page reload.
+- Wallet history can be filtered by type, status, and date (presets or a custom range), and searched by contact name, address, token, or ID.
+- Wallet history shows the sender or recipient's address-book name when it is a saved contact.
+- The history details view shows the date, confirmation time, block, confirmation count, origin, and TxPoW and transaction IDs.
+- Failed sends from the Send dialog and automation workflows record Minima's failure reason, shown in the history details view.
+- History from a wallet the node no longer uses is marked Previous wallet and can be cleared by an admin after re-entering their PIN/password (`POST /api/wallet/history/clear-previous`).
+- Dev testnet setup for Minima wallet testing on a Pi; see `docs/guides/minima-testnet.md`.
+- Settings can download a re-authenticated, read-only history archive with redacted wallet, workflow, data-source, and Integritas records.
+- Settings shows storage and history usage and can import archives as read-only history without restoring app configuration.
+
+### Changed
+
+- Camera setup separates capture mode and capture settings, validates numeric settings, and reviews the complete capture configuration before saving.
+- The camera guide includes connection, hardware enablement, configuration, verification, troubleshooting, and privacy and retention topics.
+- The Devices setup picker groups GPIO LED output under Actuators, separate from sensor templates and protocol output targets.
+- Resync progress is collapsible, opens for each active resync, and shows events in a bounded scrolling list.
+- Minima resync starts asynchronously with HTTP 202 and exposes the latest persisted operation through an admin-only progress endpoint.
+- Duplicate resync and conflicting node restart, backup, and restore requests return HTTP 409 while resync is reserved.
+- Resync recovery observes natural node restarts, preserves uncertain outcomes and warnings, and resumes monitoring after a backend restart without replaying resync.
+- Resync start and result audit events identify the caller, and automatic-resync completion is recorded separately from its initiation cooldown.
+- Browser resync feedback follows backend outcomes, retains recovery warnings, and offers retry for unavailable progress reads.
+- Conflicting backup, restore, resync, and restart controls remain disabled while resync holds the node reservation.
+- New and confirmed PINs in setup and Settings now use persistent-password autofill semantics.
+- User-created contacts remain independent and may share the local contact's address.
+- App-controlled wallet replacement verifies and updates the local contact, preserves its details and workflow references, and blocks payments through it until verification completes.
+- Update page release notes come from a copy `update-agent` caches on disk when it checks for updates.
+- "View full changelog" on the Update page opens every released entry in the app instead of GitHub.
+- The browser no longer contacts GitHub from the Update page, and the frontend CSP no longer allows `raw.githubusercontent.com`.
+- `GET /api/wallet/history` returns a paginated, filterable list of all wallet movements instead of `{ sends }`, and no longer accepts `limit`; see `README.md`.
+- The update agent, the frontend build, and the installer's manifest signature verifier run on Node 22 instead of end-of-life Node 20.
+- Admin PINs and passwords are hashed with Node's built-in scrypt instead of the native `bcrypt` package; see `SECURITY.md`.
+- Existing bcrypt-hashed credentials keep working and are converted to scrypt on the next successful login.
+- Database migration drops the `custom_tokens` and `setup_pending` tables and the `users.totp_secret` column; an older backend cannot create a first admin against a migrated database (see [ADR 0036](docs/adr/0036-remove-dead-code-and-unused-features.md)).
+
+### Removed
+
+- Seed phrase wallet import (`POST /api/wallet/import`).
+- Custom token creation (`/api/tokens/*`).
+- TOTP two-factor authentication, including its setup, login, and reset routes.
+- Debug routes, including `POST /api/wallet/debug/clear-wallet-history`.
+- Host file browser API (`/api/files/*`); the read-only host-files mount stays for local inbox images and disk status.
+- Raw Integritas hash, stamp, status, verify, and proof-poll routes; file stamping, proof history, and proof file verification stay.
+- `GET /api/minima/balance`, `GET /api/wallet/payment-status/:txpowid`, `GET /api/automation/runs/:id`, and `POST /api/feedback/retry-pending`.
+- Single-capability reads under `GET /api/host-capabilities/{camera,gpio,sensors,mqtt}`; `GET /api/host-capabilities` stays.
+- Legacy static `/setup` page, which now shows Not found.
+
+### Fixed
+
+- Raspberry Pi Camera is available on the first screen of the device setup wizard.
+- Successful login corrects older PIN accounts' credential metadata without changing their credentials.
+- Login wording follows the configured credential type and falls back to PIN or password when metadata is unavailable.
+- Session-expiry notices now refer to both PINs and passwords.
+- Address-book payments resolve the current saved destination, including after wallet replacement on older Minima versions.
+- Relative links in Update page release notes point to the correct GitHub repository.
+- The Send payment dialog accepts decimal amounts.
+
+### Security
+
+- Proof file operations, history archive imports/exports, and Minima backup downloads/restores share a limit of 30 requests per client per minute.
+- History exports and Minima backup downloads/restores limit failed credential checks to five per client per 15 minutes.
+- Verification report filenames accept only letters, numbers, underscores, and hyphens in proof IDs.
+- GitHub Actions tokens default to read-only repository access, with package publishing granted only to the image-build job.
+- Updated runtime dependencies and test/build tooling to patched releases for the reported npm advisories.
+- After a login converts the stored credential, manually reinstalling an older release locks the admin out; in-app updates are unaffected.
+- A login that overlaps a PIN/password change now fails instead of creating a session.
+- Smaller authenticated API surface and no stored TOTP secrets (see [ADR 0036](docs/adr/0036-remove-dead-code-and-unused-features.md)).
+
 ## [0.42.2] 2026-10-06
 
 ### Added
@@ -61,7 +140,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Webhook ingestion is rate-limited to 60 requests per minute per client and source.
 - Automation changes and manual workflow runs are rate-limited to 30 requests per minute per client.
 - Integritas stamp creation is rate-limited to 10 requests per minute per client.
-- See [ADR 0022](docs/adr/0022-bound-external-automation-effects.md), [ADR 0023](docs/adr/0023-classify-stored-records-before-applying-retention.md), [ADR 0028](docs/adr/0028-raise-workflow-run-budget.md), and `SECURITY.md`.
+- See [ADR 0022](docs/adr/0022-bound-external-automation-effects.md) and `SECURITY.md`.
 - Wallet sends and address-book writes now reject malformed Minima destinations using the upstream `0x` and checksummed `Mx` address grammar.
 - Disabled two-factor setup and reset endpoints are no longer exposed while TOTP is off.
 - HTTPS application, proxy, error, and redirect responses now include CSP, clickjacking, MIME-sniffing, and referrer-policy protections.
@@ -589,7 +668,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - New in-app Update page (`/update`, not yet linked from the sidebar nav): shows the live up-to-date/available check and starts an update, styled with the same shared components as the rest of the app. See [docs/adr/0002-update-page-split.md](docs/adr/0002-update-page-split.md).
 - `UPDATE_DRY_RUN` env var for `update-agent` (dev only, defaults off, never set by `install.sh`): simulates a successful update apply — same running/succeeded flow, no manifest recorded as applied — without pulling or swapping any container, so the Update flow can be exercised repeatedly in dev. See [docs/adr/0003-update-dry-run.md](docs/adr/0003-update-dry-run.md) and `SECURITY.md`.
 - `Spinner` shared component (`components/ui/`): rotating ring loading indicator matching `update-agent`'s waitroom page style, replacing ad hoc `lucide-react` `Loader2`/`animate-spin` usage in `ProgressModal`, `DeleteDeviceProgressModal`, and the Connect Integritas setup step so all spinner-style loaders share one style.
-- Update page now shows a "What's new" changelog preview (most recent entries of `CHANGELOG.md`, fetched directly from GitHub, rendered client-side — no server proxy), replacing the per-service update-available row list. Each version is a collapsible `Disclosure` (most recent expanded by default). Heading sizes reuse the app's existing two-tier convention: "Up to date"/"Update available" and "What's new" (sibling section headers) at `type-title`, version names at `Disclosure`'s own `type-body-em`, category labels at `type-meta`. Experimental: see [docs/adr/0004-update-page-changelog.md](docs/adr/0004-update-page-changelog.md) for the security/architecture tradeoffs (client-side third-party fetch, no HTML injection).
+- Update page now shows a "What's new" changelog preview (most recent entries of `CHANGELOG.md`, fetched directly from GitHub, rendered client-side — no server proxy), replacing the per-service update-available row list. Each version is a collapsible `Disclosure` (most recent expanded by default). Heading sizes reuse the app's existing two-tier convention: "Up to date"/"Update available" and "What's new" (sibling section headers) at `type-title`, version names at `Disclosure`'s own `type-body-em`, category labels at `type-meta`. Experimental: see [docs/adr/0032-cache-update-changelog-in-update-agent.md](docs/adr/0032-cache-update-changelog-in-update-agent.md) for the security/architecture tradeoffs (client-side third-party fetch, no HTML injection).
 
 ### Fixed
 

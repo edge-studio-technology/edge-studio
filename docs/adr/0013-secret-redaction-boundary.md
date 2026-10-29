@@ -56,10 +56,3 @@ derive that automatically.
   the failure direction is safe.
 - `redactStrings()` vs `redactDeep()` is a contract, not a runtime check — a future caller can
   still pick wrong for a new payload shape.
-
-## Where this lives in code
-
-- `backend/src/shared/redact.ts`, `backend/src/shared/structured-error.ts`
-- `backend/src/features/minima/minima.rpc.ts` — the call site needing `redactStrings()`
-- `backend/tests/shared/redact.test.ts`, `structured-error.test.ts`,
-  `backend/tests/features/minima/minima.rpc.test.ts`

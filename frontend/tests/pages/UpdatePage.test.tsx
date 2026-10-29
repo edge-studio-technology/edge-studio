@@ -13,7 +13,7 @@ vi.mock("../../src/features/update/updateApi", () => ({
 }));
 
 vi.mock("../../src/features/update/ChangelogPreview", () => ({
-  ChangelogPreview: () => <div>Changelog</div>,
+  ChangelogPreview: ({ markdown }: { markdown: string | null }) => <div>{markdown ?? "No changelog"}</div>,
 }));
 
 const currentStatus: UpdateStatus = {
@@ -33,6 +33,7 @@ const currentStatus: UpdateStatus = {
     },
   ],
   currentVersion: "1.2.3",
+  changelog: { markdown: "## [1.2.3]", fetchedAt: "2026-09-22T00:00:00.000Z" },
 };
 
 describe("UpdatePage", () => {
@@ -120,5 +121,21 @@ describe("UpdatePage", () => {
     render(<UpdatePage />);
 
     expect(await screen.findByText("Running version 1.2.3. The update service is still updating itself.")).toBeInTheDocument();
+  });
+
+  it("passes the cached changelog to the preview", async () => {
+    getUpdateStatus.mockResolvedValue(currentStatus);
+
+    render(<UpdatePage />);
+
+    expect(await screen.findByText("## [1.2.3]")).toBeInTheDocument();
+  });
+
+  it("passes no changelog when update-agent has none cached", async () => {
+    getUpdateStatus.mockResolvedValue({ ...currentStatus, changelog: null });
+
+    render(<UpdatePage />);
+
+    expect(await screen.findByText("No changelog")).toBeInTheDocument();
   });
 });

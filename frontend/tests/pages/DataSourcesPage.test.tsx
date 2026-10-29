@@ -53,7 +53,7 @@ describe("DataSourcesPage", () => {
     getHostCapabilities.mockResolvedValue({ items: [] });
   });
 
-  it("shows loading without an error or empty state while required requests are pending", () => {
+  it("shows loading without an error or empty state while the device list is pending", () => {
     listDataSources.mockReturnValue(new Promise(() => {}));
     getDataSourceCapabilities.mockReturnValue(new Promise(() => {}));
 
@@ -64,29 +64,46 @@ describe("DataSourcesPage", () => {
     expect(screen.queryByText("Connect your first device")).not.toBeInTheDocument();
   });
 
-  it.each([
-    ["device list", "list"],
-    ["device capabilities", "capabilities"],
-  ])("shows a retryable error when the %s request fails", async (_label, failedRequest) => {
+  it("shows a retryable error when the device list request fails", async () => {
     listDataSources.mockResolvedValue({ items: [] });
     getDataSourceCapabilities.mockResolvedValue(capabilities);
-    if (failedRequest === "list") {
-      listDataSources.mockRejectedValue(new Error("Devices request failed"));
-    } else {
-      getDataSourceCapabilities.mockRejectedValue(new Error("Capabilities request failed"));
-    }
+    listDataSources.mockRejectedValue(new Error("Devices request failed"));
 
     renderPage();
 
     expect(await screen.findByText("Devices aren't available")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        failedRequest === "list" ? "Devices request failed" : "Capabilities request failed",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Devices request failed")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
     expect(screen.queryByText("Fetching your devices")).not.toBeInTheDocument();
     expect(screen.queryByText("Connect your first device")).not.toBeInTheDocument();
+  });
+
+  it("renders the device list before background hardware status requests finish", async () => {
+    const pendingCapabilities = deferred<DataSourceCapabilities>();
+    const pendingHostCapabilities = deferred<{ items: [] }>();
+    listDataSources.mockResolvedValue({ items: [] });
+    getDataSourceCapabilities.mockReturnValue(pendingCapabilities.promise);
+    getHostCapabilities.mockReturnValue(pendingHostCapabilities.promise);
+
+    renderPage();
+
+    expect(await screen.findByText("Connect your first device")).toBeInTheDocument();
+    expect(screen.queryByText("Fetching your devices")).not.toBeInTheDocument();
+
+    pendingCapabilities.resolve(capabilities);
+    pendingHostCapabilities.resolve({ items: [] });
+  });
+
+  it("keeps the device list visible and offers a retry when hardware status fails", async () => {
+    listDataSources.mockResolvedValue({ items: [] });
+    getDataSourceCapabilities.mockRejectedValue(new Error("Capabilities request failed"));
+
+    renderPage();
+
+    expect(await screen.findByText("Connect your first device")).toBeInTheDocument();
+    expect(await screen.findByText("Hardware status couldn't be loaded")).toBeInTheDocument();
+    expect(screen.getByText("Capabilities request failed")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
   });
 
   it("returns to loading on Retry and renders a genuine empty state after recovery", async () => {

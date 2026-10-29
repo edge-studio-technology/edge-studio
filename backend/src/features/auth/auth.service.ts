@@ -1,28 +1,24 @@
-import bcrypt from "bcrypt";
-import { LOCAL_ADMIN_DISPLAY_NAME, TOTP_ACCOUNT_LABEL, TOTP_ENABLED } from "./auth.constants.js";
+import { db } from "../../db/database.js";
+import { LOCAL_ADMIN_DISPLAY_NAME } from "./auth.constants.js";
 import { recordAuditEvent } from "./audit.service.js";
 import {
-  clearSetupPending,
-  createSetupPending,
   findTheUser,
   findUserById,
-  getLatestSetupPending,
+  replaceUserPasswordHash,
+  updateUserCredentialType,
   updateUserLastLogin,
-  updateUserPassword,
-  updateUserTotpSecret
+  updateUserPassword
 } from "./auth.repository.js";
 import {
   adminCredentialValidationError,
+  DUMMY_PASSWORD_HASH,
   getAdminCredentialType,
   hashPassword,
   isValidAdminCredential,
+  needsRehash,
   verifyPassword
 } from "./password.service.js";
 import { createSession, deleteAllUserSessions } from "./session.service.js";
-import { decryptTotpSecret, encryptTotpSecret, generateSecret, getOtpAuthUrl, renderQrPngBase64, verifyToken } from "./totp.service.js";
-
-const DUMMY_HASH = bcrypt.hashSync("edge-studio-dummy-login-path", 12);
-const TOTP_RESET_PENDING_TTL_MS = 15 * 60 * 1000;
 
 export class AuthSettingsError extends Error {
   status: number;
@@ -32,41 +28,50 @@ export class AuthSettingsError extends Error {
   }
 }
 
-export async function login(input: { password: string; totpToken?: string }) {
+export async function login(input: { password: string }) {
   const password = input.password;
-  const totpToken = (input.totpToken ?? "").trim();
 
   const user = findTheUser();
 
-  const passwordHash = user?.password ?? DUMMY_HASH;
+  const passwordHash = user?.password ?? DUMMY_PASSWORD_HASH;
   const passwordValid = await verifyPassword(password, passwordHash);
 
-  let totpValid = !TOTP_ENABLED;
-  if (TOTP_ENABLED) {
-    totpValid = false;
-    if (user && passwordValid && /^\d{6}$/.test(totpToken)) {
-      try {
-        const secret = decryptTotpSecret(user.totp_secret);
-        totpValid = verifyToken(secret, totpToken);
-      } catch {
-        totpValid = false;
-      }
-    }
-  }
-
-  if (!user || !passwordValid || !totpValid) {
+  if (!user || !passwordValid) {
     recordAuditEvent("login.failure", { detail: "failed" });
     return { ok: false as const };
   }
 
-  updateUserLastLogin(user.id);
-  const sessionToken = createSession(user.id);
+  const replacementHash = needsRehash(passwordHash) ? await hashPassword(password) : null;
+
+  // No await from here: a credential change that landed during verification or rehashing
+  // fails the login instead of receiving a session after its revocation.
+  const completed = db.transaction(() => {
+    const current = findUserById(user.id);
+    if (!current || current.password !== passwordHash) return null;
+
+    let credentialType = current.credential_type;
+    const verifiedCredentialType = getAdminCredentialType(password);
+    if (credentialType !== verifiedCredentialType && updateUserCredentialType(user.id, passwordHash, verifiedCredentialType)) {
+      credentialType = verifiedCredentialType;
+    }
+    if (replacementHash) replaceUserPasswordHash(user.id, passwordHash, replacementHash);
+
+    updateUserLastLogin(user.id);
+    return { credentialType, sessionToken: createSession(user.id) };
+  })();
+
+  if (!completed) {
+    recordAuditEvent("login.failure", { detail: "failed" });
+    return { ok: false as const };
+  }
+
+  const { credentialType, sessionToken } = completed;
   recordAuditEvent("login.success", { userId: user.id, detail: LOCAL_ADMIN_DISPLAY_NAME });
 
   return {
     ok: true as const,
     sessionToken,
-    user: { displayName: LOCAL_ADMIN_DISPLAY_NAME, role: user.role, credentialType: user.credential_type }
+    user: { displayName: LOCAL_ADMIN_DISPLAY_NAME, role: user.role, credentialType }
   };
 }
 
@@ -75,7 +80,6 @@ export async function changePassword(
   input: {
     currentPassword: string;
     newPassword: string;
-    totpToken?: string;
   }
 ) {
   const user = findUserById(userId);
@@ -83,20 +87,6 @@ export async function changePassword(
 
   const passwordValid = await verifyPassword(input.currentPassword, user.password);
   if (!passwordValid) throw new AuthSettingsError("Invalid current credential", 401);
-
-  if (TOTP_ENABLED) {
-    const token = (input.totpToken ?? "").trim();
-    if (!/^\d{6}$/.test(token)) throw new AuthSettingsError("totpToken must be a 6-digit code", 400);
-
-    let totpValid = false;
-    try {
-      const secret = decryptTotpSecret(user.totp_secret);
-      totpValid = verifyToken(secret, token);
-    } catch {
-      totpValid = false;
-    }
-    if (!totpValid) throw new AuthSettingsError("Invalid TOTP code", 401);
-  }
 
   if (!isValidAdminCredential(input.newPassword)) throw new AuthSettingsError(adminCredentialValidationError(), 400);
 
@@ -104,56 +94,4 @@ export async function changePassword(
   updateUserPassword(userId, newHash, getAdminCredentialType(input.newPassword));
   deleteAllUserSessions(userId);
   recordAuditEvent("settings.password_changed", { userId, detail: LOCAL_ADMIN_DISPLAY_NAME });
-}
-
-export async function initTotpReset(
-  userId: string,
-  input: {
-    currentPassword: string;
-    totpToken: string;
-  }
-) {
-  const user = findUserById(userId);
-  if (!user) throw new AuthSettingsError("User not found", 404);
-
-  const passwordValid = await verifyPassword(input.currentPassword, user.password);
-  if (!passwordValid) throw new AuthSettingsError("Invalid current credential", 401);
-
-  const token = input.totpToken.trim();
-  if (!/^\d{6}$/.test(token)) throw new AuthSettingsError("totpToken must be a 6-digit code", 400);
-
-  let totpValid = false;
-  try {
-    const secret = decryptTotpSecret(user.totp_secret);
-    totpValid = verifyToken(secret, token);
-  } catch {
-    totpValid = false;
-  }
-  if (!totpValid) throw new AuthSettingsError("Invalid TOTP code", 401);
-
-  const newSecret = generateSecret();
-  const encrypted = encryptTotpSecret(newSecret);
-  const expiresAt = new Date(Date.now() + TOTP_RESET_PENDING_TTL_MS).toISOString();
-  createSetupPending(encrypted, expiresAt);
-
-  const otpAuthUrl = getOtpAuthUrl(newSecret, TOTP_ACCOUNT_LABEL);
-  const qrCodePngBase64 = await renderQrPngBase64(otpAuthUrl);
-
-  return { qrCodePngBase64, secret: newSecret, expiresAt };
-}
-
-export async function verifyTotpReset(userId: string, totpToken: string) {
-  const pending = getLatestSetupPending();
-  if (!pending) throw new AuthSettingsError("TOTP reset expired or not initialized", 400);
-
-  const token = totpToken.trim();
-  if (!/^\d{6}$/.test(token)) throw new AuthSettingsError("totpToken must be a 6-digit code", 400);
-
-  const newSecret = decryptTotpSecret(pending.totp_secret);
-  if (!verifyToken(newSecret, token)) throw new AuthSettingsError("Invalid TOTP code", 400);
-
-  updateUserTotpSecret(userId, pending.totp_secret);
-  clearSetupPending();
-  deleteAllUserSessions(userId);
-  recordAuditEvent("settings.totp_reset", { userId, detail: LOCAL_ADMIN_DISPLAY_NAME });
 }

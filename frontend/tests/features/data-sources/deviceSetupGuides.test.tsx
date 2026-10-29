@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "../../../src/components/ToastProvider";
@@ -125,9 +125,68 @@ describe("getDeviceSetupGuide / hasDeviceSetupGuide", () => {
       expect(hasDeviceSetupGuide(source({ type, config: {} }))).toBe(true);
     }
   });
+
+  it("gives every guide variant a Saved settings topic", () => {
+    const items = [
+      source({ type: "mqtt", config: { profile: "esp32-mqtt-board" } }),
+      source({ type: "bme-sensor", config: {} }),
+      source({ type: "device-system-data", config: {} }),
+      source({ type: "gpio-input", config: {} }),
+      source({ type: "gpio-input", config: { profile: "gpio-button" } }),
+      source({ type: "gpio-input", config: { profile: "pir-motion" } }),
+      source({ type: "gpio-output", config: {} }),
+      source({ type: "pi-camera", config: {} }),
+      source({ type: "json-api", config: {} }),
+      source({ type: "webhook", config: {} }),
+      source({ type: "mqtt", config: {} }),
+      source({ type: "http-output", config: {} }),
+      source({ type: "mqtt-output", config: {} }),
+    ];
+
+    for (const item of items) {
+      expect(getDeviceSetupGuide(item)?.sections.some((section) => section.title === "Saved settings")).toBe(true);
+    }
+  });
 });
 
 describe("StandardDeviceSetupGuide", () => {
+  it("shows camera setup topics, saved video settings, and a disabled capture starter", async () => {
+    const item = source({ type: "pi-camera", config: { mode: "video", width: 1920, height: 1080, durationMs: 5000, fps: 24 } });
+    const onAction = vi.fn();
+    render(<StandardDeviceSetupGuide source={item} onAction={onAction} />, { wrapper: ToastProvider });
+    await userEvent.click(screen.getByRole("button", { name: "Connect the camera" }));
+    expect(screen.getByText(/disconnect its power before connecting/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Enable camera support" }));
+    await userEvent.click(screen.getByRole("button", { name: "Copy commands" }));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("rpicam-still --list-cameras");
+    await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
+    expect(screen.getByText("1920x1080")).toBeInTheDocument();
+    expect(screen.getByText("5000 ms")).toBeInTheDocument();
+    expect(screen.getByText("24")).toBeInTheDocument();
+    expect(screen.getByText("H.264")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(screen.getByText(/Confirm that Capture camera succeeds/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Troubleshooting" }));
+    expect(screen.getByText("Camera busy")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Privacy and retention" }));
+    expect(screen.getByText(/CAMERA_RETENTION_DAYS/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Guide actions" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create basic workflow for this device" }));
+    const workflow = onAction.mock.calls[0][0].workflow(item);
+    expect(workflow.enabled).toBe(false);
+    expect(workflow.blocks.map((block: { type: string }) => block.type)).toEqual(["manual_start", "capture_camera", "show_preview"]);
+    expect(workflow.blocks[1].config.sourceId).toBe(item.id);
+  });
+
+  it("shows photo warmup and format without video FPS in camera saved settings", async () => {
+    render(<StandardDeviceSetupGuide source={source({ type: "pi-camera", config: { mode: "photo", durationMs: 1500 } })} />, { wrapper: ToastProvider });
+    await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
+    expect(screen.getByText("Warmup timeout")).toBeInTheDocument();
+    expect(screen.getByText("1500 ms")).toBeInTheDocument();
+    expect(screen.getByText("JPEG")).toBeInTheDocument();
+    expect(screen.queryByText("FPS")).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     vi.stubGlobal("navigator", {
       ...navigator,
@@ -141,7 +200,7 @@ describe("StandardDeviceSetupGuide", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders table and disclosure sections, and the doc-path link opens the doc in a new tab", async () => {
+  it("renders overview details, and documentation opens in a new tab", async () => {
     const item = source({
       type: "bme-sensor",
       name: "Kitchen BME280",
@@ -149,11 +208,19 @@ describe("StandardDeviceSetupGuide", () => {
     });
     render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
 
+    expect(screen.getByText("How to use this guide")).toBeInTheDocument();
     expect(screen.getByText("Requirements")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
+    expect(screen.getByText("Configuration currently saved for this device.")).toBeInTheDocument();
     expect(screen.getByText("Sensor")).toBeInTheDocument();
     expect(screen.getByText("bme280")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "docs/guides/bme280-sensor.md" }));
+    await userEvent.click(screen.getByRole("button", { name: "Requirements" }));
+    expect(screen.getByText("Conditions that must be in place before this device can be used.")).toBeInTheDocument();
+    expect(screen.getByText("I2C sensors are enabled in Devices -> Hardware support so the host-side sensor helper is running.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Documentation" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open documentation" }));
     expect(window.open).toHaveBeenCalledWith(
       "https://github.com/integritas-technology/edge-studio/blob/main/docs/guides/bme280-sensor.md",
       "_blank",
@@ -161,15 +228,67 @@ describe("StandardDeviceSetupGuide", () => {
     );
   });
 
+  it("moves between guide topics with previous and next controls", async () => {
+    const item = source({ type: "bme-sensor", config: { sensor: "bme280" } });
+    render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
+
+    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByRole("heading", { name: "Requirements" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Requirements" })).toHaveAttribute("aria-current", "page");
+    await userEvent.click(screen.getByRole("button", { name: "Previous" }));
+    expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Overview" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("uses consistent workflow, verification, and saved-settings topics", async () => {
+    const item = source({ type: "http-output", config: { url: "https://example.test/output" } });
+    render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
+
+    expect(screen.getByRole("button", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Saved settings" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Workflow use" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(screen.getByText("Use Test output in Devices and confirm the endpoint receives the expected JSON request.")).toBeInTheDocument();
+  });
+
+  it("shows operational safety guidance where device output or access has side effects", async () => {
+    const webhook = source({ type: "webhook", config: { webhookToken: "tok-123" } });
+    render(<StandardDeviceSetupGuide source={webhook} />, { wrapper: ToastProvider });
+
+    await userEvent.click(screen.getByRole("button", { name: "Workflow use" }));
+    expect(screen.getByText(/Treat the webhook URL as a bearer secret/)).toBeInTheDocument();
+  });
+
+  it("uses the configured PIR pin and shows GPIO debounce in saved settings", async () => {
+    const item = source({ type: "gpio-input", config: { profile: "pir-motion", pin: 24, debounceMs: 750 } });
+    render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
+
+    await userEvent.click(screen.getByRole("button", { name: "Wiring" }));
+    expect(screen.getByText("Configured BCM GPIO24; GPIO23 is physical pin 16 for the default template.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
+    expect(screen.getByText("750 ms")).toBeInTheDocument();
+  });
+
+  it("uses a concrete MQTT verification topic when the subscription has wildcards", async () => {
+    const item = source({ type: "mqtt", config: { topic: "sensors/+/data" } });
+    render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
+
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(screen.getByText(/publishers cannot publish to \+ or #/)).toBeInTheDocument();
+    expect(screen.getByText(/<concrete-matching-topic>/)).toBeInTheDocument();
+  });
+
   it("renders a guide action and calls onAction when clicked", async () => {
     const onAction = vi.fn();
     const item = source({ type: "bme-sensor", config: { sensor: "bme280" } });
     render(<StandardDeviceSetupGuide source={item} onAction={onAction} />, { wrapper: ToastProvider });
 
+    await userEvent.click(screen.getByRole("button", { name: "Guide actions" }));
     const actionButton = screen.getByRole("button", { name: "Create basic workflow for this device" });
     await userEvent.click(actionButton);
     expect(onAction).toHaveBeenCalledWith(
-      expect.objectContaining({ key: "create-readable-preview-workflow" }),
+      expect.objectContaining({ key: "create-basic-workflow" }),
     );
   });
 
@@ -179,27 +298,29 @@ describe("StandardDeviceSetupGuide", () => {
     render(
       <StandardDeviceSetupGuide
         source={item}
-        createdWorkflowIds={{ "create-readable-preview-workflow": "wf-1" }}
+        createdWorkflowIds={{ "create-basic-workflow": "wf-1" }}
         onGoToWorkflow={onGoToWorkflow}
       />,
       { wrapper: ToastProvider },
     );
 
+    await userEvent.click(screen.getByRole("button", { name: "Guide actions" }));
     const goToWorkflow = screen.getByRole("button", { name: "Go to workflow" });
     await userEvent.click(goToWorkflow);
     expect(onGoToWorkflow).toHaveBeenCalledWith("wf-1");
   });
 
-  it("shows 'Creating...' and disables the action while it is running", () => {
+  it("shows 'Creating...' and disables the action while it is running", async () => {
     const item = source({ type: "bme-sensor", config: { sensor: "bme280" } });
     render(
       <StandardDeviceSetupGuide
         source={item}
         onAction={vi.fn()}
-        runningActionKey="create-readable-preview-workflow"
+        runningActionKey="create-basic-workflow"
       />,
       { wrapper: ToastProvider },
     );
+    await userEvent.click(screen.getByRole("button", { name: "Guide actions" }));
     expect(screen.getByRole("button", { name: "Creating..." })).toBeDisabled();
   });
 
@@ -207,6 +328,7 @@ describe("StandardDeviceSetupGuide", () => {
     const item = source({ type: "webhook", config: { webhookToken: "tok-123" } });
     render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
 
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
     await userEvent.click(screen.getByRole("button", { name: "Copy commands" }));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       expect.stringContaining("curl -X POST"),
@@ -220,9 +342,24 @@ describe("StandardDeviceSetupGuide", () => {
     const item = source({ type: "gpio-output", config: {} });
     render(<StandardDeviceSetupGuide source={item} />, { wrapper: ToastProvider });
 
+    await userEvent.click(screen.getByRole("button", { name: "Wiring" }));
     const toggle = screen.getByRole("button", { name: "Show wiring schematic" });
     await userEvent.click(toggle);
     expect(screen.getByRole("button", { name: "Hide wiring schematic" })).toBeInTheDocument();
-    expect(screen.getByAltText(/Raspberry Pi 40-pin GPIO header pinout/)).toBeInTheDocument();
+    const image = screen.getByAltText(/Raspberry Pi 40-pin GPIO header pinout/);
+    const fullSizeLink = screen.getByRole("link", { name: "Open full-size Raspberry Pi GPIO header pinout" });
+    expect(fullSizeLink).toHaveAttribute("href", image.getAttribute("src"));
+    expect(fullSizeLink).toHaveAttribute("target", "_blank");
+    expect(fullSizeLink).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("offers device editing from saved settings", async () => {
+    const onEditSettings = vi.fn();
+    const item = source({ type: "mqtt", config: { brokerUrl: "mqtt://broker", topic: "sensors/data" } });
+    render(<StandardDeviceSetupGuide source={item} onEditSettings={onEditSettings} />, { wrapper: ToastProvider });
+
+    await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit device settings" }));
+    expect(onEditSettings).toHaveBeenCalledOnce();
   });
 });

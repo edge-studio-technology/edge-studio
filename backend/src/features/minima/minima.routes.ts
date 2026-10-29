@@ -4,7 +4,7 @@ import type { Response } from "express";
 import { apiErrorFromStatus, badRequest, dependencyUnavailable, notFound, unauthorized, unexpected } from "../../shared/api-error.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
-import { authRateLimiter } from "../auth/rate-limit.middleware.js";
+import { authRateLimiter, fileOperationRateLimiter } from "../auth/rate-limit.middleware.js";
 import {
   clearBackupPassword,
   createBackup,
@@ -22,14 +22,14 @@ import {
 } from "./minima-backup.service.js";
 import { getConsoleWhitelist, MinimaConsoleError, runConsoleCommand, updateConsoleWhitelist } from "./minima-console.service.js";
 import { backupUpload } from "./minima-upload.middleware.js";
-import { normalizeMinimaRpcError } from "./minima.errors.js";
+import { normalizeMinimaRpcError, MinimaResyncConflictError } from "./minima.errors.js";
+import { getMinimaResyncOperation } from "./minima-resync.service.js";
 import {
   addMinimaPeers,
   getAutoRestartEnabled,
   getMinimaConfig,
   getMinimaNodeStatus,
   getMinimaPeers,
-  getWalletBalance,
   resyncMegammr,
   restartMinimaContainer,
   saveMinimaConfig,
@@ -108,33 +108,31 @@ minimaRouter.post("/restart", requireRole("admin"), async (req, res) => {
     });
     res.json(result);
   } catch (error) {
+    if (error instanceof MinimaResyncConflictError) return apiErrorFromStatus(res, 409, error.message);
     const nativeMessage = error instanceof Error ? error.message : "Unknown error";
     const message = normalizeMinimaRpcError(nativeMessage);
     dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false });
   }
 });
 
-minimaRouter.get("/balance", async (_req, res) => {
+minimaRouter.post("/megammrsync/resync", requireRole("admin"), async (req, res) => {
   try {
-    const result = await getWalletBalance();
-    if (!result.ok) return dependencyUnavailable(res, "Failed to get wallet balance", undefined, undefined, result);
-    res.json(result);
+    const result = await resyncMegammr("manual", req.user?.id);
+    res.status(202).json(result);
   } catch (error) {
+    if (error instanceof MinimaResyncConflictError) return apiErrorFromStatus(res, 409, error.message);
     const nativeMessage = error instanceof Error ? error.message : "Unknown error";
     const message = normalizeMinimaRpcError(nativeMessage);
     dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });
   }
 });
 
-minimaRouter.post("/megammrsync/resync", requireRole("admin"), async (_req, res) => {
+minimaRouter.get("/resync", requireRole("admin"), (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
   try {
-    const result = await resyncMegammr();
-    if (!result.ok) return dependencyUnavailable(res, "Megammr resync failed", undefined, undefined, result);
-    res.json(result);
+    res.json(getMinimaResyncOperation());
   } catch (error) {
-    const nativeMessage = error instanceof Error ? error.message : "Unknown error";
-    const message = normalizeMinimaRpcError(nativeMessage);
-    dependencyUnavailable(res, message, nativeMessage, undefined, { ok: false, source: "minima" });
+    unexpected(res, "Failed to read Minima resync progress", error);
   }
 });
 
@@ -167,6 +165,7 @@ minimaRouter.post("/console/run", requireRole("admin"), async (req, res) => {
     const result = await runConsoleCommand(req.user?.id, command);
     res.json(result);
   } catch (error) {
+    if (error instanceof MinimaResyncConflictError) return apiErrorFromStatus(res, 409, error.message);
     if (error instanceof MinimaConsoleError) {
       return apiErrorFromStatus(res, error.status, error.message);
     }
@@ -177,6 +176,7 @@ minimaRouter.post("/console/run", requireRole("admin"), async (req, res) => {
 });
 
 function handleMinimaBackupError(res: Response, error: unknown) {
+  if (error instanceof MinimaResyncConflictError) return apiErrorFromStatus(res, 409, error.message);
   if (error instanceof MinimaBackupError) {
     // errorCode marks this as a re-auth failure, not an expired session — see the same
     // note on POST /console/whitelist above.
@@ -237,7 +237,7 @@ minimaRouter.post("/backups", requireRole("admin"), async (req, res) => {
   }
 });
 
-minimaRouter.post("/backups/:fileName/download", requireRole("admin"), async (req, res) => {
+minimaRouter.post("/backups/:fileName/download", requireRole("admin"), fileOperationRateLimiter, authRateLimiter, async (req, res) => {
   try {
     const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
     await verifyCurrentPassword(req.user?.id, currentPassword);
@@ -252,7 +252,7 @@ minimaRouter.post("/backups/:fileName/download", requireRole("admin"), async (re
   }
 });
 
-minimaRouter.post("/backups/restore", requireRole("admin"), backupUpload.single("file"), async (req, res) => {
+minimaRouter.post("/backups/restore", requireRole("admin"), fileOperationRateLimiter, authRateLimiter, backupUpload.single("file"), async (req, res) => {
   // An uploaded file is a one-time restore source, not a permanently tracked/classified
   // entry (we don't know if it's encrypted), so it's removed from the shared folder after
   // the restore attempt either way instead of lingering and confusing the two lists above.

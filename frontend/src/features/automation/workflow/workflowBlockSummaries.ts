@@ -3,7 +3,7 @@ import type { DataSource } from "../../data-sources/dataSourceTypes";
 import type { AutomationBlock, AutomationBlockType, ConditionOperator } from "../automationTypes";
 import { conditionOperatorOptions, formatInterval, sourceLabel } from "./workflowHelpers";
 
-export type WorkflowBlockSummaryField = {
+type WorkflowBlockSummaryField = {
   label: string;
   value: string;
 };

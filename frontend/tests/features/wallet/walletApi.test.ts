@@ -9,12 +9,10 @@ vi.mock("../../../src/lib/api", () => ({
 }));
 
 import {
-  clearWalletHistoryForDebug,
-  getPaymentStatus,
   getReceiveAddress,
   getWalletStatus,
-  importWallet,
-  listWalletSendHistory,
+  listWalletHistory,
+  clearPreviousWalletHistory,
   sendPayment,
 } from "../../../src/features/wallet/walletApi";
 
@@ -50,52 +48,40 @@ describe("walletApi", () => {
     expect(result).toBe(response);
   });
 
-  it("getPaymentStatus GETs the payment-status endpoint with an encoded txpowId", async () => {
-    const response = { txpowId: "0x ab", status: "confirmed" as const, checkedAt: "2026-01-01T00:00:00Z" };
+  it("listWalletHistory GETs the history endpoint without a query by default", async () => {
+    const response = { items: [], page: 1, pageSize: 25, total: 0, totalPages: 0, previousWalletItems: 0 };
     getJson.mockResolvedValue(response);
 
-    const result = await getPaymentStatus("0x ab");
+    const result = await listWalletHistory();
 
-    expect(getJson).toHaveBeenCalledWith("/api/wallet/payment-status/0x%20ab");
+    expect(getJson).toHaveBeenCalledWith("/api/wallet/history");
     expect(result).toBe(response);
   });
 
-  it("importWallet POSTs the seed phrase", async () => {
-    const response = { ok: true, message: "Wallet imported." };
-    postJson.mockResolvedValue(response);
+  it("listWalletHistory sends paging, filters, and the date range", async () => {
+    getJson.mockResolvedValue({});
 
-    const result = await importWallet("word1 word2 word3");
+    await listWalletHistory({
+      page: 2,
+      pageSize: 10,
+      status: "pending",
+      q: "Mx1",
+      direction: "in",
+      from: "2026-10-01T00:00:00.000Z",
+      to: "2026-10-02T00:00:00.000Z",
+    });
 
-    expect(postJson).toHaveBeenCalledWith("/api/wallet/import", { phrase: "word1 word2 word3" });
-    expect(result).toBe(response);
+    expect(getJson).toHaveBeenCalledWith(
+      "/api/wallet/history?page=2&pageSize=10&status=pending&q=Mx1&direction=in&from=2026-10-01T00%3A00%3A00.000Z&to=2026-10-02T00%3A00%3A00.000Z",
+    );
   });
 
-  it("clearWalletHistoryForDebug POSTs to the debug clear endpoint", async () => {
-    const response = { ok: true, deleted: 3 };
-    postJson.mockResolvedValue(response);
+  it("clearPreviousWalletHistory POSTs the current credential", async () => {
+    postJson.mockResolvedValue({ deleted: 2 });
 
-    const result = await clearWalletHistoryForDebug();
+    const result = await clearPreviousWalletHistory("123456");
 
-    expect(postJson).toHaveBeenCalledWith("/api/wallet/debug/clear-wallet-history");
-    expect(result).toBe(response);
-  });
-
-  it("listWalletSendHistory GETs the history endpoint with the default limit", async () => {
-    const response = { sends: [] };
-    getJson.mockResolvedValue(response);
-
-    const result = await listWalletSendHistory();
-
-    expect(getJson).toHaveBeenCalledWith("/api/wallet/history?limit=30");
-    expect(result).toBe(response);
-  });
-
-  it("listWalletSendHistory GETs the history endpoint with a custom limit", async () => {
-    const response = { sends: [] };
-    getJson.mockResolvedValue(response);
-
-    await listWalletSendHistory(5);
-
-    expect(getJson).toHaveBeenCalledWith("/api/wallet/history?limit=5");
+    expect(postJson).toHaveBeenCalledWith("/api/wallet/history/clear-previous", { currentPassword: "123456" });
+    expect(result).toEqual({ deleted: 2 });
   });
 });

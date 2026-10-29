@@ -7,7 +7,6 @@ import { cx } from "../../lib/cx";
 export function JsonPreview({
   value,
   label = "View JSON",
-  title = "JSON preview",
   variant = "link",
   icon,
   disabled = false,

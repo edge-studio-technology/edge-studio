@@ -1,96 +1,54 @@
-# 0002: Update Page Split Between Frontend And Update Agent
+# 0002: Update Page Split Between Frontend and update-agent
 
 **Status:** Accepted
 **Date:** 2026-08-07
 
 ## Context
 
-The entire `/update` flow — checking for updates, showing up-to-date/available, and watching an
-apply run through to success or failure — was one static page served by `update-agent`
-(`update-agent/public/index.html` + `app.js`), reached wholesale through `frontend`'s nginx
-(`location /update` proxying everything to `update-agent`). It was built that way deliberately:
-`update-agent` is the one service guaranteed to still be there and answering if `frontend`'s own
-deploy is what's being applied and goes wrong mid-update.
+The whole `/update` flow was one static page served by `update-agent`, because `update-agent` is
+the one service guaranteed to still answer if `frontend` is what's being replaced. That guarantee
+only matters while an apply is running. The check/up-to-date/available part carried no special
+risk, but as hand-rolled HTML it couldn't use the product's components and was drifting from the
+rest of the UI.
 
-That guarantee only actually matters for the apply-in-progress/success/failure part. The
-checking/up-to-date/available part carries no more risk than any other page in the app, but
-because it lived in `update-agent`'s hand-rolled static HTML/CSS, it couldn't reuse the product's
-ESDS components (`NoticeCard`, `Card`, `Button`, `Pill`, `DetailList`) and had started drifting
-from the rest of the UI's styling.
+Verified: for a `proxy_pass` prefix location ending in `/`, nginx answers the slash-less URI with
+its own 301 to the slashed one, built from the container's listen port (443) rather than the
+published `FRONTEND_PORT`, so a bare `/update` without its own block redirects to an unreachable
+origin.
 
 ## Decision
 
-Split ownership by path shape, not by introducing a new prefix:
+Split by path shape:
 
-- Bare `/update` (no trailing slash) is now a real React Router route in the product frontend
-  (`frontend/src/pages/UpdatePage.tsx`). It does the live status check (`GET /update/status`),
-  renders up-to-date/available with shared components, and on "Update now" calls
-  `POST /update/apply` itself before navigating.
-- `/update/` (trailing slash) and everything under it (`/update/status`, `/update/apply`,
-  `/update/app.js`) keeps proxying to `update-agent`, whose static page
-  (`update-agent/public/index.html` + `app.js`) is trimmed to only the
-  updating/success/failure/idle "waitroom" view.
-- The frontend page always starts the job itself (`POST /update/apply`) and only then does a
-  full-page `window.location.assign("/update/")` to hand off. `update-agent`'s page never starts
-  a job — it only polls `GET /update/apply` — so landing there with nothing running (bookmark,
-  reload, direct URL) just shows an idle "nothing to update right now" state with a link back to
-  `/update`, instead of doing anything.
-- `nginx.conf`'s old `location = /update { rewrite ^ /update/ last; }` block was replaced with
-  `location = /update { try_files /index.html =404; }` so bare `/update` serves the SPA; the existing
-  `location /update/` prefix block is unchanged. The Vite dev proxy
-  (`frontend/vite.config.ts`) mirrors this with a regex key `"^/update/"` (requires the trailing
-  slash) instead of a plain `"/update"` prefix match, so native dev keeps the same bare-vs-slash
-  split as prod.
-- `/update` is intentionally not added to `frontend/src/app/nav.ts` — no permanent sidebar link
-  for now. It's reachable via the sidebar's update-available `NoticeCard` and the "Check for
-  updates" button on Account settings (`AuthSettingsPage.tsx`), both using React Router
-  `navigate("/update")` instead of `window.location.assign` now that it's a real in-app route.
+- Bare `/update` is a React route in the product frontend. It checks status (`GET /update/status`),
+  renders with shared components, and on "Update now" calls `POST /update/apply` itself, then does
+  a full-page navigation to `/update/`.
+- `/update/` and everything under it proxies to `update-agent`, whose static page is only the
+  updating/success/failure/idle view. It never starts a job, only polls `GET /update/apply`, so a
+  reload or bookmark with nothing running shows an idle state with a link back to `/update`.
+- nginx has an exact-match `location = /update { try_files /index.html =404; }` that wins over the
+  `/update/` prefix block. The Vite dev proxy mirrors it with a `^/update/` regex key.
+  `scripts/tests/frontend-nginx-update-route.test.ts` pins this against the real nginx image.
+- `/update` has no sidebar entry; it's reached from the update-available notice and Account
+  settings.
 
 ## Alternatives considered
 
-- **Auto-POST-on-load in `update-agent`'s page**, closer to the original single-page `app.js`
-  where clicking "Update now" navigated and the destination page itself fired the POST. Rejected:
-  a page load having a side effect is unsafe on its own terms, not just as a duplicate-job risk
-  (`update-agent/src/update/apply.routes.ts` already returns 409 for a concurrent POST) — every
-  reload, bookmark, or later revisit of that URL would silently kick off a fresh update, even long
-  after a previous one finished. POST-then-navigate keeps `update-agent`'s page a pure,
-  side-effect-free status viewer.
-- **A new URL prefix for the progress page** (e.g. `/update/progress`) instead of reusing the
-  existing bare-vs-trailing-slash distinction. Rejected as unnecessary churn — nginx's prefix
-  matching already gives a clean split at zero added surface area (`/update/` still proxies
-  everything it always did), and it keeps `update-agent`'s internal route names untouched.
+- **`update-agent`'s page starts the job on load.** A page load with a side effect re-triggers an
+  update on every reload or bookmark.
+- **A new prefix like `/update/progress`.** Unneeded churn; the slash split costs nothing.
+- **Let bare `/update` fall through to `location /`** (first version). Hits nginx's slash redirect
+  described above.
+- **`absolute_redirect off`.** Fixes the port but still redirects to the waitroom instead of the
+  SPA.
 
 ## Consequences
 
-- Two nearly-identical-looking URLs (`/update` and `/update/`) now mean different things, which is
-  easy to get wrong when linking to this flow by hand — the fix is to always link to bare
-  `/update` from application code, and let the frontend page itself own the handoff to the
-  trailing-slash URL after starting the job.
-- `update-agent`'s static page lost its ability to show *why* an update is available before
-  starting one — it's a pure progress viewer now. Anyone bookmarking or reloading straight into
-  `/update/` without ever visiting `/update` first sees only the idle "waitroom" state, never
-  service-level detail.
+- `/update` and `/update/` mean different things. Application code always links to bare `/update`.
+- Landing on `/update/` directly shows only the progress or idle view, never what an update
+  contains.
 
-## Amendment (2026-10-05): exact-match `/update` block is required
+## History
 
-The original change deleted the bare `/update` block and relied on fallthrough to `location /`.
-That fallthrough never happens: for a prefix location ending in `/` that uses `proxy_pass`, nginx
-answers the slash-less URI (`/update`) with its own 301 to `/update/`. nginx builds that absolute
-`Location` from the container's listen port (443, so omitted), not the published
-`${FRONTEND_PORT:-8080}`, sending the browser to an unreachable origin. Any full-page load of bare
-`/update` hit it: the waitroom's "Back to Update" links, reloads, and bookmarks. Even with the port
-kept, the redirect landed on `update-agent`'s idle page instead of the SPA. An exact-match
-`location = /update` wins over the prefix block and serves `index.html` directly.
-`absolute_redirect off` was not used: it would fix the port but still redirect to the waitroom.
-`scripts/tests/frontend-nginx-update-route.test.ts` pins the behavior against the real nginx image.
-
-## Where this lives in code
-
-- `frontend/src/pages/UpdatePage.tsx`, `frontend/src/features/update/updateApi.ts` — status
-  check, up-to-date/available rendering, starting the apply job.
-- `frontend/src/App.tsx` — the `/update` route registration.
-- `frontend/src/components/AppShell.tsx`, `frontend/src/pages/AuthSettingsPage.tsx` — in-app
-  `navigate("/update")` call sites.
-- `frontend/nginx.conf` — the `location /update/` prefix proxy and the exact `location = /update` SPA block.
-- `frontend/vite.config.ts` — the `"^/update/"` dev-proxy key.
-- `update-agent/public/index.html`, `update-agent/public/app.js` — the trimmed waitroom page.
+- 2026-10-05: Exact-match `location = /update` block restored after the fallthrough version
+  redirected to an unreachable port.

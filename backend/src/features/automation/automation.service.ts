@@ -3,7 +3,7 @@ import {
   getDataSource,
   updateDataSourceReadResult,
 } from "../data-sources/dataSources.repository.js";
-import { getAddressBookEntryById } from "../address-book/address-book.repository.js";
+import { getAddressBookPaymentRecipient } from "../address-book/address-book.repository.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { pulseGpioOutput } from "../data-sources/gpioOutput.service.js";
 import { publishMqttOutput } from "../data-sources/mqttOutput.service.js";
@@ -41,7 +41,6 @@ import {
   errorMessage,
   parseStoredError,
   workflowError,
-  type StructuredError,
 } from "../../shared/structured-error.js";
 import {
   getAutomationWorkflow,
@@ -59,7 +58,6 @@ import {
   createAutomationRun,
   finishAutomationBlockRun,
   finishAutomationRun,
-  getAutomationRun,
   listAutomationBlockRuns,
   listAutomationRuns,
   listAutomationRunsForWorkflow,
@@ -236,11 +234,6 @@ export function listSerializedAutomationRuns(query: AutomationRunListQuery) {
 
 export function listSerializedAutomationRunsForWorkflow(workflowId: string, limit?: number) {
   return listAutomationRunsForWorkflow(workflowId, limit).map(serializeAutomationRun);
-}
-
-export function getSerializedAutomationRun(id: string) {
-  const run = getAutomationRun(id);
-  return run ? serializeAutomationRun(run) : null;
 }
 
 export async function runAutomationWorkflow(
@@ -1310,8 +1303,8 @@ async function sendTransaction(
   context: WorkflowContext,
   workflow: AutomationWorkflowRecord,
 ) {
-  const recipient = config.recipientAddressBookId
-    ? getAddressBookEntryById(config.recipientAddressBookId)
+  let recipient = config.recipientAddressBookId
+    ? getAddressBookPaymentRecipient(config.recipientAddressBookId)
     : null;
   if (!recipient) throw new Error("Send transaction recipient was not found in the address book");
 
@@ -1330,14 +1323,18 @@ async function sendTransaction(
   if (compareDecimalStrings(amount, nativeToken.sendable) > 0)
     throw new Error(`Amount exceeds available balance (${nativeToken.sendable} MINIMA)`);
 
+  recipient = getAddressBookPaymentRecipient(recipient.id);
   const result = await sendPayment({ address: recipient.address, amount, tokenId: "0x00" });
-  recordWalletSendHistory({
+  await recordWalletSendHistory({
     toAddress: recipient.address,
     tokenId: "0x00",
     tokenName: "Minima",
     amount,
     txpowId: result.txpowId,
+    transactionId: result.transactionId,
     status: result.ok ? "submitted" : "failed",
+    origin: "automation",
+    error: result.message,
   });
   recordAuditEvent("automation.wallet.send", {
     detail: JSON.stringify({

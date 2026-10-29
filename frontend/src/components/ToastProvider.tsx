@@ -76,6 +76,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setMounted(true);
     return () => {
       timers.current.forEach((timer) => window.clearTimeout(timer));
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- timers.current is never reassigned
       timers.current.clear();
     };
   }, []);

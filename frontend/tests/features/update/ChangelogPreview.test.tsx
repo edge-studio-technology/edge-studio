@@ -1,109 +1,84 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ChangelogEntry } from "../../../src/features/update/changelog";
-
-const fetchChangelog = vi.fn();
-const parseChangelog = vi.fn();
-
-vi.mock("../../../src/features/update/changelog", () => ({
-  fetchChangelog: (...args: unknown[]) => fetchChangelog(...args),
-  parseChangelog: (...args: unknown[]) => parseChangelog(...args),
-}));
-
+import { describe, expect, it, vi } from "vitest";
 import { ChangelogPreview } from "../../../src/features/update/ChangelogPreview";
 
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
-}
+const markdown = [
+  "## [Unreleased] task/next",
+  "### Added",
+  "- Not released yet",
+  "## [1.3.0] - 2026-08-30",
+  "### Added",
+  "- Newest thing",
+  "## [1.2.0] - 2026-08-20",
+  "### Fixed",
+  "- Middle fix",
+  "## [1.1.0] - 2026-08-10",
+  "### Changed",
+  "- Older change",
+  "## [1.0.0] - 2026-08-01",
+  "### Added",
+  "- First release",
+].join("\n");
 
 describe("ChangelogPreview", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
+  it("shows a retryable error state when no changelog is cached", async () => {
+    const onRetry = vi.fn();
 
-  it("shows a loading state before the fetch resolves", () => {
-    const pending = deferred<string>();
-    fetchChangelog.mockReturnValue(pending.promise);
+    render(<ChangelogPreview markdown={null} onRetry={onRetry} />);
 
-    render(<ChangelogPreview />);
-
-    expect(screen.getByText("Fetching release notes")).toBeInTheDocument();
-  });
-
-  it("replaces the changelog with a retryable error state and recovers through Retry", async () => {
-    const retry = deferred<string>();
-    fetchChangelog
-      .mockRejectedValueOnce(new Error("network down"))
-      .mockReturnValueOnce(retry.promise);
-    parseChangelog.mockReturnValue([
-      { version: "[1.2.0]", categories: [{ name: "Fixed", items: ["Recovered"] }] },
-    ]);
-
-    render(<ChangelogPreview />);
-
-    expect(await screen.findByText("Release notes aren't available")).toBeInTheDocument();
-    expect(screen.getByText("Couldn't load the changelog from GitHub.")).toBeInTheDocument();
+    expect(screen.getByText("Release notes aren't available")).toBeInTheDocument();
+    expect(screen.getByText("The update service hasn't downloaded the changelog yet.")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
 
-    expect(screen.getByText("Fetching release notes")).toBeInTheDocument();
-    retry.resolve("raw markdown");
-    expect(await screen.findByText("Recovered")).toBeInTheDocument();
-    expect(fetchChangelog).toHaveBeenCalledTimes(2);
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
-  it("renders parsed entries with the first one open and later ones closed", async () => {
-    const entries: ChangelogEntry[] = [
-      { version: "[1.2.0] - 2026-08-20", categories: [{ name: "Added", items: ["New thing"] }] },
-      { version: "[1.1.0] - 2026-08-10", categories: [{ name: "Fixed", items: ["Old bug"] }] },
-    ];
-    fetchChangelog.mockResolvedValue("raw markdown");
-    parseChangelog.mockReturnValue(entries);
+  it("previews the latest 3 released entries with the first one open", () => {
+    const { container } = render(<ChangelogPreview markdown={markdown} onRetry={vi.fn()} />);
 
-    const { container } = render(<ChangelogPreview />);
-
-    expect(await screen.findByText("1.2.0")).toBeInTheDocument();
-    expect(parseChangelog).toHaveBeenCalledWith("raw markdown");
+    expect(screen.getByText("1.3.0")).toBeInTheDocument();
+    expect(screen.getByText("1.2.0")).toBeInTheDocument();
+    expect(screen.getByText("1.1.0")).toBeInTheDocument();
+    expect(screen.queryByText("1.0.0")).not.toBeInTheDocument();
+    expect(screen.queryByText("Not released yet")).not.toBeInTheDocument();
 
     const detailsElements = container.querySelectorAll("details");
-    expect(detailsElements).toHaveLength(2);
+    expect(detailsElements).toHaveLength(3);
     expect(detailsElements[0]).toHaveAttribute("open");
     expect(detailsElements[1]).not.toHaveAttribute("open");
 
-    expect(screen.getByText("- 2026-08-20")).toBeInTheDocument();
-    expect(screen.getByText("Added")).toBeInTheDocument();
-    expect(screen.getByText("New thing")).toBeInTheDocument();
+    expect(screen.getByText("- 2026-08-30")).toBeInTheDocument();
+    expect(screen.getByText("Newest thing")).toBeInTheDocument();
   });
 
-  it("renders inline code, bold, and link markdown within items", async () => {
-    const entries: ChangelogEntry[] = [
-      {
-        version: "Unreleased",
-        categories: [
-          {
-            name: "Added",
-            items: [
-              "Uses `getJson` under the hood",
-              "**Important** change",
-              "See [the docs](./docs/foo.md) and [GitHub](https://example.com/bar)",
-            ],
-          },
-        ],
-      },
-    ];
-    fetchChangelog.mockResolvedValue("raw markdown");
-    parseChangelog.mockReturnValue(entries);
+  it("opens every released entry in the full changelog view and closes it again", async () => {
+    render(<ChangelogPreview markdown={markdown} onRetry={vi.fn()} />);
 
-    render(<ChangelogPreview />);
+    await userEvent.click(screen.getByRole("button", { name: "View full changelog" }));
 
-    expect(await screen.findByText("Unreleased")).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "Changelog" });
+    for (const version of ["1.3.0", "1.2.0", "1.1.0", "1.0.0"]) {
+      expect(within(dialog).getByText(version)).toBeInTheDocument();
+    }
+    expect(within(dialog).queryByText("Not released yet")).not.toBeInTheDocument();
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("renders inline code, bold, and link markdown within items", () => {
+    const inline = [
+      "## [1.0.0]",
+      "### Added",
+      "- Uses `getJson` under the hood",
+      "- **Important** change",
+      "- See [the docs](./docs/foo.md) and [GitHub](https://example.com/bar)",
+    ].join("\n");
+
+    render(<ChangelogPreview markdown={inline} onRetry={vi.fn()} />);
 
     expect(screen.getByText("getJson").tagName).toBe("CODE");
     expect(screen.getByText("Important").tagName).toBe("STRONG");
@@ -111,24 +86,11 @@ describe("ChangelogPreview", () => {
     const internalLink = screen.getByRole("link", { name: "the docs" });
     expect(internalLink).toHaveAttribute(
       "href",
-      "https://github.com/integritas-technology/edge-studio/blob/main/docs/foo.md",
+      "https://github.com/edge-studio-technology/edge-studio/blob/main/docs/foo.md",
     );
     expect(internalLink).toHaveAttribute("target", "_blank");
 
     const externalLink = screen.getByRole("link", { name: "GitHub" });
     expect(externalLink).toHaveAttribute("href", "https://example.com/bar");
-  });
-
-  it("renders a footer link to the full changelog on GitHub", async () => {
-    fetchChangelog.mockResolvedValue("raw markdown");
-    parseChangelog.mockReturnValue([]);
-
-    render(<ChangelogPreview />);
-
-    const link = await screen.findByRole("link", { name: "View full changelog on GitHub" });
-    expect(link).toHaveAttribute(
-      "href",
-      "https://github.com/integritas-technology/edge-studio/blob/main/CHANGELOG.md",
-    );
   });
 });

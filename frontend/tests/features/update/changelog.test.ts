@@ -1,31 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchChangelog, parseChangelog } from "../../../src/features/update/changelog";
-
-describe("fetchChangelog", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it("fetches the changelog from GitHub without credentials and returns the text", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, text: () => Promise.resolve("# body") });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await fetchChangelog();
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/CHANGELOG.md",
-    );
-    expect(fetchMock.mock.calls[0]).toHaveLength(1);
-    expect(result).toBe("# body");
-  });
-
-  it("throws with the HTTP status when the response is not ok", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 404, text: () => Promise.resolve("") });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(fetchChangelog()).rejects.toThrow("GitHub returned HTTP 404");
-  });
-});
+import { describe, expect, it } from "vitest";
+import { parseChangelog } from "../../../src/features/update/changelog";
 
 describe("parseChangelog", () => {
   it("parses versions, categories, and items", () => {
@@ -84,7 +58,7 @@ describe("parseChangelog", () => {
       "## [0.9.0]",
     ].join("\n");
 
-    const entries = parseChangelog(markdown);
+    const entries = parseChangelog(markdown, 3);
 
     expect(entries).toEqual([
       { version: "[3.0.0] 2026-10-05", categories: [{ name: "Fixed", items: ["Released fix"] }] },
@@ -93,12 +67,12 @@ describe("parseChangelog", () => {
     ]);
   });
 
-  it("defaults to a limit of 3 versions", () => {
-    const markdown = ["## [4.0.0]", "## [3.0.0]", "## [2.0.0]", "## [1.0.0]"].join("\n");
+  it("returns every released version when no limit is given", () => {
+    const markdown = ["## [4.0.0]", "## [Unreleased] task/x", "## [3.0.0]", "## [2.0.0]", "## [1.0.0]"].join("\n");
 
     const entries = parseChangelog(markdown);
 
-    expect(entries.map((entry) => entry.version)).toEqual(["[4.0.0]", "[3.0.0]", "[2.0.0]"]);
+    expect(entries.map((entry) => entry.version)).toEqual(["[4.0.0]", "[3.0.0]", "[2.0.0]", "[1.0.0]"]);
   });
 
   it("respects a custom limit", () => {

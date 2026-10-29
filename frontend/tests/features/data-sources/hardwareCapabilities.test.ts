@@ -3,9 +3,8 @@ import {
   fallbackCapabilityState,
   hostCapabilityForDevice,
   hostCapabilityForDeviceType,
-  isTemplateActiveByCapability,
 } from "../../../src/features/data-sources/hardwareCapabilities";
-import type { DataSource, DataSourceCapabilities, DataSourceTemplate, HostCapability } from "../../../src/features/data-sources/dataSourceTypes";
+import type { DataSource, DataSourceCapabilities, HostCapability } from "../../../src/features/data-sources/dataSourceTypes";
 
 function source(overrides: Partial<DataSource>): DataSource {
   return {
@@ -23,10 +22,6 @@ function source(overrides: Partial<DataSource>): DataSource {
     lastHash: null,
     ...overrides,
   };
-}
-
-function template(type: DataSourceTemplate["type"]): DataSourceTemplate {
-  return { title: type, description: type, type, config: {} };
 }
 
 const hostCapabilities: HostCapability[] = [
@@ -52,27 +47,6 @@ describe("hostCapabilityForDevice", () => {
     expect(hostCapabilityForDevice(source({ type: "mqtt-output", config: { brokerUrl: "mqtt://localhost:1883" } }), hostCapabilities)?.name).toBe("mqtt");
     expect(hostCapabilityForDevice(source({ type: "mqtt", config: { brokerUrl: "mqtt://127.0.0.1:1883" } }), hostCapabilities)?.name).toBe("mqtt");
     expect(hostCapabilityForDevice(source({ type: "mqtt", config: { brokerUrl: "mqtt://broker.example:1883" } }), hostCapabilities)).toBeNull();
-  });
-});
-
-describe("isTemplateActiveByCapability", () => {
-  it("uses host capability enabled state when host status is available", () => {
-    expect(isTemplateActiveByCapability(template("pi-camera"), null, hostCapabilities)).toBe(true);
-    expect(isTemplateActiveByCapability(template("gpio-input"), null, hostCapabilities)).toBe(false);
-    expect(isTemplateActiveByCapability(template("bme-sensor"), null, hostCapabilities)).toBe(true);
-  });
-
-  it("falls back to legacy runtime capabilities when host status is unavailable", () => {
-    const capabilities: DataSourceCapabilities = {
-      gpioInput: { enabled: false, available: false, devicePath: "/dev/gpiochip0", reason: "GPIO disabled" },
-      camera: { enabled: true, available: true, captureDir: "/data/captures", reason: null },
-      sensors: { enabled: false, available: false, reason: "Sensors disabled" },
-    };
-
-    expect(isTemplateActiveByCapability(template("pi-camera"), capabilities, [])).toBe(true);
-    expect(isTemplateActiveByCapability(template("gpio-output"), capabilities, [])).toBe(false);
-    expect(isTemplateActiveByCapability(template("bme-sensor"), capabilities, [])).toBe(false);
-    expect(isTemplateActiveByCapability(template("json-api"), capabilities, [])).toBe(true);
   });
 });
 

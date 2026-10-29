@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
 
 let teardown: () => void;

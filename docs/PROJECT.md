@@ -19,8 +19,9 @@ A Raspberry Pi Docker Compose prototype that lets an operator run a Minima node,
 
 - Manual file stamping and verification through Integritas.
 - Automation workflows: collect data (poll/webhook/MQTT/GPIO), capture Raspberry Pi Camera media, then optionally stamp it.
-- Minima node wallet, tokens, peers, and status monitoring.
-- Read-only host file browser.
+- Minima node status, resync, backups, peers, and a wallet with history and an address book.
+- Hardware support (camera, GPIO, I2C sensors, local MQTT) enabled from the UI through a narrow host agent.
+- Signed, digest-pinned in-app updates through `update-agent`.
 - First-run setup wizard, local admin auth (6-digit PIN or 8+ character password with uppercase, lowercase, a number, and a symbol), audit log.
 
 ## Non-Goals

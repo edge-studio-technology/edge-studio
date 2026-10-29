@@ -2,10 +2,6 @@ import { getJson, postForm, postJson } from "../../lib/api";
 import { buildListQueryString, type ListQueryParams } from "../../lib/paginated";
 import type { IntegritasHistoryPage, IntegritasProofRecord } from "./integritasTypes";
 
-// export async function checkIntegritasApiKey() {
-//   return postJson<IntegritasApiKeyCheck>("/api/integritas/api-key/check");
-// }
-
 export async function getHistory(params: ListQueryParams = { page: 1, pageSize: 50 }) {
   return getJson<IntegritasHistoryPage>(`/api/integritas/history${buildListQueryString(params)}`);
 }

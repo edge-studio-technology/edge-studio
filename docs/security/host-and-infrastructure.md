@@ -56,14 +56,14 @@ see *Data Source URL Fetching* in `data-sources-and-automation.md` and
 
 ## Minima Node Backup & Restore
 
-Risk: The Account Settings "Node backup & restore" panel (`backend/src/features/minima/minima-backup.service.ts`, `minima.routes.ts` `/api/minima/backups*`) lets an admin create, download, upload, and restore full Minima node backup (`.bak`) files, plus set one admin-chosen backup password used for every backup. Unlike the existing seed-phrase-only wallet import, a node backup is a superset containing the seed phrase, private keys, coin proofs, and transaction history. The backup password itself is stored encrypted in SQLite (keyed by `APP_SECRET`, same primitive as Integritas token storage) so the backend's own scheduler can create automatic backups unattended.
+Risk: The Account Settings "Node backup & restore" panel (`backend/src/features/minima/minima-backup.service.ts`, `minima.routes.ts` `/api/minima/backups*`) lets an admin create, download, upload, and restore full Minima node backup (`.bak`) files, plus set one admin-chosen backup password used for every backup. A node backup contains the seed phrase, private keys, coin proofs, and transaction history. The backup password itself is stored encrypted in SQLite (keyed by `APP_SECRET`, same primitive as Integritas token storage) so the backend's own scheduler can create automatic backups unattended.
 
 Impact: An attacker with filesystem access to the host (or a compromised backend container) could read the DB, recover the stored backup password, and decrypt any backup file also on disk — recovering full wallet keys and history. A malicious or malformed uploaded restore file could also be used to attempt a path traversal or overwrite of unrelated files if the backup directory logic were not scoped correctly.
 
 Current Controls:
 
 - The backend only gains filesystem access to one new, narrow, purpose-built subdirectory: `${MINIMA_DATA_DIR:-./minima}/backups` mounted read-write at the fixed container path `/minima-backups` (`docker-compose.yml`). The same host directory is also mounted into `minima` at `/home/minima/backups` — required because Minima resolves the `backup`/`restoresync` `file:` argument against its home dir, not `/home/minima/data` (verified against the pinned image). This is the only host directory shared between the two containers; the backend has no access to the rest of Minima's data directory (seed/private key files, chain DB) and Minima has no access to anything outside its own data dir plus this one backups subfolder.
-- All backup filenames are validated as a bare basename and containment-checked with the same resolve-then-realpath pattern used by the host file browser (`files.service.ts`) before any read/write/delete, preventing path traversal via a crafted filename or upload.
+- All backup filenames are validated as a bare basename and containment-checked with a resolve-then-realpath pattern before any read/write/delete, preventing path traversal via a crafted filename or upload.
 - `GET/POST/DELETE /api/minima/backups*` all require an admin session (`requireRole("admin")`).
 - Downloading a backup, restoring from a backup (existing file or new upload), and setting/changing the backup password all require re-entering the current admin PIN/password, the same re-auth pattern used by `updateConsoleWhitelist` and `changePassword`, since each reads, activates, or replaces key material.
 - Deleting a backup does not require re-auth — it only removes a copy of data recoverable elsewhere (the running node itself, or other retained backup files), not a unique secret.
@@ -79,14 +79,13 @@ Plan:
 
 Status: **Mitigated.** Storage and route controls are as described (narrow scoped volume, path
 containment, admin-only + re-auth-gated routes, capped/auto-pruned lists, audit logging — see
-`docs/plans/minima-node-backup-restore.md`). The stored backup password no longer reaches clients on
+[adr/0037](../adr/0037-minima-backups-own-scheduler-and-stored-password.md)). The stored backup password no longer reaches clients on
 any of the three paths it previously did (`POST /backups` success body, its failure body via
 `dependencyUnavailable`'s `extra` spreading, and `POST /console/run` for a whitelisted `backup`):
 `createBackup()`/`restoreBackup()` return purpose-built DTOs instead of the RPC result,
 `runMinimaPathCommand()` redacts the command, the URL built from it, and the response body before
 they leave the RPC layer, and `structuredError()`/`sendApiError()` redact both sinks so the secret
-reaches neither responses nor Docker logs. Closed in Phase 1 of
-[plans/security/phase-1-backup-password-leak.md](../plans/security/phase-1-backup-password-leak.md).
+reaches neither responses nor Docker logs. Closed in V1.5 Phase 1.
 
 ## Update Agent Docker Socket Mount
 
@@ -137,7 +136,7 @@ Plan:
 - Keep host runtime update allowlists tight as new helper files are added.
 - Revisit binding/firewall behavior during real Pi verification.
 
-Status: Accepted risk for app-managed hardware enablement. See `docs/plans/host-agent-capability-management.md`.
+Status: Accepted risk for app-managed hardware enablement. See [adr/0019](../adr/0019-hardware-access-through-host-helpers.md).
 
 ## I2C Sensor Helper
 
@@ -183,36 +182,20 @@ is sound because its public key is baked into its own image, and the install-tim
 it is meant to authenticate. Compromise of the artifact origin alone is no longer sufficient — the
 signing key is now required. Rated high by the external review — see
 [adr/0010](../adr/0010-security-review-audit-verdict.md),
-[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md),
-[adr/0020](../adr/0020-bind-installer-runtime-to-signed-manifest.md), and `.agents/rules/update-agent.md`.
+[adr/0016](../adr/0016-install-time-bootstrap-trust-set.md), and `.agents/rules/update-agent.md`.
 The remaining bootstrap exposure is the installer distribution channel itself — see *One-Line Curl
 Installer* below.
 
-## File Browser Metadata Exposure
-
-Risk: Backend lists files and directories from the configured host path. Mount is read-only, but filenames, directory names, sizes, and structure may be sensitive.
-
-Impact: Local data disclosure to anyone who can access the UI.
-
-Plan:
-
-- Keep `HOST_FILES_DIR` as narrow as possible.
-- Add auth before use outside trusted local development.
-- Add per-user allowlists or explicit directory selection later.
-- Avoid mounting `/home/pi` in production unless required.
-
-Status: Partially mitigated by read-only mount and path traversal checks. `/api/files/*` is auth-gated, with admin role on mutations.
-
 ## Path Traversal And Symlink Escape
 
-Risk: File browser endpoints could be abused to access files outside the allowed directory.
+Risk: Endpoints that read host files by path (Automation inbox local images, Minima backup files) could be abused to access files outside the allowed directory.
 
 Impact: Sensitive host file disclosure.
 
 Current Controls:
 
 - Uses `path.resolve` to block `../` traversal.
-- Uses `fs.realpath` to block symlink escape outside `/host-files`.
+- Uses `fs.realpath` to block symlink escape outside the allowed roots (`/host-files` and the camera capture directory for inbox images, `/minima-backups` for backups).
 - Host mount is read-only.
 
 Plan:
@@ -220,7 +203,7 @@ Plan:
 - Add tests for traversal, symlink escape, encoded paths, and permission errors.
 - Consider hiding symlinks entirely.
 
-Status: Mitigated. Containment double-checks via `realpath` in `files.service.ts` and is covered by `backend/tests/features/files/files.service.test.ts`. The external review examined this surface and found no issue.
+Status: Mitigated. Containment double-checks via `realpath` in `minima-backup.service.ts` (covered by `backend/tests/features/minima/minima-backup.service.test.ts`) and `resolveHostImagePath()` in `automation.routes.ts`. The external review examined this surface and found no issue.
 
 ## SQLite File Permissions
 
@@ -271,7 +254,7 @@ Status: **Mitigated (Phase 5, 2026-09-09).** Review finding [13]. See
 
 ## Dependency And Image Supply Chain
 
-Risk: Docker images and npm packages are pulled from external registries. Tags such as `minimaglobal/minima:dev` are mutable.
+Risk: Docker images and npm packages are pulled from external registries. Tags such as `minimaglobal/minimacore` (untagged) and `eclipse-mosquitto:2` are mutable.
 
 Impact: Unexpected updates, compromised dependencies, reproducibility issues.
 
@@ -282,10 +265,9 @@ Plan:
 - Add automated `npm audit` and image vulnerability scanning.
 - Review native dependency `better-sqlite3` updates.
 
-Status: **Open — scheduled, Phase 6.** `minimaglobal/minimacore` is untagged and
+Status: **Open.** Review finding [6]. `minimaglobal/minimacore` is untagged and
 `eclipse-mosquitto:2` is a mutable tag; both sit outside the signed manifest, so digest pinning is
-the only available control. See
-[plans/security/phase-6-fail-closed-on-weak-config.md](../plans/security/phase-6-fail-closed-on-weak-config.md).
+the only available control. Tracked in `docs/TASKS.md`.
 
 ## One-Line Curl Installer
 

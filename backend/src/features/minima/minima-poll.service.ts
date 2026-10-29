@@ -1,4 +1,6 @@
 import { env } from "../../config/env.js";
+import { initializeLocalAddressBookEntry } from "../address-book/address-book.service.js";
+import { refreshPendingConfirmations, syncWalletHistory } from "../wallet/wallet-history.service.js";
 import {
   canAutoResync,
   detectStall,
@@ -6,8 +8,8 @@ import {
   recordPollerCheck,
   recordStallDetected
 } from "./minima-monitoring.js";
-import { parseMegammrResyncMessage } from "./minima.parse.js";
 import { getMinimaNodeStatus, resyncMegammr } from "./minima.service.js";
+import { MinimaResyncConflictError } from "./minima.errors.js";
 
 let poller: NodeJS.Timeout | null = null;
 let pollRunning = false;
@@ -20,7 +22,18 @@ export async function pollMinimaHealth() {
     const status = await getMinimaNodeStatus();
     recordPollerCheck(status.checkedAt, status.state);
 
-    if (!detectStall(status)) return;
+    if (status.state === "running") {
+      try {
+        await initializeLocalAddressBookEntry();
+      } catch {
+        console.error("Minima health poller: local address-book initialization failed");
+      }
+      // Both log and swallow their own failures.
+      await syncWalletHistory();
+      await refreshPendingConfirmations();
+    }
+
+    if (status.resync?.busy || !detectStall(status)) return;
 
     recordStallDetected();
     const blockAge = status.sync.blockAgeSeconds ?? "unknown";
@@ -33,12 +46,11 @@ export async function pollMinimaHealth() {
     }
 
     try {
-      const result = await resyncMegammr();
-      const parsed = parseMegammrResyncMessage(result.body);
-      const message = parsed.message || (result.ok ? "resync completed" : "resync failed");
-      recordAutoResync(message);
-      console.log(`Minima health poller: auto-resync completed (${message})`);
+      const result = await resyncMegammr("auto");
+      recordAutoResync(result.message);
+      console.log("Minima health poller: auto-resync starting");
     } catch (error) {
+      if (error instanceof MinimaResyncConflictError) return;
       const message = error instanceof Error ? error.message : "resync failed";
       recordAutoResync(message);
       console.error(`Minima health poller: auto-resync failed (${message})`);

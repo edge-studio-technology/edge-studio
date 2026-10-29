@@ -5,170 +5,83 @@
 
 ## Context
 
-An external security model (Daybreak Blue) produced a static review of the repository at
-`571ba70`, recorded in `docs/security/external-review-2026-09-03.md`: 14 findings, rated
-2 high / 11 medium / 1 low. Before acting on it we ran a second-opinion audit — every finding
-re-derived from current source rather than taken on trust — because a report that is wrong in
-either direction is expensive: false positives burn hardening budget on non-issues, and an
-inflated severity mix hides the findings that actually matter.
+An external model (Daybreak Blue) statically reviewed the repository at `571ba70`
+(`docs/security/external-review-2026-09-03.md`, kept verbatim): 14 findings, 2 high / 11 medium /
+1 low. We re-derived every finding from source before acting, since a wrong report in either
+direction is expensive.
 
-Verified during the audit, against source rather than against the report's own claims:
+Verified during the audit:
 
-- **All 14 findings are factually accurate.** Every affected line reference resolves to the code
-  the report describes. No fabricated findings, no stale line numbers. The report is grounded.
-- **Two findings are understated by the report itself.** They are real as written, but the
-  write-up misses part of their own reach:
-  - The backup password leaks on *three* paths, not one. `createBackup()` returns
-    `runMinimaPathCommand`'s result verbatim, and that object carries both `command`
-    (`backup file:... password:"<plaintext>"`) and `source` (the same string percent-encoded
-    into a URL). `POST /api/minima/backups` returns it on success; the failure branch also
-    returns it, because `dependencyUnavailable(res, ..., result)` spreads `extra` into the error
-    body via `sendApiError`; and `POST /api/minima/console/run` with a whitelisted `backup`
-    returns the same object again.
-  - The webhook token can reach the database, not only the request log — but conditionally. Only
-    `recordTriggerEvent` persists it, via `sourceUrlForRecord` reading `config.webhookToken` into
-    `data_source_reads.sourceUrl`, so it requires a workflow containing a record-trigger-event
-    block. A webhook source without one leaks the token to `requestLogger` only. (The `sourceUrl`
-    argument threaded through `recordPushAutomationPayload` is never read — `executeWorkflow`
-    re-derives it from the source config.)
-- **One finding's likelihood is overrated; one needs a scope clarification rather than a
-  downgrade.**
-  - The `APP_SECRET` fallback is rated likelihood medium. `ensure_app_secret` generates
-    `openssl rand -hex 32`, so a default install is safe — but it early-returns on any non-empty
-    value, so a supplied or pre-existing `.env` carrying `dev-change-me` is preserved rather than
-    replaced. Real exposure is narrower than medium suggests, but it is not confined to
-    hand-rolled `docker compose up`.
-  - The wallet-action finding does not let an attacker move funds to a destination of their
-    choosing: the recipient is a pre-existing address-book entry and the amount is fixed in block
-    config. Repeated triggering is denial-of-funds to an address the admin already trusted, not
-    theft. The report never claimed otherwise, and the finding also covers GPIO and network
-    actions — medium stands.
-- **One issue the review missed outranks every medium in it.** `parseJsonApiConfig` applies no
-  scheme, host, or private-range validation to `config.url` — it accepts any string.
-  `POST /api/data-sources/:id/read` fetches that URL and returns the parsed response body as
-  `result.preview`. `minima` sits on the shared `integritas` Compose network with
-  `minima_rpcenable: "true"` and no RPC password. An HTTP JSON Source pointed at
-  `http://minima:9005/vault` therefore returns seed-phrase/private-key material in the API
-  response and persists it to read history. `http://minima:9005/keys` is the same bypass, though
-  whether its response can contain private key material is still an open question in
-  `docs/security/host-and-infrastructure.md` and should stay qualified. This defeats the console
-  catalog's hard-exclusion of `vault`/`keys`/`sendfrom` and the whitelist re-auth requirement —
-  the exact controls `.claude/rules/minima.md` cites as the reason no generic Minima proxy is
-  allowed. The same primitive is reachable through `http-output` targets, whose response body is
-  also returned. It is not exploitable to `file://`; undici's `fetch` does not implement that
-  scheme. Minima's RPC port is bound to `127.0.0.1` on the host, which is precisely why a
-  container-network-internal bypass is the interesting path.
-- **The bundle-trust finding is correctly rated high, and is not a duplicate of the
-  `curl | sudo bash` finding.** The two are distinct trust failures with distinct fixes, and
-  collapsing them loses the more persistent one. `install.sh` downloads
-  `edge-studio-runtime.tar.gz` from a URL derived from `MANIFEST_URL` and extracts it with no
-  signature or digest check. That archive supplies both `scripts/verify-manifest.mjs` and
-  `update-agent/manifest-public-key.pem` — the verifier and the trust anchor — and the same
-  origin serves the manifest they are meant to authenticate. ADR 0009 states the Ed25519 check
-  keeps ADR 0008's trust boundary unchanged; that holds for `update-agent` at runtime, whose key
-  is baked into its image by `update-agent/Dockerfile`, but it does not hold for `install.sh`.
-  At install time a compromise of `edgestudio.technology` alone is sufficient: the attacker's key
-  validates the attacker's manifest, which pins the attacker's `update-agent` image, which ships
-  the attacker's key. The compromise is persistent, and GitHub compromise is not required.
+- **All 14 findings are accurate**, with correct line references and correct negative results.
+- **Two are understated.** The backup password leaked on three paths (backup success, backup
+  failure via `sendApiError`'s `extra`, and a whitelisted console `backup`), not one. The webhook
+  token also reached `data_source_reads`, but only for workflows with a record-trigger-event block.
+- **One likelihood is overrated.** `install.sh` generates a random `APP_SECRET`, but preserves a
+  supplied `.env` carrying `dev-change-me`, so exposure is narrower than medium but not zero.
+  The wallet-action finding can't redirect funds (recipient and amount are fixed config); medium
+  stands as denial-of-funds.
+- **One finding was missed and outranks every medium.** HTTP JSON Source URLs had no validation, so
+  `http://minima:9005/vault` over the shared Compose network returned seed/key material in the
+  API response and read history, bypassing the console's hard exclusions and re-auth. HTTP JSON
+  Targets had the same primitive.
+- **The bundle-trust finding is high and distinct from `curl | sudo bash`.** The unverified runtime
+  bundle shipped the verifier and the key, so compromising the manifest host alone gave a
+  persistent, root-level compromise at install time.
 
-This ADR was returned to Daybreak Blue for reconciliation. It accepted the audit, the SSRF
-finding, and the fix ordering, and corrected four statements in the first draft: the report's own
-rating of the bundle finding (high, not medium), the installer's `APP_SECRET` preservation path,
-the condition under which the webhook token reaches the database, and the `vault`/`keys`
-distinction. Each was re-verified against source and folded in above.
+Daybreak Blue reviewed this audit, accepted it, and corrected four statements in the first draft;
+each was re-verified and folded in.
 
 ## Decision
 
-- Accept the review as a valid basis for hardening work. Do not re-audit it further.
-- Record the audit's re-rating rather than the report's original severity mix as the ordering we
-  act on. The report is committed verbatim, its own severity field left as-is; this ADR is the
-  reconciliation.
-- Treat the missed SSRF as a first-class finding alongside the report's 14, ranked above every
-  medium in the original set but below its two highs. It shares the report's own threat model
-  (stolen or misused admin session), and what makes it serious is not that its outcome is
-  unmatched — runtime-bundle compromise yields root, and a stolen admin session can already send
-  payments — but that it silently bypasses controls this project explicitly documents as its
-  reason for not exposing a generic Minima proxy.
-- Fix in this order, highest value per unit of work first:
-  1. Backup password in API responses — active secret disclosure, and the fix is a purpose-built
-     response DTO rather than returning the RPC result object.
-  2. URL validation on data-source and HTTP-output configs — closes the Minima RPC bypass.
-  3. Session revocation on password change — `deleteAllUserSessions` already exists in both the
-     repository and service layers, and is already unit-tested, with zero production call sites.
-  4. Sign the runtime bundle, or move `manifest-public-key.pem` into `install.sh` itself — until
-     one of these lands, the manifest signature protects against GitHub compromise but not
-     against compromise of the host that serves the bundle.
-  5. Timeout and byte cap on `readJsonApiSource`; `limits` on both multer instances.
-  6. Fail closed on a missing or `dev-change-me` `APP_SECRET`; digest-pin `minima` and
-     `mosquitto`.
-  7. Retention/pruning for automation runs, block runs, inbox items, and data-source reads;
-     webhook token redaction in `requestLogger`.
-- Classify the unauthenticated first-boot admin claim and anonymous MQTT as product decisions,
-  not patches. Both are accurately described and both need a deliberate call on the appliance's
-  provisioning and device-authentication model before any code changes.
-- Leave the review's four "no issue found" surfaces closed. Path containment in
-  `files.service.ts` correctly double-checks via `realpath`, and `SameSite=Strict` with
-  JSON/multipart-only bodies is an adequate CSRF posture here.
+- Accept the review as the basis for V1.5 hardening, with this audit's re-rating as the order of
+  work and the missed SSRF as a first-class finding below the two highs.
+- Fix order: backup password DTO; operator-URL validation (ADR 0014); session revocation on
+  credential change; bundle signing and embedded trust set (ADR 0016); egress and upload limits
+  (ADR 0017); fail closed on weak `APP_SECRET` (ADR 0021) and image pinning; retention and webhook
+  redaction (ADR 0022).
+- The unauthenticated first-boot admin claim and anonymous MQTT are product decisions, not
+  patches. Both are provisionally accepted under the single-admin trusted-LAN threat model and
+  still need a confirmed decision.
+- The four surfaces the review cleared stay closed: `realpath` path containment, and
+  `SameSite=Strict` with JSON/multipart bodies as the CSRF posture.
+
+## Release CodeQL triage (2026-10-29)
+
+Release PR #165 reported 22 annotations (20 high, two medium). Triage uses reachable inputs,
+existing controls, and regression tests rather than the scanner severity alone.
+
+| Alert IDs | Disposition | Evidence / control |
+| --- | --- | --- |
+| 1, 3 (workflow permissions) | Fix | Explicit read-only default permissions; also apply to the source-branch and release workflows (existing alerts 2, 4, 5). Image publishing retains its job-scoped package write permission. |
+| 16–20, 22, 23, 28, 29 (rate limits) | Fix | Shared 30/minute file-operation limit, plus the existing five-failures/15-minute authentication limiter for archive export and backup download/restore; route tests exhaust the limits and assert no further credential/RPC work. |
+| 11 (verification-report write) | Harden | Use the retrieved proof record ID and allow only letters, digits, underscores, and hyphens before network or filesystem work; traversal, absolute paths, separators, and NUL inputs have regression tests. |
+| 7–9, 12–14, 25–27 (upload paths) | False positive | Every affected source is Multer's server-generated `req.file.path`, not a body field or original filename. Both disk-storage configurations use a fixed temporary directory and Multer's random 16-byte hex filenames. Multipart regression tests supply traversal filenames and forged path/destination fields and verify the actual path and bytes remain in the fixed directory. Backup destination names additionally pass basename/sanitization and existing realpath containment. |
+| 24 (CSRF middleware) | Existing accepted residual risk | The V1 decision above remains in force: strict same-site session cookies, secure cookies on HTTPS, single-admin trusted-LAN use, no cross-site integrations. This is not a false positive or a claim of token-based protection. Cookie policy is pinned by session-service tests; public/internet/multi-tenant use requires revisiting it. |
+| 30–35 (upload regression-test harnesses) | False positive | The two new middleware test files construct Express apps only for Supertest requests; production never imports or mounts them. Their file operations exercise the same server-generated Multer paths and verify the fixed directory and random filename before reading. Rate limiting is exercised separately on the real production routes. |
+
+Do not disable scanning or suppress rule families. Resolve fixed findings by rescanning; dismiss
+only the identified upload-path/test-harness false positives and the already accepted V1 CSRF residual risk
+with these specific reasons. New upload storage engines, client-controlled destinations, cookie
+changes, or exposure outside the supported threat model invalidate those dispositions.
 
 ## Alternatives considered
 
-- **Take the report's severity ordering as-is.** Rejected: it would have put the wallet-drain
-  finding above the backup-password disclosure, and would have left the SSRF unrecorded
-  entirely, since the report never identified it.
-- **Reject or heavily discount the report.** Rejected — it earned its confidence. Precise line
-  references, no hallucinated findings, and correct negative results on the surfaces it cleared.
-  Discounting it wholesale would have cost more than auditing it.
-- **Fold the audit into `SECURITY.md` instead of an ADR.** Rejected: `SECURITY.md` documents the
-  security boundaries and accepted risks of the product as it stands. This is the reasoning
-  behind a triage ordering and a disagreement with an external assessment — it dates, and it
-  belongs with the other decision records. Individual findings still land in `SECURITY.md` as
-  they are fixed or explicitly accepted.
-- **Open the findings as issues and skip the written rationale.** Rejected: the two severity
-  downgrades in particular need their justification preserved. Without it, the next reader sees
-  a security finding that was silently deprioritized.
+- **Use the report's own ordering.** Puts wallet repetition above active secret disclosure and
+  omits the SSRF.
+- **Discount the report.** It earned its confidence.
+- **Record the triage in `SECURITY.md`.** That file states the product's current boundaries; a
+  dated triage and disagreement with an external assessment is a decision record. Individual
+  findings land in `SECURITY.md` as fixed or accepted.
 
 ## Consequences
 
-- The ordering above is calibrated to this repo's stated threat model — a managed single-admin
-  LAN appliance. Public-internet or multi-tenant exposure invalidates it, most sharply for the
-  first-boot claim window and the anonymous MQTT broker, both of which move well up the list.
-- Nothing was changed in response to this audit. Every finding in the report and the SSRF
-  identified here remain live in the codebase as of this ADR.
-- The SSRF fix is a validation layer over user-supplied URLs, which is a behavioral change for
-  operators who legitimately point a data source at another host on the LAN. Whatever shape it
-  takes — deny-by-default with an allowlist, or private-range blocking — it needs a deliberate
-  decision about which internal destinations stay reachable, and its own ADR if the answer is
-  not obvious.
-- The audit was static, same as the review. Neither covers dependency advisories, live host and
-  network configuration, CI and registry protections, or Minima's own command-parser semantics.
-  The review's open questions on those points stand unchanged.
+- The ordering assumes a managed single-admin LAN. Public or multi-tenant exposure moves the
+  first-boot claim and anonymous MQTT sharply up.
+- Both review and audit were static: dependency advisories, live host/network config, CI/registry
+  protections, and Minima's command parser were not covered.
 
-## Where this lives in code
+## History
 
-Nothing here is implemented yet; these are the sites the decision refers to.
-
-- `docs/security/external-review-2026-09-03.md` — the reviewed report, committed verbatim.
-- `backend/src/features/minima/minima-backup.service.ts` — `createBackup` returns the
-  password-bearing RPC result.
-- `backend/src/features/minima/minima.rpc.ts` — `runMinimaPathCommand`'s `command`/`source`
-  fields.
-- `backend/src/features/minima/minima.routes.ts` — `POST /backups`, `POST /console/run`.
-- `backend/src/shared/api-error.ts` — `dependencyUnavailable`/`sendApiError` `extra` spreading.
-- `backend/src/features/data-sources/dataSources.service.ts` — `parseJsonApiConfig` (no URL
-  validation), `readJsonApiSource` (no timeout, no byte cap), `sendHttpOutput`.
-- `backend/src/features/data-sources/dataSources.routes.ts` — `POST /:id/read`, `GET /:id/health`
-  (admin-gated read vs. non-admin health, on the same fetch primitive).
-- `docker-compose.yml` — `minima` on the `integritas` network with RPC enabled and no password;
-  untagged `minimaglobal/minimacore`; `eclipse-mosquitto:2`; `APP_SECRET` fallback.
-- `backend/src/features/auth/session.service.ts` — `deleteAllUserSessions`, currently uncalled.
-- `backend/src/features/auth/auth.service.ts` — `changePassword`, which does not revoke.
-- `install.sh` — `download_runtime_bundle` (unverified extraction), `fetch_and_verify_manifest`
-  (uses the key that archive supplied).
-- `scripts/release/runtime-bundle-files.json` — ships the verifier and the public key.
-- `backend/src/features/minima/minima-console.catalog.ts` — verb-granular entries whose own
-  descriptions admit mutating forms (`tokens`, `cointrack`, `maxcontacts`).
-- `backend/src/features/integritas/upload.middleware.ts`,
-  `backend/src/features/minima/minima-upload.middleware.ts` — multer without `limits`.
-- `backend/src/features/integritas/integritas.routes.ts` — `/stamp-file`'s missing-API-key return
-  precedes the cleanup `finally`.
-- `backend/src/middleware/requestLogger.ts` — logs `originalUrl`, including webhook tokens.
+- 2026-09-21: All ordered fixes landed except third-party image digest pinning (finding [6]) and
+  the two product decisions.
+- 2026-10-29: Triaged release CodeQL annotations and recorded fixes, verified upload-path false positives, and the existing V1 CSRF acceptance.

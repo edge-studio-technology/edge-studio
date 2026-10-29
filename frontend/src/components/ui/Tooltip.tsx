@@ -12,7 +12,7 @@ import { createPortal } from "react-dom";
 import { cx } from "../../lib/cx";
 
 export type TooltipPlacement = "top" | "bottom" | "left" | "right";
-export type TooltipVariant = "dark" | "light";
+type TooltipVariant = "dark" | "light";
 
 const GAP_PX = 8;
 const OPEN_DELAY_MS = 150;

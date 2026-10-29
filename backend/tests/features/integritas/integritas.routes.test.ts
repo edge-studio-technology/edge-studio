@@ -53,8 +53,10 @@ afterAll(() => {
   teardown();
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   secretsMock.getIntegritasApiKey.mockReset();
+  const { fileOperationRateLimiter } = await import("../../../src/features/auth/rate-limit.middleware.js");
+  await fileOperationRateLimiter.resetKey("::ffff:127.0.0.1");
 });
 
 describe("upload temp file cleanup", () => {
@@ -118,30 +120,50 @@ describe("stamp creation rate limit", () => {
     await integritasStampRateLimiter.resetKey("::ffff:127.0.0.1");
   });
 
-  it("allows 10 stamp requests per minute across /stamp and /stamp-file, then returns 429 with rate-limit headers", async () => {
+  it("allows 10 stamp requests per minute on /stamp-file, then returns 429 with rate-limit headers", async () => {
     secretsMock.getIntegritasApiKey.mockReturnValue("");
-    for (let index = 0; index < 9; index += 1) {
-      const response = await request(app).post("/api/integritas/stamp").send({ hash: "abc" });
+    for (let index = 0; index < 10; index += 1) {
+      const response = await request(app).post("/api/integritas/stamp-file").field("other", "value");
       assert.equal(response.status, 400);
       assert.equal(response.headers["ratelimit-limit"], "10");
     }
-    assert.equal((await request(app).post("/api/integritas/stamp-file").field("other", "value")).status, 400);
 
-    for (const route of ["/api/integritas/stamp", "/api/integritas/stamp-file"]) {
-      const limited = await request(app).post(route).send({ hash: "abc" });
-      assert.equal(limited.status, 429);
-      assert.equal(limited.headers["ratelimit-remaining"], "0");
-      assert.ok(limited.headers["ratelimit-reset"]);
-      assert.equal(limited.body.errorDetails.type, "rate_limited");
-    }
+    const limited = await request(app).post("/api/integritas/stamp-file").field("other", "value");
+    assert.equal(limited.status, 429);
+    assert.equal(limited.headers["ratelimit-remaining"], "0");
+    assert.ok(limited.headers["ratelimit-reset"]);
+    assert.equal(limited.body.errorDetails.type, "rate_limited");
   });
 
   it("does not throttle proof history reads", async () => {
     secretsMock.getIntegritasApiKey.mockReturnValue("");
-    for (let index = 0; index < 11; index += 1) await request(app).post("/api/integritas/stamp").send({ hash: "abc" });
+    for (let index = 0; index < 11; index += 1) await request(app).post("/api/integritas/stamp-file").field("other", "value");
 
     const response = await request(app).get("/api/integritas/history");
     assert.equal(response.status, 200);
     assert.equal(response.headers["ratelimit-limit"], undefined);
+  });
+});
+
+describe("file operation rate limit", () => {
+  it("shares a 30-request limit across expensive proof routes and leaves history reads available", async () => {
+    for (let index = 0; index < 30; index += 1) {
+      const response = await request(app).get("/api/integritas/history/missing/download-zip");
+      assert.equal(response.status, 404);
+    }
+
+    for (const [method, route] of [
+      ["post", "/api/integritas/history/export-selected"],
+      ["get", "/api/integritas/history/missing/download-zip"],
+      ["post", "/api/integritas/history/missing/verify"],
+      ["get", "/api/integritas/history/missing/verification-report"],
+      ["post", "/api/integritas/verify-proof-file"],
+    ] as const) {
+      const response = await request(app)[method](route);
+      assert.equal(response.status, 429, route);
+      assert.equal(response.headers["ratelimit-remaining"], "0");
+      assert.ok(response.headers["retry-after"]);
+    }
+    assert.equal((await request(app).get("/api/integritas/history")).status, 200);
   });
 });

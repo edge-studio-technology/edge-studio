@@ -97,10 +97,3 @@ matching `docker-compose.yml`/`.env.example` a tester could drop into a folder a
   `cert-init` service instead of a host-generated cert — a second, parallel way the HTTPS cert can
   come into existence, scoped only to this distribution path. The same applies to host-directory
   ownership: `cert-init` is now the channel-tester path's parallel to `install.sh`'s own chown step.
-
-## Where this lives in code
-
-- `.github/workflows/release.yml` — `manifest` job: `Detect release channel from tag`,
-  `Checkout manifest repo`, `Deploy manifest (push to private manifest repo)`,
-  `Generate docker-compose files`, `Deploy docker-compose (push to private manifest repo)`.
-- `scripts/release/build-docker-compose.mjs` — compose/`.env.example` template generation.

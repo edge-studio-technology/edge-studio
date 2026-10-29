@@ -1,0 +1,297 @@
+{
+  "_note": "Recorded 2026-10-09 on the dev Pi's private testnet (Minima 1.1.2-TEST.6, docs/guides/minima-testnet.md), trimmed to fields the wallet parsers read. Test-chain addresses only.",
+  "history": {
+    "command": "history",
+    "status": true,
+    "pending": false,
+    "response": {
+      "relevant": true,
+      "txpows": [
+        {
+          "txpowid": "0x000025A1C8FF2E515A7FF407F3A0F2D876C6571D9A3DEC2D60716DE3DA2950D0",
+          "isblock": true,
+          "istransaction": true,
+          "header": {
+            "block": "16",
+            "timemilli": "1791535448757",
+            "date": "Fri Oct 09 08:44:08 UTC 2026",
+            "nonce": "99842619891525921.02310062131506335301391665370499137929217"
+          },
+          "hasbody": true,
+          "body": {
+            "txn": {
+              "inputs": [
+                {
+                  "coinid": "0x6E9F1407C4334EEEFFA9E38125F90E8CB178A0BC94FA61AD50523E807F933AAC",
+                  "amount": "7.5",
+                  "address": "0xF8682DD5D0AC633758E0A549F1CFEB89785DBFFA55C322A66375EBC70F7CCBF2",
+                  "miniaddress": "MxG087ZD0MTBK5CCCRYHZ5597ZSVQS9F1ERVUWYZCHACZRYTF3GUV6BUBKYAJAH",
+                  "tokenid": "0x00",
+                  "token": null,
+                  "storestate": false,
+                  "state": [],
+                  "spent": false,
+                  "mmrentry": "5",
+                  "created": "12"
+                }
+              ],
+              "outputs": [
+                {
+                  "coinid": "0x63B9E102216D24345357E64B8CE4ABC41E29C996F79AFAAD964D4A811855A29B",
+                  "amount": "1",
+                  "address": "0x59481A9350611BCDEF814CC99B621A9ED920382C9C939D8DEC9BF48D67DD3273",
+                  "miniaddress": "MxG082P90D96K313F6UV0ACP6DM46KUR4G3GB4SWEEZRR4RUW6MFN9WEFYQH57Q",
+                  "tokenid": "0x00",
+                  "token": null,
+                  "storestate": true,
+                  "state": [],
+                  "spent": false,
+                  "mmrentry": "0",
+                  "created": "0"
+                },
+                {
+                  "coinid": "0x74F6CA83A0DA7351818C6DF3DBB638D2D5EC9F808CCAA2BDEC92F9B066C3470E",
+                  "amount": "6.5",
+                  "address": "0xF1D04D4E14FD9D82A8C419ACA37C846707F2F47F6C7EDCDFEE8982ADFC53BC66",
+                  "miniaddress": "MxG087HQ16KS57TJM1AHH0PYWHNP1370VPF8VRCFREDVRK9GAMVZKTSCR18D0M8",
+                  "tokenid": "0x00",
+                  "token": null,
+                  "storestate": false,
+                  "state": [],
+                  "spent": false,
+                  "mmrentry": "0",
+                  "created": "0"
+                }
+              ],
+              "transactionid": "0xC9B37F6F21B203B7C7BC362FCEA26DDDDC594EA2EC52F8AA4FB9F5064857DA95"
+            }
+          }
+        },
+        {
+          "txpowid": "0x0002C508F242FAE682ADA822042E17851EE35FFB048F257D41D0D777D55DAAA9",
+          "isblock": true,
+          "istransaction": true,
+          "header": {
+            "block": "12",
+            "timemilli": "1791535404430",
+            "date": "Fri Oct 09 08:43:24 UTC 2026",
+            "nonce": "99804221449787867.75807783880642164494958198788562865881089"
+          },
+          "hasbody": true,
+          "body": {
+            "txn": {
+              "inputs": [
+                {
+                  "coinid": "0x42E8EF2D9FECADEA972F6655672B2BBDFB72EED26DDD64C2F742DC26F78CE5B5",
+                  "amount": "10",
+                  "address": "0xF8682DD5D0AC633758E0A549F1CFEB89785DBFFA55C322A66375EBC70F7CCBF2",
+                  "miniaddress": "MxG087ZD0MTBK5CCCRYHZ5597ZSVQS9F1ERVUWYZCHACZRYTF3GUV6BUBKYAJAH",
+                  "tokenid": "0x00",
+                  "token": null,
+                  "storestate": true,
+                  "state": [],
+                  "spent": false,
+                  "mmrentry": "2",
+                  "created": "8"
+                }
+              ],
+              "outputs": [
+                {
+                  "coinid": "0xF63EDFEB7E00BEEBE5A43ECCCEC0105A90A6EAEA7FD3BECFC56323C27F70D650",
+                  "amount": "2.5",
+                  "address": "0x276CAE92C5E18083A92BE0866B9784AF6417CD6F9F971B9688363FFC7FD4CDCE",
+                  "miniaddress": "MxG0817DWN95HF1G21QWAV0GPYPF15FCGBSQRSVWSDPD21M7VU7VY6DPQQD4673",
+                  "tokenid": "0x00",
+                  "token": null,
+                  "storestate": true,
+                  "state": [],
+                  "spent": false,
+                  "mmrentry": "0",
+                  "created": "0"
+                },
+                {
+                  "coinid": "0x6E9F1407C4334EEEFFA9E38125F90E8CB178A0BC94FA61AD50523E807F933AAC",
+                  "amount": "7.5",
+                  "address": "0xF8682DD5D0AC633758E0A549F1CFEB89785DBFFA55C322A66375EBC70F7CCBF2",
+                  "miniaddress": "MxG087ZD0MTBK5CCCRYHZ5597ZSVQS9F1ERVUWYZCHACZRYTF3GUV6BUBKYAJAH",
+                  "tokenid": "0x00",
+                  "token": null,
+                  "storestate": false,
+                  "state": [],
+                  "spent": false,
+                  "mmrentry": "0",
+                  "created": "0"
+                }
+              ],
+              "transactionid": "0x67D843B5988652A30EF0709E70913C93D3BB43FF29D1A462B4865E932A836F0A"
+            }
+          }
+        },
+        {
+          "txpowid": "0x00051C950D7EDD4CF87FB15D04BD10C3EDD573524726EC887B6DC9853EECE3A8",
+          "isblock": true,
+          "istransaction": true,
+          "header": {
+            "block": "7",
+            "timemilli": "1791535329786",
+            "date": "Fri Oct 09 08:42:09 UTC 2026",
+            "nonce": "99863923674752704.15581422587554331849363229115753462497281"
+          },
+          "hasbody": true,
+          "body": {
+            "txn": {
+              "inputs": [
+                {
+                  "coinid": "0xC8A676A2F8AD684FA0EDCF72467A979A78FE6D1336404F0F7A03CE1F56405C6C",
+                  "amount": "1000000000",
+                  "address": "0x276CAE92C5E18083A92BE0866B9784AF6417CD6F9F971B9688363FFC7FD4CDCE",
+                  "miniaddress": "MxG0817DWN95HF1G21QWAV0GPYPF15FCGBSQRSVWSDPD21M7VU7VY6DPQQD4673",
+                  "tokenid": "0x00",
+                  "token": null,
+                  "storestate": true,
+                  "state": [],
+                  "spent": false,
+                  "mmrentry": "1",
+                  "created": "1"
+                }
+              ],
+              "outputs": [
+                {
+                  "coinid": "0x42E8EF2D9FECADEA972F6655672B2BBDFB72EED26DDD64C2F742DC26F78CE5B5",
+                  "amount": "10",
+                  "address": "0xF8682DD5D0AC633758E0A549F1CFEB89785DBFFA55C322A66375EBC70F7CCBF2",
+                  "miniaddress": "MxG087ZD0MTBK5CCCRYHZ5597ZSVQS9F1ERVUWYZCHACZRYTF3GUV6BUBKYAJAH",
+                  "tokenid": "0x00",
+                  "token": null,
+                  "storestate": true,
+                  "state": [],
+                  "spent": false,
+                  "mmrentry": "0",
+                  "created": "0"
+                },
+                {
+                  "coinid": "0x18691D7A337622BFAB261672048908E4B90744BBC39472BA551B0D4BB4E2A86A",
+                  "amount": "999999990",
+                  "address": "0xD6B9120A3C308D2AC3586ECE7771E7FB3BEEA233468B4095CABCD040A1F3D82C",
+                  "miniaddress": "MxG086MN490KF1GHKYC6M3EPPRN3PVR7FNA4CQ6HD09BWYSQ10A3SUZ5H6408JY",
+                  "tokenid": "0x00",
+                  "token": null,
+                  "storestate": false,
+                  "state": [],
+                  "spent": false,
+                  "mmrentry": "0",
+                  "created": "0"
+                }
+              ],
+              "transactionid": "0xAAB0D85AE9C9BF30218F84E253A37A9A8CC47E0FED865C7FD13F3220CE042FEE"
+            }
+          }
+        }
+      ],
+      "details": [
+        {
+          "inputs": {
+            "0x00": "7.5"
+          },
+          "outputs": {
+            "0x00": "7.5"
+          },
+          "difference": {
+            "0x00": "0"
+          }
+        },
+        {
+          "inputs": {
+            "0x00": "10"
+          },
+          "outputs": {
+            "0x00": "7.5"
+          },
+          "difference": {
+            "0x00": "-2.5"
+          }
+        },
+        {
+          "inputs": {},
+          "outputs": {
+            "0x00": "10"
+          },
+          "difference": {
+            "0x00": "10"
+          }
+        }
+      ],
+      "size": 3
+    }
+  },
+  "sendOut": {
+    "command": "send",
+    "status": true,
+    "pending": false,
+    "response": {
+      "txpowid": "0x1DF128BBD6B1EEC4F89DBEE2E230C39DF27E19D6B0AB04E1CDB4995B6B0F98D5",
+      "isblock": false,
+      "istransaction": false,
+      "header": {
+        "block": "12",
+        "timemilli": "1791535404430",
+        "date": "Fri Oct 09 08:43:24 UTC 2026",
+        "nonce": "0"
+      },
+      "hasbody": true,
+      "body": {
+        "txn": {
+          "inputs": [
+            {
+              "coinid": "0x42E8EF2D9FECADEA972F6655672B2BBDFB72EED26DDD64C2F742DC26F78CE5B5",
+              "amount": "10",
+              "address": "0xF8682DD5D0AC633758E0A549F1CFEB89785DBFFA55C322A66375EBC70F7CCBF2",
+              "miniaddress": "MxG087ZD0MTBK5CCCRYHZ5597ZSVQS9F1ERVUWYZCHACZRYTF3GUV6BUBKYAJAH",
+              "tokenid": "0x00",
+              "token": null,
+              "storestate": true,
+              "state": [],
+              "spent": false,
+              "mmrentry": "2",
+              "created": "8"
+            }
+          ],
+          "outputs": [
+            {
+              "coinid": "0xF63EDFEB7E00BEEBE5A43ECCCEC0105A90A6EAEA7FD3BECFC56323C27F70D650",
+              "amount": "2.5",
+              "address": "0x276CAE92C5E18083A92BE0866B9784AF6417CD6F9F971B9688363FFC7FD4CDCE",
+              "miniaddress": "MxG0817DWN95HF1G21QWAV0GPYPF15FCGBSQRSVWSDPD21M7VU7VY6DPQQD4673",
+              "tokenid": "0x00",
+              "token": null,
+              "storestate": true,
+              "state": [],
+              "spent": false,
+              "mmrentry": "0",
+              "created": "0"
+            },
+            {
+              "coinid": "0x6E9F1407C4334EEEFFA9E38125F90E8CB178A0BC94FA61AD50523E807F933AAC",
+              "amount": "7.5",
+              "address": "0xF8682DD5D0AC633758E0A549F1CFEB89785DBFFA55C322A66375EBC70F7CCBF2",
+              "miniaddress": "MxG087ZD0MTBK5CCCRYHZ5597ZSVQS9F1ERVUWYZCHACZRYTF3GUV6BUBKYAJAH",
+              "tokenid": "0x00",
+              "token": null,
+              "storestate": false,
+              "state": [],
+              "spent": false,
+              "mmrentry": "0",
+              "created": "0"
+            }
+          ],
+          "transactionid": "0x67D843B5988652A30EF0709E70913C93D3BB43FF29D1A462B4865E932A836F0A"
+        }
+      }
+    }
+  },
+  "localTrackedAddresses": [
+    "0xf8682dd5d0ac633758e0a549f1cfeb89785dbffa55c322a66375ebc70f7ccbf2",
+    "0x59481a9350611bcdef814cc99b621a9ed920382c9c939d8dec9bf48d67dd3273",
+    "0xf1d04d4e14fd9d82a8c419aca37c846707f2f47f6c7edcdfee8982adfc53bc66"
+  ]
+}

@@ -104,7 +104,6 @@ beforeAll(async () => {
   userId = createUser({
     username: "admin",
     passwordHash,
-    totpSecretEncrypted: "irrelevant-secret",
     credentialType: "password"
   });
 });
@@ -115,6 +114,7 @@ afterAll(() => {
 
 beforeEach(() => {
   fsState.clear();
+  db.prepare("DELETE FROM settings WHERE key='address_book_local_wallet_verification'").run();
   db.prepare("DELETE FROM settings WHERE key IN ('minima_backup_password_enc', 'minima_auto_backup_enabled')").run();
   for (const fn of Object.values(fsMock)) fn.mockClear();
   runMinimaPathCommandMock.mockReset();
@@ -227,6 +227,19 @@ describe("listBackups / getBackupFilePath / deleteBackup", () => {
 });
 
 describe("createBackup", () => {
+  it("excludes resync during pending backup RPC even after the display marker clears", async () => {
+    const resync = await import("../../../src/features/minima/minima-resync.service.js");
+    backupService.setBackupPassword(BACKUP_SECRET);
+    let finish!: (value: ReturnType<typeof leakyRpcResult>) => void;
+    runMinimaPathCommandMock.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const pending = backupService.createBackup();
+    monitoring.endMinimaOperation();
+    assert.throws(() => resync.startMinimaResync("host:9001"), /already active/);
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 1);
+    finish(leakyRpcResult("backup"));
+    await pending;
+  });
+
   it("refuses to run without a stored backup password", async () => {
     await assert.rejects(
       () => backupService.createBackup(),
@@ -304,8 +317,33 @@ describe("createBackup", () => {
 });
 
 describe("restoreBackup", () => {
+  it("excludes resync during restore file checks before dispatch", async () => {
+    const resync = await import("../../../src/features/minima/minima-resync.service.js");
+    seedBackup("minima-manual-1.bak", "2026-01-01T00:00:00.000Z");
+    runMinimaPathCommandMock.mockResolvedValue(leakyRpcResult("restoresync"));
+    const pending = backupService.restoreBackup({ fileName: "minima-manual-1.bak" });
+    assert.throws(() => resync.startMinimaResync("host:9001"), /already active/);
+    assert.equal(runMinimaPathCommandMock.mock.calls.length, 0);
+    await pending;
+  });
+
+  it("protects the managed recipient before restore dispatch and rejects RPC-level failure", async () => {
+    const repo = await import("../../../src/features/address-book/address-book.repository.js");
+    const local = repo.ensureLocalAddressBookEntry(["0x01"])!.entry;
+    seedBackup("minima-manual-1.bak", "2026-01-01T00:00:00.000Z");
+    runMinimaPathCommandMock.mockImplementation(async () => {
+      assert.throws(() => repo.getAddressBookPaymentRecipient(local.id), /awaiting/);
+      return { ok: true, status: 200, body: { status: false } };
+    });
+    assert.equal((await backupService.restoreBackup({ fileName: "minima-manual-1.bak" })).ok, false);
+    assert.equal(repo.getLocalAddressBookEntry()!.isLocalDevicePending, true);
+    monitoring.endMinimaOperation();
+  });
+
   it("rejects a missing backup file", async () => {
+    const repo = await import("../../../src/features/address-book/address-book.repository.js");
     await assert.rejects(() => backupService.restoreBackup({ fileName: "missing.bak" }));
+    assert.equal(repo.getLocalWalletVerificationRevision(), "");
   });
 
   it("uses an explicit password over the stored one", async () => {

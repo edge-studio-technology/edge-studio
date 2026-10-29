@@ -129,7 +129,7 @@ function capabilityBadges(block: DraftWorkflowBlock) {
 }
 
 /** Shared neutral chrome — category is conveyed by icons, not fill color. */
-export const blockShellClass = "border-stroke-primary bg-surface-always-white";
+const blockShellClass = "border-stroke-primary bg-surface-always-white";
 
 function runtimeClass(runtime?: WorkflowCanvasRuntimeState) {
   if (!runtime) return "";

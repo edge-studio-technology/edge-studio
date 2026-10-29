@@ -10,6 +10,28 @@ function ControlledPinField({ initialValue = "", length }: { initialValue?: stri
 }
 
 describe("PinField", () => {
+  it("keeps authenticator-code semantics and password-manager exclusions by default", () => {
+    render(<PinField label="Code" value="" onChange={vi.fn()} />);
+    const input = screen.getByLabelText("Code");
+    expect(input).toHaveAttribute("type", "text");
+    expect(input).toHaveAttribute("autocomplete", "one-time-code");
+    expect(input).toHaveAttribute("data-1p-ignore");
+    expect(input).toHaveAttribute("data-bwignore");
+    expect(input).toHaveAttribute("data-lpignore", "true");
+  });
+
+  it("uses password semantics without manager exclusions in credential mode", () => {
+    const { rerender } = render(<PinField mode="credential" label="PIN" value="" onChange={vi.fn()} />);
+    const input = screen.getByLabelText("PIN");
+    expect(input).toHaveAttribute("type", "password");
+    expect(input).toHaveAttribute("autocomplete", "current-password");
+    expect(input).not.toHaveAttribute("data-1p-ignore");
+    expect(input).not.toHaveAttribute("data-bwignore");
+    expect(input).not.toHaveAttribute("data-lpignore");
+    rerender(<PinField mode="credential" label="PIN" value="" onChange={vi.fn()} autoComplete="new-password" />);
+    expect(input).toHaveAttribute("autocomplete", "new-password");
+  });
+
   it("associates the label with the hidden input", () => {
     render(<PinField label="PIN" value="" onChange={vi.fn()} />);
     expect(screen.getByLabelText("PIN")).toBeInTheDocument();

@@ -52,6 +52,14 @@ export function isValidAdminCredential(type: AdminCredentialType, credential: st
   return type === "pin" ? isValidAdminPin(credential) : isValidAdminPassword(credential);
 }
 
+export function isAdminCredentialEntryReady(type: AdminCredentialType | null, credential: string) {
+  return type === "pin" ? isValidAdminPin(credential) : credential.length > 0;
+}
+
+export function adminCredentialLabel(type: AdminCredentialType | null) {
+  return type === "pin" ? "PIN" : type === "password" ? "password" : "PIN or password";
+}
+
 export function sanitizePinInput(value: string) {
   return value.replace(/\D/g, "").slice(0, ADMIN_PIN_LENGTH);
 }

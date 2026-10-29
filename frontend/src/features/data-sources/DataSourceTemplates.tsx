@@ -4,6 +4,7 @@ import {
   Copy as CopyIcon,
   Cpu,
   Globe2,
+  HardDrive,
   Lightbulb,
   RefreshCw,
   Settings2,
@@ -21,7 +22,6 @@ import { ErrorAlert } from "../../components/patterns/ErrorAlert";
 import { Pill } from "../../components/Pill";
 import { Disclosure } from "../../components/ui/Disclosure";
 import type { DataSourceCapabilities, DataSourceTemplate, HostCapability } from "./dataSourceTypes";
-import { isTemplateActiveByCapability } from "./hardwareCapabilities";
 
 export const inputTemplates: DataSourceTemplate[] = [
   {
@@ -177,7 +177,7 @@ export function templateIcon(template: DataSourceTemplate) {
   if (template.type === "gpio-output") return Lightbulb;
   if (template.type === "pi-camera") return Camera;
   if (template.type === "bme-sensor") return ThermometerSun;
-  if (template.type === "device-system-data") return Cpu;
+  if (template.type === "device-system-data") return HardDrive;
   return Cpu;
 }
 
@@ -191,28 +191,6 @@ export function resolveTemplateConfig(
     ? capabilities.mqttBroker.internalUrl
     : "mqtt://localhost:1883";
   return { ...template.config, brokerUrl };
-}
-
-export function activeInputTemplates(
-  capabilities: DataSourceCapabilities | null,
-  hostCapabilities: HostCapability[] = [],
-) {
-  return inputTemplates.filter((template) => isTemplateActive(template, capabilities, hostCapabilities));
-}
-
-export function activeOutputTemplates(
-  capabilities: DataSourceCapabilities | null,
-  hostCapabilities: HostCapability[] = [],
-) {
-  return outputTemplates.filter((template) => isTemplateActive(template, capabilities, hostCapabilities));
-}
-
-function isTemplateActive(
-  template: DataSourceTemplate,
-  capabilities: DataSourceCapabilities | null,
-  hostCapabilities: HostCapability[],
-) {
-  return isTemplateActiveByCapability(template, capabilities, hostCapabilities);
 }
 
 export function LocalServicesCard({
@@ -500,7 +478,7 @@ function HardwareDetailPanel({
   );
 }
 
-function hardwareStateSummary(item: HardwareItem, statusLabel: string) {
+function hardwareStateSummary(item: HardwareItem, _statusLabel: string) {
   if (item.capability?.state === "missing_prerequisites") return "Complete the host setup steps, then refresh status.";
   if (item.capability?.available) return "Ready for device configuration.";
   if (item.capability?.enabled) return "Support is enabled but not currently usable.";

@@ -56,6 +56,7 @@ Backend implementation steps:
    - Output target -> `control_output`.
 5. Preserve source previews, hashes, and structured errors consistently with existing source types.
 6. If host hardware is involved, prefer a narrow opt-in host-side helper over broad backend container device mounts unless the existing pattern already proves otherwise.
+   Host-backed hardware is enabled from Devices → Hardware support through a host-agent capability with its own fixed actions (`host-agent/`, `/api/host-capabilities`); hide its templates and report it in workflow validation while unavailable. See `docs/adr/0019-hardware-access-through-host-helpers.md`.
 7. If a helper or capability endpoint reports supported models/features, expose enough detail for the frontend to warn before a user hits a runtime failure.
 8. If the installer creates helper state outside Docker, make it idempotent. Preserve helper virtualenvs, caches, generated tokens, and data directories across `download_app()` refreshes unless they must be regenerated.
 

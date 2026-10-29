@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import { resyncOperation } from "../../helpers/minimaResync";
 import type { MinimaNodeStatus } from "../../../src/app/types";
 import { MinimaHealthCard } from "../../../src/features/minima/MinimaHealthCard";
 
@@ -136,4 +137,11 @@ describe("MinimaHealthCard", () => {
     expect(enabledButton).toBeEnabled();
     await user.click(enabledButton);
   });
+});
+
+ it("shows resync phase and marks carried metrics as last observed while RPC is unavailable", () => {
+  render(<MinimaHealthCard status={status({ rpc: { ok: false, error: "temporarily unreachable" }, metricsObservedAt: "2026-08-20T00:00:00Z" })} loading={false} refreshing={false} resync={resyncOperation({ phase: "recovering" })} />);
+  expect(screen.getByText("Checking node recovery")).toBeInTheDocument();
+  expect(screen.getByText(/Metrics last observed/)).toBeInTheDocument();
+  expect(screen.getByText("100")).toBeInTheDocument();
 });

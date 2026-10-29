@@ -197,7 +197,7 @@ The installer sets `COOKIE_SECURE=true` for the default HTTPS Docker deploy. Use
 
 `TZ` sets the backend container's timezone (default `UTC`). Set it to the Pi's real local timezone (e.g. `Europe/Amsterdam`) so the nightly Minima auto-backup (00:30) lands at actual local night.
 
-`MINIMA_DATA_DIR` is mounted into the Minima container as `/home/minima/data` so node data survives container restarts and updates. `MINIMA_BACKUP_DIR` is a separate host path `update-agent` copies that data into before a Minima update, and restores from if the update fails its health check. `UPDATE_AGENT_STATE_DIR` persists `update-agent`'s own bookkeeping (the last successfully applied manifest's timestamp, version, and frontend/backend image digests, used to reject replayed/downgraded manifests and to verify the installed version) across container restarts. `install.sh` also writes an initial `last-applied-manifest.json` there once the containers have started, and it's mounted read-only into the backend container (`/update-agent-state`) as the app version shown in feedback submissions. Feedback also carries the backend image's own build version and commit.
+`MINIMA_DATA_DIR` is mounted into the Minima container as `/home/minima/data` so node data survives container restarts and updates. `UPDATE_AGENT_STATE_DIR` persists `update-agent`'s own bookkeeping (the last successfully applied manifest's timestamp, version, and frontend/backend image digests, used to reject replayed/downgraded manifests and to verify the installed version) across container restarts. It also holds `changelog-cache.json`, the release notes shown on the Update page, refreshed whenever a manifest check finds a new version and kept across restarts. `install.sh` also writes an initial `last-applied-manifest.json` there once the containers have started, and it's mounted read-only into the backend container (`/update-agent-state`) as the app version shown in feedback submissions. Feedback also carries the backend image's own build version and commit.
 
 `MINIMA_RPC_BIND` defaults to `127.0.0.1`, which means Minima RPC is only exposed on the Pi itself. Set it to `0.0.0.0` only on a trusted network.
 
@@ -211,7 +211,7 @@ The backend runs a Minima health poller on `MINIMA_HEALTH_POLL_INTERVAL_SECONDS`
 
 `ENABLE_GPIO=true` is an advanced install shortcut that asks the host agent to create a Docker Compose override that mounts `/dev/gpiochip0` for GPIO input/output devices during install. Normal installs should leave GPIO disabled and let an admin enable it later from Devices -> Hardware support. `GPIO_GID` is detected from `/dev/gpiochip0` or the host `gpio` group when possible. GPIO stays disabled by default because it grants the backend container host hardware access.
 
-When GPIO is not enabled or `/dev/gpiochip0` is unavailable in the backend container, the GPIO Input and PIR Motion Sensor cards are disabled in the Data Sources page.
+When GPIO support is not enabled, GPIO templates are hidden from the Devices add flows and configured GPIO devices show `Disabled` or `Needs attention`.
 
 GPIO input/output settings for tested button, LED, and HC-SR501 PIR motion sensor wiring, plus suggested untested device profiles, are documented in [`docs/guides/gpio-device-settings.md`](./docs/guides/gpio-device-settings.md).
 
@@ -246,32 +246,24 @@ The Minima page also stores its Megammr host URL in SQLite through the Configure
 
 The Minima page exposes an allowlisted Megammr resync action. The browser calls the backend, and the backend calls Minima RPC internally with `megammrsync action:resync host:<configured-megammr-host>`.
 
+Resync runs in the background. `POST /api/minima/megammrsync/resync` returns HTTP **202** with an operation snapshot (`id`, `phase`, timestamps, `outcome`, `recovered`, `busy`, `message`, `events`, `errorDetails`) before the node finishes. Admin-only `GET /api/minima/resync` returns the latest snapshot or `null` without calling the node; `GET /api/minima/status` carries a compact `resync` summary. Only the latest operation is stored, with at most 100 redacted events. While a resync holds the node, conflicting resync, restart, backup, and restore requests return HTTP **409**.
+
+The Minima page shows the phase, elapsed time, recent events, and error details, and keeps them after completion or failure. A resync whose RPC response is lost is observed, never retried: it can end `unconfirmed` and still hold the node (`busy: true`), so check `busy` as well as `outcome`.
+
+If resync stays reserved, check the node's Docker state and host logs and wait while rebuild or database-save work is still running. Only after host diagnostics show it has finished or stopped, start an exited container with `docker compose start minima` from the installed Compose directory; the backend reconciles the next process cycle and chain readiness. Do not force a restart or clear the reservation because a deadline expired. See [ADR 0034](docs/adr/0034-observe-resync-after-client-timeout.md).
+
+
 Restarting the Minima node from the UI shuts it down gracefully first: the backend sends `quit compact:true` over RPC and waits (up to 5 minutes — the node can take a while to actually stop even after reporting shutdown complete) for the container to actually exit before starting it back up, instead of immediately force-stopping it. If the node still hasn't stopped after that, it falls back to a forceful container restart so the action still always completes.
 
-An optional "Auto restart" toggle (off by default) has the backend perform this same graceful restart automatically every 48 hours, as a preventive node health measure. It reuses the nightly auto-backup scheduler rather than a separate timer, so the check runs at 00:30 on the backend container's clock, after that night's backup — it only actually restarts every other night, tracked by a persisted last-run time so a backend redeploy doesn't reset the cadence.
+An automatic 48-hour graceful restart exists in the backend but is currently disabled and has no settings toggle; see [ADR 0037](docs/adr/0037-minima-backups-own-scheduler-and-stored-password.md).
 
-The Minima page also exposes node backup & restore, a fuller recovery mechanism than the Wallet page's seed-phrase import below: a Minima `backup` includes the seed phrase, private keys, coin proofs, key-use counters, and transaction history, not just spendable wallet keys. Backups are written by Minima into `${MINIMA_DATA_DIR}/backups` on the host — mounted into `minima` at `/home/minima/backups` (Minima resolves the `backup`/`restoresync` `file:` argument against its home dir, not `/home/minima/data`) and into `backend` read-write at `/minima-backups`, the only host directory shared between the two containers — so the UI can list, download, upload, and delete backup files. An admin sets one backup password once (re-auth required, stored encrypted); every backup from then on, manual or automatic, uses that same password, so there's no unencrypted/weakly-protected class of backup at all. Backups are tracked in a single list capped at 20, oldest auto-deleted — all downloadable and restorable. Restoring always uses Minima's `restoresync`, which restores the backup and re-syncs from the configured Megammr host in one step; restoring one of these tracked backups needs no password re-entry, since the backend already knows the stored password. Automatic backups are created by the backend's own scheduler at a fixed nightly time, 00:30 on the backend container's clock (not Minima's built-in `backup auto:true`, which can never be given a custom password or write anywhere the backend can see) — set the `TZ` environment variable to the Pi's real local timezone (default `UTC`) so this lands at actual local night. Downloading, restoring, or changing the backup password all require re-entering the current admin PIN/password.
+The Minima page also exposes node backup & restore: a Minima `backup` includes the seed phrase, private keys, coin proofs, key-use counters, and transaction history, not just spendable wallet keys. Backups are written by Minima into `${MINIMA_DATA_DIR}/backups` on the host — mounted into `minima` at `/home/minima/backups` (Minima resolves the `backup`/`restoresync` `file:` argument against its home dir, not `/home/minima/data`) and into `backend` read-write at `/minima-backups`, the only host directory shared between the two containers — so the UI can list, download, upload, and delete backup files. An admin sets one backup password once (re-auth required, stored encrypted); every backup from then on, manual or automatic, uses that same password, so there's no unencrypted/weakly-protected class of backup at all. Backups are tracked in a single list capped at 20, oldest auto-deleted — all downloadable and restorable. Restoring always uses Minima's `restoresync`, which restores the backup and re-syncs from the configured Megammr host in one step; restoring one of these tracked backups needs no password re-entry, since the backend already knows the stored password. Automatic backups are created by the backend's own scheduler at a fixed nightly time, 00:30 on the backend container's clock (not Minima's built-in `backup auto:true`, which can never be given a custom password or write anywhere the backend can see) — set the `TZ` environment variable to the Pi's real local timezone (default `UTC`) so this lands at actual local night. Downloading, restoring, or changing the backup password all require re-entering the current admin PIN/password.
 
 The Wallet page exposes allowlisted wallet/account actions through the backend:
 
 - global balance via Minima `balance` (`GET /api/wallet`)
-- labeled accounts mapped to the node's 64-address pool (`GET/POST /api/wallet/accounts`)
-- per-account holdings via Minima `coins relevant:true`
-- send history in SQLite (`GET /api/wallet/history`)
+- wallet history (received, sent, and self-transfers) synced from Minima `history` into SQLite (`GET /api/wallet/history`)
 - payment submission via Minima `send` (`POST /api/wallet/send-payment`)
-- seed phrase import via Minima `restore` (`POST /api/wallet/import`)
-
-`POST /api/wallet/accounts` with `{ label }` creates a named account on a random default address. With `{ label, address }` it labels an existing funded address (migration/recovery). This does not create new seed material.
-
-`GET /api/wallet/accounts` returns labeled accounts with per-address MINIMA/token balances plus `unlabeledFunded` addresses that have funds but no label yet.
-
-Dev-only debug routes (`POST /api/wallet/debug/clear-wallet-accounts`, `clear-wallet-history`) clear SQLite wallet tables for local testing; they return 403 when `NODE_ENV=production`.
-
-Minima RPC commands should be transmitted as a single percent-encoded URL path command, not as query parameters. For example:
-
-```txt
-http://minima:9005/megammrsync%20action%3Aresync%20host%3Amegammr.minima.global%3A9001
-```
 
 `COOKIE_SECURE` controls the session cookie `Secure` flag. The Docker deploy uses HTTPS with `COOKIE_SECURE=true` (`https://<pi-ip>:8080`). Native dev uses HTTP on `http://localhost:5173` with `COOKIE_SECURE=false`.
 
@@ -312,6 +304,19 @@ cp .env.example .env
 ```
 
 For local development on a non-Pi machine, change `HOST_FILES_DIR` to a directory that exists on your machine.
+
+### Local Pi SSH access for development
+
+The `pi-ssh` agent skill uses `scripts/dev/pi-ssh.sh` to access a development Pi. Add these entries to the gitignored `.env.local`, preserving any existing OpenProject credentials:
+
+```bash
+PI_SSH_LOGIN=pi@192.168.1.50
+PI_SSH_PASSWORD='your-password'
+```
+
+Keep `.env.local` at mode `600` (`chmod 600 .env.local`). The file is sourced as trusted shell configuration; shell-quote the password and enter it locally. Install OpenSSH and `sshpass` on the development machine. Verify the Pi's SSH fingerprint through a trusted channel and establish trust with an interactive SSH connection before using the helper; it requires a known host key and rejects changed keys.
+
+Run `bash scripts/dev/pi-ssh.sh 'hostname; id; uname -m'` for a read-only connection check. The password is passed through a file descriptor; these credentials are developer-only and are not app runtime configuration. The skill is mirrored in `.agents/skills/pi-ssh/`, `.claude/skills/pi-ssh/`, and `.cursor/skills/pi-ssh/`.
 
 ### Native frontend + backend (fast iteration)
 
@@ -414,16 +419,11 @@ On first launch with an empty database, Edge Studio shows a setup wizard:
 2. Create or connect the Integritas Connect account used for plan and proof usage
 3. Review the connected account and finish setup
 
-After setup, sign in with the chosen PIN or password. You can switch credential types later in Settings. There is a single local admin account (no username to enter), and only its bcrypt hash is stored. Sessions persist across browser reloads until logout or expiry.
+After setup, sign in with the chosen PIN or password. You can switch credential types later in Settings. There is a single local admin account (no username to enter), and only its scrypt hash is stored. Sessions persist across browser reloads until logout or expiry.
 
 The first time you open Edge Studio in a browser, a short guided tour introduces the main areas. Skip it at any step, or replay it from Settings → Behaviour.
 
-Changing the PIN/password (or resetting two-factor authentication) signs out every session, including the browser making the change, and returns you to the login screen. Expired sessions are also swept from the database at backend startup and hourly.
-
-TOTP is disabled through `TOTP_ENABLED = false` in the backend and frontend auth constants. Its
-future retention, redesign, re-enablement, or removal is not yet decided; V1.5 security hardening
-only closes the dormant routes while the feature is disabled (see
-[`docs/adr/0012`](docs/adr/0012-keep-totp-decision-outside-v1-5-hardening.md)).
+Changing the PIN/password signs out every session, including the browser making the change, and returns you to the login screen. Expired sessions are also swept from the database at backend startup and hourly.
 
 Public API routes (no session required):
 
@@ -433,6 +433,25 @@ Public API routes (no session required):
 - `POST /api/auth/login`
 
 All other `/api/*` routes require a valid session cookie.
+
+`GET /api/setup/status` returns `{ "localAdminCreated": boolean, "setupComplete": boolean, "credentialType": "pin" | "password" | null }` with `Cache-Control: no-store`. The credential type is public input metadata; it is null before local admin creation and contains no credential or user-record fields. Older accounts can retain the migration default `password` until a fully successful login corrects the stored type from the verified credential. Existing credentials remain accepted without applying new-credential strength rules.
+
+The browser reads this hint during auth bootstrap and refreshes it after logout or session expiry, including sign-out after a credential change. Authenticated user metadata takes precedence. Missing, unsupported, or failed status metadata uses an unrestricted masked field labeled PIN or password; background refreshes preserve the credential being typed and never submit it automatically.
+
+Login and current-credential confirmations in Settings, node backups, and the console whitelist use a masked six-slot numeric field for a known PIN or a masked password field for a password account. Known PIN entry requires six digits and preserves leading zeros; existing password entry requires only a nonempty value. Setup and credential changes retain explicit new-type selection and creation requirements. Persistent credentials use `current-password` or `new-password` autofill; authenticator codes keep `one-time-code`. Backup-encryption passwords and uploaded-backup password overrides remain separate unrestricted password inputs. Use the existing submit button or form Enter action; completing a PIN never submits automatically.
+
+## Storage And History
+
+Settings -> Storage & history shows the records and managed files Edge Studio keeps on the Pi.
+An admin can download a read-only history archive after re-entering the current PIN/password. The
+archive contains redacted wallet history, workflow inbox items/runs, data-source reads, and
+Integritas proof history. It does not include active devices, workflow definitions, contacts,
+credentials, Minima backups, captures, verification PDFs, or generated downloads. Imported archives
+are stored as read-only history; they do not recreate an operational installation.
+
+Some collected payload values may be redacted when they look like credentials. This keeps the
+archive safer to transfer, but means a redacted payload cannot be re-hashed to independently verify
+an Integritas proof's original source bytes. See `docs/adr/0040-separate-portable-history-from-device-migration.md`.
 
 ## Feedback
 
@@ -446,11 +465,11 @@ DATA_DIR/feedback/feedback-submissions.json
 
 In the default Docker deploy this is inside the backend container at `/data/feedback/feedback-submissions.json` and on the host under the configured `DATA_DIR`.
 
-Feedback includes the current page, feedback area, feedback type, optional bug/feature details, description, browser context, non-secret app/user/device metadata, current Node/Integritas connection status, and lightweight app stats. It must not include passwords, TOTP secrets, session cookies, Integritas API keys, wallet seed phrases, or raw encrypted secret values.
+Feedback includes the current page, feedback area, feedback type, optional bug/feature details, description, browser context, non-secret app/user/device metadata, current Node/Integritas connection status, and lightweight app stats. It must not include passwords, session cookies, Integritas API keys, wallet seed phrases, or raw encrypted secret values.
 
 Edge Studio saves feedback locally first, then sends the single new submission to `https://integritas.technology/api/feedback`. The modal requires per-submission consent before sending device metadata, browser context, and non-secret usage stats off the Pi.
 
-If the Integritas API key is missing or the hosted endpoint is unavailable, the local JSON file remains the durable fallback. Retrying is safe because each submission keeps its Pi-generated id.
+If the Integritas API key is missing or the hosted endpoint is unavailable, the local JSON file remains the durable fallback.
 
 The CLI does not send session cookies in V1. Operational CLI commands that call protected APIs return `401 Unauthorized` until a future CLI auth story is added. Use the browser UI for authenticated operations.
 
@@ -500,7 +519,7 @@ npm run check
 docker compose build --no-cache
 ```
 
-`npm run check` runs backend and frontend TypeScript checks plus moderate-level npm audits. `docker compose build --no-cache` catches Docker build issues from a clean image context.
+`npm run check` runs ESLint (`npm run lint`), TypeScript checks, and test coverage for `backend`, `frontend`, and `update-agent`, plus moderate-level npm audits. `docker compose build --no-cache` catches Docker build issues from a clean image context.
 
 ## Troubleshooting
 
@@ -605,7 +624,8 @@ frontend container
   - React static app
   - Nginx
   - Proxies /api to backend:3000
-  - Sidebar pages: App status, Minima, Integritas, File explorer
+  - Sidebar pages: Dashboard, Minima, Wallet, Integritas, Devices, Workflows, Diagnostics, Settings
+  - Proxies /update/ to update-agent during an apply
   |
   v
 backend container
@@ -613,9 +633,8 @@ backend container
   - SQLite database at /data/edge-studio.db
   - GET /api/health
   - GET /api/status/overview
-  - GET /api/files
   - GET /api/minima/status
-- Integritas hash, stamp, status, verify endpoints
+- Integritas file stamping, proof history, and proof verification endpoints
   - File uploads (stamp a file, verify a proof file, restore a Minima backup) are limited to `UPLOAD_MAX_FILE_BYTES` (default 100 MB) and `UPLOAD_MAX_FILES`/`UPLOAD_MAX_FIELDS` per request; Nginx derives multipart request headroom from the same settings, and an oversized file returns a JSON `413` from the backend. Raise `UPLOAD_MAX_FILE_BYTES` if you stamp larger files — it has no hard maximum.
 - Device APIs and historic read log at `/api/data-sources` and `/api/data-reads`
   - HTTP source and HTTP output target URLs must use `http` or `https` and must not point at Edge Studio's own container network, its gateway, a container service name, loopback, or a link-local address. The check runs when the device is saved and again on every fetch, follows redirects one hop at a time, and pins the address it checked to the connection. LAN and public destinations are unaffected. Set `EDGE_STUDIO_DOCKER_SUBNET` / `EDGE_STUDIO_DOCKER_GATEWAY` if the Compose network differs from the defaults.
@@ -630,7 +649,7 @@ backend container
   - Reads Docker resource usage through /var/run/docker.sock
 
 minima container
-  - minimaglobal/minima:dev
+  - minimaglobal/minimacore
   - P2P port ${MINIMA_P2P_PORT:-9003}
   - RPC port ${MINIMA_RPC_PORT:-9005}
   - Persistent data in ${MINIMA_DATA_DIR:-./minima}
@@ -640,9 +659,15 @@ Pi host filesystem
   - ${HOST_FILES_DIR:-/home/pi} mounted read-only
   - ./data mounted read-write for SQLite
   - ./minima mounted read-write for Minima data
+
+Optional / host-side
+  - update-agent container (Compose profile): signed image updates, /update/ progress page
+  - mqtt container (Compose profile): local Mosquitto broker
+  - edge-studio-host-agent (root systemd service): fixed hardware enable/disable actions
+  - camera and sensor helpers (host systemd services): token-protected capture and I2C reads
 ```
 
-The backend never receives permission to run arbitrary shell commands. It only lists files and directories under `/host-files`.
+The backend never receives permission to run arbitrary shell commands. It reads `/host-files` only for inbox image previews and disk status.
 
 ## Backend API
 
@@ -658,41 +683,12 @@ Feedback:
 ```http
 POST /api/feedback
 GET /api/feedback/config
-POST /api/feedback/retry-pending
 GET /api/feedback/export
 ```
 
-`POST /api/feedback` appends a submission to the local aggregate JSON feedback export and sends that single submission to the hosted Integritas feedback endpoint when an API key is configured. `GET /api/feedback/config` returns non-secret hosted feedback state, `POST /api/feedback/retry-pending` retries pending or failed hosted uploads for admins, and `GET /api/feedback/export` downloads the hidden local fallback file.
+`POST /api/feedback` appends a submission to the local aggregate JSON feedback export and sends that single submission to the hosted Integritas feedback endpoint when an API key is configured. `GET /api/feedback/config` returns non-secret hosted feedback state, and `GET /api/feedback/export` downloads the hidden local fallback file.
 
 `/api/status/overview` returns status for the frontend, backend, Minima node, and Integritas API, plus Docker container CPU/memory/image-size data when the Docker socket is available.
-
-Files:
-
-```http
-GET /api/files
-GET /api/files?path=/Documents
-```
-
-Example response:
-
-```json
-{
-  "path": "/Documents",
-  "items": [
-    {
-      "name": "test.txt",
-      "type": "file",
-      "size": 1234
-    },
-    {
-      "name": "Pictures",
-      "type": "directory"
-    }
-  ]
-}
-```
-
-Path traversal attempts such as `../../etc/passwd` are blocked because the backend resolves the requested path and verifies that it remains inside `/host-files`.
 
 Minima status:
 
@@ -759,45 +755,42 @@ POST /api/minima/backups/auto
 
 `GET /api/minima/backups/password` returns `{ "hasPassword": boolean }` (never the password itself). `POST /api/minima/backups/password` accepts `{ "backupPassword": string, "currentPassword": string }`, requires re-entering the admin PIN/password, and must be called before any backup can be created. `GET /api/minima/backups` returns a single array of backups (filenames still distinguish trigger source, `minima-manual-<ts>.bak` / `minima-auto-<ts>.bak`) under the shared `/minima-backups` volume. `POST /api/minima/backups` takes no body — it always creates a manual backup using the stored password and calls Minima `backup file:backups/<generated-name>.bak password:"<stored>"`; once the combined list exceeds 20, the oldest backup is deleted automatically. `POST /api/minima/backups/:fileName/download` requires `{ "currentPassword": string }`; every tracked backup is downloadable, since all of them share the same real, admin-chosen password. `POST /api/minima/backups/restore` also requires `{ "currentPassword": string }` and accepts either `{ "fileName": string }` for an existing tracked backup (uses the stored password automatically) or a multipart upload (`file` field, optional `password` override for a foreign `.bak` with different protection) — an uploaded file is deleted from the shared folder after the restore attempt either way, since it isn't a tracked entry. Restore calls Minima `restoresync file:backups/<name>.bak host:<configured-megammr-host>`. `DELETE /api/minima/backups/:fileName` removes a backup file (no re-auth — it only deletes a copy of already-recoverable data). `GET`/`POST /api/minima/backups/auto` read/toggle the backend's own nightly auto-backup scheduler (00:30 on the backend container's clock, not Minima's built-in one); enabling it requires a backup password to already be set, and every auto backup lands in the same shared, 20-backup-capped list as manual ones.
 
-Wallet and account APIs:
+Wallet APIs:
 
 ```http
 GET /api/wallet
-GET /api/wallet/accounts
-POST /api/wallet/accounts
 GET /api/wallet/history
+POST /api/wallet/history/clear-previous
 POST /api/wallet/send-payment
-GET /api/wallet/payment-status/:txpowid
-POST /api/wallet/import
 POST /api/wallet/receive-address
 ```
 
-`POST /api/wallet/accounts` creates a named account label and maps it to one random default address from the node's existing 64-address wallet pool, or labels an existing address when `address` is provided. This does not create new seed material.
+`GET /api/wallet` reports balances for the node's single wallet. The address book stores recipient contacts; it does not create labeled wallet accounts.
 
-`GET /api/wallet/accounts` returns the mapped accounts plus per-address MINIMA/token balances aggregated from Minima `coins relevant:true`, and `unlabeledFunded` for migration.
+`GET /api/wallet/history?page&pageSize&status&direction&q&from&to` returns wallet history newest first as a paginated list (`items`, `page`, `pageSize`, `total`, `totalPages`) plus `previousWalletItems`, the number of rows from a wallet the node no longer uses. `pageSize` defaults to 25. `status` is `pending`, `confirmed`, or `failed`; `direction` is `in`, `out`, or `self`; `from` (inclusive) and `to` (exclusive) are ISO date-times with a time zone; `q` matches the counterparty address, a contact name, the token, or a TxPoW or transaction ID. Invalid values return `400`. Each item has `direction`, `status`, an unsigned decimal `amount`, token fields, `counterparty` and its address-book `counterpartyLabel`, `time` (TxPoW time, or send time for sends not seen on chain), `txpowId`, `transactionId`, `block`, `confirmations` (counted from the current tip), `confirmedAt` (block time, or the TxPoW time when the node no longer has the block), `origin` (`manual`, `automation`, or null for payments the app did not send), `error` (Minima's message for a failed send, redacted; null otherwise or for sends recorded before it was stored), and `isPreviousWallet`.
 
-`GET /api/wallet/history?limit=N` returns recent send activity recorded in SQLite when payments are submitted.
+The backend copies new relevant TxPoWs from Minima's `history` into SQLite on every Minima health poll and before a history read when the last sync is more than 5 seconds old, then checks up to 20 unconfirmed rows per poll with `txpow onchain:`. Payments sent from Edge Studio are listed as pending at once and replaced by their chain row once synced. Rows carry a fingerprint of the wallet's default addresses; after a wallet replacement, earlier rows stay listed and are marked as from a previous wallet, and a TxPoW both wallets took part in is listed once per wallet. If Minima is unreachable, stored rows are still returned, without confirmation counts or previous-wallet marking. History is never pruned automatically; see `docs/adr/0033-persist-synced-wallet-history.md`.
 
-`POST /api/wallet/receive-address` samples a random address from the 64-address pool (API retained; primary UI shows per-account addresses in the account detail modal).
+`POST /api/wallet/history/clear-previous` deletes only previous-wallet rows and returns `{ "deleted": number }`. It is admin-only, rate-limited, and requires `{ "currentPassword": string }`; a wrong credential returns `401` with `errorCode: "invalid_credential"`. It returns `409` while a wallet replacement is running and `502` if the current wallet cannot be read.
 
-Custom token APIs:
+Address-book contacts are stored in SQLite and exposed through `GET`/`POST /api/wallet/address-book` and `PATCH`/`DELETE /api/wallet/address-book/:id`. Each returned entry includes `isLocalDevice`, a boolean identifying the app's local-wallet contact, and `isLocalDevicePending`, indicating that replacement verification is required; existing and manually created contacts default to `false`. The app-owned contact is separate from manual contacts and may share their destination. Manual copies retain their IDs, fields, and edit/delete controls; exact-address duplicates between manual contacts remain disallowed.
 
-```http
-GET /api/tokens
-GET /api/tokens/create-requirements
-POST /api/tokens/create
-```
+The backend automatically adds one app-managed local contact once Minima supplies valid default wallet addresses. Its initial name is the device hostname shown on the dashboard. Existing names, including **This device**, remain unchanged; initialization and wallet replacement preserve user renames. The dashboard currently shows the backend container hostname, so the contact copies it once rather than following later hostname changes. Initialization runs through the existing immediate health poll and its configured interval, without requiring a visit to Wallet. Listing the address book also makes a best-effort attempt while the contact is missing, with the existing five-second RPC timeout; discovery failures still return saved contacts and retry on a later poll or read. Simultaneous attempts share one discovery request. Once the contact exists and is verified, initialization and listing skip discovery and retain its ID/address across ordinary restarts and node outages. Creation emits one `address-book.local.create` audit event containing only public contact data.
 
-`GET /api/tokens` returns non-native token balances from Minima `balance`, enriched with local metadata when the token was created on this Pi (`custom_tokens` in SQLite). `POST /api/tokens/create` (admin) calls Minima `tokencreate` with `{ name, amount, decimal, fromAccountAddress }` where `fromAccountAddress` must be a **labeled** wallet account with at least `0.001` MINIMA on its address. `GET /api/tokens/create-requirements` returns cost estimates. Wallet list/send APIs are unchanged.
+The managed contact's name and notes can be edited. Its edit form visibly disables the address field, and its menu omits Remove. Changing its address manually or deleting it through the API returns a structured `409` conflict. Names use the existing non-empty, 80-character limit. Unchanged address values from older clients are accepted, including when a manual copy shares the address. Client-supplied local markers are ignored.
+
+A **Local device** indicator identifies the contact in its table row and details, independently of notes. Send-payment and workflow recipient selectors also identify it, while manual copies keep their own labels. Selecting the managed contact is explicit: a new workflow payment block defaults to the first ordinary contact, or a blank recipient if only the local contact exists. An open address book reloads when the node becomes available again. After a wallet-replacement request through Edge Studio (backup restore, console restore/reset, or seed-bearing archive/MySQL/MegaMMR operations), the local contact is marked pending before dispatch. It is unavailable for payment until the node is no longer restoring/shutting down and its public receive-address pool can be verified. On Minima versions without `checkrestore`, wallet-replacement verification requires a subsequent node restart and an unlocked wallet response. If its saved destination still belongs to the wallet, it stays unchanged; otherwise only its address changes. ID, name, notes, creation time, manual contacts, and workflow references are preserved. Workflows referencing This device intentionally follow the refreshed wallet address. Actual changes emit an atomic `address-book.local.replace` audit record with ID and old/new public addresses; no backup contact is created.
+
+The address book hides the pending destination and refreshes it every 30 seconds while the node is available; payment selectors disable it. `POST /api/wallet/send-payment` accepts an optional `recipientAddressBookId` and resolves that ID to the current saved address on the backend, rejecting pending or missing recipients with `409`. The UI sends this ID when a saved contact is selected. External address-only requests and manual copies remain independent.
+
+Empty/invalid/offline discovery keeps the local recipient pending and retries later. Completion remains durably uncertain until the RPC returns, including across a backend restart during replacement. If the RPC throws or times out, a pool still containing the old address is insufficient to confirm completion: the contact stays blocked until a different destination is verified or a subsequent replacement request completes and is verified. Replacing wallet files or calling RPC outside Edge Studio does not notify this mechanism. Reroll is out of scope.
+
+`POST /api/wallet/receive-address` samples a random default address from the wallet pool for the Receive QR view. It can differ from the stable This device destination; both belong to the wallet when verified.
 
 Integritas:
 
 ```http
 GET /api/integritas/config
-POST /api/integritas/hash
-POST /api/integritas/stamp
-POST /api/integritas/status
-POST /api/integritas/verify
 ```
 
 Integritas Connect (device linking):
@@ -808,7 +801,7 @@ GET /api/auth/connect/status
 GET /api/user/profile
 ```
 
-The frontend sends canonical bytes and proof payloads to the backend. The backend performs SHA3-256 hashing and calls Integritas with the Connect-linked API key from `integritas_auth.api_key_enc`.
+The frontend sends files and proof files to the backend. The backend performs SHA3-256 hashing and calls Integritas with the Connect-linked API key from `integritas_auth.api_key_enc`.
 
 The backend uses the first available source in that order. Install with a fallback Integritas API key:
 
@@ -820,30 +813,4 @@ For the preferred prototype UX, install without a key and then enter it in the I
 
 ## Security Notes
 
-This is a learning prototype, not a production-ready product.
-
-See [`SECURITY.md`](./SECURITY.md) for the current risk register, known vulnerabilities, and mitigation plan.
-
-- Backend container runs as the non-root `node` user
-- Host files are mounted read-only
-- Backend blocks access outside `/host-files`
-- Frontend cannot trigger shell commands
-- Minima RPC binds to `127.0.0.1` by default
-- Integritas Connect tokens and API key are backend-only and encrypted at rest in SQLite
-- Backend mounts `/var/run/docker.sock:ro` to read container status and resource usage for the App status page. This is useful for the prototype, but Docker socket access is sensitive and should be replaced with a narrower monitoring approach before production.
-- GPIO input sources use the `gpiomon` tool inside the backend container and GPIO LED output targets use `gpioset`; both require explicit GPIO device access on Raspberry Pi deployments. Add an override such as `devices: ["/dev/gpiochip0:/dev/gpiochip0"]` and a suitable GPIO group when enabling GPIO hardware ingestion/control.
-- BME280/BME680 sensor reads use the opt-in host-side `edge-studio-sensor-helper` service with I2C access instead of exposing generic I2C operations through the backend API.
-- Admin authentication with a 6-digit PIN or an 8+ character password containing uppercase, lowercase, a number, and a symbol, plus HttpOnly session cookies (see [Authentication](#authentication))
-- HTTPS with a self-signed certificate on the default Docker deploy (`COOKIE_SECURE=true`)
-
-## Future Services
-
-The Docker Compose file is intentionally simple so more services can be added later, for example:
-
-- Database
-- File storage
-- CLI session or API token auth
-- System commands through an allowlist
-- Auto updates
-
-When new services require host packages, add them to the dependency section in `install.sh`.
+This is a learning prototype, not a production-ready product. See [`SECURITY.md`](./SECURITY.md) for the security policy and the risk register in [`docs/security/`](./docs/security/).

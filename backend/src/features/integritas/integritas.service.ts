@@ -7,7 +7,7 @@ import { sha3HashHex } from "../../shared/crypto.js";
 import { parseResponseBody } from "../../shared/http.js";
 import { getDataSourceReadByProofId } from "../data-reads/dataReads.repository.js";
 import { getIntegritasApiKey, integritasApiKeySource } from "../settings/secrets.service.js";
-import { getProofRecord, updateProofStatus, type IntegritasProofRecord } from "./integritas.repository.js";
+import { updateProofStatus, type IntegritasProofRecord } from "./integritas.repository.js";
 import type { IntegritasApiFailure, IntegritasErrorCode, IntegritasOperation, IntegritasStatusItem } from "./integritas.types.js";
 
 export type IntegritasPollSuccess = {
@@ -42,10 +42,6 @@ export function getIntegritasConfig() {
     apiKeySource: integritasApiKeySource(),
     portalUrl: env.integritasPortalUrl.trim() || DEFAULT_INTEGRITAS_PORTAL_URL
   };
-}
-
-export function hashCanonicalBytes(canonicalBytes: string) {
-  return { hash: sha3HashHex(canonicalBytes), canonicalization: "edge-studio-text-utf8-v1" };
 }
 
 export function sha3HashFile(filePath: string) {
@@ -86,29 +82,6 @@ export function applyPollResultToRecord(recordId: string, proofUid: string, resu
     statusResponse: result,
     proofError: statusItem?.error ?? null
   });
-}
-
-export async function refreshProofRecord(apiKey: string, recordId: string) {
-  const existing = getProofRecord(recordId);
-  if (!existing?.proof_uid) {
-    return { ok: false as const, notFound: true as const, error: "Proof record not found" };
-  }
-
-  const record = expirePendingProofIfTimedOut(existing);
-  const proofUid = record.proof_uid;
-  if (!proofUid) {
-    return { ok: false as const, notFound: true as const, error: "Proof record not found" };
-  }
-
-  if (record.proof_status === "failed" && record.proof_error === "On-chain confirmation timed out") {
-    return { ok: true as const, record, status: null, timedOut: true as const };
-  }
-
-  const result = await pollProofStatus({ apiKey, uids: [proofUid] });
-  if (!result.ok) return { ok: false as const, notFound: false as const, upstream: result };
-
-  const updated = applyPollResultToRecord(recordId, proofUid, result);
-  return { ok: true as const, record: updated, status: result };
 }
 
 function sleep(ms: number) {
@@ -308,6 +281,7 @@ export function verificationReportDownloadUrl(response: unknown) {
 }
 
 function verificationReportFileName(recordId: string) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(recordId)) throw new Error("Invalid proof record ID");
   return `${recordId}.pdf`;
 }
 
@@ -316,6 +290,7 @@ export function verificationReportFilePath(fileName: string) {
 }
 
 export async function saveVerificationReport(recordId: string, response: unknown) {
+  const fileName = verificationReportFileName(recordId);
   const reportUrl = verificationReportDownloadUrl(response);
   if (!reportUrl) return null;
 
@@ -323,7 +298,6 @@ export async function saveVerificationReport(recordId: string, response: unknown
   if (!fetchResponse.ok) throw new Error(`Verification report download failed with HTTP ${fetchResponse.status}`);
 
   const bytes = Buffer.from(await fetchResponse.arrayBuffer());
-  const fileName = verificationReportFileName(recordId);
   const reportsDir = path.join(env.dataDir, VERIFICATION_REPORTS_DIR);
   await fs.mkdir(reportsDir, { recursive: true });
   await fs.writeFile(path.join(reportsDir, fileName), bytes);

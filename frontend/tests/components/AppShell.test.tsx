@@ -39,7 +39,7 @@ vi.mock("../../src/features/feedback/FeedbackModal", () => ({
 function renderShell(props?: Partial<ComponentProps<typeof AppShell>>) {
   return render(
     <MemoryRouter initialEntries={["/dashboard"]}>
-      <AppShell onSignOut={vi.fn()} {...props}>
+      <AppShell {...props}>
         <p>Page content</p>
       </AppShell>
     </MemoryRouter>,

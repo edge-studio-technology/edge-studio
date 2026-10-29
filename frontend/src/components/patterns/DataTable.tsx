@@ -19,11 +19,11 @@ import { cx } from "../../lib/cx";
 import { IconButton } from "../ui/Button";
 
 /** Shared visual tokens — prefer `TableHead` / `TableRow` / `TableCell` components in new code. Remove this comment when migrated */
-export const tableHeadRowClass = "bg-surface-secondary";
-export const tableHeaderCellClass =
+const tableHeadRowClass = "bg-surface-secondary";
+const tableHeaderCellClass =
   "px-margin-tight py-margin-tight type-body-em text-text-primary text-left align-middle whitespace-nowrap";
-export const tableRowClass = "border-t border-stroke-primary bg-surface-always-white";
-export const tableCellClass =
+const tableRowClass = "border-t border-stroke-primary bg-surface-always-white";
+const tableCellClass =
   "px-margin-tight py-margin-tight type-body text-text-primary align-middle whitespace-nowrap";
 /** Pins a cell to the right edge of a scrolling `TableWrap`; divider and edge shadow show while more columns sit behind it. */
 const stickyEndCellClass =

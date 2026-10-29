@@ -88,7 +88,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 2. `SECURITY.md` — security policy and guidelines; full risk register in `docs/security/*.md`
 3. `README.md` — install, usage, CLI commands, runtime config, API expectations, or operational workflow changes
 
-For auth work, also read `docs/plans/auth-implementation.md` and `docs/plans/auth-security.md`. Docs layout: `docs/README.md`.
+Docs layout: `docs/README.md`.
 
 ## Rule files
 
@@ -110,21 +110,3 @@ For auth work, also read `docs/plans/auth-implementation.md` and `docs/plans/aut
 | [.cursor/rules/adr.mdc](.cursor/rules/adr.mdc) | Where decision rationale goes (not changelog/comments/commits) | Agent Requested |
 
 Also see `docs/PROJECT.md` (goals/constraints), `docs/TASKS.md` (current work), and `SECURITY.md` (security policy).
-
-## When to update project docs (not just Cursor rules)
-
-Update `.agents/rules/*.md`/`.claude/rules/*.md`/`.cursor/rules/*.mdc` (all three, kept in sync) when you change or establish:
-
-- Architecture or API-first boundaries (where logic lives, route registration, feature folders)
-- Agent or contributor workflow (read-first paths, verification commands, process)
-- Cross-cutting conventions that apply across backend, frontend, or CLI
-
-Update `docs/security/*.md` when you change or introduce:
-
-- New attack surface, exposure, or trust assumptions
-- Credentials, sessions, secrets storage, or host/file access behavior
-- Security tradeoffs that operators should understand
-
-Update `SECURITY.md` itself only for policy-level changes (supported use, guidelines, reporting process).
-
-Update `README.md` for install, deployment, CLI, env vars, or user-visible API/ops changes.

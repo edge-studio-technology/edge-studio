@@ -1,3 +1,5 @@
+import type { ListQueryParams, PaginatedResponse } from "../../lib/paginated";
+
 export type TokenBalance = {
   tokenId: string;
   name: string;
@@ -20,6 +22,7 @@ export type ReceiveAddress = {
 };
 
 export type SendPaymentRequest = {
+  recipientAddressBookId?: string;
   address: string;
   amount: string;
   tokenId?: string;
@@ -33,24 +36,40 @@ export type SendPaymentResult = {
   message?: string;
 };
 
-export type PaymentStatus = {
-  txpowId: string;
-  status: "pending" | "confirmed" | "failed" | "unknown";
-  checkedAt: string;
-};
+export type WalletHistoryDirection = "in" | "out" | "self";
+export type WalletHistoryStatus = "pending" | "confirmed" | "failed";
 
-export type ImportWalletResult = {
-  ok: boolean;
-  message: string;
-};
-
-export type WalletSendHistoryItem = {
+export type WalletHistoryItem = {
   id: string;
-  createdAt: string;
-  toAddress: string;
+  direction: WalletHistoryDirection;
+  status: WalletHistoryStatus;
+  /** Unsigned decimal string; `direction` carries the sign. */
+  amount: string;
   tokenId: string;
   tokenName: string;
-  amount: string;
+  counterparty: string | null;
+  counterpartyLabel: string | null;
+  /** TxPoW time for chain rows, send time for sends not seen on chain. */
+  time: string;
   txpowId: string | null;
-  status: "submitted" | "failed";
+  transactionId: string | null;
+  block: number | null;
+  confirmations: number | null;
+  confirmedAt: string | null;
+  origin: "manual" | "automation" | null;
+  /** Minima's failure message for a failed send. */
+  error: string | null;
+  isPreviousWallet: boolean;
+};
+
+export type WalletHistoryPage = PaginatedResponse<WalletHistoryItem> & {
+  previousWalletItems: number;
+};
+
+export type WalletHistoryQuery = ListQueryParams & {
+  direction?: WalletHistoryDirection;
+  /** Inclusive ISO instant. */
+  from?: string;
+  /** Exclusive ISO instant. */
+  to?: string;
 };

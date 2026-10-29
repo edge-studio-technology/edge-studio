@@ -2,20 +2,44 @@ import QRCode from "qrcode";
 import { runMinimaPathCommand } from "../minima/minima.rpc.js";
 import { db } from "../../db/database.js";
 import { isMinimaAddress } from "../../shared/minima-address.js";
-import { parseAddressResponse, parseBalanceResponse, parseImportResponse, parsePaymentStatusResponse, parseSendResponse } from "./wallet.parse.js";
+import { redactSecrets } from "../../shared/redact.js";
+import { getComposeServiceContainer, inspectContainer } from "../status/docker.service.js";
+import { getWalletFingerprint } from "./wallet-history.service.js";
+import { parseAddressResponse, parseBalanceResponse, parseLocalWalletAddressesResponse, parseSendResponse } from "./wallet.parse.js";
 import type {
-  ImportWalletResult,
-  PaymentStatus,
   ReceiveAddress,
   SendPaymentRequest,
   SendPaymentResult,
-  WalletSendHistoryItem,
   WalletStatus
 } from "./wallet.types.js";
 
 export async function getWalletStatus(): Promise<WalletStatus> {
   const result = await runMinimaPathCommand("balance");
   return parseBalanceResponse(result.body);
+}
+
+export async function getLocalWalletAddresses(): Promise<string[]> {
+  const result = await runMinimaPathCommand("scripts");
+  if (!result.ok) throw new Error(`Minima RPC error: HTTP ${result.status}`);
+  return parseLocalWalletAddressesResponse(result.body);
+}
+
+export async function isLocalWalletReadyForVerification(revision: string): Promise<boolean> {
+  const result = await runMinimaPathCommand("checkrestore");
+  const body = result.body as { status?: unknown; error?: unknown; response?: { restoring?: unknown; shuttingdown?: unknown; complete?: unknown } } | null;
+  if (result.ok && body?.status === false && body.error === "Command not found") {
+    const dispatchedAt = Number(revision.split("@")[1]);
+    if (!Number.isFinite(dispatchedAt) || dispatchedAt <= 0) return false;
+    const container = await getComposeServiceContainer("minima");
+    if (!container) return false;
+    const { State } = await inspectContainer(container.Id);
+    if (!State.Running || !(Date.parse(State.StartedAt) > dispatchedAt)) return false;
+    const status = await runMinimaPathCommand("status");
+    const statusBody = status.body as { status?: unknown; response?: { locked?: unknown } } | null;
+    return status.ok && statusBody?.status === true && statusBody.response?.locked === false;
+  }
+  return result.ok && body?.status === true && body.response?.restoring === false
+    && body.response.shuttingdown === false && body.response.complete === false;
 }
 
 // Returns one of the 64 pre-created default wallet addresses at random.
@@ -37,39 +61,29 @@ export async function sendPayment({ address, amount, tokenId = "0x00" }: SendPay
   return parseSendResponse(result.body);
 }
 
-export async function getPaymentStatus(txpowId: string): Promise<PaymentStatus> {
-  const result = await runMinimaPathCommand(`txpow txpowid:${txpowId}`);
-  return parsePaymentStatusResponse(result.body, txpowId);
-}
-
-// Restores wallet from a 24-word seed phrase via Minima restore RPC.
-// The phrase must never be logged — do not pass it to recordAuditEvent detail.
-export async function importWallet(phrase: string): Promise<ImportWalletResult> {
-  const result = await runMinimaPathCommand(`restore phrase:"${phrase}"`, 30_000);
-  if (!result.ok) throw new Error(`Minima RPC error: HTTP ${result.status}`);
-  return parseImportResponse(result.body);
-}
-
-export function clearWalletSendHistoryForDebug(): number {
-  const result = db.prepare("DELETE FROM wallet_send_history").run();
-  return result.changes;
-}
-
-export function recordWalletSendHistory(input: {
+/** `txpowId` is the pre-mined ID `send` returned; `transactionId` links the row to the mined TxPoW. */
+export async function recordWalletSendHistory(input: {
   toAddress: string;
   tokenId: string;
   tokenName: string;
   amount: string;
   txpowId: string | null;
+  transactionId: string | null;
   status: "submitted" | "failed";
+  origin: "manual" | "automation";
+  /** Minima's failure message; stored for failed sends only. */
+  error?: string;
 }) {
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
+  // The payment is already sent; a fingerprint lookup failure must not lose the record.
+  const walletFingerprint = await getWalletFingerprint().catch(() => null);
   db.prepare(`
     INSERT INTO wallet_send_history (
-      id, created_at, from_account_label, from_account_address, to_address, token_id, token_name, amount, txpow_id, status
+      id, created_at, from_account_label, from_account_address, to_address, token_id, token_name, amount, txpow_id, status,
+      wallet_fingerprint, origin, transaction_id, error
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     createdAt,
@@ -80,35 +94,10 @@ export function recordWalletSendHistory(input: {
     input.tokenName,
     input.amount,
     input.txpowId,
-    input.status
+    input.status,
+    walletFingerprint,
+    input.origin,
+    input.transactionId,
+    input.status === "failed" && input.error ? redactSecrets(input.error) : null
   );
-}
-
-export function listWalletSendHistory(limit = 30): WalletSendHistoryItem[] {
-  const safeLimit = Math.max(1, Math.min(200, Math.trunc(limit)));
-  const rows = db.prepare(`
-    SELECT id, created_at, to_address, token_id, token_name, amount, txpow_id, status
-    FROM wallet_send_history
-    ORDER BY datetime(created_at) DESC
-    LIMIT ?
-  `).all(safeLimit) as {
-    id: string;
-    created_at: string;
-    to_address: string;
-    token_id: string;
-    token_name: string;
-    amount: string;
-    txpow_id: string | null;
-    status: "submitted" | "failed";
-  }[];
-  return rows.map((row) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    toAddress: row.to_address,
-    tokenId: row.token_id,
-    tokenName: row.token_name,
-    amount: row.amount,
-    txpowId: row.txpow_id,
-    status: row.status
-  }));
 }
