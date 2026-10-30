@@ -1,0 +1,15 @@
+{
+  "status": "pass",
+  "scope": "Artifact and documentation structure only; no implementation or standards-conformance proof",
+  "fr_rows": 42,
+  "oq_rows": 9,
+  "local_links_checked": 62,
+  "main_pngs_checked": 10,
+  "pdf_sha256": {
+    "ArchiMate-Cookbook.pdf": "2f4579c054e1efadf10de90ede92c57e626f6d3c584b3a227cb79f2d7590d998",
+    "The Agile Enterprise Architect Playbook.pdf": "19cb2da0a2c4d18040ea56f23e045590e968093d1d81c3db476ed3ae145c84f0",
+    "The TOGAF® Standard, 10th Edition Technical Corrigendum 1.pdf": "617ad12f38f417c1084625f9e443db9a76dbe5350eff9d52c98b3f36564e315f"
+  },
+  "prd_sha256": "896038f2c492f712d33f91140c1ddc50dc992709ce00f0304993f4047632edae",
+  "errors": []
+}

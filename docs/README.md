@@ -35,6 +35,10 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 
 ## Plans
 
+**Module Builder product baseline:** [PRD](../tasks/prd-module-builder.md) — both phases, numbered requirements, release gates and unresolved policy decisions; use this as the product input to the technical specification.
+
+**Module Builder architecture review:** [HLD, LLD and ten PNG diagrams](./reports/module-builder-architecture-2026-10-30/README.md) — dated review draft with all 42 requirements traced, current/target separation and explicit decision holds; full standards review and dependent implementation bindings remain open.
+
 | Plan | Status |
 | ---- | ------ |
 | [plans/module-builder.md](./plans/module-builder.md) | Dynamic hardware, device setup, and workflow extensions; local demo library and authoring tools; not started |

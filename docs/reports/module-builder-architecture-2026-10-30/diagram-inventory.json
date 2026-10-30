@@ -1,0 +1,116 @@
+{
+  "renderer": "Pillow",
+  "font": "segoeui.ttf",
+  "diagrams": [
+    {
+      "file": "01-current-state.png",
+      "title": "Current state: capabilities ship with the app",
+      "size": [
+        2600,
+        1600
+      ],
+      "sha256": "2629507214436cf821eacc225423e70694accd10e8d3bdea95d621cee4666cc7",
+      "text_fit_checks": 9,
+      "edges": 4
+    },
+    {
+      "file": "02-target-layered.png",
+      "title": "Target: layered responsibilities and services",
+      "size": [
+        2600,
+        1600
+      ],
+      "sha256": "a28090a6e4b9bc2600917874722ea46ef8b5b0a4a6648e28fbb13dc604cc456d",
+      "text_fit_checks": 15,
+      "edges": 12
+    },
+    {
+      "file": "03-transition-roadmap.png",
+      "title": "Transition: release gates carry the scope",
+      "size": [
+        2600,
+        1600
+      ],
+      "sha256": "666ff805a2a4a7601b01035980d22e2fb788d8185e9710c2623a6dbdf9e88f0a",
+      "text_fit_checks": 9,
+      "edges": 5
+    },
+    {
+      "file": "04-local-components.png",
+      "title": "Target local components and interfaces",
+      "size": [
+        2600,
+        1600
+      ],
+      "sha256": "37bfa0fc50e0569fb79eeef42a956f5a428f3e44089ba45a202cded68c59b3d5",
+      "text_fit_checks": 9,
+      "edges": 7
+    },
+    {
+      "file": "05-data-model.png",
+      "title": "Data: immutable versions, retained instances",
+      "size": [
+        2600,
+        1600
+      ],
+      "sha256": "639c2139012f8588603d49b5f3711155a40f7befcce240090ae562ebcaa4f879",
+      "text_fit_checks": 9,
+      "edges": 8
+    },
+    {
+      "file": "06-lifecycle.png",
+      "title": "Lifecycle: installation is one state dimension",
+      "size": [
+        2600,
+        1600
+      ],
+      "sha256": "de2a194b3c601805d8b498b0801f589eba168825bbfaa6b6394b03687b9f8cb8",
+      "text_fit_checks": 9,
+      "edges": 3
+    },
+    {
+      "file": "07-install-flow.png",
+      "title": "Install flow: verify, acknowledge, execute, reconcile",
+      "size": [
+        2600,
+        1600
+      ],
+      "sha256": "c96adaedba00cbb24c06bc065f2120dbd5346cf3d3fbe409b6fa6426cb5c374a",
+      "text_fit_checks": 9,
+      "edges": 7
+    },
+    {
+      "file": "08-deployment.png",
+      "title": "Deployment: baseline hosts and target additions",
+      "size": [
+        2600,
+        1600
+      ],
+      "sha256": "c44ce5d758ee3efe1696e19f445b5e9b040bcc911e1fa600fc12ba7f0adcea17",
+      "text_fit_checks": 9,
+      "edges": 5
+    },
+    {
+      "file": "09-hosted-commerce.png",
+      "title": "Commerce online; installed operation offline",
+      "size": [
+        2600,
+        1600
+      ],
+      "sha256": "7fbbf03acc8b7da41e040bacbf7adab57de783ffc2d828442eda66e536ce6b37",
+      "text_fit_checks": 9,
+      "edges": 6
+    },
+    {
+      "file": "10-runtime-data-flows.png",
+      "title": "Runtime data flows: input, effect, evidence",
+      "size": [
+        2600,
+        1600
+      ],
+      "sha256": "83dcd59ec4d3a269ac57e07001f6ee8d4f5eaed37fa6114960015a0a236a21fd",
+      "text_fit_checks": 9,
+      "edges": 8
+    }
+  ]
+}

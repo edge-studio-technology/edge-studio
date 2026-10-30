@@ -35,6 +35,7 @@
 
 ## Next
 
+- [ ] Review and finalize the Module Builder technical specification from [the PRD](../tasks/prd-module-builder.md) and [the architecture draft](./reports/module-builder-architecture-2026-10-30/README.md): resolve dependent policies, wire/runtime contracts, persistence/layout, concurrency/recovery and operational targets; obtain full standards sources for conformance review. Both phases and the independent-author Phase 1 proof remain required; keep product changes synchronized with the PRD and backlog.
 - [ ] Resolve remaining Full Module Builder workshop details and named library/official-package ownership; D1-D7 directions are agreed with recorded qualifications, commerce is required in Phase 2, and D8 plus detailed commercial/provider terms remain open — see `docs/plans/module-builder/workshop-revision.md`.
 
 - [ ] Module builder Phase 1 (OpenProject epic #1081): local authoring/runtime, dynamic hardware/device/workflow contributions, default-package extraction, import/export and local demo-library lifecycle proof. Phase 2 (epic #1082): hosted library, publishing/reputation, and required commerce including purchases, contributor payouts/refunds and offline entitlements — see `docs/plans/module-builder.md` and `docs/reports/module-builder-openproject-2026-10-28/README.md`. Implementation not started.
@@ -88,6 +89,8 @@
 
 ## Done
 
+- [x] Created the Module Builder HLD/LLD review draft, ten management-ready PNG architecture views, all-42-FR traceability and source/assumption/gap registers — see [the architecture pack](./reports/module-builder-architecture-2026-10-30/README.md). Unresolved PRD policies and standards-source limitations remain explicit; no runtime or acceptance gate was completed.
+- [x] Created the Module Builder PRD covering both delivery phases, required commerce, numbered functional requirements, milestone/error acceptance, feature traceability and explicitly open policies — see [the PRD](../tasks/prd-module-builder.md). No platform implementation or licensing decision was made.
 - [x] Applied the approved Module Builder query #307 cleanup: eight superseded records removed from the active bucket, #978/#981/#980 deferred to Backlog refinement, remote research consolidated in #208 under #342, and #1081–#1098 placed in the Module Builder bucket. Preserved history and existing statuses; no deletion or false completion — see `docs/reports/module-builder-openproject-2026-10-28/README.md`.
 
 - [x] Created and verified Module Builder delivery epics #1081/#1082 with 16 child features #1083–#1098, criteria, linked dependency references and provisional effort ranges; made commerce required in Phase 2 and updated the proposal/estimates/presentation. Existing tickets and assignments were not changed — see `docs/reports/module-builder-openproject-2026-10-28/README.md`.

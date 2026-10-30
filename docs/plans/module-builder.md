@@ -1,6 +1,7 @@
 # Module Builder Plan
 
 **Status:** Not started
+**Product requirements baseline:** [Module Builder PRD](../../tasks/prd-module-builder.md). Use its consolidated requirements and release gates as the product input to the technical specification; this plan supplies engineering context.
 **Created:** 2026-10-20
 **Goal:** Make hardware capabilities, device setup, and workflow blocks dynamically installable extensions, prove the lifecycle using the existing capabilities and a locally hosted demo library, then provide in-app extension authoring tools.
 
