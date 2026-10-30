@@ -10,7 +10,7 @@
       "key": "P1",
       "phase": 1,
       "milestone": "M1-M3",
-      "subject": "Module Builder - Phase 1: Local creation and execution",
+      "subject": "Module Builder - Phase 1: Create and use modules in Edge Studio",
       "estimate": [
         40,
         62
@@ -44,7 +44,7 @@
       "key": "P2",
       "phase": 2,
       "milestone": "M4",
-      "subject": "Module Builder - Phase 2: Hosted library and commerce",
+      "subject": "Module Builder - Phase 2: Share and sell modules in the online library",
       "estimate": [
         24,
         40
@@ -79,7 +79,7 @@
       "key": "F0",
       "phase": 1,
       "milestone": "Prerequisite",
-      "subject": "App-wide device/log export and tested restore for extension recovery",
+      "subject": "Back up Edge Studio and restore it if a module causes problems",
       "estimate": [
         6,
         10
@@ -106,7 +106,7 @@
       "key": "F1",
       "phase": 1,
       "milestone": "M1",
-      "subject": "Inventory capabilities and define versioned module contracts",
+      "subject": "Define what modules can add and how they work with Edge Studio",
       "estimate": [
         3,
         4
@@ -133,7 +133,7 @@
       "key": "F2",
       "phase": 1,
       "milestone": "M1",
-      "subject": "Implement package lifecycle and HTTP/Fetch vertical slice",
+      "subject": "Install, update and remove modules, starting with a working example",
       "estimate": [
         5,
         8
@@ -161,7 +161,7 @@
       "key": "F3",
       "phase": 1,
       "milestone": "M2",
-      "subject": "Make privileged hardware-agent capabilities dynamically installable",
+      "subject": "Add hardware support by installing modules",
       "estimate": [
         5,
         8
@@ -192,7 +192,7 @@
       "key": "F4",
       "phase": 1,
       "milestone": "M2",
-      "subject": "Render dynamic device definitions, schemas and setup wizards",
+      "subject": "Add device choices and setup guides through modules",
       "estimate": [
         3,
         5
@@ -220,7 +220,7 @@
       "key": "F5",
       "phase": 1,
       "milestone": "M2",
-      "subject": "Make workflow blocks and execution registry-driven",
+      "subject": "Add new workflow steps through modules",
       "estimate": [
         4,
         6
@@ -248,7 +248,7 @@
       "key": "F6",
       "phase": 1,
       "milestone": "M2",
-      "subject": "Extract default packages and prove migration/hardware parity",
+      "subject": "Turn built-in features into modules users can remove and reinstall",
       "estimate": [
         4,
         5
@@ -280,7 +280,7 @@
       "key": "F7",
       "phase": 1,
       "milestone": "M3",
-      "subject": "Deliver the in-app local module authoring workspace",
+      "subject": "Create, edit and test modules inside Edge Studio",
       "estimate": [
         5,
         8
@@ -313,7 +313,7 @@
       "key": "F8",
       "phase": 1,
       "milestone": "M3",
-      "subject": "Provide the module-builder skill, packaging and independent-author proof",
+      "subject": "Help creators build modules and prove they work on another Pi",
       "estimate": [
         5,
         8
@@ -349,7 +349,7 @@
       "key": "F9",
       "phase": 2,
       "milestone": "M4a",
-      "subject": "Host publisher identities and immutable module releases",
+      "subject": "Give creators accounts and store published module versions",
       "estimate": [
         4,
         6
@@ -381,7 +381,7 @@
       "key": "F10",
       "phase": 2,
       "milestone": "M4a",
-      "subject": "Deliver hosted discovery and Edge Studio library integration",
+      "subject": "Find modules online and add them to Edge Studio",
       "estimate": [
         3,
         5
@@ -413,7 +413,7 @@
       "key": "F11",
       "phase": 2,
       "milestone": "M4a",
-      "subject": "Automate publication checks and initial post-publication moderation",
+      "subject": "Check uploads automatically and handle spam after publication",
       "estimate": [
         3,
         5
@@ -441,7 +441,7 @@
       "key": "F12",
       "phase": 2,
       "milestone": "M4b",
-      "subject": "Expose release-source inspection and community reports",
+      "subject": "Let users inspect module code and report problems",
       "estimate": [
         2,
         4
@@ -470,7 +470,7 @@
       "key": "F13",
       "phase": 2,
       "milestone": "M4b",
-      "subject": "Implement module ratings, builder reputation and download counts",
+      "subject": "Show module ratings, creator ratings and download numbers",
       "estimate": [
         4,
         6
@@ -500,7 +500,7 @@
       "key": "F14",
       "phase": 2,
       "milestone": "M4c",
-      "subject": "Implement required marketplace purchases, payouts and refunds",
+      "subject": "Let users buy modules, pay creators and receive refunds",
       "estimate": [
         5,
         9
@@ -533,7 +533,7 @@
       "key": "F15",
       "phase": 2,
       "milestone": "M4c",
-      "subject": "Deliver official-package entitlements and installed-version offline use",
+      "subject": "Keep purchased modules working when the library is offline",
       "estimate": [
         3,
         5

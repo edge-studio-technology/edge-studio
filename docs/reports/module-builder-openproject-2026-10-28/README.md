@@ -4,37 +4,39 @@ Created 2026-10-28 in Integritas Team, tagged with the Edge Studio product. Two 
 
 Commerce is required in Phase 2. The local builder remains Phase 1; the hosted library, publishing, reputation and purchases/payouts/refunds/offline entitlements are Phase 2.
 
+**Title update — 2026-10-30:** The eighteen epic/feature titles below and in the JSON snapshot match the plain-English names verified in OpenProject. Original scope, acceptance criteria, estimates and dependencies are unchanged.
+
 ## Epics and features
 
-### [#1081: Module Builder - Phase 1: Local creation and execution](https://openproject.privateprivate.org/work_packages/1081)
+### [#1081: Module Builder - Phase 1: Create and use modules in Edge Studio](https://openproject.privateprivate.org/work_packages/1081)
 
 Provisional phase effort: 40–62 engineer-weeks.
 
 | Feature | Milestone | Engineer-weeks | Dependency references |
 | --- | --- | --- | --- |
-| [#1083: App-wide device/log export and tested restore for extension recovery](https://openproject.privateprivate.org/work_packages/1083) | Prerequisite | 6–10 | None in this new backlog |
-| [#1084: Inventory capabilities and define versioned module contracts](https://openproject.privateprivate.org/work_packages/1084) | M1 | 3–4 | None in this new backlog |
-| [#1085: Implement package lifecycle and HTTP/Fetch vertical slice](https://openproject.privateprivate.org/work_packages/1085) | M1 | 5–8 | [#1084](https://openproject.privateprivate.org/work_packages/1084) |
-| [#1086: Make privileged hardware-agent capabilities dynamically installable](https://openproject.privateprivate.org/work_packages/1086) | M2 | 5–8 | [#1085](https://openproject.privateprivate.org/work_packages/1085) |
-| [#1087: Render dynamic device definitions, schemas and setup wizards](https://openproject.privateprivate.org/work_packages/1087) | M2 | 3–5 | [#1085](https://openproject.privateprivate.org/work_packages/1085) |
-| [#1088: Make workflow blocks and execution registry-driven](https://openproject.privateprivate.org/work_packages/1088) | M2 | 4–6 | [#1085](https://openproject.privateprivate.org/work_packages/1085) |
-| [#1089: Extract default packages and prove migration/hardware parity](https://openproject.privateprivate.org/work_packages/1089) | M2 | 4–5 | [#1086](https://openproject.privateprivate.org/work_packages/1086), [#1087](https://openproject.privateprivate.org/work_packages/1087), [#1088](https://openproject.privateprivate.org/work_packages/1088) |
-| [#1090: Deliver the in-app local module authoring workspace](https://openproject.privateprivate.org/work_packages/1090) | M3 | 5–8 | [#1085](https://openproject.privateprivate.org/work_packages/1085), [#1083](https://openproject.privateprivate.org/work_packages/1083) |
-| [#1091: Provide the module-builder skill, packaging and independent-author proof](https://openproject.privateprivate.org/work_packages/1091) | M3 | 5–8 | [#1084](https://openproject.privateprivate.org/work_packages/1084), [#1090](https://openproject.privateprivate.org/work_packages/1090), [#1086](https://openproject.privateprivate.org/work_packages/1086), [#1087](https://openproject.privateprivate.org/work_packages/1087), [#1088](https://openproject.privateprivate.org/work_packages/1088) |
+| [#1083: Back up Edge Studio and restore it if a module causes problems](https://openproject.privateprivate.org/work_packages/1083) | Prerequisite | 6–10 | None in this new backlog |
+| [#1084: Define what modules can add and how they work with Edge Studio](https://openproject.privateprivate.org/work_packages/1084) | M1 | 3–4 | None in this new backlog |
+| [#1085: Install, update and remove modules, starting with a working example](https://openproject.privateprivate.org/work_packages/1085) | M1 | 5–8 | [#1084](https://openproject.privateprivate.org/work_packages/1084) |
+| [#1086: Add hardware support by installing modules](https://openproject.privateprivate.org/work_packages/1086) | M2 | 5–8 | [#1085](https://openproject.privateprivate.org/work_packages/1085) |
+| [#1087: Add device choices and setup guides through modules](https://openproject.privateprivate.org/work_packages/1087) | M2 | 3–5 | [#1085](https://openproject.privateprivate.org/work_packages/1085) |
+| [#1088: Add new workflow steps through modules](https://openproject.privateprivate.org/work_packages/1088) | M2 | 4–6 | [#1085](https://openproject.privateprivate.org/work_packages/1085) |
+| [#1089: Turn built-in features into modules users can remove and reinstall](https://openproject.privateprivate.org/work_packages/1089) | M2 | 4–5 | [#1086](https://openproject.privateprivate.org/work_packages/1086), [#1087](https://openproject.privateprivate.org/work_packages/1087), [#1088](https://openproject.privateprivate.org/work_packages/1088) |
+| [#1090: Create, edit and test modules inside Edge Studio](https://openproject.privateprivate.org/work_packages/1090) | M3 | 5–8 | [#1085](https://openproject.privateprivate.org/work_packages/1085), [#1083](https://openproject.privateprivate.org/work_packages/1083) |
+| [#1091: Help creators build modules and prove they work on another Pi](https://openproject.privateprivate.org/work_packages/1091) | M3 | 5–8 | [#1084](https://openproject.privateprivate.org/work_packages/1084), [#1090](https://openproject.privateprivate.org/work_packages/1090), [#1086](https://openproject.privateprivate.org/work_packages/1086), [#1087](https://openproject.privateprivate.org/work_packages/1087), [#1088](https://openproject.privateprivate.org/work_packages/1088) |
 
-### [#1082: Module Builder - Phase 2: Hosted library and commerce](https://openproject.privateprivate.org/work_packages/1082)
+### [#1082: Module Builder - Phase 2: Share and sell modules in the online library](https://openproject.privateprivate.org/work_packages/1082)
 
 Provisional phase effort: 24–40 engineer-weeks.
 
 | Feature | Milestone | Engineer-weeks | Dependency references |
 | --- | --- | --- | --- |
-| [#1092: Host publisher identities and immutable module releases](https://openproject.privateprivate.org/work_packages/1092) | M4a | 4–6 | [#1085](https://openproject.privateprivate.org/work_packages/1085), [#1091](https://openproject.privateprivate.org/work_packages/1091) |
-| [#1093: Deliver hosted discovery and Edge Studio library integration](https://openproject.privateprivate.org/work_packages/1093) | M4a | 3–5 | [#1092](https://openproject.privateprivate.org/work_packages/1092), [#1085](https://openproject.privateprivate.org/work_packages/1085) |
-| [#1094: Automate publication checks and initial post-publication moderation](https://openproject.privateprivate.org/work_packages/1094) | M4a | 3–5 | [#1092](https://openproject.privateprivate.org/work_packages/1092) |
-| [#1095: Expose release-source inspection and community reports](https://openproject.privateprivate.org/work_packages/1095) | M4b | 2–4 | [#1092](https://openproject.privateprivate.org/work_packages/1092), [#1094](https://openproject.privateprivate.org/work_packages/1094) |
-| [#1096: Implement module ratings, builder reputation and download counts](https://openproject.privateprivate.org/work_packages/1096) | M4b | 4–6 | [#1092](https://openproject.privateprivate.org/work_packages/1092), [#1093](https://openproject.privateprivate.org/work_packages/1093) |
-| [#1097: Implement required marketplace purchases, payouts and refunds](https://openproject.privateprivate.org/work_packages/1097) | M4c | 5–9 | [#1092](https://openproject.privateprivate.org/work_packages/1092), [#1093](https://openproject.privateprivate.org/work_packages/1093) |
-| [#1098: Deliver official-package entitlements and installed-version offline use](https://openproject.privateprivate.org/work_packages/1098) | M4c | 3–5 | [#1097](https://openproject.privateprivate.org/work_packages/1097), [#1095](https://openproject.privateprivate.org/work_packages/1095), [#1085](https://openproject.privateprivate.org/work_packages/1085) |
+| [#1092: Give creators accounts and store published module versions](https://openproject.privateprivate.org/work_packages/1092) | M4a | 4–6 | [#1085](https://openproject.privateprivate.org/work_packages/1085), [#1091](https://openproject.privateprivate.org/work_packages/1091) |
+| [#1093: Find modules online and add them to Edge Studio](https://openproject.privateprivate.org/work_packages/1093) | M4a | 3–5 | [#1092](https://openproject.privateprivate.org/work_packages/1092), [#1085](https://openproject.privateprivate.org/work_packages/1085) |
+| [#1094: Check uploads automatically and handle spam after publication](https://openproject.privateprivate.org/work_packages/1094) | M4a | 3–5 | [#1092](https://openproject.privateprivate.org/work_packages/1092) |
+| [#1095: Let users inspect module code and report problems](https://openproject.privateprivate.org/work_packages/1095) | M4b | 2–4 | [#1092](https://openproject.privateprivate.org/work_packages/1092), [#1094](https://openproject.privateprivate.org/work_packages/1094) |
+| [#1096: Show module ratings, creator ratings and download numbers](https://openproject.privateprivate.org/work_packages/1096) | M4b | 4–6 | [#1092](https://openproject.privateprivate.org/work_packages/1092), [#1093](https://openproject.privateprivate.org/work_packages/1093) |
+| [#1097: Let users buy modules, pay creators and receive refunds](https://openproject.privateprivate.org/work_packages/1097) | M4c | 5–9 | [#1092](https://openproject.privateprivate.org/work_packages/1092), [#1093](https://openproject.privateprivate.org/work_packages/1093) |
+| [#1098: Keep purchased modules working when the library is offline](https://openproject.privateprivate.org/work_packages/1098) | M4c | 3–5 | [#1097](https://openproject.privateprivate.org/work_packages/1097), [#1095](https://openproject.privateprivate.org/work_packages/1095), [#1085](https://openproject.privateprivate.org/work_packages/1085) |
 
 ## Estimates and traceability
 

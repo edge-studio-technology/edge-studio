@@ -89,6 +89,7 @@
 
 ## Done
 
+- [x] Simplified the titles of OpenProject Module Builder epics/features #1081–#1098 and added short, non-technical summaries at the top of each description; verified all eighteen updates while preserving the original detailed requirements and ticket metadata. Synchronized the repository backlog overview and JSON snapshot with the same names.
 - [x] Created the Module Builder HLD/LLD review draft, ten management-ready PNG architecture views, all-42-FR traceability and source/assumption/gap registers — see [the architecture pack](./reports/module-builder-architecture-2026-10-30/README.md). Unresolved PRD policies and standards-source limitations remain explicit; no runtime or acceptance gate was completed.
 - [x] Created the Module Builder PRD covering both delivery phases, required commerce, numbered functional requirements, milestone/error acceptance, feature traceability and explicitly open policies — see [the PRD](../tasks/prd-module-builder.md). No platform implementation or licensing decision was made.
 - [x] Applied the approved Module Builder query #307 cleanup: eight superseded records removed from the active bucket, #978/#981/#980 deferred to Backlog refinement, remote research consolidated in #208 under #342, and #1081–#1098 placed in the Module Builder bucket. Preserved history and existing statuses; no deletion or false completion — see `docs/reports/module-builder-openproject-2026-10-28/README.md`.
