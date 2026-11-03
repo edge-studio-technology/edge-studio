@@ -2,6 +2,7 @@ import { Router } from "express";
 import { dependencyUnavailable } from "../../shared/api-error.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
+import { pauseCameraRetention } from "../retention/camera-retention.service.js";
 import { disableHostCameraCapability, disableHostGpioCapability, disableHostMqttCapability, disableHostSensorCapability, enableHostCameraCapability, enableHostGpioCapability, enableHostMqttCapability, enableHostSensorCapability, listHostCapabilities, setupHostSensorPrerequisites, type HostCapability } from "./hostCapabilities.service.js";
 
 export const hostCapabilitiesRouter = Router();
@@ -26,6 +27,7 @@ hostCapabilitiesRouter.post("/camera/enable", requireRole("admin"), async (_req,
 
 hostCapabilitiesRouter.post("/camera/disable", requireRole("admin"), async (_req, res) => {
   try {
+    pauseCameraRetention(_req.user?.id);
     const result = await disableHostCameraCapability();
     recordHostCapabilityAudit(_req.user?.id, "disable", result.capability);
     return res.json(result);

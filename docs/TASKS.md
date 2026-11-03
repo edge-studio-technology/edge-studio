@@ -21,6 +21,8 @@
 
 ### Follow-ups from finished work
 
+- [ ] Verify Settings → Security session controls in a browser/on a disposable Pi: bootstrap migration, current-credential confirmation, persisted policy, background-request inactivity, immediate shorter-limit logout and unchanged existing expiry after increases (ADR 0041).
+- [ ] Verify camera retention on a disposable Pi: optional-extension states, paused migration/resume, file previews, bounded sweeps and proof ZIP preservation after cleanup; generated-download cleanup and Dashboard disk warnings from #861 remain separate follow-ups.
 - [ ] Verify retention controls and preview/confirmation on a disposable Pi database, including cancellation, restart persistence, bounded sweeps, active-run/proof protection, policy disablement and disk warnings; Docker image validation awaits a running daemon (ADR 0022).
 - [ ] Verify SQLite Minima monitoring settings on a Pi: one-time environment migration, persistence after restart, live interval changes, stopped-node editing, and active-resync preservation; Docker image build awaits a running daemon (ADR 0041).
 - [ ] Verify the terminal uninstaller on a disposable Pi installation: keep-data removal/reinstall, confirmed internal-data deletion, custom helper ports/subnet, retained external data, cancellation, and partially removed installations.
@@ -74,6 +76,9 @@
 
 ## Done
 
+- [x] Added SQLite session policy and Settings → Security controls with PIN/password confirmation, transactional audits/session enforcement and safe existing-expiry behavior; focused auth/API/UI tests, full frontend tests, lint/typechecks and application builds passed (known Minima restore-test and Docker-daemon limitations remain).
+- [x] Added separate SQLite camera retention with file previews, confirmed migration/resume, optional-extension visibility and proof-media/active-workflow protection; focused backend and full frontend tests, lint/typechecks, builds and Compose config passed (known Minima restore-test and Docker-daemon limitations remain).
+- [x] Added independent opt-in inbox age retention with safe legacy/default behaviour, read/unread preview counts, active-run and linked-file protection, and shared batch limits; focused/full frontend tests, backend regressions, lint/typechecks and application builds passed (known restore-test and Docker-daemon limitations remain).
 - [x] Added SQLite retention settings and Settings controls (#857 / automatic-retention part of #819), reviewed deletion previews, safe opt-in sweeps and Settings disk warnings; focused/full frontend tests, backend regressions, lint/typechecks, builds and Compose config passed (backend full run retains the known Minima restore failure).
 - [x] Recorded the `.env`/runtime-settings and export boundary (#628/#643, ADR 0041) and added the first SQLite-backed Minima monitoring controls with validated admin APIs, audits, migration and live rescheduling; focused backend/UI tests, full frontend coverage, lint/typechecks, application builds and Compose configuration passed (full check still hits the tracked Minima restore failure).
 - [x] Added the terminal uninstaller with default data retention, confirmed internal-data deletion, dry-run/ownership checks, and Settings instructions with a Keep data / Delete data command toggle; verified focused regressions, frontend build/tests, lint/typechecks, shell syntax, Compose config, and runtime packaging (full check still hits the tracked Minima restore failure).

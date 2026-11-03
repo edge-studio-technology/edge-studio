@@ -86,6 +86,7 @@ export const env = {
   cookieSecure: process.env.COOKIE_SECURE === "true",
   cookieSameSite: "strict" as const,
   sessionCookieName: "session",
+  // Legacy session policy bootstrap only; live limits are stored in SQLite (ADR 0041).
   sessionMaxAgeDays: Number(process.env.SESSION_MAX_AGE_DAYS ?? 7),
   sessionIdleHours: Number(process.env.SESSION_IDLE_HOURS ?? 24),
   // Legacy bootstrap inputs only; live monitoring reads SQLite (ADR 0041).

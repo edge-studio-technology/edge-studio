@@ -75,7 +75,7 @@ describe("retention.service — policy", () => {
     assert.deepEqual(policy.RETENTION_POLICIES, {
       automationRuns: { strategy: "configured-per-workflow", batchSize: 500 },
       automationBlockRuns: { strategy: "with-parent-run" },
-      automationInboxItems: { strategy: "deleted-only", batchSize: 500 },
+      automationInboxItems: { strategy: "deleted-or-opt-in-expiry", batchSize: 500 },
       dataSourceReads: { strategy: "configured-age-proof-protected" },
       integritasProofs: { strategy: "explicit-deletion" }
     });

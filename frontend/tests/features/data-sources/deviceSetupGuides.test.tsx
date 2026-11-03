@@ -169,7 +169,7 @@ describe("StandardDeviceSetupGuide", () => {
     await userEvent.click(screen.getByRole("button", { name: "Troubleshooting" }));
     expect(screen.getByText("Camera busy")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Privacy and retention" }));
-    expect(screen.getByText(/CAMERA_RETENTION_DAYS/)).toBeInTheDocument();
+    expect(screen.getByText(/Manage camera retention in Settings/)).toHaveTextContent("Proof-linked captures are protected");
     await userEvent.click(screen.getByRole("button", { name: "Guide actions" }));
     await userEvent.click(screen.getByRole("button", { name: "Create basic workflow for this device" }));
     const workflow = onAction.mock.calls[0][0].workflow(item);

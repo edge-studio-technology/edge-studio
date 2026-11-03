@@ -19,6 +19,18 @@ const configuredReads = `SELECT id FROM data_source_reads
   WHERE created_at < @readCutoff AND integritas_proof_id IS NULL
   ORDER BY created_at ASC, id ASC`;
 
+const expiredInboxItems = `SELECT id FROM automation_inbox_items
+  WHERE deleted_at IS NULL AND created_at < @inboxCutoff
+    AND (run_id IS NULL OR run_id NOT IN (SELECT value FROM json_each(@activeRuns)))
+  ORDER BY created_at ASC, id ASC`;
+
+function inboxParameters(settings: RetentionSettings, now: number) {
+  return {
+    activeRuns: JSON.stringify(getActiveAutomationRunIds()),
+    inboxCutoff: new Date(now - settings.inboxRetentionDays! * 86400000).toISOString(),
+  };
+}
+
 function configuredParameters(settings: RetentionSettings, now: number) {
   return {
     activeRuns: JSON.stringify(getActiveAutomationRunIds()),
@@ -34,8 +46,15 @@ export function previewConfiguredRetention(settings: RetentionSettings, now = Da
   return {
     automationRuns: count(`SELECT COUNT(*) AS count FROM (${configuredRuns})`, parameters),
     automationBlockRuns: count(`SELECT COUNT(*) AS count FROM automation_block_runs WHERE run_id IN (${configuredRuns})`, parameters),
-    dataSourceReads: count(`SELECT COUNT(*) AS count FROM (${configuredReads})`, { readCutoff })
+    dataSourceReads: count(`SELECT COUNT(*) AS count FROM (${configuredReads})`, { readCutoff }),
+    automationInboxItems: settings.inboxRetentionDays === null ? 0 : count(`SELECT COUNT(*) AS count FROM (${expiredInboxItems})`, inboxParameters(settings, now))
   };
+}
+
+export function pruneExpiredAutomationInboxItems(settings: RetentionSettings, batchSize: number, now = Date.now()) {
+  if (settings.inboxRetentionDays === null || batchSize <= 0) return 0;
+  return db.transaction(() => db.prepare(`DELETE FROM automation_inbox_items WHERE id IN (${expiredInboxItems} LIMIT @batchSize)`)
+    .run({ ...inboxParameters(settings, now), batchSize }).changes).immediate();
 }
 
 export function pruneConfiguredRetention(settings: RetentionSettings, batchSize: number, now = Date.now()) {

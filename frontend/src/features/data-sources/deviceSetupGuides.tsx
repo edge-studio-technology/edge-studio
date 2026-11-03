@@ -871,7 +871,7 @@ function piCameraGuide(source: DataSource) {
         items: [
           "Place the camera with consent and privacy in mind. A workflow run can record an image or video.",
           "Captured media stays local unless a workflow sends it elsewhere. Stamp data creates a proof of the media hash; it does not back up the media.",
-          "Captured media is pruned opportunistically after CAMERA_RETENTION_DAYS (7 days by default). Export evidence you need before retention expires; read history retains metadata and the media hash.",
+          "Manage camera retention in Settings → Storage & history. Cleanup starts paused until you preview and confirm the policy, and pauses again when camera support is disabled. Proof-linked captures are protected; save any other media you need before enabling cleanup.",
         ],
       },
     ],

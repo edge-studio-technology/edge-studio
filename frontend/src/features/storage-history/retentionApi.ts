@@ -6,11 +6,13 @@ type RetentionSettings = {
   deletedWorkflowRunDays: number;
   dataSourceReadDays: number;
   diskWarningPercent: number;
+  inboxRetentionDays: number | null;
 };
 type RetentionCounts = {
   automationRuns: number;
   automationBlockRuns: number;
   dataSourceReads: number;
+  automationInboxItems: number;
 };
 export type RetentionPreview = {
   settings: RetentionSettings;

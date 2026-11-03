@@ -47,6 +47,8 @@ export function RetentionSettingsPanel() {
   const { showToast } = useToast();
   const [response, setResponse] = useState<RetentionResponse | null>(null);
   const [enabled, setEnabled] = useState(false);
+  const [inboxEnabled, setInboxEnabled] = useState(false);
+  const [inboxDays, setInboxDays] = useState("90");
   const [inputs, setInputs] = useState({
     runsPerWorkflow: "",
     deletedWorkflowRunDays: "",
@@ -70,6 +72,8 @@ export function RetentionSettingsPanel() {
         : null,
     });
     setEnabled(value.settings.automaticCleanupEnabled);
+    setInboxEnabled(value.settings.inboxRetentionDays !== null);
+    setInboxDays(String(value.settings.inboxRetentionDays ?? 90));
     setInputs({
       runsPerWorkflow: String(value.settings.runsPerWorkflow),
       deletedWorkflowRunDays: String(value.settings.deletedWorkflowRunDays),
@@ -106,6 +110,18 @@ export function RetentionSettingsPanel() {
       )
         fieldErrors[field.key] = `Enter a whole number from ${range.min} to ${range.max}.`;
     }
+    if (inboxEnabled) {
+      const range = response.limits.inboxRetentionDays;
+      const number = Number(inboxDays);
+      if (
+        !inboxDays.trim() ||
+        !Number.isInteger(number) ||
+        number < range.min ||
+        number > range.max
+      ) {
+        fieldErrors.inboxRetentionDays = `Enter a whole number from ${range.min} to ${range.max}.`;
+      }
+    }
     setErrors(fieldErrors);
     if (Object.keys(fieldErrors).length) return;
     setBusy(true);
@@ -117,6 +133,7 @@ export function RetentionSettingsPanel() {
           deletedWorkflowRunDays: Number(inputs.deletedWorkflowRunDays),
           dataSourceReadDays: Number(inputs.dataSourceReadDays),
           diskWarningPercent: Number(inputs.diskWarningPercent),
+          inboxRetentionDays: inboxEnabled ? Number(inboxDays) : null,
         }),
       );
     } catch (error) {
@@ -140,9 +157,10 @@ export function RetentionSettingsPanel() {
       showToast({
         tone: "success",
         title: "Retention policy saved",
-        message: saved.settings.automaticCleanupEnabled
-          ? "Automatic cleanup runs at startup and hourly. Records are not deleted by this save."
-          : "Automatic history cleanup is off.",
+        message:
+          saved.settings.automaticCleanupEnabled || saved.settings.inboxRetentionDays !== null
+            ? "Automatic cleanup runs at startup and hourly. Records are not deleted by this save."
+            : "Automatic history cleanup is off.",
       });
     } catch (error) {
       setProposal(null);
@@ -173,7 +191,7 @@ export function RetentionSettingsPanel() {
       ) : response ? (
         <div className="grid gap-4">
           <p className="type-body m-0">
-            Automatic cleanup is currently{" "}
+            Run and read cleanup is currently{" "}
             {response.settings.automaticCleanupEnabled ? "on" : "off"}. Preview and confirm to apply
             changes.
           </p>
@@ -203,7 +221,7 @@ export function RetentionSettingsPanel() {
             }}
           >
             <SwitchField
-              label="Enable automatic history cleanup"
+              label="Enable automatic run and read cleanup"
               checked={enabled}
               disabled={busy}
               onChange={(event) => setEnabled(event.target.checked)}
@@ -225,9 +243,38 @@ export function RetentionSettingsPanel() {
                 }
               />
             ))}
+            <SwitchField
+              label="Automatically remove old inbox items"
+              description="Separate opt-in policy. Off means keep until manually deleted, even when run and read cleanup is on."
+              checked={inboxEnabled}
+              disabled={busy}
+              onChange={(event) => setInboxEnabled(event.target.checked)}
+            />
             <p className="type-meta text-text-secondary m-0">
-              Wallet history, inbox content, proof history, imported archives, and audit events are
-              retained. This cleanup does not delete files or change camera retention.
+              Saved inbox policy:{" "}
+              {response.settings.inboxRetentionDays === null
+                ? "Keep until manually deleted"
+                : `Delete after ${response.settings.inboxRetentionDays} days from creation`}
+              . Preview and confirm to apply changes.
+            </p>
+            {inboxEnabled ? (
+              <InputField
+                label="Inbox item retention (days)"
+                description="Applies to read and unread items based on creation time. Active-run items and linked files are protected."
+                type="number"
+                step={1}
+                min={response.limits.inboxRetentionDays.min}
+                max={response.limits.inboxRetentionDays.max}
+                value={inboxDays}
+                error={errors.inboxRetentionDays}
+                disabled={busy}
+                onChange={(event) => setInboxDays(event.target.value)}
+              />
+            ) : null}
+            <p className="type-meta text-text-secondary m-0">
+              Wallet history, proof history, imported archives, and audit events are retained. Inbox
+              items expire only when their separate policy is enabled. This cleanup does not delete
+              files or change camera retention.
             </p>
             <div>
               <Button type="submit" disabled={busy}>
@@ -264,8 +311,8 @@ export function RetentionSettingsPanel() {
           <div className="grid gap-3">
             <p className="type-body m-0">
               {proposal.settings.automaticCleanupEnabled
-                ? "Automatic cleanup will be enabled with these limits:"
-                : "Automatic cleanup will be off. These limits will be saved:"}
+                ? "Run and read cleanup will be enabled with these limits:"
+                : "Run and read cleanup will be off. These limits will be saved:"}
             </p>
             <ul className="type-body m-0 pl-5">
               {fields.map((field) => (
@@ -275,9 +322,17 @@ export function RetentionSettingsPanel() {
               ))}
             </ul>
             <p className="type-body m-0">
+              Inbox policy:{" "}
+              {proposal.settings.inboxRetentionDays === null
+                ? "Keep until manually deleted"
+                : `Delete read and unread items after ${proposal.settings.inboxRetentionDays} days from creation`}
+              . Items linked to active runs and linked files are protected.
+            </p>
+            <p className="type-body m-0">
               Currently eligible for the next sweep: {proposal.scheduled.automationRuns} workflow
               runs, {proposal.scheduled.automationBlockRuns} block runs, and{" "}
-              {proposal.scheduled.dataSourceReads} data-source reads.
+              {proposal.scheduled.dataSourceReads} data-source reads. Inbox items:{" "}
+              {proposal.scheduled.automationInboxItems}.
             </p>
             <p className="type-meta text-text-secondary m-0">
               Counts are a snapshot and can change as records age. Active runs and proof-linked

@@ -13,6 +13,7 @@ const settings = {
   deletedWorkflowRunDays: 7,
   dataSourceReadDays: 7,
   diskWarningPercent: 80,
+  inboxRetentionDays: null,
 };
 beforeAll(async () => {
   ({ db, teardown } = await setupTestDatabase());
@@ -46,6 +47,9 @@ it("requires authentication and admin access for reads, preview and saves", asyn
     ["get", "/settings"],
     ["post", "/settings/preview"],
     ["post", "/settings"],
+    ["get", "/camera"],
+    ["post", "/camera/preview"],
+    ["post", "/camera"],
   ] as const) {
     assert.equal((await request(app)[method]("/api/retention" + path)).status, 401);
     assert.equal(
@@ -57,6 +61,20 @@ it("requires authentication and admin access for reads, preview and saves", asyn
       403,
     );
   }
+});
+
+it("validates, previews and confirms camera policy through the admin API", async () => {
+  const initial = await request(app).get("/api/retention/camera").set("x-test-role", "admin");
+  assert.equal(initial.status, 200);
+  assert.equal(initial.body.settings.paused, true);
+  const settings = { retentionDays: null, paused: true };
+  const preview = await request(app).post("/api/retention/camera/preview").set("x-test-role", "admin").send(settings);
+  assert.equal(preview.status, 200);
+  const post = (body: object) => request(app).post("/api/retention/camera").set("x-test-role", "admin").send(body);
+  assert.equal((await post({ settings, previewToken: preview.body.previewToken })).status, 400);
+  assert.equal((await post({ settings, previewToken: "stale", confirmed: true })).status, 409);
+  assert.equal((await post({ settings, previewToken: preview.body.previewToken, confirmed: true })).status, 200);
+  assert.equal((await request(app).post("/api/retention/camera/preview").set("x-test-role", "admin").send({ retentionDays: "7", paused: false })).status, 400);
 });
 
 it("returns defaults and previews without writes, then saves only a confirmed proposal", async () => {

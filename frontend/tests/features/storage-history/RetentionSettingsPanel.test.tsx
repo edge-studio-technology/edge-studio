@@ -10,15 +10,27 @@ const settings = {
   deletedWorkflowRunDays: 90,
   dataSourceReadDays: 90,
   diskWarningPercent: 80,
+  inboxRetentionDays: null,
 };
 const limits = {
   runsPerWorkflow: { min: 50, max: 10000 },
   deletedWorkflowRunDays: { min: 7, max: 3650 },
   dataSourceReadDays: { min: 7, max: 3650 },
   diskWarningPercent: { min: 50, max: 95 },
+  inboxRetentionDays: { min: 7, max: 3650 },
 };
-const zero = { automationRuns: 0, automationBlockRuns: 0, dataSourceReads: 0 };
-const counts = { automationRuns: 3, automationBlockRuns: 6, dataSourceReads: 8 };
+const zero = {
+  automationRuns: 0,
+  automationBlockRuns: 0,
+  dataSourceReads: 0,
+  automationInboxItems: 0,
+};
+const counts = {
+  automationRuns: 3,
+  automationBlockRuns: 6,
+  dataSourceReads: 8,
+  automationInboxItems: 0,
+};
 const initial = {
   settings,
   limits,
@@ -46,9 +58,65 @@ afterEach(() => vi.unstubAllGlobals());
 it("keeps automatic cleanup off by default and reports the saved disk warning", async () => {
   render(<RetentionSettingsPanel />, { wrapper: ToastProvider });
   expect(await screen.findByLabelText("Runs to keep per workflow")).toHaveValue(500);
-  expect(screen.getByLabelText("Enable automatic history cleanup")).not.toBeChecked();
+  expect(screen.getByLabelText("Enable automatic run and read cleanup")).not.toBeChecked();
   expect(screen.getByRole("alert")).toHaveTextContent("Disk warning threshold reached");
   expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(screen.getByLabelText("Automatically remove old inbox items")).not.toBeChecked();
+  expect(screen.getByText(/Saved inbox policy: Keep until manually deleted/)).toBeInTheDocument();
+  expect(screen.queryByLabelText("Inbox item retention (days)")).not.toBeInTheDocument();
+});
+
+it("previews and confirms inbox retention independently from run and read cleanup", async () => {
+  const user = userEvent.setup();
+  const inboxProposal = {
+    ...proposal,
+    settings: { ...settings, inboxRetentionDays: 30 },
+    scheduled: { ...zero, automationInboxItems: 12 },
+    previewToken: "inbox-reviewed",
+  };
+  fetchMock
+    .mockResolvedValueOnce(response(initial))
+    .mockResolvedValueOnce(response(inboxProposal))
+    .mockResolvedValueOnce(response(inboxProposal));
+  render(<RetentionSettingsPanel />, { wrapper: ToastProvider });
+  await screen.findByLabelText("Runs to keep per workflow");
+  await user.click(screen.getByLabelText("Automatically remove old inbox items"));
+  const days = screen.getByLabelText("Inbox item retention (days)");
+  await user.clear(days);
+  await user.type(days, "30");
+  await user.click(screen.getByRole("button", { name: "Preview retention changes" }));
+  const modal = await screen.findByRole("dialog");
+  expect(within(modal).getByText(/Inbox items: 12/)).toBeInTheDocument();
+  expect(within(modal).getByText(/Delete read and unread items after 30 days/)).toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toMatchObject({
+    automaticCleanupEnabled: false,
+    inboxRetentionDays: 30,
+  });
+  await user.click(within(modal).getByRole("button", { name: "Confirm and save policy" }));
+  await screen.findByText("Retention policy saved");
+  expect(JSON.parse(fetchMock.mock.calls[2][1].body).settings.inboxRetentionDays).toBe(30);
+  expect(screen.getByLabelText("Enable automatic run and read cleanup")).not.toBeChecked();
+});
+
+it("validates inbox age and sends null when its policy is turned off", async () => {
+  const user = userEvent.setup();
+  fetchMock
+    .mockResolvedValueOnce(response(initial))
+    .mockResolvedValueOnce(response({ ...proposal, settings, scheduled: zero }));
+  render(<RetentionSettingsPanel />, { wrapper: ToastProvider });
+  await screen.findByLabelText("Runs to keep per workflow");
+  await user.click(screen.getByLabelText("Automatically remove old inbox items"));
+  const days = screen.getByLabelText("Inbox item retention (days)");
+  await user.clear(days);
+  await user.type(days, "1");
+  await user.click(screen.getByRole("button", { name: "Preview retention changes" }));
+  expect(screen.getByText("Enter a whole number from 7 to 3650.")).toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  await user.click(screen.getByLabelText("Automatically remove old inbox items"));
+  await user.click(screen.getByRole("button", { name: "Preview retention changes" }));
+  await screen.findByRole("dialog");
+  expect(JSON.parse(fetchMock.mock.calls[1][1].body).inboxRetentionDays).toBeNull();
 });
 
 it("previews deletion counts and saves only after confirmation", async () => {
@@ -59,7 +127,7 @@ it("previews deletion counts and saves only after confirmation", async () => {
     .mockResolvedValueOnce(response(proposal));
   render(<RetentionSettingsPanel />, { wrapper: ToastProvider });
   await screen.findByLabelText("Runs to keep per workflow");
-  await user.click(screen.getByLabelText("Enable automatic history cleanup"));
+  await user.click(screen.getByLabelText("Enable automatic run and read cleanup"));
   await user.click(screen.getByRole("button", { name: "Preview retention changes" }));
   const modal = await screen.findByRole("dialog");
   expect(
@@ -111,13 +179,13 @@ it("requires a fresh preview after a save conflict and keeps the edited policy",
     );
   render(<RetentionSettingsPanel />, { wrapper: ToastProvider });
   await screen.findByLabelText("Runs to keep per workflow");
-  await user.click(screen.getByLabelText("Enable automatic history cleanup"));
+  await user.click(screen.getByLabelText("Enable automatic run and read cleanup"));
   await user.click(screen.getByRole("button", { name: "Preview retention changes" }));
   const modal = await screen.findByRole("dialog");
   await user.click(within(modal).getByRole("button", { name: "Confirm and save policy" }));
   await screen.findByText("Record counts changed; review a fresh preview.");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  expect(screen.getByLabelText("Enable automatic history cleanup")).toBeChecked();
+  expect(screen.getByLabelText("Enable automatic run and read cleanup")).toBeChecked();
 });
 
 it("offers retry after a load error", async () => {

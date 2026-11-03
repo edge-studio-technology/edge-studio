@@ -26,6 +26,8 @@ vi.mock("../../../src/features/auth/audit.service.js", () => ({
   recordAuditEvent: recordAuditEventMock,
 }));
 
+vi.mock("../../../src/features/retention/camera-retention.service.js", () => ({ pauseCameraRetention: vi.fn() }));
+
 vi.mock("../../../src/features/auth/auth.middleware.js", () => ({
   requireRole: () => (req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
@@ -34,6 +36,8 @@ vi.mock("../../../src/features/auth/auth.middleware.js", () => ({
 }));
 
 const { hostCapabilitiesRouter } = await import("../../../src/features/host-capabilities/hostCapabilities.routes.js");
+const { pauseCameraRetention } = await import("../../../src/features/retention/camera-retention.service.js");
+const { disableHostCameraCapability } = await import("../../../src/features/host-capabilities/hostCapabilities.service.js");
 
 function testApp() {
   const app = express();
@@ -47,10 +51,21 @@ function testApp() {
 
 describe("hostCapabilities.routes", () => {
   beforeEach(() => {
+    vi.mocked(pauseCameraRetention).mockClear();
+    vi.mocked(disableHostCameraCapability).mockReset();
     enableHostSensorCapabilityMock.mockReset();
     disableHostMqttCapabilityMock.mockReset();
     setupHostSensorPrerequisitesMock.mockReset();
     recordAuditEventMock.mockReset();
+  });
+
+  it("pauses camera retention before a disable request even if the host action fails", async () => {
+    vi.mocked(disableHostCameraCapability).mockImplementation(async () => {
+      expect(pauseCameraRetention).toHaveBeenCalledWith("user-1");
+      throw new Error("Host unavailable");
+    });
+    await request(testApp()).post("/api/host-capabilities/camera/disable").expect(502);
+    expect(pauseCameraRetention).toHaveBeenCalledTimes(1);
   });
 
   it("records a sanitized audit event after enabling hardware support", async () => {

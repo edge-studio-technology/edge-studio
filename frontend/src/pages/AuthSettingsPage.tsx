@@ -24,15 +24,18 @@ import {
   sidebarStartCollapsedSetting,
 } from "../lib/behaviourSettings";
 import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
+import { SessionSettingsPanel } from "../features/auth/SessionSettingsPanel";
 import { useAuth } from "../features/auth/hooks";
 import { StorageHistoryPanel } from "../features/storage-history/StorageHistoryPanel";
 import { RetentionSettingsPanel } from "../features/storage-history/RetentionSettingsPanel";
+import { CameraRetentionSettingsPanel } from "../features/storage-history/CameraRetentionSettingsPanel";
 
 /** Long enough to read the confirmation before the forced re-login. */
 const SIGN_OUT_AFTER_CREDENTIAL_CHANGE_MS = 3000;
 
 export function AuthSettingsPage() {
   const [storageHistoryOpen, setStorageHistoryOpen] = useState(false);
+  const [securityOpen, setSecurityOpen] = useState(false);
   const [uninstallMode, setUninstallMode] = useState<"keep" | "delete">("keep");
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -82,21 +85,23 @@ export function AuthSettingsPage() {
               {storageHistoryOpen ? <StorageHistoryPanel /> : null}
             </SubSection>
             {storageHistoryOpen ? <RetentionSettingsPanel /> : null}
+            {storageHistoryOpen ? <CameraRetentionSettingsPanel /> : null}
           </div>
         </Disclosure>
 
         <Disclosure
           title={
             <span className="flex items-center gap-2">
-              <h2 className="type-title text-text-primary m-0">Credentials</h2>
+              <h2 className="type-title text-text-primary m-0">Security</h2>
             </span>
           }
           className="pt-4 pb-6"
           defaultOpen={false}
+          onToggle={(event) => setSecurityOpen(event.currentTarget.open)}
         >
           <div className="gap-detail-close my-detail-close grid">
             <ChangeCredentialPanel onCredentialChanged={scheduleSignOut} />
-
+            {securityOpen ? <SessionSettingsPanel /> : null}
           </div>
         </Disclosure>
 

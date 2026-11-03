@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { afterAll, beforeAll, beforeEach, describe, it, vi } from "vitest";
 import { setupTestDatabase } from "../../helpers/testDatabase.js";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const statfs = vi.hoisted(() => vi.fn());
 vi.mock("node:fs", async (importOriginal) => ({
@@ -19,6 +22,7 @@ const defaults = {
   deletedWorkflowRunDays: 90,
   dataSourceReadDays: 90,
   diskWarningPercent: 80,
+  inboxRetentionDays: null,
 };
 const policy = {
   ...defaults,
@@ -70,6 +74,15 @@ function read(id: string, at = old, proof: string | null = null) {
 }
 
 describe("retention settings and previews", () => {
+  it("keeps inbox items when loading an older stored policy", () => {
+    const legacy: Record<string, unknown> = { ...policy };
+    delete legacy.inboxRetentionDays;
+    db.prepare("INSERT INTO settings(key,value) VALUES ('retention_settings',?)").run(
+      JSON.stringify(legacy),
+    );
+    assert.equal(settingsService.getRetentionSettings().inboxRetentionDays, null);
+    assert.equal(settingsService.getRetentionSettings().automaticCleanupEnabled, true);
+  });
   it("returns defaults without activating deletion or changing records", () => {
     run("gone", null);
     read("old");
@@ -165,6 +178,7 @@ describe("retention settings and previews", () => {
     );
     const off = settingsService.previewRetentionSettings(defaults);
     assert.deepEqual(off.scheduled, {
+      automationInboxItems: 0,
       automationRuns: 0,
       automationBlockRuns: 0,
       dataSourceReads: 0,
@@ -186,6 +200,113 @@ describe("retention settings and previews", () => {
 });
 
 describe("configured retention eligibility and deletion", () => {
+  function inbox(
+    id: string,
+    at: string,
+    runId: string | null = null,
+    read = false,
+    deleted = false,
+    content = "{}",
+  ) {
+    db.prepare(
+      "INSERT INTO automation_inbox_items(id,run_id,workflow_name,title,format,content_json,created_at,read_at,deleted_at) VALUES (?,?,'WF','Item','text',?,?,?,?)",
+    ).run(id, runId, content, at, read ? at : null, deleted ? at : null);
+  }
+
+  it("expires read and unread inbox items by creation age while protecting active runs, recent items and linked files", () => {
+    workflow("active-inbox");
+    const active = runs.createAutomationRun({
+      workflowId: "active-inbox",
+      workflowName: "WF",
+      triggerType: "manual",
+      blockCount: 0,
+    });
+    const directory = mkdtempSync(join(tmpdir(), "inbox-retention-"));
+    const file = join(directory, "capture.jpg");
+    writeFileSync(file, "capture-evidence");
+    try {
+      inbox("old-read", old, null, true);
+      inbox("old-unread", old);
+      inbox("old-file", old, null, false, false, JSON.stringify({ path: file }));
+      inbox("active-item", old, active.id);
+      inbox("recent-item", current);
+      inbox("boundary-item", new Date(now - 7 * 86400000).toISOString());
+      inbox("manually-deleted", old, null, false, true);
+      const inboxPolicy = { ...defaults, inboxRetentionDays: 7 };
+      assert.equal(repository.previewConfiguredRetention(inboxPolicy, now).automationInboxItems, 3);
+      assert.equal(repository.pruneExpiredAutomationInboxItems(inboxPolicy, 2, now), 2);
+      assert.equal(repository.pruneExpiredAutomationInboxItems(inboxPolicy, 2, now), 1);
+      assert.equal(repository.pruneExpiredAutomationInboxItems(inboxPolicy, 2, now), 0);
+      for (const id of ["active-item", "recent-item", "boundary-item", "manually-deleted"])
+        assert.ok(db.prepare("SELECT id FROM automation_inbox_items WHERE id=?").get(id));
+      assert.equal(existsSync(file), true);
+    } finally {
+      runs.finishAutomationRun(active.id, { status: "success" });
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("previews and executes independent inbox expiry without enabling run/read cleanup", () => {
+    vi.useFakeTimers({ now });
+    try {
+      inbox("expire", old);
+      read("keep-read");
+      run("keep-run", null);
+      const inboxPolicy = { ...defaults, inboxRetentionDays: 7 };
+      const proposal = settingsService.previewRetentionSettings(inboxPolicy);
+      assert.deepEqual(proposal.scheduled, {
+        automationRuns: 0,
+        automationBlockRuns: 0,
+        dataSourceReads: 0,
+        automationInboxItems: 1,
+      });
+      assert.throws(
+        () => settingsService.saveRetentionSettings(inboxPolicy, proposal.previewToken, false),
+        settingsService.RetentionValidationError,
+      );
+      inbox("newly-eligible", old);
+      assert.throws(
+        () => settingsService.saveRetentionSettings(inboxPolicy, proposal.previewToken, true),
+        settingsService.RetentionPreviewConflict,
+      );
+      const fresh = settingsService.previewRetentionSettings(inboxPolicy);
+      settingsService.saveRetentionSettings(inboxPolicy, fresh.previewToken, true);
+      assert.equal(count("automation_inbox_items"), 2);
+      assert.equal(service.runRetentionPass().automationInboxItems, 2);
+      assert.equal(count("automation_runs"), 1);
+      assert.equal(count("data_source_reads"), 1);
+      const disabled = settingsService.previewRetentionSettings(defaults);
+      settingsService.saveRetentionSettings(defaults, disabled.previewToken, true);
+      inbox("keep-after-disable", old);
+      assert.equal(service.runRetentionPass().automationInboxItems, 0);
+      assert.equal(count("automation_inbox_items"), 1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("shares the inbox batch limit between manual deletions and age expiry", () => {
+    vi.useFakeTimers({ now });
+    try {
+      db.transaction(() => {
+        for (let i = 0; i < 700; i++) {
+          inbox(`manual-${i}`, old, null, false, true);
+          inbox(`expired-${i}`, old);
+        }
+      })();
+      const inboxPolicy = { ...defaults, inboxRetentionDays: 7 };
+      const proposal = settingsService.previewRetentionSettings(inboxPolicy);
+      assert.equal(proposal.scheduled.automationInboxItems, 700);
+      settingsService.saveRetentionSettings(inboxPolicy, proposal.previewToken, true);
+      assert.equal(service.runRetentionPass().automationInboxItems, 500);
+      assert.equal(count("automation_inbox_items"), 900);
+      assert.equal(service.runRetentionPass().automationInboxItems, 500);
+      assert.equal(service.runRetentionPass().automationInboxItems, 400);
+      assert.equal(count("automation_inbox_items"), 0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("stops future batches when the policy is disabled during a sweep", async () => {
     vi.useFakeTimers({ now });
     try {
@@ -236,6 +357,7 @@ describe("configured retention eligibility and deletion", () => {
     ).run(current);
     assert.deepEqual(repository.previewConfiguredRetention(policy, now), {
       automationRuns: 10,
+      automationInboxItems: 0,
       automationBlockRuns: 10,
       dataSourceReads: 0,
     });
@@ -293,6 +415,7 @@ describe("configured retention eligibility and deletion", () => {
     ).run(old, old);
     assert.deepEqual(repository.previewConfiguredRetention(policy, now), {
       automationRuns: 1,
+      automationInboxItems: 0,
       automationBlockRuns: 1,
       dataSourceReads: 1,
     });

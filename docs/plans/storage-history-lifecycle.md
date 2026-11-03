@@ -12,12 +12,13 @@
 - [x] Define and implement read-only archived-history import.
 - [ ] Add scoped manual cleanup with preview and confirmations.
 - [x] Add opt-in per-workflow/age retention settings, reviewed previews, confirmation and bounded cleanup; size-based triggers remain deferred.
+- [x] Add independent camera file retention with optional-extension status, paused migration/resume and protected proof captures.
 - [x] Update operator/security documentation and changelog.
 - [ ] Complete automated, browser, and Raspberry Pi verification.
 
 ## Context
 
-Edge Studio preserves history by default. Operators can now opt into per-workflow run limits and age-based expiry for deleted-workflow runs and unlinked reads, with previews and confirmation. Active runs, proof-linked reads, wallet history, inbox content and proofs remain protected. The scheduler also physically removes inbox rows the operator has already deleted. Manual category/date cleanup, size-based triggers, and browser/Pi verification remain open.
+Edge Studio preserves history by default. Operators can opt into per-workflow run limits and age-based expiry for deleted-workflow runs/unlinked reads, plus an independent inbox age policy, with previews and confirmation. Active runs and their inbox items, proof-linked reads, wallet history, proofs and linked files remain protected. The scheduler also physically removes inbox rows the operator has already deleted. Manual category/date cleanup, size-based triggers, and browser/Pi verification remain open.
 
 The first deliverable is monitor-only. It gives an operator a truthful overview of what is stored, how many records exist, and how much disk each category consumes. Cleanup, export, and import are later milestones; they must not be introduced as hidden consequences of monitoring.
 
@@ -35,7 +36,7 @@ This plan implements the unresolved lifecycle work identified in `docs/TASKS.md`
 | Category | Existing persistence | Monitor in first milestone | Initial lifecycle |
 | --- | --- | --- | --- |
 | Minima history | `wallet_transactions`, `wallet_send_history` | Rows and SQLite allocation | Preserve; current-wallet history cannot be cleared because it re-syncs from Minima |
-| Workflow inbox | `automation_inbox_items` | Visible rows and SQLite allocation | Preserve until manually deleted; soft-deleted rows are purged by the current scheduler |
+| Workflow inbox | `automation_inbox_items` | Visible rows and SQLite allocation | Keep until deleted by default; independent opt-in age expiry protects active-run items and leaves linked files untouched |
 | Workflow diagnostics | `automation_runs`, `automation_block_runs` | Runs, block runs, and combined SQLite allocation | Opt-in per-workflow/age retention; parent runs and child block runs form one cleanup/export unit |
 | Device diagnostics | `data_source_reads` | Rows and SQLite allocation | Opt-in age retention; proof-linked reads are protected |
 | Integritas evidence | `integritas_proofs` | Rows, SQLite allocation, verification-report files | Preserve until explicit deletion |
@@ -118,7 +119,7 @@ Implemented: opt-in per-workflow run limits, age limits for deleted-workflow run
 
 1. Replace the current preserve-only entries in `backend/src/features/retention/retention.policy.ts` only after the category-specific policy and operator controls are approved.
 2. Support age, count, and allocated-size triggers per eligible category. Do not apply one global policy across diagnostics, user content, evidence, and financial history.
-3. Protect current-wallet history, visible inbox items, Integritas proofs, audit events, and proof-linked reads from automatic deletion unless a later approved policy specifically changes that classification.
+3. Protect current-wallet history, Integritas proofs, audit events, and proof-linked reads from automatic deletion. Inbox items keep their manual-deletion default, with a separate approved opt-in age policy that protects active-run items and linked files.
 4. Delete workflow run/block-run relationships as a unit and define any future bounds per workflow rather than a global oldest-first cap that empties low-frequency workflow history.
 5. Run cleanup in bounded batches through the existing retention scheduler (`backend/src/features/retention/retention.service.ts`), retain active-run protection, and surface last-run outcome/space impact to operators.
 6. Define a safe SQLite compaction/VACUUM strategy separately before claiming that automatic cleanup guarantees immediate host-disk recovery.

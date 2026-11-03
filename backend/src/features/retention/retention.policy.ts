@@ -6,7 +6,7 @@ export const RETENTION_POLICIES = {
     strategy: "with-parent-run"
   },
   automationInboxItems: {
-    strategy: "deleted-only",
+    strategy: "deleted-or-opt-in-expiry",
     batchSize: 500
   },
   dataSourceReads: {

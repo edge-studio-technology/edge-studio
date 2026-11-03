@@ -45,6 +45,7 @@ services:
       CAMERA_HELPER_URL: ${CAMERA_HELPER_URL:-http://${EDGE_STUDIO_DOCKER_GATEWAY:-172.30.0.1}:38180}
       CAMERA_HELPER_TOKEN: ${CAMERA_HELPER_TOKEN:-}
       CAMERA_MAX_DURATION_SECONDS: ${CAMERA_MAX_DURATION_SECONDS:-30}
+      # Compatibility input for the one-time camera retention migration.
       CAMERA_RETENTION_DAYS: ${CAMERA_RETENTION_DAYS:-7}
       CAMERA_PHOTO_COMMAND: ${CAMERA_PHOTO_COMMAND:-rpicam-still}
       CAMERA_VIDEO_COMMAND: ${CAMERA_VIDEO_COMMAND:-rpicam-vid}
@@ -54,6 +55,7 @@ services:
       SENSOR_READ_TIMEOUT_MS: ${SENSOR_READ_TIMEOUT_MS:-5000}
       APP_SECRET: ${APP_SECRET:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      # Compatibility inputs for the one-time SQLite session policy migration.
       SESSION_MAX_AGE_DAYS: ${SESSION_MAX_AGE_DAYS:-7}
       SESSION_IDLE_HOURS: ${SESSION_IDLE_HOURS:-24}
       DOCKER_SOCKET_PATH: /var/run/docker.sock

@@ -11,6 +11,7 @@ let app: import("express").Express;
 let createUser: AuthRepository["createUser"];
 let findTheUser: AuthRepository["findTheUser"];
 let updateUserPassword: AuthRepository["updateUserPassword"];
+let db: import("better-sqlite3").Database;
 
 const PASSWORD = "Abcdef1!";
 
@@ -26,6 +27,7 @@ function clearsSessionCookie(header: string | string[] | undefined) {
 
 beforeAll(async () => {
   const testDb = await setupTestDatabase();
+  db = testDb.db;
   teardown = testDb.teardown;
 
   ({ createUser, findTheUser, updateUserPassword } = await import(
@@ -99,5 +101,34 @@ describe("credential metadata through login", () => {
     } finally {
       updateUserPassword(user.id, user.password, user.credential_type);
     }
+  });
+});
+
+describe("session settings", () => {
+  it("requires credential confirmation without clearing a valid session on rejection", async () => {
+    const agent = await loginAgent();
+    const initial = await agent.get("/api/auth/settings/session");
+    assert.equal(initial.status, 200);
+    assert.deepEqual(initial.body.settings, { maxAgeDays: 7, idleHours: 24 });
+    const rejected = await agent.post("/api/auth/settings/session").send({ settings: { maxAgeDays: 1, idleHours: 1 }, currentPassword: "incorrect" });
+    assert.equal(rejected.status, 403);
+    assert.equal(rejected.headers["set-cookie"], undefined);
+    assert.equal((await agent.get("/api/auth/me")).status, 200);
+    const invalid = await agent.post("/api/auth/settings/session").send({ settings: { maxAgeDays: "7", idleHours: 1 }, currentPassword: PASSWORD });
+    assert.equal(invalid.status, 400);
+  });
+
+  it("clears the cookie when a shorter policy expires the caller and accepts PIN confirmation", async () => {
+    const user = findTheUser()!;
+    updateUserPassword(user.id, await hashPassword("012345"), "pin");
+    const agent = await loginAgent("012345");
+    db.prepare("UPDATE sessions SET created_at=?").run(new Date(Date.now() - 2 * 86400000).toISOString());
+    const result = await agent.post("/api/auth/settings/session").send({ settings: { maxAgeDays: 1, idleHours: 1 }, currentPassword: "012345" });
+    assert.equal(result.status, 200);
+    assert.equal(result.body.currentSessionExpired, true);
+    assert.equal(clearsSessionCookie(result.headers["set-cookie"]), true);
+    assert.equal((await agent.get("/api/auth/me")).status, 401);
+    const fresh = await loginAgent("012345");
+    assert.deepEqual((await fresh.get("/api/auth/settings/session")).body.settings, { maxAgeDays: 1, idleHours: 1 });
   });
 });

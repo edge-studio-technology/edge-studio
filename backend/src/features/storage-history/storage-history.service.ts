@@ -3,6 +3,7 @@ import path from "node:path";
 import { env } from "../../config/env.js";
 import { db } from "../../db/database.js";
 import { getRetentionSettings } from "../retention/retention-settings.service.js";
+import { getCameraRetentionSettings } from "../retention/camera-retention.service.js";
 
 type StorageCategory = {
   id: string;
@@ -35,6 +36,7 @@ const EXPORTS_DIR = "exports";
 
 export function getStorageHistoryInventory() {
   const retention = getRetentionSettings();
+  const cameraRetention = getCameraRetentionSettings();
   const databaseFiles = measureFiles([
     env.databasePath,
     `${env.databasePath}-wal`,
@@ -58,7 +60,9 @@ export function getStorageHistoryInventory() {
       id: "workflow-inbox",
       label: "Workflow inbox",
       description: "Saved workflow previews and operator-facing output.",
-      lifecycle: "Kept until deleted. Deleted items are purged automatically.",
+      lifecycle: retention.inboxRetentionDays === null
+        ? "Kept until deleted. Deleted items are purged automatically."
+        : `Kept ${retention.inboxRetentionDays} days from creation; items linked to active runs are protected. Linked files are retained.`,
       tables: TABLES_BY_CATEGORY.workflowInbox,
       tableBytes,
     }),
@@ -91,7 +95,7 @@ export function getStorageHistoryInventory() {
       id: "camera-captures",
       label: "Camera captures",
       description: "Photos and videos retained by camera capture workflows.",
-      lifecycle: "Managed by the camera retention setting.",
+      lifecycle: `${env.cameraEnabled ? "Camera support enabled." : "Camera support disabled; cleanup paused."} ${cameraRetention.retentionDays === null ? "Keep until manually deleted." : `Saved policy: ${cameraRetention.retentionDays} days; proof-linked captures are protected.`} ${cameraRetention.paused ? "Preview and confirm in Settings to resume cleanup." : ""}`.trim(),
       files: captures,
     }),
     category({

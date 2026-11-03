@@ -190,7 +190,8 @@ CAMERA_HELPER_URL=http://172.30.0.1:38180
 CAMERA_HELPER_TOKEN=
 CAMERA_HELPER_PORT=38180
 CAMERA_MAX_DURATION_SECONDS=30
-CAMERA_RETENTION_DAYS=7
+# Legacy one-time camera retention seed; use Settings -> Storage & history afterwards.
+# CAMERA_RETENTION_DAYS=7
 CAMERA_PHOTO_COMMAND=rpicam-still
 CAMERA_VIDEO_COMMAND=rpicam-vid
 ENABLE_SENSORS=false
@@ -227,8 +228,9 @@ INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES=5
 INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS=5
 INTEGRITAS_PORTAL_URL=
 COOKIE_SECURE=true
-SESSION_MAX_AGE_DAYS=7
-SESSION_IDLE_HOURS=24
+# Legacy one-time seeds; manage session limits in Settings -> Security afterwards.
+# SESSION_MAX_AGE_DAYS=7
+# SESSION_IDLE_HOURS=24
 MANIFEST_URL=
 RELEASE_CHANNEL=stable
 UPDATE_HEALTH_CHECK_TIMEOUT_MS=60000
@@ -336,7 +338,11 @@ docker compose -f docker-compose.yml -f docker-compose.release.yml up -d fronten
 
 Future versions may support custom certificates or an external reverse proxy.
 
-`SESSION_MAX_AGE_DAYS` and `SESSION_IDLE_HOURS` control session lifetime (default 7 days max, 24 hours idle).
+**Settings → Security → Login sessions** controls maximum session lifetime (default 7 days, range 1–30) and inactivity timeout (default 24 hours, range 1–168). Both are whole numbers and require your current PIN/password to save. The limits live in SQLite; valid `SESSION_MAX_AGE_DAYS` and `SESSION_IDLE_HOURS` values seed them once, normally at startup, and later environment edits have no effect. Invalid/out-of-range bootstrap values use defaults with a backend warning. Restoring the same database preserves policy.
+
+Maximum lifetime starts at login. Inactivity measures time without authenticated requests, including background polling; it does not measure mouse/keyboard inactivity. Whichever limit comes first ends the session. Shorter limits apply immediately to existing sessions and can sign you out. Longer maximum lifetimes apply to new logins; an existing session's original or previously shortened expiry is never extended. Inactivity changes apply to still-valid sessions; already-expired sessions are removed before a limit increase can revive them. Cookies keep their original browser expiry, while server-side checks enforce shorter limits. Startup/hourly cleanup removes expired and idle sessions.
+
+Admin APIs: `GET /api/auth/settings/session` returns `{ settings: { maxAgeDays, idleHours }, limits }`; `POST /api/auth/settings/session` accepts `{ settings: { maxAgeDays, idleHours }, currentPassword }`. Invalid values return 400, incorrect credentials 403 and expired/revoked sessions 401. Credential checks share the existing five-failures/15-minute rate limit. Policy changes, session expiry updates/deletions and actor/old/new audit events commit atomically. Save returns `{ settings, revokedSessions, currentSessionExpired }` and clears the caller's cookie when the new limits expire it. Credentials and tokens are never included in this audit. See [ADR 0041](docs/adr/0041-separate-deployment-configuration-from-runtime-settings.md).
 
 If a Raspberry Pi reboot happens while the browser is open, the old session may become invalid before the next refresh. The login screen explains that Edge Studio restarted or the session expired and asks the admin to enter the PIN/password again.
 
@@ -511,12 +517,21 @@ The **Automatic retention** section stores its policy in SQLite and takes effect
 | Deleted-workflow run retention | 90 days from run start | 7–3,650 days |
 | Unlinked data-source read retention | 90 days | 7–3,650 days |
 | Disk warning threshold | 80% | 50–95% |
+| Inbox item retention | Keep until manually deleted | 7–3,650 days when enabled |
 
-Each workflow keeps its own newest runs, with stable timestamp/ID ordering. Active executions are protected and block rows are deleted together with their parent run; security-budget reservations remain. Archived workflows still count as existing workflows. Deleted workflows' runs use their original start time, so old runs can become eligible when a workflow is deleted. Proof-linked reads, wallet history, visible inbox content, proofs, imported archives, audit events, and files are retained by this cleanup. Camera file retention remains separate. Lowering limits can cause irreversible deletion on a later sweep; disabling cleanup stops subsequent policy batches but does not restore deleted rows. Deleting rows need not shrink the SQLite file.
+Each workflow keeps its own newest runs, with stable timestamp/ID ordering. Active executions are protected and block rows are deleted together with their parent run; security-budget reservations remain. Archived workflows still count as existing workflows. Deleted workflows' runs use their original start time, so old runs can become eligible when a workflow is deleted. Proof-linked reads, wallet history, proofs, imported archives, audit events, and files are retained by this cleanup. Camera file retention remains separate. Lowering limits can cause irreversible deletion on a later sweep; disabling a policy stops its subsequent batches but does not restore deleted rows. Deleting rows need not shrink the SQLite file.
+
+**Inbox retention is independent:** enable **Automatically remove old inbox items** to choose a creation-age limit (the form suggests 90 days). It applies to read and unread items, even when run/read cleanup is off. Keep it off to preserve inbox items until manual deletion. Items linked to active runs are protected, and deleting an item leaves linked files untouched. The confirmation preview includes `automationInboxItems`; manually deleted rows are already scheduled for purging and are not counted as new age-expiry candidates. Both kinds share a 500-inbox-item batch limit. Existing saved policies default to keeping inbox content.
+
+**Camera retention is separate:** Settings → Storage & history shows camera support status. Disabled cameras with no captures show no retention controls; existing captures still show their file count, storage usage and saved policy. Disabling camera support pauses cleanup without removing media or resetting the policy. After re-enabling support, preview and confirm the saved policy to resume. A failed disable request also leaves cleanup paused for safety.
+
+Choose **Keep until manually deleted** by turning automatic camera cleanup off, or keep unprotected captures for 1–3,650 days based on file modification time. Camera policy is stored in SQLite; `CAMERA_RETENTION_DAYS` seeds it once (legacy default 7 days, non-positive/invalid values mean keep), initially paused until confirmed. Subsequent environment changes do not override it. The startup/hourly sweep removes at most 500 camera files per batch, skips proof-linked files, waits while workflows are active, and never follows symlinks or removes directories/unknown file types. Missing or unreadable evidence metadata prevents camera cleanup. Camera enablement, capture directory, helper URLs/tokens and recording ceilings remain deployment configuration.
+
+Camera admin APIs are `GET /api/retention/camera`, `POST /api/retention/camera/preview` with `{ retentionDays: null | integer, paused: boolean }`, and `POST /api/retention/camera` with `{ settings, previewToken, confirmed: true }`. Responses include camera status, stored/eligible/scheduled file counts and bytes; the token binds the current policy, camera enablement and scheduled file identities. Saving and its audit commit atomically without deleting files; changed previews require review again (409). A disabled camera cannot resume cleanup. These file controls do not change history/inbox cleanup or remove read/proof records.
 
 Disk usage and warnings are shown in this Settings section and refreshed using **Refresh policy and disk usage**. They describe the data filesystem, not only Edge Studio's own files. Reaching the warning threshold never triggers additional deletion. Dashboard warnings and manual category/date cleanup are separate follow-ups.
 
-The admin API is `GET /api/retention/settings`, `POST /api/retention/settings/preview` (the five-field settings document), and `POST /api/retention/settings` (`{ settings, previewToken, confirmed: true }`). Settings include `automaticCleanupEnabled`, `runsPerWorkflow`, `deletedWorkflowRunDays`, `dataSourceReadDays`, and `diskWarningPercent`. Preview returns eligible and scheduled run/block/read counts and a token; save returns the same proposal shape. Integers outside the limits or invalid types return HTTP 400 with field errors; stale previews return 409. Settings and actor/old/new/count audit events commit atomically. See [ADR 0022](docs/adr/0022-bound-external-automation-effects.md).
+The admin API is `GET /api/retention/settings`, `POST /api/retention/settings/preview` (the settings document), and `POST /api/retention/settings` (`{ settings, previewToken, confirmed: true }`). Settings include `automaticCleanupEnabled` (run/read cleanup), `runsPerWorkflow`, `deletedWorkflowRunDays`, `dataSourceReadDays`, `diskWarningPercent`, and `inboxRetentionDays` (`null` to keep until deleted, or an integer age limit). Preview returns eligible and scheduled run/block/read/inbox counts and a token; save returns the same proposal shape. Integers outside the limits or invalid types return HTTP 400 with field errors; stale previews return 409. Settings and actor/old/new/count audit events commit atomically. See [ADR 0022](docs/adr/0022-bound-external-automation-effects.md).
 
 An admin can download a read-only history archive after re-entering the current PIN/password. The
 archive contains redacted wallet history, workflow inbox items/runs, data-source reads, and

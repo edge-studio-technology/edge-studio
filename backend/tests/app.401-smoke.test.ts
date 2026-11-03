@@ -60,6 +60,11 @@ const protectedPrefixes = [
 // asymmetric on the same primitives (health vs. read, resync/config vs. peers/add), and the
 // failure mode is a new route quietly shipping ungated.
 const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: string][] = [
+    ["get", "/api/auth/settings/session"],
+    ["post", "/api/auth/settings/session"],
+    ["get", "/api/retention/camera"],
+    ["post", "/api/retention/camera/preview"],
+    ["post", "/api/retention/camera"],
   ["get", "/api/retention/settings"],
   ["post", "/api/retention/settings/preview"],
   ["post", "/api/retention/settings"],

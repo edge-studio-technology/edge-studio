@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Settings → Security includes session lifetime and inactivity controls with PIN/password confirmation and one-time migration from environment values.
+- Settings includes camera retention with file previews, protected proof captures, and paused cleanup for disabled camera support.
+- Workflow inbox items have a separate opt-in age-retention policy with deletion previews, active-run protection, and preserved linked files.
 - Settings includes opt-in automatic retention with deletion previews, confirmation, per-workflow run limits, read/deleted-workflow expiry, and data-filesystem disk warnings.
 - Minima settings includes live health-check, stall-threshold, automatic-resync and cooldown controls, with one-time migration of legacy environment values into SQLite.
 - A terminal uninstaller offers data retention by default, confirmed deletion of internal installation data, and a dry-run preview.

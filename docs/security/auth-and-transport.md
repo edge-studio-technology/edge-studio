@@ -91,11 +91,11 @@ Controls:
 - Sessions are only revoked once the credential change has actually been applied; a rejected change
   leaves existing sessions alone.
 - An hourly backend scheduler (started from `index.ts`, plus one sweep at startup) deletes sessions
-  past their absolute expiry.
+  past their absolute expiry, current maximum lifetime or inactivity timeout.
 
-Residual gap: A new login still does not invalidate other sessions (GAP-09). Sessions that are past
-the idle timeout but not past absolute expiry are rejected and deleted on their next use rather than
-by the sweep, so such rows can sit in the table until then.
+Session policy is stored in SQLite and managed under Settings → Security: maximum age 1–30 days (default 7), authenticated-request inactivity 1–168 hours (default 24). Background polling is activity; this does not track human interaction. Admin saves require the current PIN/password and share the five-failures/15-minute credential limiter. Verification rechecks the credential hash, admin role and caller session before committing. Shorter limits clip stored absolute expiries and remove invalid sessions immediately; increasing limits cannot extend existing expiries or revive sessions already expired under the old policy. Settings, session changes and non-secret audit details commit atomically. Legacy environment values seed once. See [ADR 0041](../adr/0041-separate-deployment-configuration-from-runtime-settings.md).
+
+Residual gap: A new login still does not invalidate other sessions (GAP-09).
 
 Status: **Mitigated (Phase 3, 2026-09-09).** Review finding [9]; GAP-08 and GAP-17.
 

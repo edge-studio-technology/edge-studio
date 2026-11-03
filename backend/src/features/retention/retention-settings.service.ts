@@ -12,6 +12,7 @@ export type RetentionSettings = {
   deletedWorkflowRunDays: number;
   dataSourceReadDays: number;
   diskWarningPercent: number;
+  inboxRetentionDays: number | null;
 };
 
 export const RETENTION_LIMITS = {
@@ -19,6 +20,7 @@ export const RETENTION_LIMITS = {
   deletedWorkflowRunDays: { min: 7, max: 3650 },
   dataSourceReadDays: { min: 7, max: 3650 },
   diskWarningPercent: { min: 50, max: 95 },
+  inboxRetentionDays: { min: 7, max: 3650 },
 } as const;
 
 const defaults: RetentionSettings = {
@@ -27,6 +29,7 @@ const defaults: RetentionSettings = {
   deletedWorkflowRunDays: 90,
   dataSourceReadDays: 90,
   diskWarningPercent: 80,
+  inboxRetentionDays: null,
 };
 const settingKey = "retention_settings";
 
@@ -47,6 +50,7 @@ function validateRetentionSettings(input: unknown): RetentionSettings {
   const errors: Record<string, string> = {};
   for (const [key, range] of Object.entries(RETENTION_LIMITS)) {
     const number = value[key];
+    if (key === "inboxRetentionDays" && number === null) continue;
     if (
       typeof number !== "number" ||
       !Number.isInteger(number) ||
@@ -64,12 +68,15 @@ function validateRetentionSettings(input: unknown): RetentionSettings {
     deletedWorkflowRunDays: value.deletedWorkflowRunDays as number,
     dataSourceReadDays: value.dataSourceReadDays as number,
     diskWarningPercent: value.diskWarningPercent as number,
+    inboxRetentionDays: value.inboxRetentionDays as number | null,
   };
 }
 
 export function getRetentionSettings(): RetentionSettings {
   const stored = getSetting(settingKey);
-  return stored ? validateRetentionSettings(JSON.parse(stored)) : { ...defaults };
+  return stored
+    ? validateRetentionSettings({ inboxRetentionDays: null, ...JSON.parse(stored) })
+    : { ...defaults };
 }
 
 export function previewRetentionSettings(input: unknown) {
@@ -77,9 +84,12 @@ export function previewRetentionSettings(input: unknown) {
   return db.transaction(() => {
     const previous = getRetentionSettings();
     const eligible = previewConfiguredRetention(settings);
-    const scheduled = settings.automaticCleanupEnabled
-      ? eligible
-      : { automationRuns: 0, automationBlockRuns: 0, dataSourceReads: 0 };
+    const scheduled = {
+      automationRuns: settings.automaticCleanupEnabled ? eligible.automationRuns : 0,
+      automationBlockRuns: settings.automaticCleanupEnabled ? eligible.automationBlockRuns : 0,
+      dataSourceReads: settings.automaticCleanupEnabled ? eligible.dataSourceReads : 0,
+      automationInboxItems: eligible.automationInboxItems,
+    };
     const previewToken = createHash("sha256")
       .update(JSON.stringify({ settings, previous, scheduled }))
       .digest("hex");
