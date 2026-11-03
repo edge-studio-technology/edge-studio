@@ -43,6 +43,7 @@ for I2C, whose setup steps on Raspberry Pi OS are fixed and already shown in the
   devices show `Disabled`/`Needs attention`, and workflow validation reports the missing support.
 - The agent's own code is updated through signed host-runtime artifacts delivered by
   `update-agent` (see the update-agent rule), not by rerunning `install.sh`.
+- **Uninstallation stays in the host terminal.** Settings offers a copyable command for a fixed-purpose root uninstaller, without adding a remote deletion endpoint to the agent. The operator reviews the removal plan and confirms in `/dev/tty`; the application cannot reliably report completion after removing its own containers. Data is retained in place by default, including `.env` and `APP_SECRET`, to preserve reinstallability. Deletion is limited to validated internal data paths; external or ambiguous ownership stays a manual operation. Configuration stays whenever configured data remains. Legacy firewall rules lack ownership tags, so matching rules from verified units require a separate operator attestation before removal.
 
 ## Alternatives considered
 
@@ -56,6 +57,8 @@ for I2C, whose setup steps on Raspberry Pi OS are fixed and already shown in the
 - **Run I2C setup inside normal sensor enablement.** Changing OS packages and interfaces is a
   different risk level from enabling a helper and should stay an explicit admin action.
 - **Reboot automatically after setup.** Disrupts the session; stays an operator action.
+- **Uninstall through an agent endpoint.** Adds a remote destructive host action and needs an independent job runner that survives removal; terminal instructions cover the current scope.
+- **Delete the entire installation directory or globally prune Docker images.** Can remove unknown files or resources belonging to other applications.
 
 ## Consequences
 
@@ -65,8 +68,10 @@ for I2C, whose setup steps on Raspberry Pi OS are fixed and already shown in the
 - Non-Raspberry Pi OS or non-`apt` systems still use manual setup.
 - Actions are synchronous behind a blocking modal with polling; long actions could outgrow request
   timeouts.
+- Uninstalling retained-data installations leaves configuration and operational metadata on disk; external data and unverified legacy firewall rules require manual review. There is no automatic secure erase.
 
 ## History
 
+- 2026-11-03: Terminal uninstaller and Settings instructions; retained-data and host-resource ownership boundaries.
 - 2026-09-10: Root host agent with per-capability actions, and the explicit I2C prerequisite action
   (was "I2C Prerequisite Setup Action").

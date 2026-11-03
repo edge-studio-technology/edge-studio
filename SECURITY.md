@@ -69,6 +69,12 @@ The optional MQTT broker publishes TCP `1883` when enabled. This connection is n
 
 The user-facing [Advanced networking guide](https://github.com/edge-studio-technology/edge-studio/wiki/Advanced-Networking) explains these defaults and the self-signed certificate warning. These details do not extend supported use beyond the trusted-LAN deployment described above.
 
+## Uninstallation
+
+`uninstall.sh` is a terminal-only root operation with explicit confirmation; Settings displays instructions and does not expose an uninstall API. The script reads `.env` as data without executing shell expressions, checks container installation-directory labels and helper unit working directories, and validates file-removal paths. It keeps data by default, including the encryption secret in `.env`. Internal configured data deletion requires typing `DELETE EDGE STUDIO DATA`. External data, host-file browsing directories, unknown files, images, volumes, Docker, and OS packages are retained; configuration remains when configured data is retained. Data files removed by the script are not securely erased.
+
+Legacy untagged helper firewall rules require a separate operator ownership confirmation and are retained by default. Stale rules without a matching helper unit are left for manual review. File cleanup follows successful service/container/firewall cleanup; partial failures stop removal and may leave a partially stopped installation. The removal plan is a snapshot; concurrent installation, updates, or filesystem changes must be avoided. A downloaded uninstaller run through `curl | sudo bash` has the same mutable-source trust limitation as the installer; review a downloaded tag-pinned copy when appropriate. See [ADR 0019](docs/adr/0019-hardware-access-through-host-helpers.md).
+
 ## Installer Checksum Limits
 
 The documented `sha256sum -c install.sh.sha256` check establishes that the downloaded installer matches the published checksum. The checksum is fetched from the manifests repository, but it is not a detached signature or an independently distributed trust anchor. An attacker able to replace both the installer and its checksum can pass this check. The installer remains the starting point of trust for the subsequent signature and runtime-bundle checks.

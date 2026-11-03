@@ -7,12 +7,14 @@ import {
   MousePointerClick,
   PanelLeft,
   RefreshCw,
+  Terminal,
 } from "lucide-react";
 import { Button } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
 import { Page } from "../components/Page";
 import { SubSection } from "../components/patterns/SubSection";
+import { CopyableCode } from "../components/patterns/CopyableCode";
 import { Disclosure } from "../components/ui/Disclosure";
 import { SwitchField } from "../components/ui/SwitchField";
 import {
@@ -164,6 +166,22 @@ export function AuthSettingsPage() {
                   Check for updates
                 </Button>
               </ButtonRow>
+            </SubSection>
+            <SubSection
+              icon={<Terminal size={13} aria-hidden />}
+              title="Uninstall Edge Studio"
+              description="Run this command in the Pi terminal or over SSH to remove Edge Studio."
+            >
+              <p className="type-body text-text-secondary m-0">
+                The uninstaller keeps your data and configuration by default. It also offers permanent deletion with a separate confirmation. Deleting Minima data removes the local wallet and its stored backups; save anything you need first.
+              </p>
+              <CopyableCode
+                className="my-3"
+                value="curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/uninstall.sh | sudo bash"
+              />
+              <p className="type-body text-text-secondary m-0">
+                Review the removal plan in the terminal before confirming. External data directories and unknown files are retained for manual review. The app becomes unavailable when its containers stop.
+              </p>
             </SubSection>
           </div>
         </Disclosure>

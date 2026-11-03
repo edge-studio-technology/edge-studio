@@ -56,7 +56,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0015](./adr/0015-minima-console-mutating-subcommands.md) | Minima console catalog classifies by argument shape; mutating forms default disabled |
 | [0016](./adr/0016-install-time-bootstrap-trust-set.md) | Install-time trust chain: embedded key and verifier, pinned verifier image, bundle bound to the signed manifest |
 | [0017](./adr/0017-outbound-and-upload-resource-limits.md) | Clamped egress, upload, and MQTT limits; nginx upload limit derived from backend settings |
-| [0019](./adr/0019-hardware-access-through-host-helpers.md) | Hardware via host helpers and a root host agent with fixed per-capability actions |
+| [0019](./adr/0019-hardware-access-through-host-helpers.md) | Hardware via fixed host-agent actions; uninstall through a confirmed host-terminal operation |
 | [0021](./adr/0021-app-secret-fail-closed-without-migration.md) | Backend refuses an empty `APP_SECRET`; no public default, no secret migration |
 | [0022](./adr/0022-bound-external-automation-effects.md) | Automation effects: credential redaction, retention by record purpose, 1,000 privileged runs/hour budget |
 | [0024](./adr/0024-responsive-layout-strategy.md) | Responsive layout: 768 floor, container queries, sidebar overlay below 1024, sticky table actions |

@@ -141,6 +141,36 @@ https://localhost:8080
 
 Your browser will warn about the self-signed certificate. That is expected — choose Advanced / Continue. Traffic is encrypted after that.
 
+## Uninstalling Edge Studio
+
+Run this from your home directory in the Pi terminal or over SSH:
+
+```bash
+cd ~
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/uninstall.sh | sudo bash
+```
+
+The same command is available to copy from **Settings → App → Uninstall Edge Studio**. New installations also include a local copy: `sudo bash /opt/edge-studio/uninstall.sh`. To review the downloaded script before running it, download it with `curl -fsSL <url> -o uninstall.sh`, read it, then run `sudo bash uninstall.sh`; a release tag can replace `main` in the URL.
+
+The uninstaller requires Linux, Python 3, a working Docker daemon, and an interactive terminal. It reads confirmation from `/dev/tty`, including when piped through `curl`. It offers two choices:
+
+- **Keep data (default):** remove owned containers, helper services, verified CLI, application code, and the unused app network. Keep the database, Minima wallet/node data and backups, captures, certificates, update state, `.env` including `APP_SECRET`, and the package metadata/local uninstaller in their original locations. Reinstall with the same `APP_DIR` to reuse the saved configuration and data.
+- **Delete installation data:** additionally delete validated configured data paths inside the installation directory, after typing `DELETE EDGE STUDIO DATA`. Deleting Minima data removes the local wallet and any backups stored there. Export or back up what you need first.
+
+Both choices show a removal plan before confirmation. External data directories, host-file browsing directories, unknown files, Docker images/volumes, Docker itself, and OS packages are retained. If any configured data remains, `.env` and package metadata/local uninstaller are retained too. Review the printed retained paths for any manual cleanup. The installation directory is removed only when empty. These operations delete files normally; they do not securely erase storage.
+
+Legacy helper firewall rules have no ownership tags. The script lists the exact subnet/port rules from verified helper units and asks separately whether they were created only for this installation; the default is to retain them. Rules whose originating unit is missing cannot be verified and are left for manual review. No global Docker pruning is performed. Settings provides terminal instructions; it does not initiate remote removal.
+
+To preview without changing anything, or explicitly select deletion mode:
+
+```bash
+sudo bash /opt/edge-studio/uninstall.sh --dry-run
+sudo bash /opt/edge-studio/uninstall.sh --delete-data --dry-run
+sudo bash /opt/edge-studio/uninstall.sh --delete-data
+```
+
+For a custom installation directory, use `sudo env APP_DIR=/opt/my-edge-studio bash uninstall.sh`. When piping a script with arguments, use `... | sudo bash -s -- --dry-run` (or `--delete-data`). The uninstaller inspects Docker labels and helper unit ownership, including stopped containers; it can operate when Compose files are missing. If a cleanup step fails, it stops and reports the failure before removing application files/data. Fix the host issue and rerun. Missing configuration or ambiguous paths may require manual cleanup.
+
 ## Configuration
 
 Runtime configuration is stored in `.env`:
