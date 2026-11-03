@@ -16,6 +16,7 @@ import {
 } from "./minimaApi";
 import { MinimaMegammrHostSection } from "./MinimaMegammrHostSection";
 import { MinimaPeerConnectionsSection } from "./MinimaPeerConnectionsSection";
+import { MinimaRuntimeSettingsSection } from "./MinimaRuntimeSettingsSection";
 
 export function MinimaSettingsPanel({
   bare = false,
@@ -160,7 +161,7 @@ export function MinimaSettingsPanel({
         <div className="mb-4 grid gap-1">
           <h3 style={{ margin: 0 }}>Minima node settings</h3>
           <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
-            Configure the megammr sync host and manage peer connections.
+            Configure the sync host, peer connections, and node monitoring.
           </p>
         </div>
       )}
@@ -195,6 +196,7 @@ export function MinimaSettingsPanel({
         onAddPeers={runAddPeers}
         onRetry={() => void refreshPeers()}
       />
+      <MinimaRuntimeSettingsSection />
       {configError && <ErrorText>{configError}</ErrorText>}
 
       {/* Auto restart is disabled for now — deferred until automations get graceful

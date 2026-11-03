@@ -4,6 +4,9 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Recorded the deployment/runtime configuration and future export boundary for #628/#643 in ADR 0041; retained infrastructure and bootstrap credentials in deployment configuration.
+- Added SQLite-backed Minima health interval, stall threshold, automatic-resync enablement and cooldown settings, one-time legacy environment seeding, bounded admin APIs, and transactional old/new/actor audits. Updated monitoring/resync consumers and live timer rescheduling without replaying or cancelling operations.
+- Added Minima monitoring controls that remain available with the node stopped. Verified 138 focused backend tests, monitoring API tests, 15 focused UI tests, full frontend coverage (92.09% lines), lint/docs, Knip/typechecks, all three application builds, and Compose configuration. Full check reached 1,439 backend passes and the known restore fallback failure (502 versus 200). Docker image build could not run because Docker Desktop's Linux daemon was unavailable, including after the permission retry.
 - Added a Keep data / Delete data toggle to Settings uninstall instructions; the command and explanation change together, deletion includes `bash -s -- --delete-data`, and switching modes resets copy feedback. Verified both copied commands with a UI regression test; all three Settings tests, frontend lint/build, and docs checks passed.
 - Added a terminal-only `uninstall.sh` with keep-data defaults, typed deletion confirmation, dry-run previews, installation ownership checks, graceful container stops, optional legacy-firewall cleanup, and configuration retention for retries/external data.
 - Added Settings → App uninstall instructions using the shared copyable command control; included the local uninstaller in runtime bundles and documented retained paths, reinstall behavior, security boundaries, and host-agent lifecycle decisions in ADR 0019.
@@ -14,6 +17,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Next Steps
 
+- Verify monitoring migration and persistence on a Pi, and check live interval/policy edits with a stopped/running disposable Minima node; confirm saving never cancels an active resync. Retry Docker image builds when the daemon is available.
 - Verify uninstall on a disposable Pi installation: keep-data removal and reinstall, internal-data deletion, custom helper ports/subnet, external data, cancellation, and partially removed installations. No Pi services or data were changed during implementation.
 - Verify a fresh piped advanced install and an installer rerun on a Pi, including enabled optional helpers and an occupied default port.
 

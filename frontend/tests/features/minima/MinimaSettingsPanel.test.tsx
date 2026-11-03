@@ -11,6 +11,8 @@ const getMinimaPeers = vi.fn();
 const saveMinimaConfig = vi.fn();
 const setAutoRestartEnabled = vi.fn();
 
+vi.mock("../../../src/features/minima/MinimaRuntimeSettingsSection", () => ({ MinimaRuntimeSettingsSection: () => null }));
+
 vi.mock("../../../src/features/minima/minimaApi", () => ({
   addMinimaPeers: (...args: unknown[]) => addMinimaPeers(...args),
   getAutoRestartEnabled: (...args: unknown[]) => getAutoRestartEnabled(...args),

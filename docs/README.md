@@ -74,6 +74,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0038](./adr/0038-feedback-hosted-delivery-with-local-fallback.md) | Feedback saved locally, sent to Integritas with the existing key after per-submission consent |
 | [0039](./adr/0039-workflow-canvas-and-watch-mode-interaction.md) | Workflow canvas routes and click controls; watch mode follow-live, replay, and summaries |
 | [0040](./adr/0040-separate-portable-history-from-device-migration.md) | Portable history is a read-only, redacted archive; configuration/secrets transfer is a separate device-migration concern |
+| [0041](./adr/0041-separate-deployment-configuration-from-runtime-settings.md) | Deployment/runtime settings boundary; Minima policy migrates once to SQLite and changes live |
 
 ### Retired ADRs
 

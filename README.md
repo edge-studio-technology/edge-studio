@@ -218,10 +218,6 @@ MINIMA_BACKUP_DIR=./minima-backup
 MINIMA_P2P_PORT=9003
 MINIMA_RPC_BIND=127.0.0.1
 MINIMA_RPC_PORT=9005
-MINIMA_HEALTH_POLL_INTERVAL_SECONDS=60
-MINIMA_STALL_BLOCK_AGE_SECONDS=300
-MINIMA_AUTO_RESYNC=false
-MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES=30
 INTEGRITAS_CONNECT_BASE_URL=https://integritas.technology
 INTEGRITAS_BASE_URL=https://integritas.technology/core
 INTEGRITAS_REQUEST_ID=edge-studio
@@ -253,7 +249,18 @@ The installer sets `COOKIE_SECURE=true` for the default HTTPS Docker deploy. Use
 
 `MINIMA_RPC_BIND` defaults to `127.0.0.1`, which means Minima RPC is only exposed on the Pi itself. Set it to `0.0.0.0` only on a trusted network.
 
-The backend runs a Minima health poller on `MINIMA_HEALTH_POLL_INTERVAL_SECONDS` (default 60s). It detects chain stalls when the last block age exceeds `MINIMA_STALL_BLOCK_AGE_SECONDS` (default 300s) while the node is running. Optional auto-resync is **off by default**; set `MINIMA_AUTO_RESYNC=true` to allow the poller to call Megammr resync (see `SECURITY.md`).
+Minima → Settings → **Monitoring & automatic resync** controls the backend health poller. These admin settings are stored in SQLite and apply without restarting the backend or Minima, including when the node is currently stopped. Automatic resync is off by default; enabling it permits a Megammr resync when a running node appears stalled and the cooldown has elapsed. Resync can temporarily interrupt node-dependent workflows. Saving a policy does not start an extra poll or cancel an operation already in progress.
+
+| Setting | Default | Allowed range |
+| --- | --- | --- |
+| Health-check interval | 60 seconds | 10–3600 seconds |
+| Stall threshold (latest block age) | 300 seconds | 60–86400 seconds |
+| Automatic resync | Off | On/off |
+| Automatic resync cooldown | 30 minutes | 1–10080 minutes |
+
+Existing `MINIMA_HEALTH_POLL_INTERVAL_SECONDS`, `MINIMA_STALL_BLOCK_AGE_SECONDS`, `MINIMA_AUTO_RESYNC`, and `MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES` values seed SQLite once when monitoring settings are first read, normally at startup. Later `.env` edits do not override saved settings. Invalid or out-of-range legacy numeric values fall back to the defaults with a backend warning; app/API edits are rejected with field errors. Ports, subnet, data paths and helper credentials stay in deployment configuration. See [ADR 0041](docs/adr/0041-separate-deployment-configuration-from-runtime-settings.md) for the configuration and future settings-export boundary.
+
+Admin-only `GET /api/minima/monitoring/settings` returns `{ settings, limits }`. `POST` to the same endpoint accepts all four fields: `{ healthPollIntervalSeconds, stallBlockAgeSeconds, autoResyncEnabled, autoResyncCooldownMinutes }`, and returns the saved settings and limits. Numeric fields must be JSON integers within the documented ranges; `autoResyncEnabled` must be a boolean. Invalid input returns HTTP 400 with field errors; settings and the actor/old/new audit event commit together.
 
 `DATA_DIR` is mounted into the backend container as `/data` and stores the SQLite database.
 

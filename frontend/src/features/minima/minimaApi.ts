@@ -5,7 +5,9 @@ import type {
   MinimaNodeStatus,
   MinimaPeersResponse,
   MinimaResyncOperation,
-  MinimaRestartResult
+  MinimaRestartResult,
+  MinimaRuntimeSettings,
+  MinimaRuntimeSettingsResponse
 } from "../../app/types";
 import { getJson, postJson } from "../../lib/api";
 
@@ -15,6 +17,14 @@ export function getMinimaNodeStatus() {
 
 export function getMinimaConfig() {
   return getJson<MinimaConfig>("/api/minima/config");
+}
+
+export function getMinimaRuntimeSettings() {
+  return getJson<MinimaRuntimeSettingsResponse>("/api/minima/monitoring/settings");
+}
+
+export function saveMinimaRuntimeSettings(settings: MinimaRuntimeSettings) {
+  return postJson<MinimaRuntimeSettingsResponse>("/api/minima/monitoring/settings", settings);
 }
 
 export function saveMinimaConfig(megammrHost: string) {

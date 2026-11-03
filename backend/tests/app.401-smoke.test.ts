@@ -62,6 +62,8 @@ const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: strin
   ["post", "/api/data-sources/src-1/read"],
   ["post", "/api/data-sources"],
   ["post", "/api/minima/config"],
+  ["get", "/api/minima/monitoring/settings"],
+  ["post", "/api/minima/monitoring/settings"],
   ["post", "/api/minima/megammrsync/resync"],
   ["get", "/api/minima/resync"],
   ["post", "/api/minima/peers/add"],

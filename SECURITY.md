@@ -6,6 +6,7 @@ Edge Studio is a prototype intended to run on a trusted local network. It is not
 
 ## Guidelines
 
+- Minima monitoring settings are stored in SQLite; both `GET` and `POST /api/minima/monitoring/settings` require an admin session. Automatic resync remains off by default and may interrupt node-dependent workflows when enabled. Settings changes validate bounded integer values and commit their actor/old/new audit event atomically; legacy environment policy values seed settings once. Changing policy never cancels or replays an active resync. See [ADR 0041](docs/adr/0041-separate-deployment-configuration-from-runtime-settings.md).
 Follow these when deploying, operating, or contributing to this project:
 
 - Never expose the backend, Minima RPC, or the Docker socket directly to an untrusted network. Access the UI only through the frontend's HTTPS proxy.

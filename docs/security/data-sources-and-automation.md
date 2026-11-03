@@ -30,14 +30,15 @@ and [adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md).
 
 ## Minima Auto-Resync (optional)
 
-Risk: When `MINIMA_AUTO_RESYNC=true`, the backend health poller can trigger Megammr resync without an operator click if the chain appears stalled (block age above `MINIMA_STALL_BLOCK_AGE_SECONDS` while the node is running). Minima may respond that a container restart is required afterward.
+Risk: When automatic resync is enabled in Minima monitoring settings, the backend health poller can trigger Megammr resync without an operator click if the chain appears stalled (latest block age above the saved stall threshold while the node is running). Minima may respond that a container restart is required afterward.
 
 Impact: Unexpected resync traffic, temporary Minima RPC unavailability (same as manual resync), and possible operator surprise on a production Pi.
 
 Current Controls:
 
-- **Disabled by default** (`MINIMA_AUTO_RESYNC=false`).
-- Cooldown between auto-resync attempts (`MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES`, default 30).
+- **Disabled by default**; legacy `MINIMA_AUTO_RESYNC` values seed SQLite once (ADR 0041).
+- Admin-only monitoring settings API with strict bounds/type validation and transactional old/new/actor audit events; no generic settings editor.
+- Cooldown between auto-resync attempts (saved in SQLite, default 30 minutes).
 - Poller logs stall detection and auto-resync actions; `GET /api/minima/status` exposes `monitoring.stallDetected`, `lastAutoResyncAt`, and related fields.
 - Auto-resync and console resync use the same asynchronous, allowlisted `resyncMegammr()` path as the manual API.
 - Initiation starts the cooldown; an operation conflict does not consume cooldown or count as resync failure. Completion is tracked separately from initiation.

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { env } from "../../config/env.js";
+import { getMinimaRuntimeSettings } from "./minima-settings.service.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { getComposeServiceContainer, inspectContainer } from "../status/docker.service.js";
 import { startComposeService } from "../status/docker.control.js";
@@ -243,7 +243,7 @@ async function observeResync(id: string, active: () => boolean) {
       }
       operation = readOperation()!;
       const confirmed = operation.completionEvidence;
-      const chainWarning = age === null ? " Chain freshness is unavailable." : age > env.minimaStallBlockAgeSeconds ? " The chain is still catching up or stale." : "";
+      const chainWarning = age === null ? " Chain freshness is unavailable." : age > getMinimaRuntimeSettings().stallBlockAgeSeconds ? " The chain is still catching up or stale." : "";
       updateMinimaResyncOperation(id, { phase: confirmed ? "completed" : "unconfirmed", outcome: confirmed ? "completed" : "unconfirmed", reserved: false,
         recovered: true, message: (confirmed ? "Resync completed; the node is back online." : "The node recovered, but the resync outcome could not be confirmed.") + chainWarning });
       return;

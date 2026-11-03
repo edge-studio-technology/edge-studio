@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 
 let monitoring: typeof import("../../../src/features/minima/minima-monitoring.js");
+const settings = vi.hoisted(() => ({ healthPollIntervalSeconds: 60, stallBlockAgeSeconds: 300, autoResyncEnabled: false, autoResyncCooldownMinutes: 30 }));
+vi.mock("../../../src/features/minima/minima-settings.service.js", () => ({ getMinimaRuntimeSettings: () => settings }));
 
 beforeEach(async () => {
   vi.resetModules();
+  Object.assign(settings, { healthPollIntervalSeconds: 60, stallBlockAgeSeconds: 300, autoResyncEnabled: false, autoResyncCooldownMinutes: 30 });
   monitoring = await import("../../../src/features/minima/minima-monitoring.js");
 });
 
@@ -13,6 +16,12 @@ afterEach(() => {
 });
 
 describe("detectStall", () => {
+  it("uses saved threshold changes immediately", () => {
+    settings.stallBlockAgeSeconds = 600;
+    assert.equal(monitoring.detectStall({ state: "running", sync: { blockAgeSeconds: 400 } as never }), false);
+    settings.stallBlockAgeSeconds = 300;
+    assert.equal(monitoring.detectStall({ state: "running", sync: { blockAgeSeconds: 400 } as never }), true);
+  });
   it("is false while the node is not running", () => {
     assert.equal(monitoring.detectStall({ state: "stopped", sync: { blockAgeSeconds: 9999 } as never }), false);
   });
@@ -63,6 +72,14 @@ describe("snapshot recording", () => {
 });
 
 describe("canAutoResync", () => {
+  it("uses a changed cooldown without clearing the last attempt", () => {
+    vi.useFakeTimers();
+    monitoring.recordAutoResync("started");
+    vi.advanceTimersByTime(60_001);
+    assert.equal(monitoring.canAutoResync(), false);
+    settings.autoResyncCooldownMinutes = 1;
+    assert.equal(monitoring.canAutoResync(), true);
+  });
   it("is true before any resync has run", () => {
     assert.equal(monitoring.canAutoResync(), true);
   });
@@ -99,7 +116,7 @@ describe("Minima operation tracking", () => {
 });
 
 describe("buildMinimaMonitoring", () => {
-  it("combines stall detection, env thresholds, and the current snapshot", () => {
+  it("combines stall detection, saved thresholds, and the current snapshot", () => {
     const result = monitoring.buildMinimaMonitoring({ state: "running", sync: { blockAgeSeconds: 301 } as never });
 
     assert.equal(result.stallDetected, true);
