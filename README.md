@@ -23,6 +23,26 @@ Run:
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo bash
 ```
 
+### Custom ports and advanced installation
+
+If another application uses one of Edge Studio's ports, use the guided installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo bash -s -- --advanced
+```
+
+The installer asks for the HTTPS frontend, Minima peer-to-peer, Minima local RPC, host agent, camera helper, sensor helper, and MQTT broker ports. Press Enter to keep the displayed value. Existing installations show saved values; explicit environment overrides take precedence over saved values. Optional service ports are saved even while those services are disabled. The backend and update-agent use internal Docker ports and need no host port selection. Advanced mode changes port numbers only; Minima RPC keeps its configured bind address (`127.0.0.1` by default), and optional services remain disabled unless explicitly enabled.
+
+Both installation modes validate port numbers (1–65535), require distinct host ports, and check ports for services being started before installing packages or changing application files. Conflicts report the service and port, with instructions to rerun using `--advanced`. Running containers and helpers belonging to the same installation are allowed during reruns. These checks are a snapshot; another process can still claim a port before startup. Disabled optional services' ports are saved but are not checked for availability or reserved on the host.
+
+Advanced mode reads answers from the terminal, including when the installer is piped through `curl`; it requires an interactive terminal. For headless installation, pass port values directly:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env FRONTEND_PORT=8443 MINIMA_P2P_PORT=19003 bash
+```
+
+Other port variables are `MINIMA_RPC_PORT`, `HOST_AGENT_PORT`, `CAMERA_HELPER_PORT`, `SENSOR_HELPER_PORT`, and `MQTT_PUBLIC_PORT`. The preflight requires Python 3; if it is missing, run `sudo apt-get install python3` first. If Docker is already installed, its daemon must be running for the publication check. After installation, use the HTTPS URL printed by the installer with your selected frontend port.
+
 ### Verified Install (recommended)
 
 The one-liner above pipes a mutable branch into a root shell. To pin a release and check it before
@@ -40,6 +60,8 @@ sha256sum -c install.sh.sha256
 less install.sh
 sudo bash install.sh
 ```
+
+To select custom ports with a verified installer, run `sudo bash install.sh --advanced` in the final step.
 
 The checksum is published to a different repository from the installer itself, so it is not simply
 the same file vouching for itself. This does not fully close the bootstrap trust problem — see

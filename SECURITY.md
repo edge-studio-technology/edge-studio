@@ -63,6 +63,8 @@ GitHub Actions tokens default to `contents: read`; only the release image-build 
 
 The default Compose installation publishes the HTTPS frontend on TCP `8080` and Minima peer-to-peer traffic on TCP `9003` on the host interfaces. Minima RPC on TCP `9005` is bound to `127.0.0.1`; keep that binding local. The backend and update-agent are accessed through the frontend proxy rather than separate host-published ports. Port values can be changed by installation configuration.
 
+The installer's `--advanced` mode changes host port numbers without changing bind addresses or enabling optional services. Port preflight inspects local TCP bindings, Docker publications, and existing Edge Studio systemd helper ownership before installation changes; it does not stop other applications or reserve ports until startup. Existing containers are recognized by Compose service and installation-directory labels, and existing helpers by their systemd main process, working directory, and listening socket.
+
 The optional MQTT broker publishes TCP `1883` when enabled. This connection is not TLS-encrypted; keep it on a trusted network. Do not forward the web interface or MQTT broker through an internet-facing router. Minima peer traffic is distinct from administrative RPC access and does not justify exposing RPC, the Docker socket, or host helpers. Publishing a Docker port does not itself configure router port forwarding.
 
 The user-facing [Advanced networking guide](https://github.com/edge-studio-technology/edge-studio/wiki/Advanced-Networking) explains these defaults and the self-signed certificate warning. These details do not extend supported use beyond the trusted-LAN deployment described above.

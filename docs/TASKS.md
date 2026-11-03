@@ -21,6 +21,7 @@
 
 ### Follow-ups from finished work
 
+- [ ] Verify the advanced installer on a Pi: fresh `curl | sudo bash -s -- --advanced`, an occupied default port, saved custom ports on rerun, and enabled camera/sensor/MQTT services.
 
 - [ ] Recapture the guided-tour screenshots with clean, Pi-like values and review the copy (#275; ADR 0027).
 - [ ] Review the #524 lint follow-ups: `JsonPreview` ignores `title`, `WatchRunHistory` ignores `replayPlaying`, and `WorkflowWorkspace` rebuilds its replay arrays every render, so effects rerun and the replay timer re-arms.
@@ -70,6 +71,7 @@
 
 ## Done
 
+- [x] Added guided installer host-port configuration with `--advanced`, saved port defaults, validation, and early conflict checks; verified focused tests, shell syntax, lint/typechecks, builds, and Compose configuration (full check remains blocked by the tracked Minima restore test).
 - [x] Release security hardening: bounded proof/history/backup file operations and credential checks, validated report IDs, explicit workflow token permissions, and regression-tested upload-path triage (ADRs 0010/0022); full Linux checks passed in #166.
 - [x] Restored Raspberry Pi Camera in the device setup wizard and updated its focused setup steps, validation, full capture review, and in-app guide; verified with focused tests, frontend lint, and build.
 
