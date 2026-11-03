@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - A terminal uninstaller offers data retention by default, confirmed deletion of internal installation data, and a dry-run preview.
-- Settings includes a copyable uninstall command and data-retention guidance.
+- Settings includes a Keep data / Delete data toggle with the full copyable uninstall command and guidance for each option.
 
 ## [Unreleased]
 

@@ -47,3 +47,22 @@ it("shows the change-credential panel in the credentials section", async () => {
   await userEvent.click(screen.getByText("Credentials"));
   expect(screen.getByText("Change PIN or password")).toBeInTheDocument();
 });
+
+it("copies the selected uninstall mode and resets to the keep-data command when switched back", async () => {
+  const user = userEvent.setup();
+  const copy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
+  const command = "curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/uninstall.sh | sudo bash";
+  render(<MemoryRouter><AuthSettingsPage /></MemoryRouter>, { wrapper: ToastProvider });
+
+  expect(screen.getByRole("tab", { name: "Keep data" })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByText(command)).toBeInTheDocument();
+  await user.click(screen.getByRole("tab", { name: "Delete data" }));
+  expect(screen.getByText(/Permanently delete configured data/)).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Copy to clipboard" }));
+  expect(copy).toHaveBeenLastCalledWith(`${command} -s -- --delete-data`);
+
+  await user.click(screen.getByRole("tab", { name: "Keep data" }));
+  await user.click(screen.getByRole("button", { name: "Copy to clipboard" }));
+  expect(copy).toHaveBeenLastCalledWith(command);
+  copy.mockRestore();
+});

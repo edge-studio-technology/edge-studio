@@ -4,6 +4,7 @@ Scratch log for the session in progress. Update it as you go; reset it when a se
 
 ## Progress
 
+- Added a Keep data / Delete data toggle to Settings uninstall instructions; the command and explanation change together, deletion includes `bash -s -- --delete-data`, and switching modes resets copy feedback. Verified both copied commands with a UI regression test; all three Settings tests, frontend lint/build, and docs checks passed.
 - Added a terminal-only `uninstall.sh` with keep-data defaults, typed deletion confirmation, dry-run previews, installation ownership checks, graceful container stops, optional legacy-firewall cleanup, and configuration retention for retries/external data.
 - Added Settings → App uninstall instructions using the shared copyable command control; included the local uninstaller in runtime bundles and documented retained paths, reinstall behavior, security boundaries, and host-agent lifecycle decisions in ADR 0019.
 - Verified the uninstaller's 14 Python regression cases through the scripts test runner, focused installer/Settings tests, shell syntax, lint/docs, Knip/typechecks, the frontend build, Compose configuration, and a runtime-bundle build containing `uninstall.sh`. The full check stopped at the existing Minima restore test (502 versus 200; 1,424 backend tests passed).

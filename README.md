@@ -150,7 +150,7 @@ cd ~
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/uninstall.sh | sudo bash
 ```
 
-The same command is available to copy from **Settings → App → Uninstall Edge Studio**. New installations also include a local copy: `sudo bash /opt/edge-studio/uninstall.sh`. To review the downloaded script before running it, download it with `curl -fsSL <url> -o uninstall.sh`, read it, then run `sudo bash uninstall.sh`; a release tag can replace `main` in the URL.
+The same command is available to copy from **Settings → App → Uninstall Edge Studio**. Choose **Keep data** (default) or **Delete data** to show and copy the full command for that option; Delete data includes `sudo bash -s -- --delete-data`. New installations also include a local copy: `sudo bash /opt/edge-studio/uninstall.sh`. To review the downloaded script before running it, download it with `curl -fsSL <url> -o uninstall.sh`, read it, then run `sudo bash uninstall.sh`; a release tag can replace `main` in the URL.
 
 The uninstaller requires Linux, Python 3, a working Docker daemon, and an interactive terminal. It reads confirmation from `/dev/tty`, including when piped through `curl`. It offers two choices:
 

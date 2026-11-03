@@ -17,6 +17,7 @@ import { SubSection } from "../components/patterns/SubSection";
 import { CopyableCode } from "../components/patterns/CopyableCode";
 import { Disclosure } from "../components/ui/Disclosure";
 import { SwitchField } from "../components/ui/SwitchField";
+import { ToggleTabs } from "../components/ui/ToggleTabs";
 import {
   closeModalOnOutsideClickSetting,
   guidedTourSeenSetting,
@@ -31,6 +32,7 @@ const SIGN_OUT_AFTER_CREDENTIAL_CHANGE_MS = 3000;
 
 export function AuthSettingsPage() {
   const [storageHistoryOpen, setStorageHistoryOpen] = useState(false);
+  const [uninstallMode, setUninstallMode] = useState<"keep" | "delete">("keep");
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -172,12 +174,25 @@ export function AuthSettingsPage() {
               title="Uninstall Edge Studio"
               description="Run this command in the Pi terminal or over SSH to remove Edge Studio."
             >
-              <p className="type-body text-text-secondary m-0">
-                The uninstaller keeps your data and configuration by default. It also offers permanent deletion with a separate confirmation. Deleting Minima data removes the local wallet and its stored backups; save anything you need first.
+              <ToggleTabs
+                label="Uninstall data handling"
+                value={uninstallMode}
+                options={[
+                  { value: "keep", label: "Keep data" },
+                  { value: "delete", label: "Delete data" },
+                ]}
+                onChange={setUninstallMode}
+                className="mb-3"
+              />
+              <p className="type-body text-text-secondary m-0" aria-live="polite">
+                {uninstallMode === "keep"
+                  ? "Keep your data and configuration for reinstalling Edge Studio. The terminal asks you to confirm removal."
+                  : "Permanently delete configured data inside the installation directory, including the Minima wallet and its stored backups. Back up what you need first. The terminal requires a separate typed confirmation."}
               </p>
               <CopyableCode
+                key={uninstallMode}
                 className="my-3"
-                value="curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/uninstall.sh | sudo bash"
+                value={`curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/uninstall.sh | sudo bash${uninstallMode === "delete" ? " -s -- --delete-data" : ""}`}
               />
               <p className="type-body text-text-secondary m-0">
                 Review the removal plan in the terminal before confirming. External data directories and unknown files are retained for manual review. The app becomes unavailable when its containers stop.

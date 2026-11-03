@@ -72,7 +72,7 @@
 
 ## Done
 
-- [x] Added the terminal uninstaller with default data retention, confirmed internal-data deletion, dry-run/ownership checks, and Settings instructions; verified focused regressions, frontend build/tests, lint/typechecks, shell syntax, Compose config, and runtime packaging (full check still hits the tracked Minima restore failure).
+- [x] Added the terminal uninstaller with default data retention, confirmed internal-data deletion, dry-run/ownership checks, and Settings instructions with a Keep data / Delete data command toggle; verified focused regressions, frontend build/tests, lint/typechecks, shell syntax, Compose config, and runtime packaging (full check still hits the tracked Minima restore failure).
 - [x] Added guided installer host-port configuration with `--advanced`, saved port defaults, validation, and early conflict checks; verified focused tests, shell syntax, lint/typechecks, builds, and Compose configuration (full check remains blocked by the tracked Minima restore test).
 - [x] Release security hardening: bounded proof/history/backup file operations and credential checks, validated report IDs, explicit workflow token permissions, and regression-tested upload-path triage (ADRs 0010/0022); full Linux checks passed in #166.
 - [x] Restored Raspberry Pi Camera in the device setup wizard and updated its focused setup steps, validation, full capture review, and in-app guide; verified with focused tests, frontend lint, and build.
