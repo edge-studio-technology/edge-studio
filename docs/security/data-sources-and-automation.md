@@ -169,7 +169,7 @@ Current Controls:
 - The bearer token is masked in the backend request log and in the nginx access log on both the HTTPS and HTTP-redirect servers. The webhook location logs only critical nginx errors, because nginx error lines embed the raw request line.
 - Recorded webhook reads store `data-source:<id>`, never the tokenised URL; the upgrade migration rewrote historical rows.
 - Webhook ingestion is limited to 60 requests per minute per client IP and source. The limiter key uses a SHA-256 hash of the token, and the limit is process-local.
-- Workflow runs, block runs, visible inbox items, and data-source reads created by webhook events are preserved; user-deleted inbox items are physically purged.
+- Webhook-created workflow runs/block runs and unlinked reads follow the opt-in retention policy (off by default); proof-linked reads and visible inbox content are protected. User-deleted inbox items are physically purged.
 - Workflows reaching payment, device output, camera, or stamp blocks are bounded to 1,000 runs per rolling hour per workflow, persisted across restarts; exhaustion returns `429`.
 
 Residual: Docker logs written before Phase 7 still contain tokens until they rotate out or are
@@ -201,7 +201,7 @@ Current Controls:
 - MQTT sources are push-only and do not use scheduled polling intervals.
 - Broker URLs may carry credentials for the live connection, but read history stores `data-source:<id>` instead of the broker URL, and the upgrade migration scrubbed historical rows. Error details redact both `user:password@` and username-only userinfo.
 - MQTT-triggered workflows share the per-workflow run budget (1,000 runs with payment, device output, camera, or stamp blocks per rolling hour); budget exhaustion is skipped silently. HTTP rate limits do not apply to MQTT.
-- MQTT-created workflow runs, block runs, data-source reads, and visible inbox items are preserved; deleted inbox items are physically purged.
+- MQTT-created runs/block runs and unlinked reads follow the opt-in retention policy (off by default); proof-linked reads and visible inbox content are protected. Deleted inbox items are physically purged.
 
 Plan:
 

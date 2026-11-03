@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { env } from "../../config/env.js";
 import { db } from "../../db/database.js";
+import { getRetentionSettings } from "../retention/retention-settings.service.js";
 
 type StorageCategory = {
   id: string;
@@ -33,6 +34,7 @@ const VERIFICATION_REPORTS_DIR = "integritas-verification-reports";
 const EXPORTS_DIR = "exports";
 
 export function getStorageHistoryInventory() {
+  const retention = getRetentionSettings();
   const databaseFiles = measureFiles([
     env.databasePath,
     `${env.databasePath}-wal`,
@@ -64,7 +66,7 @@ export function getStorageHistoryInventory() {
       id: "workflow-diagnostics",
       label: "Workflow diagnostics",
       description: "Workflow runs and their individual block runs.",
-      lifecycle: "Kept until a future history policy is configured.",
+      lifecycle: retention.automaticCleanupEnabled ? `Newest ${retention.runsPerWorkflow} per workflow; deleted-workflow runs kept ${retention.deletedWorkflowRunDays} days. Active runs are protected.` : "Kept while automatic history cleanup is off.",
       tables: TABLES_BY_CATEGORY.workflowDiagnostics,
       tableBytes,
     }),
@@ -72,7 +74,7 @@ export function getStorageHistoryInventory() {
       id: "device-diagnostics",
       label: "Device diagnostics",
       description: "Data-source reads from polls, webhooks, and device events.",
-      lifecycle: "Kept until a future history policy is configured.",
+      lifecycle: retention.automaticCleanupEnabled ? `Kept ${retention.dataSourceReadDays} days; proof-linked reads are protected.` : "Kept while automatic history cleanup is off.",
       tables: TABLES_BY_CATEGORY.deviceDiagnostics,
       tableBytes,
     }),

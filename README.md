@@ -502,6 +502,22 @@ Login and current-credential confirmations in Settings, node backups, and the co
 ## Storage And History
 
 Settings -> Storage & history shows the records and managed files Edge Studio keeps on the Pi.
+
+The **Automatic retention** section stores its policy in SQLite and takes effect without a restart. Automatic history cleanup is **off by default**, including on existing installations. Set the limits, choose whether to enable cleanup, select **Preview retention changes**, review the counts and confirm the policy. Saving does not delete records; enabled cleanup runs at startup and hourly in batches, yielding between batches. A changed policy or scheduled count before confirmation requires a fresh preview. Counts are a snapshot and can grow as records age. Use Export history first if you need to retain records.
+
+| Setting | Default | Range |
+| --- | --- | --- |
+| Runs per existing workflow | 500 | 50–10,000 |
+| Deleted-workflow run retention | 90 days from run start | 7–3,650 days |
+| Unlinked data-source read retention | 90 days | 7–3,650 days |
+| Disk warning threshold | 80% | 50–95% |
+
+Each workflow keeps its own newest runs, with stable timestamp/ID ordering. Active executions are protected and block rows are deleted together with their parent run; security-budget reservations remain. Archived workflows still count as existing workflows. Deleted workflows' runs use their original start time, so old runs can become eligible when a workflow is deleted. Proof-linked reads, wallet history, visible inbox content, proofs, imported archives, audit events, and files are retained by this cleanup. Camera file retention remains separate. Lowering limits can cause irreversible deletion on a later sweep; disabling cleanup stops subsequent policy batches but does not restore deleted rows. Deleting rows need not shrink the SQLite file.
+
+Disk usage and warnings are shown in this Settings section and refreshed using **Refresh policy and disk usage**. They describe the data filesystem, not only Edge Studio's own files. Reaching the warning threshold never triggers additional deletion. Dashboard warnings and manual category/date cleanup are separate follow-ups.
+
+The admin API is `GET /api/retention/settings`, `POST /api/retention/settings/preview` (the five-field settings document), and `POST /api/retention/settings` (`{ settings, previewToken, confirmed: true }`). Settings include `automaticCleanupEnabled`, `runsPerWorkflow`, `deletedWorkflowRunDays`, `dataSourceReadDays`, and `diskWarningPercent`. Preview returns eligible and scheduled run/block/read counts and a token; save returns the same proposal shape. Integers outside the limits or invalid types return HTTP 400 with field errors; stale previews return 409. Settings and actor/old/new/count audit events commit atomically. See [ADR 0022](docs/adr/0022-bound-external-automation-effects.md).
+
 An admin can download a read-only history archive after re-entering the current PIN/password. The
 archive contains redacted wallet history, workflow inbox items/runs, data-source reads, and
 Integritas proof history. It does not include active devices, workflow definitions, contacts,

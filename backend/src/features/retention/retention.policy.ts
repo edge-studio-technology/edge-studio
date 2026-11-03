@@ -1,16 +1,16 @@
 export const RETENTION_POLICIES = {
   automationRuns: {
-    strategy: "preserve"
+    strategy: "configured-per-workflow", batchSize: 500
   },
   automationBlockRuns: {
-    strategy: "preserve"
+    strategy: "with-parent-run"
   },
   automationInboxItems: {
     strategy: "deleted-only",
     batchSize: 500
   },
   dataSourceReads: {
-    strategy: "preserve"
+    strategy: "configured-age-proof-protected"
   },
   integritasProofs: {
     strategy: "explicit-deletion"

@@ -16,7 +16,8 @@ Ticket #628 asks which environment values belong in app settings. Docker and hos
 | Hardware enablement and Compose profiles | Host agent/configuration, even when controlled through the app |
 | Image references, manifests, release channel and update-agent state | Deployment/update configuration independent of the backend database |
 | Minima monitoring and automatic-resync policy | SQLite app settings; implemented in this change |
-| Retention policy and camera retention | App-setting candidates; retention API/UI stays with #857/#819, camera retention needs a separate change coordinated with #861 |
+| Retention policy | SQLite app settings with opt-in cleanup and reviewed previews in Storage & history (#857/#819; ADR 0022) |
+| Camera retention | App-setting candidate needing a separate change coordinated with #861 |
 | Session lifetimes | Potential advanced admin settings requiring their own policy review |
 | Service URLs, executable names, debug flags and technical timeout/resource defaults | Built-in defaults with optional deployment overrides; no automatic requirement for UI controls |
 
@@ -37,4 +38,4 @@ Export eligibility is explicit and independent of storage location. A later #643
 
 ## Consequences
 
-Legacy environment inputs remain wired through Compose for migration compatibility, but new operators use Minima settings. Changing environment values after migration has no effect. Restoring the same SQLite database retains monitoring policy; a new database starts from bootstrap values/defaults. Existing legacy values outside the documented ranges are replaced with defaults and reported in backend logs. This decision does not implement settings export, retention controls, credential migration, or a general-purpose database editor.
+Legacy environment inputs remain wired through Compose for migration compatibility, but new operators use Minima settings. Changing environment values after migration has no effect. Restoring the same SQLite database retains monitoring policy; a new database starts from bootstrap values/defaults. Existing legacy values outside the documented ranges are replaced with defaults and reported in backend logs. This decision does not implement settings export, camera retention controls, credential migration, or a general-purpose database editor.

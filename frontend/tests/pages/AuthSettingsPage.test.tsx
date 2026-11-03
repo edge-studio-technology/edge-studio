@@ -8,6 +8,7 @@ import type { AdminCredentialType } from "../../src/features/auth/adminCredentia
 
 const credentialType: AdminCredentialType = "pin";
 const signOut = vi.fn();
+vi.mock("../../src/features/storage-history/RetentionSettingsPanel", () => ({ RetentionSettingsPanel: () => null }));
 vi.mock("../../src/features/auth/hooks", () => ({
   useAuth: () => ({ user: { credentialType }, credentialType: "pin", signOut }),
 }));

@@ -42,6 +42,7 @@ const protectedPrefixes = [
   "/api/user",
   "/api/status",
   "/api/storage-history",
+  "/api/retention",
   "/api/minima",
   "/api/integritas",
   "/api/data-sources",
@@ -59,6 +60,9 @@ const protectedPrefixes = [
 // asymmetric on the same primitives (health vs. read, resync/config vs. peers/add), and the
 // failure mode is a new route quietly shipping ungated.
 const adminOnlyRoutes: [method: "get" | "post" | "patch" | "delete", path: string][] = [
+  ["get", "/api/retention/settings"],
+  ["post", "/api/retention/settings/preview"],
+  ["post", "/api/retention/settings"],
   ["post", "/api/data-sources/src-1/read"],
   ["post", "/api/data-sources"],
   ["post", "/api/minima/config"],

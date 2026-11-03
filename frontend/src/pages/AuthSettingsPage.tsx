@@ -26,6 +26,7 @@ import {
 import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
 import { useAuth } from "../features/auth/hooks";
 import { StorageHistoryPanel } from "../features/storage-history/StorageHistoryPanel";
+import { RetentionSettingsPanel } from "../features/storage-history/RetentionSettingsPanel";
 
 /** Long enough to read the confirmation before the forced re-login. */
 const SIGN_OUT_AFTER_CREDENTIAL_CHANGE_MS = 3000;
@@ -76,10 +77,11 @@ export function AuthSettingsPage() {
             <SubSection
               icon={<HardDrive size={13} aria-hidden />}
               title="Stored records"
-              description="Review the records and managed files Edge Studio keeps on this Pi. Cleanup and archive controls will be added separately."
+              description="Review stored records and managed files, export history, and configure automatic retention below."
             >
               {storageHistoryOpen ? <StorageHistoryPanel /> : null}
             </SubSection>
+            {storageHistoryOpen ? <RetentionSettingsPanel /> : null}
           </div>
         </Disclosure>
 

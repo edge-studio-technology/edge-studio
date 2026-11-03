@@ -1,6 +1,7 @@
 import { redactSecrets } from "../../shared/redact.js";
 import { RETENTION_INTERVAL_MS, RETENTION_POLICIES } from "./retention.policy.js";
-import { pruneDeletedAutomationInboxItems } from "./retention.repository.js";
+import { pruneConfiguredRetention, pruneDeletedAutomationInboxItems } from "./retention.repository.js";
+import { getRetentionSettings } from "./retention-settings.service.js";
 
 export { RETENTION_INTERVAL_MS } from "./retention.policy.js";
 
@@ -8,11 +9,13 @@ let cancelCleanup: (() => void) | null = null;
 let retentionTimer: NodeJS.Timeout | null = null;
 
 export function runRetentionPass() {
+  const settings = getRetentionSettings();
+  const configured = settings.automaticCleanupEnabled
+    ? pruneConfiguredRetention(settings, RETENTION_POLICIES.automationRuns.batchSize)
+    : { automationRuns: 0, automationBlockRuns: 0, dataSourceReads: 0 };
   return {
-    automationRuns: 0,
-    automationBlockRuns: 0,
+    ...configured,
     automationInboxItems: pruneDeletedAutomationInboxItems(RETENTION_POLICIES.automationInboxItems.batchSize),
-    dataSourceReads: 0
   };
 }
 

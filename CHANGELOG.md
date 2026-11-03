@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Settings includes opt-in automatic retention with deletion previews, confirmation, per-workflow run limits, read/deleted-workflow expiry, and data-filesystem disk warnings.
 - Minima settings includes live health-check, stall-threshold, automatic-resync and cooldown controls, with one-time migration of legacy environment values into SQLite.
 - A terminal uninstaller offers data retention by default, confirmed deletion of internal installation data, and a dry-run preview.
 - Settings includes a Keep data / Delete data toggle with the full copyable uninstall command and guidance for each option.
