@@ -23,6 +23,26 @@ Run:
 curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo bash
 ```
 
+### Custom ports and advanced installation
+
+If another application uses one of Edge Studio's ports, use the guided installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo bash -s -- --advanced
+```
+
+The installer asks for the HTTPS frontend, Minima peer-to-peer, Minima local RPC, host agent, camera helper, sensor helper, and MQTT broker ports. Press Enter to keep the displayed value. Existing installations show saved values; explicit environment overrides take precedence over saved values. Optional service ports are saved even while those services are disabled. The backend and update-agent use internal Docker ports and need no host port selection. Advanced mode changes port numbers only; Minima RPC keeps its configured bind address (`127.0.0.1` by default), and optional services remain disabled unless explicitly enabled.
+
+Both installation modes validate port numbers (1–65535), require distinct host ports, and check ports for services being started before installing packages or changing application files. Conflicts report the service and port, with instructions to rerun using `--advanced`. Running containers and helpers belonging to the same installation are allowed during reruns. These checks are a snapshot; another process can still claim a port before startup. Disabled optional services' ports are saved but are not checked for availability or reserved on the host.
+
+Advanced mode reads answers from the terminal, including when the installer is piped through `curl`; it requires an interactive terminal. For headless installation, pass port values directly:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/install.sh | sudo env FRONTEND_PORT=8443 MINIMA_P2P_PORT=19003 bash
+```
+
+Other port variables are `MINIMA_RPC_PORT`, `HOST_AGENT_PORT`, `CAMERA_HELPER_PORT`, `SENSOR_HELPER_PORT`, and `MQTT_PUBLIC_PORT`. The preflight requires Python 3; if it is missing, run `sudo apt-get install python3` first. If Docker is already installed, its daemon must be running for the publication check. After installation, use the HTTPS URL printed by the installer with your selected frontend port.
+
 ### Verified Install (recommended)
 
 The one-liner above pipes a mutable branch into a root shell. To pin a release and check it before
@@ -40,6 +60,8 @@ sha256sum -c install.sh.sha256
 less install.sh
 sudo bash install.sh
 ```
+
+To select custom ports with a verified installer, run `sudo bash install.sh --advanced` in the final step.
 
 The checksum is published to a different repository from the installer itself, so it is not simply
 the same file vouching for itself. This does not fully close the bootstrap trust problem — see
@@ -119,6 +141,36 @@ https://localhost:8080
 
 Your browser will warn about the self-signed certificate. That is expected — choose Advanced / Continue. Traffic is encrypted after that.
 
+## Uninstalling Edge Studio
+
+Run this from your home directory in the Pi terminal or over SSH:
+
+```bash
+cd ~
+curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/uninstall.sh | sudo bash
+```
+
+The same command is available to copy from **Settings → App → Uninstall Edge Studio**. Choose **Keep data** (default) or **Delete data** to show and copy the full command for that option; Delete data includes `sudo bash -s -- --delete-data`. New installations also include a local copy: `sudo bash /opt/edge-studio/uninstall.sh`. To review the downloaded script before running it, download it with `curl -fsSL <url> -o uninstall.sh`, read it, then run `sudo bash uninstall.sh`; a release tag can replace `main` in the URL.
+
+The uninstaller requires Linux, Python 3, a working Docker daemon, and an interactive terminal. It reads confirmation from `/dev/tty`, including when piped through `curl`. It offers two choices:
+
+- **Keep data (default):** remove owned containers, helper services, verified CLI, application code, and the unused app network. Keep the database, Minima wallet/node data and backups, captures, certificates, update state, `.env` including `APP_SECRET`, and the package metadata/local uninstaller in their original locations. Reinstall with the same `APP_DIR` to reuse the saved configuration and data.
+- **Delete installation data:** additionally delete validated configured data paths inside the installation directory, after typing `DELETE EDGE STUDIO DATA`. Deleting Minima data removes the local wallet and any backups stored there. Export or back up what you need first.
+
+Both choices show a removal plan before confirmation. External data directories, host-file browsing directories, unknown files, Docker images/volumes, Docker itself, and OS packages are retained. If any configured data remains, `.env` and package metadata/local uninstaller are retained too. Review the printed retained paths for any manual cleanup. The installation directory is removed only when empty. These operations delete files normally; they do not securely erase storage.
+
+Legacy helper firewall rules have no ownership tags. The script lists the exact subnet/port rules from verified helper units and asks separately whether they were created only for this installation; the default is to retain them. Rules whose originating unit is missing cannot be verified and are left for manual review. No global Docker pruning is performed. Settings provides terminal instructions; it does not initiate remote removal.
+
+To preview without changing anything, or explicitly select deletion mode:
+
+```bash
+sudo bash /opt/edge-studio/uninstall.sh --dry-run
+sudo bash /opt/edge-studio/uninstall.sh --delete-data --dry-run
+sudo bash /opt/edge-studio/uninstall.sh --delete-data
+```
+
+For a custom installation directory, use `sudo env APP_DIR=/opt/my-edge-studio bash uninstall.sh`. When piping a script with arguments, use `... | sudo bash -s -- --dry-run` (or `--delete-data`). The uninstaller inspects Docker labels and helper unit ownership, including stopped containers; it can operate when Compose files are missing. If a cleanup step fails, it stops and reports the failure before removing application files/data. Fix the host issue and rerun. Missing configuration or ambiguous paths may require manual cleanup.
+
 ## Configuration
 
 Runtime configuration is stored in `.env`:
@@ -138,7 +190,8 @@ CAMERA_HELPER_URL=http://172.30.0.1:38180
 CAMERA_HELPER_TOKEN=
 CAMERA_HELPER_PORT=38180
 CAMERA_MAX_DURATION_SECONDS=30
-CAMERA_RETENTION_DAYS=7
+# Legacy one-time camera retention seed; use Settings -> Storage & history afterwards.
+# CAMERA_RETENTION_DAYS=7
 CAMERA_PHOTO_COMMAND=rpicam-still
 CAMERA_VIDEO_COMMAND=rpicam-vid
 ENABLE_SENSORS=false
@@ -166,10 +219,6 @@ MINIMA_BACKUP_DIR=./minima-backup
 MINIMA_P2P_PORT=9003
 MINIMA_RPC_BIND=127.0.0.1
 MINIMA_RPC_PORT=9005
-MINIMA_HEALTH_POLL_INTERVAL_SECONDS=60
-MINIMA_STALL_BLOCK_AGE_SECONDS=300
-MINIMA_AUTO_RESYNC=false
-MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES=30
 INTEGRITAS_CONNECT_BASE_URL=https://integritas.technology
 INTEGRITAS_BASE_URL=https://integritas.technology/core
 INTEGRITAS_REQUEST_ID=edge-studio
@@ -179,8 +228,9 @@ INTEGRITAS_PROOF_POLL_TIMEOUT_MINUTES=5
 INTEGRITAS_DEVICE_POLL_INTERVAL_SECONDS=5
 INTEGRITAS_PORTAL_URL=
 COOKIE_SECURE=true
-SESSION_MAX_AGE_DAYS=7
-SESSION_IDLE_HOURS=24
+# Legacy one-time seeds; manage session limits in Settings -> Security afterwards.
+# SESSION_MAX_AGE_DAYS=7
+# SESSION_IDLE_HOURS=24
 MANIFEST_URL=
 RELEASE_CHANNEL=stable
 UPDATE_HEALTH_CHECK_TIMEOUT_MS=60000
@@ -201,7 +251,18 @@ The installer sets `COOKIE_SECURE=true` for the default HTTPS Docker deploy. Use
 
 `MINIMA_RPC_BIND` defaults to `127.0.0.1`, which means Minima RPC is only exposed on the Pi itself. Set it to `0.0.0.0` only on a trusted network.
 
-The backend runs a Minima health poller on `MINIMA_HEALTH_POLL_INTERVAL_SECONDS` (default 60s). It detects chain stalls when the last block age exceeds `MINIMA_STALL_BLOCK_AGE_SECONDS` (default 300s) while the node is running. Optional auto-resync is **off by default**; set `MINIMA_AUTO_RESYNC=true` to allow the poller to call Megammr resync (see `SECURITY.md`).
+Minima → Settings → **Monitoring & automatic resync** controls the backend health poller. These admin settings are stored in SQLite and apply without restarting the backend or Minima, including when the node is currently stopped. Automatic resync is off by default; enabling it permits a Megammr resync when a running node appears stalled and the cooldown has elapsed. Resync can temporarily interrupt node-dependent workflows. Saving a policy does not start an extra poll or cancel an operation already in progress.
+
+| Setting | Default | Allowed range |
+| --- | --- | --- |
+| Health-check interval | 60 seconds | 10–3600 seconds |
+| Stall threshold (latest block age) | 300 seconds | 60–86400 seconds |
+| Automatic resync | Off | On/off |
+| Automatic resync cooldown | 30 minutes | 1–10080 minutes |
+
+Existing `MINIMA_HEALTH_POLL_INTERVAL_SECONDS`, `MINIMA_STALL_BLOCK_AGE_SECONDS`, `MINIMA_AUTO_RESYNC`, and `MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES` values seed SQLite once when monitoring settings are first read, normally at startup. Later `.env` edits do not override saved settings. Invalid or out-of-range legacy numeric values fall back to the defaults with a backend warning; app/API edits are rejected with field errors. Ports, subnet, data paths and helper credentials stay in deployment configuration. See [ADR 0041](docs/adr/0041-separate-deployment-configuration-from-runtime-settings.md) for the configuration and future settings-export boundary.
+
+Admin-only `GET /api/minima/monitoring/settings` returns `{ settings, limits }`. `POST` to the same endpoint accepts all four fields: `{ healthPollIntervalSeconds, stallBlockAgeSeconds, autoResyncEnabled, autoResyncCooldownMinutes }`, and returns the saved settings and limits. Numeric fields must be JSON integers within the documented ranges; `autoResyncEnabled` must be a boolean. Invalid input returns HTTP 400 with field errors; settings and the actor/old/new audit event commit together.
 
 `DATA_DIR` is mounted into the backend container as `/data` and stores the SQLite database.
 
@@ -277,7 +338,11 @@ docker compose -f docker-compose.yml -f docker-compose.release.yml up -d fronten
 
 Future versions may support custom certificates or an external reverse proxy.
 
-`SESSION_MAX_AGE_DAYS` and `SESSION_IDLE_HOURS` control session lifetime (default 7 days max, 24 hours idle).
+**Settings → Security → Login sessions** controls maximum session lifetime (default 7 days, range 1–30) and inactivity timeout (default 24 hours, range 1–168). Both are whole numbers and require your current PIN/password to save. The limits live in SQLite; valid `SESSION_MAX_AGE_DAYS` and `SESSION_IDLE_HOURS` values seed them once, normally at startup, and later environment edits have no effect. Invalid/out-of-range bootstrap values use defaults with a backend warning. Restoring the same database preserves policy.
+
+Maximum lifetime starts at login. Inactivity measures time without authenticated requests, including background polling; it does not measure mouse/keyboard inactivity. Whichever limit comes first ends the session. Shorter limits apply immediately to existing sessions and can sign you out. Longer maximum lifetimes apply to new logins; an existing session's original or previously shortened expiry is never extended. Inactivity changes apply to still-valid sessions; already-expired sessions are removed before a limit increase can revive them. Cookies keep their original browser expiry, while server-side checks enforce shorter limits. Startup/hourly cleanup removes expired and idle sessions.
+
+Admin APIs: `GET /api/auth/settings/session` returns `{ settings: { maxAgeDays, idleHours }, limits }`; `POST /api/auth/settings/session` accepts `{ settings: { maxAgeDays, idleHours }, currentPassword }`. Invalid values return 400, incorrect credentials 403 and expired/revoked sessions 401. Credential checks share the existing five-failures/15-minute rate limit. Policy changes, session expiry updates/deletions and actor/old/new audit events commit atomically. Save returns `{ settings, revokedSessions, currentSessionExpired }` and clears the caller's cookie when the new limits expire it. Credentials and tokens are never included in this audit. See [ADR 0041](docs/adr/0041-separate-deployment-configuration-from-runtime-settings.md).
 
 If a Raspberry Pi reboot happens while the browser is open, the old session may become invalid before the next refresh. The login screen explains that Edge Studio restarted or the session expired and asks the admin to enter the PIN/password again.
 
@@ -443,6 +508,31 @@ Login and current-credential confirmations in Settings, node backups, and the co
 ## Storage And History
 
 Settings -> Storage & history shows the records and managed files Edge Studio keeps on the Pi.
+
+The **Automatic retention** section stores its policy in SQLite and takes effect without a restart. Automatic history cleanup is **off by default**, including on existing installations. Set the limits, choose whether to enable cleanup, select **Preview retention changes**, review the counts and confirm the policy. Saving does not delete records; enabled cleanup runs at startup and hourly in batches, yielding between batches. A changed policy or scheduled count before confirmation requires a fresh preview. Counts are a snapshot and can grow as records age. Use Export history first if you need to retain records.
+
+| Setting | Default | Range |
+| --- | --- | --- |
+| Runs per existing workflow | 500 | 50–10,000 |
+| Deleted-workflow run retention | 90 days from run start | 7–3,650 days |
+| Unlinked data-source read retention | 90 days | 7–3,650 days |
+| Disk warning threshold | 80% | 50–95% |
+| Inbox item retention | Keep until manually deleted | 7–3,650 days when enabled |
+
+Each workflow keeps its own newest runs, with stable timestamp/ID ordering. Active executions are protected and block rows are deleted together with their parent run; security-budget reservations remain. Archived workflows still count as existing workflows. Deleted workflows' runs use their original start time, so old runs can become eligible when a workflow is deleted. Proof-linked reads, wallet history, proofs, imported archives, audit events, and files are retained by this cleanup. Camera file retention remains separate. Lowering limits can cause irreversible deletion on a later sweep; disabling a policy stops its subsequent batches but does not restore deleted rows. Deleting rows need not shrink the SQLite file.
+
+**Inbox retention is independent:** enable **Automatically remove old inbox items** to choose a creation-age limit (the form suggests 90 days). It applies to read and unread items, even when run/read cleanup is off. Keep it off to preserve inbox items until manual deletion. Items linked to active runs are protected, and deleting an item leaves linked files untouched. The confirmation preview includes `automationInboxItems`; manually deleted rows are already scheduled for purging and are not counted as new age-expiry candidates. Both kinds share a 500-inbox-item batch limit. Existing saved policies default to keeping inbox content.
+
+**Camera retention is separate:** Settings → Storage & history shows camera support status. Disabled cameras with no captures show no retention controls; existing captures still show their file count, storage usage and saved policy. Disabling camera support pauses cleanup without removing media or resetting the policy. After re-enabling support, preview and confirm the saved policy to resume. A failed disable request also leaves cleanup paused for safety.
+
+Choose **Keep until manually deleted** by turning automatic camera cleanup off, or keep unprotected captures for 1–3,650 days based on file modification time. Camera policy is stored in SQLite; `CAMERA_RETENTION_DAYS` seeds it once (legacy default 7 days, non-positive/invalid values mean keep), initially paused until confirmed. Subsequent environment changes do not override it. The startup/hourly sweep removes at most 500 camera files per batch, skips proof-linked files, waits while workflows are active, and never follows symlinks or removes directories/unknown file types. Missing or unreadable evidence metadata prevents camera cleanup. Camera enablement, capture directory, helper URLs/tokens and recording ceilings remain deployment configuration.
+
+Camera admin APIs are `GET /api/retention/camera`, `POST /api/retention/camera/preview` with `{ retentionDays: null | integer, paused: boolean }`, and `POST /api/retention/camera` with `{ settings, previewToken, confirmed: true }`. Responses include camera status, stored/eligible/scheduled file counts and bytes; the token binds the current policy, camera enablement and scheduled file identities. Saving and its audit commit atomically without deleting files; changed previews require review again (409). A disabled camera cannot resume cleanup. These file controls do not change history/inbox cleanup or remove read/proof records.
+
+Disk usage and warnings are shown in this Settings section and refreshed using **Refresh policy and disk usage**. They describe the data filesystem, not only Edge Studio's own files. Reaching the warning threshold never triggers additional deletion. Dashboard warnings and manual category/date cleanup are separate follow-ups.
+
+The admin API is `GET /api/retention/settings`, `POST /api/retention/settings/preview` (the settings document), and `POST /api/retention/settings` (`{ settings, previewToken, confirmed: true }`). Settings include `automaticCleanupEnabled` (run/read cleanup), `runsPerWorkflow`, `deletedWorkflowRunDays`, `dataSourceReadDays`, `diskWarningPercent`, and `inboxRetentionDays` (`null` to keep until deleted, or an integer age limit). Preview returns eligible and scheduled run/block/read/inbox counts and a token; save returns the same proposal shape. Integers outside the limits or invalid types return HTTP 400 with field errors; stale previews return 409. Settings and actor/old/new/count audit events commit atomically. See [ADR 0022](docs/adr/0022-bound-external-automation-effects.md).
+
 An admin can download a read-only history archive after re-entering the current PIN/password. The
 archive contains redacted wallet history, workflow inbox items/runs, data-source reads, and
 Integritas proof history. It does not include active devices, workflow definitions, contacts,
@@ -522,6 +612,10 @@ docker compose build --no-cache
 `npm run check` runs ESLint (`npm run lint`), TypeScript checks, and test coverage for `backend`, `frontend`, and `update-agent`, plus moderate-level npm audits. `docker compose build --no-cache` catches Docker build issues from a clean image context.
 
 ## Troubleshooting
+
+Dashboard, Minima and Wallet retain selected successful reads in browser memory across navigation. Node/device/overview/wallet reads can be reused for 30 seconds, with three-second refreshes during node operations or pending resource sampling. Manual refresh and JSON/form mutations bypass or invalidate reuse; authentication changes clear the cache. Device/workflow/activity lists retain display snapshots but still request fresh data. No snapshots are stored in localStorage or exported as settings.
+
+Node readiness uses current lightweight Docker state and Minima RPC. CPU/RAM telemetry is sampled separately, shared across callers and reused for up to 30 seconds; a cold sample fills on a short follow-up poll. Its `metricsObservedAt` timestamp and `metricsPending` flag are separate from the current readiness check. Resource sampling failure does not block node status, and cached container data never authorizes a payment or node mutation. Minima settings/backups load on first opening and retain form state when collapsed. See [ADR 0042](docs/adr/0042-separate-node-readiness-from-resource-telemetry.md).
 
 If the UI shows `Backend health error: HTTP 502`, check backend logs:
 

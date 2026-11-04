@@ -1,7 +1,9 @@
 import fs from "node:fs/promises";
 import { Router } from "express";
 import type { Response } from "express";
-import { apiErrorFromStatus, badRequest, dependencyUnavailable, notFound, unauthorized, unexpected } from "../../shared/api-error.js";
+import { apiErrorFromStatus, badRequest, dependencyUnavailable, notFound, unauthorized, unexpected, validationFailed } from "../../shared/api-error.js";
+import { getMinimaRuntimeSettings, MINIMA_RUNTIME_LIMITS, MinimaSettingsValidationError, saveMinimaRuntimeSettings } from "./minima-settings.service.js";
+import { refreshMinimaHealthPoller } from "./minima-poll.service.js";
 import { recordAuditEvent } from "../auth/audit.service.js";
 import { requireRole } from "../auth/auth.middleware.js";
 import { authRateLimiter, fileOperationRateLimiter } from "../auth/rate-limit.middleware.js";
@@ -37,6 +39,27 @@ import {
 } from "./minima.service.js";
 
 export const minimaRouter = Router();
+
+minimaRouter.get("/monitoring/settings", requireRole("admin"), (_req, res) => {
+  try {
+    res.json({ settings: getMinimaRuntimeSettings(), limits: MINIMA_RUNTIME_LIMITS });
+  } catch (error) {
+    unexpected(res, "Minima monitoring settings could not be loaded.", error);
+  }
+});
+
+minimaRouter.post("/monitoring/settings", requireRole("admin"), (req, res) => {
+  try {
+    const settings = saveMinimaRuntimeSettings(req.body, req.user?.id);
+    refreshMinimaHealthPoller();
+    res.json({ settings, limits: MINIMA_RUNTIME_LIMITS });
+  } catch (error) {
+    if (error instanceof MinimaSettingsValidationError) {
+      return validationFailed(res, error.message, error.fieldErrors);
+    }
+    unexpected(res, "Minima monitoring settings could not be saved.", error);
+  }
+});
 
 minimaRouter.get("/config", (_req, res) => {
   res.json(getMinimaConfig());

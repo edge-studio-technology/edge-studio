@@ -119,7 +119,7 @@ describe("capturePiCamera", () => {
     await assert.rejects(capturePiCamera({ sourceId: "src-1" }), /requires a Pi Camera device/);
   });
 
-  it("captures, hashes bytes, and prunes old captures", async () => {
+  it("captures and hashes bytes without deleting other captures", async () => {
     repoMock.getDataSource.mockReturnValue(makeRecord());
     fetchMock
       .mockResolvedValueOnce(mockResponse(200, { up: true }))
@@ -174,38 +174,7 @@ describe("capturePiCamera", () => {
     await assert.rejects(capturePiCamera({ sourceId: "src-1" }), /path outside the capture directory/);
   });
 
-  it("prunes files older than the retention window and leaves newer ones", async () => {
-    repoMock.getDataSource.mockReturnValue(makeRecord());
-    fetchMock
-      .mockResolvedValueOnce(mockResponse(200, { up: true }))
-      .mockResolvedValueOnce(mockResponse(200, { available: true }))
-      .mockResolvedValueOnce(mockResponse(200, {
-        path: "/captures/capture-1.jpg",
-        mode: "photo",
-        mediaType: "image/jpeg",
-        width: 1280,
-        height: 720,
-        durationMs: 1000
-      }));
-
-    fsMock.readFile.mockResolvedValue(Buffer.from("bytes"));
-    const capturePath = path.resolve("/captures/capture-1.jpg");
-    const oldPath = path.join("/captures", "old.jpg");
-    const now = Date.now();
-    const old = now - 10 * 24 * 60 * 60 * 1000;
-    fsMock.stat.mockImplementation(async (filePath: string) => {
-      if (filePath === capturePath) return { size: 5, isFile: () => true, mtimeMs: now };
-      if (filePath === oldPath) return { size: 5, isFile: () => true, mtimeMs: old };
-      return { size: 5, isFile: () => true, mtimeMs: now };
-    });
-    fsMock.readdir.mockResolvedValue(["capture-1.jpg", "old.jpg", "recent.jpg"]);
-
-    await capturePiCamera({ sourceId: "src-1" });
-
-    assert.deepEqual(fsMock.unlink.mock.calls.map((call) => call[0]), [oldPath]);
-  });
-
-  it("does not prune when retention is disabled", async () => {
+  it("leaves cleanup to the retention scheduler", async () => {
     envMock.cameraRetentionDays = 0;
     repoMock.getDataSource.mockReturnValue(makeRecord());
     fetchMock

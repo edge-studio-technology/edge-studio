@@ -89,6 +89,10 @@ statusRouter.get("/", async (_req, res) => {
 });
 
 statusRouter.get("/overview", async (_req, res) => {
+  // Resource sampling is shared with node telemetry and runs alongside readiness.
+  const resourcesRequest = dockerServiceResources().then(async (containers) => ({
+    containers, disks: await Promise.all([diskUsage("/data"), diskUsage(env.hostFilesRoot)]),
+  })).catch((error: unknown) => ({ error: error instanceof Error ? error.message : "Could not read Docker resource usage" }));
   const services: ServiceStatus[] = [
     {
       name: "backend",
@@ -131,12 +135,7 @@ statusRouter.get("/overview", async (_req, res) => {
     });
   }
 
-  let resources: unknown;
-  try {
-    resources = { containers: await dockerServiceResources(), disks: [await diskUsage("/data"), await diskUsage(env.hostFilesRoot)] };
-  } catch (error) {
-    resources = { error: error instanceof Error ? error.message : "Could not read Docker resource usage" };
-  }
+  const resources = await resourcesRequest;
 
   res.json({ generatedAt: new Date().toISOString(), services, resources });
 });

@@ -1,5 +1,29 @@
 import type { UiError } from "./errors";
 import { normalizeError } from "./errors";
+import { clearReadCache, peekReadCache, readCached, type ReadOptions } from "./readCache";
+
+const cachedPaths = new Set([
+  "/api/minima/status",
+  "/api/status",
+  "/api/status/overview",
+  "/api/wallet",
+  "/api/wallet/history",
+  "/api/data-sources",
+  "/api/automation/workflows",
+  "/api/integritas/history",
+  "/api/data-reads",
+]);
+const reusedPaths = new Set([
+  "/api/minima/status",
+  "/api/status",
+  "/api/status/overview",
+  "/api/wallet",
+  "/api/wallet/history",
+]);
+
+export function getCachedJson<T>(url: string): T | null {
+  return peekReadCache<T>(url);
+}
 
 export type ApiError = Error & { status?: number; errorCode?: string; details?: UiError };
 
@@ -25,6 +49,7 @@ function shouldForceLogin(status: number, url: string, parsed: Record<string, un
 async function parseResponse<T>(response: Response): Promise<T> {
   const parsed = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   if (!response.ok) {
+    if (response.status === 401 && typeof parsed.errorCode !== "string") clearReadCache();
     if (onUnauthorized && shouldForceLogin(response.status, response.url, parsed)) {
       onUnauthorized();
     }
@@ -48,56 +73,72 @@ const defaultInit: RequestInit = {
   credentials: "include",
 };
 
-export async function getJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, defaultInit);
-  return parseResponse<T>(response);
+export async function getJson<T>(url: string, options?: ReadOptions): Promise<T> {
+  const load = async () => parseResponse<T>(await fetch(url, defaultInit));
+  if (!cachedPaths.has(url.split("?")[0])) return load();
+  const snapshot = peekReadCache<{
+    state?: string;
+    resync?: { busy?: boolean };
+    container?: { metricsPending?: boolean };
+    node?: { state?: string };
+  }>(url);
+  const fast =
+    snapshot?.state === "restarting" ||
+    snapshot?.resync?.busy ||
+    snapshot?.container?.metricsPending ||
+    snapshot?.node?.state === "restarting";
+  return readCached(
+    url,
+    load,
+    reusedPaths.has(url.split("?")[0]) ? (fast ? 3000 : 30000) : 0,
+    options,
+  );
+}
+
+async function mutation<T>(url: string, init: RequestInit): Promise<T> {
+  clearReadCache();
+  try {
+    return await parseResponse<T>(await fetch(url, { ...defaultInit, ...init }));
+  } finally {
+    clearReadCache(!url.startsWith("/api/auth/") && !url.startsWith("/api/setup/"));
+  }
 }
 
 export async function postJson<T>(url: string, body?: unknown): Promise<T> {
-  const response = await fetch(url, {
-    ...defaultInit,
+  return mutation<T>(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  return parseResponse<T>(response);
 }
 
 export async function patchJson<T>(url: string, body: unknown): Promise<T> {
-  const response = await fetch(url, {
-    ...defaultInit,
+  return mutation<T>(url, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return parseResponse<T>(response);
 }
 
 export async function putJson<T>(url: string, body: unknown): Promise<T> {
-  const response = await fetch(url, {
-    ...defaultInit,
+  return mutation<T>(url, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return parseResponse<T>(response);
 }
 
 export async function deleteJson<T>(url: string, body?: unknown): Promise<T> {
-  const response = await fetch(url, {
-    ...defaultInit,
+  return mutation<T>(url, {
     method: "DELETE",
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  return parseResponse<T>(response);
 }
 
 export async function postForm<T>(url: string, form: FormData): Promise<T> {
-  const response = await fetch(url, {
-    ...defaultInit,
+  return mutation<T>(url, {
     method: "POST",
     body: form,
   });
-  return parseResponse<T>(response);
 }

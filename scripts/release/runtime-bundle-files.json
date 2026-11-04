@@ -1,6 +1,7 @@
 [
   ".env.example",
   "package.json",
+  "uninstall.sh",
   "docker-compose.yml",
   "docker-compose.release.yml",
   "bin/edge-studio",

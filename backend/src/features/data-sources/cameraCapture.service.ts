@@ -67,7 +67,6 @@ export async function capturePiCamera(input: { sourceId: string; durationMs?: nu
   const hash = sha3HashHex(bytes);
   const verifiedPreview = { ...preview, path: filePath, sizeBytes: stat.size, sha3: hash };
 
-  await pruneOldCaptures();
   return { contentType: verifiedPreview.mediaType, bytesHash: hash, canonicalBytes: `${JSON.stringify(verifiedPreview, null, 2)}\n`, preview: verifiedPreview, sizeBytes: stat.size };
 }
 
@@ -104,27 +103,4 @@ function resolveCapturePath(value: string) {
   const filePath = path.resolve(value);
   if (filePath !== captureRoot && !filePath.startsWith(`${captureRoot}${path.sep}`)) throw new Error("Camera helper returned a path outside the capture directory");
   return filePath;
-}
-
-async function pruneOldCaptures() {
-  const retentionDays = Number(env.cameraRetentionDays);
-  if (!Number.isFinite(retentionDays) || retentionDays <= 0) return;
-
-  const cutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
-  let entries: string[];
-  try {
-    entries = await fs.readdir(env.cameraCaptureDir);
-  } catch {
-    return;
-  }
-
-  await Promise.all(entries.map(async (entry) => {
-    const filePath = path.join(env.cameraCaptureDir, entry);
-    try {
-      const stat = await fs.stat(filePath);
-      if (stat.isFile() && stat.mtimeMs < cutoffMs) await fs.unlink(filePath);
-    } catch {
-      // Best-effort cleanup only; capture should not fail because pruning failed.
-    }
-  }));
 }

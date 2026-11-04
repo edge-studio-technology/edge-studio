@@ -30,14 +30,15 @@ and [adr/0014](../adr/0014-egress-url-policy-for-operator-supplied-urls.md).
 
 ## Minima Auto-Resync (optional)
 
-Risk: When `MINIMA_AUTO_RESYNC=true`, the backend health poller can trigger Megammr resync without an operator click if the chain appears stalled (block age above `MINIMA_STALL_BLOCK_AGE_SECONDS` while the node is running). Minima may respond that a container restart is required afterward.
+Risk: When automatic resync is enabled in Minima monitoring settings, the backend health poller can trigger Megammr resync without an operator click if the chain appears stalled (latest block age above the saved stall threshold while the node is running). Minima may respond that a container restart is required afterward.
 
 Impact: Unexpected resync traffic, temporary Minima RPC unavailability (same as manual resync), and possible operator surprise on a production Pi.
 
 Current Controls:
 
-- **Disabled by default** (`MINIMA_AUTO_RESYNC=false`).
-- Cooldown between auto-resync attempts (`MINIMA_AUTO_RESYNC_COOLDOWN_MINUTES`, default 30).
+- **Disabled by default**; legacy `MINIMA_AUTO_RESYNC` values seed SQLite once (ADR 0041).
+- Admin-only monitoring settings API with strict bounds/type validation and transactional old/new/actor audit events; no generic settings editor.
+- Cooldown between auto-resync attempts (saved in SQLite, default 30 minutes).
 - Poller logs stall detection and auto-resync actions; `GET /api/minima/status` exposes `monitoring.stallDetected`, `lastAutoResyncAt`, and related fields.
 - Auto-resync and console resync use the same asynchronous, allowlisted `resyncMegammr()` path as the manual API.
 - Initiation starts the cooldown; an operation conflict does not consume cooldown or count as resync failure. Completion is tracked separately from initiation.
@@ -168,13 +169,12 @@ Current Controls:
 - The bearer token is masked in the backend request log and in the nginx access log on both the HTTPS and HTTP-redirect servers. The webhook location logs only critical nginx errors, because nginx error lines embed the raw request line.
 - Recorded webhook reads store `data-source:<id>`, never the tokenised URL; the upgrade migration rewrote historical rows.
 - Webhook ingestion is limited to 60 requests per minute per client IP and source. The limiter key uses a SHA-256 hash of the token, and the limit is process-local.
-- Workflow runs, block runs, visible inbox items, and data-source reads created by webhook events are preserved; user-deleted inbox items are physically purged.
+- Webhook-created workflow runs/block runs and unlinked reads follow the opt-in retention policy (off by default). Proof-linked reads are protected. Inbox content keeps its manual-deletion default unless its separate age policy is enabled; active-run items and linked files remain protected.
 - Workflows reaching payment, device output, camera, or stamp blocks are bounded to 1,000 runs per rolling hour per workflow, persisted across restarts; exhaustion returns `429`.
 
 Residual: Docker logs written before Phase 7 still contain tokens until they rotate out or are
 removed; tokens are not rotated automatically. Startup/hourly sweeps repeat short 500-row batches
-for deleted inbox rows, yielding between batches. Workflow runs, block runs, visible inbox items,
-and data-source reads have no automatic storage bound until a product lifecycle provides configuration, export, quotas, and disk warnings. Existing
+for deleted/expired inbox rows, yielding between batches. Run/read history has opt-in per-workflow/age retention; inbox content has its own opt-in age policy. Retained evidence and files remain unbounded. Existing
 deployments need the verified installer rerun documented in README for rotation on every service.
 Review findings [11] and [14].
 
@@ -183,7 +183,7 @@ Plan:
 - Add optional webhook secret headers/signatures before production use.
 - Add custom/trusted certificate support or documented reverse-proxy TLS for senders that cannot accept self-signed certificates.
 
-Status: **Partially mitigated (Phase 7, task 705)** for credential leakage and privileged repetition. Workflow run, visible inbox, and read-history growth remains an availability risk pending the lifecycle in [adr/0022](../adr/0022-bound-external-automation-effects.md). Unsigned bearer-token delivery remains an accepted prototype risk. See [adr/0022](../adr/0022-bound-external-automation-effects.md).
+Status: **Partially mitigated (Phase 7, task 705)** for credential leakage and privileged repetition. History growth remains an availability risk when opt-in retention policies are off, and protected evidence/files remain unbounded; see the lifecycle in [adr/0022](../adr/0022-bound-external-automation-effects.md). Unsigned bearer-token delivery remains an accepted prototype risk.
 
 ## MQTT Data Sources
 
@@ -200,7 +200,7 @@ Current Controls:
 - MQTT sources are push-only and do not use scheduled polling intervals.
 - Broker URLs may carry credentials for the live connection, but read history stores `data-source:<id>` instead of the broker URL, and the upgrade migration scrubbed historical rows. Error details redact both `user:password@` and username-only userinfo.
 - MQTT-triggered workflows share the per-workflow run budget (1,000 runs with payment, device output, camera, or stamp blocks per rolling hour); budget exhaustion is skipped silently. HTTP rate limits do not apply to MQTT.
-- MQTT-created workflow runs, block runs, data-source reads, and visible inbox items are preserved; deleted inbox items are physically purged.
+- MQTT-created runs/block runs and unlinked reads follow the opt-in retention policy (off by default); proof-linked reads are protected. Inbox content keeps its manual-deletion default unless its independent age policy is enabled. Active-run inbox items and linked files remain protected.
 
 Plan:
 
@@ -344,7 +344,8 @@ Current Controls:
 - Integritas stamping uses the captured media file hash, not the raw image/video content.
 - Automation validation reports disabled/unavailable camera dependencies and warns that camera workflows may record private images/video.
 - Per-capture duration is bounded by `CAMERA_MAX_DURATION_SECONDS`.
-- Old capture files are pruned opportunistically before new captures according to `CAMERA_RETENTION_DAYS`.
+- Camera retention is configured in Settings → Storage & history, with SQLite policy, admin-only file previews and explicit confirmation; `CAMERA_RETENTION_DAYS` seeds the initially paused policy once.
+- Startup/hourly cleanup pauses when camera support is disabled and waits while workflows are active; re-enabling camera support requires reviewing and confirming the saved policy before cleanup resumes. Proof-linked files remain protected, and unreadable evidence metadata prevents deletion. Only regular JPEG/H264 files directly inside the configured directory are eligible; symlinks, directories and other file types are retained.
 
 Plan:
 

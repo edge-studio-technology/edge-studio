@@ -1,4 +1,4 @@
-import { env } from "../../config/env.js";
+import { getMinimaRuntimeSettings } from "./minima-settings.service.js";
 import { initializeLocalAddressBookEntry } from "../address-book/address-book.service.js";
 import { refreshPendingConfirmations, syncWalletHistory } from "../wallet/wallet-history.service.js";
 import {
@@ -13,6 +13,7 @@ import { MinimaResyncConflictError } from "./minima.errors.js";
 
 let poller: NodeJS.Timeout | null = null;
 let pollRunning = false;
+let pollIntervalMs = 0;
 
 export async function pollMinimaHealth() {
   if (pollRunning) return;
@@ -37,9 +38,10 @@ export async function pollMinimaHealth() {
 
     recordStallDetected();
     const blockAge = status.sync.blockAgeSeconds ?? "unknown";
-    console.warn(`Minima health poller: chain stall detected (block age ${blockAge}s, threshold ${env.minimaStallBlockAgeSeconds}s)`);
+    const settings = getMinimaRuntimeSettings();
+    console.warn(`Minima health poller: chain stall detected (block age ${blockAge}s, threshold ${settings.stallBlockAgeSeconds}s)`);
 
-    if (!env.minimaAutoResync) return;
+    if (!settings.autoResyncEnabled) return;
     if (!canAutoResync()) {
       console.warn("Minima health poller: auto-resync skipped (cooldown active)");
       return;
@@ -62,17 +64,25 @@ export async function pollMinimaHealth() {
   }
 }
 
+function runPoll() {
+  pollMinimaHealth().catch((error) => {
+    console.error("Minima health poller failed:", error instanceof Error ? error.message : error);
+  });
+}
+
 export function startMinimaHealthPoller() {
   if (poller) return;
-
-  const intervalMs = env.minimaHealthPollIntervalSeconds * 1000;
-  const runPoll = () => {
-    pollMinimaHealth().catch((error) => {
-      console.error("Minima health poller failed:", error instanceof Error ? error.message : error);
-    });
-  };
-
+  pollIntervalMs = getMinimaRuntimeSettings().healthPollIntervalSeconds * 1000;
   runPoll();
+  poller = setInterval(runPoll, pollIntervalMs);
+}
+
+export function refreshMinimaHealthPoller() {
+  if (!poller) return;
+  const intervalMs = getMinimaRuntimeSettings().healthPollIntervalSeconds * 1000;
+  if (intervalMs === pollIntervalMs) return;
+  clearInterval(poller);
+  pollIntervalMs = intervalMs;
   poller = setInterval(runPoll, intervalMs);
 }
 

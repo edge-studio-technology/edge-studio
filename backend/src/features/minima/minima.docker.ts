@@ -1,20 +1,24 @@
-import { dockerServiceResources } from "../status/docker.service.js";
+import { getComposeServiceContainer, getDockerResourceSnapshot } from "../status/docker.service.js";
 
 const minimaDataPath = "/home/minima/data";
 
 export async function getMinimaContainerStats() {
-  const containers = await dockerServiceResources();
-  const minima = containers.find((container) => container.service === "minima");
-  if (!minima) return null;
+  const container = await getComposeServiceContainer("minima");
+  if (!container) return null;
+  const snapshot = getDockerResourceSnapshot();
+  const minima = snapshot.items.find((item) => item.containerId === container.Id.slice(0, 12));
+  const running = container.State === "running";
 
   return {
-    state: minima.state,
-    status: minima.status,
-    cpuPercent: minima.cpuPercent,
-    memory: minima.memory
+    state: container.State,
+    status: container.Status,
+    cpuPercent: running ? minima?.cpuPercent ?? null : null,
+    memory: running && minima?.memory
       ? { usage: minima.memory.usage ?? null, limit: minima.memory.limit ?? null }
       : null,
-    containerDisk: minima.disk.rootFs ?? null
+    containerDisk: minima?.disk.rootFs ?? null,
+    metricsPending: snapshot.pending,
+    metricsObservedAt: snapshot.observedAt,
   };
 }
 

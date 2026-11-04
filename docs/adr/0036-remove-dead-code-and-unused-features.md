@@ -41,7 +41,7 @@ design for the local admin.
 Kept on purpose:
 
 - What the node maintenance tickets build on (#849–#852, #212, #536): the disabled auto-restart
-  path, stall detection, the auto-resync poller, `MINIMA_AUTO_RESYNC`, and resync-lock exports.
+  path, stall detection, the auto-resync poller, the legacy `MINIMA_AUTO_RESYNC` migration input, and resync-lock exports.
 - The read-only host-files mount, which still backs inbox image previews and the disk status entry.
 - The Minima console's `tokencreate` entry, Marketplace, `ui/Menu`, `ui/RadioField`, and backend
   exports only tests import.

@@ -80,7 +80,7 @@ export async function inspectContainer(containerId: string): Promise<DockerConta
   return dockerRequest<DockerContainerInspect>(`/containers/${containerId}/json`);
 }
 
-export async function dockerServiceResources() {
+async function collectDockerServiceResources() {
   const containers = await dockerRequest<DockerContainer[]>("/containers/json?all=1&size=1");
   const appContainers = containers.filter(isComposeContainer);
 
@@ -100,6 +100,36 @@ export async function dockerServiceResources() {
       disk: { rootFsBytes: container.SizeRootFs, rootFs: formatBytes(container.SizeRootFs) }
     };
   }));
+}
+
+type ResourceSnapshot = Awaited<ReturnType<typeof collectDockerServiceResources>>;
+const RESOURCE_MAX_AGE_MS = 30_000;
+let resourceSnapshot: { items: ResourceSnapshot; observedAt: string; finishedAt: number } | null = null;
+let resourcesInFlight: Promise<ResourceSnapshot> | null = null;
+let resourceRetryAt = 0;
+
+export function dockerServiceResources(): Promise<ResourceSnapshot> {
+  if (resourcesInFlight) return resourcesInFlight;
+  if (resourceSnapshot && Date.now() - resourceSnapshot.finishedAt < RESOURCE_MAX_AGE_MS)
+    return Promise.resolve(resourceSnapshot.items);
+  resourcesInFlight = collectDockerServiceResources().then((items) => {
+    resourceSnapshot = { items, observedAt: new Date().toISOString(), finishedAt: Date.now() };
+    return items;
+  }).finally(() => { resourcesInFlight = null; });
+  return resourcesInFlight;
+}
+
+export function getDockerResourceSnapshot() {
+  if (!resourcesInFlight && Date.now() >= resourceRetryAt &&
+    (!resourceSnapshot || Date.now() - resourceSnapshot.finishedAt >= RESOURCE_MAX_AGE_MS)) {
+    resourceRetryAt = Date.now() + RESOURCE_MAX_AGE_MS;
+    void dockerServiceResources().catch(() => { /* Telemetry failure must not block node readiness. */ });
+  }
+  return {
+    items: resourceSnapshot?.items ?? [],
+    observedAt: resourceSnapshot?.observedAt ?? null,
+    pending: resourcesInFlight !== null,
+  };
 }
 
 export async function diskUsage(targetPath: string) {

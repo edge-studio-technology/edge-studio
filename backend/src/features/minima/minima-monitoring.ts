@@ -1,4 +1,4 @@
-import { env } from "../../config/env.js";
+import { getMinimaRuntimeSettings } from "./minima-settings.service.js";
 import type { MinimaNodeState, MinimaNodeStatus } from "./minima.types.js";
 
 export type MinimaMonitoringSnapshot = {
@@ -23,7 +23,7 @@ export function detectStall(status: MinimaStatusForMonitoring) {
   return (
     status.state === "running" &&
     status.sync.blockAgeSeconds !== null &&
-    status.sync.blockAgeSeconds > env.minimaStallBlockAgeSeconds
+    status.sync.blockAgeSeconds > getMinimaRuntimeSettings().stallBlockAgeSeconds
   );
 }
 
@@ -35,8 +35,8 @@ export function buildMinimaMonitoring(status: MinimaStatusForMonitoring) {
   const pollerSnapshot = getMinimaMonitoringSnapshot();
   return {
     stallDetected: detectStall(status),
-    stallThresholdSeconds: env.minimaStallBlockAgeSeconds,
-    autoResyncEnabled: env.minimaAutoResync,
+    stallThresholdSeconds: getMinimaRuntimeSettings().stallBlockAgeSeconds,
+    autoResyncEnabled: getMinimaRuntimeSettings().autoResyncEnabled,
     ...pollerSnapshot
   };
 }
@@ -61,7 +61,7 @@ export function recordAutoResyncResult(result: string) {
 
 export function canAutoResync() {
   if (!snapshot.lastAutoResyncAt) return true;
-  const cooldownMs = env.minimaAutoResyncCooldownMinutes * 60 * 1000;
+  const cooldownMs = getMinimaRuntimeSettings().autoResyncCooldownMinutes * 60 * 1000;
   return Date.now() - new Date(snapshot.lastAutoResyncAt).getTime() >= cooldownMs;
 }
 

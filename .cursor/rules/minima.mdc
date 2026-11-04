@@ -6,6 +6,7 @@ alwaysApply: false
 
 # Minima Rules
 
+- Monitoring and automatic-resync policy live in SQLite through `minima-settings.service.ts`; legacy environment values seed once. Keep API edits admin-only, bounded, audited, and live without cancelling or replaying resync. Ports, mounts and node paths remain deployment configuration (ADR 0041).
 - Send Minima RPC commands as a single percent-encoded URL path, not query parameters: build `megammrsync action:resync host:megammr.minima.global:9001`, then call `http://minima:9005/megammrsync%20action%3Aresync%20host%3Amegammr.minima.global%3A9001`.
 - Do not expose a generic Minima command proxy. Add a narrow, allowlisted backend action per supported command.
 - **RPC console** (`minima-console.catalog.ts`, `minima-console.service.ts`) is the one scoped exception: it runs only commands that are in the static catalog and enabled in the admin whitelist (`GET`/`POST /api/minima/console/whitelist`, re-auth required to edit).

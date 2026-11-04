@@ -11,16 +11,21 @@
 
 ## Current Focus
 
-[Nothing in focus.]
+- [ ] Finish Pi/browser validation of the implemented Dashboard/Minima/Wallet loading fix: independent readiness/shared telemetry, bounded navigation snapshots and deferred Minima settings/backups; candidate timing is blocked by sudo authentication and no production deployment was made. See `docs/plans/page-load-performance.md`.
 
 ## In Progress
 
-- [ ] Finish Edge Studio storage/history lifecycle: inventory and archive export/import are implemented; manual cleanup, category-specific retention, and browser/Pi verification remain; see `docs/plans/storage-history-lifecycle.md`.
+- [ ] Finish Edge Studio storage/history lifecycle: inventory, archive export/import and opt-in retention controls are implemented and the user confirmed recommended Pi verification; manual cleanup, size-based triggers and verification of the remaining features are still open; see `docs/plans/storage-history-lifecycle.md`.
 
 ## Next
 
 ### Follow-ups from finished work
 
+- [ ] Compare candidate Pi readiness/overview timings with the measured 2 s/4 s baseline once approved Docker diagnostic access is restored, and browser-check navigation, restart/resync/payment refresh, logout isolation and first-open settings/backups; wallet live-sync timing remains unmeasured.
+- [ ] Finish #861 Dashboard/status API disk warnings and generated proof-download cleanup; proof-linked camera protection is implemented and the user confirmed recommended Pi verification.
+- [ ] Retry local Docker image validation when the daemon is running; the user's successful Pi verification is recorded separately.
+- [ ] Verify the terminal uninstaller on a disposable Pi installation: keep-data removal/reinstall, confirmed internal-data deletion, custom helper ports/subnet, retained external data, cancellation, and partially removed installations.
+- [ ] Verify the advanced installer on a Pi: fresh `curl | sudo bash -s -- --advanced`, an occupied default port, saved custom ports on rerun, and enabled camera/sensor/MQTT services.
 
 - [ ] Recapture the guided-tour screenshots with clean, Pi-like values and review the copy (#275; ADR 0027).
 - [ ] Review the #524 lint follow-ups: `JsonPreview` ignores `title`, `WatchRunHistory` ignores `replayPlaying`, and `WorkflowWorkspace` rebuilds its replay arrays every render, so effects rerun and the replay timer re-arms.
@@ -38,7 +43,7 @@
 - [ ] Confirm the two provisional V1.5 product decisions and record them in ADR 0010: accept the unauthenticated first-boot admin claim under the trusted-LAN model (review finding [2]), and keep the anonymous, off-by-default MQTT broker (finding [5], DEVICE-IO-04/05 stay open).
 - [ ] Digest-pin the third-party images outside the signed manifest (`minimaglobal/minimacore`, `eclipse-mosquitto:2`, `minimaglobal/minima:dev`, `alpine:3.20`) and document the manual pin-bump procedure (finding [6]).
 - [ ] Run the V1.5 manual transport checks on a Pi: `curl -vk https://<pi-ip>:8080/api/health` gives TLS 1.2/1.3 and 200; plain `http://` is refused or 400; the certificate SAN includes the Pi's LAN IP; the session cookie is `Secure`, `HttpOnly`, `SameSite=Strict`; optionally, a login capture shows no readable password.
-- [ ] Define the product lifecycle for data-source reads, workflow runs/block runs, and visible inbox items: retention configuration, export, proof-linked reads, storage quotas, and disk-usage warnings (ADR 0022).
+- [ ] Finish remaining storage lifecycle work: scoped manual cleanup/size policies (#819), Dashboard/export cleanup (#861) and payload-copy reduction (#860); the configured lifecycle is recorded in ADR 0022.
 - [ ] Turn on branch protection for `main` now that changes land through PRs.
 
 ### Hardware support
@@ -70,8 +75,18 @@
 
 ## Done
 
+- [x] Implemented independent current node readiness and shared 30-second Docker telemetry with correct CPU sampling, bounded navigation snapshots, mutation/session invalidation and deferred Minima panels; local regression checks are recorded in SESSION, with Pi/browser verification still open.
+- [x] Reconciled the 10 approved OpenProject tickets with implementation, remaining scope and user-reported Pi verification, and verified saved descriptions/comments/statuses; #628 uses Review because its spike workflow lacks Ready for Deployment.
+- [x] User confirmed the recommended Pi verification for runtime-settings migration/persistence, Minima monitoring, history/inbox/camera retention and session expiry; not independently rerun during tracker reconciliation.
+- [x] Added SQLite session policy and Settings → Security controls with PIN/password confirmation, transactional audits/session enforcement and safe existing-expiry behavior; focused auth/API/UI tests, full frontend tests, lint/typechecks and application builds passed (known Minima restore-test and Docker-daemon limitations remain).
+- [x] Added separate SQLite camera retention with file previews, confirmed migration/resume, optional-extension visibility and proof-media/active-workflow protection; focused backend and full frontend tests, lint/typechecks, builds and Compose config passed (known Minima restore-test and Docker-daemon limitations remain).
+- [x] Added independent opt-in inbox age retention with safe legacy/default behaviour, read/unread preview counts, active-run and linked-file protection, and shared batch limits; focused/full frontend tests, backend regressions, lint/typechecks and application builds passed (known restore-test and Docker-daemon limitations remain).
+- [x] Added SQLite retention settings and Settings controls (#857 / automatic-retention part of #819), reviewed deletion previews, safe opt-in sweeps and Settings disk warnings; focused/full frontend tests, backend regressions, lint/typechecks, builds and Compose config passed (backend full run retains the known Minima restore failure).
+- [x] Recorded the `.env`/runtime-settings and export boundary (#628/#643, ADR 0041) and added the first SQLite-backed Minima monitoring controls with validated admin APIs, audits, migration and live rescheduling; focused backend/UI tests, full frontend coverage, lint/typechecks, application builds and Compose configuration passed (full check still hits the tracked Minima restore failure).
+- [x] Added the terminal uninstaller with default data retention, confirmed internal-data deletion, dry-run/ownership checks, and Settings instructions with a Keep data / Delete data command toggle; verified focused regressions, frontend build/tests, lint/typechecks, shell syntax, Compose config, and runtime packaging (full check still hits the tracked Minima restore failure).
+- [x] Added guided installer host-port configuration with `--advanced`, saved port defaults, validation, and early conflict checks; verified focused tests, shell syntax, lint/typechecks, builds, and Compose configuration (full check remains blocked by the tracked Minima restore test).
 - [x] Release security hardening: bounded proof/history/backup file operations and credential checks, validated report IDs, explicit workflow token permissions, and regression-tested upload-path triage (ADRs 0010/0022); full Linux checks passed in #166.
-- [x] Restored Raspberry Pi Camera in the device setup wizard and updated its focused setup steps, validation, full capture review, and in-app guide; verified with focused tests, frontend lint, and build.
+- [x] Restored Raspberry Pi Camera in the device setup wizard and updated its focused setup steps, validation, full capture review, and in-app guide; reconciled hardware setup with Hardware support and saved-device editing with the current form; verified guide tests, root lint/docs, and frontend build.
 
 - [x] Updated dependency lockfiles and patched Vitest/coverage, qs and Happy DOM requirements to clear the npm audit blocker; all three application audits and the root install audit reported zero vulnerabilities. Existing local backend/script test limitations are recorded in SESSION.
 - [x] Repaired stale documentation indexes/references, reconciled retired-plan task entries, and renumbered the portable-history ADR to 0040; made the docs checker handle Windows paths and line endings and removed the unused frontend archive-list wrapper blocking Knip in CI.

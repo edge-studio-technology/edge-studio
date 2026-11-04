@@ -37,6 +37,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 
 | Plan | Status |
 | ---- | ------ |
+| [plans/page-load-performance.md](./plans/page-load-performance.md) | Measured node/telemetry separation and navigation snapshot improvements |
 | [plans/storage-history-lifecycle.md](./plans/storage-history-lifecycle.md) | Storage/history inventory and archive/import/cleanup roadmap |
 | [plans/feedback-hosted-receiver.md](./plans/feedback-hosted-receiver.md) | Hand-off spec for the Integritas API repo; not started |
 
@@ -56,9 +57,9 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0015](./adr/0015-minima-console-mutating-subcommands.md) | Minima console catalog classifies by argument shape; mutating forms default disabled |
 | [0016](./adr/0016-install-time-bootstrap-trust-set.md) | Install-time trust chain: embedded key and verifier, pinned verifier image, bundle bound to the signed manifest |
 | [0017](./adr/0017-outbound-and-upload-resource-limits.md) | Clamped egress, upload, and MQTT limits; nginx upload limit derived from backend settings |
-| [0019](./adr/0019-hardware-access-through-host-helpers.md) | Hardware via host helpers and a root host agent with fixed per-capability actions |
+| [0019](./adr/0019-hardware-access-through-host-helpers.md) | Hardware via fixed host-agent actions; uninstall through a confirmed host-terminal operation |
 | [0021](./adr/0021-app-secret-fail-closed-without-migration.md) | Backend refuses an empty `APP_SECRET`; no public default, no secret migration |
-| [0022](./adr/0022-bound-external-automation-effects.md) | Automation effects: credential redaction, retention by record purpose, 1,000 privileged runs/hour budget |
+| [0022](./adr/0022-bound-external-automation-effects.md) | Automation effects: credential redaction, opt-in per-workflow/age retention, 1,000 privileged runs/hour budget |
 | [0024](./adr/0024-responsive-layout-strategy.md) | Responsive layout: 768 floor, container queries, sidebar overlay below 1024, sticky table actions |
 | [0025](./adr/0025-error-state-scope-tiers.md) | Error presentation by scope: content state, alert, toast, field error |
 | [0027](./adr/0027-static-guided-tour.md) | Static first-visit guided tour, seen flag per browser, replay from Settings |
@@ -74,6 +75,8 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0038](./adr/0038-feedback-hosted-delivery-with-local-fallback.md) | Feedback saved locally, sent to Integritas with the existing key after per-submission consent |
 | [0039](./adr/0039-workflow-canvas-and-watch-mode-interaction.md) | Workflow canvas routes and click controls; watch mode follow-live, replay, and summaries |
 | [0040](./adr/0040-separate-portable-history-from-device-migration.md) | Portable history is a read-only, redacted archive; configuration/secrets transfer is a separate device-migration concern |
+| [0041](./adr/0041-separate-deployment-configuration-from-runtime-settings.md) | Deployment/runtime settings boundary; Minima policy migrates once to SQLite and changes live |
+| [0042](./adr/0042-separate-node-readiness-from-resource-telemetry.md) | Current node readiness is independent of shared resource telemetry; bounded read snapshots retain navigation responsiveness |
 
 ### Retired ADRs
 

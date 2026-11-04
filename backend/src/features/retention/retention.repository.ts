@@ -1,5 +1,73 @@
 import { getActiveAutomationRunIds } from "../automation/automationRuns.repository.js";
 import { db } from "../../db/database.js";
+import type { RetentionSettings } from "./retention-settings.service.js";
+
+const configuredRuns = `
+  WITH ranked AS (
+    SELECT id, workflow_id, started_at,
+      ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY started_at DESC, id DESC) AS position
+    FROM automation_runs
+  )
+  SELECT id FROM ranked
+  WHERE id NOT IN (SELECT value FROM json_each(@activeRuns))
+    AND ((workflow_id IS NOT NULL AND position > @runsPerWorkflow)
+      OR (workflow_id IS NULL AND started_at < @deletedCutoff))
+  ORDER BY started_at ASC, id ASC
+`;
+
+const configuredReads = `SELECT id FROM data_source_reads
+  WHERE created_at < @readCutoff AND integritas_proof_id IS NULL
+  ORDER BY created_at ASC, id ASC`;
+
+const expiredInboxItems = `SELECT id FROM automation_inbox_items
+  WHERE deleted_at IS NULL AND created_at < @inboxCutoff
+    AND (run_id IS NULL OR run_id NOT IN (SELECT value FROM json_each(@activeRuns)))
+  ORDER BY created_at ASC, id ASC`;
+
+function inboxParameters(settings: RetentionSettings, now: number) {
+  return {
+    activeRuns: JSON.stringify(getActiveAutomationRunIds()),
+    inboxCutoff: new Date(now - settings.inboxRetentionDays! * 86400000).toISOString(),
+  };
+}
+
+function configuredParameters(settings: RetentionSettings, now: number) {
+  return {
+    activeRuns: JSON.stringify(getActiveAutomationRunIds()),
+    runsPerWorkflow: settings.runsPerWorkflow,
+    deletedCutoff: new Date(now - settings.deletedWorkflowRunDays * 86400000).toISOString()
+  };
+}
+
+export function previewConfiguredRetention(settings: RetentionSettings, now = Date.now()) {
+  const parameters = configuredParameters(settings, now);
+  const readCutoff = new Date(now - settings.dataSourceReadDays * 86400000).toISOString();
+  const count = (sql: string, values: Record<string, string | number>) => (db.prepare(sql).get(values) as { count: number }).count;
+  return {
+    automationRuns: count(`SELECT COUNT(*) AS count FROM (${configuredRuns})`, parameters),
+    automationBlockRuns: count(`SELECT COUNT(*) AS count FROM automation_block_runs WHERE run_id IN (${configuredRuns})`, parameters),
+    dataSourceReads: count(`SELECT COUNT(*) AS count FROM (${configuredReads})`, { readCutoff }),
+    automationInboxItems: settings.inboxRetentionDays === null ? 0 : count(`SELECT COUNT(*) AS count FROM (${expiredInboxItems})`, inboxParameters(settings, now))
+  };
+}
+
+export function pruneExpiredAutomationInboxItems(settings: RetentionSettings, batchSize: number, now = Date.now()) {
+  if (settings.inboxRetentionDays === null || batchSize <= 0) return 0;
+  return db.transaction(() => db.prepare(`DELETE FROM automation_inbox_items WHERE id IN (${expiredInboxItems} LIMIT @batchSize)`)
+    .run({ ...inboxParameters(settings, now), batchSize }).changes).immediate();
+}
+
+export function pruneConfiguredRetention(settings: RetentionSettings, batchSize: number, now = Date.now()) {
+  return db.transaction(() => {
+    const parameters = configuredParameters(settings, now);
+    const runIds = db.prepare(`${configuredRuns} LIMIT @batchSize`).all({ ...parameters, batchSize }) as { id: string }[];
+    const ids = JSON.stringify(runIds.map((row) => row.id));
+    const automationBlockRuns = db.prepare("DELETE FROM automation_block_runs WHERE run_id IN (SELECT value FROM json_each(?))").run(ids).changes;
+    const automationRuns = db.prepare("DELETE FROM automation_runs WHERE id IN (SELECT value FROM json_each(?))").run(ids).changes;
+    const dataSourceReads = db.prepare(`DELETE FROM data_source_reads WHERE id IN (${configuredReads} LIMIT @batchSize)`).run({ readCutoff: new Date(now - settings.dataSourceReadDays * 86400000).toISOString(), batchSize }).changes;
+    return { automationRuns, automationBlockRuns, dataSourceReads };
+  }).immediate();
+}
 
 export type RetentionLimits = {
   cutoffIso: string;

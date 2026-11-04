@@ -17,6 +17,8 @@ import { describeLoadFailure } from "../lib/errors";
 import { formatLocalDateTime } from "../lib/time";
 import { APP_NAME } from "../app/names";
 import type { Tone } from "../app/types";
+import { getCachedJson } from "../lib/api";
+import { buildListQueryString } from "../lib/paginated";
 
 type ActivityItem = {
   id: string;
@@ -28,13 +30,25 @@ type ActivityItem = {
 };
 
 export function DashboardPage() {
-  const [proofs, setProofs] = useState<IntegritasProofRecord[]>([]);
-  const [reads, setReads] = useState<DataSourceRead[]>([]);
-  const [activityLoading, setActivityLoading] = useState(true);
+  const cachedProofs = getCachedJson<Awaited<ReturnType<typeof getHistory>>>(
+    `/api/integritas/history${buildListQueryString({ page: 1, pageSize: 100 })}`,
+  );
+  const cachedReads = getCachedJson<Awaited<ReturnType<typeof listDataReads>>>(
+    `/api/data-reads${buildListQueryString({ page: 1, pageSize: 100 })}`,
+  );
+  const [proofs, setProofs] = useState<IntegritasProofRecord[]>(cachedProofs?.items ?? []);
+  const [reads, setReads] = useState<DataSourceRead[]>(cachedReads?.items ?? []);
+  const [activityLoading, setActivityLoading] = useState(!cachedProofs || !cachedReads);
   const [activityError, setActivityError] = useState<string | null>(null);
 
   const loadActivity = useCallback(async () => {
-    setActivityLoading(true);
+    if (
+      !getCachedJson(
+        `/api/integritas/history${buildListQueryString({ page: 1, pageSize: 100 })}`,
+      ) ||
+      !getCachedJson(`/api/data-reads${buildListQueryString({ page: 1, pageSize: 100 })}`)
+    )
+      setActivityLoading(true);
     setActivityError(null);
     try {
       const [proofHistory, readHistory] = await Promise.all([
