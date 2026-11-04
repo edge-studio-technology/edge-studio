@@ -154,11 +154,15 @@ describe("StandardDeviceSetupGuide", () => {
     const item = source({ type: "pi-camera", config: { mode: "video", width: 1920, height: 1080, durationMs: 5000, fps: 24 } });
     const onAction = vi.fn();
     render(<StandardDeviceSetupGuide source={item} onAction={onAction} />, { wrapper: ToastProvider });
+    expect(screen.queryByRole("button", { name: "Enable camera support" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Requirements" }));
+    expect(screen.getByText(/Camera shows Available in Devices/)).toHaveTextContent("Manage enablement, repair, prerequisite setup, and status checks there");
+    expect(screen.queryByRole("button", { name: "Copy commands" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Connect the camera" }));
     expect(screen.getByText(/disconnect its power before connecting/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Enable camera support" }));
-    await userEvent.click(screen.getByRole("button", { name: "Copy commands" }));
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("rpicam-still --list-cameras");
+    await userEvent.click(screen.getByRole("button", { name: "Configure capture" }));
+    expect(screen.getByText(/Open Saved settings → Edit device settings/)).toBeInTheDocument();
+    expect(screen.getByText(/Select Save device to apply your changes/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Saved settings" }));
     expect(screen.getByText("1920x1080")).toBeInTheDocument();
     expect(screen.getByText("5000 ms")).toBeInTheDocument();
@@ -167,6 +171,7 @@ describe("StandardDeviceSetupGuide", () => {
     await userEvent.click(screen.getByRole("button", { name: "Verify" }));
     expect(screen.getByText(/Confirm that Capture camera succeeds/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Troubleshooting" }));
+    expect(screen.getByText(/Open Devices → Hardware support → Camera and follow/)).toBeInTheDocument();
     expect(screen.getByText("Camera busy")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Privacy and retention" }));
     expect(screen.getByText(/Manage camera retention in Settings/)).toHaveTextContent("Proof-linked captures are protected");

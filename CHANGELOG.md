@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- The camera guide directs hardware setup and diagnostics to Hardware support and describes editing the saved camera configuration.
 - Dashboard, Minima and Wallet retain recent read snapshots across navigation and refresh immediately after application mutations.
 - Minima settings and backup panels load on first opening.
 
