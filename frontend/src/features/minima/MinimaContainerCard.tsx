@@ -35,8 +35,9 @@ export function MinimaContainerCard({
   const container = refreshing ? undefined : status?.container;
   const unavailable = (loading || refreshing) && !container ? <LoadingDots /> : "—";
 
-  const cpuLabel = container?.cpuPercent != null ? `${container.cpuPercent}%` : unavailable;
-  const memoryLabel = formatContainerMemory(container) ?? unavailable;
+  const telemetryUnavailable = container?.metricsPending ? <LoadingDots /> : unavailable;
+  const cpuLabel = container?.cpuPercent != null ? `${container.cpuPercent}%` : telemetryUnavailable;
+  const memoryLabel = formatContainerMemory(container) ?? telemetryUnavailable;
   const stateLabel = formatContainerState(container?.state) ?? unavailable;
   const runtimeLabel = container?.status ?? unavailable;
 

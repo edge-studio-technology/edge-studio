@@ -10,19 +10,36 @@ import { Card } from "../../components/ui/Card";
 import { listAutomationWorkflows } from "../automation/automationApi";
 import { listDataSources } from "../data-sources/dataSourcesApi";
 import { cx } from "../../lib/cx";
+import { getCachedJson } from "../../lib/api";
 
 type NextActionState =
   | { status: "loading" }
   | { status: "ready"; deviceCount: number; workflowCount: number }
   | { status: "error" };
 
+function cachedCounts(): NextActionState | null {
+  const devices = getCachedJson<Awaited<ReturnType<typeof listDataSources>>>("/api/data-sources");
+  const workflows = getCachedJson<Awaited<ReturnType<typeof listAutomationWorkflows>>>(
+    "/api/automation/workflows",
+  );
+  return devices && workflows
+    ? {
+        status: "ready",
+        deviceCount: devices.items.length,
+        workflowCount: workflows.items.filter((workflow) => !workflow.archived).length,
+      }
+    : null;
+}
+
 export function DashboardNextAction() {
   const navigate = useNavigate();
-  const [state, setState] = useState<NextActionState>({ status: "loading" });
+  const [state, setState] = useState<NextActionState>(
+    () => cachedCounts() ?? { status: "loading" },
+  );
   const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
-    setState({ status: "loading" });
+    if (!cachedCounts()) setState({ status: "loading" });
     Promise.all([
       listDataSources().then((res) => res.items.length),
       listAutomationWorkflows().then(

@@ -37,6 +37,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 
 | Plan | Status |
 | ---- | ------ |
+| [plans/page-load-performance.md](./plans/page-load-performance.md) | Measured node/telemetry separation and navigation snapshot improvements |
 | [plans/storage-history-lifecycle.md](./plans/storage-history-lifecycle.md) | Storage/history inventory and archive/import/cleanup roadmap |
 | [plans/feedback-hosted-receiver.md](./plans/feedback-hosted-receiver.md) | Hand-off spec for the Integritas API repo; not started |
 
@@ -75,6 +76,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0039](./adr/0039-workflow-canvas-and-watch-mode-interaction.md) | Workflow canvas routes and click controls; watch mode follow-live, replay, and summaries |
 | [0040](./adr/0040-separate-portable-history-from-device-migration.md) | Portable history is a read-only, redacted archive; configuration/secrets transfer is a separate device-migration concern |
 | [0041](./adr/0041-separate-deployment-configuration-from-runtime-settings.md) | Deployment/runtime settings boundary; Minima policy migrates once to SQLite and changes live |
+| [0042](./adr/0042-separate-node-readiness-from-resource-telemetry.md) | Current node readiness is independent of shared resource telemetry; bounded read snapshots retain navigation responsiveness |
 
 ### Retired ADRs
 

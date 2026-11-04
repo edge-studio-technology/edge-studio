@@ -67,6 +67,8 @@ export type MinimaNodeStatus = {
     state: string;
     status: string;
     cpuPercent: number | null;
+    metricsPending?: boolean;
+    metricsObservedAt?: string | null;
     memory: { usage: string | null; limit: string | null } | null;
   } | null;
   rpc: {

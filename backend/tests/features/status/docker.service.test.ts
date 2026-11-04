@@ -62,11 +62,15 @@ requestMock.mockImplementation((options: { path: string }, callback: (res: unkno
   return req;
 });
 
-const { getComposeServiceContainer, inspectContainer, dockerServiceResources, diskUsage } = await import(
-  "../../../src/features/status/docker.service.js"
-);
+let getComposeServiceContainer: typeof import("../../../src/features/status/docker.service.js").getComposeServiceContainer;
+let inspectContainer: typeof import("../../../src/features/status/docker.service.js").inspectContainer;
+let dockerServiceResources: typeof import("../../../src/features/status/docker.service.js").dockerServiceResources;
+let diskUsage: typeof import("../../../src/features/status/docker.service.js").diskUsage;
+let getDockerResourceSnapshot: typeof import("../../../src/features/status/docker.service.js").getDockerResourceSnapshot;
 
-beforeEach(() => {
+beforeEach(async () => {
+  vi.resetModules();
+  ({ getComposeServiceContainer, inspectContainer, dockerServiceResources, diskUsage, getDockerResourceSnapshot } = await import("../../../src/features/status/docker.service.js"));
   requestedPaths.length = 0;
   queuedScenarios = [];
   scenario = { kind: "response", statusCode: 200, body: "[]" };
@@ -74,6 +78,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.clearAllMocks();
 });
 
@@ -147,6 +152,40 @@ describe("inspectContainer", () => {
 });
 
 describe("dockerServiceResources", () => {
+  it("shares one telemetry collection, returns a nonblocking pending snapshot and expires it", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const first = dockerServiceResources();
+    const second = dockerServiceResources();
+    assert.equal(first, second);
+    assert.equal(getDockerResourceSnapshot().pending, true);
+    await first;
+    const requests = requestedPaths.length;
+    assert.equal(getDockerResourceSnapshot().pending, false);
+    assert.ok(getDockerResourceSnapshot().observedAt);
+    await dockerServiceResources();
+    assert.equal(requestedPaths.length, requests);
+    vi.setSystemTime(Date.now() + 30000);
+    assert.equal(getDockerResourceSnapshot().pending, true);
+    await dockerServiceResources();
+    assert.ok(requestedPaths.length > requests);
+  });
+
+  it("handles telemetry failure without rejecting a readiness snapshot and retries later", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    scenario = { kind: "error", error: new Error("offline") };
+    assert.equal(getDockerResourceSnapshot().pending, true);
+    await assert.rejects(dockerServiceResources());
+    assert.deepEqual(getDockerResourceSnapshot().items, []);
+    assert.equal(getDockerResourceSnapshot().pending, false);
+    const requests = requestedPaths.length;
+    getDockerResourceSnapshot();
+    assert.equal(requestedPaths.length, requests);
+    vi.setSystemTime(Date.now() + 30000);
+    scenario = { kind: "response", statusCode: 200, body: "[]" };
+    assert.equal(getDockerResourceSnapshot().pending, true);
+    await dockerServiceResources();
+    assert.equal(getDockerResourceSnapshot().pending, false);
+  });
   it("reports CPU, working-set memory, and disk usage for a running container", async () => {
     queuedScenarios = [
       { kind: "response", statusCode: 200, body: JSON.stringify([container({ SizeRootFs: 4096 })]) },

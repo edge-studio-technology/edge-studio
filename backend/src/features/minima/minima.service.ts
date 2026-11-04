@@ -97,6 +97,8 @@ export async function getMinimaNodeStatus(): Promise<MinimaNodeStatus> {
             state: containerStats.state,
             status: containerStats.status,
             cpuPercent: containerStats.cpuPercent,
+            metricsPending: containerStats.metricsPending,
+            metricsObservedAt: containerStats.metricsObservedAt,
             memory: containerStats.memory
           }
         : null,
@@ -152,6 +154,8 @@ export async function getMinimaNodeStatus(): Promise<MinimaNodeStatus> {
           state: containerStats.state,
           status: containerStats.status,
           cpuPercent: containerStats.cpuPercent,
+          metricsPending: containerStats.metricsPending,
+          metricsObservedAt: containerStats.metricsObservedAt,
           memory: containerStats.memory
         }
       : null,

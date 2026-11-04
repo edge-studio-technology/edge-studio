@@ -27,7 +27,7 @@ import { mergeMinimaStatus } from "../features/minima/mergeMinimaStatus";
 import { resyncPhaseLabel } from "../features/minima/minimaResync";
 import { useMinimaResync } from "../features/minima/useMinimaResync";
 import { MinimaResyncProgressPanel } from "../features/minima/MinimaResyncProgressPanel";
-import type { ApiError } from "../lib/api";
+import { getCachedJson, type ApiError } from "../lib/api";
 import { MinimaSettingsPanel } from "../features/minima/MinimaSettingsPanel";
 import { MinimaSummaryGrid } from "../features/minima/MinimaSummaryGrid";
 import { useMinimaStatusRefresh } from "../features/minima/useMinimaStatusRefresh";
@@ -41,8 +41,8 @@ const REFRESH_AFTER_OPERATION_MAX_MS = 90000;
 
 export function MinimaPage() {
   const { showToast } = useToast();
-  const [nodeStatus, setNodeStatus] = useState<MinimaNodeStatus | null>(null);
-  const [statusLoading, setStatusLoading] = useState(true);
+  const [nodeStatus, setNodeStatus] = useState(() => getCachedJson<MinimaNodeStatus>("/api/minima/status"));
+  const [statusLoading, setStatusLoading] = useState(() => !getCachedJson("/api/minima/status"));
   const [statusError, setStatusError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resyncSubmitting, setResyncSubmitting] = useState(false);
@@ -52,6 +52,8 @@ export function MinimaPage() {
   const [restarting, setRestarting] = useState(false);
   const [consoleWhitelistOpen, setConsoleWhitelistOpen] = useState(false);
   const [consoleOpen, setConsoleOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsVisited, setSettingsVisited] = useState(false);
   const [restartConfirmOpen, setRestartConfirmOpen] = useState(false);
 
   const handleStatus = useCallback((status: MinimaNodeStatus) => {
@@ -75,7 +77,7 @@ export function MinimaPage() {
 
     while (true) {
       try {
-        const status = await getMinimaNodeStatus();
+        const status = await getMinimaNodeStatus({ force: true });
         handleStatus(status);
         if (status.rpc.ok) return true;
       } catch {
@@ -214,16 +216,25 @@ export function MinimaPage() {
             </span>
           }
           defaultOpen={false}
+          open={settingsOpen}
+          onToggle={(event) => {
+            setSettingsOpen(event.currentTarget.open);
+            if (event.currentTarget.open) setSettingsVisited(true);
+          }}
           contentClassName="gap-detail-close grid"
         >
-          <MinimaSettingsPanel bare minimaState={nodeStatus?.state ?? null} />
-          <SubSection
-            icon={<Database size={13} />}
-            title="Node backup & restore"
-            description="Full node backups include the seed phrase, private keys, coin proofs, and transaction history — a superset of a plain seed-phrase wallet import."
-          >
-            <MinimaBackupPanel bare minimaState={nodeStatus?.state ?? null} operationBusy={actionsBlocked} />
-          </SubSection>
+          {settingsVisited ? (
+            <>
+              <MinimaSettingsPanel bare minimaState={nodeStatus?.state ?? null} />
+              <SubSection
+                icon={<Database size={13} />}
+                title="Node backup & restore"
+                description="Full node backups include the seed phrase, private keys, coin proofs, and transaction history — a superset of a plain seed-phrase wallet import."
+              >
+                <MinimaBackupPanel bare minimaState={nodeStatus?.state ?? null} operationBusy={actionsBlocked} />
+              </SubSection>
+            </>
+          ) : null}
         </Disclosure>
       </Card>
 

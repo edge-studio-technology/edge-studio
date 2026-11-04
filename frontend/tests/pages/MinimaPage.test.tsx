@@ -72,6 +72,15 @@ function runningStatus(): MinimaNodeStatus {
 }
 
 describe("MinimaPage", () => {
+  it("defers settings/backups until first opening and retains their mounted state on closing", async () => {
+    render(<MinimaPage />, { wrapper: ToastProvider });
+    expect(screen.queryByRole("button", { name: "Backup", hidden: true })).not.toBeInTheDocument();
+    const details = screen.getByText("Minima settings").closest("details")!;
+    act(() => { details.open = true; fireEvent(details, new Event("toggle")); });
+    const backup = screen.getByRole("button", { name: "Backup", hidden: true });
+    act(() => { details.open = false; fireEvent(details, new Event("toggle")); });
+    expect(screen.getByRole("button", { name: "Backup", hidden: true })).toBe(backup);
+  });
   afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
   beforeEach(() => {
     vi.stubGlobal("fetch", fetchMock);
@@ -175,6 +184,8 @@ describe("backend-owned resync on MinimaPage", () => {
     expect(screen.queryByText("Resync completed")).not.toBeInTheDocument();
     act(() => reportStatus(runningStatus()));
     expect(screen.getByRole("button", { name: "Resync" })).toBeDisabled();
+    const settings = screen.getByText("Minima settings").closest("details")!;
+    act(() => { settings.open = true; fireEvent(settings, new Event("toggle")); });
     expect(screen.getByRole("button", { name: "Backup", hidden: true })).toBeDisabled();
     progressRead.mockResolvedValue(resyncOperation({ phase: "recovering", updatedAt: "2026-10-09T10:00:06.000Z", message: "Resync connection interrupted; checking recovery." }));
     await settle(3000);

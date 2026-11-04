@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased] advanced-install
 
+### Changed
+
+- Dashboard, Minima and Wallet retain recent read snapshots across navigation and refresh immediately after application mutations.
+- Minima settings and backup panels load on first opening.
+
+### Fixed
+
+- Node readiness no longer waits for Docker CPU/RAM sampling, and status overview shares resource collection.
+
 ### Added
 
 - Settings → Security includes session lifetime and inactivity controls with PIN/password confirmation and one-time migration from environment values.

@@ -10,9 +10,10 @@ import type {
   MinimaRuntimeSettingsResponse
 } from "../../app/types";
 import { getJson, postJson } from "../../lib/api";
+import type { ReadOptions } from "../../lib/readCache";
 
-export function getMinimaNodeStatus() {
-  return getJson<MinimaNodeStatus>("/api/minima/status");
+export function getMinimaNodeStatus(options?: ReadOptions) {
+  return options ? getJson<MinimaNodeStatus>("/api/minima/status", options) : getJson<MinimaNodeStatus>("/api/minima/status");
 }
 
 export function getMinimaConfig() {

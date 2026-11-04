@@ -613,6 +613,10 @@ docker compose build --no-cache
 
 ## Troubleshooting
 
+Dashboard, Minima and Wallet retain selected successful reads in browser memory across navigation. Node/device/overview/wallet reads can be reused for 30 seconds, with three-second refreshes during node operations or pending resource sampling. Manual refresh and JSON/form mutations bypass or invalidate reuse; authentication changes clear the cache. Device/workflow/activity lists retain display snapshots but still request fresh data. No snapshots are stored in localStorage or exported as settings.
+
+Node readiness uses current lightweight Docker state and Minima RPC. CPU/RAM telemetry is sampled separately, shared across callers and reused for up to 30 seconds; a cold sample fills on a short follow-up poll. Its `metricsObservedAt` timestamp and `metricsPending` flag are separate from the current readiness check. Resource sampling failure does not block node status, and cached container data never authorizes a payment or node mutation. Minima settings/backups load on first opening and retain form state when collapsed. See [ADR 0042](docs/adr/0042-separate-node-readiness-from-resource-telemetry.md).
+
 If the UI shows `Backend health error: HTTP 502`, check backend logs:
 
 ```bash
