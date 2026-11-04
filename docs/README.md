@@ -37,6 +37,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 
 | Plan | Status |
 | ---- | ------ |
+| [plans/github-contributions.md](./plans/github-contributions.md) | Public GitHub requests, reviewed source contributions, contributor guides and AI skill; planned, with Module Builder deferred separately |
 | [plans/page-load-performance.md](./plans/page-load-performance.md) | Measured node/telemetry separation and navigation snapshot improvements |
 | [plans/storage-history-lifecycle.md](./plans/storage-history-lifecycle.md) | Storage/history inventory and archive/import/cleanup roadmap |
 | [plans/feedback-hosted-receiver.md](./plans/feedback-hosted-receiver.md) | Hand-off spec for the Integritas API repo; not started |
@@ -110,6 +111,8 @@ Merged into the surviving record on 2026-10-15. Numbers are not reused.
 | [security/external-review-2026-09-03.md](./security/external-review-2026-09-03.md) | External static review of `571ba70`, kept verbatim; audited in [ADR 0010](./adr/0010-security-review-audit-verdict.md) |
 
 ## QA and reports
+
+**GitHub Contributions backlog:** [Two epics and ten features](./reports/github-contributions-openproject-2026-11-04/README.md), created alongside the separate deferred Module Builder backlog.
 
 | Doc | Purpose |
 | --- | ------- |

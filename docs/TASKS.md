@@ -19,6 +19,7 @@
 
 ## Next
 
+- [ ] Establish public GitHub requests and reviewed source contributions (epics #1249/#1250), with verified contributor setup, hardware/device/workflow guides and a portable AI skill — see `docs/plans/github-contributions.md` and [the ten-feature backlog](./reports/github-contributions-openproject-2026-11-04/README.md). Full Module Builder remains a separate deferred path on its existing branch/backlog.
 ### Follow-ups from finished work
 
 - [ ] Compare candidate Pi readiness/overview timings with the measured 2 s/4 s baseline once approved Docker diagnostic access is restored, and browser-check navigation, restart/resync/payment refresh, logout isolation and first-open settings/backups; wallet live-sync timing remains unmeasured.
@@ -75,6 +76,7 @@
 
 ## Done
 
+- [x] Created the `github-contributions` branch from current dev, saved the implementation plan, and created/verified two OpenProject epics #1249/#1250 with ten features #1251–#1260 alongside Module Builder. Its branch and all eighteen existing tickets were preserved; implementation remains pending.
 - [x] Implemented independent current node readiness and shared 30-second Docker telemetry with correct CPU sampling, bounded navigation snapshots, mutation/session invalidation and deferred Minima panels; local regression checks are recorded in SESSION, with Pi/browser verification still open.
 - [x] Reconciled the 10 approved OpenProject tickets with implementation, remaining scope and user-reported Pi verification, and verified saved descriptions/comments/statuses; #628 uses Review because its spike workflow lacks Ready for Deployment.
 - [x] User confirmed the recommended Pi verification for runtime-settings migration/persistence, Minima monitoring, history/inbox/camera retention and session expiry; not independently rerun during tracker reconciliation.
