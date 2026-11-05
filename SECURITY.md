@@ -87,7 +87,9 @@ The documented checksum URL tracks the current release; an installer from an old
 
 ## Reporting A Vulnerability
 
-Open a private security advisory or contact a maintainer directly. Include reproduction steps, affected version, and potential impact.
+Use [GitHub's private vulnerability report](https://github.com/edge-studio-technology/edge-studio/security/advisories/new) or contact a maintainer directly through an established private channel. Private vulnerability reporting is enabled for this repository. Include reproduction steps, affected version, and potential impact; do not post vulnerabilities, credentials or private diagnostic exports in public issues.
+
+Public community requests are separate from the app's private feedback flow. The app opens fixed GitHub links without copying feedback fields, account/device metadata or diagnostics into the URL. A maintainer may write a separate sanitized public problem statement; private submissions and attachments must not be automatically published. See [contribution review guidance](docs/guides/contribution-review.md).
 
 You should expect an acknowledgment within 48 hours and a more detailed response within 5 business days. There is no bug bounty program.
 

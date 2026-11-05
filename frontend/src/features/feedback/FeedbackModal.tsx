@@ -272,6 +272,30 @@ export function FeedbackModal({
         )
       }
     >
+      <section aria-label="Community requests and contributions" className="gap-detail-tight mb-margin-tight grid">
+        <h3 className="type-body-em text-text-primary m-0">Community requests and contributions</h3>
+        <p className="type-body text-text-secondary m-0">
+          Browse public requests or ask the community for help on GitHub. A GitHub account is needed to post.
+          Nothing from this feedback form is copied there.
+        </p>
+        <div className="type-body gap-detail-tight flex flex-wrap">
+          <a className="text-text-primary underline underline-offset-2"
+            href="https://github.com/edge-studio-technology/edge-studio/issues"
+            target="_blank" rel="noopener noreferrer">
+            Browse community requests
+          </a>
+          <a className="text-text-primary underline underline-offset-2"
+            href="https://github.com/edge-studio-technology/edge-studio/issues/new/choose"
+            target="_blank" rel="noopener noreferrer">
+            Submit a public request
+          </a>
+          <a className="text-text-primary underline underline-offset-2"
+            href="https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md"
+            target="_blank" rel="noopener noreferrer">
+            Contribution guide
+          </a>
+        </div>
+      </section>
       {saved ? (
         <div className="gap-detail-close grid">
           <div className="border-stroke-success bg-surface-always-white rounded-soft relative flex items-start overflow-clip border">
@@ -294,6 +318,10 @@ export function FeedbackModal({
         </div>
       ) : (
         <form className="gap-detail-close grid" id={FEEDBACK_FORM_ID} onSubmit={submitFeedback}>
+          <p className="type-body text-text-secondary m-0">
+            This form sends private feedback to the team through Integritas when available, with your consent below.
+            It does not create a public GitHub issue.
+          </p>
           <Disclosure
             title={
               <span className="gap-detail-tight flex items-center">

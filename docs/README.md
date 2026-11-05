@@ -112,6 +112,8 @@ Merged into the surviving record on 2026-10-15. Numbers are not reused.
 
 ## QA and reports
 
+**GitHub Contributions implementation:** [Local verification and remaining launch/hardware gates](./reports/github-contributions-implementation-2026-11-05/README.md).
+
 **GitHub Contributions backlog:** [Two epics and ten features](./reports/github-contributions-openproject-2026-11-04/README.md), created alongside the separate deferred Module Builder backlog.
 
 | Doc | Purpose |
@@ -125,9 +127,18 @@ Merged into the surviving record on 2026-10-15. Numbers are not reused.
 
 ## Guides
 
+Start a public source contribution at [CONTRIBUTING.md](../CONTRIBUTING.md). The guides below cover current source builds; deferred Module Builder remains a separate future path.
+
 | Doc | Purpose |
 | --- | ------- |
 | [guides/gpio-device-settings.md](./guides/gpio-device-settings.md) | Tested and suggested GPIO input/output settings by device type |
+| [guides/contributor-quickstart.md](./guides/contributor-quickstart.md) | Fork, run and verify a modified local/Pi source build |
+| [guides/contributor-architecture.md](./guides/contributor-architecture.md) | Current components, ownership and integration boundaries |
+| [guides/contributing-devices.md](./guides/contributing-devices.md) | Complete hardware/device/wizard/guide contribution recipe |
+| [guides/contributing-workflows.md](./guides/contributing-workflows.md) | Complete workflow block, event, execution and history recipe |
+| [guides/contribution-review.md](./guides/contribution-review.md) | Public request triage, review, release and launch gates |
+| [guides/contributor-ai.md](./guides/contributor-ai.md) | Load and verify the optional public contribution skill |
+| [guides/contributor-trial.md](./guides/contributor-trial.md) | Independent contributor and physical integration evidence checklist |
 | [guides/esp32-mqtt-sensors.md](./guides/esp32-mqtt-sensors.md) | Flashing and testing ESP32 MQTT board firmware |
 | [guides/bme280-sensor.md](./guides/bme280-sensor.md) | BME280/BME680 I2C sensor setup |
 | [guides/tester-device-workflows.md](./guides/tester-device-workflows.md) | Short tester matrix for Pi and PC device/workflow tests |

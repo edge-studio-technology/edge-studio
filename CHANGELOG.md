@@ -4,6 +4,13 @@ All notable changes to `edge-studio` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
 
+## [Unreleased] github-contributions
+
+### Added
+
+- Public request forms, contributor development/integration/review guides and an optional AI contribution skill, with licensing and public-launch verification gates recorded.
+- The feedback dialog links to public community requests and contribution guidance separately from private feedback submission.
+
 ## [Unreleased] advanced-install
 
 ### Changed

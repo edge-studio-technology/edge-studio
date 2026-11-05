@@ -7,6 +7,10 @@ description: Use when adding support for a new device, sensor, input source, cap
 
 Use this skill to add a new supported device or integration end-to-end. Start by classifying the device, then make the smallest complete change across backend, frontend, guides, docs, and verification.
 
+## Public contributions
+
+Use the matching checkout's `CONTRIBUTING.md` and `docs/guides/contributing-devices.md` for the public contribution journey and current worked example. External contributors do not need private OpenProject access or team credentials. The broader public entry skill is `edge-studio-contributor`.
+
 ## Read First
 
 Before editing, read the relevant project rules:
@@ -67,6 +71,8 @@ Frontend device support commonly touches:
 - `frontend/src/features/data-sources/dataSourceTypes.ts` for source/target type and config fields.
 - `frontend/src/features/data-sources/DataSourceTemplates.tsx` for Add Device cards.
 - `frontend/src/features/data-sources/DataSourceForm.tsx` for form fields and validation hints.
+- `frontend/src/features/data-sources/add-device-alt/AltAddDeviceFlow.tsx` and `AltDeviceForm.tsx` for the active guided setup route.
+- `frontend/src/features/data-sources/buildDeviceConfig.ts` and `useDeviceFormFields.ts` for shared configuration/default/field wiring.
 - `frontend/src/pages/DataSourcesPage.tsx` for form state, API input shaping, and guide/action wiring.
 - `frontend/src/features/data-sources/DataSourcesList.tsx` for row labels, action buttons, and status display.
 - `frontend/src/features/data-sources/deviceSetupGuides.tsx` for required setup guide content and guide actions.

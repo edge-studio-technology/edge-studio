@@ -1,24 +1,26 @@
 # GitHub Contributions Plan
 
-**Status:** Not started — plan and backlog preparation only; contributor-facing implementation is not delivered.  
+**Status:** In progress — local forms, app links, guides, review process and AI skill implemented; licensing/ownership, live GitHub/fork checks, independent harness/contributor and physical Pi acceptance remain open.
 **Created:** 2026-11-04  
 **Branch:** `github-contributions`, created from the fetched `origin/dev`.  
 **Goal:** Help users request improvements publicly, develop capabilities in their own repository copy, and contribute tested changes for the team to review and release.
 
 ## Progress
 
-- [ ] 1. Agree contribution rules, public/private request handling and licensing/contribution terms (A1).
-- [ ] 2. Provide approachable public GitHub issue forms (A2).
-- [ ] 3. Link Edge Studio to public requests and contribution guidance (A3).
-- [ ] 4. Define and verify community pull-request review and release handling (A4).
-- [ ] 5. Verify and document development and fork-to-Pi setup (B1).
-- [ ] 6. Publish a contributor architecture guide (B2).
-- [ ] 7. Publish complete hardware/device/wizard/guide integration recipes (B3).
-- [ ] 8. Publish workflow block, execution and event integration recipes (B4).
-- [ ] 9. Provide a portable contribution AI skill backed by the public guides (B5).
-- [ ] 10. Prove the complete contribution journey with a new contributor (B6).
-- [ ] Docs: update public entry points, rules/skill mirrors and maintenance ownership as implemented.
-- [ ] Verification: issue forms, fork build, hardware evidence, AI-guided contribution, CI/review and privacy checks.
+- [ ] 1. Agree contribution rules, public/private request handling and licensing/contribution terms (A1): CONTRIBUTING and review guidance implemented; rights-holder agreement and explicit ownership acceptance remain open.
+- [x] 2. Provide approachable public GitHub issue forms (A2): four forms/chooser added and locally validated. Live rendering requires publication to default branch `main` and a user walkthrough.
+- [x] 3. Link Edge Studio to public requests and contribution guidance (A3): fixed destinations, privacy regression and responsive browser checks pass; public guide/form availability follows release to `main`.
+- [ ] 4. Define and verify community pull-request review and release handling (A4): PR template/process implemented and existing read-only workflows/rulesets inspected; real external-fork CI/review trial pending.
+- [ ] 5. Verify and document development and fork-to-Pi setup (B1): clean local dependency install/build/backend health and isolated source-mode installer tests pass; physical disposable-Pi trial pending, Docker daemon unavailable locally.
+- [x] 6. Publish a contributor architecture guide (B2): implemented in this branch with validated source links; public release pending.
+- [x] 7. Publish complete hardware/device/wizard/guide integration recipes (B3): implemented with existing BME family trace and physical-evidence requirements; public release pending.
+- [x] 8. Publish workflow block, execution and event integration recipes (B4): implemented with Fetch data source trace and validation/runtime/history boundaries; public release pending.
+- [ ] 9. Provide a portable contribution AI skill backed by the public guides (B5): entry skill and mirrors implemented, format and references verified; a fresh supported-harness trial remains pending.
+- [ ] 10. Prove the complete contribution journey with a new contributor (B6): trial checklist provided; no independent human or physical integration trial has taken place.
+- [ ] Docs: public entry points and skill mirrors implemented; ownership/licensing notices must be finalized before launch.
+- [ ] Verification: local privacy/browser/forms/skill/build/clean-checkout checks pass; external/hardware acceptance gates remain open.
+
+**Implementation evidence:** [2026-11-05 verification record](../reports/github-contributions-implementation-2026-11-05/README.md). Checked items describe branch implementation, not completed public-launch or independent-contributor acceptance.
 
 ## Context and scope
 
@@ -181,6 +183,6 @@ Keep this plan, `docs/TASKS.md` and `docs/SESSION.md` current. Log implemented u
 
 ## Verification
 
-For this planning task: validate plan links, backlog counts/hierarchy/acceptance coverage and live OpenProject read-back; confirm the original `module-builder` branch and all eighteen Module Builder tickets are unchanged. No app implementation or deployment is authorized by this planning step.
+The planning task validated plan links, backlog counts/hierarchy/acceptance coverage and live OpenProject read-back and preserved the original `module-builder` branch and tickets. Implementation was subsequently authorized on 2026-11-05. No production Pi deployment is implied by that authorization.
 
 During implementation: run docs/template validation, mirror checks and targeted tests for app links/privacy. Run relevant lint, Knip, typechecks, backend/frontend/update-agent builds and tests according to affected code; run full required CI before merge. Verify real fork PR workflows without secret access. Validate installer/source builds on a disposable Pi and document platform-specific check limitations rather than hiding them. Test issue-form rendering and every external app link in the actual public repository. Preserve the private feedback flow.
