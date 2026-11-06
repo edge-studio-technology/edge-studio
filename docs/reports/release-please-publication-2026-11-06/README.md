@@ -15,7 +15,8 @@ The user approved production publication of [v0.44.0](https://github.com/edge-st
 | Installer checksum | Matches install.sh read directly from the approved tag: 2d7a07fbd9845f5e48de957f688d5e3d061c1dae48aa369fd9b81adabff092d9 |
 | Public delivery | Public release manifest reports v0.44.0 with a valid signature; public runtime signature and SHA-256 match that signed manifest |
 | Release identity correction | PR #177 and promotion #178 passed CI. Empty root package-name override makes release-please recognize the combined approved PR without changing package.json's app name or manually creating/moving tags |
-| Synchronization | Completion branch is based on main b16415c4 and includes only verification/lifecycle docs afterward; merging it into dev with a merge commit retains released main ancestry and app version 0.44.0 |
+| Synchronization | Completion branch is based on main b16415c4 and adds verification/lifecycle docs plus a test-only CI correction; merging it into dev with a merge commit retains released main ancestry and app version 0.44.0 |
+| Synchronization CI correction | The workflow-budget test assumed unique millisecond run timestamps; it now identifies the blocked run by its new ID and checks both runs exist, preserving budget, side-effect and failure assertions. Production workflow code is unchanged |
 
 Verified public endpoints are [the release manifest](https://edgestudio.technology/manifest/release/manifest.json) and [runtime bundle](https://edgestudio.technology/manifest/release/edge-studio-runtime.tar.gz). Downloads used a version query to avoid stale cache responses. No downloaded public key was trusted: verification used the checkout's existing manifest public key.
 
