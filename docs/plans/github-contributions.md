@@ -1,6 +1,6 @@
 # GitHub Contributions Plan
 
-**Status:** In progress — local forms, app links, guides, review process and AI skill implemented; licensing/ownership, live GitHub/fork checks, independent harness/contributor and physical Pi acceptance remain open.
+**Status:** In progress — forms, guides, review process and AI skill published on main; app links await operator release. Licensing/ownership, human form/external-fork checks, independent harness/contributor and physical Pi acceptance remain open.
 **Created:** 2026-11-04  
 **Branch:** `github-contributions`, created from the fetched `origin/dev`.  
 **Goal:** Help users request improvements publicly, develop capabilities in their own repository copy, and contribute tested changes for the team to review and release.
