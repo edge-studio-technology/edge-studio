@@ -37,8 +37,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 
 | Plan | Status |
 | ---- | ------ |
-| [plans/release-please.md](./plans/release-please.md) | Release automation with retained dev contributions; local implementation complete, App setup and live activation pending |
-| [plans/github-contributions.md](./plans/github-contributions.md) | Public GitHub requests, reviewed source contributions, contributor guides and AI skill; planned, with Module Builder deferred separately |
+| [plans/github-contributions.md](./plans/github-contributions.md) | Forms/guides/policies published on main; operator release and remaining public contribution acceptance gates pending, with Module Builder deferred separately |
 | [plans/page-load-performance.md](./plans/page-load-performance.md) | Measured node/telemetry separation and navigation snapshot improvements |
 | [plans/storage-history-lifecycle.md](./plans/storage-history-lifecycle.md) | Storage/history inventory and archive/import/cleanup roadmap |
 | [plans/feedback-hosted-receiver.md](./plans/feedback-hosted-receiver.md) | Hand-off spec for the Integritas API repo; not started |

@@ -957,12 +957,15 @@ describe("automation.service — workflow run budget", () => {
     const wf = makeWorkflow([{ type: "manual_start", config: {} }, ledOutputBlock()]);
     fillBudget(wf.id, Date.now(), WORKFLOW_RUN_BUDGET_MAX_RUNS - 1);
     await service.runAutomationWorkflow(wf.id);
+    const [successfulRun] = runsRepo.listAutomationRunsForWorkflow(wf.id, 1);
 
     await assertBudgetExhausted(service.runAutomationWorkflow(wf.id));
     assert.equal(pulseGpioOutputMock.mock.calls.length, 1);
     assert.equal(budgetEvents(wf.id), WORKFLOW_RUN_BUDGET_MAX_RUNS);
 
-    const [blockedRun] = runsRepo.listAutomationRunsForWorkflow(wf.id, 1);
+    const runs = runsRepo.listAutomationRunsForWorkflow(wf.id);
+    assert.equal(runs.length, 2);
+    const blockedRun = runs.find((run) => run.id !== successfulRun.id)!;
     assert.equal(blockedRun.status, "failed");
     const outputBlock = runsRepo.listAutomationBlockRuns(blockedRun.id).find((block) => block.block_type === "control_output")!;
     assert.equal(outputBlock.status, "failed");
