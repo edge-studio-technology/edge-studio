@@ -17,6 +17,8 @@ The current prototype contains:
 
 ## Contribute and request improvements
 
+Both internal and external code contributions target `dev`. Maintainers squash-merge Conventional PR titles, promote `dev` to `main` with a merge commit, then approve the release-please version/release-notes PR. Production tags retain the signed build and manifest pipeline. See [the release guide](docs/guides/releases.md) for activation, release approval and synchronization back to `dev`.
+
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for public requests, development and review, including the current pending contribution terms. Browse [community requests](https://github.com/edge-studio-technology/edge-studio/issues), use the [request chooser](https://github.com/edge-studio-technology/edge-studio/issues/new/choose), or start with the [contributor quickstart](docs/guides/contributor-quickstart.md) and [optional AI skill](docs/guides/contributor-ai.md). In-app feedback remains a separate private route. GitHub forms and the public contribution links become available from the default branch when this work reaches `main`.
 
 ## Installation On Raspberry Pi

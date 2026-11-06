@@ -179,7 +179,7 @@ Success measures: every public route works; every documented source path/check i
 
 Implementation will add/update CONTRIBUTING.md, `README.md`, public guides and their `docs/README.md` index, issue/PR templates, relevant skill/rule mirrors, and `SECURITY.md` where public reporting/development guidance needs clarification. Add a public code-of-conduct/support pointer if required by the agreed community policy. Record durable ownership/security decisions through the ADR process when agreed; this plan does not select them.
 
-Keep this plan, `docs/TASKS.md` and `docs/SESSION.md` current. Log implemented user-facing changes in the branch changelog. Retire completed plan work according to the plan-doc lifecycle; retain lasting guidance, decision rationale and verification evidence in their proper locations.
+Keep this plan, `docs/TASKS.md` and `docs/SESSION.md` current. Use Conventional PR titles for generated release notes under the release-please process. Retire completed plan work according to the plan-doc lifecycle; retain lasting guidance, decision rationale and verification evidence in their proper locations.
 
 ## Verification
 

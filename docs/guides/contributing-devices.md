@@ -41,4 +41,4 @@ Run the focused backend parser/provider/routes tests and frontend template/form/
 
 On an authorized test Pi, record exact device model, Pi/OS/architecture, wiring/settings, prerequisites, source commit, successful reading/event/capture/output, disable/re-enable and relevant failure behaviour. Do not connect unverified wiring or operate hardware without the owner's permission. Keep real payloads/identifiers/credentials out of public evidence. If no physical device is available, state that clearly; mocked tests alone do not justify marking the model verified.
 
-Update relevant guides, README/runtime configuration, changelog and security documentation. Agent rules/skills must stay in sync across their repository mirrors when touched.
+Update relevant guides, README/runtime configuration and security documentation. Use a Conventional PR title for release-please's generated changelog; see the [release guide](./releases.md). Agent rules/skills must stay in sync across their repository mirrors when touched.

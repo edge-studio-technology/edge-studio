@@ -122,7 +122,7 @@ Starter workflows should default to `enabled: false` unless there is a clear rea
 
 Update only docs that are directly affected:
 
-- `CHANGELOG.md` for user-facing behavior.
+- A Conventional PR title for generated release notes, following `docs/guides/releases.md`; do not manually bump the app version or add branch changelog sections.
 - `README.md` if operator setup, runtime flags, or install behavior changes.
 - `docs/guides/<device>.md` for detailed setup beyond the in-app guide.
 - `docs/TASKS.md` if a plan/task is added, completed, or deferred.

@@ -37,6 +37,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 
 | Plan | Status |
 | ---- | ------ |
+| [plans/release-please.md](./plans/release-please.md) | Release automation with retained dev contributions; local implementation complete, App setup and live activation pending |
 | [plans/github-contributions.md](./plans/github-contributions.md) | Public GitHub requests, reviewed source contributions, contributor guides and AI skill; planned, with Module Builder deferred separately |
 | [plans/page-load-performance.md](./plans/page-load-performance.md) | Measured node/telemetry separation and navigation snapshot improvements |
 | [plans/storage-history-lifecycle.md](./plans/storage-history-lifecycle.md) | Storage/history inventory and archive/import/cleanup roadmap |
@@ -50,7 +51,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0002](./adr/0002-update-page-split.md) | Update page split: frontend owns `/update`, `update-agent` owns `/update/` (apply progress) |
 | [0003](./adr/0003-update-dry-run.md) | Dev-only `UPDATE_DRY_RUN` simulates a successful apply without touching containers |
 | [0005](./adr/0005-modal-mount-gate-removal.md) | `Modal`'s `mounted` render gate removed to stop modal-swap flicker |
-| [0007](./adr/0007-release-channels-and-compose-generation.md) | Folder-per-channel releases on `main` with generated per-channel Compose and `.env.example` |
+| [0007](./adr/0007-release-channels-and-compose-generation.md) | Release-please on `main`, contributions to `dev`, signed folder-per-channel releases and Compose generation |
 | [0009](./adr/0009-manifest-fallback-to-github-raw.md) | Manifest delivery: own domain primary, GitHub raw fallback, signature as the trust boundary |
 | [0010](./adr/0010-security-review-audit-verdict.md) | Audit of the external V1.5 security review: re-rating, missed SSRF, fix order |
 | [0013](./adr/0013-secret-redaction-boundary.md) | Single redaction boundary: `redactDeep()` vs `redactStrings()`, write-time redaction |
@@ -137,6 +138,7 @@ Start a public source contribution at [CONTRIBUTING.md](../CONTRIBUTING.md). The
 | [guides/contributing-devices.md](./guides/contributing-devices.md) | Complete hardware/device/wizard/guide contribution recipe |
 | [guides/contributing-workflows.md](./guides/contributing-workflows.md) | Complete workflow block, event, execution and history recipe |
 | [guides/contribution-review.md](./guides/contribution-review.md) | Public request triage, review, release and launch gates |
+| [guides/releases.md](./guides/releases.md) | Conventional PR titles, release-please, App setup, release approval and branch synchronization |
 | [guides/contributor-ai.md](./guides/contributor-ai.md) | Load and verify the optional public contribution skill |
 | [guides/contributor-trial.md](./guides/contributor-trial.md) | Independent contributor and physical integration evidence checklist |
 | [guides/esp32-mqtt-sensors.md](./guides/esp32-mqtt-sensors.md) | Flashing and testing ESP32 MQTT board firmware |

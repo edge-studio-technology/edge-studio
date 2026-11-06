@@ -32,7 +32,7 @@ While implementing a plan, tick its `## Progress` item (`- [x]`) as each step la
 
 ## Retiring
 
-Before the PR into `dev` (alongside folding the branch `CHANGELOG.md` section), retire the plan:
+Before the PR into `dev` (with a Conventional title for generated release notes), retire the plan:
 
 1. Any decision in `## Context` or the steps that a future reader would need — rejected alternatives, verified behavior, constants — goes into an ADR via the `adr` skill (amend the topic's existing ADR where there is one).
 2. Every open item (unchecked step, deferred follow-up, pending manual check) becomes one line in `docs/TASKS.md` `## Next`, or a `docs/qa/gaps.md` entry for QA/security gaps. Write it so it stands alone without the plan.

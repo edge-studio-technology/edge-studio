@@ -2,7 +2,7 @@
 
 All notable changes to `edge-studio` are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html) at the package level.
+New releases are prepared by release-please from Conventional commit subjects; see [the release guide](docs/guides/releases.md). Earlier entries retain their original Keep a Changelog format. Existing unreleased notes below must be reconciled into the first generated release during review.
 
 ## [Unreleased] github-contributions
 

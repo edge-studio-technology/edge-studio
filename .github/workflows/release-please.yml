@@ -1,0 +1,48 @@
+name: Release please
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-please-main
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    if: github.repository == 'edge-studio-technology/edge-studio' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate release bot token
+        id: release-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: edge-studio
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
+      - name: Verify configured bot identity
+        env:
+          APP_SLUG: ${{ steps.release-token.outputs.app-slug }}
+          RELEASE_APP_BOT_LOGIN: ${{ vars.RELEASE_APP_BOT_LOGIN }}
+        run: |
+          if [ "$RELEASE_APP_BOT_LOGIN" != "${APP_SLUG}[bot]" ]; then
+            echo "::error::Set RELEASE_APP_BOT_LOGIN to the installed release App's exact bot login."
+            exit 1
+          fi
+
+      - name: Prepare or publish the approved release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.release-token.outputs.token }}
+          target-branch: main
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

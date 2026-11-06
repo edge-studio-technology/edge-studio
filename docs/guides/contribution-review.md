@@ -27,11 +27,11 @@ Move security concerns to the [private reporting route](../../SECURITY.md#report
 ## Pull-request checklist
 
 - Confirm contribution rights/terms before accepting external code. Licensing is an unresolved public-code launch gate; do not infer a license from a public repository or from a dependency's license.
-- Confirm the PR targets upstream `dev`, solves a stated problem and keeps unrelated changes separate.
+- Confirm the feature PR targets upstream `dev`, solves a stated problem and has a Conventional title describing its result. Squash-merge features with that title; follow the [release guide](./releases.md) for merge promotions, release approval and main-to-dev synchronization.
 - Check the affected backend, UI, helper, installer, workflow and saved-data paths using the relevant recipe. Evaluate tests and operator docs together.
 - Require actual commands/results, including limitations. Request physical model/OS verification when accepting hardware claims. A mock, screenshot, AI explanation or passing linter is not a hardware result.
 - Examine configuration migration, repeat installs, disable/re-enable, error/cancellation handling and shared dependencies where affected.
-- Verify appropriate CI and human review. Do not supply secrets, production data or host privileges to run untrusted fork code. Contributor workflows use `pull_request` and read-only repository contents; do not switch to privileged execution as a shortcut.
+- Verify appropriate CI and human review. Do not supply secrets, production data or host privileges to run untrusted fork code. Build/test workflows use `pull_request` and read-only repository contents. The separate metadata checks use read-only `pull_request_target` with trusted base-SHA policy code only; never run contributor code in those jobs.
 - Review generated/AI-assisted work to the same standard as manually authored code. The submitter remains responsible for understanding and verifying the change.
 - Record approval/change requests/decline in the PR, then release accepted changes through the ordinary release process. Verify the release before closing with a “released” result.
 

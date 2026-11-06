@@ -15,6 +15,8 @@
 
 ## In Progress
 
+- [ ] Activate release-please: App installation/organization secrets/identity are configured; merge workflows through dev/main after Ubuntu CI, require conventional-title only after it runs, permit merge synchronization into dev, and verify the real bot PR/tag/signed build — see `docs/plans/release-please.md` and [release guide](./guides/releases.md). The Minima test's Windows path mock is fixed; existing POSIX/CRLF script-test limitations remain local.
+
 - [ ] Finish GitHub contribution launch (epics #1249/#1250): forms, app links, public guides, PR process and mirrored AI skill are implemented locally; licensing/ownership, actual GitHub/default-branch/fork review, fresh-harness/independent contributor and disposable-Pi validation remain open — see `docs/plans/github-contributions.md` and [verification](./reports/github-contributions-implementation-2026-11-05/README.md). Module Builder remains deferred separately.
 - [ ] Finish Edge Studio storage/history lifecycle: inventory, archive export/import and opt-in retention controls are implemented and the user confirmed recommended Pi verification; manual cleanup, size-based triggers and verification of the remaining features are still open; see `docs/plans/storage-history-lifecycle.md`.
 
@@ -68,7 +70,6 @@
 - [ ] Run the UI regression sweep in `docs/qa/gaps.md` (UI changes verified only by build or unit tests).
 - [ ] Review root-package audit coverage/advisories: isolated fresh contributor install reported ten moderate findings while all three required app package audits were clear; root is not included in `audit:moderate`. Do not apply force upgrades without reviewing compatibility.
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
-- [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.
 - [ ] Stop other values from the previous `.env` (for example a hand-added `UPDATE_DRY_RUN`) leaking into the installer's compose run; only `COMPOSE_PROFILES` is unset after `load_existing_config` in `install.sh`.
 - [ ] Verify the wiki’s temporary application-data backup/restore procedure on a real Pi with the same app version and unchanged runtime configuration; implement an integrated Edge Studio backup/restore feature separately.
 - [ ] Document the `DEV_MODE` install flag in `README.md`'s runtime-config section and note its manifest-signature-verification bypass in `SECURITY.md`/`docs/security/host-and-infrastructure.md` — flagged during code review, deliberately deferred as a separate concern from the pagination work.

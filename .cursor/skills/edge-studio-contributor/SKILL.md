@@ -39,4 +39,6 @@ Run the relevant focused tests and required checks; record commands, exit/result
 
 Review the diff for private configuration/credentials, unrelated changes, incomplete UI/backend/guide wiring and stale docs. Keep mirrored rules/skills synchronized if changed. Prepare a PR description with the problem/result, scope, actual verification, hardware evidence and remaining limitations. Propose against `dev`; publishing, opening a public issue/PR and merging require the user's authorization. No external messages or private-feedback export are implied by loading this skill.
 
+Use a Conventional PR title describing the actual effect; maintainers squash-merge features into `dev` with that title. Follow `docs/guides/releases.md`: release-please owns app version bumps and generated release notes. Do not add new branch changelog sections or manually bump the app version. Update the relevant operator guides with the implementation.
+
 Return a concise explanation of changed behaviour, relevant files, evidence and remaining decisions/manual checks. Do not invent a completed independent-contributor trial.
