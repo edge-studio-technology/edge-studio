@@ -2,7 +2,7 @@
 
 All notable changes to `edge-studio` are documented in this file.
 
-New releases are prepared by release-please from Conventional commit subjects; see [the release guide](docs/guides/releases.md). Earlier entries retain their original Keep a Changelog format. Existing unreleased notes below must be reconciled into the first generated release during review.
+New releases are prepared by release-please from Conventional commit subjects; see [the release guide](docs/guides/releases.md). Earlier entries retain their original Keep a Changelog format.
 
 ## [0.44.0](https://github.com/edge-studio-technology/edge-studio/compare/v0.43.0...v0.44.0) (2026-11-06)
 
@@ -17,14 +17,18 @@ New releases are prepared by release-please from Conventional commit subjects; s
 * **ci:** preserve source checks during release activation ([#172](https://github.com/edge-studio-technology/edge-studio/issues/172)) ([174e90b](https://github.com/edge-studio-technology/edge-studio/commit/174e90bb66cb087104f71f047d2eba81e5845135))
 * **ci:** use one combined release pull request ([#174](https://github.com/edge-studio-technology/edge-studio/issues/174)) ([c892830](https://github.com/edge-studio-technology/edge-studio/commit/c8928300c19e2206652704822d38418b49f347b6))
 
-## [Unreleased] github-contributions
-
 ### Added
 
 - Public request forms, contributor development/integration/review guides and an optional AI contribution skill, with licensing and public-launch verification gates recorded.
 - The feedback dialog links to public community requests and contribution guidance separately from private feedback submission.
-
-## [Unreleased] advanced-install
+- Settings → Security includes session lifetime and inactivity controls with PIN/password confirmation and one-time migration from environment values.
+- Settings includes camera retention with file previews, protected proof captures, and paused cleanup for disabled camera support.
+- Workflow inbox items have a separate opt-in age-retention policy with deletion previews, active-run protection, and preserved linked files.
+- Settings includes opt-in automatic retention with deletion previews, confirmation, per-workflow run limits, read/deleted-workflow expiry, and data-filesystem disk warnings.
+- Minima settings includes live health-check, stall-threshold, automatic-resync and cooldown controls, with one-time migration of legacy environment values into SQLite.
+- A terminal uninstaller offers data retention by default, confirmed deletion of internal installation data, and a dry-run preview.
+- Settings includes a Keep data / Delete data toggle with the full copyable uninstall command and guidance for each option.
+- The installer supports `--advanced` for guided host port selection, preserves saved ports on reruns, and checks active service ports for conflicts before installation changes.
 
 ### Changed
 
@@ -35,22 +39,6 @@ New releases are prepared by release-please from Conventional commit subjects; s
 ### Fixed
 
 - Node readiness no longer waits for Docker CPU/RAM sampling, and status overview shares resource collection.
-
-### Added
-
-- Settings → Security includes session lifetime and inactivity controls with PIN/password confirmation and one-time migration from environment values.
-- Settings includes camera retention with file previews, protected proof captures, and paused cleanup for disabled camera support.
-- Workflow inbox items have a separate opt-in age-retention policy with deletion previews, active-run protection, and preserved linked files.
-- Settings includes opt-in automatic retention with deletion previews, confirmation, per-workflow run limits, read/deleted-workflow expiry, and data-filesystem disk warnings.
-- Minima settings includes live health-check, stall-threshold, automatic-resync and cooldown controls, with one-time migration of legacy environment values into SQLite.
-- A terminal uninstaller offers data retention by default, confirmed deletion of internal installation data, and a dry-run preview.
-- Settings includes a Keep data / Delete data toggle with the full copyable uninstall command and guidance for each option.
-
-## [Unreleased]
-
-### Added
-
-- The installer supports `--advanced` for guided host port selection, preserves saved ports on reruns, and checks active service ports for conflicts before installation changes.
 
 ## [0.43.0] 2026-10-29
 

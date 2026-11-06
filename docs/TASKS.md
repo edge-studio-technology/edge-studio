@@ -15,9 +15,9 @@
 
 ## In Progress
 
-- [ ] Activate release-please: App installation/organization secrets/identity are configured; merge workflows through dev/main after Ubuntu CI, require conventional-title only after it runs, permit merge synchronization into dev, and verify the real bot PR/tag/signed build — see `docs/plans/release-please.md` and [release guide](./guides/releases.md). The Minima test's Windows path mock is fixed; existing POSIX/CRLF script-test limitations remain local.
+- [ ] Approve the first production release PR #176 (0.44.0), verify App tag creation triggers signed publication, then merge main back into dev. Release-please is active on main; App authentication/PR creation and required title/source checks are verified, branch rules are configured, and legacy changelog notes are reconciled — see `docs/plans/release-please.md` and [release guide](./guides/releases.md).
 
-- [ ] Finish GitHub contribution launch (epics #1249/#1250): forms, app links, public guides, PR process and mirrored AI skill are implemented locally; licensing/ownership, actual GitHub/default-branch/fork review, fresh-harness/independent contributor and disposable-Pi validation remain open — see `docs/plans/github-contributions.md` and [verification](./reports/github-contributions-implementation-2026-11-05/README.md). Module Builder remains deferred separately.
+- [ ] Finish GitHub contribution launch (epics #1249/#1250): forms, guides and policies are published on main; app links await operator release. Licensing/ownership, real form walkthrough/external-fork review, fresh-harness/independent contributor and disposable-Pi validation remain open — see `docs/plans/github-contributions.md` and [verification](./reports/github-contributions-implementation-2026-11-05/README.md). Module Builder remains deferred separately.
 - [ ] Finish Edge Studio storage/history lifecycle: inventory, archive export/import and opt-in retention controls are implemented and the user confirmed recommended Pi verification; manual cleanup, size-based triggers and verification of the remaining features are still open; see `docs/plans/storage-history-lifecycle.md`.
 
 ## Next

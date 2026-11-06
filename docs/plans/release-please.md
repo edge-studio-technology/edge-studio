@@ -1,6 +1,6 @@
 # Release Please Adoption Plan
 
-**Status:** Local implementation complete; GitHub activation pending
+**Status:** Active on main; first production release awaiting approval
 **Created:** 2026-11-06
 **Goal:** Automate application versions, release notes and production tags while retaining contributions to `dev` and the signed release pipeline.
 
@@ -12,9 +12,10 @@
 - [x] Add authenticated release automation and PR title/source checks with regression tests.
 - [x] Document feature squash merges, production promotion, release approval and main-to-dev synchronization.
 - [x] Update contributor/AI guidance and mirrored changelog/commit rules.
-- [ ] Configure GitHub App credentials and repository rules; verify actual bot PR checks and a maintainer-approved release.
+- [x] Configure GitHub App credentials/identity and repository rules; verify live bot authentication, release PR creation, Conventional title and source checks. Main retains its existing checks/reviews; dev permits merge synchronization and feature squash merges.
+- [ ] Approve release PR #176, verify its tag starts the signed build/publication pipeline, then merge main back into dev. This publishes an operator update and remains a maintainer release decision.
 - [x] Docs: amend the release ADR, index the guide and record remaining activation work.
-- [x] Verification: 29 policy/docs tests, upstream schema, actionlint, offline release generation, lint/Knip/typechecks, three builds and package audits pass. Full check stops at the pre-existing Minima restore test; see [verification](../reports/release-please-2026-11-06/README.md).
+- [x] Verification: full Ubuntu checks passed on contribution/configuration PRs #170, #172, #174 and promotions #171/#175; 29 policy/docs tests, upstream schema, actionlint, offline release generation, three builds and package audits passed locally. Windows root script limitations remain documented. See [activation evidence](../reports/release-please-activation-2026-11-06/README.md).
 
 ## Context
 
