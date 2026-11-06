@@ -9,6 +9,7 @@
   "bump-patch-for-minor-pre-major": false,
   "packages": {
     ".": {
+      "package-name": "",
       "changelog-path": "CHANGELOG.md"
     }
   }
