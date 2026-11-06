@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { setUnauthorizedHandler } from "../../lib/api";
+import { clearReadCache } from "../../lib/readCache";
 import { getMe, getSetupStatus, logout } from "./api";
 import { AuthContext } from "./hooks";
 import { OnboardingWizard } from "../setup/OnboardingWizard";
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshSession = useCallback(async () => {
+    clearReadCache();
     const version = ++requestVersion.current;
     setLoading(true);
     setCredentialHint(null);

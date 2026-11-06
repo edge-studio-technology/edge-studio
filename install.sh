@@ -86,6 +86,7 @@ DEV_MODE="${DEV_MODE:-false}"
 EDGE_STUDIO_BUILD_VERSION=""
 EDGE_STUDIO_BUILD_COMMIT=""
 COMPOSE_FILE_NAME="docker-compose.yml"
+ADVANCED_INSTALL=false
 
 # Install-time bootstrap trust set. The Ed25519 public key, the verifier source, and the
 # verifier's runtime are all pinned here rather than taken from the runtime bundle they
@@ -113,6 +114,219 @@ require_root() {
     echo "This installer must be run as root or with sudo."
     exit 1
   fi
+}
+
+parse_arguments() {
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --advanced) ADVANCED_INSTALL=true ;;
+      --help|-h)
+        echo "Usage: bash install.sh [--advanced]"
+        echo "  --advanced  Interactively configure host ports (requires a terminal)."
+        exit 0
+        ;;
+      *) echo "Unknown installer option: $1" >&2; exit 1 ;;
+    esac
+    shift
+  done
+}
+
+valid_port() {
+  [[ "$1" =~ ^[0-9]{1,5}$ ]] && (( 10#$1 >= 1 && 10#$1 <= 65535 ))
+}
+
+prompt_port() {
+  local variable="$1" label="$2" answer
+  while true; do
+    printf '%s [%s]: ' "$label" "${!variable}" >&3
+    if ! IFS= read -r answer <&3; then
+      echo "Advanced installation cancelled: terminal input ended." >&2
+      exit 1
+    fi
+    answer="${answer:-${!variable}}"
+    if valid_port "$answer"; then
+      printf -v "$variable" '%s' "$((10#$answer))"
+      return
+    fi
+    echo "Enter a port number from 1 to 65535." >&3
+  done
+}
+
+configure_ports() {
+  if [ "$ADVANCED_INSTALL" = true ]; then
+    if ! { exec 3<>/dev/tty; } 2>/dev/null; then
+      echo "Advanced installation requires a terminal. For headless installs, pass port environment variables using sudo env." >&2
+      exit 1
+    fi
+    printf 'Advanced installation lets you customize host ports.\nPress Enter to keep each value. Optional service ports are saved for later use.\n' >&3
+    prompt_port FRONTEND_PORT "Edge Studio HTTPS port"
+    prompt_port MINIMA_P2P_PORT "Minima peer-to-peer port"
+    prompt_port MINIMA_RPC_PORT "Minima local RPC port"
+    prompt_port HOST_AGENT_PORT "Host agent port"
+    prompt_port CAMERA_HELPER_PORT "Camera helper port (optional service)"
+    prompt_port SENSOR_HELPER_PORT "Sensor helper port (optional service)"
+    prompt_port MQTT_PUBLIC_PORT "MQTT broker port (optional service)"
+    exec 3>&-
+  fi
+
+  local variable
+  local ports=(FRONTEND_PORT MINIMA_P2P_PORT MINIMA_RPC_PORT HOST_AGENT_PORT CAMERA_HELPER_PORT SENSOR_HELPER_PORT MQTT_PUBLIC_PORT)
+  local selected=()
+  local previous
+  for variable in "${ports[@]}"; do
+    if ! valid_port "${!variable}"; then
+      echo "Invalid $variable: enter a port number from 1 to 65535." >&2
+      exit 1
+    fi
+    printf -v "$variable" '%s' "$((10#${!variable}))"
+    for previous in "${selected[@]}"; do
+      if [ "${!previous}" = "${!variable}" ]; then
+        echo "$variable and $previous both use port ${!variable}. Choose distinct host ports with --advanced or port environment variables." >&2
+        exit 1
+      fi
+    done
+    selected+=("$variable")
+  done
+}
+
+check_port_conflicts() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required for the port preflight. Install it with sudo apt-get install python3, then rerun the installer." >&2
+    exit 1
+  fi
+  log "Checking host ports before installation"
+  python3 - "$APP_DIR" "$MINIMA_RPC_BIND" "$FRONTEND_PORT" "$MINIMA_P2P_PORT" "$MINIMA_RPC_PORT" \
+    "$HOST_AGENT_PORT" "$CAMERA_HELPER_PORT" "$SENSOR_HELPER_PORT" "$MQTT_PUBLIC_PORT" \
+    "$ENABLE_CAMERA" "$ENABLE_SENSORS" "$ENABLE_MQTT_BROKER" <<'PORT_PREFLIGHT_PY'
+import errno
+import json
+import os
+from pathlib import Path
+import shutil
+import socket
+import subprocess
+import sys
+
+
+def command(args):
+    try:
+        result = subprocess.run(args, capture_output=True, text=True, timeout=10)
+        return result.stdout.strip() if result.returncode == 0 else ""
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def container_bindings(app_dir):
+    if not shutil.which("docker"):
+        return []
+    result = subprocess.run(["docker", "ps", "-q"], capture_output=True, text=True, timeout=10)
+    if result.returncode != 0:
+        raise RuntimeError("Cannot query Docker. Start the Docker daemon, then rerun the installer.")
+    ids = result.stdout.strip()
+    if not ids:
+        return []
+    data = command(["docker", "inspect", *ids.split()])
+    if not data:
+        raise RuntimeError("Cannot inspect running Docker containers for port conflicts.")
+    bindings = []
+    for container in json.loads(data):
+        labels = container.get("Config", {}).get("Labels") or {}
+        owned = os.path.realpath(labels.get("com.docker.compose.project.working_dir", "")) == app_dir
+        service = labels.get("com.docker.compose.service") if owned else None
+        for target, published in (container.get("NetworkSettings", {}).get("Ports") or {}).items():
+            if target.endswith("/tcp"):
+                for binding in published or []:
+                    bindings.append((binding["HostIp"], int(binding["HostPort"]), service, target))
+    return bindings
+
+
+def helper_owns_port(service, port, app_dir):
+    pid = command(["systemctl", "show", service, "--property=MainPID", "--value"])
+    if not pid.isdigit() or int(pid) == 0:
+        return False
+    try:
+        proc = Path("/proc") / pid
+        if os.path.realpath(proc / "cwd") != app_dir:
+            return False
+        sockets = {os.readlink(fd) for fd in (proc / "fd").iterdir()}
+        for table in (Path("/proc/net/tcp"), Path("/proc/net/tcp6")):
+            if not table.exists():
+                continue
+            for line in table.read_text().splitlines()[1:]:
+                fields = line.split()
+                if fields[3] == "0A" and int(fields[1].split(":")[1], 16) == port:
+                    if "socket:[%s]" % fields[9] in sockets:
+                        return True
+    except OSError:
+        pass
+    return False
+
+
+def truthy(value):
+    return value.lower() in ("1", "true", "yes", "on")
+
+
+def check_ports(args):
+    app_dir = os.path.realpath(args[0])
+    rpc_bind = args[1]
+    ports = [int(value) for value in args[2:9]]
+    specs = [
+        ("Edge Studio HTTPS", ports[0], "0.0.0.0", "frontend", "443/tcp", None),
+        ("Minima peer-to-peer", ports[1], "0.0.0.0", "minima", "9003/tcp", None),
+        ("Minima RPC", ports[2], rpc_bind, "minima", "9005/tcp", None),
+        ("Host agent", ports[3], "0.0.0.0", None, None, "edge-studio-host-agent.service"),
+    ]
+    for enabled, name, port, container, target, helper in [
+        (args[9], "Camera helper", ports[4], None, None, "edge-studio-camera-helper.service"),
+        (args[10], "Sensor helper", ports[5], None, None, "edge-studio-sensor-helper.service"),
+        (args[11], "MQTT broker", ports[6], "mqtt", "1883/tcp", None),
+    ]:
+        if truthy(enabled):
+            specs.append((name, port, "0.0.0.0", container, target, helper))
+    bindings = container_bindings(app_dir)
+    errors = []
+    for name, port, address, service, target, helper in specs:
+        # Wildcard publications overlap every address; explicit addresses only overlap themselves.
+        published = [b for b in bindings if b[1] == port and (
+            address in ("0.0.0.0", "::") or b[0] in (address, "0.0.0.0", "::", ""))]
+        if any(b[2] != service or b[3] != target for b in published):
+            errors.append(f"{name}: TCP port {port} is already published by another Docker service.")
+            continue
+        addresses = [address]
+        if target and address == "0.0.0.0" and socket.has_ipv6:
+            addresses.append("::")
+        for bind_address in addresses:
+            family = socket.AF_INET6 if ":" in bind_address else socket.AF_INET
+            try:
+                with socket.socket(family, socket.SOCK_STREAM) as probe:
+                    probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    if family == socket.AF_INET6:
+                        probe.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+                    probe.bind((bind_address, port))
+            except OSError as error:
+                if bind_address != address and error.errno in (errno.EAFNOSUPPORT, errno.EADDRNOTAVAIL):
+                    continue
+                if error.errno == errno.EADDRINUSE:
+                    owned_binding = any(b[0] in (bind_address, "") for b in published)
+                    if owned_binding or (helper and helper_owns_port(helper, port, app_dir)):
+                        continue
+                    errors.append(f"{name}: TCP port {port} is already in use on {bind_address}.")
+                else:
+                    errors.append(f"{name}: cannot bind {bind_address}:{port}: {error}.")
+    if errors:
+        print("\n".join(errors), file=sys.stderr)
+        print("Rerun with --advanced to choose different ports, or pass port environment variables using sudo env.", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(check_ports(sys.argv[1:]))
+    except (RuntimeError, ValueError, OSError, subprocess.TimeoutExpired) as error:
+        print(f"Port preflight failed: {error}", file=sys.stderr)
+        sys.exit(1)
+PORT_PREFLIGHT_PY
 }
 
 detect_platform() {
@@ -1080,14 +1294,17 @@ print_success_message() {
 }
 
 main() {
+  parse_arguments "$@"
   require_root
   detect_platform
   require_apt
+  load_existing_config
+  configure_ports
+  check_port_conflicts
   install_apt_dependencies
   install_docker_if_missing
   verify_docker
   write_bootstrap_trust_set
-  load_existing_config
   ensure_app_secret
   ensure_host_agent_token
   ensure_camera_helper_token

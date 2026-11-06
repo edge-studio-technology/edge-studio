@@ -1,0 +1,21 @@
+name: PR title
+
+permissions:
+  contents: read
+
+# Metadata only: no dependency install, PR checkout, secrets or contributor code.
+on:
+  pull_request_target:
+    branches: [dev, main]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+jobs:
+  conventional-title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Check PR title
+        run: node scripts/dev/check-pr-policy.mjs title

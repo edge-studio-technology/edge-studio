@@ -1,0 +1,41 @@
+name: Request a workflow feature
+description: Explain what you want a workflow to accomplish.
+title: "[Workflow] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe your goal in your own words. No code or proposed technical solution is required. Search existing requests first.
+        This request is public: do not attach workflow exports containing credentials, private payloads, wallet details or personal information. Security concerns belong in [SECURITY.md](https://github.com/edge-studio-technology/edge-studio/blob/main/SECURITY.md).
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to achieve?
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Give an example of the desired workflow
+      placeholder: "When a button is pressed, read a sensor and show the result."
+    validations:
+      required: true
+  - type: textarea
+    id: limitation
+    attributes:
+      label: What is missing from the current app?
+      description: Explain any workaround you use, or write Not sure.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Edge Studio version
+      description: Optional. Write Unknown if you cannot find it.
+  - type: checkboxes
+    id: public-report
+    attributes:
+      label: Before submitting
+      options:
+        - label: I understand this request is public and have removed sensitive information.
+          required: true

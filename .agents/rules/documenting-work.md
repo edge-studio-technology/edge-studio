@@ -16,7 +16,7 @@ When a change renames or removes a feature, route, env var, file, or UI label, g
 
 Update project documentation when behavior changes:
 
-- Update `CHANGELOG.md` for every user-facing or operator-facing change (see below).
+- Use a Conventional PR title for generated release notes; review `CHANGELOG.md` in the release-please PR (see below).
 - Update `README.md` for installation, usage, CLI commands, runtime config, API expectations, or operational workflow changes.
 - Update `SECURITY.md` for security-sensitive changes, new exposure, new credentials/secrets behavior, host access, or risk tradeoffs.
 - Update `AGENTS.md`/`CLAUDE.md` and `.agents/rules/*.md`/`.claude/rules/*.md`/`.cursor/rules/*.mdc` (kept in sync, see sync notice at the top of each) for architecture, process, or agent workflow guidance changes.
@@ -25,14 +25,13 @@ Do not leave undocumented behavior changes that affect installation, deployment,
 
 ## Changelog
 
-Keep `CHANGELOG.md` up to date as part of finishing work, not as a follow-up task.
+Release-please prepares `CHANGELOG.md`, the root app version/lockfile and release manifest on `main`; a maintainer reviews and approves the release PR. Follow `docs/guides/releases.md`.
 
-- Follow [Keep a Changelog](https://keepachangelog.com/) sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
-- On a feature branch, add new entries under `## [Unreleased] <branch-name>` (for example `## [Unreleased] ui/settings-page`), never under the shared `## [Unreleased]` or an already-dated version section.
-- Before the PR into `dev`, move the branch section's entries into the matching subsections of the shared `## [Unreleased]` and remove the branch header.
-- When `dev` merges into `main` for a release, rename the shared `## [Unreleased]` header to a dated version section (for example `## [0.30.0] - 2026-08-05`).
-- In the same release PR, read `README.md`, `SECURITY.md`, `docs/TASKS.md`, and `docs/qa/gaps.md` against what is shipping and fix anything that no longer matches.
-- On a `CHANGELOG.md` merge conflict in a feature branch, keep the branch's `## [Unreleased] <branch-name>` section separate from the shared `## [Unreleased]` entries coming from `dev`. Never fold either into a dated section.
+- Feature PRs target `dev` and use Conventional titles; squash merges retain those subjects. Use `feat`, `fix` or `perf` for the corresponding user-visible effects, and `!` plus migration details for breaking changes. Documentation/maintenance-only types do not normally trigger a release themselves.
+- Do not add new branch-specific `Unreleased` sections or manually bump the root app version. Update affected usage/configuration/security documentation with the feature. Preserve older changelog history and existing unreleased notes until reconciled into the first generated release during review.
+- Promote `dev` to `main` with a merge commit so individual feature subjects survive. Review generated release notes, including migration and security information; release-please does not replace human review. Do not invent security disclosures for an automatically public entry.
+- In the release PR, read `README.md`, `SECURITY.md`, `docs/TASKS.md`, and `docs/qa/gaps.md` against what is shipping and fix anything that no longer matches.
+- After release, merge `main` back into `dev` through a reviewed PR with a merge commit; do not squash synchronization or overwrite generated history during conflicts.
 - Write entries for operators and users: what changed, not which files were touched.
 - Include auth, API, UI, config/env, Docker/install, CLI, and security-impacting changes.
 - A one-line entry is fine for small fixes; larger features deserve a short bullet group, each bullet still one line.

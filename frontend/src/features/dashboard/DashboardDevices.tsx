@@ -7,6 +7,8 @@ import { formatMinimaAmount } from "../../lib/format";
 import { getDeviceStatus } from "../status/statusApi";
 import type { DeviceNodeState, DeviceStatus } from "../status/statusTypes";
 import { getWalletStatus } from "../wallet/walletApi";
+import type { WalletStatus } from "../wallet/walletTypes";
+import { getCachedJson } from "../../lib/api";
 
 const DASHBOARD_POLL_INTERVAL_MS = 30_000;
 const STATUS_RESTARTING_INTERVAL_MS = 3_000;
@@ -35,11 +37,11 @@ function integritasConnectionStatus(connected: boolean | null): Status {
 }
 
 export function DashboardDevices() {
-  const [status, setStatus] = useState<DeviceStatus | null>(null);
-  const [statusLoading, setStatusLoading] = useState(true);
+  const [status, setStatus] = useState(() => getCachedJson<DeviceStatus>("/api/status"));
+  const [statusLoading, setStatusLoading] = useState(() => !getCachedJson("/api/status"));
   const [statusError, setStatusError] = useState(false);
-  const [walletBalance, setWalletBalance] = useState<string | null>(null);
-  const [walletLoading, setWalletLoading] = useState(true);
+  const [walletBalance, setWalletBalance] = useState(() => getCachedJson<WalletStatus>("/api/wallet")?.tokens.find((token) => token.isNative)?.confirmed ?? null);
+  const [walletLoading, setWalletLoading] = useState(() => !getCachedJson("/api/wallet"));
 
   useEffect(() => {
     let cancelled = false;

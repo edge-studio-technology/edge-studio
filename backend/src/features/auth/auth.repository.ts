@@ -89,9 +89,17 @@ export function deleteAllUserSessions(userId: string) {
   db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
 }
 
-export function deleteExpiredSessions() {
-  const now = new Date().toISOString();
-  db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(now);
+export function deleteExpiredSessions(maxAgeDays: number, idleHours: number) {
+  const now = Date.now();
+  return db.prepare("DELETE FROM sessions WHERE expires_at <= ? OR created_at <= ? OR last_seen_at <= ?").run(
+    new Date(now).toISOString(),
+    new Date(now - maxAgeDays * 86400000).toISOString(),
+    new Date(now - idleHours * 3600000).toISOString(),
+  ).changes;
+}
+
+export function shortenSessionExpiries(maxAgeDays: number) {
+  db.prepare("UPDATE sessions SET expires_at = MIN(expires_at, strftime('%Y-%m-%dT%H:%M:%fZ', created_at, ? || ' days'))").run(maxAgeDays);
 }
 
 export function updateUserPassword(userId: string, passwordHash: string, credentialType: AdminCredentialType) {

@@ -13,10 +13,14 @@ const backupsDir = path.join(os.tmpdir(), "edge-studio-minima-routes-backups");
 
 vi.mock("node:fs/promises", async () => {
   const real = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
-  const redirect = (value: unknown) =>
-    typeof value === "string" && value.startsWith("/minima-backups")
-      ? path.join(backupsDir, value.slice("/minima-backups".length))
+  const redirect = (value: unknown) => {
+    if (typeof value !== "string") return value;
+    const root = path.resolve("/minima-backups");
+    const absolute = path.resolve(value);
+    return absolute === root || absolute.startsWith(`${root}${path.sep}`)
+      ? path.join(backupsDir, path.relative(root, absolute))
       : value;
+  };
   const wrapped = Object.fromEntries(
     Object.entries(real).map(([key, value]) => [
       key,
@@ -103,6 +107,7 @@ afterAll(() => {
 });
 
 beforeEach(async () => {
+  db.prepare("DELETE FROM settings WHERE key = 'minima_runtime_settings'").run();
   const { authRateLimiter, fileOperationRateLimiter } = await import("../../../src/features/auth/rate-limit.middleware.js");
   await authRateLimiter.resetKey("::ffff:127.0.0.1");
   await fileOperationRateLimiter.resetKey("::ffff:127.0.0.1");
@@ -115,6 +120,39 @@ beforeEach(async () => {
   backupService.setBackupPassword(BACKUP_SECRET);
   resyncService.stopMinimaResyncObserver();
   monitoring.endMinimaOperation();
+});
+
+describe("Minima runtime settings API", () => {
+  it("reads settings without contacting Minima", async () => {
+    const response = await request(app).get("/api/minima/monitoring/settings").set("Cookie", cookie);
+    assert.equal(response.status, 200);
+    assert.equal(response.body.settings.autoResyncEnabled, false);
+    assert.equal(response.body.settings.healthPollIntervalSeconds, 60);
+    assert.deepEqual(response.body.limits.healthPollIntervalSeconds, { min: 10, max: 3600 });
+    assert.equal(fetchMock.mock.calls.length, 0);
+  });
+
+  it("persists changes and records who changed them without node RPC", async () => {
+    const settings = { healthPollIntervalSeconds: 120, stallBlockAgeSeconds: 600, autoResyncEnabled: true, autoResyncCooldownMinutes: 45 };
+    const saved = await request(app).post("/api/minima/monitoring/settings").set("Cookie", cookie).send(settings);
+    assert.equal(saved.status, 200);
+    const read = await request(app).get("/api/minima/monitoring/settings").set("Cookie", cookie);
+    assert.deepEqual(read.body.settings, settings);
+    const audit = db.prepare("SELECT user_id, detail FROM audit_events WHERE action = 'minima.monitoring.settings_changed' ORDER BY rowid DESC LIMIT 1").get() as { user_id: string; detail: string };
+    assert.ok(audit.user_id);
+    assert.deepEqual(JSON.parse(audit.detail).settings, settings);
+    assert.equal(fetchMock.mock.calls.length, 0);
+  });
+
+  it("returns field errors for invalid values and keeps stored settings", async () => {
+    const before = await request(app).get("/api/minima/monitoring/settings").set("Cookie", cookie);
+    const invalid = await request(app).post("/api/minima/monitoring/settings").set("Cookie", cookie).send({ ...before.body.settings, healthPollIntervalSeconds: 0, autoResyncEnabled: "false" });
+    assert.equal(invalid.status, 400);
+    assert.ok(invalid.body.errorDetails.context.fieldErrors.healthPollIntervalSeconds);
+    assert.ok(invalid.body.errorDetails.context.fieldErrors.autoResyncEnabled);
+    const after = await request(app).get("/api/minima/monitoring/settings").set("Cookie", cookie);
+    assert.deepEqual(after.body.settings, before.body.settings);
+  });
 });
 
 describe("POST /api/minima/restart", () => {
@@ -206,7 +244,7 @@ describe("POST /api/minima/backups/restore", () => {
       .set("Cookie", cookie)
       .send({ fileName: "minima-manual-1.bak", currentPassword: ADMIN_PASSWORD });
 
-    assert.equal(response.status, 200);
+    assert.equal(response.status, 200, response.text);
     assert.ok((fetchMock.mock.calls[0][0] as string).includes(encodeURIComponent(BACKUP_SECRET)));
     assertNoSecret(response);
     monitoring.endMinimaOperation();

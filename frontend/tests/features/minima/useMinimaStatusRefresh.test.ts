@@ -1,4 +1,5 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { clearReadCache } from "../../../src/lib/readCache";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MinimaNodeStatus } from "../../../src/app/types";
 
@@ -35,6 +36,20 @@ function status(overrides: Partial<MinimaNodeStatus> = {}): MinimaNodeStatus {
 }
 
 describe("useMinimaStatusRefresh", () => {
+  it("refreshes immediately after mutations and ignores a superseded request", async () => {
+    let resolveOld!: (value: MinimaNodeStatus) => void;
+    getMinimaNodeStatus.mockReset().mockReturnValueOnce(new Promise((resolve) => { resolveOld = resolve; })).mockResolvedValue(status({ state: "restarting" }));
+    const onStatus = vi.fn();
+    const hook = renderHook(() => useMinimaStatusRefresh(onStatus, vi.fn()));
+    await act(async () => { clearReadCache(true); });
+    expect(getMinimaNodeStatus).toHaveBeenLastCalledWith({ force: true });
+    expect(onStatus).toHaveBeenCalledTimes(1);
+    await act(async () => { resolveOld(status()); });
+    expect(onStatus).toHaveBeenCalledTimes(1);
+    hook.unmount();
+    clearReadCache(true);
+    expect(getMinimaNodeStatus).toHaveBeenCalledTimes(2);
+  });
   afterEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();

@@ -1,6 +1,8 @@
 import { redactSecrets } from "../../shared/redact.js";
 import { RETENTION_INTERVAL_MS, RETENTION_POLICIES } from "./retention.policy.js";
-import { pruneDeletedAutomationInboxItems } from "./retention.repository.js";
+import { pruneConfiguredRetention, pruneDeletedAutomationInboxItems, pruneExpiredAutomationInboxItems } from "./retention.repository.js";
+import { getRetentionSettings } from "./retention-settings.service.js";
+import { pruneCameraCaptures } from "./camera-retention.service.js";
 
 export { RETENTION_INTERVAL_MS } from "./retention.policy.js";
 
@@ -8,11 +10,15 @@ let cancelCleanup: (() => void) | null = null;
 let retentionTimer: NodeJS.Timeout | null = null;
 
 export function runRetentionPass() {
+  const settings = getRetentionSettings();
+  const configured = settings.automaticCleanupEnabled
+    ? pruneConfiguredRetention(settings, RETENTION_POLICIES.automationRuns.batchSize)
+    : { automationRuns: 0, automationBlockRuns: 0, dataSourceReads: 0 };
+  const batchSize = RETENTION_POLICIES.automationInboxItems.batchSize;
+  const deletedInboxItems = pruneDeletedAutomationInboxItems(batchSize);
   return {
-    automationRuns: 0,
-    automationBlockRuns: 0,
-    automationInboxItems: pruneDeletedAutomationInboxItems(RETENTION_POLICIES.automationInboxItems.batchSize),
-    dataSourceReads: 0
+    ...configured,
+    automationInboxItems: deletedInboxItems + pruneExpiredAutomationInboxItems(settings, batchSize - deletedInboxItems),
   };
 }
 
@@ -28,7 +34,8 @@ export function startRetentionScheduler() {
     try {
       while (!cancelled) {
         const deleted = runRetentionPass();
-        if (Object.values(deleted).every((count) => count === 0)) break;
+        const captures = pruneCameraCaptures();
+        if (captures === 0 && Object.values(deleted).every((count) => count === 0)) break;
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
       }
     } catch (error) {

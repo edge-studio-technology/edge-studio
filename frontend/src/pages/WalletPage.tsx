@@ -4,7 +4,12 @@ import { ErrorAlert } from "../components/patterns/ErrorAlert";
 import { Page } from "../components/patterns/Page";
 import { Card } from "../components/ui/Card";
 import { TabList } from "../components/ui/TabList";
-import { getWalletStatus, listWalletHistory } from "../features/wallet/walletApi";
+import {
+  getCachedWalletHistory,
+  getWalletStatus,
+  listWalletHistory,
+} from "../features/wallet/walletApi";
+import { getCachedJson } from "../lib/api";
 import {
   DEFAULT_WALLET_HISTORY_FILTERS,
   emptyWalletHistoryPage,
@@ -25,15 +30,26 @@ import { applyPaginatedPage } from "../lib/paginated";
 type WalletTab = "address-book" | "history";
 
 export function WalletPage() {
-  const [walletStatus, setWalletStatus] = useState<WalletStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [walletStatus, setWalletStatus] = useState(() =>
+    getCachedJson<WalletStatus>("/api/wallet"),
+  );
+  const [loading, setLoading] = useState(() => !getCachedJson("/api/wallet"));
+  const statusRequestRef = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-  const [historyFilters, setHistoryFilters] = useState<WalletHistoryFilters>(DEFAULT_WALLET_HISTORY_FILTERS);
-  const [history, setHistory] = useState<WalletHistoryPage>(emptyWalletHistoryPage);
-  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyFilters, setHistoryFilters] = useState<WalletHistoryFilters>(
+    DEFAULT_WALLET_HISTORY_FILTERS,
+  );
+  const [history, setHistory] = useState<WalletHistoryPage>(
+    () =>
+      getCachedWalletHistory(walletHistoryQuery(DEFAULT_WALLET_HISTORY_FILTERS)) ??
+      emptyWalletHistoryPage(),
+  );
+  const [historyLoading, setHistoryLoading] = useState(
+    () => !getCachedWalletHistory(walletHistoryQuery(DEFAULT_WALLET_HISTORY_FILTERS)),
+  );
   const [historyError, setHistoryError] = useState<string | null>(null);
   const historyRequestRef = useRef(0);
   const [mainTab, setMainTab] = useState<WalletTab>("history");
@@ -72,31 +88,44 @@ export function WalletPage() {
     void loadHistory(historyFilters);
   }
 
-  async function loadStatus({ quiet = false }: { quiet?: boolean } = {}) {
-    if (!quiet) {
+  async function loadStatus({
+    quiet = false,
+    force = false,
+  }: { quiet?: boolean; force?: boolean } = {}) {
+    const request = ++statusRequestRef.current;
+    if (!quiet && !getCachedJson("/api/wallet")) {
       setLoading(true);
       setError(null);
     }
     try {
-      setWalletStatus(await getWalletStatus());
+      const status = await getWalletStatus(force ? { force: true } : undefined);
+      if (request !== statusRequestRef.current) return;
+      setWalletStatus(status);
       setError(null);
     } catch (err) {
-      if (!quiet) setError(err instanceof Error ? err.message : "Failed to load wallet.");
+      if (request === statusRequestRef.current && !quiet)
+        setError(err instanceof Error ? err.message : "Failed to load wallet.");
     } finally {
-      if (!quiet) setLoading(false);
+      if (request === statusRequestRef.current) setLoading(false);
     }
   }
 
   const loadHistory = useCallback(
-    async (filters: WalletHistoryFilters, { quiet = false }: { quiet?: boolean } = {}) => {
+    async (
+      filters: WalletHistoryFilters,
+      { quiet = false, force = false }: { quiet?: boolean; force?: boolean } = {},
+    ) => {
       if (isCustomRangeInvalid(filters)) return;
       const request = ++historyRequestRef.current;
-      if (!quiet) {
+      if (!quiet && !getCachedWalletHistory(walletHistoryQuery(filters))) {
         setHistoryLoading(true);
         setHistoryError(null);
       }
       try {
-        const response = await listWalletHistory(walletHistoryQuery(filters));
+        const response = await listWalletHistory(
+          walletHistoryQuery(filters),
+          force ? { force: true } : undefined,
+        );
         if (request !== historyRequestRef.current) return;
         applyPaginatedPage(response, filters.page, setHistory, (page) =>
           setHistoryFilters((current) => ({ ...current, page })),
@@ -166,7 +195,7 @@ export function WalletPage() {
             error={historyError}
             actionsBlocked={actionsBlocked}
             onFiltersChange={updateHistoryFilters}
-            onRefresh={() => loadHistory(historyFilters)}
+            onRefresh={() => loadHistory(historyFilters, { force: true })}
           />
         )}
       </Card>
@@ -178,8 +207,8 @@ export function WalletPage() {
           minimaConfirmedUnavailable={minimaConfirmedUnavailable}
           onClose={() => {
             setSendOpen(false);
-            void loadStatus({ quiet: true });
-            void loadHistory(historyFilters, { quiet: true });
+            void loadStatus({ quiet: true, force: true });
+            void loadHistory(historyFilters, { quiet: true, force: true });
           }}
         />
       )}

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 let MinimaResyncConflictError: typeof import("../../../src/features/minima/minima.errors.js").MinimaResyncConflictError;
+const settings = vi.hoisted(() => ({ healthPollIntervalSeconds: 60, stallBlockAgeSeconds: 300, autoResyncEnabled: false, autoResyncCooldownMinutes: 30 }));
+vi.mock("../../../src/features/minima/minima-settings.service.js", () => ({ getMinimaRuntimeSettings: () => settings }));
 
 const {
   getMinimaNodeStatusMock,
@@ -51,15 +53,17 @@ vi.mock("../../../src/features/minima/minima-monitoring.js", () => ({
 let pollMinimaHealth: typeof import("../../../src/features/minima/minima-poll.service.js").pollMinimaHealth;
 let startMinimaHealthPoller: typeof import("../../../src/features/minima/minima-poll.service.js").startMinimaHealthPoller;
 let stopMinimaHealthPoller: typeof import("../../../src/features/minima/minima-poll.service.js").stopMinimaHealthPoller;
+let refreshMinimaHealthPoller: typeof import("../../../src/features/minima/minima-poll.service.js").refreshMinimaHealthPoller;
 
 async function loadModule() {
   vi.resetModules();
   ({ MinimaResyncConflictError } = await import("../../../src/features/minima/minima.errors.js"));
-  ({ pollMinimaHealth, startMinimaHealthPoller, stopMinimaHealthPoller } = await import("../../../src/features/minima/minima-poll.service.js"));
+  ({ pollMinimaHealth, startMinimaHealthPoller, stopMinimaHealthPoller, refreshMinimaHealthPoller } = await import("../../../src/features/minima/minima-poll.service.js"));
 }
 
 beforeEach(async () => {
-  delete process.env.MINIMA_AUTO_RESYNC;
+  settings.autoResyncEnabled = false;
+  settings.healthPollIntervalSeconds = 60;
   getMinimaNodeStatusMock.mockReset();
   resyncMegammrMock.mockReset();
   canAutoResyncMock.mockReset();
@@ -86,6 +90,24 @@ const baseStatus = {
 };
 
 describe("pollMinimaHealth", () => {
+  it("reschedules a changed interval without an extra poll or a second timer", async () => {
+    vi.useFakeTimers();
+    getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
+    startMinimaHealthPoller();
+    await vi.advanceTimersByTimeAsync(0);
+    settings.healthPollIntervalSeconds = 10;
+    refreshMinimaHealthPoller();
+    refreshMinimaHealthPoller();
+    assert.equal(vi.getTimerCount(), 1);
+    assert.equal(getMinimaNodeStatusMock.mock.calls.length, 1);
+    await vi.advanceTimersByTimeAsync(9999);
+    assert.equal(getMinimaNodeStatusMock.mock.calls.length, 1);
+    await vi.advanceTimersByTimeAsync(1);
+    assert.equal(getMinimaNodeStatusMock.mock.calls.length, 2);
+    stopMinimaHealthPoller();
+    refreshMinimaHealthPoller();
+    assert.equal(vi.getTimerCount(), 0);
+  });
   it("starts immediately without blocking startup and retries initialization on the health interval", async () => {
     vi.useFakeTimers();
     getMinimaNodeStatusMock.mockResolvedValue(baseStatus);
@@ -192,7 +214,7 @@ describe("pollMinimaHealth", () => {
 
 describe("pollMinimaHealth with auto-resync enabled", () => {
   beforeEach(async () => {
-    process.env.MINIMA_AUTO_RESYNC = "true";
+    settings.autoResyncEnabled = true;
     await loadModule();
   });
 

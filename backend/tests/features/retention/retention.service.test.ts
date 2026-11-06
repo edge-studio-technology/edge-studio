@@ -73,10 +73,10 @@ function seed(total: number, old: number, deletedInboxItems = 0, now = NOW) {
 describe("retention.service — policy", () => {
   it("declares the approved policy for every stored record category", () => {
     assert.deepEqual(policy.RETENTION_POLICIES, {
-      automationRuns: { strategy: "preserve" },
-      automationBlockRuns: { strategy: "preserve" },
-      automationInboxItems: { strategy: "deleted-only", batchSize: 500 },
-      dataSourceReads: { strategy: "preserve" },
+      automationRuns: { strategy: "configured-per-workflow", batchSize: 500 },
+      automationBlockRuns: { strategy: "with-parent-run" },
+      automationInboxItems: { strategy: "deleted-or-opt-in-expiry", batchSize: 500 },
+      dataSourceReads: { strategy: "configured-age-proof-protected" },
       integritasProofs: { strategy: "explicit-deletion" }
     });
     assert.equal(service.RETENTION_INTERVAL_MS, 60 * 60 * 1000);

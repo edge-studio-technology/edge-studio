@@ -8,6 +8,9 @@ import type { AdminCredentialType } from "../../src/features/auth/adminCredentia
 
 const credentialType: AdminCredentialType = "pin";
 const signOut = vi.fn();
+vi.mock("../../src/features/storage-history/RetentionSettingsPanel", () => ({ RetentionSettingsPanel: () => null }));
+vi.mock("../../src/features/storage-history/CameraRetentionSettingsPanel", () => ({ CameraRetentionSettingsPanel: () => null }));
+vi.mock("../../src/features/auth/SessionSettingsPanel", () => ({ SessionSettingsPanel: () => <div>Session settings panel</div> }));
 vi.mock("../../src/features/auth/hooks", () => ({
   useAuth: () => ({ user: { credentialType }, credentialType: "pin", signOut }),
 }));
@@ -42,8 +45,29 @@ it("loads the storage inventory only after opening the storage history section",
   expect(fetchMock).toHaveBeenCalledWith("/api/storage-history/inventory", { credentials: "include" });
 });
 
-it("shows the change-credential panel in the credentials section", async () => {
+it("shows credential and session controls after opening Security", async () => {
   render(<MemoryRouter><AuthSettingsPage /></MemoryRouter>, { wrapper: ToastProvider });
-  await userEvent.click(screen.getByText("Credentials"));
+  expect(screen.queryByText("Session settings panel")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByText("Security"));
   expect(screen.getByText("Change PIN or password")).toBeInTheDocument();
+  expect(await screen.findByText("Session settings panel")).toBeInTheDocument();
+});
+
+it("copies the selected uninstall mode and resets to the keep-data command when switched back", async () => {
+  const user = userEvent.setup();
+  const copy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
+  const command = "curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/uninstall.sh | sudo bash";
+  render(<MemoryRouter><AuthSettingsPage /></MemoryRouter>, { wrapper: ToastProvider });
+
+  expect(screen.getByRole("tab", { name: "Keep data" })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByText(command)).toBeInTheDocument();
+  await user.click(screen.getByRole("tab", { name: "Delete data" }));
+  expect(screen.getByText(/Permanently delete configured data/)).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Copy to clipboard" }));
+  expect(copy).toHaveBeenLastCalledWith(`${command} -s -- --delete-data`);
+
+  await user.click(screen.getByRole("tab", { name: "Keep data" }));
+  await user.click(screen.getByRole("button", { name: "Copy to clipboard" }));
+  expect(copy).toHaveBeenLastCalledWith(command);
+  copy.mockRestore();
 });

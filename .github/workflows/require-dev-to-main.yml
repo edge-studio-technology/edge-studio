@@ -3,18 +3,28 @@ name: Require dev to main
 permissions:
   contents: read
 
+# Keep the existing event during adoption; execute only trusted base policy.
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
 
 jobs:
   check-source-branch:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
       - name: Check source branch
+        env:
+          RELEASE_APP_BOT_LOGIN: ${{ vars.RELEASE_APP_BOT_LOGIN }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
-          if [ "${{ github.head_ref }}" != "dev" ]; then
-            echo "PRs to main must come from the dev branch."
+          if [ -f scripts/dev/check-pr-policy.mjs ]; then
+            node scripts/dev/check-pr-policy.mjs main
+          elif [ "$GITHUB_HEAD_REF" != "dev" ] || [ "$HEAD_REPOSITORY" != "$GITHUB_REPOSITORY" ]; then
+            echo "::error::Before policy activation, only this repository's dev branch may promote to main."
             exit 1
           fi

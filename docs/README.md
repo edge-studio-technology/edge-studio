@@ -37,6 +37,9 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 
 | Plan | Status |
 | ---- | ------ |
+| [plans/release-please.md](./plans/release-please.md) | Release automation with retained dev contributions; local implementation complete, App setup and live activation pending |
+| [plans/github-contributions.md](./plans/github-contributions.md) | Public GitHub requests, reviewed source contributions, contributor guides and AI skill; planned, with Module Builder deferred separately |
+| [plans/page-load-performance.md](./plans/page-load-performance.md) | Measured node/telemetry separation and navigation snapshot improvements |
 | [plans/storage-history-lifecycle.md](./plans/storage-history-lifecycle.md) | Storage/history inventory and archive/import/cleanup roadmap |
 | [plans/feedback-hosted-receiver.md](./plans/feedback-hosted-receiver.md) | Hand-off spec for the Integritas API repo; not started |
 
@@ -48,7 +51,7 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0002](./adr/0002-update-page-split.md) | Update page split: frontend owns `/update`, `update-agent` owns `/update/` (apply progress) |
 | [0003](./adr/0003-update-dry-run.md) | Dev-only `UPDATE_DRY_RUN` simulates a successful apply without touching containers |
 | [0005](./adr/0005-modal-mount-gate-removal.md) | `Modal`'s `mounted` render gate removed to stop modal-swap flicker |
-| [0007](./adr/0007-release-channels-and-compose-generation.md) | Folder-per-channel releases on `main` with generated per-channel Compose and `.env.example` |
+| [0007](./adr/0007-release-channels-and-compose-generation.md) | Release-please on `main`, contributions to `dev`, signed folder-per-channel releases and Compose generation |
 | [0009](./adr/0009-manifest-fallback-to-github-raw.md) | Manifest delivery: own domain primary, GitHub raw fallback, signature as the trust boundary |
 | [0010](./adr/0010-security-review-audit-verdict.md) | Audit of the external V1.5 security review: re-rating, missed SSRF, fix order |
 | [0013](./adr/0013-secret-redaction-boundary.md) | Single redaction boundary: `redactDeep()` vs `redactStrings()`, write-time redaction |
@@ -56,9 +59,9 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0015](./adr/0015-minima-console-mutating-subcommands.md) | Minima console catalog classifies by argument shape; mutating forms default disabled |
 | [0016](./adr/0016-install-time-bootstrap-trust-set.md) | Install-time trust chain: embedded key and verifier, pinned verifier image, bundle bound to the signed manifest |
 | [0017](./adr/0017-outbound-and-upload-resource-limits.md) | Clamped egress, upload, and MQTT limits; nginx upload limit derived from backend settings |
-| [0019](./adr/0019-hardware-access-through-host-helpers.md) | Hardware via host helpers and a root host agent with fixed per-capability actions |
+| [0019](./adr/0019-hardware-access-through-host-helpers.md) | Hardware via fixed host-agent actions; uninstall through a confirmed host-terminal operation |
 | [0021](./adr/0021-app-secret-fail-closed-without-migration.md) | Backend refuses an empty `APP_SECRET`; no public default, no secret migration |
-| [0022](./adr/0022-bound-external-automation-effects.md) | Automation effects: credential redaction, retention by record purpose, 1,000 privileged runs/hour budget |
+| [0022](./adr/0022-bound-external-automation-effects.md) | Automation effects: credential redaction, opt-in per-workflow/age retention, 1,000 privileged runs/hour budget |
 | [0024](./adr/0024-responsive-layout-strategy.md) | Responsive layout: 768 floor, container queries, sidebar overlay below 1024, sticky table actions |
 | [0025](./adr/0025-error-state-scope-tiers.md) | Error presentation by scope: content state, alert, toast, field error |
 | [0027](./adr/0027-static-guided-tour.md) | Static first-visit guided tour, seen flag per browser, replay from Settings |
@@ -74,6 +77,8 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 | [0038](./adr/0038-feedback-hosted-delivery-with-local-fallback.md) | Feedback saved locally, sent to Integritas with the existing key after per-submission consent |
 | [0039](./adr/0039-workflow-canvas-and-watch-mode-interaction.md) | Workflow canvas routes and click controls; watch mode follow-live, replay, and summaries |
 | [0040](./adr/0040-separate-portable-history-from-device-migration.md) | Portable history is a read-only, redacted archive; configuration/secrets transfer is a separate device-migration concern |
+| [0041](./adr/0041-separate-deployment-configuration-from-runtime-settings.md) | Deployment/runtime settings boundary; Minima policy migrates once to SQLite and changes live |
+| [0042](./adr/0042-separate-node-readiness-from-resource-telemetry.md) | Current node readiness is independent of shared resource telemetry; bounded read snapshots retain navigation responsiveness |
 
 ### Retired ADRs
 
@@ -108,6 +113,10 @@ Merged into the surviving record on 2026-10-15. Numbers are not reused.
 
 ## QA and reports
 
+**GitHub Contributions implementation:** [Local verification and remaining launch/hardware gates](./reports/github-contributions-implementation-2026-11-05/README.md).
+
+**GitHub Contributions backlog:** [Two epics and ten features](./reports/github-contributions-openproject-2026-11-04/README.md), created alongside the separate deferred Module Builder backlog.
+
 | Doc | Purpose |
 | --- | ------- |
 | [qa/gaps.md](./qa/gaps.md) | Open QA, security, and test gaps (all areas) |
@@ -119,9 +128,19 @@ Merged into the surviving record on 2026-10-15. Numbers are not reused.
 
 ## Guides
 
+Start a public source contribution at [CONTRIBUTING.md](../CONTRIBUTING.md). The guides below cover current source builds; deferred Module Builder remains a separate future path.
+
 | Doc | Purpose |
 | --- | ------- |
 | [guides/gpio-device-settings.md](./guides/gpio-device-settings.md) | Tested and suggested GPIO input/output settings by device type |
+| [guides/contributor-quickstart.md](./guides/contributor-quickstart.md) | Fork, run and verify a modified local/Pi source build |
+| [guides/contributor-architecture.md](./guides/contributor-architecture.md) | Current components, ownership and integration boundaries |
+| [guides/contributing-devices.md](./guides/contributing-devices.md) | Complete hardware/device/wizard/guide contribution recipe |
+| [guides/contributing-workflows.md](./guides/contributing-workflows.md) | Complete workflow block, event, execution and history recipe |
+| [guides/contribution-review.md](./guides/contribution-review.md) | Public request triage, review, release and launch gates |
+| [guides/releases.md](./guides/releases.md) | Conventional PR titles, release-please, App setup, release approval and branch synchronization |
+| [guides/contributor-ai.md](./guides/contributor-ai.md) | Load and verify the optional public contribution skill |
+| [guides/contributor-trial.md](./guides/contributor-trial.md) | Independent contributor and physical integration evidence checklist |
 | [guides/esp32-mqtt-sensors.md](./guides/esp32-mqtt-sensors.md) | Flashing and testing ESP32 MQTT board firmware |
 | [guides/bme280-sensor.md](./guides/bme280-sensor.md) | BME280/BME680 I2C sensor setup |
 | [guides/tester-device-workflows.md](./guides/tester-device-workflows.md) | Short tester matrix for Pi and PC device/workflow tests |

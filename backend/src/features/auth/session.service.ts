@@ -12,17 +12,14 @@ import {
 } from "./auth.repository.js";
 import { LOCAL_ADMIN_DISPLAY_NAME } from "./auth.constants.js";
 import type { SessionUser } from "./auth.types.js";
+import { getSessionSettings, isSessionExpired } from "./session-settings.service.js";
 
 const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 
 let sessionCleanup: NodeJS.Timeout | null = null;
 
 function sessionMaxAgeMs() {
-  return env.sessionMaxAgeDays * 24 * 60 * 60 * 1000;
-}
-
-function sessionIdleMs() {
-  return env.sessionIdleHours * 60 * 60 * 1000;
+  return getSessionSettings().maxAgeDays * 24 * 60 * 60 * 1000;
 }
 
 export function createSession(userId: string) {
@@ -42,13 +39,7 @@ export function validateSession(rawToken: string): SessionUser | null {
   const session = findSessionByTokenHash(tokenHash);
   if (!session) return null;
 
-  const now = Date.now();
-  if (new Date(session.expires_at).getTime() < now) {
-    deleteSessionByTokenHash(tokenHash);
-    return null;
-  }
-
-  if (new Date(session.last_seen_at).getTime() + sessionIdleMs() < now) {
+  if (isSessionExpired(session, getSessionSettings())) {
     deleteSessionByTokenHash(tokenHash);
     return null;
   }
@@ -97,7 +88,8 @@ export function startSessionCleanupScheduler() {
 
   const sweep = () => {
     try {
-      deleteExpiredSessions();
+      const settings = getSessionSettings();
+      deleteExpiredSessions(settings.maxAgeDays, settings.idleHours);
     } catch (error) {
       console.error("Session cleanup failed:", error instanceof Error ? error.message : error);
     }

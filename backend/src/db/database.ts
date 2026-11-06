@@ -182,6 +182,8 @@ export function runMigrations() {
       WHERE deleted_at IS NOT NULL;
   `);
 
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_automation_runs_workflow_started ON automation_runs(workflow_id, started_at DESC, id DESC);`);
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS data_source_reads (
       id TEXT PRIMARY KEY,

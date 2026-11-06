@@ -67,6 +67,8 @@ export type MinimaNodeStatus = {
     state: string;
     status: string;
     cpuPercent: number | null;
+    metricsPending?: boolean;
+    metricsObservedAt?: string | null;
     memory: { usage: string | null; limit: string | null } | null;
   } | null;
   rpc: {
@@ -109,6 +111,18 @@ export type MinimaNodeStatus = {
   };
 };
 export type MinimaConfig = { megammrHost: string; megammrHostSource: "database" | "default" };
+
+export type MinimaRuntimeSettings = {
+  healthPollIntervalSeconds: number;
+  stallBlockAgeSeconds: number;
+  autoResyncEnabled: boolean;
+  autoResyncCooldownMinutes: number;
+};
+
+export type MinimaRuntimeSettingsResponse = {
+  settings: MinimaRuntimeSettings;
+  limits: Record<Exclude<keyof MinimaRuntimeSettings, "autoResyncEnabled">, { min: number; max: number }>;
+};
 export type MinimaCommandResult = {
   ok: boolean;
   status?: number;

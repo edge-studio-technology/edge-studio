@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security concern (private)
+    url: https://github.com/edge-studio-technology/edge-studio/blob/main/SECURITY.md
+    about: Follow the private reporting instructions. Do not describe a vulnerability in a public issue.
+  - name: Contribution and development guide
+    url: https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md
+    about: Learn how to run your own version and propose a change; check the current contribution terms first.

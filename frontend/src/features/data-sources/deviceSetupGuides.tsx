@@ -789,8 +789,8 @@ function piCameraGuide(source: DataSource) {
       {
         title: "Requirements",
         items: [
-          "Camera is enabled in Devices -> Hardware support so the host camera helper is running.",
-          "The Pi host can see the camera with rpicam-still --list-cameras or libcamera-still --list-cameras.",
+          "A compatible Raspberry Pi camera is connected to this Pi.",
+          "Camera shows Available in Devices → Hardware support → Camera. Manage enablement, repair, prerequisite setup, and status checks there before running a capture workflow.",
           "The camera is placed with consent and privacy in mind.",
         ],
       },
@@ -804,26 +804,15 @@ function piCameraGuide(source: DataSource) {
         ],
       },
       {
-        title: "Enable camera support",
-        description: "Enable the host camera helper and check that the Pi detects the camera.",
-        items: [
-          "Open Devices → Hardware support → Manage hardware → Camera and choose Enable.",
-          "If Action required appears, complete the displayed setup steps. Run the detection command below on the Pi host, then refresh hardware status.",
-          "Continue when Camera shows Available. If support is enabled but unavailable, inspect the reason and use Repair after correcting the problem.",
-        ],
-        commands: "rpicam-still --list-cameras",
-        body: "On older installations with libcamera tools, use libcamera-still --list-cameras. The output should list a detected camera and its supported modes.",
-      },
-      {
         title: "Configure capture",
         description: "Choose the settings used whenever a workflow captures from this device.",
         items: [
-          "In Setup Device, select Raspberry Pi Camera on the first screen, confirm the type, and give the device a useful name.",
+          "Open Saved settings → Edit device settings to change this camera's configuration.",
           "Choose Photo for a JPEG image or Video for an H.264 clip.",
           "Set width and height in pixels. Start with 1280 × 720 and use settings supported by your camera.",
           "For photos, warmup timeout lets exposure and white balance settle before capture. Start with 1000 ms.",
           "For video, duration is the clip length in milliseconds (5000 ms is 5 seconds); FPS is frames per second. Start with 30 FPS.",
-          "Review the mode, resolution, timing, and output format, then select Add device. Use Saved settings → Edit device settings to change them later.",
+          "Select Save device to apply your changes. Saved settings shows the current mode, resolution, timing, and output format.",
         ],
       },
       {
@@ -858,9 +847,7 @@ function piCameraGuide(source: DataSource) {
         title: "Troubleshooting",
         description: "Check hardware detection first, then the helper and workflow settings.",
         table: [
-          ["No camera detected", "Shut down and disconnect power, then check the cable, connector, and camera compatibility. Restart the Pi and rerun the detection command."],
-          ["Camera tools missing", "Follow the installation steps shown under Hardware support → Camera, then refresh status."],
-          ["Camera unavailable", "Read the reason in Hardware support → Camera. Once prerequisites are met, use Repair and refresh status."],
+          ["Camera unavailable or not detected", "Open Devices → Hardware support → Camera and follow the reported reason and setup guidance. If the cable needs checking, shut down and disconnect power first; return to Hardware support to refresh status afterward."],
           ["Camera busy", "Stop other applications or overlapping workflows using the camera, then retry the capture."],
           ["Capture fails", "Inspect the failed Capture camera block in the workflow run. Try 1280 × 720, 30 FPS for video, and a short duration supported by the camera."],
         ],
@@ -871,7 +858,7 @@ function piCameraGuide(source: DataSource) {
         items: [
           "Place the camera with consent and privacy in mind. A workflow run can record an image or video.",
           "Captured media stays local unless a workflow sends it elsewhere. Stamp data creates a proof of the media hash; it does not back up the media.",
-          "Captured media is pruned opportunistically after CAMERA_RETENTION_DAYS (7 days by default). Export evidence you need before retention expires; read history retains metadata and the media hash.",
+          "Manage camera retention in Settings → Storage & history. Cleanup starts paused until you preview and confirm the policy, and pauses again when camera support is disabled. Proof-linked captures are protected; save any other media you need before enabling cleanup.",
         ],
       },
     ],

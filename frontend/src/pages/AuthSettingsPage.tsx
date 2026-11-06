@@ -7,28 +7,36 @@ import {
   MousePointerClick,
   PanelLeft,
   RefreshCw,
+  Terminal,
 } from "lucide-react";
 import { Button } from "../components/Button";
 import { ButtonRow } from "../components/ButtonRow";
 import { Card } from "../components/Card";
 import { Page } from "../components/Page";
 import { SubSection } from "../components/patterns/SubSection";
+import { CopyableCode } from "../components/patterns/CopyableCode";
 import { Disclosure } from "../components/ui/Disclosure";
 import { SwitchField } from "../components/ui/SwitchField";
+import { ToggleTabs } from "../components/ui/ToggleTabs";
 import {
   closeModalOnOutsideClickSetting,
   guidedTourSeenSetting,
   sidebarStartCollapsedSetting,
 } from "../lib/behaviourSettings";
 import { ChangeCredentialPanel } from "../features/auth/ChangeCredentialPanel";
+import { SessionSettingsPanel } from "../features/auth/SessionSettingsPanel";
 import { useAuth } from "../features/auth/hooks";
 import { StorageHistoryPanel } from "../features/storage-history/StorageHistoryPanel";
+import { RetentionSettingsPanel } from "../features/storage-history/RetentionSettingsPanel";
+import { CameraRetentionSettingsPanel } from "../features/storage-history/CameraRetentionSettingsPanel";
 
 /** Long enough to read the confirmation before the forced re-login. */
 const SIGN_OUT_AFTER_CREDENTIAL_CHANGE_MS = 3000;
 
 export function AuthSettingsPage() {
   const [storageHistoryOpen, setStorageHistoryOpen] = useState(false);
+  const [securityOpen, setSecurityOpen] = useState(false);
+  const [uninstallMode, setUninstallMode] = useState<"keep" | "delete">("keep");
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -72,25 +80,28 @@ export function AuthSettingsPage() {
             <SubSection
               icon={<HardDrive size={13} aria-hidden />}
               title="Stored records"
-              description="Review the records and managed files Edge Studio keeps on this Pi. Cleanup and archive controls will be added separately."
+              description="Review stored records and managed files, export history, and configure automatic retention below."
             >
               {storageHistoryOpen ? <StorageHistoryPanel /> : null}
             </SubSection>
+            {storageHistoryOpen ? <RetentionSettingsPanel /> : null}
+            {storageHistoryOpen ? <CameraRetentionSettingsPanel /> : null}
           </div>
         </Disclosure>
 
         <Disclosure
           title={
             <span className="flex items-center gap-2">
-              <h2 className="type-title text-text-primary m-0">Credentials</h2>
+              <h2 className="type-title text-text-primary m-0">Security</h2>
             </span>
           }
           className="pt-4 pb-6"
           defaultOpen={false}
+          onToggle={(event) => setSecurityOpen(event.currentTarget.open)}
         >
           <div className="gap-detail-close my-detail-close grid">
             <ChangeCredentialPanel onCredentialChanged={scheduleSignOut} />
-
+            {securityOpen ? <SessionSettingsPanel /> : null}
           </div>
         </Disclosure>
 
@@ -164,6 +175,35 @@ export function AuthSettingsPage() {
                   Check for updates
                 </Button>
               </ButtonRow>
+            </SubSection>
+            <SubSection
+              icon={<Terminal size={13} aria-hidden />}
+              title="Uninstall Edge Studio"
+              description="Run this command in the Pi terminal or over SSH to remove Edge Studio."
+            >
+              <ToggleTabs
+                label="Uninstall data handling"
+                value={uninstallMode}
+                options={[
+                  { value: "keep", label: "Keep data" },
+                  { value: "delete", label: "Delete data" },
+                ]}
+                onChange={setUninstallMode}
+                className="mb-3"
+              />
+              <p className="type-body text-text-secondary m-0" aria-live="polite">
+                {uninstallMode === "keep"
+                  ? "Keep your data and configuration for reinstalling Edge Studio. The terminal asks you to confirm removal."
+                  : "Permanently delete configured data inside the installation directory, including the Minima wallet and its stored backups. Back up what you need first. The terminal requires a separate typed confirmation."}
+              </p>
+              <CopyableCode
+                key={uninstallMode}
+                className="my-3"
+                value={`curl -fsSL https://raw.githubusercontent.com/edge-studio-technology/edge-studio/main/uninstall.sh | sudo bash${uninstallMode === "delete" ? " -s -- --delete-data" : ""}`}
+              />
+              <p className="type-body text-text-secondary m-0">
+                Review the removal plan in the terminal before confirming. External data directories and unknown files are retained for manual review. The app becomes unavailable when its containers stop.
+              </p>
             </SubSection>
           </div>
         </Disclosure>
