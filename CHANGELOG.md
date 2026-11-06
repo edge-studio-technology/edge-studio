@@ -4,6 +4,19 @@ All notable changes to `edge-studio` are documented in this file.
 
 New releases are prepared by release-please from Conventional commit subjects; see [the release guide](docs/guides/releases.md). Earlier entries retain their original Keep a Changelog format. Existing unreleased notes below must be reconciled into the first generated release during review.
 
+## [0.44.0](https://github.com/edge-studio-technology/edge-studio/compare/v0.43.0...v0.44.0) (2026-11-06)
+
+
+### Features
+
+* add public contribution workflow and automated releases ([#170](https://github.com/edge-studio-technology/edge-studio/issues/170)) ([0132318](https://github.com/edge-studio-technology/edge-studio/commit/01323182d74a89d76cf99abaa1c57453530f154f))
+
+
+### Bug Fixes
+
+* **ci:** preserve source checks during release activation ([#172](https://github.com/edge-studio-technology/edge-studio/issues/172)) ([174e90b](https://github.com/edge-studio-technology/edge-studio/commit/174e90bb66cb087104f71f047d2eba81e5845135))
+* **ci:** use one combined release pull request ([#174](https://github.com/edge-studio-technology/edge-studio/issues/174)) ([c892830](https://github.com/edge-studio-technology/edge-studio/commit/c8928300c19e2206652704822d38418b49f347b6))
+
 ## [Unreleased] github-contributions
 
 ### Added
