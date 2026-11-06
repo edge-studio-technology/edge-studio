@@ -24,4 +24,4 @@ Release-please 17.6 defaults to separate PRs when the manifest contains one pack
 - Merge main back into dev through a reviewed merge PR, preserving ancestry and the released app version/changelog.
 - Complete separate public-contribution licensing, human form/fork, independent harness/contributor and physical Pi acceptance gates. No project license was chosen and no hardware trial was claimed by this activation.
 
-See the [release guide](../../guides/releases.md) and [active release plan](../../plans/release-please.md).
+See the [release guide](../../guides/releases.md) and [release decision](../../adr/0007-release-channels-and-compose-generation.md). The implementation plan was retired after publication; this report retains its activation-time findings.

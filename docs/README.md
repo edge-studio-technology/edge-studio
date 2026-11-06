@@ -37,7 +37,6 @@ per-topic rules in `.agents/rules/`, `.claude/rules/`, and `.cursor/rules/`.
 
 | Plan | Status |
 | ---- | ------ |
-| [plans/release-please.md](./plans/release-please.md) | Release automation active on main; first production release approval, signed publication proof and dev synchronization pending |
 | [plans/github-contributions.md](./plans/github-contributions.md) | Forms/guides/policies published on main; operator release and remaining public contribution acceptance gates pending, with Module Builder deferred separately |
 | [plans/page-load-performance.md](./plans/page-load-performance.md) | Measured node/telemetry separation and navigation snapshot improvements |
 | [plans/storage-history-lifecycle.md](./plans/storage-history-lifecycle.md) | Storage/history inventory and archive/import/cleanup roadmap |

@@ -15,9 +15,7 @@
 
 ## In Progress
 
-- [ ] Approve the first production release PR #176 (0.44.0), verify App tag creation triggers signed publication, then merge main back into dev. Release-please is active on main; App authentication/PR creation and required title/source checks are verified, branch rules are configured, and legacy changelog notes are reconciled — see `docs/plans/release-please.md` and [release guide](./guides/releases.md).
-
-- [ ] Finish GitHub contribution launch (epics #1249/#1250): forms, guides and policies are published on main; app links await operator release. Licensing/ownership, real form walkthrough/external-fork review, fresh-harness/independent contributor and disposable-Pi validation remain open — see `docs/plans/github-contributions.md` and [verification](./reports/github-contributions-implementation-2026-11-05/README.md). Module Builder remains deferred separately.
+- [ ] Finish GitHub contribution launch (epics #1249/#1250): forms/guides/policies are published on main and app links are included in v0.44.0. Licensing/ownership, real form walkthrough/external-fork review, fresh-harness/independent contributor and disposable-Pi validation remain open — see `docs/plans/github-contributions.md` and [verification](./reports/github-contributions-implementation-2026-11-05/README.md). Module Builder remains deferred separately.
 - [ ] Finish Edge Studio storage/history lifecycle: inventory, archive export/import and opt-in retention controls are implemented and the user confirmed recommended Pi verification; manual cleanup, size-based triggers and verification of the remaining features are still open; see `docs/plans/storage-history-lifecycle.md`.
 
 ## Next
@@ -47,7 +45,6 @@
 - [ ] Digest-pin the third-party images outside the signed manifest (`minimaglobal/minimacore`, `eclipse-mosquitto:2`, `minimaglobal/minima:dev`, `alpine:3.20`) and document the manual pin-bump procedure (finding [6]).
 - [ ] Run the V1.5 manual transport checks on a Pi: `curl -vk https://<pi-ip>:8080/api/health` gives TLS 1.2/1.3 and 200; plain `http://` is refused or 400; the certificate SAN includes the Pi's LAN IP; the session cookie is `Secure`, `HttpOnly`, `SameSite=Strict`; optionally, a login capture shows no readable password.
 - [ ] Finish remaining storage lifecycle work: scoped manual cleanup/size policies (#819), Dashboard/export cleanup (#861) and payload-copy reduction (#860); the configured lifecycle is recorded in ADR 0022.
-- [ ] Turn on branch protection for `main` now that changes land through PRs.
 
 ### Hardware support
 
@@ -76,6 +73,8 @@
 - [ ] Sanity-check two catalog exclusions added beyond the Minima RPC console plan's named list during `help`-output reconciliation: `createtokenfrom` (same raw-`privatekey:` risk as the named `*from` commands) and `decryptbackup` (can turn an encrypted backup into plaintext key material).
 
 ## Done
+
+- [x] Adopted release-please while retaining dev contributions; published approved v0.44.0 through the dedicated App, verified signed artifact/public manifest/runtime publication, preserved existing branch protections and reconciled legacy release notes. The main-based completion merge carries the released version and main ancestry back into dev. See [publication evidence](./reports/release-please-publication-2026-11-06/README.md) and [release guide](./guides/releases.md); the finished implementation plan is retired.
 
 - [x] Implemented local GitHub contribution forms/chooser, app discovery/privacy links, PR/review guidance, source-build/architecture/device/workflow guides, mirrored public AI skill and current wizard routing; enabled private GitHub vulnerability reporting. Local verification is recorded separately from the open public-launch and independent/hardware gates.
 - [x] Created the `github-contributions` branch from current dev, saved the implementation plan, and created/verified two OpenProject epics #1249/#1250 with ten features #1251–#1260 alongside Module Builder. Its branch and all eighteen existing tickets were preserved; implementation remains pending.

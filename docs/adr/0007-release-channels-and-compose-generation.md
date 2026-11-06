@@ -108,10 +108,11 @@ matching `docker-compose.yml`/`.env.example` a tester could drop into a folder a
   applied to `build-docker-compose.mjs`'s template by hand if it should also apply to channel
   installs.
 
-## History
-
-- 2026-11-06: Adopted root release-please automation while retaining dev contributions, human release approval and signed publication.
 - Channel testers installing from `docker/<channel>/` never run `install.sh`, so they get the
   `cert-init` service instead of a host-generated cert — a second, parallel way the HTTPS cert can
   come into existence, scoped only to this distribution path. The same applies to host-directory
   ownership: `cert-init` is now the channel-tester path's parallel to `install.sh`'s own chown step.
+
+## History
+
+- 2026-11-06: Adopted root release-please automation while retaining dev contributions, human release approval and signed publication; verified root identity through generation and merged-PR detection.

@@ -1,6 +1,6 @@
 # Release-please adoption verification — 2026-11-06
 
-Local implementation is complete on `github-contributions`; activation is pending. Both external and internal feature PRs continue to target `dev`. The deferred Module Builder branch was not changed. See the [maintainer release guide](../../guides/releases.md) and [active plan](../../plans/release-please.md).
+Local implementation is complete on `github-contributions`; activation is pending. Both external and internal feature PRs continue to target `dev`. The deferred Module Builder branch was not changed. See the [maintainer release guide](../../guides/releases.md) and [release decision](../../adr/0007-release-channels-and-compose-generation.md). The implementation plan was subsequently retired; this report retains its original verification findings.
 
 ## Evidence
 
