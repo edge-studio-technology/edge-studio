@@ -20,6 +20,10 @@ matching `docker-compose.yml`/`.env.example` a tester could drop into a folder a
 
 ## Decision
 
+- Release-please manages the single root app version, release notes and production `vX.Y.Z` tags on `main`. Both external and internal contributions target `dev` and squash into Conventional commit subjects. Promotion from `dev` to `main` preserves those commits with a merge commit. A maintainer reviews and merges the bot's release PR on `main`; afterward a merge PR from `main` to `dev` preserves ancestry and synchronizes the version and notes. Service package versions and existing development/canary tagging remain separate.
+- Use a dedicated, repository-scoped GitHub App installation token for release-please, not the built-in GITHUB_TOKEN: generated PRs and tags must trigger normal CI and the signed tag build. Do not grant the App signing keys or protection bypass. The main source guard admits only same-repository `dev` promotion or the exact configured release bot/branch. Metadata policies run read-only trusted base code, never contributor code.
+- Start from stable `v0.43.0` at `d379d2e9265e108708cc3dd716bc802dec4ac721`; later development tags do not define the stable baseline. Before 1.0, features and breaking changes bump the minor version; ordinary fixes/performance changes bump the patch. Generated notes require human review, including migration of existing unreleased notes whose older commits do not follow the convention.
+
 - Replaced the branch-selection `case` with a channel-selection `case` (`manifest` job, step
   `Detect release channel from tag`): `*-dev.*` -> `development`, `*-canary.*` -> `canary`, else ->
   `release`. This is a distinct classification from the pre-existing, unchanged `changes` job's
@@ -65,6 +69,11 @@ matching `docker-compose.yml`/`.env.example` a tester could drop into a folder a
 
 ## Alternatives considered
 
+- **Remove `dev` and contribute directly to `main`.** Unnecessary for release-please and contrary to the team's retained integration-branch workflow.
+- **Squash whole dev-to-main promotions.** Discards the feature commit subjects used to classify versions and generate notes.
+- **Use GITHUB_TOKEN for release-please.** Its generated events do not normally trigger downstream workflows; signed artifact publication could silently be skipped.
+- **Keep manually maintained app versions and branch changelog sections.** Replaced by generated release PRs with human review; old history is retained.
+
 - **Keep branch-per-channel, add a `canary` branch.** Rejected: branches require repo-level setup
   (protection rules, default-branch assumptions in other tooling) per channel, and conflated "which
   branch" with "which channel" for no benefit — nothing reads the manifest repo's branch name today
@@ -81,6 +90,9 @@ matching `docker-compose.yml`/`.env.example` a tester could drop into a folder a
 
 ## Consequences
 
+- Release preparation is automated; release approval, signed artifact verification and main-to-dev synchronization remain maintainer responsibilities. GitHub App provisioning and live acceptance checks are activation gates documented in the release guide.
+- The `dev` ruleset must allow merge commits for main-to-dev synchronization as well as squash merges for features; `main` remains merge-only. Required checks and reviews stay in place. No automatic merge or production tag is used for validation.
+
 - Adding a fourth channel is a one-line change to the `channel` step's `case` statement plus new
   folders appearing under `edge-studio/<channel>/` and `docker/<channel>/` on first push — no new
   manifest-repo branch or workflow duplication needed.
@@ -93,6 +105,10 @@ matching `docker-compose.yml`/`.env.example` a tester could drop into a folder a
   not the same file and are not kept in sync automatically; a service/env change in one must be
   applied to `build-docker-compose.mjs`'s template by hand if it should also apply to channel
   installs.
+
+## History
+
+- 2026-11-06: Adopted root release-please automation while retaining dev contributions, human release approval and signed publication.
 - Channel testers installing from `docker/<channel>/` never run `install.sh`, so they get the
   `cert-init` service instead of a host-generated cert — a second, parallel way the HTTPS cert can
   come into existence, scoped only to this distribution path. The same applies to host-directory

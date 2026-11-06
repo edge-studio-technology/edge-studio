@@ -13,10 +13,14 @@ const backupsDir = path.join(os.tmpdir(), "edge-studio-minima-routes-backups");
 
 vi.mock("node:fs/promises", async () => {
   const real = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
-  const redirect = (value: unknown) =>
-    typeof value === "string" && value.startsWith("/minima-backups")
-      ? path.join(backupsDir, value.slice("/minima-backups".length))
+  const redirect = (value: unknown) => {
+    if (typeof value !== "string") return value;
+    const root = path.resolve("/minima-backups");
+    const absolute = path.resolve(value);
+    return absolute === root || absolute.startsWith(`${root}${path.sep}`)
+      ? path.join(backupsDir, path.relative(root, absolute))
       : value;
+  };
   const wrapped = Object.fromEntries(
     Object.entries(real).map(([key, value]) => [
       key,
@@ -240,7 +244,7 @@ describe("POST /api/minima/backups/restore", () => {
       .set("Cookie", cookie)
       .send({ fileName: "minima-manual-1.bak", currentPassword: ADMIN_PASSWORD });
 
-    assert.equal(response.status, 200);
+    assert.equal(response.status, 200, response.text);
     assert.ok((fetchMock.mock.calls[0][0] as string).includes(encodeURIComponent(BACKUP_SECRET)));
     assertNoSecret(response);
     monitoring.endMinimaOperation();

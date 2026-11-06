@@ -1,0 +1,51 @@
+name: Request hardware or device support
+description: Describe a device you would like to use with Edge Studio.
+title: "[Device] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Requests are public and do not promise delivery. Search existing requests first. No code is required. Do not share credentials, private network details or device backups.
+        For security concerns use [SECURITY.md](https://github.com/edge-studio-technology/edge-studio/blob/main/SECURITY.md).
+  - type: input
+    id: model
+    attributes:
+      label: Device name and model
+      description: Include the exact model if known.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What would you like to do with it?
+      description: For example, record a temperature reading or respond to a button press.
+    validations:
+      required: true
+  - type: input
+    id: documentation
+    attributes:
+      label: Manufacturer or documentation link
+      description: Optional public link to the device, protocol or datasheet.
+  - type: textarea
+    id: setup
+    attributes:
+      label: What have you tried?
+      description: Include relevant Edge Studio version and Pi/OS details if known. You can write Not tried yet.
+  - type: dropdown
+    id: testing
+    attributes:
+      label: Could you help test support for this device?
+      options:
+        - "I have the device and can try instructions"
+        - "I have the device and can help with development"
+        - "I do not have the device yet"
+        - "Not sure"
+    validations:
+      required: true
+  - type: checkboxes
+    id: public-report
+    attributes:
+      label: Before submitting
+      options:
+        - label: I understand this request is public and have removed sensitive information.
+          required: true

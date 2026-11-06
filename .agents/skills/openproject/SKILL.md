@@ -65,6 +65,6 @@ Set `OPEN_PROJECT_READONLY=true` in `.env.local` to make every write fail closed
 
 ## Conventions
 
-- `[#NNN]` in a commit subject is reserved for **merge commits only** — see `.claude/skills/commit-message/SKILL.md`. Plain commits carry no ticket prefix.
+- Use Conventional feature PR titles without OpenProject prefixes; put internal ticket references in the PR body when appropriate. Public contributors do not need internal ticket access. See `.claude/skills/commit-message/SKILL.md` and `docs/guides/releases.md`.
 - "Ready for Deployment" (status `22`) is where a finished-but-unmerged task goes. "Done" (`12`) is a closed status — use it for the parent feature once its children are all through.
 - A ticket's plan doc lives at `docs/plans/features/<ticket>-<slug>.md` (features) or `docs/plans/bugs/<ticket>-<slug>.md` (bugs) while the work is open; keep the ticket and the plan doc in step. The plan is deleted before the PR into `dev` (see the `plan-doc` skill's Retiring section), so cite ADRs, not plan paths, in ticket comments meant to last.

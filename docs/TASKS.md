@@ -15,6 +15,9 @@
 
 ## In Progress
 
+- [ ] Activate release-please: App installation/organization secrets/identity are configured; merge workflows through dev/main after Ubuntu CI, require conventional-title only after it runs, permit merge synchronization into dev, and verify the real bot PR/tag/signed build — see `docs/plans/release-please.md` and [release guide](./guides/releases.md). The Minima test's Windows path mock is fixed; existing POSIX/CRLF script-test limitations remain local.
+
+- [ ] Finish GitHub contribution launch (epics #1249/#1250): forms, app links, public guides, PR process and mirrored AI skill are implemented locally; licensing/ownership, actual GitHub/default-branch/fork review, fresh-harness/independent contributor and disposable-Pi validation remain open — see `docs/plans/github-contributions.md` and [verification](./reports/github-contributions-implementation-2026-11-05/README.md). Module Builder remains deferred separately.
 - [ ] Finish Edge Studio storage/history lifecycle: inventory, archive export/import and opt-in retention controls are implemented and the user confirmed recommended Pi verification; manual cleanup, size-based triggers and verification of the remaining features are still open; see `docs/plans/storage-history-lifecycle.md`.
 
 ## Next
@@ -65,9 +68,8 @@
 ### Other
 
 - [ ] Run the UI regression sweep in `docs/qa/gaps.md` (UI changes verified only by build or unit tests).
-- [ ] Consider adding the root package to `audit:moderate`; the previously reported `shell-quote` advisory was addressed by the dependency updates.
+- [ ] Review root-package audit coverage/advisories: isolated fresh contributor install reported ten moderate findings while all three required app package audits were clear; root is not included in `audit:moderate`. Do not apply force upgrades without reviewing compatibility.
 - [ ] Verify slow Integritas PDF verification on the Pi after deploying the 5-minute timeout and longer frontend proxy wait; update explicit legacy timeout overrides and recreate backend/frontend containers.
-- [ ] Investigate the Minima backup-restore fallback test returning 502 instead of 200 in `backend/tests/features/minima/minima.routes.test.ts:172`, reproduced during Integritas timeout verification.
 - [ ] Stop other values from the previous `.env` (for example a hand-added `UPDATE_DRY_RUN`) leaking into the installer's compose run; only `COMPOSE_PROFILES` is unset after `load_existing_config` in `install.sh`.
 - [ ] Verify the wiki’s temporary application-data backup/restore procedure on a real Pi with the same app version and unchanged runtime configuration; implement an integrated Edge Studio backup/restore feature separately.
 - [ ] Document the `DEV_MODE` install flag in `README.md`'s runtime-config section and note its manifest-signature-verification bypass in `SECURITY.md`/`docs/security/host-and-infrastructure.md` — flagged during code review, deliberately deferred as a separate concern from the pagination work.
@@ -75,6 +77,8 @@
 
 ## Done
 
+- [x] Implemented local GitHub contribution forms/chooser, app discovery/privacy links, PR/review guidance, source-build/architecture/device/workflow guides, mirrored public AI skill and current wizard routing; enabled private GitHub vulnerability reporting. Local verification is recorded separately from the open public-launch and independent/hardware gates.
+- [x] Created the `github-contributions` branch from current dev, saved the implementation plan, and created/verified two OpenProject epics #1249/#1250 with ten features #1251–#1260 alongside Module Builder. Its branch and all eighteen existing tickets were preserved; implementation remains pending.
 - [x] Implemented independent current node readiness and shared 30-second Docker telemetry with correct CPU sampling, bounded navigation snapshots, mutation/session invalidation and deferred Minima panels; local regression checks are recorded in SESSION, with Pi/browser verification still open.
 - [x] Reconciled the 10 approved OpenProject tickets with implementation, remaining scope and user-reported Pi verification, and verified saved descriptions/comments/statuses; #628 uses Review because its spike workflow lacks Ready for Deployment.
 - [x] User confirmed the recommended Pi verification for runtime-settings migration/persistence, Minima monitoring, history/inbox/camera retention and session expiry; not independently rerun during tracker reconciliation.

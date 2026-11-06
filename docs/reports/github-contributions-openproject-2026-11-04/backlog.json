@@ -1,0 +1,350 @@
+{
+  "created": "2026-11-04",
+  "project": "Integritas Team",
+  "projectId": 12,
+  "product": "Edge Studio",
+  "backlogBucketId": 15,
+  "epics": 2,
+  "features": 10,
+  "branch": "github-contributions",
+  "baseCommit": "41742eab33c9fa1fc2c33f66d56f3a21b8800852",
+  "items": [
+    {
+      "key": "EA",
+      "type": "Epic",
+      "title": "GitHub Contributions: Let users request improvements and share fixes",
+      "summary": "Give users a public place to explain what they need and give contributors a clear way to offer improvements. Our team reviews submitted code before including accepted changes in an official Edge Studio release.",
+      "criteria": [
+        "Public requests use approachable GitHub forms; non-developers do not need to write code.",
+        "Private feedback stays private and public links never copy submissions or diagnostic data automatically.",
+        "Contribution rights, triage/review ownership and branch/release expectations are documented before public launch.",
+        "A fork pull request can be checked and reviewed without private team credentials; accepted work follows normal releases.",
+        "Module Builder remains deferred and unchanged; source contributions and future installable modules can coexist."
+      ],
+      "deps": [],
+      "legacy": [
+        618,
+        690
+      ],
+      "section": "1-4",
+      "id": 1249,
+      "url": "https://openproject.privateprivate.org/work_packages/1249",
+      "parentId": null,
+      "dependencyIds": []
+    },
+    {
+      "key": "EB",
+      "type": "Epic",
+      "title": "GitHub Contributions: Help people build and test new capabilities",
+      "summary": "Publish clear instructions and optional AI guidance that help people add hardware, devices and workflow behaviour to their own copy of Edge Studio. Prove that a new contributor can build, test and submit a complete improvement.",
+      "criteria": [
+        "Clean local and fork-to-Pi source builds demonstrably run the contributor's changed code.",
+        "Public guides explain architecture and complete hardware/device/wizard/guide/workflow integration changes.",
+        "A portable AI contribution skill follows the same public guidance without internal OpenProject access or team secrets.",
+        "An independent contributor proves a physical integration and related workflow behaviour on a test Pi and submits it for normal human review.",
+        "The current security boundaries remain in force; no Module Builder runtime/package system is introduced."
+      ],
+      "deps": [],
+      "legacy": [
+        690,
+        692
+      ],
+      "section": "5-10",
+      "id": 1250,
+      "url": "https://openproject.privateprivate.org/work_packages/1250",
+      "parentId": null,
+      "dependencyIds": []
+    },
+    {
+      "key": "A1",
+      "parent": "EA",
+      "type": "Feature",
+      "title": "Agree contribution rules and how public requests are handled",
+      "summary": "Explain how people can ask for improvements or offer code, and how our team will respond and review it. Agree the rights and responsibilities before inviting public code contributions.",
+      "criteria": [
+        "Provide CONTRIBUTING.md and concise triage/review guidance using existing conventions rather than a second ruleset.",
+        "Explain local forks, public issues, private feedback, private security reports, branch/PR targets and normal release expectations.",
+        "Document a small request-label/status process, duplicates and maintainer responsibilities without promising unagreed response times.",
+        "Obtain rights-holder agreement on project licensing and contribution terms before public launch; this ticket does not preselect a license.",
+        "Use existing #690 work; public users do not need internal OpenProject access."
+      ],
+      "deps": [],
+      "legacy": [
+        690
+      ],
+      "section": "1",
+      "id": 1251,
+      "url": "https://openproject.privateprivate.org/work_packages/1251",
+      "parentId": 1249,
+      "dependencyIds": []
+    },
+    {
+      "key": "A2",
+      "parent": "EA",
+      "type": "Feature",
+      "title": "Give users simple forms for public requests",
+      "summary": "Let people report bugs or ask for hardware support, workflow features and other improvements through simple GitHub forms. Other users and contributors can browse these requests and help solve them.",
+      "criteria": [
+        "Provide bug, device-support, workflow-request and general-improvement forms plus chooser guidance.",
+        "Ask plain-language problem/outcome questions, relevant app/device details and available testing help; do not require code.",
+        "Explain public visibility and GitHub-account requirements; redirect security concerns privately.",
+        "Use optional sanitized screenshots/excerpts; no automatic private feedback or log-archive attachments.",
+        "Validate required labels, schema and actual GitHub rendering and walkthrough usability."
+      ],
+      "deps": [
+        "A1"
+      ],
+      "legacy": [],
+      "section": "2",
+      "id": 1252,
+      "url": "https://openproject.privateprivate.org/work_packages/1252",
+      "parentId": 1249,
+      "dependencyIds": [
+        1251
+      ]
+    },
+    {
+      "key": "B1",
+      "parent": "EB",
+      "type": "Feature",
+      "title": "Help contributors run their own version of Edge Studio",
+      "summary": "Give contributors reliable steps to run Edge Studio locally and on a test Pi with their own changes. Check that they are really running their modified code rather than an unchanged official build.",
+      "criteria": [
+        "Publish a clean-checkout quickstart using supported prerequisites, actual scripts and platform limitations.",
+        "Verify a harmless visible source change in local development and a fork build on a disposable test Pi, recording the source/commit.",
+        "Test/document APP_REPO_URL, APP_BRANCH and DEV_MODE/source-build behaviour without assuming a branch switch changes prebuilt images.",
+        "Explain development signing/update differences, data/helper-state preservation and return to official releases without weakening official defaults.",
+        "Require no private team credentials; fix only specific reproducibility blockers found by the trial."
+      ],
+      "deps": [],
+      "legacy": [],
+      "section": "5",
+      "id": 1253,
+      "url": "https://openproject.privateprivate.org/work_packages/1253",
+      "parentId": 1250,
+      "dependencyIds": []
+    },
+    {
+      "key": "B2",
+      "parent": "EB",
+      "type": "Feature",
+      "title": "Explain how Edge Studio works for contributors",
+      "summary": "Provide a clear map of the app so contributors know where a change belongs. Explain how the screens, saved data, hardware services and workflows work together.",
+      "criteria": [
+        "Publish a concise architecture guide and diagram with real, validated source links.",
+        "Cover frontend/backend/database/workflows/history, host agent/helpers, installer/Docker, updater and Minima/Integritas boundaries.",
+        "Explain hardware enablement versus configured devices, source roles, persistence/migrations, secrets and errors.",
+        "Describe current narrow hardware interfaces and opt-in behaviour; do not imply the deferred privileged extension runtime already exists.",
+        "Link existing public rules and ADRs without internal tools or machine-specific paths."
+      ],
+      "deps": [
+        "B1"
+      ],
+      "legacy": [
+        690
+      ],
+      "section": "6",
+      "id": 1254,
+      "url": "https://openproject.privateprivate.org/work_packages/1254",
+      "parentId": 1250,
+      "dependencyIds": [
+        1253
+      ]
+    },
+    {
+      "key": "B3",
+      "parent": "EB",
+      "type": "Feature",
+      "title": "Show how to add hardware, devices and setup guides",
+      "summary": "Show contributors the full set of changes needed to support a device, including hardware setup, saved settings and the screens and guides users see. Use a complete working example so important steps are not missed.",
+      "criteria": [
+        "Publish a worked device recipe classifying readable/event/capture/output/helper roles and when to reuse an existing type.",
+        "Map current backend validation/runtime/helper/config and frontend template/form/alternate wizard/config/guide paths accurately.",
+        "Cover saved-device editing, visibility, prerequisites, repeatable setup, structured errors, credentials and existing hash/media behaviour.",
+        "Include safe starter workflows, focused tests and real hardware/environment verification with explicit limitations.",
+        "A complete integration includes backend, UI, setup guide and tests; current host boundaries remain unchanged."
+      ],
+      "deps": [
+        "B1",
+        "B2"
+      ],
+      "legacy": [
+        692
+      ],
+      "section": "7",
+      "id": 1255,
+      "url": "https://openproject.privateprivate.org/work_packages/1255",
+      "parentId": 1250,
+      "dependencyIds": [
+        1253,
+        1254
+      ]
+    },
+    {
+      "key": "B4",
+      "parent": "EB",
+      "type": "Feature",
+      "title": "Show how to add workflow steps and logic",
+      "summary": "Explain how to add or extend a workflow step from its settings screen through to what it does when a workflow runs. Include examples and tests that preserve saved workflows and useful run history.",
+      "criteria": [
+        "Publish a harmless worked workflow recipe explaining reuse versus new block/event behaviour.",
+        "Trace UI types/library/help/inspectors/summaries/canvas to backend validation/execution/policy/persistence using current paths.",
+        "Cover roles, configuration validation, events/listener lifetime, cancellation, errors and run/block history.",
+        "Preserve existing media/hash/proof relationships, budgets, saved-workflow compatibility and irreversible-action protections.",
+        "Document focused checks and Pi/external-service tests needed for the actual change; do not redesign the engine or add module contracts."
+      ],
+      "deps": [
+        "B1",
+        "B2"
+      ],
+      "legacy": [
+        692
+      ],
+      "section": "8",
+      "id": 1256,
+      "url": "https://openproject.privateprivate.org/work_packages/1256",
+      "parentId": 1250,
+      "dependencyIds": [
+        1253,
+        1254
+      ]
+    },
+    {
+      "key": "A3",
+      "parent": "EA",
+      "type": "Feature",
+      "title": "Link Edge Studio to public requests and contribution guides",
+      "summary": "Help users find community requests and contribution instructions from the app. Keep the existing private feedback option clearly separate so users understand what will be public.",
+      "criteria": [
+        "Provide clear browse-requests, public-request and contribution-guide actions in the smallest suitable existing app surface.",
+        "Reuse FeedbackModal/help/navigation patterns and #618 investigation; a new sidebar tab is not mandatory.",
+        "State that GitHub submissions are public and require an account.",
+        "Pass no private feedback text, metadata, secrets or diagnostics in outgoing links; do not build a feedback-to-issue bridge.",
+        "Verify real destinations, responsive usability and unchanged private feedback behaviour."
+      ],
+      "deps": [
+        "A1",
+        "A2",
+        "B1"
+      ],
+      "legacy": [
+        618
+      ],
+      "section": "3",
+      "id": 1257,
+      "url": "https://openproject.privateprivate.org/work_packages/1257",
+      "parentId": 1249,
+      "dependencyIds": [
+        1251,
+        1252,
+        1253
+      ]
+    },
+    {
+      "key": "A4",
+      "parent": "EA",
+      "type": "Feature",
+      "title": "Review community changes and release accepted contributions",
+      "summary": "Give contributors and reviewers a clear process for checking a proposed change, discussing improvements and deciding whether to accept it. Accepted changes reach other users through the normal Edge Studio release process.",
+      "criteria": [
+        "Provide a PR template covering problem/change, related issue, affected surfaces, tests, hardware evidence, limitations and docs.",
+        "Document dev/main branch flow, reviewer/merge ownership, hardware evidence requirements and fork-update guidance.",
+        "Verify fork PR checks using existing workflows/approval policies without secrets or privileged execution of untrusted code.",
+        "Require the same quality/testing bar for AI-assisted changes; do not represent generated code as verified.",
+        "A real fork PR receives a recorded human decision and a normal release path; publishing a PR is not automatic acceptance or deployment."
+      ],
+      "deps": [
+        "A1",
+        "A2",
+        "B1",
+        "B3",
+        "B4"
+      ],
+      "legacy": [
+        690,
+        618
+      ],
+      "section": "4",
+      "id": 1258,
+      "url": "https://openproject.privateprivate.org/work_packages/1258",
+      "parentId": 1249,
+      "dependencyIds": [
+        1251,
+        1252,
+        1253,
+        1255,
+        1256
+      ]
+    },
+    {
+      "key": "B5",
+      "parent": "EB",
+      "type": "Feature",
+      "title": "Provide an AI skill that guides complete contributions",
+      "summary": "Give contributors reusable instructions they can load into their own AI tools. The instructions help the AI understand Edge Studio, make a complete change, run checks and prepare a useful pull request.",
+      "criteria": [
+        "Provide a discoverable public contribution skill with repository-local/manual installation, update and version-matching instructions.",
+        "Reuse current add-device-support/rules and public human guides; synchronize required agent-tool mirrors and avoid conflicting rulebooks.",
+        "Guide classification, affected-file discovery, code/docs/tests, honest check results, hardware limitations and PR preparation.",
+        "A clean contributor environment needs no private OpenProject, team Pi, credentials, hosted Module Builder or particular paid AI provider.",
+        "Validate actual guidance loading and a representative task in a supported harness; the human-only path remains usable."
+      ],
+      "deps": [
+        "A1",
+        "B1",
+        "B2",
+        "B3",
+        "B4"
+      ],
+      "legacy": [
+        692
+      ],
+      "section": "9",
+      "id": 1259,
+      "url": "https://openproject.privateprivate.org/work_packages/1259",
+      "parentId": 1250,
+      "dependencyIds": [
+        1251,
+        1253,
+        1254,
+        1255,
+        1256
+      ]
+    },
+    {
+      "key": "B6",
+      "parent": "EB",
+      "type": "Feature",
+      "title": "Prove a new contributor can complete a real integration",
+      "summary": "Ask someone outside the core team to follow the public guidance, add a real device and related workflow behaviour, test it on a Pi and submit the change. Use what they struggle with to improve the guides and AI skill.",
+      "criteria": [
+        "An independent contributor follows a public request, forks/clones, makes a source change and builds the changed app on a test Pi with actual hardware.",
+        "Record source/app versions, environment, physical evidence, checks, assistance needed and corrected guide/skill gaps.",
+        "Submit and review the real PR through the normal process; acceptance is readiness for normal release, not a forced production merge.",
+        "A non-developer completes the request-form walkthrough; separately exercise AI guidance if the integration author used the human-only route.",
+        "No private team tools or deferred Module Builder are dependencies, and no private feedback is exposed."
+      ],
+      "deps": [
+        "A2",
+        "A3",
+        "A4",
+        "B3",
+        "B4",
+        "B5"
+      ],
+      "legacy": [],
+      "section": "10",
+      "id": 1260,
+      "url": "https://openproject.privateprivate.org/work_packages/1260",
+      "parentId": 1250,
+      "dependencyIds": [
+        1252,
+        1257,
+        1258,
+        1255,
+        1256,
+        1259
+      ]
+    }
+  ]
+}

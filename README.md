@@ -15,6 +15,12 @@ The current prototype contains:
 - Read-only file browsing for a configured host directory
 - A simple architecture that can grow with more services later
 
+## Contribute and request improvements
+
+Both internal and external code contributions target `dev`. Maintainers squash-merge Conventional PR titles, promote `dev` to `main` with a merge commit, then approve the release-please version/release-notes PR. Production tags retain the signed build and manifest pipeline. See [the release guide](docs/guides/releases.md) for activation, release approval and synchronization back to `dev`.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for public requests, development and review, including the current pending contribution terms. Browse [community requests](https://github.com/edge-studio-technology/edge-studio/issues), use the [request chooser](https://github.com/edge-studio-technology/edge-studio/issues/new/choose), or start with the [contributor quickstart](docs/guides/contributor-quickstart.md) and [optional AI skill](docs/guides/contributor-ai.md). In-app feedback remains a separate private route. GitHub forms and the public contribution links become available from the default branch when this work reaches `main`.
+
 ## Installation On Raspberry Pi
 
 Run:
@@ -239,7 +245,7 @@ UPDATE_PULL_TIMEOUT_MS=300000
 UPDATE_AGENT_STATE_DIR=./update-agent-state
 ```
 
-The installer sets `COOKIE_SECURE=true` for the default HTTPS Docker deploy. Use `COOKIE_SECURE=false` only for native `npm run dev` (HTTP on port 5173).
+The installer sets `COOKIE_SECURE=true` for the default HTTPS Docker deploy. Use `COOKIE_SECURE=false` only for native `npm run dev` (HTTP on port 3030).
 
 `INTEGRITAS_REQUEST_TIMEOUT_MS` defaults to 300000 (5 minutes per attempt). Transient stamp, status, and verification failures can make up to three attempts; the frontend proxy allows 16 minutes for Integritas requests. Existing installations with an explicit `INTEGRITAS_REQUEST_TIMEOUT_MS=15000` in `.env` must change it to `300000` and recreate the backend container to use the longer timeout.
 
@@ -326,7 +332,7 @@ The Wallet page exposes allowlisted wallet/account actions through the backend:
 - wallet history (received, sent, and self-transfers) synced from Minima `history` into SQLite (`GET /api/wallet/history`)
 - payment submission via Minima `send` (`POST /api/wallet/send-payment`)
 
-`COOKIE_SECURE` controls the session cookie `Secure` flag. The Docker deploy uses HTTPS with `COOKIE_SECURE=true` (`https://<pi-ip>:8080`). Native dev uses HTTP on `http://localhost:5173` with `COOKIE_SECURE=false`.
+`COOKIE_SECURE` controls the session cookie `Secure` flag. The Docker deploy uses HTTPS with `COOKIE_SECURE=true` (`https://<pi-ip>:8080`). Native dev uses HTTP on `http://localhost:3030` with `COOKIE_SECURE=false`.
 
 TLS certificates are stored in `DATA_DIR/certs` (`server.crt`, `server.key`). The installer generates them automatically. To regenerate after a Pi IP change:
 
@@ -394,12 +400,12 @@ npm install
 npm run dev
 ```
 
-That runs the backend API on port 3000 and the Vite dev server on port 5173 (which proxies `/api` to the backend). You can also run them separately with `npm run dev:backend` and `npm run dev:frontend` in two terminals.
+That runs the backend API on port 3000 and the Vite dev server on port 3030 (which proxies `/api` to the backend). You can also run them separately with `npm run dev:backend` and `npm run dev:frontend` in two terminals.
 
 Open:
 
 ```txt
-http://localhost:5173
+http://localhost:3030
 ```
 
 ### HTTPS dev (matches Docker self-signed behavior)
@@ -410,7 +416,7 @@ To test secure cookies and HTTPS-only browser APIs during native dev:
 npm run dev:https
 ```
 
-Open `https://localhost:5173` and accept the self-signed certificate warning (same certs as `scripts/generate-tls-cert.sh` / Docker). The backend runs with `COOKIE_SECURE=true`.
+Open `https://localhost:3030` and accept the self-signed certificate warning (same certs as `scripts/generate-tls-cert.sh` / Docker). The backend runs with `COOKIE_SECURE=true`.
 
 Plain `npm run dev` stays on HTTP for fast iteration.
 

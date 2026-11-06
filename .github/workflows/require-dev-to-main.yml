@@ -3,18 +3,21 @@ name: Require dev to main
 permissions:
   contents: read
 
+# Metadata only: run policy from the trusted base commit, never PR code.
 on:
-  pull_request:
-    branches:
-      - main
+  pull_request_target:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
 
 jobs:
   check-source-branch:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
       - name: Check source branch
-        run: |
-          if [ "${{ github.head_ref }}" != "dev" ]; then
-            echo "PRs to main must come from the dev branch."
-            exit 1
-          fi
+        env:
+          RELEASE_APP_BOT_LOGIN: ${{ vars.RELEASE_APP_BOT_LOGIN }}
+        run: node scripts/dev/check-pr-policy.mjs main

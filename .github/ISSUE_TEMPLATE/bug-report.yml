@@ -1,0 +1,54 @@
+name: Report a problem
+description: Tell us what is not working. No coding knowledge is needed.
+title: "[Problem] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This report will be public. Search existing issues first. Do not include credentials, wallet information, device backups, full diagnostic exports or personal details. Remove sensitive information from screenshots.
+        For a security vulnerability, follow [SECURITY.md](https://github.com/edge-studio-technology/edge-studio/blob/main/SECURITY.md) instead of posting here.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What went wrong?
+      description: Explain the problem and how it affects you.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we reproduce it?
+      description: List the steps you followed. If you cannot reproduce it, say so.
+      placeholder: "1. Open ...\n2. Select ...\n3. Observe ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Edge Studio version
+      description: Copy the version shown in the app, or write Unknown. If using a custom build, include its branch or commit.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Device and browser
+      description: For example, Pi model, operating system, browser and relevant sensor model. Do not include device identifiers or network addresses.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Optional screenshots or error message
+      description: Share only the relevant part after checking it for sensitive information.
+  - type: checkboxes
+    id: public-report
+    attributes:
+      label: Before submitting
+      options:
+        - label: I understand this report is public and have removed sensitive information.
+          required: true

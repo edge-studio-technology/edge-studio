@@ -106,6 +106,26 @@ afterEach(() => {
 });
 
 describe("FeedbackModal", () => {
+  it("keeps public contribution links independent of private feedback contents and availability", async () => {
+    mockLoad({ config: "reject" });
+    renderModal({ pagePath: "/wallet?private=never-share", pageLabel: "Private test page" });
+    await userEvent.type(screen.getByLabelText("Description"), "Private device details must stay here");
+
+    const destinations = [
+      ["Browse community requests", "https://github.com/edge-studio-technology/edge-studio/issues"],
+      ["Submit a public request", "https://github.com/edge-studio-technology/edge-studio/issues/new/choose"],
+      ["Contribution guide", "https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md"],
+    ];
+    for (const [name, href] of destinations) {
+      const link = screen.getByRole("link", { name });
+      expect(link).toHaveAttribute("href", href);
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    }
+    expect(screen.getByText(/Nothing from this feedback form is copied there/)).toBeInTheDocument();
+    expect(postJson).not.toHaveBeenCalled();
+  });
+
   it("renders the page context, default bug fields, and pre-submit message once config loads", async () => {
     renderModal({ pagePath: "/wallet", pageLabel: "Wallet" });
 

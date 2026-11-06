@@ -1,0 +1,84 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "links": [
+        {
+          "text": "Browse community requests",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Submit a public request",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new/choose",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Contribution guide",
+          "href": "https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true,
+      "disabledSubmit": true
+    },
+    {
+      "width": 768,
+      "links": [
+        {
+          "text": "Browse community requests",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Submit a public request",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new/choose",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Contribution guide",
+          "href": "https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true,
+      "disabledSubmit": true
+    },
+    {
+      "width": 390,
+      "links": [
+        {
+          "text": "Browse community requests",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Submit a public request",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new/choose",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Contribution guide",
+          "href": "https://github.com/edge-studio-technology/edge-studio/blob/main/CONTRIBUTING.md",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true,
+      "disabledSubmit": true
+    }
+  ],
+  "runtimeErrors": [],
+  "apiWrites": []
+}
