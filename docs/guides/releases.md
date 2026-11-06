@@ -46,7 +46,7 @@ Do not substitute `GITHUB_TOKEN` for the App token. Tags and PRs it creates norm
 
 ## Security and recovery
 
-Build/test workflows continue to use `pull_request` and no release secrets. The two metadata policies use read-only `pull_request_target`, check out only the trusted **base SHA** without persisted credentials and inspect the event JSON. Never change these jobs to check out a contributor's head/merge SHA, install contributor dependencies or execute contributor code. They run no build and receive no App private key or signing credentials.
+Build/test workflows continue to use `pull_request` and no release secrets. The title policy uses read-only `pull_request_target`; the source policy retains `pull_request` so its existing required check also runs during adoption. Both check out only the trusted **base SHA** without persisted credentials. If the base predates the policy script, the source policy accepts only this repository's `dev` branch; once deployed it uses the script and configured bot exception. Never change these metadata jobs to check out a contributor's head/merge SHA, install contributor dependencies or execute contributor code. They run no build and receive no App private key or signing credentials.
 
 Only this repository's `dev` can promote ordinary changes to `main`. The additional release exception requires the exact configured bot identity, Bot account type, same repository and exact release-please branch; a fork with a matching branch name does not qualify. Maintainers still review the release PR. See [ADR 0007](../adr/0007-release-channels-and-compose-generation.md).
 
