@@ -12,7 +12,8 @@ let env: typeof import("../../../src/config/env.js")["env"];
 const active = vi.hoisted(() => ({ ids: [] as string[] }));
 vi.mock("../../../src/features/automation/automationRuns.repository.js", () => ({ getActiveAutomationRunIds: () => active.ids }));
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "edge-camera-retention-"));
-const now = Date.now();
+// Whole seconds keep the exact-cutoff fixture stable across filesystem timestamp precision.
+const now = Math.floor(Date.now() / 1000) * 1000;
 const policy = { retentionDays: 7, paused: false };
 
 beforeAll(async () => {
