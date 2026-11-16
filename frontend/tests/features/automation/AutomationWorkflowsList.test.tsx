@@ -52,6 +52,9 @@ describe("AutomationWorkflowsList", () => {
     const onCreate = vi.fn();
     render(<AutomationWorkflowsList {...baseProps({ onCreate })} />);
     expect(screen.getByText("Build your first workflow")).toBeInTheDocument();
+    const support = within(screen.getByRole("complementary", { name: "Missing a workflow capability?" }));
+    expect(support.getByRole("link", { name: "Request a feature" })).toHaveAttribute("href", "https://github.com/edge-studio-technology/edge-studio/issues/new?template=workflow-request.yml");
+    expect(support.getByRole("link", { name: "Contribution guide" })).toHaveAttribute("href", "https://github.com/edge-studio-technology/edge-studio/blob/main/docs/guides/contributing-workflows.md");
 
     // Both the header button and the empty-state action are labelled "New workflow" here.
     await userEvent.click(screen.getAllByRole("button", { name: "New workflow" })[0]);

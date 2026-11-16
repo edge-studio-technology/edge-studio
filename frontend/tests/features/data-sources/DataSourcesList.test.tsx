@@ -52,6 +52,12 @@ describe("DataSourcesList", () => {
     const onSetupDevice = vi.fn();
     renderList({ onSetupDevice });
     expect(screen.getByText("Connect your first device")).toBeInTheDocument();
+    const support = within(screen.getByRole("complementary", { name: "Missing support for a device?" }));
+    expect(support.getByRole("link", { name: "Request support" })).toHaveAttribute("href", "https://github.com/edge-studio-technology/edge-studio/issues/new?template=device-support.yml");
+    expect(support.getByRole("link", { name: "Request support" })).toHaveAttribute("target", "_blank");
+    expect(support.getByRole("link", { name: "Request support" })).toHaveAttribute("rel", "noopener noreferrer");
+    expect(support.getByRole("link", { name: "Contribution guide" })).toHaveAttribute("href", "https://github.com/edge-studio-technology/edge-studio/blob/main/docs/guides/contributing-devices.md");
+    expect(support.getByText("Requests are public on GitHub.")).toBeInTheDocument();
 
     await userEvent.click(screen.getAllByRole("button", { name: "New device" })[0]);
     expect(onSetupDevice).toHaveBeenCalled();

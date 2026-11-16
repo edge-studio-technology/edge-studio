@@ -32,6 +32,8 @@ describe("WorkflowBlockLibrary", () => {
       />,
     );
     expect(screen.getByText("Start blocks")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Request a feature" })).toHaveAttribute("href", "https://github.com/edge-studio-technology/edge-studio/issues/new?template=workflow-request.yml");
+    expect(screen.getByText("Public request on GitHub.")).toBeInTheDocument();
     expect(screen.getByText("Manual run")).toBeInTheDocument();
   });
 

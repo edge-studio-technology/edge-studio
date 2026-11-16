@@ -41,6 +41,8 @@ describe("AltAddDeviceFlow", () => {
   it("shows the setup category picker first", () => {
     renderFlow();
     expect(screen.getByText("Setup Device")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Request support" })).toHaveAttribute("href", "https://github.com/edge-studio-technology/edge-studio/issues/new?template=device-support.yml");
+    expect(screen.getByText("Public request on GitHub.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Boards/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Protocols/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Sensors/ })).toBeInTheDocument();
@@ -59,6 +61,7 @@ describe("AltAddDeviceFlow", () => {
     createDataSource.mockResolvedValue({ item: created });
     const { props } = renderFlow();
     await userEvent.click(screen.getByRole("button", { name: /Raspberry Pi Camera/ }));
+    expect(screen.queryByRole("link", { name: "Request support" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Next step (2)" }));
     await userEvent.click(screen.getByRole("button", { name: "Next step (3)" }));
 

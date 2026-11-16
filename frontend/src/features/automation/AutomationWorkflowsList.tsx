@@ -1,5 +1,6 @@
 import { Inbox, Pencil, Plus, Workflow } from "lucide-react";
 import { useState } from "react";
+import { CapabilitySupportLinks } from "../feedback/CapabilitySupportLinks";
 import {
   DataTable,
   RowActions,
@@ -252,6 +253,7 @@ export function AutomationWorkflowsList({
         }}
         pageSizeOptions={PAGE_SIZE_OPTIONS}
       />
+      <CapabilitySupportLinks kind="workflow" />
     </Card>
   );
 }

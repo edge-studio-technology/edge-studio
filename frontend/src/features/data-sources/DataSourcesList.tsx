@@ -1,5 +1,6 @@
 import { Cable, Inbox, Play, Plus } from "lucide-react";
 import { useState } from "react";
+import { CapabilitySupportLinks } from "../feedback/CapabilitySupportLinks";
 import {
   DataTable,
   RowActions,
@@ -263,6 +264,7 @@ export function DataSourcesList({
         }}
         pageSizeOptions={PAGE_SIZE_OPTIONS}
       />
+      <CapabilitySupportLinks kind="device" />
 
       {detailsSource && (
         <DeviceDetailsModal

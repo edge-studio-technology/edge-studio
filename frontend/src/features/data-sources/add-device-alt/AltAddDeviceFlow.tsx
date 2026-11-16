@@ -1,5 +1,6 @@
 import { ArrowLeft, Cable, ChevronRight, Cpu, Lightbulb, Radio, ThermometerSun, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CapabilitySupportLinks } from "../../feedback/CapabilitySupportLinks";
 import { Button } from "../../../components/Button";
 import { Modal } from "../../../components/Modal";
 import { useToast } from "../../../components/ToastProvider";
@@ -262,6 +263,7 @@ function SetupDevicePicker({ step, options }: { step: WizardStep; options: Wizar
           </button>
         ))}
       </div>
+      <CapabilitySupportLinks kind="device" compact />
     </div>
   );
 }

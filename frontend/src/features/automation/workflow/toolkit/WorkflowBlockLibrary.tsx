@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Check } from "lucide-react";
+import { CapabilitySupportLinks } from "../../../feedback/CapabilitySupportLinks";
 import { Disclosure } from "../../../../components/ui/Disclosure";
 import { Tooltip } from "../../../../components/ui/Tooltip";
 import { cx } from "../../../../lib/cx";
@@ -128,6 +129,7 @@ export function WorkflowBlockLibrary({
           );
         })}
       </ToolkitGroup>
+      <CapabilitySupportLinks kind="workflow" compact />
     </WorkflowRailPanel>
   );
 }

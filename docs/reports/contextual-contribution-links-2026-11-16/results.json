@@ -1,0 +1,128 @@
+{
+  "results": [
+    {
+      "view": "devices",
+      "width": 1440,
+      "links": [
+        {
+          "text": "Request support",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=device-support.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Contribution guide",
+          "href": "https://github.com/edge-studio-technology/edge-studio/blob/main/docs/guides/contributing-devices.md",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true
+    },
+    {
+      "view": "devices",
+      "width": 390,
+      "links": [
+        {
+          "text": "Request support",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=device-support.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Contribution guide",
+          "href": "https://github.com/edge-studio-technology/edge-studio/blob/main/docs/guides/contributing-devices.md",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true
+    },
+    {
+      "view": "workflows",
+      "width": 1440,
+      "links": [
+        {
+          "text": "Request a feature",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=workflow-request.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Contribution guide",
+          "href": "https://github.com/edge-studio-technology/edge-studio/blob/main/docs/guides/contributing-workflows.md",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true
+    },
+    {
+      "view": "workflows",
+      "width": 390,
+      "links": [
+        {
+          "text": "Request a feature",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=workflow-request.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        },
+        {
+          "text": "Contribution guide",
+          "href": "https://github.com/edge-studio-technology/edge-studio/blob/main/docs/guides/contributing-workflows.md",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true
+    },
+    {
+      "view": "wizard",
+      "width": 1440,
+      "links": [
+        {
+          "text": "Request support",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=device-support.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true
+    },
+    {
+      "view": "toolkit",
+      "width": 1440,
+      "links": [
+        {
+          "text": "Request a feature",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=workflow-request.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true
+    },
+    {
+      "view": "toolkit",
+      "width": 390,
+      "links": [
+        {
+          "text": "Request a feature",
+          "href": "https://github.com/edge-studio-technology/edge-studio/issues/new?template=workflow-request.yml",
+          "target": "_blank",
+          "rel": "noopener noreferrer"
+        }
+      ],
+      "overflow": false,
+      "publicWarning": true
+    }
+  ],
+  "runtimeErrors": [],
+  "apiWrites": []
+}

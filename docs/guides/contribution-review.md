@@ -20,6 +20,8 @@ A suggested implementation is not a promise or a requirement to accept code. A m
 
 ## Public and private information
 
+Devices and Workflows include secondary links below their lists to the matching public request form and contribution guide. The device-selection wizard and workflow toolkit also offer compact request links. These open fixed GitHub destinations in a new tab and label requests as public; they never copy device configuration, workflow contents or private feedback into the URL.
+
 Issue forms publish only what the submitter enters. The app's Help & feedback chooser links to public problem/device/workflow/improvement forms and private vulnerability reporting. Send quick feedback opens the separate private form for general questions and informal feedback; no GitHub account is needed, while existing Integritas availability/consent rules apply. Back preserves an unfinished draft, and nothing is copied to GitHub. Private metadata/configuration is fetched only after entering that form. If private feedback suggests a useful task, a maintainer may write a new, sanitized problem statement containing the goal and acceptance criteria. Do not copy submissions, account/device identifiers, attachments or diagnostic archives. Do not identify or quote the original person without permission. Link internal records internally where public disclosure is inappropriate.
 
 Move security concerns to the [private reporting route](../../SECURITY.md#reporting-a-vulnerability). If a secret was already posted publicly, remove the public exposure and arrange rotation/revocation privately; editing an issue is not proof the secret was never copied.
